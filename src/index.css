@@ -1,0 +1,150 @@
+@import 'tailwindcss';
+@import './styles/components.css';
+
+@theme {
+  --color-bg: #071014;
+  --color-bg-top: #16323a;
+  --color-panel: #0d171c;
+  --color-text: #bdd2d0;
+  --color-text-soft: #9fb4b2;
+  --color-text-dim: #6b8280;
+  --color-text-strong: #f4fbf7;
+  --color-accent: #75ffd5;
+  --color-success: #75ffd5;
+  --color-warning: #ffb95c;
+  --color-critical: #ff6b6b;
+  --color-panel-hi: #111e24;
+  --color-border: rgba(117, 255, 213, 0.1);
+
+  --radius-sm: 0.45rem;
+  --radius-md: 0.55rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --font-body: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+  --font-heading: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  --font-mono: 'Consolas', 'Liberation Mono', monospace;
+}
+
+:root {
+  --bg: #071014;
+  --bg-top: #16323a;
+  --panel: #0d171c;
+  --border-strong: rgba(117, 255, 213, 0.18);
+  --text: #bdd2d0;
+  --text-soft: #9fb4b2;
+  --text-dim: #6b8280;
+  --text-strong: #f4fbf7;
+  --accent: #75ffd5;
+  --success: #75ffd5;
+  --warning: #ffb95c;
+  --critical: #ff6b6b;
+  --panel-hi: #111e24;
+  --border: rgba(117, 255, 213, 0.1);
+  --panel-shadow: rgba(0, 0, 0, 0.45) 0 24px 60px -30px, rgba(0, 0, 0, 0.3) 0 16px 24px -18px;
+  --radius-sm: 0.45rem;
+  --radius-md: 0.55rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --font-body: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', sans-serif;
+  --font-heading: 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  --font-mono: 'Consolas', 'Liberation Mono', monospace;
+  color-scheme: dark;
+  font: 18px/1.5 var(--font-body);
+  letter-spacing: 0.01em;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top, rgba(117, 255, 213, 0.12), transparent 30%),
+    radial-gradient(circle at 80% 20%, rgba(255, 185, 92, 0.08), transparent 24%),
+    linear-gradient(180deg, var(--bg-top), var(--bg) 42%, #030608 100%);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 6rem 6rem;
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 80%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 80%);
+}
+
+#root {
+  width: min(1180px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.25rem 0 4rem;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-heading);
+  color: var(--text-strong);
+  letter-spacing: -0.03em;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(3.1rem, 7vw, 5.8rem);
+  line-height: 0.92;
+}
+
+h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 3.6vw, 2.35rem);
+}
+
+h3 {
+  font-size: 1.15rem;
+}
+
+p,
+li {
+  font-size: 0.98rem;
+}
+
+code {
+  font-family: var(--font-mono), monospace;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  color: #021012;
+  background: var(--accent);
+}
+
+@media (max-width: 640px) {
+  :root {
+    font-size: 16px;
+  }
+
+  #root {
+    width: min(100% - 1rem, 1180px);
+    padding-top: 0.75rem;
+  }
+}

@@ -310,11 +310,11 @@ export function EventFeedPanel() {
                     ) : (
                       <p className="font-medium">{view.title}</p>
                     )}
-                    <p className="text-sm opacity-70">{view.detail}</p>
+                    <p className="text-sm opacity-80">{view.detail}</p>
                   </div>
                 </div>
 
-                <div className="text-right text-xs opacity-50">
+                <div className="event-meta text-right text-xs">
                   <p>Week {view.week}</p>
                   <p>{view.timestampLabel}</p>
                 </div>

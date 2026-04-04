@@ -19,8 +19,8 @@ export function FilterInput({
   ariaControls,
   placeholder,
   type = 'text',
-  containerClassName = 'form-row text-sm',
-  labelClassName = 'form-label opacity-80',
+  containerClassName = 'form-row form-row-compact text-sm',
+  labelClassName = 'form-label opacity-85',
   inputClassName = 'form-input w-full',
 }: FilterInputProps) {
   return (

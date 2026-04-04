@@ -15,13 +15,13 @@ import {
 import { applyRaids } from '../domain/sim/raid'
 import { assignTeam } from '../domain/sim/assign'
 import { hireCandidate } from '../domain/sim/hire'
-import {
-  createTeam,
-  moveAgentBetweenTeams,
-  renameTeam,
-} from '../domain/sim/teamManagement'
+import { createTeam, moveAgentBetweenTeams, renameTeam } from '../domain/sim/teamManagement'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { advanceMarketState, advanceProductionQueues, queueFabrication } from '../domain/sim/production'
+import {
+  advanceMarketState,
+  advanceProductionQueues,
+  queueFabrication,
+} from '../domain/sim/production'
 import { spawnFromFailures } from '../domain/sim/spawn'
 import { advanceTrainingQueues, queueTraining } from '../domain/sim/training'
 
@@ -41,7 +41,11 @@ function estimateOddsFromState(
   return estimateOutcomeOdds(currentCase, buildResolutionPreviewState(game), teamIds)
 }
 
-function previewCaseOutcomeFromState(team: Team, currentCase: CaseInstance, game: ReturnType<typeof createStartingState>) {
+function previewCaseOutcomeFromState(
+  team: Team,
+  currentCase: CaseInstance,
+  game: ReturnType<typeof createStartingState>
+) {
   return previewCaseOutcome(team, currentCase, buildResolutionPreviewState(game))
 }
 
@@ -75,10 +79,7 @@ function makeAgent(
   }
 }
 
-function makeCase(
-  id: string,
-  overrides: Partial<CaseInstance> = {}
-): CaseInstance {
+function makeCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
   const template = createStartingState().cases['case-001']
 
   return {
@@ -113,12 +114,10 @@ function makeSelectorFixture() {
   const state = createStartingState()
 
   state.agents = {
-    'agent-containment': makeAgent(
-      'agent-containment',
-      'Containment Specialist',
-      'occultist',
-      ['occult', 'seal']
-    ),
+    'agent-containment': makeAgent('agent-containment', 'Containment Specialist', 'occultist', [
+      'occult',
+      'seal',
+    ]),
     'agent-tech': makeAgent('agent-tech', 'Tech Specialist', 'tech', ['tech', 'field-kit']),
     'agent-hunter': makeAgent('agent-hunter', 'Hunter Specialist', 'hunter', ['combat']),
   }
@@ -459,8 +458,7 @@ describe('simulation pipeline invariants', () => {
 
     expect(assignmentInsights.availableTeams.map(({ team }) => team.id)).toEqual(['team-good'])
     expect(
-      assignmentInsights.availableTeams[0] &&
-        assignmentInsights.availableTeams[0].odds
+      assignmentInsights.availableTeams[0] && assignmentInsights.availableTeams[0].odds
     ).toEqual(goodTeamPreview.odds)
     expect(
       assignmentInsights.blockedTeams.some(
@@ -585,16 +583,18 @@ describe('simulation pipeline invariants', () => {
     expect(resolvedEvents.map((event) => event.payload.caseId)).toEqual(report!.resolvedCases)
     expect(failedEvents.map((event) => event.payload.caseId)).toEqual(report!.failedCases)
     expect(partialEvents.map((event) => event.payload.caseId)).toEqual(report!.partialCases)
-    expect(escalatedEvents.map((event) => event.payload.caseId)).toEqual(
-      report!.unresolvedTriggers
-    )
+    expect(escalatedEvents.map((event) => event.payload.caseId)).toEqual(report!.unresolvedTriggers)
     expect(new Set(terminalEventCaseIds).size).toBe(terminalEventCaseIds.length)
   })
 
   it('emits exactly one terminal event per resolution and keeps event order stable', () => {
     const buildState = () => {
       const base = createStartingState()
-      const assigned = assignTeam(assignTeam(base, 'case-001', 't_nightwatch'), 'case-002', 't_greentape')
+      const assigned = assignTeam(
+        assignTeam(base, 'case-001', 't_nightwatch'),
+        'case-002',
+        't_greentape'
+      )
 
       assigned.events = []
       assigned.reports = []
@@ -606,7 +606,11 @@ describe('simulation pipeline invariants', () => {
           difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
           weights: { combat: 0.25, investigation: 0.25, utility: 0.25, social: 0.25 },
           preferredTags: [],
-          onFail: { ...assigned.cases['case-001'].onFail, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+          onFail: {
+            ...assigned.cases['case-001'].onFail,
+            spawnCount: { min: 0, max: 0 },
+            spawnTemplateIds: [],
+          },
         },
         'case-002': {
           ...assigned.cases['case-002'],
@@ -614,7 +618,11 @@ describe('simulation pipeline invariants', () => {
           weeksRemaining: 1,
           difficulty: { combat: 999, investigation: 999, utility: 999, social: 999 },
           preferredTags: [],
-          onFail: { ...assigned.cases['case-002'].onFail, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+          onFail: {
+            ...assigned.cases['case-002'].onFail,
+            spawnCount: { min: 0, max: 0 },
+            spawnTemplateIds: [],
+          },
         },
         'case-003': {
           ...assigned.cases['case-003'],
@@ -640,14 +648,18 @@ describe('simulation pipeline invariants', () => {
           event.type
         )
       )
-      .map((event) => ('caseId' in event.payload ? `${event.type}:${event.payload.caseId}` : event.type))
+      .map((event) =>
+        'caseId' in event.payload ? `${event.type}:${event.payload.caseId}` : event.type
+      )
     const terminalEventsB = runB.events
       .filter((event) =>
         ['case.resolved', 'case.failed', 'case.partially_resolved', 'case.escalated'].includes(
           event.type
         )
       )
-      .map((event) => ('caseId' in event.payload ? `${event.type}:${event.payload.caseId}` : event.type))
+      .map((event) =>
+        'caseId' in event.payload ? `${event.type}:${event.payload.caseId}` : event.type
+      )
     const report = runA.reports.at(-1)
 
     expect(report).toBeDefined()
@@ -724,9 +736,10 @@ describe('simulation pipeline invariants', () => {
   it('does not emit duplicate event ids or duplicate semantic outcome keys in a tick', () => {
     const next = advanceWeek(makeMixedEventStateForOrdering(777), 1000)
     const allIds = next.events.map((event) => event.id)
-    const resolutionEvents = next.events.filter((event) =>
-      ['case.resolved', 'case.partially_resolved', 'case.failed'].includes(event.type) &&
-      'caseId' in event.payload
+    const resolutionEvents = next.events.filter(
+      (event) =>
+        ['case.resolved', 'case.partially_resolved', 'case.failed'].includes(event.type) &&
+        'caseId' in event.payload
     )
     const resolutionKeys = resolutionEvents.map((event) => {
       const payload = event.payload
@@ -800,7 +813,9 @@ describe('simulation pipeline invariants', () => {
         event.payload.parentCaseId === 'case-fail' &&
         event.payload.trigger === 'failure'
     )
-    const agencyIndex = next.events.findIndex((event) => event.type === 'agency.containment_updated')
+    const agencyIndex = next.events.findIndex(
+      (event) => event.type === 'agency.containment_updated'
+    )
     const intelIndex = next.events.findIndex((event) => event.type === 'intel.report_generated')
 
     expect(failIndex).toBeGreaterThan(-1)

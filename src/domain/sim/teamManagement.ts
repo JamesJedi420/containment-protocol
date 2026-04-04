@@ -222,7 +222,12 @@ export function setTeamLeader(state: GameState, teamId: Id, leaderId: Id | null)
 
   if (leaderId !== null) {
     const agent = state.agents[leaderId]
-    if (!memberIds.includes(leaderId) || !agent || agent.status === 'dead' || agent.status === 'resigned') {
+    if (
+      !memberIds.includes(leaderId) ||
+      !agent ||
+      agent.status === 'dead' ||
+      agent.status === 'resigned'
+    ) {
       return state
     }
   }

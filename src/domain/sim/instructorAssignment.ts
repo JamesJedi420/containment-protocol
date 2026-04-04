@@ -24,11 +24,7 @@ export function getAgentInstructorBonus(
   return 0
 }
 
-export function assignInstructor(
-  state: GameState,
-  staffId: string,
-  agentId: string
-): GameState {
+export function assignInstructor(state: GameState, staffId: string, agentId: string): GameState {
   const instructor = state.staff[staffId]
 
   if (!instructor || instructor.role !== 'instructor') {
@@ -47,10 +43,7 @@ export function assignInstructor(
 
   // Check if this agent already has an instructor assigned
   for (const record of Object.values(state.staff)) {
-    if (
-      record.role === 'instructor' &&
-      record.assignedAgentId === agentId
-    ) {
+    if (record.role === 'instructor' && record.assignedAgentId === agentId) {
       return state
     }
   }
@@ -67,10 +60,7 @@ export function assignInstructor(
   }
 }
 
-export function unassignInstructor(
-  state: GameState,
-  staffId: string
-): GameState {
+export function unassignInstructor(state: GameState, staffId: string): GameState {
   const instructor = state.staff[staffId]
 
   if (!instructor || instructor.role !== 'instructor') {

@@ -48,20 +48,8 @@ describe('EVENT_NOTE_BUILDERS', () => {
   })
 
   it('builds escalated notes and preserves trigger source', () => {
-    const deadline = EVENT_NOTE_BUILDERS.escalated(
-      'case-004',
-      'Unwatched Breach',
-      1,
-      2,
-      'deadline'
-    )
-    const failure = EVENT_NOTE_BUILDERS.escalated(
-      'case-004',
-      'Unwatched Breach',
-      2,
-      3,
-      'failure'
-    )
+    const deadline = EVENT_NOTE_BUILDERS.escalated('case-004', 'Unwatched Breach', 1, 2, 'deadline')
+    const failure = EVENT_NOTE_BUILDERS.escalated('case-004', 'Unwatched Breach', 2, 3, 'failure')
 
     expect(deadline.type).toBe('case.escalated')
     expect(deadline.metadata).toMatchObject({

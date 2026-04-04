@@ -271,10 +271,15 @@ function createBackLabel(label: string) {
   return SHELL_UI_TEXT.backToTemplate.replace('{label}', label)
 }
 
-function getAgentDetailMeta(game: GameState, agentId?: string): Pick<ShellMeta, 'title' | 'subtitle'> {
+function getAgentDetailMeta(
+  game: GameState,
+  agentId?: string
+): Pick<ShellMeta, 'title' | 'subtitle'> {
   const agent = game.agents[agentId ?? '']
   const team = agent
-    ? Object.values(game.teams).find((currentTeam) => getTeamMemberIds(currentTeam).includes(agent.id))
+    ? Object.values(game.teams).find((currentTeam) =>
+        getTeamMemberIds(currentTeam).includes(agent.id)
+      )
     : undefined
   const assignedCaseId = team ? getTeamAssignedCaseId(team) : null
   const assignedCase = assignedCaseId ? game.cases[assignedCaseId] : undefined

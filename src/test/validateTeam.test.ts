@@ -74,7 +74,11 @@ describe('validateTeam', () => {
     state.agents['a_mina'] = { ...state.agents['a_mina'], status: 'resigned' }
     state.agents['a_jules'] = { ...state.agents['a_jules'], status: 'dead' }
 
-    const result = validateTeam(state.teams['t_nightwatch'], { requiredRoles: [], requiredTags: [] }, state.agents)
+    const result = validateTeam(
+      state.teams['t_nightwatch'],
+      { requiredRoles: [], requiredTags: [] },
+      state.agents
+    )
 
     expect(result.valid).toBe(false)
     expect(result.activeAgentIds).toEqual([])
@@ -150,10 +154,10 @@ describe('validateTeam', () => {
       },
     }
 
-    const assignmentValidation = validateAgents(
-      [state.agents['a_ava']],
-      { requiredRoles: [], requiredTags: [] }
-    )
+    const assignmentValidation = validateAgents([state.agents['a_ava']], {
+      requiredRoles: [],
+      requiredTags: [],
+    })
     const resolutionValidation = validateAgents(
       [state.agents['a_ava']],
       { requiredRoles: [], requiredTags: [] },

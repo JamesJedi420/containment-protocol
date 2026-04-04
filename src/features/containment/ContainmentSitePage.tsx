@@ -1,10 +1,7 @@
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import {
-  buildEncounterStructureState,
-  buildEndgameScalingState,
-} from '../../domain/strategicState'
+import { buildEncounterStructureState, buildEndgameScalingState } from '../../domain/strategicState'
 
 export default function ContainmentSitePage() {
   const { game } = useGameStore()
@@ -57,7 +54,10 @@ export default function ContainmentSitePage() {
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">Progression bands</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {endgame.progressionBands.map((band) => (
-                <span key={band.label} className="rounded-full border border-white/10 px-2 py-1 text-xs">
+                <span
+                  key={band.label}
+                  className="rounded-full border border-white/10 px-2 py-1 text-xs"
+                >
                   {band.label} x{band.count}
                 </span>
               ))}
@@ -90,9 +90,9 @@ export default function ContainmentSitePage() {
                   <div>
                     <p className="font-medium">{incident.caseTitle}</p>
                     <p className="text-sm opacity-60">
-                      {incident.archetypeLabel} / Stage {incident.stage} / {incident.currentStageLabel}{' '}
-                      / {incident.kind === 'raid' ? 'Raid' : 'Case'} / Deadline{' '}
-                      {incident.deadlineRemaining}w
+                      {incident.archetypeLabel} / Stage {incident.stage} /{' '}
+                      {incident.currentStageLabel} / {incident.kind === 'raid' ? 'Raid' : 'Case'} /
+                      Deadline {incident.deadlineRemaining}w
                     </p>
                   </div>
                   <p className="text-sm opacity-60">Pressure {incident.pressureScore}</p>
@@ -113,7 +113,9 @@ export default function ContainmentSitePage() {
                   </div>
 
                   <div className="rounded border border-white/10 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">Stage progression</p>
+                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                      Stage progression
+                    </p>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {incident.progression.map((stage) => (
                         <span
@@ -133,7 +135,9 @@ export default function ContainmentSitePage() {
                   </div>
 
                   <div className="rounded border border-white/10 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">Active mechanics</p>
+                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                      Active mechanics
+                    </p>
                     <ul className="mt-2 space-y-2 text-sm opacity-70">
                       {incident.specialMechanics.map((mechanic) => (
                         <li key={mechanic.id}>
@@ -155,7 +159,9 @@ export default function ContainmentSitePage() {
                 </div>
 
                 <div className="mt-3">
-                  <p className="text-xs uppercase tracking-[0.24em] opacity-50">Incident modifiers</p>
+                  <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                    Incident modifiers
+                  </p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {incident.modifiers.map((modifier) => (
                       <span
@@ -210,7 +216,9 @@ export default function ContainmentSitePage() {
           </div>
 
           <div className="rounded border border-white/10 px-3 py-3">
-            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Urgent escalation chain</p>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Urgent escalation chain
+            </p>
             <ul className="mt-2 space-y-2 text-sm">
               {encounters.urgentEscalations.length > 0 ? (
                 encounters.urgentEscalations.map((entry) => (
@@ -218,8 +226,8 @@ export default function ContainmentSitePage() {
                     <span className="font-medium">{entry.caseTitle}</span>
                     <span className="opacity-60">
                       {' '}
-                      / {entry.originLabel} / {entry.encounterTypeLabel} / next stage {entry.nextStage}{' '}
-                      / deadline {entry.deadlineRemaining}w
+                      / {entry.originLabel} / {entry.encounterTypeLabel} / next stage{' '}
+                      {entry.nextStage} / deadline {entry.deadlineRemaining}w
                     </span>
                   </li>
                 ))
@@ -232,7 +240,9 @@ export default function ContainmentSitePage() {
 
         <div className="grid gap-3 lg:grid-cols-2">
           <div className="rounded border border-white/10 px-3 py-3">
-            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Likely follow-on incidents</p>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Likely follow-on incidents
+            </p>
             <ul className="mt-2 space-y-2 text-sm">
               {encounters.likelyFollowUps.length > 0 ? (
                 encounters.likelyFollowUps.map((target) => (
@@ -248,7 +258,9 @@ export default function ContainmentSitePage() {
           </div>
 
           <div className="rounded border border-white/10 px-3 py-3">
-            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Likely multi-team escalations</p>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Likely multi-team escalations
+            </p>
             <ul className="mt-2 space-y-2 text-sm">
               {encounters.likelyRaidConversions.length > 0 ? (
                 encounters.likelyRaidConversions.map((conversion) => (
@@ -273,7 +285,10 @@ export default function ContainmentSitePage() {
           <div className="mt-2 flex flex-wrap gap-2">
             {encounters.pressureTags.length > 0 ? (
               encounters.pressureTags.map((entry) => (
-                <span key={entry.tag} className="rounded-full border border-white/10 px-2 py-1 text-xs">
+                <span
+                  key={entry.tag}
+                  className="rounded-full border border-white/10 px-2 py-1 text-xs"
+                >
                   {entry.tag} x{entry.count}
                 </span>
               ))
@@ -288,7 +303,10 @@ export default function ContainmentSitePage() {
           <div className="mt-2 flex flex-wrap gap-2">
             {encounters.stageBreakdown.length > 0 ? (
               encounters.stageBreakdown.map((entry) => (
-                <span key={entry.stage} className="rounded-full border border-white/10 px-2 py-1 text-xs">
+                <span
+                  key={entry.stage}
+                  className="rounded-full border border-white/10 px-2 py-1 text-xs"
+                >
                   Stage {entry.stage} x{entry.count}
                 </span>
               ))

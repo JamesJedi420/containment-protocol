@@ -3,33 +3,64 @@ import type { OperationEvent } from './events/types'
 import type { PartyCardState } from './partyCards/models'
 import type {
   Agent,
+  AgentPowerImpact,
   AgentPerformanceOutput,
   FatigueBand,
   MarketPressure,
+  PerformanceMetricSummary,
+  ProtocolGlobalModifiers,
+  ProtocolScope,
+  ProtocolTier,
+  ProtocolType,
 } from './agent/models'
 
 // Re-export all agent-related types
 export type {
   Agent,
+  AgentActiveProtocol,
+  AgentAppliedKit,
   AgentAbility,
+  AgentAbilityState,
+  AgentAbilityTrigger,
+  AgentAssignmentStatus,
   AgentAssignmentState,
+  AgentGrowthStats,
   AgentHistory,
   AgentHistoryCounters,
   AgentHistoryEntry,
   AgentIdentity,
+  AgentPerformance,
+  AgentPerformanceBlendBreakdown,
+  ExactPotentialTier,
+  AgentPowerImpact,
   AgentPerformanceOutput,
   AgentProgression,
+  PotentialIntel,
+  PotentialIntelConfidence,
+  PotentialIntelSource,
+  AgentReadinessProfile,
   AgentRole,
+  AgentSimulationPurpose,
+  AgentScoreBreakdown,
+  AgentServiceRecord,
   AgentTrait,
   AgentTraitModifierKey,
   AgentVitals,
   DomainStats,
+  EquipmentSlots,
   FatigueBand,
   HireStatus,
+  LegacyStatDomain,
   MarketPressure,
+  PerformanceMetricSummary,
   PotentialTier,
+  ProtocolGlobalModifiers,
+  ProtocolScope,
+  ProtocolTier,
+  ProtocolType,
   RecruitCategory,
   RoleDomainWeights,
+  SkillTree,
   StatDomain,
 } from './agent/models'
 import type {
@@ -58,9 +89,13 @@ export type {
   CandidatePipelineStatus,
   CandidatePotentialTier,
   CandidateRevealLevel,
+  CandidateScoutStage,
+  CandidateScoutReport,
   SpecialistCandidateData,
   StaffCandidateSpecialty,
 } from './recruitment'
+
+export type { MissionResultInput } from './missionResults'
 
 export {
   buildCandidateEvaluation,
@@ -69,12 +104,15 @@ export {
   getCandidateOverall,
   revealCandidate,
   getCandidateWeeklyCost,
+  getCandidateScoutCost,
   isCandidateFieldVisible,
   isCandidateHireable,
+  isCandidateScoutable,
   normalizeCandidateCategory,
   normalizeCandidateHireStatus,
   normalizeStaffCandidateSpecialty,
   previewCandidate,
+  resolveCandidateActualPotentialTier,
   scoreToCandidatePotentialTier,
 } from './recruitment'
 
@@ -294,6 +332,159 @@ export interface TeamStatus {
   assignedCaseId: Id | null
 }
 
+export interface TeamPowerInventoryEntry {
+  itemId: string
+  name: string
+  equippedCount: number
+  activeContextCount: number
+  stockOnHand: number
+  totalQuality: number
+  tags: string[]
+}
+
+export interface TeamPowerKitSummary {
+  id: string
+  label: string
+  contributorIds: Id[]
+  contributorCount: number
+  matchedItemIds: string[]
+  matchedTags: string[]
+  activeThresholds: number[]
+  highestActiveThreshold: number
+  statModifiers: Record<string, number>
+  effectivenessMultiplier: number
+  stressImpactMultiplier: number
+  moraleRecoveryDelta: number
+}
+
+export interface TeamPowerProtocolSummary {
+  id: string
+  label: string
+  type: ProtocolType
+  tier: ProtocolTier
+  scope: ProtocolScope
+  contributorIds: Id[]
+  contributorCount: number
+  unlockReasons: string[]
+  globalModifiers: ProtocolGlobalModifiers
+  statModifiers: Record<string, number>
+  effectivenessMultiplier: number
+  stressImpactMultiplier: number
+  moraleRecoveryDelta: number
+}
+
+export interface TeamPowerSummary {
+  inventory: readonly TeamPowerInventoryEntry[]
+  kits: readonly TeamPowerKitSummary[]
+  protocols: readonly TeamPowerProtocolSummary[]
+  statModifiers: Record<string, number>
+  effectivenessMultiplier: number
+  stressImpactMultiplier: number
+  moraleRecoveryDelta: number
+}
+
+export interface PowerImpactSummary extends AgentPowerImpact {
+  notes: string[]
+}
+
+export type MissionResolutionKind = 'success' | 'partial' | 'fail' | 'unresolved'
+
+export interface MissionRewardFactor {
+  id: string
+  label: string
+  value: number
+  detail: string
+}
+
+export interface MissionRewardInventoryGrant {
+  kind: 'equipment' | 'material'
+  itemId: string
+  label: string
+  quantity: number
+  tags: string[]
+}
+
+export interface MissionRewardFactionStanding {
+  factionId: string
+  label: string
+  delta: number
+  overlapTags: string[]
+}
+
+export interface MissionRewardBreakdown {
+  outcome: MissionResolutionKind
+  caseType: string
+  caseTypeLabel: string
+  operationValue: number
+  factors: readonly MissionRewardFactor[]
+  fundingDelta: number
+  containmentDelta: number
+  strategicValueDelta: number
+  reputationDelta: number
+  inventoryRewards: readonly MissionRewardInventoryGrant[]
+  factionStanding: readonly MissionRewardFactionStanding[]
+  label: string
+  reasons: readonly string[]
+}
+
+export interface MissionPenaltyBreakdown {
+  fundingLoss: number
+  containmentLoss: number
+  reputationLoss: number
+  strategicLoss: number
+}
+
+export interface MissionTeamUsage {
+  teamId: Id
+  teamName?: string
+}
+
+export interface MissionFatigueChange {
+  teamId: Id
+  teamName?: string
+  before: number
+  after: number
+  delta: number
+  stressModifier: number
+}
+
+export interface MissionInjuryRecord {
+  agentId: Id
+  agentName: string
+  severity: string
+  damage: number
+}
+
+export interface MissionSpawnedConsequence {
+  type: 'stage_escalation' | 'follow_up_case'
+  caseId: Id
+  caseTitle?: string
+  stage?: number
+  trigger?:
+    | 'failure'
+    | 'unresolved'
+    | 'raid_pressure'
+    | 'world_activity'
+    | 'faction_pressure'
+    | 'pressure_threshold'
+  detail: string
+}
+
+export interface MissionResult {
+  caseId: Id
+  caseTitle: string
+  teamsUsed: readonly MissionTeamUsage[]
+  outcome: MissionResolutionKind
+  performanceSummary: PerformanceMetricSummary
+  powerImpact?: PowerImpactSummary
+  rewards: MissionRewardBreakdown
+  penalties: MissionPenaltyBreakdown
+  fatigueChanges: readonly MissionFatigueChange[]
+  injuries: readonly MissionInjuryRecord[]
+  spawnedConsequences: readonly MissionSpawnedConsequence[]
+  explanationNotes: readonly string[]
+}
+
 /** A team is the unit assigned to cases. Raids assign multiple teams. */
 export interface Team {
   id: Id
@@ -476,6 +667,7 @@ export interface ResolutionOutcome {
 
   /** Optional per-agent simulation outputs for analytics and balancing. */
   agentPerformance?: AgentPerformanceOutput[]
+  performanceSummary?: PerformanceMetricSummary
 }
 
 export interface WeeklyReportCaseSnapshot {
@@ -489,6 +681,9 @@ export interface WeeklyReportCaseSnapshot {
   durationWeeks: number
   weeksRemaining?: number
   assignedTeamIds: Id[]
+  performanceSummary?: PerformanceMetricSummary
+  rewardBreakdown?: MissionRewardBreakdown
+  missionResult?: MissionResult
 }
 
 export interface WeeklyReportTeamStatus {
@@ -511,10 +706,15 @@ export type ReportNoteType =
   | 'agent.training_completed'
   | 'production.queue_completed'
   | 'market.shifted'
+  | 'market.transaction_recorded'
+  | 'faction.standing_changed'
   | 'agency.containment_updated'
   | 'system.week_delta'
   | 'system.recruitment_expired'
   | 'system.recruitment_generated'
+  | 'recruitment.scouting_initiated'
+  | 'recruitment.scouting_refined'
+  | 'recruitment.intel_confirmed'
   | 'system.party_cards_drawn'
   | 'directive.applied'
 
@@ -552,7 +752,11 @@ export interface WeeklyReport {
   notes: ReportNote[]
 }
 
-export type WeeklyDirectiveId = 'intel-surge' | 'recovery-rotation' | 'procurement-push' | 'lockdown-protocol'
+export type WeeklyDirectiveId =
+  | 'intel-surge'
+  | 'recovery-rotation'
+  | 'procurement-push'
+  | 'lockdown-protocol'
 
 export interface WeeklyDirectiveHistoryEntry {
   week: number
@@ -612,13 +816,21 @@ export interface TrainingQueueEntry {
   trainedRelationshipDelta?: number
 }
 
+export interface ProductionMaterialRequirement {
+  materialId: string
+  materialName: string
+  quantity: number
+}
+
 export interface ProductionQueueEntry {
   id: Id
   recipeId: string
   recipeName: string
+  recipeDescription?: string
   outputItemId: string
   outputItemName: string
   outputQuantity: number
+  inputMaterials?: ProductionMaterialRequirement[]
   startedWeek: number
   durationWeeks: number
   remainingWeeks: number
@@ -697,6 +909,8 @@ export interface AgencyState {
   containmentRating: number
   clearanceLevel: number
   funding: number
+  protocolSelectionLimit?: number
+  activeProtocolIds?: string[]
 }
 
 export interface GameState {
@@ -727,6 +941,12 @@ export interface GameState {
   trainingQueue: TrainingQueueEntry[]
   productionQueue: ProductionQueueEntry[]
   market: MarketState
+  globalPressure?: number
+  responseGrid?: {
+    majorIncidentThreshold: number
+    majorIncidentTemplateIds: string[]
+    pressureDecayPerWeek?: number
+  }
   partyCards?: PartyCardState
   config: GameConfig
 

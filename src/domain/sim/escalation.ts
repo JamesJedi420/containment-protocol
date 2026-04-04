@@ -23,9 +23,7 @@ export function createDeadlineEscalationTransition(
     nextCase: {
       ...currentCase,
       kind: convertedToRaid ? 'raid' : currentCase.kind,
-      raid: convertedToRaid
-        ? (currentCase.raid ?? { minTeams: 2, maxTeams: 2 })
-        : currentCase.raid,
+      raid: convertedToRaid ? (currentCase.raid ?? { minTeams: 2, maxTeams: 2 }) : currentCase.raid,
       stage: nextStage,
       deadlineRemaining: currentCase.onUnresolved.deadlineResetWeeks ?? currentCase.deadlineWeeks,
     },

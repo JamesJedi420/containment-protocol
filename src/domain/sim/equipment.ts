@@ -17,11 +17,7 @@ function getInventoryStock(state: GameState, itemId: string) {
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
 
-function withSlotItem(
-  agent: Agent,
-  slot: EquipmentSlotKind,
-  itemId?: string
-): Agent {
+function withSlotItem(agent: Agent, slot: EquipmentSlotKind, itemId?: string): Agent {
   const nextSlots = { ...(agent.equipmentSlots ?? {}) }
 
   for (const alias of getEquipmentSlotAliases(slot)) {
@@ -39,9 +35,13 @@ function withSlotItem(
 }
 
 function getSlottedItemIds(agent: Agent) {
-  return [...new Set(EQUIPMENT_SLOT_KINDS
-    .map((slot) => getEquipmentSlotItemId(agent.equipmentSlots, slot))
-    .filter((itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0))]
+  return [
+    ...new Set(
+      EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(agent.equipmentSlots, slot)).filter(
+        (itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0
+      )
+    ),
+  ]
 }
 
 function withEquipmentQualityMap(agent: Agent): Agent {

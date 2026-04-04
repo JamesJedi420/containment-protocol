@@ -6,6 +6,7 @@ import { useGameStore } from '../../app/store/gameStore'
 import { type AgentRole, type GameState } from '../../domain/models'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
+  IconFieldRecon,
   IconHunter,
   IconInvestigator,
   IconMedic,
@@ -505,6 +506,7 @@ function RoleIcon({ role, className }: { role: AgentRole; className?: string }) 
     hunter: IconHunter,
     occultist: IconOccultist,
     investigator: IconInvestigator,
+    field_recon: IconFieldRecon,
     medium: IconMedium,
     tech: IconTech,
     medic: IconMedic,

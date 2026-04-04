@@ -13,7 +13,10 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'intel.report_generated': 'covered',
   'agent.training_started': 'covered',
   'agent.training_completed': 'covered',
+  'agent.training_cancelled': 'covered',
   'agent.relationship_changed': 'covered',
+  'agent.instructor_assigned': 'covered',
+  'agent.instructor_unassigned': 'covered',
   'agent.injured': 'covered',
   'agent.betrayed': 'covered',
   'agent.resigned': 'covered',
@@ -22,6 +25,9 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'agent.hired': 'covered',
   'system.recruitment_expired': 'covered',
   'system.recruitment_generated': 'covered',
+  'recruitment.scouting_initiated': 'covered',
+  'recruitment.scouting_refined': 'covered',
+  'recruitment.intel_confirmed': 'covered',
   'system.party_cards_drawn': 'covered',
   'production.queue_completed': 'covered',
   'production.queue_started': 'covered',
@@ -29,6 +35,8 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'market.transaction_recorded': 'covered',
   'faction.standing_changed': 'covered',
   'agency.containment_updated': 'covered',
+  'directive.applied': 'covered',
+  'system.academy_upgraded': 'covered',
 }
 
 describe('event type coverage contract', () => {

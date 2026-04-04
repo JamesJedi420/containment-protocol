@@ -10,7 +10,14 @@
  * 6. External event influences (fatalities, promotions affect relationships)
  */
 
-import { type GameState, type Relationship, type RelationshipSnapshot, type Agent, type ChemistryPredictionInput, type ChemistryPredictionResult } from '../models'
+import {
+  type GameState,
+  type Relationship,
+  type RelationshipSnapshot,
+  type Agent,
+  type ChemistryPredictionInput,
+  type ChemistryPredictionResult,
+} from '../models'
 import { getTeamMemberIds } from '../teamSimulation'
 import { calcTeamChemistry } from './chemistry'
 
@@ -96,7 +103,11 @@ export function calculateModifierAmplification(modifiers: readonly string[]): nu
   }
 
   // Triple threat: all three trust-building modifiers
-  if (hasModifier('high_trust') && hasModifier('trained_coordination') && hasModifier('shared_history')) {
+  if (
+    hasModifier('high_trust') &&
+    hasModifier('trained_coordination') &&
+    hasModifier('shared_history')
+  ) {
     amplification += 0.25
   }
 
@@ -266,7 +277,9 @@ export interface ModifierComplementarityAnalysis {
   }>
 }
 
-export function analyzeModifierComplementarity(modifiers: readonly string[]): ModifierComplementarityAnalysis {
+export function analyzeModifierComplementarity(
+  modifiers: readonly string[]
+): ModifierComplementarityAnalysis {
   const pairings: Array<{
     pair: [string, string]
     amplification: number

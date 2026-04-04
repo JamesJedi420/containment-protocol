@@ -1,7 +1,4 @@
-import {
-  appendOperationEventDrafts,
-  createAgentRelationshipChangedDraft,
-} from '../events'
+import { appendOperationEventDrafts, createAgentRelationshipChangedDraft } from '../events'
 import { appendAgentHistoryEntry, createAgentHistoryEntry } from '../agent/lifecycle'
 import { clamp } from '../math'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
@@ -84,37 +81,41 @@ export function reconcileAgents(state: GameState, leftId: Id, rightId: Id): Game
   const nextState = normalizeGameState({
     ...state,
     funding: state.funding - RECONCILIATION_COST,
-    agents: recoverTrustDamageForPair({
-      ...state.agents,
-      [leftId]: appendAgentHistoryEntry(
-        {
-          ...leftAgent,
-          relationships: {
-            ...leftAgent.relationships,
-            [rightId]: leftNext,
+    agents: recoverTrustDamageForPair(
+      {
+        ...state.agents,
+        [leftId]: appendAgentHistoryEntry(
+          {
+            ...leftAgent,
+            relationships: {
+              ...leftAgent.relationships,
+              [rightId]: leftNext,
+            },
           },
-        },
-        createAgentHistoryEntry(
-          state.week,
-          'simulation.weekly_tick',
-          `Reconciliation session with ${rightAgent.name}.`
-        )
-      ),
-      [rightId]: appendAgentHistoryEntry(
-        {
-          ...rightAgent,
-          relationships: {
-            ...rightAgent.relationships,
-            [leftId]: rightNext,
+          createAgentHistoryEntry(
+            state.week,
+            'simulation.weekly_tick',
+            `Reconciliation session with ${rightAgent.name}.`
+          )
+        ),
+        [rightId]: appendAgentHistoryEntry(
+          {
+            ...rightAgent,
+            relationships: {
+              ...rightAgent.relationships,
+              [leftId]: rightNext,
+            },
           },
-        },
-        createAgentHistoryEntry(
-          state.week,
-          'simulation.weekly_tick',
-          `Reconciliation session with ${leftAgent.name}.`
-        )
-      ),
-    }, leftId, rightId),
+          createAgentHistoryEntry(
+            state.week,
+            'simulation.weekly_tick',
+            `Reconciliation session with ${leftAgent.name}.`
+          )
+        ),
+      },
+      leftId,
+      rightId
+    ),
   })
 
   return appendOperationEventDrafts(nextState, [

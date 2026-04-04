@@ -2,10 +2,7 @@ import { type AgentSimulationProfile } from './agent/models'
 import { buildAgentSimulationProfile } from './agent/simulation'
 import { isAgentRecordNormalized, normalizeAgentRecord } from './agent/normalize'
 import { clamp } from './math'
-import {
-  aggregateRuntimeModifierResults,
-  createRuntimeModifierResult,
-} from './modifierRuntime'
+import { aggregateRuntimeModifierResults, createRuntimeModifierResult } from './modifierRuntime'
 import {
   type Agent,
   type AgentAbilityTrigger,
@@ -227,6 +224,7 @@ export function createDefaultTeamChemistryProfile(): TeamChemistryProfile {
     bonus: 0,
     pairs: 0,
     average: 0,
+    cohesion: 0,
   }
 }
 
@@ -287,20 +285,15 @@ function buildPerformanceMetricSummary(
     | 'containmentActionsCompleted'
   >[]
 ): PerformanceMetricSummary {
-  return agentPerformance.reduce<PerformanceMetricSummary>(
-    (summary, performance) => {
-      summary.contribution += toFiniteNumber(performance.contribution)
-      summary.threatHandled += toFiniteNumber(performance.threatHandled)
-      summary.damageTaken += toFiniteNumber(performance.damageTaken)
-      summary.healingPerformed += toFiniteNumber(performance.healingPerformed)
-      summary.evidenceGathered += toFiniteNumber(performance.evidenceGathered)
-      summary.containmentActionsCompleted += toFiniteNumber(
-        performance.containmentActionsCompleted
-      )
-      return summary
-    },
-    createDefaultPerformanceMetricSummary()
-  )
+  return agentPerformance.reduce<PerformanceMetricSummary>((summary, performance) => {
+    summary.contribution += toFiniteNumber(performance.contribution)
+    summary.threatHandled += toFiniteNumber(performance.threatHandled)
+    summary.damageTaken += toFiniteNumber(performance.damageTaken)
+    summary.healingPerformed += toFiniteNumber(performance.healingPerformed)
+    summary.evidenceGathered += toFiniteNumber(performance.evidenceGathered)
+    summary.containmentActionsCompleted += toFiniteNumber(performance.containmentActionsCompleted)
+    return summary
+  }, createDefaultPerformanceMetricSummary())
 }
 
 function buildTeamPowerSummary(
@@ -336,15 +329,15 @@ function buildTeamPowerSummary(
 
       current.contributorIds = [...new Set([...current.contributorIds, profile.agentId])]
       current.contributorCount = current.contributorIds.length
-      current.matchedItemIds = [...new Set([...current.matchedItemIds, ...kit.matchedItemIds])].sort(
-        (left, right) => left.localeCompare(right)
-      )
+      current.matchedItemIds = [
+        ...new Set([...current.matchedItemIds, ...kit.matchedItemIds]),
+      ].sort((left, right) => left.localeCompare(right))
       current.matchedTags = [...new Set([...current.matchedTags, ...kit.matchedTags])].sort(
         (left, right) => left.localeCompare(right)
       )
-      current.activeThresholds = [...new Set([...current.activeThresholds, ...kit.activeThresholds])].sort(
-        (left, right) => left - right
-      )
+      current.activeThresholds = [
+        ...new Set([...current.activeThresholds, ...kit.activeThresholds]),
+      ].sort((left, right) => left - right)
       current.highestActiveThreshold = Math.max(
         current.highestActiveThreshold,
         kit.highestActiveThreshold
@@ -511,23 +504,23 @@ function buildPowerImpactSummary(
         return current
       }
 
-      current.equipmentContributionDelta += toFiniteNumber(
-        powerImpact.equipmentContributionDelta
-      )
+      current.equipmentContributionDelta += toFiniteNumber(powerImpact.equipmentContributionDelta)
       current.kitContributionDelta += toFiniteNumber(powerImpact.kitContributionDelta)
-      current.protocolContributionDelta += toFiniteNumber(
-        powerImpact.protocolContributionDelta
-      )
+      current.protocolContributionDelta += toFiniteNumber(powerImpact.protocolContributionDelta)
       current.equipmentScoreDelta += toFiniteNumber(powerImpact.equipmentScoreDelta)
       current.kitScoreDelta += toFiniteNumber(powerImpact.kitScoreDelta)
       current.protocolScoreDelta += toFiniteNumber(powerImpact.protocolScoreDelta)
       current.kitEffectivenessMultiplier = Number(
-        (current.kitEffectivenessMultiplier *
-          toFiniteNumber(powerImpact.kitEffectivenessMultiplier, 1)).toFixed(4)
+        (
+          current.kitEffectivenessMultiplier *
+          toFiniteNumber(powerImpact.kitEffectivenessMultiplier, 1)
+        ).toFixed(4)
       )
       current.protocolEffectivenessMultiplier = Number(
-        (current.protocolEffectivenessMultiplier *
-          toFiniteNumber(powerImpact.protocolEffectivenessMultiplier, 1)).toFixed(4)
+        (
+          current.protocolEffectivenessMultiplier *
+          toFiniteNumber(powerImpact.protocolEffectivenessMultiplier, 1)
+        ).toFixed(4)
       )
       return current
     },
@@ -546,15 +539,15 @@ function buildPowerImpactSummary(
     }
   )
 
-  summary.activeEquipmentIds = [...new Set(powerSummary.inventory.map((entry) => entry.itemId))].sort(
-    (left, right) => left.localeCompare(right)
-  )
+  summary.activeEquipmentIds = [
+    ...new Set(powerSummary.inventory.map((entry) => entry.itemId)),
+  ].sort((left, right) => left.localeCompare(right))
   summary.activeKitIds = [...new Set(powerSummary.kits.map((kit) => kit.id))].sort((left, right) =>
     left.localeCompare(right)
   )
-  summary.activeProtocolIds = [...new Set(powerSummary.protocols.map((protocol) => protocol.id))].sort(
-    (left, right) => left.localeCompare(right)
-  )
+  summary.activeProtocolIds = [
+    ...new Set(powerSummary.protocols.map((protocol) => protocol.id)),
+  ].sort((left, right) => left.localeCompare(right))
 
   return {
     ...summary,
@@ -565,10 +558,7 @@ function buildPowerImpactSummary(
     kitScoreDelta: toRoundedFinite(summary.kitScoreDelta),
     protocolScoreDelta: toRoundedFinite(summary.protocolScoreDelta),
     kitEffectivenessMultiplier: toRoundedFinite(summary.kitEffectivenessMultiplier, 4),
-    protocolEffectivenessMultiplier: toRoundedFinite(
-      summary.protocolEffectivenessMultiplier,
-      4
-    ),
+    protocolEffectivenessMultiplier: toRoundedFinite(summary.protocolEffectivenessMultiplier, 4),
     notes: buildPowerImpactNotes(summary),
   }
 }
@@ -613,11 +603,12 @@ export function getTeamMembers(
     .filter((agent): agent is Agent => Boolean(agent))
 }
 
-export function getUniqueTeamMemberIds(
-  teamIds: readonly Id[],
-  teams: GameState['teams']
-): Id[] {
-  return [...new Set(teamIds.flatMap((teamId) => getTeamMemberIds(teams[teamId] ?? EMPTY_TEAM_MEMBER_SOURCE)))]
+export function getUniqueTeamMemberIds(teamIds: readonly Id[], teams: GameState['teams']): Id[] {
+  return [
+    ...new Set(
+      teamIds.flatMap((teamId) => getTeamMemberIds(teams[teamId] ?? EMPTY_TEAM_MEMBER_SOURCE))
+    ),
+  ]
 }
 
 export function getUniqueTeamMembers(
@@ -708,7 +699,7 @@ export function buildAgentSquadCompositionProfile(
   const synergyProfile = evaluateTeamSynergy(members, teamTags)
   const leader = leaderId ? members.find((agent) => agent.id === leaderId) : members[0]
   const leaderProfile = leader
-    ? agentProfiles.find((profile) => profile.agentId === leader.id) ?? null
+    ? (agentProfiles.find((profile) => profile.agentId === leader.id) ?? null)
     : null
   const averageFatigue = Math.round(
     members.reduce((sum, agent) => sum + toFiniteNumber(agent.fatigue), 0) /
@@ -737,10 +728,7 @@ export function buildAgentSquadCompositionProfile(
   const leadershipScore = leaderProfile
     ? clamp(
         Math.round(
-          (computeLeadershipDomainScore(
-            leaderProfile,
-            LEADER_EFFECTIVENESS_DOMAIN_WEIGHTS
-          ) +
+          (computeLeadershipDomainScore(leaderProfile, LEADER_EFFECTIVENESS_DOMAIN_WEIGHTS) +
             computeLeadershipDomainScore(leaderProfile, LEADER_STRESS_DOMAIN_WEIGHTS)) /
             2
         ),
@@ -828,7 +816,9 @@ export function buildAggregatedLeaderBonus(
     return createNeutralLeaderBonus()
   }
 
-  const weights = profiles.map((profile) => Math.max(1, sumResolutionProfile(profile.resolutionProfile)))
+  const weights = profiles.map((profile) =>
+    Math.max(1, sumResolutionProfile(profile.resolutionProfile))
+  )
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
 
   if (totalWeight <= 0) {
@@ -841,7 +831,8 @@ export function buildAggregatedLeaderBonus(
     0
   )
   const eventModifier = profiles.reduce(
-    (sum, profile, index) => sum + profile.leaderBonus.eventModifier * (weights[index] / totalWeight),
+    (sum, profile, index) =>
+      sum + profile.leaderBonus.eventModifier * (weights[index] / totalWeight),
     0
   )
   const xpBonus = profiles.reduce(
@@ -976,9 +967,7 @@ function normalizeCaseAssignmentTeamIds(
       {
         ...currentCase,
         assignedTeamIds: [
-          ...new Set(
-            currentCase.assignedTeamIds.filter((teamId) => existingTeamIds.has(teamId))
-          ),
+          ...new Set(currentCase.assignedTeamIds.filter((teamId) => existingTeamIds.has(teamId))),
         ],
       },
     ])
@@ -1003,9 +992,7 @@ function clearDanglingTeamCasePointers(
         {
           ...team,
           assignedCaseId: undefined,
-          status: team.status
-            ? { ...team.status, assignedCaseId: null }
-            : team.status,
+          status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
         },
       ]
     })

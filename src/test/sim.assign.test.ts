@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { assignTeam, unassignTeam } from '../domain/sim/assign'
+import type { OperationEvent } from '../domain/models'
 
 describe('assignTeam', () => {
   it('returns the same state when the target case does not exist', () => {
@@ -289,7 +290,9 @@ describe('unassignTeam', () => {
     const assignedGreenTape = assignTeam(assignedNightWatch, 'case-001', 't_greentape')
     const assignedBackNightWatch = assignTeam(assignedGreenTape, 'case-001', 't_nightwatch')
 
-    const lastFiveEvents = assignedBackNightWatch.events.slice(-5)
+    const lastFiveEvents = assignedBackNightWatch.events.slice(-5) as Array<
+      OperationEvent<'assignment.team_assigned' | 'assignment.team_unassigned'>
+    >
 
     expect(lastFiveEvents.map((event) => event.type)).toEqual([
       'assignment.team_assigned',

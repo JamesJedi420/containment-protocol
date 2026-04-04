@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 // cspell:words sato
 import { trainingCatalog } from '../data/training'
 import { buildAcademyOverview, previewTrainingImpact } from '../domain/academy'
-import { BASE_STAT_MAX } from '../domain/models'
+import { getAgentStatCap } from '../domain/agentPotential'
 import { assignTeam } from '../domain/sim/assign'
 import { queueTraining, TRAINING_FATIGUE_GATE } from '../domain/sim/training'
 import { createFixtureState } from './storeFixtures'
@@ -15,11 +15,12 @@ if (!coordinationDrill) throw new Error('Missing coordination-drill in catalog.'
 
 describe('academy', () => {
   describe('previewTrainingImpact stat ceiling', () => {
-    it('returns scoreDelta <= 0 when the target stat is already at BASE_STAT_MAX', () => {
+    it('returns scoreDelta <= 0 when the target stat is already at the agent ceiling', () => {
       const state = createFixtureState()
+      const targetCap = getAgentStatCap(state.agents.a_sato, 'combat')
       const agent = {
         ...state.agents.a_sato,
-        baseStats: { ...state.agents.a_sato.baseStats, combat: BASE_STAT_MAX },
+        baseStats: { ...state.agents.a_sato.baseStats, combat: targetCap },
       }
 
       const preview = previewTrainingImpact(agent, combatDrills)
@@ -31,16 +32,20 @@ describe('academy', () => {
     it('returns a lower scoreDelta for a near-ceiling agent than an unconstrained one', () => {
       const state = createFixtureState()
       const agent = state.agents.a_sato
+      const targetCap = getAgentStatCap(agent, 'combat')
 
-      // Near-ceiling: gains only 1 effective point (99 → 100)
+      // Near-ceiling: gains only a sliver of effective space before the personal cap.
       const nearCeilingAgent = {
         ...agent,
-        baseStats: { ...agent.baseStats, combat: BASE_STAT_MAX - 1 },
+        baseStats: { ...agent.baseStats, combat: Math.max(0, targetCap - 1) },
       }
       // Baseline: gains the full statDelta (starts well below ceiling)
       const baselineAgent = {
         ...agent,
-        baseStats: { ...agent.baseStats, combat: Math.max(0, BASE_STAT_MAX - combatDrills.statDelta - 10) },
+        baseStats: {
+          ...agent.baseStats,
+          combat: Math.max(0, targetCap - combatDrills.statDelta - 10),
+        },
       }
 
       const nearCeilingPreview = previewTrainingImpact(nearCeilingAgent, combatDrills)
@@ -166,7 +171,10 @@ describe('academy', () => {
       const maxedAgents = Object.fromEntries(
         Object.entries(state.agents).map(([id, agent]) => [
           id,
-          { ...agent, baseStats: { ...agent.baseStats, utility: BASE_STAT_MAX } },
+          {
+            ...agent,
+            baseStats: { ...agent.baseStats, utility: getAgentStatCap(agent, 'utility') },
+          },
         ])
       )
       const maxedState = { ...state, agents: maxedAgents }

@@ -107,4 +107,41 @@ describe('equipment kits', () => {
     expect(effects.statModifiers).toEqual({})
     expect(effects.effectivenessMultiplier).toBeCloseTo(1.1585028, 6)
   })
+
+  it('activates the field recon suite only when dedicated recon gear is equipped', () => {
+    const state = createStartingState()
+    const caseData = {
+      ...state.cases['case-002'],
+      mode: 'probability' as const,
+      tags: ['signal', 'anomaly', 'evidence', 'field'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    const agent = {
+      ...state.agents.a_mina,
+      role: 'field_recon' as const,
+      tags: ['recon', 'surveillance', 'pathfinding', 'field-kit'],
+      equipmentSlots: {
+        secondary: 'anomaly_scanner',
+        headgear: 'advanced_recon_suite',
+        utility1: 'signal_intercept_kit',
+        utility2: 'occult_detection_array',
+      },
+      equipment: {},
+    }
+
+    const kit = resolveAgentEquipmentKits(agent, {
+      agent,
+      phase: 'evaluation',
+      caseData,
+    }).find((entry) => entry.id === 'field-recon-suite')
+
+    expect(kit).toMatchObject({
+      matchedPieceCount: 4,
+      activeThresholds: [2, 4],
+      highestActiveThreshold: 4,
+    })
+    expect(kit?.effectivenessMultiplier).toBeCloseTo(1.0815, 6)
+    expect(kit?.stressImpactMultiplier).toBeCloseTo(0.9408, 6)
+  })
 })

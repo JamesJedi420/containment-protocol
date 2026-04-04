@@ -4,6 +4,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { IconStageCritical, IconStageOk, IconStageWarn } from '../../components/icons'
 import { DetailStat } from '../../components/StatCard'
+import { buildCaseGenerationProfile } from '../../domain/caseGeneration'
 import { estimateOutcomeOdds } from '../../domain/sim/resolve'
 import {
   AGENCY_LABELS,
@@ -43,6 +44,8 @@ export default function CaseDetailPage() {
   const view = getCaseListItemView(currentCase, game)
   const templateIntel = getTemplateIntelView(currentCase.templateId, game.templates)
   const assignmentInsights = getCaseAssignmentInsights(currentCase, game)
+  const generationProfile = buildCaseGenerationProfile(currentCase, game)
+  const rewardPreview = generationProfile.rewardProfile
   const handCards = (game.partyCards?.hand ?? [])
     .map((cardId) => game.partyCards?.cards[cardId])
     .filter((card): card is NonNullable<typeof card> => Boolean(card))
@@ -123,6 +126,43 @@ export default function CaseDetailPage() {
             value={oddsSummary(currentCase, game, view.assignedTeams)}
           />
           <DetailStat label={CASE_UI_LABELS.teamsRequired} value={String(view.maxTeams)} />
+        </div>
+
+        <div
+          className="rounded border border-sky-400/25 bg-sky-500/6 px-3 py-3"
+          aria-label="Tactical insight strip"
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs uppercase tracking-wide opacity-60">Tactical insight</p>
+            <p className="text-xs opacity-60">Compact odds and reward highlights</p>
+          </div>
+          <div className="mt-2 grid gap-2 md:grid-cols-4 text-sm">
+            <p>
+              <span className="opacity-60">Current odds:</span>{' '}
+              <span className="font-medium">
+                {oddsSummary(currentCase, game, view.assignedTeams)}
+              </span>
+            </p>
+            <p>
+              <span className="opacity-60">Success funding:</span>{' '}
+              <span className="font-medium">
+                {signedNumber(rewardPreview.success.fundingDelta)}
+              </span>
+            </p>
+            <p>
+              <span className="opacity-60">Fail containment:</span>{' '}
+              <span className="font-medium">
+                {signedNumber(rewardPreview.fail.containmentDelta)}
+              </span>
+            </p>
+            <p>
+              <span className="opacity-60">Unresolved next stage:</span>{' '}
+              <span className="font-medium">
+                {generationProfile.escalation.find((entry) => entry.trigger === 'unresolved')
+                  ?.nextStage ?? currentCase.stage}
+              </span>
+            </p>
+          </div>
         </div>
       </article>
 
@@ -209,13 +249,71 @@ export default function CaseDetailPage() {
                   />
                 </div>
 
-                <section className="rounded border border-white/10 p-3" aria-label="Encounter profile">
-                  <h3 className="text-lg font-semibold">Encounter profile</h3>
-                  <p className="mt-2 text-sm opacity-70">Baseline world activity</p>
-                  <h4 className="mt-3 text-base font-semibold">Mission result model</h4>
-                  <p className="mt-1 text-sm opacity-70">Decisive success stabilizes local pressure and supports containment confidence.</p>
-                  <p className="mt-1 text-sm opacity-70">If the operation fails, escalation pressure rises and follow-up incidents may trigger.</p>
-                  <p className="mt-1 text-sm opacity-70">If the case goes unresolved, deadline pressure compounds until intervention lands.</p>
+                <section
+                  className="rounded border border-white/10 p-3"
+                  aria-label="Encounter profile"
+                >
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold">Encounter profile</h3>
+                    <p className="text-sm opacity-60">
+                      Why this incident appeared, what is driving it, and what it is likely to
+                      escalate into if left unchecked.
+                    </p>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                    <DetailStat
+                      label="Encounter type"
+                      value={generationProfile.encounterTypeLabel}
+                    />
+                    <DetailStat label="Origin" value={generationProfile.origin.label} />
+                    <DetailStat
+                      label="Escalation paths"
+                      value={String(
+                        generationProfile.escalation.filter((entry) => entry.targets.length > 0)
+                          .length
+                      )}
+                    />
+                  </div>
+
+                  <div className="mt-3 rounded border border-white/10 p-3">
+                    <p className="text-xs uppercase tracking-wide opacity-50">
+                      Baseline world activity
+                    </p>
+                    <p className="mt-2 text-sm opacity-70">{generationProfile.origin.detail}</p>
+                  </div>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-3">
+                    <TagBlock label="Cause signals" tags={generationProfile.causeSignals} />
+                    {generationProfile.escalation.map((entry) => (
+                      <div key={entry.trigger} className="rounded border border-white/10 p-3">
+                        <p className="text-xs uppercase tracking-wide opacity-50">
+                          {formatEscalationTriggerLabel(entry.trigger)}
+                        </p>
+                        <p className="mt-2 text-sm opacity-70">
+                          Escalates to Stage {entry.nextStage}
+                          {entry.convertsToRaid
+                            ? ` and converts to raid${entry.raidTeamRange ? ` (${entry.raidTeamRange} teams)` : ''}.`
+                            : '.'}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {entry.targets.length > 0 ? (
+                            entry.targets.map((target) => (
+                              <Link
+                                key={target.templateId}
+                                to={APP_ROUTES.intelDetail(target.templateId)}
+                                className="btn btn-xs btn-ghost"
+                              >
+                                {target.title}
+                              </Link>
+                            ))
+                          ) : (
+                            <span className="text-sm opacity-50">{SHELL_UI_TEXT.none}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </section>
               </>
             ) : (
@@ -225,13 +323,20 @@ export default function CaseDetailPage() {
             )}
           </article>
 
-          <article className="panel panel-support space-y-3" role="region" aria-label="Assignment timeline">
+          <article
+            className="panel panel-support space-y-3"
+            role="region"
+            aria-label="Assignment timeline"
+          >
             <h3 className="text-lg font-semibold">Assignment timeline</h3>
             {assignmentTimelineEntries.length > 0 ? (
               <ul className="space-y-2">
                 {assignmentTimelineEntries.map((entry) => {
-                  const caseTitle = (entry.payload.caseTitle as string | undefined) ?? currentCase.title
-                  const teamName = (entry.payload.teamName as string | undefined) ?? (entry.payload.teamId as string | undefined)
+                  const caseTitle =
+                    (entry.payload.caseTitle as string | undefined) ?? currentCase.title
+                  const teamName =
+                    (entry.payload.teamName as string | undefined) ??
+                    (entry.payload.teamId as string | undefined)
                   const teamId = entry.payload.teamId as string | undefined
                   const text =
                     entry.type === 'assignment.team_assigned'
@@ -247,10 +352,16 @@ export default function CaseDetailPage() {
                               : `${caseTitle} escalated`
 
                   return (
-                    <li key={entry.id} className="rounded border border-white/10 px-3 py-2 text-sm opacity-80">
+                    <li
+                      key={entry.id}
+                      className={`rounded border px-3 py-2 text-sm opacity-80 ${getTimelineToneClass(entry.type)}`}
+                    >
                       <p className="font-medium">{text}</p>
                       {teamId && teamName ? (
-                        <Link to={APP_ROUTES.teamDetail(teamId)} className="text-xs opacity-70 hover:underline">
+                        <Link
+                          to={APP_ROUTES.teamDetail(teamId)}
+                          className="text-xs opacity-70 hover:underline"
+                        >
                           {teamName}
                         </Link>
                       ) : null}
@@ -261,6 +372,55 @@ export default function CaseDetailPage() {
             ) : (
               <p className="text-sm opacity-50">No assignment timeline entries yet.</p>
             )}
+          </article>
+
+          <article
+            className="panel panel-support space-y-3"
+            role="region"
+            aria-label="Mission reward preview"
+          >
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">Mission result model</h3>
+              <p className="text-sm opacity-60">
+                Rewards are deterministic. Case difficulty, escalation stage, incident family, and
+                outcome quality feed the same reward model for funding, reputation, materials, gear,
+                and faction standing.
+              </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              {Object.entries(rewardPreview).map(([key, preview]) => (
+                <div key={key} className="rounded border border-white/10 px-3 py-3">
+                  <p className="font-medium">{preview.label}</p>
+                  <p className="mt-1 text-sm opacity-60">
+                    {preview.caseTypeLabel} / operation value {preview.operationValue}
+                  </p>
+                  <div className="mt-2 grid gap-2 text-sm md:grid-cols-4">
+                    <p>Funding {signedNumber(preview.fundingDelta)}</p>
+                    <p>Containment {signedNumber(preview.containmentDelta)}</p>
+                    <p>Reputation {signedNumber(preview.reputationDelta)}</p>
+                    <p>Strategic {signedNumber(preview.strategicValueDelta)}</p>
+                  </div>
+                  <p className="mt-2 text-xs opacity-60">
+                    Inventory: {formatRewardInventory(preview)}
+                  </p>
+                  <p className="mt-1 text-xs opacity-60">
+                    Faction standing: {formatFactionStanding(preview)}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {preview.factors.map((factor: (typeof preview.factors)[number]) => (
+                      <span
+                        key={`${key}-${factor.id}`}
+                        className="rounded-full border border-white/10 px-2 py-0.5 text-xs opacity-70"
+                        title={factor.detail}
+                      >
+                        {factor.label}: {factor.value}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </article>
 
           <article
@@ -379,7 +539,7 @@ export default function CaseDetailPage() {
             {currentCase.status !== 'resolved' ? (
               assignmentInsights.availableTeams.length > 0 ? (
                 <ul className="space-y-2">
-                  {assignmentInsights.availableTeams.map(({ team, odds }) => (
+                  {assignmentInsights.availableTeams.map(({ team, odds, reconSummary }) => (
                     <li
                       key={team.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
@@ -392,6 +552,13 @@ export default function CaseDetailPage() {
                           S {formatPercent(odds.success)} / P {formatPercent(odds.partial)} / F{' '}
                           {formatPercent(odds.fail)}
                         </p>
+                        {reconSummary && reconSummary.hiddenModifierCount > 0 ? (
+                          <p className="text-xs opacity-50">
+                            Recon {formatPercent(reconSummary.intelConfidence)} confidence /{' '}
+                            {reconSummary.revealedModifierCount}/{reconSummary.hiddenModifierCount}{' '}
+                            hidden factors revealed
+                          </p>
+                        ) : null}
                       </div>
                       <button
                         onClick={() => assign(currentCase.id, team.id)}
@@ -429,7 +596,10 @@ export default function CaseDetailPage() {
             ) : assignmentInsights.blockedTeams.length > 0 ? (
               <ul className="space-y-2">
                 {groupBlockedTeams(assignmentInsights.blockedTeams).map((group) => (
-                  <li key={group.reason} className="rounded border border-white/10 px-3 py-2">
+                  <li
+                    key={group.reason}
+                    className={`rounded border px-3 py-2 ${getBlockedReasonToneClass(group.reason)}`}
+                  >
                     <p className="text-xs uppercase tracking-wide opacity-50">{group.label}</p>
                     <ul className="mt-2 space-y-1 text-sm opacity-70">
                       {group.entries.map((entry) => (
@@ -506,6 +676,37 @@ function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`
 }
 
+function signedNumber(value: number) {
+  return value > 0 ? `+${value}` : String(value)
+}
+
+function formatRewardInventory(
+  reward: ReturnType<typeof buildCaseGenerationProfile>['rewardProfile']['success']
+) {
+  if (reward.inventoryRewards.length === 0) {
+    return SHELL_UI_TEXT.none
+  }
+
+  return reward.inventoryRewards
+    .map((entry: (typeof reward.inventoryRewards)[number]) => `${entry.label} x${entry.quantity}`)
+    .join(', ')
+}
+
+function formatFactionStanding(
+  reward: ReturnType<typeof buildCaseGenerationProfile>['rewardProfile']['success']
+) {
+  if (reward.factionStanding.length === 0) {
+    return SHELL_UI_TEXT.none
+  }
+
+  return reward.factionStanding
+    .map(
+      (entry: (typeof reward.factionStanding)[number]) =>
+        `${entry.label} ${signedNumber(entry.delta)}`
+    )
+    .join(', ')
+}
+
 function oddsSummary(currentCase: CaseInstance, game: GameState, assignedTeams: Team[]) {
   if (assignedTeams.length === 0) {
     return CASE_UI_LABELS.noAssignedTeam
@@ -523,10 +724,13 @@ function oddsSummary(currentCase: CaseInstance, game: GameState, assignedTeams: 
 function groupBlockedTeams(
   blockedTeams: ReturnType<typeof getCaseAssignmentInsights>['blockedTeams']
 ) {
+  type BlockedReason = ReturnType<
+    typeof getCaseAssignmentInsights
+  >['blockedTeams'][number]['reason']
   const groups = new Map<
-    string,
+    BlockedReason,
     {
-      reason: string
+      reason: BlockedReason
       label: string
       entries: typeof blockedTeams
     }
@@ -576,6 +780,20 @@ function getBlockedReasonLabel(
   return 'Resolved cases'
 }
 
+function getBlockedReasonToneClass(
+  reason: ReturnType<typeof getCaseAssignmentInsights>['blockedTeams'][number]['reason']
+) {
+  if (reason === 'missing-required-roles' || reason === 'missing-required-tags') {
+    return 'border-rose-400/30 bg-rose-500/8'
+  }
+
+  if (reason === 'raid-capacity' || reason === 'case-capacity' || reason === 'training') {
+    return 'border-amber-400/30 bg-amber-500/8'
+  }
+
+  return 'border-white/10 bg-white/5'
+}
+
 function StageIcon({ stage, className }: { stage: number; className?: string }) {
   if (stage >= 4) {
     return <IconStageCritical className={className} aria-hidden="true" />
@@ -606,4 +824,24 @@ function stageColor(stage: number) {
 
 function capitalize(value: string) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`
+}
+
+function formatEscalationTriggerLabel(trigger: 'failure' | 'unresolved') {
+  return trigger === 'failure' ? 'If the operation fails' : 'If the case goes unresolved'
+}
+
+function getTimelineToneClass(eventType: string) {
+  if (eventType === 'case.failed' || eventType === 'case.escalated') {
+    return 'border-rose-400/30 bg-rose-500/8'
+  }
+
+  if (eventType === 'case.partially_resolved') {
+    return 'border-amber-400/30 bg-amber-500/8'
+  }
+
+  if (eventType === 'case.resolved') {
+    return 'border-emerald-400/30 bg-emerald-500/8'
+  }
+
+  return 'border-white/10 bg-white/5'
 }

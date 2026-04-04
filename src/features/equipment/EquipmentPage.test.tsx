@@ -45,7 +45,9 @@ describe('EquipmentPage', () => {
 
     expect(screen.getByRole('heading', { name: /equipment support model/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /itemization layer/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /active case recommendations/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /active case recommendations/i })
+    ).toBeInTheDocument()
     const recommendationsSection = screen
       .getByRole('heading', { name: /active case recommendations/i })
       .closest('article')
@@ -76,7 +78,9 @@ describe('EquipmentPage', () => {
 
     expect(screen.getByRole('heading', { name: /equipment support model/i })).toBeInTheDocument()
     expect(
-      screen.getByText(/no active operations currently require targeted equipment recommendations\./i)
+      screen.getByText(
+        /no active operations currently require targeted equipment recommendations\./i
+      )
     ).toBeInTheDocument()
   })
 

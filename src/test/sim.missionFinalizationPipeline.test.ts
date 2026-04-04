@@ -82,9 +82,8 @@ describe('missionFinalizationPipeline', () => {
       teamId,
       stressModifier: 0.25,
     })
-    expect(result?.fatigueChanges[0].after - result!.fatigueChanges[0].before).toBe(
-      result?.fatigueChanges[0].delta
-    )
+    const fatigueChange = result!.fatigueChanges[0]!
+    expect(fatigueChange.after - fatigueChange.before).toBe(fatigueChange.delta)
     expect(result?.spawnedConsequences).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

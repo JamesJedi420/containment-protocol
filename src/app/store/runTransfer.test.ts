@@ -411,6 +411,7 @@ describe('runTransfer helpers', () => {
         id: 'training-1',
         trainingId: 'analysis-lab',
         trainingName: 'Analysis Lab',
+        scope: 'agent',
         agentId: 'agent-1',
         agentName: 'Agent 1',
         targetStat: 'investigation',

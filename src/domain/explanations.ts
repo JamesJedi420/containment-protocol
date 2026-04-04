@@ -2,6 +2,7 @@ import { previewResolutionPartyCards } from './partyCards/engine'
 import { buildAgencyProtocolState } from './protocols'
 import { buildMissionRewardBreakdown } from './missionResults'
 import {
+  createDefaultCaseEquipmentSummary,
   evaluateCaseResolutionContext,
   computeRequiredResolutionProfile,
   computeRequiredScore,
@@ -242,9 +243,7 @@ function formatSignedInteger(value: number) {
   return `${value >= 0 ? '+' : ''}${value}`
 }
 
-function formatPowerModifierEntries(
-  modifiers: TeamPowerSummary['statModifiers']
-) {
+function formatPowerModifierEntries(modifiers: TeamPowerSummary['statModifiers']) {
   return Object.entries(modifiers)
     .filter(([, value]) => typeof value === 'number' && value !== 0)
     .sort(([left], [right]) => left.localeCompare(right))
@@ -369,7 +368,7 @@ function buildExplanationSelection(
         teamIds,
       })
     : null
-  const leaderId = teamIds.length === 1 ? state.teams[teamIds[0]]?.leaderId ?? null : null
+  const leaderId = teamIds.length === 1 ? (state.teams[teamIds[0]]?.leaderId ?? null) : null
   const teamTags = supportTags
 
   const context: TeamScoreContext = {
@@ -450,9 +449,15 @@ function sumEquipmentModifierTotal(item: EquipmentItem, kind: 'base' | 'active' 
   }, 0)
 }
 
-function buildCaseDifficultyFactors(currentCase: CaseInstance, config: GameConfig): ExplanationMetric[] {
+function buildCaseDifficultyFactors(
+  currentCase: CaseInstance,
+  config: GameConfig
+): ExplanationMetric[] {
   const stageMultiplier = 1 + Math.max(0, currentCase.stage - 1) * config.stageScalar
-  const overdueWeeks = Math.max(0, Math.max(1, currentCase.deadlineWeeks) - currentCase.deadlineRemaining)
+  const overdueWeeks = Math.max(
+    0,
+    Math.max(1, currentCase.deadlineWeeks) - currentCase.deadlineRemaining
+  )
 
   return [
     {
@@ -626,12 +631,14 @@ export function explainGearImpact(
   teamIds: Id[]
 ): GearImpactExplanation {
   const selection = buildExplanationSelection(currentCase, state, teamIds)
-  const equipmentSummary: CaseEquipmentSummary =
-    selection.evaluation.teamScore?.equipmentSummary ?? {
-      loadout: selection.profile.equipmentSummary,
-      reserveSupportBonus: 0,
-      reserveReasons: [],
-    }
+  const equipmentSummary: CaseEquipmentSummary = selection.evaluation.teamScore
+    ?.equipmentSummary ?? {
+    ...createDefaultCaseEquipmentSummary(),
+    ...selection.profile.equipmentSummary,
+    loadout: { ...selection.profile.equipmentSummary },
+    reserveSupportBonus: 0,
+    reserveReasons: [],
+  }
 
   return {
     teamIds: selection.teamIds,
@@ -703,7 +710,14 @@ export function explainRewardCalculation(
   config: GameConfig,
   game?: Pick<
     GameState,
-    'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
   >
 ): RewardCalculationExplanation {
   const rewardBreakdown = buildMissionRewardBreakdown(currentCase, outcome, config, game)
@@ -726,8 +740,8 @@ export function explainRewardCalculation(
       strategicValue: rewardBreakdown.strategicValueDelta,
     },
     factors,
-    inventoryRewards: rewardBreakdown.inventoryRewards,
-    factionStanding: rewardBreakdown.factionStanding,
+    inventoryRewards: [...rewardBreakdown.inventoryRewards],
+    factionStanding: [...rewardBreakdown.factionStanding],
     reasons: [...rewardBreakdown.reasons],
     summary: `Reward profile ${rewardBreakdown.label}: funding ${formatSignedInteger(rewardBreakdown.fundingDelta)}, reputation ${formatSignedInteger(rewardBreakdown.reputationDelta)}, containment ${formatSignedInteger(rewardBreakdown.containmentDelta)}.`,
   }

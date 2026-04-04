@@ -35,11 +35,9 @@ export function getReportPageView(game: GameState): ReportPageView {
       cumulativeScore,
       agencySummaryLine: `${agencySummary.name}: reputation ${agencySummary.reputation}, pressure ${agencySummary.pressure.score} (${agencySummary.pressure.level}), stability ${agencySummary.stability.score} (${agencySummary.stability.level})`,
     },
-    weeklyReports: [...game.reports]
-      .reverse()
-      .map((report) => ({
-        report,
-        weekScore: calcWeekScore(report),
-      })),
+    weeklyReports: [...game.reports].reverse().map((report) => ({
+      report,
+      weekScore: calcWeekScore(report),
+    })),
   }
 }

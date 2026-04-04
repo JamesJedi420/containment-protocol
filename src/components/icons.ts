@@ -40,6 +40,7 @@ export {
   Crosshair as IconHunter,
   Sparkles as IconOccultist,
   Search as IconInvestigator,
+  ScanSearch as IconFieldRecon,
   Eye as IconMedium,
   Cpu as IconTech,
   HeartPulse as IconMedic,

@@ -66,10 +66,7 @@ export function makeTeam(
 /**
  * Creates a case with deterministic difficulty and requirements.
  */
-export function makeCase(
-  id: string,
-  overrides: Partial<CaseInstance> = {}
-): CaseInstance {
+export function makeCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
   const template = createStartingState().cases['case-001']
 
   return {
@@ -304,13 +301,7 @@ export function makeGuaranteedFailFixture(): GameState {
   }
 
   state.teams = {
-    'team-weak': makeTeam(
-      'team-weak',
-      'Weak',
-      ['agent-weak'],
-      'agent-weak',
-      ['combat']
-    ),
+    'team-weak': makeTeam('team-weak', 'Weak', ['agent-weak'], 'agent-weak', ['combat']),
   }
 
   state.cases = {
@@ -342,13 +333,7 @@ export function makePartialThresholdFixture(): GameState {
   }
 
   state.teams = {
-    'team-mid': makeTeam(
-      'team-mid',
-      'Mid',
-      ['agent-mid'],
-      'agent-mid',
-      ['combat']
-    ),
+    'team-mid': makeTeam('team-mid', 'Mid', ['agent-mid'], 'agent-mid', ['combat']),
   }
 
   state.cases = {
@@ -477,20 +462,8 @@ export function makeRaidUnderCapacityFixture(): GameState {
       ['combat'],
       { assignedCaseId: 'raid-under-capacity' }
     ),
-    'team-beta': makeTeam(
-      'team-beta',
-      'Beta Team',
-      ['agent-beta'],
-      'agent-beta',
-      ['tech']
-    ),
-    'team-gamma': makeTeam(
-      'team-gamma',
-      'Gamma Team',
-      ['agent-gamma'],
-      'agent-gamma',
-      ['occult']
-    ),
+    'team-beta': makeTeam('team-beta', 'Beta Team', ['agent-beta'], 'agent-beta', ['tech']),
+    'team-gamma': makeTeam('team-gamma', 'Gamma Team', ['agent-gamma'], 'agent-gamma', ['occult']),
   }
 
   state.cases = {

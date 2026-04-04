@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
 import type { GameState } from '../../domain/models'
@@ -41,8 +41,17 @@ export default function TrainingDivisionPage() {
     reconcileAgents,
   } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showAdvancedPanels, setShowAdvancedPanels] = useState(false)
+  const [showHistoryPanels, setShowHistoryPanels] = useState(false)
+  const advancedPanelsRegionId = 'training-advanced-panels'
+  const historyPanelsRegionId = 'training-history-panels'
 
   const filters = useMemo(() => readTrainingListFilters(searchParams), [searchParams])
+  const hasActiveFilters =
+    filters.q !== DEFAULT_TRAINING_LIST_FILTERS.q ||
+    filters.readiness !== DEFAULT_TRAINING_LIST_FILTERS.readiness ||
+    filters.queueScope !== DEFAULT_TRAINING_LIST_FILTERS.queueScope ||
+    filters.sort !== DEFAULT_TRAINING_LIST_FILTERS.sort
 
   function setFilter<K extends keyof typeof DEFAULT_TRAINING_LIST_FILTERS>(
     key: K,
@@ -53,9 +62,15 @@ export default function TrainingDivisionPage() {
 
   const summary = useMemo(() => getTrainingSummary(game), [game])
   const allQueueViews = useMemo(() => getTrainingQueueViews(game), [game])
-  const queueViews = useMemo(() => getFilteredQueueViews(allQueueViews, filters), [allQueueViews, filters])
+  const queueViews = useMemo(
+    () => getFilteredQueueViews(allQueueViews, filters),
+    [allQueueViews, filters]
+  )
   const allRosterViews = useMemo(() => getTrainingRosterViews(game), [game])
-  const filteredRosterViews = useMemo(() => getFilteredSortedRoster(allRosterViews, filters), [allRosterViews, filters])
+  const filteredRosterViews = useMemo(
+    () => getFilteredSortedRoster(allRosterViews, filters),
+    [allRosterViews, filters]
+  )
   const teamViews = useMemo(() => getTeamTrainingViews(game), [game])
   const academyOverview = useMemo(() => buildAcademyOverview(game), [game])
   const agentPrograms = useMemo(
@@ -72,7 +87,10 @@ export default function TrainingDivisionPage() {
       allRosterViews.map((view) => [
         view.agent.id,
         new Map(
-          getAgentTrainingImpacts(view.agent, academyStatBonus).map((impact) => [impact.trainingId, impact])
+          getAgentTrainingImpacts(view.agent, academyStatBonus).map((impact) => [
+            impact.trainingId,
+            impact,
+          ])
         ),
       ])
     )
@@ -84,6 +102,19 @@ export default function TrainingDivisionPage() {
         .filter((view) => !view.assignedInstructorId),
     [allQueueViews]
   )
+  const topProgramSuggestion = academyOverview.suggestedPrograms[0]
+  const topTeamDrillSuggestion = academyOverview.suggestedTeamDrills[0]
+  const trainingRecommendation = topProgramSuggestion
+    ? {
+        title: `Queue ${topProgramSuggestion.trainingName} for ${topProgramSuggestion.agentName}`,
+        detail: `Best immediate gain: +${topProgramSuggestion.scoreDelta.toFixed(2)} score. Cost $${topProgramSuggestion.fundingCost}.`,
+      }
+    : topTeamDrillSuggestion
+      ? {
+          title: `Queue ${topTeamDrillSuggestion.trainingName} for ${topTeamDrillSuggestion.teamName}`,
+          detail: `Projected score delta ${topTeamDrillSuggestion.projectedScoreDelta >= 0 ? '+' : ''}${topTeamDrillSuggestion.projectedScoreDelta.toFixed(2)}. ${topTeamDrillSuggestion.recommendationReason}`,
+        }
+      : null
 
   const recentTrainingEvents = [...game.events]
     .filter(
@@ -112,7 +143,9 @@ export default function TrainingDivisionPage() {
     .reduce((latest, event) => Math.max(latest, event.payload.week), 0)
   const chemistryInspectorPairs = [...game.events]
     .filter(
-      (event): event is Extract<typeof game.events[number], { type: 'agent.relationship_changed' }> =>
+      (
+        event
+      ): event is Extract<(typeof game.events)[number], { type: 'agent.relationship_changed' }> =>
         event.type === 'agent.relationship_changed' &&
         (chemistryInspectorWeek === 0 || event.payload.week === chemistryInspectorWeek)
     )
@@ -195,12 +228,14 @@ export default function TrainingDivisionPage() {
 
         const average = (leftValue + rightValue) / 2
         const leftProjected = clamp(
-          leftValue + (leftValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
+          leftValue +
+            (leftValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
           -2,
           2
         )
         const rightProjected = clamp(
-          rightValue + (rightValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
+          rightValue +
+            (rightValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
           -2,
           2
         )
@@ -258,255 +293,393 @@ export default function TrainingDivisionPage() {
           <Metric label="Ready teams" value={String(summary.readyTeams)} />
           <Metric label="Team drills" value={String(summary.teamDrills)} />
         </div>
-      </article>
-
-      <article className="panel space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">Academy analysis</h3>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            {academyOverview.readyAgents} ready / {academyOverview.activeQueue} queued
-          </p>
-        </div>
-
-        <p className="text-sm opacity-60">
-          Training impact is evaluated through the same agent score pipeline used by team
-          composition and case resolution.
-        </p>
-
-        <div className="grid gap-3 md:grid-cols-4">
-          <Metric label="Academy tier" value={String(academyOverview.academyTier)} />
-          <Metric
-            label="Training slots"
-            value={`${academyOverview.availableSlots}/${academyOverview.totalSlots}`}
-          />
-          <Metric label="Avg weeks queued" value={academyOverview.averageWeeksQueued.toFixed(1)} />
-          <Metric
-            label="Next upgrade"
-            value={academyOverview.upgradeCost === null ? 'Max tier' : `$${academyOverview.upgradeCost}`}
-          />
-        </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="btn btn-sm btn-ghost"
-            disabled={academyOverview.upgradeCost === null || game.funding < (academyOverview.upgradeCost ?? 0)}
-            onClick={() => upgradeAcademy()}
-          >
-            {academyOverview.upgradeCost === null
-              ? 'Academy maxed'
-              : `Upgrade academy ($${academyOverview.upgradeCost})`}
-          </button>
-          <p className="text-xs opacity-50">
-            Tier 1 unlocks advanced solo programs. Tier 2 unlocks elite team drills.
-          </p>
+          {showAdvancedPanels ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              aria-label="Hide advanced panels"
+              aria-expanded="true"
+              aria-controls={advancedPanelsRegionId}
+              onClick={() => setShowAdvancedPanels((current) => !current)}
+            >
+              Hide advanced panels
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              aria-label="Show advanced panels"
+              aria-expanded="false"
+              aria-controls={advancedPanelsRegionId}
+              onClick={() => setShowAdvancedPanels((current) => !current)}
+            >
+              Show advanced panels
+            </button>
+          )}
+
+          {showHistoryPanels ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              aria-label="Hide history panels"
+              aria-expanded="true"
+              aria-controls={historyPanelsRegionId}
+              onClick={() => setShowHistoryPanels((current) => !current)}
+            >
+              Hide history panels
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              aria-label="Show history panels"
+              aria-expanded="false"
+              aria-controls={historyPanelsRegionId}
+              onClick={() => setShowHistoryPanels((current) => !current)}
+            >
+              Show history panels
+            </button>
+          )}
+
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              aria-label="Reset training filters"
+              onClick={() =>
+                setSearchParams(writeTrainingListFilters(DEFAULT_TRAINING_LIST_FILTERS), {
+                  replace: true,
+                })
+              }
+            >
+              Reset filters
+            </button>
+          ) : null}
         </div>
 
-        {academyOverview.suggestedPrograms.length === 0 ? (
-          <p className="text-sm opacity-60">No immediate academy recommendations available.</p>
-        ) : (
-          <ul className="space-y-2">
-            {academyOverview.suggestedPrograms.map((entry) => (
-              <li key={`${entry.agentId}-${entry.trainingId}`} className="rounded border border-white/10 px-3 py-2">
-                <div className="flex items-center justify-between gap-3">
-                  <span>
-                    {entry.agentName} {'->'} {entry.trainingName}
-                  </span>
-                  <span className="text-sm opacity-70">+{entry.scoreDelta.toFixed(2)} score</span>
-                </div>
-                {!entry.affordable && (
-                  <p className="mt-1 text-xs opacity-40">Insufficient funds (${entry.fundingCost})</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+        <p className="text-xs opacity-50" aria-live="polite">
+          Filters: {hasActiveFilters ? 'active' : 'default'}
+        </p>
 
-        {academyOverview.suggestedTeamDrills.length > 0 && (
-          <>
-            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Team drill suggestions</p>
+        {trainingRecommendation ? (
+          <div
+            className="rounded border border-sky-400/25 bg-sky-500/8 px-3 py-2"
+            aria-label="Recommended training action"
+          >
+            <p className="text-xs uppercase tracking-[0.24em] opacity-60">Recommended next move</p>
+            <p className="mt-1 text-sm font-medium">{trainingRecommendation.title}</p>
+            <p className="text-xs opacity-70">{trainingRecommendation.detail}</p>
+          </div>
+        ) : null}
+      </article>
+
+      {showAdvancedPanels ? (
+        <article id={advancedPanelsRegionId} className="panel space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Academy analysis</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              {academyOverview.readyAgents} ready / {academyOverview.activeQueue} queued
+            </p>
+          </div>
+
+          <p className="text-sm opacity-60">
+            Training impact is evaluated through the same agent score pipeline used by team
+            composition and case resolution.
+          </p>
+
+          <div className="grid gap-3 md:grid-cols-4">
+            <Metric label="Academy tier" value={String(academyOverview.academyTier)} />
+            <Metric
+              label="Training slots"
+              value={`${academyOverview.availableSlots}/${academyOverview.totalSlots}`}
+            />
+            <Metric
+              label="Avg weeks queued"
+              value={academyOverview.averageWeeksQueued.toFixed(1)}
+            />
+            <Metric
+              label="Next upgrade"
+              value={
+                academyOverview.upgradeCost === null
+                  ? 'Max tier'
+                  : `$${academyOverview.upgradeCost}`
+              }
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              className="btn btn-sm btn-ghost"
+              disabled={
+                academyOverview.upgradeCost === null ||
+                game.funding < (academyOverview.upgradeCost ?? 0)
+              }
+              onClick={() => upgradeAcademy()}
+            >
+              {academyOverview.upgradeCost === null
+                ? 'Academy maxed'
+                : `Upgrade academy ($${academyOverview.upgradeCost})`}
+            </button>
+            <p className="text-xs opacity-50">
+              Tier 1 unlocks advanced solo programs. Tier 2 unlocks elite team drills.
+            </p>
+          </div>
+
+          {academyOverview.suggestedPrograms.length === 0 ? (
+            <p className="text-sm opacity-60">No immediate academy recommendations available.</p>
+          ) : (
             <ul className="space-y-2">
-              {academyOverview.suggestedTeamDrills.map((entry) => (
-                <li key={`${entry.teamId}-${entry.trainingId}`} className="rounded border border-white/10 px-3 py-2">
+              {academyOverview.suggestedPrograms.map((entry) => (
+                <li
+                  key={`${entry.agentId}-${entry.trainingId}`}
+                  className="rounded border border-white/10 px-3 py-2"
+                >
                   <div className="flex items-center justify-between gap-3">
                     <span>
-                      {entry.teamName} {'→'} {entry.trainingName}
+                      {entry.agentName} {'->'} {entry.trainingName}
                     </span>
-                    <span className="text-sm opacity-70">
-                      +{entry.relationshipDelta.toFixed(2)} chemistry / +{entry.trainedRelationshipDelta} bonds
-                    </span>
+                    <span className="text-sm opacity-70">+{entry.scoreDelta.toFixed(2)} score</span>
                   </div>
-                  <p className="mt-1 text-xs opacity-60">
-                    Projection ({entry.projectionCaseTitle}): score {entry.projectedScoreBefore.toFixed(2)} → {entry.projectedScoreAfter.toFixed(2)} ({entry.projectedScoreDelta >= 0 ? '+' : ''}{entry.projectedScoreDelta.toFixed(2)})
-                  </p>
-                  <p className="text-xs opacity-60">
-                    Modifier deltas: chemistry {entry.projectedChemistryDelta >= 0 ? '+' : ''}{entry.projectedChemistryDelta.toFixed(2)} / synergy {entry.projectedSynergyDelta >= 0 ? '+' : ''}{entry.projectedSynergyDelta.toFixed(2)}
-                  </p>
-                  <p className="text-xs opacity-50">Why recommended: {entry.recommendationReason}</p>
                   {!entry.affordable && (
-                    <p className="mt-1 text-xs opacity-40">Insufficient funds (${entry.fundingCost})</p>
+                    <p className="mt-1 text-xs opacity-40">
+                      Insufficient funds (${entry.fundingCost})
+                    </p>
                   )}
                 </li>
               ))}
             </ul>
-          </>
-        )}
-      </article>
+          )}
 
-      <article className="panel space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">Instructor assignments</h3>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            {academyOverview.instructors.length} hired
-          </p>
-        </div>
-
-        {academyOverview.instructors.length === 0 ? (
-          <p className="text-sm opacity-60">No instructors hired yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {academyOverview.instructors.map((instructor) => {
-              const compatibleTargets = compatibleInstructorTargets.filter(
-                (view) => view.entry.targetStat === instructor.instructorSpecialty
-              )
-
-              return (
-                <li key={instructor.staffId} className="rounded border border-white/10 px-3 py-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{instructor.name}</p>
-                      <p className="text-sm opacity-60">
-                        {STAT_LABELS[instructor.instructorSpecialty]} specialist / Efficiency {instructor.efficiency} / +{instructor.bonus} bonus
-                      </p>
+          {academyOverview.suggestedTeamDrills.length > 0 && (
+            <>
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                Team drill suggestions
+              </p>
+              <ul className="space-y-2">
+                {academyOverview.suggestedTeamDrills.map((entry) => (
+                  <li
+                    key={`${entry.teamId}-${entry.trainingId}`}
+                    className="rounded border border-white/10 px-3 py-2"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span>
+                        {entry.teamName} {'→'} {entry.trainingName}
+                      </span>
+                      <span className="text-sm opacity-70">
+                        +{entry.relationshipDelta.toFixed(2)} chemistry / +
+                        {entry.trainedRelationshipDelta} bonds
+                      </span>
                     </div>
-                    {instructor.assignedAgentId ? (
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-ghost"
-                        onClick={() => unassignInstructor(instructor.staffId)}
-                      >
-                        Unassign
-                      </button>
-                    ) : null}
-                  </div>
-
-                  {instructor.assignedAgentId ? (
-                    <p className="mt-2 text-sm opacity-70">
-                      Assigned to {instructor.assignedAgentName ?? instructor.assignedAgentId}
+                    <p className="mt-1 text-xs opacity-60">
+                      Projection ({entry.projectionCaseTitle}): score{' '}
+                      {entry.projectedScoreBefore.toFixed(2)} →{' '}
+                      {entry.projectedScoreAfter.toFixed(2)} (
+                      {entry.projectedScoreDelta >= 0 ? '+' : ''}
+                      {entry.projectedScoreDelta.toFixed(2)})
                     </p>
-                  ) : compatibleTargets.length === 0 ? (
-                    <p className="mt-2 text-sm opacity-60">No compatible trainees currently in queue.</p>
-                  ) : (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {compatibleTargets.map((view) => (
-                        <button
-                          key={`${instructor.staffId}-${view.entry.agentId}`}
-                          type="button"
-                          className="btn btn-xs btn-ghost"
-                          onClick={() => assignInstructor(instructor.staffId, view.entry.agentId)}
-                        >
-                          Assign to {view.entry.agentName}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </article>
-
-      <article className="panel space-y-3">
-        <h3 className="text-base font-semibold">Academy & coaching activity</h3>
-        {recentControlEvents.length === 0 ? (
-          <p className="text-sm opacity-60">No academy or instructor actions recorded yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {recentControlEvents.map((event) => (
-              <li key={event.id} className="rounded border border-white/10 px-3 py-2">
-                <p className="font-medium">
-                  {event.type === 'system.academy_upgraded'
-                    ? `Academy upgraded to tier ${event.payload.tierAfter} ($${event.payload.cost})`
-                    : event.type === 'agent.instructor_assigned'
-                      ? `${event.payload.instructorName} assigned to ${event.payload.agentName}`
-                      : `${event.payload.instructorName} removed from ${event.payload.agentName}`}
-                </p>
-                <p className="text-xs opacity-50">Week {event.payload.week} / {event.timestamp}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-      <article className="panel space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">Chemistry inspector</h3>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            {chemistryInspectorWeek > 0 ? `Week ${chemistryInspectorWeek}` : 'No changes'}
-          </p>
-        </div>
-
-        {chemistryInspectorPairs.length === 0 ? (
-          <p className="text-sm opacity-60">No relationship updates recorded this cycle.</p>
-        ) : (
-          <ul className="space-y-2">
-            {chemistryInspectorPairs.map((pair) => (
-              <li key={pair.pairKey} className="rounded border border-white/10 px-3 py-2">
-                <p className="font-medium">{pair.pairLabel}</p>
-                {pair.updates.map((update) => (
-                  <p key={update.eventId} className="text-xs opacity-60">
-                    {update.agentName}: {update.previousValue.toFixed(2)} → {update.nextValue.toFixed(2)} ({update.delta >= 0 ? '+' : ''}{update.delta.toFixed(2)}) · {update.reason}
-                  </p>
-                ))}
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
-
-      <article className="panel space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">Relationship reconciliation</h3>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            Cost ${RECONCILIATION_COST}
-          </p>
-        </div>
-
-        {reconciliationCandidates.length === 0 ? (
-          <p className="text-sm opacity-60">No strained pairs currently eligible for reconciliation.</p>
-        ) : (
-          <ul className="space-y-2">
-            {reconciliationCandidates.map((candidate) => (
-              <li key={candidate.pairKey} className="rounded border border-white/10 px-3 py-2">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{candidate.pairLabel}</p>
                     <p className="text-xs opacity-60">
-                      Current avg {candidate.average.toFixed(2)} → projected {candidate.projectedAverage.toFixed(2)}
+                      Modifier deltas: chemistry {entry.projectedChemistryDelta >= 0 ? '+' : ''}
+                      {entry.projectedChemistryDelta.toFixed(2)} / synergy{' '}
+                      {entry.projectedSynergyDelta >= 0 ? '+' : ''}
+                      {entry.projectedSynergyDelta.toFixed(2)}
                     </p>
                     <p className="text-xs opacity-50">
-                      Directional: {candidate.leftValue.toFixed(2)} / {candidate.rightValue.toFixed(2)}
+                      Why recommended: {entry.recommendationReason}
                     </p>
-                    {candidate.recentlyReconciled ? (
-                      <p className="text-xs opacity-50">Reconciled this week.</p>
-                    ) : null}
-                    {candidate.reason ? <p className="text-xs opacity-50">{candidate.reason}</p> : null}
+                    {!entry.affordable && (
+                      <p className="mt-1 text-xs opacity-40">
+                        Insufficient funds (${entry.fundingCost})
+                      </p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </article>
+      ) : null}
+
+      {showAdvancedPanels ? (
+        <article id={historyPanelsRegionId} className="panel space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Instructor assignments</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              {academyOverview.instructors.length} hired
+            </p>
+          </div>
+
+          {academyOverview.instructors.length === 0 ? (
+            <p className="text-sm opacity-60">No instructors hired yet.</p>
+          ) : (
+            <ul className="space-y-3">
+              {academyOverview.instructors.map((instructor) => {
+                const compatibleTargets = compatibleInstructorTargets.filter(
+                  (view) => view.entry.targetStat === instructor.instructorSpecialty
+                )
+
+                return (
+                  <li key={instructor.staffId} className="rounded border border-white/10 px-3 py-3">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{instructor.name}</p>
+                        <p className="text-sm opacity-60">
+                          {STAT_LABELS[instructor.instructorSpecialty]} specialist / Efficiency{' '}
+                          {instructor.efficiency} / +{instructor.bonus} bonus
+                        </p>
+                      </div>
+                      {instructor.assignedAgentId ? (
+                        <button
+                          type="button"
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => unassignInstructor(instructor.staffId)}
+                        >
+                          Unassign
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {instructor.assignedAgentId ? (
+                      <p className="mt-2 text-sm opacity-70">
+                        Assigned to {instructor.assignedAgentName ?? instructor.assignedAgentId}
+                      </p>
+                    ) : compatibleTargets.length === 0 ? (
+                      <p className="mt-2 text-sm opacity-60">
+                        No compatible trainees currently in queue.
+                      </p>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {compatibleTargets.map((view) => (
+                          <button
+                            key={`${instructor.staffId}-${view.entry.agentId}`}
+                            type="button"
+                            className="btn btn-xs btn-ghost"
+                            onClick={() => assignInstructor(instructor.staffId, view.entry.agentId)}
+                          >
+                            Assign to {view.entry.agentName}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </article>
+      ) : null}
+
+      {showAdvancedPanels ? (
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">Academy & coaching activity</h3>
+          {recentControlEvents.length === 0 ? (
+            <p className="text-sm opacity-60">No academy or instructor actions recorded yet.</p>
+          ) : (
+            <ul className="space-y-2">
+              {recentControlEvents.map((event) => (
+                <li
+                  key={event.id}
+                  className={`rounded border px-3 py-2 ${getControlEventToneClass(event.type)}`}
+                >
+                  <p className="font-medium">
+                    {event.type === 'system.academy_upgraded'
+                      ? `Academy upgraded to tier ${event.payload.tierAfter} ($${event.payload.cost})`
+                      : event.type === 'agent.instructor_assigned'
+                        ? `${event.payload.instructorName} assigned to ${event.payload.agentName}`
+                        : `${event.payload.instructorName} removed from ${event.payload.agentName}`}
+                  </p>
+                  <p className="text-xs opacity-50">
+                    Week {event.payload.week} / {event.timestamp}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      ) : null}
+
+      {showAdvancedPanels ? (
+        <article className="panel space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Chemistry inspector</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              {chemistryInspectorWeek > 0 ? `Week ${chemistryInspectorWeek}` : 'No changes'}
+            </p>
+          </div>
+
+          {chemistryInspectorPairs.length === 0 ? (
+            <p className="text-sm opacity-60">No relationship updates recorded this cycle.</p>
+          ) : (
+            <ul className="space-y-2">
+              {chemistryInspectorPairs.map((pair) => (
+                <li key={pair.pairKey} className="rounded border border-white/10 px-3 py-2">
+                  <p className="font-medium">{pair.pairLabel}</p>
+                  {pair.updates.map((update) => (
+                    <p key={update.eventId} className="text-xs opacity-60">
+                      {update.agentName}: {update.previousValue.toFixed(2)} →{' '}
+                      {update.nextValue.toFixed(2)} ({update.delta >= 0 ? '+' : ''}
+                      {update.delta.toFixed(2)}) · {update.reason}
+                    </p>
+                  ))}
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      ) : null}
+
+      {showAdvancedPanels ? (
+        <article className="panel space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Relationship reconciliation</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Cost ${RECONCILIATION_COST}
+            </p>
+          </div>
+
+          {reconciliationCandidates.length === 0 ? (
+            <p className="text-sm opacity-60">
+              No strained pairs currently eligible for reconciliation.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {reconciliationCandidates.map((candidate) => (
+                <li key={candidate.pairKey} className="rounded border border-white/10 px-3 py-2">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{candidate.pairLabel}</p>
+                      <p className="text-xs opacity-60">
+                        Current avg {candidate.average.toFixed(2)} → projected{' '}
+                        {candidate.projectedAverage.toFixed(2)}
+                      </p>
+                      <p className="text-xs opacity-50">
+                        Directional: {candidate.leftValue.toFixed(2)} /{' '}
+                        {candidate.rightValue.toFixed(2)}
+                      </p>
+                      {candidate.recentlyReconciled ? (
+                        <p className="text-xs opacity-50">Reconciled this week.</p>
+                      ) : null}
+                      {candidate.reason ? (
+                        <p className="text-xs opacity-50">{candidate.reason}</p>
+                      ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-ghost"
+                      disabled={!candidate.canReconcile}
+                      onClick={() => reconcileAgents(candidate.leftId, candidate.rightId)}
+                    >
+                      Reconcile (${RECONCILIATION_COST})
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-ghost"
-                    disabled={!candidate.canReconcile}
-                    onClick={() => reconcileAgents(candidate.leftId, candidate.rightId)}
-                  >
-                    Reconcile (${RECONCILIATION_COST})
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      ) : null}
 
       <article className="panel space-y-3">
         <div className="flex items-center justify-between gap-3">
@@ -518,7 +691,9 @@ export default function TrainingDivisionPage() {
 
         <div className="space-y-3">
           <div>
-            <p className="mb-2 text-xs uppercase tracking-[0.24em] opacity-50">Individual programs</p>
+            <p className="mb-2 text-xs uppercase tracking-[0.24em] opacity-50">
+              Individual programs
+            </p>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {agentPrograms.map((program) => (
                 <div key={program.trainingId} className="rounded border border-white/10 px-3 py-3">
@@ -586,73 +761,95 @@ export default function TrainingDivisionPage() {
         </div>
 
         {queueViews.length === 0 ? (
-          <p className="text-sm opacity-60">{allQueueViews.length === 0 ? TRAINING_UI_TEXT.noActiveQueue : 'No queue entries match the current filter.'}</p>
+          <p className="text-sm opacity-60">
+            {allQueueViews.length === 0
+              ? TRAINING_UI_TEXT.noActiveQueue
+              : 'No queue entries match the current filter.'}
+          </p>
         ) : (
           <ul className="space-y-2">
-            {queueViews.map(({ entry, entries, scope, progressPercent, subjectLabel, subjectLink, detailLabel, remainingLabel, incurredFatigueLabel, cancelRefundLabel, fatigueScheduleLabel, assignedInstructorName, instructorBonus }) => (
-              <li key={entry.id} className="rounded border border-white/10 px-3 py-3">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      {subjectLink ? (
-                        <Link to={subjectLink} className="font-medium hover:underline">
-                          {subjectLabel}
-                        </Link>
-                      ) : (
-                        <span className="font-medium">{subjectLabel}</span>
-                      )}
-                      <span className="text-xs uppercase tracking-[0.24em] opacity-50">
-                        {scope === 'team' ? 'Team drill' : 'Individual program'}
-                      </span>
-                    </div>
-                    <p className="text-sm opacity-60">
-                      {detailLabel} / {STAT_LABELS[entry.targetStat]} +{entry.statDelta} / Started
-                      week {entry.startedWeek} / ${entry.fundingCost}
-                    </p>
-                    {assignedInstructorName ? (
-                      <p className="text-xs opacity-50">
-                        Instructor: {assignedInstructorName}
-                        {instructorBonus !== undefined ? ` (+${instructorBonus})` : ''}
+            {queueViews.map(
+              ({
+                entry,
+                entries,
+                scope,
+                progressPercent,
+                subjectLabel,
+                subjectLink,
+                detailLabel,
+                remainingLabel,
+                incurredFatigueLabel,
+                cancelRefundLabel,
+                fatigueScheduleLabel,
+                assignedInstructorName,
+                instructorBonus,
+              }) => (
+                <li key={entry.id} className="rounded border border-white/10 px-3 py-3">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {subjectLink ? (
+                          <Link to={subjectLink} className="font-medium hover:underline">
+                            {subjectLabel}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">{subjectLabel}</span>
+                        )}
+                        <span className="text-xs uppercase tracking-[0.24em] opacity-50">
+                          {scope === 'team' ? 'Team drill' : 'Individual program'}
+                        </span>
+                      </div>
+                      <p className="text-sm opacity-60">
+                        {detailLabel} / {STAT_LABELS[entry.targetStat]} +{entry.statDelta} / Started
+                        week {entry.startedWeek} / ${entry.fundingCost}
                       </p>
-                    ) : null}
-                    {scope === 'team' ? (
-                      <p className="text-xs opacity-50">{entries.map((queuedEntry) => queuedEntry.agentName).join(', ')}</p>
-                    ) : null}
+                      {assignedInstructorName ? (
+                        <p className="text-xs opacity-50">
+                          Instructor: {assignedInstructorName}
+                          {instructorBonus !== undefined ? ` (+${instructorBonus})` : ''}
+                        </p>
+                      ) : null}
+                      {scope === 'team' ? (
+                        <p className="text-xs opacity-50">
+                          {entries.map((queuedEntry) => queuedEntry.agentName).join(', ')}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm opacity-60">{remainingLabel}</p>
+                      <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                        {progressPercent}% complete
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm opacity-60">{remainingLabel}</p>
-                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                      {progressPercent}% complete
-                    </p>
+
+                  <progress
+                    className="queue-progress mt-3"
+                    value={progressPercent}
+                    max={100}
+                    aria-label={`${subjectLabel} ${entry.trainingName} progress`}
+                  >
+                    {progressPercent}%
+                  </progress>
+
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-55">
+                    <details className="[&>summary]:cursor-pointer [&>summary]:list-none">
+                      <summary>{incurredFatigueLabel}</summary>
+                      <span className="mt-1 block pl-2 opacity-70">{fatigueScheduleLabel}</span>
+                    </details>
+                    <span>{cancelRefundLabel}</span>
                   </div>
-                </div>
 
-                <progress
-                  className="queue-progress mt-3"
-                  value={progressPercent}
-                  max={100}
-                  aria-label={`${subjectLabel} ${entry.trainingName} progress`}
-                >
-                  {progressPercent}%
-                </progress>
-
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs opacity-55">
-                  <details className="[&>summary]:cursor-pointer [&>summary]:list-none">
-                    <summary>{incurredFatigueLabel}</summary>
-                    <span className="mt-1 block pl-2 opacity-70">{fatigueScheduleLabel}</span>
-                  </details>
-                  <span>{cancelRefundLabel}</span>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-xs btn-ghost mt-2"
-                  onClick={() => cancelTraining(entry.agentId)}
-                >
-                  Cancel training
-                </button>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-ghost mt-2"
+                    onClick={() => cancelTraining(entry.agentId)}
+                  >
+                    Cancel training
+                  </button>
+                </li>
+              )
+            )}
           </ul>
         )}
       </article>
@@ -702,49 +899,49 @@ export default function TrainingDivisionPage() {
         </div>
 
         <div id="roster-list">
-        <RosterGroup
-          title="Ready now"
-          description="Available for immediate queueing."
-          agents={groupedRoster.ready}
-          queueTraining={queueTraining}
-          programs={agentPrograms}
-          game={game}
-          agentImpactPreviewMap={agentImpactPreviewMap}
-          emptyMessage="No agents are currently ready for training."
-        />
+          <RosterGroup
+            title="Ready now"
+            description="Available for immediate queueing."
+            agents={groupedRoster.ready}
+            queueTraining={queueTraining}
+            programs={agentPrograms}
+            game={game}
+            agentImpactPreviewMap={agentImpactPreviewMap}
+            emptyMessage="No agents are currently ready for training."
+          />
 
-        <RosterGroup
-          title="In training"
-          description="Already committed to a program and unavailable for new queues."
-          agents={groupedRoster.training}
-          queueTraining={queueTraining}
-          programs={agentPrograms}
-          game={game}
-          agentImpactPreviewMap={agentImpactPreviewMap}
-          emptyMessage="No agents are currently in training."
-        />
+          <RosterGroup
+            title="In training"
+            description="Already committed to a program and unavailable for new queues."
+            agents={groupedRoster.training}
+            queueTraining={queueTraining}
+            programs={agentPrograms}
+            game={game}
+            agentImpactPreviewMap={agentImpactPreviewMap}
+            emptyMessage="No agents are currently in training."
+          />
 
-        <RosterGroup
-          title="On assignment"
-          description="Deployed agents are blocked until their case completes."
-          agents={groupedRoster.deployed}
-          queueTraining={queueTraining}
-          programs={agentPrograms}
-          game={game}
-          agentImpactPreviewMap={agentImpactPreviewMap}
-          emptyMessage="No agents are currently deployed."
-        />
+          <RosterGroup
+            title="On assignment"
+            description="Deployed agents are blocked until their case completes."
+            agents={groupedRoster.deployed}
+            queueTraining={queueTraining}
+            programs={agentPrograms}
+            game={game}
+            agentImpactPreviewMap={agentImpactPreviewMap}
+            emptyMessage="No agents are currently deployed."
+          />
 
-        <RosterGroup
-          title="Unavailable"
-          description="Inactive agents cannot be queued until they return to service."
-          agents={groupedRoster.inactive}
-          queueTraining={queueTraining}
-          programs={agentPrograms}
-          game={game}
-          agentImpactPreviewMap={agentImpactPreviewMap}
-          emptyMessage="No inactive agents are listed."
-        />
+          <RosterGroup
+            title="Unavailable"
+            description="Inactive agents cannot be queued until they return to service."
+            agents={groupedRoster.inactive}
+            queueTraining={queueTraining}
+            programs={agentPrograms}
+            game={game}
+            agentImpactPreviewMap={agentImpactPreviewMap}
+            emptyMessage="No inactive agents are listed."
+          />
         </div>
       </article>
 
@@ -764,48 +961,58 @@ export default function TrainingDivisionPage() {
         />
       </article>
 
-      <article className="panel space-y-3">
-        <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.recentEventsHeading}</h3>
-        {recentTrainingEvents.length === 0 ? (
-          <p className="text-sm opacity-60">{TRAINING_UI_TEXT.noRecentEvents}</p>
-        ) : (
-          <ul className="space-y-2">
-            {recentTrainingEvents.map((event) => (
-              <li key={event.id} className="rounded border border-white/10 px-3 py-2">
-                <p className="font-medium">
-                  {event.type === 'agent.training_started'
-                    ? `${event.payload.agentName} started ${event.payload.trainingName}`
-                    : event.type === 'agent.training_completed'
-                      ? `${event.payload.agentName} completed ${event.payload.trainingName}`
-                      : `${event.payload.agentName} cancelled ${event.payload.trainingName} (refund: $${event.payload.refund})`}
-                </p>
-                <p className="text-xs opacity-50">
-                  Week {event.payload.week} / {event.timestamp}
-                </p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </article>
+      {showHistoryPanels ? (
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.recentEventsHeading}</h3>
+          {recentTrainingEvents.length === 0 ? (
+            <p className="text-sm opacity-60">{TRAINING_UI_TEXT.noRecentEvents}</p>
+          ) : (
+            <ul className="space-y-2">
+              {recentTrainingEvents.map((event) => (
+                <li
+                  key={event.id}
+                  className={`rounded border px-3 py-2 ${getTrainingEventToneClass(event.type)}`}
+                >
+                  <p className="font-medium">
+                    {event.type === 'agent.training_started'
+                      ? `${event.payload.agentName} started ${event.payload.trainingName}`
+                      : event.type === 'agent.training_completed'
+                        ? `${event.payload.agentName} completed ${event.payload.trainingName}`
+                        : `${event.payload.agentName} cancelled ${event.payload.trainingName} (refund: $${event.payload.refund})`}
+                  </p>
+                  <p className="text-xs opacity-50">
+                    Week {event.payload.week} / {event.timestamp}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      ) : null}
 
-      <article className="panel space-y-3">
-        <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.completionsHeading}</h3>
-        {recentCompletions.length === 0 ? (
-          <p className="text-sm opacity-60">{TRAINING_UI_TEXT.noRecentCompletions}</p>
-        ) : (
-          <ol className="space-y-2">
-            {recentCompletions.map((event) => (
-              <li key={event.id} className="rounded border border-white/10 px-3 py-2">
-                <p className="font-medium">
-                  Week {event.payload.week}: {event.payload.agentName} completed{' '}
-                  {event.payload.trainingName}
-                </p>
-                <p className="text-xs opacity-50">{event.timestamp}</p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </article>
+      {showHistoryPanels ? (
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.completionsHeading}</h3>
+          {recentCompletions.length === 0 ? (
+            <p className="text-sm opacity-60">{TRAINING_UI_TEXT.noRecentCompletions}</p>
+          ) : (
+            <ol className="space-y-2">
+              {recentCompletions.map((event) => (
+                <li
+                  key={event.id}
+                  className="rounded border border-emerald-400/30 bg-emerald-500/8 px-3 py-2"
+                >
+                  <p className="font-medium">
+                    Week {event.payload.week}: {event.payload.agentName} completed{' '}
+                    {event.payload.trainingName}
+                  </p>
+                  <p className="text-xs opacity-50">{event.timestamp}</p>
+                </li>
+              ))}
+            </ol>
+          )}
+        </article>
+      ) : null}
     </section>
   )
 }
@@ -827,7 +1034,10 @@ function RosterGroup({
   queueTraining: (agentId: string, trainingId: string) => void
   programs: typeof trainingCatalog
   game: GameState
-  agentImpactPreviewMap: Map<string, Map<string, ReturnType<typeof getAgentTrainingImpacts>[number]>>
+  agentImpactPreviewMap: Map<
+    string,
+    Map<string, ReturnType<typeof getAgentTrainingImpacts>[number]>
+  >
 }) {
   const academyTier = game.academyTier ?? 0
 
@@ -905,7 +1115,8 @@ function RosterGroup({
 
                 {bestUnlockedPreview ? (
                   <p className="mt-2 text-xs opacity-50">
-                    Best projected gain: {bestUnlockedPreview.trainingName} (+{bestUnlockedPreview.scoreDelta.toFixed(2)} score)
+                    Best projected gain: {bestUnlockedPreview.trainingName} (+
+                    {bestUnlockedPreview.scoreDelta.toFixed(2)} score)
                   </p>
                 ) : null}
 
@@ -941,7 +1152,8 @@ function RosterGroup({
                                     ? 'No open slots'
                                     : assessment.reason === 'team_deployed'
                                       ? 'Assigned on case'
-                                      : assessment.reason === 'already_queued' || assessment.reason === 'already_training'
+                                      : assessment.reason === 'already_queued' ||
+                                          assessment.reason === 'already_training'
                                         ? 'Already queued'
                                         : assessment.reason === 'stat_maxed'
                                           ? 'Stat already maxed'
@@ -1006,7 +1218,9 @@ function TeamRosterGroup({
                 {view.team.derivedStats?.chemistryScore ?? 0} / Cohesion{' '}
                 {view.team.derivedStats?.cohesion ?? 0}
               </p>
-              <p className="text-xs opacity-50">{view.memberNames.join(', ') || 'No active members'}</p>
+              <p className="text-xs opacity-50">
+                {view.memberNames.join(', ') || 'No active members'}
+              </p>
               <p className="text-xs opacity-50">
                 {view.totalBondDepth > 0 && view.strongestBondPairLabel
                   ? `Bond depth ${view.totalBondDepth} / Strongest pair: ${view.strongestBondPairLabel} (${view.strongestBondDepth})`
@@ -1020,7 +1234,9 @@ function TeamRosterGroup({
 
           <div className="mt-3 grid gap-2 text-sm md:grid-cols-2">
             <p className="opacity-70">{view.readinessReasons[0]}</p>
-            <p className="opacity-70">{view.readinessReasons[1] ?? 'Team drill queue available.'}</p>
+            <p className="opacity-70">
+              {view.readinessReasons[1] ?? 'Team drill queue available.'}
+            </p>
           </div>
 
           <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
@@ -1082,4 +1298,28 @@ function StatusBadge({ label, tone }: { label: string; tone: 'neutral' | 'warnin
       : 'border-white/10 bg-white/5 text-white/80'
 
   return <span className={`rounded-full border px-2 py-0.5 text-xs ${className}`}>{label}</span>
+}
+
+function getTrainingEventToneClass(eventType: GameState['events'][number]['type']) {
+  if (eventType === 'agent.training_completed') {
+    return 'border-emerald-400/30 bg-emerald-500/8'
+  }
+
+  if (eventType === 'agent.training_cancelled') {
+    return 'border-amber-400/30 bg-amber-500/8'
+  }
+
+  return 'border-white/10 bg-white/5'
+}
+
+function getControlEventToneClass(eventType: GameState['events'][number]['type']) {
+  if (eventType === 'system.academy_upgraded') {
+    return 'border-sky-400/30 bg-sky-500/8'
+  }
+
+  if (eventType === 'agent.instructor_assigned') {
+    return 'border-indigo-400/30 bg-indigo-500/8'
+  }
+
+  return 'border-white/10 bg-white/5'
 }

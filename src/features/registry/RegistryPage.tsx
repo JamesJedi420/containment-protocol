@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router'
+import { toSearchString } from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { getNonFieldStaff } from '../../app/services/divisionMetrics'
 import { FilterInput } from '../../components/FilterInput'
@@ -28,6 +29,7 @@ export default function RegistryPage() {
   const filters = readRegistryListFilters(game, searchParams)
   const normalizedSearchParams = writeRegistryListFilters(filters, searchParams)
   const normalizedSearch = normalizedSearchParams.toString()
+  const detailSearch = toSearchString(normalizedSearchParams)
 
   useEffect(() => {
     if (searchParams.toString() !== normalizedSearch) {
@@ -91,7 +93,8 @@ export default function RegistryPage() {
         </div>
 
         <p className="text-xs uppercase tracking-[0.24em] opacity-50" aria-live="polite">
-          {agentViews.length} {REGISTRY_UI_TEXT.shownLabel} / {allAgentsCount} {REGISTRY_UI_TEXT.totalLabel}
+          {agentViews.length} {REGISTRY_UI_TEXT.shownLabel} / {allAgentsCount}{' '}
+          {REGISTRY_UI_TEXT.totalLabel}
         </p>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
@@ -182,9 +185,12 @@ export default function RegistryPage() {
               type="button"
               className="text-xs uppercase tracking-[0.24em] opacity-60 hover:opacity-100"
               onClick={() =>
-                setSearchParams(writeRegistryListFilters(DEFAULT_REGISTRY_LIST_FILTERS, searchParams), {
-                  replace: true,
-                })
+                setSearchParams(
+                  writeRegistryListFilters(DEFAULT_REGISTRY_LIST_FILTERS, searchParams),
+                  {
+                    replace: true,
+                  }
+                )
               }
             >
               {REGISTRY_UI_TEXT.clearFiltersLabel}
@@ -209,7 +215,7 @@ export default function RegistryPage() {
               disabled={currentPage <= 1}
               aria-label="Go to previous registry page"
             >
-              Previous
+              Previous page
             </button>
 
             {pageJumpTargets.map((pageNumber) => (
@@ -235,7 +241,7 @@ export default function RegistryPage() {
               disabled={currentPage >= totalPages}
               aria-label="Go to next registry page"
             >
-              Next
+              Next page
             </button>
           </div>
         </nav>
@@ -262,6 +268,7 @@ export default function RegistryPage() {
                 agent={agent}
                 teamName={teamName}
                 operationalStatus={operationalStatus}
+                detailSearch={detailSearch}
               />
             )
           })

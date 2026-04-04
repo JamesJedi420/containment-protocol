@@ -36,9 +36,7 @@ function pickTemplateId(
   requestedTemplateIds: string[],
   rng: () => number
 ) {
-  const candidates = requestedTemplateIds
-    .map((templateId) => templates[templateId])
-    .filter(Boolean)
+  const candidates = requestedTemplateIds.map((templateId) => templates[templateId]).filter(Boolean)
 
   if (candidates.length > 0) {
     return candidates[randInt(rng, 0, candidates.length - 1)]!
@@ -268,11 +266,7 @@ export function spawnFromEscalations(
   )
 }
 
-export function spawnFromFailures(
-  state: GameState,
-  failedCaseIds: string[],
-  rng: () => number
-) {
+export function spawnFromFailures(state: GameState, failedCaseIds: string[], rng: () => number) {
   return spawnFromCaseRule(
     state,
     failedCaseIds,

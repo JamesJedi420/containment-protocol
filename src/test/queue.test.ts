@@ -10,17 +10,51 @@ import {
 } from '../../src/domain/sim/queue'
 import type { GameState } from '../../src/domain/models'
 
+type QueueGameState = GameState & { caseQueue: NonNullable<GameState['caseQueue']> }
+
+function ensureQueueState(game: GameState): QueueGameState {
+  return game as QueueGameState
+}
+
+function enqueue(
+  game: GameState,
+  caseIds: string[],
+  priority?: 'critical' | 'high' | 'normal' | 'low'
+) {
+  return ensureQueueState(enqueueCases(game, caseIds, priority))
+}
+
+function dequeue(game: GameState, caseId: string) {
+  return ensureQueueState(dequeueCase(game, caseId))
+}
+
+function reprioritize(
+  game: GameState,
+  caseId: string,
+  priority: 'critical' | 'high' | 'normal' | 'low'
+) {
+  return ensureQueueState(reprioritizeCase(game, caseId, priority))
+}
+
+function moveQueued(game: GameState, caseId: string, index: number) {
+  return ensureQueueState(moveQueuedCase(game, caseId, index))
+}
+
+function clearQueued(game: GameState) {
+  return ensureQueueState(clearQueue(game))
+}
+
 describe('Queue System', () => {
-  let state: GameState
+  let state: QueueGameState
 
   beforeEach(() => {
-    state = createStartingState()
+    state = ensureQueueState(createStartingState())
   })
 
   describe('enqueueCases', () => {
     it('should add cases to empty queue', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      const next = enqueueCases(state, caseIds)
+      const next = enqueue(state, caseIds)
 
       expect(next.caseQueue.queuedCaseIds).toEqual(caseIds)
       expect(next.caseQueue.priorities[caseIds[0]]).toBe('normal')
@@ -30,22 +64,22 @@ describe('Queue System', () => {
     it('should not mutate original state', () => {
       const caseIds = Object.keys(state.cases).slice(0, 1)
       const originalQueue = { ...state.caseQueue }
-      enqueueCases(state, caseIds)
+      enqueue(state, caseIds)
 
       expect(state.caseQueue).toEqual(originalQueue)
     })
 
     it('should set custom priority', () => {
       const caseIds = [Object.keys(state.cases)[0]]
-      const next = enqueueCases(state, caseIds, 'critical')
+      const next = enqueue(state, caseIds, 'critical')
 
       expect(next.caseQueue.priorities[caseIds[0]]).toBe('critical')
     })
 
     it('should not add duplicate cases', () => {
       const caseId = Object.keys(state.cases)[0]
-      const s1 = enqueueCases(state, [caseId])
-      const s2 = enqueueCases(s1, [caseId])
+      const s1 = enqueue(state, [caseId])
+      const s2 = enqueue(s1, [caseId])
 
       expect(s2.caseQueue.queuedCaseIds).toHaveLength(1)
       expect(s2.caseQueue.queuedCaseIds[0]).toBe(caseId)
@@ -53,8 +87,8 @@ describe('Queue System', () => {
 
     it('should update priority if case already queued', () => {
       const caseId = Object.keys(state.cases)[0]
-      const s1 = enqueueCases(state, [caseId], 'normal')
-      const s2 = enqueueCases(s1, [caseId], 'high')
+      const s1 = enqueue(state, [caseId], 'normal')
+      const s2 = enqueue(s1, [caseId], 'high')
 
       expect(s2.caseQueue.priorities[caseId]).toBe('high')
       expect(s2.caseQueue.queuedCaseIds).toHaveLength(1)
@@ -64,24 +98,24 @@ describe('Queue System', () => {
   describe('dequeueCase', () => {
     it('should remove a queued case', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = dequeueCase(s1, caseIds[0])
+      const s1 = enqueue(state, caseIds)
+      const s2 = dequeue(s1, caseIds[0])
 
       expect(s2.caseQueue.queuedCaseIds).toEqual([caseIds[1]])
       expect(s2.caseQueue.priorities[caseIds[0]]).toBeUndefined()
     })
 
     it('should be no-op for non-queued case', () => {
-      const s1 = enqueueCases(state, [Object.keys(state.cases)[0]])
-      const s2 = dequeueCase(s1, Object.keys(state.cases)[1])
+      const s1 = enqueue(state, [Object.keys(state.cases)[0]])
+      const s2 = dequeue(s1, Object.keys(state.cases)[1])
 
       expect(s2.caseQueue.queuedCaseIds).toEqual(s1.caseQueue.queuedCaseIds)
     })
 
     it('should maintain order of remaining cases', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = dequeueCase(s1, caseIds[1])
+      const s1 = enqueue(state, caseIds)
+      const s2 = dequeue(s1, caseIds[1])
 
       expect(s2.caseQueue.queuedCaseIds).toEqual([caseIds[0], caseIds[2]])
     })
@@ -90,16 +124,16 @@ describe('Queue System', () => {
   describe('reprioritizeCase', () => {
     it('should update priority of queued case', () => {
       const caseId = Object.keys(state.cases)[0]
-      const s1 = enqueueCases(state, [caseId], 'normal')
-      const s2 = reprioritizeCase(s1, caseId, 'critical')
+      const s1 = enqueue(state, [caseId], 'normal')
+      const s2 = reprioritize(s1, caseId, 'critical')
 
       expect(s2.caseQueue.priorities[caseId]).toBe('critical')
     })
 
     it('should add case to queue if not present', () => {
       const caseId = Object.keys(state.cases)[0]
-      const s1 = enqueueCases(state, [])
-      const s2 = reprioritizeCase(s1, caseId, 'high')
+      const s1 = enqueue(state, [])
+      const s2 = reprioritize(s1, caseId, 'high')
 
       expect(s2.caseQueue.queuedCaseIds).toContain(caseId)
       expect(s2.caseQueue.priorities[caseId]).toBe('high')
@@ -107,11 +141,11 @@ describe('Queue System', () => {
 
     it('should handle all priority levels', () => {
       const caseIds = Object.keys(state.cases).slice(0, 4)
-      let s = enqueueCases(state, caseIds)
+      let s = enqueue(state, caseIds)
 
       const priorities = ['critical', 'high', 'normal', 'low'] as const
       priorities.forEach((priority, idx) => {
-        s = reprioritizeCase(s, caseIds[idx], priority)
+        s = reprioritize(s, caseIds[idx], priority)
       })
 
       priorities.forEach((priority, idx) => {
@@ -123,39 +157,39 @@ describe('Queue System', () => {
   describe('moveQueuedCase', () => {
     it('should move queued case to new position', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = moveQueuedCase(s1, caseIds[0], 2)
+      const s1 = enqueue(state, caseIds)
+      const s2 = moveQueued(s1, caseIds[0], 2)
 
       expect(s2.caseQueue.queuedCaseIds).toEqual([caseIds[1], caseIds[2], caseIds[0]])
     })
 
     it('should add case if not in queue', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      const s1 = enqueueCases(state, [caseIds[0]])
-      const s2 = moveQueuedCase(s1, caseIds[1], 1)
+      const s1 = enqueue(state, [caseIds[0]])
+      const s2 = moveQueued(s1, caseIds[1], 1)
 
       expect(s2.caseQueue.queuedCaseIds).toEqual([caseIds[0], caseIds[1]])
     })
 
     it('should clamp index to valid bounds', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = moveQueuedCase(s1, caseIds[0], 999)
+      const s1 = enqueue(state, caseIds)
+      const s2 = moveQueued(s1, caseIds[0], 999)
 
       expect(s2.caseQueue.queuedCaseIds).toEqual([caseIds[1], caseIds[0]])
     })
 
     it('should handle negative indices by converting to 0', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = moveQueuedCase(s1, caseIds[1], -10)
+      const s1 = enqueue(state, caseIds)
+      const s2 = moveQueued(s1, caseIds[1], -10)
 
       expect(s2.caseQueue.queuedCaseIds[0]).toBe(caseIds[1])
     })
 
     it('should be no-op for non-existent case in empty game', () => {
-      const s1 = clearQueue(state)
-      const s2 = moveQueuedCase(s1, 'non-existent-id', 0)
+      const s1 = clearQueued(state)
+      const s2 = moveQueued(s1, 'non-existent-id', 0)
 
       expect(s2.caseQueue.queuedCaseIds).toHaveLength(0)
     })
@@ -164,15 +198,15 @@ describe('Queue System', () => {
   describe('clearQueue', () => {
     it('should remove all queued cases', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
-      const s1 = enqueueCases(state, caseIds)
-      const s2 = clearQueue(s1)
+      const s1 = enqueue(state, caseIds)
+      const s2 = clearQueued(s1)
 
       expect(s2.caseQueue.queuedCaseIds).toHaveLength(0)
       expect(s2.caseQueue.priorities).toEqual({})
     })
 
     it('should work on empty queue', () => {
-      const s = clearQueue(state)
+      const s = clearQueued(state)
       expect(s.caseQueue.queuedCaseIds).toHaveLength(0)
     })
   })
@@ -180,11 +214,11 @@ describe('Queue System', () => {
   describe('getQueuedCasesOrdered', () => {
     it('should sort by priority tier', () => {
       const caseIds = Object.keys(state.cases).slice(0, 4)
-      let s = enqueueCases(state, caseIds, 'low')
+      let s = enqueue(state, caseIds, 'low')
 
-      s = reprioritizeCase(s, caseIds[0], 'critical')
-      s = reprioritizeCase(s, caseIds[1], 'high')
-      s = reprioritizeCase(s, caseIds[2], 'normal')
+      s = reprioritize(s, caseIds[0], 'critical')
+      s = reprioritize(s, caseIds[1], 'high')
+      s = reprioritize(s, caseIds[2], 'normal')
       // caseIds[3] stays 'low'
 
       const ordered = getQueuedCasesOrdered(s)
@@ -198,7 +232,7 @@ describe('Queue System', () => {
 
     it('should maintain queue order within same priority', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
-      const s = enqueueCases(state, caseIds, 'high')
+      const s = enqueue(state, caseIds, 'high')
       // All have 'high' priority, so order should match queue order
 
       const ordered = getQueuedCasesOrdered(s)
@@ -207,9 +241,9 @@ describe('Queue System', () => {
 
     it('should not mutate original queue order', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
-      let s = enqueueCases(state, caseIds)
+      let s = enqueue(state, caseIds)
 
-      s = reprioritizeCase(s, caseIds[2], 'critical')
+      s = reprioritize(s, caseIds[2], 'critical')
 
       // Original queue order unchanged
       expect(s.caseQueue.queuedCaseIds).toEqual(caseIds)
@@ -224,9 +258,9 @@ describe('Queue System', () => {
       let s = state
 
       // Queue: 0(critical), 1(low), 2(high)
-      s = enqueueCases(s, [caseIds[0]], 'critical')
-      s = enqueueCases(s, [caseIds[1]], 'low')
-      s = enqueueCases(s, [caseIds[2]], 'high')
+      s = enqueue(s, [caseIds[0]], 'critical')
+      s = enqueue(s, [caseIds[1]], 'low')
+      s = enqueue(s, [caseIds[2]], 'high')
 
       const ordered = getQueuedCasesOrdered(s)
 
@@ -239,7 +273,7 @@ describe('Queue System', () => {
 
     it('should treat unknown priority as normal', () => {
       const caseIds = Object.keys(state.cases).slice(0, 2)
-      let s = enqueueCases(state, caseIds)
+      let s = enqueue(state, caseIds)
 
       // Manually set unknown priority (as string that's not a valid CasePriority)
       s = {
@@ -248,7 +282,8 @@ describe('Queue System', () => {
           ...s.caseQueue,
           priorities: {
             [caseIds[0]]: 'critical',
-            [caseIds[1]]: 'unknown_priority' as unknown as typeof s.caseQueue.priorities[keyof typeof s.caseQueue.priorities],
+            [caseIds[1]]:
+              'unknown_priority' as unknown as (typeof s.caseQueue.priorities)[keyof typeof s.caseQueue.priorities],
           },
         },
       }
@@ -261,17 +296,17 @@ describe('Queue System', () => {
 
   describe('edge cases', () => {
     it('should handle empty case list', () => {
-      const s = enqueueCases(state, [])
+      const s = enqueue(state, [])
       expect(s.caseQueue.queuedCaseIds).toHaveLength(0)
     })
 
     it('should maintain queue consistency after multiple operations', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
 
-      let s = enqueueCases(state, caseIds.slice(0, 2))
-      s = dequeueCase(s, caseIds[0])
-      s = enqueueCases(s, [caseIds[2]])
-      s = reprioritizeCase(s, caseIds[1], 'high')
+      let s = enqueue(state, caseIds.slice(0, 2))
+      s = dequeue(s, caseIds[0])
+      s = enqueue(s, [caseIds[2]])
+      s = reprioritize(s, caseIds[1], 'high')
 
       // Final order: 2, 1(high)
       expect(s.caseQueue.queuedCaseIds).toEqual([caseIds[1], caseIds[2]])
@@ -282,13 +317,13 @@ describe('Queue System', () => {
     it('should produce consistent results with seeded state', () => {
       const caseIds = Object.keys(state.cases).slice(0, 3)
 
-      let s1 = enqueueCases(state, caseIds)
-      s1 = reprioritizeCase(s1, caseIds[0], 'critical')
-      s1 = dequeueCase(s1, caseIds[1])
+      let s1 = enqueue(state, caseIds)
+      s1 = reprioritize(s1, caseIds[0], 'critical')
+      s1 = dequeue(s1, caseIds[1])
 
-      let s2 = enqueueCases(state, caseIds)
-      s2 = reprioritizeCase(s2, caseIds[0], 'critical')
-      s2 = dequeueCase(s2, caseIds[1])
+      let s2 = enqueue(state, caseIds)
+      s2 = reprioritize(s2, caseIds[0], 'critical')
+      s2 = dequeue(s2, caseIds[1])
 
       expect(s1.caseQueue).toEqual(s2.caseQueue)
     })

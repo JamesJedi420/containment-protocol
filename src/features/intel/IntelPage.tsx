@@ -93,7 +93,8 @@ export default function IntelPage() {
             onChange={(value) => updateFilters({ kind: value as IntelFilters['kind'] })}
             options={INTEL_KIND_FILTERS.map((option) => ({
               value: option,
-              label: option === 'all' ? INTEL_UI_TEXT.allKinds : option === 'raid' ? 'Raid' : 'Case',
+              label:
+                option === 'all' ? INTEL_UI_TEXT.allKinds : option === 'raid' ? 'Raid' : 'Case',
             }))}
             containerClassName="space-y-2"
             labelClassName="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
@@ -20,6 +20,8 @@ import {
 export function EventFeedPanel() {
   const { game } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const advancedFiltersPanelId = 'operations-feed-advanced-filters'
   const filters = readEventFeedFilters(searchParams)
   const normalizedSearchParams = writeEventFeedFilters(filters)
   const normalizedSearch = normalizedSearchParams.toString()
@@ -48,10 +50,31 @@ export function EventFeedPanel() {
     filters.weekMax !== undefined ||
     (filters.entityId?.trim().length ?? 0) > 0
 
+  const hasAdvancedFiltersActive =
+    filters.relationshipVerbosity !== 'summary' ||
+    filters.weekMin !== undefined ||
+    filters.weekMax !== undefined ||
+    (filters.entityId?.trim().length ?? 0) > 0
+  const activeFilterChips = getActiveFilterChips(filters)
+  const isAdvancedFiltersVisible = showAdvancedFilters || hasAdvancedFiltersActive
+
   const resetFilters = () => {
     setSearchParams(writeEventFeedFilters(readEventFeedFilters(new URLSearchParams())), {
       replace: true,
     })
+  }
+
+  const resetAdvancedFilters = () => {
+    setSearchParams(
+      writeEventFeedFilters({
+        ...filters,
+        relationshipVerbosity: 'summary',
+        weekMin: undefined,
+        weekMax: undefined,
+        entityId: '',
+      }),
+      { replace: true }
+    )
   }
 
   return (
@@ -61,7 +84,7 @@ export function EventFeedPanel() {
         <p className="text-sm opacity-60">{EVENT_FEED_TEXT.subtitle}</p>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <FilterInput
           id="operations-feed-search"
           label={EVENT_FEED_TEXT.searchLabel}
@@ -114,78 +137,112 @@ export function EventFeedPanel() {
             </option>
           ))}
         </FilterSelect>
-
-        <FilterSelect
-          id="operations-feed-relationship-verbosity"
-          label={EVENT_FEED_TEXT.relationshipVerbosityLabel}
-          value={filters.relationshipVerbosity}
-          onChange={(relationshipVerbosity) =>
-            updateFilters({ relationshipVerbosity: relationshipVerbosity as typeof filters.relationshipVerbosity })
-          }
-        >
-          <option value="summary">{EVENT_FEED_TEXT.relationshipSummaryMode}</option>
-          <option value="all">{EVENT_FEED_TEXT.relationshipAllMode}</option>
-        </FilterSelect>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="operations-feed-week-min"
-            className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
-          >
-            {EVENT_FEED_TEXT.weekMinLabel}
-          </label>
-          <input
-            id="operations-feed-week-min"
-            type="number"
-            min={1}
-            className="form-input"
-            value={filters.weekMin ?? ''}
-            onChange={(event) =>
-              updateFilters({
-                weekMin: event.target.value === '' ? undefined : Number(event.target.value),
-              })
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="operations-feed-week-max"
-            className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
-          >
-            {EVENT_FEED_TEXT.weekMaxLabel}
-          </label>
-          <input
-            id="operations-feed-week-max"
-            type="number"
-            min={1}
-            className="form-input"
-            value={filters.weekMax ?? ''}
-            onChange={(event) =>
-              updateFilters({
-                weekMax: event.target.value === '' ? undefined : Number(event.target.value),
-              })
-            }
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label
-            htmlFor="operations-feed-entity-id"
-            className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
-          >
-            {EVENT_FEED_TEXT.entityIdLabel}
-          </label>
-          <input
-            id="operations-feed-entity-id"
-            type="search"
-            className="form-input"
-            placeholder={EVENT_FEED_TEXT.entityIdPlaceholder}
-            value={filters.entityId ?? ''}
-            onChange={(event) => updateFilters({ entityId: event.target.value })}
-          />
-        </div>
       </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        {isAdvancedFiltersVisible ? (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            aria-label="Hide advanced filters"
+            aria-expanded="true"
+            aria-controls={advancedFiltersPanelId}
+            onClick={() => setShowAdvancedFilters(false)}
+          >
+            Hide advanced filters
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-sm btn-ghost"
+            aria-label="Show advanced filters"
+            aria-expanded="false"
+            aria-controls={advancedFiltersPanelId}
+            onClick={() => setShowAdvancedFilters(true)}
+          >
+            Show advanced filters
+          </button>
+        )}
+        <p className="text-xs opacity-50">Week range, entity ID, and relationship verbosity</p>
+      </div>
+
+      {isAdvancedFiltersVisible ? (
+        <div id={advancedFiltersPanelId} className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <FilterSelect
+            id="operations-feed-relationship-verbosity"
+            label={EVENT_FEED_TEXT.relationshipVerbosityLabel}
+            value={filters.relationshipVerbosity}
+            onChange={(relationshipVerbosity) =>
+              updateFilters({
+                relationshipVerbosity:
+                  relationshipVerbosity as typeof filters.relationshipVerbosity,
+              })
+            }
+          >
+            <option value="summary">{EVENT_FEED_TEXT.relationshipSummaryMode}</option>
+            <option value="all">{EVENT_FEED_TEXT.relationshipAllMode}</option>
+          </FilterSelect>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="operations-feed-week-min"
+              className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
+            >
+              {EVENT_FEED_TEXT.weekMinLabel}
+            </label>
+            <input
+              id="operations-feed-week-min"
+              type="number"
+              min={1}
+              className="form-input"
+              value={filters.weekMin ?? ''}
+              onChange={(event) =>
+                updateFilters({
+                  weekMin: event.target.value === '' ? undefined : Number(event.target.value),
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="operations-feed-week-max"
+              className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
+            >
+              {EVENT_FEED_TEXT.weekMaxLabel}
+            </label>
+            <input
+              id="operations-feed-week-max"
+              type="number"
+              min={1}
+              className="form-input"
+              value={filters.weekMax ?? ''}
+              onChange={(event) =>
+                updateFilters({
+                  weekMax: event.target.value === '' ? undefined : Number(event.target.value),
+                })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="operations-feed-entity-id"
+              className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
+            >
+              {EVENT_FEED_TEXT.entityIdLabel}
+            </label>
+            <input
+              id="operations-feed-entity-id"
+              type="search"
+              className="form-input"
+              placeholder={EVENT_FEED_TEXT.entityIdPlaceholder}
+              value={filters.entityId ?? ''}
+              onChange={(event) => updateFilters({ entityId: event.target.value })}
+            />
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm opacity-60">
@@ -193,12 +250,32 @@ export function EventFeedPanel() {
             .replace('{count}', String(views.length))
             .replace('{total}', String(game.events.length))}
         </p>
-        {hasActiveFilters ? (
-          <button type="button" className="btn btn-sm btn-ghost" onClick={resetFilters}>
-            Reset filters
-          </button>
-        ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          {hasAdvancedFiltersActive ? (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={resetAdvancedFilters}>
+              Reset advanced
+            </button>
+          ) : null}
+          {hasActiveFilters ? (
+            <button type="button" className="btn btn-sm btn-ghost" onClick={resetFilters}>
+              Reset filters
+            </button>
+          ) : null}
+        </div>
       </div>
+
+      {activeFilterChips.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-2" aria-label="Active feed filters">
+          {activeFilterChips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs opacity-80"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {game.events.length === 0 ? (
         <p className="rounded border border-dashed border-white/15 bg-white/2 px-3 py-3 text-sm opacity-70">
@@ -264,4 +341,42 @@ function getToneClassName(tone: EventFeedTone) {
   }
 
   return 'border-white/10 bg-white/5'
+}
+
+function getActiveFilterChips(filters: ReturnType<typeof readEventFeedFilters>) {
+  const chips: string[] = []
+
+  if (filters.query.trim().length > 0) {
+    chips.push(`Search: ${filters.query.trim()}`)
+  }
+
+  if (filters.category !== 'all') {
+    chips.push(`Category: ${EVENT_CATEGORY_LABELS[filters.category]}`)
+  }
+
+  if (filters.sourceSystem !== 'all') {
+    chips.push(`Source: ${EVENT_SOURCE_LABELS[filters.sourceSystem]}`)
+  }
+
+  if (filters.type !== 'all') {
+    chips.push(`Type: ${EVENT_TYPE_LABELS[filters.type]}`)
+  }
+
+  if (filters.relationshipVerbosity !== 'summary') {
+    chips.push('Relationship logs: All')
+  }
+
+  if (filters.weekMin !== undefined) {
+    chips.push(`Week from: ${filters.weekMin}`)
+  }
+
+  if (filters.weekMax !== undefined) {
+    chips.push(`Week to: ${filters.weekMax}`)
+  }
+
+  if ((filters.entityId?.trim().length ?? 0) > 0) {
+    chips.push(`Entity: ${filters.entityId!.trim()}`)
+  }
+
+  return chips
 }

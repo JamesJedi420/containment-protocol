@@ -96,11 +96,18 @@ describe('betrayal phase-2 mechanics', () => {
       rng: () => 0.99,
     })
 
-    expect(result.eventDrafts.some((event) => event.type === 'agent.relationship_changed' && event.payload.reason === 'betrayal')).toBe(true)
+    expect(
+      result.eventDrafts.some(
+        (event) =>
+          event.type === 'agent.relationship_changed' && event.payload.reason === 'betrayal'
+      )
+    ).toBe(true)
 
     const betrayer = result.nextAgents.a_ava
-    expect((betrayer.trustDamageByAgent?.a_sato ?? 0)).toBeGreaterThan(0)
-    expect(betrayer.trustConsequenceStack?.some((entry) => entry.consequenceType === 'benching')).toBe(true)
+    expect(betrayer.trustDamageByAgent?.a_sato ?? 0).toBeGreaterThan(0)
+    expect(
+      betrayer.trustConsequenceStack?.some((entry) => entry.consequenceType === 'benching')
+    ).toBe(true)
     expect(betrayer.status).toBe('recovering')
   })
 
@@ -150,8 +157,12 @@ describe('betrayal phase-2 mechanics', () => {
     }
 
     expect(disciplinaryTriggered).toBe(true)
-    expect((agents.a_ava.trustDamageByAgent?.a_sato ?? 0)).toBeGreaterThanOrEqual(TRUST_DAMAGE_CRITICAL)
-    expect(agents.a_ava.trustConsequenceStack?.some((entry) => entry.consequenceType === 'resignation')).toBe(true)
+    expect(agents.a_ava.trustDamageByAgent?.a_sato ?? 0).toBeGreaterThanOrEqual(
+      TRUST_DAMAGE_CRITICAL
+    )
+    expect(
+      agents.a_ava.trustConsequenceStack?.some((entry) => entry.consequenceType === 'resignation')
+    ).toBe(true)
     expect(agents.a_ava.status).toBe('resigned')
   })
 
@@ -227,7 +238,11 @@ describe('betrayal phase-2 mechanics', () => {
     const next = recoverTrustDamagePassively(seeded)
 
     expect(next.a_ava.trustDamageByAgent?.a_sato).toBeCloseTo(0.57, 2)
-    expect(next.a_ava.trustConsequenceStack?.some((entry) => entry.consequenceType === 'performance_penalty')).toBe(false)
+    expect(
+      next.a_ava.trustConsequenceStack?.some(
+        (entry) => entry.consequenceType === 'performance_penalty'
+      )
+    ).toBe(false)
     expect(next.a_ava.performancePenaltyMultiplier).toBeUndefined()
     expect(next.a_ava.status).toBe('active')
   })
@@ -417,10 +432,7 @@ describe('betrayal phase-2 mechanics', () => {
       week: state.week,
     })
 
-    expect(result.nextAgents.a_mina.relationships.a_ava).toBeCloseTo(
-      0.5 + BETRAYAL_GOSSIP_DELTA,
-      2
-    )
+    expect(result.nextAgents.a_mina.relationships.a_ava).toBeCloseTo(0.5 + BETRAYAL_GOSSIP_DELTA, 2)
 
     const minaToAvaEvents = result.eventDrafts.filter(
       (event) =>

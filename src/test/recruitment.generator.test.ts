@@ -7,8 +7,14 @@ import {
   removeExpiredCandidates,
 } from '../domain/sim/candidateGenerator'
 
-function generateCandidatesFromState(state: ReturnType<typeof createStartingState>, rng?: () => number) {
-  return generateCandidates(buildRecruitmentGenerationState(state), rng)
+function generateCandidatesFromState(
+  state: ReturnType<typeof createStartingState>,
+  rng?: () => number
+) {
+  return generateCandidates(
+    buildRecruitmentGenerationState(state),
+    rng ?? createSeededRng(state.rngState).next
+  )
 }
 
 function createHighTailRng() {

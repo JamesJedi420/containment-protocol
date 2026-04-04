@@ -16,7 +16,10 @@ import {
   GAME_OVER_REASONS,
 } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
-import { getWeeklyDirectiveDefinition, getWeeklyDirectiveDefinitions } from '../../domain/directives'
+import {
+  getWeeklyDirectiveDefinition,
+  getWeeklyDirectiveDefinitions,
+} from '../../domain/directives'
 import { RunTransferPanel } from './RunTransferPanel'
 import { EventFeedPanel } from './EventFeedPanel'
 import { OperationsDeskPanels } from './OperationsDeskPanels'
@@ -141,51 +144,61 @@ export default function DashboardPage() {
           label={DASHBOARD_STAT_LABELS.open}
           value={metrics.open}
           to={APP_ROUTES.cases}
+          tone="warning"
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.inProgress}
           value={metrics.inProgress}
           to={APP_ROUTES.cases}
+          tone="info"
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.resolved}
           value={metrics.resolved}
           to={APP_ROUTES.report}
+          tone="neutral"
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.score}
           value={metrics.totalScore}
           to={APP_ROUTES.report}
+          tone="neutral"
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.avgFatigue}
           value={metrics.avgFatigue}
           to={APP_ROUTES.teams}
+          tone="warning"
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.maxStage}
           value={metrics.maxStage}
           to={APP_ROUTES.cases}
+          tone={metrics.maxStage >= 4 ? 'danger' : metrics.maxStage >= 3 ? 'warning' : 'neutral'}
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.deadlineRisk}
           value={metrics.deadlineRiskCount}
           to={APP_ROUTES.cases}
+          tone={metrics.deadlineRiskCount > 0 ? 'warning' : 'neutral'}
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.criticalStage}
           value={metrics.criticalStageCount}
           to={APP_ROUTES.cases}
+          tone={metrics.criticalStageCount > 0 ? 'danger' : 'neutral'}
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.raidUnderstaffed}
           value={metrics.raidUnderstaffedCount}
           to={APP_ROUTES.cases}
+          tone={metrics.raidUnderstaffedCount > 0 ? 'danger' : 'neutral'}
         />
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.overstretchedTeams}
           value={metrics.overstretchedTeamCount}
           to={APP_ROUTES.teams}
+          tone={metrics.overstretchedTeamCount > 0 ? 'danger' : 'neutral'}
         />
       </div>
 
@@ -641,9 +654,28 @@ export default function DashboardPage() {
   )
 }
 
-function DashboardStatLink({ label, value, to }: { label: string; value: number; to: string }) {
+function DashboardStatLink({
+  label,
+  value,
+  to,
+  tone = 'neutral',
+}: {
+  label: string
+  value: number
+  to: string
+  tone?: 'neutral' | 'info' | 'warning' | 'danger'
+}) {
+  const toneClass =
+    tone === 'danger'
+      ? 'border-rose-400/30 bg-rose-500/8'
+      : tone === 'warning'
+        ? 'border-amber-400/30 bg-amber-500/8'
+        : tone === 'info'
+          ? 'border-cyan-400/30 bg-cyan-500/8'
+          : 'border-white/10 bg-white/5'
+
   return (
-    <div className="panel panel-hi">
+    <div className={`panel panel-hi ${toneClass}`}>
       <Link to={to} className="block transition hover:opacity-100">
         <p className="text-label opacity-80">{label}</p>
         <p className="mt-2 text-stat">{value}</p>

@@ -45,6 +45,7 @@ describe('teamSimulation', () => {
       ...state.teams['t_nightwatch'],
       status: {
         ...state.teams['t_nightwatch'].status,
+        state: state.teams['t_nightwatch'].status?.state ?? 'ready',
         assignedCaseId: 'case-001',
       },
       assignedCaseId: 'case-003',
@@ -128,10 +129,9 @@ describe('teamSimulation', () => {
       },
     }
 
-    expect(getUniqueTeamMembers(['alpha', 'bravo'], teams, state.agents).map((agent) => agent.id)).toEqual([
-      'a_ava',
-      'a_kellan',
-    ])
+    expect(
+      getUniqueTeamMembers(['alpha', 'bravo'], teams, state.agents).map((agent) => agent.id)
+    ).toEqual(['a_ava', 'a_kellan'])
   })
 
   it('keeps derived stats finite when agents contain malformed fatigue values', () => {

@@ -2,65 +2,74 @@
 import { z } from 'zod'
 import type { OperationEventType } from './types'
 
-
 // Zod schemas for all OperationEventPayloadMap event types (strict)
-export const assignmentTeamAssignedSchema = z.object({
-  week: z.number(),
-  caseId: z.string(),
-  caseTitle: z.string(),
-  caseKind: z.string(),
-  teamId: z.string(),
-  teamName: z.string(),
-  assignedTeamCount: z.number(),
-  maxTeams: z.number(),
-}).strict()
+export const assignmentTeamAssignedSchema = z
+  .object({
+    week: z.number(),
+    caseId: z.string(),
+    caseTitle: z.string(),
+    caseKind: z.string(),
+    teamId: z.string(),
+    teamName: z.string(),
+    assignedTeamCount: z.number(),
+    maxTeams: z.number(),
+  })
+  .strict()
 
-export const assignmentTeamUnassignedSchema = z.object({
-  week: z.number(),
-  caseId: z.string(),
-  caseTitle: z.string(),
-  teamId: z.string(),
-  teamName: z.string(),
-  remainingTeamCount: z.number(),
-}).strict()
+export const assignmentTeamUnassignedSchema = z
+  .object({
+    week: z.number(),
+    caseId: z.string(),
+    caseTitle: z.string(),
+    teamId: z.string(),
+    teamName: z.string(),
+    remainingTeamCount: z.number(),
+  })
+  .strict()
 
-export const caseResolvedSchema = z.object({
-  week: z.number(),
-  caseId: z.string(),
-  caseTitle: z.string(),
-  mode: z.string(),
-  kind: z.string(),
-  stage: z.number(),
-  teamIds: z.array(z.string()),
-  performanceSummary: z.any().optional(),
-  rewardBreakdown: z.any().optional(),
-}).strict()
+export const caseResolvedSchema = z
+  .object({
+    week: z.number(),
+    caseId: z.string(),
+    caseTitle: z.string(),
+    mode: z.string(),
+    kind: z.string(),
+    stage: z.number(),
+    teamIds: z.array(z.string()),
+    performanceSummary: z.any().optional(),
+    rewardBreakdown: z.any().optional(),
+  })
+  .strict()
 
-export const casePartiallyResolvedSchema = z.object({
-  week: z.number(),
-  caseId: z.string(),
-  caseTitle: z.string(),
-  mode: z.string(),
-  kind: z.string(),
-  fromStage: z.number(),
-  toStage: z.number(),
-  teamIds: z.array(z.string()),
-  performanceSummary: z.any().optional(),
-  rewardBreakdown: z.any().optional(),
-}).strict()
+export const casePartiallyResolvedSchema = z
+  .object({
+    week: z.number(),
+    caseId: z.string(),
+    caseTitle: z.string(),
+    mode: z.string(),
+    kind: z.string(),
+    fromStage: z.number(),
+    toStage: z.number(),
+    teamIds: z.array(z.string()),
+    performanceSummary: z.any().optional(),
+    rewardBreakdown: z.any().optional(),
+  })
+  .strict()
 
-export const caseFailedSchema = z.object({
-  week: z.number(),
-  caseId: z.string(),
-  caseTitle: z.string(),
-  mode: z.string(),
-  kind: z.string(),
-  fromStage: z.number(),
-  toStage: z.number(),
-  teamIds: z.array(z.string()),
-  performanceSummary: z.any().optional(),
-  rewardBreakdown: z.any().optional(),
-}).strict()
+export const caseFailedSchema = z
+  .object({
+    week: z.number(),
+    caseId: z.string(),
+    caseTitle: z.string(),
+    mode: z.string(),
+    kind: z.string(),
+    fromStage: z.number(),
+    toStage: z.number(),
+    teamIds: z.array(z.string()),
+    performanceSummary: z.any().optional(),
+    rewardBreakdown: z.any().optional(),
+  })
+  .strict()
 
 // ... (Add schemas for all other event types in OperationEventPayloadMap)
 

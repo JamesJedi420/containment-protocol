@@ -1,4 +1,9 @@
-import { appendOperationEventDrafts, type AnyOperationEventDraft, createAssignmentTeamAssignedDraft, createAssignmentTeamUnassignedDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  type AnyOperationEventDraft,
+  createAssignmentTeamAssignedDraft,
+  createAssignmentTeamUnassignedDraft,
+} from '../events'
 import { type GameState, type Id } from '../models'
 import {
   ensureNormalizedGameState,
@@ -127,25 +132,29 @@ export function assignTeam(state: GameState, caseId: Id, teamId: Id): GameState 
     },
   }
 
-  const drafts: AnyOperationEventDraft[] = replacedTeamIds.map((replacedTeamId) => createAssignmentTeamUnassignedDraft({
-    week: normalizedState.week,
-    caseId,
-    caseTitle: normalizedCase.title,
-    teamId: replacedTeamId,
-    teamName: normalizedState.teams[replacedTeamId]?.name ?? replacedTeamId,
-    remainingTeamCount: nextAssignedTeamIds.length,
-  }))
-  if (assignmentChanged) {
-    drafts.push(createAssignmentTeamAssignedDraft({
+  const drafts: AnyOperationEventDraft[] = replacedTeamIds.map((replacedTeamId) =>
+    createAssignmentTeamUnassignedDraft({
       week: normalizedState.week,
       caseId,
       caseTitle: normalizedCase.title,
-      caseKind: normalizedCase.kind,
-      teamId,
-      teamName: normalizedTeam.name,
-      assignedTeamCount: nextAssignedTeamIds.length,
-      maxTeams,
-    }))
+      teamId: replacedTeamId,
+      teamName: normalizedState.teams[replacedTeamId]?.name ?? replacedTeamId,
+      remainingTeamCount: nextAssignedTeamIds.length,
+    })
+  )
+  if (assignmentChanged) {
+    drafts.push(
+      createAssignmentTeamAssignedDraft({
+        week: normalizedState.week,
+        caseId,
+        caseTitle: normalizedCase.title,
+        caseKind: normalizedCase.kind,
+        teamId,
+        teamName: normalizedTeam.name,
+        assignedTeamCount: nextAssignedTeamIds.length,
+        maxTeams,
+      })
+    )
   }
 
   return normalizeGameState(appendOperationEventDrafts(nextState, drafts))
@@ -203,14 +212,16 @@ export function unassignTeam(state: GameState, caseId: Id, teamId?: Id): GameSta
   return normalizeGameState(
     appendOperationEventDrafts(
       nextState,
-      teamIdsToRemove.map((removedTeamId) => createAssignmentTeamUnassignedDraft({
-        week: normalizedState.week,
-        caseId,
-        caseTitle: normalizedCase.title,
-        teamId: removedTeamId,
-        teamName: normalizedState.teams[removedTeamId]?.name ?? removedTeamId,
-        remainingTeamCount: remainingTeamIds.length,
-      }))
+      teamIdsToRemove.map((removedTeamId) =>
+        createAssignmentTeamUnassignedDraft({
+          week: normalizedState.week,
+          caseId,
+          caseTitle: normalizedCase.title,
+          teamId: removedTeamId,
+          teamName: normalizedState.teams[removedTeamId]?.name ?? removedTeamId,
+          remainingTeamCount: remainingTeamIds.length,
+        })
+      )
     )
   )
 }

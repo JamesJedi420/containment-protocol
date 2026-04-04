@@ -141,4 +141,3 @@ describe('getGlobalStateMetrics', () => {
     expect(metrics.pressureBarPercent).toBe(100)
   })
 })
-

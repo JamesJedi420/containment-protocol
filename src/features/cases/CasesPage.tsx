@@ -203,6 +203,8 @@ export default function CasesPage() {
             const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
             const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
             const urgencyMarkers = getUrgencyMarkers(view)
+            const recommendation = getCaseRecommendation(view)
+            const bestEligibleSuccess = getBestEligibleSuccess(view)
 
             return (
               <li key={view.currentCase.id} className="panel panel-support space-y-3">
@@ -244,6 +246,16 @@ export default function CasesPage() {
                         {marker.label}
                       </span>
                     ))}
+                  </div>
+                ) : null}
+
+                {recommendation ? (
+                  <div className="rounded border border-sky-400/25 bg-sky-500/8 px-3 py-2">
+                    <p className="text-xs uppercase tracking-[0.24em] opacity-60">
+                      Recommended action
+                    </p>
+                    <p className="mt-1 text-sm font-medium">{recommendation.title}</p>
+                    <p className="text-xs opacity-70">{recommendation.detail}</p>
                   </div>
                 ) : null}
 
@@ -330,18 +342,29 @@ export default function CasesPage() {
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {view.availableTeams.map(({ team, odds }) => (
-                        <button
-                          key={team.id}
-                          onClick={() => assign(view.currentCase.id, team.id)}
-                          disabled={odds.blockedByRequiredTags || odds.blockedByRequiredRoles}
-                          aria-label={`Assign ${team.name}`}
-                          className="btn btn-sm"
-                        >
-                          Assign {AGENCY_LABELS.responseUnit} {team.name} (
-                          {CASE_UI_LABELS.oddsSuccessAbbr} {Math.round(odds.success * 100)}% /{' '}
-                          {CASE_UI_LABELS.oddsPartialAbbr} {Math.round(odds.partial * 100)}% /{' '}
-                          {CASE_UI_LABELS.oddsFailAbbr} {Math.round(odds.fail * 100)}%)
-                        </button>
+                        <div key={team.id} className="space-y-1">
+                          <button
+                            onClick={() => assign(view.currentCase.id, team.id)}
+                            disabled={odds.blockedByRequiredTags || odds.blockedByRequiredRoles}
+                            aria-label={`Assign ${team.name}`}
+                            className="btn btn-sm"
+                          >
+                            Assign {AGENCY_LABELS.responseUnit} {team.name} (
+                            {CASE_UI_LABELS.oddsSuccessAbbr} {Math.round(odds.success * 100)}% /{' '}
+                            {CASE_UI_LABELS.oddsPartialAbbr} {Math.round(odds.partial * 100)}% /{' '}
+                            {CASE_UI_LABELS.oddsFailAbbr} {Math.round(odds.fail * 100)}%)
+                          </button>
+                          {bestEligibleSuccess !== null &&
+                          !odds.blockedByRequiredTags &&
+                          !odds.blockedByRequiredRoles &&
+                          bestEligibleSuccess - odds.success >= 0.15 ? (
+                            <p className="text-xs text-amber-200/90">
+                              Likely dominated:{' '}
+                              {Math.round((bestEligibleSuccess - odds.success) * 100)}% below best
+                              current option.
+                            </p>
+                          ) : null}
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -364,6 +387,17 @@ export default function CasesPage() {
                 : CASES_GUIDANCE.noResolvedCases}
           </p>
           <p className="text-sm opacity-70">{CASES_GUIDANCE.allCasesFiltered}</p>
+          {normalizedSearchString.length > 0 ? (
+            <div>
+              <button
+                type="button"
+                className="btn btn-sm btn-ghost"
+                onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : null}
         </div>
       )}
     </section>
@@ -416,6 +450,61 @@ function getUrgencyMarkers(view: CaseListItemView) {
   }
 
   return markers
+}
+
+function getBestEligibleSuccess(view: CaseListItemView) {
+  const eligible = view.availableTeams.filter(
+    ({ odds }) => !odds.blockedByRequiredTags && !odds.blockedByRequiredRoles
+  )
+
+  if (eligible.length === 0) {
+    return null
+  }
+
+  return Math.max(...eligible.map(({ odds }) => odds.success))
+}
+
+function getCaseRecommendation(view: CaseListItemView) {
+  if (view.currentCase.status === 'resolved') {
+    return null
+  }
+
+  const eligible = view.availableTeams.filter(
+    ({ odds }) => !odds.blockedByRequiredTags && !odds.blockedByRequiredRoles
+  )
+
+  if (eligible.length === 0) {
+    if (view.isBlockedByRequiredRoles || view.isBlockedByRequiredTags) {
+      return {
+        title: 'Address blockers first',
+        detail: 'No team currently satisfies this case’s required roles/tags.',
+      }
+    }
+
+    return {
+      title: 'Restore availability',
+      detail: 'No eligible response units are currently available to assign.',
+    }
+  }
+
+  const best = eligible.reduce((top, candidate) =>
+    candidate.odds.success > top.odds.success ? candidate : top
+  )
+
+  const rationale: string[] = [`Best current success: ${Math.round(best.odds.success * 100)}%`]
+
+  if (view.hasDeadlineRisk) {
+    rationale.push('deadline risk active')
+  }
+
+  if (view.isCriticalStage) {
+    rationale.push('high-stage pressure')
+  }
+
+  return {
+    title: `Assign ${AGENCY_LABELS.responseUnit} ${best.team.name}`,
+    detail: rationale.join(' · '),
+  }
 }
 
 const CASE_SORT_LABELS: Record<(typeof CASE_SORTS)[number], string> = {

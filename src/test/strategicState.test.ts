@@ -17,7 +17,9 @@ describe('strategicState', () => {
 
     expect(view.openSlots).toBe(game.config.maxActiveCases - Object.keys(game.cases).length)
     expect(view.pressureTags.some((entry) => entry.tag === 'cult')).toBe(true)
-    expect(view.likelyFollowUps.map((entry) => entry.templateId)).toContain('followup_missing_persons')
+    expect(view.likelyFollowUps.map((entry) => entry.templateId)).toContain(
+      'followup_missing_persons'
+    )
     expect(view.likelyRaidConversions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({

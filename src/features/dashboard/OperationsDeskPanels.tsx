@@ -19,7 +19,10 @@ export function OperationsDeskPanels() {
         <ul className="space-y-3">
           {view.fieldStatusViews.map((entry) => {
             return (
-              <li key={entry.team.id} className="rounded border border-white/10 px-3 py-3">
+              <li
+                key={entry.team.id}
+                className={`rounded border px-3 py-3 ${getFieldStatusToneClass(entry.status, entry.signals)}`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">
@@ -104,7 +107,10 @@ export function OperationsDeskPanels() {
         {view.advisories.length > 0 ? (
           <ul className="space-y-3">
             {view.advisories.map((advisory) => (
-              <li key={advisory.id} className="rounded border border-white/10 px-3 py-3">
+              <li
+                key={advisory.id}
+                className={`rounded border px-3 py-3 ${getAdvisoryToneClass(advisory.severity)}`}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1">
                     <p className="font-medium">{advisory.title}</p>
@@ -314,4 +320,35 @@ function MetricCard({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
   )
+}
+
+function getFieldStatusToneClass(
+  status: 'idle' | 'deploying' | 'recovering' | 'overstretched',
+  signals: { deadlineRisk: boolean; criticalStage: boolean; raidUnderstaffed: boolean }
+) {
+  if (signals.criticalStage || status === 'overstretched') {
+    return 'border-rose-400/30 bg-rose-500/8'
+  }
+
+  if (signals.deadlineRisk || signals.raidUnderstaffed || status === 'recovering') {
+    return 'border-amber-400/30 bg-amber-500/8'
+  }
+
+  if (status === 'deploying') {
+    return 'border-cyan-400/30 bg-cyan-500/8'
+  }
+
+  return 'border-white/10 bg-white/5'
+}
+
+function getAdvisoryToneClass(severity: 'info' | 'warning' | 'danger') {
+  if (severity === 'danger') {
+    return 'border-red-400/30 bg-red-500/8'
+  }
+
+  if (severity === 'warning') {
+    return 'border-amber-400/30 bg-amber-500/8'
+  }
+
+  return 'border-cyan-400/30 bg-cyan-500/8'
 }

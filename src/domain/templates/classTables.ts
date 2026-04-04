@@ -1,4 +1,11 @@
-import { type Agent, type AgentAbility, type AgentRole, type StatBlock } from '../models'
+import { createDefaultAgentProgression } from '../agentDefaults'
+import {
+  type Agent,
+  type AgentAbility,
+  type AgentRole,
+  type PotentialTier,
+  type StatBlock,
+} from '../models'
 import { createAgent } from '../agent/factory'
 
 export interface AgentClassTableEntry {
@@ -19,11 +26,19 @@ export interface StarterAgentBlueprint {
   tags?: string[]
   relationships?: Record<string, number>
   baseStats?: StatBlock
+  potentialTier?: PotentialTier
+  growthProfile?: string
   abilities?: AgentAbility[]
 }
 
 function normalizeAgentStatus(status: StarterAgentBlueprint['status']) {
-  if (status === 'active' || status === 'injured' || status === 'recovering' || status === 'resigned' || status === 'dead') {
+  if (
+    status === 'active' ||
+    status === 'injured' ||
+    status === 'recovering' ||
+    status === 'resigned' ||
+    status === 'dead'
+  ) {
     return status
   }
 
@@ -56,6 +71,12 @@ export const agentClassTables: Record<AgentRole, AgentClassTableEntry> = {
     label: 'Case Investigator',
     baseStats: { combat: 35, investigation: 65, utility: 50, social: 40 },
     tags: ['forensics', 'field-kit'],
+  },
+  field_recon: {
+    role: 'field_recon',
+    label: 'Field Recon',
+    baseStats: { combat: 35, investigation: 72, utility: 68, social: 30 },
+    tags: ['recon', 'surveillance', 'pathfinding', 'field-kit'],
   },
   medium: {
     role: 'medium',
@@ -106,6 +127,11 @@ export function createStarterAgent(blueprint: StarterAgentBlueprint): Agent {
     baseStats,
     tags: [...new Set([...(classTemplate.tags ?? []), ...(blueprint.tags ?? [])])],
     relationships: { ...(blueprint.relationships ?? {}) },
+    progression: createDefaultAgentProgression(
+      1,
+      blueprint.potentialTier ?? 'C',
+      blueprint.growthProfile ?? 'balanced'
+    ),
     abilities: [...(blueprint.abilities ?? [])],
     fatigue,
     status: normalizedStatus,

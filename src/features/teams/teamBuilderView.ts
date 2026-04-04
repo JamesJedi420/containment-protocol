@@ -125,9 +125,7 @@ export function getTeamManagementState(team: Team, game: GameState): TeamManagem
 
   const inactiveAgents = memberIds
     .map((agentId) => game.agents[agentId])
-    .filter(
-      (agent) => Boolean(agent) && (agent.status === 'dead' || agent.status === 'resigned')
-    )
+    .filter((agent) => Boolean(agent) && (agent.status === 'dead' || agent.status === 'resigned'))
 
   if (inactiveAgents.length > 0) {
     warnings.push('Inactive agents still occupy this squad container. Move them out before reuse.')

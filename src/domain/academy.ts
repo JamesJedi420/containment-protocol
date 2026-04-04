@@ -1,4 +1,5 @@
 import { trainingCatalog } from '../data/training'
+import { getAgentStatCap } from './agentPotential'
 import { evaluateAgentBreakdown } from './evaluateAgent'
 import { clamp } from './math'
 import { computeTeamScore } from './sim/scoring'
@@ -12,7 +13,14 @@ import {
 } from './sim/training'
 import { getAcademyStatBonus, getAcademyUpgradeCost } from './sim/academyUpgrade'
 import { getInstructorBonus } from './sim/instructorAssignment'
-import { BASE_STAT_MAX, type Agent, type GameState, type InstructorData, type StatKey, type TrainingProgram } from './models'
+import {
+  BASE_STAT_MAX,
+  type Agent,
+  type GameState,
+  type InstructorData,
+  type StatKey,
+  type TrainingProgram,
+} from './models'
 
 export interface TrainingImpactPreview {
   trainingId: string
@@ -82,11 +90,25 @@ export interface AcademyOverview {
   }>
 }
 
-function applyProgram(agent: Agent, program: TrainingProgram, academyStatBonus = 0, instructorBonus = 0): Agent {
+function applyProgram(
+  agent: Agent,
+  program: TrainingProgram,
+  academyStatBonus = 0,
+  instructorBonus = 0
+): Agent {
   const aptitudeBonus = getTrainingAptitudeBonus(agent.role, program.targetStat)
+  const statCap = getAgentStatCap(agent, program.targetStat)
   const nextBaseStats = {
     ...agent.baseStats,
-    [program.targetStat]: clamp(agent.baseStats[program.targetStat] + program.statDelta + aptitudeBonus + academyStatBonus + instructorBonus, 0, BASE_STAT_MAX),
+    [program.targetStat]: clamp(
+      agent.baseStats[program.targetStat] +
+        program.statDelta +
+        aptitudeBonus +
+        academyStatBonus +
+        instructorBonus,
+      0,
+      statCap
+    ),
   }
 
   // Mirror applyTrainingCompletionToAgent: apply delta to existing domain stats rather than
@@ -97,18 +119,30 @@ function applyProgram(agent: Agent, program: TrainingProgram, academyStatBonus =
     ? cloneDomainStats(agent.stats)
     : cloneDomainStats(previousDerivedStats)
 
-  nextStats.physical.strength += nextDerivedStats.physical.strength - previousDerivedStats.physical.strength
-  nextStats.physical.endurance += nextDerivedStats.physical.endurance - previousDerivedStats.physical.endurance
-  nextStats.tactical.awareness += nextDerivedStats.tactical.awareness - previousDerivedStats.tactical.awareness
-  nextStats.tactical.reaction += nextDerivedStats.tactical.reaction - previousDerivedStats.tactical.reaction
-  nextStats.cognitive.analysis += nextDerivedStats.cognitive.analysis - previousDerivedStats.cognitive.analysis
-  nextStats.cognitive.investigation += nextDerivedStats.cognitive.investigation - previousDerivedStats.cognitive.investigation
-  nextStats.social.negotiation += nextDerivedStats.social.negotiation - previousDerivedStats.social.negotiation
-  nextStats.social.influence += nextDerivedStats.social.influence - previousDerivedStats.social.influence
-  nextStats.stability.resistance += nextDerivedStats.stability.resistance - previousDerivedStats.stability.resistance
-  nextStats.stability.tolerance += nextDerivedStats.stability.tolerance - previousDerivedStats.stability.tolerance
-  nextStats.technical.equipment += nextDerivedStats.technical.equipment - previousDerivedStats.technical.equipment
-  nextStats.technical.anomaly += nextDerivedStats.technical.anomaly - previousDerivedStats.technical.anomaly
+  nextStats.physical.strength +=
+    nextDerivedStats.physical.strength - previousDerivedStats.physical.strength
+  nextStats.physical.endurance +=
+    nextDerivedStats.physical.endurance - previousDerivedStats.physical.endurance
+  nextStats.tactical.awareness +=
+    nextDerivedStats.tactical.awareness - previousDerivedStats.tactical.awareness
+  nextStats.tactical.reaction +=
+    nextDerivedStats.tactical.reaction - previousDerivedStats.tactical.reaction
+  nextStats.cognitive.analysis +=
+    nextDerivedStats.cognitive.analysis - previousDerivedStats.cognitive.analysis
+  nextStats.cognitive.investigation +=
+    nextDerivedStats.cognitive.investigation - previousDerivedStats.cognitive.investigation
+  nextStats.social.negotiation +=
+    nextDerivedStats.social.negotiation - previousDerivedStats.social.negotiation
+  nextStats.social.influence +=
+    nextDerivedStats.social.influence - previousDerivedStats.social.influence
+  nextStats.stability.resistance +=
+    nextDerivedStats.stability.resistance - previousDerivedStats.stability.resistance
+  nextStats.stability.tolerance +=
+    nextDerivedStats.stability.tolerance - previousDerivedStats.stability.tolerance
+  nextStats.technical.equipment +=
+    nextDerivedStats.technical.equipment - previousDerivedStats.technical.equipment
+  nextStats.technical.anomaly +=
+    nextDerivedStats.technical.anomaly - previousDerivedStats.technical.anomaly
 
   // Direct stability-training pathway for resilience-focused programs.
   nextStats.stability.resistance = clamp(
@@ -137,7 +171,9 @@ export function previewTrainingImpact(
   instructorBonus = 0
 ): TrainingImpactPreview {
   const before = evaluateAgentBreakdown(agent)
-  const after = evaluateAgentBreakdown(applyProgram(agent, program, academyStatBonus, instructorBonus))
+  const after = evaluateAgentBreakdown(
+    applyProgram(agent, program, academyStatBonus, instructorBonus)
+  )
 
   return {
     trainingId: program.trainingId,
@@ -169,7 +205,10 @@ export function getAgentTrainingImpacts(agent: Agent, academyStatBonus = 0, inst
   return trainingCatalog
     .filter((program) => (program.scope ?? 'agent') === 'agent')
     .map((program) => previewTrainingImpact(agent, program, academyStatBonus, instructorBonus))
-    .sort((left, right) => right.scoreDelta - left.scoreDelta || left.trainingName.localeCompare(right.trainingName))
+    .sort(
+      (left, right) =>
+        right.scoreDelta - left.scoreDelta || left.trainingName.localeCompare(right.trainingName)
+    )
 }
 
 /**
@@ -180,7 +219,8 @@ export function getAgentTrainingImpacts(agent: Agent, academyStatBonus = 0, inst
  */
 function gapAwareScore(agent: Agent, impact: TrainingImpactPreview): number {
   const statValue = agent.baseStats[impact.targetStat] ?? 0
-  const gapBonus = (1 - statValue / BASE_STAT_MAX) * 0.2
+  const statCap = getAgentStatCap(agent, impact.targetStat)
+  const gapBonus = statCap > 0 ? (1 - statValue / statCap) * 0.2 : 0
   return impact.scoreDelta + gapBonus
 }
 
@@ -243,7 +283,8 @@ function getTeamDrillSuggestions(game: GameState) {
       const bondDepth = drill.trainedRelationshipDelta ?? 0
       const isBetter =
         bondDepth > bestBondDepth ||
-        (bondDepth === bestBondDepth && (drill.relationshipDelta ?? 0) > (bestDrill?.relationshipDelta ?? 0))
+        (bondDepth === bestBondDepth &&
+          (drill.relationshipDelta ?? 0) > (bestDrill?.relationshipDelta ?? 0))
 
       if (isBetter) {
         bestBondDepth = bondDepth
@@ -254,7 +295,9 @@ function getTeamDrillSuggestions(game: GameState) {
     if (!bestDrill) continue
 
     // Reflect the actual scaled cost (base + 25% per extra member beyond 2).
-    const drillCost = bestDrill.fundingCost + Math.round(bestDrill.fundingCost * 0.25 * Math.max(0, members.length - 2))
+    const drillCost =
+      bestDrill.fundingCost +
+      Math.round(bestDrill.fundingCost * 0.25 * Math.max(0, members.length - 2))
     const projectedMembers = applyProjectedTeamDrillOutcome(members, bestDrill)
     const beforeScore = computeTeamScore(members, projectionCase, { teamTags: team.tags })
     const afterScore = computeTeamScore(projectedMembers, projectionCase, { teamTags: team.tags })
@@ -263,10 +306,14 @@ function getTeamDrillSuggestions(game: GameState) {
     const projectedScoreAfter = Number(afterScore.score.toFixed(2))
     const projectedScoreDelta = Number((projectedScoreAfter - projectedScoreBefore).toFixed(2))
     const projectedChemistryDelta = Number(
-      (afterScore.modifierBreakdown.chemistryBonus - beforeScore.modifierBreakdown.chemistryBonus).toFixed(2)
+      (
+        afterScore.modifierBreakdown.chemistryBonus - beforeScore.modifierBreakdown.chemistryBonus
+      ).toFixed(2)
     )
     const projectedSynergyDelta = Number(
-      (afterScore.modifierBreakdown.synergyBonus - beforeScore.modifierBreakdown.synergyBonus).toFixed(2)
+      (
+        afterScore.modifierBreakdown.synergyBonus - beforeScore.modifierBreakdown.synergyBonus
+      ).toFixed(2)
     )
 
     results.push({
@@ -326,7 +373,11 @@ function applyProjectedTeamDrillOutcome(members: Agent[], drill: TrainingProgram
       }
 
       if (relationshipDelta > 0) {
-        nextRelationships[partner.id] = clamp((nextRelationships[partner.id] ?? 0) + relationshipDelta, -2, 2)
+        nextRelationships[partner.id] = clamp(
+          (nextRelationships[partner.id] ?? 0) + relationshipDelta,
+          -2,
+          2
+        )
       }
 
       if (trainedRelationshipDelta > 0) {
@@ -337,18 +388,23 @@ function applyProjectedTeamDrillOutcome(members: Agent[], drill: TrainingProgram
       }
     }
 
+    if (!member.progression) {
+      return {
+        ...member,
+        relationships: nextRelationships,
+      }
+    }
+
     return {
       ...member,
       relationships: nextRelationships,
-      progression: member.progression
-        ? {
-            ...member.progression,
-            skillTree: {
-              ...member.progression.skillTree,
-              trainedRelationships: nextTrainedRelationships,
-            },
-          }
-        : member.progression,
+      progression: {
+        ...member.progression,
+        skillTree: {
+          ...(member.progression.skillTree ?? { skillPoints: 0, trainedRelationships: {} }),
+          trainedRelationships: nextTrainedRelationships,
+        },
+      },
     }
   })
 }
@@ -400,11 +456,12 @@ export function buildAcademyOverview(game: GameState): AcademyOverview {
         return program ? isTrainingProgramUnlocked(game, program) : false
       })
       // Gap-aware ranking: break ties toward programs that train the agent's weakest stats
-      const bestProgram = impacts.length > 0
-        ? impacts.reduce((best, current) =>
-            gapAwareScore(agent, current) > gapAwareScore(agent, best) ? current : best
-          )
-        : null
+      const bestProgram =
+        impacts.length > 0
+          ? impacts.reduce((best, current) =>
+              gapAwareScore(agent, current) > gapAwareScore(agent, best) ? current : best
+            )
+          : null
 
       return bestProgram
         ? {
@@ -433,7 +490,10 @@ export function buildAcademyOverview(game: GameState): AcademyOverview {
         affordable: boolean
       } => Boolean(suggestion)
     )
-    .sort((left, right) => right.scoreDelta - left.scoreDelta || left.agentName.localeCompare(right.agentName))
+    .sort(
+      (left, right) =>
+        right.scoreDelta - left.scoreDelta || left.agentName.localeCompare(right.agentName)
+    )
     .slice(0, 5)
 
   const instructors = Object.entries(game.staff)

@@ -176,7 +176,9 @@ export function getTrainingSummary(game: GameState): TrainingSummary {
     inactiveAgents: roster.filter((view) => view.readiness === 'inactive').length,
     activeQueue: groupTrainingQueueEntries(game).length,
     readyTeams: teams.filter((view) => view.readiness === 'ready').length,
-    teamDrills: groupTrainingQueueEntries(game).filter((entries) => (entries[0]?.scope ?? 'agent') === 'team').length,
+    teamDrills: groupTrainingQueueEntries(game).filter(
+      (entries) => (entries[0]?.scope ?? 'agent') === 'team'
+    ).length,
   }
 }
 
@@ -210,7 +212,9 @@ export function getTrainingQueueViews(game: GameState): TrainingQueueView[] {
               0,
               Math.min(
                 100,
-                Math.round(((entry.durationWeeks - entry.remainingWeeks) / entry.durationWeeks) * 100)
+                Math.round(
+                  ((entry.durationWeeks - entry.remainingWeeks) / entry.durationWeeks) * 100
+                )
               )
             )
           : 100
@@ -227,7 +231,9 @@ export function getTrainingQueueViews(game: GameState): TrainingQueueView[] {
           remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
           incurredFatigueLabel: `Fatigue incurred +${getTrainingIncurredFatigue(entry)} / +${getTrainingProjectedTotalFatigue(entry)}`,
           cancelRefundLabel: `Cancel refund $${getTrainingCancelRefund(entry)}`,
-          fatigueScheduleLabel: `Week schedule: ${getTrainingFatigueSchedule(entry).map((n) => `+${n}`).join(', ')}`,
+          fatigueScheduleLabel: `Week schedule: ${getTrainingFatigueSchedule(entry)
+            .map((n) => `+${n}`)
+            .join(', ')}`,
         }
       }
 
@@ -242,7 +248,11 @@ export function getTrainingQueueViews(game: GameState): TrainingQueueView[] {
         detailLabel: entry.trainingName,
         remainingLabel: `${entry.remainingWeeks} week${entry.remainingWeeks === 1 ? '' : 's'} remaining`,
         incurredFatigueLabel: `Fatigue incurred +${getTrainingIncurredFatigue(entry)} / +${getTrainingProjectedTotalFatigue(entry)}`,
-        cancelRefundLabel: `Cancel refund $${getTrainingCancelRefund(entry)}`,          fatigueScheduleLabel: `Week schedule: ${getTrainingFatigueSchedule(entry).map((n) => `+${n}`).join(', ')}`,        assignedInstructorId: instructorEntry?.staffId,
+        cancelRefundLabel: `Cancel refund $${getTrainingCancelRefund(entry)}`,
+        fatigueScheduleLabel: `Week schedule: ${getTrainingFatigueSchedule(entry)
+          .map((n) => `+${n}`)
+          .join(', ')}`,
+        assignedInstructorId: instructorEntry?.staffId,
         assignedInstructorName: instructorEntry?.record.name,
         instructorBonus: instructorEntry
           ? instructorEntry.record.instructorSpecialty === entry.targetStat
@@ -504,10 +514,7 @@ function getTeamReadinessReasons(
 
   if (queueEntries.length > 0) {
     const entry = queueEntries[0]!
-    return [
-      `Already queued for ${entry.trainingName}.`,
-      `${entry.remainingWeeks}w remaining.`,
-    ]
+    return [`Already queued for ${entry.trainingName}.`, `${entry.remainingWeeks}w remaining.`]
   }
 
   if (assignedCaseTitle) {
@@ -521,9 +528,7 @@ function getTeamReadinessReasons(
   return ['Available for coordinated drills now.']
 }
 
-function readinessRank(
-  readiness: TrainingRosterView['readiness'] | TeamTrainingView['readiness']
-) {
+function readinessRank(readiness: TrainingRosterView['readiness'] | TeamTrainingView['readiness']) {
   if (readiness === 'ready') {
     return 4
   }
@@ -560,14 +565,11 @@ export function getFilteredSortedRoster(
   }
 
   if (filters.sort === 'name') {
-    result = [...result].sort((left, right) =>
-      left.agent.name.localeCompare(right.agent.name)
-    )
+    result = [...result].sort((left, right) => left.agent.name.localeCompare(right.agent.name))
   } else if (filters.sort === 'fatigue') {
     result = [...result].sort(
       (left, right) =>
-        right.agent.fatigue - left.agent.fatigue ||
-        left.agent.name.localeCompare(right.agent.name)
+        right.agent.fatigue - left.agent.fatigue || left.agent.name.localeCompare(right.agent.name)
     )
   }
   // 'readiness' sort is already applied by getTrainingRosterViews — no resorting needed

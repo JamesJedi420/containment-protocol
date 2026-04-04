@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { getAgentStatCap } from '../domain/agentPotential'
 import { trainingCatalog } from '../data/training'
 import { evaluateAgentBreakdown } from '../domain/evaluateAgent'
 import { getXpThresholdForLevel } from '../domain/progression'
@@ -26,6 +27,7 @@ import {
   TRAINING_FATIGUE_GATE,
 } from '../domain/sim/training'
 import { buildAgentSquadCompositionProfile, getTeamMembers } from '../domain/teamSimulation'
+import { type Agent } from '../domain/models'
 
 const combatDrills = trainingCatalog.find((program) => program.trainingId === 'combat-drills')
 const coordinationDrill = trainingCatalog.find(
@@ -82,7 +84,11 @@ describe('training queue mechanics', () => {
       ...state,
       funding: assessment.scaledCost - 1,
     }
-    const blocked = assessTeamTrainingQueue(lowFunding, 't_nightwatch', coordinationDrill.trainingId)
+    const blocked = assessTeamTrainingQueue(
+      lowFunding,
+      't_nightwatch',
+      coordinationDrill.trainingId
+    )
 
     expect(blocked.canQueue).toBe(false)
     expect(blocked.reason).toBe('insufficient_funding')
@@ -182,7 +188,8 @@ describe('training queue mechanics', () => {
     const aptitudeBonus = getTrainingAptitudeBonus(startingAgent.role, combatDrills.targetStat)
     // rawGain = statDelta + academyBonus(0) + aptitudeBonus + instructorBonus(0),
     // XP = rawGain * 10 * (durationWeeks / 2)
-    const expectedXp = (combatDrills.statDelta + aptitudeBonus) * 10 * (combatDrills.durationWeeks / 2)
+    const expectedXp =
+      (combatDrills.statDelta + aptitudeBonus) * 10 * (combatDrills.durationWeeks / 2)
     const totalXpAfter = (startingAgent.progression?.xp ?? 0) + expectedXp
 
     expect(result.eventDrafts).toEqual([
@@ -266,7 +273,8 @@ describe('training queue mechanics', () => {
     const startingState = createStartingState()
     const baseAgent = startingState.agents.a_ava
     const aptitudeBonus = getTrainingAptitudeBonus(baseAgent.role, combatDrills.targetStat)
-    const expectedXp = (combatDrills.statDelta + aptitudeBonus) * 10 * (combatDrills.durationWeeks / 2)
+    const expectedXp =
+      (combatDrills.statDelta + aptitudeBonus) * 10 * (combatDrills.durationWeeks / 2)
     const seededAgent = {
       ...baseAgent,
       level: 1,
@@ -407,7 +415,9 @@ describe('training queue mechanics', () => {
     expect(beforeBreakdown.powerImpact.equipmentContributionDelta).toBeGreaterThan(0)
     expect(afterBreakdown.powerImpact.equipmentContributionDelta).toBeGreaterThan(0)
     expect(completedAgent.baseStats.combat).toBe(
-      startingState.agents.a_ava.baseStats.combat + combatDrills.statDelta + getTrainingAptitudeBonus('hunter', 'combat')
+      startingState.agents.a_ava.baseStats.combat +
+        combatDrills.statDelta +
+        getTrainingAptitudeBonus('hunter', 'combat')
     )
     expect(afterBreakdown.score).toBeGreaterThan(beforeBreakdown.score)
   })
@@ -446,11 +456,15 @@ describe('training queue mechanics', () => {
     expect(completedAgent.stats).toBeDefined()
     const nextBaseStats = {
       ...baseAgent.baseStats,
-      combat: baseAgent.baseStats.combat + combatDrills.statDelta + getTrainingAptitudeBonus(baseAgent.role, 'combat'),
+      combat:
+        baseAgent.baseStats.combat +
+        combatDrills.statDelta +
+        getTrainingAptitudeBonus(baseAgent.role, 'combat'),
     }
     const previousDerivedStats = deriveDomainStatsFromBase(baseAgent.baseStats)
     const nextDerivedStats = deriveDomainStatsFromBase(nextBaseStats)
-    const completedStats = completedAgent.stats ?? deriveDomainStatsFromBase(completedAgent.baseStats)
+    const completedStats =
+      completedAgent.stats ?? deriveDomainStatsFromBase(completedAgent.baseStats)
 
     expect(completedStats.tactical.awareness).toBe(
       customStats.tactical.awareness +
@@ -468,16 +482,23 @@ describe('training queue mechanics', () => {
 
   it('queues team drills as grouped training entries and locks the participating agents', () => {
     const startingState = createStartingState()
-    const queuedState = queueTeamTraining(startingState, 't_nightwatch', coordinationDrill.trainingId)
+    const queuedState = queueTeamTraining(
+      startingState,
+      't_nightwatch',
+      coordinationDrill.trainingId
+    )
     const teamEntries = queuedState.trainingQueue.filter((entry) => entry.teamId === 't_nightwatch')
 
     // 4 participants: base cost + 25% * 2 extra members
-    const scaledDrillCost = coordinationDrill.fundingCost + Math.round(coordinationDrill.fundingCost * 0.25 * 2)
+    const scaledDrillCost =
+      coordinationDrill.fundingCost + Math.round(coordinationDrill.fundingCost * 0.25 * 2)
     expect(queuedState.funding).toBe(startingState.funding - scaledDrillCost)
     expect(teamEntries).toHaveLength(4)
     expect(new Set(teamEntries.map((entry) => entry.drillGroupId)).size).toBe(1)
     expect(teamEntries.every((entry) => entry.scope === 'team')).toBe(true)
-    expect(teamEntries.every((entry) => entry.trainingId === coordinationDrill.trainingId)).toBe(true)
+    expect(teamEntries.every((entry) => entry.trainingId === coordinationDrill.trainingId)).toBe(
+      true
+    )
     expect(teamEntries.every((entry) => entry.memberIds?.length === 4)).toBe(true)
 
     for (const entry of teamEntries) {
@@ -505,7 +526,11 @@ describe('training queue mechanics', () => {
 
   it('completes team drills with chemistry and bond improvements but no stat gains', () => {
     const startingState = createStartingState()
-    const queuedState = queueTeamTraining(startingState, 't_nightwatch', coordinationDrill.trainingId)
+    const queuedState = queueTeamTraining(
+      startingState,
+      't_nightwatch',
+      coordinationDrill.trainingId
+    )
     const preparedState = {
       ...queuedState,
       trainingQueue: queuedState.trainingQueue.map((entry) =>
@@ -515,24 +540,36 @@ describe('training queue mechanics', () => {
     const team = startingState.teams.t_nightwatch
     const caseData = startingState.cases['case-001']
     const beforeMembers = getTeamMembers(team, startingState.agents)
-    const beforeComposition = buildAgentSquadCompositionProfile(beforeMembers, team.leaderId, team.tags, {
-      caseData,
-      teamTags: team.tags,
-    })
+    const beforeComposition = buildAgentSquadCompositionProfile(
+      beforeMembers,
+      team.leaderId,
+      team.tags,
+      {
+        caseData,
+        teamTags: team.tags,
+      }
+    )
     const beforeScore = computeTeamScore(beforeMembers, caseData, { teamTags: team.tags })
 
     const result = advanceTrainingQueues(preparedState)
     const afterMembers = getTeamMembers(team, result.state.agents)
-    const afterComposition = buildAgentSquadCompositionProfile(afterMembers, team.leaderId, team.tags, {
-      caseData,
-      teamTags: team.tags,
-    })
+    const afterComposition = buildAgentSquadCompositionProfile(
+      afterMembers,
+      team.leaderId,
+      team.tags,
+      {
+        caseData,
+        teamTags: team.tags,
+      }
+    )
     const afterScore = computeTeamScore(afterMembers, caseData, { teamTags: team.tags })
 
     expect(result.completed).toHaveLength(4)
     expect(result.state.trainingQueue).toHaveLength(0)
     expect(result.notes).toContain('Ava Brooks: Coordination Drill completed with Night Watch.')
-    expect(result.eventDrafts.filter((draft) => draft.type === 'agent.training_completed')).toHaveLength(4)
+    expect(
+      result.eventDrafts.filter((draft) => draft.type === 'agent.training_completed')
+    ).toHaveLength(4)
 
     // Team drills are chemistry-only — no stat gains regardless of scope or aptitude.
     expect(result.state.agents.a_ava.baseStats.utility).toBe(
@@ -551,7 +588,9 @@ describe('training queue mechanics', () => {
     expect(result.state.agents.a_rook.progression?.skillTree?.trainedRelationships.a_ava).toBe(
       coordinationDrill.trainedRelationshipDelta
     )
-    expect(afterComposition.chemistryProfile.bonus).toBeGreaterThan(beforeComposition.chemistryProfile.bonus)
+    expect(afterComposition.chemistryProfile.bonus).toBeGreaterThan(
+      beforeComposition.chemistryProfile.bonus
+    )
     expect(afterScore.modifierBreakdown.chemistryBonus).toBeGreaterThan(
       beforeScore.modifierBreakdown.chemistryBonus
     )
@@ -561,7 +600,11 @@ describe('training queue mechanics', () => {
 
   it('adds weekly report entries for completed training through advanceWeek', () => {
     const startingState = createStartingState()
-    const queuedState = queueTeamTraining(startingState, 't_nightwatch', coordinationDrill.trainingId)
+    const queuedState = queueTeamTraining(
+      startingState,
+      't_nightwatch',
+      coordinationDrill.trainingId
+    )
     const preparedState = {
       ...queuedState,
       trainingQueue: queuedState.trainingQueue.map((entry) =>
@@ -589,11 +632,12 @@ describe('training queue mechanics', () => {
     ).toHaveLength(4)
   })
 
-  it('clamps base stat gain at 100 when training would exceed the ceiling', () => {
+  it('clamps base stat gain at the agent ceiling when training would exceed it', () => {
     const state = createStartingState()
+    const targetCap = getAgentStatCap(state.agents.a_ava, 'combat')
     const cappedAgent = {
       ...state.agents.a_ava,
-      baseStats: { ...state.agents.a_ava.baseStats, combat: 99 },
+      baseStats: { ...state.agents.a_ava.baseStats, combat: Math.max(0, targetCap - 1) },
     }
     const capped = queueTraining(
       { ...state, agents: { ...state.agents, a_ava: cappedAgent } },
@@ -607,7 +651,7 @@ describe('training queue mechanics', () => {
       ),
     }
     const result = advanceTrainingQueues(prepared)
-    expect(result.state.agents.a_ava.baseStats.combat).toBe(100)
+    expect(result.state.agents.a_ava.baseStats.combat).toBe(targetCap)
   })
 })
 
@@ -643,10 +687,16 @@ describe('partial-team drill support', () => {
     const result = queueTeamTraining(blockedState, 't_nightwatch', coordinationDrill.trainingId)
 
     // a_ava must not appear in the drill
-    expect(result.trainingQueue.filter((e) => e.teamId === 't_nightwatch').every((e) => e.agentId !== 'a_ava')).toBe(true)
+    expect(
+      result.trainingQueue
+        .filter((e) => e.teamId === 't_nightwatch')
+        .every((e) => e.agentId !== 'a_ava')
+    ).toBe(true)
 
     // At least 2 participants enrolled
-    const drillEntries = result.trainingQueue.filter((e) => e.teamId === 't_nightwatch' && e.scope === 'team')
+    const drillEntries = result.trainingQueue.filter(
+      (e) => e.teamId === 't_nightwatch' && e.scope === 'team'
+    )
     expect(drillEntries.length).toBeGreaterThanOrEqual(2)
 
     // All drill entries share one drillGroupId
@@ -670,7 +720,9 @@ describe('partial-team drill support', () => {
     const result = queueTeamTraining(s3, 't_nightwatch', coordinationDrill.trainingId)
 
     // Only 1 member left → drill should be rejected
-    const drillEntries = result.trainingQueue.filter((e) => e.scope === 'team' && e.teamId === 't_nightwatch')
+    const drillEntries = result.trainingQueue.filter(
+      (e) => e.scope === 'team' && e.teamId === 't_nightwatch'
+    )
     expect(drillEntries).toHaveLength(0)
   })
 
@@ -681,7 +733,9 @@ describe('partial-team drill support', () => {
 
     const result = queueTeamTraining(s, 't_nightwatch', coordinationDrill.trainingId)
 
-    const drillEntries = result.trainingQueue.filter((e) => e.scope === 'team' && e.teamId === 't_nightwatch')
+    const drillEntries = result.trainingQueue.filter(
+      (e) => e.scope === 'team' && e.teamId === 't_nightwatch'
+    )
 
     // a_ava must not appear
     expect(drillEntries.every((e) => e.agentId !== 'a_ava')).toBe(true)
@@ -747,7 +801,8 @@ describe('training cancellation', () => {
     }
 
     // 4 participants: base cost + 25% * 2 extra members; cancelled immediately so full refund
-    const scaledDrillCostForCancel = coordinationDrill!.fundingCost + Math.round(coordinationDrill!.fundingCost * 0.25 * 2)
+    const scaledDrillCostForCancel =
+      coordinationDrill!.fundingCost + Math.round(coordinationDrill!.fundingCost * 0.25 * 2)
     // Refund is attributed to the first cancelled entry's event; others have refund 0
     expect(cancelEvents[0]).toMatchObject({
       payload: expect.objectContaining({
@@ -787,7 +842,7 @@ describe('training cancellation', () => {
     expect(cancelled.agents.a_ava.fatigue).toBe(beforeFatigue)
     expect(cancelled.trainingQueue).toHaveLength(0)
     // Partial refund: floor(fundingCost * remainingWeeks / durationWeeks) = floor(10 * 1/2) = 5
-    const expectedRefund = Math.floor(combatDrills.fundingCost * 1 / combatDrills.durationWeeks)
+    const expectedRefund = Math.floor((combatDrills.fundingCost * 1) / combatDrills.durationWeeks)
     expect(cancelled.funding).toBe(state.funding - combatDrills.fundingCost + expectedRefund)
   })
 
@@ -799,7 +854,9 @@ describe('training cancellation', () => {
     expect(afterWeekOne.agents.a_ava.fatigue).toBe(state.agents.a_ava.fatigue + 3)
 
     const afterCompletion = advanceTrainingQueues(afterWeekOne).state
-    expect(afterCompletion.agents.a_ava.fatigue).toBe(state.agents.a_ava.fatigue + combatDrills.fatigueDelta)
+    expect(afterCompletion.agents.a_ava.fatigue).toBe(
+      state.agents.a_ava.fatigue + combatDrills.fatigueDelta
+    )
   })
 
   it('slightly front-loads fatigue on longer training programs while preserving the total', () => {
@@ -813,7 +870,9 @@ describe('training cancellation', () => {
     expect(afterWeekTwo.agents.a_ava.fatigue).toBe(state.agents.a_ava.fatigue + 4)
 
     const afterCompletion = advanceTrainingQueues(afterWeekTwo).state
-    expect(afterCompletion.agents.a_ava.fatigue).toBe(state.agents.a_ava.fatigue + threatAssessment.fatigueDelta)
+    expect(afterCompletion.agents.a_ava.fatigue).toBe(
+      state.agents.a_ava.fatigue + threatAssessment.fatigueDelta
+    )
   })
 
   it('applies instructor mitigation to weekly fatigue and grants instructor completion XP bonus', () => {
@@ -839,10 +898,14 @@ describe('training cancellation', () => {
     expect(afterWeekOne.agents.a_ava.fatigue).toBe(withInstructor.agents.a_ava.fatigue + 2)
 
     const completedWithInstructor = advanceTrainingQueues(afterWeekOne).state
-    expect(completedWithInstructor.agents.a_ava.fatigue).toBe(withInstructor.agents.a_ava.fatigue + 4)
+    expect(completedWithInstructor.agents.a_ava.fatigue).toBe(
+      withInstructor.agents.a_ava.fatigue + 4
+    )
 
     const queuedWithoutInstructor = queueTraining(state, 'a_ava', combatDrills.trainingId)
-    const completedWithoutInstructor = advanceTrainingQueues(advanceTrainingQueues(queuedWithoutInstructor).state).state
+    const completedWithoutInstructor = advanceTrainingQueues(
+      advanceTrainingQueues(queuedWithoutInstructor).state
+    ).state
 
     // +1 stat gain from instructor raises base XP by +10; instructor retention bonus adds +5.
     expect(completedWithInstructor.agents.a_ava.progression?.xp).toBe(
@@ -879,11 +942,12 @@ describe('training cancellation', () => {
 })
 
 describe('training queue mechanics — stat ceiling guard', () => {
-  it('rejects queueTraining when the target stat is already at BASE_STAT_MAX', () => {
+  it('rejects queueTraining when the target stat is already at the agent ceiling', () => {
     const state = createStartingState()
+    const targetCap = getAgentStatCap(state.agents.a_ava, 'combat')
     const maxedAgent = {
       ...state.agents.a_ava,
-      baseStats: { ...state.agents.a_ava.baseStats, combat: 100 },
+      baseStats: { ...state.agents.a_ava.baseStats, combat: targetCap },
     }
     const stateWithMaxed = { ...state, agents: { ...state.agents, a_ava: maxedAgent } }
 
@@ -932,7 +996,15 @@ describe('role-based training aptitude', () => {
   })
 
   it('every role has an aptitude entry', () => {
-    const roles = ['hunter', 'occultist', 'investigator', 'medium', 'tech', 'medic', 'negotiator'] as const
+    const roles = [
+      'hunter',
+      'occultist',
+      'investigator',
+      'medium',
+      'tech',
+      'medic',
+      'negotiator',
+    ] as const
     for (const role of roles) {
       expect(ROLE_TRAINING_APTITUDE[role]).toBeDefined()
     }
@@ -1025,7 +1097,9 @@ describe('endurance protocol — persistent recovery rate bonus', () => {
 })
 
 describe('psych-conditioning direct stability pathway', () => {
-  const psychConditioning = trainingCatalog.find((program) => program.trainingId === 'psych-conditioning')
+  const psychConditioning = trainingCatalog.find(
+    (program) => program.trainingId === 'psych-conditioning'
+  )
 
   it('catalog entry includes direct stability deltas', () => {
     expect(psychConditioning).toBeDefined()
@@ -1052,29 +1126,147 @@ describe('psych-conditioning direct stability pathway', () => {
     const after = result.state.agents[agentId]
     const afterDerived = deriveDomainStatsFromBase(after.baseStats)
 
-    const derivedOnlyResistanceDelta = afterDerived.stability.resistance - beforeDerived.stability.resistance
-    const derivedOnlyToleranceDelta = afterDerived.stability.tolerance - beforeDerived.stability.tolerance
+    const derivedOnlyResistanceDelta =
+      afterDerived.stability.resistance - beforeDerived.stability.resistance
+    const derivedOnlyToleranceDelta =
+      afterDerived.stability.tolerance - beforeDerived.stability.tolerance
 
     expect(after.stats?.stability.resistance).toBe(
-      (before.stats ?? beforeDerived).stability.resistance + derivedOnlyResistanceDelta + (psychConditioning.stabilityResistanceDelta ?? 0)
+      (before.stats ?? beforeDerived).stability.resistance +
+        derivedOnlyResistanceDelta +
+        (psychConditioning.stabilityResistanceDelta ?? 0)
     )
     expect(after.stats?.stability.tolerance).toBe(
-      (before.stats ?? beforeDerived).stability.tolerance + derivedOnlyToleranceDelta + (psychConditioning.stabilityToleranceDelta ?? 0)
+      (before.stats ?? beforeDerived).stability.tolerance +
+        derivedOnlyToleranceDelta +
+        (psychConditioning.stabilityToleranceDelta ?? 0)
+    )
+  })
+
+  it('still allows queueing when the target stat is capped because secondary benefits remain useful', () => {
+    if (!psychConditioning) return
+
+    const state = { ...createStartingState(), academyTier: 1 }
+    const cap = getAgentStatCap(state.agents.a_ava, psychConditioning.targetStat)
+    const cappedState = {
+      ...state,
+      agents: {
+        ...state.agents,
+        a_ava: {
+          ...state.agents.a_ava,
+          baseStats: {
+            ...state.agents.a_ava.baseStats,
+            [psychConditioning.targetStat]: cap,
+          },
+        },
+      },
+    }
+
+    const assessment = assessAgentTrainingQueue(cappedState, 'a_ava', psychConditioning.trainingId)
+    const queued = queueTraining(cappedState, 'a_ava', psychConditioning.trainingId)
+
+    expect(assessment.canQueue).toBe(true)
+    expect(queued.trainingQueue).toHaveLength(1)
+  })
+})
+
+describe('training-driven potential intel', () => {
+  it('can confirm a projection and trigger a breakthrough under exceptional circumstances', () => {
+    const state = { ...createStartingState(), academyTier: 1 }
+    const agent = state.agents.a_ava
+    const seededAgent: Agent = {
+      ...agent,
+      level: 3,
+      progression: {
+        ...(agent.progression ?? {
+          xp: 0,
+          level: 3,
+          potentialTier: 'C' as const,
+          growthProfile: 'steady',
+        }),
+        level: 3,
+        potentialTier: 'C',
+        growthProfile: 'steady',
+        potentialIntel: {
+          visibleTier: 'D',
+          exactKnown: false,
+          confidence: 'high',
+          discoveryProgress: 90,
+          source: 'recruitment_scout',
+        },
+      },
+    }
+    const nearCap = getAgentStatCap(seededAgent, threatAssessment.targetStat) - 2
+    const preparedAgent: Agent = {
+      ...seededAgent,
+      baseStats: {
+        ...seededAgent.baseStats,
+        [threatAssessment.targetStat]: nearCap,
+      },
+    }
+    const seededState = {
+      ...state,
+      agents: {
+        ...state.agents,
+        a_ava: preparedAgent,
+      },
+    }
+
+    const queued = queueTraining(seededState, 'a_ava', threatAssessment.trainingId)
+    const prepared = {
+      ...queued,
+      trainingQueue: queued.trainingQueue.map((entry) =>
+        entry.agentId === 'a_ava' ? { ...entry, remainingWeeks: 1 } : entry
+      ),
+    }
+    const result = advanceTrainingQueues(prepared)
+    const progressed = result.state.agents.a_ava
+
+    expect(progressed.progression?.potentialTier).toBe('B')
+    expect(progressed.progression?.potentialIntel).toMatchObject({
+      visibleTier: 'B',
+      exactKnown: true,
+      confidence: 'confirmed',
+      discoveryProgress: 100,
+    })
+    expect(progressed.history?.timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          note: 'Training feedback confirmed C-tier potential.',
+        }),
+        expect.objectContaining({
+          note: 'Exceptional progress triggered a breakthrough to B-tier potential.',
+        }),
+      ])
     )
   })
 })
 
 describe('spendSkillPoint', () => {
-  it('decrements skillPoints and boosts the chosen base stat by 1', () => {
-    const state = createStartingState()
-    const agent = state.agents.a_ava
-    const agentWithPoints = {
+  function withSkillTree(
+    agent: Agent,
+    skillTree: NonNullable<NonNullable<Agent['progression']>['skillTree']>
+  ) {
+    if (!agent.progression) {
+      throw new Error(`Agent ${agent.id} is missing progression data in test setup.`)
+    }
+
+    return {
       ...agent,
       progression: {
         ...agent.progression,
-        skillTree: { skillPoints: 1, trainedRelationships: {} },
+        skillTree: {
+          ...(agent.progression.skillTree ?? { skillPoints: 0, trainedRelationships: {} }),
+          ...skillTree,
+        },
       },
     }
+  }
+
+  it('decrements skillPoints and boosts the chosen base stat by 1', () => {
+    const state = createStartingState()
+    const agent = state.agents.a_ava
+    const agentWithPoints = withSkillTree(agent, { skillPoints: 1, trainedRelationships: {} })
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'combat')
 
@@ -1085,13 +1277,11 @@ describe('spendSkillPoint', () => {
   it('sets specialization on first spend', () => {
     const state = createStartingState()
     const agent = state.agents.a_ava
-    const agentWithPoints = {
-      ...agent,
-      progression: {
-        ...agent.progression,
-        skillTree: { skillPoints: 2, trainedRelationships: {}, specialization: undefined as 'combat' | 'investigation' | 'utility' | 'social' | undefined },
-      },
-    }
+    const agentWithPoints = withSkillTree(agent, {
+      skillPoints: 2,
+      trainedRelationships: {},
+      specialization: undefined as 'combat' | 'investigation' | 'utility' | 'social' | undefined,
+    })
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'social')
 
@@ -1101,13 +1291,11 @@ describe('spendSkillPoint', () => {
   it('preserves existing specialization on subsequent spends', () => {
     const state = createStartingState()
     const agent = state.agents.a_ava
-    const agentWithPoints = {
-      ...agent,
-      progression: {
-        ...agent.progression,
-        skillTree: { skillPoints: 2, trainedRelationships: {}, specialization: 'combat' as const },
-      },
-    }
+    const agentWithPoints = withSkillTree(agent, {
+      skillPoints: 2,
+      trainedRelationships: {},
+      specialization: 'combat',
+    })
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'social')
 
@@ -1122,34 +1310,27 @@ describe('spendSkillPoint', () => {
     expect(result.agents.a_ava.baseStats.combat).toBe(state.agents.a_ava.baseStats.combat)
   })
 
-  it('is a no-op when the target stat is already at BASE_STAT_MAX', () => {
+  it('is a no-op when the target stat is already at the agent ceiling', () => {
     const state = createStartingState()
     const agent = state.agents.a_ava
-    const agentWithPoints = {
-      ...agent,
-      baseStats: { ...agent.baseStats, combat: 100 },
-      progression: {
-        ...agent.progression,
-        skillTree: { skillPoints: 1, trainedRelationships: {} },
-      },
+    const targetCap = getAgentStatCap(agent, 'combat')
+    const agentWithPoints: Agent = {
+      ...withSkillTree(agent, { skillPoints: 1, trainedRelationships: {} }),
+      baseStats: { ...agent.baseStats, combat: targetCap },
     }
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'combat')
 
     expect(result.agents.a_ava.progression?.skillTree?.skillPoints).toBe(1)
-    expect(result.agents.a_ava.baseStats.combat).toBe(100)
+    expect(result.agents.a_ava.baseStats.combat).toBe(targetCap)
   })
 
   it('is a no-op when agent status is not active', () => {
     const state = createStartingState()
     const agent = state.agents.a_ava
-    const agentWithPoints = {
-      ...agent,
-      status: 'inactive' as const,
-      progression: {
-        ...agent.progression,
-        skillTree: { skillPoints: 1, trainedRelationships: {} },
-      },
+    const agentWithPoints: Agent = {
+      ...withSkillTree(agent, { skillPoints: 1, trainedRelationships: {} }),
+      status: 'injured',
     }
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'combat')
@@ -1161,13 +1342,9 @@ describe('spendSkillPoint', () => {
   it('is a no-op when agent is on assignment', () => {
     const state = createStartingState()
     const agent = state.agents.a_ava
-    const agentWithPoints = {
-      ...agent,
+    const agentWithPoints: Agent = {
+      ...withSkillTree(agent, { skillPoints: 1, trainedRelationships: {} }),
       assignment: { state: 'assigned' as const, caseId: 'case-01', teamId: 't-01', startedWeek: 1 },
-      progression: {
-        ...agent.progression,
-        skillTree: { skillPoints: 1, trainedRelationships: {} },
-      },
     }
     const s = { ...state, agents: { ...state.agents, a_ava: agentWithPoints } }
     const result = spendSkillPoint(s, 'a_ava', 'combat')
@@ -1188,13 +1365,14 @@ describe('queueTeamTraining team-drill chemistry gate', () => {
 
     // Max out the target stat for the first member
     const maxedId = memberIds[0]!
+    const targetCap = getAgentStatCap(state.agents[maxedId]!, 'utility')
     const stateWithMaxed = {
       ...state,
       agents: {
         ...state.agents,
         [maxedId]: {
           ...state.agents[maxedId]!,
-          baseStats: { ...state.agents[maxedId]!.baseStats, utility: 100 },
+          baseStats: { ...state.agents[maxedId]!.baseStats, utility: targetCap },
         },
       },
     }
@@ -1223,7 +1401,10 @@ describe('queueTeamTraining team-drill chemistry gate', () => {
     for (const id of memberIds) {
       allMaxedAgents[id] = {
         ...allMaxedAgents[id]!,
-        baseStats: { ...allMaxedAgents[id]!.baseStats, utility: 100 },
+        baseStats: {
+          ...allMaxedAgents[id]!.baseStats,
+          utility: getAgentStatCap(allMaxedAgents[id]!, 'utility'),
+        },
       }
     }
 
@@ -1277,7 +1458,10 @@ describe('XP formula uses rawGain', () => {
     // Ensure the agent has headroom for the bonus to matter
     const cappedAgent = {
       ...agent,
-      baseStats: { ...agent.baseStats, [combatDrills!.targetStat]: Math.min(agent.baseStats[combatDrills!.targetStat], 90) },
+      baseStats: {
+        ...agent.baseStats,
+        [combatDrills!.targetStat]: Math.min(agent.baseStats[combatDrills!.targetStat], 90),
+      },
     }
 
     const noBonus = {

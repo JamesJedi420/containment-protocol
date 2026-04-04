@@ -22,7 +22,10 @@ function getManualChunk(id: string) {
     return 'vendor-misc'
   }
 
-  if (normalizedId.includes('/src/domain/templates/') || normalizedId.includes('/src/data/copy.ts')) {
+  if (
+    normalizedId.includes('/src/domain/templates/') ||
+    normalizedId.includes('/src/data/copy.ts')
+  ) {
     return 'content-catalog'
   }
 

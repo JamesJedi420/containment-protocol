@@ -21,9 +21,7 @@ export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
   }
 
   const type =
-    typeof eventRecord.type === 'string'
-      ? (eventRecord.type as OperationEventType)
-      : undefined
+    typeof eventRecord.type === 'string' ? (eventRecord.type as OperationEventType) : undefined
 
   if (type) {
     const validation = validateOperationEventPayload(type, eventRecord.payload)

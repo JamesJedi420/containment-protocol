@@ -41,7 +41,9 @@ describe('advanceRecoveryAgentsForWeek', () => {
     expect(recovered.vitals?.statusFlags ?? []).not.toContain('injury:moderate')
     expect(
       recovered.history?.timeline.some(
-        (entry) => entry.eventType === 'simulation.weekly_tick' && entry.note.includes('returned to active duty')
+        (entry) =>
+          entry.eventType === 'simulation.weekly_tick' &&
+          entry.note.includes('returned to active duty')
       )
     ).toBe(true)
   })
@@ -82,7 +84,9 @@ describe('advanceRecoveryAgentsForWeek', () => {
     expect(recovering.vitals?.statusFlags ?? []).toContain('injury:minor')
     expect(
       recovering.history?.timeline.some(
-        (entry) => entry.eventType === 'simulation.weekly_tick' && entry.note.includes('recovering from a minor injury')
+        (entry) =>
+          entry.eventType === 'simulation.weekly_tick' &&
+          entry.note.includes('recovering from a minor injury')
       )
     ).toBe(true)
   })

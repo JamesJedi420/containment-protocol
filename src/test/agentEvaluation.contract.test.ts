@@ -28,14 +28,7 @@ import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgentSquadCompositionProfile } from '../domain/teamSimulation'
 import type { Agent, AgentRole, CaseInstance, DomainStats } from '../domain/models'
 
-const DOMAIN_KEYS = [
-  'field',
-  'resilience',
-  'control',
-  'insight',
-  'presence',
-  'anomaly',
-] as const
+const DOMAIN_KEYS = ['field', 'resilience', 'control', 'insight', 'presence', 'anomaly'] as const
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
   return {
@@ -330,7 +323,10 @@ describe('agent evaluation contract', () => {
     const roleWeights = getRoleDomainWeights('investigator')
     const contextualWeights = buildContextualRoleDomainWeights('investigator', witnessHeavyCase)
 
-    expect(Object.values(contextualWeights).reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 6)
+    expect(Object.values(contextualWeights).reduce((sum, value) => sum + value, 0)).toBeCloseTo(
+      1,
+      6
+    )
     expect(contextualWeights.presence).toBeGreaterThan(roleWeights.presence)
     expect(contextualWeights.field).toBeLessThan(roleWeights.field)
     expect(contextualWeights.insight).toBeGreaterThan(0)
@@ -1145,7 +1141,10 @@ describe('agent evaluation contract', () => {
     expect(result.agentPerformance[0].effectivenessScore).toBeCloseTo(breakdown.score, 2)
     expect(result.agentPerformance[0].contributionByDomain).toEqual(
       Object.fromEntries(
-        DOMAIN_KEYS.map((domain) => [domain, Number(breakdown.contributionByDomain[domain].toFixed(2))])
+        DOMAIN_KEYS.map((domain) => [
+          domain,
+          Number(breakdown.contributionByDomain[domain].toFixed(2)),
+        ])
       )
     )
   })

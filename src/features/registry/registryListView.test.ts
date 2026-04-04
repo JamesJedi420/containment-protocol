@@ -77,7 +77,10 @@ describe('registryListView', () => {
     expect(filtered.every((view) => view.agent.role === targetView?.agent.role)).toBe(true)
     expect(
       filtered.every((view) =>
-        [view.agent.name, ...view.agent.tags, view.teamName ?? ''].join(' ').toLowerCase().includes(token.toLowerCase())
+        [view.agent.name, ...view.agent.tags, view.teamName ?? '']
+          .join(' ')
+          .toLowerCase()
+          .includes(token.toLowerCase())
       )
     ).toBe(true)
   })
@@ -112,7 +115,9 @@ describe('registryListView', () => {
     })
 
     for (let index = 1; index < filtered.length; index += 1) {
-      expect(filtered[index - 1]!.agent.fatigue).toBeGreaterThanOrEqual(filtered[index]!.agent.fatigue)
+      expect(filtered[index - 1]!.agent.fatigue).toBeGreaterThanOrEqual(
+        filtered[index]!.agent.fatigue
+      )
     }
   })
 
@@ -127,7 +132,9 @@ describe('registryListView', () => {
     expect(filtered.every((view) => view.agent.role === 'hunter')).toBe(true)
 
     for (let index = 1; index < filtered.length; index += 1) {
-      expect(filtered[index - 1]!.agent.fatigue).toBeGreaterThanOrEqual(filtered[index]!.agent.fatigue)
+      expect(filtered[index - 1]!.agent.fatigue).toBeGreaterThanOrEqual(
+        filtered[index]!.agent.fatigue
+      )
     }
   })
 
@@ -186,9 +193,7 @@ describe('registryListView', () => {
     game.agents[ids[2]!]!.fatigue = 44
     game.agents[ids[3]!]!.fatigue = 45
 
-    game.agents = Object.fromEntries(
-      ids.map((id) => [id, game.agents[id]!])
-    )
+    game.agents = Object.fromEntries(ids.map((id) => [id, game.agents[id]!]))
 
     const steady = getFilteredRegistryAgentViews(game, {
       ...DEFAULT_REGISTRY_LIST_FILTERS,
@@ -215,7 +220,7 @@ describe('registryListView', () => {
   })
 })
 
-function getStatusSortIndex(status: 'active' | 'injured' | 'recovering' | 'dead') {
+function getStatusSortIndex(status: 'active' | 'injured' | 'recovering' | 'resigned' | 'dead') {
   switch (status) {
     case 'active':
       return 0
@@ -223,9 +228,11 @@ function getStatusSortIndex(status: 'active' | 'injured' | 'recovering' | 'dead'
       return 1
     case 'recovering':
       return 2
-    case 'dead':
+    case 'resigned':
       return 3
-    default:
+    case 'dead':
       return 4
+    default:
+      return 5
   }
 }

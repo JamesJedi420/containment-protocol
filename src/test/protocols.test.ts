@@ -143,7 +143,9 @@ describe('protocols', () => {
 
     expect(protocolState.activeProtocolIds).toEqual(['containment-doctrine-alpha'])
     expect(
-      protocolState.unlockedProtocols.find((protocol) => protocol.id === 'containment-doctrine-alpha')
+      protocolState.unlockedProtocols.find(
+        (protocol) => protocol.id === 'containment-doctrine-alpha'
+      )
     ).toMatchObject({
       selected: true,
       type: 'anomaly-interaction',
@@ -205,9 +207,9 @@ describe('protocols', () => {
         }),
       ])
     )
-    expect(negotiatorRoleBreakdown.powerLayer.protocols.map((protocol) => protocol.id)).not.toContain(
-      'crisis-command-uplink'
-    )
+    expect(
+      negotiatorRoleBreakdown.powerLayer.protocols.map((protocol) => protocol.id)
+    ).not.toContain('crisis-command-uplink')
 
     const tagProtocolState = buildAgencyProtocolState(
       makeProtocolGameState({

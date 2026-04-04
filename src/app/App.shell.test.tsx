@@ -50,16 +50,22 @@ describe('minimal shell layout', () => {
     expect(screen.getByRole('link', { name: /^teams$/i })).toBeInTheDocument()
 
     if (FUTURE_EXPANSION_APP_SYSTEMS.length > 0) {
-      expect(screen.getByRole('navigation', { name: /future expansion systems/i })).toBeInTheDocument()
+      expect(
+        screen.getByRole('navigation', { name: /future expansion systems/i })
+      ).toBeInTheDocument()
       expect(
         screen.getByText(/these surfaces read live state but stay outside the mvp command loop/i)
       ).toBeInTheDocument()
 
       for (const route of FUTURE_EXPANSION_APP_SYSTEMS) {
-        expect(screen.getByRole('link', { name: new RegExp(`^${route.label}$`, 'i') })).toBeInTheDocument()
+        expect(
+          screen.getByRole('link', { name: new RegExp(`^${route.label}$`, 'i') })
+        ).toBeInTheDocument()
       }
     } else {
-      expect(screen.queryByRole('navigation', { name: /future expansion systems/i })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole('navigation', { name: /future expansion systems/i })
+      ).not.toBeInTheDocument()
       expect(
         screen.queryByText(/these surfaces read live state but stay outside the mvp command loop/i)
       ).not.toBeInTheDocument()

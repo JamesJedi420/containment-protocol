@@ -33,9 +33,7 @@ interface UnresolvedDraftInput {
   explanationNotes: string[]
 }
 
-export function buildSuccessCaseOutcomeDraft(
-  input: BaseResolvedDraftInput
-): MissionResultInput {
+export function buildSuccessCaseOutcomeDraft(input: BaseResolvedDraftInput): MissionResultInput {
   return {
     caseId: input.caseId,
     caseTitle: input.caseTitle,
@@ -49,9 +47,7 @@ export function buildSuccessCaseOutcomeDraft(
   }
 }
 
-export function buildEscalatedCaseOutcomeDraft(
-  input: EscalatedDraftInput
-): MissionResultInput {
+export function buildEscalatedCaseOutcomeDraft(input: EscalatedDraftInput): MissionResultInput {
   return {
     caseId: input.caseId,
     caseTitle: input.caseTitle,
@@ -66,9 +62,7 @@ export function buildEscalatedCaseOutcomeDraft(
   }
 }
 
-export function buildUnresolvedCaseOutcomeDraft(
-  input: UnresolvedDraftInput
-): MissionResultInput {
+export function buildUnresolvedCaseOutcomeDraft(input: UnresolvedDraftInput): MissionResultInput {
   return {
     caseId: input.caseId,
     caseTitle: input.caseTitle,

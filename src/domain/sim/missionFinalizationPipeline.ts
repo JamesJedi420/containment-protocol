@@ -33,10 +33,7 @@ function buildFollowUpConsequence(
 }
 
 function buildMissionFatigueChanges(
-  input: Pick<
-    MissionFinalizationInput,
-    'sourceState' | 'nextState' | 'activeTeamStressModifiers'
-  >,
+  input: Pick<MissionFinalizationInput, 'sourceState' | 'nextState' | 'activeTeamStressModifiers'>,
   teamsUsed: MissionTeamUsage[]
 ): MissionFatigueChange[] {
   return teamsUsed.flatMap((team) => {
@@ -86,14 +83,16 @@ export function finalizeMissionResultsFromDrafts(
         ...buildFollowUpConsequencesForCase(input, caseId),
       ]
 
-      return [[
-        caseId,
-        buildMissionResult({
-          ...draft,
-          fatigueChanges: buildMissionFatigueChanges(input, draft.teamsUsed),
-          spawnedConsequences,
-        }),
-      ]] as const
+      return [
+        [
+          caseId,
+          buildMissionResult({
+            ...draft,
+            fatigueChanges: buildMissionFatigueChanges(input, draft.teamsUsed),
+            spawnedConsequences,
+          }),
+        ],
+      ] as const
     })
   )
 }

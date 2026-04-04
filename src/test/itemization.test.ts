@@ -38,6 +38,8 @@ describe('itemization', () => {
       expect.arrayContaining(['equipped', 'fabrication', 'market'])
     )
     expect(firstOverview.entries.some((entry) => entry.rewardOpportunityCount > 0)).toBe(true)
-    expect(firstOverview.topOperationalItems.map((entry) => entry.itemId)).toContain('signal_jammers')
+    expect(firstOverview.topOperationalItems.map((entry) => entry.itemId)).toContain(
+      'signal_jammers'
+    )
   })
 })

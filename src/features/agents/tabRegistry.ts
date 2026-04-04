@@ -41,9 +41,7 @@ class TabRegistry {
   }
 
   getTabsInOrder(ids: TabType[]): TabConfig[] {
-    return ids
-      .map((id) => this.tabs.get(id))
-      .filter((tab) => tab !== undefined) as TabConfig[]
+    return ids.map((id) => this.tabs.get(id)).filter((tab) => tab !== undefined) as TabConfig[]
   }
 }
 

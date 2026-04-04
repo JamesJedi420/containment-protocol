@@ -77,6 +77,7 @@ it('filters the roster and links into agent detail', async () => {
       id: 'training-test-entry',
       trainingId: 'fieldcraft',
       trainingName: 'Fieldcraft',
+      scope: 'agent',
       agentId: trainingAgent.id,
       agentName: trainingAgent.name,
       targetStat: 'utility',

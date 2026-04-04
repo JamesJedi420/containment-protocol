@@ -12,10 +12,7 @@ export type { CandidateFilters }
 
 export function filterCandidates(candidates: Candidate[], filters: CandidateFilters): Candidate[] {
   return candidates.filter((candidate) => {
-    if (
-      filters.category &&
-      normalizeCandidateCategory(candidate.category) !== filters.category
-    ) {
+    if (filters.category && normalizeCandidateCategory(candidate.category) !== filters.category) {
       return false
     }
 

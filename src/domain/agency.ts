@@ -71,11 +71,13 @@ export interface AgencySummary {
 }
 
 function getAgencyState(game: GameState) {
-  return game.agency ?? {
-    containmentRating: game.containmentRating,
-    clearanceLevel: game.clearanceLevel,
-    funding: game.funding,
-  }
+  return (
+    game.agency ?? {
+      containmentRating: game.containmentRating,
+      clearanceLevel: game.clearanceLevel,
+      funding: game.funding,
+    }
+  )
 }
 
 function getOpenCases(game: GameState) {
@@ -125,7 +127,9 @@ function buildAgencyTeamSummary(game: GameState): AgencyTeamSummary {
 
 function buildAgencyOperationsSummary(game: GameState): AgencyOperationsSummary {
   const openCases = getOpenCases(game)
-  const majorIncidents = openCases.filter((currentCase) => buildMajorIncidentProfile(currentCase)).length
+  const majorIncidents = openCases.filter((currentCase) =>
+    buildMajorIncidentProfile(currentCase)
+  ).length
   const activeTeams = Object.values(game.teams).filter((team) =>
     Boolean(getTeamAssignedCaseId(team))
   ).length
@@ -154,8 +158,7 @@ function buildAgencyPressureSummary(game: GameState): AgencyPressureSummary {
     Math.round(
       buildFactionStates(game)
         .slice(0, 3)
-        .reduce((sum, faction) => sum + faction.pressureScore, 0) /
-        5
+        .reduce((sum, faction) => sum + faction.pressureScore, 0) / 5
     ),
     0,
     100
@@ -201,7 +204,13 @@ function buildAgencyStabilitySummary(
   const readiness =
     teams.total > 0 ? Math.round((teams.ready / Math.max(1, teams.total)) * 100) : 100
   const logisticsSupport = clamp(
-    (logistics.totalStock >= 30 ? 12 : logistics.totalStock >= 15 ? 8 : logistics.totalStock >= 5 ? 3 : -6) +
+    (logistics.totalStock >= 30
+      ? 12
+      : logistics.totalStock >= 15
+        ? 8
+        : logistics.totalStock >= 5
+          ? 3
+          : -6) +
       (game.market.pressure === 'discounted' ? 8 : game.market.pressure === 'stable' ? 4 : -8) -
       Math.min(logistics.queuedOrders, 4),
     -15,

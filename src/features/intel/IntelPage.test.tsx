@@ -151,7 +151,9 @@ describe('IntelPage', () => {
   })
 
   it('rehydrates filter controls from URL after remount', async () => {
-    const firstRender = renderIntelPage(['/intel?q=incident&mode=threshold&kind=case&pressure=critical'])
+    const firstRender = renderIntelPage([
+      '/intel?q=incident&mode=threshold&kind=case&pressure=critical',
+    ])
 
     await waitFor(() => {
       expect(screen.getByLabelText(/^search$/i)).toHaveValue('incident')

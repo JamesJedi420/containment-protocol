@@ -64,11 +64,7 @@ function getOpenCases(game: GameState) {
 }
 
 function buildCaseTagSet(currentCase: CaseInstance) {
-  return new Set([
-    ...currentCase.tags,
-    ...currentCase.requiredTags,
-    ...currentCase.preferredTags,
-  ])
+  return new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags])
 }
 
 function countTagMatches(caseTagSet: Set<string>, tags: readonly string[]) {
@@ -239,7 +235,9 @@ export function buildItemizationOverview(game: GameState): ItemizationOverview {
       fabricationRecipeId: fabricationRecipe?.recipeId,
       fabricationRecipeName: fabricationRecipe?.name,
       fabricationDurationWeeks: fabricationRecipe?.durationWeeks,
-      fabricationCost: fabricationRecipe ? getRecipeFundingCost(fabricationRecipe, game.market) : undefined,
+      fabricationCost: fabricationRecipe
+        ? getRecipeFundingCost(fabricationRecipe, game.market)
+        : undefined,
       activeCaseMatchCount,
       rewardOpportunityCount,
       sourceChannels,

@@ -11,20 +11,22 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { NAVIGATION_ROUTES, SHELL_UI_TEXT } from '../../data/copy'
 import { AgentEntityPanel } from './AgentEntityPanel'
-import {
-  AGENT_DETAIL_TABS,
-  DEFAULT_AGENT_DETAIL_TAB,
-  type TabType,
-} from './agentTabsModel'
+import { AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB, type TabType } from './agentTabsModel'
 import { getAgentView } from './agentView'
+
+interface AgentDetailLocationState {
+  registrySearch?: string
+}
 
 export default function AgentDetailPage() {
   const { agentId } = useParams()
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
   const [searchParams, setSearchParams] = useSearchParams()
   const { game } = useGameStore()
   const view = agentId ? getAgentView(game, agentId) : undefined
   const activeTab = readEnumParam(searchParams, 'tab', AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB)
+  const locationState = (location.state ?? null) as AgentDetailLocationState | null
   const backParams = cloneSearchParams(searchParams)
   const isRegistryDetailRoute = pathname.startsWith(`${APP_ROUTES.registry}/`)
   const backSystemRoute = isRegistryDetailRoute ? APP_ROUTES.registry : APP_ROUTES.agents
@@ -34,7 +36,10 @@ export default function AgentDetailPage() {
 
   backParams.delete('tab')
 
-  const backTo = `${backSystemRoute}${toSearchString(backParams)}`
+  const backSearch = toSearchString(backParams)
+  const fallbackRegistrySearch =
+    isRegistryDetailRoute && !backSearch ? (locationState?.registrySearch ?? '') : ''
+  const backTo = `${backSystemRoute}${backSearch || fallbackRegistrySearch}`
 
   useEffect(() => {
     const normalizedParams = cloneSearchParams(searchParams)
@@ -42,15 +47,15 @@ export default function AgentDetailPage() {
     writeEnumParam(normalizedParams, 'tab', activeTab, DEFAULT_AGENT_DETAIL_TAB)
 
     if (normalizedParams.toString() !== searchParams.toString()) {
-      setSearchParams(normalizedParams, { replace: true })
+      setSearchParams(normalizedParams, { replace: true, state: location.state })
     }
-  }, [activeTab, searchParams, setSearchParams])
+  }, [activeTab, location.state, searchParams, setSearchParams])
 
   const handleTabChange = (nextTab: TabType) => {
     const nextParams = cloneSearchParams(searchParams)
 
     writeEnumParam(nextParams, 'tab', nextTab, DEFAULT_AGENT_DETAIL_TAB)
-    setSearchParams(nextParams)
+    setSearchParams(nextParams, { state: location.state })
   }
 
   if (!view) {

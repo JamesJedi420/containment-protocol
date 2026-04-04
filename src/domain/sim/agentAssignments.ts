@@ -40,7 +40,9 @@ export function releaseAssignedAgentsFromTeams({
   let changed = false
 
   for (const releasedTeamId of teamIds) {
-    for (const agentId of getTeamMemberIds(teams[releasedTeamId] ?? { memberIds: [], agentIds: [] })) {
+    for (const agentId of getTeamMemberIds(
+      teams[releasedTeamId] ?? { memberIds: [], agentIds: [] }
+    )) {
       const agent = nextAgents[agentId]
 
       if (agent?.assignment?.state !== 'assigned' || agent.assignment.caseId !== caseId) {

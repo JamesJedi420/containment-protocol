@@ -10,6 +10,8 @@ export type {
   CandidatePipelineStatus,
   CandidatePotentialTier,
   CandidateRevealLevel,
+  CandidateScoutStage,
+  CandidateScoutReport,
   InstructorCandidateData,
   InstructorStatKey,
   SpecialistCandidateData,
@@ -36,5 +38,13 @@ export {
 } from './helpers'
 
 export { revealCandidate } from './reveal'
+export { getCandidateHireRole, mapRecruitRoleToAgentRole } from './hireOutcome'
+export {
+  buildCandidateScoutReport,
+  getNextCandidateScoutStage,
+  getCandidateScoutCost,
+  isCandidateScoutable,
+  resolveCandidateActualPotentialTier,
+} from './scouting'
 export type { CandidatePreview } from './preview'
 export { previewCandidate } from './preview'

@@ -27,7 +27,12 @@ export const EVENT_NOTE_BUILDERS = {
       stage,
     })
   },
-  partial(caseId: string, caseTitle: string, fromStage: number, toStage: number): StructuredReportNote {
+  partial(
+    caseId: string,
+    caseTitle: string,
+    fromStage: number,
+    toStage: number
+  ): StructuredReportNote {
     return buildStructuredReportNote(SIM_NOTES.partial(caseTitle), 'case.partially_resolved', {
       caseId,
       caseTitle,
@@ -35,7 +40,12 @@ export const EVENT_NOTE_BUILDERS = {
       toStage,
     })
   },
-  failed(caseId: string, caseTitle: string, fromStage: number, toStage: number): StructuredReportNote {
+  failed(
+    caseId: string,
+    caseTitle: string,
+    fromStage: number,
+    toStage: number
+  ): StructuredReportNote {
     return buildStructuredReportNote(SIM_NOTES.failed(caseTitle, toStage), 'case.failed', {
       caseId,
       caseTitle,
@@ -77,7 +87,11 @@ export const EVENT_NOTE_BUILDERS = {
       { count }
     )
   },
-  spawnFollowUp(sourceCaseId: string, sourceCaseTitle: string, count: number): StructuredReportNote {
+  spawnFollowUp(
+    sourceCaseId: string,
+    sourceCaseTitle: string,
+    count: number
+  ): StructuredReportNote {
     return buildStructuredReportNote(
       `${sourceCaseTitle}: ${SIM_NOTES.spawnFollowUp(count)}`,
       'case.spawned',

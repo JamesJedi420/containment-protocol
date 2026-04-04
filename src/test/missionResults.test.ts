@@ -92,9 +92,7 @@ describe('missionResults', () => {
     const predatorReward = buildMissionRewardBreakdown(predatorCase, 'success', state.config)
 
     expect(occultReward.caseType).toBe('occult')
-    expect(
-      occultReward.inventoryRewards.map((entry: { itemId: string }) => entry.itemId)
-    ).toEqual(
+    expect(occultReward.inventoryRewards.map((entry: { itemId: string }) => entry.itemId)).toEqual(
       expect.arrayContaining(['occult_reagents', 'warding_kits'])
     )
     expect(occultReward.factionStanding[0]?.factionId).toBe('occult_networks')
@@ -102,9 +100,7 @@ describe('missionResults', () => {
     expect(predatorReward.caseType).toBe('predator_hunt')
     expect(
       predatorReward.inventoryRewards.map((entry: { itemId: string }) => entry.itemId)
-    ).toEqual(
-      expect.arrayContaining(['ballistic_supplies', 'silver_rounds'])
-    )
+    ).toEqual(expect.arrayContaining(['ballistic_supplies', 'silver_rounds']))
   })
 
   it('builds a mission result breakdown with penalties and explanation notes', () => {

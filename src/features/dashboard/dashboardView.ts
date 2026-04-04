@@ -25,7 +25,8 @@ export function getDashboardMetrics(game: GameState) {
     deadlineRiskCount: fieldStatusViews.filter((view) => view.signals.deadlineRisk).length,
     criticalStageCount: fieldStatusViews.filter((view) => view.signals.criticalStage).length,
     raidUnderstaffedCount: fieldStatusViews.filter((view) => view.signals.raidUnderstaffed).length,
-    overstretchedTeamCount: fieldStatusViews.filter((view) => view.status === 'overstretched').length,
+    overstretchedTeamCount: fieldStatusViews.filter((view) => view.status === 'overstretched')
+      .length,
   }
 }
 
@@ -59,7 +60,9 @@ export function getFieldStatusViews(game: GameState) {
     .map((team) => {
       const assignedCaseId = getTeamAssignedCaseId(team)
       const assignedCase = assignedCaseId ? game.cases[assignedCaseId] : undefined
-      const agents = getTeamMemberIds(team).map((agentId) => game.agents[agentId]).filter(Boolean)
+      const agents = getTeamMemberIds(team)
+        .map((agentId) => game.agents[agentId])
+        .filter(Boolean)
       const averageFatigue =
         agents.length > 0
           ? Math.round(agents.reduce((sum, agent) => sum + agent.fatigue, 0) / agents.length)
@@ -83,9 +86,9 @@ export function getFieldStatusViews(game: GameState) {
       const criticalStage = Boolean(assignedCase && assignedCase.stage >= 4)
       const raidUnderstaffed = Boolean(
         assignedCase &&
-          assignedCase.kind === 'raid' &&
-          assignedCase.raid &&
-          assignedCase.assignedTeamIds.length < assignedCase.raid.minTeams
+        assignedCase.kind === 'raid' &&
+        assignedCase.raid &&
+        assignedCase.assignedTeamIds.length < assignedCase.raid.minTeams
       )
 
       return {

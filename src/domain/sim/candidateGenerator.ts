@@ -1,4 +1,5 @@
 import { clamp, createSeededRng, randInt } from '../math'
+import { scoreToExactPotentialTier } from '../agentPotential'
 import {
   type AgentData,
   type Candidate,
@@ -8,10 +9,7 @@ import {
   type GameState,
   type RecruitCategory,
 } from '../models'
-import {
-  type StaffCandidateData,
-  type InstructorCandidateData,
-} from '../recruitment'
+import { type StaffCandidateData, type InstructorCandidateData } from '../recruitment'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -129,7 +127,16 @@ export interface RecruitmentGenerationState {
 export function buildRecruitmentGenerationState(
   state: Pick<
     GameState,
-    'week' | 'rngState' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'academyTier' | 'agency' | 'agents' | 'staff' | 'candidates'
+    | 'week'
+    | 'rngState'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'academyTier'
+    | 'agency'
+    | 'agents'
+    | 'staff'
+    | 'candidates'
   >
 ): RecruitmentGenerationState {
   return {
@@ -200,12 +207,16 @@ function createName(rng: () => number) {
   return `${pickOne(rng, FIRST_NAMES)} ${pickOne(rng, LAST_NAMES)}`
 }
 
-function getRecruitmentGenerationSignals(state: RecruitmentGenerationState): RecruitmentGenerationSignals {
+function getRecruitmentGenerationSignals(
+  state: RecruitmentGenerationState
+): RecruitmentGenerationSignals {
   const containmentRating = state.containmentRating
   const clearanceLevel = state.clearanceLevel
   const funding = state.funding
   const academyTier = state.academyTier ?? 0
-  const activeAgentCount = Object.values(state.agents).filter((agent) => agent.status !== 'dead').length
+  const activeAgentCount = Object.values(state.agents).filter(
+    (agent) => agent.status !== 'dead'
+  ).length
   const weekNumber = state.week
 
   const reputationScore = clamp(
@@ -233,11 +244,16 @@ function getRecruitmentGenerationSignals(state: RecruitmentGenerationState): Rec
 
 function getWeeklyCandidateCount(signals: RecruitmentGenerationSignals, rng: () => number) {
   const base = 3
-  const reputationModifier = signals.reputationScore >= 75 ? 2 : signals.reputationScore >= 48 ? 1 : 0
+  const reputationModifier =
+    signals.reputationScore >= 75 ? 2 : signals.reputationScore >= 48 ? 1 : 0
   const staffingModifier = signals.activeAgentCount < 6 ? 1 : 0
   const randomness = randInt(rng, 0, 1)
 
-  return clamp(base + reputationModifier + staffingModifier + randomness, WEEKLY_CANDIDATE_MIN, WEEKLY_CANDIDATE_MAX)
+  return clamp(
+    base + reputationModifier + staffingModifier + randomness,
+    WEEKLY_CANDIDATE_MIN,
+    WEEKLY_CANDIDATE_MAX
+  )
 }
 
 function getRevealLevelWeights(signals: RecruitmentGenerationSignals) {
@@ -283,11 +299,12 @@ function getRevealLevelWeights(signals: RecruitmentGenerationSignals) {
   return weights
 }
 
-function getCategoryWeights(signals: RecruitmentGenerationSignals): Array<{ category: RecruitCategory; weight: number }> {
+function getCategoryWeights(
+  signals: RecruitmentGenerationSignals
+): Array<{ category: RecruitCategory; weight: number }> {
   const specialistWeight = 0
   const instructorWeight = signals.academyTier >= INSTRUCTOR_RECRUITMENT_UNLOCK_TIER ? 8 : 0
-  const agentWeight =
-    signals.activeAgentCount < 8 ? 74 : signals.funding >= 180 ? 62 : 68
+  const agentWeight = signals.activeAgentCount < 8 ? 74 : signals.funding >= 180 ? 62 : 68
 
   return [
     { category: 'agent', weight: agentWeight },
@@ -347,12 +364,12 @@ function generateAgentData(rng: () => number): AgentData {
   ])
 
   const specializationByRole: Record<AgentData['role'], string[]> = {
-    field: ['breach-entry', 'recon', 'close-quarters'],
+    field: ['breach-entry', 'recon', 'pathfinder', 'spectral-survey'],
     analyst: ['forensics', 'incident-reconstruction', 'signal-analysis'],
     containment: ['warding', 'seal-operations', 'anomaly-control'],
     support: ['medical-support', 'field-engineering', 'liaison'],
-    combat: ['breach-entry', 'recon', 'close-quarters'],
-    investigation: ['forensics', 'incident-reconstruction', 'signal-analysis'],
+    combat: ['breach-entry', 'recon', 'signal-intercept', 'close-quarters'],
+    investigation: ['forensics', 'incident-reconstruction', 'signal-analysis', 'anomaly-survey'],
   }
 
   const stats = {
@@ -474,82 +491,97 @@ function buildCandidate(
   const id = createCandidateId(usedIds, rng)
   const revealLevel = pickWeighted(
     rng,
-    getRevealLevelWeights(signals).map((entry) => ({ value: entry.revealLevel, weight: entry.weight }))
+    getRevealLevelWeights(signals).map((entry) => ({
+      value: entry.revealLevel,
+      weight: entry.weight,
+    }))
   ) as CandidateRevealLevel
 
   const age = randInt(rng, 21, 53)
-  const costFloor = clamp(12 + signals.clearanceLevel * 2 + Math.floor(signals.reputationScore / 25), 12, 32)
-  const costCeiling = clamp(costFloor + 14 + Math.floor(Math.min(signals.funding, 240) / 80), costFloor + 4, 48)
+  const costFloor = clamp(
+    12 + signals.clearanceLevel * 2 + Math.floor(signals.reputationScore / 25),
+    12,
+    32
+  )
+  const costCeiling = clamp(
+    costFloor + 14 + Math.floor(Math.min(signals.funding, 240) / 80),
+    costFloor + 4,
+    48
+  )
   const weeklyCost = randInt(rng, costFloor, costCeiling)
   const expiryWeek =
     state.week + randInt(rng, CANDIDATE_EXPIRY_MIN_WEEKS, CANDIDATE_EXPIRY_MAX_WEEKS)
   const normalizedCategory = normalizeCandidateCategory(category)
-  const qualityBias = Math.round((signals.reputationScore - 50) / 10) + Math.min(signals.weekNumber, 12) / 6
+  const qualityBias =
+    Math.round((signals.reputationScore - 50) / 10) + Math.min(signals.weekNumber, 12) / 6
 
   if (normalizedCategory === 'agent') {
     const agentData = generateAgentData(rng)
     const legacyStats = agentData.stats ?? {
-      combat:
-        Math.round(
-          ((agentData.domainStats?.physical?.strength ?? 35) +
-            (agentData.domainStats?.physical?.endurance ?? 35) +
-            (agentData.domainStats?.tactical?.awareness ?? 35) +
-            (agentData.domainStats?.tactical?.reaction ?? 35)) /
-            4
-        ),
-      investigation:
-        Math.round(
-          ((agentData.domainStats?.cognitive?.analysis ?? 35) +
-            (agentData.domainStats?.cognitive?.investigation ?? 35) +
-            (agentData.domainStats?.technical?.anomaly ?? 35)) /
-            3
-        ),
-      utility:
-        Math.round(
-          ((agentData.domainStats?.technical?.equipment ?? 35) +
-            (agentData.domainStats?.stability?.resistance ?? 35) +
-            (agentData.domainStats?.stability?.tolerance ?? 35)) /
-            3
-        ),
-      social:
-        Math.round(
-          ((agentData.domainStats?.social?.negotiation ?? 35) +
-            (agentData.domainStats?.social?.influence ?? 35)) /
-            2
-        ),
+      combat: Math.round(
+        ((agentData.domainStats?.physical?.strength ?? 35) +
+          (agentData.domainStats?.physical?.endurance ?? 35) +
+          (agentData.domainStats?.tactical?.awareness ?? 35) +
+          (agentData.domainStats?.tactical?.reaction ?? 35)) /
+          4
+      ),
+      investigation: Math.round(
+        ((agentData.domainStats?.cognitive?.analysis ?? 35) +
+          (agentData.domainStats?.cognitive?.investigation ?? 35) +
+          (agentData.domainStats?.technical?.anomaly ?? 35)) /
+          3
+      ),
+      utility: Math.round(
+        ((agentData.domainStats?.technical?.equipment ?? 35) +
+          (agentData.domainStats?.stability?.resistance ?? 35) +
+          (agentData.domainStats?.stability?.tolerance ?? 35)) /
+          3
+      ),
+      social: Math.round(
+        ((agentData.domainStats?.social?.negotiation ?? 35) +
+          (agentData.domainStats?.social?.influence ?? 35)) /
+          2
+      ),
     }
     const statAverage =
-      (legacyStats.combat +
-        legacyStats.investigation +
-        legacyStats.utility +
-        legacyStats.social) /
+      (legacyStats.combat + legacyStats.investigation + legacyStats.utility + legacyStats.social) /
       4
     const overallScore = clamp(Math.round(statAverage + qualityBias + randInt(rng, -6, 8)), 0, 100)
+    const actualPotentialScore = clamp(overallScore + randInt(rng, -10, 12), 0, 100)
     const potentialTier = scoreToCandidatePotentialTier(
-      clamp(overallScore + randInt(rng, -10, 12), 0, 100)
+      clamp(actualPotentialScore + randInt(rng, -6, 6), 0, 100)
     )
 
-    return revealCandidate({
-      id,
-      name: createName(rng),
-      portraitId: `portrait-agent-${randInt(rng, 1, 24)}`,
-      age,
-      category: 'agent',
-      hireStatus: 'available',
-      weeklyCost,
-      weeklyWage: weeklyCost,
-      costEstimate: deriveCandidateCostEstimate(weeklyCost),
-      revealLevel,
-      expiryWeek,
-      evaluation: buildEvaluation(rng, revealLevel, overallScore, potentialTier, agentData.traits),
-      agentData,
-    }, 0)
+    return revealCandidate(
+      {
+        id,
+        name: createName(rng),
+        portraitId: `portrait-agent-${randInt(rng, 1, 24)}`,
+        age,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost,
+        weeklyWage: weeklyCost,
+        costEstimate: deriveCandidateCostEstimate(weeklyCost),
+        revealLevel,
+        expiryWeek,
+        actualPotentialTier: scoreToExactPotentialTier(actualPotentialScore),
+        evaluation: buildEvaluation(
+          rng,
+          revealLevel,
+          overallScore,
+          potentialTier,
+          agentData.traits
+        ),
+        agentData,
+      },
+      0
+    )
   }
 
   const staffData = generateStaffData(rng)
   const scoreBase =
-    48 +
-    Object.values(staffData.passiveBonuses ?? {}).reduce((sum, value) => sum + value * 100, 0)
+    48 + Object.values(staffData.passiveBonuses ?? {}).reduce((sum, value) => sum + value * 100, 0)
   const overallScore = clamp(Math.round(scoreBase + qualityBias + randInt(rng, -8, 10)), 0, 100)
   const potentialTier = scoreToCandidatePotentialTier(
     clamp(overallScore + randInt(rng, -10, 10), 0, 100)
@@ -557,52 +589,68 @@ function buildCandidate(
 
   if (normalizedCategory === 'instructor') {
     const instructorData = generateInstructorData(rng)
-    const instructorScore = clamp(Math.round(instructorData.efficiency + qualityBias + randInt(rng, -6, 6)), 0, 100)
+    const instructorScore = clamp(
+      Math.round(instructorData.efficiency + qualityBias + randInt(rng, -6, 6)),
+      0,
+      100
+    )
     const instructorPotentialTier = scoreToCandidatePotentialTier(
       clamp(instructorScore + randInt(rng, -10, 10), 0, 100)
     )
 
-    return revealCandidate({
+    return revealCandidate(
+      {
+        id,
+        name: createName(rng),
+        portraitId: `portrait-staff-${randInt(rng, 1, 24)}`,
+        age,
+        category: 'instructor',
+        hireStatus: 'available',
+        weeklyCost,
+        weeklyWage: weeklyCost,
+        costEstimate: deriveCandidateCostEstimate(weeklyCost),
+        revealLevel,
+        expiryWeek,
+        evaluation: buildEvaluation(rng, revealLevel, instructorScore, instructorPotentialTier, [
+          instructorData.instructorSpecialty,
+        ]),
+        instructorData,
+      },
+      0
+    )
+  }
+
+  return revealCandidate(
+    {
       id,
       name: createName(rng),
       portraitId: `portrait-staff-${randInt(rng, 1, 24)}`,
       age,
-      category: 'instructor',
+      category: 'staff',
       hireStatus: 'available',
       weeklyCost,
       weeklyWage: weeklyCost,
       costEstimate: deriveCandidateCostEstimate(weeklyCost),
       revealLevel,
       expiryWeek,
-      evaluation: buildEvaluation(rng, revealLevel, instructorScore, instructorPotentialTier, [
-        instructorData.instructorSpecialty,
+      evaluation: buildEvaluation(rng, revealLevel, overallScore, potentialTier, [
+        normalizeStaffCandidateSpecialty(staffData.specialty),
       ]),
-      instructorData,
-    }, 0)
-  }
-
-  return revealCandidate({
-    id,
-    name: createName(rng),
-    portraitId: `portrait-staff-${randInt(rng, 1, 24)}`,
-    age,
-    category: 'staff',
-    hireStatus: 'available',
-    weeklyCost,
-    weeklyWage: weeklyCost,
-    costEstimate: deriveCandidateCostEstimate(weeklyCost),
-    revealLevel,
-    expiryWeek,
-    evaluation: buildEvaluation(rng, revealLevel, overallScore, potentialTier, [
-      normalizeStaffCandidateSpecialty(staffData.specialty),
-    ]),
-    staffData,
-  }, 0)
+      staffData,
+    },
+    0
+  )
 }
 
-export function generateCandidates(state: RecruitmentGenerationState, rng: () => number): Candidate[]
+export function generateCandidates(
+  state: RecruitmentGenerationState,
+  rng: () => number
+): Candidate[]
 export function generateCandidates(state: RecruitmentGenerationState): Candidate[]
-export function generateCandidates(state: RecruitmentGenerationState, rng?: () => number): Candidate[] {
+export function generateCandidates(
+  state: RecruitmentGenerationState,
+  rng?: () => number
+): Candidate[] {
   const effectiveRng = rng ?? createSeededRng(state.rngState).next
   const signals = getRecruitmentGenerationSignals(state)
   const existingPool = state.candidatePool

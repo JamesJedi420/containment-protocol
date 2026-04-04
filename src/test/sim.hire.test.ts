@@ -116,12 +116,12 @@ describe('hireCandidate', () => {
     })
   })
 
-  it('maps combat recruit role to hunter agent role', () => {
+  it('maps recon-specialized combat recruits to the field recon role', () => {
     const candidate = makeAgentCandidate()
     const state = { ...createStartingState(), candidates: [candidate] }
     const next = hireCandidate(state, candidate.id)
 
-    expect(next.agents[candidate.id].role).toBe('hunter')
+    expect(next.agents[candidate.id].role).toBe('field_recon')
   })
 
   it('maps investigation recruit role with signal specialization to tech role', () => {
@@ -177,6 +177,112 @@ describe('hireCandidate', () => {
     expect(next.agents[candidate.id].stats?.stability.resistance).toBe(81)
     expect(next.agents[candidate.id].stats?.technical.anomaly).toBe(83)
     expect(next.agents[candidate.id].baseStats.utility).toBeGreaterThan(0)
+  })
+
+  it('converts revealed candidate potential into live tier ceilings on the hired agent', () => {
+    const candidate = makeAgentCandidate({
+      id: 'cand-agent-06',
+      evaluation: {
+        overallVisible: true,
+        overallValue: 85,
+        potentialVisible: true,
+        potentialTier: 'high',
+        rumorTags: [],
+        impression: 'elite',
+        teamwork: 'solid',
+        outlook: 'focused',
+      },
+      agentData: {
+        role: 'combat',
+        specialization: 'recon',
+        stats: { combat: 60, investigation: 30, utility: 20, social: 20 },
+        traits: ['marksman'],
+        growthProfile: 'balanced',
+      },
+    })
+    const state = { ...createStartingState(), candidates: [candidate] }
+    const next = hireCandidate(state, candidate.id)
+
+    expect(next.agents[candidate.id].progression?.potentialTier).toBe('S')
+    expect(next.agents[candidate.id].progression?.statCaps).toEqual({
+      combat: 100,
+      investigation: 96,
+      utility: 92,
+      social: 90,
+    })
+  })
+
+  it('preserves scout intel as a projected tier while the hidden live tier remains canonical', () => {
+    const candidate = makeAgentCandidate({
+      id: 'cand-agent-scouted',
+      actualPotentialTier: 'A',
+      scoutReport: {
+        stage: 1,
+        projectedTier: 'B',
+        exactKnown: false,
+        confidence: 'medium',
+        scoutedWeek: 1,
+      },
+      evaluation: {
+        overallVisible: true,
+        overallValue: 78,
+        potentialVisible: true,
+        potentialTier: 'mid',
+        rumorTags: [],
+        impression: 'promising',
+        teamwork: 'stable',
+        outlook: 'upward',
+      },
+    })
+    const state = { ...createStartingState(), candidates: [candidate] }
+    const next = hireCandidate(state, candidate.id)
+    const agent = next.agents[candidate.id]
+
+    expect(agent.progression?.potentialTier).toBe('A')
+    expect(agent.progression?.potentialIntel).toMatchObject({
+      visibleTier: 'B',
+      exactKnown: false,
+      confidence: 'medium',
+      discoveryProgress: 45,
+      source: 'recruitment_scout',
+    })
+  })
+
+  it('carries confirmed scout intel into the live agent as confirmed potential knowledge', () => {
+    const candidate = makeAgentCandidate({
+      id: 'cand-agent-confirmed-scout',
+      actualPotentialTier: 'S',
+      scoutReport: {
+        stage: 3,
+        projectedTier: 'S',
+        confirmedTier: 'S',
+        exactKnown: true,
+        confidence: 'confirmed',
+        scoutedWeek: 2,
+      },
+      evaluation: {
+        overallVisible: true,
+        overallValue: 88,
+        potentialVisible: true,
+        potentialTier: 'high',
+        rumorTags: [],
+        impression: 'elite',
+        teamwork: 'stable',
+        outlook: 'exceptional',
+      },
+    })
+    const state = { ...createStartingState(), candidates: [candidate] }
+    const next = hireCandidate(state, candidate.id)
+    const agent = next.agents[candidate.id]
+
+    expect(agent.progression?.potentialTier).toBe('S')
+    expect(agent.progression?.potentialIntel).toMatchObject({
+      visibleTier: 'S',
+      exactKnown: true,
+      confidence: 'confirmed',
+      discoveryProgress: 100,
+      source: 'recruitment_scout',
+    })
   })
 
   it('adds staff record to state.staff on a successful staff hire', () => {

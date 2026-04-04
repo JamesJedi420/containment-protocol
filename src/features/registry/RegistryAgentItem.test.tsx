@@ -109,7 +109,10 @@ describe('RegistryAgentItem', () => {
 
     expect(screen.getByText(/Fatigue.*45/i)).toBeInTheDocument()
     const fatigueElement = screen.getByText(/Fatigue.*45/i)
-    expect(fatigueElement.closest('[aria-label]')).toHaveAttribute('aria-label', 'Fatigue level: 45')
+    expect(fatigueElement.closest('[aria-label]')).toHaveAttribute(
+      'aria-label',
+      'Fatigue level: 45'
+    )
   })
 
   it('displays agent tags as comma-separated list', () => {
@@ -140,6 +143,8 @@ describe('RegistryAgentItem', () => {
     const ariaLabels = Array.from(ariaLabeledElements).map((el) => el.getAttribute('aria-label'))
     expect(ariaLabels.some((label) => label?.toLowerCase().includes('fatigue level'))).toBe(true)
     expect(ariaLabels.some((label) => label?.toLowerCase().includes('team'))).toBe(true)
-    expect(ariaLabels.some((label) => label?.toLowerCase().includes('operational state'))).toBe(true)
+    expect(ariaLabels.some((label) => label?.toLowerCase().includes('operational state'))).toBe(
+      true
+    )
   })
 })

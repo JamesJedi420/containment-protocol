@@ -40,15 +40,12 @@ function normalizeTemplateIds(ids: string[] | undefined, knownIds: Set<string>) 
     return [] as string[]
   }
 
-  return [...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0 && knownIds.has(id)))].sort(
-    (left, right) => left.localeCompare(right)
-  )
+  return [
+    ...new Set(ids.map((id) => id.trim()).filter((id) => id.length > 0 && knownIds.has(id))),
+  ].sort((left, right) => left.localeCompare(right))
 }
 
-function buildReachability(
-  templates: CaseTemplate[],
-  entryTemplateIds: string[]
-) {
+function buildReachability(templates: CaseTemplate[], entryTemplateIds: string[]) {
   const byId = new Map(templates.map((template) => [template.templateId, template]))
   const queue = [...entryTemplateIds]
   const visited = new Set<string>()
@@ -105,7 +102,9 @@ export function getCaseTemplateCatalogDiagnostics(
   }
 
   const knownIds = new Set(templates.map((template) => template.templateId))
-  const requestedEntryIds = [...new Set((options.entryTemplateIds ?? []).map((id) => id.trim()).filter(Boolean))]
+  const requestedEntryIds = [
+    ...new Set((options.entryTemplateIds ?? []).map((id) => id.trim()).filter(Boolean)),
+  ]
 
   for (const entryId of requestedEntryIds) {
     if (!knownIds.has(entryId)) {
@@ -118,7 +117,9 @@ export function getCaseTemplateCatalogDiagnostics(
   }
 
   const entryTemplateIds = normalizeTemplateIds(
-    requestedEntryIds.length > 0 ? requestedEntryIds : templates.map((template) => template.templateId),
+    requestedEntryIds.length > 0
+      ? requestedEntryIds
+      : templates.map((template) => template.templateId),
     knownIds
   )
 

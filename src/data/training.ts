@@ -64,7 +64,7 @@ export const trainingCatalog: TrainingProgram[] = [
     trainingId: 'endurance-protocol',
     name: 'Endurance Protocol',
     description:
-      'Physical conditioning, sleep-cycle regulation, and stress-load calibration. Permanently increases the agent\'s passive recovery rate between operations.',
+      "Physical conditioning, sleep-cycle regulation, and stress-load calibration. Permanently increases the agent's passive recovery rate between operations.",
     scope: 'agent',
     targetStat: 'utility',
     statDelta: 1,
@@ -76,7 +76,8 @@ export const trainingCatalog: TrainingProgram[] = [
   {
     trainingId: 'anomaly-conditioning',
     name: 'Anomaly Conditioning',
-    description: 'Anomaly classification, incident taxonomy, and psionic event investigation protocols.',
+    description:
+      'Anomaly classification, incident taxonomy, and psionic event investigation protocols.',
     scope: 'agent',
     minAcademyTier: 1,
     targetStat: 'investigation',
@@ -129,8 +130,7 @@ export const trainingCatalog: TrainingProgram[] = [
   {
     trainingId: 'incident-command-sim',
     name: 'Incident Command Simulation',
-    description:
-      'Team-scale witness control, command handoff, and crisis communication rehearsal.',
+    description: 'Team-scale witness control, command handoff, and crisis communication rehearsal.',
     scope: 'team',
     targetStat: 'social',
     statDelta: 1,
@@ -157,8 +157,7 @@ export const trainingCatalog: TrainingProgram[] = [
   {
     trainingId: 'forensics-debrief',
     name: 'Forensics Debrief',
-    description:
-      'Joint evidence review, lead correlation, and cross-operator case reconstruction.',
+    description: 'Joint evidence review, lead correlation, and cross-operator case reconstruction.',
     scope: 'team',
     targetStat: 'investigation',
     statDelta: 1,

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CI: true
-      STRICT_TEST_CONSOLE: "1"
+      STRICT_TEST_CONSOLE: '1'
     steps:
       - name: Checkout
         uses: actions/checkout@v4

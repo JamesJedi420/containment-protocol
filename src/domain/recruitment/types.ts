@@ -1,12 +1,19 @@
-import type { DomainStats } from '../agent/models'
+import type { DomainStats, ExactPotentialTier, PotentialIntelConfidence } from '../agent/models'
 
-export type CandidateCategory = 'agent' | 'staff' | 'specialist' | 'fieldTech' | 'analyst' | 'instructor'
+export type CandidateCategory =
+  | 'agent'
+  | 'staff'
+  | 'specialist'
+  | 'fieldTech'
+  | 'analyst'
+  | 'instructor'
 
 export type CandidatePipelineStatus = 'available' | 'reserved' | 'expired' | 'candidate'
 
 export type CandidateCostEstimate = 'low' | 'moderate' | 'high' | 'unknown'
 
 export type CandidateRevealLevel = 0 | 1 | 2
+export type CandidateScoutStage = 1 | 2 | 3
 
 export type CandidatePotentialTier = 'low' | 'mid' | 'high'
 
@@ -40,6 +47,19 @@ export interface CandidateBase {
 
   revealLevel: CandidateRevealLevel
   expiryWeek: number
+  /** Hidden exact ceiling tier used when the candidate becomes a live agent. */
+  actualPotentialTier?: ExactPotentialTier
+  /** Optional scouting estimate commissioned from the recruitment layer. */
+  scoutReport?: CandidateScoutReport
+}
+
+export interface CandidateScoutReport {
+  stage: CandidateScoutStage
+  projectedTier: ExactPotentialTier
+  confirmedTier?: ExactPotentialTier
+  exactKnown: boolean
+  confidence: Exclude<PotentialIntelConfidence, 'unknown'>
+  scoutedWeek?: number
 }
 
 export interface CandidateEvaluation {

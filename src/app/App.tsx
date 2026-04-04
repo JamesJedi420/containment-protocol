@@ -53,13 +53,12 @@ const EquipmentPage = createRouteComponent(() => import('../features/equipment/E
 const FabricationPage = createRouteComponent(
   () => import('../features/fabrication/FabricationPage')
 )
-const ContainmentSiteRoute = createRouteComponent(
-  () =>
-    import('../features/divisions/SystemBoundaryPage').then((module) => ({
-      default: function ContainmentSiteRoute() {
-        return <module.SystemBoundaryPage boundary="containmentSite" />
-      },
-    }))
+const ContainmentSiteRoute = createRouteComponent(() =>
+  import('../features/divisions/SystemBoundaryPage').then((module) => ({
+    default: function ContainmentSiteRoute() {
+      return <module.SystemBoundaryPage boundary="containmentSite" />
+    },
+  }))
 )
 const MarketsSuppliersRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
@@ -68,21 +67,19 @@ const MarketsSuppliersRoute = createRouteComponent(() =>
     },
   }))
 )
-const FactionsRoute = createRouteComponent(
-  () =>
-    import('../features/divisions/SystemBoundaryPage').then((module) => ({
-      default: function FactionsRoute() {
-        return <module.SystemBoundaryPage boundary="factions" />
-      },
-    }))
+const FactionsRoute = createRouteComponent(() =>
+  import('../features/divisions/SystemBoundaryPage').then((module) => ({
+    default: function FactionsRoute() {
+      return <module.SystemBoundaryPage boundary="factions" />
+    },
+  }))
 )
-const RankingsRoute = createRouteComponent(
-  () =>
-    import('../features/divisions/SystemBoundaryPage').then((module) => ({
-      default: function RankingsRoute() {
-        return <module.SystemBoundaryPage boundary="rankings" />
-      },
-    }))
+const RankingsRoute = createRouteComponent(() =>
+  import('../features/divisions/SystemBoundaryPage').then((module) => ({
+    default: function RankingsRoute() {
+      return <module.SystemBoundaryPage boundary="rankings" />
+    },
+  }))
 )
 const AgencyRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({

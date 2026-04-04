@@ -1,10 +1,7 @@
 import type { CaseInstance, GameState } from './models'
 import { buildAcademyOverview, type AcademyOverview } from './academy'
 import { buildAgencySummary, type AgencySummary } from './agency'
-import {
-  buildCaseGenerationProfile,
-  type EncounterType,
-} from './caseGeneration'
+import { buildCaseGenerationProfile, type EncounterType } from './caseGeneration'
 import { buildFactionStates, type FactionState } from './factions'
 import { buildLogisticsOverview, type LogisticsOverview } from './logistics'
 import {
@@ -277,10 +274,16 @@ export function buildEncounterStructureState(game: GameState): EncounterStructur
         title: game.templates[templateId]?.title ?? templateId,
         sourceCount,
       }))
-      .sort((left, right) => right.sourceCount - left.sourceCount || left.title.localeCompare(right.title))
+      .sort(
+        (left, right) =>
+          right.sourceCount - left.sourceCount || left.title.localeCompare(right.title)
+      )
       .slice(0, 6),
     likelyRaidConversions: likelyRaidConversions
-      .sort((left, right) => right.targetStage - left.targetStage || left.caseTitle.localeCompare(right.caseTitle))
+      .sort(
+        (left, right) =>
+          right.targetStage - left.targetStage || left.caseTitle.localeCompare(right.caseTitle)
+      )
       .slice(0, 4),
   }
 }
@@ -312,7 +315,8 @@ export function buildMajorIncidentState(game: GameState): MajorIncidentState {
       totalStages: profile.stages.length,
       deadlineRemaining: currentCase.deadlineRemaining,
       assignedTeams: currentCase.assignedTeamIds.length,
-      requiredTeams: profile.effectiveCase.kind === 'raid' ? profile.effectiveCase.raid?.minTeams ?? 2 : 1,
+      requiredTeams:
+        profile.effectiveCase.kind === 'raid' ? (profile.effectiveCase.raid?.minTeams ?? 2) : 1,
       recommendedTeams: profile.recommendedTeams,
       pressureScore: getCasePressureScore(currentCase),
       effectiveDifficultyMultiplier: profile.effectiveDifficultyMultiplier,
@@ -323,13 +327,15 @@ export function buildMajorIncidentState(game: GameState): MajorIncidentState {
       progression: profile.progression,
       bossEntity: profile.currentStage.bossEntity,
     }))
-    .sort((left, right) => right.pressureScore - left.pressureScore || left.caseTitle.localeCompare(right.caseTitle))
+    .sort(
+      (left, right) =>
+        right.pressureScore - left.pressureScore || left.caseTitle.localeCompare(right.caseTitle)
+    )
 
   const unresolvedMomentum = getRecentUnresolvedMomentum(game)
   const pressureScore =
     incidents.reduce((sum, incident) => sum + incident.pressureScore, 0) + unresolvedMomentum * 6
-  const severity =
-    pressureScore >= 120 ? 'crisis' : pressureScore >= 55 ? 'danger' : 'watch'
+  const severity = pressureScore >= 120 ? 'crisis' : pressureScore >= 55 ? 'danger' : 'watch'
 
   return {
     severity,
@@ -343,11 +349,7 @@ export function buildEndgameScalingState(game: GameState): EndgameScalingState {
   const incidentState = buildMajorIncidentState(game)
   const incidents = incidentState.incidents
   const nextThreshold =
-    incidentState.severity === 'watch'
-      ? 55
-      : incidentState.severity === 'danger'
-        ? 120
-        : null
+    incidentState.severity === 'watch' ? 55 : incidentState.severity === 'danger' ? 120 : null
 
   const progressionBands = [
     {
@@ -378,10 +380,8 @@ export function buildEndgameScalingState(game: GameState): EndgameScalingState {
       incidents.length > 0
         ? Number(
             (
-              incidents.reduce(
-                (sum, incident) => sum + incident.effectiveDifficultyMultiplier,
-                0
-              ) / incidents.length
+              incidents.reduce((sum, incident) => sum + incident.effectiveDifficultyMultiplier, 0) /
+              incidents.length
             ).toFixed(2)
           )
         : 1,
@@ -400,8 +400,8 @@ export type { AgencyRankingView }
 export function buildAgencyOverview(game: GameState): AgencyOverview {
   const summary = buildAgencySummary(game)
   const openCases = getOpenCases(game)
-  const activeTeams = Object.values(game.teams).filter(
-    (team) => Boolean(getTeamAssignedCaseId(team))
+  const activeTeams = Object.values(game.teams).filter((team) =>
+    Boolean(getTeamAssignedCaseId(team))
   ).length
   const readyAgents = Object.values(game.agents).filter(
     (agent) => agent.status === 'active' && agent.assignment?.state === 'idle'

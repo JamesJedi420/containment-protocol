@@ -33,10 +33,7 @@ const PRIMARY_DOMAIN_WARNING_BY_DOMAIN: Record<StatDomain, string> = {
   anomaly: 'Anomaly profile is weak for supernatural exposure tasks.',
 }
 
-function pushAssessment(
-  assessments: TacticalAssessment[],
-  nextAssessment: TacticalAssessment
-) {
+function pushAssessment(assessments: TacticalAssessment[], nextAssessment: TacticalAssessment) {
   if (assessments.some((assessment) => assessment.id === nextAssessment.id)) {
     return
   }
@@ -48,8 +45,9 @@ function getPrimaryRoleDomain(agent: Agent): StatDomain {
   const weights = getRoleDomainWeights(agent.role)
 
   return (
-    (Object.entries(weights) as [StatDomain, number][])
-      .sort((left, right) => right[1] - left[1])[0]?.[0] ?? 'insight'
+    (Object.entries(weights) as [StatDomain, number][]).sort(
+      (left, right) => right[1] - left[1]
+    )[0]?.[0] ?? 'insight'
   )
 }
 
@@ -119,7 +117,8 @@ export function evaluateTacticalAssessments(
       id: 'presence-interviews',
       severity: 'positive',
       emphasisDomain: 'presence',
-      message: 'Presence profile is well suited to witness handling, interviews, and field leadership.',
+      message:
+        'Presence profile is well suited to witness handling, interviews, and field leadership.',
     })
   }
 
@@ -163,10 +162,7 @@ export function evaluateTacticalAssessments(
     })
   }
 
-  if (
-    assessments.length === 0 &&
-    breakdown.score >= STRONG_DOMAIN_THRESHOLD
-  ) {
+  if (assessments.length === 0 && breakdown.score >= STRONG_DOMAIN_THRESHOLD) {
     pushAssessment(assessments, {
       id: 'balanced-generalist',
       severity: 'neutral',

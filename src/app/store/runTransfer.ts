@@ -46,7 +46,7 @@ export interface RunExportPayload {
   game: PersistedGame
 }
 
-const OPERATION_EVENT_TYPES: OperationEventType[] = [
+const OPERATION_EVENT_TYPES = [
   'assignment.team_assigned',
   'assignment.team_unassigned',
   'case.resolved',
@@ -60,6 +60,8 @@ const OPERATION_EVENT_TYPES: OperationEventType[] = [
   'agent.training_completed',
   'agent.training_cancelled',
   'agent.relationship_changed',
+  'agent.instructor_assigned',
+  'agent.instructor_unassigned',
   'agent.injured',
   'agent.betrayed',
   'agent.resigned',
@@ -67,18 +69,32 @@ const OPERATION_EVENT_TYPES: OperationEventType[] = [
   'agent.hired',
   'system.recruitment_expired',
   'system.recruitment_generated',
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
   'system.party_cards_drawn',
   'production.queue_completed',
   'production.queue_started',
   'market.shifted',
+  'market.transaction_recorded',
+  'faction.standing_changed',
   'faction.activity',
   'agency.containment_updated',
-]
+  'directive.applied',
+  'system.academy_upgraded',
+] as const
 
 const CASE_ESCALATION_TRIGGERS: CaseEscalationTrigger[] = ['deadline', 'failure']
 const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = ['failure', 'unresolved', 'raid_pressure']
 const MARKET_PRESSURES: MarketPressure[] = ['discounted', 'stable', 'tight']
-const RECRUIT_CATEGORIES = ['agent', 'staff', 'specialist', 'fieldTech', 'analyst'] as const
+const RECRUIT_CATEGORIES = [
+  'agent',
+  'staff',
+  'specialist',
+  'fieldTech',
+  'analyst',
+  'instructor',
+] as const
 const STAT_KEYS = ['combat', 'investigation', 'utility', 'social'] as const
 const REPORT_NOTE_TYPES = [
   'case.resolved',
@@ -94,7 +110,13 @@ const REPORT_NOTE_TYPES = [
   'system.week_delta',
   'system.recruitment_expired',
   'system.recruitment_generated',
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
   'system.party_cards_drawn',
+  'market.transaction_recorded',
+  'faction.standing_changed',
+  'directive.applied',
 ] as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -128,9 +150,17 @@ function stripUndefinedFields<T>(value: T): T {
 const CURRENT_OPERATION_EVENT_SCHEMA_VERSION = 2 as const
 
 function normalizeOperationEventSchemaVersion(value: unknown) {
-  return value === 1 || value === 2
-    ? value
-    : CURRENT_OPERATION_EVENT_SCHEMA_VERSION
+  return (value === 1 || value === 2 ? value : CURRENT_OPERATION_EVENT_SCHEMA_VERSION) as 1 | 2
+}
+
+function normalizeLegacyOperationEventType(
+  value: unknown
+): OperationEventType | 'faction.activity' | null {
+  if (value === 'faction.activity') {
+    return value
+  }
+
+  return isOneOf(value, OPERATION_EVENT_TYPES) ? value : null
 }
 
 function migrateOperationEventToCurrentSchema<TType extends OperationEventType>(
@@ -188,20 +218,23 @@ function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
     const timestamp = typeof note.timestamp === 'number' ? note.timestamp : 0
     const type = isOneOf(note.type, REPORT_NOTE_TYPES) ? note.type : undefined
     const metadata = isRecord(note.metadata)
-      ? Object.entries(note.metadata).reduce<ReportNoteMetadata>((sanitized, [key, metadataValue]) => {
-          const valueType = typeof metadataValue
+      ? Object.entries(note.metadata).reduce<ReportNoteMetadata>(
+          (sanitized, [key, metadataValue]) => {
+            const valueType = typeof metadataValue
 
-          if (
-            metadataValue === null ||
-            valueType === 'string' ||
-            valueType === 'number' ||
-            valueType === 'boolean'
-          ) {
-            sanitized[key] = metadataValue as ReportNoteMetadata[string]
-          }
+            if (
+              metadataValue === null ||
+              valueType === 'string' ||
+              valueType === 'number' ||
+              valueType === 'boolean'
+            ) {
+              sanitized[key] = metadataValue as ReportNoteMetadata[string]
+            }
 
-          return sanitized
-        }, {})
+            return sanitized
+          },
+          {}
+        )
       : undefined
 
     notes.push({
@@ -278,10 +311,7 @@ function getAverageFatigue(team: Team, agents: GameState['agents']) {
     return 0
   }
 
-  const totalFatigue = memberIds.reduce(
-    (sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0),
-    0
-  )
+  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
 
   return Math.round(totalFatigue / memberIds.length)
 }
@@ -622,7 +652,7 @@ function sanitizePartyCardState(value: unknown, fallback: PartyCardState | undef
           cardId:
             typeof entry.cardId === 'string' && entry.cardId.length > 0
               ? entry.cardId
-              : fallback.deck[index % Math.max(fallback.deck.length, 1)] ?? `card-${index + 1}`,
+              : (fallback.deck[index % Math.max(fallback.deck.length, 1)] ?? `card-${index + 1}`),
           targetCaseId: typeof entry.targetCaseId === 'string' ? entry.targetCaseId : undefined,
           targetTeamId: typeof entry.targetTeamId === 'string' ? entry.targetTeamId : undefined,
           weekPlayed: sanitizeInteger(entry.weekPlayed as number | undefined, 1, 1),
@@ -635,11 +665,7 @@ function sanitizePartyCardState(value: unknown, fallback: PartyCardState | undef
     hand: sanitizeCardIds(value.hand, fallback.hand),
     discard: sanitizeCardIds(value.discard, fallback.discard),
     queuedPlays,
-    maxHandSize: sanitizeInteger(
-      value.maxHandSize as number | undefined,
-      fallback.maxHandSize,
-      0
-    ),
+    maxHandSize: sanitizeInteger(value.maxHandSize as number | undefined, fallback.maxHandSize, 0),
   } satisfies PartyCardState
 }
 
@@ -671,6 +697,10 @@ function sanitizeTrainingQueue(value: unknown): TrainingQueueEntry[] {
         typeof entry.trainingName === 'string'
           ? entry.trainingName
           : (program?.name ?? `Training ${index + 1}`),
+      scope:
+        entry.scope === 'team' || entry.scope === 'agent'
+          ? entry.scope
+          : (program?.scope ?? 'agent'),
       agentId: typeof entry.agentId === 'string' ? entry.agentId : `agent-${index + 1}`,
       agentName: typeof entry.agentName === 'string' ? entry.agentName : `Agent ${index + 1}`,
       targetStat: isOneOf(entry.targetStat, STAT_KEYS)
@@ -777,18 +807,25 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
   const nextEvents: OperationEvent[] = []
 
   for (const [index, entry] of events.entries()) {
-    if (
-      !isRecord(entry) ||
-      !isRecord(entry.payload) ||
-      !isOneOf(entry.type, OPERATION_EVENT_TYPES)
-    ) {
+    if (!isRecord(entry) || !isRecord(entry.payload)) {
+      continue
+    }
+
+    const eventType = normalizeLegacyOperationEventType(entry.type)
+
+    if (!eventType) {
       continue
     }
 
     const payload = entry.payload
     const week = sanitizeInteger(payload.week as number | undefined, 1, 1)
     const schemaVersion = normalizeOperationEventSchemaVersion(entry.schemaVersion)
-    const createBase = <TType extends OperationEventType>(type: TType) => ({
+    const createBase = <TType extends OperationEventType>(
+      type: TType
+    ): Pick<
+      OperationEvent<TType>,
+      'id' | 'schemaVersion' | 'type' | 'sourceSystem' | 'timestamp'
+    > => ({
       id:
         typeof entry.id === 'string' && entry.id.length > 0
           ? entry.id
@@ -802,11 +839,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
           : buildOperationEventTimestamp(week, index + 1),
     })
 
-    switch (entry.type) {
+    switch (eventType) {
       case 'assignment.team_assigned':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('assignment.team_assigned'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -830,7 +867,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'assignment.team_unassigned':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('assignment.team_unassigned'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -852,7 +889,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.resolved':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.resolved'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -873,7 +910,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.partially_resolved':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.partially_resolved'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -886,6 +923,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               kind: payload.kind === 'raid' ? 'raid' : 'case',
               fromStage: sanitizeInteger(payload.fromStage as number | undefined, 1, 1),
               toStage: sanitizeInteger(payload.toStage as number | undefined, 1, 1),
+              teamIds: sanitizeStringList(payload.teamIds),
             },
           })
         )
@@ -894,7 +932,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.failed':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.failed'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -907,6 +945,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               kind: payload.kind === 'raid' ? 'raid' : 'case',
               fromStage: sanitizeInteger(payload.fromStage as number | undefined, 1, 1),
               toStage: sanitizeInteger(payload.toStage as number | undefined, 1, 1),
+              teamIds: sanitizeStringList(payload.teamIds),
             },
           })
         )
@@ -915,7 +954,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.escalated':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.escalated'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -941,7 +980,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.spawned':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.spawned'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -968,7 +1007,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'case.raid_converted':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('case.raid_converted'),
             payload: {
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
@@ -988,7 +1027,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'intel.report_generated':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('intel.report_generated'),
             payload: {
               week,
               resolvedCount: sanitizeInteger(payload.resolvedCount as number | undefined, 0, 0),
@@ -1010,7 +1049,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.training_started':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.training_started'),
             payload: {
               week,
               queueId: typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
@@ -1036,7 +1075,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.training_completed':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.training_completed'),
             payload: {
               week,
               queueId: typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
@@ -1059,7 +1098,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.training_cancelled':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.training_cancelled'),
             payload: {
               week,
               agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
@@ -1082,16 +1121,20 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.relationship_changed':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.relationship_changed'),
             payload: {
               week,
               agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
               agentName:
                 typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
               counterpartId:
-                typeof payload.counterpartId === 'string' ? payload.counterpartId : `counterpart-${index + 1}`,
+                typeof payload.counterpartId === 'string'
+                  ? payload.counterpartId
+                  : `counterpart-${index + 1}`,
               counterpartName:
-                typeof payload.counterpartName === 'string' ? payload.counterpartName : `Counterpart ${index + 1}`,
+                typeof payload.counterpartName === 'string'
+                  ? payload.counterpartName
+                  : `Counterpart ${index + 1}`,
               previousValue: Number(payload.previousValue ?? 0),
               nextValue: Number(payload.nextValue ?? 0),
               delta: Number(payload.delta ?? 0),
@@ -1113,7 +1156,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.injured':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.injured'),
             payload: {
               week,
               agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
@@ -1128,15 +1171,19 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.betrayed':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.betrayed'),
             payload: {
               week,
               betrayerId:
                 typeof payload.betrayerId === 'string' ? payload.betrayerId : `agent-${index + 1}`,
               betrayerName:
-                typeof payload.betrayerName === 'string' ? payload.betrayerName : `Agent ${index + 1}`,
+                typeof payload.betrayerName === 'string'
+                  ? payload.betrayerName
+                  : `Agent ${index + 1}`,
               betrayedId:
-                typeof payload.betrayedId === 'string' ? payload.betrayedId : `counterpart-${index + 1}`,
+                typeof payload.betrayedId === 'string'
+                  ? payload.betrayedId
+                  : `counterpart-${index + 1}`,
               betrayedName:
                 typeof payload.betrayedName === 'string'
                   ? payload.betrayedName
@@ -1145,7 +1192,13 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               trustDamageTotal: Number(payload.trustDamageTotal ?? 0),
               triggeredConsequences: Array.isArray(payload.triggeredConsequences)
                 ? payload.triggeredConsequences.filter(
-                    (entry): entry is 'benching' | 'performance_penalty' | 'disciplinary' | 'resignation' =>
+                    (
+                      entry
+                    ): entry is
+                      | 'benching'
+                      | 'performance_penalty'
+                      | 'disciplinary'
+                      | 'resignation' =>
                       entry === 'benching' ||
                       entry === 'performance_penalty' ||
                       entry === 'disciplinary' ||
@@ -1160,7 +1213,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.resigned':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.resigned'),
             payload: {
               week,
               agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
@@ -1179,7 +1232,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.promoted':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.promoted'),
             payload: {
               week,
               agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
@@ -1188,12 +1241,21 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               newRole:
                 payload.newRole === 'occultist' ||
                 payload.newRole === 'investigator' ||
+                payload.newRole === 'field_recon' ||
                 payload.newRole === 'medium' ||
                 payload.newRole === 'tech' ||
                 payload.newRole === 'medic' ||
                 payload.newRole === 'negotiator'
                   ? payload.newRole
                   : 'hunter',
+              previousLevel: sanitizeInteger(payload.previousLevel as number | undefined, 1, 1),
+              newLevel: sanitizeInteger(payload.newLevel as number | undefined, 2, 1),
+              levelsGained: sanitizeInteger(payload.levelsGained as number | undefined, 1, 0),
+              skillPointsGranted: sanitizeInteger(
+                payload.skillPointsGranted as number | undefined,
+                0,
+                0
+              ),
             },
           })
         )
@@ -1202,7 +1264,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agent.hired':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agent.hired'),
             payload: {
               week,
               candidateId:
@@ -1221,7 +1283,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'system.recruitment_expired':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('system.recruitment_expired'),
             payload: {
               week,
               count: sanitizeInteger(payload.count as number | undefined, 0, 0),
@@ -1233,7 +1295,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'system.recruitment_generated':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('system.recruitment_generated'),
             payload: {
               week,
               count: sanitizeInteger(payload.count as number | undefined, 0, 0),
@@ -1245,7 +1307,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'system.party_cards_drawn':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('system.party_cards_drawn'),
             payload: {
               week,
               count: sanitizeInteger(payload.count as number | undefined, 0, 0),
@@ -1257,7 +1319,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'production.queue_started':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('production.queue_started'),
             payload: {
               week,
               queueId: typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
@@ -1265,10 +1327,14 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
               recipeId:
                 typeof payload.recipeId === 'string' ? payload.recipeId : `recipe-${index + 1}`,
+              outputId:
+                typeof payload.outputId === 'string' ? payload.outputId : `output-${index + 1}`,
               outputName:
                 typeof payload.outputName === 'string' ? payload.outputName : `Output ${index + 1}`,
+              outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
               etaWeeks: sanitizeInteger(payload.etaWeeks as number | undefined, 1, 0),
               fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+              inputMaterials: [],
             },
           })
         )
@@ -1277,16 +1343,21 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'production.queue_completed':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('production.queue_completed'),
             payload: {
               week,
               queueId: typeof payload.queueId === 'string' ? payload.queueId : `queue-${index + 1}`,
               queueName:
                 typeof payload.queueName === 'string' ? payload.queueName : `Queue ${index + 1}`,
+              recipeId:
+                typeof payload.recipeId === 'string' ? payload.recipeId : `recipe-${index + 1}`,
               outputId:
                 typeof payload.outputId === 'string' ? payload.outputId : `output-${index + 1}`,
               outputName:
                 typeof payload.outputName === 'string' ? payload.outputName : `Output ${index + 1}`,
+              outputQuantity: sanitizeInteger(payload.outputQuantity as number | undefined, 1, 1),
+              fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+              inputMaterials: [],
             },
           })
         )
@@ -1295,7 +1366,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'market.shifted':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('market.shifted'),
             payload: {
               week,
               featuredRecipeId:
@@ -1321,7 +1392,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'faction.activity':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('faction.standing_changed'),
             payload: {
               week,
               factionId:
@@ -1330,7 +1401,43 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.factionName === 'string'
                   ? payload.factionName
                   : `Faction ${index + 1}`,
-              summary: typeof payload.summary === 'string' ? payload.summary : 'Activity logged.',
+              delta: 0,
+              standingBefore: 0,
+              standingAfter: 0,
+              reason: 'case.resolved',
+              caseTitle: typeof payload.summary === 'string' ? payload.summary : undefined,
+            },
+          })
+        )
+        break
+
+      case 'faction.standing_changed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('faction.standing_changed'),
+            payload: {
+              week,
+              factionId:
+                typeof payload.factionId === 'string' ? payload.factionId : `faction-${index + 1}`,
+              factionName:
+                typeof payload.factionName === 'string'
+                  ? payload.factionName
+                  : `Faction ${index + 1}`,
+              delta: sanitizeInteger(payload.delta as number | undefined, 0, -9999),
+              standingBefore: sanitizeInteger(
+                payload.standingBefore as number | undefined,
+                0,
+                -9999
+              ),
+              standingAfter: sanitizeInteger(payload.standingAfter as number | undefined, 0, -9999),
+              reason:
+                payload.reason === 'case.partially_resolved' ||
+                payload.reason === 'case.failed' ||
+                payload.reason === 'case.escalated'
+                  ? payload.reason
+                  : 'case.resolved',
+              caseId: typeof payload.caseId === 'string' ? payload.caseId : undefined,
+              caseTitle: typeof payload.caseTitle === 'string' ? payload.caseTitle : undefined,
             },
           })
         )
@@ -1339,7 +1446,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
       case 'agency.containment_updated':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
-            ...createBase(entry.type),
+            ...createBase('agency.containment_updated'),
             payload: {
               week,
               containmentRatingBefore: sanitizeInteger(
@@ -1352,7 +1459,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 0,
                 0
               ),
-              containmentDelta: sanitizeInteger(payload.containmentDelta as number | undefined, 0, -100),
+              containmentDelta: sanitizeInteger(
+                payload.containmentDelta as number | undefined,
+                0,
+                -100
+              ),
               clearanceLevelBefore: sanitizeInteger(
                 payload.clearanceLevelBefore as number | undefined,
                 1,
@@ -1390,7 +1501,9 @@ function sanitizeWeeklyDirectiveState(
       ? value.history
           .filter(
             (entry): entry is { week: number; directiveId: string } =>
-              isRecord(entry) && typeof entry.week === 'number' && typeof entry.directiveId === 'string'
+              isRecord(entry) &&
+              typeof entry.week === 'number' &&
+              typeof entry.directiveId === 'string'
           )
           .filter((entry) => isWeeklyDirectiveId(entry.directiveId))
           .map((entry) => ({

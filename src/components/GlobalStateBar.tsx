@@ -4,10 +4,14 @@ import { DetailProgressStat, DetailStat } from './StatCard'
 
 export function GlobalStateBar({ game }: { game: GameState }) {
   const metrics = getGlobalStateMetrics(game)
+  const liveSummary = `Containment ${metrics.containmentRating} percent, ${metrics.activeCases} active cases, funding ${metrics.funding}, clearance level ${metrics.clearanceLevel}.`
 
   return (
     <section className="panel space-y-3" aria-label="Operations desk global state">
       <p className="text-xs uppercase tracking-[0.22em] opacity-60">Operations Desk</p>
+      <p role="status" aria-live="polite" className="sr-only">
+        {liveSummary}
+      </p>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <DetailProgressStat

@@ -10,7 +10,13 @@ import {
   MAX_ACADEMY_TIER,
   upgradeAcademy,
 } from '../domain/sim/academyUpgrade'
-import { advanceTrainingQueues, getTrainingAptitudeBonus, isAgentTraining, queueTeamTraining, queueTraining } from '../domain/sim/training'
+import {
+  advanceTrainingQueues,
+  getTrainingAptitudeBonus,
+  isAgentTraining,
+  queueTeamTraining,
+  queueTraining,
+} from '../domain/sim/training'
 import { getTeamMemberIds } from '../domain/teamSimulation'
 import { type GameState } from '../domain/models'
 
@@ -141,7 +147,10 @@ describe('training slot cap', () => {
     let succeeded = 0
     for (const agentId of agentIds) {
       const next = queueTraining(state, agentId, combatDrills.trainingId)
-      if (Object.values(next.agents).filter(isAgentTraining).length > Object.values(state.agents).filter(isAgentTraining).length) {
+      if (
+        Object.values(next.agents).filter(isAgentTraining).length >
+        Object.values(state.agents).filter(isAgentTraining).length
+      ) {
         succeeded++
       }
       state = next
@@ -288,7 +297,9 @@ describe('buildAcademyOverview with tier system', () => {
     const tier0Overview = buildAcademyOverview(createStartingState())
     expect(
       tier0Overview.suggestedPrograms.every((entry) => {
-        const program = trainingCatalog.find((candidate) => candidate.trainingId === entry.trainingId)
+        const program = trainingCatalog.find(
+          (candidate) => candidate.trainingId === entry.trainingId
+        )
         return (program?.minAcademyTier ?? 0) <= 0
       })
     ).toBe(true)
@@ -296,7 +307,9 @@ describe('buildAcademyOverview with tier system', () => {
     const tier2Overview = buildAcademyOverview({ ...createStartingState(), academyTier: 2 })
     expect(
       tier2Overview.suggestedTeamDrills.every((entry) => {
-        const program = trainingCatalog.find((candidate) => candidate.trainingId === entry.trainingId)
+        const program = trainingCatalog.find(
+          (candidate) => candidate.trainingId === entry.trainingId
+        )
         return (program?.minAcademyTier ?? 0) <= 2
       })
     ).toBe(true)
@@ -313,7 +326,9 @@ describe('academy-tier training unlocks', () => {
     const tier1 = { ...createStartingState(), academyTier: 1 }
     const unlocked = queueTraining(tier1, 'a_sato', threatAssessment.trainingId)
 
-    expect(unlocked.trainingQueue.some((entry) => entry.trainingId === threatAssessment.trainingId)).toBe(true)
+    expect(
+      unlocked.trainingQueue.some((entry) => entry.trainingId === threatAssessment.trainingId)
+    ).toBe(true)
   })
 
   it('blocks tier-2 elite team drills until academy tier 2', () => {
@@ -323,6 +338,8 @@ describe('academy-tier training unlocks', () => {
 
     const tier2 = { ...createStartingState(), academyTier: 2 }
     const unlocked = queueTeamTraining(tier2, 't_nightwatch', assaultCollective.trainingId)
-    expect(unlocked.trainingQueue.some((entry) => entry.trainingId === assaultCollective.trainingId)).toBe(true)
+    expect(
+      unlocked.trainingQueue.some((entry) => entry.trainingId === assaultCollective.trainingId)
+    ).toBe(true)
   })
 })

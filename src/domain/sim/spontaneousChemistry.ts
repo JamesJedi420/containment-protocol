@@ -26,7 +26,6 @@ function roundToTwo(value: number) {
   return Math.round(value * 100) / 100
 }
 
-
 function getOffMissionAgentIds(state: GameState, activeTeamIds: Set<string>) {
   const teamByAgentId = new Map<string, string>()
 
@@ -38,7 +37,9 @@ function getOffMissionAgentIds(state: GameState, activeTeamIds: Set<string>) {
 
   return Object.values(state.agents)
     .filter((agent) => agent.status === 'active')
-    .filter((agent) => agent.assignment?.state !== 'assigned' && agent.assignment?.state !== 'training')
+    .filter(
+      (agent) => agent.assignment?.state !== 'assigned' && agent.assignment?.state !== 'training'
+    )
     .filter((agent) => {
       const teamId = teamByAgentId.get(agent.id)
       return !teamId || !activeTeamIds.has(teamId)

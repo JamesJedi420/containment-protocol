@@ -47,7 +47,9 @@ export const DEFAULT_TEAM_LIST_FILTERS: TeamListFilters = {
 }
 
 export function getTeamAgents(team: Team, game: GameState): Agent[] {
-  return getTeamMemberIds(team).map((agentId) => game.agents[agentId]).filter(Boolean)
+  return getTeamMemberIds(team)
+    .map((agentId) => game.agents[agentId])
+    .filter(Boolean)
 }
 
 export function getAverageFatigue(agents: Agent[]) {

@@ -23,8 +23,7 @@ function makeEvent<TType extends OperationEvent['type']>(
     id: `evt-${type.replace(/\./g, '-')}`,
     schemaVersion: 1,
     type,
-    sourceSystem: (overrides.sourceSystem ??
-      inferSource(type)) as OperationEvent['sourceSystem'],
+    sourceSystem: (overrides.sourceSystem ?? inferSource(type)) as OperationEvent['sourceSystem'],
     timestamp: '2042-01-08T00:00:00.001Z',
     payload,
     ...overrides,
@@ -35,6 +34,7 @@ function inferSource(type: string): string {
   if (type.startsWith('assignment.')) return 'assignment'
   if (type.startsWith('case.')) return 'incident'
   if (type.startsWith('intel.')) return 'intel'
+  if (type.startsWith('recruitment.')) return 'intel'
   if (type.startsWith('agent.')) return 'agent'
   if (type.startsWith('production.') || type.startsWith('market.')) return 'production'
   if (type.startsWith('faction.')) return 'faction'
@@ -405,15 +405,79 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('fieldTech')
   })
 
+  it('recruitment.scouting_initiated shows projected tier and cost', () => {
+    const event = makeEvent('recruitment.scouting_initiated', {
+      week: 2,
+      candidateId: 'cand-001',
+      candidateName: 'Scout Target',
+      fundingCost: 12,
+      stage: 1,
+      projectedTier: 'B',
+      confidence: 'low',
+      revealLevel: 1,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('neutral')
+    expect(view.title).toContain('Scout Target')
+    expect(view.detail).toContain('Projected B tier')
+    expect(view.detail).toContain('$12')
+  })
+
+  it('recruitment.scouting_refined shows refinement history', () => {
+    const event = makeEvent('recruitment.scouting_refined', {
+      week: 3,
+      candidateId: 'cand-001',
+      candidateName: 'Scout Target',
+      fundingCost: 9,
+      stage: 2,
+      projectedTier: 'A',
+      confidence: 'high',
+      previousProjectedTier: 'B',
+      previousConfidence: 'low',
+      revealLevel: 2,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('scouting refined')
+    expect(view.detail).toContain('B -> A tier')
+    expect(view.detail).toContain('low -> high confidence')
+  })
+
+  it('recruitment.intel_confirmed shows the confirmed tier', () => {
+    const event = makeEvent('recruitment.intel_confirmed', {
+      week: 4,
+      candidateId: 'cand-001',
+      candidateName: 'Scout Target',
+      fundingCost: 7,
+      stage: 3,
+      projectedTier: 'A',
+      confirmedTier: 'A',
+      confidence: 'confirmed',
+      previousProjectedTier: 'A',
+      previousConfidence: 'high',
+      revealLevel: 2,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('intel confirmed')
+    expect(view.detail).toContain('Confirmed A tier')
+  })
+
   it('production.queue_started — neutral tone, cost in detail', () => {
     const event = makeEvent('production.queue_started', {
       week: 3,
       queueId: 'q-prod-001',
       queueName: 'Tactical Vest Batch',
       recipeId: 'recipe-vest',
+      outputId: 'item-vest',
       outputName: 'Tactical Vest',
+      outputQuantity: 1,
       etaWeeks: 4,
       fundingCost: 40,
+      inputMaterials: [],
     })
     const view = buildEventFeedView(event)
 
@@ -427,8 +491,12 @@ describe('buildEventFeedView', () => {
       week: 7,
       queueId: 'q-prod-001',
       queueName: 'Tactical Vest Batch',
+      recipeId: 'recipe-vest',
       outputId: 'item-vest',
       outputName: 'Tactical Vest',
+      outputQuantity: 1,
+      fundingCost: 40,
+      inputMaterials: [],
     })
     const view = buildEventFeedView(event)
 
@@ -585,27 +653,95 @@ describe('buildEventFeedView', () => {
 describe('buildEventFeedView href', () => {
   it('assignment events link to the case detail page', () => {
     const assigned = makeEvent('assignment.team_assigned', {
-      week: 1, caseId: 'case-001', caseTitle: 'X', caseKind: 'case',
-      teamId: 't_alpha', teamName: 'Alpha', assignedTeamCount: 1, maxTeams: 1,
+      week: 1,
+      caseId: 'case-001',
+      caseTitle: 'X',
+      caseKind: 'case',
+      teamId: 't_alpha',
+      teamName: 'Alpha',
+      assignedTeamCount: 1,
+      maxTeams: 1,
     })
     expect(buildEventFeedView(assigned).href).toBe('/cases/case-001')
 
     const unassigned = makeEvent('assignment.team_unassigned', {
-      week: 1, caseId: 'case-001', caseTitle: 'X',
-      teamId: 't_alpha', teamName: 'Alpha', remainingTeamCount: 0,
+      week: 1,
+      caseId: 'case-001',
+      caseTitle: 'X',
+      teamId: 't_alpha',
+      teamName: 'Alpha',
+      remainingTeamCount: 0,
     })
     expect(buildEventFeedView(unassigned).href).toBe('/cases/case-001')
   })
 
   it('case events link to the case detail page', () => {
-    const types = ['case.resolved', 'case.partially_resolved', 'case.failed', 'case.escalated', 'case.spawned', 'case.raid_converted'] as const
+    const types = [
+      'case.resolved',
+      'case.partially_resolved',
+      'case.failed',
+      'case.escalated',
+      'case.spawned',
+      'case.raid_converted',
+    ] as const
     const payloads = {
-      'case.resolved': { week: 1, caseId: 'case-X', caseTitle: 'X', mode: 'threshold', kind: 'case', stage: 1, teamIds: [] },
-      'case.partially_resolved': { week: 1, caseId: 'case-X', caseTitle: 'X', mode: 'threshold', kind: 'case', fromStage: 1, toStage: 2, teamIds: [] },
-      'case.failed': { week: 1, caseId: 'case-X', caseTitle: 'X', mode: 'threshold', kind: 'case', fromStage: 1, toStage: 2, teamIds: [] },
-      'case.escalated': { week: 1, caseId: 'case-X', caseTitle: 'X', fromStage: 1, toStage: 2, trigger: 'deadline', deadlineRemaining: 0, convertedToRaid: false },
-      'case.spawned': { week: 1, caseId: 'case-X', caseTitle: 'X', templateId: 'tpl-1', kind: 'case', stage: 1, trigger: 'failure' },
-      'case.raid_converted': { week: 1, caseId: 'case-X', caseTitle: 'X', stage: 1, trigger: 'deadline', minTeams: 2, maxTeams: 4 },
+      'case.resolved': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        mode: 'threshold',
+        kind: 'case',
+        stage: 1,
+        teamIds: [],
+      },
+      'case.partially_resolved': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        mode: 'threshold',
+        kind: 'case',
+        fromStage: 1,
+        toStage: 2,
+        teamIds: [],
+      },
+      'case.failed': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        mode: 'threshold',
+        kind: 'case',
+        fromStage: 1,
+        toStage: 2,
+        teamIds: [],
+      },
+      'case.escalated': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        fromStage: 1,
+        toStage: 2,
+        trigger: 'deadline',
+        deadlineRemaining: 0,
+        convertedToRaid: false,
+      },
+      'case.spawned': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        templateId: 'tpl-1',
+        kind: 'case',
+        stage: 1,
+        trigger: 'failure',
+      },
+      'case.raid_converted': {
+        week: 1,
+        caseId: 'case-X',
+        caseTitle: 'X',
+        stage: 1,
+        trigger: 'deadline',
+        minTeams: 2,
+        maxTeams: 4,
+      },
     }
     for (const type of types) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -616,36 +752,147 @@ describe('buildEventFeedView href', () => {
 
   it('intel.report_generated links to the report detail page for that week', () => {
     const event = makeEvent('intel.report_generated', {
-      week: 7, resolvedCount: 0, failedCount: 0, partialCount: 0,
-      unresolvedCount: 0, spawnedCount: 0, noteCount: 0, score: 0,
+      week: 7,
+      resolvedCount: 0,
+      failedCount: 0,
+      partialCount: 0,
+      unresolvedCount: 0,
+      spawnedCount: 0,
+      noteCount: 0,
+      score: 0,
     })
     expect(buildEventFeedView(event).href).toBe('/report/7')
   })
 
   it('agent events link to the agent detail page', () => {
     const trainingStarted = makeEvent('agent.training_started', {
-      week: 1, queueId: 'q-1', agentId: 'a-007', agentName: 'Bond',
-      trainingId: 'ttn-1', trainingName: 'Fieldcraft', etaWeeks: 2, fundingCost: 10,
+      week: 1,
+      queueId: 'q-1',
+      agentId: 'a-007',
+      agentName: 'Bond',
+      trainingId: 'ttn-1',
+      trainingName: 'Fieldcraft',
+      etaWeeks: 2,
+      fundingCost: 10,
     })
     expect(buildEventFeedView(trainingStarted).href).toBe('/agents/a-007')
 
-    const injured = makeEvent('agent.injured', { week: 1, agentId: 'a-007', agentName: 'Bond', severity: 'minor' })
+    const injured = makeEvent('agent.injured', {
+      week: 1,
+      agentId: 'a-007',
+      agentName: 'Bond',
+      severity: 'minor',
+    })
     expect(buildEventFeedView(injured).href).toBe('/agents/a-007')
 
     const hired = makeEvent('agent.hired', {
-      week: 1, candidateId: 'cand-1', agentId: 'a-007', agentName: 'Bond', recruitCategory: 'agent',
+      week: 1,
+      candidateId: 'cand-1',
+      agentId: 'a-007',
+      agentName: 'Bond',
+      recruitCategory: 'agent',
     })
     expect(buildEventFeedView(hired).href).toBe('/agents/a-007')
   })
 
+  it('recruitment scouting events link to the recruitment page', () => {
+    const initiated = makeEvent('recruitment.scouting_initiated', {
+      week: 1,
+      candidateId: 'cand-1',
+      candidateName: 'Scout Target',
+      fundingCost: 12,
+      stage: 1,
+      projectedTier: 'B',
+      confidence: 'low',
+      revealLevel: 1,
+    })
+    expect(buildEventFeedView(initiated).href).toBe('/recruitment')
+
+    const confirmed = makeEvent('recruitment.intel_confirmed', {
+      week: 1,
+      candidateId: 'cand-1',
+      candidateName: 'Scout Target',
+      fundingCost: 7,
+      stage: 3,
+      projectedTier: 'A',
+      confirmedTier: 'A',
+      confidence: 'confirmed',
+      previousProjectedTier: 'B',
+      previousConfidence: 'high',
+      revealLevel: 2,
+    })
+    expect(buildEventFeedView(confirmed).href).toBe('/recruitment')
+  })
+
   it('production, faction, market, and agency events have no href', () => {
     const noHrefEvents: OperationEvent[] = [
-      makeEvent('production.queue_started', { week: 1, queueId: 'q-1', queueName: 'Q', recipeId: 'r-1', outputName: 'O', etaWeeks: 1, fundingCost: 5 }),
-      makeEvent('production.queue_completed', { week: 1, queueId: 'q-1', queueName: 'Q', outputId: 'o-1', outputName: 'O' }),
-      makeEvent('market.shifted', { week: 1, featuredRecipeId: 'r-1', featuredRecipeName: 'R', pressure: 'stable', costMultiplier: 1 }),
-      makeEvent('market.transaction_recorded', { week: 1, marketWeek: 1, transactionId: 'market-1-1', action: 'buy', listingId: 'gear:field_pistol', itemId: 'field_pistol', itemName: 'Field Pistol', category: 'equipment', quantity: 1, bundleCount: 1, unitPrice: 36, totalPrice: 36, remainingAvailability: 1 }),
-      makeEvent('faction.standing_changed', { week: 1, factionId: 'oversight', factionName: 'Oversight Bureau', delta: 2, standingBefore: 0, standingAfter: 2, reason: 'case.resolved', caseId: 'case-001', caseTitle: 'Case 1' }),
-      makeEvent('agency.containment_updated', { week: 1, containmentRatingBefore: 50, containmentRatingAfter: 50, containmentDelta: 0, clearanceLevelBefore: 1, clearanceLevelAfter: 1, fundingBefore: 100, fundingAfter: 100, fundingDelta: 0 }),
+      makeEvent('production.queue_started', {
+        week: 1,
+        queueId: 'q-1',
+        queueName: 'Q',
+        recipeId: 'r-1',
+        outputId: 'o-1',
+        outputName: 'O',
+        outputQuantity: 1,
+        etaWeeks: 1,
+        fundingCost: 5,
+        inputMaterials: [],
+      }),
+      makeEvent('production.queue_completed', {
+        week: 1,
+        queueId: 'q-1',
+        queueName: 'Q',
+        recipeId: 'r-1',
+        outputId: 'o-1',
+        outputName: 'O',
+        outputQuantity: 1,
+        fundingCost: 5,
+        inputMaterials: [],
+      }),
+      makeEvent('market.shifted', {
+        week: 1,
+        featuredRecipeId: 'r-1',
+        featuredRecipeName: 'R',
+        pressure: 'stable',
+        costMultiplier: 1,
+      }),
+      makeEvent('market.transaction_recorded', {
+        week: 1,
+        marketWeek: 1,
+        transactionId: 'market-1-1',
+        action: 'buy',
+        listingId: 'gear:field_pistol',
+        itemId: 'field_pistol',
+        itemName: 'Field Pistol',
+        category: 'equipment',
+        quantity: 1,
+        bundleCount: 1,
+        unitPrice: 36,
+        totalPrice: 36,
+        remainingAvailability: 1,
+      }),
+      makeEvent('faction.standing_changed', {
+        week: 1,
+        factionId: 'oversight',
+        factionName: 'Oversight Bureau',
+        delta: 2,
+        standingBefore: 0,
+        standingAfter: 2,
+        reason: 'case.resolved',
+        caseId: 'case-001',
+        caseTitle: 'Case 1',
+      }),
+      makeEvent('agency.containment_updated', {
+        week: 1,
+        containmentRatingBefore: 50,
+        containmentRatingAfter: 50,
+        containmentDelta: 0,
+        clearanceLevelBefore: 1,
+        clearanceLevelAfter: 1,
+        fundingBefore: 100,
+        fundingAfter: 100,
+        fundingDelta: 0,
+      }),
     ]
     for (const event of noHrefEvents) {
       expect(buildEventFeedView(event).href).toBeUndefined()

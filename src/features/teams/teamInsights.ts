@@ -4,10 +4,7 @@ import {
   type GameState,
   type Team,
 } from '../../domain/models'
-import {
-  buildResolutionPreviewState,
-  previewCaseOutcome,
-} from '../../domain/sim/resolve'
+import { buildResolutionPreviewState, previewCaseOutcome } from '../../domain/sim/resolve'
 import type { CaseEquipmentSummary } from '../../domain/sim/scoring'
 import { TEAM_INSIGHTS_PRIORITIZATION } from './teamInsightsConfig'
 

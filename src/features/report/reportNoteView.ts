@@ -18,6 +18,14 @@ const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.raid_converted',
 ]
 
+const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
+  'system.recruitment_expired',
+  'system.recruitment_generated',
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
+]
+
 const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'system.week_delta',
   'system.party_cards_drawn',
@@ -31,7 +39,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {
-  if (note.type === 'system.recruitment_expired' || note.type === 'system.recruitment_generated') {
+  if (note.type !== undefined && RECRUITMENT_NOTE_TYPES.includes(note.type)) {
     return 'recruitment'
   }
 

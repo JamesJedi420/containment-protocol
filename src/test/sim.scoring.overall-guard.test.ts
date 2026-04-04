@@ -99,6 +99,7 @@ function makeProfile(overall: number): TeamCompositionProfile {
       bonus: 0,
       pairs: 0,
       average: 0,
+      cohesion: 0,
     },
     synergyProfile: {
       active: [],

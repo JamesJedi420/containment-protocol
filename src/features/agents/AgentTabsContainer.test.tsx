@@ -105,6 +105,13 @@ function buildDetailedAgentGame() {
       level: 4,
       potentialTier: 'B',
       growthProfile: 'steady',
+      potentialIntel: {
+        visibleTier: 'B',
+        exactKnown: true,
+        confidence: 'confirmed',
+        discoveryProgress: 100,
+        source: 'academy_record',
+      },
       growthStats: {
         insight: 2,
         resilience: 1,
@@ -215,6 +222,7 @@ function buildDetailedAgentGame() {
       id: 'training-test-entry',
       trainingId: 'core-analysis',
       trainingName: 'Core Analysis',
+      scope: 'agent',
       agentId: agent.id,
       agentName: agent.name,
       targetStat: 'investigation',
@@ -313,8 +321,12 @@ describe('AgentTabsContainer', () => {
 
     expect(screen.getByText(/live performance model/i)).toBeInTheDocument()
     expect(screen.queryByText(/status flags/i)).not.toBeInTheDocument()
-    expect(getMetricValue('Field power')).toBe(formatMetric(view.materialized.performance.fieldPower))
-    expect(getMetricValue('Containment')).toBe(formatMetric(view.materialized.performance.containment))
+    expect(getMetricValue('Field power')).toBe(
+      formatMetric(view.materialized.performance.fieldPower)
+    )
+    expect(getMetricValue('Containment')).toBe(
+      formatMetric(view.materialized.performance.containment)
+    )
     expect(getMetricValue('Investigation')).toBe(
       formatMetric(view.materialized.performance.investigation)
     )
@@ -343,16 +355,16 @@ describe('AgentTabsContainer', () => {
 
     await user.click(screen.getByRole('tab', { name: /morale/i }))
 
-    expect(screen.getByText(new RegExp(`Current fatigue: ${view.agent.fatigue}%`, 'i'))).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(`Current fatigue: ${view.agent.fatigue}%`, 'i'))
+    ).toBeInTheDocument()
     expect(
       screen.getByText(new RegExp(`Current stress: ${view.materialized.vitals.stress}%`, 'i'))
     ).toBeInTheDocument()
     expect(
-      screen.getByText(
-        new RegExp(`Level ${view.materialized.progression.level} operative`, 'i')
-      )
+      screen.getByText(new RegExp(`Level ${view.materialized.progression.level} operative`, 'i'))
     ).toBeInTheDocument()
-    expect(screen.getByText(/steady profile\. Potential tier: B\./i)).toBeInTheDocument()
+    expect(screen.getByText(/steady profile\. Potential tier confirmed: B\./i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: /history/i }))
 
@@ -388,12 +400,8 @@ describe('AgentTabsContainer', () => {
 
     const latestTimelineEntry = screen.getByText(/level 4 certification complete/i)
     const earliestTimelineEntry = screen.getByText(/initial roster review/i)
-    const latestLogEntry = screen
-      .getByText('2042-01-15T00:00:00.001Z')
-      .closest('li')
-    const earliestLogEntry = screen
-      .getByText('2042-01-08T00:00:00.001Z')
-      .closest('li')
+    const latestLogEntry = screen.getByText('2042-01-15T00:00:00.001Z').closest('li')
+    const earliestLogEntry = screen.getByText('2042-01-08T00:00:00.001Z').closest('li')
 
     if (!latestLogEntry || !earliestLogEntry) {
       throw new Error('Expected event-linked log list items to be present.')
@@ -404,8 +412,7 @@ describe('AgentTabsContainer', () => {
         Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
     expect(
-      latestLogEntry.compareDocumentPosition(earliestLogEntry) &
-        Node.DOCUMENT_POSITION_FOLLOWING
+      latestLogEntry.compareDocumentPosition(earliestLogEntry) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy()
   })
 
@@ -423,6 +430,43 @@ describe('AgentTabsContainer', () => {
     expect(screen.getByText(/^none$/i)).toBeInTheDocument()
     expect(screen.getByText(/no history entries recorded yet/i)).toBeInTheDocument()
     expect(screen.getByText(/no event-linked logs recorded yet/i)).toBeInTheDocument()
+  })
+
+  it('keeps exact stat caps hidden until potential intel is confirmed', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    const agent = game.agents.a_ava
+
+    game.agents.a_ava = {
+      ...agent,
+      progression: {
+        ...(agent.progression ?? {
+          xp: 0,
+          level: 1,
+          potentialTier: 'A',
+          growthProfile: 'steady',
+        }),
+        potentialTier: 'A',
+        growthProfile: 'steady',
+        potentialIntel: {
+          visibleTier: 'B',
+          exactKnown: false,
+          confidence: 'medium',
+          discoveryProgress: 45,
+          source: 'recruitment_scout',
+        },
+      },
+    }
+
+    const view = renderTabs(game, 'a_ava')
+
+    await user.click(screen.getByRole('tab', { name: /stats/i }))
+
+    expect(view.materialized.progression.displayStatCaps).toBeUndefined()
+    expect(view.materialized.progression.projectedStatCapRanges).toBeDefined()
+    expect(screen.queryByText(/^Combat ceiling$/i)).not.toBeInTheDocument()
+    expect(screen.getByText(/^Projected combat ceiling band$/i)).toBeInTheDocument()
+    expect(getMetricValue('Projected combat ceiling band')).toMatch(/^\d{2,3}-\d{2,3}$/)
   })
 
   it('supports keyboard navigation and keeps tab semantics aligned with the active panel', async () => {
@@ -521,11 +565,7 @@ describe('AgentTabsContainer', () => {
     expect(screen.getByRole('tab', { name: /history/i })).toHaveAttribute('aria-selected', 'true')
 
     rerender(
-      <AgentTabsContainer
-        view={view}
-        activeTab="morale"
-        onTabChange={(tab) => changes.push(tab)}
-      />
+      <AgentTabsContainer view={view} activeTab="morale" onTabChange={(tab) => changes.push(tab)} />
     )
 
     expect(screen.getByRole('tab', { name: /morale/i })).toHaveAttribute('aria-selected', 'true')

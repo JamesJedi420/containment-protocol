@@ -27,10 +27,7 @@ export function markActiveAbilityUsed(
     return agent
   }
 
-  const cooldownRemaining = Math.max(
-    0,
-    Math.trunc(cooldownOverride ?? ability.cooldown ?? 0)
-  )
+  const cooldownRemaining = Math.max(0, Math.trunc(cooldownOverride ?? ability.cooldown ?? 0))
   const currentRuntime = agent.abilityState?.[abilityId]
   const nextAbilityState: AgentAbilityState = {
     ...(agent.abilityState ?? {}),
@@ -66,9 +63,7 @@ export function decrementActiveAbilityCooldownState(
   )
 }
 
-export function decrementActiveAbilityCooldowns(
-  agents: GameState['agents']
-): GameState['agents'] {
+export function decrementActiveAbilityCooldowns(agents: GameState['agents']): GameState['agents'] {
   let changed = false
   const nextAgents = Object.fromEntries(
     Object.entries(agents).map(([agentId, agent]) => {

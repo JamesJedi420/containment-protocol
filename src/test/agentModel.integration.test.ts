@@ -399,9 +399,7 @@ describe('core agent model integration', () => {
       expect(agent.history?.counters.stressSustained).toBeGreaterThanOrEqual(0)
       expect(agent.history?.counters.anomalyExposures).toBeGreaterThanOrEqual(1)
       expect(agent.history?.counters.evidenceRecovered).toBeGreaterThanOrEqual(1)
-      expect(agent.history?.alliesWorkedWith).toEqual(
-        expect.arrayContaining(collaboratorIds)
-      )
+      expect(agent.history?.alliesWorkedWith).toEqual(expect.arrayContaining(collaboratorIds))
       expect(agent.history?.logs.some((entry) => entry.type === 'case.resolved')).toBe(true)
 
       for (const collaboratorId of collaboratorIds) {
@@ -460,7 +458,7 @@ describe('core agent model integration', () => {
     state.clearanceLevel = 1
     state.funding = 100
     state.recruitmentPool = []
-    team.status.assignedCaseId = null
+    team.status!.assignedCaseId = null
     team.assignedCaseId = 'case-001'
 
     expect(hasGameStateMirrorParity(state)).toBe(false)
@@ -472,7 +470,7 @@ describe('core agent model integration', () => {
     expect(normalized.clearanceLevel).toBe(1)
     expect(normalized.funding).toBe(100)
     expect(normalized.recruitmentPool).toEqual([candidate])
-    expect(normalized.teams.t_nightwatch.status.assignedCaseId).toBe(null)
+    expect(normalized.teams.t_nightwatch.status!.assignedCaseId).toBe(null)
     expect(normalized.teams.t_nightwatch.assignedCaseId).toBeUndefined()
   })
 })

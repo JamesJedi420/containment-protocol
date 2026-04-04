@@ -147,6 +147,13 @@ it('renders urgency markers for triage cases', () => {
   expect(within(idleCard).getByText('Unassigned')).toBeInTheDocument()
 })
 
+it('renders recommended action guidance for assignable cases', () => {
+  renderCasesPage(['/cases'])
+
+  expect(screen.getAllByText(/recommended action/i).length).toBeGreaterThan(0)
+  expect(screen.getAllByText(/best current success:/i).length).toBeGreaterThan(0)
+})
+
 it('toggles the at-risk filter and syncs it to query state', async () => {
   const user = userEvent.setup()
   const game = createStartingState()
@@ -240,7 +247,10 @@ it('rehydrates case filters from URL after remount', async () => {
 it('restores case filters after back navigation from detail and supports forward navigation', async () => {
   const user = userEvent.setup()
 
-  renderCasesPage(['/cases?q=stockyards&status=open&mode=threshold&sort=title', '/cases/case-001'], 1)
+  renderCasesPage(
+    ['/cases?q=stockyards&status=open&mode=threshold&sort=title', '/cases/case-001'],
+    1
+  )
 
   expect(screen.getByTestId('case-detail-page')).toBeInTheDocument()
 
@@ -257,6 +267,22 @@ it('restores case filters after back navigation from detail and supports forward
 
   await waitFor(() => {
     expect(screen.getByTestId('case-detail-page')).toBeInTheDocument()
+  })
+})
+
+it('shows a clear-filters recovery action in empty results state', async () => {
+  const user = userEvent.setup()
+
+  renderCasesPage(['/cases?q=definitely-no-match'])
+
+  const emptyRegion = screen.getByRole('region', { name: /no matching cases/i })
+  expect(emptyRegion).toBeInTheDocument()
+  expect(within(emptyRegion).getByRole('button', { name: /clear filters/i })).toBeInTheDocument()
+
+  await user.click(within(emptyRegion).getByRole('button', { name: /clear filters/i }))
+
+  await waitFor(() => {
+    expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
 })
 

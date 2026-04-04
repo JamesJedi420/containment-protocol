@@ -26,9 +26,15 @@ export function OperationsLeftPanel() {
       </div>
 
       <div className="grid gap-2 text-sm">
-        <p className="opacity-70">{OPERATIONS_DESK_TEXT.fieldIntelLabel}: {view.intelligenceSummary}</p>
-        <p className="opacity-70">{OPERATIONS_DESK_TEXT.fabricationOrdersLabel}: {view.logisticsSummary}</p>
-        <p className="opacity-70">{OPERATIONS_DESK_TEXT.reserveStaffLabel}: {view.reserveStaffCount}</p>
+        <p className="opacity-70">
+          {OPERATIONS_DESK_TEXT.fieldIntelLabel}: {view.intelligenceSummary}
+        </p>
+        <p className="opacity-70">
+          {OPERATIONS_DESK_TEXT.fabricationOrdersLabel}: {view.logisticsSummary}
+        </p>
+        <p className="opacity-70">
+          {OPERATIONS_DESK_TEXT.reserveStaffLabel}: {view.reserveStaffCount}
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-2">

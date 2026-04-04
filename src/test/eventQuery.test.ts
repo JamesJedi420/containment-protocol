@@ -79,7 +79,9 @@ describe('event query index', () => {
 
     expect(index.all.map((event) => event.id)).toEqual(['evt-report', 'evt-fail', 'evt-assign'])
     expect((index.byType.get('case.failed') ?? []).map((event) => event.id)).toEqual(['evt-fail'])
-    expect((index.bySourceSystem.get('intel') ?? []).map((event) => event.id)).toEqual(['evt-report'])
+    expect((index.bySourceSystem.get('intel') ?? []).map((event) => event.id)).toEqual([
+      'evt-report',
+    ])
     expect((index.byEntityId.get('case-001') ?? []).map((event) => event.id)).toEqual([
       'evt-assign',
     ])

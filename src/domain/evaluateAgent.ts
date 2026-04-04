@@ -33,11 +33,7 @@ import {
 } from './statDomains'
 import { resolveEquippedItems } from './equipment'
 import { effectiveStats } from './agent/evaluation'
-import {
-  aggregateTraitEffects,
-  resolveAgentTraitEffects,
-  type TraitModifierResult,
-} from './traits'
+import { aggregateTraitEffects, resolveAgentTraitEffects, type TraitModifierResult } from './traits'
 import { createRuntimeModifierResult } from './modifierRuntime'
 
 export interface EvaluateAgentContext {
@@ -153,10 +149,7 @@ function computeAgentStressImpact(
 ) {
   const resilienceAverage = domainAverage(effectiveStats, 'resilience')
   const anomalyAverage = domainAverage(effectiveStats, 'anomaly')
-  const instabilityPressure = Math.max(
-    0,
-    52 - (resilienceAverage * 0.7 + anomalyAverage * 0.3)
-  )
+  const instabilityPressure = Math.max(0, 52 - (resilienceAverage * 0.7 + anomalyAverage * 0.3))
   const fatiguePressure = agent.fatigue * 0.15
   const statusPenalty = agent.status === 'active' ? 0 : agent.status === 'injured' ? 8 : 4
 
@@ -183,9 +176,7 @@ export function buildAgentCasePerformanceWeights(caseData?: CaseInstance): Agent
   }
 }
 
-export function normalizeAgentCasePerformanceWeights(
-  weights: AgentPerformanceBuckets
-) {
+export function normalizeAgentCasePerformanceWeights(weights: AgentPerformanceBuckets) {
   const total = PERFORMANCE_KEYS.reduce((sum, key) => sum + Math.max(0, weights[key]), 0)
 
   if (total <= 0) {
@@ -205,9 +196,7 @@ export function normalizeAgentCasePerformanceWeights(
   }
 }
 
-export function buildAgentDomainProfile(
-  effectiveStats: DomainStats
-): Record<StatDomain, number> {
+export function buildAgentDomainProfile(effectiveStats: DomainStats): Record<StatDomain, number> {
   return {
     field: domainAverage(effectiveStats, 'field'),
     resilience: domainAverage(effectiveStats, 'resilience'),
@@ -224,17 +213,11 @@ export function buildAgentLegacyPerformanceProfile(
   return {
     fieldPower: domainProfile.field * 1.45 + domainProfile.resilience * 0.25,
     containment:
-      domainProfile.control * 0.55 +
-      domainProfile.anomaly * 0.3 +
-      domainProfile.resilience * 0.15,
+      domainProfile.control * 0.55 + domainProfile.anomaly * 0.3 + domainProfile.resilience * 0.15,
     investigation:
-      domainProfile.insight * 0.75 +
-      domainProfile.anomaly * 0.15 +
-      domainProfile.presence * 0.1,
+      domainProfile.insight * 0.75 + domainProfile.anomaly * 0.15 + domainProfile.presence * 0.1,
     support:
-      domainProfile.presence * 0.45 +
-      domainProfile.resilience * 0.3 +
-      domainProfile.control * 0.25,
+      domainProfile.presence * 0.45 + domainProfile.resilience * 0.3 + domainProfile.control * 0.25,
   }
 }
 
@@ -247,9 +230,7 @@ export function buildAgentWeightedPerformanceProfile(
 
   return {
     fieldPower:
-      contributionByDomain.field * 1.35 +
-      contributionByDomain.resilience * 0.2 +
-      overallSpread,
+      contributionByDomain.field * 1.35 + contributionByDomain.resilience * 0.2 + overallSpread,
     containment:
       contributionByDomain.control * 0.55 +
       contributionByDomain.anomaly * 0.3 +
@@ -275,11 +256,7 @@ function hasCaseTag(caseData: CaseInstance | undefined, tags: readonly string[])
     return false
   }
 
-  const caseTags = new Set([
-    ...caseData.tags,
-    ...caseData.requiredTags,
-    ...caseData.preferredTags,
-  ])
+  const caseTags = new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])
 
   return tags.some((tag) => caseTags.has(tag))
 }
@@ -338,7 +315,10 @@ function computePerformanceExplanationMetrics(
     (0.35 + normalizedWeights.fieldPower * 0.65 + (threatContext ? 0.2 : 0))
   const damageTaken =
     stressImpact *
-    (0.35 + normalizedWeights.fieldPower * 0.45 + (caseData?.kind === 'raid' ? 0.2 : 0) + (containmentContext ? 0.1 : 0))
+    (0.35 +
+      normalizedWeights.fieldPower * 0.45 +
+      (caseData?.kind === 'raid' ? 0.2 : 0) +
+      (containmentContext ? 0.1 : 0))
   const healingPerformed =
     performanceBuckets.support *
     (0.2 + normalizedWeights.support * 0.8 + (healingContext ? 0.2 : 0))
@@ -417,11 +397,7 @@ function buildAgentPerformance(
     ),
   }
   const stressImpact = computeAgentStressImpact(agent, effectiveStats, stressImpactMultiplier)
-  const metrics = computePerformanceExplanationMetrics(
-    caseData,
-    performanceBuckets,
-    stressImpact
-  )
+  const metrics = computePerformanceExplanationMetrics(caseData, performanceBuckets, stressImpact)
   const performanceBlend: AgentPerformanceBlendBreakdown = {
     equipmentLoad,
     legacyBlendWeight: PERFORMANCE_BLEND_WEIGHT,
@@ -645,10 +621,9 @@ function evaluateAgentBreakdownCore(
       protocolEffects.moraleRecoveryDelta,
   }
   const traitBonus = getTraitOverallBonusFromEffects(traitEffects.statModifiers)
-  const contributionByDomain =
-    weights
-      ? buildWeightedDomainContribution(effectiveStatsResult, weights)
-      : createEmptyDomainContribution()
+  const contributionByDomain = weights
+    ? buildWeightedDomainContribution(effectiveStatsResult, weights)
+    : createEmptyDomainContribution()
   const performanceResult = buildAgentPerformance(
     agent,
     effectiveStatsResult,
@@ -734,17 +709,21 @@ export function evaluateAgentBreakdown(
     activeEquipmentIds:
       context.includeEquipment === false
         ? []
-        : [...new Set(resolveEquippedItems(agent, {
-            caseData: context.caseData,
-            supportTags: context.supportTags,
-            teamTags: context.teamTags,
-          }).map((item) => item.id))].sort((left, right) => left.localeCompare(right)),
+        : [
+            ...new Set(
+              resolveEquippedItems(agent, {
+                caseData: context.caseData,
+                supportTags: context.supportTags,
+                teamTags: context.teamTags,
+              }).map((item) => item.id)
+            ),
+          ].sort((left, right) => left.localeCompare(right)),
     activeKitIds: [...new Set(fullBreakdown.powerLayer.kits.map((kit) => kit.id))].sort(
       (left, right) => left.localeCompare(right)
     ),
-    activeProtocolIds: [...new Set(fullBreakdown.powerLayer.protocols.map((protocol) => protocol.id))].sort(
-      (left, right) => left.localeCompare(right)
-    ),
+    activeProtocolIds: [
+      ...new Set(fullBreakdown.powerLayer.protocols.map((protocol) => protocol.id)),
+    ].sort((left, right) => left.localeCompare(right)),
     equipmentContributionDelta: toRoundedFinite(
       equipmentBreakdown.performance.contribution - baseBreakdown.performance.contribution
     ),
@@ -757,7 +736,10 @@ export function evaluateAgentBreakdown(
     equipmentScoreDelta: toRoundedFinite(equipmentBreakdown.score - baseBreakdown.score),
     kitScoreDelta: toRoundedFinite(kitBreakdown.score - equipmentBreakdown.score),
     protocolScoreDelta: toRoundedFinite(fullBreakdown.score - kitBreakdown.score),
-    kitEffectivenessMultiplier: toRoundedFinite(fullBreakdown.kitEffects.effectivenessMultiplier, 4),
+    kitEffectivenessMultiplier: toRoundedFinite(
+      fullBreakdown.kitEffects.effectivenessMultiplier,
+      4
+    ),
     protocolEffectivenessMultiplier: toRoundedFinite(
       fullBreakdown.protocolEffects.effectivenessMultiplier,
       4

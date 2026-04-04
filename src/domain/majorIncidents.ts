@@ -99,7 +99,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'unstable-vessels',
             label: 'Unstable vessels',
-            detail: 'Containment control checks become less forgiving as hosts shift unpredictably.',
+            detail:
+              'Containment control checks become less forgiving as hosts shift unpredictably.',
           },
         ],
         specialMechanics: [
@@ -134,7 +135,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'dual-front',
             label: 'Dual-front incident',
-            detail: 'Containment teams must suppress spread while investigation teams isolate the source.',
+            detail:
+              'Containment teams must suppress spread while investigation teams isolate the source.',
           },
         ],
       },
@@ -150,19 +152,22 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'mass-psychic-noise',
             label: 'Mass psychic noise',
-            detail: 'Anomaly stress spikes across the theatre and compresses the safe operating window.',
+            detail:
+              'Anomaly stress spikes across the theatre and compresses the safe operating window.',
           },
           {
             id: 'ruptured-cordon',
             label: 'Ruptured cordon',
-            detail: 'Existing perimeter plans no longer hold and teams must re-establish control under pressure.',
+            detail:
+              'Existing perimeter plans no longer hold and teams must re-establish control under pressure.',
           },
         ],
         specialMechanics: [
           {
             id: 'anchor-host',
             label: 'Anchor host',
-            detail: 'The outbreak only collapses once the anchor possession is isolated and suppressed.',
+            detail:
+              'The outbreak only collapses once the anchor possession is isolated and suppressed.',
           },
         ],
         bossEntity: {
@@ -224,14 +229,16 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'hazardous-backwash',
             label: 'Hazardous backwash',
-            detail: 'Exposure and equipment degradation increase the cost of each containment pass.',
+            detail:
+              'Exposure and equipment degradation increase the cost of each containment pass.',
           },
         ],
         specialMechanics: [
           {
             id: 'anchor-node-grid',
             label: 'Anchor node grid',
-            detail: 'Support teams must maintain synchronized anchor points to keep the corridor from widening.',
+            detail:
+              'Support teams must maintain synchronized anchor points to keep the corridor from widening.',
           },
         ],
       },
@@ -247,12 +254,14 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'perimeter-collapse',
             label: 'Perimeter collapse',
-            detail: 'Site control is no longer local; multiple breach fronts must be managed at once.',
+            detail:
+              'Site control is no longer local; multiple breach fronts must be managed at once.',
           },
           {
             id: 'reality-shear',
             label: 'Reality shear',
-            detail: 'Containment and anomaly-handling demands spike as the environment destabilizes.',
+            detail:
+              'Containment and anomaly-handling demands spike as the environment destabilizes.',
           },
         ],
         specialMechanics: [
@@ -266,7 +275,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           id: 'threshold-archon',
           name: 'Threshold Archon',
           threatLabel: 'Breach sovereign',
-          detail: 'A stabilizing intelligence holding the fracture open and coordinating incursions.',
+          detail:
+            'A stabilizing intelligence holding the fracture open and coordinating incursions.',
         },
       },
     ],
@@ -300,7 +310,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'cell-rollup',
             label: 'Cell roll-up',
-            detail: 'Investigation gains matter because incomplete roll-ups leave active cells behind.',
+            detail:
+              'Investigation gains matter because incomplete roll-ups leave active cells behind.',
           },
         ],
       },
@@ -316,7 +327,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'inside-access',
             label: 'Inside access',
-            detail: 'Institutional compromise expands the cult’s operating surface and slows suppression.',
+            detail:
+              'Institutional compromise expands the cult’s operating surface and slows suppression.',
           },
           {
             id: 'sacrificial-clock',
@@ -328,7 +340,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'parallel-sites',
             label: 'Parallel ritual sites',
-            detail: 'Containment and investigation teams must operate across multiple synchronized locations.',
+            detail:
+              'Containment and investigation teams must operate across multiple synchronized locations.',
           },
         ],
       },
@@ -344,7 +357,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'mass-recruitment',
             label: 'Mass recruitment',
-            detail: 'Civilians and insiders are actively weaponized as shields and force multipliers.',
+            detail:
+              'Civilians and insiders are actively weaponized as shields and force multipliers.',
           },
           {
             id: 'ritual-feedback',
@@ -356,14 +370,16 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'keystone-ritual',
             label: 'Keystone ritual',
-            detail: 'The incident only breaks once the keystone rite is identified and interrupted.',
+            detail:
+              'The incident only breaks once the keystone rite is identified and interrupted.',
           },
         ],
         bossEntity: {
           id: 'hierophant-prime',
           name: 'Hierophant Prime',
           threatLabel: 'Cult command node',
-          detail: 'The orchestrator binding disparate cells into a single ritual command structure.',
+          detail:
+            'The orchestrator binding disparate cells into a single ritual command structure.',
         },
       },
     ],
@@ -397,7 +413,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'moving-front',
             label: 'Moving front',
-            detail: 'The active hazard migrates across the map, stressing coordination and support lanes.',
+            detail:
+              'The active hazard migrates across the map, stressing coordination and support lanes.',
           },
         ],
       },
@@ -425,7 +442,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'relay-network',
             label: 'Relay network',
-            detail: 'Technical coverage matters more because relay collapse magnifies every other demand.',
+            detail:
+              'Technical coverage matters more because relay collapse magnifies every other demand.',
           },
         ],
       },
@@ -441,19 +459,22 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'citywide-interference',
             label: 'Citywide interference',
-            detail: 'Support systems, perimeter sensors, and civilian channels all degrade together.',
+            detail:
+              'Support systems, perimeter sensors, and civilian channels all degrade together.',
           },
           {
             id: 'exposure-wave',
             label: 'Exposure wave',
-            detail: 'Stress and anomaly-handling pressure rise as the storm rolls across multiple sectors.',
+            detail:
+              'Stress and anomaly-handling pressure rise as the storm rolls across multiple sectors.',
           },
         ],
         specialMechanics: [
           {
             id: 'storm-eye',
             label: 'Storm eye',
-            detail: 'The front only breaks when the central anomaly well is identified and collapsed.',
+            detail:
+              'The front only breaks when the central anomaly well is identified and collapsed.',
           },
         ],
         bossEntity: {
@@ -482,7 +503,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'overloaded-perimeter',
             label: 'Overloaded perimeter',
-            detail: 'Containment infrastructure is stretched thin and reduces safe operating margin.',
+            detail:
+              'Containment infrastructure is stretched thin and reduces safe operating margin.',
           },
         ],
         specialMechanics: [
@@ -505,14 +527,16 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'support-overstretch',
             label: 'Support overstretch',
-            detail: 'Logistics and specialist support become bottlenecks across several fronts at once.',
+            detail:
+              'Logistics and specialist support become bottlenecks across several fronts at once.',
           },
         ],
         specialMechanics: [
           {
             id: 'compound-failure',
             label: 'Compound failure',
-            detail: 'Resolution pressure compounds because each unresolved front amplifies the others.',
+            detail:
+              'Resolution pressure compounds because each unresolved front amplifies the others.',
           },
         ],
       },
@@ -528,7 +552,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           {
             id: 'command-fracture',
             label: 'Command fracture',
-            detail: 'Operational overhead rises because multiple incident layers now compete for control.',
+            detail:
+              'Operational overhead rises because multiple incident layers now compete for control.',
           },
         ],
         specialMechanics: [
@@ -542,7 +567,8 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
           id: 'cascade-prime',
           name: 'Cascade Prime',
           threatLabel: 'Failure orchestrator',
-          detail: 'A central anomaly or hostile node turning local failures into a regional collapse.',
+          detail:
+            'A central anomaly or hostile node turning local failures into a regional collapse.',
         },
       },
     ],
@@ -550,11 +576,7 @@ const MAJOR_INCIDENT_ARCHETYPES: readonly MajorIncidentArchetypeDefinition[] = [
 ] as const
 
 function getCaseTagSet(currentCase: CaseInstance) {
-  return new Set([
-    ...currentCase.tags,
-    ...currentCase.requiredTags,
-    ...currentCase.preferredTags,
-  ])
+  return new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags])
 }
 
 function getIncidentScale(currentCase: CaseInstance) {
@@ -573,9 +595,8 @@ function getArchetypeDefinition(currentCase: CaseInstance) {
   const tagSet = getCaseTagSet(currentCase)
 
   return (
-    MAJOR_INCIDENT_ARCHETYPES.find((archetype) =>
-      archetype.tags.some((tag) => tagSet.has(tag))
-    ) ?? MAJOR_INCIDENT_ARCHETYPES[MAJOR_INCIDENT_ARCHETYPES.length - 1]
+    MAJOR_INCIDENT_ARCHETYPES.find((archetype) => archetype.tags.some((tag) => tagSet.has(tag))) ??
+    MAJOR_INCIDENT_ARCHETYPES[MAJOR_INCIDENT_ARCHETYPES.length - 1]
   )
 }
 
@@ -583,11 +604,7 @@ function getCurrentStageDefinition(
   stages: readonly MajorIncidentStageDefinition[],
   incidentScale: number
 ) {
-  return (
-    [...stages]
-      .reverse()
-      .find((stage) => incidentScale >= stage.minimumScale) ?? stages[0]
-  )
+  return [...stages].reverse().find((stage) => incidentScale >= stage.minimumScale) ?? stages[0]
 }
 
 function createProgression(
@@ -612,7 +629,12 @@ function scaleDifficulty(
   stage: MajorIncidentStageDefinition
 ): CaseInstance['difficulty'] {
   return {
-    combat: Number((currentCase.difficulty.combat * stage.difficultyMultiplier + (stage.difficultyPressure.combat ?? 0)).toFixed(2)),
+    combat: Number(
+      (
+        currentCase.difficulty.combat * stage.difficultyMultiplier +
+        (stage.difficultyPressure.combat ?? 0)
+      ).toFixed(2)
+    ),
     investigation: Number(
       (
         currentCase.difficulty.investigation * stage.difficultyMultiplier +
@@ -673,10 +695,7 @@ export function buildMajorIncidentProfile(currentCase: CaseInstance): MajorIncid
     currentStage,
     stages: [...archetype.stages],
     progression: createProgression(archetype.stages, currentStage.index),
-    recommendedTeams: Math.max(
-      currentStage.recommendedTeams,
-      effectiveRaid?.minTeams ?? 1
-    ),
+    recommendedTeams: Math.max(currentStage.recommendedTeams, effectiveRaid?.minTeams ?? 1),
     effectiveDifficultyMultiplier: currentStage.difficultyMultiplier,
     bossEntity: currentStage.bossEntity,
     effectiveCase,
@@ -687,9 +706,9 @@ export function buildMajorIncidentOperationalCase(currentCase: CaseInstance) {
   return buildMajorIncidentProfile(currentCase)?.effectiveCase ?? currentCase
 }
 
-export function getMajorIncidentDifficultyPressure(
-  currentCase: CaseInstance
-): Partial<StatBlock> {
-  return buildMajorIncidentProfile(currentCase)?.currentStage.difficultyPressure ??
+export function getMajorIncidentDifficultyPressure(currentCase: CaseInstance): Partial<StatBlock> {
+  return (
+    buildMajorIncidentProfile(currentCase)?.currentStage.difficultyPressure ??
     EMPTY_DIFFICULTY_PRESSURE
+  )
 }

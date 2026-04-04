@@ -136,16 +136,11 @@ describe('getCaseAssignmentInsights', () => {
 
     // Verify either the team is blocked for required roles, or it's available
     // This ensures test validity regardless of team composition
-    if (
-      blockedNightwatch &&
-      blockedNightwatch.reason === 'missing-required-roles'
-    ) {
+    if (blockedNightwatch && blockedNightwatch.reason === 'missing-required-roles') {
       expect(blockedNightwatch.detail).toContain('Missing required roles')
     } else {
       // Team has all required roles - that's also a valid outcome
-      expect(
-        insights.availableTeams.some((view) => view.team.id === 't_nightwatch')
-      ).toBe(true)
+      expect(insights.availableTeams.some((view) => view.team.id === 't_nightwatch')).toBe(true)
     }
   })
 
@@ -218,8 +213,6 @@ describe('getCaseAssignmentInsights', () => {
     const insights = getCaseAssignmentInsights(game.cases['case-001'], game)
 
     expect(insights.availableTeams.length).toBeGreaterThan(0)
-    expect(
-      insights.blockedTeams.some((view) => view.reason === 'raid-capacity')
-    ).toBe(false)
+    expect(insights.blockedTeams.some((view) => view.reason === 'raid-capacity')).toBe(false)
   })
 })

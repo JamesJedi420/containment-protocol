@@ -7,10 +7,7 @@ import { FilterSelect } from '../../components/FilterSelect'
 import { RECRUITMENT_GUIDANCE } from '../../data/copy'
 import { getCandidateWeeklyCost } from '../../domain/recruitment'
 import { getReserveAgents } from '../../domain/sim/teamManagement'
-import {
-  getRecruitmentCandidateViews,
-  getRecruitmentMetrics,
-} from './recruitmentView'
+import { getRecruitmentCandidateViews, getRecruitmentMetrics } from './recruitmentView'
 import {
   DEFAULT_RECRUITMENT_LIST_FILTERS,
   type RecruitmentCategoryFilter,
@@ -22,7 +19,7 @@ import {
 } from './recruitmentListView'
 
 export default function RecruitmentPage() {
-  const { game, hireCandidate } = useGameStore()
+  const { game, hireCandidate, scoutCandidate } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = readRecruitmentListFilters(searchParams)
   const normalizedSearchParams = writeRecruitmentListFilters(filters)
@@ -200,7 +197,11 @@ export default function RecruitmentPage() {
 
                   <div className="mt-3 grid gap-2 text-sm md:grid-cols-2 xl:grid-cols-4">
                     <p className="opacity-70">Weekly wage: ${wage}</p>
-                    <p className="opacity-70">Potential: {view.potentialLabel}</p>
+                    {view.hireOutcomeLabel ? (
+                      <p className="opacity-70">Hire outcome: {view.hireOutcomeLabel}</p>
+                    ) : null}
+                    <p className="opacity-70">Potential signal: {view.potentialLabel}</p>
+                    <p className="opacity-70">Scout report: {view.scoutLabel}</p>
                     <p className="opacity-70">Teamwork: {candidate.evaluation.teamwork}</p>
                     <p className="opacity-70">Outlook: {candidate.evaluation.outlook}</p>
                   </div>
@@ -220,9 +221,26 @@ export default function RecruitmentPage() {
                         Overall fit is obscured. Hire only if the visible signs justify the slot.
                       </p>
                     ) : null}
+                    {view.scoutBlockedReason &&
+                    candidate.category === 'agent' &&
+                    !candidate.scoutReport ? (
+                      <p className="text-xs uppercase tracking-[0.18em] opacity-50">
+                        Scout blocked: {view.scoutBlockedReason}
+                      </p>
+                    ) : null}
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-3">
+                    {candidate.category === 'agent' ? (
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost"
+                        disabled={!view.canScout}
+                        onClick={() => scoutCandidate(candidate.id)}
+                      >
+                        {`${view.scoutActionLabel}${view.canScout && view.scoutCost ? ` ($${view.scoutCost})` : ''}`}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="btn btn-sm btn-primary"

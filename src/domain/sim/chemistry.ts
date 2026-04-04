@@ -37,8 +37,10 @@ export function calcTeamChemistry(agents: Agent[]): TeamChemistryProfile {
   const modifierBonus =
     pairs === 0
       ? 0
-      : relationships.reduce((sum, relationship) => sum + getRelationshipModifierInfluence(relationship), 0) /
-        pairs
+      : relationships.reduce(
+          (sum, relationship) => sum + getRelationshipModifierInfluence(relationship),
+          0
+        ) / pairs
 
   // Compute team cohesion: normalized average + density bonus
   const cohesion = computeTeamCohesion(relationships, average)
@@ -173,12 +175,12 @@ function computePreferredTagBonus(c: CaseInstance, team: Team, activeAgents: Age
   return c.preferredTags.filter((tag) => allTeamTags.has(tag)).length * TAG_BONUS_PER_MATCH
 }
 
-function computeAdjustedRequiredScore(
-  c: CaseInstance,
-  config?: Pick<GameConfig, 'stageScalar'>
-) {
+function computeAdjustedRequiredScore(c: CaseInstance, config?: Pick<GameConfig, 'stageScalar'>) {
   const requiredScore = dot(c.difficulty, c.weights)
-  const stageMultiplier = Math.pow(config?.stageScalar ?? DEFAULT_STAGE_SCALAR, Math.max(c.stage - 1, 0))
+  const stageMultiplier = Math.pow(
+    config?.stageScalar ?? DEFAULT_STAGE_SCALAR,
+    Math.max(c.stage - 1, 0)
+  )
 
   return requiredScore * stageMultiplier
 }

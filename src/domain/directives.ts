@@ -29,7 +29,10 @@ export const WEEKLY_DIRECTIVE_DEFINITIONS: readonly WeeklyDirectiveDefinition[] 
     summary: 'Sharper recruitment visibility this week.',
     detail:
       'Diverts analysts into the intake pipeline so newly generated candidates arrive with clearer readouts and longer shelf life.',
-    effects: ['New candidates gain +1 reveal level.', 'New candidates stay in the pool for +1 week.'],
+    effects: [
+      'New candidates gain +1 reveal level.',
+      'New candidates stay in the pool for +1 week.',
+    ],
   },
   {
     id: 'recovery-rotation',

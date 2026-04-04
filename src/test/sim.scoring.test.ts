@@ -84,10 +84,7 @@ describe('scoring helpers', () => {
       investigation: expect.any(Number),
       support: expect.any(Number),
     })
-    expect(result.layerBreakdown.baseScore).toBeCloseTo(
-      result.comparison.weightedProvidedScore,
-      6
-    )
+    expect(result.layerBreakdown.baseScore).toBeCloseTo(result.comparison.weightedProvidedScore, 6)
     expect(result.layerBreakdown.finalScore).toBe(result.score)
     expect(result.layerBreakdown.layers.map((layer) => layer.id)).toEqual([
       'leader',
@@ -149,7 +146,9 @@ describe('scoring helpers', () => {
     const baseResult = computeTeamScore([medicBase], supportOnlyCase)
     const buffedResult = computeTeamScore([medicWithAbility], supportOnlyCase)
 
-    expect(buffedResult.resolutionProfile.support).toBeGreaterThan(baseResult.resolutionProfile.support)
+    expect(buffedResult.resolutionProfile.support).toBeGreaterThan(
+      baseResult.resolutionProfile.support
+    )
     expect(buffedResult.agentPerformance[0].support).toBeGreaterThan(
       baseResult.agentPerformance[0].support
     )
@@ -350,10 +349,7 @@ describe('scoring helpers', () => {
         'signal_jammers',
         'silver_rounds',
       ]),
-      activeKitIds: expect.arrayContaining([
-        'breach-response-kit',
-        'investigation-survey-suite',
-      ]),
+      activeKitIds: expect.arrayContaining(['breach-response-kit', 'investigation-survey-suite']),
       activeProtocolIds: ['field-clearance-protocol'],
       equipmentContributionDelta: expect.any(Number),
       kitEffectivenessMultiplier: expect.any(Number),
@@ -367,13 +363,13 @@ describe('scoring helpers', () => {
     expect(result.powerImpactSummary.equipmentContributionDelta).toBeGreaterThan(0)
     expect(result.powerImpactSummary.kitScoreDelta).toBeGreaterThan(0)
     expect(result.powerImpactSummary.protocolScoreDelta).toBeGreaterThan(0)
-    expect(result.reasons.some((reason) => reason.includes('Breach Response Kit (2-piece)'))).toBe(true)
+    expect(result.reasons.some((reason) => reason.includes('Breach Response Kit (2-piece)'))).toBe(
+      true
+    )
     expect(
       result.reasons.some((reason) => reason.includes('Investigation Survey Suite (2-piece)'))
     ).toBe(true)
-    expect(
-      result.reasons.some((reason) => reason.includes('Field Clearance Protocol'))
-    ).toBe(true)
+    expect(result.reasons.some((reason) => reason.includes('Field Clearance Protocol'))).toBe(true)
   })
 
   it('layers gear, kits, and protocols on top of stable chemistry and synergy modifiers', () => {
@@ -432,10 +428,18 @@ describe('scoring helpers', () => {
 
     expect(baseResult.modifierBreakdown.synergyBonus).toBeGreaterThan(0)
     expect(baseResult.modifierBreakdown.chemistryBonus).toBeGreaterThan(0)
-    expect(equippedResult.modifierBreakdown.synergyBonus).toBe(baseResult.modifierBreakdown.synergyBonus)
-    expect(equippedResult.modifierBreakdown.chemistryBonus).toBe(baseResult.modifierBreakdown.chemistryBonus)
-    expect(protocolResult.modifierBreakdown.synergyBonus).toBe(baseResult.modifierBreakdown.synergyBonus)
-    expect(protocolResult.modifierBreakdown.chemistryBonus).toBe(baseResult.modifierBreakdown.chemistryBonus)
+    expect(equippedResult.modifierBreakdown.synergyBonus).toBe(
+      baseResult.modifierBreakdown.synergyBonus
+    )
+    expect(equippedResult.modifierBreakdown.chemistryBonus).toBe(
+      baseResult.modifierBreakdown.chemistryBonus
+    )
+    expect(protocolResult.modifierBreakdown.synergyBonus).toBe(
+      baseResult.modifierBreakdown.synergyBonus
+    )
+    expect(protocolResult.modifierBreakdown.chemistryBonus).toBe(
+      baseResult.modifierBreakdown.chemistryBonus
+    )
 
     expect(equippedResult.powerImpactSummary.activeEquipmentIds).toEqual(
       expect.arrayContaining(['signal_jammers', 'emf_sensors'])
@@ -473,26 +477,30 @@ describe('scoring helpers', () => {
     expect(result.modifierBreakdown.leaderBonus).toBeGreaterThan(0)
     expect(result.modifierBreakdown.synergyBonus).not.toBe(0)
     expect(result.modifierBreakdown.readinessBonus).toBeGreaterThan(0)
-    expect(
-      result.layerBreakdown.layers.find((layer) => layer.id === 'leader')?.delta
-    ).toBeCloseTo(result.modifierBreakdown.leaderBonus, 6)
-    expect(
-      result.layerBreakdown.layers.find((layer) => layer.id === 'synergy')?.delta
-    ).toBeCloseTo(result.modifierBreakdown.synergyBonus, 6)
+    expect(result.layerBreakdown.layers.find((layer) => layer.id === 'leader')?.delta).toBeCloseTo(
+      result.modifierBreakdown.leaderBonus,
+      6
+    )
+    expect(result.layerBreakdown.layers.find((layer) => layer.id === 'synergy')?.delta).toBeCloseTo(
+      result.modifierBreakdown.synergyBonus,
+      6
+    )
     expect(
       result.layerBreakdown.layers.find((layer) => layer.id === 'readiness')?.delta
     ).toBeCloseTo(result.modifierBreakdown.readinessBonus, 6)
-    expect(
-      result.layerBreakdown.layers.reduce((sum, layer) => sum + layer.delta, 0)
-    ).toBeCloseTo(result.score - result.layerBreakdown.baseScore, 6)
+    expect(result.layerBreakdown.layers.reduce((sum, layer) => sum + layer.delta, 0)).toBeCloseTo(
+      result.score - result.layerBreakdown.baseScore,
+      6
+    )
     expect(result.comparison.finalDelta).toBeCloseTo(
-      result.score - computeRequiredScore(
-        {
-          ...createStartingState().cases['case-001'],
-          preferredTags: [],
-        },
-        createStartingState().config
-      ),
+      result.score -
+        computeRequiredScore(
+          {
+            ...createStartingState().cases['case-001'],
+            preferredTags: [],
+          },
+          createStartingState().config
+        ),
       6
     )
     expect(result.reasons.some((reason) => reason.startsWith('Leader bonus:'))).toBe(true)
@@ -560,7 +568,10 @@ describe('scoring helpers', () => {
     expect(comparison.axisAssessments.investigation.weight).toBe(0.3)
     expect(comparison.axisAssessments.support.weight).toBe(0.1)
     expect(comparison.metAxes.length + comparison.unmetAxes.length).toBe(4)
-    expect(comparison.finalDelta).toBeCloseTo(result.score - computeRequiredScore(caseInstance, state.config), 6)
+    expect(comparison.finalDelta).toBeCloseTo(
+      result.score - computeRequiredScore(caseInstance, state.config),
+      6
+    )
   })
 
   it('changes team score when leader selection changes for the same squad', () => {

@@ -42,11 +42,7 @@ describe('External Chemistry Events', () => {
 
   describe('Agent Death Events', () => {
     it('should create agent death chemistry event', () => {
-      const event = createAgentDeathChemistryEvent('agent-a', [
-        'agent-a',
-        'agent-b',
-        'agent-c',
-      ])
+      const event = createAgentDeathChemistryEvent('agent-a', ['agent-a', 'agent-b', 'agent-c'])
 
       expect(event.eventType).toBe('agent_death')
       expect(event.affectedAgentId).toBe('agent-a')
@@ -56,11 +52,7 @@ describe('External Chemistry Events', () => {
     })
 
     it('should apply death event to strengthen remaining bonds', () => {
-      const event = createAgentDeathChemistryEvent('agent-a', [
-        'agent-a',
-        'agent-b',
-        'agent-c',
-      ])
+      const event = createAgentDeathChemistryEvent('agent-a', ['agent-a', 'agent-b', 'agent-c'])
 
       const result = applyExternalChemistryEvent(state, event)
 
@@ -76,11 +68,7 @@ describe('External Chemistry Events', () => {
 
   describe('Agent Promotion Events', () => {
     it('should create agent promotion chemistry event', () => {
-      const event = createAgentPromotionChemistryEvent('agent-a', [
-        'agent-a',
-        'agent-b',
-        'agent-c',
-      ])
+      const event = createAgentPromotionChemistryEvent('agent-a', ['agent-a', 'agent-b', 'agent-c'])
 
       expect(event.eventType).toBe('agent_promotion')
       expect(event.affectedAgentId).toBe('agent-a')
@@ -88,11 +76,7 @@ describe('External Chemistry Events', () => {
     })
 
     it('should apply promotion event to weaken relationships', () => {
-      const event = createAgentPromotionChemistryEvent('agent-a', [
-        'agent-a',
-        'agent-b',
-        'agent-c',
-      ])
+      const event = createAgentPromotionChemistryEvent('agent-a', ['agent-a', 'agent-b', 'agent-c'])
 
       const result = applyExternalChemistryEvent(state, event)
 
@@ -218,8 +202,7 @@ describe('External Chemistry Events', () => {
       expect(
         relationshipDrafts.every(
           (draft) =>
-            draft.type === 'agent.relationship_changed' &&
-            draft.payload.reason === 'external_event'
+            draft.type === 'agent.relationship_changed' && draft.payload.reason === 'external_event'
         )
       ).toBe(true)
 

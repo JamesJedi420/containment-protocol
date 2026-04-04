@@ -115,9 +115,13 @@ it('renders assignment timeline events for the selected case only', () => {
 
   const timelinePanel = screen.getByRole('region', { name: /assignment timeline/i })
 
-  expect(within(timelinePanel).getByRole('heading', { name: /assignment timeline/i })).toBeInTheDocument()
+  expect(
+    within(timelinePanel).getByRole('heading', { name: /assignment timeline/i })
+  ).toBeInTheDocument()
   expect(within(timelinePanel).getByText(/night watch assigned/i)).toBeInTheDocument()
-  expect(within(timelinePanel).getByText(/vampire nest in the stockyards resolved/i)).toBeInTheDocument()
+  expect(
+    within(timelinePanel).getByText(/vampire nest in the stockyards resolved/i)
+  ).toBeInTheDocument()
   expect(within(timelinePanel).queryByText(/the whispering archive/i)).not.toBeInTheDocument()
   expect(within(timelinePanel).getByRole('link', { name: /night watch/i })).toHaveAttribute(
     'href',

@@ -31,8 +31,8 @@ describe('gameStore.reconcileAgents', () => {
 
     const next = useGameStore.getState().game
     expect(next.funding).toBe(seeded.funding - RECONCILIATION_COST)
-    expect((next.agents.a_ava.relationships.a_sato ?? 0)).toBeGreaterThan(-1)
-    expect((next.agents.a_sato.relationships.a_ava ?? 0)).toBeGreaterThan(-1)
+    expect(next.agents.a_ava.relationships.a_sato ?? 0).toBeGreaterThan(-1)
+    expect(next.agents.a_sato.relationships.a_ava ?? 0).toBeGreaterThan(-1)
     expect(next.events.some((event) => event.type === 'agent.relationship_changed')).toBe(true)
   })
 })

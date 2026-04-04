@@ -60,7 +60,11 @@ export default function MarketPage() {
 
   return (
     <section className="space-y-4">
-      <article className="panel panel-primary space-y-3" role="region" aria-label="Procurement overview">
+      <article
+        className="panel panel-primary space-y-3"
+        role="region"
+        aria-label="Procurement overview"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">{MARKET_UI_TEXT.pageHeading}</h2>
@@ -91,7 +95,11 @@ export default function MarketPage() {
         </div>
       </article>
 
-      <article className="panel panel-support space-y-3" role="region" aria-label="Procurement model">
+      <article
+        className="panel panel-support space-y-3"
+        role="region"
+        aria-label="Procurement model"
+      >
         <h3 className="text-base font-semibold">Procurement model</h3>
         <p className="text-sm opacity-60">
           Listings are derived deterministically from the current market week, supply pressure,
@@ -190,7 +198,10 @@ export default function MarketPage() {
             label="Sort"
             value={filters.sort}
             onChange={(value) => updateFilters({ sort: value as MarketFilters['sort'] })}
-            options={MARKET_SORTS.map((option) => ({ value: option, label: MARKET_SORT_LABELS[option] }))}
+            options={MARKET_SORTS.map((option) => ({
+              value: option,
+              label: MARKET_SORT_LABELS[option],
+            }))}
             containerClassName="space-y-2"
             labelClassName="text-xs font-semibold uppercase tracking-[0.24em] opacity-50"
             selectClassName="form-select"
@@ -204,7 +215,9 @@ export default function MarketPage() {
           <button
             type="button"
             className="btn btn-sm btn-ghost"
-            onClick={() => setSearchParams(writeMarketFilters(DEFAULT_MARKET_FILTERS), { replace: true })}
+            onClick={() =>
+              setSearchParams(writeMarketFilters(DEFAULT_MARKET_FILTERS), { replace: true })
+            }
           >
             Clear filters
           </button>
@@ -219,7 +232,8 @@ export default function MarketPage() {
                 <div>
                   <p className="font-medium">{listing.itemName}</p>
                   <p className="text-xs uppercase tracking-[0.2em] opacity-60">
-                    {MARKET_SOURCE_LABELS[listing.source]} / {listing.featured ? 'Featured' : listing.category}
+                    {MARKET_SOURCE_LABELS[listing.source]} /{' '}
+                    {listing.featured ? 'Featured' : listing.category}
                   </p>
                   <p className="mt-1 text-sm opacity-65">{listing.description}</p>
                 </div>
@@ -240,7 +254,10 @@ export default function MarketPage() {
               {listing.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-2 text-xs opacity-65">
                   {listing.tags.map((tag) => (
-                    <span key={`${listing.id}-${tag}`} className="rounded border border-white/10 px-2 py-1">
+                    <span
+                      key={`${listing.id}-${tag}`}
+                      className="rounded border border-white/10 px-2 py-1"
+                    >
                       {tag}
                     </span>
                   ))}
@@ -296,7 +313,9 @@ export default function MarketPage() {
           ))}
         </ul>
       ) : (
-        <div className="panel panel-support p-4 text-sm opacity-70">{MARKET_UI_TEXT.noListings}</div>
+        <div className="panel panel-support p-4 text-sm opacity-70">
+          {MARKET_UI_TEXT.noListings}
+        </div>
       )}
 
       <article className="panel panel-support space-y-3" role="region" aria-label="Procurement log">

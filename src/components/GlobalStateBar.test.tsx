@@ -20,7 +20,7 @@ describe('GlobalStateBar', () => {
 
     expect(within(region).getByText(/agents/i)).toBeInTheDocument()
     expect(within(region).getByText(`0/${totalAgents}`)).toBeInTheDocument()
-    expect(within(region).getByText(/containment/i)).toBeInTheDocument()
+    expect(within(region).getByText(/^containment$/i)).toBeInTheDocument()
     expect(within(region).getByText('66%')).toBeInTheDocument()
 
     const capacityBar = within(region).getByRole('progressbar', {
@@ -34,6 +34,11 @@ describe('GlobalStateBar', () => {
     expect(capacityBar).toHaveAttribute('max', String(totalAgents || 1))
     expect(containmentBar).toHaveAttribute('value', '66')
     expect(containmentBar).toHaveAttribute('max', '100')
+
+    const liveStatus = within(region).getByRole('status')
+    expect(liveStatus).toHaveTextContent(/containment 66 percent/i)
+    expect(liveStatus).toHaveTextContent(/active cases/i)
+    expect(liveStatus).toHaveTextContent(/funding 147/i)
   })
 
   it('handles zero total agent capacity without invalid progress max', () => {

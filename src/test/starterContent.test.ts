@@ -205,8 +205,8 @@ describe('starter content contracts', () => {
 
     expect(caseyEvaluationEffect.activeInMvp).toBe(true)
     expect(caseyEvaluationEffect.type).toBe('passive')
-    expect((caseyEvaluationEffect.modifiers.presence ?? 0)).toBeGreaterThan(0)
-    expect((caseyEvaluationEffect.modifiers.resilience ?? 0)).toBeGreaterThan(0)
+    expect(caseyEvaluationEffect.modifiers.presence ?? 0).toBeGreaterThan(0)
+    expect(caseyEvaluationEffect.modifiers.resilience ?? 0).toBeGreaterThan(0)
     expect(caseyEvaluationEffect.stressImpactMultiplier).toBeLessThan(1)
     expect(caseyRecoveryEffect.moraleRecoveryDelta).toBeGreaterThan(0)
   })
@@ -451,7 +451,8 @@ describe('starter content contracts', () => {
   it('keeps direct raid-001 ingress templates below concentration cap', () => {
     const directRaidIngressTemplates = caseTemplates.filter((template) => {
       const referencesRaidFromFail = template.onFail.spawnTemplateIds.includes('raid-001')
-      const referencesRaidFromUnresolved = template.onUnresolved.spawnTemplateIds.includes('raid-001')
+      const referencesRaidFromUnresolved =
+        template.onUnresolved.spawnTemplateIds.includes('raid-001')
 
       return referencesRaidFromFail || referencesRaidFromUnresolved
     })

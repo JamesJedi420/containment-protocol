@@ -17,6 +17,7 @@ const ROLE_COVERAGE_BY_AGENT_ROLE: Record<AgentRole, TeamCoverageRole[]> = {
   hunter: ['tactical'],
   occultist: ['containment'],
   investigator: ['investigator'],
+  field_recon: ['investigator', 'technical'],
   medium: ['containment'],
   tech: ['technical'],
   medic: ['support'],
@@ -170,8 +171,8 @@ export function validateAgents(
     .filter((agent) => agent.status === 'dead' || agent.status === 'resigned')
     .map((agent) => agent.id)
   const trainingAgentIds = agents
-    .filter(
-      (agent) => buildAgentEligibilityStatus(agent, purpose).blockedReasons.includes('training')
+    .filter((agent) =>
+      buildAgentEligibilityStatus(agent, purpose).blockedReasons.includes('training')
     )
     .map((agent) => agent.id)
   const coveredRoles = getCoverageRolesForAgents(agents, purpose)
@@ -279,8 +280,8 @@ export function validateTeamIds(
     .filter((agent) => agent.status === 'dead' || agent.status === 'resigned')
     .map((agent) => agent.id)
   const trainingAgentIds = agents
-    .filter(
-      (agent) => buildAgentEligibilityStatus(agent, purpose).blockedReasons.includes('training')
+    .filter((agent) =>
+      buildAgentEligibilityStatus(agent, purpose).blockedReasons.includes('training')
     )
     .map((agent) => agent.id)
   const coveredRoles = getCoverageRolesForAgents(agents, purpose)

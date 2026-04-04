@@ -159,7 +159,9 @@ export function createAgentPromotionChemistryEvent(
  * When the agency faces hostile action from a faction,
  * team members who were involved strengthen their bonds.
  */
-export function createFactionConflictChemistryEvent(involvedAgentIds: string[]): ExternalChemistryEventInput {
+export function createFactionConflictChemistryEvent(
+  involvedAgentIds: string[]
+): ExternalChemistryEventInput {
   return {
     eventType: 'faction_conflict',
     associatedAgentIds: involvedAgentIds,

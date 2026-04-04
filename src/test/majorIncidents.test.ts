@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { buildMajorIncidentOperationalCase, buildMajorIncidentProfile } from '../domain/majorIncidents'
+import {
+  buildMajorIncidentOperationalCase,
+  buildMajorIncidentProfile,
+} from '../domain/majorIncidents'
 import { evaluateCaseResolutionContext } from '../domain/sim/scoring'
 
 describe('majorIncidents', () => {

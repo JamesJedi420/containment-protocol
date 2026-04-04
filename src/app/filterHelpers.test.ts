@@ -85,7 +85,9 @@ describe('filter helper read/write contracts', () => {
   })
 
   it('team helpers fallback to defaults and omit default params when writing', () => {
-    const read = readTeamListFilters(new URLSearchParams('assignment=invalid&fatigue=critical&sort=name'))
+    const read = readTeamListFilters(
+      new URLSearchParams('assignment=invalid&fatigue=critical&sort=name')
+    )
 
     expect(read).toEqual({
       q: '',
@@ -216,7 +218,9 @@ describe('filter helper read/write contracts', () => {
     const longTag = 'x'.repeat(100)
 
     const read = readIntelFilters(
-      new URLSearchParams(`mode=probability&kind=raid&pressure=critical&requiredTag=${longTag}&raidCapable=1`)
+      new URLSearchParams(
+        `mode=probability&kind=raid&pressure=critical&requiredTag=${longTag}&raidCapable=1`
+      )
     )
 
     expect(read.mode).toBe('probability')
@@ -246,7 +250,9 @@ describe('filter helper read/write contracts', () => {
   })
 
   it('market helpers parse enums and preserve unrelated params while omitting defaults', () => {
-    const read = readMarketFilters(new URLSearchParams('q=  med  &category=material&sort=price-desc'))
+    const read = readMarketFilters(
+      new URLSearchParams('q=  med  &category=material&sort=price-desc')
+    )
 
     expect(read).toEqual({
       q: 'med',
@@ -335,13 +341,17 @@ describe('filter helper read/write contracts', () => {
     })
 
     const invalidWeeks = readEventFeedFilters(
-      new URLSearchParams('feedWeekMin=0&feedWeekMax=-3&feedCategory=nope&feedSource=bad&feedType=unknown')
+      new URLSearchParams(
+        'feedWeekMin=0&feedWeekMax=-3&feedCategory=nope&feedSource=bad&feedType=unknown'
+      )
     )
 
     expect(invalidWeeks.category).toBe(DEFAULT_EVENT_FEED_FILTERS.category)
     expect(invalidWeeks.sourceSystem).toBe(DEFAULT_EVENT_FEED_FILTERS.sourceSystem)
     expect(invalidWeeks.type).toBe(DEFAULT_EVENT_FEED_FILTERS.type)
-    expect(invalidWeeks.relationshipVerbosity).toBe(DEFAULT_EVENT_FEED_FILTERS.relationshipVerbosity)
+    expect(invalidWeeks.relationshipVerbosity).toBe(
+      DEFAULT_EVENT_FEED_FILTERS.relationshipVerbosity
+    )
     expect(invalidWeeks.weekMin).toBeUndefined()
     expect(invalidWeeks.weekMax).toBeUndefined()
 

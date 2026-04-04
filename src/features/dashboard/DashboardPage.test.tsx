@@ -324,6 +324,12 @@ it('renders and filters the operations feed by source and search text', async ()
   ).toBeInTheDocument()
   expect(screen.getByText(/week 2 intelligence report logged/i)).toBeInTheDocument()
 
+  const showAdvancedFiltersButton = screen.getByRole('button', { name: /show advanced filters/i })
+  expect(showAdvancedFiltersButton).toHaveAttribute(
+    'aria-controls',
+    'operations-feed-advanced-filters'
+  )
+
   await user.selectOptions(screen.getByLabelText(/^source$/i), 'intel')
 
   expect(
@@ -349,8 +355,11 @@ it('renders and filters the operations feed by source and search text', async ()
 })
 
 it('hydrates operations feed filters from URL and canonicalizes invalid params', async () => {
+  const user = userEvent.setup()
   useGameStore.setState({ game: createDashboardFeedGame() })
-  renderDashboard('/?feedQ=%20night%20watch%20&feedSource=bogus&feedCategory=incident_response&feedWeekMin=0&feedWeekMax=NaN&feedEntity=%20%20')
+  renderDashboard(
+    '/?feedQ=%20night%20watch%20&feedSource=bogus&feedCategory=incident_response&feedWeekMin=0&feedWeekMax=NaN&feedEntity=%20%20'
+  )
 
   await waitFor(() => {
     expect(screen.getByLabelText(/search feed/i)).toHaveValue('night watch')
@@ -358,6 +367,9 @@ it('hydrates operations feed filters from URL and canonicalizes invalid params',
 
   expect(screen.getByLabelText(/^source$/i)).toHaveValue('all')
   expect(screen.getByLabelText(/^category$/i)).toHaveValue('incident_response')
+
+  await user.click(screen.getByRole('button', { name: /show advanced filters/i }))
+
   expect(screen.getByLabelText(/^week from$/i)).toHaveValue(null)
   expect(screen.getByLabelText(/^week to$/i)).toHaveValue(null)
   expect(screen.getByLabelText(/entity id/i)).toHaveValue('')
@@ -378,6 +390,7 @@ it('syncs operations feed filters to URL while editing', async () => {
   await user.type(screen.getByLabelText(/search feed/i), 'report')
   await user.selectOptions(screen.getByLabelText(/^source$/i), 'intel')
   await user.selectOptions(screen.getByLabelText(/^type$/i), 'intel.report_generated')
+  await user.click(screen.getByRole('button', { name: /show advanced filters/i }))
   await user.type(screen.getByLabelText(/^week from$/i), '2')
   await user.type(screen.getByLabelText(/entity id/i), 'case-001')
 
@@ -409,7 +422,9 @@ it('preserves feed filters through link navigation and browser back/forward', as
     )
   })
 
-  await user.click(screen.getByRole('link', { name: /night watch assigned to vampire nest in the stockyards/i }))
+  await user.click(
+    screen.getByRole('link', { name: /night watch assigned to vampire nest in the stockyards/i })
+  )
 
   await user.click(screen.getByRole('button', { name: /go back/i }))
 
@@ -427,7 +442,11 @@ it('preserves feed filters through link navigation and browser back/forward', as
 
 it('rehydrates operations feed filters after remount', async () => {
   useGameStore.setState({ game: createDashboardFeedGame() })
-  const firstRender = renderDashboard('/?feedQ=report&feedSource=intel&feedType=intel.report_generated&feedWeekMin=2')
+  const firstRender = renderDashboard(
+    '/?feedQ=report&feedSource=intel&feedType=intel.report_generated&feedWeekMin=2'
+  )
+
+  expect(screen.getByRole('button', { name: /hide advanced filters/i })).toBeInTheDocument()
 
   await waitFor(() => {
     expect(screen.getByLabelText(/search feed/i)).toHaveValue('report')
@@ -440,12 +459,41 @@ it('rehydrates operations feed filters after remount', async () => {
 
   renderDashboard('/?feedQ=report&feedSource=intel&feedType=intel.report_generated&feedWeekMin=2')
 
+  expect(screen.getByRole('button', { name: /hide advanced filters/i })).toBeInTheDocument()
+
   await waitFor(() => {
     expect(screen.getByLabelText(/search feed/i)).toHaveValue('report')
     expect(screen.getByLabelText(/^source$/i)).toHaveValue('intel')
     expect(screen.getByLabelText(/^type$/i)).toHaveValue('intel.report_generated')
     expect(screen.getByLabelText(/^week from$/i)).toHaveValue(2)
   })
+})
+
+it('shows active filter chips and supports reset-advanced without clearing core filters', async () => {
+  const user = userEvent.setup()
+
+  useGameStore.setState({ game: createDashboardFeedGame() })
+  renderDashboard()
+
+  await user.type(screen.getByLabelText(/search feed/i), 'night')
+  await user.selectOptions(screen.getByLabelText(/^source$/i), 'assignment')
+  await user.click(screen.getByRole('button', { name: /show advanced filters/i }))
+  await user.type(screen.getByLabelText(/^week from$/i), '2')
+  await user.type(screen.getByLabelText(/entity id/i), 'case-001')
+
+  expect(screen.getByText(/search: night/i)).toBeInTheDocument()
+  expect(screen.getByText(/source:/i)).toBeInTheDocument()
+  expect(screen.getByText(/week from: 2/i)).toBeInTheDocument()
+  expect(screen.getByText(/entity: case-001/i)).toBeInTheDocument()
+
+  await user.click(screen.getByRole('button', { name: /reset advanced/i }))
+
+  expect(screen.getByLabelText(/^source$/i)).toHaveValue('assignment')
+  expect(screen.getByLabelText(/search feed/i)).toHaveValue('night')
+  expect(screen.getByLabelText(/^week from$/i)).toHaveValue(null)
+  expect(screen.getByLabelText(/entity id/i)).toHaveValue('')
+  expect(screen.queryByText(/week from: 2/i)).not.toBeInTheDocument()
+  expect(screen.queryByText(/entity: case-001/i)).not.toBeInTheDocument()
 })
 
 it('shows field status and allows queueing fabrication from the operations desk', async () => {

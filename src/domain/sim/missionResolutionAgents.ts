@@ -1,5 +1,10 @@
 // cspell:words psionic
 import {
+  applyPotentialBreakthrough,
+  buildAgentStatCaps,
+  observePotentialIntel,
+} from '../agentPotential'
+import {
   appendAgentHistoryEntries,
   appendAgentHistoryEntry,
   applyAgentProgressionUpdate,
@@ -27,6 +32,7 @@ import type {
 import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
 import { applyBetrayalConsequences } from './betrayal'
+import { createDefaultAgentProgression } from '../agentDefaults'
 
 const XP_GAIN_SUCCESS = 150
 const XP_GAIN_PARTIAL = 75
@@ -125,8 +131,9 @@ function getRelationshipChangeReason(result: ResolutionOutcome['result']) {
 }
 
 function hasAnomalyCaseContext(currentCase: CaseInstance) {
-  return [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].some((tag) =>
-    ['anomaly', 'occult', 'psionic', 'hybrid', 'spirit', 'ritual', 'containment'].includes(tag)
+  return [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].some(
+    (tag) =>
+      ['anomaly', 'occult', 'psionic', 'hybrid', 'spirit', 'ritual', 'containment'].includes(tag)
   )
 }
 
@@ -144,7 +151,11 @@ function hasChemistryContextFit(
   currentCase: CaseInstance,
   performance?: AgentResolutionPerformance
 ) {
-  const allCaseTags = [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]
+  const allCaseTags = [
+    ...currentCase.tags,
+    ...currentCase.requiredTags,
+    ...currentCase.preferredTags,
+  ]
   const sharedTags = allCaseTags.filter((tag) => agent.tags.includes(tag)).length
   const caseTagCoverage = allCaseTags.length > 0 ? sharedTags / allCaseTags.length : 0
   const weightedAxisPotential = clamp(
@@ -160,7 +171,11 @@ function hasChemistryContextFit(
     (slot): slot is string => typeof slot === 'string' && slot.length > 0
   )
   const performanceFit = performance
-    ? clamp((performance.contribution + performance.threatHandled + performance.evidenceGathered) / 300, 0, 1)
+    ? clamp(
+        (performance.contribution + performance.threatHandled + performance.evidenceGathered) / 300,
+        0,
+        1
+      )
     : 0
 
   let score = 0
@@ -169,7 +184,9 @@ function hasChemistryContextFit(
     if (
       agent.role === 'occultist' ||
       agent.role === 'medium' ||
-      agent.tags.some((tag) => ['occult', 'psionic', 'containment', 'spirit', 'ritual'].includes(tag))
+      agent.tags.some((tag) =>
+        ['occult', 'psionic', 'containment', 'spirit', 'ritual'].includes(tag)
+      )
     ) {
       score += 0.42
     }
@@ -178,8 +195,11 @@ function hasChemistryContextFit(
   if (hasEvidenceRecoveryContext(currentCase)) {
     if (
       agent.role === 'investigator' ||
+      agent.role === 'field_recon' ||
       agent.role === 'tech' ||
-      agent.tags.some((tag) => ['analysis', 'forensics', 'archive', 'evidence', 'witness'].includes(tag))
+      agent.tags.some((tag) =>
+        ['analysis', 'forensics', 'archive', 'evidence', 'witness'].includes(tag)
+      )
     ) {
       score += 0.42
     }
@@ -197,6 +217,47 @@ function hasChemistryContextFit(
 
 function roundRelationshipDelta(value: number) {
   return Math.round(value * 100) / 100
+}
+
+function getMissionPotentialDiscoveryDelta(
+  effectiveCase: CaseInstance,
+  outcome: ResolutionOutcome,
+  performance?: AgentResolutionPerformance
+) {
+  let discoveryDelta = outcome.result === 'success' ? 20 : outcome.result === 'partial' ? 12 : 6
+
+  discoveryDelta += Math.max(0, effectiveCase.stage - 1) * 6
+
+  if (performance) {
+    discoveryDelta += Math.round(
+      (performance.contribution + performance.threatHandled + performance.evidenceGathered) / 60
+    )
+  }
+
+  return clamp(discoveryDelta, 0, 48)
+}
+
+function shouldTriggerMissionBreakthrough(
+  agent: NonNullable<GameState['agents'][string]>,
+  effectiveCase: CaseInstance,
+  outcome: ResolutionOutcome,
+  performance?: AgentResolutionPerformance
+) {
+  if (outcome.result !== 'success' || effectiveCase.stage < 3 || !performance) {
+    return false
+  }
+
+  const progression = agent.progression ?? createDefaultAgentProgression(agent.level ?? 1)
+
+  if ((progression.potentialIntel?.discoveryProgress ?? 0) < 85) {
+    return false
+  }
+
+  return (
+    performance.contribution >= 70 ||
+    performance.threatHandled >= 70 ||
+    performance.evidenceGathered >= 60
+  )
 }
 
 function buildDirectionalRelationshipDelta(
@@ -484,7 +545,7 @@ export function applyMissionResolutionAgentMutations({
       week
     )
 
-    nextAgents[agent.id] = progressionUpdate.reachedLevels.reduce(
+    let nextAgent = progressionUpdate.reachedLevels.reduce(
       (currentAgent, level) =>
         appendAgentHistoryEntry(
           currentAgent,
@@ -492,6 +553,59 @@ export function applyMissionResolutionAgentMutations({
         ),
       progressedAgentWithXpLog
     )
+    const performance = performanceByAgentId.get(agent.id)
+    const discovery = observePotentialIntel(
+      nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+      {
+        week,
+        source: 'mission',
+        discoveryDelta: getMissionPotentialDiscoveryDelta(effectiveCase, outcome, performance),
+      }
+    )
+
+    nextAgent = {
+      ...nextAgent,
+      progression: {
+        ...(nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1)),
+        potentialIntel: discovery.potentialIntel,
+      },
+    }
+
+    if (discovery.note) {
+      nextAgent = appendAgentHistoryEntry(
+        nextAgent,
+        createAgentHistoryEntry(week, 'simulation.weekly_tick', discovery.note)
+      )
+    }
+
+    if (shouldTriggerMissionBreakthrough(nextAgent, effectiveCase, outcome, performance)) {
+      const breakthrough = applyPotentialBreakthrough(
+        nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+        week
+      )
+
+      if (breakthrough.changed) {
+        nextAgent = {
+          ...nextAgent,
+          progression: {
+            ...breakthrough.progression,
+            statCaps: buildAgentStatCaps(
+              nextAgent.baseStats,
+              breakthrough.progression.potentialTier,
+              breakthrough.progression.growthProfile,
+              nextAgent.progression?.statCaps
+            ),
+          },
+        }
+
+        if (breakthrough.note) {
+          nextAgent = appendAgentHistoryEntry(
+            nextAgent,
+            createAgentHistoryEntry(week, 'simulation.weekly_tick', breakthrough.note)
+          )
+        }
+      }
+    }
 
     if (progressionUpdate.xpGained > 0) {
       eventDrafts.push(
@@ -533,6 +647,8 @@ export function applyMissionResolutionAgentMutations({
         })
       )
     }
+
+    nextAgents[agent.id] = nextAgent
   }
 
   const relationshipOutcome = applyRelationshipOutcome(
@@ -629,7 +745,8 @@ export function applyMissionResolutionAgentMutations({
         ...currentAgent.history,
         bonds: collaboratorIds.reduce<Record<string, number>>(
           (bonds, collaboratorId) => {
-            bonds[collaboratorId] = currentAgent.relationships[collaboratorId] ?? bonds[collaboratorId] ?? 0
+            bonds[collaboratorId] =
+              currentAgent.relationships[collaboratorId] ?? bonds[collaboratorId] ?? 0
             return bonds
           },
           { ...currentAgent.history.bonds }

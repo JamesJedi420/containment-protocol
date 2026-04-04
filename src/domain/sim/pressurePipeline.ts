@@ -1,8 +1,4 @@
-import {
-  getCasePressureValue,
-  getCaseRegionTag,
-  getResponseGridConfig,
-} from '../pressure'
+import { getCasePressureValue, getCaseRegionTag, getResponseGridConfig } from '../pressure'
 import { type CaseInstance, type GameState } from '../models'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './spawn'
 

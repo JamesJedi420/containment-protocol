@@ -58,6 +58,9 @@ export function RunTransferPanel() {
       </div>
 
       <div className="space-y-2">
+        <p className="text-sm opacity-70">
+          Paste a run payload, then import it. Export and new-run actions are available below.
+        </p>
         <label htmlFor="run-transfer-payload" className="text-sm">
           <span className="block text-xs uppercase tracking-wide opacity-60">
             {RUN_TRANSFER_TEXT.payloadLabel}
@@ -79,11 +82,11 @@ export function RunTransferPanel() {
         </label>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={handleExport} className="btn btn-sm">
-            {RUN_TRANSFER_TEXT.exportRun}
-          </button>
-          <button type="button" onClick={handleImport} className="btn btn-sm btn-ghost">
+          <button type="button" onClick={handleImport} className="btn btn-sm">
             {RUN_TRANSFER_TEXT.importRun}
+          </button>
+          <button type="button" onClick={handleExport} className="btn btn-sm btn-ghost">
+            {RUN_TRANSFER_TEXT.exportRun}
           </button>
           <button type="button" onClick={handleNewRun} className="btn btn-sm btn-ghost">
             {RUN_TRANSFER_TEXT.newRunFromCurrentConfig}

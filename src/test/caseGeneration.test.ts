@@ -17,9 +17,7 @@ describe('caseGeneration', () => {
     expect(classifyEncounterType(state.cases['case-001'])).toBe('cryptid_sighting')
     expect(profile.encounterTypeLabel).toBe('Cryptid sighting')
     expect(profile.origin.label).toBe('Baseline world activity')
-    expect(profile.causeSignals).toEqual(
-      expect.arrayContaining(['night', 'tier-1', 'vampire'])
-    )
+    expect(profile.causeSignals).toEqual(expect.arrayContaining(['night', 'tier-1', 'vampire']))
     expect(failPreview?.targets.map((target) => target.templateId)).toContain(
       'followup_missing_persons'
     )

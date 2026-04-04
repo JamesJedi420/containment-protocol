@@ -30,9 +30,10 @@ describe('explanations', () => {
       'investigation',
       'support',
     ])
-    expect(
-      explanation.axes.reduce((sum, axis) => sum + axis.weightedRequired, 0)
-    ).toBeCloseTo(explanation.requiredScore, 2)
+    expect(explanation.axes.reduce((sum, axis) => sum + axis.weightedRequired, 0)).toBeCloseTo(
+      explanation.requiredScore,
+      2
+    )
     expect(explanation.factors.map((factor) => factor.id)).toEqual([
       'stage',
       'duration',

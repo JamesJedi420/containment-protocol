@@ -11,8 +11,15 @@ import type {
   WeeklyReportCaseSnapshot,
   WeeklyReportTeamStatus,
 } from '../models'
-import { buildDeterministicReportNotesFromEventDrafts } from '../reportNotes'
-import { ensureNormalizedGameState, getTeamAssignedCaseId, getTeamMemberIds } from '../teamSimulation'
+import {
+  buildDeterministicReportNotesFromEventDrafts,
+  getHistoricalReportNoteDrafts,
+} from '../reportNotes'
+import {
+  ensureNormalizedGameState,
+  getTeamAssignedCaseId,
+  getTeamMemberIds,
+} from '../teamSimulation'
 import { calcWeekScore } from './scoring'
 
 interface WeeklyReportBuildInput {
@@ -198,7 +205,8 @@ function buildReportCaseSnapshots(
       currentCase.id,
       buildReportCaseSnapshot(
         currentCase,
-        performanceByCaseId[currentCase.id] ?? missionResultByCaseId[currentCase.id]?.performanceSummary,
+        performanceByCaseId[currentCase.id] ??
+          missionResultByCaseId[currentCase.id]?.performanceSummary,
         rewardByCaseId[currentCase.id] ?? missionResultByCaseId[currentCase.id]?.rewards,
         missionResultByCaseId[currentCase.id]
       ),
@@ -339,7 +347,10 @@ function assertMissionResultAlignment(
       throw new Error(`Mission reward breakdown drift detected for ${caseId}.`)
     }
 
-    if (JSON.stringify(snapshot.performanceSummary) !== JSON.stringify(missionResult.performanceSummary)) {
+    if (
+      JSON.stringify(snapshot.performanceSummary) !==
+      JSON.stringify(missionResult.performanceSummary)
+    ) {
       throw new Error(`Mission performance drift detected for ${caseId}.`)
     }
   }
@@ -356,6 +367,10 @@ function assertReportNoteAlignment(
   if (JSON.stringify(report.notes) !== JSON.stringify(expected)) {
     throw new Error('Weekly report notes drift detected from event draft reflections.')
   }
+}
+
+function getWeeklyReportNoteDrafts(sourceState: GameState, drafts: AnyOperationEventDraft[]) {
+  return [...getHistoricalReportNoteDrafts(sourceState.events, sourceState.week), ...drafts]
 }
 
 export function buildWeeklyReport({
@@ -382,7 +397,10 @@ export function buildWeeklyReport({
     partialCases: [...partialCases],
     unresolvedTriggers: [...unresolvedTriggers],
     spawnedCases: [...spawnedCaseIds],
-    maxStage: Math.max(...Object.values(nextState.cases).map((currentCase) => currentCase.stage), 0),
+    maxStage: Math.max(
+      ...Object.values(nextState.cases).map((currentCase) => currentCase.stage),
+      0
+    ),
     avgFatigue: getAverageRosterFatigue(nextState.agents),
     teamStatus: buildReportTeamStatus(nextState.teams, nextState.agents, nextState.cases),
     caseSnapshots: buildReportCaseSnapshots(
@@ -414,7 +432,10 @@ export function applyWeeklyAgencyMetrics({
   const cumulativeScore =
     sourceState.reports.reduce((sum, currentReport) => sum + calcWeekScore(currentReport), 0) +
     weekScore
-  const nextClearanceLevel = computeClearanceLevel(cumulativeScore, nextState.config.clearanceThresholds)
+  const nextClearanceLevel = computeClearanceLevel(
+    cumulativeScore,
+    nextState.config.clearanceThresholds
+  )
 
   if (
     nextFunding !== nextState.funding ||
@@ -475,10 +496,11 @@ export function finalizeWeeklyState({
   missionResultByCaseId,
   noteBaseTimestamp,
 }: WeeklyStateFinalizeInput) {
+  const reportNoteDrafts = getWeeklyReportNoteDrafts(sourceState, eventDrafts)
   const finalizedReport = {
     ...report,
     notes: buildDeterministicReportNotesFromEventDrafts(
-      eventDrafts,
+      reportNoteDrafts,
       sourceState.week,
       noteBaseTimestamp
     ),
@@ -507,7 +529,7 @@ export function finalizeWeeklyState({
   assertReportEventAlignment(eventDrafts, finalizedReport)
   assertRewardAlignment(eventDrafts, finalizedReport)
   assertMissionResultAlignment(missionResultByCaseId, finalizedReport)
-  assertReportNoteAlignment(eventDrafts, finalizedReport, sourceState.week, noteBaseTimestamp)
+  assertReportNoteAlignment(reportNoteDrafts, finalizedReport, sourceState.week, noteBaseTimestamp)
 
   return ensureNormalizedGameState(appendOperationEventDrafts(finalStateWithReport, eventDrafts))
 }

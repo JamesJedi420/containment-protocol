@@ -30,7 +30,8 @@ export function useTabRegistry() {
       {
         id: 'morale',
         label: 'Morale',
-        generateMeta: (view: AgentView) => formatCompactLabel(view.materialized.service.readinessBand),
+        generateMeta: (view: AgentView) =>
+          formatCompactLabel(view.materialized.service.readinessBand),
         component: MoraleTab,
         description: 'Morale and readiness factors',
       },

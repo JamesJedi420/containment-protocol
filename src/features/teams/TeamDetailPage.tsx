@@ -3,11 +3,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import {
-  type Agent,
-  type AgentRole,
-  type PerformanceMetricSummary,
-} from '../../domain/models'
+import { type Agent, type AgentRole, type PerformanceMetricSummary } from '../../domain/models'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 import { getTeamDeploymentHistory } from '../deployment/deploymentEventSelectors'
 import { getCoverageRolesForAgents } from '../../domain/validateTeam'
@@ -31,8 +27,15 @@ import {
 export default function TeamDetailPage() {
   const { teamId } = useParams()
   const location = useLocation()
-  const { game, assign, unassign, renameTeam, setTeamLeader, moveAgentBetweenTeams, deleteEmptyTeam } =
-    useGameStore()
+  const {
+    game,
+    assign,
+    unassign,
+    renameTeam,
+    setTeamLeader,
+    moveAgentBetweenTeams,
+    deleteEmptyTeam,
+  } = useGameStore()
   const team = teamId ? game.teams[teamId] : undefined
   const backTo = `${APP_ROUTES.teams}${location.search}`
   const [draftState, setDraftState] = useState<{ teamId?: string; value: string }>({
@@ -66,7 +69,9 @@ export default function TeamDetailPage() {
 
   const managementState = getTeamManagementState(team, game)
   const assignedCaseId = getTeamAssignedCaseId(team)
-  const agents = getTeamMemberIds(team).map((agentId) => game.agents[agentId]).filter(isAgent)
+  const agents = getTeamMemberIds(team)
+    .map((agentId) => game.agents[agentId])
+    .filter(isAgent)
   const assignedCase = assignedCaseId ? game.cases[assignedCaseId] : undefined
   const satisfiableCases = getTeamAssignableCaseViews(team, game, 8)
   const summary = buildCapabilitySummary(agents)
@@ -162,7 +167,10 @@ export default function TeamDetailPage() {
               <DetailStat label="Utility" value={Math.round(summary.stats.utility).toString()} />
               <DetailStat label="Social" value={Math.round(summary.stats.social).toString()} />
               <DetailStat label="Cohesion" value={String(team.derivedStats?.cohesion ?? 0)} />
-              <DetailStat label="Chemistry" value={String(team.derivedStats?.chemistryScore ?? 0)} />
+              <DetailStat
+                label="Chemistry"
+                value={String(team.derivedStats?.chemistryScore ?? 0)}
+              />
               <DetailStat
                 label={TEAM_UI_LABELS.coreCoverage}
                 value={
@@ -187,8 +195,8 @@ export default function TeamDetailPage() {
               <div className="space-y-1">
                 <h3 className="text-lg font-semibold">Active cases this unit can satisfy now</h3>
                 <p className="text-sm opacity-60">
-                  Only active cases that match the unit&apos;s current roster and commitment state are
-                  shown.
+                  Only active cases that match the unit&apos;s current roster and commitment state
+                  are shown.
                 </p>
               </div>
               <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -199,52 +207,63 @@ export default function TeamDetailPage() {
             {satisfiableCases.length > 0 ? (
               <ul className="space-y-2">
                 {satisfiableCases.map(
-                  ({ currentCase, success, partial, fail, performanceSummary, equipmentSummary }) => (
-                  <li
-                    key={currentCase.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
-                  >
-                    <div>
-                      <p className="font-medium">{currentCase.title}</p>
-                      <p className="text-xs opacity-50">
-                        {currentCase.kind === 'raid' ? 'Raid' : 'Case'} / Stage {currentCase.stage} /{' '}
-                        {currentCase.status}
-                      </p>
-                      <p className="text-xs opacity-50">
-                        {formatPerformanceSummary(performanceSummary)}
-                      </p>
-                      <p className="text-xs opacity-50">
-                        {formatEquipmentSummary(equipmentSummary)}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <p className="text-xs opacity-70">
-                        S {formatPercent(success)} / P {formatPercent(partial)} / F{' '}
-                        {formatPercent(fail)}
-                      </p>
-                      {assignedCaseId !== currentCase.id ? (
-                        <button
-                          onClick={() => assign(currentCase.id, team.id)}
-                          className="btn btn-xs"
-                          aria-label={`Assign ${team.name} to ${currentCase.title}`}
-                        >
-                          Assign
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => unassign(currentCase.id, team.id)}
+                  ({
+                    currentCase,
+                    success,
+                    partial,
+                    fail,
+                    performanceSummary,
+                    equipmentSummary,
+                  }) => (
+                    <li
+                      key={currentCase.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
+                    >
+                      <div>
+                        <p className="font-medium">{currentCase.title}</p>
+                        <p className="text-xs opacity-50">
+                          {currentCase.kind === 'raid' ? 'Raid' : 'Case'} / Stage{' '}
+                          {currentCase.stage} / {currentCase.status}
+                        </p>
+                        <p className="text-xs opacity-50">
+                          {formatPerformanceSummary(performanceSummary)}
+                        </p>
+                        <p className="text-xs opacity-50">
+                          {formatEquipmentSummary(equipmentSummary)}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-xs opacity-70">
+                          S {formatPercent(success)} / P {formatPercent(partial)} / F{' '}
+                          {formatPercent(fail)}
+                        </p>
+                        {assignedCaseId !== currentCase.id ? (
+                          <button
+                            onClick={() => assign(currentCase.id, team.id)}
+                            className="btn btn-xs"
+                            aria-label={`Assign ${team.name} to ${currentCase.title}`}
+                          >
+                            Assign
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => unassign(currentCase.id, team.id)}
+                            className="btn btn-xs btn-ghost"
+                            aria-label={`Unassign ${team.name} from ${currentCase.title}`}
+                          >
+                            Unassign
+                          </button>
+                        )}
+                        <Link
+                          to={APP_ROUTES.caseDetail(currentCase.id)}
                           className="btn btn-xs btn-ghost"
-                          aria-label={`Unassign ${team.name} from ${currentCase.title}`}
                         >
-                          Unassign
-                        </button>
-                      )}
-                      <Link to={APP_ROUTES.caseDetail(currentCase.id)} className="btn btn-xs btn-ghost">
-                        Open case
-                      </Link>
-                    </div>
-                  </li>
-                ))}
+                          Open case
+                        </Link>
+                      </div>
+                    </li>
+                  )
+                )}
               </ul>
             ) : (
               <p className="text-sm opacity-50">No active cases fit this unit right now.</p>
@@ -275,7 +294,10 @@ export default function TeamDetailPage() {
                       <p className="text-xs opacity-50">Week {entry.week}</p>
                     </div>
                     {entry.caseId ? (
-                      <Link to={APP_ROUTES.caseDetail(entry.caseId)} className="btn btn-xs btn-ghost">
+                      <Link
+                        to={APP_ROUTES.caseDetail(entry.caseId)}
+                        className="btn btn-xs btn-ghost"
+                      >
                         {entry.caseTitle ?? 'Open case'}
                       </Link>
                     ) : null}
@@ -340,7 +362,9 @@ export default function TeamDetailPage() {
                   id="team-name"
                   className="form-input"
                   value={draftName}
-                  onChange={(event) => setDraftState({ teamId: team.id, value: event.target.value })}
+                  onChange={(event) =>
+                    setDraftState({ teamId: team.id, value: event.target.value })
+                  }
                   disabled={!managementState.editable}
                 />
               </label>
@@ -418,7 +442,8 @@ export default function TeamDetailPage() {
               </div>
             </div>
 
-            {!canUseTeamName(game, trimmedName || team.name, team.id) && trimmedName !== team.name ? (
+            {!canUseTeamName(game, trimmedName || team.name, team.id) &&
+            trimmedName !== team.name ? (
               <p className="text-xs uppercase tracking-[0.2em] text-amber-200/80">
                 Squad names must be unique and non-empty.
               </p>

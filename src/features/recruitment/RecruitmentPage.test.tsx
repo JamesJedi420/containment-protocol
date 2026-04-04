@@ -36,7 +36,7 @@ function buildRecruitmentGame() {
       evaluation: baseEvaluation,
       agentData: {
         role: 'combat',
-        specialization: 'breach-entry',
+        specialization: 'recon',
         stats: { combat: 80, investigation: 42, utility: 48, social: 35 },
         traits: ['steady-aim'],
       },
@@ -243,6 +243,28 @@ describe('RecruitmentPage', () => {
     expect(useGameStore.getState().game.candidates[0]?.id).toBe('cand-agent-001')
     expect(screen.getByText(/avery holt/i)).toBeInTheDocument()
     expect(screen.queryByText(/briar lane/i)).not.toBeInTheDocument()
+  })
+
+  it('lets the player commission a scout report for agent recruits', async () => {
+    const user = userEvent.setup()
+    useGameStore.setState({ game: buildRecruitmentGame() })
+    const fundingBefore = useGameStore.getState().game.funding
+
+    renderRecruitmentPage()
+
+    await user.click(screen.getByRole('button', { name: /^scout/i }))
+
+    expect(useGameStore.getState().game.funding).toBeLessThan(fundingBefore)
+    expect(useGameStore.getState().game.candidates[0]?.scoutReport).toBeDefined()
+    expect(screen.getByText(/scout report: projected /i)).toBeInTheDocument()
+  })
+
+  it('shows the eventual hire class for remapped agent candidates', () => {
+    useGameStore.setState({ game: buildRecruitmentGame() })
+
+    renderRecruitmentPage()
+
+    expect(screen.getByText(/hire outcome: field recon/i)).toBeInTheDocument()
   })
 
   it('disables hire when the domain preview reports insufficient funding', () => {

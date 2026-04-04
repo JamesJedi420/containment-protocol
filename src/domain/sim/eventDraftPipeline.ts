@@ -1,10 +1,5 @@
 import type { AnyOperationEventDraft, CaseEscalationTrigger } from '../events'
-import type {
-  CaseInstance,
-  Id,
-  MissionRewardBreakdown,
-  PerformanceMetricSummary,
-} from '../models'
+import type { CaseInstance, Id, MissionRewardBreakdown, PerformanceMetricSummary } from '../models'
 
 interface BaseCaseEventInput {
   week: number

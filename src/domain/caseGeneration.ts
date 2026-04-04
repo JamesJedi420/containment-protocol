@@ -51,11 +51,13 @@ export interface CaseGenerationProfile {
 }
 
 function getAgencyState(game: GameState) {
-  return game.agency ?? {
-    containmentRating: game.containmentRating,
-    clearanceLevel: game.clearanceLevel,
-    funding: game.funding,
-  }
+  return (
+    game.agency ?? {
+      containmentRating: game.containmentRating,
+      clearanceLevel: game.clearanceLevel,
+      funding: game.funding,
+    }
+  )
 }
 
 function getOpenCases(game: GameState) {
@@ -72,7 +74,11 @@ function getCasePressureTags(game: GameState) {
   const counts = new Map<string, number>()
 
   for (const currentCase of getOpenCases(game)) {
-    for (const tag of [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]) {
+    for (const tag of [
+      ...currentCase.tags,
+      ...currentCase.requiredTags,
+      ...currentCase.preferredTags,
+    ]) {
       counts.set(tag, (counts.get(tag) ?? 0) + 1)
     }
   }
@@ -82,7 +88,11 @@ function getCasePressureTags(game: GameState) {
     .map(([tag]) => tag)
 }
 
-function getCaseTagSet(templateOrCase: Pick<CaseTemplate, 'tags'> | Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>) {
+function getCaseTagSet(
+  templateOrCase:
+    | Pick<CaseTemplate, 'tags'>
+    | Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>
+) {
   return new Set([
     ...templateOrCase.tags,
     ...('requiredTags' in templateOrCase ? templateOrCase.requiredTags : []),
@@ -175,7 +185,10 @@ function buildWorldActivityReason(template: CaseTemplate, game: GameState) {
   return `Baseline world activity surfaced a new ${getEncounterTypeLabel(classifyEncounterType(template))}.`
 }
 
-function getFactionTemplateWeight(template: CaseTemplate, faction: ReturnType<typeof buildFactionStates>[number]) {
+function getFactionTemplateWeight(
+  template: CaseTemplate,
+  faction: ReturnType<typeof buildFactionStates>[number]
+) {
   const tagSet = getCaseTagSet(template)
   const factionTagMatches = countMatchingTags(tagSet, getFactionDefinitionTags(faction.id))
 
@@ -210,7 +223,9 @@ function buildFactionPressureReason(
   faction: ReturnType<typeof buildFactionStates>[number]
 ) {
   const tagSet = getCaseTagSet(template)
-  const matchedTags = getFactionDefinitionTags(faction.id).filter((tag) => tagSet.has(tag)).slice(0, 3)
+  const matchedTags = getFactionDefinitionTags(faction.id)
+    .filter((tag) => tagSet.has(tag))
+    .slice(0, 3)
   const standingFragment =
     faction.standing !== 0
       ? ` Standing ${faction.standing >= 0 ? '+' : ''}${faction.standing} shifted the pressure window.`
@@ -311,7 +326,9 @@ export function generateAmbientCases(
       ...state,
       cases: {
         ...state.cases,
-        ...Object.fromEntries(spawnedEntries.map(({ currentCase }) => [currentCase.id, currentCase])),
+        ...Object.fromEntries(
+          spawnedEntries.map(({ currentCase }) => [currentCase.id, currentCase])
+        ),
       },
     },
     spawnedCaseIds: spawnedEntries.map(({ currentCase }) => currentCase.id),
@@ -319,7 +336,11 @@ export function generateAmbientCases(
   }
 }
 
-export function classifyEncounterType(templateOrCase: Pick<CaseTemplate, 'tags'> | Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>): EncounterType {
+export function classifyEncounterType(
+  templateOrCase:
+    | Pick<CaseTemplate, 'tags'>
+    | Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>
+): EncounterType {
   const tagSet = getCaseTagSet(templateOrCase)
 
   if (matchesAnyTag(tagSet, ['haunting', 'haunt', 'spirit'])) {
@@ -451,8 +472,7 @@ function buildCaseOrigin(currentCase: CaseInstance, game: GameState): CaseOrigin
     return {
       trigger,
       label: 'Baseline world activity',
-      detail:
-        spawnEvent.payload.sourceReason ?? 'Baseline world activity surfaced this incident.',
+      detail: spawnEvent.payload.sourceReason ?? 'Baseline world activity surfaced this incident.',
     }
   }
 
@@ -481,7 +501,8 @@ function buildCaseEscalationPreview(
       nextStage: Math.min(currentCase.stage + currentCase.onFail.stageDelta, 5),
       convertsToRaid:
         currentCase.onFail.convertToRaidAtStage !== undefined &&
-        currentCase.stage + currentCase.onFail.stageDelta >= currentCase.onFail.convertToRaidAtStage,
+        currentCase.stage + currentCase.onFail.stageDelta >=
+          currentCase.onFail.convertToRaidAtStage,
       raidTeamRange: currentCase.raid
         ? `${currentCase.raid.minTeams}-${currentCase.raid.maxTeams}`
         : undefined,
@@ -513,7 +534,9 @@ function buildCaseEscalationPreview(
 }
 
 function buildCauseSignals(currentCase: CaseInstance) {
-  return [...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags])]
+  return [
+    ...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]),
+  ]
     .sort((left, right) => left.localeCompare(right))
     .slice(0, 8)
 }

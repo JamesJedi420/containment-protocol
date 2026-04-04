@@ -1,8 +1,4 @@
-import type {
-  Agent,
-  AgentAbility,
-  AgentAbilityTrigger,
-} from './models'
+import type { Agent, AgentAbility, AgentAbilityTrigger } from './models'
 import type { CaseInstance, Id } from './models'
 import {
   aggregateRuntimeModifierResults,
@@ -75,11 +71,15 @@ const ABILITY_TRIGGER_LABELS: Record<AgentAbilityTrigger, string> = {
   OnLongCaseDurationCheck: 'Long Case Duration Check',
 }
 
-export function isPassiveAbility(ability: AgentAbility): ability is AgentAbility & { type: 'passive' } {
+export function isPassiveAbility(
+  ability: AgentAbility
+): ability is AgentAbility & { type: 'passive' } {
   return ability.type === 'passive'
 }
 
-export function isActiveAbility(ability: AgentAbility): ability is AgentAbility & { type: 'active' } {
+export function isActiveAbility(
+  ability: AgentAbility
+): ability is AgentAbility & { type: 'active' } {
   return ability.type === 'active'
 }
 
@@ -153,8 +153,7 @@ export const ABILITY_DEFINITIONS: AbilityDefinition[] = [
   {
     id: 'ward-hum',
     condition: (context) =>
-      hasCaseRuntimeContext(context) &&
-      hasAnomalyExposureRuntimeContext(context),
+      hasCaseRuntimeContext(context) && hasAnomalyExposureRuntimeContext(context),
     modifier: (_context, ability) =>
       getConfiguredAbilityEffect(ability, {
         statModifiers: {
@@ -181,14 +180,9 @@ export const ABILITY_DEFINITIONS: AbilityDefinition[] = [
   },
 ]
 
-const ABILITY_DEFINITION_ID_SET = new Set(
-  ABILITY_DEFINITIONS.map((definition) => definition.id)
-)
+const ABILITY_DEFINITION_ID_SET = new Set(ABILITY_DEFINITIONS.map((definition) => definition.id))
 
-function isTriggerSatisfied(
-  ability: AgentAbility,
-  context: AbilityEvaluationContext
-) {
+function isTriggerSatisfied(ability: AgentAbility, context: AbilityEvaluationContext) {
   if (isPassiveAbility(ability)) {
     return true
   }
@@ -275,12 +269,11 @@ export function resolveAbilityEffect(
 
   if (isPassiveAbility(ability)) {
     const definition = getAbilityDefinition(ability)
-    const effect =
-      !definition
-        ? getConfiguredAbilityEffect(ability)
-        : definition.condition(context, ability)
-          ? createRuntimeModifierResult(definition.modifier(context, ability))
-          : createRuntimeModifierResult()
+    const effect = !definition
+      ? getConfiguredAbilityEffect(ability)
+      : definition.condition(context, ability)
+        ? createRuntimeModifierResult(definition.modifier(context, ability))
+        : createRuntimeModifierResult()
 
     return {
       abilityId: ability.id,
@@ -302,12 +295,11 @@ export function resolveAbilityEffect(
 
     if (cooldownRemaining <= 0) {
       const definition = getAbilityDefinition(ability)
-      const effect =
-        !definition
-          ? getConfiguredAbilityEffect(ability)
-          : definition.condition(context, ability)
-            ? createRuntimeModifierResult(definition.modifier(context, ability))
-            : createRuntimeModifierResult()
+      const effect = !definition
+        ? getConfiguredAbilityEffect(ability)
+        : definition.condition(context, ability)
+          ? createRuntimeModifierResult(definition.modifier(context, ability))
+          : createRuntimeModifierResult()
 
       return {
         abilityId: ability.id,

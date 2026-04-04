@@ -85,16 +85,35 @@ const EQUIPMENT_KIT_DEFINITIONS: readonly EquipmentKitDefinition[] = [
       },
     ],
   },
+  {
+    id: 'field-recon-suite',
+    label: 'Field Recon Suite',
+    requiredItemTags: ['recon', 'field-kit', 'pathfinding'],
+    requiredCaseTags: ['field', 'evidence', 'signal', 'anomaly', 'relay', 'occult', 'breach'],
+    thresholds: [
+      {
+        pieces: 2,
+        effect: createRuntimeModifierResult({
+          effectivenessMultiplier: 1.03,
+          stressImpactMultiplier: 0.98,
+        }),
+      },
+      {
+        pieces: 4,
+        effect: createRuntimeModifierResult({
+          effectivenessMultiplier: 1.05,
+          stressImpactMultiplier: 0.96,
+        }),
+      },
+    ],
+  },
 ] as const
 
 function sortAscending(numbers: readonly number[]) {
   return [...numbers].sort((left, right) => left - right)
 }
 
-function getActiveKitThresholds(
-  definition: EquipmentKitDefinition,
-  matchedPieceCount: number
-) {
+function getActiveKitThresholds(definition: EquipmentKitDefinition, matchedPieceCount: number) {
   return [...definition.thresholds]
     .filter((threshold) => matchedPieceCount >= threshold.pieces)
     .sort((left, right) => left.pieces - right.pieces)

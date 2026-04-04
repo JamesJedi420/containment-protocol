@@ -134,16 +134,12 @@ function isMajorIncidentOutcome(
     | Extract<OperationEvent, { type: 'case.resolved' }>['payload']
     | Extract<OperationEvent, { type: 'case.partially_resolved' }>['payload']
 ) {
-  const stage =
-    'stage' in payload ? payload.stage : Math.max(payload.fromStage, payload.toStage)
+  const stage = 'stage' in payload ? payload.stage : Math.max(payload.fromStage, payload.toStage)
 
   return payload.kind === 'raid' || stage >= 4
 }
 
-function accumulateRankingEvent(
-  accumulator: RankingAccumulator,
-  event: OperationEvent
-) {
+function accumulateRankingEvent(accumulator: RankingAccumulator, event: OperationEvent) {
   switch (event.type) {
     case 'case.resolved':
       accumulator.reputationDelta += event.payload.rewardBreakdown?.reputationDelta ?? 0
@@ -172,9 +168,7 @@ function accumulateRankingEvent(
   }
 }
 
-function buildAgencyRankingBreakdown(
-  accumulator: RankingAccumulator
-): AgencyRankingBreakdown {
+function buildAgencyRankingBreakdown(accumulator: RankingAccumulator): AgencyRankingBreakdown {
   const casesResolvedPoints =
     accumulator.resolvedCases * RESOLVED_CASE_POINTS +
     accumulator.partialCases * PARTIAL_CASE_POINTS
@@ -216,7 +210,8 @@ function buildAgencyRankingBreakdown(
     },
     progression: {
       label: 'Progression',
-      value: Math.floor(accumulator.progressionXp / PROGRESSION_XP_PER_POINT) + accumulator.promotions,
+      value:
+        Math.floor(accumulator.progressionXp / PROGRESSION_XP_PER_POINT) + accumulator.promotions,
       xpGained: accumulator.progressionXp,
       promotions: accumulator.promotions,
       points: progressionPoints,
@@ -323,9 +318,7 @@ export function buildAgencyRankingHistory(
   return history.slice(-Math.max(1, limit))
 }
 
-export function buildAgencyRanking(
-  game: Pick<GameState, 'reports' | 'events'>
-): AgencyRankingView {
+export function buildAgencyRanking(game: Pick<GameState, 'reports' | 'events'>): AgencyRankingView {
   const history = buildAgencyRankingHistory(game, Number.MAX_SAFE_INTEGER)
   const latestEntry = history[history.length - 1]
 

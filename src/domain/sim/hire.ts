@@ -1,5 +1,10 @@
-import { type Agent, type AgentData, type AgentRole, type GameState, type Id } from '../models'
-import { appendOperationEventDrafts, type AnyOperationEventDraft, createAgentHiredDraft } from '../events'
+import { type Agent, type AgentData, type GameState, type Id } from '../models'
+import { createRecruitmentScoutIntel } from '../agentPotential'
+import {
+  appendOperationEventDrafts,
+  type AnyOperationEventDraft,
+  createAgentHiredDraft,
+} from '../events'
 import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
 import { createAgent, mergeDomainStats, mapAgentRoleToOperationalRole } from '../agent/factory'
 import { createDefaultAgentProgression, deriveDomainStatsFromBase } from '../agentDefaults'
@@ -8,11 +13,14 @@ import {
   getCandidatePool,
   getCandidateWeeklyCost,
   isCandidateHireable,
+  mapRecruitRoleToAgentRole,
   normalizeCandidateCategory,
   normalizeStaffCandidateSpecialty,
   previewCandidate,
+  resolveCandidateActualPotentialTier,
   syncCandidatePoolState,
 } from '../recruitment'
+import { agentClassTables } from '../templates/classTables'
 
 function shouldNormalizeNoopState(state: GameState) {
   for (const team of Object.values(state.teams)) {
@@ -42,35 +50,6 @@ function shouldNormalizeNoopState(state: GameState) {
 
 function normalizeNoopIfDirty(state: GameState) {
   return shouldNormalizeNoopState(state) ? normalizeGameState(state) : state
-}
-
-function mapRecruitRoleToAgentRole(
-  specialization: string,
-  recruitRole: AgentData['role']
-): AgentRole {
-  if (recruitRole === 'field' || recruitRole === 'combat') {
-    return 'hunter'
-  }
-
-  if (recruitRole === 'containment') {
-    return specialization.includes('anomaly') || specialization.includes('ward')
-      ? 'occultist'
-      : 'medium'
-  }
-
-  if (recruitRole === 'analyst' || recruitRole === 'investigation') {
-    return specialization.includes('signal') ? 'tech' : 'investigator'
-  }
-
-  if (specialization.includes('medical')) {
-    return 'medic'
-  }
-
-  if (specialization.includes('liaison')) {
-    return 'negotiator'
-  }
-
-  return 'tech'
 }
 
 function deriveBaseStatsFromCandidate(agentData: AgentData) {
@@ -114,13 +93,16 @@ function createActiveAgent(
   name: string,
   age: number | undefined,
   portraitId: string | undefined,
-  agentData: NonNullable<GameState['candidates'][number]['agentData']>
+  candidate: Extract<GameState['candidates'][number], { category: 'agent' }>
 ): Agent {
+  const agentData = candidate.agentData
   const role = mapRecruitRoleToAgentRole(agentData.specialization, agentData.role)
-  const tags = [...new Set([role, agentData.specialization, ...agentData.traits])]
+  const classTags = agentClassTables[role]?.tags ?? []
+  const tags = [...new Set([role, ...classTags, agentData.specialization, ...agentData.traits])]
   const baseStats = deriveBaseStatsFromCandidate(agentData)
   const derivedStats = deriveDomainStatsFromBase(baseStats)
   const progressionBase = createDefaultAgentProgression(1)
+  const livePotentialTier = resolveCandidateActualPotentialTier(candidate)
 
   return appendAgentHistoryEntry(
     createAgent({
@@ -138,7 +120,18 @@ function createActiveAgent(
       stats: mergeDomainStats(derivedStats, agentData.domainStats ?? {}),
       progression: {
         ...progressionBase,
+        potentialTier: livePotentialTier,
         growthProfile: agentData.growthProfile ?? progressionBase.growthProfile,
+        ...(candidate.scoutReport
+          ? {
+              potentialIntel: createRecruitmentScoutIntel(
+                candidate.scoutReport.confirmedTier ?? candidate.scoutReport.projectedTier,
+                candidate.scoutReport.confidence,
+                candidate.scoutReport.scoutedWeek ?? week,
+                candidate.scoutReport.exactKnown
+              ),
+            }
+          : {}),
       },
       traits: agentData.traits.map((traitId) => ({
         id: traitId,
@@ -178,79 +171,94 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
   const recruitCategory = normalizeCandidateCategory(candidate.category)
 
   if (recruitCategory === 'agent' && candidate.agentData) {
-    const nextState = syncCandidatePoolState({
-      ...state,
-      funding: state.funding - weeklyCost,
-      agents: {
-        ...state.agents,
-        [candidateId]: createActiveAgent(
-          candidateId,
-          state.week,
-          candidate.name,
-          candidate.age,
-          candidate.portraitId,
-          candidate.agentData
-        ),
+    const nextState = syncCandidatePoolState(
+      {
+        ...state,
+        funding: state.funding - weeklyCost,
+        agents: {
+          ...state.agents,
+          [candidateId]: createActiveAgent(
+            candidateId,
+            state.week,
+            candidate.name,
+            candidate.age,
+            candidate.portraitId,
+            candidate as Extract<GameState['candidates'][number], { category: 'agent' }>
+          ),
+        },
       },
-    }, remainingCandidates)
+      remainingCandidates
+    )
 
-    eventDrafts.push(createAgentHiredDraft({
-      week: state.week,
-      candidateId,
-      agentId: candidateId,
-      agentName: candidate.name,
-      recruitCategory,
-    }))
+    eventDrafts.push(
+      createAgentHiredDraft({
+        week: state.week,
+        candidateId,
+        agentId: candidateId,
+        agentName: candidate.name,
+        recruitCategory,
+      })
+    )
 
     return normalizeGameState(appendOperationEventDrafts(nextState, eventDrafts))
   }
 
   if (recruitCategory === 'staff' && candidate.staffData) {
-    const nextState = syncCandidatePoolState({
-      ...state,
-      funding: state.funding - weeklyCost,
-      staff: {
-        ...state.staff,
-        [candidateId]: {
-          ...candidate.staffData,
-          specialty: normalizeStaffCandidateSpecialty(candidate.staffData.specialty),
+    const nextState = syncCandidatePoolState(
+      {
+        ...state,
+        funding: state.funding - weeklyCost,
+        staff: {
+          ...state.staff,
+          [candidateId]: {
+            ...candidate.staffData,
+            specialty: normalizeStaffCandidateSpecialty(candidate.staffData.specialty),
+          },
         },
       },
-    }, remainingCandidates)
+      remainingCandidates
+    )
 
-    eventDrafts.push(createAgentHiredDraft({
-      week: state.week,
-      candidateId,
-      agentId: candidateId,
-      agentName: candidate.name,
-      recruitCategory,
-    }))
+    eventDrafts.push(
+      createAgentHiredDraft({
+        week: state.week,
+        candidateId,
+        agentId: candidateId,
+        agentName: candidate.name,
+        recruitCategory,
+      })
+    )
 
     return normalizeGameState(appendOperationEventDrafts(nextState, eventDrafts))
   }
 
   if (recruitCategory === 'instructor' && candidate.instructorData) {
-    const nextState = syncCandidatePoolState({
-      ...state,
-      funding: state.funding - weeklyCost,
-      staff: {
-        ...state.staff,
-        [candidateId]: {
-          role: 'instructor' as const,
-          name: candidate.name,
-          efficiency: candidate.instructorData.efficiency,
-          instructorSpecialty: candidate.instructorData.instructorSpecialty,
+    const nextState = syncCandidatePoolState(
+      {
+        ...state,
+        funding: state.funding - weeklyCost,
+        staff: {
+          ...state.staff,
+          [candidateId]: {
+            role: 'instructor' as const,
+            name: candidate.name,
+            efficiency: candidate.instructorData.efficiency,
+            instructorSpecialty: candidate.instructorData.instructorSpecialty,
+          },
         },
       },
-    }, remainingCandidates)
+      remainingCandidates
+    )
 
-    eventDrafts.push(createAgentHiredDraft({
-      week: state.week,
-      candidateId,
-      agentId: candidateId,
-      agentName: candidate.name,
-      recruitCategory,
-    }))
+    eventDrafts.push(
+      createAgentHiredDraft({
+        week: state.week,
+        candidateId,
+        agentId: candidateId,
+        agentName: candidate.name,
+        recruitCategory,
+      })
+    )
 
     return normalizeGameState(appendOperationEventDrafts(nextState, eventDrafts))
   }

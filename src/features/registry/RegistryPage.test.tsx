@@ -187,10 +187,7 @@ it('restores registry search after back navigation and supports forward navigati
   const [targetAgent] = Object.values(game.agents)
 
   useGameStore.setState({ game })
-  renderRegistryPage([
-    `/registry?q=${encodeURIComponent(targetAgent.name)}`,
-    '/agents',
-  ], 1)
+  renderRegistryPage([`/registry?q=${encodeURIComponent(targetAgent.name)}`, '/agents'], 1)
 
   expect(screen.getByTestId('agents-page')).toBeInTheDocument()
 
@@ -216,7 +213,10 @@ it('updates structured filters in query params and clears all filters', async ()
   useGameStore.setState({ game })
   renderRegistryPage(['/registry'])
 
-  await user.selectOptions(screen.getByLabelText(REGISTRY_UI_TEXT.filterRoleLabel), targetAgent.role)
+  await user.selectOptions(
+    screen.getByLabelText(REGISTRY_UI_TEXT.filterRoleLabel),
+    targetAgent.role
+  )
   await user.selectOptions(screen.getByLabelText(REGISTRY_UI_TEXT.sortLabel), 'fatigue-desc')
 
   await waitFor(() => {
@@ -242,7 +242,12 @@ it('shows result and total counts in registry header', () => {
   renderRegistryPage(['/registry'])
 
   expect(
-    screen.getByText(new RegExp(`\\d+ ${REGISTRY_UI_TEXT.shownLabel} / ${totalAgents} ${REGISTRY_UI_TEXT.totalLabel}`, 'i'))
+    screen.getByText(
+      new RegExp(
+        `\\d+ ${REGISTRY_UI_TEXT.shownLabel} / ${totalAgents} ${REGISTRY_UI_TEXT.totalLabel}`,
+        'i'
+      )
+    )
   ).toBeInTheDocument()
 })
 
@@ -356,6 +361,6 @@ it('navigates from registry list to detail and keeps back navigation scoped to r
 
   expect(screen.getByRole('link', { name: /back to registry/i })).toHaveAttribute(
     'href',
-    '/registry'
+    '/registry?q=night'
   )
 })

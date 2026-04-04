@@ -66,16 +66,12 @@ export const STAT_DOMAIN_DEFINITIONS = [
   {
     name: 'field',
     label: 'Field',
-    stats: [
-      'physical.strength',
-      'physical.endurance',
-      'tactical.awareness',
-      'tactical.reaction',
-    ],
+    stats: ['physical.strength', 'physical.endurance', 'tactical.awareness', 'tactical.reaction'],
     weightByRole: {
       hunter: 0.34,
       occultist: 0.06,
       investigator: 0.08,
+      field_recon: 0.16,
       medium: 0.05,
       tech: 0.08,
       medic: 0.12,
@@ -101,6 +97,7 @@ export const STAT_DOMAIN_DEFINITIONS = [
       hunter: 0.22,
       occultist: 0.12,
       investigator: 0.08,
+      field_recon: 0.12,
       medium: 0.16,
       tech: 0.08,
       medic: 0.28,
@@ -121,16 +118,12 @@ export const STAT_DOMAIN_DEFINITIONS = [
   {
     name: 'control',
     label: 'Control',
-    stats: [
-      'tactical.reaction',
-      'technical.equipment',
-      'technical.anomaly',
-      'stability.tolerance',
-    ],
+    stats: ['tactical.reaction', 'technical.equipment', 'technical.anomaly', 'stability.tolerance'],
     weightByRole: {
       hunter: 0.16,
       occultist: 0.18,
       investigator: 0.12,
+      field_recon: 0.24,
       medium: 0.12,
       tech: 0.34,
       medic: 0.2,
@@ -152,6 +145,7 @@ export const STAT_DOMAIN_DEFINITIONS = [
       hunter: 0.1,
       occultist: 0.2,
       investigator: 0.42,
+      field_recon: 0.34,
       medium: 0.18,
       tech: 0.18,
       medic: 0.12,
@@ -176,6 +170,7 @@ export const STAT_DOMAIN_DEFINITIONS = [
       hunter: 0.05,
       occultist: 0.08,
       investigator: 0.18,
+      field_recon: 0.04,
       medium: 0.12,
       tech: 0.06,
       medic: 0.16,
@@ -197,6 +192,7 @@ export const STAT_DOMAIN_DEFINITIONS = [
       hunter: 0.13,
       occultist: 0.36,
       investigator: 0.12,
+      field_recon: 0.1,
       medium: 0.37,
       tech: 0.26,
       medic: 0.12,
@@ -251,6 +247,7 @@ export const DEFAULT_ROLE_DOMAIN_WEIGHTS: Record<AgentRole, RoleDomainWeights> =
   hunter: buildRoleDomainWeights('hunter'),
   occultist: buildRoleDomainWeights('occultist'),
   investigator: buildRoleDomainWeights('investigator'),
+  field_recon: buildRoleDomainWeights('field_recon'),
   medium: buildRoleDomainWeights('medium'),
   tech: buildRoleDomainWeights('tech'),
   medic: buildRoleDomainWeights('medic'),
@@ -325,9 +322,7 @@ export function domainAverage(stats: DomainStats, domain: StatDomain) {
     return 0
   }
 
-  return (
-    paths.reduce((total, path) => total + getDomainStatValue(stats, path), 0) / paths.length
-  )
+  return paths.reduce((total, path) => total + getDomainStatValue(stats, path), 0) / paths.length
 }
 
 export function getAgentDomainStats(agent: Pick<Agent, 'stats' | 'baseStats'>): DomainStats {
@@ -341,11 +336,14 @@ export function getRoleDomainWeights(role: AgentRole): RoleDomainWeights {
 export function normalizeRoleDomainWeights(
   weights: Partial<Record<StatDomain, number>>
 ): RoleDomainWeights {
-  const sanitized = STAT_DOMAINS.reduce<RoleDomainWeights>((totals, domain) => {
-    const value = weights[domain]
-    totals[domain] = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
-    return totals
-  }, { ...EMPTY_ROLE_DOMAIN_WEIGHTS })
+  const sanitized = STAT_DOMAINS.reduce<RoleDomainWeights>(
+    (totals, domain) => {
+      const value = weights[domain]
+      totals[domain] = typeof value === 'number' && Number.isFinite(value) ? Math.max(0, value) : 0
+      return totals
+    },
+    { ...EMPTY_ROLE_DOMAIN_WEIGHTS }
+  )
   const total = STAT_DOMAINS.reduce((sum, domain) => sum + sanitized[domain], 0)
 
   if (total <= 0) {
@@ -359,10 +357,13 @@ export function normalizeRoleDomainWeights(
     }
   }
 
-  return STAT_DOMAINS.reduce<RoleDomainWeights>((normalized, domain) => {
-    normalized[domain] = sanitized[domain] / total
-    return normalized
-  }, { ...EMPTY_ROLE_DOMAIN_WEIGHTS })
+  return STAT_DOMAINS.reduce<RoleDomainWeights>(
+    (normalized, domain) => {
+      normalized[domain] = sanitized[domain] / total
+      return normalized
+    },
+    { ...EMPTY_ROLE_DOMAIN_WEIGHTS }
+  )
 }
 
 function getCaseContextTags(caseData: CaseInstance | undefined) {
@@ -370,11 +371,7 @@ function getCaseContextTags(caseData: CaseInstance | undefined) {
     return new Set<string>()
   }
 
-  return new Set([
-    ...caseData.tags,
-    ...caseData.requiredTags,
-    ...caseData.preferredTags,
-  ])
+  return new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])
 }
 
 export function buildCaseDomainWeights(caseData?: CaseInstance): RoleDomainWeights {
@@ -399,11 +396,11 @@ export function buildCaseDomainWeights(caseData?: CaseInstance): RoleDomainWeigh
         (definition.contextTags ?? []).filter((tag) => caseTags.has(tag)).length *
         CASE_CONTEXT_WEIGHT_TAG_BONUS
       const durationWeight = isLongCase
-        ? durationBias?.long ?? 0
+        ? (durationBias?.long ?? 0)
         : isShortCase
-          ? durationBias?.short ?? 0
+          ? (durationBias?.short ?? 0)
           : 0
-      const raidWeight = caseData.kind === 'raid' ? raidBias ?? 0 : 0
+      const raidWeight = caseData.kind === 'raid' ? (raidBias ?? 0) : 0
 
       weights[definition.name] = statWeight + tagWeight + durationWeight + raidWeight
       return weights

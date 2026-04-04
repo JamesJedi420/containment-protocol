@@ -26,10 +26,18 @@ function makeStorage() {
   const store: Record<string, string> = {}
   return {
     getItem: (key: string): string | null => (key in store ? store[key] : null),
-    setItem: (key: string, value: string) => { store[key] = String(value) },
-    removeItem: (key: string) => { delete store[key] },
-    clear: () => { for (const k of Object.keys(store)) delete store[k] },
-    get length() { return Object.keys(store).length },
+    setItem: (key: string, value: string) => {
+      store[key] = String(value)
+    },
+    removeItem: (key: string) => {
+      delete store[key]
+    },
+    clear: () => {
+      for (const k of Object.keys(store)) delete store[k]
+    },
+    get length() {
+      return Object.keys(store).length
+    },
     key: (n: number) => Object.keys(store)[n] ?? null,
   }
 }

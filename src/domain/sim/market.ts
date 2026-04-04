@@ -72,11 +72,7 @@ export function purchaseMarketInventory(
   )
 }
 
-export function sellMarketInventory(
-  state: GameState,
-  listingId: string,
-  bundles = 1
-): GameState {
+export function sellMarketInventory(state: GameState, listingId: string, bundles = 1): GameState {
   const listing = getProcurementListing(state, listingId)
 
   if (!listing) {

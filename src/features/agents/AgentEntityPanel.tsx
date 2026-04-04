@@ -29,6 +29,8 @@ export function AgentEntityPanel({
   const { agent, team, assignedCase, trainingEntry, materialized, domainTags } = view
   const assignmentSummary = getAssignmentSummary(view)
   const [isCompactView, setIsCompactView] = useState(false)
+  const potentialBadgeLabel = getPotentialBadgeLabel(materialized.progression)
+  const potentialAriaLabel = getPotentialAriaLabel(materialized.progression)
 
   return (
     <div className="space-y-4" role="main" aria-label="Agent detail panel">
@@ -37,7 +39,9 @@ export function AgentEntityPanel({
           <div className="space-y-3">
             <div className="space-y-1">
               <p className="text-xs uppercase tracking-[0.24em] opacity-50">Operative dossier</p>
-              <h2 id="agent-header" className="text-xl font-semibold">{agent.name}</h2>
+              <h2 id="agent-header" className="text-xl font-semibold">
+                {agent.name}
+              </h2>
               <p className="text-sm opacity-70">
                 {ROLE_LABELS[agent.role]}
                 {materialized.identity.operationalRole
@@ -58,22 +62,48 @@ export function AgentEntityPanel({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill tone={getAgentStatusTone(agent.status)} aria-label={`Agent status: ${formatLabel(agent.status)}`}>
+              <StatusPill
+                tone={getAgentStatusTone(agent.status)}
+                aria-label={`Agent status: ${formatLabel(agent.status)}`}
+              >
                 {formatLabel(agent.status)}
               </StatusPill>
-              <StatusPill tone={getReadinessTone(materialized.service.readinessBand)} aria-label={`Readiness band: ${formatLabel(materialized.service.readinessBand)}`}>
+              <StatusPill
+                tone={getReadinessTone(materialized.service.readinessBand)}
+                aria-label={`Readiness band: ${formatLabel(materialized.service.readinessBand)}`}
+              >
                 Readiness {formatLabel(materialized.service.readinessBand)}
               </StatusPill>
-              <StatusPill tone={materialized.service.deploymentEligible ? 'positive' : 'warning'} aria-label={`Deployment eligibility: ${materialized.service.deploymentEligible ? 'Eligible' : 'Not eligible'}`}>
+              <StatusPill
+                tone={materialized.service.deploymentEligible ? 'positive' : 'warning'}
+                aria-label={`Deployment eligibility: ${materialized.service.deploymentEligible ? 'Eligible' : 'Not eligible'}`}
+              >
                 {materialized.service.deploymentEligible ? 'Deployable' : 'Held back'}
               </StatusPill>
-              <StatusPill tone="neutral" aria-label={`Agent level: ${materialized.progression.level}`}>Level {materialized.progression.level}</StatusPill>
-              <StatusPill tone="neutral" aria-label={`Assigned team: ${team ? `Response Unit ${team.name}` : 'Reserve pool'}`}>
+              <StatusPill
+                tone="neutral"
+                aria-label={`Agent level: ${materialized.progression.level}`}
+              >
+                Level {materialized.progression.level}
+              </StatusPill>
+              <StatusPill tone="neutral" aria-label={potentialAriaLabel}>
+                {potentialBadgeLabel}
+              </StatusPill>
+              <StatusPill
+                tone="neutral"
+                aria-label={`Assigned team: ${team ? `Response Unit ${team.name}` : 'Reserve pool'}`}
+              >
                 {team ? `Response Unit ${team.name}` : 'Reserve pool'}
               </StatusPill>
-              {assignedCase ? <StatusPill tone="neutral" aria-label={`Assigned case: ${assignedCase.title}`}>{assignedCase.title}</StatusPill> : null}
+              {assignedCase ? (
+                <StatusPill tone="neutral" aria-label={`Assigned case: ${assignedCase.title}`}>
+                  {assignedCase.title}
+                </StatusPill>
+              ) : null}
               {trainingEntry ? (
-                <StatusPill tone="warning" aria-label={`Training: ${trainingEntry.trainingName}`}>{trainingEntry.trainingName}</StatusPill>
+                <StatusPill tone="warning" aria-label={`Training: ${trainingEntry.trainingName}`}>
+                  {trainingEntry.trainingName}
+                </StatusPill>
               ) : null}
             </div>
           </div>
@@ -86,7 +116,7 @@ export function AgentEntityPanel({
               onClick={() => setIsCompactView((current) => !current)}
               aria-label={isCompactView ? 'Switch to detailed view' : 'Switch to compact view'}
             >
-              {isCompactView ? 'Detailed View' : 'Compact View'}
+              {isCompactView ? 'Show detailed view' : 'Show compact view'}
             </button>
             <Link
               to={APP_ROUTES.teams}
@@ -94,7 +124,7 @@ export function AgentEntityPanel({
               aria-label={`Assign ${agent.name} to a response unit`}
               title="Open teams to assign this agent"
             >
-              Assign Agent
+              Assign to team
             </Link>
             <Link
               to={APP_ROUTES.agentDetail(agent.id)}
@@ -102,7 +132,7 @@ export function AgentEntityPanel({
               aria-label={`Edit nickname for ${agent.name}`}
               title="Open agent profile to edit codename details"
             >
-              Edit Nickname
+              Edit nickname
             </Link>
             {team ? (
               <Link to={APP_ROUTES.teamDetail(team.id)} className="btn btn-sm btn-ghost">
@@ -115,18 +145,42 @@ export function AgentEntityPanel({
               </Link>
             ) : null}
             <Link to={APP_ROUTES.trainingDivision} className="btn btn-sm btn-ghost">
-              Open Training Division
+              Open training division
             </Link>
           </div>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-          <StatCardWithIcon label="Evaluation" value={formatNumber(materialized.performance.score)} icon={<IconScore size={18} />} />
-          <StatCardWithIcon label="Contribution" value={formatNumber(materialized.performance.contribution)} icon={<IconStatUtility size={18} />} />
-          <StatCardWithIcon label="Fatigue" value={materialized.vitals.fatigue} icon={<IconFatigue size={18} />} />
-          <StatCardWithIcon label="Stress" value={materialized.vitals.stress} icon={<IconStatSocial size={18} />} />
-          <StatCardWithIcon label="Morale" value={materialized.vitals.morale} icon={<IconStatCombat size={18} />} />
-          <StatCardWithIcon label="XP to next" value={materialized.progression.xpToNextLevel} icon={<IconStatInvestigation size={18} />} />
+          <StatCardWithIcon
+            label="Evaluation"
+            value={formatNumber(materialized.performance.score)}
+            icon={<IconScore size={18} />}
+          />
+          <StatCardWithIcon
+            label="Contribution"
+            value={formatNumber(materialized.performance.contribution)}
+            icon={<IconStatUtility size={18} />}
+          />
+          <StatCardWithIcon
+            label="Fatigue"
+            value={materialized.vitals.fatigue}
+            icon={<IconFatigue size={18} />}
+          />
+          <StatCardWithIcon
+            label="Stress"
+            value={materialized.vitals.stress}
+            icon={<IconStatSocial size={18} />}
+          />
+          <StatCardWithIcon
+            label="Morale"
+            value={materialized.vitals.morale}
+            icon={<IconStatCombat size={18} />}
+          />
+          <StatCardWithIcon
+            label="XP to next"
+            value={materialized.progression.xpToNextLevel}
+            icon={<IconStatInvestigation size={18} />}
+          />
         </div>
       </article>
 
@@ -279,281 +333,292 @@ export function AgentEntityPanel({
       <AgentTabsContainer view={view} activeTab={activeTab} onTabChange={onTabChange} />
 
       <div className={isCompactView ? 'hidden' : 'space-y-4'}>
+        <article className="panel space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Identity and assignment</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Long-term service record
+            </p>
+          </div>
 
-      <article className="panel space-y-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-semibold">Identity and assignment</h3>
-          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            Long-term service record
-          </p>
-        </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <DossierItem
+              label="Age"
+              value={materialized.identity.age ? String(materialized.identity.age) : 'Unknown'}
+            />
+            <DossierItem label="Specialization" value={materialized.identity.specialization} />
+            <DossierItem
+              label="Background"
+              value={materialized.identity.background ?? 'No background on file'}
+            />
+            <DossierItem
+              label="Assignment started"
+              value={
+                materialized.assignment.startedWeek !== undefined
+                  ? `Week ${materialized.assignment.startedWeek}`
+                  : 'Not started'
+              }
+            />
+            <DossierItem label="Joined agency" value={`Week ${materialized.service.joinedWeek}`} />
+            <DossierItem
+              label="Last assignment"
+              value={
+                materialized.service.lastAssignmentWeek !== undefined
+                  ? `Week ${materialized.service.lastAssignmentWeek}`
+                  : 'None'
+              }
+            />
+            <DossierItem
+              label="Last case"
+              value={
+                materialized.service.lastCaseWeek !== undefined
+                  ? `Week ${materialized.service.lastCaseWeek}`
+                  : 'None'
+              }
+            />
+            <DossierItem
+              label="Last training"
+              value={
+                materialized.service.lastTrainingWeek !== undefined
+                  ? `Week ${materialized.service.lastTrainingWeek}`
+                  : 'None'
+              }
+            />
+            <DossierItem
+              label="Last recovery"
+              value={
+                materialized.service.lastRecoveryWeek !== undefined
+                  ? `Week ${materialized.service.lastRecoveryWeek}`
+                  : 'None'
+              }
+            />
+            <DossierItem
+              label="Team posture"
+              value={team ? formatLabel(team.statusState) : 'Reserve'}
+            />
+            <DossierItem
+              label="Assigned case"
+              value={assignedCase ? assignedCase.title : SHELL_UI_TEXT.none}
+            />
+            <DossierItem
+              label="Training"
+              value={
+                trainingEntry
+                  ? `${trainingEntry.trainingName} (${trainingEntry.remainingWeeks}w remaining)`
+                  : SHELL_UI_TEXT.none
+              }
+            />
+          </div>
+        </article>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <DossierItem
-                label="Age"
-                value={materialized.identity.age ? String(materialized.identity.age) : 'Unknown'}
-              />
-              <DossierItem label="Specialization" value={materialized.identity.specialization} />
-              <DossierItem
-                label="Background"
-                value={materialized.identity.background ?? 'No background on file'}
-              />
-              <DossierItem
-                label="Assignment started"
-                value={
-                  materialized.assignment.startedWeek !== undefined
-                    ? `Week ${materialized.assignment.startedWeek}`
-                    : 'Not started'
-                }
-              />
-              <DossierItem label="Joined agency" value={`Week ${materialized.service.joinedWeek}`} />
-              <DossierItem
-                label="Last assignment"
-                value={
-                  materialized.service.lastAssignmentWeek !== undefined
-                    ? `Week ${materialized.service.lastAssignmentWeek}`
-                    : 'None'
-                }
-              />
-              <DossierItem
-                label="Last case"
-                value={
-                  materialized.service.lastCaseWeek !== undefined
-                    ? `Week ${materialized.service.lastCaseWeek}`
-                    : 'None'
-                }
-              />
-              <DossierItem
-                label="Last training"
-                value={
-                  materialized.service.lastTrainingWeek !== undefined
-                    ? `Week ${materialized.service.lastTrainingWeek}`
-                    : 'None'
-                }
-              />
-              <DossierItem
-                label="Last recovery"
-                value={
-                  materialized.service.lastRecoveryWeek !== undefined
-                    ? `Week ${materialized.service.lastRecoveryWeek}`
-                    : 'None'
-                }
-              />
-              <DossierItem label="Team posture" value={team ? formatLabel(team.statusState) : 'Reserve'} />
-              <DossierItem
-                label="Assigned case"
-                value={assignedCase ? assignedCase.title : SHELL_UI_TEXT.none}
-              />
-              <DossierItem
-                label="Training"
-                value={
-                  trainingEntry
-                    ? `${trainingEntry.trainingName} (${trainingEntry.remainingWeeks}w remaining)`
-                    : SHELL_UI_TEXT.none
-                }
-              />
-            </div>
-          </article>
+        <article className="panel space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Domain state</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Base vs effective vs weighted
+            </p>
+          </div>
 
-          <article className="panel space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-base font-semibold">Domain state</h3>
-              <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                Base vs effective vs weighted
-              </p>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="text-xs uppercase tracking-[0.24em] opacity-50">
-                  <tr>
-                    <th className="pb-2 pr-4">Domain</th>
-                    <th className="pb-2 pr-4">Base</th>
-                    <th className="pb-2 pr-4">Effective</th>
-                    <th className="pb-2">Weighted</th>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="text-xs uppercase tracking-[0.24em] opacity-50">
+                <tr>
+                  <th className="pb-2 pr-4">Domain</th>
+                  <th className="pb-2 pr-4">Base</th>
+                  <th className="pb-2 pr-4">Effective</th>
+                  <th className="pb-2">Weighted</th>
+                </tr>
+              </thead>
+              <tbody>
+                {materialized.domains.map((domain) => (
+                  <tr key={domain.key} className="border-t border-white/10">
+                    <td className="py-2 pr-4 font-medium">{domain.label}</td>
+                    <td className="py-2 pr-4 opacity-70">{domain.base}</td>
+                    <td className="py-2 pr-4 opacity-70">{domain.effective}</td>
+                    <td className="py-2 opacity-70">{formatNumber(domain.weighted)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {materialized.domains.map((domain) => (
-                    <tr key={domain.key} className="border-t border-white/10">
-                      <td className="py-2 pr-4 font-medium">{domain.label}</td>
-                      <td className="py-2 pr-4 opacity-70">{domain.base}</td>
-                      <td className="py-2 pr-4 opacity-70">{domain.effective}</td>
-                      <td className="py-2 opacity-70">{formatNumber(domain.weighted)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </article>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
 
-          <article className="panel space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-base font-semibold">Equipment and abilities</h3>
-              <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                Passive modifiers only
-              </p>
-            </div>
+        <article className="panel space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Equipment and abilities</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Passive modifiers only</p>
+          </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="space-y-2">
-                <div className="space-y-3 rounded border border-white/10 px-4 py-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs uppercase tracking-[0.24em] opacity-50">Equipment loadout</p>
-                    <p className="text-xs uppercase tracking-[0.2em] opacity-50">
-                      Additive modifiers only
-                    </p>
-                  </div>
-
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <SnapshotMetric
-                      label="Equipped slots"
-                      value={String(materialized.equipmentSummary.equippedSlots)}
-                    />
-                    <SnapshotMetric
-                      label="Empty slots"
-                      value={String(materialized.equipmentSummary.emptySlots)}
-                    />
-                    <SnapshotMetric
-                      label="Context live"
-                      value={String(materialized.equipmentSummary.activeContextSlots)}
-                    />
-                    <SnapshotMetric
-                      label="Loadout quality"
-                      value={String(materialized.equipmentSummary.loadoutQuality)}
-                    />
-                  </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="space-y-2">
+              <div className="space-y-3 rounded border border-white/10 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                    Equipment loadout
+                  </p>
+                  <p className="text-xs uppercase tracking-[0.2em] opacity-50">
+                    Additive modifiers only
+                  </p>
                 </div>
 
-                <ul className="grid gap-3 lg:grid-cols-2" aria-label="Equipment slots">
-                  {materialized.equipment.map((item) => (
-                    <li
-                      key={item.slot}
-                      className={`rounded border px-3 py-3 ${
-                        item.empty
-                          ? 'border-white/10 bg-white/3'
-                          : item.contextActive
-                            ? 'border-emerald-400/20 bg-emerald-500/[0.07]'
-                            : 'border-white/10 bg-white/3'
-                      }`}
-                      title={item.itemLabel}
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                            {item.slotLabel}
-                          </p>
-                          <p className="mt-1 font-medium">{item.itemLabel}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <StatusPill tone={item.contextActive ? 'positive' : 'neutral'}>
-                            {item.statusLabel}
-                          </StatusPill>
-                          <StatusPill tone={item.empty ? 'neutral' : 'warning'}>
-                            {item.qualityLabel}
-                          </StatusPill>
-                        </div>
-                      </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                  <SnapshotMetric
+                    label="Equipped slots"
+                    value={String(materialized.equipmentSummary.equippedSlots)}
+                  />
+                  <SnapshotMetric
+                    label="Empty slots"
+                    value={String(materialized.equipmentSummary.emptySlots)}
+                  />
+                  <SnapshotMetric
+                    label="Context live"
+                    value={String(materialized.equipmentSummary.activeContextSlots)}
+                  />
+                  <SnapshotMetric
+                    label="Loadout quality"
+                    value={String(materialized.equipmentSummary.loadoutQuality)}
+                  />
+                </div>
+              </div>
 
-                      {item.empty ? (
-                        <p className="mt-3 text-sm opacity-60">
-                          No item slotted. This slot is contributing no additive bonuses.
+              <ul className="grid gap-3 lg:grid-cols-2" aria-label="Equipment slots">
+                {materialized.equipment.map((item) => (
+                  <li
+                    key={item.slot}
+                    className={`rounded border px-3 py-3 ${
+                      item.empty
+                        ? 'border-white/10 bg-white/3'
+                        : item.contextActive
+                          ? 'border-emerald-400/20 bg-emerald-500/[0.07]'
+                          : 'border-white/10 bg-white/3'
+                    }`}
+                    title={item.itemLabel}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                          {item.slotLabel}
                         </p>
-                      ) : (
-                        <div className="mt-3 space-y-2">
-                          <EquipmentLine label="Base additive" value={item.baseModifierSummary} />
-                          <EquipmentLine
-                            label="Context bonus"
-                            value={item.contextualModifierSummary}
-                            active={item.contextActive}
-                          />
-                          <EquipmentLine label="Total effect" value={item.totalModifierSummary} />
-                        </div>
-                      )}
+                        <p className="mt-1 font-medium">{item.itemLabel}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <StatusPill tone={item.contextActive ? 'positive' : 'neutral'}>
+                          {item.statusLabel}
+                        </StatusPill>
+                        <StatusPill tone={item.empty ? 'neutral' : 'warning'}>
+                          {item.qualityLabel}
+                        </StatusPill>
+                      </div>
+                    </div>
+
+                    {item.empty ? (
+                      <p className="mt-3 text-sm opacity-60">
+                        No item slotted. This slot is contributing no additive bonuses.
+                      </p>
+                    ) : (
+                      <div className="mt-3 space-y-2">
+                        <EquipmentLine label="Base additive" value={item.baseModifierSummary} />
+                        <EquipmentLine
+                          label="Context bonus"
+                          value={item.contextualModifierSummary}
+                          active={item.contextActive}
+                        />
+                        <EquipmentLine label="Total effect" value={item.totalModifierSummary} />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Abilities</p>
+              {materialized.abilities.length > 0 ? (
+                <ul className="space-y-2" aria-label="Agent abilities">
+                  {materialized.abilities.map((ability) => (
+                    <li
+                      key={ability.id}
+                      className="rounded border border-white/10 px-3 py-2"
+                      title={ability.description || ability.label}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-medium">{ability.label}</p>
+                        <p className="text-xs uppercase tracking-[0.2em] opacity-50">
+                          {ability.activeInMvp ? 'Passive live' : 'Active scaffold'}
+                        </p>
+                      </div>
+                      {ability.description ? (
+                        <p className="text-sm opacity-60">{ability.description}</p>
+                      ) : null}
+                      <p className="text-sm opacity-60">{ability.effectSummary}</p>
+                      {ability.contextHint ? (
+                        <p className="text-xs italic opacity-45">{ability.contextHint}</p>
+                      ) : null}
+                      {ability.trigger ? (
+                        <p className="text-xs uppercase tracking-[0.2em] opacity-50">
+                          Trigger: {ability.trigger}
+                        </p>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.24em] opacity-50">Abilities</p>
-                {materialized.abilities.length > 0 ? (
-                  <ul className="space-y-2" aria-label="Agent abilities">
-                    {materialized.abilities.map((ability) => (
-                      <li key={ability.id} className="rounded border border-white/10 px-3 py-2" title={ability.description || ability.label}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-medium">{ability.label}</p>
-                          <p className="text-xs uppercase tracking-[0.2em] opacity-50">
-                            {ability.activeInMvp ? 'Passive live' : 'Active scaffold'}
-                          </p>
-                        </div>
-                        {ability.description ? (
-                          <p className="text-sm opacity-60">{ability.description}</p>
-                        ) : null}
-                        <p className="text-sm opacity-60">{ability.effectSummary}</p>
-                        {ability.contextHint ? (
-                          <p className="text-xs italic opacity-45">{ability.contextHint}</p>
-                        ) : null}
-                        {ability.trigger ? (
-                          <p className="text-xs uppercase tracking-[0.2em] opacity-50">
-                            Trigger: {ability.trigger}
-                          </p>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm opacity-60">No abilities recorded.</p>
-                )}
-              </div>
+              ) : (
+                <p className="text-sm opacity-60">No abilities recorded.</p>
+              )}
             </div>
-          </article>
+          </div>
+        </article>
 
-          <article className="panel space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-base font-semibold">Traits and long-term markers</h3>
-              <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-                Context-aware trait state
+        <article className="panel space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h3 className="text-base font-semibold">Traits and long-term markers</h3>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              Context-aware trait state
+            </p>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Traits</p>
+              {materialized.traits.length > 0 ? (
+                <ul className="space-y-2" aria-label="Agent traits">
+                  {materialized.traits.map((trait) => (
+                    <li
+                      key={trait.id}
+                      className="rounded border border-white/10 px-3 py-2"
+                      title={trait.description || trait.label}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="font-medium">{trait.label}</p>
+                        <p className="text-xs uppercase tracking-[0.2em] opacity-50">
+                          {trait.active ? 'Active now' : 'Dormant now'}
+                        </p>
+                      </div>
+                      {trait.description ? (
+                        <p className="text-sm opacity-60">{trait.description}</p>
+                      ) : null}
+                      <p className="text-sm opacity-60">Configured: {trait.configuredSummary}</p>
+                      <p className="text-sm opacity-60">Current effect: {trait.activeSummary}</p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm opacity-60">No passive traits recorded.</p>
+              )}
+            </div>
+
+            <div className="space-y-3 rounded border border-white/10 px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Build signals</p>
+              <p className="text-sm opacity-80">
+                {domainTags.length > 0 ? domainTags.join(', ') : SHELL_UI_TEXT.none}
+              </p>
+              <p className="text-sm opacity-60">
+                These signals combine authored tags, specialization, role posture, and trait
+                markers.
               </p>
             </div>
-
-            <div className="grid gap-4 xl:grid-cols-2">
-              <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.24em] opacity-50">Traits</p>
-                {materialized.traits.length > 0 ? (
-                  <ul className="space-y-2" aria-label="Agent traits">
-                    {materialized.traits.map((trait) => (
-                      <li key={trait.id} className="rounded border border-white/10 px-3 py-2" title={trait.description || trait.label}>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-medium">{trait.label}</p>
-                          <p className="text-xs uppercase tracking-[0.2em] opacity-50">
-                            {trait.active ? 'Active now' : 'Dormant now'}
-                          </p>
-                        </div>
-                        {trait.description ? (
-                          <p className="text-sm opacity-60">{trait.description}</p>
-                        ) : null}
-                        <p className="text-sm opacity-60">Configured: {trait.configuredSummary}</p>
-                        <p className="text-sm opacity-60">Current effect: {trait.activeSummary}</p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm opacity-60">No passive traits recorded.</p>
-                )}
-              </div>
-
-              <div className="space-y-3 rounded border border-white/10 px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.24em] opacity-50">Build signals</p>
-                <p className="text-sm opacity-80">
-                  {domainTags.length > 0 ? domainTags.join(', ') : SHELL_UI_TEXT.none}
-                </p>
-                <p className="text-sm opacity-60">
-                  These signals combine authored tags, specialization, role posture, and trait markers.
-                </p>
-              </div>
-            </div>
-          </article>
+          </div>
+        </article>
       </div>
     </div>
   )
@@ -577,15 +642,7 @@ function DossierItem({ label, value }: { label: string; value: string }) {
   )
 }
 
-function PerformanceLine({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: number
-  hint: string
-}) {
+function PerformanceLine({ label, value, hint }: { label: string; value: number; hint: string }) {
   return (
     <div className="rounded border border-white/10 px-3 py-2">
       <div className="flex items-center justify-between gap-3">
@@ -650,8 +707,7 @@ function StatusPill({
 }
 
 function AssessmentBadge({ severity }: { severity: 'positive' | 'warning' | 'neutral' }) {
-  const label =
-    severity === 'positive' ? 'Strength' : severity === 'warning' ? 'Risk' : 'Note'
+  const label = severity === 'positive' ? 'Strength' : severity === 'warning' ? 'Risk' : 'Note'
 
   return (
     <span className="rounded border border-white/10 px-2 py-1 text-xs uppercase tracking-[0.2em] opacity-60">
@@ -754,4 +810,28 @@ function formatLabel(value: string) {
 
 function formatNumber(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(2)
+}
+
+function getPotentialBadgeLabel(progression: AgentView['materialized']['progression']) {
+  if (progression.exactPotentialKnown) {
+    return `Potential ${progression.actualPotentialTier}`
+  }
+
+  if (progression.visiblePotentialTier) {
+    return `Projected ${progression.visiblePotentialTier}`
+  }
+
+  return 'Potential Unknown'
+}
+
+function getPotentialAriaLabel(progression: AgentView['materialized']['progression']) {
+  if (progression.exactPotentialKnown) {
+    return `Potential tier confirmed: ${progression.actualPotentialTier}`
+  }
+
+  if (progression.visiblePotentialTier) {
+    return `Projected potential tier: ${progression.visiblePotentialTier}`
+  }
+
+  return 'Potential tier unknown'
 }

@@ -19,10 +19,7 @@ export function getAverageTeamFatigue(team: Team, agents: GameState['agents']) {
     return 0
   }
 
-  const totalFatigue = memberIds.reduce(
-    (sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0),
-    0
-  )
+  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
 
   return Math.round(totalFatigue / memberIds.length)
 }
@@ -67,10 +64,7 @@ export function applyWeeklyAgentFatigue({
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
       const delta = activeAgentIds.has(id)
-        ? Math.max(
-            1,
-            Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0)))
-          )
+        ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
         : trainingAgentIds.has(id)
           ? 0
           : -recoveryFatigue

@@ -62,9 +62,7 @@ export function formatProductionMaterialSummary(
     return 'No input materials'
   }
 
-  return materials
-    .map((material) => `${material.materialName} x${material.quantity}`)
-    .join(', ')
+  return materials.map((material) => `${material.materialName} x${material.quantity}`).join(', ')
 }
 
 export function formatProductionOutputLabel(quantity: number, outputName: string) {

@@ -73,7 +73,9 @@ describe('MarketPage', () => {
     expect(screen.getByRole('searchbox', { name: /search/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /category/i })).toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: /sort/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /current week procurement log/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /current week procurement log/i })
+    ).toBeInTheDocument()
   })
 
   it('hydrates URL filters from deep-link params', async () => {
@@ -174,14 +176,20 @@ describe('MarketPage', () => {
     const nextGame = useGameStore.getState().game
     expect(nextGame.funding).toBe(beforeFunding - listing!.buyPrice)
     expect(nextGame.inventory[listing!.itemId]).toBe(beforeStock + listing!.bundleQuantity)
-    expect(screen.getByText(new RegExp(`Purchased ${listing!.bundleQuantity}x ${listing!.itemName}`, 'i'))).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        new RegExp(`Purchased ${listing!.bundleQuantity}x ${listing!.itemName}`, 'i')
+      )
+    ).toBeInTheDocument()
   })
 
   it('sells one bundle and updates funding, inventory, and transaction history', async () => {
     const user = userEvent.setup()
     const initial = createStartingState()
     const listings = getFilteredMarketListings(initial, DEFAULT_MARKET_FILTERS)
-    const listingIndex = listings.findIndex((candidate) => candidate.inventoryStock >= candidate.bundleQuantity)
+    const listingIndex = listings.findIndex(
+      (candidate) => candidate.inventoryStock >= candidate.bundleQuantity
+    )
     const listing = listingIndex >= 0 ? listings[listingIndex] : undefined
 
     expect(listing).toBeDefined()
@@ -197,7 +205,9 @@ describe('MarketPage', () => {
     const nextGame = useGameStore.getState().game
     expect(nextGame.funding).toBe(beforeFunding + listing!.sellPrice)
     expect(nextGame.inventory[listing!.itemId]).toBe(beforeStock - listing!.bundleQuantity)
-    expect(screen.getByText(new RegExp(`Sold ${listing!.bundleQuantity}x ${listing!.itemName}`, 'i'))).toBeInTheDocument()
+    expect(
+      screen.getByText(new RegExp(`Sold ${listing!.bundleQuantity}x ${listing!.itemName}`, 'i'))
+    ).toBeInTheDocument()
   })
 
   it('disables buy actions and shows funding shortfall when funding is insufficient', () => {
@@ -238,7 +248,10 @@ describe('MarketPage', () => {
   it('restores market filters when navigating back from linked route and forward again', async () => {
     const user = userEvent.setup()
 
-    renderMarketPage(['/markets-suppliers?q=kit&category=featured&sort=price-desc', '/equipment'], 1)
+    renderMarketPage(
+      ['/markets-suppliers?q=kit&category=featured&sort=price-desc', '/equipment'],
+      1
+    )
 
     expect(screen.getByTestId('equipment-page')).toBeInTheDocument()
 

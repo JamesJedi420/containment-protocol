@@ -188,6 +188,7 @@ it('renders agent assignment, progression, history, and passive traits', async (
       id: 'training-test-entry',
       trainingId: 'core-analysis',
       trainingName: 'Core Analysis',
+      scope: 'agent',
       agentId: agent.id,
       agentName: agent.name,
       targetStat: 'investigation',
@@ -218,11 +219,11 @@ it('renders agent assignment, progression, history, and passive traits', async (
   expect(screen.getByText(/fatigue watch/i)).toBeInTheDocument()
   expect(screen.getByRole('tab', { name: /stats/i })).toBeInTheDocument()
   expect(screen.getByRole('tab', { name: /history/i })).toBeInTheDocument()
-  
+
   // XP value is in History tab
   await user.click(screen.getByRole('tab', { name: /history/i }))
   expect(screen.getByText(String(seededXp))).toBeInTheDocument()
-  
+
   expect(screen.getAllByText('Disciplined').length).toBeGreaterThan(0)
   expect(screen.getByText(/keeps focus under pressure/i)).toBeInTheDocument()
   expect(screen.getAllByText(/overall \+2/i).length).toBeGreaterThan(0)
@@ -235,13 +236,13 @@ it('renders agent assignment, progression, history, and passive traits', async (
   expect(screen.getAllByText(/xp to next/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/level progress/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/skill points/i).length).toBeGreaterThan(0)
-  
+
   // Switch to Stats tab to check performance metrics
   await user.click(screen.getByRole('tab', { name: /stats/i }))
   expect(screen.getByText(/healing \/ stabilization/i)).toBeInTheDocument()
   expect(screen.getByText(/evidence gathered/i)).toBeInTheDocument()
   expect(screen.getByText(/live performance model/i)).toBeInTheDocument()
-  
+
   expect(screen.getByText(/equipment and abilities/i)).toBeInTheDocument()
   expect(screen.getByText(/equipment loadout/i)).toBeInTheDocument()
   expect(screen.getByText(/equipped slots/i)).toBeInTheDocument()

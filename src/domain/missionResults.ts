@@ -162,7 +162,9 @@ function appendUniqueNote(notes: string[], note: string) {
 }
 
 function collectCaseTags(currentCase: CaseInstance) {
-  return [...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags])]
+  return [
+    ...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]),
+  ]
 }
 
 function hasAnyTag(tags: readonly string[], candidates: readonly string[]) {
@@ -173,13 +175,30 @@ function classifyRewardCaseProfile(currentCase: CaseInstance) {
   const tags = collectCaseTags(currentCase)
 
   if (
-    hasAnyTag(tags, ['occult', 'ritual', 'spirit', 'haunt', 'curse', 'cult', 'possession', 'reliquary'])
+    hasAnyTag(tags, [
+      'occult',
+      'ritual',
+      'spirit',
+      'haunt',
+      'curse',
+      'cult',
+      'possession',
+      'reliquary',
+    ])
   ) {
     return REWARD_CASE_PROFILES.find((profile) => profile.id === 'occult')!
   }
 
   if (
-    hasAnyTag(tags, ['breach', 'containment', 'perimeter', 'hazmat', 'chemical', 'biological', 'seal'])
+    hasAnyTag(tags, [
+      'breach',
+      'containment',
+      'perimeter',
+      'hazmat',
+      'chemical',
+      'biological',
+      'seal',
+    ])
   ) {
     return REWARD_CASE_PROFILES.find((profile) => profile.id === 'containment_breach')!
   }
@@ -222,9 +241,7 @@ function buildOperationValueBreakdown(
 ): OperationValueBreakdown {
   const requiredScore = computeRequiredScore(currentCase, config)
   const raidBonusValue =
-    currentCase.kind === 'raid'
-      ? Math.round(requiredScore * (RAID_VALUE_MULTIPLIER - 1))
-      : 0
+    currentCase.kind === 'raid' ? Math.round(requiredScore * (RAID_VALUE_MULTIPLIER - 1)) : 0
   const stageBonusValue = Math.round(
     requiredScore * Math.max(0, currentCase.stage - 1) * STAGE_VALUE_STEP
   )
@@ -380,7 +397,9 @@ function buildFactionStandingRewards(
   return targets
     .map(({ faction, overlapTags }, index) => {
       const distributedDelta =
-        index === 0 ? baseMagnitude : Math.sign(baseMagnitude) * Math.max(1, Math.round(Math.abs(baseMagnitude) * 0.5))
+        index === 0
+          ? baseMagnitude
+          : Math.sign(baseMagnitude) * Math.max(1, Math.round(Math.abs(baseMagnitude) * 0.5))
 
       return {
         factionId: faction.id,
@@ -397,7 +416,14 @@ function buildFactionRewardValue(
   operationValue: number,
   game?: Pick<
     GameState,
-    'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
   >
 ): FactionRewardValueBreakdown {
   if (!game) {
@@ -418,7 +444,10 @@ function buildFactionRewardValue(
 
   const modifierValue = Math.round(operationValue * influence.rewardModifier)
   const matchSummary = influence.matches
-    .map((match) => `${match.label} (${match.rewardModifier >= 0 ? '+' : ''}${match.rewardModifier.toFixed(2)})`)
+    .map(
+      (match) =>
+        `${match.label} (${match.rewardModifier >= 0 ? '+' : ''}${match.rewardModifier.toFixed(2)})`
+    )
     .join(', ')
 
   return {
@@ -466,21 +495,24 @@ function getFundingDelta(
   }
 
   if (outcome === 'fail') {
-    return -(
-      config.fundingPenaltyPerFail +
-      Math.round(operationValue * 0.065) +
-      stageBonus +
-      Math.max(0, profile.fundingBias)
+    return (
+      -(
+        config.fundingPenaltyPerFail +
+        Math.round(operationValue * 0.065) +
+        stageBonus +
+        Math.max(0, profile.fundingBias)
+      ) + factionFundingDelta
     )
-      + factionFundingDelta
   }
 
-  return -(
-    config.fundingPenaltyPerUnresolved +
-    Math.round(operationValue * 0.1) +
-    stageBonus +
-    Math.max(0, profile.fundingBias)
-  ) + factionFundingDelta
+  return (
+    -(
+      config.fundingPenaltyPerUnresolved +
+      Math.round(operationValue * 0.1) +
+      stageBonus +
+      Math.max(0, profile.fundingBias)
+    ) + factionFundingDelta
+  )
 }
 
 function getContainmentDelta(
@@ -494,7 +526,9 @@ function getContainmentDelta(
   const difficultyBonus = Math.round(operationValue / 90)
 
   if (outcome === 'success') {
-    return config.containmentDeltaPerResolution + stageBonus + difficultyBonus + profile.containmentBias
+    return (
+      config.containmentDeltaPerResolution + stageBonus + difficultyBonus + profile.containmentBias
+    )
   }
 
   if (outcome === 'partial') {
@@ -530,7 +564,10 @@ function getReputationDelta(
   factionModifierValue = 0
 ) {
   const baseReputation =
-    2 + Math.max(0, currentCase.stage - 1) + Math.round(operationValue * 0.065) + profile.reputationBias
+    2 +
+    Math.max(0, currentCase.stage - 1) +
+    Math.round(operationValue * 0.065) +
+    profile.reputationBias
   const factionReputationDelta = Math.round(factionModifierValue * 0.1)
 
   if (outcome === 'success') {
@@ -538,7 +575,10 @@ function getReputationDelta(
   }
 
   if (outcome === 'partial') {
-    return Math.max(1, Math.round(baseReputation * PARTIAL_REPUTATION_RATE) + factionReputationDelta)
+    return Math.max(
+      1,
+      Math.round(baseReputation * PARTIAL_REPUTATION_RATE) + factionReputationDelta
+    )
   }
 
   if (outcome === 'fail') {
@@ -584,21 +624,30 @@ function buildRewardReasons(
   const inventorySummary =
     breakdown.inventoryRewards.length > 0
       ? `Inventory rewards: ${breakdown.inventoryRewards
-          .map((reward: { label: string; quantity: number }) => `${reward.label} x${reward.quantity}`)
+          .map(
+            (reward: { label: string; quantity: number }) => `${reward.label} x${reward.quantity}`
+          )
           .join(', ')}.`
       : 'No inventory rewards generated for this outcome.'
   const factionSummary =
     breakdown.factionStanding.length > 0
       ? `Faction standing: ${breakdown.factionStanding
-          .map((entry: { label: string; delta: number }) => `${entry.label} ${entry.delta > 0 ? '+' : ''}${entry.delta}`)
+          .map(
+            (entry: { label: string; delta: number }) =>
+              `${entry.label} ${entry.delta > 0 ? '+' : ''}${entry.delta}`
+          )
           .join(', ')}.`
       : 'No faction standing change.'
-  const factionInfluence = breakdown.factors.find((factor: { id: string }) => factor.id === 'faction-influence')
+  const factionInfluence = breakdown.factors.find(
+    (factor: { id: string }) => factor.id === 'faction-influence'
+  )
 
   return [
     `Operation value ${breakdown.operationValue} came from difficulty, escalation pressure, duration, and deadline pressure.`,
     `${breakdown.caseTypeLabel} routing applies the deterministic reward table for this incident family.`,
-    factionInfluence ? factionInfluence.detail : 'No faction influence modifier applied to this payout.',
+    factionInfluence
+      ? factionInfluence.detail
+      : 'No faction influence modifier applied to this payout.',
     `Funding ${breakdown.fundingDelta > 0 ? '+' : ''}${breakdown.fundingDelta}, containment ${breakdown.containmentDelta > 0 ? '+' : ''}${breakdown.containmentDelta}, reputation ${breakdown.reputationDelta > 0 ? '+' : ''}${breakdown.reputationDelta}.`,
     inventorySummary,
     factionSummary,
@@ -718,7 +767,14 @@ export function buildMissionRewardBreakdown(
   config: GameConfig,
   game?: Pick<
     GameState,
-    'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
   >
 ): MissionRewardBreakdown {
   const operationValue = buildOperationValueBreakdown(currentCase, config)
@@ -792,7 +848,14 @@ export function buildMissionRewardPreviewSet(
   config: GameConfig,
   game?: Pick<
     GameState,
-    'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
   >
 ) {
   return {
@@ -803,7 +866,9 @@ export function buildMissionRewardPreviewSet(
   }
 }
 
-export function getMissionRewardInventoryTotals(reward: Pick<MissionRewardBreakdown, 'inventoryRewards'>) {
+export function getMissionRewardInventoryTotals(
+  reward: Pick<MissionRewardBreakdown, 'inventoryRewards'>
+) {
   return reward.inventoryRewards.reduce(
     (
       totals: { materials: number; equipment: number },

@@ -327,7 +327,9 @@ describe('injury and recovery lifecycle', () => {
     const withGenericPassive = advanceWeek(passiveRecoveryState)
 
     expect(withGenericPassive.agents.a_ava.status).toBe('active')
-    expect(withGenericPassive.agents.a_ava.vitals?.morale).toBe(baseline.agents.a_ava.vitals?.morale)
+    expect(withGenericPassive.agents.a_ava.vitals?.morale).toBe(
+      baseline.agents.a_ava.vitals?.morale
+    )
   })
 
   it('keeps recovering agents out of redeployment while allowing active teammates to deploy', () => {
@@ -364,7 +366,11 @@ describe('injury and recovery lifecycle', () => {
             ? {
                 ...agent,
                 status: 'recovering' as const,
-                assignment: { state: 'recovery' as const, teamId: 't_nightwatch', startedWeek: base.week },
+                assignment: {
+                  state: 'recovery' as const,
+                  teamId: 't_nightwatch',
+                  startedWeek: base.week,
+                },
               }
             : agent,
         ])

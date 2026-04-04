@@ -5,6 +5,7 @@ import type { AgentData, Candidate } from '../../domain/models'
 import { advanceWeek as advanceWeekDomain } from '../../domain/sim/advanceWeek'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
 import { hireCandidate as hireCandidateDomain } from '../../domain/sim/hire'
+import { scoutCandidate as scoutCandidateDomain } from '../../domain/sim/recruitmentScouting'
 import {
   equipAgentItem as equipAgentItemDomain,
   unequipAgentItem as unequipAgentItemDomain,
@@ -20,7 +21,10 @@ import {
   renameTeam as renameTeamDomain,
   setTeamLeader as setTeamLeaderDomain,
 } from '../../domain/sim/teamManagement'
-import { queueTeamTraining as queueTeamTrainingDomain, queueTraining as queueTrainingDomain } from '../../domain/sim/training'
+import {
+  queueTeamTraining as queueTeamTrainingDomain,
+  queueTraining as queueTrainingDomain,
+} from '../../domain/sim/training'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -142,6 +146,48 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game: initial })
     useGameStore.getState().hireCandidate(candidate.id)
+
+    expect(useGameStore.getState().game).toEqual(direct)
+    expectCanonicalTeams(useGameStore.getState().game)
+  })
+
+  it('scoutCandidate: domain mutator result equals store action result', () => {
+    const candidate: Candidate = {
+      id: 'cand-scout',
+      name: 'Scout Prospect',
+      age: 29,
+      category: 'agent',
+      hireStatus: 'available',
+      revealLevel: 0,
+      expiryWeek: 5,
+      weeklyCost: 16,
+      weeklyWage: 16,
+      actualPotentialTier: 'A',
+      agentData: {
+        role: 'combat',
+        specialization: 'recon',
+        stats: { combat: 62, investigation: 34, utility: 28, social: 22 },
+        traits: [],
+      },
+      evaluation: {
+        overallVisible: false,
+        overallValue: 74,
+        potentialVisible: false,
+        potentialTier: 'mid',
+        rumorTags: [],
+      },
+    }
+    const initial = {
+      ...createStartingState(),
+      rngSeed: 2468,
+      rngState: 2468,
+      candidates: [candidate],
+    }
+
+    const direct = scoutCandidateDomain(initial, candidate.id)
+
+    useGameStore.setState({ game: initial })
+    useGameStore.getState().scoutCandidate(candidate.id)
 
     expect(useGameStore.getState().game).toEqual(direct)
     expectCanonicalTeams(useGameStore.getState().game)

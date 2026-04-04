@@ -18,7 +18,9 @@ import {
 export default function ReportDetailPage() {
   const { week } = useParams()
   const { game } = useGameStore()
-  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>('all')
+  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
+    'all'
+  )
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
@@ -45,7 +47,11 @@ export default function ReportDetailPage() {
 
   return (
     <section className="space-y-4">
-      <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
+      <article
+        className="panel panel-primary space-y-4"
+        role="region"
+        aria-label="Weekly report dossier"
+      >
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium">
             {REPORT_LABELS.week} {report.week}
@@ -97,17 +103,26 @@ export default function ReportDetailPage() {
           </span>
           <span>
             Directive:{' '}
-            {(report.notes.find((n) => n.type === 'directive.applied')?.metadata?.directiveLabel as string | null | undefined) ?? 'None'}
+            {(report.notes.find((n) => n.type === 'directive.applied')?.metadata?.directiveLabel as
+              | string
+              | null
+              | undefined) ?? 'None'}
           </span>
         </div>
       </article>
 
       <div className="detail-layout" role="region" aria-label="Report analysis layout">
         <div className="detail-main">
-          <article className="panel panel-support space-y-2" role="region" aria-label="Weekly notes">
+          <article
+            className="panel panel-support space-y-2"
+            role="region"
+            aria-label="Weekly notes"
+          >
             <div className="space-y-2" title={TOOLTIPS['report.notes']}>
               <div className="flex flex-wrap items-end justify-between gap-3">
-                <p className="text-xs uppercase tracking-wide opacity-50">{REPORT_UI_TEXT.notesHeader}</p>
+                <p className="text-xs uppercase tracking-wide opacity-50">
+                  {REPORT_UI_TEXT.notesHeader}
+                </p>
                 <div className="space-y-1">
                   <label
                     htmlFor="report-note-category"
@@ -155,7 +170,11 @@ export default function ReportDetailPage() {
             />
           </article>
 
-          <article className="panel panel-support space-y-4" role="region" aria-label="Case outcomes">
+          <article
+            className="panel panel-support space-y-4"
+            role="region"
+            aria-label="Case outcomes"
+          >
             <ReportCaseGroup
               title={REPORT_UI_TEXT.newCasesHeader}
               emptyLabel={REPORT_UI_TEXT.noNewCases}
@@ -217,7 +236,9 @@ export default function ReportDetailPage() {
 
         <aside className="detail-side" aria-label="Team status summary">
           <article className="panel panel-primary space-y-2" role="region" aria-label="Team status">
-            <p className="text-xs uppercase tracking-wide opacity-50">{REPORT_UI_TEXT.teamStatusHeader}</p>
+            <p className="text-xs uppercase tracking-wide opacity-50">
+              {REPORT_UI_TEXT.teamStatusHeader}
+            </p>
             <ReportTeamStatusList
               teamStatus={report.teamStatus}
               emptyLabel={REPORT_UI_TEXT.noTeamStatus}

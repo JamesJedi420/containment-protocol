@@ -13,6 +13,7 @@ export const REGISTRY_ROLE_FILTERS = [
   'hunter',
   'occultist',
   'investigator',
+  'field_recon',
   'medium',
   'tech',
   'medic',
@@ -103,9 +104,19 @@ export function writeRegistryListFilters(
   writeStringParam(nextSearchParams, 'q', filters.q)
   writeEnumParam(nextSearchParams, 'role', filters.role, DEFAULT_REGISTRY_LIST_FILTERS.role)
   writeEnumParam(nextSearchParams, 'status', filters.status, DEFAULT_REGISTRY_LIST_FILTERS.status)
-  writeEnumParam(nextSearchParams, 'fatigue', filters.fatigue, DEFAULT_REGISTRY_LIST_FILTERS.fatigue)
+  writeEnumParam(
+    nextSearchParams,
+    'fatigue',
+    filters.fatigue,
+    DEFAULT_REGISTRY_LIST_FILTERS.fatigue
+  )
   writeEnumParam(nextSearchParams, 'sort', filters.sort, DEFAULT_REGISTRY_LIST_FILTERS.sort)
-  writePositiveIntegerParam(nextSearchParams, 'page', filters.page, DEFAULT_REGISTRY_LIST_FILTERS.page)
+  writePositiveIntegerParam(
+    nextSearchParams,
+    'page',
+    filters.page,
+    DEFAULT_REGISTRY_LIST_FILTERS.page
+  )
 
   if (filters.team === DEFAULT_REGISTRY_LIST_FILTERS.team) {
     nextSearchParams.delete('team')
@@ -177,10 +188,7 @@ function matchesRegistryFilters(view: RegistryAgentView, filters: RegistryListFi
     .join(' ')
     .toLowerCase()
 
-  const queryTokens = filters.q
-    .toLowerCase()
-    .split(/\s+/)
-    .filter(Boolean)
+  const queryTokens = filters.q.toLowerCase().split(/\s+/).filter(Boolean)
 
   if (queryTokens.length === 0) {
     return true
@@ -255,11 +263,7 @@ export function getRegistryRoleFilterOptions(game: GameState): AgentRole[] {
   return [...new Set(Object.values(game.agents).map((agent) => agent.role))]
 }
 
-function readPositiveIntegerParam(
-  searchParams: URLSearchParams,
-  key: string,
-  fallback: number
-) {
+function readPositiveIntegerParam(searchParams: URLSearchParams, key: string, fallback: number) {
   const value = readStringParam(searchParams, key)
   if (!value) {
     return fallback

@@ -54,11 +54,7 @@ function previewCaseOutcome(team: Team, currentCase: CaseInstance, game: GameSta
   return previewCaseOutcomeFromPreview(team, currentCase, buildResolutionPreviewState(game))
 }
 
-function previewResolutionForTeamIds(
-  currentCase: CaseInstance,
-  game: GameState,
-  teamIds: Id[]
-) {
+function previewResolutionForTeamIds(currentCase: CaseInstance, game: GameState, teamIds: Id[]) {
   return previewResolutionForTeamIdsFromPreview(
     currentCase,
     buildResolutionPreviewState(game),
@@ -205,11 +201,7 @@ describe('Selector Parity: Case List Item View', () => {
 
     // availableTeams should only include teams where preview has no blockedReason
     for (const teamView of view.availableTeams) {
-      const preview = previewResolutionForTeamIds(
-        game.cases['case-good'],
-        game,
-        [teamView.team.id]
-      )
+      const preview = previewResolutionForTeamIds(game.cases['case-good'], game, [teamView.team.id])
       expect(preview.odds.blockedByRequiredTags).toBe(false)
       expect(preview.odds.blockedByRequiredRoles).toBe(false)
     }
@@ -296,7 +288,11 @@ describe('Selector Parity: Mutation vs Preview Blocking', () => {
       tags: [],
     }
 
-    const preview = previewCaseOutcome(state.teams['team-extra'], state.cases['raid-capacity'], state)
+    const preview = previewCaseOutcome(
+      state.teams['team-extra'],
+      state.cases['raid-capacity'],
+      state
+    )
     expect(preview.blockedReason).toBe('raid-capacity')
 
     const next = assignTeam(state, state.cases['raid-capacity'].id, 'team-extra')
@@ -361,12 +357,7 @@ describe('Selector Parity: Preview Determinism → Resolution Outcome', () => {
     expect(preview.odds.partial).toBe(0)
     expect(preview.odds.fail).toBe(1)
 
-    const outcome = resolveCase(
-      caseEntry,
-      [game.agents['agent-weak']],
-      game.config,
-      () => 0.5
-    )
+    const outcome = resolveCase(caseEntry, [game.agents['agent-weak']], game.config, () => 0.5)
     expect(outcome.result).toBe('fail')
     expect(outcome.performanceSummary).toEqual(preview.performanceSummary)
   })
@@ -398,7 +389,12 @@ describe('Selector Parity: Preview Determinism → Resolution Outcome', () => {
     expect(preview.odds.partial).toBe(1)
     expect(preview.odds.fail).toBe(0)
 
-    const outcome = resolveCase(caseEntry, [tunedGame.agents['agent-mid']], tunedGame.config, () => 0.5)
+    const outcome = resolveCase(
+      caseEntry,
+      [tunedGame.agents['agent-mid']],
+      tunedGame.config,
+      () => 0.5
+    )
     expect(outcome.result).toBe('partial')
     expect(outcome.performanceSummary).toEqual(preview.performanceSummary)
   })
@@ -412,12 +408,7 @@ describe('Selector Parity: Preview Determinism → Resolution Outcome', () => {
     expect(preview.odds.fail).toBe(1)
     expect(preview.validation?.issues.length).toBeGreaterThan(0)
 
-    const outcome = resolveCase(
-      caseEntry,
-      [game.agents['agent-hunter']],
-      game.config,
-      () => 0.5
-    )
+    const outcome = resolveCase(caseEntry, [game.agents['agent-hunter']], game.config, () => 0.5)
     expect(outcome.result).toBe('fail')
     expect(outcome.reasons.some((r) => r.includes('Missing required roles'))).toBe(true)
   })
@@ -430,12 +421,7 @@ describe('Selector Parity: Preview Determinism → Resolution Outcome', () => {
     const preview = previewResolutionForTeamIds(caseEntry, game, [team.id])
     expect(preview.validation?.issues.some((i) => i.code === 'no-active-members')).toBe(true)
 
-    const outcome = resolveCase(
-      caseEntry,
-      [game.agents['agent-hunter']],
-      game.config,
-      () => 0.5
-    )
+    const outcome = resolveCase(caseEntry, [game.agents['agent-hunter']], game.config, () => 0.5)
     expect(outcome.result).toBe('fail')
     expect(outcome.reasons[0]).toContain('No active members')
   })
@@ -455,7 +441,7 @@ describe('Selector Parity: Editability Blocking', () => {
     // When assigned to case-good, team cannot take other cases
     // Team should not appear in assignable views for other cases
     const otherCaseIds = Object.keys(game.cases).filter((id) => id !== 'case-good')
-    
+
     for (const caseId of otherCaseIds) {
       const otherCase = game.cases[caseId]
       const preview = previewCaseOutcome(team, otherCase, game)
@@ -570,10 +556,7 @@ describe('Selector Parity: TeamBuilderView', () => {
       (agent) => getTeamMoveEligibility(game, agent.id, null).allowed
     ).length
     const teamAgentIds = new Set(
-      teams.flatMap((team) => [
-        ...(team.memberIds ?? []),
-        ...(team.agentIds ?? []),
-      ])
+      teams.flatMap((team) => [...(team.memberIds ?? []), ...(team.agentIds ?? [])])
     )
     const expectedReserveAgents = agents.filter((agent) => !teamAgentIds.has(agent.id)).length
 
@@ -591,9 +574,9 @@ describe('Selector Parity: Raid Under-Capacity', () => {
 
     const preview = previewResolutionForTeamIds(raidCase, game, ['team-anchor'])
 
-    expect(preview.validation?.issues.some((issue) => issue.code === 'insufficient-raid-teams')).toBe(
-      true
-    )
+    expect(
+      preview.validation?.issues.some((issue) => issue.code === 'insufficient-raid-teams')
+    ).toBe(true)
     expect(preview.odds.success).toBe(0)
     expect(preview.odds.partial).toBe(0)
     expect(preview.odds.fail).toBe(1)

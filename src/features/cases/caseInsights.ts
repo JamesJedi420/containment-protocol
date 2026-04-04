@@ -5,6 +5,7 @@ import {
   type Team,
 } from '../../domain/models'
 import type { CaseEquipmentSummary } from '../../domain/sim/scoring'
+import type { CaseReconSummary } from '../../domain/recon'
 import {
   buildResolutionPreviewState,
   previewCaseOutcome,
@@ -25,6 +26,7 @@ export interface CaseAssignmentEligibleTeamView {
   odds: OutcomeOdds
   performanceSummary: PerformanceMetricSummary
   equipmentSummary: CaseEquipmentSummary
+  reconSummary?: CaseReconSummary
 }
 
 export interface CaseAssignmentInsights {
@@ -62,6 +64,7 @@ export function getCaseAssignmentInsights(currentCase: CaseInstance, game: GameS
       odds: outcomePreview.odds,
       performanceSummary: resolutionPreview.performanceSummary,
       equipmentSummary: resolutionPreview.equipmentSummary,
+      reconSummary: resolutionPreview.reconSummary,
     })
   }
 

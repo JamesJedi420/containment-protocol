@@ -1,9 +1,5 @@
 import { APP_ROUTES } from '../../app/routes'
-import {
-  readStringParam,
-  writeEnumParam,
-  writeStringParam,
-} from '../../app/searchParams'
+import { readStringParam, writeEnumParam, writeStringParam } from '../../app/searchParams'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
 import {
@@ -68,7 +64,11 @@ const EVENT_FEED_PARAM_KEYS = {
   entityId: 'feedEntity',
 } as const
 
-function readEventFeedEnum<T extends string>(value: string | null, allowed: Set<string>, fallback: T): T {
+function readEventFeedEnum<T extends string>(
+  value: string | null,
+  allowed: Set<string>,
+  fallback: T
+): T {
   return value && allowed.has(value) ? (value as T) : fallback
 }
 
@@ -190,7 +190,10 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'intel.report_generated': 'Intel Report',
   'agent.training_started': 'Training Started',
   'agent.training_completed': 'Training Complete',
+  'agent.training_cancelled': 'Training Cancelled',
   'agent.relationship_changed': 'Relationship Changed',
+  'agent.instructor_assigned': 'Instructor Assigned',
+  'agent.instructor_unassigned': 'Instructor Removed',
   'agent.injured': 'Agent Injury',
   'agent.betrayed': 'Trust Breach',
   'agent.resigned': 'Agent Resignation',
@@ -199,6 +202,9 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'agent.hired': 'Recruitment Hire',
   'system.recruitment_expired': 'Recruitment Expired',
   'system.recruitment_generated': 'Recruitment Generated',
+  'recruitment.scouting_initiated': 'Scouting Initiated',
+  'recruitment.scouting_refined': 'Scouting Refined',
+  'recruitment.intel_confirmed': 'Intel Confirmed',
   'system.party_cards_drawn': 'Party Cards Drawn',
   'production.queue_started': 'Queue Started',
   'production.queue_completed': 'Queue Complete',
@@ -206,6 +212,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'market.transaction_recorded': 'Market Transaction',
   'faction.standing_changed': 'Faction Standing',
   'agency.containment_updated': 'Agency Update',
+  'directive.applied': 'Directive Applied',
+  'system.academy_upgraded': 'Academy Upgraded',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -220,7 +228,10 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'intel.report_generated': 'intel_briefing',
   'agent.training_started': 'personnel',
   'agent.training_completed': 'personnel',
+  'agent.training_cancelled': 'personnel',
   'agent.relationship_changed': 'personnel',
+  'agent.instructor_assigned': 'personnel',
+  'agent.instructor_unassigned': 'personnel',
   'agent.injured': 'personnel',
   'agent.betrayed': 'personnel',
   'agent.resigned': 'personnel',
@@ -229,6 +240,9 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'agent.hired': 'personnel',
   'system.recruitment_expired': 'personnel',
   'system.recruitment_generated': 'personnel',
+  'recruitment.scouting_initiated': 'intel_briefing',
+  'recruitment.scouting_refined': 'intel_briefing',
+  'recruitment.intel_confirmed': 'intel_briefing',
   'system.party_cards_drawn': 'operations_logistics',
   'production.queue_started': 'operations_logistics',
   'production.queue_completed': 'operations_logistics',
@@ -236,12 +250,12 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'market.transaction_recorded': 'operations_logistics',
   'faction.standing_changed': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
+  'directive.applied': 'agency_posture',
+  'system.academy_upgraded': 'operations_logistics',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
-const EVENT_FEED_SOURCE_SYSTEMS = Object.keys(
-  EVENT_SOURCE_LABELS
-) as OperationEventSourceSystem[]
+const EVENT_FEED_SOURCE_SYSTEMS = Object.keys(EVENT_SOURCE_LABELS) as OperationEventSourceSystem[]
 const EVENT_FEED_TYPES = Object.keys(EVENT_TYPE_LABELS) as OperationEventType[]
 
 const EVENT_FEED_CATEGORY_ALLOWED = new Set<string>(['all', ...EVENT_FEED_CATEGORIES])
@@ -452,6 +466,21 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.agentName} ${event.payload.trainingName} ${event.payload.queueId}`.toLowerCase(),
       }
 
+    case 'agent.training_cancelled':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} cancelled ${event.payload.trainingName}`,
+        detail: `Week ${event.payload.week} / Refund $${event.payload.refund}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} cancelled ${event.payload.trainingName} ${event.payload.trainingId}`.toLowerCase(),
+      }
+
     case 'agent.relationship_changed':
       return {
         event,
@@ -465,6 +494,36 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.agentDetail(event.payload.agentId),
         searchText:
           `${event.payload.agentName} ${event.payload.counterpartName} ${event.payload.reason}`.toLowerCase(),
+      }
+
+    case 'agent.instructor_assigned':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.instructorName} assigned to ${event.payload.agentName}`,
+        detail: `Week ${event.payload.week} / ${event.payload.instructorSpecialty} specialty / +${event.payload.bonus} training bonus`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.instructorName} ${event.payload.agentName} ${event.payload.instructorSpecialty}`.toLowerCase(),
+      }
+
+    case 'agent.instructor_unassigned':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.instructorName} removed from ${event.payload.agentName}`,
+        detail: `Week ${event.payload.week} / ${event.payload.instructorSpecialty} specialty / +${event.payload.bonus} training bonus removed`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.instructorName} ${event.payload.agentName} ${event.payload.instructorSpecialty} removed`.toLowerCase(),
       }
 
     case 'agent.injured':
@@ -553,6 +612,51 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.agentDetail(event.payload.agentId),
         searchText:
           `${event.payload.agentName} hired ${event.payload.recruitCategory} ${event.payload.candidateId}`.toLowerCase(),
+      }
+
+    case 'recruitment.scouting_initiated':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.candidateName} scouting initiated`,
+        detail: `Week ${event.payload.week} / Projected ${event.payload.projectedTier} tier / ${event.payload.confidence} confidence / Cost $${event.payload.fundingCost}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        href: APP_ROUTES.recruitment,
+        searchText:
+          `${event.payload.candidateName} scouting initiated ${event.payload.candidateId} ${event.payload.projectedTier} ${event.payload.confidence}`.toLowerCase(),
+      }
+
+    case 'recruitment.scouting_refined':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.candidateName} scouting refined`,
+        detail: `Week ${event.payload.week} / ${event.payload.previousProjectedTier ? `${event.payload.previousProjectedTier} -> ` : ''}${event.payload.projectedTier} tier / ${event.payload.previousConfidence ? `${event.payload.previousConfidence} -> ` : ''}${event.payload.confidence} confidence / Cost $${event.payload.fundingCost}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        href: APP_ROUTES.recruitment,
+        searchText:
+          `${event.payload.candidateName} scouting refined ${event.payload.candidateId} ${event.payload.previousProjectedTier ?? ''} ${event.payload.projectedTier} ${event.payload.previousConfidence ?? ''} ${event.payload.confidence}`.toLowerCase(),
+      }
+
+    case 'recruitment.intel_confirmed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.candidateName} intel confirmed`,
+        detail: `Week ${event.payload.week} / Confirmed ${event.payload.confirmedTier ?? event.payload.projectedTier} tier / Cost $${event.payload.fundingCost}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        href: APP_ROUTES.recruitment,
+        searchText:
+          `${event.payload.candidateName} intel confirmed ${event.payload.candidateId} ${event.payload.confirmedTier ?? event.payload.projectedTier}`.toLowerCase(),
       }
 
     case 'system.recruitment_expired':
@@ -659,12 +763,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         sourceLabel,
         typeLabel,
         timestampLabel,
-        tone:
-          event.payload.delta > 0
-            ? 'success'
-            : event.payload.delta < 0
-              ? 'warning'
-              : 'neutral',
+        tone: event.payload.delta > 0 ? 'success' : event.payload.delta < 0 ? 'warning' : 'neutral',
         searchText:
           `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''}`.toLowerCase(),
       }
@@ -686,6 +785,36 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
               : 'neutral',
         searchText:
           `agency containment ${event.payload.containmentRatingBefore} ${event.payload.containmentRatingAfter} funding ${event.payload.fundingBefore} ${event.payload.fundingAfter}`.toLowerCase(),
+      }
+
+    case 'directive.applied':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.directiveLabel} directive applied`,
+        detail: `Week ${event.payload.week} / Directive ${event.payload.directiveId}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        href: APP_ROUTES.operationsDesk,
+        searchText:
+          `${event.payload.directiveLabel} ${event.payload.directiveId} directive`.toLowerCase(),
+      }
+
+    case 'system.academy_upgraded':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Academy upgraded',
+        detail: `Week ${event.payload.week} / Tier ${event.payload.tierBefore} -> ${event.payload.tierAfter} / Cost $${event.payload.cost}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'success',
+        href: APP_ROUTES.trainingDivision,
+        searchText:
+          `academy upgraded ${event.payload.tierBefore} ${event.payload.tierAfter} ${event.payload.cost}`.toLowerCase(),
       }
   }
 }
@@ -722,30 +851,25 @@ export function getFilteredEventFeedViews(
     entityId: filters.entityId,
   })
 
-  const mapped = filteredEvents
-    .map(buildEventFeedView)
-    .filter((view) => {
-      if (
-        filters.category !== 'all' &&
-        EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category
-      ) {
-        return false
-      }
+  const mapped = filteredEvents.map(buildEventFeedView).filter((view) => {
+    if (filters.category !== 'all' && EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category) {
+      return false
+    }
 
-      if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
-        return false
-      }
+    if (filters.sourceSystem !== 'all' && view.event.sourceSystem !== filters.sourceSystem) {
+      return false
+    }
 
-      if (filters.type !== 'all' && view.event.type !== filters.type) {
-        return false
-      }
+    if (filters.type !== 'all' && view.event.type !== filters.type) {
+      return false
+    }
 
-      if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
-        return false
-      }
+    if (normalizedQuery.length > 0 && !view.searchText.includes(normalizedQuery)) {
+      return false
+    }
 
-      return true
-    })
+    return true
+  })
 
   if (filters.relationshipVerbosity === 'summary') {
     return aggregateRelationshipEventViews(mapped)
@@ -756,7 +880,10 @@ export function getFilteredEventFeedViews(
 
 function aggregateRelationshipEventViews(views: EventFeedView[]) {
   const output: EventFeedView[] = []
-  const grouped = new Map<string, EventFeedView[]>()
+  const grouped = new Map<
+    string,
+    Array<EventFeedView & { event: OperationEvent<'agent.relationship_changed'> }>
+  >()
 
   for (const view of views) {
     if (view.event.type !== 'agent.relationship_changed') {
@@ -768,9 +895,11 @@ function aggregateRelationshipEventViews(views: EventFeedView[]) {
     const key = `${view.week}:${pairKey}:${view.event.payload.reason}`
     const bucket = grouped.get(key)
     if (bucket) {
-      bucket.push(view)
+      bucket.push(view as EventFeedView & { event: OperationEvent<'agent.relationship_changed'> })
     } else {
-      grouped.set(key, [view])
+      grouped.set(key, [
+        view as EventFeedView & { event: OperationEvent<'agent.relationship_changed'> },
+      ])
     }
   }
 

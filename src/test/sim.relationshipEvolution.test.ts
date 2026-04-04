@@ -52,8 +52,7 @@ function makeRelationshipState(options: {
     })
   }
 
-  const difficultyCombat =
-    result === 'success' ? 0 : result === 'partial' ? 200 : 10_000
+  const difficultyCombat = result === 'success' ? 0 : result === 'partial' ? 200 : 10_000
   const partialMargin = result === 'partial' ? 20_000 : 1
   const memberIds = Object.keys(agents)
 
@@ -169,15 +168,19 @@ describe('relationship evolution after shared missions', () => {
     const next = advanceWeek(start)
 
     expect(
-      next.agents['agent-b'].relationships['agent-a'] - start.agents['agent-b'].relationships['agent-a']
+      next.agents['agent-b'].relationships['agent-a'] -
+        start.agents['agent-b'].relationships['agent-a']
     ).toBeGreaterThan(
-      next.agents['agent-a'].relationships['agent-b'] - start.agents['agent-a'].relationships['agent-b']
+      next.agents['agent-a'].relationships['agent-b'] -
+        start.agents['agent-a'].relationships['agent-b']
     )
   })
 
   it('emits relationship change events after shared missions', () => {
     const next = advanceWeek(makeRelationshipState({ result: 'success' }))
-    const relationshipEvents = next.events.filter((event) => event.type === 'agent.relationship_changed')
+    const relationshipEvents = next.events.filter(
+      (event) => event.type === 'agent.relationship_changed'
+    )
 
     expect(relationshipEvents).toHaveLength(2)
     expect(relationshipEvents[0]).toMatchObject({

@@ -15,6 +15,7 @@ export const ROLE_LABELS: Record<AgentRole, string> = {
   hunter: agentClassTables.hunter.label,
   occultist: agentClassTables.occultist.label,
   investigator: agentClassTables.investigator.label,
+  field_recon: agentClassTables.field_recon.label,
   medium: agentClassTables.medium.label,
   tech: agentClassTables.tech.label,
   medic: agentClassTables.medic.label,
@@ -241,6 +242,12 @@ export const EVENT_FEED_TEXT = {
 }
 
 export const OPERATIONS_DESK_TEXT = {
+  directorSectionLabel: 'Operations directorate',
+  directorName: 'Command authority online. Cross-division readiness is stable.',
+  traitsLabel: 'Directorate posture',
+  fieldIntelLabel: 'Field intel',
+  fabricationOrdersLabel: 'Fabrication orders',
+  reserveStaffLabel: 'Reserve staff',
   fieldIntelActivePrefix: 'Latest intel report week',
   fieldIntelNone: 'No intel report generated yet.',
   queueIdleLabel: 'Queue capacity available.',
@@ -510,8 +517,7 @@ export const TEAM_GUIDANCE: Record<string, string> = {
 
 export const CARD_UI_TEXT: Record<string, string> = {
   pageHeading: 'Party Cards',
-  pageSubtitle:
-    'Draw, stage, and monitor tactical modifier cards before weekly resolution.',
+  pageSubtitle: 'Draw, stage, and monitor tactical modifier cards before weekly resolution.',
   handHeading: 'Current hand',
   deckHeading: 'Deck',
   discardHeading: 'Discard',

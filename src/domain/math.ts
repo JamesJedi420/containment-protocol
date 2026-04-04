@@ -48,10 +48,7 @@ export function randInt(rng: () => number, min: number, max: number) {
 }
 
 /** Compatibility helper for existing sim code. */
-export const roll = (
-  probability: number,
-  rng: () => number
-): boolean => {
+export const roll = (probability: number, rng: () => number): boolean => {
   const normalizedProbability = Number.isFinite(probability) ? clamp(probability, 0, 1) : 0
 
   return rng() < normalizedProbability

@@ -1,4 +1,9 @@
 import { createDefaultAgentSkillTree } from './agentDefaults'
+import {
+  normalizePotentialIntel,
+  normalizePotentialTier,
+  type LivePotentialTier,
+} from './agentPotential'
 import { getRoleDomainWeights, normalizeRoleDomainWeights, STAT_DOMAINS } from './statDomains'
 import type { Agent, AgentGrowthStats, AgentProgression, PotentialTier, SkillTree } from './models'
 
@@ -36,16 +41,13 @@ interface ProgressionRewardOptions {
   growthDelta?: AgentGrowthStats
 }
 
-const POTENTIAL_TIER_GROWTH_MULTIPLIERS: Record<PotentialTier, number> = {
+const POTENTIAL_TIER_GROWTH_MULTIPLIERS: Record<LivePotentialTier, number> = {
   F: 0.72,
   D: 0.84,
   C: 1,
   B: 1.12,
   A: 1.24,
   S: 1.38,
-  low: 0.88,
-  mid: 1,
-  high: 1.18,
 }
 
 function coerceLevel(level: number | undefined) {
@@ -56,9 +58,7 @@ function coerceXp(xp: number | undefined) {
   return Math.max(0, Math.trunc(xp ?? 0))
 }
 
-function normalizeSkillTree(
-  skillTree: AgentProgression['skillTree']
-): NonNullable<SkillTree> {
+function normalizeSkillTree(skillTree: AgentProgression['skillTree']): NonNullable<SkillTree> {
   return {
     ...createDefaultAgentSkillTree(),
     ...(skillTree ?? {}),
@@ -92,9 +92,10 @@ function mergeGrowthStats(
     ...normalizeGrowthStats(existing),
   }
 
-  for (const [key, value] of Object.entries(
-    normalizeGrowthStats(growthDelta)
-  ) as [keyof NonNullable<AgentProgression['growthStats']>, number][]) {
+  for (const [key, value] of Object.entries(normalizeGrowthStats(growthDelta)) as [
+    keyof NonNullable<AgentProgression['growthStats']>,
+    number,
+  ][]) {
     merged[key] = Number(((merged[key] ?? 0) + value).toFixed(2))
   }
 
@@ -102,7 +103,7 @@ function mergeGrowthStats(
 }
 
 function getPotentialGrowthMultiplier(potentialTier: PotentialTier | undefined) {
-  return POTENTIAL_TIER_GROWTH_MULTIPLIERS[potentialTier ?? 'C'] ?? 1
+  return POTENTIAL_TIER_GROWTH_MULTIPLIERS[normalizePotentialTier(potentialTier)] ?? 1
 }
 
 function buildGrowthProfileWeights(agent: Pick<Agent, 'role' | 'progression'>) {
@@ -112,7 +113,10 @@ function buildGrowthProfileWeights(agent: Pick<Agent, 'role' | 'progression'>) {
   if (growthProfile === 'adaptive') {
     return normalizeRoleDomainWeights(
       Object.fromEntries(
-        STAT_DOMAINS.map((domain) => [domain, baseWeights[domain] * 0.72 + 1 / STAT_DOMAINS.length * 0.28])
+        STAT_DOMAINS.map((domain) => [
+          domain,
+          baseWeights[domain] * 0.72 + (1 / STAT_DOMAINS.length) * 0.28,
+        ])
       )
     )
   }
@@ -175,8 +179,7 @@ export function buildAgentGrowthDelta(
 
   return Object.fromEntries(
     STAT_DOMAINS.map(
-      (domain) =>
-        [domain, Number((weights[domain] * growthBudget).toFixed(2))] as const
+      (domain) => [domain, Number((weights[domain] * growthBudget).toFixed(2))] as const
     ).filter(([, value]) => value > 0)
   )
 }
@@ -230,6 +233,16 @@ export function synchronizeProgressionState(
     ...progression,
     xp,
     level,
+    potentialTier: normalizePotentialTier(progression.potentialTier),
+    potentialIntel: normalizePotentialIntel(progression.potentialIntel, progression.potentialTier),
+    statCaps: progression.statCaps
+      ? {
+          combat: progression.statCaps.combat,
+          investigation: progression.statCaps.investigation,
+          utility: progression.statCaps.utility,
+          social: progression.statCaps.social,
+        }
+      : undefined,
     growthStats: normalizeGrowthStats(progression.growthStats),
     skillTree: normalizeSkillTree(progression.skillTree),
   }
@@ -308,8 +321,7 @@ export function applyProgressionXp(
       growthStats: mergeGrowthStats(synchronized.growthStats, growthDelta),
       skillTree: {
         ...normalizeSkillTree(synchronized.skillTree),
-        skillPoints:
-          normalizeSkillTree(synchronized.skillTree).skillPoints + skillPointsGranted,
+        skillPoints: normalizeSkillTree(synchronized.skillTree).skillPoints + skillPointsGranted,
       },
     },
     nextLevel

@@ -85,7 +85,7 @@ export default function AppShell() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           {meta.backTo && meta.backLabel ? (
-            <Link to={meta.backTo} className="btn btn-ghost btn-sm">
+            <Link to={meta.backTo} className="btn btn-ghost btn-sm" aria-label={meta.backLabel}>
               <IconBack className="h-4 w-4" aria-hidden="true" />
               {meta.backLabel}
             </Link>
@@ -112,15 +112,15 @@ export default function AppShell() {
           const Icon = SYSTEM_ICONS[route.id]
 
           return (
-          <NavLink
-            key={route.to}
-            to={route.to}
-            end={route.to === APP_ROUTES.operationsDesk}
-            className={({ isActive }) => (isActive ? 'btn btn-primary' : 'btn btn-ghost')}
-          >
-            <Icon className="h-4 w-4" aria-hidden="true" />
-            {route.label}
-          </NavLink>
+            <NavLink
+              key={route.to}
+              to={route.to}
+              end={route.to === APP_ROUTES.operationsDesk}
+              className={({ isActive }) => (isActive ? 'btn btn-primary' : 'btn btn-ghost')}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              {route.label}
+            </NavLink>
           )
         })}
       </nav>
@@ -160,7 +160,10 @@ export default function AppShell() {
               <p className="text-sm opacity-60">{SHELL_UI_TEXT.futureExpansionHint}</p>
             </div>
 
-            <nav aria-label="Future expansion systems" className="nav-secondary flex flex-wrap gap-2">
+            <nav
+              aria-label="Future expansion systems"
+              className="nav-secondary flex flex-wrap gap-2"
+            >
               {FUTURE_EXPANSION_APP_SYSTEMS.map((route) => {
                 const Icon = SYSTEM_ICONS[route.id]
 
@@ -194,7 +197,9 @@ function getShellMeta(pathname: string, search: string, game: GameState): ShellM
   if (agentMatch) {
     const agent = game.agents[agentMatch.params.agentId ?? '']
     const team = agent
-      ? Object.values(game.teams).find((currentTeam) => getTeamMemberIds(currentTeam).includes(agent.id))
+      ? Object.values(game.teams).find((currentTeam) =>
+          getTeamMemberIds(currentTeam).includes(agent.id)
+        )
       : undefined
     const assignedCaseId = team ? getTeamAssignedCaseId(team) : null
     const assignedCase = assignedCaseId ? game.cases[assignedCaseId] : undefined

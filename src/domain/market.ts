@@ -9,10 +9,7 @@ import {
   type MarketListingCategory,
 } from '../data/production'
 import { createSeededRng, normalizeSeed, randInt } from './math'
-import {
-  getEquipmentCatalogEntries,
-  type EquipmentSlotKind,
-} from './equipment'
+import { getEquipmentCatalogEntries, type EquipmentSlotKind } from './equipment'
 import type { GameState, OperationEvent } from './models'
 
 export type ProcurementTransactionAction = 'buy' | 'sell'
@@ -136,25 +133,19 @@ function getPressureAvailabilityDelta(
   return 0
 }
 
-function getSellRatio(
-  pressure: GameState['market']['pressure'],
-  featured: boolean
-) {
-  const baseRatio =
-    pressure === 'tight' ? 0.68 : pressure === 'discounted' ? 0.42 : 0.54
+function getSellRatio(pressure: GameState['market']['pressure'], featured: boolean) {
+  const baseRatio = pressure === 'tight' ? 0.68 : pressure === 'discounted' ? 0.42 : 0.54
 
   return Math.min(0.8, baseRatio + (featured ? 0.04 : 0))
 }
 
-function getDirectEquipmentBasePrice(definition: ReturnType<typeof getEquipmentCatalogEntries>[number]) {
+function getDirectEquipmentBasePrice(
+  definition: ReturnType<typeof getEquipmentCatalogEntries>[number]
+) {
   const premiumTags = ['anti-spirit', 'containment', 'hazmat', 'surveillance']
   const premiumCount = definition.tags.filter((tag) => premiumTags.includes(tag)).length
 
-  return (
-    EQUIPMENT_SLOT_BASE_PRICES[definition.slot] +
-    definition.quality * 4 +
-    premiumCount * 2
-  )
+  return EQUIPMENT_SLOT_BASE_PRICES[definition.slot] + definition.quality * 4 + premiumCount * 2
 }
 
 function getListingDefinitions() {
@@ -175,17 +166,19 @@ function getListingDefinitions() {
     }
   })
 
-  const materialDefinitions: ProcurementListingDefinition[] = productionMaterialCatalog.map((material) => ({
-    id: `material:${material.materialId}`,
-    source: 'material',
-    itemId: material.materialId,
-    itemName: material.name,
-    description: material.description,
-    category: 'material',
-    tags: ['material', material.materialId],
-    bundleQuantity: 1,
-    materialId: material.materialId,
-  }))
+  const materialDefinitions: ProcurementListingDefinition[] = productionMaterialCatalog.map(
+    (material) => ({
+      id: `material:${material.materialId}`,
+      source: 'material',
+      itemId: material.materialId,
+      itemName: material.name,
+      description: material.description,
+      category: 'material',
+      tags: ['material', material.materialId],
+      bundleQuantity: 1,
+      materialId: material.materialId,
+    })
+  )
 
   const directEquipmentDefinitions: ProcurementListingDefinition[] = getEquipmentCatalogEntries()
     .filter((definition) => !recipeOutputItemIds.has(definition.id))
@@ -209,7 +202,11 @@ function isMarketTransactionEvent(event: OperationEvent): event is MarketTransac
   return event.type === 'market.transaction_recorded'
 }
 
-function getBoughtQuantityForListing(game: GameState, listingId: string, marketWeek = game.market.week) {
+function getBoughtQuantityForListing(
+  game: GameState,
+  listingId: string,
+  marketWeek = game.market.week
+) {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
     .filter(
@@ -221,7 +218,11 @@ function getBoughtQuantityForListing(game: GameState, listingId: string, marketW
     .reduce((sum, event) => sum + event.payload.quantity, 0)
 }
 
-function getSoldQuantityForListing(game: GameState, listingId: string, marketWeek = game.market.week) {
+function getSoldQuantityForListing(
+  game: GameState,
+  listingId: string,
+  marketWeek = game.market.week
+) {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
     .filter(
@@ -233,14 +234,13 @@ function getSoldQuantityForListing(game: GameState, listingId: string, marketWee
     .reduce((sum, event) => sum + event.payload.quantity, 0)
 }
 
-function getBaseAvailability(
-  definition: ProcurementListingDefinition,
-  game: GameState
-) {
+function getBaseAvailability(definition: ProcurementListingDefinition, game: GameState) {
   const rng = createListingRng(game, definition.id)
   const profile = getAvailabilityProfile(definition.source)
   const featuredBonus =
-    definition.recipeId !== undefined && definition.recipeId === game.market.featuredRecipeId ? 1 : 0
+    definition.recipeId !== undefined && definition.recipeId === game.market.featuredRecipeId
+      ? 1
+      : 0
   const bundleAvailability = Math.max(
     0,
     profile.baseBundles +
@@ -262,7 +262,10 @@ function getBuyPrice(definition: ProcurementListingDefinition, game: GameState) 
 
   if (definition.materialId) {
     const baseUnitPrice = MATERIAL_BASE_UNIT_PRICES[definition.materialId] ?? 6
-    return Math.max(1, Math.round(baseUnitPrice * definition.bundleQuantity * game.market.costMultiplier))
+    return Math.max(
+      1,
+      Math.round(baseUnitPrice * definition.bundleQuantity * game.market.costMultiplier)
+    )
   }
 
   const equipmentDefinition = getEquipmentCatalogEntries().find(
@@ -270,10 +273,16 @@ function getBuyPrice(definition: ProcurementListingDefinition, game: GameState) 
   )
   const baseUnitPrice = equipmentDefinition ? getDirectEquipmentBasePrice(equipmentDefinition) : 20
 
-  return Math.max(1, Math.round(baseUnitPrice * definition.bundleQuantity * game.market.costMultiplier))
+  return Math.max(
+    1,
+    Math.round(baseUnitPrice * definition.bundleQuantity * game.market.costMultiplier)
+  )
 }
 
-function buildListing(definition: ProcurementListingDefinition, game: GameState): ProcurementListing {
+function buildListing(
+  definition: ProcurementListingDefinition,
+  game: GameState
+): ProcurementListing {
   const buyPrice = getBuyPrice(definition, game)
   const fabricationCost =
     definition.recipeId !== undefined

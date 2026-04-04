@@ -61,7 +61,8 @@ describe('fatiguePipeline', () => {
     })
     const sampleAgentId = state.teams['t_nightwatch'].agentIds[0]
 
-    const capacityDelta = capacityAgents[sampleAgentId].fatigue - state.agents[sampleAgentId].fatigue
+    const capacityDelta =
+      capacityAgents[sampleAgentId].fatigue - state.agents[sampleAgentId].fatigue
     const attritionDelta =
       attritionAgents[sampleAgentId].fatigue - state.agents[sampleAgentId].fatigue
 

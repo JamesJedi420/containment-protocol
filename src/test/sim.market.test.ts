@@ -67,7 +67,9 @@ describe('market procurement simulation', () => {
 
   it('cannot buy beyond remaining availability', () => {
     const state = createStartingState()
-    const listing = getProcurementListings(state).find((candidate) => candidate.availableBundles > 0)
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 
@@ -102,7 +104,9 @@ describe('market procurement simulation', () => {
 
     const purchased = purchaseMarketInventory(state, listing!.id, 1)
     const sold = sellMarketInventory(purchased, listing!.id, 1)
-    const marketTransactions = sold.events.filter((event) => event.type === 'market.transaction_recorded')
+    const marketTransactions = sold.events.filter(
+      (event) => event.type === 'market.transaction_recorded'
+    )
 
     expect(marketTransactions).toHaveLength(2)
     expect(marketTransactions[0]!.payload.transactionId).not.toBe(

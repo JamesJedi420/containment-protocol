@@ -131,7 +131,11 @@ export default function IntelDetailPage() {
                 convertToRaidAtStage={intel.template.onUnresolved.convertToRaidAtStage}
                 links={intel.unresolvedTargets}
               />
-              <section className="panel panel-support space-y-3" role="region" aria-label="Incoming signals">
+              <section
+                className="panel panel-support space-y-3"
+                role="region"
+                aria-label="Incoming signals"
+              >
                 <div>
                   <p className="text-xs uppercase tracking-wide opacity-50">
                     {INTEL_UI_TEXT.incomingSignals}
@@ -168,7 +172,11 @@ export default function IntelDetailPage() {
         </div>
 
         <aside className="detail-side" aria-label="Starter coverage insights">
-          <article className="panel panel-primary space-y-3" role="region" aria-label="Starter coverage">
+          <article
+            className="panel panel-primary space-y-3"
+            role="region"
+            aria-label="Starter coverage"
+          >
             <div>
               <h3 className="text-lg font-semibold">{INTEL_UI_TEXT.starterCoverage}</h3>
               <p className="text-sm opacity-60">{INTEL_UI_TEXT.starterCoverageHint}</p>
@@ -200,7 +208,8 @@ export default function IntelDetailPage() {
                     <span>Partial {formatPercent(entry.odds.partial)}</span>
                     <span>Fail {formatPercent(entry.odds.fail)}</span>
                     <span>
-                      Preferred matches {entry.matchingPreferredTags.join(', ') || SHELL_UI_TEXT.none}
+                      Preferred matches{' '}
+                      {entry.matchingPreferredTags.join(', ') || SHELL_UI_TEXT.none}
                     </span>
                   </div>
                 </li>

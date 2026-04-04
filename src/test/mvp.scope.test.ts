@@ -121,9 +121,9 @@ describe('minimal MVP scope', () => {
     expect(trainedAgent.history?.counters.trainingsCompleted).toBe(1)
     expect(trainedAgent.progression?.xp).toBeGreaterThan(state.agents['a_ava'].progression?.xp ?? 0)
     expect(afterTraining.score).toBeGreaterThan(beforeTraining.score)
-    expect(
-      next.reports[0]?.notes.some((note) => note.type === 'agent.training_completed')
-    ).toBe(true)
+    expect(next.reports[0]?.notes.some((note) => note.type === 'agent.training_completed')).toBe(
+      true
+    )
   })
 
   it('runs the assignment to resolution loop through advanceWeek for simulated cases', () => {
@@ -155,9 +155,7 @@ describe('minimal MVP scope', () => {
       expect(agent?.assignment?.state).toBe('idle')
       expect(agent?.history?.counters.assignmentsCompleted).toBe(1)
       expect(agent?.history?.counters.casesResolved).toBe(1)
-      expect(agent?.progression?.xp).toBeGreaterThan(
-        assigned.agents[agentId]?.progression?.xp ?? 0
-      )
+      expect(agent?.progression?.xp).toBeGreaterThan(assigned.agents[agentId]?.progression?.xp ?? 0)
     }
   })
 })

@@ -28,10 +28,7 @@ export function deriveTemplateFamily(templateId: string) {
   return templateId.split('-')[0]!
 }
 
-export function getRecentSpawnedTemplateCounts(
-  game: GameState,
-  lookbackWeeks: number
-) {
+export function getRecentSpawnedTemplateCounts(game: GameState, lookbackWeeks: number) {
   const templateCounts = new Map<string, number>()
   const familyCounts = new Map<string, number>()
   const earliestWeek = Math.max(1, game.week - Math.max(1, Math.trunc(lookbackWeeks)) + 1)
@@ -83,11 +80,7 @@ export function applyTemplateDiversityWeight(
     familySeenCount > 0
       ? 1 - familySeenCount * policy.familyPenaltyPerRecentSpawn
       : 1 + policy.unseenFamilyBonus
-  const multiplier = clamp(
-    templateSuppression * familyPenalty,
-    policy.minimumWeightMultiplier,
-    3
-  )
+  const multiplier = clamp(templateSuppression * familyPenalty, policy.minimumWeightMultiplier, 3)
 
   return baseWeight * multiplier
 }

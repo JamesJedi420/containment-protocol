@@ -6,6 +6,7 @@ import {
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from './crafting'
 import {
   type MissionRewardBreakdown,
+  type OperationEvent,
   type ReportNote,
   type ReportNoteMetadata,
 } from './models'
@@ -13,6 +14,11 @@ import { type AnyOperationEventDraft } from './events'
 
 const REPORT_NOTE_CLOCK_START_MS = Date.UTC(2042, 0, 1, 0, 0, 0)
 const REPORT_NOTE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const HISTORICAL_REPORT_NOTE_EVENT_TYPES = new Set<OperationEvent['type']>([
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
+])
 
 function normalizeWeek(week: number) {
   if (!Number.isFinite(week)) {
@@ -69,9 +75,7 @@ export function createDeterministicReportNote(
   return note
 }
 
-function buildReflectedReportNote(
-  draft: AnyOperationEventDraft
-): {
+function buildReflectedReportNote(draft: AnyOperationEventDraft): {
   content: string
   type: NonNullable<ReportNote['type']>
   metadata?: ReportNoteMetadata
@@ -147,7 +151,7 @@ function buildReflectedReportNote(
               ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? `${draft.payload.factionLabel ?? 'Faction'} pressure surfaced this incident.`}`
               : draft.payload.trigger === 'pressure_threshold'
                 ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? 'A major incident was opened by global pressure threshold breach.'}`
-              : `${draft.payload.parentCaseTitle ?? draft.payload.caseTitle}: 1 follow-up operation(s) opened.`,
+                : `${draft.payload.parentCaseTitle ?? draft.payload.caseTitle}: 1 follow-up operation(s) opened.`,
         type: 'case.spawned',
         metadata: {
           caseId: draft.payload.caseId,
@@ -261,6 +265,56 @@ function buildReflectedReportNote(
         },
       }
 
+    case 'recruitment.scouting_initiated':
+      return {
+        content: `Recruitment scouting opened on ${draft.payload.candidateName}. Projected ${draft.payload.projectedTier}-tier potential at ${draft.payload.confidence} confidence for $${draft.payload.fundingCost}.`,
+        type: 'recruitment.scouting_initiated',
+        metadata: {
+          candidateId: draft.payload.candidateId,
+          candidateName: draft.payload.candidateName,
+          stage: draft.payload.stage,
+          projectedTier: draft.payload.projectedTier,
+          confidence: draft.payload.confidence,
+          fundingCost: draft.payload.fundingCost,
+          revealLevel: draft.payload.revealLevel,
+        },
+      }
+
+    case 'recruitment.scouting_refined':
+      return {
+        content: `Recruitment scouting refined ${draft.payload.candidateName}. Projected ${draft.payload.projectedTier}-tier potential${draft.payload.previousProjectedTier && draft.payload.previousProjectedTier !== draft.payload.projectedTier ? ` updated from ${draft.payload.previousProjectedTier} tier` : ''} with ${draft.payload.confidence} confidence for $${draft.payload.fundingCost}.`,
+        type: 'recruitment.scouting_refined',
+        metadata: {
+          candidateId: draft.payload.candidateId,
+          candidateName: draft.payload.candidateName,
+          stage: draft.payload.stage,
+          projectedTier: draft.payload.projectedTier,
+          confidence: draft.payload.confidence,
+          fundingCost: draft.payload.fundingCost,
+          revealLevel: draft.payload.revealLevel,
+          previousProjectedTier: draft.payload.previousProjectedTier ?? null,
+          previousConfidence: draft.payload.previousConfidence ?? null,
+        },
+      }
+
+    case 'recruitment.intel_confirmed':
+      return {
+        content: `Recruitment deep scan confirmed ${draft.payload.candidateName} as ${draft.payload.confirmedTier ?? draft.payload.projectedTier}-tier potential for $${draft.payload.fundingCost}.`,
+        type: 'recruitment.intel_confirmed',
+        metadata: {
+          candidateId: draft.payload.candidateId,
+          candidateName: draft.payload.candidateName,
+          stage: draft.payload.stage,
+          projectedTier: draft.payload.projectedTier,
+          confirmedTier: draft.payload.confirmedTier ?? draft.payload.projectedTier,
+          confidence: draft.payload.confidence,
+          fundingCost: draft.payload.fundingCost,
+          revealLevel: draft.payload.revealLevel,
+          previousProjectedTier: draft.payload.previousProjectedTier ?? null,
+          previousConfidence: draft.payload.previousConfidence ?? null,
+        },
+      }
+
     case 'system.party_cards_drawn':
       return {
         content: `Party cards drawn: ${draft.payload.count}.`,
@@ -367,4 +421,22 @@ export function buildDeterministicReportNotesFromEventDrafts(
   }
 
   return notes
+}
+
+export function getHistoricalReportNoteDrafts(
+  events: readonly OperationEvent[],
+  week: number
+): AnyOperationEventDraft[] {
+  return events
+    .filter(
+      (event) => event.payload.week === week && HISTORICAL_REPORT_NOTE_EVENT_TYPES.has(event.type)
+    )
+    .map(
+      (event) =>
+        ({
+          type: event.type,
+          sourceSystem: event.sourceSystem,
+          payload: event.payload,
+        }) as AnyOperationEventDraft
+    )
 }

@@ -67,11 +67,7 @@ export function dequeueCase(state: GameState, caseId: Id): GameState {
  * Update priority of a queued case.
  * If case is not queued, creates queue entry with given priority.
  */
-export function reprioritizeCase(
-  state: GameState,
-  caseId: Id,
-  priority: CasePriority
-): GameState {
+export function reprioritizeCase(state: GameState, caseId: Id, priority: CasePriority): GameState {
   const queue = getCaseQueue(state)
 
   // If not in queue, add it
@@ -95,11 +91,7 @@ export function reprioritizeCase(
  * If case is not queued, it is added at that position.
  * If targetIndex is out of bounds, case is moved to the end.
  */
-export function moveQueuedCase(
-  state: GameState,
-  caseId: Id,
-  targetIndex: number
-): GameState {
+export function moveQueuedCase(state: GameState, caseId: Id, targetIndex: number): GameState {
   const queue = getCaseQueue(state)
   const currentIndex = queue.queuedCaseIds.indexOf(caseId)
 

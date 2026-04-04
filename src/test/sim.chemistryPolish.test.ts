@@ -63,9 +63,7 @@ describe('Chemistry Polish Features', () => {
 
   describe('Historical Chemistry Trends', () => {
     it('should record relationship snapshots', () => {
-      const relationship: Relationship = makeRelationship('agent-a', 'agent-b', 1.5, [
-        'high_trust',
-      ])
+      const relationship: Relationship = makeRelationship('agent-a', 'agent-b', 1.5, ['high_trust'])
 
       const stateWithSnapshot = recordRelationshipSnapshot(state, relationship, 'passive_drift')
 

@@ -15,17 +15,14 @@ import {
 } from '../../domain/models'
 import { createSeededRng, normalizeSeed } from '../../domain/math'
 import type { EquipmentSlotKind } from '../../domain/equipment'
-import {
-  discardPartyCard,
-  drawPartyCards,
-  playPartyCard,
-} from '../../domain/partyCards/engine'
+import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
 import { queueFabrication } from '../../domain/sim/production'
 import { purchaseMarketInventory, sellMarketInventory } from '../../domain/sim/market'
 import { hireCandidate } from '../../domain/sim/hire'
+import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { equipAgentItem, unequipAgentItem } from '../../domain/sim/equipment'
 import {
   createTeam,
@@ -34,9 +31,18 @@ import {
   renameTeam,
   setTeamLeader,
 } from '../../domain/sim/teamManagement'
-import { cancelTraining, queueTeamTraining, queueTraining, spendSkillPoint } from '../../domain/sim/training'
+import {
+  cancelTraining,
+  queueTeamTraining,
+  queueTraining,
+  spendSkillPoint,
+} from '../../domain/sim/training'
 import { upgradeAcademy } from '../../domain/sim/academyUpgrade'
-import { assignInstructor, getInstructorBonus, unassignInstructor } from '../../domain/sim/instructorAssignment'
+import {
+  assignInstructor,
+  getInstructorBonus,
+  unassignInstructor,
+} from '../../domain/sim/instructorAssignment'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import {
   createRunFromCurrentConfig,
@@ -55,6 +61,7 @@ interface GameStore {
   assign: (caseId: Id, teamId: Id) => void
   unassign: (caseId: Id, teamId?: Id) => void
   hireCandidate: (candidateId: Id) => void
+  scoutCandidate: (candidateId: Id) => void
   createTeam: (name: string, seedAgentId: Id) => void
   renameTeam: (teamId: Id, name: string) => void
   setTeamLeader: (teamId: Id, leaderId: Id | null) => void
@@ -128,20 +135,18 @@ export const useGameStore = create<GameStore>()(
     (set, get) => ({
       game: createStartingState(),
 
-      assign: (caseId, teamId) =>
-        set((s) => ({ game: assignTeam(s.game, caseId, teamId) })),
+      assign: (caseId, teamId) => set((s) => ({ game: assignTeam(s.game, caseId, teamId) })),
 
-      unassign: (caseId, teamId) =>
-        set((s) => ({ game: unassignTeam(s.game, caseId, teamId) })),
+      unassign: (caseId, teamId) => set((s) => ({ game: unassignTeam(s.game, caseId, teamId) })),
 
-      hireCandidate: (candidateId) =>
-        set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+      hireCandidate: (candidateId) => set((s) => ({ game: hireCandidate(s.game, candidateId) })),
+
+      scoutCandidate: (candidateId) => set((s) => ({ game: scoutCandidate(s.game, candidateId) })),
 
       createTeam: (name, seedAgentId) =>
         set((s) => ({ game: createTeam(s.game, name, seedAgentId) })),
 
-      renameTeam: (teamId, name) =>
-        set((s) => ({ game: renameTeam(s.game, teamId, name) })),
+      renameTeam: (teamId, name) => set((s) => ({ game: renameTeam(s.game, teamId, name) })),
 
       setTeamLeader: (teamId, leaderId) =>
         set((s) => ({ game: setTeamLeader(s.game, teamId, leaderId) })),
@@ -149,8 +154,7 @@ export const useGameStore = create<GameStore>()(
       moveAgentBetweenTeams: (agentId, targetTeamId) =>
         set((s) => ({ game: moveAgentBetweenTeams(s.game, agentId, targetTeamId) })),
 
-      deleteEmptyTeam: (teamId) =>
-        set((s) => ({ game: deleteEmptyTeam(s.game, teamId) })),
+      deleteEmptyTeam: (teamId) => set((s) => ({ game: deleteEmptyTeam(s.game, teamId) })),
 
       queueTraining: (agentId, trainingId) =>
         set((s) => ({ game: queueTraining(s.game, agentId, trainingId) })),
@@ -158,8 +162,7 @@ export const useGameStore = create<GameStore>()(
       queueTeamTraining: (teamId, trainingId) =>
         set((s) => ({ game: queueTeamTraining(s.game, teamId, trainingId) })),
 
-      cancelTraining: (agentId) =>
-        set((s) => ({ game: cancelTraining(s.game, agentId) })),
+      cancelTraining: (agentId) => set((s) => ({ game: cancelTraining(s.game, agentId) })),
 
       spendSkillPoint: (agentId, stat) =>
         set((s) => ({ game: spendSkillPoint(s.game, agentId, stat) })),
@@ -224,7 +227,9 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           const before = s.game.staff[staffId]
           const assignedAgentId = before?.role === 'instructor' ? before.assignedAgentId : undefined
-          const assignedAgentName = assignedAgentId ? s.game.agents[assignedAgentId]?.name ?? assignedAgentId : undefined
+          const assignedAgentName = assignedAgentId
+            ? (s.game.agents[assignedAgentId]?.name ?? assignedAgentId)
+            : undefined
           const next = unassignInstructor(s.game, staffId)
           const after = next.staff[staffId]
 
@@ -261,8 +266,7 @@ export const useGameStore = create<GameStore>()(
       unequipAgentItem: (agentId, slot) =>
         set((s) => ({ game: unequipAgentItem(s.game, agentId, slot) })),
 
-      queueFabrication: (recipeId) =>
-        set((s) => ({ game: queueFabrication(s.game, recipeId) })),
+      queueFabrication: (recipeId) => set((s) => ({ game: queueFabrication(s.game, recipeId) })),
 
       purchaseMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: purchaseMarketInventory(s.game, listingId, bundles) })),

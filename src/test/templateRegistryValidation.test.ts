@@ -5,10 +5,7 @@ import {
   getCaseTemplateCatalogDiagnostics,
 } from '../domain/templates'
 
-const makeTemplate = (
-  templateId: string,
-  overrides: Partial<CaseTemplate> = {}
-): CaseTemplate => ({
+const makeTemplate = (templateId: string, overrides: Partial<CaseTemplate> = {}): CaseTemplate => ({
   templateId,
   title: templateId,
   description: `${templateId} description`,
@@ -90,9 +87,9 @@ describe('templateRegistryValidation', () => {
     expect(diagnostics.reachability.entryTemplateIds).toEqual(['entry'])
     expect(diagnostics.reachability.reachableTemplateIds).toEqual(['entry', 'linked'])
     expect(diagnostics.reachability.unreachableTemplateIds).toEqual(['orphan'])
-    expect(
-      diagnostics.diagnostics.some((entry) => entry.code === 'unreachable_templates')
-    ).toBe(true)
+    expect(diagnostics.diagnostics.some((entry) => entry.code === 'unreachable_templates')).toBe(
+      true
+    )
   })
 
   it('flags unsatisfied hard gates when capability sets are provided', () => {
@@ -107,8 +104,8 @@ describe('templateRegistryValidation', () => {
       capabilitySets: [new Set(['tactical', 'tech'])],
     })
 
-    expect(
-      diagnostics.diagnostics.some((entry) => entry.code === 'hard_gate_unsatisfied')
-    ).toBe(true)
+    expect(diagnostics.diagnostics.some((entry) => entry.code === 'hard_gate_unsatisfied')).toBe(
+      true
+    )
   })
 })

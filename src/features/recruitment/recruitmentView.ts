@@ -1,6 +1,9 @@
 import { type Candidate, type GameState } from '../../domain/models'
+import { ROLE_LABELS } from '../../data/copy'
 import { filterCandidates, type CandidateFilters } from '../../domain/sim/candidateFilter'
+import { assessCandidateScouting } from '../../domain/sim/recruitmentScouting'
 import {
+  getCandidateHireRole,
   getCandidatePool,
   getCandidateOverall,
   getCandidateWeeklyCost,
@@ -19,8 +22,14 @@ export interface RecruitmentViewFilters extends CandidateFilters {
 export interface RecruitmentCandidateView {
   candidate: Candidate
   roleLabel: string
+  hireOutcomeLabel?: string
   overallLabel: string
   potentialLabel: string
+  scoutLabel: string
+  scoutActionLabel: string
+  scoutCost?: number
+  canScout: boolean
+  scoutBlockedReason?: string
   expiringSoon: boolean
   hiddenOverall: boolean
   preview: CandidatePreview
@@ -61,10 +70,14 @@ export function getRecruitmentCandidateViews(
   return filtered
     .map((candidate) => {
       const preview = previewCandidate(candidate, game)
+      const scoutAssessment = assessCandidateScouting(game, candidate.id)
 
       return {
         candidate,
         roleLabel: getCandidateRoleLabel(candidate),
+        ...(getCandidateHireOutcomeLabel(candidate)
+          ? { hireOutcomeLabel: getCandidateHireOutcomeLabel(candidate) }
+          : {}),
         overallLabel:
           candidate.evaluation.overallVisible && getCandidateOverall(candidate) !== undefined
             ? String(getCandidateOverall(candidate))
@@ -72,6 +85,13 @@ export function getRecruitmentCandidateViews(
         potentialLabel: candidate.evaluation.potentialVisible
           ? (candidate.evaluation.potentialTier ?? 'Unknown')
           : 'Unknown',
+        scoutLabel: formatScoutLabel(candidate),
+        scoutActionLabel: getScoutActionLabel(candidate, scoutAssessment.nextStage),
+        scoutCost: scoutAssessment.cost > 0 ? scoutAssessment.cost : undefined,
+        canScout: scoutAssessment.canScout,
+        scoutBlockedReason: scoutAssessment.reason
+          ? formatScoutBlockedReason(scoutAssessment.reason)
+          : undefined,
         expiringSoon: candidate.expiryWeek <= game.week + 1,
         hiddenOverall:
           !candidate.evaluation.overallVisible || getCandidateOverall(candidate) === undefined,
@@ -127,8 +147,7 @@ function compareCandidateViews(
 
   return (
     left.candidate.expiryWeek - right.candidate.expiryWeek ||
-    (getCandidateOverall(right.candidate) ?? -1) -
-      (getCandidateOverall(left.candidate) ?? -1) ||
+    (getCandidateOverall(right.candidate) ?? -1) - (getCandidateOverall(left.candidate) ?? -1) ||
     left.candidate.name.localeCompare(right.candidate.name)
   )
 }
@@ -145,4 +164,80 @@ function getCandidateRoleLabel(candidate: Candidate) {
   }
 
   return normalizeCandidateCategory(candidate.category)
+}
+
+function getCandidateHireOutcomeLabel(candidate: Candidate) {
+  const hireRole = getCandidateHireRole(candidate)
+
+  return hireRole ? ROLE_LABELS[hireRole] : undefined
+}
+
+function formatScoutLabel(candidate: Candidate) {
+  if (!candidate.scoutReport) {
+    return normalizeCandidateCategory(candidate.category) === 'agent'
+      ? 'Not commissioned'
+      : 'Not applicable'
+  }
+
+  if (candidate.scoutReport.exactKnown) {
+    return `Confirmed ${candidate.scoutReport.confirmedTier ?? candidate.scoutReport.projectedTier}`
+  }
+
+  return `Projected ${candidate.scoutReport.projectedTier} (${formatScoutConfidence(
+    candidate.scoutReport.confidence
+  )})`
+}
+
+function getScoutActionLabel(candidate: Candidate, nextStage?: 1 | 2 | 3) {
+  if (normalizeCandidateCategory(candidate.category) !== 'agent') {
+    return 'Scout'
+  }
+
+  if (candidate.scoutReport?.exactKnown) {
+    return 'Confirmed'
+  }
+
+  if (nextStage === 2) {
+    return 'Follow-up scout'
+  }
+
+  if (nextStage === 3) {
+    return 'Deep scan'
+  }
+
+  return 'Scout'
+}
+
+function formatScoutConfidence(confidence: 'low' | 'medium' | 'high' | 'confirmed') {
+  if (confidence === 'confirmed') {
+    return 'confirmed intel'
+  }
+
+  return confidence === 'high'
+    ? 'high confidence'
+    : confidence === 'medium'
+      ? 'medium confidence'
+      : 'low confidence'
+}
+
+function formatScoutBlockedReason(
+  reason: NonNullable<ReturnType<typeof assessCandidateScouting>['reason']>
+) {
+  if (reason === 'intel_confirmed') {
+    return 'intel confirmed'
+  }
+
+  if (reason === 'insufficient_funding') {
+    return 'insufficient funding'
+  }
+
+  if (reason === 'candidate_unavailable') {
+    return 'candidate unavailable'
+  }
+
+  if (reason === 'non_agent') {
+    return 'agent scouting only'
+  }
+
+  return 'candidate missing'
 }

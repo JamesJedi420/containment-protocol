@@ -1,4 +1,10 @@
-import { appendOperationEventDrafts, type AnyOperationEventDraft, createProductionQueueStartedDraft, createProductionQueueCompletedDraft, createMarketShiftedDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  type AnyOperationEventDraft,
+  createProductionQueueStartedDraft,
+  createProductionQueueCompletedDraft,
+  createMarketShiftedDraft,
+} from '../events'
 import {
   buildProductionJobSnapshot,
   buildProductionQueueEntry,
@@ -75,7 +81,11 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
   )
 }
 
-export function purchaseMarketInventory(state: GameState, recipeId: string, bundles = 1): GameState {
+export function purchaseMarketInventory(
+  state: GameState,
+  recipeId: string,
+  bundles = 1
+): GameState {
   return purchaseMarketListingInventory(state, recipeId, bundles)
 }
 
@@ -112,17 +122,19 @@ export function advanceProductionQueues(state: GameState) {
     notes.push(
       `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
     )
-    eventDrafts.push(createProductionQueueCompletedDraft({
-      week: state.week,
-      queueId: entry.id,
-      queueName: entry.recipeName,
-      recipeId: entry.recipeId,
-      outputId: entry.outputItemId,
-      outputName: entry.outputItemName,
-      outputQuantity: entry.outputQuantity,
-      fundingCost: entry.fundingCost,
-      inputMaterials: entry.inputMaterials ?? [],
-    }))
+    eventDrafts.push(
+      createProductionQueueCompletedDraft({
+        week: state.week,
+        queueId: entry.id,
+        queueName: entry.recipeName,
+        recipeId: entry.recipeId,
+        outputId: entry.outputItemId,
+        outputName: entry.outputItemName,
+        outputQuantity: entry.outputQuantity,
+        fundingCost: entry.fundingCost,
+        inputMaterials: entry.inputMaterials ?? [],
+      })
+    )
   }
 
   return {

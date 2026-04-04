@@ -28,7 +28,10 @@ import { resolveAgentAbilityEffects } from '../abilities'
 import { buildFactionStandingMap, getFactionDefinition } from '../factions'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { buildAgencyProtocolState } from '../protocols'
-import { buildDeterministicReportNotesFromEventDrafts } from '../reportNotes'
+import {
+  buildDeterministicReportNotesFromEventDrafts,
+  getHistoricalReportNoteDrafts,
+} from '../reportNotes'
 import { getRecruitmentPool, syncRecruitmentPoolState } from '../recruitment'
 import {
   buildTeamCompositionProfile,
@@ -38,6 +41,7 @@ import {
   getUniqueTeamMembers,
   normalizeGameState,
 } from '../teamSimulation'
+import { deriveRelationshipStability, deriveRelationshipState } from './relationshipProjection'
 import { applyRaids, resolveRaid } from './raid'
 import { advanceMarketState, advanceProductionQueues } from './production'
 import { resolveCase } from './resolve'
@@ -59,10 +63,7 @@ import {
   buildSuccessCaseOutcomeDraft,
   buildUnresolvedCaseOutcomeDraft,
 } from './caseOutcomePipeline'
-import {
-  decrementActiveAbilityCooldowns,
-  markActiveAbilityUsed,
-} from './abilityExecution'
+import { decrementActiveAbilityCooldowns, markActiveAbilityUsed } from './abilityExecution'
 import { applyMissionResolutionAgentMutations } from './missionResolutionAgents'
 import {
   buildCaseEscalatedEventDraft,
@@ -140,9 +141,7 @@ function releaseTeams(teams: GameState['teams'], releasedTeamIds: string[]): Gam
         ? {
             ...team,
             assignedCaseId: undefined,
-            status: team.status
-              ? { ...team.status, assignedCaseId: null }
-              : team.status,
+            status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
           }
         : team,
     ])
@@ -156,10 +155,7 @@ function getAverageFatigue(team: Team, agents: GameState['agents']) {
     return 0
   }
 
-  const totalFatigue = memberIds.reduce(
-    (sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0),
-    0
-  )
+  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
 
   return Math.round(totalFatigue / memberIds.length)
 }
@@ -206,10 +202,7 @@ function applyAgentFatigue(
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
       const delta = activeAgentIds.has(id)
-        ? Math.max(
-            1,
-            Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0)))
-          )
+        ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
         : trainingAgentIds.has(id)
           ? -(agent.recoveryRateBonus ?? 0)
           : -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
@@ -450,7 +443,7 @@ function resolveAssignedCaseForWeek(
           ],
           leaderId:
             currentCase.assignedTeamIds.length === 1
-              ? state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null
+              ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
               : null,
           partyCardScoreBonus: cardBonus?.scoreAdjustment,
           partyCardReasons: cardBonus?.reasons,
@@ -640,8 +633,9 @@ function assertReportEventAlignment(context: WeeklyExecutionContext, report: Wee
 }
 
 function assertReportNoteAlignment(context: WeeklyExecutionContext, report: WeeklyReport) {
+  const reportNoteDrafts = getWeeklyReportNoteDrafts(context)
   const expected = buildDeterministicReportNotesFromEventDrafts(
-    context.eventDrafts,
+    reportNoteDrafts,
     context.sourceState.week,
     context.noteBaseTimestamp
   )
@@ -649,6 +643,13 @@ function assertReportNoteAlignment(context: WeeklyExecutionContext, report: Week
   if (JSON.stringify(report.notes) !== JSON.stringify(expected)) {
     throw new Error('Weekly report notes drift detected from event draft reflections.')
   }
+}
+
+function getWeeklyReportNoteDrafts(context: WeeklyExecutionContext) {
+  return [
+    ...getHistoricalReportNoteDrafts(context.sourceState.events, context.sourceState.week),
+    ...context.eventDrafts,
+  ]
 }
 
 function aggregateOutcomePerformanceSummary(outcome: ResolutionOutcome): PerformanceMetricSummary {
@@ -670,10 +671,16 @@ function aggregateOutcomePerformanceSummary(outcome: ResolutionOutcome): Perform
       contribution: Number((summary.contribution + (performance.contribution ?? 0)).toFixed(2)),
       threatHandled: Number((summary.threatHandled + (performance.threatHandled ?? 0)).toFixed(2)),
       damageTaken: Number((summary.damageTaken + (performance.damageTaken ?? 0)).toFixed(2)),
-      healingPerformed: Number((summary.healingPerformed + (performance.healingPerformed ?? 0)).toFixed(2)),
-      evidenceGathered: Number((summary.evidenceGathered + (performance.evidenceGathered ?? 0)).toFixed(2)),
+      healingPerformed: Number(
+        (summary.healingPerformed + (performance.healingPerformed ?? 0)).toFixed(2)
+      ),
+      evidenceGathered: Number(
+        (summary.evidenceGathered + (performance.evidenceGathered ?? 0)).toFixed(2)
+      ),
       containmentActionsCompleted: Number(
-        (summary.containmentActionsCompleted + (performance.containmentActionsCompleted ?? 0)).toFixed(2)
+        (
+          summary.containmentActionsCompleted + (performance.containmentActionsCompleted ?? 0)
+        ).toFixed(2)
       ),
     }),
     fallback
@@ -719,10 +726,15 @@ function aggregateOutcomePowerImpact(outcome: ResolutionOutcome): PowerImpactSum
     aggregate.kitScoreDelta += powerImpact.kitScoreDelta ?? 0
     aggregate.protocolScoreDelta += powerImpact.protocolScoreDelta ?? 0
     aggregate.kitEffectivenessMultiplier = Number(
-      (aggregate.kitEffectivenessMultiplier * (powerImpact.kitEffectivenessMultiplier ?? 1)).toFixed(4)
+      (
+        aggregate.kitEffectivenessMultiplier * (powerImpact.kitEffectivenessMultiplier ?? 1)
+      ).toFixed(4)
     )
     aggregate.protocolEffectivenessMultiplier = Number(
-      (aggregate.protocolEffectivenessMultiplier * (powerImpact.protocolEffectivenessMultiplier ?? 1)).toFixed(4)
+      (
+        aggregate.protocolEffectivenessMultiplier *
+        (powerImpact.protocolEffectivenessMultiplier ?? 1)
+      ).toFixed(4)
     )
     aggregate.notes.push(...(powerImpact.notes ?? []))
   }
@@ -791,7 +803,13 @@ function applyActiveTriggerCooldowns(
       triggerEvent: input.triggerEvent,
       caseData: input.caseData,
       supportTags: input.caseData
-        ? [...new Set([...input.caseData.tags, ...input.caseData.requiredTags, ...input.caseData.preferredTags])]
+        ? [
+            ...new Set([
+              ...input.caseData.tags,
+              ...input.caseData.requiredTags,
+              ...input.caseData.preferredTags,
+            ]),
+          ]
         : undefined,
       stressGain,
     })
@@ -801,7 +819,12 @@ function applyActiveTriggerCooldowns(
         continue
       }
 
-      agent = markActiveAbilityUsed(agent, effect.abilityId, context.sourceState.week, effect.cooldown)
+      agent = markActiveAbilityUsed(
+        agent,
+        effect.abilityId,
+        context.sourceState.week,
+        effect.cooldown
+      )
     }
 
     updatedAgents[agentId] = agent
@@ -841,9 +864,11 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
 
     if (nextWeeksRemaining > 0) {
       applyActiveTriggerCooldowns(context, {
-        agentIds: getUniqueTeamMembers(existingAssignedTeamIds, context.sourceState.teams, context.sourceState.agents).map(
-          (agent) => agent.id
-        ),
+        agentIds: getUniqueTeamMembers(
+          existingAssignedTeamIds,
+          context.sourceState.teams,
+          context.sourceState.agents
+        ).map((agent) => agent.id),
         triggerEvent: 'OnLongCaseDurationCheck',
         caseData: {
           ...currentCase,
@@ -901,11 +926,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
       rng.next,
       cardBonus
     )
-    const {
-      assignedAgentLeaderBonuses,
-      activeTeamStressModifiers,
-      outcome,
-    } = weeklyResolution
+    const { assignedAgentLeaderBonuses, activeTeamStressModifiers, outcome } = weeklyResolution
     const effectiveCase = {
       ...currentCase,
       assignedTeamIds: existingAssignedTeamIds,
@@ -1307,6 +1328,8 @@ function applyPassiveRelationshipDrift(context: WeeklyExecutionContext) {
             agentBId: counterpartId,
             value: relationshipValue,
             modifiers: [],
+            state: deriveRelationshipState(relationshipValue),
+            stability: deriveRelationshipStability(relationshipValue),
           },
           'passive_drift'
         )
@@ -1443,7 +1466,9 @@ function generateRecruitmentPool(context: WeeklyExecutionContext, rng: SeededRng
 
   for (const candidate of directiveAdjustedCandidates) {
     if (context.initialRecruitmentCandidateIdSet.has(candidate.id)) {
-      throw new Error(`Generated recruitment candidate ${candidate.id} collides with an existing pool id.`)
+      throw new Error(
+        `Generated recruitment candidate ${candidate.id} collides with an existing pool id.`
+      )
     }
   }
 
@@ -1476,8 +1501,8 @@ function expireOldCandidates(context: WeeklyExecutionContext) {
   const expiredCandidateCount = context.initialRecruitmentPool.length - nonExpiredCandidates.length
 
   if (
-    removeExpiredCandidates(context.generatedRecruitmentCandidates, context.nextState.week).length !==
-    context.generatedRecruitmentCandidates.length
+    removeExpiredCandidates(context.generatedRecruitmentCandidates, context.nextState.week)
+      .length !== context.generatedRecruitmentCandidates.length
   ) {
     throw new Error('Newly generated recruitment candidates expired in the same tick.')
   }
@@ -1647,7 +1672,8 @@ function updateAgencyMetrics(
   const fundingDelta = computeFundingDelta(report, context.nextState.config, context.rewardByCaseId)
   const lockdownPenalty = context.selectedDirectiveId === 'lockdown-protocol' ? -8 : 0
   const containmentDelta =
-    computeContainmentDelta(report, context.nextState.config, context.rewardByCaseId) + lockdownPenalty
+    computeContainmentDelta(report, context.nextState.config, context.rewardByCaseId) +
+    lockdownPenalty
   const nextFunding = context.nextState.funding + fundingDelta
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
@@ -1655,8 +1681,10 @@ function updateAgencyMetrics(
     100
   )
   const cumulativeScore =
-    context.sourceState.reports.reduce((sum, currentReport) => sum + calcWeekScore(currentReport), 0) +
-    weekScore
+    context.sourceState.reports.reduce(
+      (sum, currentReport) => sum + calcWeekScore(currentReport),
+      0
+    ) + weekScore
   const nextClearanceLevel = computeClearanceLevel(
     cumulativeScore,
     context.nextState.config.clearanceThresholds
@@ -1731,20 +1759,18 @@ function finalizeEvents(
   builtReport: BuiltWeeklyReport,
   agencyMetrics: AgencyMetricUpdate
 ) {
+  const reportNoteDrafts = getWeeklyReportNoteDrafts(context)
   const report = {
     ...builtReport.report,
     notes: buildDeterministicReportNotesFromEventDrafts(
-      context.eventDrafts,
+      reportNoteDrafts,
       context.sourceState.week,
       context.noteBaseTimestamp
     ),
   }
   const finalStateWithReport = {
     ...agencyMetrics.finalState,
-    reports: [
-      ...agencyMetrics.finalState.reports.slice(0, -1),
-      report,
-    ],
+    reports: [...agencyMetrics.finalState.reports.slice(0, -1), report],
   }
 
   context.eventDrafts.push({

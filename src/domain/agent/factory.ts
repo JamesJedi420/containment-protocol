@@ -54,7 +54,13 @@ export interface CreateAgentInput {
 }
 
 function normalizeAgentStatus(status: Agent['status'] | undefined): Agent['status'] {
-  if (status === 'active' || status === 'injured' || status === 'recovering' || status === 'resigned' || status === 'dead') {
+  if (
+    status === 'active' ||
+    status === 'injured' ||
+    status === 'recovering' ||
+    status === 'resigned' ||
+    status === 'dead'
+  ) {
     return status
   }
 
@@ -78,7 +84,7 @@ export function mapAgentRoleToOperationalRole(role: AgentRole): Agent['operation
     return 'containment'
   }
 
-  if (role === 'investigator' || role === 'tech') {
+  if (role === 'investigator' || role === 'field_recon' || role === 'tech') {
     return 'investigation'
   }
 
@@ -109,12 +115,9 @@ export function createAgent(input: CreateAgentInput): Agent {
     ...input.identity,
     ...(typeof input.age === 'number' ? { age: input.age } : {}),
   }
-  const progression =
-    input.progression ??
-    createDefaultAgentProgression(1)
+  const progression = input.progression ?? createDefaultAgentProgression(1)
   const serviceRecord =
-    input.serviceRecord ??
-    createDefaultAgentServiceRecord(input.createdWeek ?? 1)
+    input.serviceRecord ?? createDefaultAgentServiceRecord(input.createdWeek ?? 1)
 
   return normalizeAgent({
     id: input.id,

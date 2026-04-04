@@ -295,7 +295,10 @@ describe('statDomains helper contracts', () => {
 
     const contextualWeights = buildContextualRoleDomainWeights('investigator', caseData)
 
-    expect(Object.values(contextualWeights).reduce((sum, value) => sum + value, 0)).toBeCloseTo(1, 6)
+    expect(Object.values(contextualWeights).reduce((sum, value) => sum + value, 0)).toBeCloseTo(
+      1,
+      6
+    )
     expect(contextualWeights.presence).toBeGreaterThan(roleWeights.presence)
     expect(contextualWeights.field).toBeLessThan(roleWeights.field)
   })

@@ -16,11 +16,7 @@ import { MARKET_UI_TEXT } from '../../data/copy'
 
 const MARKET_LISTING_CATEGORIES = getAvailableMarketCategories()
 
-export const MARKET_CATEGORY_FILTERS = [
-  'all',
-  ...MARKET_LISTING_CATEGORIES,
-  'featured',
-] as const
+export const MARKET_CATEGORY_FILTERS = ['all', ...MARKET_LISTING_CATEGORIES, 'featured'] as const
 export const MARKET_SORTS = [
   'recommended',
   'name',
@@ -70,12 +66,7 @@ export function writeMarketFilters(filters: MarketFilters, baseSearchParams?: UR
   const nextSearchParams = new URLSearchParams(baseSearchParams)
 
   writeStringParam(nextSearchParams, 'q', filters.q)
-  writeEnumParam(
-    nextSearchParams,
-    'category',
-    filters.category,
-    DEFAULT_MARKET_FILTERS.category
-  )
+  writeEnumParam(nextSearchParams, 'category', filters.category, DEFAULT_MARKET_FILTERS.category)
   writeEnumParam(nextSearchParams, 'sort', filters.sort, DEFAULT_MARKET_FILTERS.sort)
 
   return nextSearchParams

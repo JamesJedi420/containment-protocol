@@ -1,4 +1,19 @@
-import { appendOperationEventDrafts, type AnyOperationEventDraft, createProgressionXpGainedDraft, createAgentPromotedDraft, createAgentTrainingStartedDraft, createAgentTrainingCompletedDraft, createAgentTrainingCancelledDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  type AnyOperationEventDraft,
+  createProgressionXpGainedDraft,
+  createAgentPromotedDraft,
+  createAgentTrainingStartedDraft,
+  createAgentTrainingCompletedDraft,
+  createAgentTrainingCancelledDraft,
+} from '../events'
+import {
+  applyPotentialBreakthrough,
+  buildAgentStatCaps,
+  getAgentStatCap,
+  isAgentAtStatCap,
+  observePotentialIntel,
+} from '../agentPotential'
 import { clamp } from '../math'
 import { applyAgentXp } from '../progression'
 import {
@@ -43,6 +58,7 @@ export const ROLE_TRAINING_APTITUDE: Record<AgentRole, StatKey> = {
   hunter: 'combat',
   occultist: 'investigation',
   investigator: 'investigation',
+  field_recon: 'investigation',
   medium: 'social',
   tech: 'utility',
   medic: 'utility',
@@ -50,6 +66,10 @@ export const ROLE_TRAINING_APTITUDE: Record<AgentRole, StatKey> = {
 }
 
 export function getTrainingAptitudeBonus(agentRole: AgentRole, targetStat: StatKey): number {
+  if (agentRole === 'field_recon' && (targetStat === 'investigation' || targetStat === 'utility')) {
+    return 1
+  }
+
   return ROLE_TRAINING_APTITUDE[agentRole] === targetStat ? 1 : 0
 }
 
@@ -87,7 +107,9 @@ function buildQueueEntry(
   agent: Agent,
   program: TrainingProgram,
   offset = 0,
-  options: Partial<Pick<TrainingQueueEntry, 'scope' | 'teamId' | 'teamName' | 'drillGroupId' | 'memberIds'>> = {}
+  options: Partial<
+    Pick<TrainingQueueEntry, 'scope' | 'teamId' | 'teamName' | 'drillGroupId' | 'memberIds'>
+  > = {}
 ): TrainingQueueEntry {
   const isTeamDrill = (options.scope ?? program.scope ?? 'agent') === 'team'
   return {
@@ -180,7 +202,87 @@ function buildTrainingCompletionSummary(entry: TrainingQueueEntry) {
     : `${entry.agentName}: ${entry.trainingName} completed.`
 }
 
+function hasSecondaryTrainingBenefits(
+  entry: Pick<
+    TrainingQueueEntry,
+    'recoveryBonus' | 'stabilityResistanceDelta' | 'stabilityToleranceDelta'
+  >
+) {
+  return (
+    (entry.recoveryBonus ?? 0) > 0 ||
+    (entry.stabilityResistanceDelta ?? 0) > 0 ||
+    (entry.stabilityToleranceDelta ?? 0) > 0
+  )
+}
 
+function getTrainingPotentialDiscoveryDelta(
+  currentAgent: Agent,
+  entry: TrainingQueueEntry,
+  actualGain: number,
+  instructorBonus: number
+) {
+  if (entry.scope === 'team') {
+    return 0
+  }
+
+  const currentCap = getAgentStatCap(currentAgent, entry.targetStat)
+  let discoveryDelta = actualGain > 0 ? 18 : 8
+
+  if (entry.durationWeeks >= 3) {
+    discoveryDelta += 5
+  }
+
+  if (instructorBonus > 0) {
+    discoveryDelta += 8
+  }
+
+  if (currentAgent.baseStats[entry.targetStat] >= currentCap - 2) {
+    discoveryDelta += 12
+  }
+
+  if (hasSecondaryTrainingBenefits(entry)) {
+    discoveryDelta += 6
+  }
+
+  return discoveryDelta
+}
+
+function shouldTriggerTrainingBreakthrough(
+  agent: Agent,
+  currentAgent: Agent,
+  entry: TrainingQueueEntry,
+  actualGain: number,
+  instructorBonus: number
+) {
+  if (entry.scope === 'team') {
+    return false
+  }
+
+  const progression = agent.progression ?? createDefaultAgentProgression(agent.level ?? 1)
+  const intel = progression.potentialIntel
+
+  if (
+    (progression.potentialIntel?.exactKnown ?? false) === false &&
+    (intel?.discoveryProgress ?? 0) < 85
+  ) {
+    return false
+  }
+
+  if ((progression.level ?? agent.level ?? 1) < 3) {
+    return false
+  }
+
+  if (actualGain <= 0) {
+    return false
+  }
+
+  if (entry.durationWeeks < 3 && instructorBonus <= 0) {
+    return false
+  }
+
+  const currentCap = getAgentStatCap(currentAgent, entry.targetStat)
+  return currentAgent.baseStats[entry.targetStat] >= currentCap - 2
+}
 
 function setTrainingAssignment(
   agent: Agent,
@@ -311,7 +413,7 @@ export function assessAgentTrainingQueue(
     }
   }
 
-  if (agent.baseStats[program.targetStat] >= BASE_STAT_MAX) {
+  if (isAgentAtStatCap(agent, program.targetStat) && !hasSecondaryTrainingBenefits(program)) {
     return { canQueue: false, reason: 'stat_maxed' }
   }
 
@@ -443,16 +545,18 @@ export function queueTraining(state: GameState, agentId: Id, trainingId: string)
         },
         trainingQueue: [...state.trainingQueue, queueEntry],
       },
-      [createAgentTrainingStartedDraft({
-        week: queueEntry.startedWeek,
-        queueId: queueEntry.id,
-        agentId: queueEntry.agentId,
-        agentName: queueEntry.agentName,
-        trainingId: queueEntry.trainingId,
-        trainingName: queueEntry.trainingName,
-        etaWeeks: queueEntry.durationWeeks,
-        fundingCost: queueEntry.fundingCost,
-      })]
+      [
+        createAgentTrainingStartedDraft({
+          week: queueEntry.startedWeek,
+          queueId: queueEntry.id,
+          agentId: queueEntry.agentId,
+          agentName: queueEntry.agentName,
+          trainingId: queueEntry.trainingId,
+          trainingName: queueEntry.trainingName,
+          etaWeeks: queueEntry.durationWeeks,
+          fundingCost: queueEntry.fundingCost,
+        }),
+      ]
     )
   )
 }
@@ -505,17 +609,19 @@ export function queueTeamTraining(state: GameState, teamId: Id, trainingId: stri
         agents: nextAgents,
         trainingQueue: [...state.trainingQueue, ...queueEntries],
       },
-      queueEntries.map((entry) => createAgentTrainingStartedDraft({
-        week: entry.startedWeek,
-        queueId: entry.id,
-        agentId: entry.agentId,
-        agentName: entry.agentName,
-        trainingId: entry.trainingId,
-        trainingName: entry.trainingName,
-        teamName: entry.teamName,
-        etaWeeks: entry.durationWeeks,
-        fundingCost: entry.fundingCost,
-      }))
+      queueEntries.map((entry) =>
+        createAgentTrainingStartedDraft({
+          week: entry.startedWeek,
+          queueId: entry.id,
+          agentId: entry.agentId,
+          agentName: entry.agentName,
+          trainingId: entry.trainingId,
+          trainingName: entry.trainingName,
+          teamName: entry.teamName,
+          etaWeeks: entry.durationWeeks,
+          fundingCost: entry.fundingCost,
+        })
+      )
     )
   )
 }
@@ -523,7 +629,7 @@ export function queueTeamTraining(state: GameState, teamId: Id, trainingId: stri
 /**
  * Spends one accumulated skill point to permanently boost a target base stat by +1.
  * Sets the agent's specialization to the chosen stat on first spend.
- * No-ops if the agent has no skill points or the stat is already at BASE_STAT_MAX.
+ * No-ops if the agent has no skill points or the stat is already at the agent's ceiling.
  */
 export function spendSkillPoint(state: GameState, agentId: Id, stat: StatKey): GameState {
   const agent = state.agents[agentId]
@@ -539,13 +645,14 @@ export function spendSkillPoint(state: GameState, agentId: Id, stat: StatKey): G
 
   const currentSkillTree = agent.progression?.skillTree ?? createDefaultAgentSkillTree()
 
-  if (currentSkillTree.skillPoints < 1 || agent.baseStats[stat] >= BASE_STAT_MAX) {
+  if (currentSkillTree.skillPoints < 1 || isAgentAtStatCap(agent, stat)) {
     return ensureNormalizedGameState(state)
   }
 
+  const statCap = getAgentStatCap(agent, stat)
   const nextBaseStats = {
     ...agent.baseStats,
-    [stat]: clamp(agent.baseStats[stat] + 1, 0, BASE_STAT_MAX),
+    [stat]: clamp(agent.baseStats[stat] + 1, 0, statCap),
   }
   const nextSkillTree = {
     ...currentSkillTree,
@@ -574,20 +681,27 @@ function applyTrainingCompletionToAgent(
   instructorBonus = 0
 ) {
   // Team drills are chemistry-only: no stat gain, no XP, no instructor or academy bonuses.
-  const aptitudeBonus = entry.scope === 'team' ? 0 : getTrainingAptitudeBonus(currentAgent.role, entry.targetStat)
-  const rawGain = entry.scope === 'team' ? 0 : entry.statDelta + (entry.academyStatBonus ?? 0) + aptitudeBonus + instructorBonus
-  const cappedStat = clamp(currentAgent.baseStats[entry.targetStat] + rawGain, 0, 100)
+  const aptitudeBonus =
+    entry.scope === 'team' ? 0 : getTrainingAptitudeBonus(currentAgent.role, entry.targetStat)
+  const rawGain =
+    entry.scope === 'team'
+      ? 0
+      : entry.statDelta + (entry.academyStatBonus ?? 0) + aptitudeBonus + instructorBonus
+  const targetCap = getAgentStatCap(currentAgent, entry.targetStat)
+  const cappedStat = clamp(currentAgent.baseStats[entry.targetStat] + rawGain, 0, targetCap)
   const actualGain = cappedStat - currentAgent.baseStats[entry.targetStat]
   // Any suppressed gain (due to stat cap) converts at 15 XP per point so agents
   // near maximum still benefit from training.
   const overflowXp = (rawGain - actualGain) * 15
   // Agents who deliberately train outside their aptitude earn a cross-training bonus
   // that scales with program length to reward intentional stat diversification.
-  const crossTrainingXp = entry.scope !== 'team' && aptitudeBonus === 0 ? Math.round(5 * (entry.durationWeeks / 2)) : 0
+  const crossTrainingXp =
+    entry.scope !== 'team' && aptitudeBonus === 0 ? Math.round(5 * (entry.durationWeeks / 2)) : 0
   // Instructors also improve retention, yielding a modest XP bonus on completion.
-  const instructorXpBonus = entry.scope !== 'team' && instructorBonus > 0
-    ? Math.round(instructorBonus * 5 * (entry.durationWeeks / 2))
-    : 0
+  const instructorXpBonus =
+    entry.scope !== 'team' && instructorBonus > 0
+      ? Math.round(instructorBonus * 5 * (entry.durationWeeks / 2))
+      : 0
 
   const nextBaseStats = {
     ...currentAgent.baseStats,
@@ -641,7 +755,10 @@ function applyTrainingCompletionToAgent(
   // investment in the academy and instructors translates into progression rewards.
   const progressionUpdate = applyAgentXp(
     currentAgent,
-    Math.round(rawGain * 10 * (entry.durationWeeks / 2)) + overflowXp + crossTrainingXp + instructorXpBonus
+    Math.round(rawGain * 10 * (entry.durationWeeks / 2)) +
+      overflowXp +
+      crossTrainingXp +
+      instructorXpBonus
   )
   const xpReason = `${entry.trainingName} completed`
   const completedAgent = appendAgentHistoryEntry(
@@ -659,11 +776,7 @@ function applyTrainingCompletionToAgent(
       },
       createDefaultAgentAssignmentState()
     ),
-    createAgentHistoryEntry(
-      week,
-      'agent.training_completed',
-      buildTrainingCompletedNote(entry)
-    ),
+    createAgentHistoryEntry(week, 'agent.training_completed', buildTrainingCompletedNote(entry)),
     { trainingWeeks: entry.durationWeeks }
   )
   const progressedAgent = applyAgentProgressionUpdate(completedAgent, progressionUpdate)
@@ -673,7 +786,7 @@ function applyTrainingCompletionToAgent(
     xpReason,
     week
   )
-  const nextAgent = progressionUpdate.reachedLevels.reduce(
+  let nextAgent = progressionUpdate.reachedLevels.reduce(
     (agent, level) =>
       appendAgentHistoryEntry(
         agent,
@@ -681,42 +794,110 @@ function applyTrainingCompletionToAgent(
       ),
     progressedAgentWithXpLog
   )
+
+  if (entry.scope !== 'team') {
+    const discovery = observePotentialIntel(
+      nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+      {
+        week,
+        source: 'training',
+        discoveryDelta: getTrainingPotentialDiscoveryDelta(
+          currentAgent,
+          entry,
+          actualGain,
+          instructorBonus
+        ),
+      }
+    )
+
+    nextAgent = {
+      ...nextAgent,
+      progression: {
+        ...(nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1)),
+        potentialIntel: discovery.potentialIntel,
+      },
+    }
+
+    if (discovery.note) {
+      nextAgent = appendAgentHistoryEntry(
+        nextAgent,
+        createAgentHistoryEntry(week, 'simulation.weekly_tick', discovery.note)
+      )
+    }
+
+    if (
+      shouldTriggerTrainingBreakthrough(nextAgent, currentAgent, entry, actualGain, instructorBonus)
+    ) {
+      const breakthrough = applyPotentialBreakthrough(
+        nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+        week
+      )
+
+      if (breakthrough.changed) {
+        nextAgent = {
+          ...nextAgent,
+          progression: {
+            ...breakthrough.progression,
+            statCaps: buildAgentStatCaps(
+              nextAgent.baseStats,
+              breakthrough.progression.potentialTier,
+              breakthrough.progression.growthProfile,
+              nextAgent.progression?.statCaps
+            ),
+          },
+        }
+
+        if (breakthrough.note) {
+          nextAgent = appendAgentHistoryEntry(
+            nextAgent,
+            createAgentHistoryEntry(week, 'simulation.weekly_tick', breakthrough.note)
+          )
+        }
+      }
+    }
+  }
   const eventDrafts: AnyOperationEventDraft[] = []
 
   if (progressionUpdate.xpGained > 0) {
-    eventDrafts.push(createProgressionXpGainedDraft({
-      week,
-      agentId: entry.agentId,
-      agentName: entry.agentName,
-      xpAmount: progressionUpdate.xpGained,
-      reason: xpReason,
-      totalXp: progressionUpdate.progression.xp,
-      level: progressionUpdate.level,
-      levelsGained: progressionUpdate.levelsGained,
-    }))
+    eventDrafts.push(
+      createProgressionXpGainedDraft({
+        week,
+        agentId: entry.agentId,
+        agentName: entry.agentName,
+        xpAmount: progressionUpdate.xpGained,
+        reason: xpReason,
+        totalXp: progressionUpdate.progression.xp,
+        level: progressionUpdate.level,
+        levelsGained: progressionUpdate.levelsGained,
+      })
+    )
   }
 
   if (progressionUpdate.leveledUp) {
-    eventDrafts.push(createAgentPromotedDraft({
-      week,
-      agentId: entry.agentId,
-      agentName: entry.agentName,
-      newRole: currentAgent.role,
-      previousLevel: progressionUpdate.previousLevel,
-      newLevel: progressionUpdate.level,
-      levelsGained: progressionUpdate.levelsGained,
-      skillPointsGranted: progressionUpdate.skillPointsGranted,
-    }))
+    eventDrafts.push(
+      createAgentPromotedDraft({
+        week,
+        agentId: entry.agentId,
+        agentName: entry.agentName,
+        newRole: currentAgent.role,
+        previousLevel: progressionUpdate.previousLevel,
+        newLevel: progressionUpdate.level,
+        levelsGained: progressionUpdate.levelsGained,
+        skillPointsGranted: progressionUpdate.skillPointsGranted,
+      })
+    )
   }
 
-  eventDrafts.push(createAgentTrainingCompletedDraft({
-    week,
-    queueId: entry.id,
-    agentId: entry.agentId,
-    agentName: entry.agentName,
-    trainingId: entry.trainingId,
-    trainingName: entry.trainingName,
-  }))
+  eventDrafts.push(
+    createAgentTrainingCompletedDraft({
+      week,
+      queueId: entry.id,
+      agentId: entry.agentId,
+      agentName: entry.agentName,
+      trainingId: entry.trainingId,
+      trainingName: entry.trainingName,
+    })
+  )
 
   return {
     agent: nextAgent,
@@ -764,13 +945,16 @@ function applyTeamDrillCoordination(
         (memberId) => memberId !== agentId && Boolean(nextAgents[memberId])
       )
       const nextRelationships = { ...currentAgent.relationships }
-      const fallbackProgression = currentAgent.progression ?? createDefaultAgentProgression(currentAgent.level ?? 1)
+      const fallbackProgression =
+        currentAgent.progression ?? createDefaultAgentProgression(currentAgent.level ?? 1)
       const nextTrainedRelationships = {
         ...(fallbackProgression.skillTree?.trainedRelationships ?? {}),
       }
       const history = currentAgent.history
       const nextBonds = { ...(history?.bonds ?? {}) }
-      const nextAlliesWorkedWith = [...new Set([...(history?.alliesWorkedWith ?? []), ...partnerIds])]
+      const nextAlliesWorkedWith = [
+        ...new Set([...(history?.alliesWorkedWith ?? []), ...partnerIds]),
+      ]
 
       for (const partnerId of partnerIds) {
         if (relationshipDelta > 0) {
@@ -833,10 +1017,13 @@ export function advanceTrainingQueues(state: GameState) {
 
   for (const entry of state.trainingQueue) {
     const instructorBonus =
-      entry.scope === 'team' ? 0 : getAgentInstructorBonus(state.staff, entry.agentId, entry.targetStat)
+      entry.scope === 'team'
+        ? 0
+        : getAgentInstructorBonus(state.staff, entry.agentId, entry.targetStat)
     const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
     const baseFatigueTick = getTrainingFatigueTick(entry, remainingWeeks)
-    const fatigueTick = entry.scope === 'team' ? baseFatigueTick : Math.max(0, baseFatigueTick - instructorBonus)
+    const fatigueTick =
+      entry.scope === 'team' ? baseFatigueTick : Math.max(0, baseFatigueTick - instructorBonus)
 
     const tickedAgent = nextAgents[entry.agentId]
     if (tickedAgent && fatigueTick > 0) {
@@ -862,7 +1049,12 @@ export function advanceTrainingQueues(state: GameState) {
       continue
     }
 
-    const completion = applyTrainingCompletionToAgent(currentAgent, entry, state.week, instructorBonus)
+    const completion = applyTrainingCompletionToAgent(
+      currentAgent,
+      entry,
+      state.week,
+      instructorBonus
+    )
     nextAgents[entry.agentId] = completion.agent
     notes.push(completion.summaryNote)
     eventDrafts.push(...completion.eventDrafts)
@@ -904,10 +1096,9 @@ export function cancelTraining(state: GameState, agentId: Id): GameState {
   }
 
   // Determine which queue entries to remove (individual or full drill group)
-  const entriesToCancel =
-    entry.drillGroupId
-      ? state.trainingQueue.filter((e) => e.drillGroupId === entry.drillGroupId)
-      : [entry]
+  const entriesToCancel = entry.drillGroupId
+    ? state.trainingQueue.filter((e) => e.drillGroupId === entry.drillGroupId)
+    : [entry]
 
   const cancelledAgentIds = entriesToCancel.map((e) => e.agentId)
   const nextQueue = state.trainingQueue.filter((e) => !cancelledAgentIds.includes(e.agentId))
@@ -922,11 +1113,12 @@ export function cancelTraining(state: GameState, agentId: Id): GameState {
     }
 
     nextAgents[cancelled.agentId] = appendAgentHistoryEntry(
-      setAgentAssignment(
-        agent,
-        createDefaultAgentAssignmentState()
-      ),
-      createAgentHistoryEntry(state.week, 'agent.training_cancelled', `${cancelled.trainingName} cancelled.`)
+      setAgentAssignment(agent, createDefaultAgentAssignmentState()),
+      createAgentHistoryEntry(
+        state.week,
+        'agent.training_cancelled',
+        `${cancelled.trainingName} cancelled.`
+      )
     )
   }
 

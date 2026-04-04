@@ -36,9 +36,12 @@ describe('eventDraftPipeline', () => {
       teamIds,
       rewardBreakdown,
       performanceSummary: {
-        successRate: 0.8,
-        averagePower: 12,
-        averagePrecision: 9,
+        contribution: 12,
+        threatHandled: 8,
+        damageTaken: 2,
+        healingPerformed: 0,
+        evidenceGathered: 9,
+        containmentActionsCompleted: 3,
       },
     })
 
@@ -57,7 +60,9 @@ describe('eventDraftPipeline', () => {
         rewardBreakdown,
       },
     })
-    expect(draft.payload.teamIds).not.toContain('t_fake')
+    if (draft.type === 'case.resolved') {
+      expect(draft.payload.teamIds).not.toContain('t_fake')
+    }
   })
 
   it('builds failed and partially_resolved drafts with from/to stage transitions', () => {

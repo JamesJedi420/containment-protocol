@@ -107,14 +107,21 @@ it('renders deployment history entries for the selected team with case links', (
 
   const historyPanel = screen.getByRole('region', { name: /deployment history/i })
 
-  expect(within(historyPanel).getByRole('heading', { name: /deployment history/i })).toBeInTheDocument()
-  expect(within(historyPanel).getByText(/resolved vampire nest in the stockyards/i)).toBeInTheDocument()
-  expect(within(historyPanel).getByText(/unassigned from vampire nest in the stockyards/i)).toBeInTheDocument()
-  expect(within(historyPanel).getByText(/assigned to vampire nest in the stockyards/i)).toBeInTheDocument()
+  expect(
+    within(historyPanel).getByRole('heading', { name: /deployment history/i })
+  ).toBeInTheDocument()
+  expect(
+    within(historyPanel).getByText(/resolved vampire nest in the stockyards/i)
+  ).toBeInTheDocument()
+  expect(
+    within(historyPanel).getByText(/unassigned from vampire nest in the stockyards/i)
+  ).toBeInTheDocument()
+  expect(
+    within(historyPanel).getByText(/assigned to vampire nest in the stockyards/i)
+  ).toBeInTheDocument()
 
-  expect(within(historyPanel).getAllByRole('link', { name: /vampire nest in the stockyards/i })[0]).toHaveAttribute(
-    'href',
-    '/cases/case-001'
-  )
+  expect(
+    within(historyPanel).getAllByRole('link', { name: /vampire nest in the stockyards/i })[0]
+  ).toHaveAttribute('href', '/cases/case-001')
   expect(within(historyPanel).queryByText(/whispering circle at the pier/i)).not.toBeInTheDocument()
 })

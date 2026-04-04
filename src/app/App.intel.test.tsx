@@ -48,7 +48,9 @@ it('supports direct entry to an intel detail route and its back link', async () 
 
   expect(screen.getByRole('region', { name: /intel dossier/i })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: /intel analysis layout/i })).toBeInTheDocument()
-  expect(screen.getByRole('complementary', { name: /starter coverage insights/i })).toBeInTheDocument()
+  expect(
+    screen.getByRole('complementary', { name: /starter coverage insights/i })
+  ).toBeInTheDocument()
   expect(screen.getByRole('region', { name: /starter coverage/i })).toBeInTheDocument()
 
   expect(

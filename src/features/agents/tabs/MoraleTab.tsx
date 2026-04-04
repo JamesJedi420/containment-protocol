@@ -5,6 +5,11 @@ import { formatNumber } from './formatters'
 
 export const MoraleTab = memo(function MoraleTab({ view }: { view: AgentView }) {
   const { agent, materialized } = view
+  const potentialSummary = materialized.progression.exactPotentialKnown
+    ? `Potential tier confirmed: ${materialized.progression.actualPotentialTier}.`
+    : materialized.progression.visiblePotentialTier
+      ? `Projected potential tier: ${materialized.progression.visiblePotentialTier}.`
+      : 'Potential tier: unknown.'
 
   return (
     <div className="space-y-4">
@@ -30,8 +35,8 @@ export const MoraleTab = memo(function MoraleTab({ view }: { view: AgentView }) 
       <div className="space-y-2 rounded border border-white/10 px-4 py-3">
         <p className="text-xs uppercase tracking-[0.24em] opacity-50">Progression context</p>
         <p className="text-sm opacity-80">
-          Level {materialized.progression.level} operative - {materialized.progression.growthProfile}{' '}
-          profile. Potential tier: {materialized.progression.potentialTier}.
+          Level {materialized.progression.level} operative -{' '}
+          {materialized.progression.growthProfile} profile. {potentialSummary}
         </p>
       </div>
     </div>

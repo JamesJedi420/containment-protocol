@@ -1,11 +1,7 @@
 import React from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
-import {
-  readEnumParam,
-  toSearchString,
-  writeEnumParam,
-} from '../../app/searchParams'
+import { readEnumParam, toSearchString, writeEnumParam } from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { FilterInput } from '../../components/FilterInput'
 import { FilterSelect } from '../../components/FilterSelect'
@@ -54,12 +50,7 @@ export default function AgentsPage() {
   const [selectedAgentId, setSelectedAgentId] = React.useState<string | null>(null)
   const [selectedAgentTab, setSelectedAgentTab] = React.useState<TabType>(DEFAULT_AGENT_DETAIL_TAB)
   const filters = readAgentListFilters(game, searchParams)
-  const urlTab = readEnumParam(
-    searchParams,
-    'tab',
-    AGENT_DETAIL_TABS,
-    DEFAULT_AGENT_DETAIL_TAB
-  )
+  const urlTab = readEnumParam(searchParams, 'tab', AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB)
   const effectiveActiveTab = selectedAgentId ? selectedAgentTab : urlTab
 
   const querySuffix = (() => {
@@ -125,14 +116,14 @@ export default function AgentsPage() {
 
   const visibleViews = getFilteredAgentViews(game, filters)
   const selectedView = selectedAgentId
-    ? visibleViews.find((view) => view.agent.id === selectedAgentId) ??
+    ? (visibleViews.find((view) => view.agent.id === selectedAgentId) ??
       agentViews.find((view) => view.agent.id === selectedAgentId) ??
-      visibleViews[0]
-    : visibleViews[0] ?? agentViews[0]
+      visibleViews[0])
+    : (visibleViews[0] ?? agentViews[0])
   const selectedOutsideFilters = Boolean(
     selectedView &&
-      selectedAgentId &&
-      !visibleViews.some((view) => view.agent.id === selectedView.agent.id)
+    selectedAgentId &&
+    !visibleViews.some((view) => view.agent.id === selectedView.agent.id)
   )
 
   const roleOptions = React.useMemo(() => getRoleFilterOptions(game), [game])
@@ -154,13 +145,18 @@ export default function AgentsPage() {
           <ShellMetric label={AGENTS_GUIDANCE.metricTotalRoster} value={String(metrics.total)} />
           <ShellMetric label={AGENTS_GUIDANCE.metricDeployed} value={String(metrics.deployed)} />
           <ShellMetric label={AGENTS_GUIDANCE.metricTraining} value={String(metrics.training)} />
-          <ShellMetric label={AGENTS_GUIDANCE.metricUnavailable} value={String(metrics.unavailable)} />
+          <ShellMetric
+            label={AGENTS_GUIDANCE.metricUnavailable}
+            value={String(metrics.unavailable)}
+          />
         </div>
       </article>
 
       <article className="panel space-y-3">
         <div className="space-y-2 rounded border border-slate-400/20 bg-slate-500/5 p-3">
-          <p className="text-xs font-semibold uppercase opacity-60">{AGENTS_GUIDANCE.statusGuideHeading}</p>
+          <p className="text-xs font-semibold uppercase opacity-60">
+            {AGENTS_GUIDANCE.statusGuideHeading}
+          </p>
           <ul className="text-xs opacity-70 space-y-1 list-disc list-inside">
             <li>
               <strong>Deployed:</strong> {AGENTS_GUIDANCE.deployedStatus}
@@ -184,7 +180,11 @@ export default function AgentsPage() {
           </p>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6" role="region" aria-label="Agent filters">
+        <div
+          className="grid gap-3 md:grid-cols-2 xl:grid-cols-6"
+          role="region"
+          aria-label="Agent filters"
+        >
           <FilterInput
             id="agents-search"
             label="Search"
@@ -276,7 +276,9 @@ export default function AgentsPage() {
 
         <div className="grid gap-4 xl:grid-cols-[minmax(18rem,24rem)_1fr]">
           <div className="space-y-3">
-            <p className="text-xs uppercase tracking-[0.24em] opacity-50">{AGENTS_GUIDANCE.operativeRosterLabel}</p>
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              {AGENTS_GUIDANCE.operativeRosterLabel}
+            </p>
             <ul className="space-y-2">
               {visibleViews.length > 0 ? (
                 visibleViews.map((view) => {
@@ -315,7 +317,9 @@ export default function AgentsPage() {
                         </div>
 
                         <div className="mt-3 space-y-1 text-sm opacity-70">
-                          <p>{AGENTS_GUIDANCE.assignmentLabel}: {assignmentLabel}</p>
+                          <p>
+                            {AGENTS_GUIDANCE.assignmentLabel}: {assignmentLabel}
+                          </p>
                           <p>
                             {AGENTS_GUIDANCE.teamLabel}:{' '}
                             {team
@@ -323,14 +327,15 @@ export default function AgentsPage() {
                               : AGENTS_GUIDANCE.reservePoolLabel}
                           </p>
                           <p>
-                            {AGENTS_GUIDANCE.scoreLabel} {capability.score} / {AGENTS_GUIDANCE.fatigueLabel}{' '}
-                            {agent.fatigue} / {AGENTS_GUIDANCE.trainingLabel}{' '}
+                            {AGENTS_GUIDANCE.scoreLabel} {capability.score} /{' '}
+                            {AGENTS_GUIDANCE.fatigueLabel} {agent.fatigue} /{' '}
+                            {AGENTS_GUIDANCE.trainingLabel}{' '}
                             {trainingEntry ? trainingEntry.trainingName : SHELL_UI_TEXT.none}
                           </p>
                           <p>
                             Readiness {formatCompactLabel(materialized.service.readinessBand)} /{' '}
-                            {materialized.service.deploymentEligible ? 'Deployable' : 'Held back'} / Top
-                            domain {formatCompactLabel(capability.topDomain)}
+                            {materialized.service.deploymentEligible ? 'Deployable' : 'Held back'} /
+                            Top domain {formatCompactLabel(capability.topDomain)}
                           </p>
                         </div>
                       </button>
@@ -372,9 +377,7 @@ export default function AgentsPage() {
                 }
               />
             ) : (
-              <article className="panel text-sm opacity-60">
-                {EMPTY_STATES.noAgentsMatch}
-              </article>
+              <article className="panel text-sm opacity-60">{EMPTY_STATES.noAgentsMatch}</article>
             )}
           </div>
         </div>

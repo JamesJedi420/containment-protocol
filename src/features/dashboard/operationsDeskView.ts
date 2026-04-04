@@ -90,6 +90,9 @@ export function getOperationsDeskPanelsView(game: GameState): OperationsDeskPane
         label: inventoryItemLabels[itemId] ?? itemId,
         quantity,
       }))
-      .sort((left, right) => left.label.localeCompare(right.label) || left.itemId.localeCompare(right.itemId)),
+      .sort(
+        (left, right) =>
+          left.label.localeCompare(right.label) || left.itemId.localeCompare(right.itemId)
+      ),
   }
 }

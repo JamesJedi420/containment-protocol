@@ -4,7 +4,11 @@
  * without going through the advanceWeek orchestration layer.
  */
 import { describe, expect, it } from 'vitest'
-import { getProductionRecipe, getRecipeFundingCost, getRecipeInputMaterials } from '../data/production'
+import {
+  getProductionRecipe,
+  getRecipeFundingCost,
+  getRecipeInputMaterials,
+} from '../data/production'
 import { createSeededRng } from '../domain/math'
 import {
   queueFabrication,
@@ -236,8 +240,8 @@ describe('advanceProductionQueues', () => {
 
   it('handles mixed queue: completes the ready item, keeps the in-progress one', () => {
     const state = createFixtureState()
-    const s1 = queueFabrication(state, 'med-kits')     // 1-week
-    const s2 = queueFabrication(s1, 'ward-seals')       // 2-week
+    const s1 = queueFabrication(state, 'med-kits') // 1-week
+    const s2 = queueFabrication(s1, 'ward-seals') // 2-week
     const staged = {
       ...s2,
       productionQueue: [

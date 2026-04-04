@@ -51,23 +51,23 @@ describe('factions', () => {
 
     expect(institutions?.standing).toBe(5)
     expect(institutions?.influenceModifiers.rewardModifier).toBeGreaterThan(0)
-    expect(institutions?.opportunities.map((entry) => entry.label)).toContain('Research cooperation')
+    expect(institutions?.opportunities.map((entry) => entry.label)).toContain(
+      'Research cooperation'
+    )
 
     expect(corporateSupply?.standing).toBe(-6)
     expect(corporateSupply?.influenceModifiers.rewardModifier).toBeLessThan(0)
-    expect(corporateSupply?.opportunities.some((entry) => entry.direction === 'negative')).toBe(true)
+    expect(corporateSupply?.opportunities.some((entry) => entry.direction === 'negative')).toBe(
+      true
+    )
   })
 
   it('modifies mission rewards from current faction standing for matching case families', () => {
     const supportiveState = createStartingState()
-    supportiveState.events = [
-      makeFactionEvent('occult_networks', 'Occult Networks', 8, 0, 1),
-    ]
+    supportiveState.events = [makeFactionEvent('occult_networks', 'Occult Networks', 8, 0, 1)]
 
     const hostileState = createStartingState()
-    hostileState.events = [
-      makeFactionEvent('occult_networks', 'Occult Networks', -8, 0, 1),
-    ]
+    hostileState.events = [makeFactionEvent('occult_networks', 'Occult Networks', -8, 0, 1)]
 
     const occultCase = {
       ...supportiveState.cases['case-003'],
@@ -143,9 +143,7 @@ describe('factions', () => {
 
     const neutralState = buildPressureState()
     const hostileState = buildPressureState()
-    hostileState.events = [
-      makeFactionEvent('occult_networks', 'Occult Networks', -8, 0, 1),
-    ]
+    hostileState.events = [makeFactionEvent('occult_networks', 'Occult Networks', -8, 0, 1)]
 
     const neutralFaction = buildFactionStates(neutralState).find(
       (faction) => faction.id === 'occult_networks'

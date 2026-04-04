@@ -1,9 +1,6 @@
 import { SCHEMA_VERSION } from './eventMigration'
 import type { GameState } from '../models'
-import {
-  appendAgentEventLogs,
-  reconcileAgentHistoryTimelineWithEvents,
-} from '../agent/lifecycle'
+import { appendAgentEventLogs, reconcileAgentHistoryTimelineWithEvents } from '../agent/lifecycle'
 import { getTeamMemberIds as getCanonicalTeamMemberIds } from '../teamSimulation'
 import {
   type OperationEvent,
@@ -63,12 +60,14 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
     case 'case.partially_resolved':
     case 'case.failed':
       return [
-        ...new Set((event.payload.teamIds ?? []).flatMap((teamId) => getTeamMemberIds(state, teamId))),
+        ...new Set(
+          (event.payload.teamIds ?? []).flatMap((teamId) => getTeamMemberIds(state, teamId))
+        ),
       ]
     case 'agent.training_started':
     case 'agent.training_completed':
-      case 'agent.instructor_assigned':
-      case 'agent.instructor_unassigned':
+    case 'agent.instructor_assigned':
+    case 'agent.instructor_unassigned':
     case 'agent.injured':
     case 'agent.promoted':
     case 'agent.hired':
@@ -83,10 +82,7 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
   }
 }
 
-function appendAgentLogsFromEvents(
-  state: GameState,
-  events: readonly OperationEvent[]
-): GameState {
+function appendAgentLogsFromEvents(state: GameState, events: readonly OperationEvent[]): GameState {
   if (events.length === 0) {
     return state
   }
@@ -132,17 +128,22 @@ export function appendOperationEventDrafts(
     createdEvents.push(createdEvent)
   }
 
-  return appendAgentLogsFromEvents({
-    ...state,
-    events,
-  }, createdEvents)
+  return appendAgentLogsFromEvents(
+    {
+      ...state,
+      events,
+    },
+    createdEvents
+  )
 }
 
 /**
  * Assignment event factories
  */
 
-export function createAssignmentTeamAssignedDraft(payload: OperationEventPayloadMap['assignment.team_assigned']): OperationEventDraft<'assignment.team_assigned'> {
+export function createAssignmentTeamAssignedDraft(
+  payload: OperationEventPayloadMap['assignment.team_assigned']
+): OperationEventDraft<'assignment.team_assigned'> {
   return {
     type: 'assignment.team_assigned',
     sourceSystem: 'assignment',
@@ -150,7 +151,9 @@ export function createAssignmentTeamAssignedDraft(payload: OperationEventPayload
   }
 }
 
-export function createAssignmentTeamUnassignedDraft(payload: OperationEventPayloadMap['assignment.team_unassigned']): OperationEventDraft<'assignment.team_unassigned'> {
+export function createAssignmentTeamUnassignedDraft(
+  payload: OperationEventPayloadMap['assignment.team_unassigned']
+): OperationEventDraft<'assignment.team_unassigned'> {
   return {
     type: 'assignment.team_unassigned',
     sourceSystem: 'assignment',
@@ -162,7 +165,9 @@ export function createAssignmentTeamUnassignedDraft(payload: OperationEventPaylo
  * Agent event factories
  */
 
-export function createAgentHiredDraft(payload: OperationEventPayloadMap['agent.hired']): OperationEventDraft<'agent.hired'> {
+export function createAgentHiredDraft(
+  payload: OperationEventPayloadMap['agent.hired']
+): OperationEventDraft<'agent.hired'> {
   return {
     type: 'agent.hired',
     sourceSystem: 'agent',
@@ -170,7 +175,9 @@ export function createAgentHiredDraft(payload: OperationEventPayloadMap['agent.h
   }
 }
 
-export function createAgentTrainingStartedDraft(payload: OperationEventPayloadMap['agent.training_started']): OperationEventDraft<'agent.training_started'> {
+export function createAgentTrainingStartedDraft(
+  payload: OperationEventPayloadMap['agent.training_started']
+): OperationEventDraft<'agent.training_started'> {
   return {
     type: 'agent.training_started',
     sourceSystem: 'agent',
@@ -178,7 +185,9 @@ export function createAgentTrainingStartedDraft(payload: OperationEventPayloadMa
   }
 }
 
-export function createAgentTrainingCompletedDraft(payload: OperationEventPayloadMap['agent.training_completed']): OperationEventDraft<'agent.training_completed'> {
+export function createAgentTrainingCompletedDraft(
+  payload: OperationEventPayloadMap['agent.training_completed']
+): OperationEventDraft<'agent.training_completed'> {
   return {
     type: 'agent.training_completed',
     sourceSystem: 'agent',
@@ -186,7 +195,9 @@ export function createAgentTrainingCompletedDraft(payload: OperationEventPayload
   }
 }
 
-export function createAgentTrainingCancelledDraft(payload: OperationEventPayloadMap['agent.training_cancelled']): OperationEventDraft<'agent.training_cancelled'> {
+export function createAgentTrainingCancelledDraft(
+  payload: OperationEventPayloadMap['agent.training_cancelled']
+): OperationEventDraft<'agent.training_cancelled'> {
   return {
     type: 'agent.training_cancelled',
     sourceSystem: 'agent',
@@ -194,7 +205,9 @@ export function createAgentTrainingCancelledDraft(payload: OperationEventPayload
   }
 }
 
-export function createAgentRelationshipChangedDraft(payload: OperationEventPayloadMap['agent.relationship_changed']): OperationEventDraft<'agent.relationship_changed'> {
+export function createAgentRelationshipChangedDraft(
+  payload: OperationEventPayloadMap['agent.relationship_changed']
+): OperationEventDraft<'agent.relationship_changed'> {
   return {
     type: 'agent.relationship_changed',
     sourceSystem: 'agent',
@@ -202,7 +215,9 @@ export function createAgentRelationshipChangedDraft(payload: OperationEventPaylo
   }
 }
 
-export function createAgentInstructorAssignedDraft(payload: OperationEventPayloadMap['agent.instructor_assigned']): OperationEventDraft<'agent.instructor_assigned'> {
+export function createAgentInstructorAssignedDraft(
+  payload: OperationEventPayloadMap['agent.instructor_assigned']
+): OperationEventDraft<'agent.instructor_assigned'> {
   return {
     type: 'agent.instructor_assigned',
     sourceSystem: 'agent',
@@ -210,7 +225,9 @@ export function createAgentInstructorAssignedDraft(payload: OperationEventPayloa
   }
 }
 
-export function createAgentInstructorUnassignedDraft(payload: OperationEventPayloadMap['agent.instructor_unassigned']): OperationEventDraft<'agent.instructor_unassigned'> {
+export function createAgentInstructorUnassignedDraft(
+  payload: OperationEventPayloadMap['agent.instructor_unassigned']
+): OperationEventDraft<'agent.instructor_unassigned'> {
   return {
     type: 'agent.instructor_unassigned',
     sourceSystem: 'agent',
@@ -218,7 +235,9 @@ export function createAgentInstructorUnassignedDraft(payload: OperationEventPayl
   }
 }
 
-export function createAgentInjuredDraft(payload: OperationEventPayloadMap['agent.injured']): OperationEventDraft<'agent.injured'> {
+export function createAgentInjuredDraft(
+  payload: OperationEventPayloadMap['agent.injured']
+): OperationEventDraft<'agent.injured'> {
   return {
     type: 'agent.injured',
     sourceSystem: 'agent',
@@ -226,7 +245,9 @@ export function createAgentInjuredDraft(payload: OperationEventPayloadMap['agent
   }
 }
 
-export function createAgentBetrayedDraft(payload: OperationEventPayloadMap['agent.betrayed']): OperationEventDraft<'agent.betrayed'> {
+export function createAgentBetrayedDraft(
+  payload: OperationEventPayloadMap['agent.betrayed']
+): OperationEventDraft<'agent.betrayed'> {
   return {
     type: 'agent.betrayed',
     sourceSystem: 'agent',
@@ -234,7 +255,9 @@ export function createAgentBetrayedDraft(payload: OperationEventPayloadMap['agen
   }
 }
 
-export function createAgentResignedDraft(payload: OperationEventPayloadMap['agent.resigned']): OperationEventDraft<'agent.resigned'> {
+export function createAgentResignedDraft(
+  payload: OperationEventPayloadMap['agent.resigned']
+): OperationEventDraft<'agent.resigned'> {
   return {
     type: 'agent.resigned',
     sourceSystem: 'agent',
@@ -242,7 +265,9 @@ export function createAgentResignedDraft(payload: OperationEventPayloadMap['agen
   }
 }
 
-export function createAgentPromotedDraft(payload: OperationEventPayloadMap['agent.promoted']): OperationEventDraft<'agent.promoted'> {
+export function createAgentPromotedDraft(
+  payload: OperationEventPayloadMap['agent.promoted']
+): OperationEventDraft<'agent.promoted'> {
   return {
     type: 'agent.promoted',
     sourceSystem: 'agent',
@@ -251,10 +276,46 @@ export function createAgentPromotedDraft(payload: OperationEventPayloadMap['agen
 }
 
 /**
+ * Recruitment intel event factories
+ */
+
+export function createRecruitmentScoutingInitiatedDraft(
+  payload: OperationEventPayloadMap['recruitment.scouting_initiated']
+): OperationEventDraft<'recruitment.scouting_initiated'> {
+  return {
+    type: 'recruitment.scouting_initiated',
+    sourceSystem: 'intel',
+    payload,
+  }
+}
+
+export function createRecruitmentScoutingRefinedDraft(
+  payload: OperationEventPayloadMap['recruitment.scouting_refined']
+): OperationEventDraft<'recruitment.scouting_refined'> {
+  return {
+    type: 'recruitment.scouting_refined',
+    sourceSystem: 'intel',
+    payload,
+  }
+}
+
+export function createRecruitmentIntelConfirmedDraft(
+  payload: OperationEventPayloadMap['recruitment.intel_confirmed']
+): OperationEventDraft<'recruitment.intel_confirmed'> {
+  return {
+    type: 'recruitment.intel_confirmed',
+    sourceSystem: 'intel',
+    payload,
+  }
+}
+
+/**
  * Progression event factories
  */
 
-export function createProgressionXpGainedDraft(payload: OperationEventPayloadMap['progression.xp_gained']): OperationEventDraft<'progression.xp_gained'> {
+export function createProgressionXpGainedDraft(
+  payload: OperationEventPayloadMap['progression.xp_gained']
+): OperationEventDraft<'progression.xp_gained'> {
   return {
     type: 'progression.xp_gained',
     sourceSystem: 'agent',
@@ -266,7 +327,9 @@ export function createProgressionXpGainedDraft(payload: OperationEventPayloadMap
  * Production event factories
  */
 
-export function createProductionQueueStartedDraft(payload: OperationEventPayloadMap['production.queue_started']): OperationEventDraft<'production.queue_started'> {
+export function createProductionQueueStartedDraft(
+  payload: OperationEventPayloadMap['production.queue_started']
+): OperationEventDraft<'production.queue_started'> {
   return {
     type: 'production.queue_started',
     sourceSystem: 'production',
@@ -274,7 +337,9 @@ export function createProductionQueueStartedDraft(payload: OperationEventPayload
   }
 }
 
-export function createProductionQueueCompletedDraft(payload: OperationEventPayloadMap['production.queue_completed']): OperationEventDraft<'production.queue_completed'> {
+export function createProductionQueueCompletedDraft(
+  payload: OperationEventPayloadMap['production.queue_completed']
+): OperationEventDraft<'production.queue_completed'> {
   return {
     type: 'production.queue_completed',
     sourceSystem: 'production',
@@ -282,7 +347,9 @@ export function createProductionQueueCompletedDraft(payload: OperationEventPaylo
   }
 }
 
-export function createMarketShiftedDraft(payload: OperationEventPayloadMap['market.shifted']): OperationEventDraft<'market.shifted'> {
+export function createMarketShiftedDraft(
+  payload: OperationEventPayloadMap['market.shifted']
+): OperationEventDraft<'market.shifted'> {
   return {
     type: 'market.shifted',
     sourceSystem: 'production',
@@ -304,7 +371,9 @@ export function createMarketTransactionRecordedDraft(
  * Faction event factories
  */
 
-export function createFactionStandingChangedDraft(payload: OperationEventPayloadMap['faction.standing_changed']): OperationEventDraft<'faction.standing_changed'> {
+export function createFactionStandingChangedDraft(
+  payload: OperationEventPayloadMap['faction.standing_changed']
+): OperationEventDraft<'faction.standing_changed'> {
   return {
     type: 'faction.standing_changed',
     sourceSystem: 'faction',
@@ -312,7 +381,9 @@ export function createFactionStandingChangedDraft(payload: OperationEventPayload
   }
 }
 
-export function createSystemAcademyUpgradedDraft(payload: OperationEventPayloadMap['system.academy_upgraded']): OperationEventDraft<'system.academy_upgraded'> {
+export function createSystemAcademyUpgradedDraft(
+  payload: OperationEventPayloadMap['system.academy_upgraded']
+): OperationEventDraft<'system.academy_upgraded'> {
   return {
     type: 'system.academy_upgraded',
     sourceSystem: 'system',

@@ -175,9 +175,11 @@ function chooseBestRecipe(currentCase: GameState['cases'][string]) {
 
 function buildReason(currentCase: GameState['cases'][string], itemId: string) {
   const hints = ITEM_TAG_HINTS[itemId] ?? []
-  const caseTags = [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].map(
-    (tag) => tag.toLowerCase()
-  )
+  const caseTags = [
+    ...currentCase.tags,
+    ...currentCase.requiredTags,
+    ...currentCase.preferredTags,
+  ].map((tag) => tag.toLowerCase())
   const matchedTag = hints.find((hint) => caseTags.includes(hint))
 
   if (matchedTag) {

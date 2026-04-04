@@ -108,8 +108,7 @@ describe('agent history regression coverage', () => {
     const expectedLogIds = next.events
       .filter(
         (event) =>
-          (event.type === 'assignment.team_assigned' &&
-            event.payload.teamId === 't_nightwatch') ||
+          (event.type === 'assignment.team_assigned' && event.payload.teamId === 't_nightwatch') ||
           (event.type === 'case.resolved' && event.payload.caseId === 'case-001') ||
           (event.type === 'progression.xp_gained' && event.payload.agentId === agentId)
       )
@@ -185,8 +184,12 @@ describe('agent history regression coverage', () => {
 
     expect(xpGainLog?.id).toBe(xpGainEvent?.id)
     const combatDrillsProgram = trainingCatalog.find((p) => p.trainingId === 'combat-drills')!
-    const aptitudeBonus = getTrainingAptitudeBonus(queued.agents.a_ava!.role, combatDrillsProgram.targetStat)
-    const expectedXp = (combatDrillsProgram.statDelta + aptitudeBonus) * 10 * (combatDrillsProgram.durationWeeks / 2)
+    const aptitudeBonus = getTrainingAptitudeBonus(
+      queued.agents.a_ava!.role,
+      combatDrillsProgram.targetStat
+    )
+    const expectedXp =
+      (combatDrillsProgram.statDelta + aptitudeBonus) * 10 * (combatDrillsProgram.durationWeeks / 2)
     expect(xpGainLog?.payload).toMatchObject({
       agentId: 'a_ava',
       xpAmount: expectedXp,

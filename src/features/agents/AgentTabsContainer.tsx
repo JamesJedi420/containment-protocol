@@ -14,9 +14,8 @@ export function AgentTabsContainer({
   activeTab?: TabType
   onTabChange?: (tab: TabType) => void
 }) {
-  const [uncontrolledActiveTab, setUncontrolledActiveTab] = useState<TabType>(
-    DEFAULT_AGENT_DETAIL_TAB
-  )
+  const [uncontrolledActiveTab, setUncontrolledActiveTab] =
+    useState<TabType>(DEFAULT_AGENT_DETAIL_TAB)
   const tabGroupId = useId()
   const activeTab = controlledActiveTab ?? uncontrolledActiveTab
   const tabRefs = useRef<Record<TabType, HTMLButtonElement | null>>({
@@ -142,15 +141,27 @@ export function AgentTabsContainer({
   }
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      return
+    }
+
     swipeStartXRef.current = e.clientX
     swipeEndXRef.current = e.clientX
   }
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      return
+    }
+
     swipeEndXRef.current = e.clientX
   }
 
   const handlePointerUp = (e: React.PointerEvent) => {
+    if (e.pointerType === 'touch') {
+      return
+    }
+
     const endX = swipeEndXRef.current ?? e.clientX
     swipeEndXRef.current = endX
     handleSwipe(swipeStartXRef.current, endX)
@@ -256,4 +267,3 @@ export function AgentTabsContainer({
     </article>
   )
 }
-

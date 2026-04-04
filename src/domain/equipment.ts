@@ -1,10 +1,4 @@
-import type {
-  Agent,
-  CaseInstance,
-  DomainStats,
-  EquipmentSlots,
-  StatKey,
-} from './models'
+import type { Agent, CaseInstance, DomainStats, EquipmentSlots, StatKey } from './models'
 import { cloneDomainStats } from './statDomains'
 
 export type EquipmentSlotKind =
@@ -513,6 +507,188 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
       },
     ],
   },
+  anomaly_scanner: {
+    id: 'anomaly_scanner',
+    name: 'Handheld Anomaly Scanner',
+    slot: 'secondary',
+    quality: 1,
+    tags: ['recon', 'anomaly', 'surveillance', 'analysis', 'field-kit'],
+    allowedSlots: ['secondary', 'utility1', 'utility2'],
+    rarity: 'uncommon',
+    enchantmentIds: ['clarity', 'resonance'],
+    statModifiers: {
+      cognitive: { analysis: 2, investigation: 2 },
+      technical: { equipment: 1, anomaly: 2 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['anomaly', 'occult', 'evidence', 'containment', 'psionic'],
+        },
+        statModifiers: {
+          cognitive: { analysis: 1, investigation: 1 },
+          technical: { equipment: 1, anomaly: 1 },
+        },
+      },
+    ],
+  },
+  spectral_em_array: {
+    id: 'spectral_em_array',
+    name: 'Spectral / EM Sensor Array',
+    slot: 'headgear',
+    quality: 1,
+    tags: ['recon', 'surveillance', 'signal', 'anomaly', 'field-kit'],
+    allowedSlots: ['headgear'],
+    rarity: 'uncommon',
+    enchantmentIds: ['vigilance', 'resonance'],
+    statModifiers: {
+      tactical: { awareness: 3, reaction: 1 },
+      cognitive: { analysis: 1, investigation: 1 },
+      technical: { equipment: 1, anomaly: 1 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['signal', 'relay', 'anomaly', 'witness', 'field'],
+        },
+        statModifiers: {
+          tactical: { awareness: 1, reaction: 1 },
+          cognitive: { analysis: 1, investigation: 0 },
+        },
+      },
+    ],
+  },
+  environmental_sampler: {
+    id: 'environmental_sampler',
+    name: 'Environmental Sampler',
+    slot: 'utility2',
+    quality: 1,
+    tags: ['recon', 'environmental', 'hazmat', 'evidence', 'field-kit'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'uncommon',
+    enchantmentIds: ['clarity', 'fortitude'],
+    statModifiers: {
+      cognitive: { analysis: 1, investigation: 2 },
+      technical: { equipment: 2, anomaly: 0 },
+      stability: { resistance: 1, tolerance: 1 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['hazmat', 'biological', 'chemical', 'plague', 'evidence'],
+        },
+        statModifiers: {
+          cognitive: { analysis: 1, investigation: 1 },
+          technical: { equipment: 1, anomaly: 0 },
+        },
+      },
+    ],
+  },
+  encrypted_field_tablet: {
+    id: 'encrypted_field_tablet',
+    name: 'Encrypted Field Tablet',
+    slot: 'utility1',
+    quality: 1,
+    tags: ['recon', 'analysis', 'signal', 'communication', 'field-kit'],
+    allowedSlots: ['secondary', 'utility1', 'utility2'],
+    rarity: 'uncommon',
+    enchantmentIds: ['clarity'],
+    statModifiers: {
+      cognitive: { analysis: 3, investigation: 1 },
+      social: { negotiation: 1, influence: 1 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['analysis', 'signal', 'relay', 'interview', 'witness'],
+        },
+        statModifiers: {
+          cognitive: { analysis: 1, investigation: 1 },
+          social: { negotiation: 1, influence: 0 },
+        },
+      },
+    ],
+  },
+  advanced_recon_suite: {
+    id: 'advanced_recon_suite',
+    name: 'Advanced Recon Suite',
+    slot: 'headgear',
+    quality: 2,
+    tags: ['recon', 'surveillance', 'pathfinding', 'analysis', 'field-kit'],
+    allowedSlots: ['headgear'],
+    rarity: 'rare',
+    enchantmentIds: ['clarity', 'vigilance'],
+    statModifiers: {
+      tactical: { awareness: 4, reaction: 2 },
+      cognitive: { analysis: 2, investigation: 2 },
+      technical: { equipment: 1, anomaly: 0 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['field', 'evidence', 'signal', 'relay', 'breach'],
+        },
+        statModifiers: {
+          tactical: { awareness: 2, reaction: 1 },
+          cognitive: { analysis: 1, investigation: 1 },
+        },
+      },
+    ],
+  },
+  occult_detection_array: {
+    id: 'occult_detection_array',
+    name: 'Occult Detection Array',
+    slot: 'utility2',
+    quality: 2,
+    tags: ['recon', 'occult', 'anomaly', 'surveillance', 'field-kit'],
+    allowedSlots: ['utility1', 'utility2'],
+    rarity: 'rare',
+    enchantmentIds: ['resonance', 'vigilance'],
+    statModifiers: {
+      tactical: { awareness: 2, reaction: 0 },
+      cognitive: { analysis: 1, investigation: 2 },
+      technical: { equipment: 2, anomaly: 3 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['occult', 'ritual', 'spirit', 'anomaly', 'psionic'],
+        },
+        statModifiers: {
+          cognitive: { analysis: 1, investigation: 1 },
+          technical: { equipment: 1, anomaly: 2 },
+          stability: { resistance: 1, tolerance: 1 },
+        },
+      },
+    ],
+  },
+  signal_intercept_kit: {
+    id: 'signal_intercept_kit',
+    name: 'Signal Intercept Kit',
+    slot: 'utility1',
+    quality: 2,
+    tags: ['recon', 'signal', 'cyber', 'analysis', 'field-kit'],
+    allowedSlots: ['secondary', 'utility1', 'utility2'],
+    rarity: 'rare',
+    enchantmentIds: ['clarity', 'vigilance'],
+    statModifiers: {
+      tactical: { awareness: 2, reaction: 1 },
+      cognitive: { analysis: 3, investigation: 1 },
+      technical: { equipment: 2, anomaly: 0 },
+    },
+    contextModifiers: [
+      {
+        rule: {
+          requiredTags: ['signal', 'relay', 'cyber', 'information', 'intel'],
+        },
+        statModifiers: {
+          tactical: { awareness: 1, reaction: 1 },
+          cognitive: { analysis: 2, investigation: 1 },
+          technical: { equipment: 1, anomaly: 0 },
+        },
+      },
+    ],
+  },
   warding_kits: {
     id: 'warding_kits',
     name: 'Warding Kits',
@@ -775,10 +951,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function assertNoForbiddenDesignKeys(
-  value: unknown,
-  path: string
-) {
+function assertNoForbiddenDesignKeys(value: unknown, path: string) {
   if (Array.isArray(value)) {
     value.forEach((entry, index) => assertNoForbiddenDesignKeys(entry, `${path}[${index}]`))
     return
@@ -807,10 +980,7 @@ function assertUniqueStringList(values: string[], path: string) {
   }
 }
 
-function assertFiniteStatModifiers(
-  statModifiers: Partial<DomainStats>,
-  path: string
-) {
+function assertFiniteStatModifiers(statModifiers: Partial<DomainStats>, path: string) {
   for (const [domainKey, domainValue] of Object.entries(statModifiers)) {
     if (!isPlainObject(domainValue)) {
       throw new Error(`Invalid equipment definition at ${path}.${domainKey}: expected stat block.`)
@@ -826,11 +996,7 @@ function assertFiniteStatModifiers(
   }
 }
 
-function assertAllowedKeys(
-  input: Record<string, unknown>,
-  allowedKeys: Set<string>,
-  path: string
-) {
+function assertAllowedKeys(input: Record<string, unknown>, allowedKeys: Set<string>, path: string) {
   for (const key of Object.keys(input)) {
     if (!allowedKeys.has(key)) {
       throw new Error(`Invalid equipment definition at ${path}: unexpected key "${key}".`)
@@ -838,9 +1004,7 @@ function assertAllowedKeys(
   }
 }
 
-export function validateEquipmentCatalogDefinitions(
-  catalog: Record<string, EquipmentDefinition>
-) {
+export function validateEquipmentCatalogDefinitions(catalog: Record<string, EquipmentDefinition>) {
   for (const [itemId, definition] of Object.entries(catalog)) {
     assertNoForbiddenDesignKeys(definition, `equipment.${itemId}`)
     assertAllowedKeys(
@@ -1244,9 +1408,7 @@ function resolveContextualModifiers(
   }, {})
 }
 
-function resolveEnchantmentsForItem(
-  definition: EquipmentDefinition
-): EquipmentEnchantment[] {
+function resolveEnchantmentsForItem(definition: EquipmentDefinition): EquipmentEnchantment[] {
   const enchantmentIds = definition.enchantmentIds ?? []
   return enchantmentIds
     .map((id) => ENCHANTMENT_CATALOG[id])
@@ -1283,12 +1445,10 @@ function resolveActiveEquipmentSets(items: EquipmentItem[]): EquipmentSet[] {
   })
 }
 
-function calculateSetBonuses(
-  sets: EquipmentSet[],
-  items: EquipmentItem[]
-): Partial<DomainStats> {
+function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Partial<DomainStats> {
   const equippedItemIds = new Set(items.map((item) => item.id))
-  const avgQuality = items.length > 0 ? items.reduce((sum, item) => sum + item.quality, 0) / items.length : 1
+  const avgQuality =
+    items.length > 0 ? items.reduce((sum, item) => sum + item.quality, 0) / items.length : 1
 
   return sets.reduce<Partial<DomainStats>>((merged, set) => {
     const itemsInSet = set.itemIds.filter((id) => equippedItemIds.has(id))
@@ -1337,53 +1497,48 @@ export function resolveEquippedItems(
   agent: Agent,
   context: EquipmentEvaluationContext = {}
 ): EquipmentItem[] {
-  return EQUIPMENT_SLOT_KINDS
-    .map((slot) => {
-      const itemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
-      if (!itemId) {
-        return null
-      }
+  return EQUIPMENT_SLOT_KINDS.map((slot) => {
+    const itemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
+    if (!itemId) {
+      return null
+    }
 
-      const definition = getEquipmentDefinition(itemId)
-      if (!definition || !definition.allowedSlots.includes(slot)) {
-        return null
-      }
+    const definition = getEquipmentDefinition(itemId)
+    if (!definition || !definition.allowedSlots.includes(slot)) {
+      return null
+    }
 
-      const quality = getItemQuality(agent, definition)
-      const baseModifiers = scaleStatModifiers(definition.statModifiers, quality)
-      const activeModifiers = resolveContextualModifiers(definition, quality, context)
-      const contextActive = hasEquipmentStatModifiers(activeModifiers)
+    const quality = getItemQuality(agent, definition)
+    const baseModifiers = scaleStatModifiers(definition.statModifiers, quality)
+    const activeModifiers = resolveContextualModifiers(definition, quality, context)
+    const contextActive = hasEquipmentStatModifiers(activeModifiers)
 
-      // Resolve enchantments
-      const enchantments = resolveEnchantmentsForItem(definition)
-      const activeEnchantments = resolveActiveEnchantments(enchantments, context)
-      const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, quality)
+    // Resolve enchantments
+    const enchantments = resolveEnchantmentsForItem(definition)
+    const activeEnchantments = resolveActiveEnchantments(enchantments, context)
+    const enchantmentModifiers = mergeEnchantmentModifiers(activeEnchantments, quality)
 
-      return {
-        id: definition.id,
-        name: definition.name,
-        slot,
-        quality,
-        tags: [...definition.tags],
-        rarity: definition.rarity ?? 'basic',
-        enchantments,
-        activeEnchantments,
-        baseModifiers,
-        statModifiers: mergeScaledModifiers(
-          mergeScaledModifiers(baseModifiers, activeModifiers),
-          enchantmentModifiers
-        ),
-        activeModifiers,
-        contextActive,
-      } satisfies EquipmentItem
-    })
-    .filter((item): item is EquipmentItem => Boolean(item))
+    return {
+      id: definition.id,
+      name: definition.name,
+      slot,
+      quality,
+      tags: [...definition.tags],
+      rarity: definition.rarity ?? 'basic',
+      enchantments,
+      activeEnchantments,
+      baseModifiers,
+      statModifiers: mergeScaledModifiers(
+        mergeScaledModifiers(baseModifiers, activeModifiers),
+        enchantmentModifiers
+      ),
+      activeModifiers,
+      contextActive,
+    } satisfies EquipmentItem
+  }).filter((item): item is EquipmentItem => Boolean(item))
 }
 
-function buildLoadoutSummary(
-  items: EquipmentItem[],
-  slotCount: number
-): EquipmentLoadoutSummary {
+function buildLoadoutSummary(items: EquipmentItem[], slotCount: number): EquipmentLoadoutSummary {
   return {
     slotCount,
     equippedItemCount: items.length,

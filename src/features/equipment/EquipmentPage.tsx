@@ -3,9 +3,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { buildItemizationOverview } from '../../domain/itemization'
 import { buildLogisticsOverview } from '../../domain/logistics'
-import {
-  getMarketPressureLabel,
-} from '../../data/production'
+import { getMarketPressureLabel } from '../../data/production'
 import {
   getAgentEquipmentLoadoutViews,
   getGearRecommendationsForActiveCases,
@@ -96,8 +94,8 @@ export default function EquipmentPage() {
                     <p className="font-medium">{view.agentName}</p>
                     <p className="text-xs uppercase tracking-[0.2em] opacity-50">
                       {view.assignmentState} / Slots {view.summary.equippedItemCount}/
-                      {view.summary.slotCount} / Context live {view.summary.activeContextItemCount} /
-                      Quality {view.summary.loadoutQuality}
+                      {view.summary.slotCount} / Context live {view.summary.activeContextItemCount}{' '}
+                      / Quality {view.summary.loadoutQuality}
                     </p>
                     {view.blockedReason ? (
                       <p className="mt-1 text-xs text-amber-200/80">{view.blockedReason}</p>
@@ -132,7 +130,8 @@ export default function EquipmentPage() {
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {slot.stockOptions.filter((option) => option.itemId !== slot.itemId).length > 0 ? (
+                        {slot.stockOptions.filter((option) => option.itemId !== slot.itemId)
+                          .length > 0 ? (
                           slot.stockOptions
                             .filter((option) => option.itemId !== slot.itemId)
                             .map((option) => (
@@ -140,7 +139,9 @@ export default function EquipmentPage() {
                                 key={`${view.agentId}-${slot.slot}-${option.itemId}`}
                                 type="button"
                                 className="btn btn-xs"
-                                onClick={() => equipAgentItem(view.agentId, slot.slot, option.itemId)}
+                                onClick={() =>
+                                  equipAgentItem(view.agentId, slot.slot, option.itemId)
+                                }
                                 disabled={!view.editable}
                                 aria-label={`Equip ${option.itemName} to ${view.agentName} ${slot.slotLabel}`}
                               >
@@ -164,7 +165,8 @@ export default function EquipmentPage() {
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">Active case recommendations</h3>
           <p className="text-xs uppercase tracking-[0.24em] opacity-50">
-            {gearRecommendations.length} suggested loadout{gearRecommendations.length === 1 ? '' : 's'}
+            {gearRecommendations.length} suggested loadout
+            {gearRecommendations.length === 1 ? '' : 's'}
           </p>
         </div>
 
@@ -223,7 +225,8 @@ export default function EquipmentPage() {
                   <p className="font-medium">{entry.label}</p>
                   <p className="text-sm opacity-60">
                     {entry.kind}
-                    {entry.slot ? ` / ${entry.slot}` : ''} / Sources {entry.sourceChannels.join(', ')}
+                    {entry.slot ? ` / ${entry.slot}` : ''} / Sources{' '}
+                    {entry.sourceChannels.join(', ')}
                   </p>
                 </div>
                 <p className="text-sm opacity-60">
@@ -298,20 +301,20 @@ export default function EquipmentPage() {
           {itemization.entries
             .filter((entry) => entry.stock > 0 || entry.equipped > 0 || entry.queuedOutput > 0)
             .map((entry) => (
-            <li key={entry.itemId} className="flex items-center justify-between gap-3">
-              <span>
-                {entry.label}
-                <span className="ml-2 text-xs opacity-50">
-                  {entry.kind}
-                  {entry.slot ? ` / ${entry.slot}` : ''}
+              <li key={entry.itemId} className="flex items-center justify-between gap-3">
+                <span>
+                  {entry.label}
+                  <span className="ml-2 text-xs opacity-50">
+                    {entry.kind}
+                    {entry.slot ? ` / ${entry.slot}` : ''}
+                  </span>
                 </span>
-              </span>
-              <span>
-                {entry.stock}
-                {entry.equipped > 0 ? ` / equipped ${entry.equipped}` : ''}
-                {entry.queuedOutput > 0 ? ` / queued ${entry.queuedOutput}` : ''}
-              </span>
-            </li>
+                <span>
+                  {entry.stock}
+                  {entry.equipped > 0 ? ` / equipped ${entry.equipped}` : ''}
+                  {entry.queuedOutput > 0 ? ` / queued ${entry.queuedOutput}` : ''}
+                </span>
+              </li>
             ))}
         </ul>
       </article>

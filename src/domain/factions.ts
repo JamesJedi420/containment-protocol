@@ -67,8 +67,10 @@ export const FACTION_DEFINITIONS: readonly FactionDefinition[] = [
     tags: ['containment', 'critical', 'infrastructure', 'perimeter', 'breach'],
     feedback: 'Pressure here raises executive scrutiny on unresolved incidents and site breaches.',
     opportunityLabel: 'Executive authorization window',
-    opportunityDetail: 'Supportive standing speeds approvals for site lockdowns and major incident response.',
-    hostileDetail: 'Hostile standing increases oversight scrutiny and accelerates breach-driven pressure.',
+    opportunityDetail:
+      'Supportive standing speeds approvals for site lockdowns and major incident response.',
+    hostileDetail:
+      'Hostile standing increases oversight scrutiny and accelerates breach-driven pressure.',
   },
   {
     id: 'institutions',
@@ -78,8 +80,10 @@ export const FACTION_DEFINITIONS: readonly FactionDefinition[] = [
     tags: ['archive', 'campus', 'research', 'analysis', 'witness'],
     feedback: 'Pressure here amplifies investigation demand and witness-management strain.',
     opportunityLabel: 'Research cooperation',
-    opportunityDetail: 'Supportive standing opens cleaner evidence access and better investigation support.',
-    hostileDetail: 'Hostile standing degrades witness cooperation and increases investigative drag.',
+    opportunityDetail:
+      'Supportive standing opens cleaner evidence access and better investigation support.',
+    hostileDetail:
+      'Hostile standing degrades witness cooperation and increases investigative drag.',
   },
   {
     id: 'occult_networks',
@@ -89,7 +93,8 @@ export const FACTION_DEFINITIONS: readonly FactionDefinition[] = [
     tags: ['occult', 'ritual', 'cult', 'spirit', 'anomaly'],
     feedback: 'Pressure here favors escalation chains and anomaly-heavy operations.',
     opportunityLabel: 'Esoteric informants',
-    opportunityDetail: 'Supportive standing yields ritual leads and cleaner anomaly-handling opportunities.',
+    opportunityDetail:
+      'Supportive standing yields ritual leads and cleaner anomaly-handling opportunities.',
     hostileDetail: 'Hostile standing feeds cult mobilization and anomaly escalation chains.',
   },
   {
@@ -111,8 +116,10 @@ export const FACTION_DEFINITIONS: readonly FactionDefinition[] = [
     tags: ['cyber', 'information', 'relay', 'classified', 'tech'],
     feedback: 'Pressure here increases covert competition around intel and technical incidents.',
     opportunityLabel: 'Classified intercepts',
-    opportunityDetail: 'Supportive standing yields cleaner technical leads and covert opportunity windows.',
-    hostileDetail: 'Hostile standing heightens covert interference and technical incident pressure.',
+    opportunityDetail:
+      'Supportive standing yields cleaner technical leads and covert opportunity windows.',
+    hostileDetail:
+      'Hostile standing heightens covert interference and technical incident pressure.',
   },
 ] as const
 
@@ -120,12 +127,16 @@ function roundModifier(value: number) {
   return Number(value.toFixed(2))
 }
 
-function getAgencyState(game: Pick<GameState, 'agency' | 'containmentRating' | 'clearanceLevel' | 'funding'>) {
-  return game.agency ?? {
-    containmentRating: game.containmentRating,
-    clearanceLevel: game.clearanceLevel,
-    funding: game.funding,
-  }
+function getAgencyState(
+  game: Pick<GameState, 'agency' | 'containmentRating' | 'clearanceLevel' | 'funding'>
+) {
+  return (
+    game.agency ?? {
+      containmentRating: game.containmentRating,
+      clearanceLevel: game.clearanceLevel,
+      funding: game.funding,
+    }
+  )
 }
 
 function getOpenCases(game: Pick<GameState, 'cases'>) {
@@ -223,7 +234,10 @@ export function buildFactionStandingMap(game: Pick<GameState, 'events'>) {
   return buildStandingMapFromRewardEvents(game.events)
 }
 
-function buildFactionInfluenceModifiers(standing: number, pressureScore: number): FactionInfluenceModifiers {
+function buildFactionInfluenceModifiers(
+  standing: number,
+  pressureScore: number
+): FactionInfluenceModifiers {
   const standingCaseBias =
     standing >= 8 ? -0.1 : standing >= 4 ? -0.05 : standing <= -8 ? 0.14 : standing <= -4 ? 0.08 : 0
   const pressureCaseBias = pressureScore >= 160 ? 0.08 : pressureScore >= 90 ? 0.04 : 0
@@ -232,7 +246,15 @@ function buildFactionInfluenceModifiers(standing: number, pressureScore: number)
   )
 
   const standingRewardBias =
-    standing >= 8 ? 0.12 : standing >= 4 ? 0.07 : standing <= -8 ? -0.12 : standing <= -4 ? -0.07 : 0
+    standing >= 8
+      ? 0.12
+      : standing >= 4
+        ? 0.07
+        : standing <= -8
+          ? -0.12
+          : standing <= -4
+            ? -0.07
+            : 0
   const pressureRewardBias = pressureScore >= 160 ? -0.04 : pressureScore >= 90 ? -0.015 : 0
   const rewardModifier = roundModifier(clamp(standingRewardBias + pressureRewardBias, -0.16, 0.16))
 
@@ -279,8 +301,12 @@ function buildFactionOpportunities(
   return opportunities
 }
 
-function collectCaseTags(currentCase: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>) {
-  return [...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags])]
+function collectCaseTags(
+  currentCase: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'>
+) {
+  return [
+    ...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]),
+  ]
 }
 
 function buildFactionCaseMatches(
@@ -306,7 +332,17 @@ function buildFactionCaseMatches(
 
 export function buildFactionRewardInfluence(
   currentCase: Pick<CaseInstance, 'kind' | 'tags' | 'requiredTags' | 'preferredTags'>,
-  game: Pick<GameState, 'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'>
+  game: Pick<
+    GameState,
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
+  >
 ): FactionRewardInfluence {
   const factionStates = buildFactionStates(game as GameState)
   const matches = buildFactionCaseMatches(currentCase, factionStates)
@@ -330,16 +366,36 @@ export function buildFactionRewardInfluence(
   }
 }
 
-export function getFactionPressureSpawnThreshold(faction: Pick<FactionState, 'standing' | 'pressureScore'>) {
+export function getFactionPressureSpawnThreshold(
+  faction: Pick<FactionState, 'standing' | 'pressureScore'>
+) {
   const standingAdjustment =
-    faction.standing <= -8 ? -20 : faction.standing <= -4 ? -10 : faction.standing >= 8 ? 15 : faction.standing >= 4 ? 8 : 0
+    faction.standing <= -8
+      ? -20
+      : faction.standing <= -4
+        ? -10
+        : faction.standing >= 8
+          ? 15
+          : faction.standing >= 4
+            ? 8
+            : 0
   const pressureAdjustment = faction.pressureScore >= 180 ? -5 : 0
 
   return FACTION_PRESSURE_THRESHOLD_BASE + standingAdjustment + pressureAdjustment
 }
 
 export function buildFactionStates(
-  game: Pick<GameState, 'agency' | 'containmentRating' | 'clearanceLevel' | 'funding' | 'cases' | 'reports' | 'market' | 'events'>
+  game: Pick<
+    GameState,
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
+  >
 ): FactionState[] {
   const openCases = getOpenCases(game)
   const agency = getAgencyState(game)

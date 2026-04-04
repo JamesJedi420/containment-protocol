@@ -104,10 +104,18 @@ const PROTOCOL_DEFINITIONS: readonly ProtocolDefinition[] = [
       kind: 'tag',
       tags: ['analyst', 'analysis', 'tech'],
     },
-    unlockReason: (state) => `Clearance level ${state.clearanceLevel} authorizes enhanced field procedures.`,
+    unlockReason: (state) =>
+      `Clearance level ${state.clearanceLevel} authorizes enhanced field procedures.`,
     unlockedWhen: (state) => state.clearanceLevel >= 2,
     activeWhen: (context) =>
-      hasAnyRuntimeContextTag(context, ['evidence', 'analysis', 'signal', 'witness', 'relay', 'cyber']),
+      hasAnyRuntimeContextTag(context, [
+        'evidence',
+        'analysis',
+        'signal',
+        'witness',
+        'relay',
+        'cyber',
+      ]),
     globalModifiers: createRuntimeModifierResult({
       effectivenessMultiplier: 1.03,
     }),
@@ -124,7 +132,14 @@ const PROTOCOL_DEFINITIONS: readonly ProtocolDefinition[] = [
       `Containment rating ${state.containmentRating} unlocked advanced anomaly-control doctrine.`,
     unlockedWhen: (state) => state.containmentRating >= 80,
     activeWhen: (context) =>
-      hasAnyRuntimeContextTag(context, ['occult', 'containment', 'ritual', 'anomaly', 'spirit', 'seal']),
+      hasAnyRuntimeContextTag(context, [
+        'occult',
+        'containment',
+        'ritual',
+        'anomaly',
+        'spirit',
+        'seal',
+      ]),
     globalModifiers: createRuntimeModifierResult({
       effectivenessMultiplier: 1.03,
       stressImpactMultiplier: 0.95,
@@ -190,11 +205,13 @@ export function listProtocolCatalog(): ProtocolCatalogEntry[] {
 function getAgencyState(
   game: Pick<GameState, 'agency' | 'containmentRating' | 'clearanceLevel' | 'funding'>
 ) {
-  return game.agency ?? {
-    containmentRating: game.containmentRating,
-    clearanceLevel: game.clearanceLevel,
-    funding: game.funding,
-  }
+  return (
+    game.agency ?? {
+      containmentRating: game.containmentRating,
+      clearanceLevel: game.clearanceLevel,
+      funding: game.funding,
+    }
+  )
 }
 
 function createProtocolGlobalModifiers(

@@ -1,5 +1,10 @@
 import type { Candidate, GameState } from '../models'
-import { getCandidateWeeklyCost, getCandidateOverall, isCandidateHireable, normalizeCandidateCategory } from './helpers'
+import {
+  getCandidateWeeklyCost,
+  getCandidateOverall,
+  isCandidateHireable,
+  normalizeCandidateCategory,
+} from './helpers'
 
 export interface CandidatePreview {
   canHire: boolean

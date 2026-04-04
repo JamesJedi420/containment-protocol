@@ -25,9 +25,7 @@ export function getCandidateWeeklyCost(candidate: Candidate) {
   return candidate.weeklyCost ?? candidate.weeklyWage
 }
 
-export function deriveCandidateCostEstimate(
-  weeklyCost: number | undefined
-): CandidateCostEstimate {
+export function deriveCandidateCostEstimate(weeklyCost: number | undefined): CandidateCostEstimate {
   if (weeklyCost === undefined) {
     return 'unknown'
   }
@@ -100,10 +98,7 @@ export function buildCandidateEvaluation(
     outlook?: string
   }
 ): CandidateEvaluation {
-  const overallVisible = isCandidateFieldVisible(
-    revealLevel,
-    CANDIDATE_REVEAL_THRESHOLDS.overall
-  )
+  const overallVisible = isCandidateFieldVisible(revealLevel, CANDIDATE_REVEAL_THRESHOLDS.overall)
   const potentialVisible = isCandidateFieldVisible(
     revealLevel,
     CANDIDATE_REVEAL_THRESHOLDS.potential

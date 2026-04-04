@@ -343,5 +343,112 @@ describe('Event Feed Note Identity', () => {
         },
       ])
     })
+
+    it('reflects staged recruitment scouting into deterministic report notes', () => {
+      const drafts: AnyOperationEventDraft[] = [
+        {
+          type: 'recruitment.scouting_initiated',
+          sourceSystem: 'intel',
+          payload: {
+            week: 8,
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            fundingCost: 12,
+            stage: 1,
+            projectedTier: 'B',
+            confidence: 'low',
+            revealLevel: 1,
+          },
+        },
+        {
+          type: 'recruitment.scouting_refined',
+          sourceSystem: 'intel',
+          payload: {
+            week: 8,
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            fundingCost: 9,
+            stage: 2,
+            projectedTier: 'A',
+            confidence: 'high',
+            previousProjectedTier: 'B',
+            previousConfidence: 'low',
+            revealLevel: 2,
+          },
+        },
+        {
+          type: 'recruitment.intel_confirmed',
+          sourceSystem: 'intel',
+          payload: {
+            week: 8,
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            fundingCost: 7,
+            stage: 3,
+            projectedTier: 'A',
+            confirmedTier: 'A',
+            confidence: 'confirmed',
+            previousProjectedTier: 'A',
+            previousConfidence: 'high',
+            revealLevel: 2,
+          },
+        },
+      ]
+
+      expect(buildDeterministicReportNotesFromEventDrafts(drafts, 8, 8000)).toEqual([
+        {
+          id: 'note-8000-0',
+          content:
+            'Recruitment scouting opened on Scout Target. Projected B-tier potential at low confidence for $12.',
+          timestamp: 8000,
+          type: 'recruitment.scouting_initiated',
+          metadata: {
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            stage: 1,
+            projectedTier: 'B',
+            confidence: 'low',
+            fundingCost: 12,
+            revealLevel: 1,
+          },
+        },
+        {
+          id: 'note-8001-1',
+          content:
+            'Recruitment scouting refined Scout Target. Projected A-tier potential updated from B tier with high confidence for $9.',
+          timestamp: 8001,
+          type: 'recruitment.scouting_refined',
+          metadata: {
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            stage: 2,
+            projectedTier: 'A',
+            confidence: 'high',
+            fundingCost: 9,
+            revealLevel: 2,
+            previousProjectedTier: 'B',
+            previousConfidence: 'low',
+          },
+        },
+        {
+          id: 'note-8002-2',
+          content: 'Recruitment deep scan confirmed Scout Target as A-tier potential for $7.',
+          timestamp: 8002,
+          type: 'recruitment.intel_confirmed',
+          metadata: {
+            candidateId: 'cand-scout-01',
+            candidateName: 'Scout Target',
+            stage: 3,
+            projectedTier: 'A',
+            confirmedTier: 'A',
+            confidence: 'confirmed',
+            fundingCost: 7,
+            revealLevel: 2,
+            previousProjectedTier: 'A',
+            previousConfidence: 'high',
+          },
+        },
+      ])
+    })
   })
 })

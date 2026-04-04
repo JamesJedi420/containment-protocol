@@ -20,9 +20,7 @@ interface AdvanceRecoveryInput {
 }
 
 function getRecoveryDurationWeeks(severity: InjurySeverity) {
-  return severity === 'moderate'
-    ? MODERATE_RECOVERY_DURATION_WEEKS
-    : MINOR_RECOVERY_DURATION_WEEKS
+  return severity === 'moderate' ? MODERATE_RECOVERY_DURATION_WEEKS : MINOR_RECOVERY_DURATION_WEEKS
 }
 
 function getInjurySeverityFlag(flags: string[] | undefined): InjurySeverity | null {
@@ -138,9 +136,7 @@ export function advanceRecoveryAgentsForWeek({
               statusFlags: [],
             }),
             morale: clamp(
-              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
-                5 +
-                moraleRecoveryDelta,
+              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) - 5 + moraleRecoveryDelta,
               0,
               100
             ),
@@ -148,10 +144,7 @@ export function advanceRecoveryAgentsForWeek({
             statusFlags: withInjuryFlags(agent.vitals?.statusFlags, severity),
           },
         },
-        buildRecoveryHistoryEntry(
-          week,
-          `${agent.name} is recovering from a ${severity} injury.`
-        ),
+        buildRecoveryHistoryEntry(week, `${agent.name} is recovering from a ${severity} injury.`),
         { recoveryWeeks: 1 }
       )
       continue

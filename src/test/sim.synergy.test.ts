@@ -99,8 +99,8 @@ describe('bond depth bonus from party training', () => {
 
   it('produces no bond bonus when no synergies are active even with high familiarity', () => {
     // Two agents with no synergy-triggering tag overlap but trained together
-    const agent1 = makeAgent('analyst-a', 'analyst')
-    const agent2 = makeAgent('analyst-b', 'analyst')
+    const agent1 = makeAgent('analyst-a', 'investigator')
+    const agent2 = makeAgent('analyst-b', 'investigator')
 
     const trainedA: Agent = {
       ...agent1,
@@ -131,7 +131,6 @@ describe('bond depth bonus from party training', () => {
     }
   })
 })
-
 
 describe('build-based synergy in scoring', () => {
   it('raises team score from active build synergy even when chemistry is neutral', () => {

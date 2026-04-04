@@ -25,9 +25,7 @@ function makeActiveAbilityAgent(id: string, cooldownRemaining = 0): Agent {
     relationships: {},
     fatigue: 0,
     status: 'active',
-    abilityState: cooldownRemaining > 0
-      ? { 'signal-overclock': { cooldownRemaining } }
-      : undefined,
+    abilityState: cooldownRemaining > 0 ? { 'signal-overclock': { cooldownRemaining } } : undefined,
   })
 }
 
@@ -63,9 +61,7 @@ function makeTriggeredActiveAbilityAgent(
     relationships: {},
     fatigue: 0,
     status: 'active',
-    abilityState: cooldownRemaining > 0
-      ? { [abilityId]: { cooldownRemaining } }
-      : undefined,
+    abilityState: cooldownRemaining > 0 ? { [abilityId]: { cooldownRemaining } } : undefined,
   })
 }
 

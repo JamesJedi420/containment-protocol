@@ -45,11 +45,7 @@ function makeAgentFixture(role: Agent['role'], overrides: Partial<Agent> = {}): 
   }
 }
 
-function getDeterministicPreviewResult(odds: {
-  success: number
-  partial: number
-  fail: number
-}) {
+function getDeterministicPreviewResult(odds: { success: number; partial: number; fail: number }) {
   if (odds.success === 1) {
     return 'success'
   }
@@ -61,11 +57,7 @@ function getDeterministicPreviewResult(odds: {
   return 'fail'
 }
 
-function previewResolutionForTeamIds(
-  c: CaseInstance,
-  state: GameState,
-  teamIds: Id[]
-) {
+function previewResolutionForTeamIds(c: CaseInstance, state: GameState, teamIds: Id[]) {
   return previewResolutionForTeamIdsFromPreview(c, buildResolutionPreviewState(state), teamIds)
 }
 
@@ -276,7 +268,12 @@ describe('resolveCase', () => {
     }
 
     const noAbilityOutcome = resolveCase(calibratedCase, [medicNoAbility], state.config, () => 0.1)
-    const withAbilityOutcome = resolveCase(calibratedCase, [medicWithAbility], state.config, () => 0.1)
+    const withAbilityOutcome = resolveCase(
+      calibratedCase,
+      [medicWithAbility],
+      state.config,
+      () => 0.1
+    )
 
     expect(noAbilityOutcome.result).toBe('fail')
     expect(withAbilityOutcome.result).toBe('partial')
@@ -582,7 +579,12 @@ describe('resolveCase', () => {
     const calibratedScore = computeTeamScore([agent], baseCase)
     const probabilityCase = {
       ...baseCase,
-      difficulty: { combat: Math.round(calibratedScore.score), investigation: 0, utility: 0, social: 0 },
+      difficulty: {
+        combat: Math.round(calibratedScore.score),
+        investigation: 0,
+        utility: 0,
+        social: 0,
+      },
     }
 
     const boostedTeam = computeTeamScore([agent], probabilityCase, {
@@ -616,40 +618,26 @@ describe('resolveCase', () => {
     )
     const draw = (boostedChance + neutralChance) / 2
 
-    const boostedOutcome = resolveCase(
-      probabilityCase,
-      [agent],
-      state.config,
-      () => draw,
-      {
-        leaderBonusOverride: {
-          effectivenessMultiplier: 1,
-          eventModifier: 0.35,
-          xpBonus: 0,
-          stressModifier: 0,
-        },
-      }
-    )
-    const neutralOutcome = resolveCase(
-      probabilityCase,
-      [agent],
-      state.config,
-      () => draw,
-      {
-        leaderBonusOverride: {
-          effectivenessMultiplier: 1,
-          eventModifier: 0,
-          xpBonus: 0,
-          stressModifier: 0,
-        },
-      }
-    )
+    const boostedOutcome = resolveCase(probabilityCase, [agent], state.config, () => draw, {
+      leaderBonusOverride: {
+        effectivenessMultiplier: 1,
+        eventModifier: 0.35,
+        xpBonus: 0,
+        stressModifier: 0,
+      },
+    })
+    const neutralOutcome = resolveCase(probabilityCase, [agent], state.config, () => draw, {
+      leaderBonusOverride: {
+        effectivenessMultiplier: 1,
+        eventModifier: 0,
+        xpBonus: 0,
+        stressModifier: 0,
+      },
+    })
 
     expect(boostedChance).toBeGreaterThan(neutralChance)
     expect(boostedOutcome.result).not.toBe(neutralOutcome.result)
-    expect(
-      boostedOutcome.reasons.some((reason) => reason.includes('Leader event control:'))
-    ).toBe(
+    expect(boostedOutcome.reasons.some((reason) => reason.includes('Leader event control:'))).toBe(
       true
     )
   })
@@ -795,11 +783,17 @@ describe('resolveCase', () => {
 
     const currentCase = state.cases['case-threshold']
     const preview = previewResolutionForTeamIds(currentCase, state, ['team-test'])
-    const outcome = resolveCase(currentCase, [state.agents['agent-test']], state.config, () => 0.5, {
-      inventory: state.inventory,
-      supportTags: [...state.teams['team-test'].tags],
-      leaderId: state.teams['team-test'].leaderId ?? null,
-    })
+    const outcome = resolveCase(
+      currentCase,
+      [state.agents['agent-test']],
+      state.config,
+      () => 0.5,
+      {
+        inventory: state.inventory,
+        supportTags: [...state.teams['team-test'].tags],
+        leaderId: state.teams['team-test'].leaderId ?? null,
+      }
+    )
 
     expect(preview.validation?.valid).toBe(true)
     expect(preview.odds.blockedByRequiredTags).toBe(false)
@@ -971,16 +965,28 @@ describe('resolveCase', () => {
 
     const belowBoundary = Math.max(0, successChance - 1e-6)
     const aboveBoundary = Math.min(1, successChance + 1e-6)
-    const successOutcome = resolveCase(currentCase, [state.agents['agent-test']], state.config, () => belowBoundary, {
-      inventory: state.inventory,
-      supportTags: [...state.teams['team-test'].tags],
-      leaderId: state.teams['team-test'].leaderId ?? null,
-    })
-    const missOutcome = resolveCase(currentCase, [state.agents['agent-test']], state.config, () => aboveBoundary, {
-      inventory: state.inventory,
-      supportTags: [...state.teams['team-test'].tags],
-      leaderId: state.teams['team-test'].leaderId ?? null,
-    })
+    const successOutcome = resolveCase(
+      currentCase,
+      [state.agents['agent-test']],
+      state.config,
+      () => belowBoundary,
+      {
+        inventory: state.inventory,
+        supportTags: [...state.teams['team-test'].tags],
+        leaderId: state.teams['team-test'].leaderId ?? null,
+      }
+    )
+    const missOutcome = resolveCase(
+      currentCase,
+      [state.agents['agent-test']],
+      state.config,
+      () => aboveBoundary,
+      {
+        inventory: state.inventory,
+        supportTags: [...state.teams['team-test'].tags],
+        leaderId: state.teams['team-test'].leaderId ?? null,
+      }
+    )
 
     expect(successOutcome.result).toBe('success')
     expect(missOutcome.result).toBe(preview.odds.partial > 0 ? 'partial' : 'fail')
@@ -1144,7 +1150,13 @@ describe('resolveRaid', () => {
       raid: { minTeams: 2, maxTeams: 3 },
     }
 
-    const raid = resolveRaid(raidCase, [state.teams['team-1']], state.agents, state.config, () => 0.1)
+    const raid = resolveRaid(
+      raidCase,
+      [state.teams['team-1']],
+      state.agents,
+      state.config,
+      () => 0.1
+    )
 
     expect(raid.result).toBe('fail')
     expect(raid.delta).toBe(-999)
@@ -1160,7 +1172,13 @@ describe('resolveRaid', () => {
     }
 
     const preview = previewResolutionForTeamIds(raidCase, state, ['team-1'])
-    const raid = resolveRaid(raidCase, [state.teams['team-1']], state.agents, state.config, () => 0.1)
+    const raid = resolveRaid(
+      raidCase,
+      [state.teams['team-1']],
+      state.agents,
+      state.config,
+      () => 0.1
+    )
 
     expect(preview.validation?.issues[0]?.code).toBe('insufficient-raid-teams')
     expect(preview.validation?.issues[0]?.detail).toBe(raid.reasons[0])
@@ -1329,63 +1347,59 @@ describe('resolveRaid', () => {
     expect(raid.result).toBe(getDeterministicPreviewResult(preview.odds))
   })
 
-  it(
-    'applies the same party-card score adjustments in raid preview and live resolveRaid execution',
-    () => {
-      const state = makeRaidFixture()
-      state.partyCards!.hand = ['card-last-push']
+  it('applies the same party-card score adjustments in raid preview and live resolveRaid execution', () => {
+    const state = makeRaidFixture()
+    state.partyCards!.hand = ['card-last-push']
 
-      const baseRaidCase = {
-        ...state.cases['raid-001'],
-        mode: 'threshold' as const,
-        raid: { minTeams: 1, maxTeams: 3 },
-        requiredTags: [],
-        requiredRoles: [],
-        assignedTeamIds: ['team-1', 'team-2'],
-      }
-      const coordinationScoreAdjustment =
-        -state.config.raidCoordinationPenaltyPerExtraTeam * 10
-      const baselineScore = computeTeamScore(
-        [state.agents['agent-a'], state.agents['agent-b']],
-        baseRaidCase,
-        {
-          inventory: state.inventory,
-          supportTags: [],
-          scoreAdjustment: coordinationScoreAdjustment,
-        }
-      ).score
-      const calibratedRaidCase = {
-        ...baseRaidCase,
-        difficulty: {
-          combat: Math.round(baselineScore + 6),
-          investigation: 0,
-          utility: 0,
-          social: 0,
-        },
-        weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
-      }
-
-      state.partyCards = playPartyCard(state.partyCards!, 'card-last-push', {
-        weekPlayed: state.week,
-        targetCaseId: calibratedRaidCase.id,
-      })
-
-      const preview = previewResolutionForTeamIds(calibratedRaidCase, state, ['team-1', 'team-2'])
-      const raid = resolveRaid(
-        calibratedRaidCase,
-        [state.teams['team-1'], state.teams['team-2']],
-        state.agents,
-        state.config,
-        () => 0.5,
-        state.inventory
-      )
-
-      // Contract expectation: same effective input should yield same outcome band.
-      // Current implementation intentionally violates this for raids because party-card
-      // score adjustments are present in preview but not threaded into resolveRaid.
-      expect(raid.result).toBe(getDeterministicPreviewResult(preview.odds))
+    const baseRaidCase = {
+      ...state.cases['raid-001'],
+      mode: 'threshold' as const,
+      raid: { minTeams: 1, maxTeams: 3 },
+      requiredTags: [],
+      requiredRoles: [],
+      assignedTeamIds: ['team-1', 'team-2'],
     }
-  )
+    const coordinationScoreAdjustment = -state.config.raidCoordinationPenaltyPerExtraTeam * 10
+    const baselineScore = computeTeamScore(
+      [state.agents['agent-a'], state.agents['agent-b']],
+      baseRaidCase,
+      {
+        inventory: state.inventory,
+        supportTags: [],
+        scoreAdjustment: coordinationScoreAdjustment,
+      }
+    ).score
+    const calibratedRaidCase = {
+      ...baseRaidCase,
+      difficulty: {
+        combat: Math.round(baselineScore + 6),
+        investigation: 0,
+        utility: 0,
+        social: 0,
+      },
+      weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
+    }
+
+    state.partyCards = playPartyCard(state.partyCards!, 'card-last-push', {
+      weekPlayed: state.week,
+      targetCaseId: calibratedRaidCase.id,
+    })
+
+    const preview = previewResolutionForTeamIds(calibratedRaidCase, state, ['team-1', 'team-2'])
+    const raid = resolveRaid(
+      calibratedRaidCase,
+      [state.teams['team-1'], state.teams['team-2']],
+      state.agents,
+      state.config,
+      () => 0.5,
+      state.inventory
+    )
+
+    // Contract expectation: same effective input should yield same outcome band.
+    // Current implementation intentionally violates this for raids because party-card
+    // score adjustments are present in preview but not threaded into resolveRaid.
+    expect(raid.result).toBe(getDeterministicPreviewResult(preview.odds))
+  })
 })
 
 describe('estimateOutcomeOdds', () => {
@@ -1890,7 +1904,9 @@ describe('evaluateCaseResolutionContext', () => {
     )
 
     expect(evaluation.outcome).toEqual(outcome)
-    expect(evaluation.requiredScore).toBe(computeRequiredScore(state.cases['case-threshold'], state.config))
+    expect(evaluation.requiredScore).toBe(
+      computeRequiredScore(state.cases['case-threshold'], state.config)
+    )
     expect(evaluation.teamScore?.score).toBe(
       computeTeamScore([state.agents['agent-test']], state.cases['case-threshold']).score
     )
@@ -1938,7 +1954,9 @@ describe('evaluateCaseResolutionContext', () => {
       },
     }
 
-    const preview = previewResolutionForTeamIds(state.cases['case-probability'], state, ['team-test'])
+    const preview = previewResolutionForTeamIds(state.cases['case-probability'], state, [
+      'team-test',
+    ])
     const evaluation = evaluateCaseResolutionContext({
       caseData: state.cases['case-probability'],
       agents: [state.agents['agent-test']],

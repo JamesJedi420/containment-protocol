@@ -6,7 +6,10 @@ import {
   calcTeamChemistry,
   summarizeRelationshipModifiers,
 } from '../domain/sim/chemistry'
-import { deriveRelationshipState, deriveRelationshipStability } from '../domain/sim/relationshipProjection'
+import {
+  deriveRelationshipState,
+  deriveRelationshipStability,
+} from '../domain/sim/relationshipProjection'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 
 function makeAgent(id: string, overrides: Partial<Agent> = {}): Agent {
@@ -142,13 +145,13 @@ describe('calcTeamChemistry', () => {
         relationships: { 'agent-b': 0.5 },
         progression: {
           skillTree: { skillPoints: 0, trainedRelationships: { 'agent-b': 2 } },
-        } as Agent['progression'],
+        } as unknown as Agent['progression'],
       }),
       makeAgent('agent-b', {
         relationships: { 'agent-a': 0.5 },
         progression: {
           skillTree: { skillPoints: 0, trainedRelationships: { 'agent-a': 2 } },
-        } as Agent['progression'],
+        } as unknown as Agent['progression'],
       }),
     ])
 

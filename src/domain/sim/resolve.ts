@@ -13,15 +13,18 @@ import { previewResolutionPartyCards } from '../partyCards/engine'
 import { buildAgencyProtocolState } from '../protocols'
 import {
   buildAggregatedLeaderBonus,
+  createDefaultPerformanceMetricSummary,
   getTeamAssignedCaseId,
   getTeamMemberIds,
   getUniqueTeamMembers,
 } from '../teamSimulation'
 import {
+  createDefaultCaseEquipmentSummary,
   evaluateCaseResolutionContext,
   type TeamScoreContext,
 } from './scoring'
 import { isTeamBlockedByTraining } from './training'
+import type { CaseReconSummary } from '../recon'
 
 const MIN_SUCCESS_CHANCE = 0.05
 const MAX_SUCCESS_CHANCE = 0.95
@@ -58,15 +61,16 @@ function buildTeamScoreContextForTeamIds(
     c.kind === 'raid' && normalizedTeamIds.length > 1
       ? getRaidCoordinationAdjustment(normalizedTeamIds.length, state.config)
       : undefined
-  const partyCardBonus = c.kind === 'raid'
-    ? null
-    : state.partyCards
-    ? previewResolutionPartyCards(state.partyCards, {
-        caseId: c.id,
-        caseTags: c.tags,
-        teamIds: normalizedTeamIds,
-      })
-    : null
+  const partyCardBonus =
+    c.kind === 'raid'
+      ? null
+      : state.partyCards
+        ? previewResolutionPartyCards(state.partyCards, {
+            caseId: c.id,
+            caseTags: c.tags,
+            teamIds: normalizedTeamIds,
+          })
+        : null
   const partyCardReason =
     partyCardBonus && partyCardBonus.scoreAdjustment !== 0
       ? [`Party cards: ${partyCardBonus.scoreAdjustment.toFixed(1)}`]
@@ -84,7 +88,7 @@ function buildTeamScoreContextForTeamIds(
       },
       leaderId:
         normalizedTeamIds.length === 1
-          ? state.teams[normalizedTeamIds[0]]?.leaderId ?? null
+          ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
           : null,
       scoreAdjustment: coordination?.scoreAdjustment,
       scoreAdjustmentReason: coordination?.reason,
@@ -92,8 +96,7 @@ function buildTeamScoreContextForTeamIds(
       partyCardReasons: partyCardReason,
       protocolState: buildAgencyProtocolState(state),
       leaderBonusOverride:
-        normalizedTeamIds.length > 1 &&
-        teams.some((team) => getTeamMemberIds(team).length > 1)
+        normalizedTeamIds.length > 1 && teams.some((team) => getTeamMemberIds(team).length > 1)
           ? buildAggregatedLeaderBonus(teams, state.agents)
           : undefined,
     },
@@ -104,10 +107,7 @@ function buildOddsFromEvaluation(
   evaluation: ReturnType<typeof evaluateCaseResolutionContext>
 ): OutcomeOdds {
   if (!evaluation.teamScore || evaluation.requiredScore === null) {
-    return buildBlockedOdds(
-      evaluation.blockedByRequiredTags,
-      evaluation.blockedByRequiredRoles
-    )
+    return buildBlockedOdds(evaluation.blockedByRequiredTags, evaluation.blockedByRequiredRoles)
   }
 
   const chemistry =
@@ -191,6 +191,9 @@ export interface ResolutionPreview {
   deployableAgentIds: Id[]
   validation: ValidationResult | null
   odds: OutcomeOdds
+  performanceSummary: NonNullable<ReturnType<typeof createDefaultPerformanceMetricSummary>>
+  equipmentSummary: ReturnType<typeof createDefaultCaseEquipmentSummary>
+  reconSummary?: CaseReconSummary
 }
 
 export type ResolutionPreviewState = GameState
@@ -235,6 +238,10 @@ export function previewResolutionForTeamIds(
     deployableAgentIds: evaluation.deployableAgents.map((agent) => agent.id),
     validation: evaluation.validationResult,
     odds: buildOddsFromEvaluation(evaluation),
+    performanceSummary:
+      evaluation.teamScore?.performanceSummary ?? createDefaultPerformanceMetricSummary(),
+    equipmentSummary: evaluation.teamScore?.equipmentSummary ?? createDefaultCaseEquipmentSummary(),
+    reconSummary: evaluation.teamScore?.reconSummary,
   }
 }
 

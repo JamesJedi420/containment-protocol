@@ -13,7 +13,10 @@ export interface DeploymentTimelineEntry {
 export function getTeamDeploymentHistory(teamId: string, events: OperationEvent[]) {
   return events
     .filter((event) => {
-      if (event.type === 'assignment.team_assigned' || event.type === 'assignment.team_unassigned') {
+      if (
+        event.type === 'assignment.team_assigned' ||
+        event.type === 'assignment.team_unassigned'
+      ) {
         return event.payload.teamId === teamId
       }
 
@@ -72,12 +75,20 @@ export function getTeamDeploymentHistory(teamId: string, events: OperationEvent[
         }
       }
 
+      if (event.type === 'case.failed') {
+        return {
+          id: event.id,
+          week: event.payload.week,
+          caseId: event.payload.caseId,
+          caseTitle: event.payload.caseTitle,
+          label: `Failed ${event.payload.caseTitle}`,
+        }
+      }
+
       return {
         id: event.id,
         week: event.payload.week,
-        caseId: event.payload.caseId,
-        caseTitle: event.payload.caseTitle,
-        label: `Failed ${event.payload.caseTitle}`,
+        label: 'Deployment event',
       }
     })
     .sort((left, right) => right.week - left.week)
@@ -143,12 +154,20 @@ export function getCaseAssignmentTimeline(caseId: string, events: OperationEvent
         }
       }
 
+      if (event.type === 'case.failed') {
+        return {
+          id: event.id,
+          week: event.payload.week,
+          caseId: event.payload.caseId,
+          caseTitle: event.payload.caseTitle,
+          label: `${event.payload.caseTitle} failed`,
+        }
+      }
+
       return {
         id: event.id,
         week: event.payload.week,
-        caseId: event.payload.caseId,
-        caseTitle: event.payload.caseTitle,
-        label: `${event.payload.caseTitle} failed`,
+        label: 'Deployment event',
       }
     })
     .sort((left, right) => right.week - left.week)

@@ -6,7 +6,7 @@ import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
 import { SIM_NOTES } from '../data/copy'
-import type { Agent, DomainStats } from '../domain/models'
+import type { Agent, DomainStats, OperationEvent } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
   return {
@@ -34,6 +34,13 @@ function makeAgentFixture(role: Agent['role'], overrides: Partial<Agent> = {}): 
     traits: [],
     ...overrides,
   }
+}
+
+function getPressureThresholdSpawnEvent(events: OperationEvent[]) {
+  return events.find(
+    (event): event is OperationEvent<'case.spawned'> =>
+      event.type === 'case.spawned' && event.payload.trigger === 'pressure_threshold'
+  )
 }
 
 function isolateResolvedCaseSet(state: ReturnType<typeof createStartingState>) {
@@ -588,7 +595,7 @@ describe('advanceWeek', () => {
         'leader-weak': weakLeader,
       }
       state.teams = {
-        't_leadership': {
+        t_leadership: {
           id: 't_leadership',
           name: 'Leadership Test',
           agentIds: ['leader-strong', 'leader-weak'],
@@ -818,9 +825,7 @@ describe('advanceWeek', () => {
 
     const next = advanceWeek(state)
     const report = next.reports.at(-1)
-    const pressureSpawnEvent = next.events.find(
-      (event) => event.type === 'case.spawned' && event.payload.trigger === 'pressure_threshold'
-    )
+    const pressureSpawnEvent = getPressureThresholdSpawnEvent(next.events)
 
     expect(report?.unresolvedTriggers).toEqual(['case-001'])
     expect(next.globalPressure).toBe(1)
@@ -896,13 +901,13 @@ describe('advanceWeek', () => {
     }
 
     const next = advanceWeek(state)
-    const pressureSpawnEvent = next.events.find(
-      (event) => event.type === 'case.spawned' && event.payload.trigger === 'pressure_threshold'
-    )
+    const pressureSpawnEvent = getPressureThresholdSpawnEvent(next.events)
 
     expect(pressureSpawnEvent).toBeDefined()
     expect(pressureSpawnEvent?.payload.caseId).toBeDefined()
-    const spawnedCase = pressureSpawnEvent?.payload.caseId ? next.cases[pressureSpawnEvent.payload.caseId] : undefined
+    const spawnedCase = pressureSpawnEvent?.payload.caseId
+      ? next.cases[pressureSpawnEvent.payload.caseId]
+      : undefined
     expect(spawnedCase?.kind).toBe('raid')
   })
 
@@ -945,9 +950,7 @@ describe('advanceWeek', () => {
     }
 
     const next = advanceWeek(state)
-    const pressureSpawnEvent = next.events.find(
-      (event) => event.type === 'case.spawned' && event.payload.trigger === 'pressure_threshold'
-    )
+    const pressureSpawnEvent = getPressureThresholdSpawnEvent(next.events)
 
     expect(pressureSpawnEvent).toBeDefined()
     if (pressureSpawnEvent) {
@@ -1099,7 +1102,9 @@ describe('advanceWeek', () => {
       spawnedConsequences: [],
       injuries: [],
     })
-    expect(missionResult?.rewards).toEqual(next.reports[0].caseSnapshots?.['case-001']?.rewardBreakdown)
+    expect(missionResult?.rewards).toEqual(
+      next.reports[0].caseSnapshots?.['case-001']?.rewardBreakdown
+    )
     expect(missionResult?.performanceSummary).toEqual(
       next.reports[0].caseSnapshots?.['case-001']?.performanceSummary
     )

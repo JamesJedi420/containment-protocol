@@ -1,9 +1,4 @@
-import type {
-  Agent,
-  AgentTraitModifierKey,
-  CaseInstance,
-  Id,
-} from './models'
+import type { Agent, AgentTraitModifierKey, CaseInstance, Id } from './models'
 
 export interface RuntimeModifierContext {
   agent: Agent
@@ -69,14 +64,9 @@ export function aggregateRuntimeModifierResults(
   return effects.reduce(
     (aggregate, effect) =>
       createRuntimeModifierResult({
-        statModifiers: mergeRuntimeModifierMaps(
-          aggregate.statModifiers,
-          effect.statModifiers
-        ),
-        effectivenessMultiplier:
-          aggregate.effectivenessMultiplier * effect.effectivenessMultiplier,
-        stressImpactMultiplier:
-          aggregate.stressImpactMultiplier * effect.stressImpactMultiplier,
+        statModifiers: mergeRuntimeModifierMaps(aggregate.statModifiers, effect.statModifiers),
+        effectivenessMultiplier: aggregate.effectivenessMultiplier * effect.effectivenessMultiplier,
+        stressImpactMultiplier: aggregate.stressImpactMultiplier * effect.stressImpactMultiplier,
         moraleRecoveryDelta: aggregate.moraleRecoveryDelta + effect.moraleRecoveryDelta,
       }),
     createRuntimeModifierResult()
@@ -105,10 +95,7 @@ export function buildRuntimeContextTagSet(context: RuntimeModifierContext) {
   ])
 }
 
-export function hasAnyRuntimeContextTag(
-  context: RuntimeModifierContext,
-  tags: readonly string[]
-) {
+export function hasAnyRuntimeContextTag(context: RuntimeModifierContext, tags: readonly string[]) {
   const contextTags = buildRuntimeContextTagSet(context)
   return tags.some((tag) => contextTags.has(tag))
 }
@@ -118,10 +105,7 @@ export function hasCaseRuntimeContext(context: RuntimeModifierContext) {
 }
 
 export function hasLongAssignmentRuntimeContext(context: RuntimeModifierContext) {
-  return (
-    (context.caseData?.durationWeeks ?? 0) >= 3 ||
-    (context.caseData?.weeksRemaining ?? 0) >= 3
-  )
+  return (context.caseData?.durationWeeks ?? 0) >= 3 || (context.caseData?.weeksRemaining ?? 0) >= 3
 }
 
 export function hasWitnessInterviewRuntimeContext(context: RuntimeModifierContext) {

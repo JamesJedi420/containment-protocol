@@ -1,4 +1,9 @@
 import {
+  buildAgentStatCaps,
+  normalizePotentialIntel,
+  normalizePotentialTier,
+} from '../agentPotential'
+import {
   createDefaultAgentAssignmentState,
   createDefaultAgentHistory,
   createDefaultAgentIdentity,
@@ -37,7 +42,13 @@ function clampPercent(value: number, fallback = 0) {
 }
 
 function normalizeAgentStatus(status: Agent['status'] | undefined): Agent['status'] {
-  if (status === 'active' || status === 'injured' || status === 'recovering' || status === 'resigned' || status === 'dead') {
+  if (
+    status === 'active' ||
+    status === 'injured' ||
+    status === 'recovering' ||
+    status === 'resigned' ||
+    status === 'dead'
+  ) {
     return status
   }
 
@@ -53,7 +64,7 @@ function deriveOperationalRole(role: Agent['role']): Agent['operationalRole'] {
     return 'containment'
   }
 
-  if (role === 'investigator' || role === 'tech') {
+  if (role === 'investigator' || role === 'field_recon' || role === 'tech') {
     return 'investigation'
   }
 
@@ -104,11 +115,25 @@ function normalizeAgentProgression(agent: Agent): AgentProgression {
           ? Math.max(0, Math.trunc(agent.progression.xp))
           : fallback.xp,
       level: Math.max(1, Math.trunc(levelSource)),
-      potentialTier: agent.progression?.potentialTier ?? fallback.potentialTier,
+      potentialTier: normalizePotentialTier(
+        agent.progression?.potentialTier ?? fallback.potentialTier,
+        agent.baseStats
+      ),
+      potentialIntel: normalizePotentialIntel(
+        agent.progression?.potentialIntel,
+        agent.progression?.potentialTier ?? fallback.potentialTier
+      ),
       growthProfile:
-        typeof agent.progression?.growthProfile === 'string' && agent.progression.growthProfile.length > 0
+        typeof agent.progression?.growthProfile === 'string' &&
+        agent.progression.growthProfile.length > 0
           ? agent.progression.growthProfile
           : fallback.growthProfile,
+      statCaps: buildAgentStatCaps(
+        agent.baseStats,
+        agent.progression?.potentialTier ?? fallback.potentialTier,
+        agent.progression?.growthProfile ?? fallback.growthProfile,
+        agent.progression?.statCaps
+      ),
       growthStats: normalizeGrowthStats(agent.progression?.growthStats ?? fallback.growthStats),
       skillTree: {
         ...createDefaultAgentSkillTree(),
@@ -174,9 +199,7 @@ function normalizePerformanceStats(history: Agent['history']) {
     ),
     totalContainmentActionsCompleted: Math.max(
       0,
-      Number(
-        stats?.totalContainmentActionsCompleted ?? fallback.totalContainmentActionsCompleted
-      )
+      Number(stats?.totalContainmentActionsCompleted ?? fallback.totalContainmentActionsCompleted)
     ),
     totalFieldPower: Math.max(0, Number(stats?.totalFieldPower ?? fallback.totalFieldPower)),
     totalContainment: Math.max(0, Number(stats?.totalContainment ?? fallback.totalContainment)),
@@ -188,9 +211,7 @@ function normalizePerformanceStats(history: Agent['history']) {
     totalStressImpact: Math.max(0, Number(stats?.totalStressImpact ?? fallback.totalStressImpact)),
     totalEquipmentContributionDelta: Math.max(
       0,
-      Number(
-        stats?.totalEquipmentContributionDelta ?? fallback.totalEquipmentContributionDelta
-      )
+      Number(stats?.totalEquipmentContributionDelta ?? fallback.totalEquipmentContributionDelta)
     ),
     totalKitContributionDelta: Math.max(
       0,
@@ -198,9 +219,7 @@ function normalizePerformanceStats(history: Agent['history']) {
     ),
     totalProtocolContributionDelta: Math.max(
       0,
-      Number(
-        stats?.totalProtocolContributionDelta ?? fallback.totalProtocolContributionDelta
-      )
+      Number(stats?.totalProtocolContributionDelta ?? fallback.totalProtocolContributionDelta)
     ),
     totalEquipmentScoreDelta: Math.max(
       0,
@@ -216,16 +235,11 @@ function normalizePerformanceStats(history: Agent['history']) {
     ),
     totalKitEffectivenessDelta: Math.max(
       0,
-      Number(
-        stats?.totalKitEffectivenessDelta ?? fallback.totalKitEffectivenessDelta
-      )
+      Number(stats?.totalKitEffectivenessDelta ?? fallback.totalKitEffectivenessDelta)
     ),
     totalProtocolEffectivenessDelta: Math.max(
       0,
-      Number(
-        stats?.totalProtocolEffectivenessDelta ??
-          fallback.totalProtocolEffectivenessDelta
-      )
+      Number(stats?.totalProtocolEffectivenessDelta ?? fallback.totalProtocolEffectivenessDelta)
     ),
   }
 }
@@ -298,7 +312,9 @@ function normalizeAgentHistory(history: Agent['history']): AgentHistory {
         .map(([agentId, value]) => [agentId, clamp(value, -100, 100)])
     ),
     performanceStats: normalizePerformanceStats(history),
-    alliesWorkedWith: [...new Set((history?.alliesWorkedWith ?? []).filter((allyId) => typeof allyId === 'string'))],
+    alliesWorkedWith: [
+      ...new Set((history?.alliesWorkedWith ?? []).filter((allyId) => typeof allyId === 'string')),
+    ],
     timeline: Array.isArray(history?.timeline)
       ? history.timeline
           .filter((entry) => typeof entry?.note === 'string' && typeof entry?.week === 'number')
@@ -343,7 +359,8 @@ function normalizeAgentServiceRecord(
     'agent.training_started',
     'agent.training_completed',
   ])
-  const serviceRecord = agent.serviceRecord ?? createDefaultAgentServiceRecord(earliestTimelineWeek ?? 1)
+  const serviceRecord =
+    agent.serviceRecord ?? createDefaultAgentServiceRecord(earliestTimelineWeek ?? 1)
 
   return {
     joinedWeek:
@@ -481,7 +498,9 @@ function normalizeEquipmentCounts(equipment: Agent['equipment']) {
 
 function normalizeEquipmentSlots(equipmentSlots: Agent['equipmentSlots']): EquipmentSlots {
   return Object.fromEntries(
-    Object.entries(equipmentSlots ?? {}).filter(([, value]) => typeof value === 'string' && value.length > 0)
+    Object.entries(equipmentSlots ?? {}).filter(
+      ([, value]) => typeof value === 'string' && value.length > 0
+    )
   )
 }
 
@@ -505,7 +524,8 @@ function normalizeAgentAbilityState(
         ? Math.max(1, Math.trunc(runtime.lastUsedWeek))
         : undefined
     const usesConsumedThisWeek =
-      typeof runtime.usesConsumedThisWeek === 'number' && Number.isFinite(runtime.usesConsumedThisWeek)
+      typeof runtime.usesConsumedThisWeek === 'number' &&
+      Number.isFinite(runtime.usesConsumedThisWeek)
         ? Math.max(0, Math.trunc(runtime.usesConsumedThisWeek))
         : undefined
 
@@ -532,7 +552,9 @@ function normalizeAgentAbilityState(
 }
 
 function normalizeStatusFlags(status: Agent['status'], flags: string[] | undefined) {
-  const nextFlags = new Set((flags ?? []).filter((flag) => typeof flag === 'string' && flag.length > 0))
+  const nextFlags = new Set(
+    (flags ?? []).filter((flag) => typeof flag === 'string' && flag.length > 0)
+  )
 
   if (status === 'injured') {
     nextFlags.add('injured')
@@ -552,7 +574,8 @@ function normalizeStatusFlags(status: Agent['status'], flags: string[] | undefin
 
 function normalizeAgentVitals(agent: Agent, fatigue: number, status: Agent['status']): AgentVitals {
   const fallback = createDefaultAgentVitals(fatigue, status)
-  const wounds = status === 'dead' ? 100 : clampPercent(agent.vitals?.wounds ?? fallback.wounds, fallback.wounds)
+  const wounds =
+    status === 'dead' ? 100 : clampPercent(agent.vitals?.wounds ?? fallback.wounds, fallback.wounds)
 
   return {
     health:
@@ -563,7 +586,10 @@ function normalizeAgentVitals(agent: Agent, fatigue: number, status: Agent['stat
     morale:
       status === 'dead'
         ? 0
-        : clampPercent(agent.vitals?.morale ?? Math.max(0, 100 - fatigue - wounds), fallback.morale),
+        : clampPercent(
+            agent.vitals?.morale ?? Math.max(0, 100 - fatigue - wounds),
+            fallback.morale
+          ),
     wounds,
     statusFlags: normalizeStatusFlags(status, agent.vitals?.statusFlags),
   }
@@ -675,7 +701,10 @@ export function normalizeAgent(agent: Agent): Agent {
   return {
     ...agent,
     name: identity.name,
-    specialization: typeof agent.specialization === 'string' && agent.specialization.length > 0 ? agent.specialization : agent.role,
+    specialization:
+      typeof agent.specialization === 'string' && agent.specialization.length > 0
+        ? agent.specialization
+        : agent.role,
     operationalRole: agent.operationalRole ?? deriveOperationalRole(agent.role),
     age: identity.age,
     level: progression.level,
@@ -693,14 +722,18 @@ export function normalizeAgent(agent: Agent): Agent {
     history: normalizeAgentHistory(agent.history),
     assignment,
     assignmentStatus: deriveAssignmentStatus(assignment),
-    tags: [...new Set((agent.tags ?? []).filter((tag) => typeof tag === 'string' && tag.length > 0))],
+    tags: [
+      ...new Set((agent.tags ?? []).filter((tag) => typeof tag === 'string' && tag.length > 0)),
+    ],
     relationships: normalizeRelationships(agent),
     fatigue,
     status,
   }
 }
 
-export function normalizeAgentRecord<TAgents extends Record<string, Agent>>(agents: TAgents): TAgents {
+export function normalizeAgentRecord<TAgents extends Record<string, Agent>>(
+  agents: TAgents
+): TAgents {
   return Object.fromEntries(
     Object.entries(agents).map(([agentId, agent]) => [agentId, normalizeAgent(agent)])
   ) as TAgents
@@ -711,7 +744,8 @@ export function isAgentNormalized(agent: Agent) {
     agent.identity !== undefined &&
     agent.identity.name === agent.name &&
     (agent.identity.age ?? agent.age) === (agent.age ?? agent.identity.age) &&
-    (agent.identity.codename ?? agent.identity.callsign) === (agent.identity.callsign ?? agent.identity.codename) &&
+    (agent.identity.codename ?? agent.identity.callsign) ===
+      (agent.identity.callsign ?? agent.identity.codename) &&
     agent.stats !== undefined &&
     agent.vitals !== undefined &&
     agent.vitals.stress === clampPercent(agent.fatigue, 0) &&

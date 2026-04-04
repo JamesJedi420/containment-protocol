@@ -10,8 +10,8 @@ export default function RankingsPage() {
       <article className="panel panel-primary space-y-3">
         <h2 className="text-lg font-semibold">Agency Rankings</h2>
         <p className="text-sm opacity-60">
-          Standing is derived from contained operations, major-incident response, failure
-          penalties, agency reputation, and roster progression.
+          Standing is derived from contained operations, major-incident response, failure penalties,
+          agency reputation, and roster progression.
         </p>
 
         <div className="grid gap-3 md:grid-cols-3">
@@ -75,15 +75,20 @@ export default function RankingsPage() {
                   <span>Week {entry.week}</span>
                   <span className="text-sm opacity-70">
                     {entry.tier} / {entry.score}{' '}
-                    <span className={entry.deltaFromPrevious >= 0 ? 'text-emerald-300' : 'text-rose-300'}>
+                    <span
+                      className={
+                        entry.deltaFromPrevious >= 0 ? 'text-emerald-300' : 'text-rose-300'
+                      }
+                    >
                       ({entry.deltaFromPrevious >= 0 ? '+' : ''}
                       {entry.deltaFromPrevious})
                     </span>
                   </span>
                 </div>
                 <p className="mt-1 text-xs opacity-60">
-                  Resolved {entry.summary.resolvedCases}, majors {entry.summary.majorIncidentsHandled},
-                  failures {entry.summary.failures}, unresolved {entry.summary.unresolved}, reputation{' '}
+                  Resolved {entry.summary.resolvedCases}, majors{' '}
+                  {entry.summary.majorIncidentsHandled}, failures {entry.summary.failures},
+                  unresolved {entry.summary.unresolved}, reputation{' '}
                   {entry.summary.reputationDelta >= 0 ? '+' : ''}
                   {entry.summary.reputationDelta}.
                 </p>

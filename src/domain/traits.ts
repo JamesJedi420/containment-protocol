@@ -1,9 +1,4 @@
-import type {
-  Agent,
-  AgentTrait,
-  CaseInstance,
-  Id,
-} from './models'
+import type { Agent, AgentTrait, CaseInstance, Id } from './models'
 import {
   aggregateRuntimeModifierResults,
   createRuntimeModifierResult,

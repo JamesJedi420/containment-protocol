@@ -176,13 +176,26 @@ function applyModifier(
   const modMap = mod as Record<string, number>
 
   ;(
-    ['physical', 'tactical', 'cognitive', 'social', 'stability', 'technical'] as const satisfies readonly LegacyStatDomain[]
+    [
+      'physical',
+      'tactical',
+      'cognitive',
+      'social',
+      'stability',
+      'technical',
+    ] as const satisfies readonly LegacyStatDomain[]
   ).forEach((domain) => {
     applyModifierToPaths(getLegacyDomainStatPaths(domain), modMap[domain] ?? 0)
   })
-
   ;(
-    ['field', 'resilience', 'control', 'insight', 'presence', 'anomaly'] as const satisfies readonly StatDomain[]
+    [
+      'field',
+      'resilience',
+      'control',
+      'insight',
+      'presence',
+      'anomaly',
+    ] as const satisfies readonly StatDomain[]
   ).forEach((domain) => {
     applyModifierToPaths(getDomainStatPaths(domain), modMap[domain] ?? 0)
   })

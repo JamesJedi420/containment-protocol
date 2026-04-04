@@ -25,7 +25,9 @@ describe('AgencyPage', () => {
 
     expect(screen.getByRole('heading', { name: /agency command/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /command posture/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /academy and logistics posture/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /academy and logistics posture/i })
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /strategic threat picture/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /academy recommendations/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /external faction actors/i })).toBeInTheDocument()

@@ -7,7 +7,11 @@ import type {
   CandidatePotentialTier,
   CandidateRevealLevel,
 } from './types'
-import { buildCandidateEvaluation, deriveCandidateCostEstimate, getCandidateWeeklyCost } from './helpers'
+import {
+  buildCandidateEvaluation,
+  deriveCandidateCostEstimate,
+  getCandidateWeeklyCost,
+} from './helpers'
 
 function toRevealLevel(value: number): CandidateRevealLevel {
   return clamp(Math.trunc(value), 0, 2) as CandidateRevealLevel

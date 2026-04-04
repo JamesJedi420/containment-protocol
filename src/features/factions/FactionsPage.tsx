@@ -25,7 +25,10 @@ export default function FactionsPage() {
                 <p className="text-sm opacity-60">{faction.feedback}</p>
               </div>
               <div className="text-right text-sm">
-                <p>Standing {faction.standing >= 0 ? '+' : ''}{faction.standing}</p>
+                <p>
+                  Standing {faction.standing >= 0 ? '+' : ''}
+                  {faction.standing}
+                </p>
                 <p>Pressure {faction.pressureScore}</p>
                 <p className="opacity-60">{faction.stance}</p>
               </div>
@@ -43,7 +46,9 @@ export default function FactionsPage() {
                 </p>
               </div>
               <div className="rounded border border-white/10 px-3 py-2">
-                <p className="text-xs uppercase tracking-[0.24em] opacity-50">Operational leverage</p>
+                <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+                  Operational leverage
+                </p>
                 <p className="mt-1 text-sm font-medium">
                   {faction.influenceModifiers.rewardModifier >= 0 ? '+' : ''}
                   {(faction.influenceModifiers.rewardModifier * 100).toFixed(0)}%
@@ -51,7 +56,9 @@ export default function FactionsPage() {
               </div>
               <div className="rounded border border-white/10 px-3 py-2">
                 <p className="text-xs uppercase tracking-[0.24em] opacity-50">Access channel</p>
-                <p className="mt-1 text-sm font-medium">{faction.influenceModifiers.opportunityAccess}</p>
+                <p className="mt-1 text-sm font-medium">
+                  {faction.influenceModifiers.opportunityAccess}
+                </p>
               </div>
             </div>
 
@@ -59,7 +66,9 @@ export default function FactionsPage() {
               <div className="rounded border border-white/10 px-3 py-2">
                 <p className="text-xs uppercase tracking-[0.24em] opacity-50">Current drivers</p>
                 <p className="mt-1 text-sm opacity-70">
-                  {faction.reasons.length > 0 ? faction.reasons.join(', ') : 'No active case pressure.'}
+                  {faction.reasons.length > 0
+                    ? faction.reasons.join(', ')
+                    : 'No active case pressure.'}
                 </p>
               </div>
               <div className="rounded border border-white/10 px-3 py-2">
@@ -75,10 +84,7 @@ export default function FactionsPage() {
             {faction.opportunities.length > 0 ? (
               <ul className="space-y-2 text-sm opacity-80">
                 {faction.opportunities.map((opportunity) => (
-                  <li
-                    key={opportunity.id}
-                    className="rounded border border-white/10 px-3 py-2"
-                  >
+                  <li key={opportunity.id} className="rounded border border-white/10 px-3 py-2">
                     <span className="font-medium">{opportunity.label}:</span> {opportunity.detail}
                   </li>
                 ))}

@@ -11,8 +11,9 @@ export function formatGrowthStats(growthStats: Record<string, number> | null | u
     return 'none recorded'
   }
 
-  const entries = Object.entries(growthStats)
-    .filter(([, value]) => typeof value === 'number' && Number.isFinite(value) && value > 0)
+  const entries = Object.entries(growthStats).filter(
+    ([, value]) => typeof value === 'number' && Number.isFinite(value) && value > 0
+  )
 
   if (entries.length === 0) {
     return 'none recorded'

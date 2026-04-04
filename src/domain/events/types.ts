@@ -1,10 +1,13 @@
 import type {
   AgentRole,
+  CandidateScoutStage,
   CaseKind,
   CaseMode,
+  ExactPotentialTier,
   Id,
   MarketPressure,
   MissionRewardBreakdown,
+  PotentialIntelConfidence,
   PerformanceMetricSummary,
   ProductionMaterialRequirement,
   RecruitCategory,
@@ -206,7 +209,9 @@ export interface OperationEventPayloadMap {
     betrayedName: string
     trustDamageDelta: number
     trustDamageTotal: number
-    triggeredConsequences: Array<'benching' | 'performance_penalty' | 'disciplinary' | 'resignation'>
+    triggeredConsequences: Array<
+      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation'
+    >
   }
   'agent.resigned': {
     week: number
@@ -254,6 +259,45 @@ export interface OperationEventPayloadMap {
   'system.party_cards_drawn': {
     week: number
     count: number
+  }
+  'recruitment.scouting_initiated': {
+    week: number
+    candidateId: Id
+    candidateName: string
+    fundingCost: number
+    stage: CandidateScoutStage
+    projectedTier: ExactPotentialTier
+    confidence: Exclude<PotentialIntelConfidence, 'unknown'>
+    previousProjectedTier?: ExactPotentialTier
+    previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
+    confirmedTier?: ExactPotentialTier
+    revealLevel: number
+  }
+  'recruitment.scouting_refined': {
+    week: number
+    candidateId: Id
+    candidateName: string
+    fundingCost: number
+    stage: CandidateScoutStage
+    projectedTier: ExactPotentialTier
+    confidence: Exclude<PotentialIntelConfidence, 'unknown'>
+    previousProjectedTier?: ExactPotentialTier
+    previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
+    confirmedTier?: ExactPotentialTier
+    revealLevel: number
+  }
+  'recruitment.intel_confirmed': {
+    week: number
+    candidateId: Id
+    candidateName: string
+    fundingCost: number
+    stage: CandidateScoutStage
+    projectedTier: ExactPotentialTier
+    confidence: Exclude<PotentialIntelConfidence, 'unknown'>
+    previousProjectedTier?: ExactPotentialTier
+    previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
+    confirmedTier?: ExactPotentialTier
+    revealLevel: number
   }
   'production.queue_completed': {
     week: number
@@ -307,11 +351,7 @@ export interface OperationEventPayloadMap {
     delta: number
     standingBefore: number
     standingAfter: number
-    reason:
-      | 'case.resolved'
-      | 'case.partially_resolved'
-      | 'case.failed'
-      | 'case.escalated'
+    reason: 'case.resolved' | 'case.partially_resolved' | 'case.failed' | 'case.escalated'
     caseId?: Id
     caseTitle?: string
   }
@@ -368,6 +408,9 @@ export interface OperationEventTypeToSourceSystemMap {
   'system.recruitment_expired': 'system'
   'system.recruitment_generated': 'system'
   'system.party_cards_drawn': 'system'
+  'recruitment.scouting_initiated': 'intel'
+  'recruitment.scouting_refined': 'intel'
+  'recruitment.intel_confirmed': 'intel'
   'production.queue_completed': 'production'
   'production.queue_started': 'production'
   'market.shifted': 'production'
@@ -403,6 +446,9 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'system.recruitment_expired': 'system',
   'system.recruitment_generated': 'system',
   'system.party_cards_drawn': 'system',
+  'recruitment.scouting_initiated': 'intel',
+  'recruitment.scouting_refined': 'intel',
+  'recruitment.intel_confirmed': 'intel',
   'production.queue_completed': 'production',
   'production.queue_started': 'production',
   'market.shifted': 'production',

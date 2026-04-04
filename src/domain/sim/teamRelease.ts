@@ -17,9 +17,7 @@ export function releaseTeamsFromCases(
         ? {
             ...team,
             assignedCaseId: undefined,
-            status: team.status
-              ? { ...team.status, assignedCaseId: null }
-              : team.status,
+            status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
           }
         : team,
     ])

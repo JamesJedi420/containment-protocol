@@ -382,30 +382,30 @@ describe('advanceWeek – agent history and XP after resolution', () => {
     expect(afterWeek2.agents[firstAgentId]?.history?.counters.assignmentsCompleted).toBe(2)
     expect(afterWeek2.agents[firstAgentId]?.history?.timeline).toEqual(
       expect.arrayContaining([
-      expect.objectContaining({
-        week: state1.week,
-        eventType: 'assignment.team_assigned',
-      }),
-      expect.objectContaining({
-        week: state1.week,
-        eventType: 'case.resolved',
-        note: expect.stringContaining(state1.cases['case-001']!.title),
-      }),
-      expect.objectContaining({
-        week: state2.week,
-        eventType: 'assignment.team_assigned',
-      }),
-      expect.objectContaining({
-        week: state2.week,
-        eventType: 'case.resolved',
-        note: expect.stringContaining(state2.cases['case-002']!.title),
-      }),
-      expect.objectContaining({
-        week: state2.week,
-        eventType: 'simulation.weekly_tick',
-        note: 'Reached level 2.',
-      }),
-    ])
+        expect.objectContaining({
+          week: state1.week,
+          eventType: 'assignment.team_assigned',
+        }),
+        expect.objectContaining({
+          week: state1.week,
+          eventType: 'case.resolved',
+          note: expect.stringContaining(state1.cases['case-001']!.title),
+        }),
+        expect.objectContaining({
+          week: state2.week,
+          eventType: 'assignment.team_assigned',
+        }),
+        expect.objectContaining({
+          week: state2.week,
+          eventType: 'case.resolved',
+          note: expect.stringContaining(state2.cases['case-002']!.title),
+        }),
+        expect.objectContaining({
+          week: state2.week,
+          eventType: 'simulation.weekly_tick',
+          note: 'Reached level 2.',
+        }),
+      ])
     )
   })
 
@@ -898,9 +898,7 @@ describe('assignTeam – agent history timeline population', () => {
       ...state.agents[agentId]!,
       history: {
         ...createDefaultAgentHistory(),
-        timeline: [
-          { week: state.week - 1, eventType: 'agent.hired' as const, note: 'Hired' },
-        ],
+        timeline: [{ week: state.week - 1, eventType: 'agent.hired' as const, note: 'Hired' }],
       },
     }
 

@@ -172,7 +172,11 @@ describe('assignInstructor', () => {
 describe('cancelTraining instructor cleanup', () => {
   it('clears instructor assignedAgentId when training is cancelled', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const result = cancelTraining(assigned, 'a_ava')
@@ -195,8 +199,8 @@ describe('cancelTraining instructor cleanup', () => {
     const ins1 = result.staff['ins-01']
     const ins2 = result.staff['ins-02']
     if (ins1.role !== 'instructor' || ins2.role !== 'instructor') throw new Error()
-    expect(ins1.assignedAgentId).toBeUndefined()   // cancelled agent's instructor cleared
-    expect(ins2.assignedAgentId).toBe('a_sato')    // unrelated assignment preserved
+    expect(ins1.assignedAgentId).toBeUndefined() // cancelled agent's instructor cleared
+    expect(ins2.assignedAgentId).toBe('a_sato') // unrelated assignment preserved
   })
 })
 
@@ -221,7 +225,11 @@ describe('unassignInstructor', () => {
 describe('instructor training bonus', () => {
   it('applies +1 bonus to stat gain when matching instructor (efficiency 80) is assigned', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const forced = {
@@ -245,7 +253,11 @@ describe('instructor training bonus', () => {
   it('applies no instructor bonus when specialty does not match program targetStat', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
     // Instructor specializes in social, program targets combat — no bonus
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'social' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'social',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const forced = {
@@ -268,7 +280,11 @@ describe('instructor training bonus', () => {
 
   it('auto-clears instructor assignedAgentId after training completes', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const forced = {
@@ -291,7 +307,11 @@ describe('instructor training bonus', () => {
 describe('buildAcademyOverview instructors', () => {
   it('exposes instructor list with correct fields', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 82, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 82,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const overview = buildAcademyOverview(assigned)
@@ -318,7 +338,11 @@ describe('getTrainingQueueViews instructor specialty', () => {
   it('returns instructorBonus 0 when instructor specialty does not match program targetStat', () => {
     // combatDrills targets combat; instructor specialty is social — mismatch
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'social' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'social',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const views = getTrainingQueueViews(assigned)
@@ -331,7 +355,11 @@ describe('getTrainingQueueViews instructor specialty', () => {
 
   it('returns instructorBonus based on efficiency when specialty matches', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 80, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 80,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const views = getTrainingQueueViews(assigned)
@@ -353,7 +381,11 @@ describe('getTrainingQueueViews instructor specialty', () => {
 describe('getTrainingRosterViews instructor specialty', () => {
   it('returns instructorBonus 0 when instructor specialty does not match the active training stat', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 90, instructorSpecialty: 'utility' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 90,
+      instructorSpecialty: 'utility',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const views = getTrainingRosterViews(assigned)
@@ -365,7 +397,11 @@ describe('getTrainingRosterViews instructor specialty', () => {
 
   it('returns instructorBonus based on efficiency when specialty matches active training stat', () => {
     const queued = queueTraining(createStartingState(), 'a_ava', combatDrills.trainingId)
-    const withIns = withInstructor(queued, { id: 'ins-01', efficiency: 92, instructorSpecialty: 'combat' })
+    const withIns = withInstructor(queued, {
+      id: 'ins-01',
+      efficiency: 92,
+      instructorSpecialty: 'combat',
+    })
     const assigned = assignInstructor(withIns, 'ins-01', 'a_ava')
 
     const views = getTrainingRosterViews(assigned)

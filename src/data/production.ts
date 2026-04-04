@@ -169,13 +169,11 @@ export const productionCatalog: ProductionRecipe[] = [
   },
 ]
 
-export const inventoryItemLabels: Record<string, string> = Object.fromEntries(
-  [
-    ...productionMaterialCatalog.map((material) => [material.materialId, material.name] as const),
-    ...getEquipmentCatalogEntries().map((definition) => [definition.id, definition.name] as const),
-    ...productionCatalog.map((recipe) => [recipe.outputItemId, recipe.outputItemName] as const),
-  ]
-)
+export const inventoryItemLabels: Record<string, string> = Object.fromEntries([
+  ...productionMaterialCatalog.map((material) => [material.materialId, material.name] as const),
+  ...getEquipmentCatalogEntries().map((definition) => [definition.id, definition.name] as const),
+  ...productionCatalog.map((recipe) => [recipe.outputItemId, recipe.outputItemName] as const),
+])
 
 export function getProductionRecipe(recipeId: string) {
   return productionCatalog.find((recipe) => recipe.recipeId === recipeId)

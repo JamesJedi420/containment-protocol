@@ -85,7 +85,9 @@ describe('teamInsightsConfig sanity guard', () => {
       urgencyDeadlineWeight: 0.4,
     })
 
-    expect(config.maxDeadlineForScoring).toBe(DEFAULT_TEAM_INSIGHTS_PRIORITIZATION.maxDeadlineForScoring)
+    expect(config.maxDeadlineForScoring).toBe(
+      DEFAULT_TEAM_INSIGHTS_PRIORITIZATION.maxDeadlineForScoring
+    )
     expect(config.viabilityWeight + config.urgencyWeight).toBeCloseTo(1, 6)
     expect(config.urgencyStageWeight + config.urgencyDeadlineWeight).toBeCloseTo(1, 6)
   })

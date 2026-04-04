@@ -127,16 +127,11 @@ function reconcileTrustConsequences(
   return {
     trustConsequenceStack: nextStack,
     performancePenaltyMultiplier: hasAnyPenalty ? agent.performancePenaltyMultiplier : undefined,
-    status:
-      !hasAnyBenching && agent.status === 'recovering' ? 'active' : agent.status,
+    status: !hasAnyBenching && agent.status === 'recovering' ? 'active' : agent.status,
   }
 }
 
-function recoverTrustDamageForDirection(
-  agent: ActiveAgent,
-  counterpartId: string,
-  amount: number
-) {
+function recoverTrustDamageForDirection(agent: ActiveAgent, counterpartId: string, amount: number) {
   const previousTrustDamage = getTrustDamage(agent, counterpartId)
   if (previousTrustDamage <= 0) {
     return agent
@@ -147,7 +142,11 @@ function recoverTrustDamageForDirection(
 
   return {
     ...agent,
-    trustDamageByAgent: stripTrustDamageEntry(agent.trustDamageByAgent, counterpartId, nextTrustDamage),
+    trustDamageByAgent: stripTrustDamageEntry(
+      agent.trustDamageByAgent,
+      counterpartId,
+      nextTrustDamage
+    ),
     trustConsequenceStack: consequenceState.trustConsequenceStack,
     performancePenaltyMultiplier: consequenceState.performancePenaltyMultiplier,
     status: consequenceState.status,
@@ -225,7 +224,9 @@ function hasActiveConsequence(
   week: number
 ) {
   return (agent?.trustConsequenceStack ?? []).some(
-    (entry) => entry.consequenceType === type && (entry.expiresWeek === undefined || entry.expiresWeek > week)
+    (entry) =>
+      entry.consequenceType === type &&
+      (entry.expiresWeek === undefined || entry.expiresWeek > week)
   )
 }
 
@@ -336,7 +337,9 @@ export function applyBetrayalConsequences({
       trustConsequenceStack: [...(betrayer.trustConsequenceStack ?? [])],
     }
 
-    const triggeredConsequences: Array<'benching' | 'performance_penalty' | 'disciplinary' | 'resignation'> = []
+    const triggeredConsequences: Array<
+      'benching' | 'performance_penalty' | 'disciplinary' | 'resignation'
+    > = []
 
     if (
       nextTrustDamage >= BENCHING_TRIGGER &&
@@ -344,10 +347,13 @@ export function applyBetrayalConsequences({
     ) {
       triggeredConsequences.push('benching')
       nextBetrayer = {
-        ...setAgentAssignment({
-          ...nextBetrayer,
-          status: nextBetrayer.status === 'active' ? 'recovering' : nextBetrayer.status,
-        }, { state: 'idle' }),
+        ...setAgentAssignment(
+          {
+            ...nextBetrayer,
+            status: nextBetrayer.status === 'active' ? 'recovering' : nextBetrayer.status,
+          },
+          { state: 'idle' }
+        ),
         trustConsequenceStack: [
           ...(nextBetrayer.trustConsequenceStack ?? []),
           {
@@ -442,7 +448,11 @@ export function applyBetrayalConsequences({
             ...nextBetrayer.history,
             timeline: [
               ...nextBetrayer.history.timeline,
-              createAgentHistoryEntry(week, 'simulation.weekly_tick', `Trust breach with ${betrayed.name}.`),
+              createAgentHistoryEntry(
+                week,
+                'simulation.weekly_tick',
+                `Trust breach with ${betrayed.name}.`
+              ),
             ],
           }
         : nextBetrayer.history,
@@ -455,7 +465,11 @@ export function applyBetrayalConsequences({
             ...betrayed.history,
             timeline: [
               ...betrayed.history.timeline,
-              createAgentHistoryEntry(week, 'simulation.weekly_tick', `Betrayed by ${betrayer.name}.`),
+              createAgentHistoryEntry(
+                week,
+                'simulation.weekly_tick',
+                `Betrayed by ${betrayer.name}.`
+              ),
             ],
           }
         : betrayed.history,

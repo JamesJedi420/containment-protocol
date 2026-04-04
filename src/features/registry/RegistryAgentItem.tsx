@@ -8,6 +8,7 @@ export interface RegistryAgentItemProps {
   teamName?: string
   operationalStatus?: string
   showAgentRole?: boolean
+  detailSearch?: string
 }
 
 export default function RegistryAgentItem({
@@ -15,17 +16,20 @@ export default function RegistryAgentItem({
   teamName,
   operationalStatus = teamName ? REGISTRY_UI_TEXT.fieldTeamStatus : REGISTRY_UI_TEXT.reserveStatus,
   showAgentRole = true,
+  detailSearch = '',
 }: RegistryAgentItemProps) {
   return (
     <li className="panel space-y-2">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link to={APP_ROUTES.registryDetail(agent.id)} className="font-medium hover:underline">
+          <Link
+            to={`${APP_ROUTES.registryDetail(agent.id)}${detailSearch}`}
+            state={detailSearch ? { registrySearch: detailSearch } : undefined}
+            className="font-medium hover:underline"
+          >
             <h3 className="font-medium">{agent.name}</h3>
           </Link>
-          {showAgentRole && (
-            <p className="text-sm opacity-60">{ROLE_LABELS[agent.role]}</p>
-          )}
+          {showAgentRole && <p className="text-sm opacity-60">{ROLE_LABELS[agent.role]}</p>}
         </div>
         <p
           className="text-xs uppercase tracking-[0.24em] opacity-50"
@@ -36,7 +40,10 @@ export default function RegistryAgentItem({
       </div>
 
       <div className="grid gap-2 text-sm md:grid-cols-3">
-        <p className="opacity-70" aria-label={`Team: ${teamName || REGISTRY_UI_TEXT.reservePoolLabel}`}>
+        <p
+          className="opacity-70"
+          aria-label={`Team: ${teamName || REGISTRY_UI_TEXT.reservePoolLabel}`}
+        >
           {REGISTRY_UI_TEXT.teamLabel}: {teamName ?? REGISTRY_UI_TEXT.reservePoolLabel}
         </p>
         <p className="opacity-70" aria-label={`Operational state: ${operationalStatus}`}>

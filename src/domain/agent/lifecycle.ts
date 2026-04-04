@@ -28,10 +28,7 @@ function normalizeWeek(value: number | undefined) {
   return Math.max(1, Math.trunc(value))
 }
 
-function updateServiceRecordFromEntries(
-  agent: Agent,
-  entries: readonly AgentHistoryEntry[]
-) {
+function updateServiceRecordFromEntries(agent: Agent, entries: readonly AgentHistoryEntry[]) {
   const serviceRecord = agent.serviceRecord ?? createDefaultAgentServiceRecord()
   const latestAssignmentWeek = entries
     .filter((entry) => entry.eventType === 'assignment.team_assigned')
@@ -39,10 +36,11 @@ function updateServiceRecordFromEntries(
     .filter((entry): entry is number => entry !== undefined)
     .at(-1)
   const latestCaseWeek = entries
-    .filter((entry) =>
-      entry.eventType === 'case.resolved' ||
-      entry.eventType === 'case.partially_resolved' ||
-      entry.eventType === 'case.failed'
+    .filter(
+      (entry) =>
+        entry.eventType === 'case.resolved' ||
+        entry.eventType === 'case.partially_resolved' ||
+        entry.eventType === 'case.failed'
     )
     .map((entry) => normalizeWeek(entry.week))
     .filter((entry): entry is number => entry !== undefined)
@@ -61,10 +59,7 @@ function updateServiceRecordFromEntries(
     ...serviceRecord,
     ...(latestAssignmentWeek !== undefined
       ? {
-          lastAssignmentWeek: Math.max(
-            serviceRecord.lastAssignmentWeek ?? 0,
-            latestAssignmentWeek
-          ),
+          lastAssignmentWeek: Math.max(serviceRecord.lastAssignmentWeek ?? 0, latestAssignmentWeek),
         }
       : {}),
     ...(latestCaseWeek !== undefined
@@ -74,19 +69,13 @@ function updateServiceRecordFromEntries(
       : {}),
     ...(latestTrainingWeek !== undefined
       ? {
-          lastTrainingWeek: Math.max(
-            serviceRecord.lastTrainingWeek ?? 0,
-            latestTrainingWeek
-          ),
+          lastTrainingWeek: Math.max(serviceRecord.lastTrainingWeek ?? 0, latestTrainingWeek),
         }
       : {}),
   }
 }
 
-function updateServiceRecordFromAssignment(
-  agent: Agent,
-  assignment: AgentAssignmentState
-) {
+function updateServiceRecordFromAssignment(agent: Agent, assignment: AgentAssignmentState) {
   const serviceRecord = agent.serviceRecord ?? createDefaultAgentServiceRecord()
 
   if (assignment.state === 'assigned') {
@@ -124,14 +113,20 @@ function applyCounterDelta(
   counterDelta: AgentHistoryCounterDelta
 ): AgentHistoryCounters {
   return {
-    assignmentsCompleted: Math.max(0, counters.assignmentsCompleted + (counterDelta.assignmentsCompleted ?? 0)),
+    assignmentsCompleted: Math.max(
+      0,
+      counters.assignmentsCompleted + (counterDelta.assignmentsCompleted ?? 0)
+    ),
     casesResolved: Math.max(0, counters.casesResolved + (counterDelta.casesResolved ?? 0)),
     casesPartiallyResolved: Math.max(
       0,
       counters.casesPartiallyResolved + (counterDelta.casesPartiallyResolved ?? 0)
     ),
     casesFailed: Math.max(0, counters.casesFailed + (counterDelta.casesFailed ?? 0)),
-    anomaliesContained: Math.max(0, counters.anomaliesContained + (counterDelta.anomaliesContained ?? 0)),
+    anomaliesContained: Math.max(
+      0,
+      counters.anomaliesContained + (counterDelta.anomaliesContained ?? 0)
+    ),
     recoveryWeeks: Math.max(0, counters.recoveryWeeks + (counterDelta.recoveryWeeks ?? 0)),
     trainingWeeks: Math.max(0, counters.trainingWeeks + (counterDelta.trainingWeeks ?? 0)),
     trainingsCompleted: Math.max(
@@ -140,10 +135,7 @@ function applyCounterDelta(
     ),
     stressSustained: Math.max(0, counters.stressSustained + (counterDelta.stressSustained ?? 0)),
     damageSustained: Math.max(0, counters.damageSustained + (counterDelta.damageSustained ?? 0)),
-    anomalyExposures: Math.max(
-      0,
-      counters.anomalyExposures + (counterDelta.anomalyExposures ?? 0)
-    ),
+    anomalyExposures: Math.max(0, counters.anomalyExposures + (counterDelta.anomalyExposures ?? 0)),
     evidenceRecovered: Math.max(
       0,
       counters.evidenceRecovered + (counterDelta.evidenceRecovered ?? 0)
@@ -180,8 +172,7 @@ export function appendAgentHistoryEntries(
   ).length
   const nextCounters = applyCounterDelta(history.counters, {
     ...counterDelta,
-    trainingsCompleted:
-      (counterDelta.trainingsCompleted ?? 0) + completedTrainingCount,
+    trainingsCompleted: (counterDelta.trainingsCompleted ?? 0) + completedTrainingCount,
   })
   const trainingsDone = history.trainingsDone + completedTrainingCount
 
@@ -289,8 +280,7 @@ export function recordAgentPerformance(
       performanceStats: {
         deployments: history.performanceStats.deployments + 1,
         totalContribution: history.performanceStats.totalContribution + performance.contribution,
-        totalThreatHandled:
-          history.performanceStats.totalThreatHandled + performance.threatHandled,
+        totalThreatHandled: history.performanceStats.totalThreatHandled + performance.threatHandled,
         totalDamageTaken: history.performanceStats.totalDamageTaken + performance.damageTaken,
         totalHealingPerformed:
           history.performanceStats.totalHealingPerformed + performance.healingPerformed,
@@ -301,8 +291,7 @@ export function recordAgentPerformance(
           performance.containmentActionsCompleted,
         totalFieldPower: history.performanceStats.totalFieldPower + performance.fieldPower,
         totalContainment: history.performanceStats.totalContainment + performance.containment,
-        totalInvestigation:
-          history.performanceStats.totalInvestigation + performance.investigation,
+        totalInvestigation: history.performanceStats.totalInvestigation + performance.investigation,
         totalSupport: history.performanceStats.totalSupport + performance.support,
         totalStressImpact: history.performanceStats.totalStressImpact + performance.stressImpact,
         totalEquipmentContributionDelta:
@@ -318,11 +307,9 @@ export function recordAgentPerformance(
           history.performanceStats.totalEquipmentScoreDelta +
           (powerImpact?.equipmentScoreDelta ?? 0),
         totalKitScoreDelta:
-          history.performanceStats.totalKitScoreDelta +
-          (powerImpact?.kitScoreDelta ?? 0),
+          history.performanceStats.totalKitScoreDelta + (powerImpact?.kitScoreDelta ?? 0),
         totalProtocolScoreDelta:
-          history.performanceStats.totalProtocolScoreDelta +
-          (powerImpact?.protocolScoreDelta ?? 0),
+          history.performanceStats.totalProtocolScoreDelta + (powerImpact?.protocolScoreDelta ?? 0),
         totalKitEffectivenessDelta:
           history.performanceStats.totalKitEffectivenessDelta +
           Math.max(0, (powerImpact?.kitEffectivenessMultiplier ?? 1) - 1),
@@ -357,12 +344,10 @@ export function recordAgentOperationalCounters(
       ...history,
       counters: {
         ...history.counters,
-        anomalyExposures:
-          history.counters.anomalyExposures + (counterDelta.anomalyExposures ?? 0),
+        anomalyExposures: history.counters.anomalyExposures + (counterDelta.anomalyExposures ?? 0),
         evidenceRecovered:
           history.counters.evidenceRecovered + (counterDelta.evidenceRecovered ?? 0),
-        damageSustained:
-          history.counters.damageSustained + (counterDelta.damageSustained ?? 0),
+        damageSustained: history.counters.damageSustained + (counterDelta.damageSustained ?? 0),
         anomaliesContained:
           history.counters.anomaliesContained + (counterDelta.anomaliesContained ?? 0),
       },
@@ -529,10 +514,7 @@ export function reconcileAgentHistoryTimelineWithEvents(
   }
 }
 
-export function appendAgentEventLogs(
-  agent: Agent,
-  events: readonly OperationEvent[]
-): Agent {
+export function appendAgentEventLogs(agent: Agent, events: readonly OperationEvent[]): Agent {
   if (events.length === 0) {
     return agent
   }

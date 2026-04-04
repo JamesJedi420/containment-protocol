@@ -9,6 +9,7 @@ export type AgentRole =
   | 'hunter'
   | 'occultist'
   | 'investigator'
+  | 'field_recon'
   | 'medium'
   | 'tech'
   | 'medic'
@@ -30,13 +31,7 @@ export type LegacyStatDomain =
  * Canonical operational domains used by agent evaluation, team composition, and resolution.
  * These are built from the stored substat lattice in `DomainStats`.
  */
-export type StatDomain =
-  | 'field'
-  | 'resilience'
-  | 'control'
-  | 'insight'
-  | 'presence'
-  | 'anomaly'
+export type StatDomain = 'field' | 'resilience' | 'control' | 'insight' | 'presence' | 'anomaly'
 
 /**
  * Canonical stored stat lattice.
@@ -166,6 +161,27 @@ export interface AgentVitals {
 
 export type AgentGrowthStats = Partial<Record<StatDomain | LegacyStatDomain, number>>
 
+export type ExactPotentialTier = 'F' | 'D' | 'C' | 'B' | 'A' | 'S'
+export type PotentialTier = ExactPotentialTier | 'low' | 'mid' | 'high'
+
+export type PotentialIntelConfidence = 'unknown' | 'low' | 'medium' | 'high' | 'confirmed'
+
+export type PotentialIntelSource =
+  | 'recruitment_scout'
+  | 'training'
+  | 'mission'
+  | 'breakthrough'
+  | 'academy_record'
+
+export interface PotentialIntel {
+  visibleTier?: ExactPotentialTier
+  exactKnown?: boolean
+  confidence?: PotentialIntelConfidence
+  discoveryProgress?: number
+  source?: PotentialIntelSource
+  lastUpdatedWeek?: number
+}
+
 /**
  * Agent progression tracking: experience, level, potential tier, and growth profile.
  */
@@ -174,12 +190,14 @@ export interface AgentProgression {
   level: number
   potentialTier: PotentialTier
   growthProfile: string
+  /** Player-facing intel about an agent's hidden potential; can begin inaccurate and improve over time. */
+  potentialIntel?: PotentialIntel
+  /** Per-stat growth ceilings for live agents, normalized to never fall below current base stats. */
+  statCaps?: Record<'combat' | 'investigation' | 'utility' | 'social', number>
   growthStats?: AgentGrowthStats
   /** Skills and specialization tracking for training system */
   skillTree?: SkillTree
 }
-
-export type PotentialTier = 'F' | 'D' | 'C' | 'B' | 'A' | 'S' | 'low' | 'mid' | 'high'
 
 export interface SkillTree {
   /** Total skill points accumulated from case resolutions and training. */
@@ -251,12 +269,7 @@ export interface AgentServiceRecord {
   lastRecoveryWeek?: number
 }
 
-export type AgentReadinessState =
-  | 'ready'
-  | 'assigned'
-  | 'training'
-  | 'recovering'
-  | 'unavailable'
+export type AgentReadinessState = 'ready' | 'assigned' | 'training' | 'recovering' | 'unavailable'
 
 export type AgentReadinessBand = 'steady' | 'strained' | 'critical' | 'unavailable'
 
@@ -427,6 +440,7 @@ export interface AgentPowerImpact {
   protocolScoreDelta: number
   kitEffectivenessMultiplier: number
   protocolEffectivenessMultiplier: number
+  notes?: string[]
 }
 
 export interface AgentScoreBreakdown {
@@ -608,7 +622,13 @@ export type MarketPressure = 'discounted' | 'stable' | 'tight'
  * Recruit category.
  * `fieldTech` / `analyst` are legacy specialist aliases kept for compatibility.
  */
-export type RecruitCategory = 'agent' | 'staff' | 'specialist' | 'fieldTech' | 'analyst' | 'instructor'
+export type RecruitCategory =
+  | 'agent'
+  | 'staff'
+  | 'specialist'
+  | 'fieldTech'
+  | 'analyst'
+  | 'instructor'
 
 /**
  * Recruitment hiring status.
@@ -641,7 +661,7 @@ export interface Agent {
   /** Canonical domain stat representation (preferred over flat `baseStats`). */
   stats?: DomainStats
 
- /** Canonical vitals container (fatigue is retained for compatibility). */
+  /** Canonical vitals container (fatigue is retained for compatibility). */
   vitals?: AgentVitals
 
   /** Persistent service milestones for long-term roster analysis. */

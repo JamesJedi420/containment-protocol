@@ -122,23 +122,20 @@ export function evaluateTeamSynergy(
     return matches
   }, [])
 
-  const profile = active.reduce<TeamSynergyProfile>(
-    (acc, synergy) => {
-      const effect = synergy.effect
-      const resolutionBonus = effect.resolutionBonus ?? {}
+  const profile = active.reduce<TeamSynergyProfile>((acc, synergy) => {
+    const effect = synergy.effect
+    const resolutionBonus = effect.resolutionBonus ?? {}
 
-      acc.active.push(synergy)
-      acc.resolutionBonus.fieldPower += resolutionBonus.fieldPower ?? 0
-      acc.resolutionBonus.containment += resolutionBonus.containment ?? 0
-      acc.resolutionBonus.investigation += resolutionBonus.investigation ?? 0
-      acc.resolutionBonus.support += resolutionBonus.support ?? 0
-      acc.scoreBonus += effect.scoreBonus ?? 0
-      acc.cohesionBonus += effect.cohesionBonus ?? 0
+    acc.active.push(synergy)
+    acc.resolutionBonus.fieldPower += resolutionBonus.fieldPower ?? 0
+    acc.resolutionBonus.containment += resolutionBonus.containment ?? 0
+    acc.resolutionBonus.investigation += resolutionBonus.investigation ?? 0
+    acc.resolutionBonus.support += resolutionBonus.support ?? 0
+    acc.scoreBonus += effect.scoreBonus ?? 0
+    acc.cohesionBonus += effect.cohesionBonus ?? 0
 
-      return acc
-    },
-    createDefaultTeamSynergyProfile()
-  )
+    return acc
+  }, createDefaultTeamSynergyProfile())
 
   // Bond depth bonus: party training amplifies active synergies.
   // Tags activate the synergy; trained bonds scale it.

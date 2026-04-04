@@ -1,5 +1,10 @@
 import { APP_ROUTES } from '../../app/routes'
 import {
+  buildAgentStatCaps,
+  normalizePotentialIntel,
+  normalizePotentialTier,
+} from '../../domain/agentPotential'
+import {
   formatAbilityTrigger,
   getAbilityContextHint,
   resolveAbilityEffect,
@@ -21,10 +26,14 @@ import {
   type AgentServiceRecord,
   type AgentTraitModifierKey,
   type CaseInstance,
+  type ExactPotentialTier,
   type FatigueBand,
   type GameState,
   type LegacyStatDomain,
+  type PotentialIntelConfidence,
+  type PotentialIntelSource,
   type StatDomain,
+  type StatBlock,
   type Team,
 } from '../../domain/models'
 import { getTeamMoveEligibility } from '../../domain/sim/teamManagement'
@@ -35,7 +44,11 @@ import {
 import { resolveTraitEffect, type TraitModifierResult } from '../../domain/traits'
 import { createDefaultAgentProgression } from '../../domain/agentDefaults'
 import { domainAverage, getAgentDomainStats, STAT_DOMAINS } from '../../domain/statDomains'
-import { getTeamAssignedCaseId, getTeamLeaderId, getTeamMemberIds } from '../../domain/teamSimulation'
+import {
+  getTeamAssignedCaseId,
+  getTeamLeaderId,
+  getTeamMemberIds,
+} from '../../domain/teamSimulation'
 
 const DOMAIN_LABELS: Record<StatDomain, string> = {
   field: 'Field',
@@ -100,6 +113,11 @@ export interface AgentPerformanceSummary {
   healingPerformed: number
   evidenceGathered: number
   containmentActionsCompleted: number
+}
+
+export interface AgentProjectedStatCapRange {
+  min: number
+  max: number
 }
 
 export interface AgentEquipmentViewItem {
@@ -188,6 +206,14 @@ export interface MaterializedAgentState {
   traits: AgentTraitViewItem[]
   progression: NonNullable<Agent['progression']> & {
     skillTree: NonNullable<NonNullable<Agent['progression']>['skillTree']>
+    actualPotentialTier: ExactPotentialTier
+    visiblePotentialTier?: ExactPotentialTier
+    exactPotentialKnown: boolean
+    potentialConfidence: PotentialIntelConfidence
+    potentialSource?: PotentialIntelSource
+    discoveryProgress: number
+    displayStatCaps?: StatBlock
+    projectedStatCapRanges?: Record<keyof StatBlock, AgentProjectedStatCapRange>
     currentLevelStartXp: number
     nextLevelThresholdXp: number
     xpIntoCurrentLevel: number
@@ -249,6 +275,34 @@ export function getAgentTeamContext(
   return undefined
 }
 
+function buildProjectedStatCapRange(cap: number): AgentProjectedStatCapRange {
+  if (cap >= 100) {
+    return { min: 90, max: 100 }
+  }
+
+  const min = Math.max(0, Math.floor(cap / 10) * 10)
+
+  return {
+    min,
+    max: Math.min(99, min + 9),
+  }
+}
+
+function buildProjectedStatCapRanges(
+  baseStats: StatBlock,
+  visiblePotentialTier: ExactPotentialTier,
+  growthProfile: string
+) {
+  const caps = buildAgentStatCaps(baseStats, visiblePotentialTier, growthProfile)
+
+  return {
+    combat: buildProjectedStatCapRange(caps.combat),
+    investigation: buildProjectedStatCapRange(caps.investigation),
+    utility: buildProjectedStatCapRange(caps.utility),
+    social: buildProjectedStatCapRange(caps.social),
+  } satisfies Record<keyof StatBlock, AgentProjectedStatCapRange>
+}
+
 export function getAgentView(game: GameState, agentId: string): AgentView | undefined {
   const agent = game.agents[agentId]
 
@@ -256,11 +310,19 @@ export function getAgentView(game: GameState, agentId: string): AgentView | unde
     return undefined
   }
 
-  const teamRecord = Object.values(game.teams).find((team) => getTeamMemberIds(team).includes(agentId))
+  const teamRecord = Object.values(game.teams).find((team) =>
+    getTeamMemberIds(team).includes(agentId)
+  )
   const team = getAgentTeamContext(game, agentId)
   const assignedCase = team?.assignedCaseId ? game.cases[team.assignedCaseId] : undefined
   const trainingEntry = game.trainingQueue.find((entry) => entry.agentId === agentId)
-  const materialized = buildMaterializedAgentState(game, agent, teamRecord, assignedCase, trainingEntry)
+  const materialized = buildMaterializedAgentState(
+    game,
+    agent,
+    teamRecord,
+    assignedCase,
+    trainingEntry
+  )
 
   return {
     agent,
@@ -422,19 +484,44 @@ function buildMaterializedAgentState(
     skillTree: NonNullable<NonNullable<Agent['progression']>['skillTree']>
   }
   const progressionSnapshot = getProgressionSnapshot(progression)
+  const actualPotentialTier = normalizePotentialTier(progression.potentialTier, agent.baseStats)
+  const potentialIntel = normalizePotentialIntel(progression.potentialIntel, actualPotentialTier)
+  const exactPotentialKnown = potentialIntel.exactKnown ?? false
+  const potentialConfidence = potentialIntel.confidence ?? 'unknown'
+  const discoveryProgress = potentialIntel.discoveryProgress ?? 0
+  const visiblePotentialTier = exactPotentialKnown
+    ? actualPotentialTier
+    : potentialIntel.visibleTier
+  const displayStatCaps = exactPotentialKnown
+    ? buildAgentStatCaps(
+        agent.baseStats,
+        actualPotentialTier,
+        progression.growthProfile,
+        progression.statCaps
+      )
+    : undefined
+  const projectedStatCapRanges =
+    !exactPotentialKnown && visiblePotentialTier
+      ? buildProjectedStatCapRanges(
+          agent.baseStats,
+          visiblePotentialTier,
+          progression.growthProfile
+        )
+      : undefined
   const serviceRecord: AgentServiceRecord = agent.serviceRecord ?? {
     joinedWeek: 1,
   }
   const readinessProfile: AgentReadinessProfile = agent.readinessProfile ?? {
-    state: agent.assignment?.state === 'assigned'
-      ? 'assigned'
-      : agent.assignment?.state === 'training'
-        ? 'training'
-        : agent.assignment?.state === 'recovery' || agent.status !== 'active'
-          ? agent.status === 'dead' || agent.status === 'resigned'
-            ? 'unavailable'
-            : 'recovering'
-          : 'ready',
+    state:
+      agent.assignment?.state === 'assigned'
+        ? 'assigned'
+        : agent.assignment?.state === 'training'
+          ? 'training'
+          : agent.assignment?.state === 'recovery' || agent.status !== 'active'
+            ? agent.status === 'dead' || agent.status === 'resigned'
+              ? 'unavailable'
+              : 'recovering'
+            : 'ready',
     band:
       agent.status === 'dead' || agent.status === 'resigned'
         ? 'unavailable'
@@ -515,7 +602,7 @@ function buildMaterializedAgentState(
       caseId: assignedCase?.id ?? agent.assignmentStatus?.caseId ?? assignmentCaseId,
       trainingProgramId:
         agent.assignment?.state === 'training'
-          ? agent.assignment.trainingProgramId ?? trainingEntry?.trainingId
+          ? (agent.assignment.trainingProgramId ?? trainingEntry?.trainingId)
           : trainingEntry?.trainingId,
       queueId: trainingEntry?.id,
     },
@@ -536,7 +623,8 @@ function buildMaterializedAgentState(
       stress: agent.vitals?.stress ?? agent.fatigue,
       fatigue: agent.fatigue,
       morale:
-        agent.vitals?.morale ?? (agent.status === 'resigned' ? 0 : Math.max(0, 100 - agent.fatigue)),
+        agent.vitals?.morale ??
+        (agent.status === 'resigned' ? 0 : Math.max(0, 100 - agent.fatigue)),
       wounds: agent.vitals?.wounds ?? (agent.status === 'dead' ? 100 : 0),
       statusFlags: [...(agent.vitals?.statusFlags ?? [])],
     },
@@ -575,6 +663,15 @@ function buildMaterializedAgentState(
     traits: buildTraitItems(agent, assignedCase, supportTags, teamTags, leaderId),
     progression: {
       ...progression,
+      actualPotentialTier,
+      visiblePotentialTier,
+      exactPotentialKnown,
+      potentialConfidence,
+      ...(potentialIntel.source ? { potentialSource: potentialIntel.source } : {}),
+      discoveryProgress,
+      displayStatCaps,
+      projectedStatCapRanges,
+      statCaps: displayStatCaps,
       ...progressionSnapshot,
     },
     history: {
@@ -627,8 +724,8 @@ function buildEquipmentItems(
   })
   const bySlot = new Map(equippedItems.map((item) => [item.slot, item]))
 
-  return (Object.entries(EQUIPMENT_SLOT_LABELS) as [EquipmentSlotKind, string][])
-    .map(([slot, slotLabel]) => {
+  return (Object.entries(EQUIPMENT_SLOT_LABELS) as [EquipmentSlotKind, string][]).map(
+    ([slot, slotLabel]) => {
       const item = bySlot.get(slot)
       const baseSummary = item ? formatModifierSummary(item.baseModifiers) : 'No additive modifiers'
       const contextualSummary = item
@@ -655,7 +752,8 @@ function buildEquipmentItems(
         statusLabel: item ? (contextActive ? 'Context live' : 'Static only') : 'Empty',
         empty: !item,
       }
-    })
+    }
+  )
 }
 
 function buildEquipmentSummary(
@@ -778,28 +876,33 @@ function formatModifierSummary(
     | Partial<Record<AgentTraitModifierKey, number>>
     | Partial<Record<StatDomain | LegacyStatDomain, { [key: string]: number | undefined }>>
 ) {
-  const domainModifiers = Object.entries(modifiers ?? {}).flatMap<[string, number]>(([key, value]) => {
-    if (!value) {
-      return []
+  const domainModifiers = Object.entries(modifiers ?? {}).flatMap<[string, number]>(
+    ([key, value]) => {
+      if (!value) {
+        return []
+      }
+
+      if (typeof value === 'number') {
+        return [[key, value]]
+      }
+
+      const sum = Object.values(value)
+        .filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
+        .reduce((total, entry) => total + entry, 0)
+
+      return sum !== 0 ? [[key, sum]] : []
     }
-
-    if (typeof value === 'number') {
-      return [[key, value]]
-    }
-
-    const sum = Object.values(value)
-      .filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
-      .reduce((total, entry) => total + entry, 0)
-
-    return sum !== 0 ? [[key, sum]] : []
-  })
+  )
 
   if (domainModifiers.length === 0) {
     return 'No active modifiers'
   }
 
   return domainModifiers
-    .map(([key, value]) => `${formatModifierLabel(key as AgentTraitModifierKey)} ${formatSigned(value)}`)
+    .map(
+      ([key, value]) =>
+        `${formatModifierLabel(key as AgentTraitModifierKey)} ${formatSigned(value)}`
+    )
     .join(' / ')
 }
 
@@ -808,11 +911,7 @@ function formatModifierLabel(key: AgentTraitModifierKey) {
     return 'Overall'
   }
 
-  return (
-    DOMAIN_LABELS[key as StatDomain] ??
-    LEGACY_DOMAIN_LABELS[key as LegacyStatDomain] ??
-    key
-  )
+  return DOMAIN_LABELS[key as StatDomain] ?? LEGACY_DOMAIN_LABELS[key as LegacyStatDomain] ?? key
 }
 
 function formatSigned(value: number) {

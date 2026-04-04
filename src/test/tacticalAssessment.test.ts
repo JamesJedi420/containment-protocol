@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { evaluateTacticalAssessments, TACTICAL_ASSESSMENT_ENGINE } from '../domain/tacticalAssessment'
+import {
+  evaluateTacticalAssessments,
+  TACTICAL_ASSESSMENT_ENGINE,
+} from '../domain/tacticalAssessment'
 import type { Agent, CaseInstance, DomainStats } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
@@ -109,7 +112,9 @@ describe('tactical assessment engine', () => {
       caseData: makeCase({ durationWeeks: 4 }),
     })
 
-    expect(results).toContain('Current fatigue is suppressing output. Rotate before long assignments.')
+    expect(results).toContain(
+      'Current fatigue is suppressing output. Rotate before long assignments.'
+    )
     expect(results.every((entry) => typeof entry === 'string')).toBe(true)
   })
 })

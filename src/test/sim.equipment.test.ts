@@ -171,15 +171,11 @@ describe('equipment simulation', () => {
 
     const currentCase = state.cases['case-001']
     const team = state.teams.t_nightwatch
-    const beforeScore = computeTeamScore(
-      getTeamMembers(team, state.agents),
-      currentCase,
-      {
-        inventory: state.inventory,
-        supportTags: team.tags,
-        leaderId: team.leaderId ?? null,
-      }
-    )
+    const beforeScore = computeTeamScore(getTeamMembers(team, state.agents), currentCase, {
+      inventory: state.inventory,
+      supportTags: team.tags,
+      leaderId: team.leaderId ?? null,
+    })
     const next = equipAgentItem(state, 'a_ava', 'armor', 'field_plate')
     const afterScore = computeTeamScore(
       getTeamMembers(next.teams.t_nightwatch, next.agents),

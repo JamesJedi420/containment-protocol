@@ -118,7 +118,10 @@ export default function AgencyPage() {
         ) : (
           <ul className="space-y-2">
             {overview.academy.suggestedPrograms.map((entry) => (
-              <li key={`${entry.agentId}-${entry.trainingId}`} className="flex items-center justify-between gap-3 rounded border border-white/10 px-3 py-2">
+              <li
+                key={`${entry.agentId}-${entry.trainingId}`}
+                className="flex items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
+              >
                 <span>
                   {entry.agentName} {'->'} {entry.trainingName}
                 </span>

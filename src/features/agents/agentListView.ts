@@ -12,6 +12,7 @@ export const AGENT_ROLE_FILTERS = [
   'hunter',
   'occultist',
   'investigator',
+  'field_recon',
   'medium',
   'tech',
   'medic',

@@ -40,7 +40,9 @@ describe('reconcileAgents', () => {
       2
     )
 
-    const relationshipEvents = next.events.filter((event) => event.type === 'agent.relationship_changed')
+    const relationshipEvents = next.events.filter(
+      (event) => event.type === 'agent.relationship_changed'
+    )
     expect(relationshipEvents).toHaveLength(2)
     expect(relationshipEvents[0]?.payload.reason).toBe('reconciliation')
     expect(relationshipEvents[1]?.payload.reason).toBe('reconciliation')

@@ -116,21 +116,15 @@ function createAgentPerformanceOutput(
     damageTaken: toRoundedFinite(breakdown.performance.damageTaken),
     healingPerformed: toRoundedFinite(breakdown.performance.healingPerformed),
     evidenceGathered: toRoundedFinite(breakdown.performance.evidenceGathered),
-    containmentActionsCompleted: toRoundedFinite(
-      breakdown.performance.containmentActionsCompleted
-    ),
+    containmentActionsCompleted: toRoundedFinite(breakdown.performance.containmentActionsCompleted),
     powerImpact: {
       ...breakdown.powerImpact,
       activeEquipmentIds: [...breakdown.powerImpact.activeEquipmentIds],
       activeKitIds: [...breakdown.powerImpact.activeKitIds],
       activeProtocolIds: [...breakdown.powerImpact.activeProtocolIds],
-      equipmentContributionDelta: toRoundedFinite(
-        breakdown.powerImpact.equipmentContributionDelta
-      ),
+      equipmentContributionDelta: toRoundedFinite(breakdown.powerImpact.equipmentContributionDelta),
       kitContributionDelta: toRoundedFinite(breakdown.powerImpact.kitContributionDelta),
-      protocolContributionDelta: toRoundedFinite(
-        breakdown.powerImpact.protocolContributionDelta
-      ),
+      protocolContributionDelta: toRoundedFinite(breakdown.powerImpact.protocolContributionDelta),
       equipmentScoreDelta: toRoundedFinite(breakdown.powerImpact.equipmentScoreDelta),
       kitScoreDelta: toRoundedFinite(breakdown.powerImpact.kitScoreDelta),
       protocolScoreDelta: toRoundedFinite(breakdown.powerImpact.protocolScoreDelta),
@@ -211,20 +205,15 @@ function buildAgentHistorySummary(agent: Agent): AgentHistorySummary {
     totalDamageTaken: history.performanceStats.totalDamageTaken,
     totalHealingPerformed: history.performanceStats.totalHealingPerformed,
     totalEvidenceGathered: history.performanceStats.totalEvidenceGathered,
-    totalContainmentActionsCompleted:
-      history.performanceStats.totalContainmentActionsCompleted,
-    totalEquipmentContributionDelta:
-      history.performanceStats.totalEquipmentContributionDelta,
+    totalContainmentActionsCompleted: history.performanceStats.totalContainmentActionsCompleted,
+    totalEquipmentContributionDelta: history.performanceStats.totalEquipmentContributionDelta,
     totalKitContributionDelta: history.performanceStats.totalKitContributionDelta,
-    totalProtocolContributionDelta:
-      history.performanceStats.totalProtocolContributionDelta,
+    totalProtocolContributionDelta: history.performanceStats.totalProtocolContributionDelta,
     totalEquipmentScoreDelta: history.performanceStats.totalEquipmentScoreDelta,
     totalKitScoreDelta: history.performanceStats.totalKitScoreDelta,
     totalProtocolScoreDelta: history.performanceStats.totalProtocolScoreDelta,
-    totalKitEffectivenessDelta:
-      history.performanceStats.totalKitEffectivenessDelta,
-    totalProtocolEffectivenessDelta:
-      history.performanceStats.totalProtocolEffectivenessDelta,
+    totalKitEffectivenessDelta: history.performanceStats.totalKitEffectivenessDelta,
+    totalProtocolEffectivenessDelta: history.performanceStats.totalProtocolEffectivenessDelta,
     alliesWorkedWith: history.alliesWorkedWith.length,
   }
 }
@@ -295,27 +284,17 @@ export function buildAgentSimulationProfile(
     scoreBreakdown: {
       baseDomainScore: toRoundedFinite(breakdown.scoreBreakdown.baseDomainScore),
       traitBonus: toRoundedFinite(breakdown.scoreBreakdown.traitBonus),
-      preEffectivenessScore: toRoundedFinite(
-        breakdown.scoreBreakdown.preEffectivenessScore
-      ),
-      effectivenessMultiplier: toRoundedFinite(
-        breakdown.scoreBreakdown.effectivenessMultiplier,
-        4
-      ),
+      preEffectivenessScore: toRoundedFinite(breakdown.scoreBreakdown.preEffectivenessScore),
+      effectivenessMultiplier: toRoundedFinite(breakdown.scoreBreakdown.effectivenessMultiplier, 4),
       finalScore: toRoundedFinite(breakdown.scoreBreakdown.finalScore),
     },
     performanceBlend: {
       equipmentLoad: toRoundedFinite(breakdown.performanceBlend.equipmentLoad),
       legacyBlendWeight: toRoundedFinite(breakdown.performanceBlend.legacyBlendWeight, 4),
-      weightedBlendWeight: toRoundedFinite(
-        breakdown.performanceBlend.weightedBlendWeight,
-        4
-      ),
+      weightedBlendWeight: toRoundedFinite(breakdown.performanceBlend.weightedBlendWeight, 4),
       legacyTotal: toRoundedFinite(breakdown.performanceBlend.legacyTotal),
       weightedTotal: toRoundedFinite(breakdown.performanceBlend.weightedTotal),
-      normalizedWeightedTotal: toRoundedFinite(
-        breakdown.performanceBlend.normalizedWeightedTotal
-      ),
+      normalizedWeightedTotal: toRoundedFinite(breakdown.performanceBlend.normalizedWeightedTotal),
       blendedTotal: toRoundedFinite(breakdown.performanceBlend.blendedTotal),
     },
     powerLayer: {

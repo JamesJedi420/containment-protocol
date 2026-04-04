@@ -1,12 +1,12 @@
 import {
   type Agent,
+  type AgentAbilityTrigger,
   type AgentPerformanceOutput,
   type CaseInstance,
   type GameConfig,
   type LeaderBonus,
   type PerformanceMetricSummary,
   type ResolutionOutcome,
-  type TeamPowerSummary,
   type TeamResolutionProfile,
   type ValidationIssue,
   type ValidationResult,
@@ -28,6 +28,7 @@ import {
   createDefaultTeamEquipmentSummary,
 } from '../equipment'
 import type { AgencyProtocolState } from '../protocols'
+import { evaluateTeamCaseRecon, type CaseReconSummary } from '../recon'
 
 const RESOLUTION_AXES = [
   'fieldPower',
@@ -119,7 +120,10 @@ export function sanitizeScoringSystemConfig(
   return {
     ...defaults,
     ...overrides,
-    maxEquipmentStack: Math.max(1, Math.trunc(overrides.maxEquipmentStack ?? defaults.maxEquipmentStack)),
+    maxEquipmentStack: Math.max(
+      1,
+      Math.trunc(overrides.maxEquipmentStack ?? defaults.maxEquipmentStack)
+    ),
     multiAgentReadinessBaseline: clamp(
       overrides.multiAgentReadinessBaseline ?? defaults.multiAgentReadinessBaseline,
       0,
@@ -138,6 +142,7 @@ export function sanitizeScoringSystemConfig(
 export interface TeamScoreContext {
   inventory?: Record<string, number>
   protocolState?: AgencyProtocolState
+  triggerEvent?: AgentAbilityTrigger
   supportTags?: string[]
   teamTags?: string[]
   leaderId?: string | null
@@ -195,7 +200,7 @@ export interface TeamScoreResult {
   reasons: string[]
   agentPerformance: AgentPerformanceOutput[]
   performanceSummary: PerformanceMetricSummary
-  powerSummary: TeamPowerSummary
+  powerSummary: ReturnType<typeof buildAgentSquadCompositionProfile>['powerSummary']
   powerImpactSummary: {
     activeEquipmentIds: string[]
     activeKitIds: string[]
@@ -216,6 +221,7 @@ export interface TeamScoreResult {
   modifierBreakdown: TeamScoreModifierBreakdown
   layerBreakdown: TeamScoreLayerBreakdown
   comparison: ResolutionComparison
+  reconSummary: CaseReconSummary
 }
 
 export interface TeamScoreLayer {
@@ -431,6 +437,7 @@ function buildResolvedOutcome(
     reasons,
     successChance,
     agentPerformance: teamScore.agentPerformance,
+    performanceSummary: teamScore.performanceSummary,
   }
 }
 
@@ -441,11 +448,15 @@ function buildProbabilityOutcome(
   teamScore: TeamScoreResult,
   resolutionRoll?: number
 ) {
-  const baseChance = clamp(sigmoid(delta * config.probabilityK), MIN_SUCCESS_CHANCE, MAX_SUCCESS_CHANCE)
-  const leaderChanceModifier =
-    teamScore.leaderBonusModel.eventModifier * LEADER_EVENT_CHANCE_RATE
+  const baseChance = clamp(
+    sigmoid(delta * config.probabilityK),
+    MIN_SUCCESS_CHANCE,
+    MAX_SUCCESS_CHANCE
+  )
+  const leaderChanceModifier = teamScore.leaderBonusModel.eventModifier * LEADER_EVENT_CHANCE_RATE
+  const reconChanceModifier = teamScore.reconSummary.probabilityBonus
   const chance = clamp(
-    baseChance + leaderChanceModifier,
+    baseChance + leaderChanceModifier + reconChanceModifier,
     MIN_SUCCESS_CHANCE,
     MAX_SUCCESS_CHANCE
   )
@@ -456,6 +467,9 @@ function buildProbabilityOutcome(
       `Delta=${delta.toFixed(1)} (probability-preview)`,
       ...(leaderChanceModifier !== 0
         ? [`Leader event control: ${(leaderChanceModifier * 100).toFixed(1)}%`]
+        : []),
+      ...(reconChanceModifier !== 0
+        ? [`Recon certainty: ${(reconChanceModifier * 100).toFixed(1)}%`]
         : []),
       `Chance=${(chance * 100).toFixed(0)}%`,
     ]
@@ -481,6 +495,9 @@ function buildProbabilityOutcome(
     `Delta=${delta.toFixed(1)} (probability)`,
     ...(leaderChanceModifier !== 0
       ? [`Leader event control: ${(leaderChanceModifier * 100).toFixed(1)}%`]
+      : []),
+    ...(reconChanceModifier !== 0
+      ? [`Recon certainty: ${(reconChanceModifier * 100).toFixed(1)}%`]
       : []),
     `Chance=${(chance * 100).toFixed(0)}% roll=${(normalizedRoll * 100).toFixed(0)}%`,
   ]
@@ -509,12 +526,8 @@ export function evaluateCaseResolutionContext(
   input: EvaluateCaseResolutionContextInput
 ): CaseResolutionContextResult {
   const { caseData, agents, config, context = {}, resolutionRoll } = input
-  const {
-    deployableAgents,
-    validationResult,
-    blockedByRequiredTags,
-    blockedByRequiredRoles,
-  } = evaluateResolutionPreflight(caseData, agents, context)
+  const { deployableAgents, validationResult, blockedByRequiredTags, blockedByRequiredRoles } =
+    evaluateResolutionPreflight(caseData, agents, context)
   const validationReasons = getValidationReasons(validationResult)
 
   if (validationReasons.length > 0) {
@@ -537,13 +550,7 @@ export function evaluateCaseResolutionContext(
   const delta = teamScore.score - requiredScore
 
   if (caseData.mode === 'probability') {
-    const probability = buildProbabilityOutcome(
-      caseData,
-      config,
-      delta,
-      teamScore,
-      resolutionRoll
-    )
+    const probability = buildProbabilityOutcome(caseData, config, delta, teamScore, resolutionRoll)
 
     return {
       deployableAgents,
@@ -705,9 +712,14 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
   const chemistryBonus = profile.chemistryBonus
   const leaderBonusModel = context.leaderBonusOverride ?? profile.leaderBonus
   const leaderBonus = base * (leaderBonusModel.effectivenessMultiplier - 1)
-  const synergyResolutionBonus = dotResolutionProfile(profile.synergyProfile.resolutionBonus, caseWeights)
+  const synergyResolutionBonus = dotResolutionProfile(
+    profile.synergyProfile.resolutionBonus,
+    caseWeights
+  )
   const synergyBonus = clamp(
-    synergyResolutionBonus + profile.synergyProfile.scoreBonus + (profile.synergyProfile.bondDepthBonus ?? 0),
+    synergyResolutionBonus +
+      profile.synergyProfile.scoreBonus +
+      (profile.synergyProfile.bondDepthBonus ?? 0),
     MULTI_AGENT_SYNERGY_MIN,
     MULTI_AGENT_SYNERGY_MAX
   )
@@ -724,9 +736,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
 
   if (synergyBonus !== 0) {
     const synergyLabels = profile.synergyProfile.active.map((synergy) => synergy.label).join(', ')
-    reasons.push(
-      `Synergy: ${synergyBonus.toFixed(1)}${synergyLabels ? ` (${synergyLabels})` : ''}`
-    )
+    reasons.push(`Synergy: ${synergyBonus.toFixed(1)}${synergyLabels ? ` (${synergyLabels})` : ''}`)
   }
 
   if (readinessBonus !== 0) {
@@ -744,14 +754,24 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
   if (preferredHits) reasons.push(`Preferred tags: +${preferredBonus.toFixed(1)}`)
   const equipment = computeEquipmentSupportBonus(agents, c, context)
   reasons.push(...equipment.reasons)
+  const reconSummary = evaluateTeamCaseRecon(agents, c, {
+    supportTags: context.supportTags,
+    teamTags: context.teamTags ?? context.supportTags,
+    leaderId: context.leaderId ?? null,
+    protocolState: context.protocolState,
+  })
+  reasons.push(...reconSummary.reasons)
   const partyCardBonus = context.partyCardScoreBonus ?? 0
   if (partyCardBonus !== 0) {
     reasons.push(...(context.partyCardReasons ?? [`Party cards: ${partyCardBonus.toFixed(1)}`]))
   }
-  const contextAdjustment = context.scoreAdjustment ?? 0
-  if (contextAdjustment !== 0 || context.scoreAdjustmentReason) {
-    reasons.push(context.scoreAdjustmentReason ?? `Context adjustment: ${contextAdjustment.toFixed(1)}`)
+  const externalContextAdjustment = context.scoreAdjustment ?? 0
+  if (externalContextAdjustment !== 0 || context.scoreAdjustmentReason) {
+    reasons.push(
+      context.scoreAdjustmentReason ?? `Context adjustment: ${externalContextAdjustment.toFixed(1)}`
+    )
   }
+  const contextAdjustment = externalContextAdjustment + reconSummary.scoreAdjustment
   const nonAxisModifierTotal = computeNonAxisModifierTotal({
     leaderBonus,
     synergyBonus,
@@ -771,14 +791,23 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
 
   if (profile.powerSummary.kits.length > 0) {
     const kitLabels = profile.powerSummary.kits
-      .map((kit) => `${normalizeDisplayLabel((kit as { label?: string; name?: string }).label ?? (kit as { label?: string; name?: string }).name ?? kit.id)} (${kit.highestActiveThreshold}-piece)`)
+      .map(
+        (kit: (typeof profile.powerSummary.kits)[number]) =>
+          `${normalizeDisplayLabel((kit as { label?: string; name?: string }).label ?? (kit as { label?: string; name?: string }).name ?? kit.id)} (${kit.highestActiveThreshold}-piece)`
+      )
       .join(', ')
     reasons.push(`Equipment kits: ${kitLabels}`)
   }
 
   if (profile.powerSummary.protocols.length > 0) {
     const protocolLabels = profile.powerSummary.protocols
-      .map((protocol) => normalizeDisplayLabel((protocol as { label?: string; name?: string }).label ?? (protocol as { label?: string; name?: string }).name ?? protocol.id))
+      .map((protocol: (typeof profile.powerSummary.protocols)[number]) =>
+        normalizeDisplayLabel(
+          (protocol as { label?: string; name?: string }).label ??
+            (protocol as { label?: string; name?: string }).name ??
+            protocol.id
+        )
+      )
       .join(', ')
     reasons.push(`Protocols: ${protocolLabels}`)
   }
@@ -835,6 +864,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     }),
     layerBreakdown,
     comparison,
+    reconSummary,
   }
 }
 
@@ -870,8 +900,7 @@ export function computeRequiredResolutionProfile(c: CaseInstance, config: GameCo
   const durationDemandPerAxis = durationPenalty / weightSum
 
   return RESOLUTION_AXES.reduce<TeamResolutionProfile>((profile, axis) => {
-    profile[axis] =
-      baseProfile[axis] + (weightProfile[axis] > 0 ? durationDemandPerAxis : 0)
+    profile[axis] = baseProfile[axis] + (weightProfile[axis] > 0 ? durationDemandPerAxis : 0)
     return profile
   }, createEmptyResolutionProfile())
 }
@@ -898,23 +927,26 @@ export function compareResolutionAgainstCase(
   const requiredProfile = computeRequiredResolutionProfile(c, config)
   const axisAssessments = RESOLUTION_AXES.reduce<
     Record<keyof TeamResolutionProfile, ResolutionAxisAssessment>
-  >((assessments, axis) => {
-    const provided = providedProfile[axis]
-    const required = requiredProfile[axis]
-    const delta = provided - required
-    const weight = weightProfile[axis]
+  >(
+    (assessments, axis) => {
+      const provided = providedProfile[axis]
+      const required = requiredProfile[axis]
+      const delta = provided - required
+      const weight = weightProfile[axis]
 
-    assessments[axis] = {
-      provided,
-      required,
-      delta,
-      weight,
-      weightedDelta: delta * weight,
-      met: weight <= 0 || delta >= 0,
-    }
+      assessments[axis] = {
+        provided,
+        required,
+        delta,
+        weight,
+        weightedDelta: delta * weight,
+        met: weight <= 0 || delta >= 0,
+      }
 
-    return assessments
-  }, {} as Record<keyof TeamResolutionProfile, ResolutionAxisAssessment>)
+      return assessments
+    },
+    {} as Record<keyof TeamResolutionProfile, ResolutionAxisAssessment>
+  )
   const metAxes = RESOLUTION_AXES.filter((axis) => axisAssessments[axis].met)
   const unmetAxes = RESOLUTION_AXES.filter((axis) => !axisAssessments[axis].met)
   const weightedProvidedScore = dotResolutionProfile(providedProfile, weightProfile)
@@ -963,6 +995,7 @@ function createEmptyResolutionProfile(): TeamResolutionProfile {
 function createDefaultScoringConfig(): GameConfig {
   return {
     maxActiveCases: 7,
+    trainingSlots: 4,
     partialMargin: 15,
     stageScalar: 1.15,
     challengeModeEnabled: false,

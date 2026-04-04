@@ -24,8 +24,8 @@ export function FilterSelect({
   onChange,
   options,
   children,
-  containerClassName = 'form-row text-sm',
-  labelClassName = 'form-label opacity-80',
+  containerClassName = 'form-row form-row-compact text-sm',
+  labelClassName = 'form-label opacity-85',
   selectClassName = 'form-select w-full',
 }: FilterSelectProps) {
   return (

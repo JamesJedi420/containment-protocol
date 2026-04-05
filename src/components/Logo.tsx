@@ -1,0 +1,55 @@
+type LogoProps = {
+  size?: number
+  className?: string
+}
+
+export default function Logo({ size = 32, className }: LogoProps) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      fill="none"
+      role="img"
+      aria-label="Containment Protocol"
+    >
+      <defs>
+        <linearGradient
+          id="logoShieldGradient"
+          x1="12"
+          y1="8"
+          x2="52"
+          y2="56"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#75ffd5" />
+          <stop offset="1" stopColor="#2dbb9a" />
+        </linearGradient>
+      </defs>
+
+      <rect x="4" y="4" width="56" height="56" rx="14" fill="#071014" />
+      <path
+        d="M32 10L50 16V31C50 42.4 43.3 50.5 32 54C20.7 50.5 14 42.4 14 31V16L32 10Z"
+        fill="url(#logoShieldGradient)"
+      />
+      <path
+        d="M32 14L46 18.7V31C46 40 41.2 46.6 32 49.7C22.8 46.6 18 40 18 31V18.7L32 14Z"
+        fill="#0d171c"
+      />
+      <path
+        d="M38.4 24.2C36.8 22.2 34.5 21 31.9 21C27.1 21 23.3 24.8 23.3 29.6C23.3 34.4 27.1 38.2 31.9 38.2C34.5 38.2 36.8 37 38.4 35"
+        stroke="#75ffd5"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <path
+        d="M36.4 24.2H40.6C43.1 24.2 45.1 26.2 45.1 28.7C45.1 31.2 43.1 33.2 40.6 33.2H36.4V24.2Z"
+        stroke="#ffb95c"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}

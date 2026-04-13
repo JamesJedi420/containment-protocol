@@ -97,22 +97,33 @@ export function advanceProductionQueues(state: GameState, opts?: { procurementMu
   if (state.productionQueue.length === 0) {
     return {
       state: ensureNormalizedGameState(state),
+      completed: [],
+      notes: [],
       eventDrafts: [],
     }
   }
+
+  const completed: ProductionQueueEntry[] = [];
+  const notes: string[] = [];
+  const nextInventory = { ...state.inventory };
 
   const nextQueue: ProductionQueueEntry[] = []
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
-    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
-
+    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0);
     if (remainingWeeks > 0) {
       nextQueue.push({
         ...entry,
         remainingWeeks,
-      })
+      });
     } else {
+      completed.push(entry);
+      nextInventory[entry.outputItemId] =
+        (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity;
+      notes.push(
+        `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
+      );
       eventDrafts.push(
         createProductionQueueCompletedDraft({
           week: state.week,
@@ -125,45 +136,8 @@ export function advanceProductionQueues(state: GameState, opts?: { procurementMu
           fundingCost: entry.fundingCost,
           inputMaterials: entry.inputMaterials ?? [],
         })
-      )
+      );
     }
-  }
-
-  return {
-    state: normalizeGameState({
-      ...state,
-      productionQueue: nextQueue,
-    }),
-    eventDrafts,
-  }
-
-    if (remainingWeeks > 0) {
-      nextQueue.push({
-        ...entry,
-        remainingWeeks,
-      })
-      continue
-    }
-
-    completed.push(entry)
-    nextInventory[entry.outputItemId] =
-      (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity
-    notes.push(
-      `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
-    )
-    eventDrafts.push(
-      createProductionQueueCompletedDraft({
-        week: state.week,
-        queueId: entry.id,
-        queueName: entry.recipeName,
-        recipeId: entry.recipeId,
-        outputId: entry.outputItemId,
-        outputName: entry.outputItemName,
-        outputQuantity: entry.outputQuantity,
-        fundingCost: entry.fundingCost,
-        inputMaterials: entry.inputMaterials ?? [],
-      })
-    )
   }
 
   return {
@@ -175,7 +149,7 @@ export function advanceProductionQueues(state: GameState, opts?: { procurementMu
     completed,
     notes,
     eventDrafts,
-  }
+  };
 }
 
 export function advanceMarketState(state: GameState, rng: () => number) {

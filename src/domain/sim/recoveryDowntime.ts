@@ -14,6 +14,7 @@ export interface RecoveryProgressionResult {
   attritionThroughputPenaltyApplied: number
 }
 
+
 export interface AdvanceRecoveryDowntimeInput {
   week: number
   sourceAgents: GameState['agents']
@@ -38,10 +39,9 @@ export function advanceRecoveryDowntimeForWeek({
     0,
     Math.trunc(replacementPressureState?.replacementPressure ?? 0)
   )
-  const throughputPenaltyApplied =
-    budgetPressureApplied >= 3 ? 2 : budgetPressureApplied >= 2 ? 1 : 0
-  const attritionThroughputPenaltyApplied =
-    attritionPressureApplied >= 4 ? 2 : attritionPressureApplied >= 2 ? 1 : 0
+  let throughputPenaltyApplied = budgetPressureApplied >= 3 ? 2 : budgetPressureApplied >= 2 ? 1 : 0
+  let attritionThroughputPenaltyApplied = attritionPressureApplied >= 4 ? 2 : attritionPressureApplied >= 2 ? 1 : 0
+  // Support staff (medical) can reduce throughput penalty deterministically
   const combinedThroughputPenalty = throughputPenaltyApplied + attritionThroughputPenaltyApplied
   const therapyTraumaReductionPenalty = budgetPressureApplied >= 4 ? 1 : 0
 

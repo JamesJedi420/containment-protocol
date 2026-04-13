@@ -1,5 +1,6 @@
 // cspell:words cooldown cooldowns lockdown
 import { clamp, createSeededRng } from '../math'
+import { applyAgentFatigue, getMissionFatigue, getRecoveryFatigue } from '../recoveryFatigue'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
 import {
   appendOperationEventDrafts,
@@ -61,6 +62,8 @@ import {
   getUniqueTeamMembers,
   normalizeGameState,
 } from '../teamSimulation'
+import { resolveAssignedCaseForWeek, WeeklyCaseResolutionStrategy } from '../caseResolutionOrchestration'
+import { buildAssignedTeamLeaderBonuses, buildAssignedAgentLeaderBonuses } from '../teamBonuses'
 import {
   buildMajorIncidentEffectiveCase,
   evaluateMajorIncidentPlan,
@@ -189,63 +192,6 @@ function getAverageFatigue(team: Team, agents: GameState['agents']) {
   return Math.round(totalFatigue / memberIds.length)
 }
 
-function getMissionFatigue(config: GameState['config']) {
-  return config.durationModel === 'attrition'
-    ? config.attritionPerWeek
-    : Math.max(1, config.attritionPerWeek - 1)
-}
-
-function getRecoveryFatigue(config: GameState['config']) {
-  return Math.max(1, Math.floor(config.attritionPerWeek / 2))
-}
-
-function applyAgentFatigue(
-  agents: GameState['agents'],
-  teams: GameState['teams'],
-  config: GameState['config'],
-  activeTeamIds: string[],
-  activeTeamStressModifiers: Record<string, number> = {}
-) {
-  const activeAgentStressById = new Map<string, number>()
-  const activeAgentIds = new Set(
-    activeTeamIds.flatMap((teamId) => {
-      const team = teams[teamId]
-      const memberIds = team ? getTeamMemberIds(team) : []
-      const stressModifier = activeTeamStressModifiers[teamId] ?? 0
-
-      for (const agentId of memberIds) {
-        activeAgentStressById.set(agentId, stressModifier)
-      }
-
-      return memberIds
-    })
-  )
-  const trainingAgentIds = new Set(
-    Object.entries(agents)
-      .filter(([, agent]) => agent.assignment?.state === 'training')
-      .map(([agentId]) => agentId)
-  )
-  const missionFatigue = getMissionFatigue(config)
-  const recoveryFatigue = getRecoveryFatigue(config)
-
-  return Object.fromEntries(
-    Object.entries(agents).map(([id, agent]) => {
-      const delta = activeAgentIds.has(id)
-        ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
-        : trainingAgentIds.has(id)
-          ? -(agent.recoveryRateBonus ?? 0)
-          : -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
-
-      return [
-        id,
-        {
-          ...agent,
-          fatigue: clamp(agent.fatigue + delta, 0, 100),
-        },
-      ]
-    })
-  )
-}
 
 function getAverageRosterFatigue(agents: GameState['agents']) {
   const values = Object.values(agents)
@@ -331,46 +277,6 @@ function buildReportTeamStatus(
   return Object.values(teams).map((team) => buildReportTeamStatusEntry(team, agents, cases))
 }
 
-function buildAssignedTeamLeaderBonuses(
-  teamIds: string[],
-  teams: GameState['teams'],
-  agents: GameState['agents']
-) {
-  return Object.fromEntries(
-    teamIds
-      .map((teamId) => {
-        const team = teams[teamId]
-
-        if (!team) {
-          return null
-        }
-
-        return [teamId, buildTeamCompositionProfile(team, agents).leaderBonus] as const
-      })
-      .filter((entry): entry is readonly [string, LeaderBonus] => Boolean(entry))
-  )
-}
-
-function buildAssignedAgentLeaderBonuses(
-  teamIds: string[],
-  teams: GameState['teams'],
-  agents: GameState['agents']
-) {
-  const teamLeaderBonuses = buildAssignedTeamLeaderBonuses(teamIds, teams, agents)
-
-  return Object.fromEntries(
-    teamIds.flatMap((teamId) => {
-      const team = teams[teamId]
-      const leaderBonus = teamLeaderBonuses[teamId]
-
-      if (!team || !leaderBonus) {
-        return []
-      }
-
-      return getTeamMemberIds(team).map((agentId) => [agentId, leaderBonus] as const)
-    })
-  )
-}
 
 interface WeeklyCaseResolutionStrategy {
   effectiveCase: CaseInstance
@@ -423,160 +329,6 @@ interface AgencyMetricUpdate {
   weekScore: number
 }
 
-function resolveAssignedCaseForWeek(
-  currentCase: CaseInstance,
-  state: GameState,
-  rng: () => number,
-  cardBonus?: {
-    scoreAdjustment: number
-    reasons: string[]
-    fatigueAdjustmentByTeam: Record<string, number>
-  }
-): WeeklyCaseResolutionStrategy {
-  const effectiveCase =
-    currentCase.majorIncident && isOperationalMajorIncidentCase(currentCase)
-      ? buildMajorIncidentEffectiveCase(currentCase, currentCase.majorIncident)
-      : currentCase
-  const factionContext = buildFactionMissionContext(currentCase, state)
-  const assignedTeamLeaderBonuses = buildAssignedTeamLeaderBonuses(
-    currentCase.assignedTeamIds,
-    state.teams,
-    state.agents
-  )
-  const assignedAgentLeaderBonuses = buildAssignedAgentLeaderBonuses(
-    currentCase.assignedTeamIds,
-    state.teams,
-    state.agents
-  )
-  const activeTeamStressModifiers = Object.fromEntries(
-    currentCase.assignedTeamIds.map((teamId) => [
-      teamId,
-      (assignedTeamLeaderBonuses[teamId]?.stressModifier ?? 0) +
-        (cardBonus?.fatigueAdjustmentByTeam[teamId] ?? 0),
-    ])
-  )
-  const assignedAgents = [
-    ...getUniqueTeamMembers(currentCase.assignedTeamIds, state.teams, state.agents),
-  ]
-  const invalidMajorIncidentOutcome: ResolutionOutcome = {
-    caseId: currentCase.id,
-    mode: 'probability',
-    kind: 'raid',
-    delta: -effectiveCase.durationWeeks,
-    successChance: 0,
-    result: 'fail',
-    reasons: ['Major incident launch state was invalid at resolution time.'],
-  }
-
-  let outcome: ResolutionOutcome
-  let weakestLinkResult: import('../weakestLinkResolution').WeakestLinkMissionResolutionResult | undefined = undefined
-  if (currentCase.mode === 'deterministic') {
-    // Gather readiness, cohesion, loadout, training, fatigue, missingRoles for all assigned teams
-    const assignedTeamId = currentCase.assignedTeamIds[0]
-    const team = state.teams[assignedTeamId]
-    const agentsById = state.agents
-    const supportTags = [
-      ...new Set(currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])),
-    ]
-    const leaderId =
-      currentCase.assignedTeamIds.length === 1
-        ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
-        : null
-    const baseScore = computeTeamScore(assignedAgents, effectiveCase, {
-      inventory: state.inventory,
-      protocolState: buildAgencyProtocolState(state),
-      supportTags,
-      teamTags: supportTags,
-      leaderId,
-      scoreAdjustment: factionContext.scoreAdjustment,
-      scoreAdjustmentReason: factionContext.reasons.join(' / '),
-      partyCardScoreBonus: cardBonus?.scoreAdjustment,
-      partyCardReasons: cardBonus?.reasons,
-      config: state.config,
-    }).score
-    const requiredScore = computeRequiredScore(effectiveCase, state.config)
-    const readiness = buildTeamDeploymentReadinessState(state, assignedTeamId)
-    const cohesion = buildTeamCohesionSummary(team, agentsById)
-    const members = team.memberIds || team.agentIds || []
-    const loadoutSummaries = members.map((id: string) =>
-      buildAgentLoadoutReadinessSummary(agentsById[id], { state })
-    )
-    const trainingLocks = members.filter((id: string) => agentsById[id]?.assignment?.state === 'training')
-    const fatigueSignals = members.map((id: string) => agentsById[id]?.fatigue ?? 0)
-    const missingRoles = readiness.coverageCompleteness?.missing || []
-    weakestLinkResult = resolveWeakestLinkMission({
-      missionId: currentCase.id,
-      week: state.week,
-      baseScore,
-      requiredScore,
-      intelConfidence: effectiveCase.intelConfidence,
-      intelUncertainty: effectiveCase.intelUncertainty,
-      teamReadiness: readiness,
-      teamCohesion: cohesion,
-      loadoutSummaries,
-      trainingLocks,
-      fatigueSignals,
-      missingRoles,
-    })
-    // Map weakest-link result to ResolutionOutcome
-    outcome = {
-      caseId: currentCase.id,
-      mode: 'deterministic',
-      kind: currentCase.kind,
-      delta: 0,
-      successChance: undefined,
-      result: weakestLinkResult.resultKind,
-      reasons: [
-        `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
-        ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
-      ],
-    }
-  } else {
-    outcome =
-      currentCase.majorIncident && isOperationalMajorIncidentCase(currentCase)
-        ? resolveMajorIncidentOutcome(state, currentCase, currentCase.assignedTeamIds, rng()) ??
-          invalidMajorIncidentOutcome
-        : currentCase.kind === 'raid'
-        ? resolveRaid(
-            effectiveCase,
-            currentCase.assignedTeamIds.map((id) => state.teams[id]).filter(Boolean),
-            state.agents,
-            state.config,
-            rng,
-            state.inventory,
-            {
-              protocolState: buildAgencyProtocolState(state),
-              scoreAdjustment: factionContext.scoreAdjustment,
-              scoreAdjustmentReason: factionContext.reasons.join(' / '),
-            }
-          )
-        : resolveCase(currentCase, assignedAgents, state.config, rng, {
-            inventory: state.inventory,
-            protocolState: buildAgencyProtocolState(state),
-            supportTags: [
-              ...new Set(
-                currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
-              ),
-            ],
-            leaderId:
-              currentCase.assignedTeamIds.length === 1
-                ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
-                : null,
-            scoreAdjustment: factionContext.scoreAdjustment,
-            scoreAdjustmentReason: factionContext.reasons.join(' / '),
-            partyCardScoreBonus: cardBonus?.scoreAdjustment,
-            partyCardReasons: cardBonus?.reasons,
-          })
-  }
-  return {
-    effectiveCase,
-    assignedAgents,
-    assignedAgentLeaderBonuses,
-    activeTeamStressModifiers,
-    outcome,
-    weakestLinkResult,
-  }
-}
 
 function createWeeklyExecutionContext(
   state: GameState,
@@ -1520,6 +1272,13 @@ function applySpontaneousRelationshipEvents(context: WeeklyExecutionContext, rng
 function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
   const preFatigueAgents = context.nextState.agents
 
+  // Advance recovery for agents (no support staff multiplier)
+  context.nextState.agents = advanceRecoveryAgentsForWeek({
+    week: context.sourceState.week + 1,
+    sourceAgents: context.nextState.agents,
+    nextAgents: context.nextState.agents,
+  })
+
   const fatiguedAgents = applyAgentFatigue(
     context.nextState.agents,
     context.nextState.teams,
@@ -1706,6 +1465,7 @@ function advanceQueues(context: WeeklyExecutionContext) {
   context.nextState = advanceTrainingCertificationState(trainingResult.state)
   context.eventDrafts.push(...trainingResult.eventDrafts)
 
+  // Advance production queues (no support staff multiplier)
   const productionResult = advanceProductionQueues(context.nextState)
   context.nextState = productionResult.state
   context.eventDrafts.push(...productionResult.eventDrafts)

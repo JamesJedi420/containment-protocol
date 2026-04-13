@@ -88,10 +88,10 @@ export function advanceRecoveryAgentsForWeek({
 
     const severity = getInjurySeverityFlag(agent.vitals?.statusFlags) ?? 'minor'
     const startedWeek = agent.assignment.startedWeek ?? Math.max(0, week - 1)
-    const elapsedWeeks = Math.max(0, week - startedWeek)
+      const elapsedWeeks = Math.max(0, week - startedWeek)
     const moraleRecoveryDelta = getRecoveryMoraleDelta(agent)
 
-    if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
+      if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
       updatedAgents[agentId] = appendAgentHistoryEntry(
         setAgentAssignment(
           {
@@ -126,7 +126,7 @@ export function advanceRecoveryAgentsForWeek({
       continue
     }
 
-    if (elapsedWeeks >= 1 && agent.status === 'injured') {
+      if (elapsedWeeks >= 1 && agent.status === 'injured') {
       updatedAgents[agentId] = appendAgentHistoryEntry(
         {
           ...agent,
@@ -166,3 +166,4 @@ export function advanceRecoveryAgentsForWeek({
 
   return updatedAgents
 }
+

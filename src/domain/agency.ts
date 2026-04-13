@@ -53,6 +53,7 @@ export interface AgencyReportSummary {
   notes: number
 }
 
+
 export interface AgencySummary {
   name: string
   reputation: number
@@ -276,9 +277,9 @@ export function buildAgencySummary(game: GameState): AgencySummary {
     if (factions.length === 0) {
       return 0
     }
-
     return factions.reduce((sum, faction) => sum + faction.standing, 0) / factions.length
   })()
+
 
   return {
     name: DEFAULT_AGENCY_NAME,

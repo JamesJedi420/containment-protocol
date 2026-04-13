@@ -40,6 +40,13 @@ export default function AgencyPage() {
           <Metric label="Active incidents" value={String(overview.activeCases)} />
           <Metric label="Committed teams" value={String(overview.activeTeams)} />
           <Metric label="Ready operatives" value={String(overview.readyAgents)} />
+          {/* Support Staff Capacity */}
+          {summary.supportStaff && (
+            <Metric
+              label="Support Staff"
+              value={`Total: ${summary.supportStaff.total} | Admin: ${summary.supportStaff.admin} | Logistics: ${summary.supportStaff.logistics} | Medical: ${summary.supportStaff.medical} | Intel: ${summary.supportStaff.intel}`}
+            />
+          )}
         </div>
       </article>
 
@@ -81,6 +88,12 @@ export default function AgencyPage() {
               {summary.stability.funding}, readiness {summary.stability.readiness}, logistics{' '}
               {summary.stability.logistics}
             </li>
+            {summary.supportStaff && (
+              <li>
+                Support staff: total {summary.supportStaff.total} (admin {summary.supportStaff.admin}, logistics {summary.supportStaff.logistics}, medical {summary.supportStaff.medical}, intel {summary.supportStaff.intel})
+                {summary.supportStaff.pressure > 0 ? ` | Pressure: ${summary.supportStaff.pressure}` : ''}
+              </li>
+            )}
           </ul>
         </article>
 

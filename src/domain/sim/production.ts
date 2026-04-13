@@ -93,24 +93,49 @@ export function purchaseMarketInventory(
   return purchaseMarketListingInventory(state, recipeId, bundles)
 }
 
-export function advanceProductionQueues(state: GameState) {
+export function advanceProductionQueues(state: GameState, opts?: { procurementMultiplier?: number }) {
   if (state.productionQueue.length === 0) {
     return {
       state: ensureNormalizedGameState(state),
-      completed: [] as ProductionQueueEntry[],
-      notes: [] as string[],
-      eventDrafts: [] as AnyOperationEventDraft[],
+      eventDrafts: [],
     }
   }
 
   const nextQueue: ProductionQueueEntry[] = []
-  const completed: ProductionQueueEntry[] = []
-  const nextInventory = { ...state.inventory }
-  const notes: string[] = []
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
     const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
+
+    if (remainingWeeks > 0) {
+      nextQueue.push({
+        ...entry,
+        remainingWeeks,
+      })
+    } else {
+      eventDrafts.push(
+        createProductionQueueCompletedDraft({
+          week: state.week,
+          queueId: entry.id,
+          queueName: entry.recipeName,
+          recipeId: entry.recipeId,
+          outputId: entry.outputItemId,
+          outputName: entry.outputItemName,
+          outputQuantity: entry.outputQuantity,
+          fundingCost: entry.fundingCost,
+          inputMaterials: entry.inputMaterials ?? [],
+        })
+      )
+    }
+  }
+
+  return {
+    state: normalizeGameState({
+      ...state,
+      productionQueue: nextQueue,
+    }),
+    eventDrafts,
+  }
 
     if (remainingWeeks > 0) {
       nextQueue.push({

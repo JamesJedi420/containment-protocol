@@ -1,14 +1,16 @@
+
 import React, { useState } from 'react';
 import { getMajorIncidentFlowView } from './majorIncidentView';
+import './MajorIncidentPage.css';
 
 export const MajorIncidentPage: React.FC = () => {
   const [selectedResponseId, setSelectedResponseId] = useState<string | null>(null);
   const view = getMajorIncidentFlowView();
 
   return (
-    <div className="major-incident-page" style={{ display: 'flex', height: '100%', gap: 16 }}>
+    <div className="major-incident-page">
       {/* Left zone: Incident overview/context */}
-      <div style={{ flex: 1, minWidth: 220, borderRight: '1px solid #ccc', padding: 12 }}>
+      <div className="major-incident-left">
         <h3>Incident Overview</h3>
         {view.context ? (
           <div>
@@ -25,38 +27,30 @@ export const MajorIncidentPage: React.FC = () => {
         ) : <div>No active major incident.</div>}
       </div>
       {/* Center zone: Response options */}
-      <div style={{ flex: 2, minWidth: 320, borderRight: '1px solid #ccc', padding: 12 }}>
+      <div className="major-incident-center">
         <h3>Response Options</h3>
         {view.responseOptions.map(opt => (
-          <div key={opt.id} style={{ marginBottom: 12 }}>
+          <div key={opt.id} className="major-incident-response-option">
             <button
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                background: selectedResponseId === opt.id ? '#eef' : '#fff',
-                border: '1px solid #bbb',
-                borderRadius: 4,
-                padding: 8,
-                cursor: 'pointer',
-              }}
+              className={`major-incident-response-btn${selectedResponseId === opt.id ? ' selected' : ''}`}
               onClick={() => setSelectedResponseId(opt.id)}
             >
               <strong>{opt.label}</strong>
-              <div style={{ fontSize: 12 }}>{opt.description}</div>
+              <div className="major-incident-response-desc">{opt.description}</div>
               {opt.blockers && opt.blockers.length > 0 && (
-                <div style={{ color: '#c00', fontSize: 12 }}>{opt.blockers.join(', ')}</div>
+                <div className="major-incident-response-blockers">{opt.blockers.join(', ')}</div>
               )}
             </button>
           </div>
         ))}
         {view.outcomePreview && (
-          <div style={{ marginTop: 24, color: '#333' }}>
+          <div className="major-incident-outcome-preview">
             <strong>Outcome Preview:</strong> {view.outcomePreview}
           </div>
         )}
       </div>
       {/* Right zone: Readiness/attrition/weakest-link */}
-      <div style={{ flex: 1, minWidth: 220, padding: 12 }}>
+      <div className="major-incident-right">
         <h3>Readiness & Consequences</h3>
         {view.readiness ? (
           <div>

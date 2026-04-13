@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getProcurementScreenView } from './procurementView';
+import './ProcurementPage.css';
 
 // TODO: Wire to canonical state/store
 
@@ -11,44 +12,30 @@ export const ProcurementPage: React.FC = () => {
   const selected = view.options.find(opt => opt.id === selectedOptionId) || null;
 
   return (
-    <div className="procurement-page" style={{ display: 'flex', height: '100%', gap: 16 }}>
+    <div className="procurement-page">
       {/* Left zone: Procurement options */}
-      <div style={{ flex: 1, minWidth: 220, borderRight: '1px solid #ccc', padding: 12 }}>
+      <div className="procurement-left">
         <h3>Procurement Options</h3>
-        <ul style={{ listStyle: 'none', padding: 0 }}>
+        <ul className="procurement-options-list">
           {view.options.map(opt => (
-            <li key={opt.id} style={{ marginBottom: 8 }}>
+            <li key={opt.id} className="procurement-option-item">
               <button
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  background: selectedOptionId === opt.id ? '#eef' : '#fff',
-                  border: '1px solid #bbb',
-                  borderRadius: 4,
-                  padding: 8,
-                  cursor: 'pointer',
-                }}
+                className={`procurement-option-btn${selectedOptionId === opt.id ? ' selected' : ''}`}
                 onClick={() => setSelectedOptionId(opt.id)}
                 disabled={!!opt.blockers.length}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div className="procurement-option-row">
                   <strong>{opt.name}</strong>
-                  <span style={{
-                    fontSize: 12,
-                    padding: '2px 6px',
-                    borderRadius: 8,
-                    background: opt.category === 'Equipment' ? '#e0f7fa' : opt.category === 'Fabrication' ? '#fff3e0' : '#eee',
-                    color: '#333',
-                  }}>{opt.category}</span>
-                  {opt.isCritical && <span style={{ color: '#c00', fontWeight: 'bold', fontSize: 12 }}>Critical</span>}
-                  {!opt.isCritical && opt.isRecommended && <span style={{ color: '#080', fontWeight: 'bold', fontSize: 12 }}>Recommended</span>}
+                  <span className={`procurement-category${opt.category === 'Equipment' ? ' equipment' : opt.category === 'Fabrication' ? ' fabrication' : ''}`}>{opt.category}</span>
+                  {opt.isCritical && <span className="procurement-critical">Critical</span>}
+                  {!opt.isCritical && opt.isRecommended && <span className="procurement-recommended">Recommended</span>}
                 </div>
                 <div>Cost: ${opt.cost}</div>
-                <div style={{ fontSize: 12, color: opt.affordable ? '#080' : '#c00' }}>
+                <div className={opt.affordable ? 'procurement-affordable' : 'procurement-not-affordable'}>
                   {opt.affordable ? 'Affordable' : 'Not affordable'}
                 </div>
                 {opt.blockers.length > 0 && (
-                  <div style={{ color: '#c00', fontSize: 12 }}>
+                  <div className="procurement-blockers">
                     {opt.blockers.join(', ')}
                   </div>
                 )}
@@ -58,7 +45,7 @@ export const ProcurementPage: React.FC = () => {
         </ul>
       </div>
       {/* Center zone: Detail panel */}
-      <div style={{ flex: 2, minWidth: 320, borderRight: '1px solid #ccc', padding: 12 }}>
+      <div className="procurement-center">
         <h3>Detail</h3>
         {selected ? (
           <div>
@@ -72,12 +59,12 @@ export const ProcurementPage: React.FC = () => {
             <div>After Purchase: ${selected.afterFunding}</div>
             <div>Pressure Consequences: {selected.pressureConsequences}</div>
             <div>Blockers: {selected.blockers.join(', ') || 'None'}</div>
-            {selected.isCritical && <div style={{ color: '#c00', fontWeight: 'bold' }}>Critical Priority</div>}
-            {!selected.isCritical && selected.isRecommended && <div style={{ color: '#080', fontWeight: 'bold' }}>Recommended</div>}
+            {selected.isCritical && <div className="procurement-critical">Critical Priority</div>}
+            {!selected.isCritical && selected.isRecommended && <div className="procurement-recommended">Recommended</div>}
             <button
               disabled={!selected.affordable || !!selected.blockers.length}
               onClick={() => view.onRequest(selected.id)}
-              style={{ marginTop: 12 }}
+              className="procurement-request-btn"
             >
               Request / Purchase
             </button>
@@ -87,7 +74,7 @@ export const ProcurementPage: React.FC = () => {
         )}
       </div>
       {/* Right zone: Budget, blockers, backlog */}
-      <div style={{ flex: 1, minWidth: 220, padding: 12 }}>
+      <div className="procurement-right">
         <h3>Budget & Backlog</h3>
         <div>
           <strong>Budget:</strong> ${view.budget.funding} <br />
@@ -95,20 +82,20 @@ export const ProcurementPage: React.FC = () => {
           <strong>Blockers:</strong> {view.budget.blockers.join(', ') || 'None'}
         </div>
         {view.budget.backlogSignal && (
-          <div style={{ color: '#c00', fontWeight: 'bold', marginTop: 8 }}>{view.budget.backlogSignal}</div>
+          <div className="procurement-backlog-signal">{view.budget.backlogSignal}</div>
         )}
-        <div style={{ marginTop: 16 }}>
+        <div className="procurement-section">
           <strong>Pending Procurement:</strong>
-          <ul style={{ listStyle: 'none', padding: 0 }}>
+          <ul className="procurement-backlog-list">
             {view.backlog.map(entry => (
-              <li key={entry.requestId} style={{ marginBottom: 6 }}>
+              <li key={entry.requestId} className="procurement-backlog-item">
                 {entry.name} — ${entry.cost} [{entry.status}]
               </li>
             ))}
             {view.backlog.length === 0 && <li>None</li>}
           </ul>
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div className="procurement-section">
           <strong>Pressure Consequences:</strong>
           <div>{view.budget.pressureConsequences}</div>
         </div>

@@ -108,7 +108,7 @@ export default function ContractBoardPage() {
                   key={entry.id}
                   type="button"
                   role="tab"
-                  aria-selected={filter === entry.id ? 'true' : 'false'}
+                  aria-selected={filter === entry.id ? "true" : "false"}
                   onClick={() => setFilter(entry.id)}
                   className={filter === entry.id ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'}
                 >

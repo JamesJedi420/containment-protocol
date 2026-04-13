@@ -378,7 +378,10 @@ export function assessFundingPressure(
   const constrained = budgetPressure >= 2 || staleProcurementRequestIds.length > 0
   const severeConstraint = budgetPressure >= 4 || staleProcurementRequestIds.length > 0
   const deploymentSetupDelayWeeks = severeConstraint ? 2 : constrained ? 1 : 0
-  const recoveryThroughputPenalty = budgetPressure >= 3 ? 2 : constrained ? 1 : 0
+
+  // Support staff (admin/logistics) can reduce procurement throughput penalty deterministically
+  let recoveryThroughputPenalty = budgetPressure >= 3 ? 2 : constrained ? 1 : 0
+
   const therapyTraumaReductionPenalty = severeConstraint ? 1 : 0
   const replacementPressurePenalty = Math.min(
     2,

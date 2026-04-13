@@ -1640,6 +1640,8 @@ export interface AgencyState {
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   progressionUnlockIds?: string[]
+  /** Canonical support staff/capacity summary for agency operations. */
+  supportStaff?: SupportStaffSummary
 }
 
 /**
@@ -1867,6 +1869,9 @@ export interface GameState {
 
   /** Canonical progression shape (preferred over legacy top-level fields). */
   agency?: AgencyState
+
+  /** Canonical support staff/capacity summary for agency operations. */
+  supportStaff?: SupportStaffSummary
 
   /** Canonical replacement-pressure and staffing-gap state. */
   replacementPressureState?: ReplacementPressureState

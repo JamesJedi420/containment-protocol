@@ -1,3 +1,4 @@
+// cspell:words cand fieldcraft voss
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { type Candidate } from '../domain/models'

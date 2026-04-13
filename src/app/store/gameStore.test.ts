@@ -1,6 +1,8 @@
+// cspell:words cand greentape medkits unassigns unequip
 import { beforeEach, describe, expect, it } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import { createStartingState } from '../../data/startingState'
+import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
 import type { AgentData, Candidate } from '../../domain/models'
 import { advanceWeek as advanceWeekDomain } from '../../domain/sim/advanceWeek'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
@@ -11,8 +13,8 @@ import {
   unequipAgentItem as unequipAgentItemDomain,
 } from '../../domain/sim/equipment'
 import { queueFabrication as queueFabricationDomain } from '../../domain/sim/production'
-import { GAME_STORE_VERSION, RUN_EXPORT_KIND } from './runTransfer'
-import { parseRunExport, serializeRunExport } from './runTransfer'
+import { GAME_STORE_VERSION } from './runTransfer'
+import { hydrateGame, parseRunExport, serializeRunExport } from './runTransfer'
 import { gameStorageFallback, resolveGameStorage, useGameStore } from './gameStore'
 import {
   createTeam as createTeamDomain,
@@ -25,6 +27,7 @@ import {
   queueTeamTraining as queueTeamTrainingDomain,
   queueTraining as queueTrainingDomain,
 } from '../../domain/sim/training'
+import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave } from './saveSystem'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -70,6 +73,298 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().game.week).toBe(2)
     expect(useGameStore.getState().game.reports).toHaveLength(1)
+  })
+
+  it('exposes canonical runtime-state actions without direct mutation', () => {
+    useGameStore.getState().setPlayerProfile({ displayName: 'Handler One' })
+    useGameStore.getState().setGlobalFlag('story.prologue_complete', true)
+    useGameStore.getState().markOneShotEvent('event.prologue', 'opening')
+    useGameStore.getState().setCurrentLocation({
+      hubId: 'agency',
+      locationId: 'operations-desk',
+      sceneId: 'briefing-room',
+    })
+    useGameStore.getState().recordSceneVisit({
+      locationId: 'operations-desk',
+      sceneId: 'briefing-room',
+      outcome: 'accepted-contract',
+    })
+    useGameStore.getState().setEncounterRuntimeState('case-001', {
+      status: 'active',
+      flags: { foreshadowed: true },
+    })
+    useGameStore.getState().advanceProgressClock('story.clock', 2, {
+      label: 'Story Clock',
+      max: 4,
+    })
+    useGameStore.getState().setUiDebugState({
+      selectedCaseId: 'case-001',
+      debug: { enabled: true, flags: { tracing: true } },
+    })
+    useGameStore.getState().adjustInventoryQuantity('debug_supplies', 2)
+
+    const game = useGameStore.getState().game
+
+    expect(game.runtimeState?.player.displayName).toBe('Handler One')
+    expect(game.runtimeState?.globalFlags['story.prologue_complete']).toBe(true)
+    expect(game.runtimeState?.oneShotEvents['event.prologue']?.source).toBe('opening')
+    expect(game.runtimeState?.currentLocation.sceneId).toBe('briefing-room')
+    expect(game.runtimeState?.sceneHistory.at(-1)?.sceneId).toBe('briefing-room')
+    expect(game.runtimeState?.encounterState['case-001']?.flags.foreshadowed).toBe(true)
+    expect(game.runtimeState?.progressClocks['story.clock']?.value).toBe(2)
+    expect(game.runtimeState?.ui.debug.flags.tracing).toBe(true)
+    expect(game.inventory.debug_supplies).toBe(2)
+  })
+
+  it('executes authored choices through the store and returns structured results', () => {
+    const choice = buildWeeklyReportTutorialChoices()[0]
+
+    const result = useGameStore.getState().applyAuthoredChoice(choice, {
+      activeContextId: 'frontdesk.notice.weekly-report-tutorial',
+    })
+
+    expect(result).toMatchObject({
+      applied: true,
+      choiceId: choice.id,
+      nextTargetId: 'frontdesk.notice.weekly-report.returning',
+      consumedOneShots: ['frontdesk.tutorial.weekly-report'],
+    })
+    expect(
+      useGameStore.getState().game.runtimeState?.globalFlags['frontdesk.tutorial.weekly-report.acknowledged']
+    ).toBe(true)
+    expect(useGameStore.getState().game.runtimeState?.ui.debug.eventLog).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'choice.executed',
+          summary: `Choice executed: ${choice.id}`,
+        }),
+      ])
+    )
+  })
+
+  it('logs one-shot consumption only once when repeat-trigger prevention holds', () => {
+    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
+      true
+    )
+    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
+      false
+    )
+
+    const oneShotLogs = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).filter(
+      (entry) => entry.type === 'one_shot.consumed'
+    )
+
+    expect(oneShotLogs).toHaveLength(1)
+    expect(oneShotLogs[0]).toMatchObject({
+      summary: 'One-shot consumed: frontdesk.warning.weekly-report',
+    })
+  })
+
+  it('queues, peeks, dequeues, and clears authored runtime follow-up events deterministically', () => {
+    const firstId = useGameStore.getState().enqueueRuntimeEvent({
+      type: 'authored.follow_up',
+      targetId: 'followup.alpha',
+      source: 'choice.alpha',
+      week: 1,
+    })
+    const secondId = useGameStore.getState().enqueueRuntimeEvent({
+      type: 'authored.follow_up',
+      targetId: 'followup.beta',
+      source: 'choice.beta',
+      week: 1,
+    })
+
+    expect(firstId).toBe('qevt-0001')
+    expect(secondId).toBe('qevt-0002')
+    expect(useGameStore.getState().peekRuntimeEvent()).toBe('qevt-0001')
+    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
+      'followup.alpha',
+      'followup.beta',
+    ])
+
+    expect(useGameStore.getState().dequeueRuntimeEvent()).toBe('qevt-0001')
+    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
+      'followup.beta',
+    ])
+
+    expect(useGameStore.getState().clearRuntimeEventQueue()).toBe(1)
+    expect(useGameStore.getState().listRuntimeEventQueue()).toEqual([])
+
+    const logTypes = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).map(
+      (entry) => entry.type
+    )
+    expect(logTypes).toContain('event_queue.enqueued')
+    expect(logTypes).toContain('event_queue.dequeued')
+    expect(logTypes).toContain('event_queue.cleared')
+  })
+
+  it('runs bounded debug reset actions without mutating unrelated simulation state', () => {
+    useGameStore.getState().setPersistentFlag('reset.test.flag', true)
+    useGameStore.getState().markOneShotEvent('reset.test.one-shot', 'debug')
+    useGameStore.getState().advanceProgressClock('reset.test.clock', 2, {
+      label: 'Reset Test Clock',
+      max: 4,
+    })
+    useGameStore.getState().setEncounterRuntimeState('reset.test.encounter', {
+      status: 'active',
+      phase: 'debug',
+    })
+    useGameStore.getState().enqueueRuntimeEvent({
+      type: 'authored.follow_up',
+      targetId: 'reset.followup.alpha',
+      week: 1,
+    })
+    useGameStore.getState().appendDeveloperLogEvent({
+      type: 'choice.executed',
+      summary: 'Choice executed: reset.debug',
+    })
+
+    const fundingBefore = useGameStore.getState().game.funding
+    const weekBefore = useGameStore.getState().game.week
+
+    const summary = useGameStore.getState().debugReset({
+      clearDeveloperLog: true,
+      clearEventQueue: true,
+      clearEncounterRuntime: { clearAll: true },
+      resetFlags: { flagIds: ['reset.test.flag'] },
+      resetOneShots: { contentIds: ['reset.test.one-shot'] },
+      resetProgressClocks: { clockIds: ['reset.test.clock'], resetToDefaults: false },
+      resetAuthoredDebugContext: true,
+    })
+
+    expect(summary).toMatchObject({
+      clearedDeveloperLog: true,
+      clearedEventQueue: true,
+      resetFlagCount: 1,
+      resetOneShotCount: 1,
+      resetProgressClockCount: 1,
+      clearedEncounterCount: 1,
+      resetAuthoredDebugContext: true,
+      fullRuntimeDebugReset: false,
+    })
+
+    const game = useGameStore.getState().game
+    expect(game.runtimeState?.globalFlags['reset.test.flag']).toBeUndefined()
+    expect(game.runtimeState?.oneShotEvents['reset.test.one-shot']).toBeUndefined()
+    expect(game.runtimeState?.progressClocks['reset.test.clock']).toMatchObject({
+      value: 0,
+      max: 4,
+    })
+    expect(game.runtimeState?.encounterState).toEqual({})
+    expect(game.runtimeState?.eventQueue.entries).toEqual([])
+    expect(game.runtimeState?.ui.authoring).toBeUndefined()
+
+    expect(game.funding).toBe(fundingBefore)
+    expect(game.week).toBe(weekBefore)
+  })
+
+  it('supports explicit full runtime debug reset while preserving simulation core data', () => {
+    useGameStore.getState().setPersistentFlag('reset.full.flag', true)
+    useGameStore.getState().markOneShotEvent('reset.full.one-shot', 'debug')
+    useGameStore.getState().advanceProgressClock('reset.full.clock', 2, {
+      label: 'Reset Full Clock',
+      max: 4,
+    })
+
+    const before = useGameStore.getState().game
+    const summary = useGameStore.getState().debugReset({ fullRuntimeDebugReset: true })
+    const after = useGameStore.getState().game
+
+    expect(summary.fullRuntimeDebugReset).toBe(true)
+    expect(after.funding).toBe(before.funding)
+    expect(after.week).toBe(before.week)
+    expect(after.config).toEqual(before.config)
+    expect(after.runtimeState?.globalFlags).toEqual({})
+    expect(after.runtimeState?.oneShotEvents).toEqual({})
+    expect(after.runtimeState?.progressClocks).toEqual({})
+    expect(after.runtimeState?.encounterState).toEqual({})
+    expect(after.runtimeState?.eventQueue.entries).toEqual([])
+  })
+
+  it('resolves hidden encounters deterministically and logs compact outcome details', () => {
+    useGameStore.getState().setPersistentFlag('encounter.hidden.bonus', true)
+
+    const result = useGameStore.getState().resolveHiddenEncounter(
+      {
+        encounterId: 'encounter.hidden.alpha',
+        basePower: 48,
+        baseDifficulty: 52,
+        modifiers: [
+          {
+            id: 'bonus-flag',
+            when: {
+              flags: {
+                allFlags: ['encounter.hidden.bonus'],
+              },
+            },
+            powerDelta: 6,
+          },
+        ],
+        followUpByOutcome: {
+          success: ['frontdesk.encounter.alpha.after-action'],
+        },
+        flagEffectsByOutcome: {
+          success: {
+            set: {
+              'encounter.hidden.alpha.resolved': true,
+            },
+            clear: ['encounter.hidden.bonus'],
+          },
+        },
+        progressEffectsByOutcome: {
+          success: [
+            {
+              clockId: 'encounter.hidden.alpha.clock',
+              delta: 1,
+              defaults: {
+                label: 'Hidden Encounter Alpha',
+                max: 3,
+              },
+            },
+          ],
+        },
+      },
+      {
+        activeContextId: 'frontdesk.notice.encounter.hidden.alpha',
+      }
+    )
+
+    expect(result.resolution.outcome).toBe('success')
+    expect(result.apply.queueEvents).toHaveLength(1)
+
+    const game = useGameStore.getState().game
+    expect(game.runtimeState?.encounterState['encounter.hidden.alpha']).toMatchObject({
+      status: 'resolved',
+      phase: 'hidden-combat:success',
+      startedWeek: 1,
+      resolvedWeek: 1,
+      latestOutcome: 'success',
+      lastResolutionId: result.resolution.resolutionId,
+      followUpIds: ['frontdesk.encounter.alpha.after-action'],
+    })
+    expect(game.runtimeState?.globalFlags['encounter.hidden.alpha.resolved']).toBe(true)
+    expect(game.runtimeState?.globalFlags['encounter.hidden.bonus']).toBeUndefined()
+    expect(game.runtimeState?.progressClocks['encounter.hidden.alpha.clock']).toMatchObject({
+      value: 1,
+      max: 3,
+    })
+    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toContain(
+      'frontdesk.encounter.alpha.after-action'
+    )
+
+    const logs = game.runtimeState?.ui.debug.eventLog ?? []
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'encounter.patched',
+          summary: 'Hidden encounter resolved: encounter.hidden.alpha (success)',
+        }),
+        expect.objectContaining({
+          type: 'event_queue.enqueued',
+          summary: 'Hidden encounter queued 1 follow-up event',
+        }),
+      ])
+    )
   })
 
   it('matches direct domain mutations with store actions and keeps team state canonical', () => {
@@ -191,6 +486,55 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().game).toEqual(direct)
     expectCanonicalTeams(useGameStore.getState().game)
+  })
+
+  it('supports explicit recruitment funnel transitions through store actions', () => {
+    const initial = createStartingState()
+    initial.candidates = [
+      {
+        id: 'cand-funnel-store',
+        name: 'Store Funnel Candidate',
+        age: 29,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 20,
+        weeklyWage: 20,
+        revealLevel: 2,
+        expiryWeek: 8,
+        funnelStage: 'prospect',
+        createdWeek: 1,
+        lastUpdatedWeek: 1,
+        evaluation: {
+          overallVisible: true,
+          overall: 72,
+          overallValue: 72,
+          potentialVisible: true,
+          potentialTier: 'mid',
+          rumorTags: [],
+        },
+        agentData: {
+          role: 'field',
+          specialization: 'recon',
+          stats: {
+            combat: 60,
+            investigation: 55,
+            utility: 52,
+            social: 41,
+          },
+          traits: ['steady-aim'],
+        },
+      },
+    ] as typeof initial.candidates
+
+    useGameStore.setState({ game: initial })
+
+    expect(useGameStore.getState().contactCandidate('cand-funnel-store', 'initial outreach')).toBe(true)
+    expect(useGameStore.getState().screenCandidate('cand-funnel-store', 'screen packet')).toBe(true)
+
+    expect(useGameStore.getState().game.candidates[0]).toMatchObject({
+      funnelStage: 'screening',
+      transitionNotes: ['initial outreach', 'screen packet'],
+    })
   })
 
   it('equipment actions: domain mutators equal store actions and keep inventory canonical', () => {
@@ -416,10 +760,30 @@ describe('gameStore', () => {
     expect(resetGame).not.toBe(initialGame)
   })
 
-  it('exports a v2 run payload and imports it back through the store actions', () => {
+  it('exports a save payload and imports it back through the store actions', () => {
     useGameStore.getState().assign('case-001', 't_nightwatch')
     useGameStore.getState().advanceWeek()
     useGameStore.getState().queueTraining('a_mina', 'analysis-lab')
+    useGameStore.getState().setGlobalFlag('frontdesk.notice.breach.unlocked', true)
+    useGameStore.getState().markOneShotEvent('frontdesk.notice.weekly-report', 'frontdesk')
+    useGameStore.getState().setCurrentLocation({
+      hubId: 'agency',
+      locationId: 'front-desk',
+      sceneId: 'weekly-report',
+    })
+    useGameStore.getState().advanceProgressClock('story.breach', 1, {
+      label: 'Breach',
+      max: 4,
+    })
+    useGameStore.getState().setUiDebugState({
+      authoring: {
+        activeContextId: 'frontdesk.notice.weekly-report',
+        lastChoiceId: 'frontdesk.notice.weekly-report.acknowledge',
+        lastNextTargetId: 'frontdesk.notice.weekly-report.returning',
+        lastFollowUpIds: ['frontdesk.notice.weekly-report.returning'],
+        updatedWeek: 2,
+      },
+    })
     useGameStore.getState().setSeed(77)
     useGameStore.getState().updateConfig({
       maxActiveCases: 9,
@@ -427,33 +791,57 @@ describe('gameStore', () => {
       durationModel: 'attrition',
     })
 
-    const exported = useGameStore.getState().exportRun()
+    const exported = useGameStore.getState().exportSave()
     const payload = JSON.parse(exported) as {
       kind: string
       version: number
-      exportedAt: string
-      game: Record<string, unknown>
+      savedAt: string
+      state: Record<string, unknown>
     }
 
     expect(payload).toMatchObject({
-      kind: RUN_EXPORT_KIND,
-      version: GAME_STORE_VERSION,
+      kind: GAME_SAVE_KIND,
+      version: GAME_SAVE_VERSION,
     })
-    expect(payload.exportedAt).toBeTypeOf('string')
-    expect(new Date(payload.exportedAt).toISOString()).toBe(payload.exportedAt)
-    expect(payload.game).not.toHaveProperty('templates')
+    expect(payload.savedAt).toBeTypeOf('string')
+    expect(new Date(payload.savedAt).toISOString()).toBe(payload.savedAt)
+    expect(payload.state).not.toHaveProperty('templates')
+    expect(JSON.parse(useGameStore.getState().exportRun())).toMatchObject({
+      kind: GAME_SAVE_KIND,
+      version: GAME_SAVE_VERSION,
+    })
 
     useGameStore.getState().reset()
-    useGameStore.getState().importRun(exported)
+    useGameStore.getState().importSave(exported)
 
-    expect(useGameStore.getState().game).toEqual(parseRunExport(exported))
+    const importedFromPayload = loadGameSave(exported)
+    expect(useGameStore.getState().game.week).toBe(importedFromPayload.week)
+    expect(useGameStore.getState().game.rngSeed).toBe(importedFromPayload.rngSeed)
+    expect(useGameStore.getState().game.config).toEqual(importedFromPayload.config)
+    expect(useGameStore.getState().game.runtimeState?.globalFlags).toEqual(
+      importedFromPayload.runtimeState?.globalFlags
+    )
+    expect(useGameStore.getState().game.runtimeState?.oneShotEvents).toEqual(
+      importedFromPayload.runtimeState?.oneShotEvents
+    )
+    expect(useGameStore.getState().game.runtimeState?.ui.authoring).toMatchObject({
+      activeContextId: 'frontdesk.notice.weekly-report',
+      lastChoiceId: 'frontdesk.notice.weekly-report.acknowledge',
+      lastNextTargetId: 'frontdesk.notice.weekly-report.returning',
+      lastFollowUpIds: ['frontdesk.notice.weekly-report.returning'],
+    })
+    const logTypes = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).map(
+      (entry) => entry.type
+    )
+    expect(logTypes).toContain('save.exported')
+    expect(logTypes).toContain('save.imported')
   })
 
   it('rejects invalid imports without mutating the current game', () => {
     const beforeImport = JSON.parse(JSON.stringify(useGameStore.getState().game))
 
-    expect(() => useGameStore.getState().importRun('not-json')).toThrow(
-      'Run payload is not valid JSON.'
+    expect(() => useGameStore.getState().importSave('not-json')).toThrow(
+      'Save payload is not valid JSON.'
     )
 
     expect(useGameStore.getState().game).toEqual(beforeImport)
@@ -742,6 +1130,7 @@ describe('gameStore persistence', () => {
 
   it('ignores malformed persisted state that omits the game payload', async () => {
     useGameStore.getState().setSeed(77)
+    const expected = hydrateGame(createStartingState(), createStartingState())
 
     useGameStore.persist.getOptions().storage?.setItem(STORE_KEY, {
       state: {},
@@ -750,11 +1139,12 @@ describe('gameStore persistence', () => {
 
     await useGameStore.persist.rehydrate()
 
-    expect(useGameStore.getState().game).toEqual(JSON.parse(JSON.stringify(createStartingState())))
+    expect(useGameStore.getState().game).toEqual(expected)
   })
 
   it('ignores malformed persisted game payloads that are not objects', async () => {
     useGameStore.getState().setSeed(77)
+    const expected = hydrateGame(createStartingState(), createStartingState())
 
     useGameStore.persist.getOptions().storage?.setItem(STORE_KEY, {
       state: {
@@ -765,7 +1155,7 @@ describe('gameStore persistence', () => {
 
     await useGameStore.persist.rehydrate()
 
-    expect(useGameStore.getState().game).toEqual(JSON.parse(JSON.stringify(createStartingState())))
+    expect(useGameStore.getState().game).toEqual(expected)
   })
 
   it('discards pre-versioned saves and rehydrates to a fresh starting state', async () => {

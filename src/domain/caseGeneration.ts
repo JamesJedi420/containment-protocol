@@ -1,10 +1,12 @@
+// cspell:words cryptid psionic
 import { buildMissionRewardPreviewSet } from './missionResults'
 import type { CaseInstance, CaseSpawnTrigger, CaseTemplate, GameState } from './models'
 import { applyTemplateDiversityWeight } from './caseGenerationPolicy'
 import {
   buildFactionStates,
-  getFactionDefinitionTags,
+  getFactionHostileMissionTags,
   getFactionPressureSpawnThreshold,
+  getFactionSupportiveMissionTags,
 } from './factions'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './sim/spawn'
 import { starterCaseSeeds } from './templates/startingCases'
@@ -187,10 +189,12 @@ function buildWorldActivityReason(template: CaseTemplate, game: GameState) {
 
 function getFactionTemplateWeight(
   template: CaseTemplate,
-  faction: ReturnType<typeof buildFactionStates>[number]
+  faction: ReturnType<typeof buildFactionStates>[number],
+  tags: readonly string[],
+  mode: 'supportive' | 'hostile'
 ) {
   const tagSet = getCaseTagSet(template)
-  const factionTagMatches = countMatchingTags(tagSet, getFactionDefinitionTags(faction.id))
+  const factionTagMatches = countMatchingTags(tagSet, tags)
 
   if (factionTagMatches === 0) {
     return 0
@@ -198,12 +202,30 @@ function getFactionTemplateWeight(
 
   let weight = 1 + factionTagMatches * 3
 
-  if (template.onFail.spawnCount.max > 0 || template.onUnresolved.spawnCount.max > 0) {
-    weight += 0.5
-  }
+  if (mode === 'hostile') {
+    if (template.onFail.spawnCount.max > 0 || template.onUnresolved.spawnCount.max > 0) {
+      weight += 0.5
+    }
 
-  if (faction.pressureScore >= 180) {
-    weight += 1
+    if (faction.pressureScore >= 180) {
+      weight += 1
+    }
+  } else {
+    if (template.kind === 'case') {
+      weight += 0.75
+    }
+
+    if (template.onFail.spawnCount.max === 0 && template.onUnresolved.spawnCount.max === 0) {
+      weight += 0.5
+    }
+
+    if (faction.reputationTier === 'allied') {
+      weight += 1
+    } else if (faction.reputationTier === 'friendly') {
+      weight += 0.4
+    }
+
+    weight += Math.max(0, faction.influenceModifiers.opportunityAccess) * 0.25
   }
 
   return weight * faction.influenceModifiers.caseGenerationWeight
@@ -212,9 +234,11 @@ function getFactionTemplateWeight(
 function getFactionTemplateWeightForState(
   template: CaseTemplate,
   faction: ReturnType<typeof buildFactionStates>[number],
+  tags: readonly string[],
+  mode: 'supportive' | 'hostile',
   game: GameState
 ) {
-  const baseWeight = getFactionTemplateWeight(template, faction)
+  const baseWeight = getFactionTemplateWeight(template, faction, tags, mode)
   return applyTemplateDiversityWeight(template, baseWeight, game)
 }
 
@@ -223,7 +247,7 @@ function buildFactionPressureReason(
   faction: ReturnType<typeof buildFactionStates>[number]
 ) {
   const tagSet = getCaseTagSet(template)
-  const matchedTags = getFactionDefinitionTags(faction.id)
+  const matchedTags = getFactionHostileMissionTags(faction.id)
     .filter((tag) => tagSet.has(tag))
     .slice(0, 3)
   const standingFragment =
@@ -236,6 +260,22 @@ function buildFactionPressureReason(
   }
 
   return `${faction.label} pressure surfaced a new incident chain.${standingFragment}`
+}
+
+function buildFactionOfferReason(
+  template: CaseTemplate,
+  faction: ReturnType<typeof buildFactionStates>[number]
+) {
+  const tagSet = getCaseTagSet(template)
+  const matchedTags = getFactionSupportiveMissionTags(faction.id)
+    .filter((tag) => tagSet.has(tag))
+    .slice(0, 3)
+
+  if (matchedTags.length > 0) {
+    return `${faction.label} opened a cooperative mission window around ${matchedTags.join(', ')} work.`
+  }
+
+  return `${faction.label} opened a cooperative mission window this week.`
 }
 
 function createSpawnRecord(
@@ -267,39 +307,112 @@ export function generateAmbientCases(
   const agency = getAgencyState(state)
   const unresolvedMomentum = getRecentUnresolvedMomentum(state)
   const factions = buildFactionStates(state)
-  const topFaction = factions[0]
   const usedIds = new Set(Object.keys(state.cases))
   const eligibleTemplates = Object.values(state.templates).filter(isAmbientEligibleTemplate)
   const spawnedEntries: Array<{ currentCase: CaseInstance; record: SpawnedCaseRecord }> = []
+  const topPressureFaction = factions
+    .filter(
+      (faction) =>
+        faction.stance !== 'supportive' &&
+        faction.pressureScore >= getFactionPressureSpawnThreshold(faction)
+    )
+    .sort(
+      (left, right) =>
+        right.pressureScore - left.pressureScore ||
+        left.reputation - right.reputation ||
+        left.label.localeCompare(right.label)
+    )
+    .at(0)
+  const topSupportiveFaction = factions
+    .filter(
+      (faction) =>
+        (faction.reputationTier === 'friendly' || faction.reputationTier === 'allied') &&
+        faction.stance === 'supportive' &&
+        faction.matchingCases < 2
+    )
+    .sort(
+      (left, right) =>
+        right.reputation - left.reputation ||
+        right.influenceModifiers.opportunityAccess - left.influenceModifiers.opportunityAccess ||
+        right.standing - left.standing ||
+        left.label.localeCompare(right.label)
+    )
+    .at(0)
 
-  if (
-    topFaction &&
-    topFaction.pressureScore >= getFactionPressureSpawnThreshold(topFaction) &&
-    spawnedEntries.length < openSlots
-  ) {
+  const spawnPlans: Array<{
+    priority: number
+    trigger: CaseSpawnTrigger
+    template: CaseTemplate
+    factionId?: string
+    factionLabel?: string
+    reason: string
+  }> = []
+
+  if (topSupportiveFaction) {
+    const supportiveTags = getFactionSupportiveMissionTags(topSupportiveFaction.id)
     const factionTemplate = pickWeightedTemplate(
       eligibleTemplates,
-      (template) => getFactionTemplateWeightForState(template, topFaction, state),
+      (template) =>
+        getFactionTemplateWeightForState(
+          template,
+          topSupportiveFaction,
+          supportiveTags,
+          'supportive',
+          state
+        ),
       rng
     )
 
     if (factionTemplate) {
-      const currentCase = instantiateFromTemplate(factionTemplate, rng, usedIds)
-      spawnedEntries.push({
-        currentCase,
-        record: createSpawnRecord(currentCase, 'faction_pressure', {
-          factionId: topFaction.id,
-          factionLabel: topFaction.label,
-          sourceReason: buildFactionPressureReason(factionTemplate, topFaction),
-        }),
+      spawnPlans.push({
+        priority:
+          70 +
+          topSupportiveFaction.reputation +
+          topSupportiveFaction.influenceModifiers.opportunityAccess * 8 +
+          topSupportiveFaction.standing * 2,
+        trigger: 'faction_offer',
+        template: factionTemplate,
+        factionId: topSupportiveFaction.id,
+        factionLabel: topSupportiveFaction.label,
+        reason: buildFactionOfferReason(factionTemplate, topSupportiveFaction),
       })
     }
   }
 
-  if (
-    (agency.containmentRating <= 45 || unresolvedMomentum >= 4) &&
-    spawnedEntries.length < openSlots
-  ) {
+  if (topPressureFaction) {
+    const hostileTags = getFactionHostileMissionTags(topPressureFaction.id)
+    const factionTemplate = pickWeightedTemplate(
+      eligibleTemplates,
+      (template) =>
+        getFactionTemplateWeightForState(
+          template,
+          topPressureFaction,
+          hostileTags,
+          'hostile',
+          state
+        ),
+      rng
+    )
+
+    if (factionTemplate) {
+      spawnPlans.push({
+        priority:
+          50 +
+          Math.max(
+            0,
+            topPressureFaction.pressureScore - getFactionPressureSpawnThreshold(topPressureFaction)
+          ) +
+          Math.max(0, -topPressureFaction.reputation),
+        trigger: 'faction_pressure',
+        template: factionTemplate,
+        factionId: topPressureFaction.id,
+        factionLabel: topPressureFaction.label,
+        reason: buildFactionPressureReason(factionTemplate, topPressureFaction),
+      })
+    }
+  }
+
+  if (agency.containmentRating <= 45 || unresolvedMomentum >= 4) {
     const worldTemplate = pickWeightedTemplate(
       eligibleTemplates,
       (template) => getWorldTemplateWeight(template, state),
@@ -307,14 +420,35 @@ export function generateAmbientCases(
     )
 
     if (worldTemplate) {
-      const currentCase = instantiateFromTemplate(worldTemplate, rng, usedIds)
-      spawnedEntries.push({
-        currentCase,
-        record: createSpawnRecord(currentCase, 'world_activity', {
-          sourceReason: buildWorldActivityReason(worldTemplate, state),
-        }),
+      spawnPlans.push({
+        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4,
+        trigger: 'world_activity',
+        template: worldTemplate,
+        reason: buildWorldActivityReason(worldTemplate, state),
       })
     }
+  }
+
+  for (const plan of spawnPlans
+    .sort((left, right) => right.priority - left.priority)
+    .slice(0, openSlots)) {
+    const instantiatedCase = instantiateFromTemplate(plan.template, rng, usedIds, state.week)
+    const currentCase =
+      plan.factionId && instantiatedCase.factionId !== plan.factionId
+        ? {
+            ...instantiatedCase,
+            factionId: plan.factionId,
+          }
+        : instantiatedCase
+
+    spawnedEntries.push({
+      currentCase,
+      record: createSpawnRecord(currentCase, plan.trigger, {
+        factionId: plan.factionId,
+        factionLabel: plan.factionLabel,
+        sourceReason: plan.reason,
+      }),
+    })
   }
 
   if (spawnedEntries.length === 0) {
@@ -454,6 +588,20 @@ function buildCaseOrigin(currentCase: CaseInstance, game: GameState): CaseOrigin
           (spawnEvent.payload.factionLabel
             ? `${spawnEvent.payload.factionLabel} pressure surfaced this incident.`
             : 'Faction pressure surfaced this incident.'),
+        factionId: spawnEvent.payload.factionId,
+        factionLabel: spawnEvent.payload.factionLabel,
+      }
+    }
+
+    if (trigger === 'faction_offer') {
+      return {
+        trigger,
+        label: 'Faction offer',
+        detail:
+          spawnEvent.payload.sourceReason ??
+          (spawnEvent.payload.factionLabel
+            ? `${spawnEvent.payload.factionLabel} offered this operation through an active channel.`
+            : 'A faction offered this operation through an active channel.'),
         factionId: spawnEvent.payload.factionId,
         factionLabel: spawnEvent.payload.factionLabel,
       }

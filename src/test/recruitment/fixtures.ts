@@ -1,3 +1,4 @@
+// cspell:words cand fieldcraft
 import { createStartingState } from '../../data/startingState'
 import type { Candidate, GameState } from '../../domain/models'
 

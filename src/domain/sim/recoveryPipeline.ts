@@ -6,10 +6,11 @@ import {
 import { aggregateAbilityEffects, resolveAgentAbilityEffects } from '../abilities'
 import { clamp } from '../math'
 import type { Agent, AgentHistoryEntry, GameState } from '../models'
+import { RECOVERY_CALIBRATION } from './calibration'
 import { aggregateTraitEffects, resolveAgentTraitEffects } from '../traits'
 
-const MINOR_RECOVERY_DURATION_WEEKS = 2
-const MODERATE_RECOVERY_DURATION_WEEKS = 3
+const MINOR_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.minorRecoveryDurationWeeks
+const MODERATE_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.moderateRecoveryDurationWeeks
 
 export type InjurySeverity = 'minor' | 'moderate'
 
@@ -19,7 +20,7 @@ interface AdvanceRecoveryInput {
   nextAgents: GameState['agents']
 }
 
-function getRecoveryDurationWeeks(severity: InjurySeverity) {
+export function getRecoveryDurationWeeks(severity: InjurySeverity) {
   return severity === 'moderate' ? MODERATE_RECOVERY_DURATION_WEEKS : MINOR_RECOVERY_DURATION_WEEKS
 }
 
@@ -106,7 +107,10 @@ export function advanceRecoveryAgentsForWeek({
               }),
               health: 100,
               morale: clamp(
-                Math.max(agent.vitals?.morale ?? 100, 70 + moraleRecoveryDelta),
+                Math.max(
+                  agent.vitals?.morale ?? 100,
+                  RECOVERY_CALIBRATION.returningMoraleFloor + moraleRecoveryDelta
+                ),
                 0,
                 100
               ),
@@ -136,7 +140,9 @@ export function advanceRecoveryAgentsForWeek({
               statusFlags: [],
             }),
             morale: clamp(
-              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) - 5 + moraleRecoveryDelta,
+              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
+                RECOVERY_CALIBRATION.recoveringMoralePenalty +
+                moraleRecoveryDelta,
               0,
               100
             ),
@@ -147,6 +153,11 @@ export function advanceRecoveryAgentsForWeek({
         buildRecoveryHistoryEntry(week, `${agent.name} is recovering from a ${severity} injury.`),
         { recoveryWeeks: 1 }
       )
+      continue
+    }
+
+    if (agent.status === 'injured') {
+      updatedAgents[agentId] = agent
       continue
     }
 

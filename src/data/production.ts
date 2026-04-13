@@ -1,3 +1,4 @@
+// cspell:words medkits
 import { randInt } from '../domain/math'
 import {
   type MarketPressure,

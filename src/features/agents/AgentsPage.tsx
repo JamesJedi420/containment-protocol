@@ -1,3 +1,4 @@
+// cspell:words callsign
 import React from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'

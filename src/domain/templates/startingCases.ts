@@ -1,4 +1,6 @@
 import { type CaseInstance } from '../models'
+import { inferFactionIdFromCaseTags } from '../factions'
+import { createMissionIntelState } from '../intel'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { caseTemplateMap } from './caseTemplates'
 
@@ -66,6 +68,8 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     templateId: template.templateId,
     title: seed.title ?? template.title,
     description: seed.description ?? template.description,
+    factionId: template.factionId ?? inferFactionIdFromCaseTags(template),
+    contactId: template.contactId,
     mode: template.mode,
     kind: template.kind,
     status: normalizeCaseStatus(seed.status),
@@ -81,6 +85,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     deadlineRemaining: normalizeDeadlineRemaining(seed.deadlineRemaining, template.deadlineWeeks),
     pressureValue: template.pressureValue ?? inferCasePressureValue(template),
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
+    ...createMissionIntelState(1),
     assignedTeamIds: [...new Set(seed.assignedTeamIds ?? [])],
     onFail: {
       ...template.onFail,

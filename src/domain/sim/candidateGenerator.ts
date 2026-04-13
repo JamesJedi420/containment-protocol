@@ -1,5 +1,7 @@
+// cspell:words cand diaz fieldcraft improv ishikawa okafor voss
 import { clamp, createSeededRng, randInt } from '../math'
 import { scoreToExactPotentialTier } from '../agentPotential'
+import { getFactionRecruitQualityModifier, getFactionRecruitUnlocks } from '../factions'
 import {
   type AgentData,
   type Candidate,
@@ -87,6 +89,32 @@ const AGENT_TRAITS = [
   'calculated-risk',
 ]
 
+const AGENT_SKILLS_BY_ROLE: Record<AgentData['role'], string[]> = {
+  field: ['breach-entry', 'pathing', 'recon-sweep', 'cover-coordination'],
+  analyst: ['forensic-triage', 'signal-parsing', 'case-briefing', 'intel-prioritization'],
+  containment: ['seal-discipline', 'ward-maintenance', 'stability-checks', 'containment-drills'],
+  support: ['medical-stabilization', 'field-repair', 'supply-routing', 'team-support'],
+  combat: ['breach-entry', 'fire-discipline', 'pursuit-control', 'escort-operations'],
+  investigation: ['scene-analysis', 'evidence-mapping', 'signal-parsing', 'trail-reconstruction'],
+}
+
+const STAFF_SKILLS_BY_SPECIALTY: Record<'intel' | 'logistics' | 'fabrication' | 'analysis', string[]> = {
+  intel: ['dossier-assembly', 'pattern-triage', 'signal-sorting'],
+  logistics: ['asset-routing', 'schedule-control', 'resupply-handoffs'],
+  fabrication: ['prototype-setup', 'tool-maintenance', 'material-planning'],
+  analysis: ['trend-modeling', 'incident-review', 'risk-summarization'],
+}
+
+const CANDIDATE_LIABILITIES = [
+  'deadline-pressure',
+  'low-field-experience',
+  'paperwork-drift',
+  'equipment-dependency',
+  'narrow-specialization',
+  'overcommitment-risk',
+  'limited-team-history',
+]
+
 const STAFF_ASSIGNMENTS: Record<'intel' | 'logistics' | 'fabrication' | 'analysis', string[]> = {
   intel: ['briefing-desk', 'signal-triage', 'threat-indexing'],
   logistics: ['asset-routing', 'supply-trains', 'deployment-windowing'],
@@ -121,6 +149,7 @@ export interface RecruitmentGenerationState {
   academyTier?: number
   agents: GameState['agents']
   staff: GameState['staff']
+  factions: GameState['factions']
   candidatePool: Candidate[]
 }
 
@@ -136,6 +165,7 @@ export function buildRecruitmentGenerationState(
     | 'agency'
     | 'agents'
     | 'staff'
+    | 'factions'
     | 'candidates'
   >
 ): RecruitmentGenerationState {
@@ -148,6 +178,7 @@ export function buildRecruitmentGenerationState(
     academyTier: state.academyTier,
     agents: state.agents,
     staff: state.staff,
+    factions: state.factions ?? {},
     candidatePool: [...state.candidates],
   }
 }
@@ -481,6 +512,167 @@ function buildAgentCandidateDomainStats(
   }
 }
 
+function createFactionSponsoredAgentData(
+  rewardId: string,
+  rng: () => number
+): { agentData: AgentData; roleSummary: string } {
+  if (rewardId.includes('marshal') || rewardId.includes('waiver')) {
+    return {
+      agentData: {
+        ...generateAgentData(rng),
+        role: 'containment',
+        specialization: 'warding',
+        traits: ['fieldcraft', 'calculated-risk'],
+      },
+      roleSummary: 'oversight containment channel',
+    }
+  }
+
+  if (rewardId.includes('fellowship')) {
+    return {
+      agentData: {
+        ...generateAgentData(rng),
+        role: 'analyst',
+        specialization: 'forensics',
+        traits: ['forensic-eye', 'deep-focus'],
+      },
+      roleSummary: 'institutional research channel',
+    }
+  }
+
+  if (rewardId.includes('medium') || rewardId.includes('circle')) {
+    return {
+      agentData: {
+        ...generateAgentData(rng),
+        role: 'containment',
+        specialization: 'ritual-channel',
+        traits: ['fieldcraft', 'deep-focus'],
+      },
+      roleSummary: 'occult intermediary channel',
+    }
+  }
+
+  if (rewardId.includes('engineer')) {
+    return {
+      agentData: {
+        ...generateAgentData(rng),
+        role: 'support',
+        specialization: 'field-engineering',
+        traits: ['improv-kit', 'fieldcraft'],
+      },
+      roleSummary: 'supply contract channel',
+    }
+  }
+
+  return {
+    agentData: {
+      ...generateAgentData(rng),
+      role: 'analyst',
+      specialization: 'signal-intercept',
+      traits: ['signal-hunter', 'deep-focus'],
+    },
+    roleSummary: 'covert intercept channel',
+  }
+}
+
+function buildFactionSponsoredCandidate(
+  state: Pick<RecruitmentGenerationState, 'week' | 'factions'>,
+  rng: () => number,
+  usedIds: Set<string>
+): Candidate | null {
+  const unlocks = getFactionRecruitUnlocks({ factions: state.factions })
+
+  if (unlocks.length === 0) {
+    return null
+  }
+
+  const unlock = pickOne(rng, unlocks)
+  const { agentData, roleSummary } = createFactionSponsoredAgentData(unlock.rewardId, rng)
+  const id = createCandidateId(usedIds, rng)
+  const revealLevel = 2 as const
+  const weeklyCost = randInt(rng, 26, 42)
+  const expiryWeek = state.week + randInt(rng, CANDIDATE_EXPIRY_MIN_WEEKS, CANDIDATE_EXPIRY_MAX_WEEKS)
+  const legacyStats = agentData.stats ?? {
+    combat: randInt(rng, 45, 75),
+    investigation: randInt(rng, 45, 75),
+    utility: randInt(rng, 45, 75),
+    social: randInt(rng, 35, 70),
+  }
+  const overallScore = clamp(
+    Math.round(
+      (legacyStats.combat + legacyStats.investigation + legacyStats.utility + legacyStats.social) / 4 +
+        randInt(rng, 4, 12)
+    ),
+    0,
+    100
+  )
+  const recruitQualityBonus = getFactionRecruitQualityModifier(
+    { factions: state.factions },
+    {
+      factionId: unlock.factionId,
+      contactId: unlock.contactId,
+    }
+  )
+  const boostedOverallScore = clamp(overallScore + recruitQualityBonus, 0, 100)
+  const actualPotentialScore = clamp(boostedOverallScore + randInt(rng, 2, 10), 0, 100)
+  const potentialTier = scoreToCandidatePotentialTier(actualPotentialScore)
+
+  return revealCandidate(
+    {
+      id,
+      name: createName(rng),
+      portraitId: `portrait-agent-${randInt(rng, 1, 24)}`,
+      age: randInt(rng, 24, 44),
+      category: 'agent',
+      hireStatus: 'available',
+      weeklyCost,
+      weeklyWage: weeklyCost,
+      costEstimate: deriveCandidateCostEstimate(weeklyCost),
+      revealLevel,
+      expiryWeek,
+      sourceFactionId: unlock.factionId,
+      sourceFactionName: unlock.factionName,
+      sourceContactId: unlock.contactId,
+      sourceContactName: unlock.contactName,
+      origin: unlock.label,
+      sourceSummary:
+        unlock.disposition === 'adversarial'
+          ? `${unlock.label} surfaced via ${roleSummary}. Vetting risk remains elevated.`
+          : `${unlock.label} via ${roleSummary}`,
+      sourceDisposition: unlock.disposition,
+      sourceRequiredTier: unlock.minTier,
+      sourceMaxTier: unlock.maxTier,
+      roleInclination: agentData.role,
+      skills: pickSomeUnique(
+        rng,
+        AGENT_SKILLS_BY_ROLE[agentData.role] ?? AGENT_SKILLS_BY_ROLE.field,
+        3
+      ),
+      liabilities: pickSomeUnique(rng, CANDIDATE_LIABILITIES, 1),
+      availabilityWindow: {
+        opensWeek: state.week,
+        closesWeek: expiryWeek,
+      },
+      funnelStage: 'prospect',
+      createdWeek: state.week,
+      lastUpdatedWeek: state.week,
+      actualPotentialTier: scoreToExactPotentialTier(actualPotentialScore),
+      evaluation: buildEvaluation(
+        rng,
+        revealLevel,
+        boostedOverallScore,
+        potentialTier,
+        agentData.traits
+      ),
+      agentData: {
+        ...agentData,
+        stats: legacyStats,
+      },
+    },
+    0
+  )
+}
+
 function buildCandidate(
   state: Pick<RecruitmentGenerationState, 'week'>,
   rng: () => number,
@@ -560,11 +752,26 @@ function buildCandidate(
         age,
         category: 'agent',
         hireStatus: 'available',
+        origin: 'open-call',
         weeklyCost,
         weeklyWage: weeklyCost,
         costEstimate: deriveCandidateCostEstimate(weeklyCost),
         revealLevel,
         expiryWeek,
+        roleInclination: agentData.role,
+        skills: pickSomeUnique(
+          rng,
+          AGENT_SKILLS_BY_ROLE[agentData.role] ?? AGENT_SKILLS_BY_ROLE.field,
+          3
+        ),
+        liabilities: pickSomeUnique(rng, CANDIDATE_LIABILITIES, randInt(rng, 1, 2)),
+        availabilityWindow: {
+          opensWeek: state.week,
+          closesWeek: expiryWeek,
+        },
+        funnelStage: 'prospect',
+        createdWeek: state.week,
+        lastUpdatedWeek: state.week,
         actualPotentialTier: scoreToExactPotentialTier(actualPotentialScore),
         evaluation: buildEvaluation(
           rng,
@@ -606,11 +813,26 @@ function buildCandidate(
         age,
         category: 'instructor',
         hireStatus: 'available',
+        origin: 'academy-referral',
         weeklyCost,
         weeklyWage: weeklyCost,
         costEstimate: deriveCandidateCostEstimate(weeklyCost),
         revealLevel,
         expiryWeek,
+        roleInclination: instructorData.instructorSpecialty,
+        skills: [
+          `instructor-${instructorData.instructorSpecialty}`,
+          'curriculum-structure',
+          'performance-review',
+        ],
+        liabilities: pickSomeUnique(rng, CANDIDATE_LIABILITIES, 1),
+        availabilityWindow: {
+          opensWeek: state.week,
+          closesWeek: expiryWeek,
+        },
+        funnelStage: 'prospect',
+        createdWeek: state.week,
+        lastUpdatedWeek: state.week,
         evaluation: buildEvaluation(rng, revealLevel, instructorScore, instructorPotentialTier, [
           instructorData.instructorSpecialty,
         ]),
@@ -628,11 +850,27 @@ function buildCandidate(
       age,
       category: 'staff',
       hireStatus: 'available',
+      origin: 'operations-network',
       weeklyCost,
       weeklyWage: weeklyCost,
       costEstimate: deriveCandidateCostEstimate(weeklyCost),
       revealLevel,
       expiryWeek,
+      roleInclination: normalizeStaffCandidateSpecialty(staffData.specialty),
+      skills: pickSomeUnique(
+        rng,
+        STAFF_SKILLS_BY_SPECIALTY[normalizeStaffCandidateSpecialty(staffData.specialty)] ??
+          STAFF_SKILLS_BY_SPECIALTY.analysis,
+        2
+      ),
+      liabilities: pickSomeUnique(rng, CANDIDATE_LIABILITIES, 1),
+      availabilityWindow: {
+        opensWeek: state.week,
+        closesWeek: expiryWeek,
+      },
+      funnelStage: 'prospect',
+      createdWeek: state.week,
+      lastUpdatedWeek: state.week,
       evaluation: buildEvaluation(rng, revealLevel, overallScore, potentialTier, [
         normalizeStaffCandidateSpecialty(staffData.specialty),
       ]),
@@ -662,8 +900,8 @@ export function generateCandidates(
 
   const categories = getCategoryWeights(signals).filter((entry) => entry.weight > 0)
   const candidateCount = getWeeklyCandidateCount(signals, effectiveRng)
-
-  return Array.from({ length: candidateCount }, () => {
+  const sponsoredCandidate = buildFactionSponsoredCandidate(state, effectiveRng, usedIds)
+  const generatedCandidates = Array.from({ length: candidateCount }, () => {
     const category = pickWeighted(
       effectiveRng,
       categories.map((entry) => ({ value: entry.category, weight: entry.weight }))
@@ -671,6 +909,12 @@ export function generateCandidates(
 
     return buildCandidate(state, effectiveRng, usedIds, category, signals)
   })
+
+  if (!sponsoredCandidate) {
+    return generatedCandidates
+  }
+
+  return [sponsoredCandidate, ...generatedCandidates.slice(0, Math.max(0, candidateCount - 1))]
 }
 
 export const generateCandidatesWithRng = generateCandidates

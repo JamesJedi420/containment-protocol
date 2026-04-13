@@ -1,3 +1,4 @@
+// cspell:words scoutable
 import { createSeededRng } from '../math'
 import {
   appendOperationEventDrafts,
@@ -35,6 +36,7 @@ export interface CandidateScoutAssessment {
 
 function createCandidateScoutEventDraft(
   state: GameState,
+  candidate: Extract<GameState['candidates'][number], { category: 'agent' }>,
   candidateId: Id,
   candidateName: string,
   assessment: CandidateScoutAssessment,
@@ -54,6 +56,10 @@ function createCandidateScoutEventDraft(
     previousConfidence: previousReport?.confidence,
     confirmedTier: report.confirmedTier,
     revealLevel,
+    sourceFactionId: candidate.sourceFactionId,
+    sourceFactionName: candidate.sourceFactionName,
+    sourceContactId: candidate.sourceContactId,
+    sourceContactName: candidate.sourceContactName,
   }
 
   if (report.exactKnown) {
@@ -124,11 +130,14 @@ export function scoutCandidate(state: GameState, candidateId: Id): GameState {
     | ReturnType<typeof createRecruitmentIntelConfirmedDraft>
     | undefined
   const nextCandidates = candidatePool.map((candidate) => {
-    if (candidate.id !== candidateId) {
+    if (candidate.id !== candidateId || candidate.category !== 'agent' || !candidate.agentData) {
       return candidate
     }
 
-    const revealedCandidate = revealCandidate(candidate, 1 + scoutSupport.revealBoost)
+    const revealedCandidate = revealCandidate(
+      candidate,
+      1 + scoutSupport.revealBoost
+    ) as Extract<GameState['candidates'][number], { category: 'agent' }>
     const nextScoutReport = buildCandidateScoutReport(revealedCandidate, rng.next, {
       clearanceLevel: state.agency?.clearanceLevel ?? state.clearanceLevel,
       week: state.week,
@@ -137,6 +146,7 @@ export function scoutCandidate(state: GameState, candidateId: Id): GameState {
 
     scoutEventDraft = createCandidateScoutEventDraft(
       state,
+      revealedCandidate,
       candidate.id,
       candidate.name,
       assessment,

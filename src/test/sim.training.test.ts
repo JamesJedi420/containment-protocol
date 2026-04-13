@@ -1,3 +1,4 @@
+// cspell:words kellan sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getAgentStatCap } from '../domain/agentPotential'
@@ -26,7 +27,11 @@ import {
   ROLE_TRAINING_APTITUDE,
   TRAINING_FATIGUE_GATE,
 } from '../domain/sim/training'
-import { buildAgentSquadCompositionProfile, getTeamMembers } from '../domain/teamSimulation'
+import {
+  buildAgentSquadCompositionProfile,
+  getTeamMembers,
+  normalizeGameState,
+} from '../domain/teamSimulation'
 import { type Agent } from '../domain/models'
 
 const combatDrills = trainingCatalog.find((program) => program.trainingId === 'combat-drills')
@@ -105,7 +110,11 @@ describe('training queue mechanics', () => {
       funding: combatDrills.fundingCost - 1,
     }
 
-    expect(queueTraining(lowFundingState, 'a_ava', combatDrills.trainingId)).toBe(lowFundingState)
+    const lowFundingResult = queueTraining(lowFundingState, 'a_ava', combatDrills.trainingId)
+
+    expect(lowFundingResult).toBe(lowFundingState)
+    expect(lowFundingResult.funding).toBe(lowFundingState.funding)
+    expect(lowFundingResult.trainingQueue).toHaveLength(0)
 
     const inactiveState = {
       ...createStartingState(),
@@ -126,7 +135,11 @@ describe('training queue mechanics', () => {
 
     const deployedState = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
 
-    expect(queueTraining(deployedState, 'a_ava', combatDrills.trainingId)).toBe(deployedState)
+    const deployedResult = queueTraining(deployedState, 'a_ava', combatDrills.trainingId)
+
+    expect(deployedResult).toBe(deployedState)
+    expect(deployedResult.funding).toBe(deployedState.funding)
+    expect(deployedResult.trainingQueue).toHaveLength(0)
 
     const queuedState = queueTraining(startingState, 'a_ava', combatDrills.trainingId)
 
@@ -524,6 +537,27 @@ describe('training queue mechanics', () => {
     )
   })
 
+  it('leaves team drill funding unchanged when the queue start is rejected', () => {
+    const startingState = createStartingState()
+    const assessment = assessTeamTrainingQueue(
+      startingState,
+      't_nightwatch',
+      coordinationDrill.trainingId
+    )
+
+    expect(assessment.canQueue).toBe(true)
+
+    const lowFundingState = normalizeGameState({
+      ...startingState,
+      funding: assessment.scaledCost - 1,
+    })
+    const result = queueTeamTraining(lowFundingState, 't_nightwatch', coordinationDrill.trainingId)
+
+    expect(result).toBe(lowFundingState)
+    expect(result.funding).toBe(lowFundingState.funding)
+    expect(result.trainingQueue).toHaveLength(0)
+  })
+
   it('completes team drills with chemistry and bond improvements but no stat gains', () => {
     const startingState = createStartingState()
     const queuedState = queueTeamTraining(
@@ -656,7 +690,7 @@ describe('training queue mechanics', () => {
 })
 
 describe('training catalog', () => {
-  it('includes breach-rehearsal and forensics-debrief as queueueable team drills', () => {
+  it('includes breach-rehearsal and forensics-debrief as queueable team drills', () => {
     const state = createStartingState()
     const breachRehearsal = trainingCatalog.find((p) => p.trainingId === 'breach-rehearsal')
     const forensicsDebrief = trainingCatalog.find((p) => p.trainingId === 'forensics-debrief')

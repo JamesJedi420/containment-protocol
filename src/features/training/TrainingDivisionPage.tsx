@@ -1,5 +1,5 @@
 import { Link, useSearchParams } from 'react-router'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useGameStore } from '../../app/store/gameStore'
 import { APP_ROUTES } from '../../app/routes'
 import type { GameState } from '../../domain/models'
@@ -41,10 +41,14 @@ export default function TrainingDivisionPage() {
     reconcileAgents,
   } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [showAdvancedPanels, setShowAdvancedPanels] = useState(false)
-  const [showHistoryPanels, setShowHistoryPanels] = useState(false)
+  const showAdvancedPanels = searchParams.get('advanced') === '1'
+  const showHistoryPanels = searchParams.get('history') === '1'
   const advancedPanelsRegionId = 'training-advanced-panels'
   const historyPanelsRegionId = 'training-history-panels'
+  const advancedPanelFocusRef = useRef<HTMLElement | null>(null)
+  const historyPanelFocusRef = useRef<HTMLElement | null>(null)
+  const previousAdvancedPanelsRef = useRef(showAdvancedPanels)
+  const previousHistoryPanelsRef = useRef(showHistoryPanels)
 
   const filters = useMemo(() => readTrainingListFilters(searchParams), [searchParams])
   const hasActiveFilters =
@@ -57,8 +61,42 @@ export default function TrainingDivisionPage() {
     key: K,
     value: (typeof DEFAULT_TRAINING_LIST_FILTERS)[K]
   ) {
-    setSearchParams(writeTrainingListFilters({ ...filters, [key]: value }), { replace: true })
+    setSearchParams(writeTrainingListFilters({ ...filters, [key]: value }, searchParams), {
+      replace: true,
+    })
   }
+
+  function setPanelVisibility(panel: 'advanced' | 'history', visible: boolean) {
+    const nextSearchParams = writeTrainingListFilters(filters, searchParams)
+
+    if (visible) {
+      nextSearchParams.set(panel, '1')
+    } else {
+      nextSearchParams.delete(panel)
+    }
+
+    setSearchParams(nextSearchParams, { replace: true })
+  }
+
+  useEffect(() => {
+    const wasOpen = previousAdvancedPanelsRef.current
+
+    if (!wasOpen && showAdvancedPanels) {
+      advancedPanelFocusRef.current?.focus()
+    }
+
+    previousAdvancedPanelsRef.current = showAdvancedPanels
+  }, [showAdvancedPanels])
+
+  useEffect(() => {
+    const wasOpen = previousHistoryPanelsRef.current
+
+    if (!wasOpen && showHistoryPanels) {
+      historyPanelFocusRef.current?.focus()
+    }
+
+    previousHistoryPanelsRef.current = showHistoryPanels
+  }, [showHistoryPanels])
 
   const summary = useMemo(() => getTrainingSummary(game), [game])
   const allQueueViews = useMemo(() => getTrainingQueueViews(game), [game])
@@ -107,12 +145,12 @@ export default function TrainingDivisionPage() {
   const trainingRecommendation = topProgramSuggestion
     ? {
         title: `Queue ${topProgramSuggestion.trainingName} for ${topProgramSuggestion.agentName}`,
-        detail: `Best immediate gain: +${topProgramSuggestion.scoreDelta.toFixed(2)} score. Cost $${topProgramSuggestion.fundingCost}.`,
+        detail: `Best immediate gain: +${topProgramSuggestion.scoreDelta.toFixed(2)} score. Cost $${topProgramSuggestion.fundingCost}. Confidence: ${getRecommendationConfidence(topProgramSuggestion.scoreDelta)}.`,
       }
     : topTeamDrillSuggestion
       ? {
           title: `Queue ${topTeamDrillSuggestion.trainingName} for ${topTeamDrillSuggestion.teamName}`,
-          detail: `Projected score delta ${topTeamDrillSuggestion.projectedScoreDelta >= 0 ? '+' : ''}${topTeamDrillSuggestion.projectedScoreDelta.toFixed(2)}. ${topTeamDrillSuggestion.recommendationReason}`,
+          detail: `Projected score delta ${topTeamDrillSuggestion.projectedScoreDelta >= 0 ? '+' : ''}${topTeamDrillSuggestion.projectedScoreDelta.toFixed(2)}. ${topTeamDrillSuggestion.recommendationReason}. Confidence: ${getRecommendationConfidence(topTeamDrillSuggestion.projectedScoreDelta)}.`,
         }
       : null
 
@@ -268,7 +306,19 @@ export default function TrainingDivisionPage() {
 
   return (
     <section className="space-y-4">
-      <article className="panel space-y-3">
+      <nav className="skip-links" aria-label="Training keyboard shortcuts">
+        <a href="#training-summary" className="skip-link">
+          Skip to training summary
+        </a>
+        <a href="#training-active-queue" className="skip-link">
+          Skip to active queue
+        </a>
+        <a href="#training-roster" className="skip-link">
+          Skip to eligible roster
+        </a>
+      </nav>
+
+      <article id="training-summary" className="panel space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold">{TRAINING_UI_TEXT.pageTitle}</h2>
@@ -302,7 +352,7 @@ export default function TrainingDivisionPage() {
               aria-label="Hide advanced panels"
               aria-expanded="true"
               aria-controls={advancedPanelsRegionId}
-              onClick={() => setShowAdvancedPanels((current) => !current)}
+              onClick={() => setPanelVisibility('advanced', false)}
             >
               Hide advanced panels
             </button>
@@ -313,7 +363,7 @@ export default function TrainingDivisionPage() {
               aria-label="Show advanced panels"
               aria-expanded="false"
               aria-controls={advancedPanelsRegionId}
-              onClick={() => setShowAdvancedPanels((current) => !current)}
+              onClick={() => setPanelVisibility('advanced', true)}
             >
               Show advanced panels
             </button>
@@ -326,7 +376,7 @@ export default function TrainingDivisionPage() {
               aria-label="Hide history panels"
               aria-expanded="true"
               aria-controls={historyPanelsRegionId}
-              onClick={() => setShowHistoryPanels((current) => !current)}
+              onClick={() => setPanelVisibility('history', false)}
             >
               Hide history panels
             </button>
@@ -337,7 +387,7 @@ export default function TrainingDivisionPage() {
               aria-label="Show history panels"
               aria-expanded="false"
               aria-controls={historyPanelsRegionId}
-              onClick={() => setShowHistoryPanels((current) => !current)}
+              onClick={() => setPanelVisibility('history', true)}
             >
               Show history panels
             </button>
@@ -349,7 +399,7 @@ export default function TrainingDivisionPage() {
               className="btn btn-sm btn-ghost"
               aria-label="Reset training filters"
               onClick={() =>
-                setSearchParams(writeTrainingListFilters(DEFAULT_TRAINING_LIST_FILTERS), {
+                setSearchParams(writeTrainingListFilters(DEFAULT_TRAINING_LIST_FILTERS, searchParams), {
                   replace: true,
                 })
               }
@@ -376,7 +426,14 @@ export default function TrainingDivisionPage() {
       </article>
 
       {showAdvancedPanels ? (
-        <article id={advancedPanelsRegionId} className="panel space-y-3">
+        <article
+          id={advancedPanelsRegionId}
+          className="panel space-y-3"
+          tabIndex={-1}
+          ref={(node) => {
+            advancedPanelFocusRef.current = node
+          }}
+        >
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-base font-semibold">Academy analysis</h3>
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -503,7 +560,14 @@ export default function TrainingDivisionPage() {
       ) : null}
 
       {showAdvancedPanels ? (
-        <article id={historyPanelsRegionId} className="panel space-y-3">
+        <article
+          id={historyPanelsRegionId}
+          className="panel space-y-3"
+          tabIndex={-1}
+          ref={(node) => {
+            historyPanelFocusRef.current = node
+          }}
+        >
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-base font-semibold">Instructor assignments</h3>
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -681,7 +745,7 @@ export default function TrainingDivisionPage() {
         </article>
       ) : null}
 
-      <article className="panel space-y-3">
+      <article id="training-active-queue" className="panel space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.catalogHeading}</h3>
           <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -738,7 +802,7 @@ export default function TrainingDivisionPage() {
         </div>
       </article>
 
-      <article className="panel space-y-3">
+      <article id="training-roster" className="panel space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-base font-semibold">{TRAINING_UI_TEXT.activeQueueHeading}</h3>
           <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -761,11 +825,16 @@ export default function TrainingDivisionPage() {
         </div>
 
         {queueViews.length === 0 ? (
-          <p className="text-sm opacity-60">
-            {allQueueViews.length === 0
-              ? TRAINING_UI_TEXT.noActiveQueue
-              : 'No queue entries match the current filter.'}
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm opacity-60">
+              {allQueueViews.length === 0
+                ? TRAINING_UI_TEXT.noActiveQueue
+                : 'No queue entries match the current filter.'}
+            </p>
+            <a href="#training-roster" className="btn btn-xs btn-ghost focus-ring">
+              Jump to eligible roster
+            </a>
+          </div>
         ) : (
           <ul className="space-y-2">
             {queueViews.map(
@@ -789,7 +858,7 @@ export default function TrainingDivisionPage() {
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         {subjectLink ? (
-                          <Link to={subjectLink} className="font-medium hover:underline">
+                          <Link to={subjectLink} className="font-medium hover:underline focus-ring">
                             {subjectLabel}
                           </Link>
                         ) : (
@@ -1079,7 +1148,7 @@ function RosterGroup({
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <Link to={view.agentLink} className="font-medium hover:underline">
+                      <Link to={view.agentLink} className="font-medium hover:underline focus-ring">
                         {agent.name}
                       </Link>
                       <StatusBadge
@@ -1164,6 +1233,10 @@ function RosterGroup({
                   })}
                 </div>
 
+                <p className="mt-2 text-xs opacity-55">
+                  Commit clarity: Queueing can be cancelled, but fatigue incurred to date is not reversed.
+                </p>
+
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Link to={APP_ROUTES.teams} className="btn btn-xs btn-ghost">
                     Open squad builder
@@ -1195,7 +1268,14 @@ function TeamRosterGroup({
   const academyTier = game.academyTier ?? 0
 
   if (teams.length === 0) {
-    return <p className="text-sm opacity-60">No teams are currently available for drills.</p>
+    return (
+      <div className="space-y-2">
+        <p className="text-sm opacity-60">No teams are currently available for drills.</p>
+        <Link to={APP_ROUTES.teams} className="btn btn-xs btn-ghost">
+          Open squad builder
+        </Link>
+      </div>
+    )
   }
 
   return (
@@ -1205,7 +1285,7 @@ function TeamRosterGroup({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <Link to={view.teamLink} className="font-medium hover:underline">
+                <Link to={view.teamLink} className="font-medium hover:underline focus-ring">
                   {view.team.name}
                 </Link>
                 <StatusBadge
@@ -1276,10 +1356,26 @@ function TeamRosterGroup({
               )
             })}
           </div>
+
+          <p className="mt-2 text-xs opacity-55">
+            Commit clarity: Team drills can be cancelled, but incurred fatigue to date remains.
+          </p>
         </li>
       ))}
     </ul>
   )
+}
+
+function getRecommendationConfidence(delta: number) {
+  if (delta >= 0.75) {
+    return 'High'
+  }
+
+  if (delta >= 0.25) {
+    return 'Medium'
+  }
+
+  return 'Low'
 }
 
 function Metric({ label, value }: { label: string; value: string }) {

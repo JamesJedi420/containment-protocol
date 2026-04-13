@@ -1,3 +1,4 @@
+// cspell:words watchlist
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'

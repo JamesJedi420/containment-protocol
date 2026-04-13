@@ -11,6 +11,8 @@ import {
 import { clamp } from '../math'
 import { previewResolutionPartyCards } from '../partyCards/engine'
 import { buildAgencyProtocolState } from '../protocols'
+import { buildFactionMissionContext } from '../factions'
+import { evaluateContractRoleFit } from '../contractsRuntime'
 import {
   buildAggregatedLeaderBonus,
   createDefaultPerformanceMetricSummary,
@@ -23,6 +25,10 @@ import {
   evaluateCaseResolutionContext,
   type TeamScoreContext,
 } from './scoring'
+import {
+  buildMissionInjuryForecast,
+  type MissionInjuryForecast,
+} from './injuryForecast'
 import { isTeamBlockedByTraining } from './training'
 import type { CaseReconSummary } from '../recon'
 
@@ -75,6 +81,8 @@ function buildTeamScoreContextForTeamIds(
     partyCardBonus && partyCardBonus.scoreAdjustment !== 0
       ? [`Party cards: ${partyCardBonus.scoreAdjustment.toFixed(1)}`]
       : undefined
+  const factionContext = buildFactionMissionContext(c, state)
+  const contractFit = c.contract ? evaluateContractRoleFit(c.contract, agents) : null
 
   return {
     teamIds: normalizedTeamIds,
@@ -90,8 +98,13 @@ function buildTeamScoreContextForTeamIds(
         normalizedTeamIds.length === 1
           ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
           : null,
-      scoreAdjustment: coordination?.scoreAdjustment,
-      scoreAdjustmentReason: coordination?.reason,
+      scoreAdjustment:
+        (coordination?.scoreAdjustment ?? 0) +
+        factionContext.scoreAdjustment +
+        (contractFit?.scoreAdjustment ?? 0),
+      scoreAdjustmentReason: [coordination?.reason, ...factionContext.reasons, ...(contractFit?.reasons ?? [])]
+        .filter(Boolean)
+        .join(' / '),
       partyCardScoreBonus: partyCardBonus?.scoreAdjustment,
       partyCardReasons: partyCardReason,
       protocolState: buildAgencyProtocolState(state),
@@ -191,6 +204,7 @@ export interface ResolutionPreview {
   deployableAgentIds: Id[]
   validation: ValidationResult | null
   odds: OutcomeOdds
+  injuryForecast: MissionInjuryForecast
   performanceSummary: NonNullable<ReturnType<typeof createDefaultPerformanceMetricSummary>>
   equipmentSummary: ReturnType<typeof createDefaultCaseEquipmentSummary>
   reconSummary?: CaseReconSummary
@@ -238,6 +252,21 @@ export function previewResolutionForTeamIds(
     deployableAgentIds: evaluation.deployableAgents.map((agent) => agent.id),
     validation: evaluation.validationResult,
     odds: buildOddsFromEvaluation(evaluation),
+    injuryForecast: buildMissionInjuryForecast({
+      currentCase: c,
+      agents: evaluation.deployableAgents,
+      successChance:
+        evaluation.successChance ??
+        (evaluation.outcome.result === 'success'
+          ? 1
+          : evaluation.outcome.result === 'partial'
+            ? NEAR_MISS_PARTIAL_CHANCE
+            : 0),
+      performanceSummary:
+        evaluation.teamScore?.performanceSummary ?? createDefaultPerformanceMetricSummary(),
+      agentPerformance: evaluation.teamScore?.agentPerformance,
+      comparison: evaluation.teamScore?.comparison,
+    }),
     performanceSummary:
       evaluation.teamScore?.performanceSummary ?? createDefaultPerformanceMetricSummary(),
     equipmentSummary: evaluation.teamScore?.equipmentSummary ?? createDefaultCaseEquipmentSummary(),

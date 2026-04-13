@@ -1,5 +1,6 @@
 import type { MissionResultInput } from '../missionResults'
 import type {
+  MissionFatalityRecord,
   MissionInjuryRecord,
   MissionRewardBreakdown,
   MissionSpawnedConsequence,
@@ -17,6 +18,7 @@ interface BaseResolvedDraftInput {
   performanceSummary?: PerformanceMetricSummary
   powerImpact?: PowerImpactSummary
   injuries?: MissionInjuryRecord[]
+  fatalities?: MissionFatalityRecord[]
   resolutionReasons?: string[]
 }
 
@@ -43,6 +45,7 @@ export function buildSuccessCaseOutcomeDraft(input: BaseResolvedDraftInput): Mis
     performanceSummary: input.performanceSummary,
     powerImpact: input.powerImpact,
     injuries: input.injuries,
+    fatalities: input.fatalities,
     resolutionReasons: input.resolutionReasons,
   }
 }
@@ -57,6 +60,7 @@ export function buildEscalatedCaseOutcomeDraft(input: EscalatedDraftInput): Miss
     performanceSummary: input.performanceSummary,
     powerImpact: input.powerImpact,
     injuries: input.injuries,
+    fatalities: input.fatalities,
     spawnedConsequences: input.spawnedConsequences,
     resolutionReasons: input.resolutionReasons,
   }

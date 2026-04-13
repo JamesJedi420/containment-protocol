@@ -1,3 +1,4 @@
+// cspell:words kellan medkits
 import '../../test/setup'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -7,7 +8,7 @@ import { FEEDBACK_MESSAGES, createNote } from '../../data/copy'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
-import { GAME_STORE_VERSION } from '../../app/store/runTransfer'
+import { GAME_SAVE_VERSION } from '../../app/store/saveSystem'
 import DashboardPage from './DashboardPage'
 
 vi.mock('./dashboardView', () => ({
@@ -591,9 +592,9 @@ it('exports the current run into the transfer editor', async () => {
   const payload = JSON.parse((screen.getByLabelText(/run payload/i) as HTMLTextAreaElement).value)
 
   expect(payload).toMatchObject({
-    kind: 'containment-protocol-run',
-    version: GAME_STORE_VERSION,
-    game: expect.objectContaining({
+    kind: 'containment-protocol-save',
+    version: GAME_SAVE_VERSION,
+    state: expect.objectContaining({
       week: 1,
       rngSeed: expect.any(Number),
       config: expect.objectContaining({
@@ -601,7 +602,7 @@ it('exports the current run into the transfer editor', async () => {
       }),
     }),
   })
-  expect(typeof payload.exportedAt).toBe('string')
+  expect(typeof payload.savedAt).toBe('string')
 })
 
 it('shows visible feedback when an import payload is invalid', async () => {

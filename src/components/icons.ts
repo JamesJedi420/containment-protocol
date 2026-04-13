@@ -22,6 +22,10 @@ export {
   RotateCcw as IconReset,
   Copy as IconCopy,
   SkipForward as IconAdvance,
+  CircleHelp as IconHelp,
+  Volume2 as IconVolumeOn,
+  VolumeX as IconVolumeOff,
+  Settings as IconSettings,
 
   // Stage indicators
   ShieldCheck as IconStageOk,

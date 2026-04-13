@@ -1,3 +1,4 @@
+// cspell:words psionic
 import { type CaseTemplate } from '../models'
 
 export const psionicCaseTemplates: CaseTemplate[] = [

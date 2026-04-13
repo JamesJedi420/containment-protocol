@@ -12,6 +12,7 @@ import {
   type CaseOutcomePreviewBlockReason,
   type OutcomeOdds,
 } from '../../domain/sim/resolve'
+import type { MissionInjuryForecast } from '../../domain/sim/injuryForecast'
 
 export type CaseAssignmentBlockReason = CaseOutcomePreviewBlockReason
 
@@ -24,6 +25,7 @@ export interface CaseAssignmentBlockedTeamView {
 export interface CaseAssignmentEligibleTeamView {
   team: Team
   odds: OutcomeOdds
+  injuryForecast: MissionInjuryForecast
   performanceSummary: PerformanceMetricSummary
   equipmentSummary: CaseEquipmentSummary
   reconSummary?: CaseReconSummary
@@ -62,6 +64,7 @@ export function getCaseAssignmentInsights(currentCase: CaseInstance, game: GameS
     availableTeams.push({
       team,
       odds: outcomePreview.odds,
+      injuryForecast: resolutionPreview.injuryForecast,
       performanceSummary: resolutionPreview.performanceSummary,
       equipmentSummary: resolutionPreview.equipmentSummary,
       reconSummary: resolutionPreview.reconSummary,
@@ -72,6 +75,8 @@ export function getCaseAssignmentInsights(currentCase: CaseInstance, game: GameS
     (left, right) =>
       right.odds.success - left.odds.success ||
       right.odds.partial - left.odds.partial ||
+      left.injuryForecast.injuryChance - right.injuryForecast.injuryChance ||
+      left.injuryForecast.deathChance - right.injuryForecast.deathChance ||
       left.team.name.localeCompare(right.team.name)
   )
 

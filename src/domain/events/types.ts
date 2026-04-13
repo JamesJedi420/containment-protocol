@@ -30,6 +30,7 @@ export type CaseSpawnTrigger =
   | 'unresolved'
   | 'raid_pressure'
   | 'world_activity'
+  | 'faction_offer'
   | 'faction_pressure'
   | 'pressure_threshold'
 
@@ -201,6 +202,13 @@ export interface OperationEventPayloadMap {
     agentName: string
     severity: string
   }
+  'agent.killed': {
+    week: number
+    agentId: Id
+    agentName: string
+    caseId: Id
+    caseTitle: string
+  }
   'agent.betrayed': {
     week: number
     betrayerId: Id
@@ -237,6 +245,10 @@ export interface OperationEventPayloadMap {
     agentId: Id
     agentName: string
     recruitCategory: RecruitCategory
+    sourceFactionId?: string
+    sourceFactionName?: string
+    sourceContactId?: string
+    sourceContactName?: string
   }
   'progression.xp_gained': {
     week: number
@@ -272,6 +284,10 @@ export interface OperationEventPayloadMap {
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
     confirmedTier?: ExactPotentialTier
     revealLevel: number
+    sourceFactionId?: string
+    sourceFactionName?: string
+    sourceContactId?: string
+    sourceContactName?: string
   }
   'recruitment.scouting_refined': {
     week: number
@@ -285,6 +301,10 @@ export interface OperationEventPayloadMap {
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
     confirmedTier?: ExactPotentialTier
     revealLevel: number
+    sourceFactionId?: string
+    sourceFactionName?: string
+    sourceContactId?: string
+    sourceContactName?: string
   }
   'recruitment.intel_confirmed': {
     week: number
@@ -298,6 +318,10 @@ export interface OperationEventPayloadMap {
     previousConfidence?: Exclude<PotentialIntelConfidence, 'unknown'>
     confirmedTier?: ExactPotentialTier
     revealLevel: number
+    sourceFactionId?: string
+    sourceFactionName?: string
+    sourceContactId?: string
+    sourceContactName?: string
   }
   'production.queue_completed': {
     week: number
@@ -351,9 +375,32 @@ export interface OperationEventPayloadMap {
     delta: number
     standingBefore: number
     standingAfter: number
-    reason: 'case.resolved' | 'case.partially_resolved' | 'case.failed' | 'case.escalated'
+    reputationBefore?: number
+    reputationAfter?: number
+    reason:
+      | 'case.resolved'
+      | 'case.partially_resolved'
+      | 'case.failed'
+      | 'case.escalated'
+      | 'recruitment.hired'
     caseId?: Id
     caseTitle?: string
+    interactionLabel?: string
+    contactId?: string
+    contactName?: string
+    contactRelationshipBefore?: number
+    contactRelationshipAfter?: number
+    contactDelta?: number
+  }
+  'faction.unlock_available': {
+    week: number
+    factionId: string
+    factionName: string
+    contactId?: string
+    contactName?: string
+    label: string
+    summary: string
+    disposition: 'supportive' | 'adversarial'
   }
   'agency.containment_updated': {
     week: number
@@ -400,6 +447,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'agent.instructor_assigned': 'agent'
   'agent.instructor_unassigned': 'agent'
   'agent.injured': 'agent'
+  'agent.killed': 'agent'
   'agent.betrayed': 'agent'
   'agent.resigned': 'agent'
   'agent.promoted': 'agent'
@@ -416,6 +464,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'faction.standing_changed': 'faction'
+  'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
   'directive.applied': 'system'
   'system.academy_upgraded': 'system'
@@ -438,6 +487,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'agent.instructor_assigned': 'agent',
   'agent.instructor_unassigned': 'agent',
   'agent.injured': 'agent',
+  'agent.killed': 'agent',
   'agent.betrayed': 'agent',
   'agent.resigned': 'agent',
   'agent.promoted': 'agent',
@@ -454,6 +504,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'faction.standing_changed': 'faction',
+  'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',
   'directive.applied': 'system',
   'system.academy_upgraded': 'system',

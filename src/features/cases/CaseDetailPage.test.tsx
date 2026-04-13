@@ -1,3 +1,4 @@
+// cspell:words greentape
 import '../../test/setup'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -127,4 +128,40 @@ it('renders assignment timeline events for the selected case only', () => {
     'href',
     '/teams/t_nightwatch'
   )
+})
+
+it('shows pre-commit injury, death, and downtime warnings for available teams', () => {
+  const game = createStartingState()
+
+  game.cases['case-001'] = {
+    ...game.cases['case-001']!,
+    title: 'Glasshouse Breach',
+    stage: 4,
+    tags: ['breach', 'hazmat', 'containment'],
+    preferredTags: ['medical', 'containment', 'support'],
+    weights: {
+      combat: 0.6,
+      investigation: 0.05,
+      utility: 0.15,
+      social: 0.2,
+    },
+    difficulty: {
+      combat: 72,
+      investigation: 24,
+      utility: 40,
+      social: 46,
+    },
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-001')
+
+  const oddsPanel = screen.getByRole('region', { name: /available team odds/i })
+
+  expect(within(oddsPanel).getAllByText(/injury \d+%/i).length).toBeGreaterThan(0)
+  expect(within(oddsPanel).getAllByText(/death \d+%/i).length).toBeGreaterThan(0)
+  expect(within(oddsPanel).getAllByText(/agent-weeks/i).length).toBeGreaterThan(0)
+  expect(
+    within(oddsPanel).getAllByText(/survivability|balanced formation|Fatigue is driving/i).length
+  ).toBeGreaterThan(0)
 })

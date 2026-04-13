@@ -1,3 +1,4 @@
+// cspell:words medkits unequip unequips
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { listEquippedItemAssignments } from '../domain/equipment'
@@ -145,6 +146,17 @@ describe('equipment simulation', () => {
     expect(next.inventory.signal_jammers).toBe(1)
     expect(next.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
     expect(next.agents.a_mina.assignment?.state).toBe('training')
+  })
+
+  it('rejects role-incompatible loadout assignments deterministically', () => {
+    const state = createStartingState()
+    state.inventory.silver_rounds = 1
+
+    const next = equipAgentItem(state, 'a_eli', 'primary', 'silver_rounds')
+
+    expect(next.inventory.silver_rounds).toBe(1)
+    expect(next.agents.a_eli.equipmentSlots?.primary).toBeUndefined()
+    expect(next.agents.a_eli.equipment?.silver_rounds).toBeUndefined()
   })
 
   it('uses crafted output items in the same deterministic loadout system', () => {

@@ -1,3 +1,4 @@
+// cspell:words fieldcraft
 import type { Agent, AgentTrait, CaseInstance, Id } from './models'
 import {
   aggregateRuntimeModifierResults,

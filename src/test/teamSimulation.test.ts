@@ -1,3 +1,4 @@
+// cspell:words greentape kellan
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { assignTeam } from '../domain/sim/assign'
@@ -7,6 +8,7 @@ import {
   getTeamMembers,
   getTeamMemberIds,
   getUniqueTeamMembers,
+  normalizeGameState,
   resolutionProfileToLegacyStats,
   syncTeamSimulationState,
 } from '../domain/teamSimulation'
@@ -21,6 +23,8 @@ describe('teamSimulation', () => {
     expect(team.leaderId).toBeTruthy()
     expect(team.memberIds).toContain(team.leaderId!)
     expect(team.derivedStats?.overall).toBeGreaterThan(0)
+    expect(team.compositionState?.compositionValid).toBeDefined()
+    expect(team.compositionState?.cohesion.cohesionScore).toBeGreaterThanOrEqual(0)
     expect(team.status).toEqual({
       state: 'ready',
       assignedCaseId: null,
@@ -148,5 +152,29 @@ describe('teamSimulation', () => {
     expect(Number.isFinite(profile.derivedStats.fieldPower)).toBe(true)
     expect(profile.derivedStats.readiness).toBeGreaterThanOrEqual(0)
     expect(profile.derivedStats.readiness).toBeLessThanOrEqual(100)
+  })
+
+  it('preserves agency progression unlocks and protocol state during normalization', () => {
+    const state = createStartingState()
+    state.agency = {
+      ...state.agency!,
+      protocolSelectionLimit: 2,
+      activeProtocolIds: ['stormwall', 'stormwall', 'firebreak'],
+      progressionUnlockIds: ['stormgrid-telemetry', 'stormgrid-telemetry', 'blacksite-retrofit'],
+    }
+
+    const normalized = normalizeGameState(state)
+
+    expect(normalized.agency).toMatchObject({
+      containmentRating: state.containmentRating,
+      clearanceLevel: state.clearanceLevel,
+      funding: state.funding,
+      protocolSelectionLimit: 2,
+    })
+    expect(normalized.agency?.activeProtocolIds).toEqual(['stormwall', 'firebreak'])
+    expect(normalized.agency?.progressionUnlockIds).toEqual([
+      'stormgrid-telemetry',
+      'blacksite-retrofit',
+    ])
   })
 })

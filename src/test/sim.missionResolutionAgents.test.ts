@@ -83,4 +83,44 @@ describe('applyMissionResolutionAgentMutations', () => {
       expect.arrayContaining([expect.objectContaining({ eventType: 'agent.injured' })])
     )
   })
+
+  it('can kill agents on catastrophic failed missions that carry fatality pressure', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...state.agents[agentId]!,
+      fatigue: 95,
+      status: 'active' as const,
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        kind: 'raid',
+        stage: 5,
+        assignedTeamIds: ['t_nightwatch'],
+        raid: {
+          minTeams: 2,
+          maxTeams: 2,
+        },
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -40 }),
+      week: state.week,
+      rng: () => 0,
+    })
+
+    expect(result.missionFatalities.length).toBeGreaterThan(0)
+    expect(result.eventDrafts.some((draft) => draft.type === 'agent.killed')).toBe(true)
+
+    const firstAgent = result.nextAgents[team.agentIds[0]]
+    expect(firstAgent?.status).toBe('dead')
+    expect(firstAgent?.assignment?.state).toBe('idle')
+    expect(firstAgent?.vitals?.health).toBe(0)
+  })
 })

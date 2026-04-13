@@ -1,3 +1,4 @@
+// cspell:words cand pathfinding
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { Candidate } from '../domain/models'
@@ -141,6 +142,13 @@ describe('recruitment scouting', () => {
     expect(confidenceRank[secondReport.confidence]).toBeGreaterThan(
       confidenceRank[firstReport.confidence]
     )
+    const tierRank = { F: 0, D: 1, C: 2, B: 3, A: 4, S: 5 } as const
+    const firstDistance = Math.abs(tierRank[firstReport.projectedTier] - tierRank[candidate.actualPotentialTier!])
+    const secondDistance = Math.abs(
+      tierRank[secondReport.projectedTier] - tierRank[candidate.actualPotentialTier!]
+    )
+
+    expect(secondDistance).toBeLessThanOrEqual(firstDistance)
     expect(secondPass.events.at(-1)).toMatchObject({
       type: 'recruitment.scouting_refined',
       sourceSystem: 'intel',

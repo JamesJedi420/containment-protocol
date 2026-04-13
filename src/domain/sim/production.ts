@@ -12,7 +12,11 @@ import {
   formatProductionOutputLabel,
 } from '../crafting'
 import { type GameState, type ProductionQueueEntry } from '../models'
-import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
+import {
+  ensureNormalizedGameState,
+  normalizeGameState,
+  resolveFundingSensitiveNoopState,
+} from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
   hasRecipeMaterialStock,
@@ -29,18 +33,18 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
   const recipe = getProductionRecipe(recipeId)
 
   if (!recipe) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   const snapshot = buildProductionJobSnapshot(recipe, state.market)
   const fundingCost = snapshot.fundingCost
 
   if (state.funding < fundingCost) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   if (!hasRecipeMaterialStock(recipe, state.inventory)) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   const queueEntry: ProductionQueueEntry = buildProductionQueueEntry(

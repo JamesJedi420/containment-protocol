@@ -1,3 +1,4 @@
+// cspell:words scoutable
 import {
   normalizePotentialTier,
   scoreToExactPotentialTier,
@@ -58,7 +59,23 @@ function isScoutReportConfirmed(report: CandidateScoutReport | undefined) {
   return report?.exactKnown === true || report?.confidence === 'confirmed'
 }
 
-function getCandidateScoutStage(report: CandidateScoutReport | undefined): CandidateScoutStage {
+export function isCandidateScoutConfirmed(
+  candidate: Pick<Candidate, 'scoutReport'> | CandidateScoutReport | undefined
+) {
+  const report = isCandidateScoutReport(candidate)
+    ? candidate
+    : (candidate?.scoutReport ?? undefined)
+
+  return isScoutReportConfirmed(report)
+}
+
+export function getCandidateScoutStage(
+  candidate: Pick<Candidate, 'scoutReport'> | CandidateScoutReport | undefined
+): CandidateScoutStage {
+  const report = isCandidateScoutReport(candidate)
+    ? candidate
+    : (candidate?.scoutReport ?? undefined)
+
   if (isCandidateScoutStage(report?.stage)) {
     return report.stage
   }

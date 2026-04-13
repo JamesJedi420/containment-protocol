@@ -6,6 +6,7 @@ import {
 } from '../../app/searchParams'
 import { CASE_LORE_STUBS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
+import { setCurrentLocation } from '../../domain/gameStateManager'
 import {
   type CaseInstance,
   type CaseTemplate,
@@ -219,16 +220,28 @@ export function getTemplateFamily(templateId: string) {
 function createIntelStartingGame(): GameState {
   const game = createStartingState()
 
-  game.cases = {}
-  game.reports = []
-
-  Object.values(game.teams).forEach((team) => {
-    if (team.status) {
-      team.status.assignedCaseId = null
+  return setCurrentLocation(
+    {
+      ...game,
+      cases: {},
+      reports: [],
+      teams: Object.fromEntries(
+        Object.entries(game.teams).map(([teamId, team]) => [
+          teamId,
+          {
+            ...team,
+            ...(team.status ? { status: { ...team.status, assignedCaseId: null } } : {}),
+          },
+        ])
+      ),
+    },
+    {
+      hubId: 'intel',
+      locationId: 'intel-archive',
+      sceneId: 'template-preview',
+      updatedWeek: game.week,
     }
-  })
-
-  return game
+  )
 }
 
 function createTemplatePreviewCase(template: CaseTemplate): CaseInstance {
@@ -251,6 +264,9 @@ function createTemplatePreviewCase(template: CaseTemplate): CaseInstance {
     weeksRemaining: undefined,
     deadlineWeeks: template.deadlineWeeks,
     deadlineRemaining: template.deadlineWeeks,
+    intelConfidence: 1,
+    intelUncertainty: 0,
+    intelLastUpdatedWeek: 0,
     pressureValue: template.pressureValue ?? inferCasePressureValue(template),
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
     assignedTeamIds: [],

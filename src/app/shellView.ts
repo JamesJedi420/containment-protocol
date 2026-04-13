@@ -123,6 +123,15 @@ export function getShellMeta(pathname: string, search: string, game: GameState):
     }
   }
 
+  if (pathname === APP_ROUTES.contracts) {
+    return {
+      title: 'Contract Board',
+      subtitle: 'Review live contracts, locked follow-ups, reward framing, and launch posture.',
+      backTo: APP_ROUTES.operationsDesk,
+      backLabel: createBackLabel(NAVIGATION_ROUTES.operationsDesk.label),
+    }
+  }
+
   if (pathname === APP_ROUTES.cards) {
     return {
       title: NAVIGATION_ROUTES.cards.label,

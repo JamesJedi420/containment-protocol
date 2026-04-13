@@ -1,7 +1,8 @@
+// cspell:words cand greentape medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState, startingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { assignTeam } from '../domain/sim/assign'
+import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
@@ -35,6 +36,91 @@ function makeAgentFixture(role: Agent['role'], overrides: Partial<Agent> = {}): 
     ...overrides,
   }
 }
+
+it('keeps launched major incident teams locked while weeks remain', () => {
+  const state = createStartingState()
+  const baseAgent = state.agents.a_ava
+
+  state.agents['agent-alpha'] = {
+    ...baseAgent,
+    id: 'agent-alpha',
+    name: 'Alpha',
+    role: 'hunter',
+    baseStats: { combat: 90, investigation: 80, utility: 74, social: 50 },
+    fatigue: 5,
+    status: 'active',
+  }
+  state.agents['agent-bravo'] = {
+    ...baseAgent,
+    id: 'agent-bravo',
+    name: 'Bravo',
+    role: 'tech',
+    baseStats: { combat: 72, investigation: 86, utility: 92, social: 46 },
+    fatigue: 7,
+    status: 'active',
+  }
+  state.agents['agent-charlie'] = {
+    ...baseAgent,
+    id: 'agent-charlie',
+    name: 'Charlie',
+    role: 'field_recon',
+    baseStats: { combat: 74, investigation: 88, utility: 90, social: 54 },
+    fatigue: 9,
+    status: 'active',
+  }
+
+  state.teams['team-alpha'] = {
+    id: 'team-alpha',
+    name: 'Alpha Team',
+    agentIds: ['agent-alpha'],
+    memberIds: ['agent-alpha'],
+    leaderId: 'agent-alpha',
+    tags: ['field'],
+  }
+  state.teams['team-bravo'] = {
+    id: 'team-bravo',
+    name: 'Bravo Team',
+    agentIds: ['agent-bravo'],
+    memberIds: ['agent-bravo'],
+    leaderId: 'agent-bravo',
+    tags: ['tech'],
+  }
+  state.teams['team-charlie'] = {
+    id: 'team-charlie',
+    name: 'Charlie Team',
+    agentIds: ['agent-charlie'],
+    memberIds: ['agent-charlie'],
+    leaderId: 'agent-charlie',
+    tags: ['recon'],
+  }
+
+  state.cases['major-incident'] = {
+    ...state.cases['case-003'],
+    id: 'major-incident',
+    title: 'Regional Fracture Event',
+    kind: 'raid',
+    stage: 3,
+    deadlineRemaining: 1,
+    durationWeeks: 4,
+    requiredTags: [],
+    requiredRoles: [],
+    raid: { minTeams: 2, maxTeams: 4 },
+    assignedTeamIds: [],
+  }
+
+  const launched = launchMajorIncident(
+    state,
+    'major-incident',
+    ['team-alpha', 'team-bravo', 'team-charlie']
+  )
+  const next = advanceWeek(launched)
+
+  expect(next.cases['major-incident'].status).toBe('in_progress')
+  expect(next.cases['major-incident'].weeksRemaining).toBeGreaterThan(0)
+  expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
+  expect(next.teams['team-bravo'].assignedCaseId).toBe('major-incident')
+  expect(next.teams['team-charlie'].assignedCaseId).toBe('major-incident')
+})
 
 function getPressureThresholdSpawnEvent(events: OperationEvent[]) {
   return events.find(
@@ -868,7 +954,7 @@ describe('advanceWeek', () => {
 
     const next = advanceWeek(state)
 
-    expect(next.globalPressure).toBe(6)
+    expect(next.globalPressure).toBe(4)
     expect(
       next.events.some(
         (event) => event.type === 'case.spawned' && event.payload.trigger === 'pressure_threshold'
@@ -1411,12 +1497,87 @@ describe('advanceWeek', () => {
         reason: 'case.resolved',
       }),
     })
+    const factions = next.factions
+    if (!factions) {
+      throw new Error('Expected faction state to be present after advancing the week.')
+    }
+
+    expect(factions.occult_networks.history).toMatchObject({
+      missionsCompleted: 1,
+      missionsFailed: 0,
+      interactionLog: expect.arrayContaining([
+        expect.objectContaining({
+          eventId: factionEvent?.id,
+          type: 'faction.standing_changed',
+          week: 1,
+        }),
+      ]),
+    })
     expect(
       next.reports[0].notes.some(
         (note) =>
           note.type === 'faction.standing_changed' &&
           note.metadata?.factionId === 'occult_networks' &&
           note.metadata?.caseId === 'case-001'
+      )
+    ).toBe(true)
+  })
+
+  it('emits faction unlock events when a mission opens a new faction recruit channel', () => {
+    const state = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
+    const factions = state.factions
+    if (!factions) {
+      throw new Error('Expected faction state to be present for faction unlock test.')
+    }
+
+    factions.black_budget.reputation = 80
+    factions.black_budget.contacts = factions.black_budget.contacts.map((contact) =>
+      contact.id === 'blackbudget-ossian'
+        ? {
+            ...contact,
+            relationship: 10,
+            status: 'active',
+          }
+        : contact
+    )
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      status: 'in_progress',
+      weeksRemaining: 1,
+      stage: 3,
+      factionId: 'black_budget',
+      contactId: 'blackbudget-ossian',
+      tags: ['classified', 'information', 'tech'],
+      requiredTags: [],
+      preferredTags: ['signal'],
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 0.25, investigation: 0.25, utility: 0.25, social: 0.25 },
+    }
+    state.teams['t_nightwatch'] = {
+      ...state.teams['t_nightwatch'],
+      assignedCaseId: 'case-001',
+    }
+
+    const next = advanceWeek(state)
+    const unlockEvent = next.events.find(
+      (event) =>
+        event.type === 'faction.unlock_available' &&
+        event.payload.factionId === 'black_budget' &&
+        event.payload.contactId === 'blackbudget-ossian'
+    )
+
+    expect(unlockEvent).toMatchObject({
+      sourceSystem: 'faction',
+      payload: expect.objectContaining({
+        label: 'Intercept operative referral',
+        disposition: 'supportive',
+      }),
+    })
+    expect(
+      next.reports[0].notes.some(
+        (note) =>
+          note.type === 'faction.unlock_available' &&
+          note.metadata?.factionId === 'black_budget'
       )
     ).toBe(true)
   })
@@ -1527,6 +1688,9 @@ describe('advanceWeek', () => {
         deadlineWeeks: 3,
         deadlineRemaining: 3,
         weeksRemaining: undefined,
+        intelConfidence: 1,
+        intelUncertainty: 0,
+        intelLastUpdatedWeek: state.week,
         assignedTeamIds: [],
         onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
         onUnresolved: {
@@ -1555,6 +1719,9 @@ describe('advanceWeek', () => {
         deadlineWeeks: 3,
         deadlineRemaining: 3,
         weeksRemaining: undefined,
+        intelConfidence: 1,
+        intelUncertainty: 0,
+        intelLastUpdatedWeek: state.week,
         assignedTeamIds: [],
         onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
         onUnresolved: {

@@ -1,3 +1,4 @@
+// cspell:words psionic
 import type { Agent, AgentTraitModifierKey, CaseInstance, Id } from './models'
 
 export interface RuntimeModifierContext {

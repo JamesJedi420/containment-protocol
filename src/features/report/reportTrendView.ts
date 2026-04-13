@@ -1,3 +1,4 @@
+// cspell:words hotspots
 import { type GameState, type Id, type WeeklyReport } from '../../domain/models'
 import { getTemplateFamily } from '../intel/intelView'
 

@@ -1,3 +1,4 @@
+// cspell:words hotspots
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { type RunTrendSummary, type TrendCaseRef } from './reportTrendView'

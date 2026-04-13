@@ -1,3 +1,4 @@
+// cspell:words greentape
 import { describe, expect, it } from 'vitest'
 import {
   getCaseAssignmentTimeline,

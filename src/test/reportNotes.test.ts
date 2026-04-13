@@ -1,3 +1,4 @@
+// cspell:words cand medkits
 import { describe, it, expect } from 'vitest'
 import { createNote } from '../data/copy'
 import type { AnyOperationEventDraft } from '../domain/events'
@@ -327,7 +328,7 @@ describe('Event Feed Note Identity', () => {
       expect(buildDeterministicReportNotesFromEventDrafts(drafts, 7, 7000)).toEqual([
         {
           id: 'note-7000-0',
-          content: 'Occult Networks: standing -2 after Ritual Pressure.',
+          content: 'Occult Networks: reputation -2 after Ritual Pressure.',
           timestamp: 7000,
           type: 'faction.standing_changed',
           metadata: {
@@ -336,9 +337,16 @@ describe('Event Feed Note Identity', () => {
             delta: -2,
             standingBefore: 3,
             standingAfter: 1,
+            reputationBefore: null,
+            reputationAfter: null,
             reason: 'case.failed',
             caseId: 'case-ritual',
             caseTitle: 'Ritual Pressure',
+            contactId: null,
+            contactName: null,
+            contactRelationshipBefore: null,
+            contactRelationshipAfter: null,
+            contactDelta: null,
           },
         },
       ])

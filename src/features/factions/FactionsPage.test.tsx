@@ -20,14 +20,18 @@ beforeEach(() => {
 })
 
 describe('FactionsPage', () => {
-  it('renders faction pressure entries from deterministic domain output', () => {
+  it('renders the bounded faction contacts screen from canonical faction state', () => {
     renderFactionsPage()
 
-    expect(screen.getByRole('heading', { name: /external actors/i })).toBeInTheDocument()
-    expect(screen.getByText(/oversight bureau/i)).toBeInTheDocument()
-    expect(screen.getByText(/academic institutions/i)).toBeInTheDocument()
-    expect(screen.getAllByText(/active incidents/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/operational leverage/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/access channel/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: /faction contacts & standing/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /recent faction activity/i })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { name: /known \/ hidden effects/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('heading', { name: /^contacts$/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/oversight bureau/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/academic institutions/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText(/standing band/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText(/posture/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: /open contracts/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open recruitment/i })).toBeInTheDocument()
   })
 })

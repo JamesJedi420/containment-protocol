@@ -1,3 +1,4 @@
+// cspell:words stabilised
 import { getMarketPressureLabel } from '../data/production'
 import {
   getMissionRewardFactionStandingNet,
@@ -18,6 +19,8 @@ const HISTORICAL_REPORT_NOTE_EVENT_TYPES = new Set<OperationEvent['type']>([
   'recruitment.scouting_initiated',
   'recruitment.scouting_refined',
   'recruitment.intel_confirmed',
+  'faction.standing_changed',
+  'faction.unlock_available',
 ])
 
 function normalizeWeek(week: number) {
@@ -147,6 +150,8 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         content:
           draft.payload.trigger === 'world_activity'
             ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? 'A new incident surfaced from baseline world activity.'}`
+            : draft.payload.trigger === 'faction_offer'
+              ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? `${draft.payload.factionLabel ?? 'Faction'} offered this operation through an active channel.`}`
             : draft.payload.trigger === 'faction_pressure'
               ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? `${draft.payload.factionLabel ?? 'Faction'} pressure surfaced this incident.`}`
               : draft.payload.trigger === 'pressure_threshold'
@@ -233,7 +238,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'faction.standing_changed':
       return {
-        content: `${draft.payload.factionName}: standing ${formatSignedNumber(draft.payload.delta)} after ${draft.payload.caseTitle ?? 'recent operations'}.`,
+        content: `${draft.payload.factionName}: reputation ${formatSignedNumber(draft.payload.delta)} after ${draft.payload.caseTitle ?? draft.payload.interactionLabel ?? 'recent operations'}${draft.payload.contactName ? `; ${draft.payload.contactName} ${formatSignedNumber(draft.payload.contactDelta ?? 0)}` : ''}.`,
         type: 'faction.standing_changed',
         metadata: {
           factionId: draft.payload.factionId,
@@ -241,9 +246,29 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           delta: draft.payload.delta,
           standingBefore: draft.payload.standingBefore,
           standingAfter: draft.payload.standingAfter,
+          reputationBefore: draft.payload.reputationBefore ?? null,
+          reputationAfter: draft.payload.reputationAfter ?? null,
           reason: draft.payload.reason,
           caseId: draft.payload.caseId ?? null,
           caseTitle: draft.payload.caseTitle ?? null,
+          contactId: draft.payload.contactId ?? null,
+          contactName: draft.payload.contactName ?? null,
+          contactRelationshipBefore: draft.payload.contactRelationshipBefore ?? null,
+          contactRelationshipAfter: draft.payload.contactRelationshipAfter ?? null,
+          contactDelta: draft.payload.contactDelta ?? null,
+        },
+      }
+
+    case 'faction.unlock_available':
+      return {
+        content: `${draft.payload.factionName}: ${draft.payload.label} unlocked${draft.payload.contactName ? ` via ${draft.payload.contactName}` : ''}. ${draft.payload.summary}`,
+        type: 'faction.unlock_available',
+        metadata: {
+          factionId: draft.payload.factionId,
+          factionName: draft.payload.factionName,
+          contactId: draft.payload.contactId ?? null,
+          contactName: draft.payload.contactName ?? null,
+          disposition: draft.payload.disposition,
         },
       }
 

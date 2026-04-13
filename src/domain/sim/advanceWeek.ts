@@ -1,6 +1,11 @@
+// cspell:words cooldown cooldowns lockdown
 import { clamp, createSeededRng } from '../math'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
-import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  createFactionUnlockAvailableDraft,
+  type AnyOperationEventDraft,
+} from '../events'
 import {
   type CaseInstance,
   type GameState,
@@ -25,8 +30,23 @@ import {
   recordAppliedDirective,
 } from '../directives'
 import { resolveAgentAbilityEffects } from '../abilities'
-import { buildFactionStandingMap, getFactionDefinition } from '../factions'
+import {
+  applyFactionFavorGrants,
+  applyFactionMissionOutcome,
+  buildFactionMissionContext,
+  diffFactionRecruitUnlocks,
+  getFactionDefinition,
+  getFactionRecruitUnlocks,
+} from '../factions'
+import { recordContractOutcome, refreshContractBoard } from '../contracts'
 import { buildMissionRewardBreakdown } from '../missionResults'
+import { buildTeamDeploymentReadinessState } from '../deploymentReadiness'
+import { getCanonicalFundingState } from '../funding'
+import { buildTeamCohesionSummary } from '../teamComposition'
+import { buildAgentLoadoutReadinessSummary } from '../equipment'
+import { degradeMissionIntelRecord } from '../intel'
+import { getResearchIntelModifiers } from '../research'
+import { resolveWeakestLinkMission } from '../weakestLinkResolution'
 import { buildAgencyProtocolState } from '../protocols'
 import {
   buildDeterministicReportNotesFromEventDrafts,
@@ -41,11 +61,19 @@ import {
   getUniqueTeamMembers,
   normalizeGameState,
 } from '../teamSimulation'
+import {
+  buildMajorIncidentEffectiveCase,
+  evaluateMajorIncidentPlan,
+  isOperationalMajorIncidentCase,
+  resolveMajorIncidentOutcome,
+} from '../majorIncidentOperations'
+import { recomputeMissionRouting } from '../missionIntakeRouting'
 import { deriveRelationshipStability, deriveRelationshipState } from './relationshipProjection'
 import { applyRaids, resolveRaid } from './raid'
+import { PRESSURE_CALIBRATION } from './calibration'
 import { advanceMarketState, advanceProductionQueues } from './production'
 import { resolveCase } from './resolve'
-import { calcWeekScore } from './scoring'
+import { calcWeekScore, computeRequiredScore, computeTeamScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
   createDeadlineEscalationTransition,
@@ -72,8 +100,9 @@ import {
   buildCaseResolvedEventDraft,
 } from './eventDraftPipeline'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
+import { advanceRecoveryDowntimeForWeek } from './recoveryDowntime'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
-import { advanceTrainingQueues } from './training'
+import { advanceTrainingCertificationState, advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
 import { applySpontaneousChemistryEvent } from './spontaneousChemistry'
 import { expireBetrayalConsequences, recoverTrustDamagePassively } from './betrayal'
@@ -344,10 +373,12 @@ function buildAssignedAgentLeaderBonuses(
 }
 
 interface WeeklyCaseResolutionStrategy {
+  effectiveCase: CaseInstance
   assignedAgents: NonNullable<GameState['agents'][string]>[]
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
+  weakestLinkResult?: import('../weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
 type SeededRng = ReturnType<typeof createSeededRng>
@@ -402,6 +433,11 @@ function resolveAssignedCaseForWeek(
     fatigueAdjustmentByTeam: Record<string, number>
   }
 ): WeeklyCaseResolutionStrategy {
+  const effectiveCase =
+    currentCase.majorIncident && isOperationalMajorIncidentCase(currentCase)
+      ? buildMajorIncidentEffectiveCase(currentCase, currentCase.majorIncident)
+      : currentCase
+  const factionContext = buildFactionMissionContext(currentCase, state)
   const assignedTeamLeaderBonuses = buildAssignedTeamLeaderBonuses(
     currentCase.assignedTeamIds,
     state.teams,
@@ -422,38 +458,123 @@ function resolveAssignedCaseForWeek(
   const assignedAgents = [
     ...getUniqueTeamMembers(currentCase.assignedTeamIds, state.teams, state.agents),
   ]
+  const invalidMajorIncidentOutcome: ResolutionOutcome = {
+    caseId: currentCase.id,
+    mode: 'probability',
+    kind: 'raid',
+    delta: -effectiveCase.durationWeeks,
+    successChance: 0,
+    result: 'fail',
+    reasons: ['Major incident launch state was invalid at resolution time.'],
+  }
 
-  const outcome =
-    currentCase.kind === 'raid'
-      ? resolveRaid(
-          currentCase,
-          currentCase.assignedTeamIds.map((id) => state.teams[id]).filter(Boolean),
-          state.agents,
-          state.config,
-          rng,
-          state.inventory
-        )
-      : resolveCase(currentCase, assignedAgents, state.config, rng, {
-          inventory: state.inventory,
-          protocolState: buildAgencyProtocolState(state),
-          supportTags: [
-            ...new Set(
-              currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
-            ),
-          ],
-          leaderId:
-            currentCase.assignedTeamIds.length === 1
-              ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
-              : null,
-          partyCardScoreBonus: cardBonus?.scoreAdjustment,
-          partyCardReasons: cardBonus?.reasons,
-        })
-
+  let outcome: ResolutionOutcome
+  let weakestLinkResult: import('../weakestLinkResolution').WeakestLinkMissionResolutionResult | undefined = undefined
+  if (currentCase.mode === 'deterministic') {
+    // Gather readiness, cohesion, loadout, training, fatigue, missingRoles for all assigned teams
+    const assignedTeamId = currentCase.assignedTeamIds[0]
+    const team = state.teams[assignedTeamId]
+    const agentsById = state.agents
+    const supportTags = [
+      ...new Set(currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])),
+    ]
+    const leaderId =
+      currentCase.assignedTeamIds.length === 1
+        ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
+        : null
+    const baseScore = computeTeamScore(assignedAgents, effectiveCase, {
+      inventory: state.inventory,
+      protocolState: buildAgencyProtocolState(state),
+      supportTags,
+      teamTags: supportTags,
+      leaderId,
+      scoreAdjustment: factionContext.scoreAdjustment,
+      scoreAdjustmentReason: factionContext.reasons.join(' / '),
+      partyCardScoreBonus: cardBonus?.scoreAdjustment,
+      partyCardReasons: cardBonus?.reasons,
+      config: state.config,
+    }).score
+    const requiredScore = computeRequiredScore(effectiveCase, state.config)
+    const readiness = buildTeamDeploymentReadinessState(state, assignedTeamId)
+    const cohesion = buildTeamCohesionSummary(team, agentsById)
+    const members = team.memberIds || team.agentIds || []
+    const loadoutSummaries = members.map((id: string) =>
+      buildAgentLoadoutReadinessSummary(agentsById[id], { state })
+    )
+    const trainingLocks = members.filter((id: string) => agentsById[id]?.assignment?.state === 'training')
+    const fatigueSignals = members.map((id: string) => agentsById[id]?.fatigue ?? 0)
+    const missingRoles = readiness.coverageCompleteness?.missing || []
+    weakestLinkResult = resolveWeakestLinkMission({
+      missionId: currentCase.id,
+      week: state.week,
+      baseScore,
+      requiredScore,
+      intelConfidence: effectiveCase.intelConfidence,
+      intelUncertainty: effectiveCase.intelUncertainty,
+      teamReadiness: readiness,
+      teamCohesion: cohesion,
+      loadoutSummaries,
+      trainingLocks,
+      fatigueSignals,
+      missingRoles,
+    })
+    // Map weakest-link result to ResolutionOutcome
+    outcome = {
+      caseId: currentCase.id,
+      mode: 'deterministic',
+      kind: currentCase.kind,
+      delta: 0,
+      successChance: undefined,
+      result: weakestLinkResult.resultKind,
+      reasons: [
+        `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
+        ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
+      ],
+    }
+  } else {
+    outcome =
+      currentCase.majorIncident && isOperationalMajorIncidentCase(currentCase)
+        ? resolveMajorIncidentOutcome(state, currentCase, currentCase.assignedTeamIds, rng()) ??
+          invalidMajorIncidentOutcome
+        : currentCase.kind === 'raid'
+        ? resolveRaid(
+            effectiveCase,
+            currentCase.assignedTeamIds.map((id) => state.teams[id]).filter(Boolean),
+            state.agents,
+            state.config,
+            rng,
+            state.inventory,
+            {
+              protocolState: buildAgencyProtocolState(state),
+              scoreAdjustment: factionContext.scoreAdjustment,
+              scoreAdjustmentReason: factionContext.reasons.join(' / '),
+            }
+          )
+        : resolveCase(currentCase, assignedAgents, state.config, rng, {
+            inventory: state.inventory,
+            protocolState: buildAgencyProtocolState(state),
+            supportTags: [
+              ...new Set(
+                currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
+              ),
+            ],
+            leaderId:
+              currentCase.assignedTeamIds.length === 1
+                ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
+                : null,
+            scoreAdjustment: factionContext.scoreAdjustment,
+            scoreAdjustmentReason: factionContext.reasons.join(' / '),
+            partyCardScoreBonus: cardBonus?.scoreAdjustment,
+            partyCardReasons: cardBonus?.reasons,
+          })
+  }
   return {
+    effectiveCase,
     assignedAgents,
     assignedAgentLeaderBonuses,
     activeTeamStressModifiers,
     outcome,
+    weakestLinkResult,
   }
 }
 
@@ -463,12 +584,13 @@ function createWeeklyExecutionContext(
 ): WeeklyExecutionContext {
   const initialCaseIds = Object.keys(state.cases)
   const initialRecruitmentPool = [...getRecruitmentPool(state)]
+  const intelResearchModifiers = getResearchIntelModifiers(state)
 
   return {
     sourceState: state,
     nextState: {
       ...state,
-      cases: { ...state.cases },
+      cases: degradeMissionIntelRecord({ ...state.cases }, state.week, intelResearchModifiers),
       teams: { ...state.teams },
       agents: { ...state.agents },
     },
@@ -835,10 +957,17 @@ function applyActiveTriggerCooldowns(
 
 function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
   for (const caseId of context.initialCaseIds) {
-    const currentCase = context.sourceState.cases[caseId]
+    const currentCase = context.nextState.cases[caseId] ?? context.sourceState.cases[caseId]
     const existingAssignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
       Boolean(context.sourceState.teams[teamId])
     )
+    const incidentEvaluation =
+      currentCase.majorIncident && isOperationalMajorIncidentCase(currentCase)
+        ? evaluateMajorIncidentPlan(context.sourceState, currentCase, existingAssignedTeamIds, {
+            strategy: currentCase.majorIncident.strategy,
+            provisions: currentCase.majorIncident.provisions,
+          })
+        : null
 
     if (currentCase.status !== 'in_progress' || existingAssignedTeamIds.length === 0) {
       if (
@@ -849,6 +978,18 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
           ...currentCase,
           assignedTeamIds: existingAssignedTeamIds,
         }
+      }
+      continue
+    }
+
+    if (incidentEvaluation && !incidentEvaluation.valid) {
+      context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)
+      context.nextState.cases[caseId] = {
+        ...currentCase,
+        assignedTeamIds: [],
+        status: 'open',
+        weeksRemaining: undefined,
+        majorIncident: undefined,
       }
       continue
     }
@@ -926,11 +1067,8 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
       rng.next,
       cardBonus
     )
-    const { assignedAgentLeaderBonuses, activeTeamStressModifiers, outcome } = weeklyResolution
-    const effectiveCase = {
-      ...currentCase,
-      assignedTeamIds: existingAssignedTeamIds,
-    }
+    const { assignedAgentLeaderBonuses, activeTeamStressModifiers, effectiveCase, outcome, weakestLinkResult } =
+      weeklyResolution
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)
     context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)
@@ -983,19 +1121,23 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
         context.nextState
       )
       context.rewardByCaseId[caseId] = rewardBreakdown
-      context.missionResultDraftByCaseId[caseId] = buildSuccessCaseOutcomeDraft({
-        caseId,
-        caseTitle: currentCase.title,
-        teamsUsed: existingAssignedTeamIds.map((teamId) => ({
-          teamId,
-          teamName: context.sourceState.teams[teamId]?.name,
-        })),
-        rewards: rewardBreakdown,
-        performanceSummary,
-        powerImpact,
-        injuries: missionAgentMutations.missionInjuries,
-        resolutionReasons: outcome.reasons,
-      })
+      context.missionResultDraftByCaseId[caseId] = {
+        ...buildSuccessCaseOutcomeDraft({
+          caseId,
+          caseTitle: currentCase.title,
+          teamsUsed: existingAssignedTeamIds.map((teamId) => ({
+            teamId,
+            teamName: context.sourceState.teams[teamId]?.name,
+          })),
+          rewards: rewardBreakdown,
+          performanceSummary,
+          powerImpact,
+          injuries: missionAgentMutations.missionInjuries,
+          fatalities: missionAgentMutations.missionFatalities,
+          resolutionReasons: outcome.reasons,
+        }),
+        ...(weakestLinkResult ? { weakestLink: weakestLinkResult } : {}),
+      }
 
       context.resolvedCases.push(caseId)
       context.nextState.cases[caseId] = {
@@ -1022,6 +1164,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
       status: 'open' as const,
       assignedTeamIds: [],
       weeksRemaining: undefined,
+      majorIncident: undefined,
     }
     context.nextState.cases[caseId] = escalatedCase
     const { nextStage } = resolutionEscalation
@@ -1032,29 +1175,33 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
       context.nextState
     )
     context.rewardByCaseId[caseId] = rewardBreakdown
-    context.missionResultDraftByCaseId[caseId] = buildEscalatedCaseOutcomeDraft({
-      caseId,
-      caseTitle: currentCase.title,
-      teamsUsed: existingAssignedTeamIds.map((teamId) => ({
-        teamId,
-        teamName: context.sourceState.teams[teamId]?.name,
-      })),
-      outcome: outcome.result,
-      rewards: rewardBreakdown,
-      performanceSummary,
-      powerImpact,
-      injuries: missionAgentMutations.missionInjuries,
-      spawnedConsequences: [
-        {
-          type: 'stage_escalation',
-          caseId,
-          caseTitle: currentCase.title,
-          stage: escalatedCase.stage,
-          detail: `Case escalated to stage ${escalatedCase.stage}.`,
-        },
-      ],
-      resolutionReasons: outcome.reasons,
-    })
+    context.missionResultDraftByCaseId[caseId] = {
+      ...buildEscalatedCaseOutcomeDraft({
+        caseId,
+        caseTitle: currentCase.title,
+        teamsUsed: existingAssignedTeamIds.map((teamId) => ({
+          teamId,
+          teamName: context.sourceState.teams[teamId]?.name,
+        })),
+        outcome: outcome.result,
+        rewards: rewardBreakdown,
+        performanceSummary,
+        powerImpact,
+        injuries: missionAgentMutations.missionInjuries,
+        fatalities: missionAgentMutations.missionFatalities,
+        spawnedConsequences: [
+          {
+            type: 'stage_escalation',
+            caseId,
+            caseTitle: currentCase.title,
+            stage: escalatedCase.stage,
+            detail: `Case escalated to stage ${escalatedCase.stage}.`,
+          },
+        ],
+        resolutionReasons: outcome.reasons,
+      }),
+      ...(weakestLinkResult ? { weakestLink: weakestLinkResult } : {}),
+    }
 
     if (outcome.result === 'fail') {
       applyActiveTriggerCooldowns(context, {
@@ -1099,13 +1246,14 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng) {
 
 function escalateCases(context: WeeklyExecutionContext) {
   for (const caseId of context.initialCaseIds) {
-    const currentCase = context.sourceState.cases[caseId]
-    const existingAssignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
+    const sourceCase = context.sourceState.cases[caseId]
+    const currentCase = context.nextState.cases[caseId] ?? sourceCase
+    const existingAssignedTeamIds = sourceCase.assignedTeamIds.filter((teamId) =>
       Boolean(context.sourceState.teams[teamId])
     )
 
-    if (currentCase.status !== 'open' || existingAssignedTeamIds.length > 0) {
-      if (currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length) {
+    if (sourceCase.status !== 'open' || existingAssignedTeamIds.length > 0) {
+      if (sourceCase.assignedTeamIds.length !== existingAssignedTeamIds.length) {
         const nextCase = context.nextState.cases[caseId] ?? currentCase
         context.nextState.cases[caseId] = {
           ...nextCase,
@@ -1125,7 +1273,7 @@ function escalateCases(context: WeeklyExecutionContext) {
       continue
     }
 
-    const deadlineEscalation = createDeadlineEscalationTransition(currentCase)
+    const deadlineEscalation = createDeadlineEscalationTransition(currentCase, context.sourceState.week)
     const escalatedCase = deadlineEscalation.nextCase
     const rewardBreakdown = buildMissionRewardBreakdown(
       escalatedCase,
@@ -1188,14 +1336,11 @@ function prepareAgentsForWeek(context: WeeklyExecutionContext) {
     withPassiveTrustRecovery,
     context.sourceState.week
   )
-
+  
+  // Recovery/downtime handled in main advanceWeek, not here
   context.nextState = {
     ...context.nextState,
-    agents: advanceRecoveryAgentsForWeek({
-      week: context.sourceState.week,
-      sourceAgents: context.sourceState.agents,
-      nextAgents: withExpiredTrustConsequences,
-    }),
+    agents: withExpiredTrustConsequences,
   }
 }
 
@@ -1309,7 +1454,7 @@ function applyPassiveRelationshipDrift(context: WeeklyExecutionContext) {
             reason: 'passive_drift',
           },
         }
-      )
+      );
     }
   }
 
@@ -1549,9 +1694,16 @@ function processRaidPressure(context: WeeklyExecutionContext, rng: SeededRng) {
   appendSpawnedCaseEventDrafts(context, context.nextState, raidResult.spawnedCases)
 }
 
+function refreshMissionIntakeRouting(context: WeeklyExecutionContext) {
+  context.nextState = {
+    ...context.nextState,
+    missionRouting: recomputeMissionRouting(context.nextState, context.sourceState.week),
+  }
+}
+
 function advanceQueues(context: WeeklyExecutionContext) {
   const trainingResult = advanceTrainingQueues(context.nextState)
-  context.nextState = trainingResult.state
+  context.nextState = advanceTrainingCertificationState(trainingResult.state)
   context.eventDrafts.push(...trainingResult.eventDrafts)
 
   const productionResult = advanceProductionQueues(context.nextState)
@@ -1583,16 +1735,17 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
     activeTeamStressModifiers: context.activeTeamStressModifiers,
   })
 
-  const standingByFactionId = {
-    ...buildFactionStandingMap({
-      events: context.sourceState.events,
-    }),
-  }
-
   for (const missionResult of Object.values(context.missionResultByCaseId)) {
     if (!missionResult) {
       continue
     }
+
+    const activeContract =
+      context.sourceState.cases[missionResult.caseId]?.contract ??
+      context.nextState.cases[missionResult.caseId]?.contract
+    const availableRecruitUnlocksBefore = getFactionRecruitUnlocks({
+      factions: context.nextState.factions ?? {},
+    })
 
     const reason: 'case.resolved' | 'case.partially_resolved' | 'case.failed' | 'case.escalated' =
       missionResult.outcome === 'success'
@@ -1600,13 +1753,101 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
         : missionResult.outcome === 'partial'
           ? 'case.partially_resolved'
           : missionResult.outcome === 'fail'
-            ? 'case.failed'
-            : 'case.escalated'
+          ? 'case.failed'
+          : 'case.escalated'
+
+    if (missionResult.rewards.inventoryRewards.length > 0) {
+      const nextInventory = { ...context.nextState.inventory }
+
+      for (const reward of missionResult.rewards.inventoryRewards) {
+        nextInventory[reward.itemId] = Math.max(
+          0,
+          (nextInventory[reward.itemId] ?? 0) + reward.quantity
+        )
+      }
+
+      context.nextState = {
+        ...context.nextState,
+        inventory: nextInventory,
+      }
+    }
+
+    if ((missionResult.rewards.progressionUnlocks?.length ?? 0) > 0) {
+      const progressionUnlockIds = [
+        ...new Set([
+          ...(context.nextState.agency?.progressionUnlockIds ?? []),
+          ...missionResult.rewards.progressionUnlocks!,
+        ]),
+      ].sort((left, right) => left.localeCompare(right))
+
+      context.nextState = {
+        ...context.nextState,
+        agency: {
+          ...(context.nextState.agency ?? {
+            containmentRating: context.nextState.containmentRating,
+            clearanceLevel: context.nextState.clearanceLevel,
+            funding: context.nextState.funding,
+          }),
+          progressionUnlockIds,
+        },
+      }
+    }
+
+    if (activeContract) {
+      context.nextState = {
+        ...context.nextState,
+        contracts: recordContractOutcome(
+          context.nextState.contracts,
+          activeContract,
+          missionResult.outcome,
+          context.sourceState.week
+        ),
+      }
+    }
+
+    const favorGrants =
+      missionResult.rewards.factionGrants
+        ?.filter((grant) => grant.kind === 'favor')
+        .map((grant) => ({
+          factionId: grant.factionId,
+          rewardId: grant.rewardId ?? grant.label,
+        })) ?? []
+
+    if (favorGrants.length > 0) {
+      context.nextState = {
+        ...context.nextState,
+        factions: applyFactionFavorGrants(context.nextState.factions ?? {}, favorGrants),
+      }
+    }
 
     for (const standing of missionResult.rewards.factionStanding) {
-      const before = standingByFactionId[standing.factionId] ?? 0
-      const after = clamp(before + standing.delta, -20, 20)
-      standingByFactionId[standing.factionId] = after
+      const factionBefore = context.nextState.factions?.[standing.factionId]
+      const reputationBefore = factionBefore?.reputation ?? 0
+      const contactBefore =
+        standing.contactId && factionBefore
+          ? factionBefore.contacts.find((contact) => contact.id === standing.contactId)
+          : undefined
+
+      context.nextState = {
+        ...context.nextState,
+        factions: applyFactionMissionOutcome(
+          context.nextState.factions ?? {},
+          {
+            factionId: standing.factionId,
+            delta: standing.delta,
+            contactId: standing.contactId,
+            contactDelta: standing.contactDelta,
+          },
+          missionResult.outcome
+        ),
+      }
+
+      const factionAfter = context.nextState.factions?.[standing.factionId]
+      const reputationAfter = factionAfter?.reputation ?? reputationBefore
+      const contactAfter =
+        standing.contactId && factionAfter
+          ? factionAfter.contacts.find((contact) => contact.id === standing.contactId)
+          : undefined
 
       context.eventDrafts.push({
         type: 'faction.standing_changed',
@@ -1616,13 +1857,42 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
           factionId: standing.factionId,
           factionName: getFactionDefinition(standing.factionId)?.label ?? standing.label,
           delta: standing.delta,
-          standingBefore: before,
-          standingAfter: after,
+          standingBefore: clamp(Math.round(reputationBefore / 5), -20, 20),
+          standingAfter: clamp(Math.round(reputationAfter / 5), -20, 20),
           reason,
           caseId: missionResult.caseId,
           caseTitle: missionResult.caseTitle,
+          contactId: standing.contactId,
+          contactName: standing.contactName,
+          contactRelationshipBefore: contactBefore?.relationship,
+          contactRelationshipAfter: contactAfter?.relationship,
+          contactDelta: standing.contactDelta,
+          reputationBefore,
+          reputationAfter,
         },
       })
+    }
+
+    const availableRecruitUnlocksAfter = getFactionRecruitUnlocks({
+      factions: context.nextState.factions ?? {},
+    })
+
+    for (const unlock of diffFactionRecruitUnlocks(
+      availableRecruitUnlocksBefore,
+      availableRecruitUnlocksAfter
+    )) {
+      context.eventDrafts.push(
+        createFactionUnlockAvailableDraft({
+          week: context.sourceState.week,
+          factionId: unlock.factionId,
+          factionName: unlock.factionName,
+          contactId: unlock.contactId,
+          contactName: unlock.contactName,
+          label: unlock.label,
+          summary: unlock.summary,
+          disposition: unlock.disposition,
+        })
+      )
     }
   }
 }
@@ -1801,17 +2071,38 @@ function finalizeEvents(
  * It is intentionally not a visual combat loop or action-by-action playback engine.
  */
 export function advanceWeek(state: GameState, overrideNow?: number): GameState {
-  if (state.gameOver) {
-    return ensureNormalizedGameState(state)
+  const normalizedState = ensureNormalizedGameState(state)
+
+  if (normalizedState.gameOver) {
+    return normalizedState
   }
 
-  const rng = createSeededRng(state.rngState)
+  const rng = createSeededRng(normalizedState.rngState)
   const noteBaseTimestamp =
     overrideNow !== undefined && Number.isFinite(overrideNow) ? Math.trunc(overrideNow) : undefined
-  const context = createWeeklyExecutionContext(state, noteBaseTimestamp)
+  const context = createWeeklyExecutionContext(normalizedState, noteBaseTimestamp)
 
   prepareAgentsForWeek(context)
   resolveAssignments(context, rng)
+  // Progress deterministic recovery, trauma, and downtime for all agents and teams
+  const downtimeAssignments = Object.fromEntries(
+    Object.keys(context.nextState.agents).map((agentId) => [agentId, 'rest' as import('./recoveryDowntime').DowntimeActivity])
+  ) as Record<string, import('./recoveryDowntime').DowntimeActivity>;
+  const { updatedAgents, updatedTeams } = advanceRecoveryDowntimeForWeek({
+    week: context.sourceState.week,
+    sourceAgents: context.nextState.agents,
+    sourceTeams: context.nextState.teams,
+    downtimeAssignments,
+    fundingState: getCanonicalFundingState(context.nextState),
+    replacementPressureState: context.nextState.replacementPressureState,
+  })
+  context.nextState.agents = updatedAgents
+  context.nextState.teams = updatedTeams
+  context.nextState.agents = advanceRecoveryAgentsForWeek({
+    week: context.sourceState.week,
+    sourceAgents: context.nextState.agents,
+    nextAgents: context.nextState.agents,
+  })
   escalateCases(context)
   settleWeekState(context, rng)
   refreshPartyCards(context, rng)
@@ -1819,14 +2110,76 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   generateRecruitmentPool(context, rng)
   expireOldCandidates(context)
   processRaidPressure(context, rng)
+  refreshMissionIntakeRouting(context)
   advanceQueues(context)
   applyPassiveRelationshipDrift(context)
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)
   finalizeMissionResults(context)
 
+  // --- Deterministic escalation, threat drift, and time pressure progression ---
+  // Update per-case escalationLevel, threatDrift, and timePressure
+  let globalEscalationLevel = 0
+  let globalThreatDrift = 0
+  let globalTimePressure = 0
+  for (const caseId of Object.keys(context.nextState.cases)) {
+    const c = context.nextState.cases[caseId]
+    // Escalation: increment if case escalated this week (fail, partial, unresolved)
+    let escalationDelta = 0
+    if (context.failedCases.includes(caseId)) {
+      escalationDelta += PRESSURE_CALIBRATION.escalationLevelDelta.failed
+    }
+    if (context.partialCases.includes(caseId)) {
+      escalationDelta += PRESSURE_CALIBRATION.escalationLevelDelta.partial
+    }
+    if (context.unresolvedTriggers.includes(caseId)) {
+      escalationDelta += PRESSURE_CALIBRATION.escalationLevelDelta.unresolved
+    }
+    // Threat drift: increment if deadline expired or case unresolved
+    let driftDelta = 0
+    if (context.unresolvedTriggers.includes(caseId)) {
+      driftDelta = PRESSURE_CALIBRATION.threatDriftDeltaPerUnresolved
+    }
+    // Time pressure: increment if deadlineRemaining <= 0 or case unresolved
+    let pressureDelta = 0
+    if (c.deadlineRemaining <= 0 || context.unresolvedTriggers.includes(caseId)) {
+      pressureDelta = PRESSURE_CALIBRATION.timePressureDeltaPerUnresolved
+    }
+    const nextEscalationLevel = clamp(
+      (c.escalationLevel ?? 0) + escalationDelta,
+      0,
+      PRESSURE_CALIBRATION.maxCaseEscalationLevel
+    )
+    const nextThreatDrift = clamp(
+      (c.threatDrift ?? 0) + driftDelta,
+      0,
+      PRESSURE_CALIBRATION.maxCaseThreatDrift
+    )
+    const nextTimePressure = clamp(
+      (c.timePressure ?? 0) + pressureDelta,
+      0,
+      PRESSURE_CALIBRATION.maxCaseTimePressure
+    )
+    context.nextState.cases[caseId] = {
+      ...c,
+      escalationLevel: nextEscalationLevel,
+      threatDrift: nextThreatDrift,
+      timePressure: nextTimePressure,
+    }
+    globalEscalationLevel += nextEscalationLevel
+    globalThreatDrift += nextThreatDrift
+    globalTimePressure += nextTimePressure
+  }
+  context.nextState.globalEscalationLevel = globalEscalationLevel
+  context.nextState.globalThreatDrift = globalThreatDrift
+  context.nextState.globalTimePressure = globalTimePressure
+  // --- End deterministic escalation, drift, pressure logic ---
+
   const builtReport = buildReports(context)
   const agencyMetrics = updateAgencyMetrics(context, builtReport)
 
-  return finalizeEvents(context, builtReport, agencyMetrics)
+  return finalizeEvents(context, builtReport, {
+    ...agencyMetrics,
+    finalState: refreshContractBoard(agencyMetrics.finalState),
+  })
 }

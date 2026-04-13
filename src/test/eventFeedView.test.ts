@@ -1,3 +1,4 @@
+// cspell:words cand fieldcraft kellan sato voss
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { GameState, OperationEvent } from '../domain/models'
@@ -299,6 +300,57 @@ describe('buildEventFeedView', () => {
 
     expect(view.tone).toBe('success')
     expect(view.title).toContain('completed')
+  })
+
+  it('agent.training_cancelled — warning tone and refund detail', () => {
+    const event = makeEvent('agent.training_cancelled', {
+      week: 6,
+      agentId: 'a-001',
+      agentName: 'Ava Cole',
+      trainingId: 'ttn-combat',
+      trainingName: 'Combat Conditioning',
+      refund: 8,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.title).toContain('cancelled')
+    expect(view.detail).toContain('Refund $8')
+  })
+
+  it('agent.instructor_assigned — success tone and specialty detail', () => {
+    const event = makeEvent('agent.instructor_assigned', {
+      week: 6,
+      staffId: 'ins-001',
+      instructorName: 'Prof. Chen',
+      agentId: 'a-001',
+      agentName: 'Ava Cole',
+      instructorSpecialty: 'combat',
+      bonus: 1,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('assigned to Ava Cole')
+    expect(view.detail).toContain('combat specialty')
+    expect(view.detail).toContain('+1')
+  })
+
+  it('agent.instructor_unassigned — warning tone and removal detail', () => {
+    const event = makeEvent('agent.instructor_unassigned', {
+      week: 6,
+      staffId: 'ins-001',
+      instructorName: 'Prof. Chen',
+      agentId: 'a-001',
+      agentName: 'Ava Cole',
+      instructorSpecialty: 'combat',
+      bonus: 1,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.title).toContain('removed from Ava Cole')
+    expect(view.detail).toContain('bonus removed')
   })
 
   it('agent.relationship_changed — reflects direction and reason', () => {
@@ -627,6 +679,24 @@ describe('buildEventFeedView', () => {
     const view = buildEventFeedView(event)
 
     expect(view.tone).toBe('neutral')
+  })
+
+  it('system.academy_upgraded — success tone and tier progression detail', () => {
+    const event = makeEvent('system.academy_upgraded', {
+      week: 8,
+      tierBefore: 1,
+      tierAfter: 2,
+      fundingBefore: 500,
+      fundingAfter: 0,
+      cost: 500,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('Academy upgraded')
+    expect(view.detail).toContain('Tier 1 -> 2')
+    expect(view.detail).toContain('Cost $500')
+    expect(view.href).toBe('/training-division')
   })
 
   it('every event exposes a non-empty timestampLabel derived from timestamp', () => {
@@ -1292,5 +1362,45 @@ describe('getFilteredEventFeedViews', () => {
     })
 
     expect(noMatch).toHaveLength(0)
+  })
+})
+
+describe('buildEventFeedView faction additions', () => {
+  it('shows cooperative faction offers in case spawn feed entries', () => {
+    const event = makeEvent('case.spawned', {
+      week: 9,
+      caseId: 'case-faction-offer',
+      caseTitle: 'Archive Recovery Window',
+      templateId: 'tpl-archive-window',
+      kind: 'case',
+      stage: 1,
+      trigger: 'faction_offer',
+      factionId: 'institutions',
+      factionLabel: 'Academic Institutions',
+      sourceReason: 'Academic Institutions opened a cooperative mission window around archive work.',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('cooperative mission window')
+    expect(view.searchText).toContain('faction_offer')
+  })
+
+  it('shows faction unlock events in the feed', () => {
+    const event = makeEvent('faction.unlock_available', {
+      week: 6,
+      factionId: 'black_budget',
+      factionName: 'Black Budget Programs',
+      contactId: 'blackbudget-ossian',
+      contactName: 'Lena Ossian',
+      label: 'Intercept operative referral',
+      summary: 'Unlocks a covert technical recruit.',
+      disposition: 'supportive',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('opened Intercept operative referral')
+    expect(view.detail).toContain('Lena Ossian')
+    expect(view.searchText).toContain('intercept operative referral')
   })
 })

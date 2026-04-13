@@ -1,4 +1,5 @@
 import { type CaseInstance } from '../models'
+import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
 
 export interface DeadlineEscalationTransition {
   nextCase: CaseInstance
@@ -11,12 +12,17 @@ export interface ResolutionEscalationTransition {
 }
 
 export function createDeadlineEscalationTransition(
-  currentCase: CaseInstance
+  currentCase: CaseInstance,
+  week = currentCase.intelLastUpdatedWeek
 ): DeadlineEscalationTransition {
   const nextStage = Math.min(currentCase.stage + currentCase.onUnresolved.stageDelta, 5)
   const convertedToRaid =
     currentCase.onUnresolved.convertToRaidAtStage !== undefined &&
     nextStage >= currentCase.onUnresolved.convertToRaidAtStage
+
+  const deadlineResetBonus = isSecondEscalationBandWeek(week)
+    ? PRESSURE_CALIBRATION.secondEscalationDeadlineResetBonusWeeks
+    : 0
 
   return {
     convertedToRaid,
@@ -25,7 +31,9 @@ export function createDeadlineEscalationTransition(
       kind: convertedToRaid ? 'raid' : currentCase.kind,
       raid: convertedToRaid ? (currentCase.raid ?? { minTeams: 2, maxTeams: 2 }) : currentCase.raid,
       stage: nextStage,
-      deadlineRemaining: currentCase.onUnresolved.deadlineResetWeeks ?? currentCase.deadlineWeeks,
+      deadlineRemaining:
+        (currentCase.onUnresolved.deadlineResetWeeks ?? currentCase.deadlineWeeks) +
+        deadlineResetBonus,
     },
   }
 }

@@ -1,3 +1,4 @@
+// cspell:words unequip
 import type { Agent, GameState, Id } from '../models'
 import {
   listEquippedItemAssignments,
@@ -6,6 +7,7 @@ import {
   getEquipmentDefinition,
   getEquipmentSlotAliases,
   getEquipmentSlotItemId,
+  validateAgentLoadoutAssignment,
 } from '../equipment'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 
@@ -99,6 +101,13 @@ export function equipAgentItem(
   const definition = getEquipmentDefinition(itemId)
 
   if (!canEditAgentEquipment(agent) || !definition || !definition.allowedSlots.includes(slot)) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const assignmentValidation = validateAgentLoadoutAssignment(agent, slot, itemId, {
+    state,
+  })
+  if (!assignmentValidation.valid) {
     return ensureNormalizedGameState(state)
   }
 

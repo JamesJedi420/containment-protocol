@@ -1,3 +1,4 @@
+// cspell:words greentape unassignment
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { createDefaultAgentHistory } from '../domain/agentDefaults'

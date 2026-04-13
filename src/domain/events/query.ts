@@ -51,6 +51,46 @@ function getEntityIds(event: OperationEvent) {
   return [...ids]
 }
 
+function collectStringValues(value: unknown, collector: string[]) {
+  if (typeof value === 'string') {
+    if (value.length > 0) {
+      collector.push(value)
+    }
+    return
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringValues(item, collector)
+    }
+    return
+  }
+
+  if (value && typeof value === 'object') {
+    for (const item of Object.values(value as Record<string, unknown>)) {
+      collectStringValues(item, collector)
+    }
+  }
+}
+
+function matchesTextQuery(event: OperationEvent, normalizedQuery: string) {
+  if (normalizedQuery.length === 0) {
+    return true
+  }
+
+  if (event.type.toLowerCase().includes(normalizedQuery)) {
+    return true
+  }
+
+  if (event.sourceSystem.toLowerCase().includes(normalizedQuery)) {
+    return true
+  }
+
+  const payloadStrings: string[] = []
+  collectStringValues(event.payload, payloadStrings)
+  return payloadStrings.some((entry) => entry.toLowerCase().includes(normalizedQuery))
+}
+
 export function buildEventQueryIndex(events: OperationEvent[]): EventQueryIndex {
   const all = [...events].sort((left, right) => right.timestamp.localeCompare(left.timestamp))
 
@@ -77,6 +117,7 @@ export function buildEventQueryIndex(events: OperationEvent[]): EventQueryIndex 
 
 export function queryEvents(index: EventQueryIndex, filter: EventQueryFilter): OperationEvent[] {
   const normalizedEntityId = filter.entityId?.trim() ?? ''
+  const normalizedQuery = filter.query?.trim().toLowerCase() ?? ''
 
   let base = index.all
 
@@ -100,6 +141,10 @@ export function queryEvents(index: EventQueryIndex, filter: EventQueryFilter): O
 
   if (typeof filter.weekMax === 'number') {
     base = base.filter((event) => event.payload.week <= filter.weekMax!)
+  }
+
+  if (normalizedQuery.length > 0) {
+    base = base.filter((event) => matchesTextQuery(event, normalizedQuery))
   }
 
   return base

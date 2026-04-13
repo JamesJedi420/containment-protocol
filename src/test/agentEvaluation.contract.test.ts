@@ -1,3 +1,4 @@
+// cspell:words cooldown medkits unslotted
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { formatAbilityTrigger, resolveAbilityEffect } from '../domain/abilities'

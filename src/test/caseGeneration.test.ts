@@ -1,3 +1,4 @@
+// cspell:words cryptid
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
@@ -126,5 +127,52 @@ describe('caseGeneration', () => {
     })
     expect(result.spawnedCases[0]?.sourceReason).toContain('Occult Networks')
     expect(result.state.cases[result.spawnedCaseIds[0]!]).toBeDefined()
+  })
+
+  it('does not let supportive factions also surface hostile pressure incidents', () => {
+    const state = createStartingState()
+    state.config = { ...state.config, maxActiveCases: 8 }
+    state.containmentRating = 85
+    state.agency = {
+      containmentRating: 85,
+      clearanceLevel: state.clearanceLevel,
+      funding: state.funding,
+    }
+    state.cases = {
+      'case-occult-1': {
+        ...state.cases['case-003'],
+        id: 'case-occult-1',
+        title: 'Ritual Pressure One',
+        stage: 4,
+        deadlineRemaining: 0,
+        assignedTeamIds: [],
+        status: 'open',
+        factionId: 'occult_networks',
+        tags: ['occult', 'ritual', 'chapel', 'tier-2'],
+        requiredTags: ['occultist'],
+        preferredTags: ['ritual-kit'],
+      },
+      'case-occult-2': {
+        ...state.cases['case-003'],
+        id: 'case-occult-2',
+        title: 'Ritual Pressure Two',
+        stage: 4,
+        deadlineRemaining: 0,
+        assignedTeamIds: [],
+        status: 'open',
+        factionId: 'occult_networks',
+        tags: ['occult', 'ritual', 'reliquary', 'tier-2'],
+        requiredTags: ['occultist'],
+        preferredTags: ['ritual-kit'],
+      },
+    }
+    if (!state.factions) {
+      throw new Error('Expected faction state to be present for supportive pressure test.')
+    }
+    state.factions.occult_networks.reputation = 80
+
+    const result = generateAmbientCases(state, createSeededRng(4242).next)
+
+    expect(result.spawnedCases.some((spawned) => spawned.trigger === 'faction_pressure')).toBe(false)
   })
 })

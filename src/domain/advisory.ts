@@ -1,3 +1,4 @@
+// cspell:words editability
 import { type GameState, type Id, type TeamCoverageRole } from './models'
 import { buildResolutionPreviewState, previewResolutionForTeamIds } from './sim/resolve'
 import { summarizeRelationshipModifiers } from './sim/chemistry'

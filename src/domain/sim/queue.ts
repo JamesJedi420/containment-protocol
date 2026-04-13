@@ -1,3 +1,4 @@
+// cspell:words reprioritize
 import type { GameState, Id, CasePriority } from '../models'
 
 function getCaseQueue(state: GameState) {

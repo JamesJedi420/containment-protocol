@@ -1,5 +1,8 @@
 import { type GameState } from '../domain/models'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
+import { refreshContractBoard } from '../domain/contracts'
+import { createDefaultFactionStateMap } from '../domain/factions'
+import { createDefaultRuntimeState } from '../domain/gameStateManager'
 import { syncTeamSimulationState } from '../domain/teamSimulation'
 import { caseTemplateMap, starterCases, starterRoster, starterTeams } from '../domain/templates'
 import { createStartingPartyCardState } from './partyCards'
@@ -19,6 +22,7 @@ const startingStateTemplate: GameState = {
   recruitmentPool: [],
   teams: starterTeams,
   cases: starterCases,
+  factions: createDefaultFactionStateMap(),
 
   templates: caseTemplateMap,
   reports: [],
@@ -32,6 +36,7 @@ const startingStateTemplate: GameState = {
   productionQueue: [],
   market: createStartingMarket(),
   partyCards: createStartingPartyCardState(),
+  runtimeState: createDefaultRuntimeState(1),
 
   agency: {
     containmentRating: 72,
@@ -56,8 +61,8 @@ const startingStateTemplate: GameState = {
     weeksPerYear: 52,
     fundingBasePerWeek: 8,
     fundingPerResolution: 8,
-    fundingPenaltyPerFail: 7,
-    fundingPenaltyPerUnresolved: 12,
+    fundingPenaltyPerFail: 6,
+    fundingPenaltyPerUnresolved: 10,
     containmentWeeklyDecay: 2,
     containmentDeltaPerResolution: 3,
     containmentDeltaPerFail: -4,
@@ -69,7 +74,7 @@ const startingStateTemplate: GameState = {
 }
 
 export function createStartingState(): GameState {
-  return syncTeamSimulationState(structuredClone(startingStateTemplate))
+  return refreshContractBoard(syncTeamSimulationState(structuredClone(startingStateTemplate)))
 }
 
 export const startingState = createStartingState()

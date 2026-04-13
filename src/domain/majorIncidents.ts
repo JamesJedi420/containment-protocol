@@ -1,3 +1,4 @@
+// cspell:words psionic stormfront
 import type { CaseInstance, StatBlock } from './models'
 
 export type MajorIncidentArchetypeId =

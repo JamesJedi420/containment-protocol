@@ -6,8 +6,17 @@ import type {
   CandidatePipelineStatus,
   CandidatePotentialTier,
   CandidateRevealLevel,
+  RecruitmentFunnelStage,
   StaffCandidateSpecialty,
 } from './types'
+
+const FUNNEL_STAGE_ORDER: RecruitmentFunnelStage[] = [
+  'prospect',
+  'contacted',
+  'screening',
+  'hired',
+  'lost',
+]
 
 export const CANDIDATE_REVEAL_THRESHOLDS = {
   potential: 1,
@@ -59,6 +68,49 @@ export function normalizeCandidateHireStatus(
   }
 
   return status
+}
+
+export function normalizeRecruitmentFunnelStage(
+  stage: unknown,
+  fallback: RecruitmentFunnelStage = 'prospect'
+): RecruitmentFunnelStage {
+  if (typeof stage !== 'string') {
+    return fallback
+  }
+
+  const normalized = stage.trim() as RecruitmentFunnelStage
+  return FUNNEL_STAGE_ORDER.includes(normalized) ? normalized : fallback
+}
+
+export function getCandidateFunnelStage(candidate: Candidate): RecruitmentFunnelStage {
+  if (candidate.funnelStage) {
+    return normalizeRecruitmentFunnelStage(candidate.funnelStage)
+  }
+
+  if (normalizeCandidateHireStatus(candidate.hireStatus) === 'expired') {
+    return 'lost'
+  }
+
+  return 'prospect'
+}
+
+export function canTransitionCandidateFunnelStage(
+  fromStage: RecruitmentFunnelStage,
+  toStage: RecruitmentFunnelStage
+) {
+  if (fromStage === toStage) {
+    return true
+  }
+
+  const validTransitions: Record<RecruitmentFunnelStage, RecruitmentFunnelStage[]> = {
+    prospect: ['contacted', 'lost'],
+    contacted: ['screening', 'lost'],
+    screening: ['hired', 'lost'],
+    hired: [],
+    lost: [],
+  }
+
+  return validTransitions[fromStage].includes(toStage)
 }
 
 export function isCandidateHireable(status: CandidatePipelineStatus) {

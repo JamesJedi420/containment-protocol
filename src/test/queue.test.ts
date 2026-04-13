@@ -1,3 +1,4 @@
+// cspell:words reprioritize
 import { describe, it, expect } from 'vitest'
 import { createStartingState } from '../../src/data/startingState'
 import {

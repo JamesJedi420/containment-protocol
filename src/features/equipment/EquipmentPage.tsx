@@ -1,3 +1,4 @@
+// cspell:words loadouts unequip
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'

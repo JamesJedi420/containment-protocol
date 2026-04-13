@@ -167,12 +167,29 @@ describe('recruitment candidate generation', () => {
     const generated = generateCandidatesFromState(state, createSeededRng(state.rngState).next)
 
     expect(generated.every((candidate) => candidate.hireStatus === 'available')).toBe(true)
+    expect(generated.every((candidate) => candidate.funnelStage === 'prospect')).toBe(true)
+    expect(generated.every((candidate) => candidate.createdWeek === state.week)).toBe(true)
+    expect(generated.every((candidate) => candidate.lastUpdatedWeek === state.week)).toBe(true)
     expect(
       generated.every(
         (candidate) =>
           candidate.weeklyCost !== undefined &&
           candidate.weeklyWage === candidate.weeklyCost &&
-          candidate.costEstimate !== undefined
+          (candidate.revealLevel >= 1 ? candidate.costEstimate !== undefined : true) &&
+          (candidate.availabilityWindow === undefined ||
+            (candidate.availabilityWindow.opensWeek === state.week &&
+              candidate.availabilityWindow.closesWeek === candidate.expiryWeek))
+      )
+    ).toBe(true)
+    expect(
+      generated.every(
+        (candidate) =>
+          Array.isArray(candidate.skills) &&
+          candidate.skills.length >= 2 &&
+          candidate.skills.length <= 3 &&
+          Array.isArray(candidate.liabilities) &&
+          candidate.liabilities.length >= 1 &&
+          candidate.liabilities.length <= 2
       )
     ).toBe(true)
     expect(
@@ -192,6 +209,106 @@ describe('recruitment candidate generation', () => {
         return true
       })
     ).toBe(true)
+  })
+
+  it('injects faction-sponsored recruits when faction recruit channels are unlocked', () => {
+    const state = createStartingState()
+    state.rngSeed = 9191
+    state.rngState = 9191
+    const factions = state.factions
+    if (!factions) {
+      throw new Error('Expected faction state to be present for recruitment generation test.')
+    }
+
+    factions.institutions.reputation = 80
+    factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+      contact.id === 'institutions-halden'
+        ? {
+            ...contact,
+            relationship: 18,
+            status: 'active',
+          }
+        : contact
+    )
+
+    const generated = generateCandidatesFromState(state, createSeededRng(state.rngState).next)
+    const sponsored = generated.find((candidate) => candidate.sourceFactionId === 'institutions')
+
+    expect(sponsored).toMatchObject({
+      category: 'agent',
+      sourceFactionId: 'institutions',
+      sourceFactionName: 'Academic Institutions',
+      sourceContactId: 'institutions-halden',
+      sourceContactName: 'Miren Halden',
+      sourceRequiredTier: 'friendly',
+      sourceSummary: expect.stringContaining('Research fellowship'),
+    })
+    expect(generated[0]?.id).toBe(sponsored?.id)
+  })
+
+  it('applies recruit-quality faction modifiers to sponsored recruit quality deterministically', () => {
+    const baseState = createStartingState()
+    const boostedState = createStartingState()
+    baseState.rngSeed = 9191
+    baseState.rngState = 9191
+    boostedState.rngSeed = 9191
+    boostedState.rngState = 9191
+
+    for (const state of [baseState, boostedState]) {
+      const factions = state.factions
+      if (!factions) {
+        throw new Error('Expected faction state to be present for recruit quality test.')
+      }
+
+      factions.institutions.reputation = 80
+      factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+        contact.id === 'institutions-halden'
+          ? {
+              ...contact,
+              relationship: 18,
+              status: 'active',
+            }
+          : contact
+      )
+    }
+
+    if (!boostedState.factions) {
+      throw new Error('Expected faction state to be present for recruit quality modifier test.')
+    }
+
+    boostedState.factions.institutions.contacts =
+      boostedState.factions.institutions.contacts.map((contact) =>
+        contact.id === 'institutions-halden'
+          ? {
+              ...contact,
+              modifiers: [
+                ...(contact.modifiers ?? []),
+                {
+                  id: 'institutions-halden-recruit-quality',
+                  label: 'Prestige pipeline',
+                  description: 'Halden can send stronger fellowship candidates.',
+                  effect: 'recruit_quality',
+                  value: 6,
+                },
+              ],
+            }
+          : contact
+      )
+
+    const generatedBase = generateCandidatesFromState(
+      baseState,
+      createSeededRng(baseState.rngState).next
+    )
+    const generatedBoosted = generateCandidatesFromState(
+      boostedState,
+      createSeededRng(boostedState.rngState).next
+    )
+    const baseSponsored = generatedBase.find((candidate) => candidate.sourceFactionId === 'institutions')
+    const boostedSponsored = generatedBoosted.find(
+      (candidate) => candidate.sourceFactionId === 'institutions'
+    )
+
+    expect(baseSponsored?.evaluation.overallValue).toBeLessThan(boostedSponsored?.evaluation.overallValue ?? 0)
   })
 
   it('removes candidates only after their expiry week has passed', () => {

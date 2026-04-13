@@ -120,25 +120,23 @@ it('routes dashboard command links into case, team, and report drill-down pages'
   useGameStore.setState({ game: createDashboardWorkflowGame() })
   renderApp('/')
 
-  const prioritySection = screen
-    .getByRole('heading', { name: /^priority queue$/i })
-    .closest('section')
+  expect(
+    screen.getByRole('region', { name: /front desk operations hub/i })
+  ).toBeInTheDocument()
 
-  expect(prioritySection).not.toBeNull()
-
-  await user.click(
-    within(prioritySection!).getByRole('link', { name: /vampire nest in the stockyards/i })
-  )
+  await user.click(screen.getByRole('link', { name: /vampire nest in the stockyards/i }))
   expect(
     screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })
   ).toBeInTheDocument()
 
   await user.click(screen.getByRole('link', { name: /^operations desk$/i }))
-  const atRiskSection = screen.getByRole('heading', { name: /^at-risk teams$/i }).closest('section')
+  const teamStatusSection = screen
+    .getByRole('heading', { name: /^teams \/ field status$/i })
+    .closest('section')
 
-  expect(atRiskSection).not.toBeNull()
+  expect(teamStatusSection).not.toBeNull()
 
-  await user.click(within(atRiskSection!).getByRole('link', { name: /response unit night watch/i }))
+  await user.click(within(teamStatusSection!).getByRole('link', { name: /^night watch$/i }))
   expect(
     screen.getByRole('heading', { level: 1, name: /response unit night watch/i })
   ).toBeInTheDocument()

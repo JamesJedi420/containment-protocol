@@ -13,7 +13,7 @@ function clampProgressValue(value: number, max: number) {
 
 export function StatCard({ label, value }: BaseProps) {
   return (
-    <div className="panel stat-shell">
+    <div className="panel stat-shell" role="region" aria-label={`${label}: ${value}`}>
       <p className="text-label stat-label">{label}</p>
       <p className="mt-2 text-stat">{value}</p>
     </div>
@@ -29,6 +29,7 @@ export function StatLinkCard({ label, to, value }: StatLinkCardProps) {
     <Link
       to={to}
       className="panel panel-hi stat-shell block transition hover:border-white/25 hover:bg-white/4"
+      aria-label={`${label}: ${value}`}
     >
       <p className="text-label stat-label">{label}</p>
       <p className="mt-2 text-stat">{value}</p>
@@ -38,7 +39,7 @@ export function StatLinkCard({ label, to, value }: StatLinkCardProps) {
 
 export function DetailStat({ label, value }: BaseProps) {
   return (
-    <div className="rounded border border-white/10 bg-white/2 p-3">
+    <div className="rounded border border-white/10 bg-white/2 p-3" role="region" aria-label={`${label}: ${value}`}>
       <p className="text-label opacity-70">{label}</p>
       <p className="mt-1 text-base font-semibold text-white/95">{value}</p>
     </div>

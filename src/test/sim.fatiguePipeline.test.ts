@@ -1,3 +1,4 @@
+// cspell:words greentape sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { applyWeeklyAgentFatigue, getAverageTeamFatigue } from '../domain/sim/fatiguePipeline'

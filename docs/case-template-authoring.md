@@ -1,3 +1,5 @@
+<!-- cspell:words psionic -->
+
 # Case Template Authoring Guide
 
 This project supports authored scenario variety by extending case templates in `src/domain/templates/`.

@@ -1,3 +1,4 @@
+// cspell:words cand medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { queueTraining } from '../../domain/sim/training'
@@ -8,6 +9,7 @@ import {
   migratePersistedStore,
   parseRunExport,
   serializeRunExport,
+  stripGameTemplates,
 } from './runTransfer'
 
 describe('runTransfer helpers', () => {
@@ -84,6 +86,17 @@ describe('runTransfer helpers', () => {
     })
   })
 
+  it('backfills missing faction state for legacy saves without breaking import', () => {
+    const fallback = createStartingState()
+    const persistedGame = createStartingState()
+
+    delete (persistedGame as Partial<typeof persistedGame>).factions
+
+    const migrated = migratePersistedStore({ game: persistedGame }, 1, fallback)
+
+    expect(migrated.game.factions).toEqual(fallback.factions)
+  })
+
   it('builds the current run export payload shape without persisting templates', () => {
     const game = createStartingState()
     game.week = 3
@@ -132,9 +145,14 @@ describe('runTransfer helpers', () => {
       durationModel: 'attrition',
     }
 
+    const expected = migratePersistedStore(
+      { game: createRunExportPayload(game).game },
+      GAME_STORE_VERSION,
+      createStartingState()
+    ).game
     const roundTripped = parseRunExport(serializeRunExport(game))
 
-    expect(roundTripped).toEqual(game)
+    expect(stripGameTemplates(roundTripped)).toEqual(expected)
   })
 
   it('round-trips active inventory, production queue, and market state', () => {
@@ -170,6 +188,27 @@ describe('runTransfer helpers', () => {
     expect(roundTripped.inventory).toEqual(game.inventory)
     expect(roundTripped.productionQueue).toEqual(game.productionQueue)
     expect(roundTripped.market).toEqual(game.market)
+  })
+
+  it('round-trips agency progression unlocks and active protocols', () => {
+    const game = createStartingState()
+    game.agency = {
+      ...game.agency!,
+      protocolSelectionLimit: 2,
+      activeProtocolIds: ['stormwall', 'firebreak'],
+      progressionUnlockIds: ['containment-liturgy', 'blacksite-retrofit'],
+    }
+
+    const roundTripped = parseRunExport(serializeRunExport(game))
+
+    expect(roundTripped.agency).toMatchObject({
+      containmentRating: game.containmentRating,
+      clearanceLevel: game.clearanceLevel,
+      funding: game.funding,
+      protocolSelectionLimit: 2,
+      activeProtocolIds: ['stormwall', 'firebreak'],
+      progressionUnlockIds: ['containment-liturgy', 'blacksite-retrofit'],
+    })
   })
 
   it('defaults missing event schemaVersion and infers sourceSystem from event type', () => {
@@ -210,7 +249,7 @@ describe('runTransfer helpers', () => {
     expect(imported.events[0].timestamp).toBe('2042-01-15T00:00:00.001Z')
   })
 
-  it('sanitizes sparse legacy payloads for agent.hired and agency.containment_updated', () => {
+  it('sanitizes sparse legacy payloads for agent.hired, relationship reasons, and agency.containment_updated', () => {
     const fallback = createStartingState()
     const imported = parseRunExport(
       JSON.stringify({
@@ -238,12 +277,27 @@ describe('runTransfer helpers', () => {
                 containmentDelta: -3,
               },
             },
+            {
+              id: 'evt-legacy-relationship',
+              type: 'agent.relationship_changed',
+              payload: {
+                week: 2,
+                agentId: 'a_mina',
+                agentName: 'Mina Park',
+                counterpartId: 'a_sato',
+                counterpartName: 'Dr. Sato',
+                previousValue: 0.15,
+                nextValue: 0.35,
+                delta: 0.2,
+                reason: 'external_event',
+              },
+            },
           ],
         },
       })
     )
 
-    expect(imported.events).toHaveLength(2)
+    expect(imported.events).toHaveLength(3)
     expect(imported.events[0]).toMatchObject({
       id: 'evt-legacy-hire',
       schemaVersion: 2,
@@ -275,6 +329,301 @@ describe('runTransfer helpers', () => {
         fundingDelta: 0,
       },
     })
+    expect(imported.events[2]).toMatchObject({
+      id: 'evt-legacy-relationship',
+      schemaVersion: 2,
+      type: 'agent.relationship_changed',
+      sourceSystem: 'agent',
+      payload: {
+        week: 2,
+        agentId: 'a_mina',
+        agentName: 'Mina Park',
+        counterpartId: 'a_sato',
+        counterpartName: 'Dr. Sato',
+        previousValue: 0.15,
+        nextValue: 0.35,
+        delta: 0.2,
+        reason: 'external_event',
+      },
+      timestamp: '2042-01-08T00:00:00.003Z',
+    })
+  })
+
+  it('round-trips modern faction and progression event payloads without degrading fields', () => {
+    const game = createStartingState()
+    game.events = [
+      {
+        id: 'evt-spawn-modern',
+        schemaVersion: 2,
+        type: 'case.spawned',
+        sourceSystem: 'incident',
+        timestamp: '2042-01-08T00:00:00.001Z',
+        payload: {
+          week: 2,
+          caseId: 'case-faction-offer',
+          caseTitle: 'Intercept Window',
+          templateId: 'tmpl-intercept-window',
+          kind: 'case',
+          stage: 2,
+          trigger: 'faction_offer',
+          factionId: 'black_budget',
+          factionLabel: 'Black Budget Programs',
+          sourceReason: 'Black Budget opened a cleaner intercept window.',
+        },
+      },
+      {
+        id: 'evt-faction-unlock-modern',
+        schemaVersion: 2,
+        type: 'faction.unlock_available',
+        sourceSystem: 'faction',
+        timestamp: '2042-01-08T00:00:00.002Z',
+        payload: {
+          week: 2,
+          factionId: 'institutions',
+          factionName: 'Academic Institutions',
+          contactId: 'institutions-halden',
+          contactName: 'Miren Halden',
+          label: 'Research fellowship',
+          summary: 'A new fellowship referral channel is available.',
+          disposition: 'supportive',
+        },
+      },
+      {
+        id: 'evt-standing-hired-modern',
+        schemaVersion: 2,
+        type: 'faction.standing_changed',
+        sourceSystem: 'faction',
+        timestamp: '2042-01-08T00:00:00.003Z',
+        payload: {
+          week: 2,
+          factionId: 'institutions',
+          factionName: 'Academic Institutions',
+          delta: 3,
+          standingBefore: 4,
+          standingAfter: 5,
+          reason: 'recruitment.hired',
+          interactionLabel: 'Sponsored hire',
+        },
+      },
+      {
+        id: 'evt-xp-modern',
+        schemaVersion: 2,
+        type: 'progression.xp_gained',
+        sourceSystem: 'agent',
+        timestamp: '2042-01-08T00:00:00.004Z',
+        payload: {
+          week: 2,
+          agentId: 'a_mina',
+          agentName: 'Mina Park',
+          xpAmount: 12,
+          reason: 'mission_resolution',
+          totalXp: 44,
+          level: 2,
+          levelsGained: 1,
+        },
+      },
+    ]
+    game.reports = [
+      {
+        week: 2,
+        rngStateBefore: 88,
+        rngStateAfter: 89,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 0,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [
+          {
+            id: 'note-faction-unlock',
+            content: 'New faction unlock recorded.',
+            timestamp: 1700000000000,
+            type: 'faction.unlock_available',
+            metadata: {
+              factionId: 'institutions',
+              label: 'Research fellowship',
+            },
+          },
+        ],
+      },
+    ]
+
+    const roundTripped = parseRunExport(serializeRunExport(game))
+
+    expect(roundTripped.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'evt-spawn-modern',
+          type: 'case.spawned',
+          payload: expect.objectContaining({
+            trigger: 'faction_offer',
+            factionId: 'black_budget',
+            factionLabel: 'Black Budget Programs',
+            sourceReason: 'Black Budget opened a cleaner intercept window.',
+          }),
+        }),
+        expect.objectContaining({
+          id: 'evt-faction-unlock-modern',
+          type: 'faction.unlock_available',
+          payload: expect.objectContaining({
+            factionId: 'institutions',
+            contactId: 'institutions-halden',
+            label: 'Research fellowship',
+            disposition: 'supportive',
+          }),
+        }),
+        expect.objectContaining({
+          id: 'evt-standing-hired-modern',
+          type: 'faction.standing_changed',
+          payload: expect.objectContaining({
+            reason: 'recruitment.hired',
+            interactionLabel: 'Sponsored hire',
+          }),
+        }),
+        expect.objectContaining({
+          id: 'evt-xp-modern',
+          type: 'progression.xp_gained',
+          payload: expect.objectContaining({
+            xpAmount: 12,
+            reason: 'mission_resolution',
+            totalXp: 44,
+            level: 2,
+            levelsGained: 1,
+          }),
+        }),
+      ])
+    )
+    expect(roundTripped.reports[0]?.notes[0]).toMatchObject({
+      type: 'faction.unlock_available',
+      metadata: {
+        factionId: 'institutions',
+        label: 'Research fellowship',
+      },
+    })
+  })
+
+  it('preserves allowlisted instructor/scouting/market/directive/academy events on import hydration', () => {
+    const game = createStartingState()
+    game.events = [
+      {
+        id: 'evt-instructor-assigned',
+        schemaVersion: 2,
+        type: 'agent.instructor_assigned',
+        sourceSystem: 'agent',
+        timestamp: '2042-01-08T00:00:00.001Z',
+        payload: {
+          week: 2,
+          staffId: 'staff-instructor-01',
+          instructorName: 'Iris Vale',
+          agentId: 'a_mina',
+          agentName: 'Mina Park',
+          instructorSpecialty: 'combat',
+          bonus: 6,
+        },
+      },
+      {
+        id: 'evt-instructor-unassigned',
+        schemaVersion: 2,
+        type: 'agent.instructor_unassigned',
+        sourceSystem: 'agent',
+        timestamp: '2042-01-08T00:00:00.002Z',
+        payload: {
+          week: 2,
+          staffId: 'staff-instructor-01',
+          instructorName: 'Iris Vale',
+          agentId: 'a_mina',
+          agentName: 'Mina Park',
+          instructorSpecialty: 'combat',
+          bonus: 6,
+        },
+      },
+      {
+        id: 'evt-scout-init',
+        schemaVersion: 2,
+        type: 'recruitment.scouting_initiated',
+        sourceSystem: 'intel',
+        timestamp: '2042-01-08T00:00:00.003Z',
+        payload: {
+          week: 2,
+          candidateId: 'cand-17',
+          candidateName: 'Cato Rhys',
+          fundingCost: 8,
+          stage: 1,
+          projectedTier: 'C',
+          confidence: 'medium',
+          revealLevel: 1,
+        },
+      },
+      {
+        id: 'evt-market-txn',
+        schemaVersion: 2,
+        type: 'market.transaction_recorded',
+        sourceSystem: 'production',
+        timestamp: '2042-01-08T00:00:00.004Z',
+        payload: {
+          week: 2,
+          marketWeek: 2,
+          transactionId: 'txn-2-1',
+          action: 'buy',
+          listingId: 'listing-medkits',
+          itemId: 'medkits',
+          itemName: 'Emergency Medkits',
+          category: 'material',
+          quantity: 2,
+          bundleCount: 1,
+          unitPrice: 7,
+          totalPrice: 14,
+          remainingAvailability: 12,
+        },
+      },
+      {
+        id: 'evt-directive-applied',
+        schemaVersion: 2,
+        type: 'directive.applied',
+        sourceSystem: 'system',
+        timestamp: '2042-01-08T00:00:00.005Z',
+        payload: {
+          week: 2,
+          directiveId: 'intel-surge',
+          directiveLabel: 'Intel Surge',
+        },
+      },
+      {
+        id: 'evt-academy-upgraded',
+        schemaVersion: 2,
+        type: 'system.academy_upgraded',
+        sourceSystem: 'system',
+        timestamp: '2042-01-08T00:00:00.006Z',
+        payload: {
+          week: 2,
+          tierBefore: 0,
+          tierAfter: 1,
+          fundingBefore: 220,
+          fundingAfter: 20,
+          cost: 200,
+        },
+      },
+    ]
+
+    const roundTripped = parseRunExport(serializeRunExport(game))
+    const roundTrippedTypes = roundTripped.events.map((event) => event.type)
+
+    expect(roundTrippedTypes).toEqual(
+      expect.arrayContaining([
+        'agent.instructor_assigned',
+        'agent.instructor_unassigned',
+        'recruitment.scouting_initiated',
+        'market.transaction_recorded',
+        'directive.applied',
+        'system.academy_upgraded',
+      ])
+    )
+    expect(roundTripped.events).toHaveLength(game.events.length)
   })
 
   it('assigns deterministic migrated ids for legacy events missing ids', () => {

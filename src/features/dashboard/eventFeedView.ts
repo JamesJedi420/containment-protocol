@@ -1,3 +1,4 @@
+// cspell:words stabilised
 import { APP_ROUTES } from '../../app/routes'
 import { readStringParam, writeEnumParam, writeStringParam } from '../../app/searchParams'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
@@ -195,6 +196,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'agent.instructor_assigned': 'Instructor Assigned',
   'agent.instructor_unassigned': 'Instructor Removed',
   'agent.injured': 'Agent Injury',
+  'agent.killed': 'Agent Fatality',
   'agent.betrayed': 'Trust Breach',
   'agent.resigned': 'Agent Resignation',
   'agent.promoted': 'Agent Promotion',
@@ -211,6 +213,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'faction.standing_changed': 'Faction Standing',
+  'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
   'directive.applied': 'Directive Applied',
   'system.academy_upgraded': 'Academy Upgraded',
@@ -233,6 +236,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'agent.instructor_assigned': 'personnel',
   'agent.instructor_unassigned': 'personnel',
   'agent.injured': 'personnel',
+  'agent.killed': 'personnel',
   'agent.betrayed': 'personnel',
   'agent.resigned': 'personnel',
   'agent.promoted': 'personnel',
@@ -249,6 +253,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'faction.standing_changed': 'agency_posture',
+  'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
   'directive.applied': 'agency_posture',
   'system.academy_upgraded': 'operations_logistics',
@@ -273,6 +278,7 @@ function getSpawnTriggerLabel(
     | 'unresolved'
     | 'raid_pressure'
     | 'world_activity'
+    | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
 ) {
@@ -282,6 +288,10 @@ function getSpawnTriggerLabel(
 
   if (trigger === 'world_activity') {
     return 'world activity'
+  }
+
+  if (trigger === 'faction_offer') {
+    return 'faction offer'
   }
 
   if (trigger === 'faction_pressure') {
@@ -540,6 +550,21 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText: `${event.payload.agentName} injured ${event.payload.severity}`.toLowerCase(),
       }
 
+    case 'agent.killed':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.agentName} killed in action`,
+        detail: `Week ${event.payload.week} / ${event.payload.caseTitle}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'danger',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `${event.payload.agentName} killed ${event.payload.caseTitle} ${event.payload.caseId}`.toLowerCase(),
+      }
+
     case 'agent.betrayed':
       return {
         event,
@@ -758,14 +783,29 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
       return {
         event,
         week: event.payload.week,
-        title: `${event.payload.factionName} standing ${event.payload.delta >= 0 ? 'improved' : 'shifted down'}`,
-        detail: `Week ${event.payload.week} / ${event.payload.standingBefore >= 0 ? '+' : ''}${event.payload.standingBefore} -> ${event.payload.standingAfter >= 0 ? '+' : ''}${event.payload.standingAfter}${event.payload.caseTitle ? ` / ${event.payload.caseTitle}` : ''}`,
+        title: `${event.payload.factionName} reputation ${event.payload.delta >= 0 ? 'improved' : 'shifted down'}`,
+        detail: `Week ${event.payload.week} / ${event.payload.standingBefore >= 0 ? '+' : ''}${event.payload.standingBefore} -> ${event.payload.standingAfter >= 0 ? '+' : ''}${event.payload.standingAfter}${event.payload.caseTitle ? ` / ${event.payload.caseTitle}` : event.payload.interactionLabel ? ` / ${event.payload.interactionLabel}` : ''}${event.payload.contactName ? ` / ${event.payload.contactName} ${event.payload.contactDelta && event.payload.contactDelta >= 0 ? '+' : ''}${event.payload.contactDelta ?? 0}` : ''}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.delta > 0 ? 'success' : event.payload.delta < 0 ? 'warning' : 'neutral',
         searchText:
-          `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''}`.toLowerCase(),
+          `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''} ${event.payload.interactionLabel ?? ''}`.toLowerCase(),
+      }
+
+    case 'faction.unlock_available':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.factionName} opened ${event.payload.label}`,
+        detail: `Week ${event.payload.week} / ${event.payload.disposition === 'adversarial' ? 'Adversarial' : 'Supportive'} channel${event.payload.contactName ? ` / ${event.payload.contactName}` : ''} / ${event.payload.summary}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.disposition === 'adversarial' ? 'warning' : 'success',
+        href: APP_ROUTES.factions,
+        searchText:
+          `${event.payload.factionName} ${event.payload.factionId} ${event.payload.contactName ?? ''} ${event.payload.label} ${event.payload.summary} ${event.payload.disposition}`.toLowerCase(),
       }
 
     case 'agency.containment_updated':

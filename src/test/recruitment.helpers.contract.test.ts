@@ -1,3 +1,4 @@
+// cspell:words cand
 import { describe, expect, it } from 'vitest'
 import {
   getCandidatePool,

@@ -1,3 +1,4 @@
+// cspell:words psionic
 export * from './caseTemplates'
 export * from './caseTemplates.occult'
 export * from './caseTemplates.operations'

@@ -34,6 +34,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',
+  'faction.unlock_available',
   'agency.containment_updated',
   'directive.applied',
 ]

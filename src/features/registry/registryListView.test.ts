@@ -101,7 +101,7 @@ describe('registryListView', () => {
 
     const negative = getFilteredRegistryAgentViews(game, {
       ...DEFAULT_REGISTRY_LIST_FILTERS,
-      q: 'ava nonmatchingtoken',
+      q: 'ava octopus',
     })
 
     expect(negative.some((view) => view.agent.id === targetView?.agent.id)).toBe(false)

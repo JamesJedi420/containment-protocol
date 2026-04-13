@@ -1,8 +1,11 @@
 import { randInt } from '../math'
+import { inferFactionIdFromCaseTags } from '../factions'
+import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { SIM_NOTES } from '../../data/copy'
 import { EVENT_NOTE_BUILDERS } from './eventNoteBuilders'
+import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
 
 export interface SpawnedCaseRecord {
   caseId: string
@@ -11,6 +14,7 @@ export interface SpawnedCaseRecord {
     | 'unresolved'
     | 'raid_pressure'
     | 'world_activity'
+    | 'faction_offer'
     | 'faction_pressure'
     | 'pressure_threshold'
   parentCaseId?: string
@@ -75,13 +79,16 @@ function pickRuleTemplate(
 export function instantiateFromTemplate(
   template: CaseTemplate,
   rng: () => number,
-  usedIds: Set<string> = new Set()
+  usedIds: Set<string> = new Set(),
+  week = 1
 ): CaseInstance {
   return {
     id: nextId(usedIds, rng),
     templateId: template.templateId,
     title: template.title,
     description: template.description,
+    factionId: template.factionId ?? inferFactionIdFromCaseTags(template),
+    contactId: template.contactId,
     mode: template.mode,
     kind: template.kind,
     status: 'open',
@@ -97,6 +104,7 @@ export function instantiateFromTemplate(
     deadlineRemaining: template.deadlineWeeks,
     pressureValue: template.pressureValue ?? inferCasePressureValue(template),
     regionTag: template.regionTag ?? inferCaseRegionTag(template),
+    ...createMissionIntelState(week),
     assignedTeamIds: [],
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
@@ -140,7 +148,7 @@ export function applySpawnRule(
       continue
     }
 
-    spawned.push(instantiateFromTemplate(template, rng, usedIds))
+    spawned.push(instantiateFromTemplate(template, rng, usedIds, parent.intelLastUpdatedWeek))
   }
 
   if (spawned.length > 0) {
@@ -163,7 +171,7 @@ export function spawnCase(
 ): CaseInstance {
   const template = pickTemplateId(state.templates, templateIds, rng)
   const stage = parentCase ? Math.min(parentCase.stage + 1, 5) : 1
-  const spawnedCase = instantiateFromTemplate(template, rng, usedIds)
+  const spawnedCase = instantiateFromTemplate(template, rng, usedIds, state.week)
 
   return {
     ...spawnedCase,
@@ -183,6 +191,9 @@ function spawnFromCaseRule(
 ) {
   const usedIds = new Set(Object.keys(state.cases))
   const notes: string[] = []
+  const followUpSpawnReduction = isSecondEscalationBandWeek(state.week)
+    ? PRESSURE_CALIBRATION.secondEscalationFollowUpSpawnReduction
+    : 0
   const spawnedEntries = sourceCaseIds.flatMap((caseId) => {
     const sourceCase = state.cases[caseId]
 
@@ -190,7 +201,17 @@ function spawnFromCaseRule(
       return []
     }
 
-    const rule = getRule(sourceCase)
+    const baseRule = getRule(sourceCase)
+    const rule =
+      followUpSpawnReduction > 0
+        ? {
+            ...baseRule,
+            spawnCount: {
+              min: Math.max(0, baseRule.spawnCount.min - followUpSpawnReduction),
+              max: Math.max(0, baseRule.spawnCount.max - followUpSpawnReduction),
+            },
+          }
+        : baseRule
     const { spawned, notes: ruleNotes } = applySpawnRule(
       sourceCase,
       rule,

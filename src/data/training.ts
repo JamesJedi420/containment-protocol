@@ -1,8 +1,10 @@
+// cspell:words destabilisation familiarisation improv psionic
 import { type TrainingProgram } from '../domain/models'
 
 export const trainingCatalog: TrainingProgram[] = [
   {
     trainingId: 'combat-drills',
+    category: 'core_role_drills',
     name: 'Close-Quarters Drills',
     description: 'Live-fire rehearsals for breach response and hostile entry.',
     scope: 'agent',
@@ -11,9 +13,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 2,
     fundingCost: 10,
     fatigueDelta: 6,
+    certificationIds: ['combat-operator-cert'],
   },
   {
     trainingId: 'threat-assessment',
+    category: 'domain_skill_tracks',
     name: 'Threat Assessment',
     description:
       'Controlled-scenario threat profiling, engagement sequencing, and target-priority conditioning for complex hostile encounters.',
@@ -24,9 +28,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 3,
     fundingCost: 12,
     fatigueDelta: 5,
+    certificationIds: ['combat-operator-cert'],
   },
   {
     trainingId: 'analysis-lab',
+    category: 'domain_skill_tracks',
     name: 'Analysis Lab',
     description: 'Evidence triage and archive reconstruction for investigative staff.',
     scope: 'agent',
@@ -35,9 +41,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 2,
     fundingCost: 10,
     fatigueDelta: 5,
+    certificationIds: ['investigation-analyst-cert'],
   },
   {
     trainingId: 'field-improv',
+    category: 'equipment_proficiency_modules',
     name: 'Field Improvisation',
     description: 'Tool discipline, breach-kit drills, and situational response work.',
     scope: 'agent',
@@ -46,9 +54,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 2,
     fundingCost: 9,
     fatigueDelta: 5,
+    certificationIds: ['field-systems-cert'],
   },
   {
     trainingId: 'logistics-cycle',
+    category: 'operational_discipline_modules',
     name: 'Logistics Cycle',
     description:
       'Extended supply-chain simulation, resource triage, and multi-site equipment management protocols.',
@@ -59,9 +69,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 3,
     fundingCost: 10,
     fatigueDelta: 3,
+    certificationIds: ['field-systems-cert'],
   },
   {
     trainingId: 'endurance-protocol',
+    category: 'operational_discipline_modules',
     name: 'Endurance Protocol',
     description:
       "Physical conditioning, sleep-cycle regulation, and stress-load calibration. Permanently increases the agent's passive recovery rate between operations.",
@@ -72,9 +84,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fundingCost: 14,
     fatigueDelta: 4,
     recoveryBonus: 1,
+    certificationIds: ['readiness-compliance-cert'],
   },
   {
     trainingId: 'anomaly-conditioning',
+    category: 'cross_role_bridge_training',
     name: 'Anomaly Conditioning',
     description:
       'Anomaly classification, incident taxonomy, and psionic event investigation protocols.',
@@ -85,9 +99,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 3,
     fundingCost: 11,
     fatigueDelta: 6,
+    certificationIds: ['containment-specialist-cert'],
   },
   {
     trainingId: 'liaison-briefing',
+    category: 'core_role_drills',
     name: 'Liaison Briefing',
     description: 'Witness handling, negotiation pressure, and public-cover protocol.',
     scope: 'agent',
@@ -96,9 +112,11 @@ export const trainingCatalog: TrainingProgram[] = [
     durationWeeks: 2,
     fundingCost: 9,
     fatigueDelta: 4,
+    certificationIds: ['field-liaison-cert'],
   },
   {
     trainingId: 'psych-conditioning',
+    category: 'advanced_certification_programs',
     name: 'Psychological Conditioning',
     description:
       'Controlled exposure to anomalous incident footage, cognitive load drills, and debrief simulation. Builds mental resilience and resistance to psionic destabilisation.',
@@ -112,9 +130,11 @@ export const trainingCatalog: TrainingProgram[] = [
     stabilityResistanceDelta: 1,
     stabilityToleranceDelta: 1,
     recoveryBonus: 1,
+    certificationIds: ['readiness-compliance-cert', 'containment-specialist-cert'],
   },
   {
     trainingId: 'coordination-drill',
+    category: 'operational_discipline_modules',
     name: 'Coordination Drill',
     description:
       'Short-cycle team movement, callout discipline, and synchronized breach execution.',
@@ -126,9 +146,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 4,
     relationshipDelta: 0.3,
     trainedRelationshipDelta: 1,
+    certificationIds: ['team-cohesion-cert'],
   },
   {
     trainingId: 'incident-command-sim',
+    category: 'cross_role_bridge_training',
     name: 'Incident Command Simulation',
     description: 'Team-scale witness control, command handoff, and crisis communication rehearsal.',
     scope: 'team',
@@ -139,9 +161,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 3,
     relationshipDelta: 0.25,
     trainedRelationshipDelta: 1,
+    certificationIds: ['team-cohesion-cert', 'field-liaison-cert'],
   },
   {
     trainingId: 'breach-rehearsal',
+    category: 'core_role_drills',
     name: 'Breach Rehearsal',
     description:
       'Coordinated entry drills, target identification, and threat-response timing under pressure.',
@@ -153,9 +177,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 5,
     relationshipDelta: 0.25,
     trainedRelationshipDelta: 1,
+    certificationIds: ['team-cohesion-cert', 'combat-operator-cert'],
   },
   {
     trainingId: 'forensics-debrief',
+    category: 'domain_skill_tracks',
     name: 'Forensics Debrief',
     description: 'Joint evidence review, lead correlation, and cross-operator case reconstruction.',
     scope: 'team',
@@ -166,9 +192,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 3,
     relationshipDelta: 0.25,
     trainedRelationshipDelta: 1,
+    certificationIds: ['team-cohesion-cert', 'investigation-analyst-cert'],
   },
   {
     trainingId: 'crisis-integration',
+    category: 'advanced_certification_programs',
     name: 'Crisis Integration Exercise',
     description:
       'Extended multi-role simulation: joint after-action reviews, command handoffs, and sustained cross-operator communication under pressure. Builds deep operational trust.',
@@ -181,9 +209,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 6,
     relationshipDelta: 0.5,
     trainedRelationshipDelta: 2,
+    certificationIds: ['team-cohesion-cert', 'readiness-compliance-cert'],
   },
   {
     trainingId: 'assault-collective',
+    category: 'advanced_certification_programs',
     name: 'Collective Assault Training',
     description:
       'Intensive multi-operator live-fire exercises, coordinated suppression patterns, and breach-stack rehearsals under sustained pressure. Forges a unit that hits hard together.',
@@ -196,9 +226,11 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 8,
     relationshipDelta: 0.4,
     trainedRelationshipDelta: 2,
+    certificationIds: ['team-cohesion-cert', 'combat-operator-cert'],
   },
   {
     trainingId: 'deep-inquiry',
+    category: 'advanced_certification_programs',
     name: 'Deep Inquiry Workshop',
     description:
       'Shared anomaly-review sessions, competing-hypothesis exercises, and cross-referencing of active case files. Builds a team that investigates faster together.',
@@ -211,14 +243,17 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 5,
     relationshipDelta: 0.4,
     trainedRelationshipDelta: 2,
+    certificationIds: ['team-cohesion-cert', 'investigation-analyst-cert'],
   },
   {
     trainingId: 'systems-integration',
+    category: 'advanced_certification_programs',
     name: 'Systems Integration Sprint',
     description:
       'Cross-operator equipment familiarisation, shared logistics planning, and redundancy drills. Transforms a group of specialists into a self-sufficient unit.',
     scope: 'team',
     minAcademyTier: 2,
+    requiredResearchIds: ['systems-integration'],
     targetStat: 'utility',
     statDelta: 2,
     durationWeeks: 4,
@@ -226,6 +261,7 @@ export const trainingCatalog: TrainingProgram[] = [
     fatigueDelta: 5,
     relationshipDelta: 0.4,
     trainedRelationshipDelta: 2,
+    certificationIds: ['team-cohesion-cert', 'field-systems-cert'],
   },
 ]
 

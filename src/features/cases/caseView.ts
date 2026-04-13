@@ -6,6 +6,10 @@ import {
 } from '../../app/searchParams'
 import { type CaseInstance, type GameState, type Team } from '../../domain/models'
 import {
+  getBestMajorIncidentPlanSuggestion,
+  isOperationalMajorIncidentCase,
+} from '../../domain/majorIncidentOperations'
+import {
   buildResolutionPreviewState,
   previewResolutionForTeamIds,
   type OutcomeOdds,
@@ -35,6 +39,7 @@ export interface CaseListFilters {
 export interface CaseTeamOddsView {
   team: Team
   odds: OutcomeOdds
+  injuryChance: number
 }
 
 export interface CaseListItemView {
@@ -42,6 +47,7 @@ export interface CaseListItemView {
   assignedTeams: Team[]
   availableTeams: CaseTeamOddsView[]
   bestSuccess: number
+  isMajorIncident: boolean
   priorityScore: number
   maxTeams: number
   isUnassigned: boolean
@@ -63,6 +69,7 @@ export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
 
 export function getCaseListItemView(currentCase: CaseInstance, game: GameState): CaseListItemView {
   const previewState = buildResolutionPreviewState(game)
+  const isMajorIncident = isOperationalMajorIncidentCase(currentCase)
   const assignedTeams = currentCase.assignedTeamIds
     .map((teamId) => game.teams[teamId])
     .filter((team): team is Team => Boolean(team))
@@ -73,24 +80,32 @@ export function getCaseListItemView(currentCase: CaseInstance, game: GameState):
   const hasDeadlineRisk = currentCase.deadlineRemaining <= 2
   const requiredRoles = currentCase.requiredRoles ?? []
 
-  const availableTeams = isRaidAtCapacity
+  const availableTeams = isMajorIncident
+    ? []
+    : isRaidAtCapacity
     ? []
     : Object.values(game.teams)
         .filter((team) => isTeamAvailableForCase(team, currentCase, game))
         .map((team) => {
-          const odds = previewResolutionForTeamIds(
+          const preview = previewResolutionForTeamIds(
             currentCase,
             previewState,
             currentCase.kind === 'raid' ? [...currentCase.assignedTeamIds, team.id] : [team.id]
-          ).odds
+          )
 
-          return { team, odds }
+          return {
+            team,
+            odds: preview.odds,
+            injuryChance: preview.injuryForecast.injuryChance,
+          }
         })
         .filter(({ odds }) => !odds.blockedByRequiredTags && !odds.blockedByRequiredRoles)
         .sort(
           (left, right) =>
             right.odds.success - left.odds.success ||
             right.odds.partial - left.odds.partial ||
+            left.injuryChance - right.injuryChance ||
+            right.odds.chemistry - left.odds.chemistry ||
             left.team.name.localeCompare(right.team.name)
         )
 
@@ -131,15 +146,24 @@ export function getCaseListItemView(currentCase: CaseInstance, game: GameState):
         ).odds
       : undefined
 
-  const bestSuccess =
-    assignedOdds?.success ??
-    availableTeams.reduce((best, option) => Math.max(best, option.odds.success), 0)
+  const majorIncidentBestSuccess = isMajorIncident
+    ? currentCase.majorIncident
+      ? getBestMajorIncidentPlanSuggestion(game, currentCase, {
+          strategy: currentCase.majorIncident.strategy,
+          provisions: currentCase.majorIncident.provisions,
+        })?.successChance ?? 0
+      : getBestMajorIncidentPlanSuggestion(game, currentCase)?.successChance ?? 0
+    : 0
+  const bestSuccess = isMajorIncident
+    ? majorIncidentBestSuccess
+    : assignedOdds?.success ?? availableTeams.reduce((best, option) => Math.max(best, option.odds.success), 0)
 
   return {
     currentCase,
     assignedTeams,
     availableTeams,
     bestSuccess,
+    isMajorIncident,
     priorityScore: getPriorityScore({
       currentCase,
       bestSuccess,

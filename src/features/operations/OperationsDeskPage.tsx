@@ -1,5 +1,5 @@
-import DashboardPage from '../dashboard/DashboardPage'
+import FrontDeskPage from './FrontDeskPage'
 
 export default function OperationsDeskPage() {
-  return <DashboardPage />
+  return <FrontDeskPage />
 }

@@ -1,3 +1,4 @@
+// cspell:words cooldown
 import type { Agent, AgentAbility, AgentAbilityTrigger } from './models'
 import type { CaseInstance, Id } from './models'
 import {

@@ -1,5 +1,5 @@
 import '../../test/setup'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { assignTeam } from '../../domain/sim/assign'
@@ -153,6 +153,26 @@ it('creates a new squad from the builder panel', async () => {
   ).toBe(true)
 })
 
+it('renders keyboard skip links for builder, filters, and results', () => {
+  renderTeamsPage('/teams')
+
+  expect(screen.getByRole('link', { name: /skip to squad builder/i })).toHaveAttribute(
+    'href',
+    '#teams-builder'
+  )
+  expect(screen.getByRole('link', { name: /skip to team filters/i })).toHaveAttribute(
+    'href',
+    '#teams-filters'
+  )
+  expect(screen.getByRole('link', { name: /skip to team results/i })).toHaveAttribute(
+    'href',
+    '#teams-results'
+  )
+  expect(document.getElementById('teams-builder')).not.toBeNull()
+  expect(document.getElementById('teams-filters')).not.toBeNull()
+  expect(document.getElementById('teams-results')).not.toBeNull()
+})
+
 it('preserves team filters through detail navigation and browser back/forward', async () => {
   const user = userEvent.setup()
   const game = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
@@ -184,5 +204,34 @@ it('preserves team filters through detail navigation and browser back/forward', 
 
   await waitFor(() => {
     expect(screen.getByTestId('team-detail-page')).toBeInTheDocument()
+  })
+})
+
+it('shows actionable CTAs when no teams match current filters', async () => {
+  const user = userEvent.setup()
+
+  renderTeamsPage('/teams')
+
+  await user.type(screen.getByLabelText('Search'), 'definitely-no-match')
+
+  await waitFor(() => {
+    expect(screen.getByRole('region', { name: /no matching teams/i })).toBeInTheDocument()
+  })
+
+  const emptyRegion = screen.getByRole('region', { name: /no matching teams/i })
+
+  expect(within(emptyRegion).getByRole('link', { name: /open recruitment/i })).toHaveAttribute(
+    'href',
+    '/recruitment'
+  )
+  expect(within(emptyRegion).getByRole('link', { name: /open training division/i })).toHaveAttribute(
+    'href',
+    '/training-division'
+  )
+
+  await user.click(within(emptyRegion).getByRole('button', { name: /clear filters/i }))
+
+  await waitFor(() => {
+    expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
 })

@@ -35,7 +35,7 @@ describe('executePressurePipeline', () => {
       () => 0.25
     )
 
-    expect(result.nextState.globalPressure).toBe(6)
+    expect(result.nextState.globalPressure).toBe(4)
     expect(result.spawnedCases).toEqual([])
   })
 
@@ -84,5 +84,48 @@ describe('executePressurePipeline', () => {
       kind: 'raid',
       regionTag: 'occult_district',
     })
+  })
+
+  it('adds progression-unlocked templates into the major incident pressure pool', () => {
+    const state = createStartingState()
+    state.globalPressure = 0
+    state.agency = {
+      ...state.agency!,
+      progressionUnlockIds: ['blacksite-retrofit'],
+    }
+    state.responseGrid = {
+      majorIncidentThreshold: 5,
+      majorIncidentTemplateIds: ['raid-001'],
+    }
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 1,
+        pressureValue: 6,
+        regionTag: 'industrial_belt',
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const result = executePressurePipeline(
+      {
+        sourceState: state,
+        nextState: state,
+        initialCaseIds: ['case-001'],
+        unresolvedTriggers: ['case-001'],
+      },
+      () => 0.99
+    )
+
+    expect(result.spawnedCases).toHaveLength(1)
+
+    const spawnedCaseId = result.spawnedCases[0]?.caseId
+    expect(result.nextState.cases[spawnedCaseId!]?.templateId).toBe('ops-009')
   })
 })

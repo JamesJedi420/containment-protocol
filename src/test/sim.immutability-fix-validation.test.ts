@@ -37,6 +37,9 @@ function createTestCase(id: string, overrides: Partial<CaseInstance> = {}): Case
     deadlineWeeks: 8,
     deadlineRemaining: 8,
     weeksRemaining: undefined,
+    intelConfidence: 1,
+    intelUncertainty: 0,
+    intelLastUpdatedWeek: 0,
     assignedTeamIds: [],
     onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
     onUnresolved: {

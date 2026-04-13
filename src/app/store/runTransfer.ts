@@ -1,10 +1,18 @@
+// cspell:words cand
 import { createStartingState } from '../../data/startingState'
+import { refreshContractBoard, sanitizeContractSystemState } from '../../domain/contracts'
 import { getProductionRecipe } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
+import { MAX_ACADEMY_TIER } from '../../domain/sim/academyUpgrade'
 import { createDefaultWeeklyDirectiveState, isWeeklyDirectiveId } from '../../domain/directives'
 import { buildOperationEventTimestamp, inferOperationEventSourceSystem } from '../../domain/events'
+import { sanitizeFactionStateMap } from '../../domain/factions'
+import { normalizeFundingState } from '../../domain/funding'
+import { normalizeRuntimeState } from '../../domain/gameStateManager'
 import { clamp, normalizeSeed } from '../../domain/math'
+import { buildMissionResult } from '../../domain/missionResults'
 import { createDeterministicReportNote } from '../../domain/reportNotes'
+import { createInitialResearchState } from '../../domain/research'
 import {
   getTeamAssignedCaseId,
   getTeamMemberIds,
@@ -20,10 +28,17 @@ import {
   type Id,
   type MarketPressure,
   type MarketState,
+  type MissionResult,
+  type MissionResolutionKind,
+  type MissionRewardBreakdown,
   type OperationEvent,
   type OperationEventType,
   type PartyCardState,
+  type PerformanceMetricSummary,
   type ProductionQueueEntry,
+  type ResearchProject,
+  type ResearchState,
+  type ResearchUnlock,
   type ReportNote,
   type ReportNoteMetadata,
   type TrainingQueueEntry,
@@ -33,7 +48,7 @@ import {
   type WeeklyReportTeamStatus,
 } from '../../domain/models'
 
-export const GAME_STORE_VERSION = 6
+export const GAME_STORE_VERSION = 7
 export const RUN_EXPORT_KIND = 'containment-protocol-run'
 
 export type PersistedGame = Omit<GameState, 'templates'>
@@ -63,10 +78,12 @@ const OPERATION_EVENT_TYPES = [
   'agent.instructor_assigned',
   'agent.instructor_unassigned',
   'agent.injured',
+  'agent.killed',
   'agent.betrayed',
   'agent.resigned',
   'agent.promoted',
   'agent.hired',
+  'progression.xp_gained',
   'system.recruitment_expired',
   'system.recruitment_generated',
   'recruitment.scouting_initiated',
@@ -78,6 +95,7 @@ const OPERATION_EVENT_TYPES = [
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',
+  'faction.unlock_available',
   'faction.activity',
   'agency.containment_updated',
   'directive.applied',
@@ -85,7 +103,15 @@ const OPERATION_EVENT_TYPES = [
 ] as const
 
 const CASE_ESCALATION_TRIGGERS: CaseEscalationTrigger[] = ['deadline', 'failure']
-const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = ['failure', 'unresolved', 'raid_pressure']
+const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = [
+  'failure',
+  'unresolved',
+  'raid_pressure',
+  'world_activity',
+  'faction_offer',
+  'faction_pressure',
+  'pressure_threshold',
+]
 const MARKET_PRESSURES: MarketPressure[] = ['discounted', 'stable', 'tight']
 const RECRUIT_CATEGORIES = [
   'agent',
@@ -96,6 +122,26 @@ const RECRUIT_CATEGORIES = [
   'instructor',
 ] as const
 const STAT_KEYS = ['combat', 'investigation', 'utility', 'social'] as const
+const RESEARCH_CATEGORIES = ['anomaly', 'equipment', 'medical', 'field_ops'] as const
+const RESEARCH_PROJECT_STATUSES = [
+  'locked',
+  'available',
+  'queued',
+  'active',
+  'completed',
+  'blocked',
+] as const
+const RESEARCH_UNLOCK_CATEGORIES = [
+  'gear',
+  'equipment_tier',
+  'intel_tool',
+  'mission_modifier',
+  'mission_type',
+  'training_branch',
+  'facility_tier',
+  'passive_rule',
+  'support_module',
+] as const
 const REPORT_NOTE_TYPES = [
   'case.resolved',
   'case.partially_resolved',
@@ -116,6 +162,7 @@ const REPORT_NOTE_TYPES = [
   'system.party_cards_drawn',
   'market.transaction_recorded',
   'faction.standing_changed',
+  'faction.unlock_available',
   'directive.applied',
 ] as const
 
@@ -194,6 +241,686 @@ function sanitizeStringList(value: unknown) {
   }
 
   return value.filter((entry): entry is string => typeof entry === 'string')
+}
+
+function sanitizeFiniteNumber(value: unknown, fallback: number) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function sanitizePerformanceMetricSummary(
+  value: unknown,
+  fallback?: PerformanceMetricSummary
+): PerformanceMetricSummary | undefined {
+  if (!isRecord(value)) {
+    return fallback ? { ...fallback } : undefined
+  }
+
+  return {
+    contribution: sanitizeFiniteNumber(value.contribution, fallback?.contribution ?? 0),
+    threatHandled: sanitizeFiniteNumber(value.threatHandled, fallback?.threatHandled ?? 0),
+    damageTaken: sanitizeFiniteNumber(value.damageTaken, fallback?.damageTaken ?? 0),
+    healingPerformed: sanitizeFiniteNumber(value.healingPerformed, fallback?.healingPerformed ?? 0),
+    evidenceGathered: sanitizeFiniteNumber(
+      value.evidenceGathered,
+      fallback?.evidenceGathered ?? 0
+    ),
+    containmentActionsCompleted: sanitizeFiniteNumber(
+      value.containmentActionsCompleted,
+      fallback?.containmentActionsCompleted ?? 0
+    ),
+  }
+}
+
+function sanitizeMissionResolutionKind(
+  value: unknown,
+  fallback: MissionResolutionKind = 'unresolved'
+): MissionResolutionKind {
+  return value === 'success' || value === 'partial' || value === 'fail' || value === 'unresolved'
+    ? value
+    : fallback
+}
+
+function sanitizeMissionRewardBreakdown(
+  value: unknown,
+  fallbackOutcome: MissionResolutionKind
+): MissionRewardBreakdown | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const outcome = sanitizeMissionResolutionKind(value.outcome, fallbackOutcome)
+
+  return {
+    outcome,
+    caseType: typeof value.caseType === 'string' ? value.caseType : 'operation',
+    caseTypeLabel: typeof value.caseTypeLabel === 'string' ? value.caseTypeLabel : 'Operation',
+    operationValue: sanitizeFiniteNumber(value.operationValue, 0),
+    factors: Array.isArray(value.factors)
+      ? value.factors
+          .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+          .map((entry, index) => ({
+            id:
+              typeof entry.id === 'string' && entry.id.length > 0
+                ? entry.id
+                : `factor-${index + 1}`,
+            label:
+              typeof entry.label === 'string' && entry.label.length > 0
+                ? entry.label
+                : `Factor ${index + 1}`,
+            value: sanitizeFiniteNumber(entry.value, 0),
+            detail: typeof entry.detail === 'string' ? entry.detail : '',
+          }))
+      : [],
+    fundingDelta: sanitizeFiniteNumber(value.fundingDelta, 0),
+    containmentDelta: sanitizeFiniteNumber(value.containmentDelta, 0),
+    strategicValueDelta: sanitizeFiniteNumber(value.strategicValueDelta, 0),
+    reputationDelta: sanitizeFiniteNumber(value.reputationDelta, 0),
+    inventoryRewards: Array.isArray(value.inventoryRewards)
+      ? value.inventoryRewards
+          .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+          .map((entry) => ({
+            kind: entry.kind === 'material' ? 'material' : 'equipment',
+            itemId: typeof entry.itemId === 'string' ? entry.itemId : 'unknown-item',
+            label:
+              typeof entry.label === 'string' && entry.label.length > 0
+                ? entry.label
+                : 'Recovered item',
+            quantity: sanitizeInteger(entry.quantity as number | undefined, 0, 0),
+            tags: sanitizeStringList(entry.tags),
+          }))
+      : [],
+    factionStanding: Array.isArray(value.factionStanding)
+      ? value.factionStanding
+          .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+          .map((entry, index) => ({
+            factionId:
+              typeof entry.factionId === 'string' && entry.factionId.length > 0
+                ? entry.factionId
+                : `faction-${index + 1}`,
+            label:
+              typeof entry.label === 'string' && entry.label.length > 0
+                ? entry.label
+                : `Faction ${index + 1}`,
+            delta: sanitizeFiniteNumber(entry.delta, 0),
+            overlapTags: sanitizeStringList(entry.overlapTags),
+            ...(typeof entry.contactId === 'string' ? { contactId: entry.contactId } : {}),
+            ...(typeof entry.contactName === 'string' ? { contactName: entry.contactName } : {}),
+            ...(typeof entry.contactDelta === 'number' && Number.isFinite(entry.contactDelta)
+              ? { contactDelta: entry.contactDelta }
+              : {}),
+          }))
+      : [],
+    ...(Array.isArray(value.factionGrants)
+      ? {
+          factionGrants: value.factionGrants
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .map((entry, index) => ({
+              factionId:
+                typeof entry.factionId === 'string' && entry.factionId.length > 0
+                  ? entry.factionId
+                  : `faction-${index + 1}`,
+              ...(typeof entry.contactId === 'string' ? { contactId: entry.contactId } : {}),
+              kind:
+                entry.kind === 'inventory' || entry.kind === 'favor' ? entry.kind : 'funding',
+              ...(typeof entry.rewardId === 'string' ? { rewardId: entry.rewardId } : {}),
+              label:
+                typeof entry.label === 'string' && entry.label.length > 0
+                  ? entry.label
+                  : `Grant ${index + 1}`,
+              ...(typeof entry.amount === 'number' && Number.isFinite(entry.amount)
+                ? { amount: entry.amount }
+                : {}),
+              ...(typeof entry.itemId === 'string' ? { itemId: entry.itemId } : {}),
+              ...(typeof entry.quantity === 'number' && Number.isFinite(entry.quantity)
+                ? { quantity: Math.max(0, Math.trunc(entry.quantity)) }
+                : {}),
+            })),
+        }
+      : {}),
+    ...(Array.isArray(value.factionUnlocks)
+      ? {
+          factionUnlocks: value.factionUnlocks
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .map((entry, index) => ({
+              factionId:
+                typeof entry.factionId === 'string' && entry.factionId.length > 0
+                  ? entry.factionId
+                  : `faction-${index + 1}`,
+              ...(typeof entry.contactId === 'string' ? { contactId: entry.contactId } : {}),
+              kind: 'recruit' as const,
+              label:
+                typeof entry.label === 'string' && entry.label.length > 0
+                  ? entry.label
+                  : `Unlock ${index + 1}`,
+              ...(typeof entry.summary === 'string' ? { summary: entry.summary } : {}),
+              ...(entry.disposition === 'adversarial'
+                ? { disposition: 'adversarial' as const }
+                : entry.disposition === 'supportive'
+                  ? { disposition: 'supportive' as const }
+                  : {}),
+            })),
+        }
+      : {}),
+    ...(Array.isArray(value.researchUnlocks)
+      ? {
+          researchUnlocks: value.researchUnlocks
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .map((entry, index) => ({
+              id:
+                typeof entry.id === 'string' && entry.id.length > 0
+                  ? entry.id
+                  : `research-${index + 1}`,
+              label:
+                typeof entry.label === 'string' && entry.label.length > 0
+                  ? entry.label
+                  : `Research unlock ${index + 1}`,
+              description:
+                typeof entry.description === 'string' ? entry.description : 'Research unlocked.',
+            })),
+        }
+      : {}),
+    ...(Array.isArray(value.progressionUnlocks)
+      ? {
+          progressionUnlocks: sanitizeStringList(value.progressionUnlocks),
+        }
+      : {}),
+    label:
+      typeof value.label === 'string' && value.label.length > 0
+        ? value.label
+        : 'Mission outcome',
+    reasons: sanitizeStringList(value.reasons),
+  }
+}
+
+function sanitizeWeakestLinkPenaltyBuckets(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .flatMap((entry) => {
+      const code = entry.code
+
+      if (
+        code !== 'missing-coverage' &&
+        code !== 'low-min-readiness' &&
+        code !== 'fragile-cohesion' &&
+        code !== 'training-lock-pressure' &&
+        code !== 'loadout-gate-miss' &&
+        code !== 'fatigue-concentration' &&
+        code !== 'intel-friction'
+      ) {
+        return []
+      }
+
+      return [
+        {
+          code,
+          weight: sanitizeDecimal(entry.weight as number | undefined, 0, 0),
+          rawSignal: sanitizeDecimal(entry.rawSignal as number | undefined, 0, 0),
+          appliedPenalty: sanitizeDecimal(entry.appliedPenalty as number | undefined, 0, 0),
+        },
+      ]
+    })
+}
+
+function sanitizeWeakestLinkMissionResolutionResult(
+  value: unknown,
+  missionId: string,
+  week: number
+): MissionResult['weakestLink'] {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const orderedPenaltyApplication = sanitizeWeakestLinkPenaltyBuckets(
+    value.orderedPenaltyApplication
+  )
+  const cappedPenalties = sanitizeWeakestLinkPenaltyBuckets(value.cappedPenalties)
+
+  return stripUndefinedFields({
+    missionId:
+      typeof value.missionId === 'string' && value.missionId.length > 0 ? value.missionId : missionId,
+    week: sanitizeInteger(value.week as number | undefined, week, 1),
+    outcomeCategory:
+      value.outcomeCategory === 'clean_success' ||
+      value.outcomeCategory === 'strained_success' ||
+      value.outcomeCategory === 'partial' ||
+      value.outcomeCategory === 'failure' ||
+      value.outcomeCategory === 'failure_recovery_pressure'
+        ? value.outcomeCategory
+        : 'failure',
+    resultKind:
+      value.resultKind === 'success' || value.resultKind === 'partial' || value.resultKind === 'fail'
+        ? value.resultKind
+        : 'fail',
+    baseScore: sanitizeFiniteNumber(value.baseScore, 0),
+    requiredScore: sanitizeFiniteNumber(value.requiredScore, 0),
+    finalDelta: sanitizeFiniteNumber(value.finalDelta, 0),
+    weakestLinkTotalPenalty: sanitizeFiniteNumber(value.weakestLinkTotalPenalty, 0),
+    weakestLinkPenaltyBuckets: sanitizeWeakestLinkPenaltyBuckets(value.weakestLinkPenaltyBuckets),
+    weakestLinkContributors: sanitizeStringList(value.weakestLinkContributors),
+    weakestLinkNarrativeReasonCodes: sanitizeStringList(value.weakestLinkNarrativeReasonCodes),
+    ...(typeof value.injuryRiskDelta === 'number' && Number.isFinite(value.injuryRiskDelta)
+      ? { injuryRiskDelta: value.injuryRiskDelta }
+      : {}),
+    ...(typeof value.fatalityRiskDelta === 'number' && Number.isFinite(value.fatalityRiskDelta)
+      ? { fatalityRiskDelta: value.fatalityRiskDelta }
+      : {}),
+    ...(typeof value.expectedRecoveryWeeksDelta === 'number' &&
+    Number.isFinite(value.expectedRecoveryWeeksDelta)
+      ? { expectedRecoveryWeeksDelta: value.expectedRecoveryWeeksDelta }
+      : {}),
+    ...(value.recoveryPressureBand === 'low' ||
+    value.recoveryPressureBand === 'moderate' ||
+    value.recoveryPressureBand === 'high' ||
+    value.recoveryPressureBand === 'severe'
+      ? { recoveryPressureBand: value.recoveryPressureBand }
+      : {}),
+    ...(Array.isArray(value.deploymentDebtSignals)
+      ? { deploymentDebtSignals: sanitizeStringList(value.deploymentDebtSignals) }
+      : {}),
+    ...(typeof value.penaltyComputationVersion === 'string'
+      ? { penaltyComputationVersion: value.penaltyComputationVersion }
+      : {}),
+    ...(orderedPenaltyApplication.length > 0 ? { orderedPenaltyApplication } : {}),
+    ...(cappedPenalties.length > 0 ? { cappedPenalties } : {}),
+  }) as MissionResult['weakestLink']
+}
+
+function sanitizeMissionResult(
+  value: unknown,
+  options: {
+    caseId: string
+    caseTitle: string
+    week: number
+    performanceSummary?: PerformanceMetricSummary
+    rewards?: MissionRewardBreakdown
+  }
+): MissionResult | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const outcome = sanitizeMissionResolutionKind(value.outcome)
+  const rewards = options.rewards ?? sanitizeMissionRewardBreakdown(value.rewards, outcome)
+
+  if (!rewards) {
+    return undefined
+  }
+
+  return buildMissionResult({
+    caseId:
+      typeof value.caseId === 'string' && value.caseId.length > 0 ? value.caseId : options.caseId,
+    caseTitle:
+      typeof value.caseTitle === 'string' && value.caseTitle.length > 0
+        ? value.caseTitle
+        : options.caseTitle,
+    teamsUsed: Array.isArray(value.teamsUsed)
+      ? value.teamsUsed
+          .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+          .flatMap((entry) =>
+            typeof entry.teamId === 'string' && entry.teamId.length > 0
+              ? [
+                  stripUndefinedFields({
+                    teamId: entry.teamId,
+                    ...(typeof entry.teamName === 'string' ? { teamName: entry.teamName } : {}),
+                  }),
+                ]
+              : []
+          )
+      : [],
+    outcome,
+    rewards,
+    ...(options.performanceSummary ? { performanceSummary: options.performanceSummary } : {}),
+    ...(isRecord(value.powerImpact)
+      ? {
+          powerImpact: stripUndefinedFields({
+            activeEquipmentIds: sanitizeStringList(value.powerImpact.activeEquipmentIds),
+            activeKitIds: sanitizeStringList(value.powerImpact.activeKitIds),
+            activeProtocolIds: sanitizeStringList(value.powerImpact.activeProtocolIds),
+            equipmentContributionDelta: sanitizeFiniteNumber(
+              value.powerImpact.equipmentContributionDelta,
+              0
+            ),
+            kitContributionDelta: sanitizeFiniteNumber(value.powerImpact.kitContributionDelta, 0),
+            protocolContributionDelta: sanitizeFiniteNumber(
+              value.powerImpact.protocolContributionDelta,
+              0
+            ),
+            equipmentScoreDelta: sanitizeFiniteNumber(value.powerImpact.equipmentScoreDelta, 0),
+            kitScoreDelta: sanitizeFiniteNumber(value.powerImpact.kitScoreDelta, 0),
+            protocolScoreDelta: sanitizeFiniteNumber(value.powerImpact.protocolScoreDelta, 0),
+            kitEffectivenessMultiplier: sanitizeFiniteNumber(
+              value.powerImpact.kitEffectivenessMultiplier,
+              1
+            ),
+            protocolEffectivenessMultiplier: sanitizeFiniteNumber(
+              value.powerImpact.protocolEffectivenessMultiplier,
+              1
+            ),
+            notes: sanitizeStringList(value.powerImpact.notes),
+          }),
+        }
+      : {}),
+    ...(Array.isArray(value.fatigueChanges)
+      ? {
+          fatigueChanges: value.fatigueChanges
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .flatMap((entry) =>
+              typeof entry.teamId === 'string' && entry.teamId.length > 0
+                ? [
+                    stripUndefinedFields({
+                      teamId: entry.teamId,
+                      ...(typeof entry.teamName === 'string' ? { teamName: entry.teamName } : {}),
+                      before: sanitizeFiniteNumber(entry.before, 0),
+                      after: sanitizeFiniteNumber(entry.after, 0),
+                      delta: sanitizeFiniteNumber(entry.delta, 0),
+                      stressModifier: sanitizeFiniteNumber(entry.stressModifier, 0),
+                    }),
+                  ]
+                : []
+            ),
+        }
+      : {}),
+    ...(Array.isArray(value.injuries)
+      ? {
+          injuries: value.injuries
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .flatMap((entry) =>
+              typeof entry.agentId === 'string' &&
+              entry.agentId.length > 0 &&
+              typeof entry.agentName === 'string'
+                ? [
+                    {
+                      agentId: entry.agentId,
+                      agentName: entry.agentName,
+                      severity: typeof entry.severity === 'string' ? entry.severity : 'unknown',
+                      damage: sanitizeFiniteNumber(entry.damage, 0),
+                    },
+                  ]
+                : []
+            ),
+        }
+      : {}),
+    ...(Array.isArray(value.fatalities)
+      ? {
+          fatalities: value.fatalities
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .flatMap((entry) =>
+              typeof entry.agentId === 'string' &&
+              entry.agentId.length > 0 &&
+              typeof entry.agentName === 'string'
+                ? [
+                    {
+                      agentId: entry.agentId,
+                      agentName: entry.agentName,
+                      damage: sanitizeFiniteNumber(entry.damage, 0),
+                    },
+                  ]
+                : []
+            ),
+        }
+      : {}),
+    ...(Array.isArray(value.spawnedConsequences)
+      ? {
+          spawnedConsequences: value.spawnedConsequences
+            .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+            .flatMap((entry) =>
+              (entry.type === 'stage_escalation' || entry.type === 'follow_up_case') &&
+              typeof entry.caseId === 'string' &&
+              entry.caseId.length > 0 &&
+              typeof entry.detail === 'string'
+                ? [
+                    stripUndefinedFields({
+                      type: entry.type,
+                      caseId: entry.caseId,
+                      ...(typeof entry.caseTitle === 'string' ? { caseTitle: entry.caseTitle } : {}),
+                      ...(typeof entry.stage === 'number' && Number.isFinite(entry.stage)
+                        ? { stage: Math.max(0, Math.trunc(entry.stage)) }
+                        : {}),
+                      ...(entry.trigger === 'failure' ||
+                      entry.trigger === 'unresolved' ||
+                      entry.trigger === 'raid_pressure' ||
+                      entry.trigger === 'world_activity' ||
+                      entry.trigger === 'faction_offer' ||
+                      entry.trigger === 'faction_pressure' ||
+                      entry.trigger === 'pressure_threshold'
+                        ? { trigger: entry.trigger }
+                        : {}),
+                      detail: entry.detail,
+                    }),
+                  ]
+                : []
+            ),
+        }
+      : {}),
+    explanationNotes: sanitizeStringList(value.explanationNotes),
+    ...(sanitizeWeakestLinkMissionResolutionResult(
+      value.weakestLink,
+      options.caseId,
+      options.week
+    )
+      ? {
+          weakestLink: sanitizeWeakestLinkMissionResolutionResult(
+            value.weakestLink,
+            options.caseId,
+            options.week
+          ),
+        }
+      : {}),
+  })
+}
+
+function sanitizeAgencyState(
+  value: unknown,
+  fallback: NonNullable<GameState['agency']>
+): NonNullable<GameState['agency']> {
+  const activeProtocolIds = isRecord(value)
+    ? [...new Set(sanitizeStringList(value.activeProtocolIds))]
+    : []
+  const progressionUnlockIds = isRecord(value)
+    ? [...new Set(sanitizeStringList(value.progressionUnlockIds))]
+    : []
+
+  if (!isRecord(value)) {
+    return stripUndefinedFields({
+      ...fallback,
+      ...(Array.isArray(fallback.activeProtocolIds)
+        ? { activeProtocolIds: [...fallback.activeProtocolIds] }
+        : {}),
+      ...(Array.isArray(fallback.progressionUnlockIds)
+        ? { progressionUnlockIds: [...fallback.progressionUnlockIds] }
+        : {}),
+    }) as NonNullable<GameState['agency']>
+  }
+
+  return stripUndefinedFields({
+    containmentRating: sanitizeInteger(
+      value.containmentRating as number | undefined,
+      fallback.containmentRating,
+      0
+    ),
+    clearanceLevel: sanitizeInteger(
+      value.clearanceLevel as number | undefined,
+      fallback.clearanceLevel,
+      1
+    ),
+    funding: sanitizeInteger(value.funding as number | undefined, fallback.funding, 0),
+    ...(typeof value.protocolSelectionLimit === 'number'
+      ? {
+          protocolSelectionLimit: sanitizeInteger(
+            value.protocolSelectionLimit,
+            fallback.protocolSelectionLimit ?? 0,
+            0
+          ),
+        }
+      : typeof fallback.protocolSelectionLimit === 'number'
+        ? { protocolSelectionLimit: fallback.protocolSelectionLimit }
+      : {}),
+    ...(activeProtocolIds.length > 0
+      ? { activeProtocolIds }
+      : Array.isArray(fallback.activeProtocolIds) && fallback.activeProtocolIds.length > 0
+        ? { activeProtocolIds: [...fallback.activeProtocolIds] }
+        : {}),
+    ...(progressionUnlockIds.length > 0
+      ? { progressionUnlockIds }
+      : Array.isArray(fallback.progressionUnlockIds) && fallback.progressionUnlockIds.length > 0
+        ? { progressionUnlockIds: [...fallback.progressionUnlockIds] }
+        : {}),
+  }) as NonNullable<GameState['agency']>
+}
+
+function sanitizeResearchUnlocks(value: unknown): ResearchUnlock[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((entry, index) => {
+    if (!isRecord(entry)) {
+      return []
+    }
+
+    return [
+      {
+        id: typeof entry.id === 'string' && entry.id.length > 0 ? entry.id : `unlock-${index + 1}`,
+        category: isOneOf(entry.category, RESEARCH_UNLOCK_CATEGORIES)
+          ? entry.category
+          : 'passive_rule',
+        label:
+          typeof entry.label === 'string' && entry.label.length > 0
+            ? entry.label
+            : `Unlock ${index + 1}`,
+        ...(typeof entry.description === 'string' ? { description: entry.description } : {}),
+      },
+    ]
+  })
+}
+
+function sanitizeResearchProjects(value: unknown, week: number): Record<string, ResearchProject> {
+  if (!isRecord(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([projectKey, entry], index) => {
+      if (!isRecord(entry)) {
+        return []
+      }
+
+      const projectId =
+        typeof entry.projectId === 'string' && entry.projectId.length > 0
+          ? entry.projectId
+          : projectKey.length > 0
+            ? projectKey
+            : `project-${index + 1}`
+
+      return [[
+        projectId,
+        {
+          projectId,
+          category: isOneOf(entry.category, RESEARCH_CATEGORIES) ? entry.category : 'anomaly',
+          status: isOneOf(entry.status, RESEARCH_PROJECT_STATUSES) ? entry.status : 'locked',
+          costTime: sanitizeInteger(entry.costTime as number | undefined, 1, 0),
+          costMaterials: sanitizeInteger(entry.costMaterials as number | undefined, 0, 0),
+          costData: sanitizeInteger(entry.costData as number | undefined, 0, 0),
+          progressTime: sanitizeInteger(entry.progressTime as number | undefined, 0, 0),
+          ...(entry.progressMaterials !== undefined
+            ? {
+                progressMaterials: sanitizeInteger(
+                  entry.progressMaterials as number | undefined,
+                  0,
+                  0
+                ),
+              }
+            : {}),
+          ...(entry.progressData !== undefined
+            ? { progressData: sanitizeInteger(entry.progressData as number | undefined, 0, 0) }
+            : {}),
+          ...(Array.isArray(entry.requiredResearchIds)
+            ? { requiredResearchIds: sanitizeStringList(entry.requiredResearchIds) }
+            : {}),
+          ...(Array.isArray(entry.requiredFacilityLevels)
+            ? {
+                requiredFacilityLevels: entry.requiredFacilityLevels.flatMap((requirement) => {
+                  if (!isRecord(requirement) || typeof requirement.facilityId !== 'string') {
+                    return []
+                  }
+
+                  return [{
+                    facilityId: requirement.facilityId,
+                    level: sanitizeInteger(requirement.level as number | undefined, 1, 1),
+                  }]
+                }),
+              }
+            : {}),
+          unlocks: sanitizeResearchUnlocks(entry.unlocks),
+          ...(entry.startedWeek !== undefined
+            ? { startedWeek: sanitizeInteger(entry.startedWeek as number | undefined, week, 1) }
+            : {}),
+          ...(entry.completedWeek !== undefined
+            ? { completedWeek: sanitizeInteger(entry.completedWeek as number | undefined, week, 1) }
+            : {}),
+          ...(Array.isArray(entry.blockedReasons)
+            ? { blockedReasons: sanitizeStringList(entry.blockedReasons) }
+            : {}),
+          ...(entry.lastUpdatedWeek !== undefined
+            ? {
+                lastUpdatedWeek: sanitizeInteger(
+                  entry.lastUpdatedWeek as number | undefined,
+                  week,
+                  1
+                ),
+              }
+            : {}),
+        } satisfies ResearchProject,
+      ]]
+    })
+  )
+}
+
+function sanitizeResearchState(
+  value: unknown,
+  fallback: ResearchState,
+  week: number
+): ResearchState {
+  if (!isRecord(value)) {
+    return {
+      ...fallback,
+      projects: { ...fallback.projects },
+      activeProjectIds: [...fallback.activeProjectIds],
+      queuedProjectIds: [...fallback.queuedProjectIds],
+      completedProjectIds: [...fallback.completedProjectIds],
+      availableProjectIds: [...fallback.availableProjectIds],
+      blockedProjectIds: [...fallback.blockedProjectIds],
+    }
+  }
+
+  return {
+    projects: sanitizeResearchProjects(value.projects, week),
+    activeProjectIds: [...new Set(sanitizeStringList(value.activeProjectIds))],
+    queuedProjectIds: [...new Set(sanitizeStringList(value.queuedProjectIds))],
+    completedProjectIds: [...new Set(sanitizeStringList(value.completedProjectIds))],
+    availableProjectIds: [...new Set(sanitizeStringList(value.availableProjectIds))],
+    blockedProjectIds: [...new Set(sanitizeStringList(value.blockedProjectIds))],
+    researchSlots: sanitizeInteger(value.researchSlots as number | undefined, fallback.researchSlots, 0),
+    researchSpeedMultiplier: sanitizeDecimal(
+      value.researchSpeedMultiplier as number | undefined,
+      fallback.researchSpeedMultiplier,
+      0
+    ),
+    researchDataPool: sanitizeInteger(
+      value.researchDataPool as number | undefined,
+      fallback.researchDataPool,
+      0
+    ),
+    researchMaterialsPool: sanitizeInteger(
+      value.researchMaterialsPool as number | undefined,
+      fallback.researchMaterialsPool,
+      0
+    ),
+  }
 }
 
 function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
@@ -503,7 +1230,8 @@ export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
 
 function sanitizeCaseSnapshots(
   value: unknown,
-  fallback: Record<Id, WeeklyReportCaseSnapshot>
+  fallback: Record<Id, WeeklyReportCaseSnapshot>,
+  week: number
 ): Record<Id, WeeklyReportCaseSnapshot> {
   if (!isRecord(value)) {
     return fallback
@@ -519,11 +1247,32 @@ function sanitizeCaseSnapshots(
     const fallbackSnapshot = fallback[entryId]
     const caseId =
       typeof snapshot.caseId === 'string' ? snapshot.caseId : (fallbackSnapshot?.caseId ?? entryId)
+    const title =
+      typeof snapshot.title === 'string' ? snapshot.title : (fallbackSnapshot?.title ?? caseId)
+    const performanceSummary = sanitizePerformanceMetricSummary(
+      snapshot.performanceSummary ??
+        (isRecord(snapshot.missionResult) ? snapshot.missionResult.performanceSummary : undefined),
+      fallbackSnapshot?.performanceSummary
+    )
+    const rewardBreakdown =
+      sanitizeMissionRewardBreakdown(
+        snapshot.rewardBreakdown ??
+          (isRecord(snapshot.missionResult) ? snapshot.missionResult.rewards : undefined),
+        sanitizeMissionResolutionKind(
+          isRecord(snapshot.missionResult) ? snapshot.missionResult.outcome : undefined
+        )
+      ) ?? fallbackSnapshot?.rewardBreakdown
+    const missionResult = sanitizeMissionResult(snapshot.missionResult, {
+      caseId,
+      caseTitle: title,
+      week,
+      performanceSummary,
+      rewards: rewardBreakdown,
+    })
 
     nextSnapshots[caseId] = stripUndefinedFields({
       caseId,
-      title:
-        typeof snapshot.title === 'string' ? snapshot.title : (fallbackSnapshot?.title ?? caseId),
+      title,
       kind:
         snapshot.kind === 'case' || snapshot.kind === 'raid'
           ? snapshot.kind
@@ -560,6 +1309,9 @@ function sanitizeCaseSnapshots(
         snapshot.assignedTeamIds.every((teamId) => typeof teamId === 'string')
           ? [...snapshot.assignedTeamIds]
           : (fallbackSnapshot?.assignedTeamIds ?? []),
+      ...(performanceSummary ? { performanceSummary } : {}),
+      ...(rewardBreakdown ? { rewardBreakdown } : {}),
+      ...(missionResult ? { missionResult } : {}),
     }) as WeeklyReportCaseSnapshot
   }
 
@@ -720,6 +1472,37 @@ function sanitizeTrainingQueue(value: unknown): TrainingQueueEntry[] {
         program?.fatigueDelta ?? 0,
         0
       ),
+      teamId: typeof entry.teamId === 'string' ? entry.teamId : undefined,
+      teamName: typeof entry.teamName === 'string' ? entry.teamName : undefined,
+      drillGroupId: typeof entry.drillGroupId === 'string' ? entry.drillGroupId : undefined,
+      memberIds:
+        Array.isArray(entry.memberIds) && entry.memberIds.every((memberId) => typeof memberId === 'string')
+          ? [...entry.memberIds]
+          : undefined,
+      recoveryBonus:
+        typeof entry.recoveryBonus === 'number' && Number.isFinite(entry.recoveryBonus)
+          ? sanitizeInteger(entry.recoveryBonus, 0, 0)
+          : undefined,
+      stabilityResistanceDelta:
+        typeof entry.stabilityResistanceDelta === 'number' && Number.isFinite(entry.stabilityResistanceDelta)
+          ? sanitizeInteger(entry.stabilityResistanceDelta, 0, 0)
+          : undefined,
+      stabilityToleranceDelta:
+        typeof entry.stabilityToleranceDelta === 'number' && Number.isFinite(entry.stabilityToleranceDelta)
+          ? sanitizeInteger(entry.stabilityToleranceDelta, 0, 0)
+          : undefined,
+      academyStatBonus:
+        typeof entry.academyStatBonus === 'number' && Number.isFinite(entry.academyStatBonus)
+          ? sanitizeInteger(entry.academyStatBonus, 0, 0)
+          : undefined,
+      relationshipDelta:
+        typeof entry.relationshipDelta === 'number' && Number.isFinite(entry.relationshipDelta)
+          ? sanitizeDecimal(entry.relationshipDelta, 0, -2, 2)
+          : undefined,
+      trainedRelationshipDelta:
+        typeof entry.trainedRelationshipDelta === 'number' && Number.isFinite(entry.trainedRelationshipDelta)
+          ? sanitizeInteger(entry.trainedRelationshipDelta, 0, 0)
+          : undefined,
     })
   }
 
@@ -999,6 +1782,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.parentCaseId === 'string' ? payload.parentCaseId : undefined,
               parentCaseTitle:
                 typeof payload.parentCaseTitle === 'string' ? payload.parentCaseTitle : undefined,
+              factionId: typeof payload.factionId === 'string' ? payload.factionId : undefined,
+              factionLabel:
+                typeof payload.factionLabel === 'string' ? payload.factionLabel : undefined,
+              sourceReason:
+                typeof payload.sourceReason === 'string' ? payload.sourceReason : undefined,
             },
           })
         )
@@ -1143,11 +1931,58 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 payload.reason === 'mission_partial' ||
                 payload.reason === 'mission_fail' ||
                 payload.reason === 'passive_drift' ||
+                payload.reason === 'external_event' ||
                 payload.reason === 'reconciliation' ||
                 payload.reason === 'spontaneous_event' ||
                 payload.reason === 'betrayal'
                   ? payload.reason
                   : 'passive_drift',
+            },
+          })
+        )
+        break
+
+      case 'agent.instructor_assigned':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('agent.instructor_assigned'),
+            payload: {
+              week,
+              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
+              instructorName:
+                typeof payload.instructorName === 'string'
+                  ? payload.instructorName
+                  : `Instructor ${index + 1}`,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
+                ? payload.instructorSpecialty
+                : 'combat',
+              bonus: Number(payload.bonus ?? 0),
+            },
+          })
+        )
+        break
+
+      case 'agent.instructor_unassigned':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('agent.instructor_unassigned'),
+            payload: {
+              week,
+              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
+              instructorName:
+                typeof payload.instructorName === 'string'
+                  ? payload.instructorName
+                  : `Instructor ${index + 1}`,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
+                ? payload.instructorSpecialty
+                : 'combat',
+              bonus: Number(payload.bonus ?? 0),
             },
           })
         )
@@ -1163,6 +1998,23 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               agentName:
                 typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
               severity: typeof payload.severity === 'string' ? payload.severity : 'unknown',
+            },
+          })
+        )
+        break
+
+      case 'agent.killed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('agent.killed'),
+            payload: {
+              week,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
+              caseTitle:
+                typeof payload.caseTitle === 'string' ? payload.caseTitle : `Case ${index + 1}`,
             },
           })
         )
@@ -1275,6 +2127,37 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               recruitCategory: isOneOf(payload.recruitCategory, RECRUIT_CATEGORIES)
                 ? payload.recruitCategory
                 : 'agent',
+              sourceFactionId:
+                typeof payload.sourceFactionId === 'string' ? payload.sourceFactionId : undefined,
+              sourceFactionName:
+                typeof payload.sourceFactionName === 'string'
+                  ? payload.sourceFactionName
+                  : undefined,
+              sourceContactId:
+                typeof payload.sourceContactId === 'string' ? payload.sourceContactId : undefined,
+              sourceContactName:
+                typeof payload.sourceContactName === 'string'
+                  ? payload.sourceContactName
+                  : undefined,
+            },
+          })
+        )
+        break
+
+      case 'progression.xp_gained':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('progression.xp_gained'),
+            payload: {
+              week,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              xpAmount: sanitizeInteger(payload.xpAmount as number | undefined, 0, 0),
+              reason: typeof payload.reason === 'string' ? payload.reason : 'progression',
+              totalXp: sanitizeInteger(payload.totalXp as number | undefined, 0, 0),
+              level: sanitizeInteger(payload.level as number | undefined, 1, 1),
+              levelsGained: sanitizeInteger(payload.levelsGained as number | undefined, 0, 0),
             },
           })
         )
@@ -1311,6 +2194,82 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
             payload: {
               week,
               count: sanitizeInteger(payload.count as number | undefined, 0, 0),
+            },
+          })
+        )
+        break
+
+      case 'recruitment.scouting_initiated':
+      case 'recruitment.scouting_refined':
+      case 'recruitment.intel_confirmed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase(eventType),
+            payload: {
+              week,
+              candidateId:
+                typeof payload.candidateId === 'string' ? payload.candidateId : `cand-${index + 1}`,
+              candidateName:
+                typeof payload.candidateName === 'string'
+                  ? payload.candidateName
+                  : `Candidate ${index + 1}`,
+              fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+              stage:
+                payload.stage === 1 || payload.stage === 2 || payload.stage === 3
+                  ? payload.stage
+                  : 1,
+              projectedTier:
+                payload.projectedTier === 'F' ||
+                payload.projectedTier === 'D' ||
+                payload.projectedTier === 'C' ||
+                payload.projectedTier === 'B' ||
+                payload.projectedTier === 'A' ||
+                payload.projectedTier === 'S'
+                  ? payload.projectedTier
+                  : 'C',
+              confidence:
+                payload.confidence === 'low' ||
+                payload.confidence === 'medium' ||
+                payload.confidence === 'high'
+                  ? payload.confidence
+                  : 'medium',
+              previousProjectedTier:
+                payload.previousProjectedTier === 'F' ||
+                payload.previousProjectedTier === 'D' ||
+                payload.previousProjectedTier === 'C' ||
+                payload.previousProjectedTier === 'B' ||
+                payload.previousProjectedTier === 'A' ||
+                payload.previousProjectedTier === 'S'
+                  ? payload.previousProjectedTier
+                  : undefined,
+              previousConfidence:
+                payload.previousConfidence === 'low' ||
+                payload.previousConfidence === 'medium' ||
+                payload.previousConfidence === 'high'
+                  ? payload.previousConfidence
+                  : undefined,
+              confirmedTier:
+                payload.confirmedTier === 'F' ||
+                payload.confirmedTier === 'D' ||
+                payload.confirmedTier === 'C' ||
+                payload.confirmedTier === 'B' ||
+                payload.confirmedTier === 'A' ||
+                payload.confirmedTier === 'S'
+                  ? payload.confirmedTier
+                  : undefined,
+              revealLevel: sanitizeInteger(payload.revealLevel as number | undefined, 0, 0),
+              sourceFactionId:
+                typeof payload.sourceFactionId === 'string' ? payload.sourceFactionId : undefined,
+              sourceFactionName:
+                typeof payload.sourceFactionName === 'string'
+                  ? payload.sourceFactionName
+                  : undefined,
+              sourceContactId:
+                typeof payload.sourceContactId === 'string' ? payload.sourceContactId : undefined,
+              sourceContactName:
+                typeof payload.sourceContactName === 'string'
+                  ? payload.sourceContactName
+                  : undefined,
             },
           })
         )
@@ -1389,6 +2348,41 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
         )
         break
 
+      case 'market.transaction_recorded':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.transaction_recorded'),
+            payload: {
+              week,
+              marketWeek: sanitizeInteger(payload.marketWeek as number | undefined, week, 1),
+              transactionId:
+                typeof payload.transactionId === 'string'
+                  ? payload.transactionId
+                  : `txn-${index + 1}`,
+              action: payload.action === 'sell' ? 'sell' : 'buy',
+              listingId:
+                typeof payload.listingId === 'string' ? payload.listingId : `listing-${index + 1}`,
+              itemId: typeof payload.itemId === 'string' ? payload.itemId : `item-${index + 1}`,
+              itemName:
+                typeof payload.itemName === 'string' ? payload.itemName : `Item ${index + 1}`,
+              category:
+                payload.category === 'component' || payload.category === 'material'
+                  ? payload.category
+                  : 'equipment',
+              quantity: sanitizeInteger(payload.quantity as number | undefined, 1, 0),
+              bundleCount: sanitizeInteger(payload.bundleCount as number | undefined, 1, 0),
+              unitPrice: sanitizeDecimal(payload.unitPrice as number | undefined, 0, 0),
+              totalPrice: sanitizeDecimal(payload.totalPrice as number | undefined, 0, 0),
+              remainingAvailability: sanitizeInteger(
+                payload.remainingAvailability as number | undefined,
+                0,
+                0
+              ),
+            },
+          })
+        )
+        break
+
       case 'faction.activity':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -1433,11 +2427,66 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               reason:
                 payload.reason === 'case.partially_resolved' ||
                 payload.reason === 'case.failed' ||
-                payload.reason === 'case.escalated'
+                payload.reason === 'case.escalated' ||
+                payload.reason === 'recruitment.hired'
                   ? payload.reason
                   : 'case.resolved',
               caseId: typeof payload.caseId === 'string' ? payload.caseId : undefined,
               caseTitle: typeof payload.caseTitle === 'string' ? payload.caseTitle : undefined,
+              interactionLabel:
+                typeof payload.interactionLabel === 'string' ? payload.interactionLabel : undefined,
+              reputationBefore:
+                typeof payload.reputationBefore === 'number' && Number.isFinite(payload.reputationBefore)
+                  ? payload.reputationBefore
+                  : undefined,
+              reputationAfter:
+                typeof payload.reputationAfter === 'number' && Number.isFinite(payload.reputationAfter)
+                  ? payload.reputationAfter
+                  : undefined,
+              contactId: typeof payload.contactId === 'string' ? payload.contactId : undefined,
+              contactName:
+                typeof payload.contactName === 'string' ? payload.contactName : undefined,
+              contactRelationshipBefore:
+                typeof payload.contactRelationshipBefore === 'number' &&
+                Number.isFinite(payload.contactRelationshipBefore)
+                  ? payload.contactRelationshipBefore
+                  : undefined,
+              contactRelationshipAfter:
+                typeof payload.contactRelationshipAfter === 'number' &&
+                Number.isFinite(payload.contactRelationshipAfter)
+                  ? payload.contactRelationshipAfter
+                  : undefined,
+              contactDelta:
+                typeof payload.contactDelta === 'number' && Number.isFinite(payload.contactDelta)
+                  ? payload.contactDelta
+                  : undefined,
+            },
+          })
+        )
+        break
+
+      case 'faction.unlock_available':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('faction.unlock_available'),
+            payload: {
+              week,
+              factionId:
+                typeof payload.factionId === 'string' ? payload.factionId : `faction-${index + 1}`,
+              factionName:
+                typeof payload.factionName === 'string'
+                  ? payload.factionName
+                  : `Faction ${index + 1}`,
+              contactId: typeof payload.contactId === 'string' ? payload.contactId : undefined,
+              contactName:
+                typeof payload.contactName === 'string' ? payload.contactName : undefined,
+              label: typeof payload.label === 'string' ? payload.label : `Unlock ${index + 1}`,
+              summary:
+                typeof payload.summary === 'string'
+                  ? payload.summary
+                  : 'Additional faction access is available.',
+              disposition:
+                payload.disposition === 'adversarial' ? 'adversarial' : 'supportive',
             },
           })
         )
@@ -1477,6 +2526,48 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
               fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
               fundingDelta: sanitizeInteger(payload.fundingDelta as number | undefined, 0, -10000),
+            },
+          })
+        )
+        break
+
+      case 'directive.applied':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('directive.applied'),
+            payload: {
+              week,
+              directiveId: isWeeklyDirectiveId(payload.directiveId)
+                ? payload.directiveId
+                : createDefaultWeeklyDirectiveState().history[0]?.directiveId ?? 'intel-surge',
+              directiveLabel:
+                typeof payload.directiveLabel === 'string'
+                  ? payload.directiveLabel
+                  : 'Directive applied',
+            },
+          })
+        )
+        break
+
+      case 'system.academy_upgraded':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('system.academy_upgraded'),
+            payload: {
+              week,
+              tierBefore: clamp(
+                sanitizeInteger(payload.tierBefore as number | undefined, 0, 0),
+                0,
+                MAX_ACADEMY_TIER
+              ),
+              tierAfter: clamp(
+                sanitizeInteger(payload.tierAfter as number | undefined, 0, 0),
+                0,
+                MAX_ACADEMY_TIER
+              ),
+              fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
+              fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
+              cost: sanitizeInteger(payload.cost as number | undefined, 0, 0),
             },
           })
         )
@@ -1550,7 +2641,7 @@ function sanitizeWeeklyReports(
         maxStage: sanitizeInteger(report.maxStage as number | undefined, 0, 0),
         avgFatigue: sanitizeInteger(report.avgFatigue as number | undefined, 0, 0),
         teamStatus: sanitizeTeamStatus(report.teamStatus, fallbackTeamStatus),
-        caseSnapshots: sanitizeCaseSnapshots(report.caseSnapshots, fallbackCaseSnapshots),
+        caseSnapshots: sanitizeCaseSnapshots(report.caseSnapshots, fallbackCaseSnapshots, week),
         notes: sanitizeReportNoteList(report.notes, week),
       }) as WeeklyReport
     )
@@ -1583,45 +2674,102 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       ? (game.cases as GameState['cases'])
       : fallback.cases
   const rngSeed = normalizeSeed((game.rngSeed as number | undefined) ?? fallback.rngSeed)
-
-  return syncTeamSimulationState(
-    stripUndefinedFields({
-      ...fallback,
-      ...game,
-      week: sanitizeInteger(game.week as number | undefined, fallback.week, 1),
-      rngSeed,
-      rngState: normalizeSeed((game.rngState as number | undefined) ?? rngSeed),
-      gameOver: typeof game.gameOver === 'boolean' ? game.gameOver : fallback.gameOver,
-      gameOverReason:
-        typeof game.gameOverReason === 'string' ? game.gameOverReason : fallback.gameOverReason,
-      directiveState: sanitizeWeeklyDirectiveState(game.directiveState, fallback.directiveState),
-      agents,
-      candidates: recruitmentPool,
-      recruitmentPool,
-      teams,
-      cases,
-      reports: sanitizeWeeklyReports(game.reports, cases, teams, agents),
-      events: sanitizeOperationEvents(game.events, fallback.events),
-      inventory: sanitizeInventory(game.inventory, fallback.inventory),
-      partyCards: sanitizePartyCardState(game.partyCards, fallback.partyCards),
-      trainingQueue: sanitizeTrainingQueue(game.trainingQueue),
-      productionQueue: sanitizeProductionQueue(game.productionQueue),
-      market: sanitizeMarket(game.market, fallback.market),
-      config: sanitizeGameConfig(game.config, fallback.config),
-      containmentRating: sanitizeInteger(
-        game.containmentRating as number | undefined,
-        fallback.containmentRating,
-        0
-      ),
-      clearanceLevel: sanitizeInteger(
-        game.clearanceLevel as number | undefined,
-        fallback.clearanceLevel,
-        1
-      ),
-      funding: sanitizeInteger(game.funding as number | undefined, fallback.funding, 0),
-      templates: fallback.templates,
-    }) as GameState
+  const sanitizedWeek = sanitizeInteger(game.week as number | undefined, fallback.week, 1)
+  const agency = sanitizeAgencyState(game.agency, fallback.agency!)
+  const sanitizedContainmentRating = sanitizeInteger(
+    (game.containmentRating as number | undefined) ?? agency.containmentRating,
+    fallback.containmentRating,
+    0
   )
+  const sanitizedClearanceLevel = sanitizeInteger(
+    (game.clearanceLevel as number | undefined) ?? agency.clearanceLevel,
+    fallback.clearanceLevel,
+    1
+  )
+  const sanitizedConfig = sanitizeGameConfig(game.config, fallback.config)
+  const sanitizedFunding = sanitizeInteger(
+    (game.funding as number | undefined) ??
+      ((isRecord(game.agency) &&
+        isRecord(game.agency.fundingState) &&
+        typeof game.agency.fundingState.funding === 'number'
+        ? game.agency.fundingState.funding
+        : undefined) as number | undefined) ??
+      agency.funding,
+    fallback.funding,
+    0
+  )
+
+  return stripUndefinedFields(
+    refreshContractBoard(
+      syncTeamSimulationState(
+        stripUndefinedFields({
+          ...fallback,
+          ...game,
+          week: sanitizedWeek,
+          rngSeed,
+          rngState: normalizeSeed((game.rngState as number | undefined) ?? rngSeed),
+          gameOver: typeof game.gameOver === 'boolean' ? game.gameOver : fallback.gameOver,
+          gameOverReason:
+            typeof game.gameOverReason === 'string'
+              ? game.gameOverReason
+              : fallback.gameOverReason,
+          directiveState: sanitizeWeeklyDirectiveState(game.directiveState, fallback.directiveState),
+          agents,
+          candidates: recruitmentPool,
+          recruitmentPool,
+          teams,
+          cases,
+          factions: sanitizeFactionStateMap(game.factions, fallback.factions),
+          reports: sanitizeWeeklyReports(game.reports, cases, teams, agents),
+          events: sanitizeOperationEvents(game.events, fallback.events),
+          inventory: sanitizeInventory(game.inventory, fallback.inventory),
+          partyCards: sanitizePartyCardState(game.partyCards, fallback.partyCards),
+          trainingQueue: sanitizeTrainingQueue(game.trainingQueue),
+          productionQueue: sanitizeProductionQueue(game.productionQueue),
+          market: sanitizeMarket(game.market, fallback.market),
+          contracts: sanitizeContractSystemState(game.contracts),
+          config: sanitizedConfig,
+          ...((game.researchState !== undefined || fallback.researchState !== undefined)
+            ? {
+                researchState: sanitizeResearchState(
+                  game.researchState,
+                  fallback.researchState ?? createInitialResearchState(),
+                  sanitizedWeek
+                ),
+              }
+            : {}),
+          runtimeState: normalizeRuntimeState(
+            game.runtimeState,
+            sanitizedWeek,
+            fallback.runtimeState
+          ),
+          agency: {
+            ...agency,
+            containmentRating: sanitizedContainmentRating,
+            clearanceLevel: sanitizedClearanceLevel,
+            funding: sanitizedFunding,
+            fundingState: normalizeFundingState(
+              sanitizedFunding,
+              sanitizedConfig,
+              isRecord(game.agency) && isRecord(game.agency.fundingState)
+                ? (game.agency.fundingState as unknown as NonNullable<typeof agency.fundingState>)
+                : agency.fundingState,
+              sanitizedWeek
+            ),
+          },
+          containmentRating: sanitizedContainmentRating,
+          clearanceLevel: sanitizedClearanceLevel,
+          funding: sanitizedFunding,
+          academyTier: clamp(
+            sanitizeInteger(game.academyTier as number | undefined, fallback.academyTier ?? 0, 0),
+            0,
+            MAX_ACADEMY_TIER
+          ),
+          templates: fallback.templates,
+        }) as GameState
+      )
+    )
+  ) as GameState
 }
 
 export function migratePersistedStore(
@@ -1679,10 +2827,11 @@ export function createRunFromCurrentConfig(config: GameConfig, seed: number) {
   const nextGame = createStartingState()
   const normalizedSeed = normalizeSeed(seed)
 
-  return {
+  return refreshContractBoard({
     ...nextGame,
     rngSeed: normalizedSeed,
     rngState: normalizedSeed,
+    contracts: undefined,
     config: sanitizeGameConfig(config, nextGame.config),
-  }
+  })
 }

@@ -1,12 +1,15 @@
+// cspell:words medkits
 import { type GameState } from '../../domain/models'
 import {
+  type AgentLoadoutReadinessSummary,
   type EquipmentLoadoutSummary,
   type EquipmentSlotKind,
   EQUIPMENT_SLOT_KINDS,
   EQUIPMENT_SLOT_LABELS,
   buildAgentEquipmentSummary,
-  getCompatibleEquipmentDefinitions,
+  buildAgentLoadoutReadinessSummary,
   getEquipmentLabel,
+  getRoleCompatibleEquipmentDefinitions,
   getEquipmentSlotItemId,
   getEquipmentTags,
 } from '../../domain/equipment'
@@ -43,10 +46,12 @@ export interface EquipmentLoadoutSlotView {
 export interface AgentEquipmentLoadoutView {
   agentId: string
   agentName: string
+  role: string
   assignmentState: string
   editable: boolean
   blockedReason?: string
   summary: EquipmentLoadoutSummary
+  readiness: AgentLoadoutReadinessSummary
   slots: EquipmentLoadoutSlotView[]
 }
 
@@ -113,10 +118,12 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
       return {
         agentId: agent.id,
         agentName: agent.name,
+        role: agent.role,
         assignmentState: agent.assignment?.state ?? 'idle',
         editable,
         blockedReason,
         summary: buildAgentEquipmentSummary(agent),
+        readiness: buildAgentLoadoutReadinessSummary(agent, { state: game }),
         slots: EQUIPMENT_SLOT_KINDS.map((slot) => {
           const itemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
           return {
@@ -125,7 +132,7 @@ export function getAgentEquipmentLoadoutViews(game: GameState): AgentEquipmentLo
             itemId,
             itemName: itemId ? getEquipmentLabel(itemId) : 'Empty slot',
             tags: itemId ? getCompatibleItemTags(itemId) : [],
-            stockOptions: getCompatibleEquipmentDefinitions(slot)
+            stockOptions: getRoleCompatibleEquipmentDefinitions(slot, agent.role)
               .map((definition) => ({
                 itemId: definition.id,
                 itemName: definition.name,

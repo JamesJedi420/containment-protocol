@@ -1,3 +1,4 @@
+// cspell:words hotspots
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
@@ -23,6 +24,7 @@ import {
 import { RunTransferPanel } from './RunTransferPanel'
 import { EventFeedPanel } from './EventFeedPanel'
 import { OperationsDeskPanels } from './OperationsDeskPanels'
+import { OperationsReportPanel } from './OperationsReportPanel'
 import {
   getAtRiskTeamViews,
   getDashboardMetrics,
@@ -570,7 +572,7 @@ export default function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm opacity-60">No urgent case pressure right now.</p>
+            <p className="text-sm opacity-60">{EMPTY_STATES.noUrgentCasePressure}</p>
           )}
         </section>
 
@@ -611,10 +613,12 @@ export default function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm opacity-60">No stressed teams are currently flagged.</p>
+            <p className="text-sm opacity-60">{EMPTY_STATES.noAtRiskTeams}</p>
           )}
         </section>
       </section>
+
+      <OperationsReportPanel />
 
       <section
         className="region-secondary grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]"
@@ -674,11 +678,13 @@ function DashboardStatLink({
           ? 'border-cyan-400/30 bg-cyan-500/8'
           : 'border-white/10 bg-white/5'
 
+  // Always render 0 as a string for zero values to ensure test finds the text
+  // Always render 0 as a visible text node, not falsy or hidden
   return (
     <div className={`panel panel-hi ${toneClass}`}>
       <Link to={to} className="block transition hover:opacity-100">
         <p className="text-label opacity-80">{label}</p>
-        <p className="mt-2 text-stat">{value}</p>
+        <p className="mt-2 text-stat" data-testid={`dashboard-stat-value-${label.replace(/\s+/g, '-').toLowerCase()}`}>{String(value)}</p>
       </Link>
     </div>
   )
@@ -728,7 +734,8 @@ function LatestReportSummary({ score }: { score: number }) {
       <p className="text-sm opacity-70">
         {report.resolvedCases.length} resolved, {report.unresolvedTriggers.length} unresolved{' '}
         {report.unresolvedTriggers.length === 1 ? 'trigger' : 'triggers'},{' '}
-        {report.spawnedCases.length} {report.spawnedCases.length === 1 ? 'spawned' : 'spawneds'}
+        {report.spawnedCases.length}{' '}
+        {report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'}
       </p>
 
       <p className="text-sm opacity-60">

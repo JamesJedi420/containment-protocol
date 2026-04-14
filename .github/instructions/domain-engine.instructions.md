@@ -1,7 +1,7 @@
----
+----
 description: 'Use when working in src/domain or src/app/store — sim engine rules, RNG seeding, state mutation patterns, scoring, spawning, advanceWeek.'
 applyTo: 'src/domain/**, src/app/store/**, src/data/**, src/test/**'
----
+----
 
 # Engine Layer Rules
 

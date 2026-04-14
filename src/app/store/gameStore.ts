@@ -711,10 +711,12 @@ export const useGameStore = create<GameStore>()(
           touchedEncounterIds: [],
           sceneVisits: [],
           locationUpdated: false,
-        }
+        };
 
         set((s) => {
-          result = applyAuthoredChoiceState(s.game, choice, context)
+          // Pure deterministic choice-application logic is handled by domain
+          result = applyAuthoredChoiceState(s.game, choice, context);
+          // Context logging, debug snapshotting, and event queue wiring remain in the store
           let gameWithDebugSnapshot: GameState = setUiDebugState(result.state, {
             authoring: {
               ...(context?.activeContextId ? { activeContextId: context.activeContextId } : {}),
@@ -723,7 +725,7 @@ export const useGameStore = create<GameStore>()(
               lastFollowUpIds: result.followUpIds,
               updatedWeek: s.game.week,
             },
-          })
+          });
           gameWithDebugSnapshot = appendDeveloperLogEventState(gameWithDebugSnapshot, {
             type: 'choice.executed',
             summary: `Choice executed: ${result.choiceId}`,
@@ -741,10 +743,10 @@ export const useGameStore = create<GameStore>()(
                 : {}),
               ...(result.followUpIds.length ? { followUpIds: result.followUpIds } : {}),
             },
-          })
+          });
           const queuedEvents = listQueuedRuntimeEvents(gameWithDebugSnapshot).filter(
             (event) => event.source === result.choiceId
-          )
+          );
           gameWithDebugSnapshot = queuedEvents.length
             ? appendDeveloperLogEventState(gameWithDebugSnapshot, {
                 type: 'event_queue.enqueued',
@@ -756,22 +758,22 @@ export const useGameStore = create<GameStore>()(
                   followUpIds: queuedEvents.map((event) => event.targetId),
                 },
               })
-            : gameWithDebugSnapshot
+            : gameWithDebugSnapshot;
           gameWithDebugSnapshot = appendAuthoringContextLogIfChanged(
             s.game,
             gameWithDebugSnapshot,
             context?.activeContextId
-          )
+          );
           result = {
             ...result,
             state: gameWithDebugSnapshot,
-          }
+          };
           return {
             game: gameWithDebugSnapshot,
-          }
-        })
+          };
+        });
 
-        return result
+        return result;
       },
 
       resolveHiddenEncounter: (input, context) => {
@@ -807,13 +809,14 @@ export const useGameStore = create<GameStore>()(
             queuedEventIds: [],
             queueEvents: [],
           },
-        }
+        };
 
         set((s) => {
+          // Pure deterministic hidden-encounter resolution logic is handled by domain
           result = resolveAndApplyHiddenCombat(s.game, input, {
             contextId: context?.activeContextId,
-          })
-
+          });
+          // Event creation and queue wiring remain in the store
           let game = appendDeveloperLogEventState(result.apply.state, {
             type: 'encounter.patched',
             summary: `Hidden encounter resolved: ${result.resolution.encounterId} (${result.resolution.outcome})`,
@@ -827,8 +830,7 @@ export const useGameStore = create<GameStore>()(
                 ? { followUpIds: result.resolution.followUpIds }
                 : {}),
             },
-          })
-
+          });
           game = result.apply.queueEvents.length
             ? appendDeveloperLogEventState(game, {
                 type: 'event_queue.enqueued',
@@ -840,22 +842,19 @@ export const useGameStore = create<GameStore>()(
                   followUpIds: result.apply.queueEvents.map((event) => event.targetId),
                 },
               })
-            : game
-
+            : game;
           result = {
             ...result,
             apply: {
               ...result.apply,
               state: game,
             },
-          }
-
+          };
           return {
             game,
-          }
-        })
-
-        return result
+          };
+        });
+        return result;
       },
 
       setPlayerProfile: (patch) => set((s) => ({ game: setPlayerProfile(s.game, patch) })),
@@ -1020,22 +1019,20 @@ export const useGameStore = create<GameStore>()(
       scoutCandidate: (candidateId) => set((s) => ({ game: scoutCandidate(s.game, candidateId) })),
 
       transitionCandidateFunnel: (candidateId, toStage, options) => {
-        let transitioned = false
-
+        let transitioned = false;
         set((s) => {
+          // Pure deterministic funnel transition logic is handled by domain
           const transition = transitionRecruitmentCandidate(s.game, candidateId, {
             toStage,
             week: s.game.week,
             ...(options?.note ? { note: options.note } : {}),
             ...(options?.lossReason ? { lossReason: options.lossReason } : {}),
-          })
-
-          transitioned = transition.transitioned
-
+          });
+          transitioned = transition.transitioned;
           if (!transition.transitioned) {
-            return { game: s.game }
+            return { game: s.game };
           }
-
+          // Event/context logging remains in the store
           const game = appendDeveloperLogEventState(transition.state, {
             type: 'authoring.context_changed',
             summary: `Candidate funnel transitioned: ${candidateId} -> ${toStage}`,
@@ -1046,12 +1043,10 @@ export const useGameStore = create<GameStore>()(
               ...(options?.note ? { note: options.note } : {}),
               ...(options?.lossReason ? { lossReason: options.lossReason } : {}),
             },
-          })
-
-          return { game }
-        })
-
-        return transitioned
+          });
+          return { game };
+        });
+        return transitioned;
       },
 
       contactCandidate: (candidateId, note) =>
@@ -1105,92 +1100,90 @@ export const useGameStore = create<GameStore>()(
 
       upgradeAcademy: () =>
         set((s) => {
-          const beforeTier = s.game.academyTier ?? 0
-          const beforeFunding = s.game.funding
-          const next = upgradeAcademy(s.game)
-          const afterTier = next.academyTier ?? 0
-
-          if (afterTier === beforeTier) {
-            return { game: next }
+          const beforeTier = s.game.academyTier ?? 0;
+          const beforeFunding = s.game.funding;
+          const next = upgradeAcademy(s.game);
+          const afterTier = next.academyTier ?? 0;
+          // Only log event if upgrade occurred
+          if (afterTier > beforeTier) {
+            return {
+              game: appendOperationEventDrafts(next, [
+                createSystemAcademyUpgradedDraft({
+                  week: next.week,
+                  tierBefore: beforeTier,
+                  tierAfter: afterTier,
+                  fundingBefore: beforeFunding,
+                  fundingAfter: next.funding,
+                  cost: beforeFunding - next.funding,
+                }),
+              ]),
+            };
           }
-
-          return {
-            game: appendOperationEventDrafts(next, [
-              createSystemAcademyUpgradedDraft({
-                week: next.week,
-                tierBefore: beforeTier,
-                tierAfter: afterTier,
-                fundingBefore: beforeFunding,
-                fundingAfter: next.funding,
-                cost: beforeFunding - next.funding,
-              }),
-            ]),
-          }
+          // No event if no upgrade
+          return { game: next };
         }),
 
       assignInstructor: (staffId, agentId) =>
         set((s) => {
-          const before = s.game.staff[staffId]
-          const next = assignInstructor(s.game, staffId, agentId)
-          const after = next.staff[staffId]
-
+          const before = s.game.staff[staffId];
+          const next = assignInstructor(s.game, staffId, agentId);
+          const after = next.staff[staffId];
+          // Only log event if assignment actually changed
           if (
-            before?.role !== 'instructor' ||
-            after?.role !== 'instructor' ||
-            !after.assignedAgentId ||
-            before.assignedAgentId === after.assignedAgentId
+            before?.role === 'instructor' &&
+            after?.role === 'instructor' &&
+            after.assignedAgentId &&
+            before.assignedAgentId !== after.assignedAgentId
           ) {
-            return { game: next }
+            const agentName = next.agents[agentId]?.name ?? s.game.agents[agentId]?.name ?? agentId;
+            return {
+              game: appendOperationEventDrafts(next, [
+                createAgentInstructorAssignedDraft({
+                  week: next.week,
+                  staffId,
+                  instructorName: after.name,
+                  agentId,
+                  agentName,
+                  instructorSpecialty: after.instructorSpecialty,
+                  bonus: getInstructorBonus(after.efficiency),
+                }),
+              ]),
+            };
           }
-
-          const agentName = next.agents[agentId]?.name ?? s.game.agents[agentId]?.name ?? agentId
-          return {
-            game: appendOperationEventDrafts(next, [
-              createAgentInstructorAssignedDraft({
-                week: next.week,
-                staffId,
-                instructorName: after.name,
-                agentId,
-                agentName,
-                instructorSpecialty: after.instructorSpecialty,
-                bonus: getInstructorBonus(after.efficiency),
-              }),
-            ]),
-          }
+          return { game: next };
         }),
 
       unassignInstructor: (staffId) =>
         set((s) => {
-          const before = s.game.staff[staffId]
-          const assignedAgentId = before?.role === 'instructor' ? before.assignedAgentId : undefined
+          const before = s.game.staff[staffId];
+          const assignedAgentId = before?.role === 'instructor' ? before.assignedAgentId : undefined;
           const assignedAgentName = assignedAgentId
             ? (s.game.agents[assignedAgentId]?.name ?? assignedAgentId)
-            : undefined
-          const next = unassignInstructor(s.game, staffId)
-          const after = next.staff[staffId]
-
+            : undefined;
+          const next = unassignInstructor(s.game, staffId);
+          const after = next.staff[staffId];
+          // Only log event if unassignment actually occurred
           if (
-            before?.role !== 'instructor' ||
-            !assignedAgentId ||
-            after?.role !== 'instructor' ||
-            after.assignedAgentId
+            before?.role === 'instructor' &&
+            assignedAgentId &&
+            after?.role === 'instructor' &&
+            !after.assignedAgentId
           ) {
-            return { game: next }
+            return {
+              game: appendOperationEventDrafts(next, [
+                createAgentInstructorUnassignedDraft({
+                  week: next.week,
+                  staffId,
+                  instructorName: before.name,
+                  agentId: assignedAgentId,
+                  agentName: assignedAgentName ?? assignedAgentId,
+                  instructorSpecialty: before.instructorSpecialty,
+                  bonus: getInstructorBonus(before.efficiency),
+                }),
+              ]),
+            };
           }
-
-          return {
-            game: appendOperationEventDrafts(next, [
-              createAgentInstructorUnassignedDraft({
-                week: next.week,
-                staffId,
-                instructorName: before.name,
-                agentId: assignedAgentId,
-                agentName: assignedAgentName ?? assignedAgentId,
-                instructorSpecialty: before.instructorSpecialty,
-                bonus: getInstructorBonus(before.efficiency),
-              }),
-            ]),
-          }
+          return { game: next };
         }),
 
       reconcileAgents: (leftId, rightId) =>

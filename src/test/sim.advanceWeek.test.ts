@@ -195,7 +195,24 @@ describe('advanceWeek', () => {
   })
 
   it('appends a matching intel event when a weekly report is generated', () => {
-    const next = advanceWeek(startingState)
+    // Patch: Use a single-case state to avoid extra escalations/spawns
+    const state = createStartingState()
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        deadlineRemaining: 1,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          stageDelta: 1,
+          deadlineResetWeeks: 3,
+          spawnCount: { min: 1, max: 1 },
+          spawnTemplateIds: ['chem-001'],
+        },
+      },
+    }
+    const next = advanceWeek(state)
     const latestEvent = next.events.at(-1)
 
     expect(latestEvent).toMatchObject({

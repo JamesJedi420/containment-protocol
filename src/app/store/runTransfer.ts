@@ -32,6 +32,7 @@ import {
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
 } from '../../domain/models'
+import { propagateDistortion } from '../../domain/shared/distortion'
 
 export const GAME_STORE_VERSION = 6
 export const RUN_EXPORT_KIND = 'containment-protocol-run'
@@ -114,6 +115,10 @@ const REPORT_NOTE_TYPES = [
   'recruitment.scouting_refined',
   'recruitment.intel_confirmed',
   'system.party_cards_drawn',
+  'system.escalation_consequence',
+  'system.proxy_conflict',
+  'system.protocol_contact',
+  'system.anchor_instability',
   'market.transaction_recorded',
   'faction.standing_changed',
   'directive.applied',
@@ -196,6 +201,18 @@ function sanitizeStringList(value: unknown) {
   return value.filter((entry): entry is string => typeof entry === 'string')
 }
 
+function isReportNoteMetadataArray(
+  value: unknown
+): value is readonly (string | number | boolean)[] {
+  return (
+    Array.isArray(value) &&
+    value.every((entry) => {
+      const valueType = typeof entry
+      return valueType === 'string' || valueType === 'number' || valueType === 'boolean'
+    })
+  )
+}
+
 function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
   if (!Array.isArray(value)) {
     return []
@@ -226,7 +243,8 @@ function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
               metadataValue === null ||
               valueType === 'string' ||
               valueType === 'number' ||
-              valueType === 'boolean'
+              valueType === 'boolean' ||
+              isReportNoteMetadataArray(metadataValue)
             ) {
               sanitized[key] = metadataValue as ReportNoteMetadata[string]
             }
@@ -280,8 +298,11 @@ export function stripGameTemplates(game: GameState): PersistedGame {
   return stripUndefinedFields(persistedGame)
 }
 
-export function buildReportCaseSnapshot(currentCase: CaseInstance): WeeklyReportCaseSnapshot {
-  return {
+export function buildReportCaseSnapshot(
+  currentCase: CaseInstance,
+  knowledgeMap?: Record<string, import('../../domain/knowledge').KnowledgeState>
+): WeeklyReportCaseSnapshot {
+  const snapshot: WeeklyReportCaseSnapshot = {
     caseId: currentCase.id,
     title: currentCase.title,
     kind: currentCase.kind,
@@ -292,7 +313,30 @@ export function buildReportCaseSnapshot(currentCase: CaseInstance): WeeklyReport
     durationWeeks: currentCase.durationWeeks,
     weeksRemaining: currentCase.weeksRemaining,
     assignedTeamIds: [...currentCase.assignedTeamIds],
+    // SPE-59: Surface canonical knowledge state for this case (per team)
+    knowledge: knowledgeMap,
+    // SPE-59: Add reveal explanation for provisional/true/context
+    revealExplanation: knowledgeMap
+      ? Object.entries(knowledgeMap)
+          .map(([teamId, ks]) => {
+            const parts: string[] = []
+            if (ks.provisionalClassification && ks.confirmationState === 'provisional') {
+              parts.push(`Team ${teamId}: Provisional classification: ${ks.provisionalClassification}`)
+            }
+            if (ks.trueClassification && ks.confirmationState === 'confirmed') {
+              parts.push(`Team ${teamId}: Confirmed as: ${ks.trueClassification}`)
+            }
+            if (ks.contextTag) {
+              parts.push(`(Context: ${ks.contextTag})`)
+            }
+            return parts.join(' ')
+          })
+          .filter(Boolean)
+          .join(' | ')
+      : undefined,
   }
+
+  return currentCase.distortion?.length ? propagateDistortion(currentCase, snapshot) : snapshot
 }
 
 export function buildReportCaseSnapshots(cases: GameState['cases']) {

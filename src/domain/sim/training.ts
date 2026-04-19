@@ -49,6 +49,7 @@ import {
   type TrainingQueueEntry,
   BASE_STAT_MAX,
 } from '../models'
+import { applyBoundedDelta } from '../shared/modifiers'
 import { getTrainingProgram } from '../../data/training'
 
 /**
@@ -740,15 +741,15 @@ function applyTrainingCompletionToAgent(
 
   // Direct stability-training pathway (gap fix): specific programs can improve
   // resilience-derived stats independently of base-stat deltas.
-  nextStats.stability.resistance = clamp(
-    nextStats.stability.resistance + (entry.stabilityResistanceDelta ?? 0),
-    0,
-    BASE_STAT_MAX
+  nextStats.stability.resistance = applyBoundedDelta(
+    nextStats.stability.resistance,
+    entry.stabilityResistanceDelta ?? 0,
+    { min: 0, max: BASE_STAT_MAX }
   )
-  nextStats.stability.tolerance = clamp(
-    nextStats.stability.tolerance + (entry.stabilityToleranceDelta ?? 0),
-    0,
-    BASE_STAT_MAX
+  nextStats.stability.tolerance = applyBoundedDelta(
+    nextStats.stability.tolerance,
+    entry.stabilityToleranceDelta ?? 0,
+    { min: 0, max: BASE_STAT_MAX }
   )
 
   // XP scales with actual raw gain (including academy and instructor bonuses) so

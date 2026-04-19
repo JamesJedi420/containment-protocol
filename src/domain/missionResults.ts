@@ -694,12 +694,24 @@ function buildPowerImpactNotes(powerImpact: PowerImpactSummary | undefined) {
 }
 
 export function buildMissionResult(input: MissionResultInput): MissionResult {
-  const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
-  const powerImpact = input.powerImpact
-  const fatigueChanges = input.fatigueChanges ?? []
-  const injuries = input.injuries ?? []
-  const spawnedConsequences = input.spawnedConsequences ?? []
-  const explanationNotes: string[] = []
+    const explanationNotes: string[] = []
+    // --- Knowledge-state gating/risk: defeat-condition certainty check ---
+    if (input.knowledge && input.requiredDefeatCertainty && input.anomalyId && input.teamsUsed?.length) {
+      const teamId = input.teamsUsed[0].teamId
+      const key = Object.keys(input.knowledge).find(k => k.includes(teamId) && k.includes(input.anomalyId))
+      const entry = key ? input.knowledge[key] : undefined
+      const order = ['unknown', 'suspected', 'family', 'exact']
+      const currentIdx = entry && entry.defeatConditionCertainty ? order.indexOf(entry.defeatConditionCertainty) : -1
+      const requiredIdx = order.indexOf(input.requiredDefeatCertainty)
+      if (currentIdx < requiredIdx) {
+        appendUniqueNote(explanationNotes, `Insufficient defeat-condition certainty: required ${input.requiredDefeatCertainty}, found ${entry?.defeatConditionCertainty ?? 'none'}. Risk of mission failure or escalation.`)
+      }
+    }
+    const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
+    const powerImpact = input.powerImpact
+    const fatigueChanges = input.fatigueChanges ?? []
+    const injuries = input.injuries ?? []
+    const spawnedConsequences = input.spawnedConsequences ?? []
 
   for (const reason of input.resolutionReasons ?? []) {
     appendUniqueNote(explanationNotes, reason)

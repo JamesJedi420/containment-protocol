@@ -1,3 +1,27 @@
+import { getOutcomeBand, resolveConsequenceRoute } from './shared/outcomes'
+import type { ThreatFamily } from './shared/modifiers'
+// Deterministic consequence summary for each threat family based on team readiness and composition
+export function getTeamConsequenceSummary(
+  team: Team,
+  agentsById: GameState['agents'],
+  threatFamilies: ThreatFamily[] = ['deception', 'disruption', 'containment', 'biological', 'psychological', 'technological']
+): Record<ThreatFamily, string[]> {
+  const members = getTeamMembers(team, agentsById)
+  // Use average fatigue as a proxy for outcome band (low fatigue = strong, high fatigue = catastrophic)
+  const avgFatigue = members.length > 0 ? members.reduce((sum, a) => sum + (a.fatigue ?? 0), 0) / members.length : 0
+  // Map fatigue to band: low fatigue = strong, high = catastrophic
+  let band: ReturnType<typeof getOutcomeBand>
+  if (avgFatigue < 20) band = 'strong'
+  else if (avgFatigue < 40) band = 'success'
+  else if (avgFatigue < 70) band = 'partial'
+  else if (avgFatigue < 90) band = 'fail'
+  else band = 'catastrophic'
+  const result = {} as Record<ThreatFamily, string[]>
+  for (const family of threatFamilies) {
+    result[family] = resolveConsequenceRoute(family, band).consequences
+  }
+  return result
+}
 import { type AgentSimulationProfile } from './agent/models'
 import { buildAgentSimulationProfile } from './agent/simulation'
 import { isAgentRecordNormalized, normalizeAgentRecord } from './agent/normalize'
@@ -893,12 +917,16 @@ function normalizeAgencyMirrors(state: GameState): {
   clearanceLevel: number
   funding: number
 } {
+  // Always preserve and overlay the full canonical agency object
+  const base = state.agency || { containmentRating: 0, clearanceLevel: 1, funding: 0, supportAvailable: 0 }
   const agency = {
-    containmentRating: state.containmentRating,
-    clearanceLevel: state.clearanceLevel,
-    funding: state.funding,
+    ...base,
+    containmentRating: typeof state.containmentRating === 'number' ? state.containmentRating : base.containmentRating,
+    clearanceLevel: typeof state.clearanceLevel === 'number' ? state.clearanceLevel : base.clearanceLevel,
+    funding: typeof state.funding === 'number' ? state.funding : base.funding,
+    // Always preserve supportAvailable from canonical agency
+    supportAvailable: typeof base.supportAvailable === 'number' ? base.supportAvailable : 0,
   }
-
   return {
     agency,
     containmentRating: agency.containmentRating,

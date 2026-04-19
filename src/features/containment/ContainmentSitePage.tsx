@@ -1,7 +1,12 @@
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import { buildEncounterStructureState, buildEndgameScalingState } from '../../domain/strategicState'
+import {
+  buildEncounterStructureState,
+  buildEndgameScalingState,
+  formatDifficultyPressureSummary,
+  formatEndgameThresholdSummary,
+} from '../../domain/strategicState'
 
 export default function ContainmentSitePage() {
   const { game } = useGameStore()
@@ -67,9 +72,7 @@ export default function ContainmentSitePage() {
           <div className="rounded border border-white/10 px-3 py-3">
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">Escalation threshold</p>
             <p className="mt-2 text-sm opacity-70">
-              {endgame.nextThreshold === null
-                ? 'Already at crisis ceiling.'
-                : `${endgame.pressureToNextThreshold} pressure until ${endgame.nextThreshold}.`}
+              {formatEndgameThresholdSummary(endgame)}
             </p>
             <p className="mt-1 text-sm opacity-60">Highest active stage: {endgame.maxStage}</p>
           </div>
@@ -108,7 +111,7 @@ export default function ContainmentSitePage() {
                       Effective difficulty x{incident.effectiveDifficultyMultiplier.toFixed(2)}
                     </p>
                     <p className="mt-1 text-xs opacity-60">
-                      Pressure: {formatDifficultyPressure(incident.difficultyPressure)}
+                      Pressure: {formatDifficultyPressureSummary(incident.difficultyPressure)}
                     </p>
                   </div>
 
@@ -327,23 +330,4 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
   )
-}
-
-function formatDifficultyPressure(
-  pressure: Partial<{
-    combat: number
-    investigation: number
-    utility: number
-    social: number
-  }>
-) {
-  const entries = Object.entries(pressure).filter(
-    (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
-  )
-
-  if (entries.length === 0) {
-    return 'No additional pressure'
-  }
-
-  return entries.map(([key, value]) => `${key} +${value}`).join(' / ')
 }

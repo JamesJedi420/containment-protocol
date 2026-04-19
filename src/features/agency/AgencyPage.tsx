@@ -1,7 +1,8 @@
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import { buildAgencyOverview } from '../../domain/strategicState'
+import { formatOutcomeCountSummary } from '../../domain/reportNotes'
+import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 
 export default function AgencyPage() {
   const { game } = useGameStore()
@@ -40,6 +41,15 @@ export default function AgencyPage() {
           <Metric label="Active incidents" value={String(overview.activeCases)} />
           <Metric label="Committed teams" value={String(overview.activeTeams)} />
           <Metric label="Ready operatives" value={String(overview.readyAgents)} />
+        </div>
+
+        <div className="mt-2">
+          <h3 className="text-xs uppercase tracking-wide opacity-50 mb-1">Escalation & Pressure Cadence</h3>
+          <ul className="text-xs opacity-80 space-y-1">
+            {formatCadenceSummary(overview).map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
         </div>
       </article>
 
@@ -151,13 +161,30 @@ export default function AgencyPage() {
       </article>
 
       <article className="panel space-y-3">
+        <h3 className="text-base font-semibold">Commercial Chokepoint & Council Power</h3>
+        <ul className="space-y-2 text-sm opacity-80">
+          <li>Chokepoint leverage: {summary.chokepointLeverage}</li>
+          <li>
+            Council power distribution:
+            <ul className="ml-4">
+              {Object.entries(summary.councilPowerDistribution).length === 0 ? (
+                <li className="opacity-60">No council data</li>
+              ) : (
+                Object.entries(summary.councilPowerDistribution).map(([council, pct]) => (
+                  <li key={council}>{council}: {pct}%</li>
+                ))
+              )}
+            </ul>
+          </li>
+          <li>External revenue share: {summary.externalRevenueShare}%</li>
+        </ul>
+      </article>
+
+      <article className="panel space-y-3">
         <h3 className="text-base font-semibold">Latest operations summary</h3>
         <ul className="space-y-2 text-sm opacity-80">
           <li>Latest week: {summary.report.latestWeek ?? 'No reports logged'}</li>
-          <li>
-            Outcomes: {summary.report.resolved} resolved / {summary.report.partial} partial /{' '}
-            {summary.report.failed} failed / {summary.report.unresolved} unresolved
-          </li>
+          <li>Outcomes: {formatOutcomeCountSummary(summary.report)}</li>
           <li>Report notes: {summary.report.notes}</li>
           <li>
             Ranking: {summary.ranking.tier} / {summary.ranking.score}

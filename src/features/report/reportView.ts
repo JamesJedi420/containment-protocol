@@ -29,11 +29,23 @@ export function getReportPageView(game: GameState): ReportPageView {
   const cumulativeScore = game.reports.reduce((sum, report) => sum + calcWeekScore(report), 0)
   const agencySummary = buildAgencySummary(game)
 
+  // Expanded summary line to include new governance/economics fields
+  const councilPower = Object.entries(agencySummary.councilPowerDistribution)
+    .map(([council, pct]) => `${council}: ${pct}%`)
+    .join(', ')
+  const extendedSummaryLine =
+    `${agencySummary.name}: reputation ${agencySummary.reputation}, ` +
+    `pressure ${agencySummary.pressure.score} (${agencySummary.pressure.level}), ` +
+    `stability ${agencySummary.stability.score} (${agencySummary.stability.level}), ` +
+    `chokepoint leverage ${agencySummary.chokepointLeverage}, ` +
+    `council power [${councilPower}], ` +
+    `external revenue share ${agencySummary.externalRevenueShare}`
+
   return {
     isEmpty: false,
     summary: {
       cumulativeScore,
-      agencySummaryLine: `${agencySummary.name}: reputation ${agencySummary.reputation}, pressure ${agencySummary.pressure.score} (${agencySummary.pressure.level}), stability ${agencySummary.stability.score} (${agencySummary.stability.level})`,
+      agencySummaryLine: extendedSummaryLine,
     },
     weeklyReports: [...game.reports].reverse().map((report) => ({
       report,

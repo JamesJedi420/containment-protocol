@@ -8,6 +8,9 @@ import {
   buildEndgameScalingState,
   buildFactionStates,
   buildMajorIncidentState,
+  formatCadenceSummary,
+  formatDifficultyPressureSummary,
+  formatEndgameThresholdSummary,
 } from '../domain/strategicState'
 
 describe('strategicState', () => {
@@ -203,5 +206,69 @@ describe('strategicState', () => {
       scaling.activeIncidents
     )
     expect(['watch', 'danger', 'crisis']).toContain(scaling.severity)
+  })
+
+  it('formats canonical cadence, threshold, and difficulty-pressure summaries for shared surfaces', () => {
+    expect(
+      formatCadenceSummary({
+        incidents: {
+          pressureScore: 6,
+          severity: 'watch',
+          incidents: [],
+          unresolvedMomentum: 1,
+        },
+        endgame: {
+          nextThreshold: 8,
+          pressureToNextThreshold: 2,
+        },
+        encounterStructure: {
+          urgentEscalations: [],
+        },
+      })
+    ).toEqual([
+      'Pressure: 6 (watch)',
+      'Major incidents: 0',
+      'Unresolved momentum: 1',
+      'Endgame threshold: 8 (2 to next)',
+      'Extra checks: None',
+    ])
+    expect(
+      formatCadenceSummary({
+        incidents: {
+          pressureScore: 18,
+          severity: 'danger',
+          incidents: [{ caseId: 'case-urgent' }],
+          unresolvedMomentum: 3,
+        },
+        endgame: {
+          nextThreshold: null,
+          pressureToNextThreshold: 0,
+        },
+        encounterStructure: {
+          urgentEscalations: [
+            {
+              caseId: 'case-urgent',
+              caseTitle: 'Threshold Bloom',
+              stage: 3,
+              nextStage: 4,
+              followUpCount: 1,
+              convertsToRaid: true,
+            },
+          ],
+        },
+      })[4]
+    ).toBe('Extra checks: Threshold Bloom (stage 3→4, raid)')
+    expect(formatEndgameThresholdSummary({ nextThreshold: 8, pressureToNextThreshold: 2 })).toBe(
+      '2 pressure until 8.'
+    )
+    expect(
+      formatEndgameThresholdSummary({ nextThreshold: null, pressureToNextThreshold: 0 })
+    ).toBe('Already at crisis ceiling.')
+    expect(
+      formatDifficultyPressureSummary({
+        combat: 2,
+        social: 1,
+      })
+    ).toBe('combat +2 / social +1')
   })
 })

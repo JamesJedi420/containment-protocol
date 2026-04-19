@@ -5,7 +5,16 @@ import {
   type StatKey,
   type TeamCoverageRole,
 } from '../domain/models'
-import { createDeterministicReportNote } from '../domain/reportNotes'
+import {
+  createDeterministicReportNote,
+  formatEscalatedCaseNoteContent,
+  formatFailedCaseNoteContent,
+  formatPartialCaseNoteContent,
+  formatRaidConvertedNoteContent,
+  formatResolvedCaseNoteContent,
+  formatSpawnFollowUpNoteContent,
+  formatWeekDeltaNoteContent,
+} from '../domain/reportNotes'
 import { agentClassTables } from '../domain/templates/classTables'
 
 /**
@@ -772,15 +781,13 @@ export function createNote(content: string, rng?: () => number, timestamp?: numb
  * Simulation event note builders.
  */
 export const SIM_NOTES = {
-  resolved: (title: string) => `${title}: operation concluded. Threat contained.`,
-  partial: (title: string) => `${title}: partially stabilised. Case returned to active queue.`,
-  failed: (title: string, stage: number) =>
-    `${title}: containment failed. Threat escalated to Stage ${stage}.`,
-  deadline: (title: string, stage: number) =>
-    `${title}: deadline lapsed. Escalated to Stage ${stage}.`,
-  weekDelta: (delta: number) => `Breach score delta: ${delta >= 0 ? '+' : ''}${delta}.`,
-  spawnFollowUp: (count: number) => `${count} follow-up operation(s) opened.`,
-  convertedToRaid: () => 'Converted to multi-team operation.',
+  resolved: (title: string) => formatResolvedCaseNoteContent(title),
+  partial: (title: string) => formatPartialCaseNoteContent(title),
+  failed: (title: string, stage: number) => formatFailedCaseNoteContent(title, stage),
+  deadline: (title: string, stage: number) => formatEscalatedCaseNoteContent(title, stage),
+  weekDelta: (delta: number) => formatWeekDeltaNoteContent(delta),
+  spawnFollowUp: (count: number) => formatSpawnFollowUpNoteContent(count),
+  convertedToRaid: () => formatRaidConvertedNoteContent(),
 }
 
 /**

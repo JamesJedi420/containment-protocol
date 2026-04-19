@@ -1,3 +1,85 @@
+// --- Fusion Explanation ---
+
+
+export function explainFusion(ks: KnowledgeState): string {
+  if (ks.fusedFrom && ks.fusedFrom.length > 1) {
+    return `Fused from ${ks.fusedFrom.join(', ')} (week ${ks.lastFusedWeek ?? '?'})`;
+  }
+  return '';
+}
+// --- Decay Explanation ---
+
+
+export function explainDecay(ks: KnowledgeState): string {
+  if (ks.decayed && ks.tier === 'partial') {
+    return `Decayed from confirmed (week ${ks.lastDecayedWeek ?? '?'})`;
+  }
+  if (ks.decayed && ks.tier === 'unknown') {
+    return `Decayed from partial (week ${ks.lastDecayedWeek ?? '?'})`;
+  }
+  return '';
+}
+// --- Multi-hop/Relay Explanation ---
+
+
+export function explainRelayChain(ks: KnowledgeState): string {
+  if (ks.relayFailed) {
+    return `Relay failed (week ${ks.lastRelayFailedWeek ?? '?'})`;
+  }
+  if (ks.tier === 'relayed') {
+    return `Relayed from ${ks.relaySource ?? '?'} (week ${ks.lastRelayedWeek ?? '?'})`;
+  }
+  return '';
+}
+// --- Hazard Knowledge Explanation ---
+
+
+export function explainHazardKnowledge(ks: KnowledgeState): string {
+  if (ks.tier === 'confirmed') {
+    return `Hazard detected (week ${ks.lastConfirmedWeek ?? '?'})`;
+  }
+  if (ks.masked) {
+    return `Hazard is masked/obscured (week ${ks.lastMaskedWeek ?? '?'})`;
+  }
+  return 'No hazard knowledge.';
+}
+import { hasDefeatConditionCertainty, type DefeatConditionCertainty, type KnowledgeStateMap } from './knowledge'
+// --- Knowledge/Relay Explanation Utility ---
+// Returns a human-readable explanation for defeat-condition certainty and relay status
+export function explainDefeatConditionKnowledge(
+  knowledge: KnowledgeStateMap,
+  teamId: string,
+  anomalyId: string
+): string {
+  const key = `${teamId}::${anomalyId}`
+  const entry = knowledge[key]
+  if (!entry) return 'No knowledge of defeat condition.'
+  switch (entry.defeatConditionCertainty) {
+    case 'exact':
+      return 'Exact defeat/neutralization condition is known.'
+    case 'family':
+      return 'Bypass method family is suspected.'
+    case 'suspected':
+      return 'Possible bypass exists, but details are unclear.'
+    default:
+      return 'Defeat/neutralization condition is unknown.'
+  }
+}
+
+export function explainRelayStatus(
+  knowledge: KnowledgeStateMap,
+  teamId: string,
+  anomalyId: string,
+  currentWeek: number
+): string {
+  const key = `${teamId}::${anomalyId}`
+  const entry = knowledge[key]
+  if (!entry || entry.relayAvailableWeek === undefined) return ''
+  if (currentWeek < entry.relayAvailableWeek) {
+    return `Relay in progress, knowledge will be available week ${entry.relayAvailableWeek}.`
+  }
+  return ''
+}
 import { previewResolutionPartyCards } from './partyCards/engine'
 import { buildAgencyProtocolState } from './protocols'
 import { buildMissionRewardBreakdown } from './missionResults'

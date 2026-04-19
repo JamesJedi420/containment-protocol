@@ -131,7 +131,9 @@ export function applySpawnRule(
     notes.push(SIM_NOTES.convertedToRaid())
   }
 
-  const count = randInt(rng, rule.spawnCount.min, rule.spawnCount.max)
+  // SPE-38: Default spawnCount to { min: 0, max: 0 } if missing for robust testability
+  const spawnCount = rule.spawnCount ?? { min: 0, max: 0 }
+  const count = randInt(rng, spawnCount.min, spawnCount.max)
   const spawned: CaseInstance[] = []
 
   for (let i = 0; i < count; i++) {

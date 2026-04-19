@@ -5,12 +5,17 @@ export interface FactionDefinition {
   id: string
   name: string
   label: string
-  category: 'government' | 'institution' | 'occult' | 'corporate' | 'covert'
+  category: 'government' | 'institution' | 'occult' | 'corporate' | 'covert' | 'anomaly_polity'
   tags: string[]
   feedback: string
   opportunityLabel: string
   opportunityDetail: string
   hostileDetail: string
+  // Etiquette-driven protocol config (optional, only for anomaly polity)
+  protocolType?: string
+  statusSensitivity?: boolean
+  favorLogic?: string
+  symbolicOffenseThreshold?: number
 }
 
 export interface FactionInfluenceModifiers {
@@ -52,6 +57,11 @@ export interface FactionState {
   feedback: string
   influenceModifiers: FactionInfluenceModifiers
   opportunities: FactionOpportunity[]
+  // SPE-52 compact internal state
+  cohesion: number
+  agendaPressure: number
+  reliability: number
+  distortion: number
 }
 
 const STANDING_MIN = -20
@@ -59,6 +69,21 @@ const STANDING_MAX = 20
 const FACTION_PRESSURE_THRESHOLD_BASE = 140
 
 export const FACTION_DEFINITIONS: readonly FactionDefinition[] = [
+    {
+      id: 'threshold_court',
+      name: 'Threshold Court',
+      label: 'Threshold Court',
+      category: 'anomaly_polity',
+      tags: ['anomaly', 'protocol', 'threshold', 'court', 'etiquette'],
+      feedback: 'Protocol governs all contact; symbolic offense or favor alters access and intel.',
+      opportunityLabel: 'Protocol audience',
+      opportunityDetail: 'Correct etiquette grants conditional favor and improved intel access.',
+      hostileDetail: 'Symbolic offense restricts cooperation and distorts operational outcomes.',
+      protocolType: 'deference-reciprocity-naming',
+      statusSensitivity: true,
+      favorLogic: 'Correct protocol improves reliability and access; offense increases distortion.',
+      symbolicOffenseThreshold: 1,
+    },
   {
     id: 'oversight',
     name: 'Oversight Bureau',
@@ -347,11 +372,18 @@ export function buildFactionRewardInfluence(
   const factionStates = buildFactionStates(game as GameState)
   const matches = buildFactionCaseMatches(currentCase, factionStates)
   const activeMatches = matches.slice(0, currentCase.kind === 'raid' ? 2 : 1)
+  // SPE-52: Add anchor faction's reliability as a deterministic modifier to rewardModifier
+  let anchorReliability = 0
+  if (factionStates.length > 0) {
+    anchorReliability = factionStates[0].reliability
+  }
+  // Map reliability (0-100) to a modifier in [-0.08, +0.08] (centered at 50)
+  const reliabilityModifier = ((anchorReliability - 50) / 50) * 0.08
   const rewardModifier = roundModifier(
     activeMatches.reduce((sum, entry, index) => {
       const scale = index === 0 ? 1 : 0.5
       return sum + entry.factionState.influenceModifiers.rewardModifier * scale
-    }, 0)
+    }, 0) + reliabilityModifier
   )
 
   return {
@@ -402,7 +434,7 @@ export function buildFactionStates(
   const unresolvedMomentum = getRecentUnresolvedMomentum(game)
   const standingByFactionId = buildFactionStandingMap(game)
 
-  return FACTION_DEFINITIONS.map((faction) => {
+  return FACTION_DEFINITIONS.map((faction, idx) => {
     const matchingCases = openCases.filter((currentCase) =>
       collectCaseTags(currentCase).some((tag) => faction.tags.includes(tag))
     )
@@ -425,6 +457,33 @@ export function buildFactionStates(
           ? 'hostile'
           : 'contested'
 
+    // SPE-52: Only the first faction (anchor) gets compact internal state for now
+    const isAnchor = idx === 0
+
+    // Canonical bounds: Only clamp if negative, allow overflow unless canonical
+    let cohesion = isAnchor ? 60 + standing * 2 - pressureScore * 0.1 : 0
+    let agendaPressure = isAnchor ? pressureScore * 0.5 : 0
+    let reliability = isAnchor ? 50 + standing - agendaPressure * 0.2 : 0
+    let distortion = isAnchor ? agendaPressure * 0.3 + (100 - cohesion) * 0.2 : 0
+
+    // Internal event-driven fracture: if agendaPressure or distortion exceeds threshold, trigger fracture
+    if (isAnchor) {
+      const FRACTURE_AGENDA_PRESSURE = 80
+      const FRACTURE_DISTORTION = 70
+      let fractured = false
+      if (agendaPressure > FRACTURE_AGENDA_PRESSURE || distortion > FRACTURE_DISTORTION) {
+        cohesion -= 12
+        distortion += 10
+        fractured = true
+      }
+      // Clamp only to prevent negative values (canonical: no upper bound unless specified)
+      if (cohesion < 0) cohesion = 0
+      if (agendaPressure < 0) agendaPressure = 0
+      if (reliability < 0) reliability = 0
+      if (distortion < 0) distortion = 0
+      // Optionally: could expose fracture event/flag in state for testability
+    }
+
     return {
       id: faction.id,
       name: faction.name,
@@ -438,6 +497,10 @@ export function buildFactionStates(
       feedback: faction.feedback,
       influenceModifiers,
       opportunities,
+      cohesion,
+      agendaPressure,
+      reliability,
+      distortion,
     }
   }).sort(
     (left, right) =>

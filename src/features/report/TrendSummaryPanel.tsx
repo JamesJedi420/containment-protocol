@@ -1,5 +1,8 @@
+
+import { buildAgencyOverview } from '../../domain/strategicState'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
+import { useGameStore } from '../../app/store/gameStore'
 import { type RunTrendSummary, type TrendCaseRef } from './reportTrendView'
 
 export function TrendSummaryPanel({
@@ -11,8 +14,31 @@ export function TrendSummaryPanel({
   subtitle?: string
   summary: RunTrendSummary
 }) {
+  // Get current game state from store for cadence/extra check surfacing
+  // (Assume useGameStore is available in this context, as in other panels)
+  const game = useGameStore().game;
+  const overview = buildAgencyOverview(game);
+  const urgentEscalations = overview.encounterStructure.urgentEscalations;
+  const cadenceSummary = [
+    `Pressure: ${overview.incidents.pressureScore} (${overview.incidents.severity})`,
+    `Major incidents: ${overview.incidents.incidents.length}`,
+    `Unresolved momentum: ${overview.incidents.unresolvedMomentum}`,
+    `Endgame threshold: ${overview.endgame.nextThreshold ?? '—'} (${overview.endgame.pressureToNextThreshold > 0 ? `${overview.endgame.pressureToNextThreshold} to next` : 'at max'})`,
+    `Extra checks: ${urgentEscalations.length > 0 ? urgentEscalations.map(e => `${e.caseTitle} (stage ${e.stage}→${e.nextStage}${e.convertsToRaid ? ', raid' : ''})`).join('; ') : 'None'}`
+  ];
   return (
     <section className="panel space-y-4">
+      {/* Escalation/Pressure Cadence & Extra Checks Section */}
+      {cadenceSummary.length > 0 && (
+        <div>
+          <h3 className="text-xs uppercase tracking-wide opacity-50 mb-1">Escalation & Pressure Cadence</h3>
+          <ul className="text-xs opacity-80 space-y-1">
+            {cadenceSummary.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="space-y-1">
         <p className="text-xs uppercase tracking-wide opacity-50">Trend summary</p>
         <h2 className="text-lg font-semibold">{title}</h2>
@@ -45,6 +71,19 @@ export function TrendSummaryPanel({
           emptyLabel="No tag pressure surfaced in this slice."
           items={summary.dominantTags}
         />
+        {/* Urgent Escalations (Extra Checks) Section */}
+        {urgentEscalations.length > 0 && (
+          <section className="rounded border border-cyan-400/20 bg-cyan-500/5 p-3">
+            <p className="text-xs uppercase tracking-wide opacity-50 mb-1">Urgent Escalations (Extra Checks)</p>
+            <ul className="space-y-1 text-xs">
+              {urgentEscalations.map((e) => (
+                <li key={e.caseId}>
+                  {e.caseTitle} (stage {e.stage}&rarr;{e.nextStage}{e.convertsToRaid ? ', raid' : ''})
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
       </div>
     </section>
   )

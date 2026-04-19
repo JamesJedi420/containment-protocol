@@ -59,7 +59,9 @@ describe('scoring helpers', () => {
     })
 
     expect(result.score).toBeGreaterThan(0)
-    expect(result.reasons).toEqual([])
+    expect(result.reasons).toEqual([
+      'No specialist present: reduced reliability in containment.',
+    ])
     expect(result.resolutionProfile.fieldPower).toBeGreaterThan(0)
     expect(result.modifierBreakdown.chemistryBonus).toBe(0)
     expect(result.agentPerformance[0]).toMatchObject({

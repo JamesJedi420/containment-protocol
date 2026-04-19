@@ -68,6 +68,10 @@ export interface AgencySummary {
     tier: AgencyRankingTier
   }
   report: AgencyReportSummary
+  // Commercial Chokepoint Statecraft & Council Power (issue #187)
+  chokepointLeverage: number // 0-100, deterministic
+  councilPowerDistribution: { [council: string]: number } // deterministic, sum to 100
+  externalRevenueShare: number // 0-100, deterministic
 }
 
 function getAgencyState(game: GameState) {
@@ -276,9 +280,38 @@ export function buildAgencySummary(game: GameState): AgencySummary {
     if (factions.length === 0) {
       return 0
     }
-
     return factions.reduce((sum, faction) => sum + faction.standing, 0) / factions.length
   })()
+
+  // --- Deterministic placeholder logic for new fields ---
+  // Chokepoint leverage: based on market pressure and major incidents
+  const chokepointLeverage = clamp(
+    Math.round((pressure.market + pressure.incident) / 2),
+    0,
+    100
+  )
+  // Council power: distribute based on top 3 factions' standing
+  const factions = buildFactionStates(game)
+  const councilPowerDistribution: { [council: string]: number } = {}
+  const councilNames = factions.slice(0, 3).map(f => f.name)
+  const totalStanding = factions.slice(0, 3).reduce((sum, f) => sum + Math.max(0, f.standing), 0) || 1
+  councilNames.forEach((name, i) => {
+    const standing = Math.max(0, factions[i]?.standing ?? 0)
+    councilPowerDistribution[name] = Math.round((standing / totalStanding) * 100)
+  })
+  // Normalize to sum to 100
+  const sum = Object.values(councilPowerDistribution).reduce((a, b) => a + b, 0)
+  if (sum !== 100 && sum > 0) {
+    // Adjust the largest to make sum exactly 100
+    const maxKey = Object.keys(councilPowerDistribution).reduce((a, b) => councilPowerDistribution[a] > councilPowerDistribution[b] ? a : b)
+    councilPowerDistribution[maxKey] += 100 - sum
+  }
+  // External revenue share: based on market pressure and funding
+  const externalRevenueShare = clamp(
+    Math.round((pressure.market + (agency.funding / 1000)) / 2),
+    0,
+    100
+  )
 
   return {
     name: DEFAULT_AGENCY_NAME,
@@ -299,5 +332,8 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       tier: ranking.tier,
     },
     report: buildAgencyReportSummary(game),
+    chokepointLeverage,
+    councilPowerDistribution,
+    externalRevenueShare,
   }
 }

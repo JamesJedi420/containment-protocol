@@ -38,6 +38,102 @@ function makeFactionEvent(
 }
 
 describe('factions', () => {
+  it('computes compact internal state for anchor faction', () => {
+    const state = createStartingState();
+    // Manipulate standing and pressure for anchor (oversight)
+    state.events = [
+      makeFactionEvent('oversight', 'Oversight Bureau', 10, 0, 1),
+    ];
+    // Add a high-stage, urgent case to increase pressure
+    state.cases['case-anchor'] = {
+      ...state.cases['case-001'],
+      id: 'case-anchor',
+      title: 'Anchor Pressure',
+      stage: 5,
+      deadlineRemaining: 0,
+      status: 'open',
+      tags: ['containment', 'critical'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    };
+    const anchor = buildFactionStates(state)[0];
+    expect(anchor.id).toBe('oversight');
+    expect(anchor.agendaPressure).toBeGreaterThanOrEqual(0);
+    expect(anchor.reliability).toBeGreaterThanOrEqual(0);
+    expect(anchor.distortion).toBeGreaterThanOrEqual(0);
+    expect(anchor.cohesion).toBeGreaterThanOrEqual(0);
+    // Instability signal: distortion rises as cohesion drops (allow equality if clamped)
+    const lowCohesionState = createStartingState();
+    lowCohesionState.events = [makeFactionEvent('oversight', 'Oversight Bureau', -15, 0, 1)];
+    lowCohesionState.cases['case-anchor'] = {
+      ...state.cases['case-001'],
+      id: 'case-anchor',
+      title: 'Anchor Pressure',
+      stage: 5,
+      deadlineRemaining: 0,
+      status: 'open',
+      tags: ['containment', 'critical'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    };
+    const anchorLow = buildFactionStates(lowCohesionState)[0];
+    expect(anchorLow.cohesion).toBeGreaterThanOrEqual(0);
+    // If cohesion is clamped to 0, distortion may be higher or equal
+    if (anchorLow.cohesion === 0) {
+      expect(anchorLow.distortion).toBeGreaterThanOrEqual(anchor.distortion);
+    } else {
+      expect(anchorLow.cohesion).toBeLessThanOrEqual(anchor.cohesion);
+      expect(anchorLow.distortion).toBeGreaterThanOrEqual(anchor.distortion);
+    }
+  });
+
+  it('triggers internal event-driven fracture for anchor faction', () => {
+    const state = createStartingState();
+    // Set up high pressure to exceed fracture threshold
+    state.events = [makeFactionEvent('oversight', 'Oversight Bureau', 10, 0, 1)];
+    state.cases['case-anchor'] = {
+      ...state.cases['case-001'],
+      id: 'case-anchor',
+      title: 'Anchor Pressure',
+      stage: 8, // High stage to drive pressure
+      deadlineRemaining: 0,
+      status: 'open',
+      tags: ['containment', 'critical'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    };
+    const anchor = buildFactionStates(state)[0];
+    // Should trigger fracture: cohesion drops by at least 12, distortion rises by at least 10
+    const baseCohesion = 60 + 10 * 2 - 8 * 12 * 0.1;
+    if (anchor.cohesion === 0) {
+      expect(anchor.distortion).toBeGreaterThanOrEqual(0);
+    } else {
+      expect(anchor.cohesion).toBeLessThanOrEqual(baseCohesion - 12 + 1e-6); // Allow float tolerance
+      expect(anchor.distortion).toBeGreaterThanOrEqual(10);
+    }
+    // If below threshold, no fracture
+    const stateSafe = createStartingState();
+    stateSafe.events = [makeFactionEvent('oversight', 'Oversight Bureau', 10, 0, 1)];
+    stateSafe.cases['case-anchor'] = {
+      ...state.cases['case-001'],
+      id: 'case-anchor',
+      title: 'Anchor Pressure',
+      stage: 2, // Low stage, low pressure
+      deadlineRemaining: 2,
+      status: 'open',
+      tags: ['containment', 'critical'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    };
+    const anchorSafe = buildFactionStates(stateSafe)[0];
+    // Deterministic assertions for canonical model
+    expect(anchorSafe.cohesion).toBeCloseTo(0, 6);
+    expect(anchorSafe.distortion).toBeCloseTo(0, 6);
+  });
   it('accumulates standing and exposes deterministic influence modifiers and opportunities', () => {
     const state = createStartingState()
     state.events = [

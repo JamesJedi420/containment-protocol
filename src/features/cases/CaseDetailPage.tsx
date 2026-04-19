@@ -19,7 +19,7 @@ import {
   TOOLTIPS,
 } from '../../data/copy'
 import { type CaseInstance, type GameState, type Team } from '../../domain/models'
-import { getTemplateIntelView } from '../intel/intelView'
+import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
 
@@ -42,7 +42,7 @@ export default function CaseDetailPage() {
   }
 
   const view = getCaseListItemView(currentCase, game)
-  const templateIntel = getTemplateIntelView(currentCase.templateId, game.templates)
+  const templateIntel = getCaseTemplateIntelView(currentCase, game)
   const assignmentInsights = getCaseAssignmentInsights(currentCase, game)
   const generationProfile = buildCaseGenerationProfile(currentCase, game)
   const rewardPreview = generationProfile.rewardProfile

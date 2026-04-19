@@ -1,5 +1,6 @@
+import { getCaseTemplateFamily } from './reportIntelProjection'
 import { type GameState, type Id, type WeeklyReport } from '../../domain/models'
-import { getTemplateFamily } from '../intel/intelView'
+
 
 export interface TrendCaseRef {
   caseId: Id
@@ -62,7 +63,7 @@ export function getRunTrendSummary(game: GameState, reports: WeeklyReport[] = ga
       const isLive = Boolean(currentCase)
       const title = currentCase?.title ?? snapshot?.title ?? caseId
       const templateId = currentCase?.templateId
-      const family = currentCase ? getTemplateFamily(currentCase.templateId) : undefined
+      const family = currentCase ? getCaseTemplateFamily(currentCase.templateId) : undefined
 
       const ref: TrendCaseRef = {
         caseId,

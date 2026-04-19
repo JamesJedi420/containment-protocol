@@ -4,8 +4,35 @@ import { type GameState } from '../../domain/models'
 import { getAdvisories } from '../../domain/advisory'
 import { getResponseGridConfig } from '../../domain/pressure'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
-import { DEFAULT_CASE_LIST_FILTERS, getFilteredCaseViews } from '../cases/caseView'
-import { DEFAULT_TEAM_LIST_FILTERS, getFilteredTeamViews } from '../teams/teamView'
+import { getCaseListItemView, type CaseListItemView } from '../cases/caseView'
+import { getTeamListItemView, type TeamListItemView } from '../teams/teamView'
+
+export function getPriorityCaseViews(game: GameState, limit = 5): CaseListItemView[] {
+  return Object.values(game.cases)
+    .map((currentCase) => getCaseListItemView(currentCase, game))
+    .filter((view) => view.currentCase.status !== 'resolved')
+    .sort(
+      (left, right) =>
+        right.priorityScore - left.priorityScore ||
+        right.currentCase.stage - left.currentCase.stage ||
+        left.currentCase.deadlineRemaining - right.currentCase.deadlineRemaining ||
+        left.currentCase.title.localeCompare(right.currentCase.title)
+    )
+    .slice(0, limit)
+}
+
+export function getAtRiskTeamViews(game: GameState, limit = 5): TeamListItemView[] {
+  return Object.values(game.teams)
+    .map((team) => getTeamListItemView(team, game))
+    .filter((view) => view.assignedCase || view.fatigueBand !== 'steady')
+    .sort(
+      (left, right) =>
+        right.capabilitySummary.averageFatigue - left.capabilitySummary.averageFatigue ||
+        Number(Boolean(right.assignedCase)) - Number(Boolean(left.assignedCase)) ||
+        left.team.name.localeCompare(right.team.name)
+    )
+    .slice(0, limit)
+}
 
 export function getDashboardMetrics(game: GameState) {
   const cases = Object.values(game.cases)
@@ -30,17 +57,7 @@ export function getDashboardMetrics(game: GameState) {
   }
 }
 
-export function getPriorityCaseViews(game: GameState, limit = 4) {
-  return getFilteredCaseViews(game, DEFAULT_CASE_LIST_FILTERS)
-    .filter((view) => view.currentCase.status !== 'resolved')
-    .slice(0, limit)
-}
 
-export function getAtRiskTeamViews(game: GameState, limit = 4) {
-  return getFilteredTeamViews(game, DEFAULT_TEAM_LIST_FILTERS)
-    .filter((view) => view.assignedCase || view.fatigueBand !== 'steady')
-    .slice(0, limit)
-}
 
 export function getLatestReportSummary(game: GameState) {
   const latestReport = game.reports.at(-1)

@@ -1,3 +1,44 @@
+// SPE-64: Explicit cross-scale handoff contracts
+
+/**
+ * Explicit contract for campaign → incident/operation handoff.
+ * Contains only the bounded, deterministic state needed for incident resolution.
+ */
+export interface CampaignToIncidentPacket {
+  campaignId: string;
+  week: number;
+  caseId: string;
+  caseTitle: string;
+  teamId: string;
+  teamSnapshot: Team; // snapshot of team at handoff
+  campaignDirectives: string[]; // e.g., directive tags or ids
+  knowledgeState: KnowledgeState;
+  // Add other minimal, explicit fields as needed
+}
+
+/**
+ * Explicit contract for incident/operation → campaign fallout/result handoff.
+ * Contains only the bounded, deterministic effects to apply to campaign state.
+ */
+export interface IncidentToCampaignPacket {
+  caseId: string;
+  teamId: string;
+  outcome: string; // e.g., 'success', 'partial', 'fail', etc.
+  rewards: unknown; // Use MissionRewardBreakdown or similar if available
+  falloutTags?: string[]; // Optional: tags for modular fallout handling
+  performanceSummary?: PerformanceMetricSummary;
+  powerImpact?: PowerImpactSummary;
+  injuries?: unknown; // Use MissionInjuryRecord[] or similar if available
+  // Add other minimal, explicit fields as needed
+}
+
+// Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass)
+export interface LegitimacyState {
+  sanctionLevel: 'sanctioned' | 'covert' | 'tolerated' | 'unsanctioned'
+  accessReason?: string
+  falloutRisk?: 'none' | 'risk' | 'costly'
+}
+
 // src/domain/models.ts
 import type { OperationEvent } from './events/types'
 import type { PartyCardState } from './partyCards/models'
@@ -13,6 +54,9 @@ import type {
   ProtocolTier,
   ProtocolType,
 } from './agent/models'
+import type { KnowledgeState, KnowledgeStateMap } from './knowledge';
+// SPE-59: Export KnowledgeState for projection/report typing
+export type { KnowledgeState };
 
 // Re-export all agent-related types
 export type {
@@ -81,6 +125,40 @@ export type {
   PartyCardState,
   PartyCardTarget,
 } from './partyCards/models'
+
+export type {
+  DistortionCarrier,
+  DistortionInsight,
+  DistortionState,
+  DistortionThresholds,
+} from './shared/distortion'
+
+export type {
+  CanonicalTag,
+  ConditionCarrierKind,
+  ConditionDefinition,
+  ConditionKey,
+  TagFamily,
+} from './shared/tags'
+
+export type {
+  ConsequenceKey,
+  ConsequenceRoute,
+  ContestResolution,
+  ContestResolutionInput,
+  ExclusiveOutcomeType,
+  OutcomeBand,
+  OutcomeThresholds,
+} from './shared/outcomes'
+
+export type {
+  CountermeasureCheck,
+  ModifierCap,
+  ModifierResult,
+  ModifierSource,
+  ResistanceProfile,
+  ThreatFamily,
+} from './shared/modifiers'
 
 export type {
   AgentCandidateRole,
@@ -250,6 +328,13 @@ export interface DirectionalModifier {
  */
 export interface ChemistryPredictionInput {
   baseTeamId: string
+
+  /** Canonical site-space state for bounded spatial logic (SPE-57) */
+  siteLayer?: 'exterior' | 'transition' | 'interior';
+  visibilityState?: 'clear' | 'obstructed' | 'exposed';
+  transitionType?: 'open-approach' | 'threshold' | 'chokepoint';
+  /** Optional: bounded spatial flags for deterministic effects */
+  spatialFlags?: string[];
   proposedAgentIds: string[]
   currentAgents: Record<string, Agent>
   currentTeams: Record<string, Team>
@@ -414,6 +499,13 @@ export interface MissionRewardFactionStanding {
 export interface MissionRewardBreakdown {
   outcome: MissionResolutionKind
   caseType: string
+
+  /** Canonical site-space state for bounded spatial logic (SPE-57) */
+  siteLayer?: 'exterior' | 'transition' | 'interior';
+  visibilityState?: 'clear' | 'obstructed' | 'exposed';
+  transitionType?: 'open-approach' | 'threshold' | 'chokepoint';
+  /** Optional: bounded spatial flags for deterministic effects */
+  spatialFlags?: string[];
   caseTypeLabel: string
   operationValue: number
   factors: readonly MissionRewardFactor[]
@@ -581,6 +673,7 @@ export interface CaseTemplate {
   deadlineWeeks: number
 
   tags: string[]
+  distortion?: import('./shared/distortion').DistortionState[]
 
   /** Deterministic gate: hard requirements (e.g., "medium", "occultist"). */
   requiredTags?: string[]
@@ -605,6 +698,10 @@ export interface CaseTemplate {
 }
 
 export interface CaseInstance {
+    /**
+     * SPE-38: True if this operation suffered a support shortfall this week (deterministic, for fallout/penalty).
+     */
+    supportShortfall?: boolean
   id: Id
   templateId: string
 
@@ -619,9 +716,15 @@ export interface CaseInstance {
   weights: WeightBlock
 
   tags: string[]
+  distortion?: import('./shared/distortion').DistortionState[]
   requiredTags: string[]
   requiredRoles?: TeamCoverageRole[]
   preferredTags: string[]
+  threatFamily?: import('./shared/modifiers').ThreatFamily
+  consequences?: import('./shared/outcomes').ConsequenceKey[]
+  severeHit?: import('./shared/outcomes').ConsequenceKey[]
+  escalationBand?: import('./shared/outcomes').OutcomeBand
+  counterExplanation?: string
 
   /** Escalates with failure/unresolved; increases difficulty/spread. */
   stage: number
@@ -682,8 +785,15 @@ export interface WeeklyReportCaseSnapshot {
   weeksRemaining?: number
   assignedTeamIds: Id[]
   performanceSummary?: PerformanceMetricSummary
+  powerImpact?: PowerImpactSummary
   rewardBreakdown?: MissionRewardBreakdown
   missionResult?: MissionResult
+  /** Canonical distortion state propagated for output/reporting. */
+  distortion?: import('./shared/distortion').DistortionState[]
+  /** Canonical knowledge state for this case (per team, if available). */
+  knowledge?: Record<string, import('./knowledge').KnowledgeState>
+  /** Canonical explanation of what was unknown, revealed, and remains uncertain. */
+  revealExplanation?: string
 }
 
 export interface WeeklyReportTeamStatus {
@@ -716,9 +826,22 @@ export type ReportNoteType =
   | 'recruitment.scouting_refined'
   | 'recruitment.intel_confirmed'
   | 'system.party_cards_drawn'
+  | 'system.escalation_consequence'
+  | 'system.proxy_conflict'
+  | 'system.protocol_contact'
+  | 'system.anchor_instability'
   | 'directive.applied'
 
-export type ReportNoteMetadata = Record<string, string | number | boolean | null>
+export type ReportNoteMetadataValue =
+  | string
+  | number
+  | boolean
+  | null
+  | readonly string[]
+  | readonly number[]
+  | readonly boolean[]
+
+export type ReportNoteMetadata = Record<string, ReportNoteMetadataValue>
 
 export interface ReportNote {
   id: string
@@ -909,11 +1032,31 @@ export interface AgencyState {
   containmentRating: number
   clearanceLevel: number
   funding: number
+  /**
+   * Canonical support pool: available support staff/capacity for operations this week.
+   * Bounded, deterministic, and consumed by operations. Restored by hub/campaign actions.
+   */
+  supportAvailable: number
+  /**
+   * Canonical maintenance specialist pool: available capacity for equipment recovery this week.
+   * Each damaged item or recovery job consumes 1 maintenance specialist per week.
+   */
+  maintenanceSpecialistsAvailable?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
+  /**
+   * True if command-coordination friction was active this week (bounded, deterministic, for fallout/penalty).
+   */
+  coordinationFrictionActive?: boolean
+  /**
+   * Optional surfaced reason for coordination friction (for report output).
+   */
+  coordinationFrictionReason?: string
 }
 
 export interface GameState {
+    /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
+    legitimacy?: LegitimacyState
   week: number
   rngSeed: number
   rngState: number
@@ -953,6 +1096,10 @@ export interface GameState {
   /** Canonical progression shape (preferred over legacy top-level fields). */
   agency?: AgencyState
 
+  // Compatibility: top-level pointer for coordination friction (mirrors agency.coordinationFrictionActive)
+  coordinationFrictionActive?: boolean
+  coordinationFrictionReason?: string
+
   /**
    * Transitional compatibility fields.
    * TODO: Remove after all consumers and persistence paths are migrated to `agency`.
@@ -963,4 +1110,7 @@ export interface GameState {
 
   /** Current academy upgrade tier (0–3). Each tier unlocks +1 training slot and tier 2+ grants +1 stat on completion. */
   academyTier?: number
+
+  /** Canonical persistent knowledge-state map (keyed by entity/subject) */
+  knowledge: KnowledgeStateMap
 }

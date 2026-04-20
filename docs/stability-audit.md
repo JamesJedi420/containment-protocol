@@ -122,7 +122,7 @@ Prefer **detect → recommend → explicit apply**.
 
 2. **Targeted explicit recovery**
    - Prune invalid queue items only
-n   - Clear stale authored context only
+   - Clear stale authored context only
    - Keep unrelated runtime/simulation domains untouched
 
 3. **Policy repair workflows (manual/assisted)**

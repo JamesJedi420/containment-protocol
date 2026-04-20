@@ -1,3 +1,233 @@
+// Centralized projection/view-model for TrainingDivisionPage
+export function getTrainingDivisionView(game: GameState, filters: TrainingListFilters) {
+  // Filters
+  const hasActiveFilters =
+    filters.q !== DEFAULT_TRAINING_LIST_FILTERS.q ||
+    filters.readiness !== DEFAULT_TRAINING_LIST_FILTERS.readiness ||
+    filters.queueScope !== DEFAULT_TRAINING_LIST_FILTERS.queueScope ||
+    filters.sort !== DEFAULT_TRAINING_LIST_FILTERS.sort
+
+  // Derived state
+  const summary = getTrainingSummary(game)
+  const allQueueViews = getTrainingQueueViews(game)
+  const queueViews = getFilteredQueueViews(allQueueViews, filters)
+  const allRosterViews = getTrainingRosterViews(game)
+  const filteredRosterViews = getFilteredSortedRoster(allRosterViews, filters)
+  const teamViews = getTeamTrainingViews(game)
+
+  // Academy/Programs
+  import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
+  import { trainingCatalog } from '../../data/training'
+  import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
+  const academyOverview = buildAcademyOverview(game)
+  const agentPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'agent')
+  const teamPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'team')
+  const academyStatBonus = getAcademyStatBonus(game.academyTier ?? 0)
+  const agentImpactPreviewMap = new Map(
+    allRosterViews.map((view) => [
+      view.agent.id,
+      new Map(
+        agentPrograms.map((program: any) => {
+          const impacts = getAgentTrainingImpacts(view.agent, academyStatBonus)
+          const impact = impacts.find((i: any) => i.trainingId === program.trainingId)
+          return [program.trainingId, impact]
+        })
+      ),
+    ])
+  )
+  const compatibleInstructorTargets = allQueueViews
+    .filter((view) => view.scope === 'agent')
+    .filter((view) => !view.assignedInstructorId)
+
+  // Recommendation logic
+  const topProgramSuggestion = academyOverview.suggestedPrograms[0]
+  const topTeamDrillSuggestion = academyOverview.suggestedTeamDrills[0]
+  const trainingRecommendation = topProgramSuggestion
+    ? {
+        title: `Queue ${topProgramSuggestion.trainingName} for ${topProgramSuggestion.agentName}`,
+        detail: `Best immediate gain: +${topProgramSuggestion.scoreDelta.toFixed(2)} score. Cost $${topProgramSuggestion.fundingCost}.`,
+      }
+    : topTeamDrillSuggestion
+      ? {
+          title: `Queue ${topTeamDrillSuggestion.trainingName} for ${topTeamDrillSuggestion.teamName}`,
+          detail: `Projected score delta ${topTeamDrillSuggestion.projectedScoreDelta >= 0 ? '+' : ''}${topTeamDrillSuggestion.projectedScoreDelta.toFixed(2)}. ${topTeamDrillSuggestion.recommendationReason}`,
+        }
+      : null
+
+  // Recent events
+  const recentTrainingEvents = [...game.events]
+    .filter(
+      (event) => event.type === 'agent.training_started' ||
+        event.type === 'agent.training_completed' ||
+        event.type === 'agent.training_cancelled'
+    )
+    .slice(-6)
+    .reverse()
+  const recentCompletions = [...game.events]
+    .filter((event) => event.type === 'agent.training_completed')
+    .slice(-6)
+    .reverse()
+  const recentControlEvents = [...game.events]
+    .filter(
+      (event) =>
+        event.type === 'system.academy_upgraded' ||
+        event.type === 'agent.instructor_assigned' ||
+        event.type === 'agent.instructor_unassigned'
+    )
+    .slice(-6)
+    .reverse()
+  // chemistryInspectorWeek is declared below (do not redeclare)
+  const chemistryInspectorWeek = [...game.events]
+    .filter((event) => event.type === 'agent.relationship_changed')
+    .reduce((latest, event) => Math.max(latest, event.payload.week), 0)
+
+  const chemistryInspectorPairs = [...game.events]
+    .filter((event): event is import('../../domain/events/types').OperationEvent<'agent.relationship_changed'> =>
+      event.type === 'agent.relationship_changed' &&
+      (chemistryInspectorWeek === 0 || event.payload.week === chemistryInspectorWeek)
+    )
+    .reduce<
+      Array<{
+        pairKey: string
+        pairLabel: string
+        updates: Array<{
+          agentName: string
+          previousValue: number
+          nextValue: number
+          delta: number
+          reason: string
+          eventId: string
+        }>
+      }>
+    >((groups, event) => {
+      const pair = [event.payload.agentName, event.payload.counterpartName].sort()
+      const pairKey = pair.join('::')
+      const existing = groups.find((entry) => entry.pairKey === pairKey)
+      const update = {
+        agentName: event.payload.agentName,
+        previousValue: event.payload.previousValue,
+        nextValue: event.payload.nextValue,
+        delta: event.payload.delta,
+        reason: event.payload.reason.replace(/_/g, ' '),
+        eventId: event.id,
+      }
+
+      if (existing) {
+        existing.updates.push(update)
+      } else {
+        groups.push({
+          pairKey,
+          pairLabel: `${pair[0]} ↔ ${pair[1]}`,
+          updates: [update],
+        })
+      }
+
+      return groups
+    }, [])
+    .sort((left, right) => left.pairLabel.localeCompare(right.pairLabel))
+  // Grouped roster
+  const groupedRoster = {
+    ready: filteredRosterViews.filter((view) => view.readiness === 'ready'),
+    training: filteredRosterViews.filter((view) => view.readiness === 'training'),
+    deployed: filteredRosterViews.filter((view) => view.readiness === 'deployed'),
+    inactive: filteredRosterViews.filter((view) => view.readiness === 'inactive'),
+  }
+  // Reconciliation candidates
+  const { hasPairReconciledThisWeek, RECONCILIATION_COST, RECONCILIATION_DELTA_NEGATIVE, RECONCILIATION_DELTA_NON_NEGATIVE } = require('../../domain/sim/reconciliation')
+  const { clamp } = require('../../domain/math')
+  const reconciliationCandidates = (() => {
+    const agents = Object.values(game.agents)
+      .filter((agent) => agent.status === 'active')
+      .filter((agent) => agent.assignment?.state !== 'assigned')
+    const candidates: Array<{
+      pairKey: string
+      leftId: string
+      rightId: string
+      pairLabel: string
+      leftValue: number
+      rightValue: number
+      average: number
+      projectedAverage: number
+      recentlyReconciled: boolean
+      canReconcile: boolean
+      reason?: string
+    }> = []
+
+    for (let i = 0; i < agents.length; i++) {
+      for (let j = i + 1; j < agents.length; j++) {
+        const left = agents[i]
+        const right = agents[j]
+        const leftValue = left.relationships[right.id] ?? 0
+        const rightValue = right.relationships[left.id] ?? 0
+
+        // Focus the panel on strained/hostile links only.
+        if (leftValue >= 0 && rightValue >= 0) {
+          continue
+        }
+
+        const average = (leftValue + rightValue) / 2
+        const leftProjected = clamp(
+          leftValue +
+            (leftValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
+          -2,
+          2
+        )
+        const rightProjected = clamp(
+          rightValue +
+            (rightValue < 0 ? RECONCILIATION_DELTA_NEGATIVE : RECONCILIATION_DELTA_NON_NEGATIVE),
+          -2,
+          2
+        )
+        const recentlyReconciled = hasPairReconciledThisWeek(game, left.id, right.id)
+        const canAfford = game.funding >= RECONCILIATION_COST
+        const canReconcile = canAfford && !recentlyReconciled
+
+        candidates.push({
+          pairKey: `${left.id}::${right.id}`,
+          leftId: left.id,
+          rightId: right.id,
+          pairLabel: `${left.name} ↔ ${right.name}`,
+          leftValue,
+          rightValue,
+          average,
+          projectedAverage: (leftProjected + rightProjected) / 2,
+          recentlyReconciled,
+          canReconcile,
+          reason: canReconcile
+            ? undefined
+            : recentlyReconciled
+              ? undefined
+              : `Insufficient funds ($${RECONCILIATION_COST}).`,
+        })
+      }
+    }
+
+    return candidates.sort((left, right) => left.average - right.average).slice(0, 8)
+  })()
+
+  return {
+    summary,
+    allQueueViews,
+    queueViews,
+    allRosterViews,
+    filteredRosterViews,
+    teamViews,
+    academyOverview,
+    agentPrograms,
+    teamPrograms,
+    agentImpactPreviewMap,
+    compatibleInstructorTargets,
+    trainingRecommendation,
+    recentTrainingEvents,
+    recentCompletions,
+    recentControlEvents,
+    chemistryInspectorWeek,
+    chemistryInspectorPairs,
+    groupedRoster,
+    reconciliationCandidates,
+    hasActiveFilters,
+  }
+}
 import {
   readEnumParam,
   readStringParam,

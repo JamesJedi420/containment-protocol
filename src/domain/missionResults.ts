@@ -1,29 +1,11 @@
-// cspell:words cryptid medkits
 import { inventoryItemLabels } from '../data/production'
 import { getEquipmentDefinition } from './equipment'
-import { getAgencyProgressionUnlockLabel } from './agencyProgression'
-import {
-  getContractFundingDelta,
-  getContractInventoryRewardGrants,
-  getContractResearchRewards,
-} from './contracts'
-import {
-  applyFactionMissionOutcome,
-  buildFactionMissionContext,
-  buildFactionOutcomeGrants,
-  buildFactionRewardInfluence,
-  diffFactionRecruitUnlocks,
-  FACTION_DEFINITIONS,
-  getFactionDefinition,
-  getFactionRecruitUnlocks,
-} from './factions'
-import { getAppliedMajorIncidentRewardPreview } from './majorIncidentOperations'
+import { buildFactionRewardInfluence, FACTION_DEFINITIONS } from './factions'
 import type {
   CaseInstance,
   GameConfig,
   GameState,
   MissionFatigueChange,
-  MissionFatalityRecord,
   MissionInjuryRecord,
   MissionPenaltyBreakdown,
   MissionResolutionKind,
@@ -37,7 +19,6 @@ import type {
   PerformanceMetricSummary,
   PowerImpactSummary,
 } from './models'
-import { FUNDING_CALIBRATION } from './sim/calibration'
 import { computeRequiredScore } from './sim/scoring'
 
 interface RewardCaseProfile {
@@ -74,11 +55,9 @@ export interface MissionResultInput {
   powerImpact?: PowerImpactSummary
   fatigueChanges?: MissionFatigueChange[]
   injuries?: MissionInjuryRecord[]
-  fatalities?: MissionFatalityRecord[]
   spawnedConsequences?: MissionSpawnedConsequence[]
   resolutionReasons?: string[]
   explanationNotes?: string[]
-  weakestLink?: MissionResult['weakestLink']
 }
 
 const PARTIAL_FUNDING_RATE = 0.48
@@ -382,19 +361,7 @@ function buildInventoryRewards(
 function buildFactionStandingRewards(
   currentCase: CaseInstance,
   outcome: MissionResolutionKind,
-  operationValue: number,
-  game?: Pick<
-    GameState,
-    | 'agency'
-    | 'containmentRating'
-    | 'clearanceLevel'
-    | 'funding'
-    | 'cases'
-    | 'factions'
-    | 'reports'
-    | 'market'
-    | 'events'
-  >
+  operationValue: number
 ) {
   const tags = collectCaseTags(currentCase)
   const baseMagnitude =
@@ -417,61 +384,28 @@ function buildFactionStandingRewards(
         left.faction.label.localeCompare(right.faction.label)
     )
 
-  const missionContext = game ? buildFactionMissionContext(currentCase, game) : undefined
-  const targets: Array<{
-    faction: { id: string; label: string }
-    overlapTags: string[]
-    contactId?: string
-    contactName?: string
-  }> =
-    game
-      ? buildFactionRewardInfluence(currentCase, game).matches.map((match) => {
-          const contextMatch = missionContext?.matches.find(
-            (entry) => entry.factionId === match.factionId
-          )
-          return {
-            faction: {
-              id: match.factionId,
-              label: getFactionDefinition(match.factionId)?.label ?? match.label,
-            },
-            overlapTags: match.overlapTags,
-            contactId: contextMatch?.contactId,
-            contactName: contextMatch?.contactName,
-          }
-        })
-      : matchingFactions.length > 0
+  const targets =
+    matchingFactions.length > 0
       ? matchingFactions.slice(0, currentCase.kind === 'raid' ? 2 : 1)
       : [
           {
-            faction: {
-              id: 'oversight',
-              label: FACTION_DEFINITIONS.find((faction) => faction.id === 'oversight')!.label,
-            },
+            faction: FACTION_DEFINITIONS.find((faction) => faction.id === 'oversight')!,
             overlapTags: ['oversight'],
           },
         ]
 
   return targets
-    .map(({ faction, overlapTags, contactId, contactName }, index) => {
+    .map(({ faction, overlapTags }, index) => {
       const distributedDelta =
         index === 0
           ? baseMagnitude
           : Math.sign(baseMagnitude) * Math.max(1, Math.round(Math.abs(baseMagnitude) * 0.5))
-      const contactDelta =
-        outcome === 'success'
-          ? 8
-          : outcome === 'partial'
-            ? 3
-            : outcome === 'fail'
-              ? -6
-              : -10
 
       return {
         factionId: faction.id,
         label: faction.label,
         delta: distributedDelta,
         overlapTags,
-        ...(contactId ? { contactId, contactName, contactDelta } : {}),
       } satisfies MissionRewardFactionStanding
     })
     .filter((entry) => entry.delta !== 0)
@@ -487,7 +421,6 @@ function buildFactionRewardValue(
     | 'clearanceLevel'
     | 'funding'
     | 'cases'
-    | 'factions'
     | 'reports'
     | 'market'
     | 'events'
@@ -565,7 +498,7 @@ function getFundingDelta(
     return (
       -(
         config.fundingPenaltyPerFail +
-        Math.round(operationValue * FUNDING_CALIBRATION.failOperationPenaltyRate) +
+        Math.round(operationValue * 0.065) +
         stageBonus +
         Math.max(0, profile.fundingBias)
       ) + factionFundingDelta
@@ -573,12 +506,12 @@ function getFundingDelta(
   }
 
   return (
-      -(
-        config.fundingPenaltyPerUnresolved +
-        Math.round(operationValue * FUNDING_CALIBRATION.unresolvedOperationPenaltyRate) +
-        stageBonus +
-        Math.max(0, profile.fundingBias)
-      ) + factionFundingDelta
+    -(
+      config.fundingPenaltyPerUnresolved +
+      Math.round(operationValue * 0.1) +
+      stageBonus +
+      Math.max(0, profile.fundingBias)
+    ) + factionFundingDelta
   )
 }
 
@@ -682,13 +615,9 @@ function buildRewardReasons(
     | 'caseTypeLabel'
     | 'fundingDelta'
     | 'reputationDelta'
-  | 'inventoryRewards'
-  | 'researchUnlocks'
-  | 'progressionUnlocks'
-  | 'factionStanding'
-  | 'factionGrants'
-  | 'factionUnlocks'
-  | 'containmentDelta'
+    | 'inventoryRewards'
+    | 'factionStanding'
+    | 'containmentDelta'
     | 'factors'
   >
 ) {
@@ -700,16 +629,6 @@ function buildRewardReasons(
           )
           .join(', ')}.`
       : 'No inventory rewards generated for this outcome.'
-  const researchSummary =
-    (breakdown.researchUnlocks?.length ?? 0) > 0
-      ? `Research unlocked: ${breakdown.researchUnlocks!.map((entry) => entry.label).join(', ')}.`
-      : 'No research unlocks generated for this outcome.'
-  const progressionSummary =
-    (breakdown.progressionUnlocks?.length ?? 0) > 0
-      ? `Progression unlocks: ${breakdown.progressionUnlocks!
-          .map((unlockId) => getAgencyProgressionUnlockLabel(unlockId))
-          .join(', ')}.`
-      : 'No progression unlocks generated for this outcome.'
   const factionSummary =
     breakdown.factionStanding.length > 0
       ? `Faction standing: ${breakdown.factionStanding
@@ -719,24 +638,6 @@ function buildRewardReasons(
           )
           .join(', ')}.`
       : 'No faction standing change.'
-  const factionGrantSummary =
-    (breakdown.factionGrants?.length ?? 0) > 0
-      ? `Faction grants: ${breakdown.factionGrants!
-          .map((entry: NonNullable<MissionRewardBreakdown['factionGrants']>[number]) =>
-            entry.kind === 'funding'
-              ? `${entry.label} +$${entry.amount ?? 0}`
-              : entry.kind === 'inventory'
-                ? `${entry.label} ${entry.itemId ?? 'gear'} x${entry.quantity ?? 0}`
-                : `${entry.label} favor`
-          )
-          .join(', ')}.`
-      : 'No faction grants unlocked.'
-  const factionUnlockSummary =
-    (breakdown.factionUnlocks?.length ?? 0) > 0
-      ? `New recruit channels: ${breakdown.factionUnlocks!
-          .map((entry) => `${entry.label}${entry.disposition === 'adversarial' ? ' (adversarial)' : ''}`)
-          .join(', ')}.`
-      : 'No recruit channels opened from this result.'
   const factionInfluence = breakdown.factors.find(
     (factor: { id: string }) => factor.id === 'faction-influence'
   )
@@ -749,11 +650,7 @@ function buildRewardReasons(
       : 'No faction influence modifier applied to this payout.',
     `Funding ${breakdown.fundingDelta > 0 ? '+' : ''}${breakdown.fundingDelta}, containment ${breakdown.containmentDelta > 0 ? '+' : ''}${breakdown.containmentDelta}, reputation ${breakdown.reputationDelta > 0 ? '+' : ''}${breakdown.reputationDelta}.`,
     inventorySummary,
-    researchSummary,
-    progressionSummary,
     factionSummary,
-    factionGrantSummary,
-    factionUnlockSummary,
   ]
 }
 
@@ -788,13 +685,6 @@ function buildInjuryNotes(injuries: readonly MissionInjuryRecord[]) {
   })
 }
 
-function buildFatalityNotes(fatalities: readonly MissionFatalityRecord[]) {
-  return fatalities.map((fatality) => {
-    const damageLabel = fatality.damage > 0 ? ` after ${fatality.damage} damage` : ''
-    return `${fatality.agentName} was killed during the operation${damageLabel}.`
-  })
-}
-
 function buildConsequenceNotes(consequences: readonly MissionSpawnedConsequence[]) {
   return consequences.map((consequence) => consequence.detail)
 }
@@ -803,45 +693,25 @@ function buildPowerImpactNotes(powerImpact: PowerImpactSummary | undefined) {
   return powerImpact?.notes ?? []
 }
 
-function buildProjectedRecruitUnlocks(
-  factionStanding: MissionRewardBreakdown['factionStanding'],
-  outcome: MissionResolutionKind,
-  game?: Pick<GameState, 'factions'>
-) {
-  if (!game) {
-    return []
-  }
-
-  const beforeUnlocks = getFactionRecruitUnlocks({ factions: game.factions ?? {} })
-  let projectedFactions = game.factions ?? {}
-
-  for (const standing of factionStanding) {
-    projectedFactions = applyFactionMissionOutcome(
-      projectedFactions,
-      {
-        factionId: standing.factionId,
-        delta: standing.delta,
-        contactId: standing.contactId,
-        contactDelta: standing.contactDelta,
-      },
-      outcome
-    )
-  }
-
-  return diffFactionRecruitUnlocks(
-    beforeUnlocks,
-    getFactionRecruitUnlocks({ factions: projectedFactions })
-  )
-}
-
 export function buildMissionResult(input: MissionResultInput): MissionResult {
-  const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
-  const powerImpact = input.powerImpact
-  const fatigueChanges = input.fatigueChanges ?? []
-  const injuries = input.injuries ?? []
-  const fatalities = input.fatalities ?? []
-  const spawnedConsequences = input.spawnedConsequences ?? []
-  const explanationNotes: string[] = []
+    const explanationNotes: string[] = []
+    // --- Knowledge-state gating/risk: defeat-condition certainty check ---
+    if (input.knowledge && input.requiredDefeatCertainty && input.anomalyId && input.teamsUsed?.length) {
+      const teamId = input.teamsUsed[0].teamId
+      const key = Object.keys(input.knowledge).find(k => k.includes(teamId) && k.includes(input.anomalyId))
+      const entry = key ? input.knowledge[key] : undefined
+      const order = ['unknown', 'suspected', 'family', 'exact']
+      const currentIdx = entry && entry.defeatConditionCertainty ? order.indexOf(entry.defeatConditionCertainty) : -1
+      const requiredIdx = order.indexOf(input.requiredDefeatCertainty)
+      if (currentIdx < requiredIdx) {
+        appendUniqueNote(explanationNotes, `Insufficient defeat-condition certainty: required ${input.requiredDefeatCertainty}, found ${entry?.defeatConditionCertainty ?? 'none'}. Risk of mission failure or escalation.`)
+      }
+    }
+    const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
+    const powerImpact = input.powerImpact
+    const fatigueChanges = input.fatigueChanges ?? []
+    const injuries = input.injuries ?? []
+    const spawnedConsequences = input.spawnedConsequences ?? []
 
   for (const reason of input.resolutionReasons ?? []) {
     appendUniqueNote(explanationNotes, reason)
@@ -864,10 +734,6 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
   }
 
   for (const note of buildInjuryNotes(injuries)) {
-    appendUniqueNote(explanationNotes, note)
-  }
-
-  for (const note of buildFatalityNotes(fatalities)) {
     appendUniqueNote(explanationNotes, note)
   }
 
@@ -896,24 +762,14 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
       ...input.rewards,
       factors: [...input.rewards.factors],
       inventoryRewards: [...input.rewards.inventoryRewards],
-      ...(input.rewards.researchUnlocks
-        ? { researchUnlocks: [...input.rewards.researchUnlocks] }
-        : {}),
-      ...(input.rewards.progressionUnlocks
-        ? { progressionUnlocks: [...input.rewards.progressionUnlocks] }
-        : {}),
       factionStanding: [...input.rewards.factionStanding],
-      ...(input.rewards.factionGrants ? { factionGrants: [...input.rewards.factionGrants] } : {}),
-      ...(input.rewards.factionUnlocks ? { factionUnlocks: [...input.rewards.factionUnlocks] } : {}),
       reasons: [...input.rewards.reasons],
     },
     penalties: buildMissionPenaltyBreakdown(input.rewards),
     fatigueChanges: fatigueChanges.map((change) => ({ ...change })),
     injuries: injuries.map((injury) => ({ ...injury })),
-    ...(fatalities.length > 0 ? { fatalities: fatalities.map((fatality) => ({ ...fatality })) } : {}),
     spawnedConsequences: spawnedConsequences.map((consequence) => ({ ...consequence })),
     explanationNotes,
-    ...(input.weakestLink ? { weakestLink: { ...input.weakestLink } } : {}),
   }
 }
 
@@ -928,7 +784,6 @@ export function buildMissionRewardBreakdown(
     | 'clearanceLevel'
     | 'funding'
     | 'cases'
-    | 'factions'
     | 'reports'
     | 'market'
     | 'events'
@@ -941,32 +796,17 @@ export function buildMissionRewardBreakdown(
     operationValue.operationValue,
     game
   )
-  const factionOutcomeGrants = game
-    ? buildFactionOutcomeGrants(currentCase, outcome, game)
-    : {
-        fundingFlat: 0,
-        inventoryRewards: [],
-        favorGrants: [],
-        recruitUnlocks: [],
-        reasons: [],
-        grants: [],
-      }
-  const inventoryRewards = [
-    ...buildInventoryRewards(currentCase, outcome, operationValue.operationValue, profile),
-    ...factionOutcomeGrants.inventoryRewards,
-    ...getContractInventoryRewardGrants(currentCase.contract, outcome),
-  ]
-  const contractResearchRewards = getContractResearchRewards(currentCase.contract, outcome)
-  const factionStanding = buildFactionStandingRewards(
+  const inventoryRewards = buildInventoryRewards(
     currentCase,
     outcome,
     operationValue.operationValue,
-    game
+    profile
   )
-  const projectedRecruitUnlocks = buildProjectedRecruitUnlocks(factionStanding, outcome, game)
-  const majorIncidentRewards = currentCase.majorIncident
-    ? getAppliedMajorIncidentRewardPreview(currentCase.majorIncident, outcome === 'unresolved' ? 'fail' : outcome)
-    : null
+  const factionStanding = buildFactionStandingRewards(
+    currentCase,
+    outcome,
+    operationValue.operationValue
+  )
 
   const breakdown: MissionRewardBreakdown = {
     outcome,
@@ -983,10 +823,7 @@ export function buildMissionRewardBreakdown(
       operationValue.operationValue,
       profile,
       factionRewardValue.modifierValue
-    ) *
-      (currentCase.majorIncident ? 0.3 : 1) +
-      factionOutcomeGrants.fundingFlat +
-      getContractFundingDelta(currentCase.contract, outcome),
+    ),
     containmentDelta: getContainmentDelta(
       currentCase,
       outcome,
@@ -1006,45 +843,8 @@ export function buildMissionRewardBreakdown(
       profile,
       factionRewardValue.modifierValue
     ),
-    inventoryRewards: majorIncidentRewards
-      ? [
-          ...majorIncidentRewards.materials.map((material) =>
-            buildInventoryGrant('material', material.itemId, material.quantity)
-          ),
-          ...majorIncidentRewards.gear.map((gear) =>
-            buildInventoryGrant('equipment', gear.itemId, gear.quantity)
-          ),
-          ...majorIncidentRewards.rumorLoot.map((loot) =>
-            buildInventoryGrant(
-              getEquipmentDefinition(loot.itemId) ? 'equipment' : 'material',
-              loot.itemId,
-              loot.quantity
-            )
-          ),
-          ...factionOutcomeGrants.inventoryRewards,
-          ...getContractInventoryRewardGrants(currentCase.contract, outcome),
-        ].filter((grant): grant is MissionRewardInventoryGrant => Boolean(grant))
-      : inventoryRewards,
-    ...(contractResearchRewards.length > 0 ? { researchUnlocks: contractResearchRewards } : {}),
-    ...(majorIncidentRewards && majorIncidentRewards.progressionUnlocks.length > 0
-      ? { progressionUnlocks: majorIncidentRewards.progressionUnlocks }
-      : {}),
+    inventoryRewards,
     factionStanding,
-    ...(factionOutcomeGrants.grants.length > 0
-      ? { factionGrants: factionOutcomeGrants.grants }
-      : {}),
-    ...(projectedRecruitUnlocks.length > 0
-      ? {
-          factionUnlocks: projectedRecruitUnlocks.map((unlock) => ({
-            factionId: unlock.factionId,
-            contactId: unlock.contactId,
-            kind: 'recruit' as const,
-            label: unlock.label,
-            summary: unlock.summary,
-            disposition: unlock.disposition,
-          })),
-        }
-      : {}),
     label: getOutcomeLabel(outcome),
     reasons: [],
   }
@@ -1065,7 +865,6 @@ export function buildMissionRewardPreviewSet(
     | 'clearanceLevel'
     | 'funding'
     | 'cases'
-    | 'factions'
     | 'reports'
     | 'market'
     | 'events'

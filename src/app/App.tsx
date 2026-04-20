@@ -47,9 +47,6 @@ const RecruitmentPage = createRouteComponent(
 )
 const CardsPage = createRouteComponent(() => import('../features/cards/CardsPage'))
 const RegistryPage = createRouteComponent(() => import('../features/registry/RegistryPage'))
-const TrainingDivisionPage = createRouteComponent(
-  () => import('../features/training/TrainingDivisionPage')
-)
 const EquipmentPage = createRouteComponent(() => import('../features/equipment/EquipmentPage'))
 const FabricationPage = createRouteComponent(
   () => import('../features/fabrication/FabricationPage')
@@ -114,7 +111,6 @@ export default function App() {
           <Route index element={<TeamsPage />} />
           <Route path=":teamId" element={<TeamDetailPage />} />
         </Route>
-        <Route path="training-division" element={renderLazyRoute(TrainingDivisionPage)} />
         <Route path="equipment" element={renderLazyRoute(EquipmentPage)} />
         <Route path="fabrication" element={renderLazyRoute(FabricationPage)} />
         <Route path="containment-site" element={renderLazyRoute(ContainmentSiteRoute)} />

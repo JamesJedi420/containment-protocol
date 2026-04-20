@@ -134,6 +134,12 @@ export interface AgencyOverview {
   ranking: AgencyRankingView
 }
 
+export interface CadenceSummarySource {
+  incidents: AgencyOverview['incidents']
+  endgame: AgencyOverview['endgame']
+  encounterStructure: AgencyOverview['encounterStructure']
+}
+
 function getOpenCases(game: GameState) {
   return Object.values(game.cases).filter((currentCase) => currentCase.status !== 'resolved')
 }
@@ -389,6 +395,46 @@ export function buildEndgameScalingState(game: GameState): EndgameScalingState {
     progressionBands,
     incidents,
   }
+}
+
+export function formatUrgentEscalationSummary(
+  escalation: EncounterStructureState['urgentEscalations'][number]
+) {
+  return `${escalation.caseTitle} (stage ${escalation.stage}\u2192${escalation.nextStage}${escalation.convertsToRaid ? ', raid' : ''})`
+}
+
+export function formatEndgameThresholdSummary(
+  endgame: Pick<EndgameScalingState, 'nextThreshold' | 'pressureToNextThreshold'>
+) {
+  return endgame.nextThreshold === null
+    ? 'Already at crisis ceiling.'
+    : `${endgame.pressureToNextThreshold} pressure until ${endgame.nextThreshold}.`
+}
+
+export function formatCadenceSummary(source: CadenceSummarySource) {
+  const urgent = source.encounterStructure.urgentEscalations
+
+  return [
+    `Pressure: ${source.incidents.pressureScore} (${source.incidents.severity})`,
+    `Major incidents: ${source.incidents.incidents.length}`,
+    `Unresolved momentum: ${source.incidents.unresolvedMomentum}`,
+    `Endgame threshold: ${source.endgame.nextThreshold ?? '—'} (${source.endgame.pressureToNextThreshold > 0 ? `${source.endgame.pressureToNextThreshold} to next` : 'at max'})`,
+    `Extra checks: ${urgent.length > 0 ? urgent.map(formatUrgentEscalationSummary).join('; ') : 'None'}`,
+  ]
+}
+
+export function formatDifficultyPressureSummary(
+  pressure: Partial<CaseInstance['difficulty']>
+) {
+  const entries = Object.entries(pressure).filter(
+    (entry): entry is [string, number] => typeof entry[1] === 'number' && entry[1] > 0
+  )
+
+  if (entries.length === 0) {
+    return 'No additional pressure'
+  }
+
+  return entries.map(([key, value]) => `${key} +${value}`).join(' / ')
 }
 
 export { buildFactionStates }

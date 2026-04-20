@@ -1,15 +1,97 @@
+import { buildAgencyOverview } from '../../domain/strategicState'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { DASHBOARD_SECTIONS, EMPTY_STATES, OPERATIONS_DESK_TEXT } from '../../data/copy'
+
 import { getOperationsDeskPanelsView } from './operationsDeskView'
+import { getDashboardHubProjection } from './hub/hubProjection'
+
 
 export function OperationsDeskPanels() {
   const { game, queueFabrication } = useGameStore()
   const view = getOperationsDeskPanelsView(game)
+  const hub = getDashboardHubProjection(game)
+
+  // Build agency overview for cadence/extra check surfacing
+  const overview = buildAgencyOverview(game)
+  const urgentEscalations = overview.encounterStructure.urgentEscalations
+  const cadenceSummary = [
+    `Pressure: ${overview.incidents.pressureScore} (${overview.incidents.severity})`,
+    `Major incidents: ${overview.incidents.incidents.length}`,
+    `Unresolved momentum: ${overview.incidents.unresolvedMomentum}`,
+    `Endgame threshold: ${overview.endgame.nextThreshold ?? '—'} (${overview.endgame.pressureToNextThreshold > 0 ? `${overview.endgame.pressureToNextThreshold} to next` : 'at max'})`,
+    `Extra checks: ${urgentEscalations.length > 0 ? urgentEscalations.map(e => `${e.caseTitle} (stage ${e.stage}→${e.nextStage}${e.convertsToRaid ? ', raid' : ''})`).join('; ') : 'None'}`
+  ]
 
   return (
     <div className="space-y-4">
+      {/* Escalation/Pressure Cadence & Extra Checks Panel */}
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Escalation & Pressure Cadence</h2>
+          <p className="text-sm opacity-60">Systemic cadence, bounded checks, and urgent escalations surfaced for this week.</p>
+        </div>
+        <ul className="text-xs opacity-80 space-y-1">
+          {cadenceSummary.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+      </section>
+      {/* Hub Opportunities & Rumors Panel */}
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Hub Opportunities & Rumors</h2>
+          <p className="text-sm opacity-60">Faction-driven opportunities and rumors surfaced by the hub simulation layer.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <h3 className="font-semibold text-base mb-1">Opportunities</h3>
+            {hub.opportunities.length > 0 ? (
+              <ul className="space-y-2">
+                {hub.opportunities.map((opp) => (
+                  <li key={opp.id} className="rounded border border-cyan-400/20 bg-cyan-500/5 px-3 py-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium">{opp.label}</span>
+                      <span className="text-xs opacity-80">{opp.detail}</span>
+                      <span className="text-xs opacity-60">Confidence: {(opp.confidence * 100).toFixed(0)}%</span>
+                      {opp.misleading ? (
+                        <span className="text-xs text-amber-300">Potentially misleading</span>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs opacity-60">No opportunities surfaced this week.</p>
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold text-base mb-1">Rumors</h3>
+            {hub.rumors.length > 0 ? (
+              <ul className="space-y-2">
+                {hub.rumors.map((rumor) => (
+                  <li key={rumor.id} className="rounded border border-fuchsia-400/20 bg-fuchsia-500/5 px-3 py-2">
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium">{rumor.label}</span>
+                      <span className="text-xs opacity-80">{rumor.detail}</span>
+                      <span className="text-xs opacity-60">Confidence: {(rumor.confidence * 100).toFixed(0)}%</span>
+                      {rumor.misleading ? (
+                        <span className="text-xs text-amber-300">Potentially misleading</span>
+                      ) : null}
+                      {rumor.filtered ? (
+                        <span className="text-xs text-rose-300">Socially filtered</span>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-xs opacity-60">No rumors surfaced this week.</p>
+            )}
+          </div>
+        </div>
+      </section>
       <section className="panel space-y-3">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">{DASHBOARD_SECTIONS.fieldStatus}</h2>

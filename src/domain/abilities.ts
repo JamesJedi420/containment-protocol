@@ -2,18 +2,20 @@
 import type { Agent, AgentAbility, AgentAbilityTrigger } from './models'
 import type { CaseInstance, Id } from './models'
 import {
-  aggregateRuntimeModifierResults,
-  createRuntimeModifierResult,
-  getConfiguredRuntimeModifierEffect,
   hasAnomalyExposureRuntimeContext,
   hasAnyRuntimeContextTag,
   hasCaseRuntimeContext,
   hasLongAssignmentRuntimeContext,
   isLeaderRuntimeContext,
-  type RuntimeModifierContext,
+} from './modifierRuntime'
+import {
+  aggregateRuntimeModifierResults,
+  createRuntimeModifierResult,
+  getConfiguredRuntimeModifierEffect,
   type RuntimeModifierMap,
   type RuntimeModifierResult,
-} from './modifierRuntime'
+} from './shared/modifiers'
+import type { RuntimeModifierContext } from './modifierRuntime'
 
 export interface AbilityEvaluationContext extends RuntimeModifierContext {
   agent: Agent
@@ -131,10 +133,16 @@ export const ABILITY_DEFINITIONS: AbilityDefinition[] = [
           'support',
           'rescue',
         ])),
-    modifier: (context, ability) =>
-      context.phase === 'recovery'
+    modifier: (context, ability) => {
+      let moraleRecoveryDelta = 4;
+      if (context.agent?.tags?.includes('recovery-support')) {
+        moraleRecoveryDelta += 2; // Recovery-support excels at recovery
+      } else if (context.agent?.tags?.includes('recon-specialist') || context.agent?.tags?.includes('containment-specialist')) {
+        moraleRecoveryDelta -= 1; // Recon/containment are less effective at recovery
+      }
+      return context.phase === 'recovery'
         ? getConfiguredAbilityEffect(ability, {
-            moraleRecoveryDelta: 4,
+            moraleRecoveryDelta,
           })
         : getConfiguredAbilityEffect(ability, {
             statModifiers: {
@@ -142,7 +150,8 @@ export const ABILITY_DEFINITIONS: AbilityDefinition[] = [
               resilience: 2,
             },
             stressImpactMultiplier: 0.94,
-          }),
+          });
+    },
     contextHint: 'Active during recovery or on medical/support operations.',
   },
   {

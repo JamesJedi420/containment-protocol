@@ -1,10 +1,32 @@
+import { getOutcomeBand, resolveConsequenceRoute } from './shared/outcomes'
+import type { ThreatFamily } from './shared/modifiers'
+// Deterministic consequence summary for each threat family based on team readiness and composition
+export function getTeamConsequenceSummary(
+  team: Team,
+  agentsById: GameState['agents'],
+  threatFamilies: ThreatFamily[] = ['deception', 'disruption', 'containment', 'biological', 'psychological', 'technological']
+): Record<ThreatFamily, string[]> {
+  const members = getTeamMembers(team, agentsById)
+  // Use average fatigue as a proxy for outcome band (low fatigue = strong, high fatigue = catastrophic)
+  const avgFatigue = members.length > 0 ? members.reduce((sum, a) => sum + (a.fatigue ?? 0), 0) / members.length : 0
+  // Map fatigue to band: low fatigue = strong, high = catastrophic
+  let band: ReturnType<typeof getOutcomeBand>
+  if (avgFatigue < 20) band = 'strong'
+  else if (avgFatigue < 40) band = 'success'
+  else if (avgFatigue < 70) band = 'partial'
+  else if (avgFatigue < 90) band = 'fail'
+  else band = 'catastrophic'
+  const result = {} as Record<ThreatFamily, string[]>
+  for (const family of threatFamilies) {
+    result[family] = resolveConsequenceRoute(family, band).consequences
+  }
+  return result
+}
 import { type AgentSimulationProfile } from './agent/models'
-import { buildReplacementPressureState, isAgentAttritionUnavailable } from './agent/attrition'
 import { buildAgentSimulationProfile } from './agent/simulation'
 import { isAgentRecordNormalized, normalizeAgentRecord } from './agent/normalize'
 import { clamp } from './math'
 import { aggregateRuntimeModifierResults, createRuntimeModifierResult } from './modifierRuntime'
-import { ensureManagedGameState } from './gameStateManager'
 import {
   type Agent,
   type AgentAbilityTrigger,
@@ -35,12 +57,6 @@ import {
   createDefaultTeamEquipmentSummary,
   type TeamEquipmentSummary,
 } from './equipment'
-import { buildTeamDeploymentReadinessState } from './deploymentReadiness'
-import { normalizeMissionRoutingState } from './missionIntakeRouting'
-import { buildTeamCompositionState } from './teamComposition'
-import { normalizeMissionIntel, normalizeMissionIntelRecord } from './intel'
-import { normalizeFundingState } from './funding'
-import { recomputeResearchState } from './research'
 import type { AgencyProtocolState } from './protocols'
 
 export interface TeamCompositionProfile {
@@ -805,10 +821,7 @@ export function buildTeamCompositionProfile(
   agentsById: GameState['agents']
 ): TeamCompositionProfile {
   const members = getTeamMembers(team, agentsById).filter(
-    (agent) =>
-      agent.status !== 'dead' &&
-      agent.status !== 'resigned' &&
-      !isAgentAttritionUnavailable(agent)
+    (agent) => agent.status !== 'dead' && agent.status !== 'resigned'
   )
   const leaderId = getTeamLeaderId(team, agentsById)
 
@@ -867,53 +880,32 @@ export function buildAggregatedLeaderBonus(
 export function syncTeamSimulationTeam(
   team: Team,
   agents: GameState['agents'],
-  cases: GameState['cases'],
-  fallbackId?: Id
+  cases: GameState['cases']
 ): Team {
   const memberIds = getTeamMemberIds(team)
   const assignedCaseId = getTeamAssignedCaseId(team)
-  const resolvedTeamId = team.id ?? fallbackId ?? ''
   const profile = buildTeamCompositionProfile(
     {
       ...team,
-      id: resolvedTeamId,
       memberIds,
       agentIds: memberIds,
-    },
-    agents
-  )
-  const nextLeaderId = profile.leaderId
-  const nextStatus = resolveTeamStatus({
-    currentState: team.status?.state,
-    assignedCaseId,
-    caseStatus: assignedCaseId ? cases[assignedCaseId]?.status : undefined,
-    weeksRemaining: assignedCaseId ? cases[assignedCaseId]?.weeksRemaining : undefined,
-    readiness: profile.derivedStats.readiness,
-    memberCount: memberIds.length,
-  })
-  const compositionState = buildTeamCompositionState(
-    {
-      ...team,
-      id: resolvedTeamId,
-      memberIds,
-      agentIds: memberIds,
-      leaderId: nextLeaderId,
-      status: nextStatus,
-      assignedCaseId: assignedCaseId ?? undefined,
     },
     agents
   )
 
   return {
     ...team,
-    id: resolvedTeamId,
     memberIds,
-    reserveMemberIds: [...new Set((team.reserveMemberIds ?? []).filter((agentId) => Boolean(agents[agentId])))],
-    category: compositionState.category,
-    compositionState,
-    leaderId: nextLeaderId,
+    leaderId: profile.leaderId,
     derivedStats: profile.derivedStats,
-    status: nextStatus,
+    status: resolveTeamStatus({
+      currentState: team.status?.state,
+      assignedCaseId,
+      caseStatus: assignedCaseId ? cases[assignedCaseId]?.status : undefined,
+      weeksRemaining: assignedCaseId ? cases[assignedCaseId]?.weeksRemaining : undefined,
+      readiness: profile.derivedStats.readiness,
+      memberCount: memberIds.length,
+    }),
     agentIds: memberIds,
     assignedCaseId: assignedCaseId ?? undefined,
   }
@@ -925,46 +917,21 @@ function normalizeAgencyMirrors(state: GameState): {
   clearanceLevel: number
   funding: number
 } {
-  const sanitizeIdList = (value: unknown) => {
-    if (!Array.isArray(value)) {
-      return undefined
-    }
-
-    const next = [...new Set(value.filter((entry): entry is string => typeof entry === 'string'))]
-    return next.length > 0 ? next : undefined
-  }
-
-  const existingAgency = state.agency ?? {
-    containmentRating: state.containmentRating,
-    clearanceLevel: state.clearanceLevel,
-    funding: state.funding,
-  }
-  const activeProtocolIds = sanitizeIdList(existingAgency.activeProtocolIds)
-  const progressionUnlockIds = sanitizeIdList(existingAgency.progressionUnlockIds)
-  const fundingState = normalizeFundingState(
-    state.funding,
-    state.config,
-    existingAgency.fundingState,
-    state.week
-  )
+  // Always preserve and overlay the full canonical agency object
+  const base = state.agency || { containmentRating: 0, clearanceLevel: 1, funding: 0, supportAvailable: 0 }
   const agency = {
-    ...existingAgency,
-    containmentRating: state.containmentRating,
-    clearanceLevel: state.clearanceLevel,
-    funding: fundingState.funding,
-    fundingState,
-    ...(typeof existingAgency.protocolSelectionLimit === 'number'
-      ? { protocolSelectionLimit: Math.max(0, Math.trunc(existingAgency.protocolSelectionLimit)) }
-      : {}),
-    ...(activeProtocolIds ? { activeProtocolIds } : {}),
-    ...(progressionUnlockIds ? { progressionUnlockIds } : {}),
+    ...base,
+    containmentRating: typeof state.containmentRating === 'number' ? state.containmentRating : base.containmentRating,
+    clearanceLevel: typeof state.clearanceLevel === 'number' ? state.clearanceLevel : base.clearanceLevel,
+    funding: typeof state.funding === 'number' ? state.funding : base.funding,
+    // Always preserve supportAvailable from canonical agency
+    supportAvailable: typeof base.supportAvailable === 'number' ? base.supportAvailable : 0,
   }
-
   return {
     agency,
     containmentRating: agency.containmentRating,
     clearanceLevel: agency.clearanceLevel,
-    funding: fundingState.funding,
+    funding: agency.funding,
   }
 }
 
@@ -988,10 +955,6 @@ function normalizeCaseQueueMirror(state: GameState): NonNullable<GameState['case
   }
 }
 
-function normalizeMissionRoutingMirror(state: GameState): NonNullable<GameState['missionRouting']> {
-  return normalizeMissionRoutingState(state)
-}
-
 function hasTeamMirrorParity(team: Team) {
   const memberIds = getTeamMemberIds(team)
   const statusAssignedCaseId = team.status?.assignedCaseId ?? null
@@ -1007,17 +970,11 @@ function hasTeamMirrorParity(team: Team) {
 export function hasGameStateMirrorParity(state: GameState) {
   const agencyMirrors = normalizeAgencyMirrors(state)
   const recruitmentPool = normalizeRecruitmentPoolMirror(state)
-  const replacementPressureState = buildReplacementPressureState(state)
-  const storedReplacementPressureState = state.replacementPressureState
 
   return (
     state.containmentRating === agencyMirrors.containmentRating &&
     state.clearanceLevel === agencyMirrors.clearanceLevel &&
     state.funding === agencyMirrors.funding &&
-    JSON.stringify(state.agency?.fundingState ?? null) ===
-      JSON.stringify(agencyMirrors.agency.fundingState ?? null) &&
-    JSON.stringify(storedReplacementPressureState ?? null) ===
-      JSON.stringify(replacementPressureState) &&
     areIdListsEqual(
       state.recruitmentPool?.map((candidate) => candidate.id),
       recruitmentPool.map((candidate) => candidate.id)
@@ -1071,75 +1028,31 @@ function clearDanglingTeamCasePointers(
 }
 
 export function syncTeamSimulationState(state: GameState): GameState {
-  const managedState = ensureManagedGameState(state)
-  const researchState = managedState.researchState
-    ? recomputeResearchState(
-        managedState.researchState,
-        managedState.week,
-        managedState.facilityState
-      )
-    : managedState.researchState
-  const agents = normalizeAgentRecord(managedState.agents)
-  const cases = normalizeMissionIntelRecord(
-    normalizeCaseAssignmentTeamIds(managedState.cases, managedState.teams),
-    managedState.week
-  )
-  const baseTeams = clearDanglingTeamCasePointers(managedState.teams, cases)
+  const agents = normalizeAgentRecord(state.agents)
+  const cases = normalizeCaseAssignmentTeamIds(state.cases, state.teams)
+  const baseTeams = clearDanglingTeamCasePointers(state.teams, cases)
   const teams = Object.fromEntries(
     Object.entries(baseTeams).map(([teamId, team]) => [
       teamId,
-      syncTeamSimulationTeam(team, agents, cases, teamId),
+      syncTeamSimulationTeam(team, agents, cases),
     ])
   )
-  const agencyMirrors = normalizeAgencyMirrors(managedState)
-  const recruitmentPool = normalizeRecruitmentPoolMirror(managedState)
-  const caseQueue = normalizeCaseQueueMirror(managedState)
-  const replacementPressureState = buildReplacementPressureState({
-    ...managedState,
-    agents,
-  })
-  const missionRouting = normalizeMissionRoutingMirror({
-    ...managedState,
-    ...(researchState ? { researchState } : {}),
+  const agencyMirrors = normalizeAgencyMirrors(state)
+  const recruitmentPool = normalizeRecruitmentPoolMirror(state)
+  const caseQueue = normalizeCaseQueueMirror(state)
+
+  return {
+    ...state,
     agents,
     cases,
     teams,
-  })
-  const teamsWithReadiness = Object.fromEntries(
-    Object.entries(teams).map(([teamId, team]) => [
-      teamId,
-      {
-        ...team,
-        deploymentReadinessState: buildTeamDeploymentReadinessState(
-          {
-            ...managedState,
-            ...(researchState ? { researchState } : {}),
-            agents,
-            cases,
-            teams,
-            missionRouting,
-          },
-          teamId
-        ),
-      },
-    ])
-  )
-
-  return {
-    ...managedState,
-    agents,
-    cases,
-    teams: teamsWithReadiness,
     agency: agencyMirrors.agency,
     containmentRating: agencyMirrors.containmentRating,
     clearanceLevel: agencyMirrors.clearanceLevel,
     funding: agencyMirrors.funding,
-    candidates: [...managedState.candidates],
+    candidates: [...state.candidates],
     recruitmentPool,
     caseQueue,
-    missionRouting,
-    replacementPressureState,
-    ...(researchState ? { researchState } : {}),
   }
 }
 
@@ -1174,13 +1087,11 @@ function areStatusesEqual(left: TeamStatus | undefined, right: TeamStatus | unde
 function isTeamSimulationTeamNormalized(
   team: Team,
   agents: GameState['agents'],
-  cases: GameState['cases'],
-  fallbackId?: Id
+  cases: GameState['cases']
 ) {
-  const normalizedTeam = syncTeamSimulationTeam(team, agents, cases, fallbackId)
+  const normalizedTeam = syncTeamSimulationTeam(team, agents, cases)
 
   return (
-    team.id === normalizedTeam.id &&
     areIdListsEqual(team.memberIds, normalizedTeam.memberIds) &&
     areIdListsEqual(team.agentIds, normalizedTeam.agentIds) &&
     team.leaderId === normalizedTeam.leaderId &&
@@ -1190,82 +1101,15 @@ function isTeamSimulationTeamNormalized(
   )
 }
 
-function isMissionIntelNormalized(currentCase: CaseInstance, fallbackWeek: number) {
-  const normalizedCase = normalizeMissionIntel(currentCase, fallbackWeek)
-
-  return (
-    currentCase.intelConfidence === normalizedCase.intelConfidence &&
-    currentCase.intelUncertainty === normalizedCase.intelUncertainty &&
-    currentCase.intelLastUpdatedWeek === normalizedCase.intelLastUpdatedWeek
-  )
-}
-
 export function ensureNormalizedGameState(state: GameState): GameState {
-  const managedState = ensureManagedGameState(state)
   const isNormalized =
-    managedState === state &&
     isAgentRecordNormalized(state.agents) &&
     hasGameStateMirrorParity(state) &&
-    Object.values(state.cases).every((currentCase) => isMissionIntelNormalized(currentCase, state.week)) &&
-    Object.entries(state.teams).every(([teamId, team]) =>
-      isTeamSimulationTeamNormalized(
-        team,
-        state.agents,
-        state.cases,
-        teamId
-      )
+    Object.values(state.teams).every((team) =>
+      isTeamSimulationTeamNormalized(team, state.agents, state.cases)
     )
 
-  return isNormalized ? state : syncTeamSimulationState(managedState)
-}
-
-function buildFundingInsensitiveNoopSnapshot(state: GameState) {
-  const { funding: _funding, agency, ...rest } = state
-
-  if (!agency) {
-    return JSON.stringify(rest)
-  }
-
-  const { funding: _agencyFunding, fundingState: _agencyFundingState, ...agencyRest } = agency
-
-  return JSON.stringify({
-    ...rest,
-    agency: agencyRest,
-  })
-}
-
-export function resolveFundingSensitiveNoopState(state: GameState): GameState {
-  const normalizedState = ensureNormalizedGameState(state)
-
-  if (normalizedState === state) {
-    return state
-  }
-
-  if (
-    buildFundingInsensitiveNoopSnapshot(normalizedState) ===
-    buildFundingInsensitiveNoopSnapshot(state)
-  ) {
-    return state
-  }
-
-  const originalAgency = state.agency
-  const normalizedAgency = normalizedState.agency
-
-  return {
-    ...normalizedState,
-    funding: state.funding,
-    agency: normalizedAgency
-      ? {
-          ...normalizedAgency,
-          funding: originalAgency?.funding ?? state.funding,
-          ...(originalAgency && 'fundingState' in originalAgency
-            ? { fundingState: originalAgency.fundingState }
-            : normalizedAgency.fundingState !== undefined
-              ? { fundingState: normalizedAgency.fundingState }
-              : {}),
-        }
-      : normalizedAgency,
-  }
+  return isNormalized ? state : syncTeamSimulationState(state)
 }
 
 /**

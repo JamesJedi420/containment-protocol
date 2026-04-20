@@ -36,26 +36,21 @@ import {
   getTeamAssignedCaseId,
   getTeamMemberIds,
   normalizeGameState,
-  resolveFundingSensitiveNoopState,
 } from '../teamSimulation'
-import { assessResearchRequirements } from '../research'
 import {
   type Agent,
-  type AgentCertificationRecord,
-  type AgentProgression,
   type AgentRole,
-  type CertificationState,
   type GameState,
   type Id,
   type InstructorData,
   type StatKey,
-  type TrainingCategory,
   type Team,
   type TrainingProgram,
   type TrainingQueueEntry,
   BASE_STAT_MAX,
 } from '../models'
-import { getTrainingProgram, trainingCatalog } from '../../data/training'
+import { applyBoundedDelta } from '../shared/modifiers'
+import { getTrainingProgram } from '../../data/training'
 
 /**
  * Primary stat affinity per agent role. Training the affinity stat grants +1 extra statDelta.
@@ -69,137 +64,6 @@ export const ROLE_TRAINING_APTITUDE: Record<AgentRole, StatKey> = {
   tech: 'utility',
   medic: 'utility',
   negotiator: 'social',
-}
-
-export interface CertificationDefinition {
-  certificationId: string
-  label: string
-  category: TrainingCategory
-  prerequisiteTrainingIds: string[]
-  requiredProgress: number
-  durationWeeks?: number
-}
-
-export interface CertificationTransitionResult {
-  valid: boolean
-  fromState: CertificationState
-  toState: CertificationState
-  blockingIssues: string[]
-  warnings: string[]
-}
-
-export interface TrainingCertificationSummary {
-  agentId: Id
-  currentRole: AgentRole
-  trainingStatus: 'idle' | 'queued' | 'in_progress' | 'blocked' | 'completed_recently'
-  assignedTrainingId?: string
-  trainingQueuePosition?: number
-  readinessImpact: number
-  trainingPoints: number
-  certifications: Array<{
-    certificationId: string
-    state: CertificationState
-    progress: number
-    requiredProgress: number
-    expiresWeek?: number
-  }>
-}
-
-const CERTIFICATION_DEFINITIONS: Record<string, CertificationDefinition> = {
-  'combat-operator-cert': {
-    certificationId: 'combat-operator-cert',
-    label: 'Combat Operator Certification',
-    category: 'core_role_drills',
-    prerequisiteTrainingIds: ['combat-drills', 'threat-assessment'],
-    requiredProgress: 2,
-  },
-  'investigation-analyst-cert': {
-    certificationId: 'investigation-analyst-cert',
-    label: 'Investigation Analyst Certification',
-    category: 'domain_skill_tracks',
-    prerequisiteTrainingIds: ['analysis-lab', 'forensics-debrief'],
-    requiredProgress: 2,
-  },
-  'field-systems-cert': {
-    certificationId: 'field-systems-cert',
-    label: 'Field Systems Certification',
-    category: 'equipment_proficiency_modules',
-    prerequisiteTrainingIds: ['field-improv', 'logistics-cycle'],
-    requiredProgress: 2,
-  },
-  'readiness-compliance-cert': {
-    certificationId: 'readiness-compliance-cert',
-    label: 'Readiness Compliance Certification',
-    category: 'operational_discipline_modules',
-    prerequisiteTrainingIds: ['endurance-protocol', 'psych-conditioning'],
-    requiredProgress: 2,
-    durationWeeks: 16,
-  },
-  'field-liaison-cert': {
-    certificationId: 'field-liaison-cert',
-    label: 'Field Liaison Certification',
-    category: 'cross_role_bridge_training',
-    prerequisiteTrainingIds: ['liaison-briefing', 'incident-command-sim'],
-    requiredProgress: 2,
-  },
-  'team-cohesion-cert': {
-    certificationId: 'team-cohesion-cert',
-    label: 'Team Cohesion Certification',
-    category: 'advanced_certification_programs',
-    prerequisiteTrainingIds: ['coordination-drill', 'crisis-integration'],
-    requiredProgress: 2,
-    durationWeeks: 24,
-  },
-}
-
-const MAX_TRAINING_HISTORY = 24
-
-function cloneCertificationRecord(record: AgentCertificationRecord): AgentCertificationRecord {
-  return {
-    ...record,
-    ...(record.sourceTrainingIds ? { sourceTrainingIds: [...record.sourceTrainingIds] } : {}),
-  }
-}
-
-function getCertificationDefinition(certificationId: string) {
-  return CERTIFICATION_DEFINITIONS[certificationId]
-}
-
-function getAgentProgression(agent: Agent): AgentProgression {
-  const progression =
-    agent.progression ??
-    createDefaultAgentProgression(agent.level ?? 1, undefined, undefined, agent.role)
-
-  return {
-    ...progression,
-    trainingPoints: Math.max(0, Math.trunc(progression.trainingPoints ?? 0)),
-    trainingHistory: [...(progression.trainingHistory ?? [])],
-    certProgress: { ...(progression.certProgress ?? {}) },
-    certifications: Object.fromEntries(
-      Object.entries(progression.certifications ?? {}).map(([certificationId, record]) => [
-        certificationId,
-        cloneCertificationRecord(record),
-      ])
-    ),
-    failedAttemptsByTrainingId: { ...(progression.failedAttemptsByTrainingId ?? {}) },
-    trainingProfile: {
-      agentId: progression.trainingProfile?.agentId ?? agent.id,
-      currentRole: agent.role,
-      trainingStatus: progression.trainingProfile?.trainingStatus ?? 'idle',
-      assignedTrainingId: progression.trainingProfile?.assignedTrainingId,
-      trainingStartedWeek: progression.trainingProfile?.trainingStartedWeek,
-      trainingEtaWeek: progression.trainingProfile?.trainingEtaWeek,
-      trainingQueuePosition: progression.trainingProfile?.trainingQueuePosition,
-      readinessImpact: progression.trainingProfile?.readinessImpact ?? 0,
-    },
-  }
-}
-
-function withProgression(agent: Agent, progression: AgentProgression): Agent {
-  return {
-    ...agent,
-    progression,
-  }
 }
 
 export function getTrainingAptitudeBonus(agentRole: AgentRole, targetStat: StatKey): number {
@@ -232,512 +96,11 @@ function getScopedTrainingProgram(trainingId: string, scope: 'agent' | 'team') {
   return (program.scope ?? 'agent') === scope ? program : null
 }
 
-function appendTrainingHistoryEntry(
-  history: NonNullable<AgentProgression['trainingHistory']>,
-  entry: { trainingId: string; week: number }
-) {
-  return [...history, entry].slice(-MAX_TRAINING_HISTORY)
-}
-
-function isCertificationPrerequisitesSatisfied(agent: Agent, certificationId: string) {
-  const definition = getCertificationDefinition(certificationId)
-  if (!definition) {
-    return false
-  }
-
-  const progression = getAgentProgression(agent)
-  const historyIds = new Set((progression.trainingHistory ?? []).map((entry) => entry.trainingId))
-  const completedPrerequisites = definition.prerequisiteTrainingIds.filter((trainingId) =>
-    historyIds.has(trainingId)
-  ).length
-  const progressValue = Math.max(0, Math.trunc(progression.certProgress?.[certificationId] ?? 0))
-
-  return (
-    completedPrerequisites >= definition.prerequisiteTrainingIds.length &&
-    progressValue >= definition.requiredProgress
-  )
-}
-
-export function getAgentCertificationState(agent: Agent, certificationId: string): CertificationState {
-  return getAgentProgression(agent).certifications?.[certificationId]?.state ?? 'not_started'
-}
-
-export function validateCertificationTransition(
-  agent: Agent,
-  certificationId: string,
-  toState: CertificationState,
-  week: number,
-  options?: {
-    administrative?: boolean
-  }
-): CertificationTransitionResult {
-  const definition = getCertificationDefinition(certificationId)
-  const fromState = getAgentCertificationState(agent, certificationId)
-  const blockingIssues: string[] = []
-  const warnings: string[] = []
-
-  if (!definition) {
-    blockingIssues.push('unknown-certification')
-    return {
-      valid: false,
-      fromState,
-      toState,
-      blockingIssues,
-      warnings,
-    }
-  }
-
-  if (fromState === toState) {
-    warnings.push('no-op-transition')
-    return {
-      valid: true,
-      fromState,
-      toState,
-      blockingIssues,
-      warnings,
-    }
-  }
-
-  const isPrereqSatisfied = isCertificationPrerequisitesSatisfied(agent, certificationId)
-
-  const allowed =
-    (fromState === 'not_started' && toState === 'in_progress') ||
-    (fromState === 'in_progress' && toState === 'eligible_review' && isPrereqSatisfied) ||
-    (fromState === 'eligible_review' && toState === 'certified' && isPrereqSatisfied) ||
-    (fromState === 'certified' && toState === 'expired') ||
-    (fromState === 'certified' && toState === 'revoked' && options?.administrative === true) ||
-    (fromState === 'expired' && toState === 'in_progress')
-
-  if (!allowed) {
-    if (
-      fromState === 'in_progress' &&
-      toState === 'eligible_review' &&
-      !isPrereqSatisfied
-    ) {
-      blockingIssues.push('prerequisites-not-complete')
-    } else if (
-      fromState === 'eligible_review' &&
-      toState === 'certified' &&
-      !isPrereqSatisfied
-    ) {
-      blockingIssues.push('review-prerequisites-not-complete')
-    } else if (fromState === 'certified' && toState === 'revoked') {
-      blockingIssues.push('administrative-approval-required')
-    } else {
-      blockingIssues.push('invalid-transition')
-    }
-  }
-
-  if (toState === 'expired') {
-    const record = getAgentProgression(agent).certifications?.[certificationId]
-    if (!record?.expiresWeek || week < record.expiresWeek) {
-      blockingIssues.push('certification-not-yet-expired')
-    }
-  }
-
-  return {
-    valid: blockingIssues.length === 0,
-    fromState,
-    toState,
-    blockingIssues,
-    warnings,
-  }
-}
-
-function applyCertificationTransitionToAgent(
-  agent: Agent,
-  certificationId: string,
-  toState: CertificationState,
-  week: number,
-  options?: {
-    administrative?: boolean
-    notes?: string
-  }
-) {
-  const validation = validateCertificationTransition(agent, certificationId, toState, week, options)
-  if (!validation.valid) {
-    return {
-      agent,
-      result: validation,
-    }
-  }
-
-  const progression = getAgentProgression(agent)
-  const definition = getCertificationDefinition(certificationId)
-  const currentRecord = progression.certifications?.[certificationId]
-  const nextRecord: AgentCertificationRecord = {
-    certificationId,
-    state: toState,
-    ...(toState === 'certified' ? { awardedWeek: week } : {}),
-    ...(toState === 'certified' && definition?.durationWeeks
-      ? { expiresWeek: week + definition.durationWeeks }
-      : toState === 'expired'
-        ? { expiresWeek: currentRecord?.expiresWeek ?? week }
-        : {}),
-    ...(currentRecord?.sourceTrainingIds ? { sourceTrainingIds: [...currentRecord.sourceTrainingIds] } : {}),
-    ...(options?.notes ? { notes: options.notes } : currentRecord?.notes ? { notes: currentRecord.notes } : {}),
-  }
-
-  const nextProgression: AgentProgression = {
-    ...progression,
-    certifications: {
-      ...(progression.certifications ?? {}),
-      [certificationId]: nextRecord,
-    },
-  }
-
-  return {
-    agent: withProgression(agent, nextProgression),
-    result: validation,
-  }
-}
-
-function updateAgentTrainingProfileForQueue(state: GameState) {
-  if (state.trainingQueue.length === 0) {
-    return state
-  }
-
-  const nextAgents = { ...state.agents }
-
-  for (const [index, entry] of state.trainingQueue.entries()) {
-    const agent = nextAgents[entry.agentId]
-    if (!agent) {
-      continue
-    }
-
-    const progression = getAgentProgression(agent)
-    nextAgents[entry.agentId] = withProgression(agent, {
-      ...progression,
-      trainingProfile: {
-        agentId: agent.id,
-        currentRole: agent.role,
-        trainingStatus: 'in_progress',
-        assignedTrainingId: entry.trainingId,
-        trainingStartedWeek: entry.startedWeek,
-        trainingEtaWeek: state.week + entry.remainingWeeks,
-        trainingQueuePosition: index + 1,
-        readinessImpact: Math.max(0, Math.trunc(entry.fatigueDelta)),
-      },
-    })
-  }
-
-  return {
-    ...state,
-    agents: nextAgents,
-  }
-}
-
-function markCertificationsInProgressForTraining(agent: Agent, trainingId: string, week: number) {
-  const certificationIds = getTrainingProgram(trainingId)?.certificationIds ?? []
-
-  if (certificationIds.length === 0) {
-    return agent
-  }
-
-  let nextAgent = agent
-  for (const certificationId of certificationIds) {
-    const currentState = getAgentCertificationState(nextAgent, certificationId)
-
-    if (currentState === 'not_started' || currentState === 'expired') {
-      const transition = applyCertificationTransitionToAgent(
-        nextAgent,
-        certificationId,
-        'in_progress',
-        week,
-        {
-          notes: `Training assignment ${trainingId} started.`,
-        }
-      )
-
-      nextAgent = transition.agent
-    }
-  }
-
-  return nextAgent
-}
-
-function markEligibleReviewsFromProgress(agent: Agent, week: number) {
-  let nextAgent = agent
-
-  for (const definition of Object.values(CERTIFICATION_DEFINITIONS)) {
-    const currentState = getAgentCertificationState(nextAgent, definition.certificationId)
-
-    if (currentState !== 'in_progress') {
-      continue
-    }
-
-    const transition = applyCertificationTransitionToAgent(
-      nextAgent,
-      definition.certificationId,
-      'eligible_review',
-      week,
-      {
-        notes: 'Deterministic weekly certification review marked this record eligible.',
-      }
-    )
-
-    if (transition.result.valid) {
-      nextAgent = transition.agent
-    }
-  }
-
-  return nextAgent
-}
-
-export function buildTrainingCertificationSummary(
-  agent: Agent,
-  week: number
-): TrainingCertificationSummary {
-  const progression = getAgentProgression(agent)
-  const certifications = Object.values(CERTIFICATION_DEFINITIONS)
-    .map((definition) => {
-      const record = progression.certifications?.[definition.certificationId]
-      return {
-        certificationId: definition.certificationId,
-        state: record?.state ?? 'not_started',
-        progress: Math.max(0, Math.trunc(progression.certProgress?.[definition.certificationId] ?? 0)),
-        requiredProgress: definition.requiredProgress,
-        ...(typeof record?.expiresWeek === 'number' ? { expiresWeek: record.expiresWeek } : {}),
-      }
-    })
-    .sort((left, right) => left.certificationId.localeCompare(right.certificationId))
-
-  return {
-    agentId: agent.id,
-    currentRole: agent.role,
-    trainingStatus: progression.trainingProfile?.trainingStatus ?? 'idle',
-    assignedTrainingId: progression.trainingProfile?.assignedTrainingId,
-    trainingQueuePosition: progression.trainingProfile?.trainingQueuePosition,
-    readinessImpact: progression.trainingProfile?.readinessImpact ?? 0,
-    trainingPoints: Math.max(0, Math.trunc(progression.trainingPoints ?? 0)),
-    certifications: certifications.map((entry) => ({
-      ...entry,
-      ...(entry.state === 'certified' && entry.expiresWeek && entry.expiresWeek <= week
-        ? { state: 'expired' as CertificationState }
-        : {}),
-    })),
-  }
-}
-
-export function getCertificationDefinitions() {
-  return Object.values(CERTIFICATION_DEFINITIONS).map((definition) => ({
-    ...definition,
-    prerequisiteTrainingIds: [...definition.prerequisiteTrainingIds],
-  }))
-}
-
-export function getTrainingProgramsByCategory(category: TrainingCategory) {
-  return trainingCatalog
-    .filter((program) => program.category === category)
-    .map((program) => ({
-      ...program,
-      ...(program.certificationIds ? { certificationIds: [...program.certificationIds] } : {}),
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name))
-}
-
-export function transitionCertification(
-  state: GameState,
-  agentId: Id,
-  certificationId: string,
-  toState: CertificationState,
-  options?: {
-    administrative?: boolean
-    notes?: string
-  }
-) {
-  const agent = state.agents[agentId]
-  if (!agent) {
-    return {
-      state: ensureNormalizedGameState(state),
-      result: {
-        valid: false,
-        fromState: 'not_started' as CertificationState,
-        toState,
-        blockingIssues: ['missing-agent'],
-        warnings: [],
-      } satisfies CertificationTransitionResult,
-    }
-  }
-
-  const transition = applyCertificationTransitionToAgent(
-    agent,
-    certificationId,
-    toState,
-    state.week,
-    options
-  )
-
-  if (!transition.result.valid) {
-    const progression = getAgentProgression(agent)
-    const failureKey = `cert:${certificationId}`
-    const nextAgent = withProgression(agent, {
-      ...progression,
-      failedAttemptsByTrainingId: {
-        ...(progression.failedAttemptsByTrainingId ?? {}),
-        [failureKey]: Math.max(
-          0,
-          Math.trunc((progression.failedAttemptsByTrainingId?.[failureKey] ?? 0) + 1)
-        ),
-      },
-    })
-
-    return {
-      state: normalizeGameState({
-        ...state,
-        agents: {
-          ...state.agents,
-          [agentId]: nextAgent,
-        },
-      }),
-      result: transition.result,
-    }
-  }
-
-  return {
-    state: normalizeGameState({
-      ...state,
-      agents: {
-        ...state.agents,
-        [agentId]: transition.agent,
-      },
-    }),
-    result: transition.result,
-  }
-}
-
-export function reviewCertification(
-  state: GameState,
-  agentId: Id,
-  certificationId: string,
-  approve: boolean,
-  options?: {
-    administrative?: boolean
-    notes?: string
-  }
-) {
-  if (approve) {
-    return transitionCertification(state, agentId, certificationId, 'certified', options)
-  }
-
-  const agent = state.agents[agentId]
-  if (!agent) {
-    return {
-      state: ensureNormalizedGameState(state),
-      approved: false,
-      reason: 'missing-agent',
-    }
-  }
-
-  const progression = getAgentProgression(agent)
-  const failureKey = `cert:${certificationId}`
-  const nextAgent = withProgression(agent, {
-    ...progression,
-    failedAttemptsByTrainingId: {
-      ...(progression.failedAttemptsByTrainingId ?? {}),
-      [failureKey]: Math.max(
-        0,
-        Math.trunc((progression.failedAttemptsByTrainingId?.[failureKey] ?? 0) + 1)
-      ),
-    },
-  })
-
-  return {
-    state: normalizeGameState({
-      ...state,
-      agents: {
-        ...state.agents,
-        [agentId]: nextAgent,
-      },
-    }),
-    approved: false,
-    reason: 'review-denied',
-  }
-}
-
-export function advanceTrainingCertificationState(state: GameState) {
-  const nextAgents = { ...state.agents }
-  let changed = false
-
-  for (const [agentId, agent] of Object.entries(state.agents)) {
-    let nextAgent = markEligibleReviewsFromProgress(agent, state.week)
-    const progression = getAgentProgression(nextAgent)
-    const certifications = progression.certifications ?? {}
-    const nextCertifications = { ...certifications }
-    let certChanged = false
-
-    for (const [certificationId, record] of Object.entries(certifications)) {
-      const definition = getCertificationDefinition(certificationId)
-
-      if (
-        record.state === 'certified' &&
-        definition?.durationWeeks &&
-        typeof record.expiresWeek === 'number' &&
-        state.week >= record.expiresWeek
-      ) {
-        nextCertifications[certificationId] = {
-          ...record,
-          state: 'expired',
-        }
-        certChanged = true
-      }
-    }
-
-    const shouldResetRecentlyCompleted =
-      progression.trainingProfile?.trainingStatus === 'completed_recently' &&
-      progression.lastTrainingWeek !== undefined &&
-      state.week > progression.lastTrainingWeek
-
-    if (shouldResetRecentlyCompleted || certChanged || nextAgent !== agent) {
-      let nextProgression = progression
-
-      if (certChanged) {
-        nextProgression = {
-          ...nextProgression,
-          certifications: nextCertifications,
-        }
-      }
-
-      if (shouldResetRecentlyCompleted) {
-        nextProgression = {
-          ...nextProgression,
-          trainingProfile: {
-            agentId: nextAgent.id,
-            currentRole: nextAgent.role,
-            trainingStatus: 'idle',
-            readinessImpact: 0,
-          },
-        }
-      }
-
-      nextAgent = withProgression(nextAgent, nextProgression)
-      nextAgents[agentId] = nextAgent
-      changed = true
-    } else {
-      nextAgents[agentId] = nextAgent
-    }
-
-  }
-
-  if (!changed) {
-    return ensureNormalizedGameState(state)
-  }
-
-  return normalizeGameState({
-    ...state,
-    agents: nextAgents,
-  })
-}
-
 export function isTrainingProgramUnlocked(
-  state: Pick<GameState, 'academyTier' | 'researchState'>,
-  program: Pick<TrainingProgram, 'minAcademyTier' | 'requiredResearchIds'>
+  state: Pick<GameState, 'academyTier'>,
+  program: Pick<TrainingProgram, 'minAcademyTier'>
 ) {
-  if ((state.academyTier ?? 0) < (program.minAcademyTier ?? 0)) {
-    return false
-  }
-
-  return assessResearchRequirements(state, program.requiredResearchIds ?? []).satisfied
+  return (state.academyTier ?? 0) >= (program.minAcademyTier ?? 0)
 }
 
 function buildQueueEntry(
@@ -957,7 +320,6 @@ export interface AgentTrainingQueueAssessment {
   reason?: AgentTrainingQueueBlockReason
   requiredTier?: number
   requiredFunding?: number
-  missingResearchIds?: string[]
 }
 
 export type TeamTrainingQueueBlockReason =
@@ -975,7 +337,6 @@ export interface TeamTrainingQueueAssessment {
   reason?: TeamTrainingQueueBlockReason
   requiredTier?: number
   requiredFunding?: number
-  missingResearchIds?: string[]
   participantIds: Id[]
   scaledCost: number
 }
@@ -1010,14 +371,10 @@ export function assessAgentTrainingQueue(
   }
 
   if (!isTrainingProgramUnlocked(state, program)) {
-    const researchAssessment = assessResearchRequirements(state, program.requiredResearchIds ?? [])
     return {
       canQueue: false,
       reason: 'program_locked',
       requiredTier: program.minAcademyTier ?? 0,
-      ...(researchAssessment.missingIds.length > 0
-        ? { missingResearchIds: researchAssessment.missingIds }
-        : {}),
     }
   }
 
@@ -1081,14 +438,10 @@ export function assessTeamTrainingQueue(
   }
 
   if (!isTrainingProgramUnlocked(state, program)) {
-    const researchAssessment = assessResearchRequirements(state, program.requiredResearchIds ?? [])
     return {
       canQueue: false,
       reason: 'program_locked',
       requiredTier: program.minAcademyTier ?? 0,
-      ...(researchAssessment.missingIds.length > 0
-        ? { missingResearchIds: researchAssessment.missingIds }
-        : {}),
       participantIds: [],
       scaledCost: 0,
     }
@@ -1163,73 +516,50 @@ export function isTeamBlockedByTraining(team: Team, agents: GameState['agents'])
   return getTeamMemberIds(team).some((agentId) => isAgentTraining(agents[agentId]))
 }
 
-function resolveRejectedTrainingQueueState(state: GameState): GameState {
-  return resolveFundingSensitiveNoopState(state)
-}
-
 export function queueTraining(state: GameState, agentId: Id, trainingId: string): GameState {
   const agent = state.agents[agentId]
   const program = getScopedTrainingProgram(trainingId, 'agent')
   const assessment = assessAgentTrainingQueue(state, agentId, trainingId)
 
   if (!agent || !program || !assessment.canQueue) {
-    return resolveRejectedTrainingQueueState(state)
+    return ensureNormalizedGameState(state)
   }
 
   const team = getAgentTeam(state, agentId)
   const queueEntry = buildQueueEntry(state, agent, program)
 
-  const progression = getAgentProgression(agent)
-  const startedAgent = withProgression(
-    appendAgentHistoryEntry(
-      setTrainingAssignment(agent, state.week, program.trainingId, team?.id),
-      createAgentHistoryEntry(state.week, 'agent.training_started', buildTrainingStartedNote(program))
-    ),
-    {
-      ...progression,
-      trainingProfile: {
-        agentId: agent.id,
-        currentRole: agent.role,
-        trainingStatus: 'in_progress',
-        assignedTrainingId: program.trainingId,
-        trainingStartedWeek: state.week,
-        trainingEtaWeek: state.week + queueEntry.durationWeeks,
-        trainingQueuePosition: state.trainingQueue.length + 1,
-        readinessImpact: Math.max(0, Math.trunc(program.fatigueDelta)),
+  return normalizeGameState(
+    appendOperationEventDrafts(
+      {
+        ...state,
+        funding: state.funding - program.fundingCost,
+        agents: {
+          ...state.agents,
+          [agentId]: appendAgentHistoryEntry(
+            setTrainingAssignment(agent, state.week, program.trainingId, team?.id),
+            createAgentHistoryEntry(
+              state.week,
+              'agent.training_started',
+              buildTrainingStartedNote(program)
+            )
+          ),
+        },
+        trainingQueue: [...state.trainingQueue, queueEntry],
       },
-    }
+      [
+        createAgentTrainingStartedDraft({
+          week: queueEntry.startedWeek,
+          queueId: queueEntry.id,
+          agentId: queueEntry.agentId,
+          agentName: queueEntry.agentName,
+          trainingId: queueEntry.trainingId,
+          trainingName: queueEntry.trainingName,
+          etaWeeks: queueEntry.durationWeeks,
+          fundingCost: queueEntry.fundingCost,
+        }),
+      ]
+    )
   )
-  const startedAgentWithCerts = markCertificationsInProgressForTraining(
-    startedAgent,
-    program.trainingId,
-    state.week
-  )
-
-  const nextState = appendOperationEventDrafts(
-    {
-      ...state,
-      funding: state.funding - program.fundingCost,
-      agents: {
-        ...state.agents,
-        [agentId]: startedAgentWithCerts,
-      },
-      trainingQueue: [...state.trainingQueue, queueEntry],
-    },
-    [
-      createAgentTrainingStartedDraft({
-        week: queueEntry.startedWeek,
-        queueId: queueEntry.id,
-        agentId: queueEntry.agentId,
-        agentName: queueEntry.agentName,
-        trainingId: queueEntry.trainingId,
-        trainingName: queueEntry.trainingName,
-        etaWeeks: queueEntry.durationWeeks,
-        fundingCost: queueEntry.fundingCost,
-      }),
-    ]
-  )
-
-  return normalizeGameState(updateAgentTrainingProfileForQueue(nextState))
 }
 
 export function queueTeamTraining(state: GameState, teamId: Id, trainingId: string): GameState {
@@ -1238,7 +568,7 @@ export function queueTeamTraining(state: GameState, teamId: Id, trainingId: stri
   const assessment = assessTeamTrainingQueue(state, teamId, trainingId)
 
   if (!team || !program || !assessment.canQueue) {
-    return resolveRejectedTrainingQueueState(state)
+    return ensureNormalizedGameState(state)
   }
 
   const members = assessment.participantIds
@@ -1262,59 +592,39 @@ export function queueTeamTraining(state: GameState, teamId: Id, trainingId: stri
   const nextAgents = { ...state.agents }
 
   for (const agent of members) {
-    const progression = getAgentProgression(agent)
-    const startedAgent = withProgression(
-      appendAgentHistoryEntry(
-        setTrainingAssignment(agent, state.week, program.trainingId, team.id),
-        createAgentHistoryEntry(
-          state.week,
-          'agent.training_started',
-          buildTrainingStartedNote(program, team.name)
-        )
-      ),
-      {
-        ...progression,
-        trainingProfile: {
-          agentId: agent.id,
-          currentRole: agent.role,
-          trainingStatus: 'in_progress',
-          assignedTrainingId: program.trainingId,
-          trainingStartedWeek: state.week,
-          trainingEtaWeek: state.week + program.durationWeeks,
-          readinessImpact: Math.max(0, Math.trunc(program.fatigueDelta)),
-        },
-      }
-    )
-    nextAgents[agent.id] = markCertificationsInProgressForTraining(
-      startedAgent,
-      program.trainingId,
-      state.week
+    nextAgents[agent.id] = appendAgentHistoryEntry(
+      setTrainingAssignment(agent, state.week, program.trainingId, team.id),
+      createAgentHistoryEntry(
+        state.week,
+        'agent.training_started',
+        buildTrainingStartedNote(program, team.name)
+      )
     )
   }
 
-  const nextState = appendOperationEventDrafts(
-    {
-      ...state,
-      funding: state.funding - scaledCost,
-      agents: nextAgents,
-      trainingQueue: [...state.trainingQueue, ...queueEntries],
-    },
-    queueEntries.map((entry) =>
-      createAgentTrainingStartedDraft({
-        week: entry.startedWeek,
-        queueId: entry.id,
-        agentId: entry.agentId,
-        agentName: entry.agentName,
-        trainingId: entry.trainingId,
-        trainingName: entry.trainingName,
-        teamName: entry.teamName,
-        etaWeeks: entry.durationWeeks,
-        fundingCost: entry.fundingCost,
-      })
+  return normalizeGameState(
+    appendOperationEventDrafts(
+      {
+        ...state,
+        funding: state.funding - scaledCost,
+        agents: nextAgents,
+        trainingQueue: [...state.trainingQueue, ...queueEntries],
+      },
+      queueEntries.map((entry) =>
+        createAgentTrainingStartedDraft({
+          week: entry.startedWeek,
+          queueId: entry.id,
+          agentId: entry.agentId,
+          agentName: entry.agentName,
+          trainingId: entry.trainingId,
+          trainingName: entry.trainingName,
+          teamName: entry.teamName,
+          etaWeeks: entry.durationWeeks,
+          fundingCost: entry.fundingCost,
+        })
+      )
     )
   )
-
-  return normalizeGameState(updateAgentTrainingProfileForQueue(nextState))
 }
 
 /**
@@ -1431,15 +741,15 @@ function applyTrainingCompletionToAgent(
 
   // Direct stability-training pathway (gap fix): specific programs can improve
   // resilience-derived stats independently of base-stat deltas.
-  nextStats.stability.resistance = clamp(
-    nextStats.stability.resistance + (entry.stabilityResistanceDelta ?? 0),
-    0,
-    BASE_STAT_MAX
+  nextStats.stability.resistance = applyBoundedDelta(
+    nextStats.stability.resistance,
+    entry.stabilityResistanceDelta ?? 0,
+    { min: 0, max: BASE_STAT_MAX }
   )
-  nextStats.stability.tolerance = clamp(
-    nextStats.stability.tolerance + (entry.stabilityToleranceDelta ?? 0),
-    0,
-    BASE_STAT_MAX
+  nextStats.stability.tolerance = applyBoundedDelta(
+    nextStats.stability.tolerance,
+    entry.stabilityToleranceDelta ?? 0,
+    { min: 0, max: BASE_STAT_MAX }
   )
 
   // XP scales with actual raw gain (including academy and instructor bonuses) so
@@ -1485,47 +795,6 @@ function applyTrainingCompletionToAgent(
       ),
     progressedAgentWithXpLog
   )
-
-  const normalizedProgression = getAgentProgression(nextAgent)
-  const nextTrainingHistory = appendTrainingHistoryEntry(
-    normalizedProgression.trainingHistory ?? [],
-    {
-      trainingId: entry.trainingId,
-      week,
-    }
-  )
-  const nextCertProgress = {
-    ...(normalizedProgression.certProgress ?? {}),
-  }
-  const programCertifications = getTrainingProgram(entry.trainingId)?.certificationIds ?? []
-  for (const certificationId of programCertifications) {
-    nextCertProgress[certificationId] = Math.max(
-      0,
-      Math.trunc((nextCertProgress[certificationId] ?? 0) + 1)
-    )
-  }
-
-  nextAgent = withProgression(nextAgent, {
-    ...normalizedProgression,
-    trainingPoints: Math.max(
-      0,
-      Math.trunc((normalizedProgression.trainingPoints ?? 0) + Math.max(1, entry.durationWeeks - 1))
-    ),
-    trainingHistory: nextTrainingHistory,
-    certProgress: nextCertProgress,
-    lastTrainingWeek: week,
-    trainingProfile: {
-      agentId: nextAgent.id,
-      currentRole: nextAgent.role,
-      trainingStatus: 'completed_recently',
-      assignedTrainingId: undefined,
-      trainingStartedWeek: undefined,
-      trainingEtaWeek: undefined,
-      trainingQueuePosition: undefined,
-      readinessImpact: 0,
-    },
-  })
-  nextAgent = markEligibleReviewsFromProgress(nextAgent, week)
 
   if (entry.scope !== 'team') {
     const discovery = observePotentialIntel(
@@ -1808,14 +1077,12 @@ export function advanceTrainingQueues(state: GameState) {
   applyTeamDrillCoordination(nextAgents, completed)
 
   return {
-    state: normalizeGameState(
-      updateAgentTrainingProfileForQueue({
-        ...state,
-        agents: nextAgents,
-        staff: nextStaff,
-        trainingQueue: nextQueue,
-      })
-    ),
+    state: normalizeGameState({
+      ...state,
+      agents: nextAgents,
+      staff: nextStaff,
+      trainingQueue: nextQueue,
+    }),
     completed,
     notes,
     eventDrafts,
@@ -1846,25 +1113,13 @@ export function cancelTraining(state: GameState, agentId: Id): GameState {
       continue
     }
 
-    const progression = getAgentProgression(agent)
-    nextAgents[cancelled.agentId] = withProgression(
-      appendAgentHistoryEntry(
-        setAgentAssignment(agent, createDefaultAgentAssignmentState()),
-        createAgentHistoryEntry(
-          state.week,
-          'agent.training_cancelled',
-          `${cancelled.trainingName} cancelled.`
-        )
-      ),
-      {
-        ...progression,
-        trainingProfile: {
-          agentId: agent.id,
-          currentRole: agent.role,
-          trainingStatus: 'idle',
-          readinessImpact: 0,
-        },
-      }
+    nextAgents[cancelled.agentId] = appendAgentHistoryEntry(
+      setAgentAssignment(agent, createDefaultAgentAssignmentState()),
+      createAgentHistoryEntry(
+        state.week,
+        'agent.training_cancelled',
+        `${cancelled.trainingName} cancelled.`
+      )
     )
   }
 
@@ -1890,25 +1145,25 @@ export function cancelTraining(state: GameState, agentId: Id): GameState {
   // Elapsed instruction is forfeit — no free cancellation exploit.
   const refund = getTrainingCancelRefund(entry)
 
-  const nextState = appendOperationEventDrafts(
-    {
-      ...state,
-      funding: state.funding + refund,
-      agents: nextAgents,
-      staff: nextStaff,
-      trainingQueue: nextQueue,
-    },
-    entriesToCancel.map((cancelled, idx) =>
-      createAgentTrainingCancelledDraft({
-        week: state.week,
-        agentId: cancelled.agentId,
-        agentName: cancelled.agentName,
-        trainingId: cancelled.trainingId,
-        trainingName: cancelled.trainingName,
-        refund: idx === 0 ? refund : 0,
-      })
+  return normalizeGameState(
+    appendOperationEventDrafts(
+      {
+        ...state,
+        funding: state.funding + refund,
+        agents: nextAgents,
+        staff: nextStaff,
+        trainingQueue: nextQueue,
+      },
+      entriesToCancel.map((cancelled, idx) =>
+        createAgentTrainingCancelledDraft({
+          week: state.week,
+          agentId: cancelled.agentId,
+          agentName: cancelled.agentName,
+          trainingId: cancelled.trainingId,
+          trainingName: cancelled.trainingName,
+          refund: idx === 0 ? refund : 0,
+        })
+      )
     )
   )
-
-  return normalizeGameState(updateAgentTrainingProfileForQueue(nextState))
 }

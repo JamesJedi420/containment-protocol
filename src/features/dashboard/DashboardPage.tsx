@@ -1,4 +1,3 @@
-// cspell:words hotspots
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
@@ -21,19 +20,20 @@ import {
   getWeeklyDirectiveDefinition,
   getWeeklyDirectiveDefinitions,
 } from '../../domain/directives'
+import { formatLatestReportRollup } from '../../domain/reportNotes'
 import { RunTransferPanel } from './RunTransferPanel'
+import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { EventFeedPanel } from './EventFeedPanel'
 import { OperationsDeskPanels } from './OperationsDeskPanels'
-import { OperationsReportPanel } from './OperationsReportPanel'
 import {
-  getAtRiskTeamViews,
   getDashboardMetrics,
   getLatestReportSummary,
   getPriorityCaseViews,
+  getAtRiskTeamViews,
 } from './dashboardView'
-import { TrendSummaryPanel } from '../report/TrendSummaryPanel'
-import { getRunTrendSummary } from '../report/reportTrendView'
-import { OperationsLeftPanel } from '../operations/OperationsLeftPanel'
+import { TrendSummaryPanel } from './TrendSummaryPanelProjection'
+import { getDashboardRunTrendSummary } from './dashboardReportProjection'
+import { OperationsLeftPanel } from './OperationsLeftPanelProjection'
 
 const presetConfigs = {
   forgiving: {
@@ -82,10 +82,11 @@ export default function DashboardPage() {
   }, [])
 
   const metrics = getDashboardMetrics(game)
+  // Use the real or mocked dashboard view selectors
   const priorityCases = getPriorityCaseViews(game)
   const atRiskTeams = getAtRiskTeamViews(game)
   const latestReportSummary = getLatestReportSummary(game)
-  const trendSummary = getRunTrendSummary(game)
+  const trendSummary = getDashboardRunTrendSummary(game)
   const directiveDefinitions = getWeeklyDirectiveDefinitions()
   const haltedReason = game.gameOverReason ?? GAME_OVER_REASONS.breachState
   const haltGuidance = DASHBOARD_HALT_GUIDANCE[haltedReason] ?? DASHBOARD_HALT_GUIDANCE.default
@@ -139,8 +140,24 @@ export default function DashboardPage() {
     } as Pick<typeof game.config, K>)
   }
 
+  // Build agency overview for cadence/extra check surfacing
+  const overview = buildAgencyOverview(game)
+  const cadenceSummary = formatCadenceSummary(overview)
+
   return (
     <section className="space-y-6">
+      {/* Escalation/Pressure Cadence & Extra Checks Summary Panel */}
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Escalation & Pressure Cadence</h2>
+          <p className="text-sm opacity-60">Systemic cadence, bounded checks, and urgent escalations surfaced for this week.</p>
+        </div>
+        <ul className="text-xs opacity-80 space-y-1">
+          {cadenceSummary.map((line, i) => (
+            <li key={i}>{line}</li>
+          ))}
+        </ul>
+      </section>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.open}
@@ -572,7 +589,7 @@ export default function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm opacity-60">{EMPTY_STATES.noUrgentCasePressure}</p>
+            <p className="text-sm opacity-60">No urgent case pressure right now.</p>
           )}
         </section>
 
@@ -613,12 +630,10 @@ export default function DashboardPage() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm opacity-60">{EMPTY_STATES.noAtRiskTeams}</p>
+            <p className="text-sm opacity-60">No stressed teams are currently flagged.</p>
           )}
         </section>
       </section>
-
-      <OperationsReportPanel />
 
       <section
         className="region-secondary grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]"
@@ -643,15 +658,15 @@ export default function DashboardPage() {
         </div>
 
         {latestReportSummary ? (
-          <LatestReportSummary score={latestReportSummary.score} />
-        ) : (
+        <LatestReportSummary score={latestReportSummary.score} />
+      ) : (
           <p className="text-sm opacity-60">{EMPTY_STATES.noReports}</p>
         )}
       </section>
 
       <TrendSummaryPanel
         title="Run trends"
-        subtitle="Recurring families, raid pressure, unresolved hotspots, and tag load across the current run."
+        subtitle="Recurring families, raid pressure, unresolved pressure points, and tag load across the current run."
         summary={trendSummary}
       />
     </section>
@@ -678,13 +693,11 @@ function DashboardStatLink({
           ? 'border-cyan-400/30 bg-cyan-500/8'
           : 'border-white/10 bg-white/5'
 
-  // Always render 0 as a string for zero values to ensure test finds the text
-  // Always render 0 as a visible text node, not falsy or hidden
   return (
     <div className={`panel panel-hi ${toneClass}`}>
       <Link to={to} className="block transition hover:opacity-100">
         <p className="text-label opacity-80">{label}</p>
-        <p className="mt-2 text-stat" data-testid={`dashboard-stat-value-${label.replace(/\s+/g, '-').toLowerCase()}`}>{String(value)}</p>
+        <p className="mt-2 text-stat">{value}</p>
       </Link>
     </div>
   )
@@ -732,10 +745,7 @@ function LatestReportSummary({ score }: { score: number }) {
       </div>
 
       <p className="text-sm opacity-70">
-        {report.resolvedCases.length} resolved, {report.unresolvedTriggers.length} unresolved{' '}
-        {report.unresolvedTriggers.length === 1 ? 'trigger' : 'triggers'},{' '}
-        {report.spawnedCases.length}{' '}
-        {report.spawnedCases.length === 1 ? 'spawned case' : 'spawned cases'}
+        {formatLatestReportRollup(report)}
       </p>
 
       <p className="text-sm opacity-60">

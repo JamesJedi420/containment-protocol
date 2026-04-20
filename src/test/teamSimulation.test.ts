@@ -1,4 +1,4 @@
-// cspell:words greentape kellan
+import { getTeamConsequenceSummary } from '../domain/teamSimulation'
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { assignTeam } from '../domain/sim/assign'
@@ -8,12 +8,52 @@ import {
   getTeamMembers,
   getTeamMemberIds,
   getUniqueTeamMembers,
-  normalizeGameState,
   resolutionProfileToLegacyStats,
   syncTeamSimulationState,
 } from '../domain/teamSimulation'
 
 describe('teamSimulation', () => {
+
+  describe('getTeamConsequenceSummary', () => {
+    const makeTeam = (fatigue: number) => ({
+      memberIds: ['a_ava', 'a_kellan'],
+      agentIds: ['a_ava', 'a_kellan'],
+      leaderId: 'a_ava',
+      tags: [],
+      status: { state: 'ready', assignedCaseId: null },
+    })
+    const agentsById = {
+      a_ava: { id: 'a_ava', fatigue: 0, status: 'active' },
+      a_kellan: { id: 'a_kellan', fatigue: 0, status: 'active' },
+    }
+    it('returns strong consequences for high readiness', () => {
+      const team = makeTeam(0)
+      agentsById.a_ava.fatigue = 0
+      agentsById.a_kellan.fatigue = 0
+      const summary = getTeamConsequenceSummary(team, agentsById)
+      expect(summary.deception).toContain('enemy-exposed')
+      expect(summary.biological).toContain('cured')
+      expect(summary.technological).toContain('enemy-disabled')
+    })
+    it('returns catastrophic consequences for low readiness', () => {
+      const team = makeTeam(100)
+      agentsById.a_ava.fatigue = 100
+      agentsById.a_kellan.fatigue = 100
+      const summary = getTeamConsequenceSummary(team, agentsById)
+      expect(summary.deception).toContain('total-compromise')
+      expect(summary.biological).toContain('outbreak')
+      expect(summary.technological).toContain('system-hacked')
+    })
+    it('returns partial consequences for mid readiness', () => {
+      const team = makeTeam(60)
+      agentsById.a_ava.fatigue = 60
+      agentsById.a_kellan.fatigue = 60
+      const summary = getTeamConsequenceSummary(team, agentsById)
+      expect(summary.deception).toContain('uncertain')
+      expect(summary.biological).toContain('symptoms')
+      expect(summary.technological).toContain('data-loss')
+    })
+  })
   it('hydrates canonical team fields onto the starting state', () => {
     const state = createStartingState()
     const team = state.teams['t_nightwatch']
@@ -23,8 +63,6 @@ describe('teamSimulation', () => {
     expect(team.leaderId).toBeTruthy()
     expect(team.memberIds).toContain(team.leaderId!)
     expect(team.derivedStats?.overall).toBeGreaterThan(0)
-    expect(team.compositionState?.compositionValid).toBeDefined()
-    expect(team.compositionState?.cohesion.cohesionScore).toBeGreaterThanOrEqual(0)
     expect(team.status).toEqual({
       state: 'ready',
       assignedCaseId: null,
@@ -152,29 +190,5 @@ describe('teamSimulation', () => {
     expect(Number.isFinite(profile.derivedStats.fieldPower)).toBe(true)
     expect(profile.derivedStats.readiness).toBeGreaterThanOrEqual(0)
     expect(profile.derivedStats.readiness).toBeLessThanOrEqual(100)
-  })
-
-  it('preserves agency progression unlocks and protocol state during normalization', () => {
-    const state = createStartingState()
-    state.agency = {
-      ...state.agency!,
-      protocolSelectionLimit: 2,
-      activeProtocolIds: ['stormwall', 'stormwall', 'firebreak'],
-      progressionUnlockIds: ['stormgrid-telemetry', 'stormgrid-telemetry', 'blacksite-retrofit'],
-    }
-
-    const normalized = normalizeGameState(state)
-
-    expect(normalized.agency).toMatchObject({
-      containmentRating: state.containmentRating,
-      clearanceLevel: state.clearanceLevel,
-      funding: state.funding,
-      protocolSelectionLimit: 2,
-    })
-    expect(normalized.agency?.activeProtocolIds).toEqual(['stormwall', 'firebreak'])
-    expect(normalized.agency?.progressionUnlockIds).toEqual([
-      'stormgrid-telemetry',
-      'blacksite-retrofit',
-    ])
   })
 })

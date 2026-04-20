@@ -1,3 +1,42 @@
+import { explainDefeatConditionKnowledge, explainRelayStatus, explainHazardKnowledge, explainRelayChain, explainDecay, explainFusion } from '../../domain/explanations'
+import { useState } from 'react'
+import { useParams } from 'react-router'
+import LocalNotFound from '../../app/LocalNotFound'
+import { APP_ROUTES } from '../../app/routes'
+import { useGameStore } from '../../app/store/gameStore'
+import { calcWeekScore } from '../../domain/sim/scoring'
+import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
+import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
+import { TrendSummaryPanel } from './TrendSummaryPanel'
+import { getRunTrendSummary } from './reportTrendView'
+import {
+  filterReportNotesByCategory,
+  getAvailableReportNoteCategories,
+  REPORT_NOTE_CATEGORY_LABELS,
+  type ReportNoteCategory,
+} from './reportNoteView'
+
+// --- Real-data knowledge/relay/fusion/decay UI helpers ---
+function getTeamAnomalyKnowledgeLadder(knowledge, teamId, anomalyId) {
+  const key = Object.keys(knowledge).find(k => k.includes(teamId) && k.includes(anomalyId))
+  return key ? knowledge[key] : undefined
+}
+function getTeamHazardKnowledgeLadder(knowledge, teamId, hazardId) {
+  const key = Object.keys(knowledge).find(k => k.includes(teamId) && k.includes(hazardId))
+  return key ? knowledge[key] : undefined
+}
+function getRelayChainExplanation(ks) {
+  return ks ? explainRelayChain(ks) : ''
+}
+function getDecayExplanation(ks) {
+  return ks ? explainDecay(ks) : ''
+}
+function getFusionExplanation(ks) {
+  return ks ? explainFusion(ks) : ''
+}
+// UI hook: defeat-condition knowledge and relay status
+// (Stub: replace with real data wiring as needed)
+import { explainDefeatConditionKnowledge, explainRelayStatus } from '../../domain/explanations'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
@@ -18,9 +57,7 @@ import {
 export default function ReportDetailPage() {
   const { week } = useParams()
   const { game } = useGameStore()
-  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
-    'all'
-  )
+  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>('all')
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
@@ -45,20 +82,63 @@ export default function ReportDetailPage() {
   const noteCategoryOptions = getAvailableReportNoteCategories(report.notes)
   const filteredNotes = filterReportNotesByCategory(report.notes, selectedNoteCategory)
 
+  // --- Real-data knowledge/relay/ladder UI wiring ---
+  // For each team in the report, show knowledge ladders and relay/decay/fusion for each anomaly/hazard
+  const teamIds = Object.keys(game.teams)
+  const anomalyIds = Object.keys(game.cases)
+  // Hazards are cases whose template family is 'hazard-incident' or have a 'hazard' tag
+  const hazardIds = Object.values(game.cases)
+    .filter(c => {
+      const template = game.templates[c.templateId]
+      return template?.family === 'hazard-incident' || template?.tags?.includes('hazard')
+    })
+    .map(c => c.id)
+
   return (
     <section className="space-y-4">
-      <article
-        className="panel panel-primary space-y-4"
-        role="region"
-        aria-label="Weekly report dossier"
-      >
+      <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
+        {/* Real-data knowledge ladders and relay/decay/fusion status */}
+        <div className="my-2 p-2 bg-blue-50 rounded text-xs">
+          <strong>Knowledge Ladders & Relay Status:</strong>
+          <ul className="mt-1 space-y-1">
+            {teamIds.map(teamId => (
+              <li key={teamId}>
+                <span className="font-semibold">Team {teamId}:</span>
+                <ul className="ml-2">
+                  {anomalyIds.map(anomalyId => {
+                    const ks = getTeamAnomalyKnowledgeLadder(game.knowledge, teamId, anomalyId)
+                    if (!ks) return null
+                    return (
+                      <li key={anomalyId}>
+                        <span className="text-blue-900">Anomaly {anomalyId}:</span> {explainDefeatConditionKnowledge(game.knowledge, teamId, anomalyId)}
+                        {getRelayChainExplanation(ks) && <span className="ml-2 text-yellow-700">{getRelayChainExplanation(ks)}</span>}
+                        {getDecayExplanation(ks) && <span className="ml-2 text-gray-500">{getDecayExplanation(ks)}</span>}
+                        {getFusionExplanation(ks) && <span className="ml-2 text-green-700">{getFusionExplanation(ks)}</span>}
+                      </li>
+                    )
+                  })}
+                  {hazardIds.map(hazardId => {
+                    const ks = getTeamHazardKnowledgeLadder(game.knowledge, teamId, hazardId)
+                    if (!ks) return null
+                    return (
+                      <li key={hazardId}>
+                        <span className="text-red-900">Hazard {hazardId}:</span> {explainHazardKnowledge(ks)}
+                        {getRelayChainExplanation(ks) && <span className="ml-2 text-yellow-700">{getRelayChainExplanation(ks)}</span>}
+                        {getDecayExplanation(ks) && <span className="ml-2 text-gray-500">{getDecayExplanation(ks)}</span>}
+                        {getFusionExplanation(ks) && <span className="ml-2 text-green-700">{getFusionExplanation(ks)}</span>}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm font-medium">
             {REPORT_LABELS.week} {report.week}
           </p>
-          <p
-            className={`text-sm font-semibold ${weekScore >= 0 ? 'text-green-400' : 'text-red-400'}`}
-          >
+          <p className={`text-sm font-semibold ${weekScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {weekScore >= 0 ? '+' : ''}
             {weekScore} {REPORT_LABELS.points}
           </p>

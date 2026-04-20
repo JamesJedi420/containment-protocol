@@ -1,0 +1,3 @@
+// cSpell:words kellan medkits daywatch
+hotspots
+spawneds

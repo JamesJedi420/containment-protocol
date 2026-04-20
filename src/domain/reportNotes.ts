@@ -1,17 +1,151 @@
-// cspell:words stabilised
+// Surface escalation consequences and severe hits in report notes
+import {
+  describeConsequenceRoute,
+  resolveConsequenceRoute,
+} from './shared/outcomes'
+import { inspectDistortion } from './shared/distortion'
+import { buildFactionStates } from './factions'
+import {
+  type CaseInstance,
+  type GameState,
+  type ReportNote,
+} from './models'
+
+export function buildEscalationConsequenceNote(
+  escalatedCase: CaseInstance,
+  week: number
+): ReportNote | null {
+  const family = escalatedCase.threatFamily ?? 'containment'
+  const band = escalatedCase.escalationBand ?? 'partial'
+  const fallbackRoute = resolveConsequenceRoute(
+    family,
+    band,
+    (escalatedCase.severeHit?.length ?? 0) > 0
+  )
+  const route = {
+    ...fallbackRoute,
+    consequences: escalatedCase.consequences ?? fallbackRoute.consequences,
+    severeHit: escalatedCase.severeHit ?? fallbackRoute.severeHit,
+  }
+
+  if (route.consequences.length === 0 && route.severeHit.length === 0) {
+    return null
+  }
+
+  return createDeterministicReportNote(
+    `Escalation Consequences — ${describeConsequenceRoute(route, escalatedCase.counterExplanation)}`,
+    week,
+    910,
+    undefined,
+    'system.escalation_consequence',
+    {
+      caseId: escalatedCase.id,
+      threatFamily: family,
+      escalationBand: route.band,
+      consequences: route.consequences,
+      severeHit: route.severeHit,
+      counterExplanation: escalatedCase.counterExplanation ?? null,
+      week,
+    }
+  )
+}
+// Surface Threshold Court proxy-conflict effect in report notes
+import { ProxyConflictOutcome } from './proxyConflict'
+
+export function buildThresholdCourtProxyConflictNote(outcome: ProxyConflictOutcome, week: number): ReportNote | null {
+  if (outcome.effect === 'proxy_interference') {
+    return createDeterministicReportNote(
+      `Threshold Court Proxy Conflict — ${outcome.explanation}`,
+      week,
+      911,
+      undefined,
+      'system.proxy_conflict',
+      {
+        effect: outcome.effect,
+        week,
+      }
+    )
+  }
+  return null
+}
+// Surface Threshold Court protocol contact outcome in report notes
+import { ProtocolContactOutcome } from './protocol'
+
+export function buildThresholdCourtProtocolNote(outcome: ProtocolContactOutcome, week: number): ReportNote {
+  return createDeterministicReportNote(
+    `Threshold Court Contact — ${outcome.explanation}`,
+    week,
+    913,
+    undefined,
+    'system.protocol_contact',
+    {
+      outcome: outcome.outcome,
+      reliabilityDelta: outcome.reliabilityDelta,
+      distortionDelta: outcome.distortionDelta,
+      week,
+    }
+  )
+}
+// SPE-52: Add a system note surfacing anchor faction instability at end of week
+export function buildAnchorFactionInstabilityNote(
+  game: Pick<
+    GameState,
+    | 'agency'
+    | 'containmentRating'
+    | 'clearanceLevel'
+    | 'funding'
+    | 'cases'
+    | 'reports'
+    | 'market'
+    | 'events'
+  >,
+  week: number
+): ReportNote | null {
+  try {
+    const states = buildFactionStates(game)
+    if (!states || states.length === 0) return null
+    const anchor = states[0]
+    const distortion = inspectDistortion(anchor.distortion)
+    return createDeterministicReportNote(
+      `Anchor Faction Instability — Cohesion: ${anchor.cohesion}, Agenda Pressure: ${anchor.agendaPressure}, Reliability: ${anchor.reliability}, Distortion: ${anchor.distortion} (${distortion.summary})`,
+      week,
+      914,
+      undefined,
+      'system.anchor_instability',
+      {
+        cohesion: anchor.cohesion,
+        agendaPressure: anchor.agendaPressure,
+        reliability: anchor.reliability,
+        distortion: anchor.distortion,
+        distortionStates: distortion.states,
+        distortionSummary: distortion.summary,
+        factionId: anchor.id,
+        week,
+      }
+    )
+  } catch {
+    return null
+  }
+}
 import { getMarketPressureLabel } from '../data/production'
 import {
   getMissionRewardFactionStandingNet,
   getMissionRewardInventoryTotals,
 } from './missionResults'
-import { formatProductionMaterialSummary, formatProductionOutputLabel } from './crafting'
 import {
+  type WeeklyReport,
   type MissionRewardBreakdown,
   type OperationEvent,
-  type ReportNote,
   type ReportNoteMetadata,
 } from './models'
 import { type AnyOperationEventDraft } from './events'
+
+export interface OutcomeCountSummary {
+  resolved: number
+  partial: number
+  failed: number
+  unresolved: number
+}
 
 const REPORT_NOTE_CLOCK_START_MS = Date.UTC(2042, 0, 1, 0, 0, 0)
 const REPORT_NOTE_WEEK_MS = 7 * 24 * 60 * 60 * 1000
@@ -19,8 +153,6 @@ const HISTORICAL_REPORT_NOTE_EVENT_TYPES = new Set<OperationEvent['type']>([
   'recruitment.scouting_initiated',
   'recruitment.scouting_refined',
   'recruitment.intel_confirmed',
-  'faction.standing_changed',
-  'faction.unlock_available',
 ])
 
 function normalizeWeek(week: number) {
@@ -78,6 +210,67 @@ export function createDeterministicReportNote(
   return note
 }
 
+export function formatResolvedCaseNoteContent(caseTitle: string, rewardSummary?: string | null) {
+  return `${caseTitle}: operation concluded. Threat contained.${rewardSummary ? ` ${rewardSummary}` : ''}`
+}
+
+export function formatPartialCaseNoteContent(caseTitle: string, rewardSummary?: string | null) {
+  return `${caseTitle}: partially stabilised. Case returned to active queue.${rewardSummary ? ` ${rewardSummary}` : ''}`
+}
+
+export function formatFailedCaseNoteContent(
+  caseTitle: string,
+  stage: number,
+  rewardSummary?: string | null
+) {
+  return `${caseTitle}: containment failed. Threat escalated to Stage ${stage}.${rewardSummary ? ` ${rewardSummary}` : ''}`
+}
+
+export function formatEscalatedCaseNoteContent(
+  caseTitle: string,
+  stage: number,
+  rewardSummary?: string | null
+) {
+  return `${caseTitle}: deadline lapsed. Escalated to Stage ${stage}.${rewardSummary ? ` ${rewardSummary}` : ''}`
+}
+
+export function formatWeekDeltaNoteContent(delta: number) {
+  return `Breach score delta: ${delta >= 0 ? '+' : ''}${delta}.`
+}
+
+export function formatSpawnFollowUpNoteContent(count: number) {
+  return `${count} follow-up operation(s) opened.`
+}
+
+export function formatRaidConvertedNoteContent() {
+  return 'Converted to multi-team operation.'
+}
+
+export function countWeeklyReportOutcomes(
+  report: Pick<WeeklyReport, 'resolvedCases' | 'partialCases' | 'failedCases' | 'unresolvedTriggers'>
+): OutcomeCountSummary {
+  return {
+    resolved: report.resolvedCases.length,
+    partial: report.partialCases.length,
+    failed: report.failedCases.length,
+    unresolved: report.unresolvedTriggers.length,
+  }
+}
+
+export function formatOutcomeCountSummary(summary: OutcomeCountSummary) {
+  return `${summary.resolved} resolved / ${summary.partial} partial / ${summary.failed} failed / ${summary.unresolved} unresolved`
+}
+
+export function formatLatestReportRollup(
+  report: Pick<
+    WeeklyReport,
+    'resolvedCases' | 'partialCases' | 'failedCases' | 'unresolvedTriggers' | 'spawnedCases'
+  >
+) {
+  const outcomes = formatOutcomeCountSummary(countWeeklyReportOutcomes(report))
+  return `${outcomes} / ${report.spawnedCases.length} spawned ${report.spawnedCases.length === 1 ? 'case' : 'cases'}`
+}
+
 function buildReflectedReportNote(draft: AnyOperationEventDraft): {
   content: string
   type: NonNullable<ReportNote['type']>
@@ -95,7 +288,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
   switch (draft.type) {
     case 'case.resolved':
       return {
-        content: `${draft.payload.caseTitle}: operation concluded. Threat contained.${rewardSummary ? ` ${rewardSummary}` : ''}`,
+        content: formatResolvedCaseNoteContent(draft.payload.caseTitle, rewardSummary),
         type: 'case.resolved',
         metadata: {
           caseId: draft.payload.caseId,
@@ -107,7 +300,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'case.partially_resolved':
       return {
-        content: `${draft.payload.caseTitle}: partially stabilised. Case returned to active queue.${rewardSummary ? ` ${rewardSummary}` : ''}`,
+        content: formatPartialCaseNoteContent(draft.payload.caseTitle, rewardSummary),
         type: 'case.partially_resolved',
         metadata: {
           caseId: draft.payload.caseId,
@@ -120,7 +313,11 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'case.failed':
       return {
-        content: `${draft.payload.caseTitle}: containment failed. Threat escalated to Stage ${draft.payload.toStage}.${rewardSummary ? ` ${rewardSummary}` : ''}`,
+        content: formatFailedCaseNoteContent(
+          draft.payload.caseTitle,
+          draft.payload.toStage,
+          rewardSummary
+        ),
         type: 'case.failed',
         metadata: {
           caseId: draft.payload.caseId,
@@ -133,7 +330,11 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'case.escalated':
       return {
-        content: `${draft.payload.caseTitle}: deadline lapsed. Escalated to Stage ${draft.payload.toStage}.${rewardSummary ? ` ${rewardSummary}` : ''}`,
+        content: formatEscalatedCaseNoteContent(
+          draft.payload.caseTitle,
+          draft.payload.toStage,
+          rewardSummary
+        ),
         type: 'case.escalated',
         metadata: {
           caseId: draft.payload.caseId,
@@ -150,8 +351,6 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         content:
           draft.payload.trigger === 'world_activity'
             ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? 'A new incident surfaced from baseline world activity.'}`
-            : draft.payload.trigger === 'faction_offer'
-              ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? `${draft.payload.factionLabel ?? 'Faction'} offered this operation through an active channel.`}`
             : draft.payload.trigger === 'faction_pressure'
               ? `${draft.payload.caseTitle}: ${draft.payload.sourceReason ?? `${draft.payload.factionLabel ?? 'Faction'} pressure surfaced this incident.`}`
               : draft.payload.trigger === 'pressure_threshold'
@@ -193,18 +392,18 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
-    case 'production.queue_completed':
+
+    case 'system.equipment_recovered':
       return {
-        content: `${draft.payload.queueName}: fabrication completed. Produced ${formatProductionOutputLabel(draft.payload.outputQuantity, draft.payload.outputName)} from ${formatProductionMaterialSummary(draft.payload.inputMaterials)}.`,
-        type: 'production.queue_completed',
+        content: draft.payload.content,
+        type: 'system.equipment_recovered',
         metadata: {
-          queueId: draft.payload.queueId,
-          queueName: draft.payload.queueName,
-          recipeId: draft.payload.recipeId,
-          outputId: draft.payload.outputId,
-          outputQuantity: draft.payload.outputQuantity,
-          fundingCost: draft.payload.fundingCost,
-          materialsSummary: formatProductionMaterialSummary(draft.payload.inputMaterials),
+          recovered: Array.isArray(draft.payload.recovered) ? draft.payload.recovered : [],
+          delayed: Array.isArray(draft.payload.delayed) ? draft.payload.delayed : [],
+          recoveredCount: Array.isArray(draft.payload.recovered) ? draft.payload.recovered.length : (typeof draft.payload.recovered === 'number' ? draft.payload.recovered : 0),
+          delayedCount: Array.isArray(draft.payload.delayed) ? draft.payload.delayed.length : (typeof draft.payload.delayed === 'number' ? draft.payload.delayed : 0),
+          maintenanceCapacity: draft.payload.maintenanceCapacity,
+          damagedCount: draft.payload.damagedCount,
         },
       }
 
@@ -238,7 +437,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'faction.standing_changed':
       return {
-        content: `${draft.payload.factionName}: reputation ${formatSignedNumber(draft.payload.delta)} after ${draft.payload.caseTitle ?? draft.payload.interactionLabel ?? 'recent operations'}${draft.payload.contactName ? `; ${draft.payload.contactName} ${formatSignedNumber(draft.payload.contactDelta ?? 0)}` : ''}.`,
+        content: `${draft.payload.factionName}: standing ${formatSignedNumber(draft.payload.delta)} after ${draft.payload.caseTitle ?? 'recent operations'}.`,
         type: 'faction.standing_changed',
         metadata: {
           factionId: draft.payload.factionId,
@@ -246,29 +445,9 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           delta: draft.payload.delta,
           standingBefore: draft.payload.standingBefore,
           standingAfter: draft.payload.standingAfter,
-          reputationBefore: draft.payload.reputationBefore ?? null,
-          reputationAfter: draft.payload.reputationAfter ?? null,
           reason: draft.payload.reason,
           caseId: draft.payload.caseId ?? null,
           caseTitle: draft.payload.caseTitle ?? null,
-          contactId: draft.payload.contactId ?? null,
-          contactName: draft.payload.contactName ?? null,
-          contactRelationshipBefore: draft.payload.contactRelationshipBefore ?? null,
-          contactRelationshipAfter: draft.payload.contactRelationshipAfter ?? null,
-          contactDelta: draft.payload.contactDelta ?? null,
-        },
-      }
-
-    case 'faction.unlock_available':
-      return {
-        content: `${draft.payload.factionName}: ${draft.payload.label} unlocked${draft.payload.contactName ? ` via ${draft.payload.contactName}` : ''}. ${draft.payload.summary}`,
-        type: 'faction.unlock_available',
-        metadata: {
-          factionId: draft.payload.factionId,
-          factionName: draft.payload.factionName,
-          contactId: draft.payload.contactId ?? null,
-          contactName: draft.payload.contactName ?? null,
-          disposition: draft.payload.disposition,
         },
       }
 

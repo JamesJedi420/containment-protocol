@@ -4,6 +4,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { DetailStat } from '../../components/StatCard'
 import { INTEL_UI_TEXT, MODE_LABELS, ROLE_COVERAGE_LABELS, SHELL_UI_TEXT } from '../../data/copy'
+import { inspectDistortion } from '../../domain/shared/distortion'
 import { getTemplateIntelView } from './intelView'
 
 export default function IntelDetailPage() {
@@ -28,6 +29,9 @@ export default function IntelDetailPage() {
   const convertStage =
     intel.template.onUnresolved.convertToRaidAtStage ?? intel.template.onFail.convertToRaidAtStage
 
+  const distortion = inspectDistortion(intel.template)
+  const distortionText = distortion.primary ? distortion.summary : undefined
+
   return (
     <section className="space-y-4">
       <article className="panel panel-primary space-y-4" role="region" aria-label="Intel dossier">
@@ -35,6 +39,9 @@ export default function IntelDetailPage() {
           <p className="text-xs uppercase tracking-wide opacity-50">{INTEL_UI_TEXT.overview}</p>
           <h2 className="text-xl font-semibold">{intel.template.title}</h2>
           <p className="text-sm opacity-60">{intel.template.description}</p>
+          {distortionText && (
+            <p className="text-sm text-amber-300 opacity-80">Distortion: {distortionText}</p>
+          )}
           <p className="text-sm opacity-60">
             {INTEL_UI_TEXT.loreStub}: {intel.loreStub ?? INTEL_UI_TEXT.noLoreStub}
           </p>

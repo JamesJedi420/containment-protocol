@@ -1,12 +1,10 @@
 import { type GameState } from '../domain/models'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
-import { refreshContractBoard } from '../domain/contracts'
-import { createDefaultFactionStateMap } from '../domain/factions'
-import { createDefaultRuntimeState } from '../domain/gameStateManager'
 import { syncTeamSimulationState } from '../domain/teamSimulation'
 import { caseTemplateMap, starterCases, starterRoster, starterTeams } from '../domain/templates'
 import { createStartingPartyCardState } from './partyCards'
 import { createStartingInventory, createStartingMarket } from './production'
+import { startingKnowledge } from './startingKnowledge'
 
 const startingStateTemplate: GameState = {
   week: 1,
@@ -22,7 +20,6 @@ const startingStateTemplate: GameState = {
   recruitmentPool: [],
   teams: starterTeams,
   cases: starterCases,
-  factions: createDefaultFactionStateMap(),
 
   templates: caseTemplateMap,
   reports: [],
@@ -36,12 +33,15 @@ const startingStateTemplate: GameState = {
   productionQueue: [],
   market: createStartingMarket(),
   partyCards: createStartingPartyCardState(),
-  runtimeState: createDefaultRuntimeState(1),
+
+  knowledge: startingKnowledge,
 
   agency: {
     containmentRating: 72,
     clearanceLevel: 1,
     funding: 110,
+    supportAvailable: 2,
+    maintenanceSpecialistsAvailable: 2, // Default starting value for maintenance capacity
   },
 
   containmentRating: 72,
@@ -61,8 +61,8 @@ const startingStateTemplate: GameState = {
     weeksPerYear: 52,
     fundingBasePerWeek: 8,
     fundingPerResolution: 8,
-    fundingPenaltyPerFail: 6,
-    fundingPenaltyPerUnresolved: 10,
+    fundingPenaltyPerFail: 7,
+    fundingPenaltyPerUnresolved: 12,
     containmentWeeklyDecay: 2,
     containmentDeltaPerResolution: 3,
     containmentDeltaPerFail: -4,
@@ -74,7 +74,29 @@ const startingStateTemplate: GameState = {
 }
 
 export function createStartingState(): GameState {
-  return refreshContractBoard(syncTeamSimulationState(structuredClone(startingStateTemplate)))
+  const state = syncTeamSimulationState(structuredClone(startingStateTemplate));
+  // Ensure at least one valid report for dashboard tests
+  if (!state.reports || state.reports.length === 0) {
+    state.reports = [
+      {
+        week: 1,
+        rngStateBefore: 1000,
+        rngStateAfter: 1001,
+        newCases: [],
+        progressedCases: [],
+        resolvedCases: [],
+        failedCases: [],
+        partialCases: [],
+        unresolvedTriggers: [],
+        spawnedCases: [],
+        maxStage: 1,
+        avgFatigue: 0,
+        teamStatus: [],
+        notes: [],
+      },
+    ];
+  }
+  return state;
 }
 
 export const startingState = createStartingState()

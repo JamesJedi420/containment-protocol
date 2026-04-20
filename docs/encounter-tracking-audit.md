@@ -1,4 +1,4 @@
-wwwwww# Encounter Tracking Audit (Design Support)
+# Encounter Tracking Audit (Design Support)
 
 > Scope: documentation-only support note for encounter state tracking in Containment Protocol.
 >

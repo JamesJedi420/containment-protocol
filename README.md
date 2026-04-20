@@ -15,7 +15,7 @@
 - **Domain Layer**: Pure simulation logic (`src/domain/**`), no UI or orchestration imports
 - **Store/Orchestration**: State management and selectors (`src/app/store/**`)
 - **Projection/View-Model**: Pure selectors and view-models (`src/features/*View.ts`)
-- **UI/Components**: Presentational React components (`src/features/**`, `src/styles/**`) that prefer projections, but render canonical domain summaries where shared explanatory output is the single source of truth
+- **UI/Components**: Presentational React components (`src/features/**`, `src/styles/**`)
 - Enforced by lint and test guardrails (see `docs/dependency-boundaries.md`)
 
 ### UI/UX Features
@@ -48,13 +48,12 @@ Early UI/logic prototype preserved in `docs/archived/incident-shell/` (not part 
 
 ## Recent Updates (2026-04)
 
-- **Canonical per-tick outcome registrar and exclusive bucketing (SPE-20)**: All case outcome assignment (resolved, failed, partial, unresolved) is now routed through a single canonical registrar in the simulation engine. This guarantees exclusive bucketing per tick and prevents double-bucketing. All surfacing and simulation/scheduler tests now pass with zero failures, and post-tick assertions enforce exclusivity.
-- **Shared rules substrate closed and documented (SPE-41)**: Canonical shared rules now live in `src/domain/shared/tags.ts`, `src/domain/shared/outcomes.ts`, `src/domain/shared/modifiers.ts`, and `src/domain/shared/distortion.ts`. Report-note formatting and strategic surfacing are centralized in domain helpers, and dashboard, agency, containment, and shared copy surfaces now render canonical outputs instead of re-deriving local interpretations.
 - **Equipment feature fully restored and validated**: All UI and integration tests for the equipment system now pass. The equipment page, loadout controls, and recommendations are fully functional and regression-tested.
+- **Bounded supply network substrate (Issue #72)**: The campaign state now includes explicit connected-source support tracing via `src/domain/supplyNetwork.ts`, with strategic nodes, road links, vulnerable truck-column transport, blocked-path explanations, weekly report snapshots, and dashboard or agency surfacing.
 - **Maintenance specialist bottleneck for equipment recovery (SPE-94)**: Equipment recovery throughput is now strictly gated by a bounded maintenance specialist pool. Missing or overcommitting this role creates a visible bottleneck, surfaced in player-facing reports. See `docs/maintenance-specialist-bottleneck.md` for details.
 - **Canonicalization and bounded niche system**: All niche effects, tags, and specialist unlocks are now defined in canonical modules under `src/domain/`, with strict boundaries enforced between domain logic and UI components.
 - **Deterministic simulation and test coverage**: The simulation engine is fully deterministic, with seeded RNG and snapshot-based test validation. All regression, determinism, and scoring tests pass with zero failures.
-- **Canonical explanation ownership**: Player-facing report and explanation surfaces now consume canonical domain-produced summaries for outcome bands, consequence routing, distortion states, and bounded pressure summaries instead of keeping parallel UI-side wording logic.
+- **UI/domain separation**: React components in `src/features/` and `src/styles/` are strictly separated from domain logic in `src/domain/` and state in `src/app/store/`.
 - **Dead code removed**: Legacy and unused code paths have been removed for clarity and maintainability.
 
 All changes are validated by a comprehensive test suite. See the `src/test/` and `src/features/*/*.test.tsx` files for details.
@@ -84,6 +83,7 @@ All changes are validated by a comprehensive test suite. See the `src/test/` and
 - `src/app/App.tsx` defines the gameplay routes for dashboard, cases, teams, and reports
 - `src/app/store/gameStore.ts` holds the simulation state and gameplay actions
 - `src/domain/models.ts` defines the core simulation types
+- `src/domain/supplyNetwork.ts` owns connected-source support tracing, transport assets, blocked-path summaries, and weekly supply rollups
 - `src/domain/sim/*` contains assignment, resolution, spawn, raid, and week-advance logic
 - `src/domain/templates/*` contains starter content sources for class tables, roster/team setup, case templates, and seeded opening cases
 - `src/data/startingState.ts` assembles the initial game state from the template modules

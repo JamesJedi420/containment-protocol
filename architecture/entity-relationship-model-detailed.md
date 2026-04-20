@@ -2,25 +2,30 @@
 
 ## Purpose
 
-This document defines the major entities in Containment Protocol and how they relate to one another.
+This document defines the major entities in Containment Protocol and how
+they relate to one another.
 
 It is intended to:
 
+- clarify entity boundaries and ownership
+- distinguish canonical simulation state from surfaced output
+- provide a shared conceptual model for future systems/docs
 
 This is a conceptual ER model, not a database schema.
 
 ---
+
 ## Core design rule
 
 Containment Protocol is an institution-first game.
 
 The entity model should reflect that:
+
 - reports and surfaced output are downstream of canonical domain state
+
 ---
 
-
 ## 1. High-level entity map
-
 
 ```text
 Agency
@@ -54,13 +59,12 @@ Missions
 
 ---
 
-
 ## 2. Primary entities
-
 
 ### Agency
 
-**Description:** The player-controlled organization. This is the root institutional entity.
+**Description:** The player-controlled organization. This is the root
+institutional entity.
 
 **Owns:**
 
@@ -83,10 +87,10 @@ Missions
 - has many reports
 - responds to many incidents through missions
 
-
 ### Operative
 
-**Description:** A field-capable individual who can be trained, equipped, deployed, injured, recovered, lost, or replaced.
+**Description:** A field-capable individual who can be trained, equipped,
+deployed, injured, recovered, lost, or replaced.
 
 **Key relationships:**
 
@@ -98,8 +102,8 @@ Missions
 - may carry many gear items
 
 **Notes:**
-Operatives matter as systemically meaningful field assets, but the game should avoid becoming a full life-sim.
-
+Operatives matter as systemically meaningful field assets, but the game
+should avoid becoming a full life-sim.
 
 ### Team
 
@@ -115,10 +119,10 @@ Operatives matter as systemically meaningful field assets, but the game should a
 **Notes:**
 Team is the main bridge between agency state and operational resolution.
 
-
 ### Incident
 
-**Description:** A simulated problem, anomaly, threat, crisis, or pressure source requiring attention.
+**Description:** A simulated problem, anomaly, threat, crisis, or pressure
+source requiring attention.
 
 **Key relationships:**
 
@@ -129,8 +133,8 @@ Team is the main bridge between agency state and operational resolution.
 - may escalate if ignored or partially resolved
 
 **Notes:**
-Incident is not the same thing as mission. An incident is the problem. A mission is the player’s response path.
-
+Incident is not the same thing as mission. An incident is the problem.
+A mission is the player's response path.
 
 ### Mission
 
@@ -149,10 +153,10 @@ Incident is not the same thing as mission. An incident is the problem. A mission
 **Notes:**
 Mission is the core operational execution entity.
 
-
 ### Faction
 
-**Description:** An external or semi-external organization, bloc, institution, or rival force.
+**Description:** An external or semi-external organization, bloc,
+institution, or rival force.
 
 **Key relationships:**
 
@@ -167,10 +171,11 @@ Mission is the core operational execution entity.
 **Notes:**
 Factions are persistent actors shaping pressure and opportunity.
 
-
 ### Hub
 
-**Description:** The bounded staging layer between operational weeks where opportunities, rumors, services, faction presence, and informational surfaces appear.
+**Description:** The bounded staging layer between operational weeks
+where opportunities, rumors, services, faction presence, and
+informational surfaces appear.
 
 **Key relationships:**
 
@@ -183,10 +188,10 @@ Factions are persistent actors shaping pressure and opportunity.
 **Notes:**
 The hub is not a separate city sim. It is a campaign-facing surfaced environment.
 
-
 ### Facility
 
-**Description:** A persistent institutional structure or upgrade that changes agency capability.
+**Description:** A persistent institutional structure or upgrade that
+changes agency capability.
 
 **Key relationships:**
 
@@ -196,10 +201,10 @@ The hub is not a separate city sim. It is a campaign-facing surfaced environment
 **Notes:**
 Facilities are long-horizon progression entities.
 
-
 ### Knowledge state
 
-**Description:** The player-facing record of what is known, discovered, suspected, or partially understood.
+**Description:** The player-facing record of what is known, discovered,
+suspected, or partially understood.
 
 **Key relationships:**
 
@@ -208,7 +213,6 @@ Facilities are long-horizon progression entities.
 
 **Notes:**
 This separates world truth from player knowledge.
-
 
 ### Economy state
 
@@ -223,10 +227,10 @@ This separates world truth from player knowledge.
 **Notes:**
 If split across agency and economy, canonical ownership must be explicit.
 
-
 ### Report
 
-**Description:** A player-facing summary of weekly events, operational results, bottlenecks, and consequences.
+**Description:** A player-facing summary of weekly events, operational
+results, bottlenecks, and consequences.
 
 **Key relationships:**
 
@@ -239,9 +243,7 @@ Reports are output entities, not sources of truth for simulation logic.
 
 ---
 
-
 ## 3. Supporting entities
-
 
 - Support state: Institutional non-field capacity affecting throughput and follow-through.
 - Support specialist: A bounded agency-side capability role.
@@ -254,13 +256,11 @@ Reports are output entities, not sources of truth for simulation logic.
 
 ---
 
-
 ## 4. Relationship breakdown
-
 
 - Agency 1 ---- * Operative
 - Agency 1 ---- * Team
-- Team 1 ---- * Operative (Operative * ---- 0..1 active Team)
+- Team 1 ---- \* Operative (Operative \* ---- 0..1 active Team)
 - Incident 1 ---- * Mission
 - Mission * ---- 1 Team
 - Mission * ---- 1 Incident
@@ -274,7 +274,6 @@ Reports are output entities, not sources of truth for simulation logic.
 - Agency 1 ---- 1 HubState
 
 ---
-
 
 ## 5. Mermaid ER diagram
 
@@ -317,23 +316,21 @@ erDiagram
 
 ---
 
-
 ## 6. Canonical ownership guidance by entity
 
-
-- Agency owns: support state, specialist state, institutional pressure, legitimacy/standing/funding, high-level coordination/overload state
+- Agency owns: support state, specialist state, institutional pressure,
+  legitimacy/standing/funding, high-level coordination/overload state
 - Team owns: active team membership, team-local cohesion, deployment state
 - Operative owns: injury/trauma/certification/role/loadout
 - Incident owns: threat identity, severity, escalation, unresolved problem state
-- Mission owns: operational response state, assignment, mission-local outcome, follow-through, mission-local fallout
+- Mission owns: operational response state, assignment, mission-local
+  outcome, follow-through, mission-local fallout
 - Hub owns: surfaced opportunities, rumors, district/service/faction-presence output
 - Report owns: explanation output only
 
 ---
 
-
 ## 7. Common modeling mistakes to avoid
-
 
 - Duplicating institutional state
 - Treating incidents and missions as the same entity
@@ -342,7 +339,6 @@ erDiagram
 - Letting hub state become a second world sim
 
 ---
-
 
 ## 8. Suggested future diagrams
 
@@ -356,7 +352,6 @@ This ER model should eventually be paired with:
 
 ---
 
-
 ## 9. Summary
 
 Containment Protocol’s entity model is built around:
@@ -369,4 +364,5 @@ Containment Protocol’s entity model is built around:
 - reports as downstream explanatory output
 
 The key structural rule is simple:
-institutional state should stay canonical, operational state should stay bounded, and surfaced output should stay derived.
+institutional state should stay canonical, operational state should stay
+bounded, and surfaced output should stay derived.

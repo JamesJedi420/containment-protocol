@@ -126,4 +126,151 @@ describe('agency', () => {
     expect(stressedSummary.report.failed).toBe(1)
     expect(stressedSummary.report.unresolved).toBe(1)
   })
+
+  it('surfaces territorial power through the agency summary without local recomputation', () => {
+    const game = createStartingState()
+    game.territorialPower = {
+      nodes: [
+        {
+          id: 'node-cairn',
+          yield: 5,
+          suppressed: false,
+          controller: 'Containment Protocol',
+        },
+      ],
+      conduits: [
+        {
+          from: 'node-cairn',
+          to: 'ward-north',
+          status: 'open',
+          capacity: 3,
+        },
+      ],
+      castingEligibility: [
+        {
+          scopeId: 'node-cairn',
+          scopeType: 'node',
+          eligible: true,
+        },
+      ],
+      lastExpenditure: {
+        scopeId: 'node-cairn',
+        scopeType: 'node',
+        nodeId: 'node-cairn',
+        result: 'spent',
+        amount: 3,
+        availableYield: 5,
+        conduitCapacity: 3,
+      },
+    }
+
+    const summary = buildAgencySummary(game)
+
+    expect(summary.territorialPower).toMatchObject({
+      nodeCount: 1,
+      availableYield: 5,
+      openConduitCount: 1,
+      eligibleScopeCount: 1,
+    })
+    expect(summary.territorialPower.controllers).toEqual(['Containment Protocol'])
+  })
+
+  it('surfaces supply-network state through the agency summary without local recomputation', () => {
+    const game = createStartingState()
+    game.supplyNetwork = {
+      nodes: [
+        {
+          id: 'node-command',
+          label: 'Directorate Command',
+          type: 'command_center',
+          controller: 'agency',
+          active: true,
+          strategicValue: 3,
+          regionTags: ['global'],
+        },
+        {
+          id: 'node-corridor',
+          label: 'North Corridor',
+          type: 'corridor',
+          controller: 'agency',
+          active: true,
+          strategicValue: 4,
+          regionTags: ['occult_district'],
+        },
+      ],
+      sources: [
+        {
+          id: 'source-command',
+          label: 'Directorate Dispatch',
+          type: 'command',
+          nodeId: 'node-command',
+          active: true,
+          throughput: 2,
+        },
+      ],
+      links: [
+        {
+          id: 'link-command-corridor',
+          from: 'node-command',
+          to: 'node-corridor',
+          mode: 'road',
+          status: 'open',
+          capacity: 1,
+        },
+      ],
+      transportAssets: [
+        {
+          id: 'transport-main',
+          label: 'Main Column',
+          class: 'truck_column',
+          mode: 'road',
+          status: 'ready',
+          lift: 1,
+          fragility: 2,
+          routeNodeIds: ['node-command', 'node-corridor'],
+        },
+      ],
+      traces: [
+        {
+          regionTag: 'global',
+          state: 'supported',
+          sourceId: 'source-command',
+          sourceLabel: 'Directorate Dispatch',
+          targetNodeId: 'node-command',
+          targetNodeLabel: 'Directorate Command',
+          transportAssetId: 'transport-main',
+          transportAssetLabel: 'Main Column',
+          pathNodeIds: ['node-command'],
+          pathLinkIds: [],
+          deliveredLift: 1,
+          explanation: 'global: Directorate Dispatch reached Directorate Command via Main Column.',
+        },
+        {
+          regionTag: 'occult_district',
+          state: 'supported',
+          sourceId: 'source-command',
+          sourceLabel: 'Directorate Dispatch',
+          targetNodeId: 'node-corridor',
+          targetNodeLabel: 'North Corridor',
+          transportAssetId: 'transport-main',
+          transportAssetLabel: 'Main Column',
+          pathNodeIds: ['node-command', 'node-corridor'],
+          pathLinkIds: ['link-command-corridor'],
+          deliveredLift: 1,
+          explanation: 'occult_district: Directorate Dispatch reached North Corridor via Main Column.',
+        },
+      ],
+    }
+
+    const summary = buildAgencySummary(game)
+
+    expect(summary.supplyNetwork).toMatchObject({
+      tracedRegionCount: 2,
+      supportedRegionCount: 2,
+      unsupportedRegionCount: 0,
+      readyTransportCount: 1,
+      deliveredLift: 2,
+      strategicControlScore: 7,
+    })
+  })
 })

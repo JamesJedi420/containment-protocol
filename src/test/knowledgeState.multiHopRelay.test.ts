@@ -4,7 +4,6 @@ import { applyRelay, applyRelayFailure, getKnowledgeKey } from '../domain/knowle
 
 describe('Multi-hop/Chained Relay', () => {
   it('should relay knowledge from team A to B, then B to C', () => {
-    const initial = {}
     const teamA = 'A', teamB = 'B', teamC = 'C', anomalyId = 'X1'
     // Team A senses anomaly
     let state = { [getKnowledgeKey(teamA, anomalyId)]: { tier: 'confirmed', entityId: teamA, subjectId: anomalyId, subjectType: 'anomaly', lastConfirmedWeek: 1 } }

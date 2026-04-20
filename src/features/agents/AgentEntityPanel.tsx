@@ -352,6 +352,24 @@ export function AgentEntityPanel({
               value={materialized.identity.background ?? 'No background on file'}
             />
             <DossierItem
+              label="Lineage potential"
+              value={materialized.inheritance.latentLineageTier}
+            />
+            <DossierItem
+              label="Realized inheritance"
+              value={materialized.inheritance.realizedTier}
+            />
+            <DossierItem
+              label="Succession update"
+              value={
+                materialized.inheritance.lastOutcomeLabel
+                  ? materialized.inheritance.lastUpdatedWeek !== undefined
+                    ? `${materialized.inheritance.lastOutcomeLabel} / Week ${materialized.inheritance.lastUpdatedWeek}`
+                    : materialized.inheritance.lastOutcomeLabel
+                  : 'No inheritance transfer logged'
+              }
+            />
+            <DossierItem
               label="Assignment started"
               value={
                 materialized.assignment.startedWeek !== undefined
@@ -408,6 +426,23 @@ export function AgentEntityPanel({
                   : SHELL_UI_TEXT.none
               }
             />
+          </div>
+
+          <div className="rounded border border-white/10 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">Held authority</p>
+            {materialized.inheritance.heldAuthorities.length > 0 ? (
+              <ul className="mt-3 space-y-2 text-sm opacity-80">
+                {materialized.inheritance.heldAuthorities.map((authority) => (
+                  <li key={authority.id}>
+                    <div className="font-medium">{authority.label}</div>
+                    <div className="opacity-60">{authority.metricsLabel}</div>
+                    <div className="opacity-60">{authority.statusLabel}</div>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm opacity-60">No authority holdings currently assigned.</p>
+            )}
           </div>
         </article>
 

@@ -1,9 +1,8 @@
 // SPE-59: Unknown Interaction Engine (bounded pass)
 // Deterministic tests for unknown/partial/confirmed reveal progression, misread, context, and explanation output
 import { describe, it, expect } from 'vitest'
-import { applyKnowledgeFusion, applyKnowledgeDecay, getKnowledgeKey, KnowledgeState, KnowledgeTier } from '../domain/knowledge'
+import { KnowledgeState, KnowledgeTier } from '../domain/knowledge'
 import { resolveScouting } from '../domain/scoutingResolution'
-import { getOutcomeBand } from '../domain/outcomes'
 import { buildReportCaseSnapshot } from '../app/store/runTransfer'
 
 // Helper: build minimal knowledge state

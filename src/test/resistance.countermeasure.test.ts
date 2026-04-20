@@ -9,13 +9,13 @@ describe('Resistance and Countermeasure Interaction', () => {
   });
 
   it('detects effective countermeasures', () => {
-    const check = { family: 'deception', presentTags: ['thermal-vision', 'scout'] };
+    const check = { family: 'deception' as const, presentTags: ['thermal-vision', 'scout'] };
     expect(hasEffectiveCountermeasure(check)).toBe(true);
     expect(explainCountermeasures(check)).toContain('thermal-vision');
   });
 
   it('returns false for missing countermeasures', () => {
-    const check = { family: 'containment', presentTags: ['scout'] };
+    const check = { family: 'containment' as const, presentTags: ['scout'] };
     expect(hasEffectiveCountermeasure(check)).toBe(false);
     expect(explainCountermeasures(check)).toContain('No effective');
   });

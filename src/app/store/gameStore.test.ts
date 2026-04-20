@@ -47,6 +47,44 @@ function expectCanonicalTeams(game: ReturnType<typeof createStartingState>) {
   }
 }
 
+function expectFreshStartingGame(game: ReturnType<typeof createStartingState>) {
+  const actual = JSON.parse(JSON.stringify(game)) as Record<string, unknown>
+  const expected = JSON.parse(JSON.stringify(createStartingState())) as Record<string, unknown>
+
+  delete actual.reports
+  delete expected.reports
+
+  expect(actual).toEqual(expected)
+  expect(game.reports).toHaveLength(1)
+  expect(game.reports[0]).toMatchObject({
+    week: 1,
+    rngStateBefore: 1000,
+    rngStateAfter: 1001,
+    resolvedCases: [],
+    failedCases: [],
+    partialCases: [],
+    notes: [],
+  })
+  expect(game.reports[0]?.caseSnapshots).toMatchObject({
+    'case-001': {
+      caseId: 'case-001',
+      status: 'open',
+      title: 'Vampire Nest in the Stockyards',
+    },
+    'case-002': {
+      caseId: 'case-002',
+      status: 'open',
+      title: 'The Whispering Archive',
+    },
+    'case-003': {
+      caseId: 'case-003',
+      status: 'open',
+      title: 'Eclipse Ritual at the Riverfront',
+    },
+  })
+  expectCanonicalTeams(game)
+}
+
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
@@ -750,7 +788,7 @@ describe('gameStore persistence', () => {
 
     await useGameStore.persist.rehydrate()
 
-    expect(useGameStore.getState().game).toEqual(JSON.parse(JSON.stringify(createStartingState())))
+    expectFreshStartingGame(useGameStore.getState().game)
   })
 
   it('ignores malformed persisted game payloads that are not objects', async () => {
@@ -765,7 +803,7 @@ describe('gameStore persistence', () => {
 
     await useGameStore.persist.rehydrate()
 
-    expect(useGameStore.getState().game).toEqual(JSON.parse(JSON.stringify(createStartingState())))
+    expectFreshStartingGame(useGameStore.getState().game)
   })
 
   it('discards pre-versioned saves and rehydrates to a fresh starting state', async () => {

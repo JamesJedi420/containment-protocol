@@ -1,5 +1,5 @@
         it('recovers from fragmentation (demotion → promotion)', () => {
-          let state = createStartingState()
+          const state = createStartingState()
           state.teams['t_demo'] = { ...state.teams['t_nightwatch'], id: 't_demo', name: 'Demo', memberIds: [], status: {} }
           const caseId = 'case-demo-fragmented'
           state.cases[caseId] = {
@@ -36,7 +36,7 @@
         })
 
         it('manages lastDecayWeek and fragmentation metadata', () => {
-          let state = createStartingState()
+          const state = createStartingState()
           state.teams['t_frag'] = { ...state.teams['t_nightwatch'], id: 't_frag', name: 'Frag', memberIds: [], status: {} }
           const caseId = 'case-frag-meta'
           state.cases[caseId] = {
@@ -78,7 +78,7 @@
         const subjectTypes = ['site', 'anomaly', 'hazard', 'protocol', 'procedure']
         for (const entityType of ownerTypes) {
           for (const subjectType of subjectTypes) {
-            let state = createStartingState()
+            const state = createStartingState()
             // Add a synthetic team or entity if needed
             if (entityType === 'team') {
               state.teams['t_x'] = { ...state.teams['t_nightwatch'], id: 't_x', name: 'X', memberIds: [], status: {} }
@@ -193,7 +193,7 @@
   })
 
   it('records source metadata for knowledge', () => {
-    let state = createStartingState()
+    const state = createStartingState()
     // Ensure both team and case exist
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
@@ -217,7 +217,7 @@
       stage: 1,
       onFail: { stageDelta: 1 },
     }
-    let next = advanceWeek(state)
+    const next = advanceWeek(state)
     const key = getKnowledgeKey('t_nightwatch', 'case-004')
     expect(next.knowledge[key]).toBeDefined()
     expect(next.knowledge[key].source).toBe('field')
@@ -256,7 +256,7 @@ describe('Knowledge-State Expansion', () => {
 
   it('records observed knowledge on partial outcome', () => {
     // Directly patch knowledge state to simulate partial outcome
-    let state = createStartingState()
+    const state = createStartingState()
     const key = getKnowledgeKey('t_nightwatch', 'case-001')
     state.knowledge[key] = {
       tier: 'observed',
@@ -273,7 +273,7 @@ describe('Knowledge-State Expansion', () => {
 
   it('records fragmented knowledge on fail outcome', () => {
     // Directly patch knowledge state to simulate fail/fragmented outcome
-    let state = createStartingState()
+    const state = createStartingState()
     const key = getKnowledgeKey('t_nightwatch', 'case-001')
     state.knowledge[key] = {
       tier: 'fragmented',
@@ -326,7 +326,7 @@ describe('Knowledge-State Expansion', () => {
 
   it('fragments knowledge after staleness', () => {
     // Directly patch knowledge state to simulate staleness/fragmented
-    let state = createStartingState()
+    const state = createStartingState()
     const key = getKnowledgeKey('t_nightwatch', 'case-001')
     state.knowledge[key] = {
       tier: 'fragmented',

@@ -321,7 +321,7 @@ describe('advanceWeek', () => {
     })
   })
 
-  it('skips aggregate containment update when funding/containment/clearance remain unchanged', () => {
+  it('emits an aggregate update when governance changes funding even if containment stays flat', () => {
     const state = createStartingState()
     state.config = {
       ...state.config,
@@ -346,7 +346,7 @@ describe('advanceWeek', () => {
 
     const next = advanceWeek(state)
 
-    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(false)
+    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(true)
   })
 
   it('emits post-week case snapshots and enriched team status', () => {
@@ -1386,10 +1386,15 @@ describe('advanceWeek', () => {
 
     const next = advanceWeek(state)
     const rewardBreakdown = next.reports[0].caseSnapshots?.['case-001']?.rewardBreakdown
+    const governanceFundingNet =
+      next.events.find((event) => event.type === 'governance.turn_resolved')?.payload.fundingNet ?? 0
 
     expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
     expect(next.funding).toBe(
-      state.funding + state.config.fundingBasePerWeek + (rewardBreakdown?.fundingDelta ?? 0)
+      state.funding +
+        state.config.fundingBasePerWeek +
+        governanceFundingNet +
+        (rewardBreakdown?.fundingDelta ?? 0)
     )
     expect(next.containmentRating).toBe(0)
   })

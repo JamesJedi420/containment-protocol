@@ -856,7 +856,9 @@ describe('game app routes', () => {
     useGameStore.setState({ game })
     renderApp()
 
-    expect(screen.getByText(/2 resolved, 2 unresolved triggers, 2 spawneds/i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/2 resolved \/ 0 partial \/ 0 failed \/ 2 unresolved \/ 2 spawned cases/i)
+    ).toBeInTheDocument()
     expect(
       screen.getByText(/avg fatigue 12 \/ max stage 4 \/ rng before 2024 -> 2025/i)
     ).toBeInTheDocument()
@@ -898,7 +900,9 @@ describe('game app routes', () => {
       within(latestReportSection!).getByText(new RegExp(`${latestScore} pts`, 'i'))
     ).toBeInTheDocument()
     expect(
-      within(latestReportSection!).getByText(/1 unresolved trigger, 1 spawned/i)
+      within(latestReportSection!).getByText(
+        /0 resolved \/ 1 partial \/ 1 failed \/ 1 unresolved \/ 1 spawned case/i
+      )
     ).toBeInTheDocument()
   })
 

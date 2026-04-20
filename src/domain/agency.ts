@@ -1,9 +1,25 @@
 import { clamp } from './math'
 import type { CaseInstance, GameState } from './models'
 import { buildFactionStates } from './factions'
+import {
+  buildGovernanceTransferSummary,
+  type GovernanceTransferSummary,
+} from './governanceTransfers'
 import { buildLogisticsOverview } from './logistics'
 import { buildMajorIncidentProfile } from './majorIncidents'
 import { buildAgencyRanking, type AgencyRankingTier } from './rankings'
+import {
+  buildCampaignGovernanceSummary,
+  type CampaignGovernanceSummary,
+} from './campaignGovernance'
+import {
+  buildTerritorialPowerSummary,
+  type TerritorialPowerSummary,
+} from './territorialPower'
+import {
+  buildSupplyNetworkSummary,
+  type SupplyNetworkWeeklySummary,
+} from './supplyNetwork'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
 
 const DEFAULT_AGENCY_NAME = 'Containment Protocol'
@@ -68,6 +84,10 @@ export interface AgencySummary {
     tier: AgencyRankingTier
   }
   report: AgencyReportSummary
+  territorialPower: TerritorialPowerSummary
+  supplyNetwork: SupplyNetworkWeeklySummary
+  campaignGovernance: CampaignGovernanceSummary
+  governanceTransfers: GovernanceTransferSummary
   // Commercial Chokepoint Statecraft & Council Power (issue #187)
   chokepointLeverage: number // 0-100, deterministic
   councilPowerDistribution: { [council: string]: number } // deterministic, sum to 100
@@ -147,7 +167,7 @@ function buildAgencyOperationsSummary(game: GameState): AgencyOperationsSummary 
   }
 }
 
-function buildAgencyPressureSummary(game: GameState): AgencyPressureSummary {
+export function buildAgencyPressureSummary(game: GameState): AgencyPressureSummary {
   const openCases = getOpenCases(game)
   const majorIncidentPressure = clamp(
     Math.round(
@@ -332,6 +352,10 @@ export function buildAgencySummary(game: GameState): AgencySummary {
       tier: ranking.tier,
     },
     report: buildAgencyReportSummary(game),
+    territorialPower: buildTerritorialPowerSummary(game.territorialPower),
+    supplyNetwork: buildSupplyNetworkSummary(game.supplyNetwork),
+    campaignGovernance: buildCampaignGovernanceSummary(game.campaignGovernance),
+    governanceTransfers: buildGovernanceTransferSummary(game.governance),
     chokepointLeverage,
     councilPowerDistribution,
     externalRevenueShare,

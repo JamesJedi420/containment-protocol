@@ -19,6 +19,65 @@ vi.mock('./dashboardView', () => ({
     criticalStageCount: 1,
     raidUnderstaffedCount: 1,
     overstretchedTeamCount: 3,
+    emergencyActive: false,
+    emergencyExpiresWeek: undefined,
+    emergencyActivatedWeek: undefined,
+    emergencyEffects: undefined,
+    emergencyTriggeredBy: undefined,
+    campaignGovernance: {
+      authority: 0,
+      phase: 'complete',
+      primacy: 'directorate',
+      courtMode: 'fixed_court',
+      courtRegionId: 'bio_containment',
+      totalUpkeep: 0,
+      fundingNet: 0,
+      atWarRegions: 0,
+      occupiedRegions: 0,
+      underSiegeRegions: 0,
+      contestedRegions: 0,
+      averageFortificationIntegrity: 1,
+      actionCount: 0,
+      summary: 'ok',
+    },
+    territorialPower: {
+      nodeCount: 2,
+      totalYield: 8,
+      availableYield: 6,
+      suppressedNodeCount: 1,
+      openConduitCount: 1,
+      blockedConduitCount: 1,
+      openConduitCapacity: 4,
+      eligibleScopeCount: 1,
+      controllers: ['Containment Protocol'],
+      lastExpenditure: {
+        scopeId: 'node-ash',
+        scopeType: 'node',
+        nodeId: 'node-ash',
+        result: 'spent',
+        amount: 4,
+        availableYield: 6,
+        conduitCapacity: 4,
+      },
+    },
+    supplyNetwork: {
+      tracedRegionCount: 3,
+      supportedRegionCount: 2,
+      unsupportedRegionCount: 1,
+      blockedRegions: ['occult_district'],
+      readyTransportCount: 1,
+      disruptedTransportCount: 0,
+      totalSourceThroughput: 2,
+      deliveredLift: 2,
+      strategicControlScore: 9,
+      blockedDetails: ['occult_district: no open route reached Occult Transit Corridor.'],
+    },
+    regional: {
+      regionCount: 3,
+      agencyControlled: 2,
+      hostileControlled: 1,
+      knownRegions: 2,
+    },
   }),
   getFilteredEventFeedViews: () => [
     {
@@ -305,6 +364,90 @@ function createDashboardFeedGame() {
 
 
 describe('DashboardPage', () => {
+  it('surfaces emergency governance banner when active', () => {
+    vi.spyOn(dashboardView, 'getDashboardMetrics').mockReturnValue({
+      open: 2,
+      inProgress: 1,
+      resolved: 3,
+      totalScore: 10,
+      avgFatigue: 8,
+      maxStage: 2,
+      deadlineRiskCount: 1,
+      criticalStageCount: 0,
+      raidUnderstaffedCount: 0,
+      overstretchedTeamCount: 1,
+      emergencyActive: true,
+      emergencyExpiresWeek: 7,
+      emergencyActivatedWeek: 4,
+      emergencyEffects: { maxActiveCasesDelta: -2, fundingBasePerWeekDelta: 100 },
+      emergencyTriggeredBy: 'pressure.critical',
+      campaignGovernance: {
+        authority: 100,
+        phase: 'complete',
+        primacy: 'directorate',
+        courtMode: 'fixed_court',
+        courtRegionId: 'bio_containment',
+        totalUpkeep: 0,
+        atWarRegions: 0,
+        occupiedRegions: 0,
+        underSiegeRegions: 0,
+        contestedRegions: 0,
+        // Required properties for CampaignGovernanceSummary
+        fundingNet: 0,
+        averageFortificationIntegrity: 1,
+        actionCount: 0,
+        summary: 'ok',
+      },
+      // Removed properties that belong only in campaignGovernance
+      territorialPower: {
+        nodeCount: 1,
+        totalYield: 4,
+        availableYield: 4,
+        suppressedNodeCount: 0,
+        openConduitCount: 1,
+        blockedConduitCount: 0,
+        openConduitCapacity: 4,
+        eligibleScopeCount: 1,
+        controllers: ['Containment Protocol'],
+        lastExpenditure: {
+          scopeId: 'node-ash',
+          scopeType: 'node',
+          nodeId: 'node-ash',
+          result: 'spent',
+          amount: 4,
+          availableYield: 4,
+          conduitCapacity: 4,
+        },
+      },
+      supplyNetwork: {
+        tracedRegionCount: 2,
+        supportedRegionCount: 2,
+        unsupportedRegionCount: 0,
+        blockedRegions: [],
+        readyTransportCount: 1,
+        disruptedTransportCount: 0,
+        totalSourceThroughput: 2,
+        deliveredLift: 2,
+        strategicControlScore: 5,
+        blockedDetails: [],
+      },
+      regional: {
+        regionCount: 3,
+        agencyControlled: 2,
+        hostileControlled: 1,
+        knownRegions: 2,
+      },
+    });
+    useGameStore.setState({ game: createDashboardGame() });
+    renderDashboard();
+    const banner = screen.getByRole('status', { name: /emergency governance active/i });
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent(/emergency governance active/i);
+    expect(banner).toHaveTextContent(/expires week 7/i);
+    expect(banner).toHaveTextContent(/triggered by: pressure.critical/i);
+    expect(banner).toHaveTextContent(/operation slots reduced by 2/i);
+    expect(banner).toHaveTextContent(/base funding increased by 100/i);
+  });
   it('shows empty state when no priority cases or at-risk teams', () => {
     vi.spyOn(dashboardView, 'getPriorityCaseViews').mockReturnValue([])
     vi.spyOn(dashboardView, 'getAtRiskTeamViews').mockReturnValue([])
@@ -329,6 +472,25 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('link', { name: /critical stage cases/i })).toHaveAttribute('href', '/cases')
     expect(screen.getByRole('link', { name: /understaffed raids/i })).toHaveAttribute('href', '/cases')
     expect(screen.getByRole('link', { name: /overstretched teams/i })).toHaveAttribute('href', '/teams')
+  })
+
+  it('renders the territorial power panel from canonical dashboard metrics', () => {
+    useGameStore.setState({ game: createDashboardGame() })
+    renderDashboard()
+
+    expect(screen.getByRole('heading', { name: /territorial power/i })).toBeInTheDocument()
+    expect(screen.getByText(/nodes: 2 \/ available yield 6 \/ suppressed 1/i)).toBeInTheDocument()
+    expect(screen.getByText(/casting: 1 eligible \/ last expenditure spent 4 from node-ash/i)).toBeInTheDocument()
+  })
+
+  it('renders the supply network panel from canonical dashboard metrics', () => {
+    useGameStore.setState({ game: createDashboardGame() })
+    renderDashboard()
+
+    expect(screen.getByRole('heading', { name: /supply network/i })).toBeInTheDocument()
+    expect(screen.getByText(/support: 2\/3 regions traced \/ unsupported 1/i)).toBeInTheDocument()
+    expect(screen.getByText(/transport: 1 ready \/ 0 disrupted \/ delivered lift 2/i)).toBeInTheDocument()
+    expect(screen.getByText(/blocked paths: occult_district: no open route reached occult transit corridor\./i)).toBeInTheDocument()
   })
 
   it('shows a priority queue with destination-title links for cases and teams', () => {

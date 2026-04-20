@@ -4,9 +4,9 @@ import { applyRallySupportStaffAction } from '../domain/hub/supportActions'
 import type { GameState } from '../domain/models'
 
 describe('SPE-38: Support Operations Layer', () => {
-    it('hub support recovery affects later operation outcome and output', () => {
+  it('hub support recovery affects later operation outcome and output', () => {
       // Start with 0 support, recover via hub, then run two ops
-      let state = makeBaseState(0)
+      const state = makeBaseState(0)
       // Hub action restores 1 support
       const { nextState, note } = applyRallySupportStaffAction(state, 1)
       expect(nextState.agency?.supportAvailable).toBe(1)
@@ -32,9 +32,6 @@ describe('SPE-38: Support Operations Layer', () => {
 
       // Run the week: only one case can be supported
       const result = advanceWeek(nextState)
-      // Debug output for agency after sim
-      // eslint-disable-next-line no-console
-      console.log('advanceWeek agency:', JSON.stringify(result.agency, null, 2))
       const c1 = result.cases['case1']
       const c2 = result.cases['case2']
       // Only one case should have support, the other should have supportShortfall
@@ -75,6 +72,7 @@ describe('SPE-38: Support Operations Layer', () => {
       productionQueue: [],
       market: { pressure: 'stable', listings: [] },
       config: { maxActiveCases: 3, partialMargin: 2, clearanceThresholds: [] },
+      knowledge: {},
       agency: {
         containmentRating: 50,
         clearanceLevel: 1,
@@ -143,9 +141,6 @@ describe('SPE-38: Support Operations Layer', () => {
     const c1 = next.cases['case1']
     const c2 = next.cases['case2']
     expect([c1.supportShortfall, c2.supportShortfall].filter(Boolean).length).toBe(1)
-    // Debug output for diagnosis
-    // eslint-disable-next-line no-console
-    console.log('advanceWeek result:', JSON.stringify(next, null, 2))
     if (!next.agency || typeof next.agency.supportAvailable !== 'number') {
       throw new Error('advanceWeek result missing agency/supportAvailable: ' + JSON.stringify(next.agency))
     }

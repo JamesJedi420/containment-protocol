@@ -1,3 +1,35 @@
+import {
+  readEnumParam,
+  readStringParam,
+  writeEnumParam,
+  writeStringParam,
+} from '../../app/searchParams'
+import { APP_ROUTES } from '../../app/routes'
+import { trainingCatalog } from '../../data/training'
+import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
+import { clamp } from '../../domain/math'
+import {
+  type GameState,
+  type InstructorData,
+  type StatKey,
+  type TrainingProgram,
+} from '../../domain/models'
+import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
+import { getInstructorBonus } from '../../domain/sim/instructorAssignment'
+import {
+  RECONCILIATION_COST,
+  RECONCILIATION_DELTA_NEGATIVE,
+  RECONCILIATION_DELTA_NON_NEGATIVE,
+  hasPairReconciledThisWeek,
+} from '../../domain/sim/reconciliation'
+import {
+  getTrainingCancelRefund,
+  getTrainingFatigueSchedule,
+  getTrainingIncurredFatigue,
+  getTrainingProjectedTotalFatigue,
+} from '../../domain/sim/training'
+import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
+
 // Centralized projection/view-model for TrainingDivisionPage
 export function getTrainingDivisionView(game: GameState, filters: TrainingListFilters) {
   // Filters
@@ -15,21 +47,21 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
   const filteredRosterViews = getFilteredSortedRoster(allRosterViews, filters)
   const teamViews = getTeamTrainingViews(game)
 
-  // Academy/Programs
-  import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
-  import { trainingCatalog } from '../../data/training'
-  import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
   const academyOverview = buildAcademyOverview(game)
-  const agentPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'agent')
-  const teamPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'team')
+  const agentPrograms = trainingCatalog.filter(
+    (program): program is TrainingProgram => (program.scope ?? 'agent') === 'agent'
+  )
+  const teamPrograms = trainingCatalog.filter(
+    (program): program is TrainingProgram => (program.scope ?? 'agent') === 'team'
+  )
   const academyStatBonus = getAcademyStatBonus(game.academyTier ?? 0)
   const agentImpactPreviewMap = new Map(
     allRosterViews.map((view) => [
       view.agent.id,
       new Map(
-        agentPrograms.map((program: any) => {
+        agentPrograms.map((program) => {
           const impacts = getAgentTrainingImpacts(view.agent, academyStatBonus)
-          const impact = impacts.find((i: any) => i.trainingId === program.trainingId)
+          const impact = impacts.find((preview) => preview.trainingId === program.trainingId)
           return [program.trainingId, impact]
         })
       ),
@@ -133,8 +165,6 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
     inactive: filteredRosterViews.filter((view) => view.readiness === 'inactive'),
   }
   // Reconciliation candidates
-  const { hasPairReconciledThisWeek, RECONCILIATION_COST, RECONCILIATION_DELTA_NEGATIVE, RECONCILIATION_DELTA_NON_NEGATIVE } = require('../../domain/sim/reconciliation')
-  const { clamp } = require('../../domain/math')
   const reconciliationCandidates = (() => {
     const agents = Object.values(game.agents)
       .filter((agent) => agent.status === 'active')
@@ -228,22 +258,6 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
     hasActiveFilters,
   }
 }
-import {
-  readEnumParam,
-  readStringParam,
-  writeEnumParam,
-  writeStringParam,
-} from '../../app/searchParams'
-import { APP_ROUTES } from '../../app/routes'
-import { type GameState, type InstructorData, type StatKey } from '../../domain/models'
-import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
-import { getInstructorBonus } from '../../domain/sim/instructorAssignment'
-import {
-  getTrainingCancelRefund,
-  getTrainingFatigueSchedule,
-  getTrainingIncurredFatigue,
-  getTrainingProjectedTotalFatigue,
-} from '../../domain/sim/training'
 
 export const TRAINING_READINESS_FILTERS = [
   'all',

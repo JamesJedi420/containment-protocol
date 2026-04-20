@@ -1,4 +1,8 @@
 import type { OperationEvent, OperationEventType } from '../events/types'
+import type {
+  GovernanceInheritedPowerOutcomeType,
+  GovernanceInheritedPowerTier,
+} from '../governanceTransfers'
 import type { Id } from '../models'
 
 /**
@@ -197,6 +201,14 @@ export interface AgentProgression {
   growthStats?: AgentGrowthStats
   /** Skills and specialization tracking for training system */
   skillTree?: SkillTree
+}
+
+export interface AgentInheritedPowerState {
+  latentLineageTier: GovernanceInheritedPowerTier
+  realizedTier: GovernanceInheritedPowerTier
+  lastTransferId?: string
+  lastOutcome?: GovernanceInheritedPowerOutcomeType
+  lastUpdatedWeek?: number
 }
 
 export interface SkillTree {
@@ -672,6 +684,8 @@ export interface Agent {
 
   /** Canonical progression state (preferred over top-level `level`). */
   progression?: AgentProgression
+  /** Deterministic inherited-power state kept separate from ordinary progression. */
+  inheritedPower?: AgentInheritedPowerState
 
   equipment?: Record<string, number>
   equipmentSlots?: EquipmentSlots

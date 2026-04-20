@@ -568,9 +568,9 @@ As implemented after SPE-41, this reflection path should stay canonical:
 
 Example:
 
-event: support.shortage_applied
+event: system.supply_network_updated
 
-report note: Support shortage degraded clean follow-through.
+report note: Supply network - Support 2/3 traced regions / 1 ready transport / control score 9 / blocked occult_district.
 
 Example:
 
@@ -589,6 +589,7 @@ Usually include:
 - mission failures / partials
 - major escalation
 - support shortage effects
+- blocked support paths or disrupted transport that leave operations unsupported
 - specialist bottlenecks
 - coordination overload
 - legitimacy loss

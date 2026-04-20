@@ -1,4 +1,5 @@
 import { type Agent, type GameState } from '../../domain/models'
+import { getVisibleReports } from '../../domain/reporting'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 
 function getAssignedAgentIds(game: GameState) {
@@ -45,12 +46,13 @@ export function getTimeQueueSummary(game: GameState) {
 
 export function getFieldIntelligenceSummary(game: GameState) {
   const recentEvents = [...game.events].slice(-5).reverse()
+  const reports = getVisibleReports(game.reports)
 
   return {
     recentEvents,
-    reports: game.reports.length,
-    latestReportWeek: game.reports.at(-1)?.week,
-    unresolvedPressure: game.reports.reduce(
+    reports: reports.length,
+    latestReportWeek: reports.at(-1)?.week,
+    unresolvedPressure: reports.reduce(
       (sum, report) => sum + report.unresolvedTriggers.length,
       0
     ),

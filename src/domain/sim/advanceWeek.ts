@@ -1,3 +1,40 @@
+// --- Emergency Governance Activation/Restoration Logic ---
+const EMERGENCY_PRESSURE_LEVEL = 'critical';
+const EMERGENCY_DURATION_WEEKS = 3;
+const EMERGENCY_EFFECTS = {
+  maxActiveCasesDelta: -2, // Reduce operation slots by 2
+  fundingBasePerWeekDelta: 100, // Increase funding/tax by 100
+};
+const SUPPORTED_PROGRESS_STEP = 1
+const UNSUPPORTED_PROGRESS_STEP = 0
+
+function shouldActivateEmergencyGovernance(game: GameState, pressureLevel: string): boolean {
+  return (
+    pressureLevel === EMERGENCY_PRESSURE_LEVEL &&
+    (!game.emergencyGovernance || !game.emergencyGovernance.active)
+  );
+}
+
+function shouldRestoreFromEmergency(game: GameState, pressureLevel: string): boolean {
+  // Restore if pressure is no longer critical and emergency is active and duration expired
+  if (!game.emergencyGovernance || !game.emergencyGovernance.active) return false;
+  const expired = game.week >= game.emergencyGovernance.expiresWeek;
+  const pressureSafe = pressureLevel !== EMERGENCY_PRESSURE_LEVEL;
+  return expired || pressureSafe;
+}
+
+function applyEmergencyGovernanceEffects(game: GameState): GameState {
+  if (!game.emergencyGovernance || !game.emergencyGovernance.active) return game;
+  // Apply effects to config (operation slots, funding)
+  return {
+    ...game,
+    config: {
+      ...game.config,
+      maxActiveCases: Math.max(1, game.config.maxActiveCases + (game.emergencyGovernance.effects.maxActiveCasesDelta || 0)),
+      fundingBasePerWeek: Math.max(0, game.config.fundingBasePerWeek + (game.emergencyGovernance.effects.fundingBasePerWeekDelta || 0)),
+    },
+  };
+}
 // Canonical per-tick outcome registrar for exclusive bucketing.
 function recordCaseOutcome(
   context: WeeklyExecutionContext,
@@ -52,6 +89,7 @@ function applyEquipmentRecoveryBottleneck(
   }
 }
 import { clamp, createSeededRng } from '../math'
+import { buildAgencyPressureSummary } from '../agency'
 import { getDistortionStatesForScore, mergeDistortionStates } from '../shared/distortion'
 import {
   assertExclusiveOutcomeBuckets,
@@ -73,8 +111,10 @@ import {
 } from '../explanations'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
 import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import { advanceCampaignGovernanceTurn } from '../campaignGovernance'
 import {
   type AgencyState,
+  type CampaignGovernanceReportSnapshot,
   type CaseInstance,
   type GameState,
   type LeaderBonus,
@@ -99,7 +139,18 @@ import {
   recordAppliedDirective,
 } from '../directives'
 import { resolveAgentAbilityEffects } from '../abilities'
+import { appendAgentHistoryEntry, createAgentHistoryEntry } from '../agent/lifecycle'
 import { buildFactionStandingMap, buildFactionStates, getFactionDefinition } from '../factions'
+import {
+  compareGovernanceInheritedPowerTiers,
+  formatGovernanceInheritedPowerOutcome,
+  formatGovernanceInheritedPowerTier,
+  getMinimumLatentLineageTier,
+  processGovernanceTransfersForWeek,
+  type GovernanceInheritedPowerOutcome,
+  type GovernanceInheritedPowerTier,
+  type GovernanceTransfer,
+} from '../governanceTransfers'
 import { generateHubState } from '../hub/hubState'
 import { buildHubReportNotes } from '../hub/hubReportNotes'
 import { buildMissionRewardBreakdown } from '../missionResults'
@@ -108,9 +159,25 @@ import { buildAgencyProtocolState } from '../protocols'
 import {
   buildAnchorFactionInstabilityNote,
   buildDeterministicReportNotesFromEventDrafts,
+  createDeterministicReportNote,
   getHistoricalReportNoteDrafts,
 } from '../reportNotes'
+import { buildSupportShortfallNote } from '../reportNotes.support'
 import { getRecruitmentPool, syncRecruitmentPoolState } from '../recruitment'
+import {
+  advanceSupplyNetworkState,
+  buildSupplyNetworkReportSnapshot,
+  buildSupplyNetworkSummary,
+  formatSupplyNetworkRollup,
+  getCaseSupplyTrace,
+} from '../supplyNetwork'
+import {
+  advanceTerritorialPowerState,
+  buildTerritorialPowerReportSnapshot,
+  buildTerritorialPowerSummary,
+  formatTerritorialPowerRollup,
+} from '../territorialPower'
+import type { RegionalState } from '../models'
 import {
   buildTeamCompositionProfile,
   ensureNormalizedGameState,
@@ -204,9 +271,13 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     containmentRating: safeNumber(base?.containmentRating, 0),
     clearanceLevel: safeNumber(base?.clearanceLevel, 1),
     funding: safeNumber(base?.funding, 0),
+    ...(typeof base?.authority === 'number' ? { authority: Math.max(0, Math.trunc(base.authority)) } : {}),
     supportAvailable: safeNumber(base?.supportAvailable, 0),
     ...(typeof base?.maintenanceSpecialistsAvailable === 'number'
       ? { maintenanceSpecialistsAvailable: base.maintenanceSpecialistsAvailable }
+      : {}),
+    ...(typeof base?.upkeepBurden === 'number'
+      ? { upkeepBurden: Math.max(0, Math.trunc(base.upkeepBurden)) }
       : {}),
     ...(typeof base?.protocolSelectionLimit === 'number'
       ? { protocolSelectionLimit: base.protocolSelectionLimit }
@@ -249,7 +320,7 @@ function computeFundingDelta(
     ...report.unresolvedTriggers,
   ].reduce((sum, caseId) => sum + (rewardByCaseId[caseId]?.fundingDelta ?? 0), 0)
 
-  return config.fundingBasePerWeek + rewardDelta
+  return config.fundingBasePerWeek + rewardDelta + (report.campaignGovernance?.channels.fundingNet ?? 0)
 }
 
 function computeContainmentDelta(
@@ -303,8 +374,7 @@ function isBootstrapWeeklyReport(report: WeeklyReport) {
     report.maxStage === 1 &&
     report.avgFatigue === 0 &&
     report.teamStatus.length === 0 &&
-    report.notes.length === 0 &&
-    report.caseSnapshots === undefined
+    report.notes.length === 0
   )
 }
 
@@ -625,6 +695,8 @@ interface WeeklyExecutionContext {
   initialRecruitmentCandidateIdSet: Set<string>
   generatedRecruitmentCandidates: GameState['candidates']
   hubNotes?: ReportNote[]
+  campaignGovernanceReport?: CampaignGovernanceReportSnapshot
+  syntheticReportNotes: ReportNote[]
   noteBaseTimestamp?: number
 }
 
@@ -761,6 +833,7 @@ function createWeeklyExecutionContext(
     cases: { ...state.cases },
     teams: { ...state.teams },
     agents: { ...state.agents },
+    knowledge: { ...state.knowledge },
   }
   return {
     sourceState: state,
@@ -790,6 +863,8 @@ function createWeeklyExecutionContext(
     initialRecruitmentPool,
     initialRecruitmentCandidateIdSet: new Set(initialRecruitmentPool.map((candidate) => candidate.id)),
     generatedRecruitmentCandidates: [],
+    campaignGovernanceReport: undefined,
+    syntheticReportNotes: [],
     noteBaseTimestamp,
   }
 }
@@ -919,12 +994,7 @@ function assertReportEventAlignment(context: WeeklyExecutionContext, report: Wee
 }
 
 function assertReportNoteAlignment(context: WeeklyExecutionContext, report: WeeklyReport) {
-  const reportNoteDrafts = getWeeklyReportNoteDrafts(context)
-  const expected = buildDeterministicReportNotesFromEventDrafts(
-    reportNoteDrafts,
-    context.sourceState.week,
-    context.noteBaseTimestamp
-  )
+  const expected = buildWeeklyReportNotes(context)
 
   if (JSON.stringify(report.notes) !== JSON.stringify(expected)) {
     throw new Error('Weekly report notes drift detected from event draft reflections.')
@@ -935,6 +1005,17 @@ function getWeeklyReportNoteDrafts(context: WeeklyExecutionContext) {
   return [
     ...getHistoricalReportNoteDrafts(context.sourceState.events, context.sourceState.week),
     ...context.eventDrafts,
+  ]
+}
+
+function buildWeeklyReportNotes(context: WeeklyExecutionContext) {
+  return [
+    ...buildDeterministicReportNotesFromEventDrafts(
+      getWeeklyReportNoteDrafts(context),
+      context.sourceState.week,
+      context.noteBaseTimestamp
+    ),
+    ...context.syntheticReportNotes,
   ]
 }
 
@@ -1156,18 +1237,34 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
     recordProcessedCase(context, caseId, 'resolveAssignments')
     context.progressedCases.push(caseId)
     existingAssignedTeamIds.forEach((teamId) => context.activeTeamIds.add(teamId))
+    const requiresTracedSupply =
+      typeof currentCase.regionTag === 'string' && currentCase.regionTag.length > 0
+    const supplyTrace = requiresTracedSupply
+      ? getCaseSupplyTrace(context.nextState.supplyNetwork, currentCase)
+      : undefined
+    const lacksConnectedSupply =
+      requiresTracedSupply &&
+      context.nextState.supplyNetwork !== undefined &&
+      supplyTrace?.state !== 'supported'
 
     // SPE-38: Support consumption and shortage
-    if (supportAvailable >= supportConsumptionPerCase) {
+    if (lacksConnectedSupply) {
+      supportShortfallCases.push(caseId)
+    } else if (supportAvailable >= supportConsumptionPerCase) {
       supportAvailable -= supportConsumptionPerCase
-      // Mark case as supported (no-op for now, but could annotate)
     } else {
       // Not enough support: mark for fallout/penalty
       supportShortfallCases.push(caseId)
     }
 
+    const isSupportShortfall = supportShortfallCases.includes(caseId)
+    const currentWeeksRemaining = currentCase.weeksRemaining ?? currentCase.durationWeeks
+    const progressStep =
+      isSupportShortfall && currentWeeksRemaining > 1
+        ? UNSUPPORTED_PROGRESS_STEP
+        : SUPPORTED_PROGRESS_STEP
     const nextWeeksRemaining = Math.max(
-      (currentCase.weeksRemaining ?? currentCase.durationWeeks) - 1,
+      currentWeeksRemaining - progressStep,
       0
     )
 
@@ -1236,7 +1333,6 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
     }
 
     // Pass supportShortfall flag to resolution
-    const isSupportShortfall = supportShortfallCases.includes(caseId)
     const weeklyResolution = resolveAssignedCaseForWeek(
       {
         ...currentCase,
@@ -1252,6 +1348,19 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
     context.nextState.cases[caseId] = {
       ...context.nextState.cases[caseId],
       supportShortfall: isSupportShortfall,
+    }
+    if (isSupportShortfall) {
+      const supportNote = buildSupportShortfallNote(
+        {
+          ...currentCase,
+          assignedTeamIds: existingAssignedTeamIds,
+          supportShortfall: true,
+        },
+        context.sourceState.week
+      )
+      if (supportNote) {
+        context.syntheticReportNotes.push(supportNote)
+      }
     }
     const { assignedAgentLeaderBonuses, activeTeamStressModifiers, outcome } = weeklyResolution
     const effectiveCase = {
@@ -2221,6 +2330,487 @@ function generateAndAttachHubNotes(context: WeeklyExecutionContext) {
   context.nextState.hubState = hub
 }
 
+function downgradeInheritedPowerTier(
+  tier: GovernanceInheritedPowerTier
+): GovernanceInheritedPowerTier {
+  switch (tier) {
+    case 'ascendant':
+      return 'vested'
+    case 'vested':
+      return 'trace'
+    case 'trace':
+      return 'trace'
+    case 'none':
+      return 'none'
+  }
+}
+
+function getRealizedInheritedPowerTier(
+  transfer: GovernanceTransfer
+): GovernanceInheritedPowerTier {
+  const grantedTier = transfer.outcome?.grantedPowerTier ?? transfer.inheritedPowerTier ?? 'none'
+
+  if (!transfer.outcome) {
+    return 'none'
+  }
+
+  switch (transfer.outcome.type) {
+    case 'partial_claim':
+      return downgradeInheritedPowerTier(grantedTier)
+    case 'authority_transferred':
+    case 'contested_completion':
+    case 'failover_selected':
+      return grantedTier
+    case 'declined':
+    case 'transfer_invalid':
+      return 'none'
+  }
+}
+
+function buildInheritedPowerOutcomeForTransfer(
+  transfer: GovernanceTransfer,
+  successorAgent: GameState['agents'][string] | undefined
+): GovernanceInheritedPowerOutcome | undefined {
+  const recipientId = transfer.outcome?.successorId ?? transfer.selectedSuccessorId
+  const recipientName = transfer.outcome?.successorName ?? transfer.selectedSuccessorName
+
+  if (!recipientId && !recipientName) {
+    return undefined
+  }
+
+  const previousTier = successorAgent?.inheritedPower?.realizedTier ?? 'none'
+  const realizedTier = getRealizedInheritedPowerTier(transfer)
+  const transferPath =
+    transfer.transferPath ??
+    (transfer.violentExtraction
+      ? 'violent_extraction'
+      : transfer.sourceContractId
+        ? 'inheritance'
+        : 'recognized_transfer')
+
+  if (!successorAgent) {
+    return {
+      type: 'no_gain',
+      previousTier,
+      nextTier: previousTier,
+      recipientId,
+      recipientName,
+      reason: 'Successor is not an agency operative.',
+    }
+  }
+
+  if (!transfer.outcome || realizedTier === 'none') {
+    return {
+      type: 'no_gain',
+      previousTier,
+      nextTier: previousTier,
+      recipientId,
+      recipientName,
+      reason: `Transfer concluded as ${transfer.outcome?.type.replace(/_/g, ' ') ?? 'pending'}.`,
+    }
+  }
+
+  if (transferPath === 'violent_extraction') {
+    const violentExtraction = transfer.violentExtraction
+
+    if (!violentExtraction) {
+      return {
+        type: 'no_gain',
+        previousTier,
+        nextTier: previousTier,
+        recipientId,
+        recipientName,
+        reason: 'Violent extraction data is missing.',
+      }
+    }
+
+    if (!violentExtraction.sourceDefeated) {
+      return {
+        type: 'no_gain',
+        previousTier,
+        nextTier: previousTier,
+        recipientId,
+        recipientName,
+        reason: 'Source actor has not been defeated.',
+      }
+    }
+
+    if (!violentExtraction.extractorEligible) {
+      return {
+        type: 'no_gain',
+        previousTier,
+        nextTier: previousTier,
+        recipientId,
+        recipientName,
+        reason: 'Extractor is not eligible to bear the inheritance.',
+      }
+    }
+
+    if (!violentExtraction.vesselPrepared) {
+      return {
+        type: 'no_gain',
+        previousTier,
+        nextTier: previousTier,
+        recipientId,
+        recipientName,
+        reason: 'Transfer vessel is not prepared.',
+      }
+    }
+
+    if (
+      violentExtraction.requiredMethod &&
+      violentExtraction.extractionMethod !== violentExtraction.requiredMethod
+    ) {
+      return {
+        type: 'no_gain',
+        previousTier,
+        nextTier: previousTier,
+        recipientId,
+        recipientName,
+        reason: `Requires ${violentExtraction.requiredMethod}.`,
+      }
+    }
+  }
+
+  const lineageBypassed =
+    transferPath === 'violent_extraction' ||
+    transferPath === 'investiture' ||
+    transfer.allowsInvestiture === true ||
+    transfer.requiresLatentLineage === false
+  const latentLineageTier = successorAgent.inheritedPower?.latentLineageTier ?? 'none'
+  const minimumLatentLineageTier = lineageBypassed
+    ? 'none'
+    : getMinimumLatentLineageTier(transfer, realizedTier)
+
+  if (
+    !lineageBypassed &&
+    compareGovernanceInheritedPowerTiers(latentLineageTier, minimumLatentLineageTier) < 0
+  ) {
+    return {
+      type: 'no_gain',
+      previousTier,
+      nextTier: previousTier,
+      recipientId,
+      recipientName,
+      reason: `Latent lineage ${formatGovernanceInheritedPowerTier(
+        latentLineageTier
+      )} is below required ${formatGovernanceInheritedPowerTier(minimumLatentLineageTier)}.`,
+    }
+  }
+
+  if (compareGovernanceInheritedPowerTiers(realizedTier, previousTier) <= 0) {
+    return {
+      type: 'no_gain',
+      previousTier,
+      nextTier: previousTier,
+      recipientId,
+      recipientName,
+      reason: `Realized inheritance already matches or exceeds ${formatGovernanceInheritedPowerTier(
+        realizedTier
+      )}.`,
+    }
+  }
+
+  const validationReason =
+    transferPath === 'violent_extraction'
+      ? 'Violent extraction conditions validated.'
+      : transferPath === 'investiture' || transfer.allowsInvestiture === true
+        ? 'Investiture conditions validated.'
+        : transfer.requiresLatentLineage === false
+          ? 'Transfer bypassed lineage gating.'
+          : `Latent lineage ${formatGovernanceInheritedPowerTier(
+              latentLineageTier
+            )} satisfied ${formatGovernanceInheritedPowerTier(minimumLatentLineageTier)}.`
+  const partialClaimReason =
+    transfer.outcome.type === 'partial_claim'
+      ? ` Partial claim limits realization to ${formatGovernanceInheritedPowerTier(
+          realizedTier
+        )}.`
+      : ''
+
+  if (previousTier === 'none') {
+    return {
+      type: 'new_gain',
+      previousTier,
+      nextTier: realizedTier,
+      recipientId,
+      recipientName,
+      reason: `${validationReason}${partialClaimReason} ${formatGovernanceInheritedPowerTier(
+        realizedTier
+      )} power realized.`,
+    }
+  }
+
+  return {
+    type: 'upgrade_existing',
+    previousTier,
+    nextTier: realizedTier,
+    recipientId,
+    recipientName,
+    reason:
+      `${validationReason}${partialClaimReason} Realized inheritance advanced ` +
+      `from ${formatGovernanceInheritedPowerTier(previousTier)} to ` +
+      `${formatGovernanceInheritedPowerTier(realizedTier)}.`,
+  }
+}
+
+function processGovernanceTransfers(context: WeeklyExecutionContext) {
+  const result = processGovernanceTransfersForWeek(
+    context.nextState.governance,
+    context.sourceState.week
+  )
+
+  if (!result.governance) {
+    return
+  }
+
+  const governance = structuredClone(result.governance)
+  const eventDrafts = [...result.eventDrafts]
+  const nextAgents = { ...context.nextState.agents }
+
+  for (let index = 0; index < governance.transfers.length; index += 1) {
+    const transfer = governance.transfers[index]
+
+    if (!transfer.outcome || transfer.lastProcessedWeek !== context.sourceState.week) {
+      continue
+    }
+
+    const successorId = transfer.outcome.successorId ?? transfer.selectedSuccessorId
+    const successorAgent = successorId ? nextAgents[successorId] : undefined
+    const inheritedPower = buildInheritedPowerOutcomeForTransfer(transfer, successorAgent)
+
+    if (!inheritedPower) {
+      continue
+    }
+
+    governance.transfers[index] = {
+      ...transfer,
+      outcome: {
+        ...transfer.outcome,
+        inheritedPower,
+      },
+    }
+
+    const historyIndex = governance.history.findIndex(
+      (entry) =>
+        entry.transferId === transfer.id &&
+        entry.week === context.sourceState.week &&
+        entry.outcome === transfer.outcome?.type
+    )
+
+    if (historyIndex !== -1) {
+      governance.history[historyIndex] = {
+        ...governance.history[historyIndex],
+        inheritedPowerType: inheritedPower.type,
+        inheritedPowerPreviousTier: inheritedPower.previousTier,
+        inheritedPowerNextTier: inheritedPower.nextTier,
+        inheritedPowerReason: inheritedPower.reason,
+      }
+    }
+
+    const eventIndex = eventDrafts.findIndex(
+      (draft) =>
+        draft.type === 'governance.transfer_processed' &&
+        draft.payload.transferId === transfer.id
+    )
+
+    if (eventIndex !== -1) {
+      const draft = eventDrafts[eventIndex]
+      if (draft.type === 'governance.transfer_processed') {
+        eventDrafts[eventIndex] = {
+          ...draft,
+          payload: {
+            ...draft.payload,
+            inheritedPowerOutcome: inheritedPower.type,
+            inheritedPowerPreviousTier: inheritedPower.previousTier,
+            inheritedPowerNextTier: inheritedPower.nextTier,
+            inheritedPowerRecipientId: inheritedPower.recipientId,
+            inheritedPowerRecipientName: inheritedPower.recipientName,
+            inheritedPowerReason: inheritedPower.reason,
+          },
+        }
+      }
+    }
+
+    if (!successorId || !successorAgent) {
+      continue
+    }
+
+    const nextAgent = appendAgentHistoryEntry(
+      {
+        ...successorAgent,
+        inheritedPower: {
+          latentLineageTier: successorAgent.inheritedPower?.latentLineageTier ?? 'none',
+          realizedTier: inheritedPower.nextTier,
+          lastTransferId: transfer.id,
+          lastOutcome: inheritedPower.type,
+          lastUpdatedWeek: context.sourceState.week,
+        },
+      },
+      createAgentHistoryEntry(
+        context.sourceState.week,
+        'simulation.weekly_tick',
+        `${transfer.authorityLabel}: ${
+          formatGovernanceInheritedPowerOutcome(inheritedPower) ?? 'Inherited power updated.'
+        } ${inheritedPower.reason}`.trim()
+      )
+    )
+
+    nextAgents[successorId] = nextAgent
+  }
+
+  context.nextState = {
+    ...context.nextState,
+    agents: nextAgents,
+    governance,
+  }
+  context.eventDrafts.push(...eventDrafts)
+}
+
+function processSupplyNetwork(context: WeeklyExecutionContext) {
+  const supplyNetwork = advanceSupplyNetworkState(
+    context.nextState.supplyNetwork,
+    Object.values(context.nextState.cases)
+  )
+
+  if (!supplyNetwork) {
+    return
+  }
+
+  const summary = buildSupplyNetworkSummary(supplyNetwork)
+
+  context.nextState = {
+    ...context.nextState,
+    supplyNetwork,
+  }
+  context.eventDrafts.push({
+    type: 'system.supply_network_updated',
+    sourceSystem: 'system',
+    payload: {
+      week: context.sourceState.week,
+      tracedRegionCount: summary.tracedRegionCount,
+      supportedRegionCount: summary.supportedRegionCount,
+      unsupportedRegionCount: summary.unsupportedRegionCount,
+      blockedRegions: summary.blockedRegions,
+      blockedDetails: summary.blockedDetails,
+      readyTransportCount: summary.readyTransportCount,
+      disruptedTransportCount: summary.disruptedTransportCount,
+      strategicControlScore: summary.strategicControlScore,
+      deliveredLift: summary.deliveredLift,
+      summary: formatSupplyNetworkRollup(summary),
+    },
+  })
+}
+
+function processCampaignGovernance(context: WeeklyExecutionContext) {
+  const result = advanceCampaignGovernanceTurn({
+    week: context.sourceState.week,
+    agency: context.nextState.agency,
+    campaignGovernance: context.nextState.campaignGovernance,
+    cases: context.nextState.cases,
+    funding: context.nextState.funding,
+    regionalState: context.nextState.regionalState,
+    supplyNetwork: context.nextState.supplyNetwork,
+  })
+
+  const knowledge = { ...(context.nextState.regionalState?.knowledge ?? {}) }
+  const control = { ...(context.nextState.regionalState?.control ?? {}) }
+  const regionIds = result.report.regionStates.map((region) => region.regionId)
+  const routeFallback = context.nextState.regionalState?.routes ?? {}
+
+  for (const region of result.report.regionStates) {
+    control[region.regionId] = region.controller
+    knowledge[region.regionId] =
+      region.controller === 'agency'
+        ? {
+            tier: 'confirmed',
+            entityId: 'agency',
+            entityType: 'site',
+            subjectId: region.regionId,
+            subjectType: 'site',
+            lastConfirmedWeek: context.sourceState.week,
+          }
+        : {
+            tier: 'suspected',
+            entityId: 'agency',
+            entityType: 'site',
+            subjectId: region.regionId,
+            subjectType: 'site',
+            lastConfirmedWeek: context.sourceState.week,
+          }
+  }
+
+  const nextRoutes: RegionalState['routes'] = Object.fromEntries(
+    regionIds.map((regionId, index) => {
+      const preservedRoute = routeFallback[regionId]
+      if (Array.isArray(preservedRoute) && preservedRoute.length > 0) {
+        return [regionId, preservedRoute]
+      }
+
+      const previous = regionIds[index - 1]
+      const next = regionIds[index + 1]
+
+      return [regionId, [previous, next].filter((entry): entry is string => Boolean(entry))]
+    })
+  )
+
+  const nextRegionalState: RegionalState = {
+    regions: regionIds,
+    control,
+    routes: nextRoutes,
+    knowledge,
+  }
+
+  context.nextState = {
+    ...context.nextState,
+    campaignGovernance: result.governance,
+    regionalState: nextRegionalState,
+    agency: canonicalizeAgencyState({
+      ...context.nextState.agency,
+      authority: result.governance.authority,
+      upkeepBurden: result.report.totalUpkeep,
+    }),
+  }
+  context.campaignGovernanceReport = result.report
+  context.eventDrafts.push(...result.eventDrafts)
+}
+
+function processTerritorialPower(context: WeeklyExecutionContext) {
+  const territorialPower = advanceTerritorialPowerState(context.nextState.territorialPower)
+
+  if (!territorialPower) {
+    return
+  }
+
+  const summary = buildTerritorialPowerSummary(territorialPower)
+  const lastExpenditure = territorialPower.lastExpenditure
+
+  context.nextState = {
+    ...context.nextState,
+    territorialPower,
+  }
+  context.syntheticReportNotes.push(
+    createDeterministicReportNote(
+      `Territorial power - ${formatTerritorialPowerRollup(summary)}`,
+      context.sourceState.week,
+      950,
+      context.noteBaseTimestamp,
+      'system.territorial_power',
+      {
+        nodeCount: summary.nodeCount,
+        availableYield: summary.availableYield,
+        suppressedNodeCount: summary.suppressedNodeCount,
+        openConduitCount: summary.openConduitCount,
+        blockedConduitCount: summary.blockedConduitCount,
+        eligibleScopeCount: summary.eligibleScopeCount,
+        lastExpenditureResult: lastExpenditure?.result ?? null,
+        lastExpenditureScopeId: lastExpenditure?.scopeId ?? null,
+        lastExpenditureAmount: lastExpenditure?.amount ?? 0,
+      }
+    )
+  )
+}
+
 function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
   const anchorInstabilityNote = buildAnchorFactionInstabilityNote(
     context.nextState,
@@ -2273,6 +2863,11 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
       context.performanceByCaseId,
       context.powerImpactByCaseId
     ),
+    ...(context.campaignGovernanceReport
+      ? { campaignGovernance: context.campaignGovernanceReport }
+      : {}),
+    territorialPower: buildTerritorialPowerReportSnapshot(context.nextState.territorialPower),
+    supplyNetwork: buildSupplyNetworkReportSnapshot(context.nextState.supplyNetwork),
     notes: filteredNotes,
   }
 
@@ -2391,14 +2986,9 @@ function finalizeEvents(
   builtReport: BuiltWeeklyReport,
   agencyMetrics: AgencyMetricUpdate
 ) {
-  const reportNoteDrafts = getWeeklyReportNoteDrafts(context)
   const report = {
     ...builtReport.report,
-    notes: buildDeterministicReportNotesFromEventDrafts(
-      reportNoteDrafts,
-      context.sourceState.week,
-      context.noteBaseTimestamp
-    ),
+    notes: buildWeeklyReportNotes(context),
   }
   // Always overlay canonical agency object
   const canonicalAgency = (agencyMetrics.finalState.agency && Object.keys(agencyMetrics.finalState.agency).length > 0)
@@ -2440,6 +3030,7 @@ function finalizeEvents(
  * It is intentionally not a visual combat loop or action-by-action playback engine.
  */
 export function advanceWeek(state: GameState, overrideNow?: number): GameState {
+
   if (state.gameOver) {
     return ensureNormalizedGameState(state)
   }
@@ -2447,6 +3038,32 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const sourceReports = getSimulationSourceReports(state.reports)
   const sourceState =
     sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+
+  // --- Emergency Governance: Activation/Restoration ---
+  // Compute pressure level for this week
+  const pressureSummary = buildAgencyPressureSummary(sourceState)
+  const pressureLevel = pressureSummary.level
+
+  let emergencyGovernance = sourceState.emergencyGovernance
+  if (shouldActivateEmergencyGovernance(sourceState, pressureLevel)) {
+    emergencyGovernance = {
+      active: true,
+      triggeredBy: `pressure.${pressureLevel}`,
+      effects: { ...EMERGENCY_EFFECTS },
+      activatedWeek: sourceState.week,
+      expiresWeek: sourceState.week + EMERGENCY_DURATION_WEEKS,
+    }
+  } else if (shouldRestoreFromEmergency(sourceState, pressureLevel)) {
+    emergencyGovernance = {
+      ...sourceState.emergencyGovernance,
+      active: false,
+    }
+  }
+
+  const preparedSourceState = applyEmergencyGovernanceEffects({
+    ...sourceState,
+    emergencyGovernance,
+  })
 
   // Create a single timingCheckState for the week
   const timingCheckState = createTimingCheckState()
@@ -2475,26 +3092,73 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const rng = createSeededRng(sourceState.rngState)
   const noteBaseTimestamp =
     overrideNow !== undefined && Number.isFinite(overrideNow) ? Math.trunc(overrideNow) : undefined
-  const context = createWeeklyExecutionContext(sourceState, noteBaseTimestamp)
+  const context = createWeeklyExecutionContext(preparedSourceState, noteBaseTimestamp)
 
+  processSupplyNetwork(context)
+  processCampaignGovernance(context)
   prepareAgentsForWeek(context)
   resolveAssignments(context, rng, timingCheckState)
   // SPE-95: If coordination friction is active, deterministically downgrade one follow-through outcome
   if (coordinationFrictionActive) {
     // Find a 'success' in context.resolvedCases and downgrade to 'partial' (if any)
-    const downgradeCaseId = context.resolvedCases.find(cid => {
-      const mission = context.missionResultDraftByCaseId[cid];
-      return mission && mission.outcome === 'success';
-    });
+    const downgradeCaseId = context.resolvedCases.find((cid) => {
+      const mission = context.missionResultDraftByCaseId[cid]
+      return mission && mission.outcome === 'success'
+    })
     if (downgradeCaseId) {
-      // Downgrade the mission result
-      const mission = context.missionResultDraftByCaseId[downgradeCaseId];
+      const currentCase = context.sourceState.cases[downgradeCaseId]
+      const mission = context.missionResultDraftByCaseId[downgradeCaseId]
       if (mission) {
+        const resolutionEscalation = createResolutionEscalationTransition(currentCase, 'partial')
+        const partiallyResolvedCase = {
+          ...resolutionEscalation.nextCase,
+          status: 'open' as const,
+          assignedTeamIds: [],
+          weeksRemaining: undefined,
+          supportShortfall: context.nextState.cases[downgradeCaseId]?.supportShortfall ?? false,
+        }
+        const rewardBreakdown = buildMissionRewardBreakdown(
+          partiallyResolvedCase,
+          'partial',
+          context.nextState.config,
+          context.nextState
+        )
+
+        context.rewardByCaseId[downgradeCaseId] = rewardBreakdown
         mission.outcome = 'partial'
-        mission.explanationNotes = [
-          ...(mission.explanationNotes || []),
+        mission.rewards = rewardBreakdown
+        mission.spawnedConsequences = [
+          {
+            type: 'stage_escalation',
+            caseId: downgradeCaseId,
+            caseTitle: currentCase.title,
+            stage: partiallyResolvedCase.stage,
+            detail: `Case escalated to stage ${partiallyResolvedCase.stage}.`,
+          },
+        ]
+        mission.resolutionReasons = [
+          ...(mission.resolutionReasons ?? []),
           'Command-coordination friction under pressure reduced operation follow-through this week.',
-        ];
+        ]
+        context.nextState.cases[downgradeCaseId] = partiallyResolvedCase
+
+        const resolvedEventIndex = context.eventDrafts.findIndex(
+          (draft) => draft.type === 'case.resolved' && draft.payload.caseId === downgradeCaseId
+        )
+        const partialDraft = buildCasePartiallyResolvedEventDraft({
+          week: context.sourceState.week,
+          caseData: currentCase,
+          toStage: resolutionEscalation.nextStage,
+          teamIds: currentCase.assignedTeamIds,
+          rewardBreakdown,
+          performanceSummary: mission.performanceSummary,
+        })
+
+        if (resolvedEventIndex >= 0) {
+          context.eventDrafts.splice(resolvedEventIndex, 1, partialDraft)
+        } else {
+          context.eventDrafts.push(partialDraft)
+        }
       }
       // Remove from resolvedCases if present, and record as partial (exclusive)
       context.resolvedCases = context.resolvedCases.filter((cid) => cid !== downgradeCaseId)
@@ -2517,11 +3181,13 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   finalizeMissionResults(context)
   // SPE-53: Generate hub simulation and attach notes
   generateAndAttachHubNotes(context)
+  processGovernanceTransfers(context)
+  processTerritorialPower(context)
 
-  let builtReport = buildReports(context)
-  // SPE-95: Surface a coordination friction note if active
-  if (coordinationFrictionActive && builtReport.report) {
-    const note = {
+  const builtReport = buildReports(context)
+  // SPE-95: Surface a coordination friction note through the synthetic report-note path.
+  if (coordinationFrictionActive) {
+    context.syntheticReportNotes.push({
       id: `note-coordination-friction-${state.week}`,
       content: 'Command-coordination friction under pressure reduced operation follow-through this week.',
       timestamp: Date.now(),
@@ -2530,14 +3196,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         reason: coordinationFrictionReason,
         week: sourceState.week,
       },
-    };
-    builtReport = {
-      ...builtReport,
-      report: {
-        ...builtReport.report,
-        notes: [...(builtReport.report.notes || []), note],
-      },
-    };
+    })
   }
   const agencyMetrics = updateAgencyMetrics(context, builtReport)
 

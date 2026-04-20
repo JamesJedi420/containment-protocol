@@ -82,6 +82,8 @@ const OPERATION_EVENT_TYPES = [
   'faction.activity',
   'agency.containment_updated',
   'directive.applied',
+  'system.supply_network_updated',
+  'governance.transfer_processed',
   'system.academy_upgraded',
 ] as const
 
@@ -122,6 +124,8 @@ const REPORT_NOTE_TYPES = [
   'market.transaction_recorded',
   'faction.standing_changed',
   'directive.applied',
+  'system.supply_network_updated',
+  'governance.transfer_processed',
 ] as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -1525,6 +1529,122 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
           })
         )
         break
+
+      case 'governance.transfer_processed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('governance.transfer_processed'),
+            payload: {
+              week,
+              transferId:
+                typeof payload.transferId === 'string' ? payload.transferId : `transfer-${index + 1}`,
+              authorityId:
+                typeof payload.authorityId === 'string'
+                  ? payload.authorityId
+                  : `authority-${index + 1}`,
+              authorityLabel:
+                typeof payload.authorityLabel === 'string'
+                  ? payload.authorityLabel
+                  : `Authority ${index + 1}`,
+              authorityClass:
+                payload.authorityClass === 'charter_holdings' ||
+                payload.authorityClass === 'site_custody'
+                  ? payload.authorityClass
+                  : 'sovereign_authority',
+              transferPath:
+                payload.transferPath === 'inheritance' ||
+                payload.transferPath === 'investiture' ||
+                payload.transferPath === 'violent_extraction'
+                  ? payload.transferPath
+                  : payload.transferPath === 'recognized_transfer'
+                    ? payload.transferPath
+                    : undefined,
+              batchId: typeof payload.batchId === 'string' ? payload.batchId : undefined,
+              batchLabel: typeof payload.batchLabel === 'string' ? payload.batchLabel : undefined,
+              state:
+                payload.state === 'blocked' ||
+                payload.state === 'completed' ||
+                payload.state === 'contested'
+                  ? payload.state
+                  : 'failed',
+              outcome:
+                payload.outcome === 'authority_transferred' ||
+                payload.outcome === 'partial_claim' ||
+                payload.outcome === 'contested_completion' ||
+                payload.outcome === 'failover_selected' ||
+                payload.outcome === 'declined'
+                  ? payload.outcome
+                  : 'transfer_invalid',
+              grantedPowerTier:
+                payload.grantedPowerTier === 'trace' ||
+                payload.grantedPowerTier === 'vested' ||
+                payload.grantedPowerTier === 'ascendant'
+                  ? payload.grantedPowerTier
+                  : payload.grantedPowerTier === 'none'
+                    ? payload.grantedPowerTier
+                    : undefined,
+              successorId: typeof payload.successorId === 'string' ? payload.successorId : undefined,
+              successorName:
+                typeof payload.successorName === 'string' ? payload.successorName : undefined,
+              sourceActorName:
+                typeof payload.sourceActorName === 'string' ? payload.sourceActorName : undefined,
+              failoverUsed: Boolean(payload.failoverUsed),
+              coercive: Boolean(payload.coercive),
+              transferredAuthority: sanitizeInteger(
+                payload.transferredAuthority as number | undefined,
+                0,
+                0
+              ),
+              recognizedLegitimacy: sanitizeInteger(
+                payload.recognizedLegitimacy as number | undefined,
+                0,
+                0
+              ),
+              practicalControl: sanitizeInteger(
+                payload.practicalControl as number | undefined,
+                0,
+                0
+              ),
+              blockers: sanitizeStringList(payload.blockers),
+              inheritedPowerOutcome:
+                payload.inheritedPowerOutcome === 'new_gain' ||
+                payload.inheritedPowerOutcome === 'upgrade_existing'
+                  ? payload.inheritedPowerOutcome
+                  : payload.inheritedPowerOutcome === 'no_gain'
+                    ? payload.inheritedPowerOutcome
+                    : undefined,
+              inheritedPowerPreviousTier:
+                payload.inheritedPowerPreviousTier === 'trace' ||
+                payload.inheritedPowerPreviousTier === 'vested' ||
+                payload.inheritedPowerPreviousTier === 'ascendant'
+                  ? payload.inheritedPowerPreviousTier
+                  : payload.inheritedPowerPreviousTier === 'none'
+                    ? payload.inheritedPowerPreviousTier
+                    : undefined,
+              inheritedPowerNextTier:
+                payload.inheritedPowerNextTier === 'trace' ||
+                payload.inheritedPowerNextTier === 'vested' ||
+                payload.inheritedPowerNextTier === 'ascendant'
+                  ? payload.inheritedPowerNextTier
+                  : payload.inheritedPowerNextTier === 'none'
+                    ? payload.inheritedPowerNextTier
+                    : undefined,
+              inheritedPowerRecipientId:
+                typeof payload.inheritedPowerRecipientId === 'string'
+                  ? payload.inheritedPowerRecipientId
+                  : undefined,
+              inheritedPowerRecipientName:
+                typeof payload.inheritedPowerRecipientName === 'string'
+                  ? payload.inheritedPowerRecipientName
+                  : undefined,
+              inheritedPowerReason:
+                typeof payload.inheritedPowerReason === 'string'
+                  ? payload.inheritedPowerReason
+                  : undefined,
+            },
+          })
+        )
+        break
     }
   }
 
@@ -1595,6 +1715,15 @@ function sanitizeWeeklyReports(
         avgFatigue: sanitizeInteger(report.avgFatigue as number | undefined, 0, 0),
         teamStatus: sanitizeTeamStatus(report.teamStatus, fallbackTeamStatus),
         caseSnapshots: sanitizeCaseSnapshots(report.caseSnapshots, fallbackCaseSnapshots),
+        campaignGovernance: isRecord(report.campaignGovernance)
+          ? (report.campaignGovernance as WeeklyReport['campaignGovernance'])
+          : undefined,
+        territorialPower: isRecord(report.territorialPower)
+          ? (report.territorialPower as WeeklyReport['territorialPower'])
+          : undefined,
+        supplyNetwork: isRecord(report.supplyNetwork)
+          ? (report.supplyNetwork as WeeklyReport['supplyNetwork'])
+          : undefined,
         notes: sanitizeReportNoteList(report.notes, week),
       }) as WeeklyReport
     )

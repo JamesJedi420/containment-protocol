@@ -1,6 +1,6 @@
 // Tests for obscured-signature counter-sensing path
 import { describe, it, expect } from 'vitest'
-import { applyAnomalySignatureSensing, applyObscuredSignature, getKnowledgeKey } from '../domain/knowledge'
+import { applyObscuredSignature, getKnowledgeKey } from '../domain/knowledge'
 
 describe('Obscured Signature Counter-Sensing', () => {
   it('should set knowledge to masked when signature is obscured', () => {

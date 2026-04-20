@@ -1,5 +1,7 @@
 import { type GameState } from '../domain/models'
+import { createStartingCampaignGovernanceState } from '../domain/campaignGovernance'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
+import { createStartingSupplyNetworkState } from '../domain/supplyNetwork'
 import { syncTeamSimulationState } from '../domain/teamSimulation'
 import { caseTemplateMap, starterCases, starterRoster, starterTeams } from '../domain/templates'
 import { createStartingPartyCardState } from './partyCards'
@@ -35,13 +37,30 @@ const startingStateTemplate: GameState = {
   partyCards: createStartingPartyCardState(),
 
   knowledge: startingKnowledge,
+  supplyNetwork: createStartingSupplyNetworkState(),
+  regionalState: {
+    regions: ['bio_containment', 'occult_district', 'perimeter_sector'],
+    control: {
+      bio_containment: 'agency',
+      occult_district: 'agency',
+      perimeter_sector: 'agency',
+    },
+    routes: {
+      bio_containment: ['perimeter_sector'],
+      occult_district: ['perimeter_sector'],
+      perimeter_sector: ['bio_containment', 'occult_district'],
+    },
+    knowledge: {},
+  },
 
   agency: {
     containmentRating: 72,
     clearanceLevel: 1,
     funding: 110,
+    authority: 44,
     supportAvailable: 2,
     maintenanceSpecialistsAvailable: 2, // Default starting value for maintenance capacity
+    upkeepBurden: 0,
   },
 
   containmentRating: 72,
@@ -75,6 +94,7 @@ const startingStateTemplate: GameState = {
 
 export function createStartingState(): GameState {
   const state = syncTeamSimulationState(structuredClone(startingStateTemplate));
+  state.campaignGovernance = createStartingCampaignGovernanceState(state)
   // Ensure at least one valid report for dashboard tests
   if (!state.reports || state.reports.length === 0) {
     state.reports = [

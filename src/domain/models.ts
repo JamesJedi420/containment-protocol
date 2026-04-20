@@ -1,3 +1,15 @@
+// Emergency governance state for bounded, deterministic crisis rule changes
+export interface EmergencyGovernanceState {
+  active: boolean;
+  triggeredBy: string; // e.g. 'pressure.critical'
+  effects: {
+    maxActiveCasesDelta: number;
+    fundingBasePerWeekDelta: number;
+  };
+  activatedWeek: number;
+  expiresWeek: number;
+}
+
 // SPE-64: Explicit cross-scale handoff contracts
 
 /**
@@ -72,6 +84,7 @@ export type {
   AgentHistory,
   AgentHistoryCounters,
   AgentHistoryEntry,
+  AgentInheritedPowerState,
   AgentIdentity,
   AgentPerformance,
   AgentPerformanceBlendBreakdown,
@@ -159,6 +172,78 @@ export type {
   ResistanceProfile,
   ThreatFamily,
 } from './shared/modifiers'
+
+export type {
+  TerritorialCastingEligibilityState,
+  TerritorialConduitState,
+  TerritorialExpenditureOutcome,
+  TerritorialExpenditureResult,
+  TerritorialNodeState,
+  TerritorialPowerNodeSnapshot,
+  TerritorialPowerReportSnapshot,
+  TerritorialPowerState,
+  TerritorialPowerSummary,
+} from './territorialPower'
+
+export type {
+  SupplyBlockedReason,
+  SupplyLinkMode,
+  SupplyLinkState,
+  SupplyLinkStatus,
+  SupplyNetworkReportSnapshot,
+  SupplyNetworkState,
+  SupplyNetworkWeeklySummary,
+  SupplyNodeController,
+  SupplyNodeState,
+  SupplyNodeType,
+  SupplySourceState,
+  SupplySourceType,
+  SupplySupportState,
+  SupplyTraceState,
+  SupplyTransportAssetState,
+  SupplyTransportClass,
+  SupplyTransportStatus,
+} from './supplyNetwork'
+
+export type {
+  CampaignCourtMode,
+  CampaignGovernanceReportSnapshot,
+  CampaignGovernanceState,
+  CampaignGovernanceSummary,
+  CampaignPrimacy,
+  GovernanceActionRecord,
+  GovernanceActionType,
+  GovernanceRegionFortificationState,
+  GovernanceRegionOccupationState,
+  GovernanceRegionState,
+  GovernanceRegionWarState,
+  GovernanceResourceChannels,
+  GovernanceSupplyState,
+  GovernanceTurnPhase,
+  GovernanceTurnStatus,
+} from './campaignGovernance'
+
+export type {
+  GovernanceAuthorityClass,
+  GovernanceAuthorityState,
+  GovernanceClaimBasis,
+  GovernanceClaimant,
+  GovernanceContractTrigger,
+  GovernanceHolderStatus,
+  GovernanceInheritedPowerOutcome,
+  GovernanceInheritedPowerOutcomeType,
+  GovernanceInheritedPowerTier,
+  GovernanceParticipant,
+  GovernanceParticipantRole,
+  GovernanceState,
+  GovernanceSuccessionContract,
+  GovernanceTransfer,
+  GovernanceTransferOutcome,
+  GovernanceTransferOutcomeType,
+  GovernanceTransferPath,
+  GovernanceTransferState,
+  GovernanceViolentExtraction,
+} from './governanceTransfers'
 
 export type {
   AgentCandidateRole,
@@ -830,7 +915,12 @@ export type ReportNoteType =
   | 'system.proxy_conflict'
   | 'system.protocol_contact'
   | 'system.anchor_instability'
+  | 'system.territorial_power'
+  | 'system.supply_network_updated'
+  | 'system.fortification_updated'
   | 'directive.applied'
+  | 'governance.turn_resolved'
+  | 'governance.transfer_processed'
 
 export type ReportNoteMetadataValue =
   | string
@@ -871,6 +961,9 @@ export interface WeeklyReport {
 
   teamStatus: WeeklyReportTeamStatus[]
   caseSnapshots?: Record<Id, WeeklyReportCaseSnapshot>
+  campaignGovernance?: import('./campaignGovernance').CampaignGovernanceReportSnapshot
+  territorialPower?: import('./territorialPower').TerritorialPowerReportSnapshot
+  supplyNetwork?: import('./supplyNetwork').SupplyNetworkReportSnapshot
 
   notes: ReportNote[]
 }
@@ -1032,6 +1125,7 @@ export interface AgencyState {
   containmentRating: number
   clearanceLevel: number
   funding: number
+  authority?: number
   /**
    * Canonical support pool: available support staff/capacity for operations this week.
    * Bounded, deterministic, and consumed by operations. Restored by hub/campaign actions.
@@ -1042,6 +1136,7 @@ export interface AgencyState {
    * Each damaged item or recovery job consumes 1 maintenance specialist per week.
    */
   maintenanceSpecialistsAvailable?: number
+  upkeepBurden?: number
   protocolSelectionLimit?: number
   activeProtocolIds?: string[]
   /**
@@ -1057,6 +1152,17 @@ export interface AgencyState {
 export interface GameState {
     /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
     legitimacy?: LegitimacyState
+  emergencyGovernance?: EmergencyGovernanceState
+  /** Canonical authority-transfer and succession state. */
+  governance?: import('./governanceTransfers').GovernanceState
+  /** Canonical strategic-governance turn state for authority, upkeep, war, and fortification. */
+  campaignGovernance?: import('./campaignGovernance').CampaignGovernanceState
+  /** Canonical territorial-power substrate for deterministic weekly simulation. */
+  territorialPower?: import('./territorialPower').TerritorialPowerState
+  /** Canonical connected-source support and transport substrate. */
+  supplyNetwork?: import('./supplyNetwork').SupplyNetworkState
+  /** Canonical regional/zone/route state for bounded, deterministic regional simulation. */
+  regionalState?: RegionalState
   week: number
   rngSeed: number
   rngState: number
@@ -1113,4 +1219,18 @@ export interface GameState {
 
   /** Canonical persistent knowledge-state map (keyed by entity/subject) */
   knowledge: KnowledgeStateMap
+}
+
+/**
+ * Canonical regional/zone/route state for bounded, deterministic regional simulation.
+ * - regions: minimal set of region ids (e.g., 'north', 'central', 'south')
+ * - control: which faction/entity controls each region
+ * - routes: minimal adjacency/connection info (for future deterministic routing)
+ * - knowledge: per-region knowledge state (mirrors knowledgeState pattern)
+ */
+export interface RegionalState {
+  regions: readonly string[]
+  control: Record<string, string> // regionId -> controller (e.g., 'agency', 'hostile', etc.)
+  routes: Record<string, readonly string[]> // regionId -> connected regionIds
+  knowledge: Record<string, import('./knowledge').KnowledgeState>
 }

@@ -35,7 +35,12 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'market.transaction_recorded',
   'faction.standing_changed',
   'agency.containment_updated',
+  'system.territorial_power',
+  'system.supply_network_updated',
+  'system.fortification_updated',
   'directive.applied',
+  'governance.turn_resolved',
+  'governance.transfer_processed',
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {

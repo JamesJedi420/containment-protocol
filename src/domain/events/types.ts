@@ -371,6 +371,88 @@ export interface OperationEventPayloadMap {
     directiveId: WeeklyDirectiveId
     directiveLabel: string
   }
+  'system.supply_network_updated': {
+    week: number
+    tracedRegionCount: number
+    supportedRegionCount: number
+    unsupportedRegionCount: number
+    blockedRegions: string[]
+    blockedDetails: string[]
+    readyTransportCount: number
+    disruptedTransportCount: number
+    strategicControlScore: number
+    deliveredLift: number
+    summary: string
+  }
+  'governance.transfer_processed': {
+    week: number
+    transferId: Id
+    authorityId: string
+    authorityLabel: string
+    authorityClass: 'sovereign_authority' | 'charter_holdings' | 'site_custody'
+    transferPath?: 'inheritance' | 'recognized_transfer' | 'investiture' | 'violent_extraction'
+    batchId?: string
+    batchLabel?: string
+    state: 'blocked' | 'completed' | 'contested' | 'failed'
+    outcome:
+      | 'authority_transferred'
+      | 'partial_claim'
+      | 'transfer_invalid'
+      | 'contested_completion'
+      | 'failover_selected'
+      | 'declined'
+    grantedPowerTier?: 'none' | 'trace' | 'vested' | 'ascendant'
+    successorId?: string
+    successorName?: string
+    sourceActorName?: string
+    failoverUsed: boolean
+    coercive: boolean
+    transferredAuthority: number
+    recognizedLegitimacy: number
+    practicalControl: number
+    blockers: string[]
+    inheritedPowerOutcome?: 'no_gain' | 'new_gain' | 'upgrade_existing'
+    inheritedPowerPreviousTier?: 'none' | 'trace' | 'vested' | 'ascendant'
+    inheritedPowerNextTier?: 'none' | 'trace' | 'vested' | 'ascendant'
+    inheritedPowerRecipientId?: string
+    inheritedPowerRecipientName?: string
+    inheritedPowerReason?: string
+  }
+  'governance.turn_resolved': {
+    week: number
+    phaseOrder: string[]
+    authorityBefore: number
+    authorityAfter: number
+    fundingNet: number
+    upkeepCost: number
+    atWarRegions: number
+    occupiedRegions: number
+    underSiegeRegions: number
+    contestedRegions: number
+    primacy: 'city_state' | 'directorate'
+    courtMode: 'fixed_court' | 'mobile_court'
+    courtRegionId?: string
+    actionCount: number
+    summary: string
+  }
+  'system.fortification_updated': {
+    week: number
+    regionId: string
+    regionLabel: string
+    controllerBefore: string
+    controllerAfter: string
+    action: 'deploy' | 'fortify' | 'negotiate' | 'stabilize' | 'hold'
+    fortificationLevelBefore: number
+    fortificationLevelAfter: number
+    integrityBefore: number
+    integrityAfter: number
+    siegePressureBefore: number
+    siegePressureAfter: number
+    erosion: number
+    warActive: boolean
+    occupationActive: boolean
+    summary: string
+  }
   'system.academy_upgraded': {
     week: number
     tierBefore: number
@@ -418,6 +500,10 @@ export interface OperationEventTypeToSourceSystemMap {
   'faction.standing_changed': 'faction'
   'agency.containment_updated': 'system'
   'directive.applied': 'system'
+  'system.supply_network_updated': 'system'
+  'governance.transfer_processed': 'system'
+  'governance.turn_resolved': 'system'
+  'system.fortification_updated': 'system'
   'system.academy_upgraded': 'system'
 }
 
@@ -456,6 +542,10 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'faction.standing_changed': 'faction',
   'agency.containment_updated': 'system',
   'directive.applied': 'system',
+  'system.supply_network_updated': 'system',
+  'governance.transfer_processed': 'system',
+  'governance.turn_resolved': 'system',
+  'system.fortification_updated': 'system',
   'system.academy_upgraded': 'system',
 }
 

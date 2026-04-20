@@ -24,6 +24,7 @@ import type {
   AgentAbilityState,
   AgentAssignmentState,
   AgentHistory,
+  AgentInheritedPowerState,
   AgentIdentity,
   AgentProgression,
   AgentReadinessProfile,
@@ -32,6 +33,42 @@ import type {
   EquipmentSlots,
 } from './models'
 import type { OperationEvent, OperationEventType } from '../events/types'
+
+function normalizeInheritedPowerTier(
+  value: AgentInheritedPowerState['realizedTier'] | undefined
+) {
+  if (
+    value === 'trace' ||
+    value === 'vested' ||
+    value === 'ascendant' ||
+    value === 'none'
+  ) {
+    return value
+  }
+
+  return 'none'
+}
+
+function normalizeAgentInheritedPower(agent: Agent): AgentInheritedPowerState {
+  const inheritedPower = agent.inheritedPower
+
+  return {
+    latentLineageTier: normalizeInheritedPowerTier(inheritedPower?.latentLineageTier),
+    realizedTier: normalizeInheritedPowerTier(inheritedPower?.realizedTier),
+    ...(typeof inheritedPower?.lastTransferId === 'string'
+      ? { lastTransferId: inheritedPower.lastTransferId }
+      : {}),
+    ...(inheritedPower?.lastOutcome === 'no_gain' ||
+    inheritedPower?.lastOutcome === 'new_gain' ||
+    inheritedPower?.lastOutcome === 'upgrade_existing'
+      ? { lastOutcome: inheritedPower.lastOutcome }
+      : {}),
+    ...(typeof inheritedPower?.lastUpdatedWeek === 'number' &&
+    Number.isFinite(inheritedPower.lastUpdatedWeek)
+      ? { lastUpdatedWeek: Math.max(1, Math.trunc(inheritedPower.lastUpdatedWeek)) }
+      : {}),
+  }
+}
 
 function clampPercent(value: number, fallback = 0) {
   if (!Number.isFinite(value)) {
@@ -697,6 +734,7 @@ export function normalizeAgent(agent: Agent): Agent {
   const vitals = normalizeAgentVitals(agent, fatigue, status)
   const serviceRecord = normalizeAgentServiceRecord(agent, assignment)
   const readinessProfile = normalizeAgentReadinessProfile(assignment, fatigue, status, vitals)
+  const inheritedPower = normalizeAgentInheritedPower(agent)
 
   return {
     ...agent,
@@ -714,6 +752,7 @@ export function normalizeAgent(agent: Agent): Agent {
     serviceRecord,
     readinessProfile,
     progression,
+    inheritedPower,
     equipment: normalizeEquipmentCounts(agent.equipment),
     equipmentSlots: normalizeEquipmentSlots(agent.equipmentSlots),
     traits: [...(agent.traits ?? [])],
@@ -753,6 +792,7 @@ export function isAgentNormalized(agent: Agent) {
     typeof agent.vitals.wounds === 'number' &&
     agent.progression !== undefined &&
     agent.level === agent.progression.level &&
+    agent.inheritedPower !== undefined &&
     agent.specialization !== undefined &&
     agent.serviceRecord !== undefined &&
     agent.readinessProfile !== undefined &&

@@ -19,50 +19,13 @@ function runScriptedDeterministicScenario(seed: number) {
     assignedTeamIds: [],
     stage: 1,
     deadlineRemaining: 1,
-    const BASELINE = {
-      academyTier: 0,
-      agency: {
-        clearanceLevel: 1,
-        containmentRating: 72,
-        funding: 110,
-      },
-      agents: {
-        a_ava: expect.any(Object),
-        a_casey: expect.any(Object),
-        a_eli: expect.any(Object),
-        a_juno: expect.any(Object),
-        a_kellan: expect.any(Object),
-        a_mina: expect.any(Object),
-        a_rook: expect.any(Object),
-        a_sato: expect.any(Object),
-      },
-      candidates: [],
-      caseQueue: expect.any(Object),
-      cases: expect.any(Object),
-      clearanceLevel: 1,
-      config: expect.any(Object),
-      containmentRating: 72,
-      directiveState: expect.any(Object),
-      events: [],
-      funding: 110,
-      gameOver: false,
-      inventory: expect.any(Object),
-      knowledge: { 't_nightwatch::case-001': expect.any(Object) },
-      market: expect.any(Object),
-      partyCards: expect.any(Object),
-      productionQueue: [],
-      recruitmentPool: [],
-      reports: [],
-      rngSeed: 99999,
-      rngState: 99999,
-      staff: {},
-      teams: expect.any(Object),
-      templates: expect.any(Object),
-      trainingQueue: [],
-      week: 1,
+      // trainingQueue: [],
+      // week: 1,
     }
- * ensuring the stability hardening fix prevents state leaks.
- */
+  // End of baseline case state
+  return state;
+}
+
 describe('Simulation Determinism Hardenin', () => {
   it('produces identical 10-week runs from the same seed', () => {
     const seedValue = 12345

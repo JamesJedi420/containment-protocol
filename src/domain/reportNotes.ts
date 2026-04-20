@@ -6,6 +6,11 @@ import {
 import { inspectDistortion } from './shared/distortion'
 import { buildFactionStates } from './factions'
 import {
+  describeGovernanceTransferResult,
+  formatGovernanceInheritedPowerOutcome,
+  formatGovernanceTransferMetrics,
+} from './governanceTransfers'
+import {
   type CaseInstance,
   type GameState,
   type ReportNote,
@@ -405,7 +410,70 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           maintenanceCapacity: draft.payload.maintenanceCapacity,
           damagedCount: draft.payload.damagedCount,
         },
+    }
+
+    case 'governance.transfer_processed': {
+      const summary = describeGovernanceTransferResult({
+        authorityLabel: draft.payload.authorityLabel,
+        transferPath: draft.payload.transferPath ?? 'recognized_transfer',
+        outcome: draft.payload.outcome,
+        successorName: draft.payload.successorName,
+        sourceActorName: draft.payload.sourceActorName,
+        blockers: draft.payload.blockers,
+      })
+      const inheritedPowerLabel = formatGovernanceInheritedPowerOutcome(
+        draft.payload.inheritedPowerOutcome
+          ? {
+              type: draft.payload.inheritedPowerOutcome,
+              previousTier: draft.payload.inheritedPowerPreviousTier ?? 'none',
+              nextTier: draft.payload.inheritedPowerNextTier ?? 'none',
+              recipientId: draft.payload.inheritedPowerRecipientId,
+              recipientName: draft.payload.inheritedPowerRecipientName,
+              reason: draft.payload.inheritedPowerReason ?? '',
+            }
+          : undefined
+      )
+      const inheritedPowerSummary = inheritedPowerLabel
+        ? ` ${inheritedPowerLabel}.${draft.payload.inheritedPowerReason ? ` ${draft.payload.inheritedPowerReason}` : ''}`
+        : ''
+
+      return {
+        content:
+          `${summary} ${formatGovernanceTransferMetrics(
+            draft.payload.transferredAuthority,
+            draft.payload.recognizedLegitimacy,
+            draft.payload.practicalControl
+          )}.${inheritedPowerSummary}`,
+        type: 'governance.transfer_processed',
+        metadata: {
+          transferId: draft.payload.transferId,
+          authorityId: draft.payload.authorityId,
+          authorityLabel: draft.payload.authorityLabel,
+          authorityClass: draft.payload.authorityClass,
+          transferPath: draft.payload.transferPath ?? null,
+          batchId: draft.payload.batchId ?? null,
+          batchLabel: draft.payload.batchLabel ?? null,
+          state: draft.payload.state,
+          outcome: draft.payload.outcome,
+          grantedPowerTier: draft.payload.grantedPowerTier ?? null,
+          successorId: draft.payload.successorId ?? null,
+          successorName: draft.payload.successorName ?? null,
+          sourceActorName: draft.payload.sourceActorName ?? null,
+          failoverUsed: draft.payload.failoverUsed,
+          coercive: draft.payload.coercive,
+          transferredAuthority: draft.payload.transferredAuthority,
+          recognizedLegitimacy: draft.payload.recognizedLegitimacy,
+          practicalControl: draft.payload.practicalControl,
+          blockers: draft.payload.blockers,
+          inheritedPowerOutcome: draft.payload.inheritedPowerOutcome ?? null,
+          inheritedPowerPreviousTier: draft.payload.inheritedPowerPreviousTier ?? null,
+          inheritedPowerNextTier: draft.payload.inheritedPowerNextTier ?? null,
+          inheritedPowerRecipientId: draft.payload.inheritedPowerRecipientId ?? null,
+          inheritedPowerRecipientName: draft.payload.inheritedPowerRecipientName ?? null,
+          inheritedPowerReason: draft.payload.inheritedPowerReason ?? null,
+        },
       }
+    }
 
     case 'market.shifted':
       return {
@@ -546,6 +614,66 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         metadata: {
           directiveId: draft.payload.directiveId,
           directiveLabel: draft.payload.directiveLabel,
+        },
+      }
+
+    case 'governance.turn_resolved':
+      return {
+        content: `Governance turn - ${draft.payload.summary}`,
+        type: 'governance.turn_resolved',
+        metadata: {
+          phaseOrder: draft.payload.phaseOrder,
+          authorityBefore: draft.payload.authorityBefore,
+          authorityAfter: draft.payload.authorityAfter,
+          fundingNet: draft.payload.fundingNet,
+          upkeepCost: draft.payload.upkeepCost,
+          atWarRegions: draft.payload.atWarRegions,
+          occupiedRegions: draft.payload.occupiedRegions,
+          underSiegeRegions: draft.payload.underSiegeRegions,
+          contestedRegions: draft.payload.contestedRegions,
+          primacy: draft.payload.primacy,
+          courtMode: draft.payload.courtMode,
+          courtRegionId: draft.payload.courtRegionId ?? null,
+          actionCount: draft.payload.actionCount,
+        },
+      }
+
+    case 'system.supply_network_updated':
+      return {
+        content: `Supply network - ${draft.payload.summary}`,
+        type: 'system.supply_network_updated',
+        metadata: {
+          tracedRegionCount: draft.payload.tracedRegionCount,
+          supportedRegionCount: draft.payload.supportedRegionCount,
+          unsupportedRegionCount: draft.payload.unsupportedRegionCount,
+          blockedRegions: draft.payload.blockedRegions,
+          blockedDetails: draft.payload.blockedDetails,
+          readyTransportCount: draft.payload.readyTransportCount,
+          disruptedTransportCount: draft.payload.disruptedTransportCount,
+          strategicControlScore: draft.payload.strategicControlScore,
+          deliveredLift: draft.payload.deliveredLift,
+        },
+      }
+
+    case 'system.fortification_updated':
+      return {
+        content: `Fortification - ${draft.payload.summary}`,
+        type: 'system.fortification_updated',
+        metadata: {
+          regionId: draft.payload.regionId,
+          regionLabel: draft.payload.regionLabel,
+          controllerBefore: draft.payload.controllerBefore,
+          controllerAfter: draft.payload.controllerAfter,
+          action: draft.payload.action,
+          fortificationLevelBefore: draft.payload.fortificationLevelBefore,
+          fortificationLevelAfter: draft.payload.fortificationLevelAfter,
+          integrityBefore: draft.payload.integrityBefore,
+          integrityAfter: draft.payload.integrityAfter,
+          siegePressureBefore: draft.payload.siegePressureBefore,
+          siegePressureAfter: draft.payload.siegePressureAfter,
+          erosion: draft.payload.erosion,
+          warActive: draft.payload.warActive,
+          occupationActive: draft.payload.occupationActive,
         },
       }
 

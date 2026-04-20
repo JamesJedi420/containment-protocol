@@ -15,7 +15,7 @@ import {
 describe('teamSimulation', () => {
 
   describe('getTeamConsequenceSummary', () => {
-    const makeTeam = (fatigue: number) => ({
+    const makeTeam = () => ({
       memberIds: ['a_ava', 'a_kellan'],
       agentIds: ['a_ava', 'a_kellan'],
       leaderId: 'a_ava',
@@ -27,7 +27,7 @@ describe('teamSimulation', () => {
       a_kellan: { id: 'a_kellan', fatigue: 0, status: 'active' },
     }
     it('returns strong consequences for high readiness', () => {
-      const team = makeTeam(0)
+      const team = makeTeam()
       agentsById.a_ava.fatigue = 0
       agentsById.a_kellan.fatigue = 0
       const summary = getTeamConsequenceSummary(team, agentsById)
@@ -36,7 +36,7 @@ describe('teamSimulation', () => {
       expect(summary.technological).toContain('enemy-disabled')
     })
     it('returns catastrophic consequences for low readiness', () => {
-      const team = makeTeam(100)
+      const team = makeTeam()
       agentsById.a_ava.fatigue = 100
       agentsById.a_kellan.fatigue = 100
       const summary = getTeamConsequenceSummary(team, agentsById)
@@ -45,7 +45,7 @@ describe('teamSimulation', () => {
       expect(summary.technological).toContain('system-hacked')
     })
     it('returns partial consequences for mid readiness', () => {
-      const team = makeTeam(60)
+      const team = makeTeam()
       agentsById.a_ava.fatigue = 60
       agentsById.a_kellan.fatigue = 60
       const summary = getTeamConsequenceSummary(team, agentsById)

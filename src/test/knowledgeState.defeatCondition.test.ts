@@ -9,7 +9,7 @@ describe('Defeat-Condition Knowledge Ladder', () => {
     let state = {}
     // Unknown
     state = applyDefeatConditionKnowledge(state, teamId, anomalyId, 'unknown', 1)
-    let key = getKnowledgeKey(teamId, anomalyId)
+    const key = getKnowledgeKey(teamId, anomalyId)
     expect(state[key].defeatConditionCertainty).toBe('unknown')
     // Suspected bypass
     state = applyDefeatConditionKnowledge(state, teamId, anomalyId, 'suspected', 2)

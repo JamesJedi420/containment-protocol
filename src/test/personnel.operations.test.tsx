@@ -1,5 +1,5 @@
 import '../test/setup'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import AppShell from '../app/AppShell'
@@ -21,7 +21,7 @@ function renderApp(route = '/') {
             <Route index element={<AgentsPage />} />
             <Route path=":agentId" element={<AgentDetailPage />} />
           </Route>
-          <Route path="training-division" element={<require('../features/training/TrainingDivisionPage').default />} />
+          {/* <Route path="training-division" element={<TrainingDivisionPage />} /> */}
           <Route path="recruitment" element={<RecruitmentProbe />} />
         </Route>
       </Routes>

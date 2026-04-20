@@ -21,6 +21,17 @@ import {
   getWeeklyDirectiveDefinitions,
 } from '../../domain/directives'
 import { formatLatestReportRollup } from '../../domain/reportNotes'
+import {
+  formatCampaignGovernanceSummaryLines,
+} from '../../domain/campaignGovernance'
+import {
+  formatTerritorialPowerRollup,
+  formatTerritorialPowerSummaryLines,
+} from '../../domain/territorialPower'
+import {
+  formatSupplyNetworkRollup,
+  formatSupplyNetworkSummaryLines,
+} from '../../domain/supplyNetwork'
 import { RunTransferPanel } from './RunTransferPanel'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
 import { EventFeedPanel } from './EventFeedPanel'
@@ -82,6 +93,12 @@ export default function DashboardPage() {
   }, [])
 
   const metrics = getDashboardMetrics(game)
+    // Emergency Governance surfacing
+    const emergencyActive = metrics.emergencyActive;
+    const emergencyExpiresWeek = metrics.emergencyExpiresWeek;
+    const emergencyActivatedWeek = metrics.emergencyActivatedWeek;
+    const emergencyEffects = metrics.emergencyEffects;
+    const emergencyTriggeredBy = metrics.emergencyTriggeredBy;
   // Use the real or mocked dashboard view selectors
   const priorityCases = getPriorityCaseViews(game)
   const atRiskTeams = getAtRiskTeamViews(game)
@@ -143,9 +160,32 @@ export default function DashboardPage() {
   // Build agency overview for cadence/extra check surfacing
   const overview = buildAgencyOverview(game)
   const cadenceSummary = formatCadenceSummary(overview)
+  const governanceLines = formatCampaignGovernanceSummaryLines(metrics.campaignGovernance)
+  const territorialPowerLines = formatTerritorialPowerSummaryLines(metrics.territorialPower)
+  const supplyNetworkLines = formatSupplyNetworkSummaryLines(metrics.supplyNetwork)
 
   return (
     <section className="space-y-6">
+      {/* Emergency Governance Banner */}
+      {emergencyActive && (
+        <section className="panel border-amber-400/40 bg-amber-500/10 space-y-2" role="status" aria-label="Emergency Governance Active">
+          <div className="flex items-center gap-3">
+            <span className="text-amber-300 font-bold text-lg">EMERGENCY GOVERNANCE ACTIVE</span>
+            <span className="text-xs text-amber-200">(expires week {emergencyExpiresWeek})</span>
+          </div>
+          <div className="text-sm text-amber-100/90">
+            Triggered by: <span className="font-semibold">{emergencyTriggeredBy}</span>
+            {typeof emergencyActivatedWeek === 'number' && (
+              <> &mdash; Activated week {emergencyActivatedWeek}</>
+            )}
+          </div>
+          <ul className="text-xs text-amber-100/80 list-disc pl-5">
+            <li>Operation slots reduced by {Math.abs(emergencyEffects?.maxActiveCasesDelta ?? 0)}</li>
+            <li>Base funding increased by {emergencyEffects?.fundingBasePerWeekDelta ?? 0}</li>
+            <li>All normal rules remain in effect; restoration is automatic when pressure subsides or duration expires.</li>
+          </ul>
+        </section>
+      )}
       {/* Escalation/Pressure Cadence & Extra Checks Summary Panel */}
       <section className="panel space-y-3">
         <div className="space-y-1">
@@ -158,6 +198,59 @@ export default function DashboardPage() {
           ))}
         </ul>
       </section>
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Governance Turn</h2>
+          <p className="text-sm opacity-60">
+            Strategic authority, upkeep burden, court posture, war pressure, and siege readiness.
+          </p>
+        </div>
+        <ul className="text-xs opacity-80 space-y-1">
+          {governanceLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </section>
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Territorial Power</h2>
+          <p className="text-sm opacity-60">
+            Deterministic node yield, conduit state, casting eligibility, and last expenditure.
+          </p>
+        </div>
+        <ul className="text-xs opacity-80 space-y-1">
+          {territorialPowerLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </section>
+      <section className="panel space-y-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Supply Network</h2>
+          <p className="text-sm opacity-60">
+            Connected-source support, vulnerable transport, blocked paths, and strategic node control.
+          </p>
+        </div>
+        <ul className="text-xs opacity-80 space-y-1">
+          {supplyNetworkLines.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </section>
+        <section className="panel space-y-3">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">Regional Control & Knowledge</h2>
+            <p className="text-sm opacity-60">
+              Deterministic regional/zone/route state: region count, agency/hostile control, and known regions.
+            </p>
+          </div>
+          <ul className="text-xs opacity-80 space-y-1">
+            <li>Regions: {metrics.regional.regionCount}</li>
+            <li>Agency-controlled: {metrics.regional.agencyControlled}</li>
+            <li>Hostile-controlled: {metrics.regional.hostileControlled}</li>
+            <li>Known regions: {metrics.regional.knownRegions}</li>
+          </ul>
+        </section>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <DashboardStatLink
           label={DASHBOARD_STAT_LABELS.open}
@@ -729,6 +822,12 @@ function LatestReportSummary({ score }: { score: number }) {
   }
 
   const { report } = latestReportSummary
+  const territorialPowerRollup = report.territorialPower
+    ? formatTerritorialPowerRollup(report.territorialPower)
+    : null
+  const supplyNetworkRollup = report.supplyNetwork
+    ? formatSupplyNetworkRollup(report.supplyNetwork)
+    : null
 
   return (
     <div className="space-y-2">
@@ -752,6 +851,14 @@ function LatestReportSummary({ score }: { score: number }) {
         Avg Fatigue {report.avgFatigue} / Max Stage {report.maxStage} / RNG Before{' '}
         {report.rngStateBefore} -&gt; {report.rngStateAfter}
       </p>
+
+      {territorialPowerRollup ? (
+        <p className="text-sm opacity-60">{territorialPowerRollup}</p>
+      ) : null}
+
+      {supplyNetworkRollup ? (
+        <p className="text-sm opacity-60">{supplyNetworkRollup}</p>
+      ) : null}
     </div>
   )
 }

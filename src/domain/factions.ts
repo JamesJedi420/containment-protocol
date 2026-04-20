@@ -470,11 +470,9 @@ export function buildFactionStates(
     if (isAnchor) {
       const FRACTURE_AGENDA_PRESSURE = 80
       const FRACTURE_DISTORTION = 70
-      let fractured = false
       if (agendaPressure > FRACTURE_AGENDA_PRESSURE || distortion > FRACTURE_DISTORTION) {
         cohesion -= 12
         distortion += 10
-        fractured = true
       }
       // Clamp only to prevent negative values (canonical: no upper bound unless specified)
       if (cohesion < 0) cohesion = 0

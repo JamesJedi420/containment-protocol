@@ -1,7 +1,7 @@
 // Tests for knowledge-state gating/risk in missionResults/protocols
 import { describe, it, expect } from 'vitest'
 import { buildMissionResult } from '../domain/missionResults'
-import { applyDefeatConditionKnowledge, getKnowledgeKey } from '../domain/knowledge'
+import { applyDefeatConditionKnowledge } from '../domain/knowledge'
 
 describe('MissionResult knowledge-state gating', () => {
   it('should add a risk note if defeat-condition certainty is below required', () => {

@@ -81,6 +81,23 @@ Support should feel like:
 - bounded administrative/logistical capacity
 - the hidden machine behind field success
 
+### Current bounded split in the repo
+
+The current implementation uses two related but distinct support lanes:
+
+- `agency.supportAvailable` remains the agency-side weekly follow-through pool
+- `GameState.supplyNetwork` is the explicit connected-source field support
+  substrate
+
+That means a case can still be penalized because:
+
+- the agency does not have enough weekly staff-side throughput
+- or the field support path is broken by node control, blocked links, or
+  disrupted transport
+
+UI and report surfaces should not merge these into one opaque value. They
+should surface the canonical cause that actually failed.
+
 ---
 
 ## 2. Support operations philosophy
@@ -315,16 +332,16 @@ A conceptual support state may look like:
 
 ```ts
 interface AgencyState {
-  supportAvailable: number;
-  supportShortage?: boolean;
-  supportRecoveryPending?: boolean;
+  supportAvailable: number
+  supportShortage?: boolean
+  supportRecoveryPending?: boolean
 }
 
 interface SupportState {
-  available: number;
-  shortageActive: boolean;
-  restoredThisWeek?: boolean;
-  overloadRisk?: boolean;
+  available: number
+  shortageActive: boolean
+  restoredThisWeek?: boolean
+  overloadRisk?: boolean
 }
 ```
 

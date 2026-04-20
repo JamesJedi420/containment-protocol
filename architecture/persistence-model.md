@@ -247,6 +247,11 @@ Persist reports if the player can browse prior weeks without regenerating them f
 
 Reports are player-facing history and may be worth keeping stable across versions.
 
+If a weekly report is expected to preserve exactly what the player saw that
+week, persist compact canonical snapshots such as weekly supply-network output
+instead of asking the UI to reconstruct historical blocked paths or support
+coverage from later state.
+
 ---
 
 ## 3. What should usually be derived rather than saved
@@ -300,6 +305,8 @@ These should not persist unless they are actually required to resume a partially
 Examples:
 
 - root-level mirror of agency support if agency already owns it canonically
+- dashboard-only copy of blocked supply regions if `GameState.supplyNetwork` or
+  `WeeklyReport.supplyNetwork` already own that summary canonically
 - UI-optimized duplicate of report categories if reports already store source notes
 
 Avoid persisting redundant mirrors.
@@ -318,6 +325,8 @@ State includes:
 
 - post-resolution canonical campaign state
 - generated report
+- updated supply-network traces, transport readiness, and strategic support
+  control state
 - updated hub/opportunities
 - updated incidents, factions, recovery, and pressure
 
@@ -354,10 +363,10 @@ Conceptual example:
 
 ```ts
 interface PersistedCampaign {
-  meta: PersistedMeta;
-  gameState: PersistedGameState;
-  reports?: PersistedReportArchive;
-  eventLog?: PersistedEventArchive;
+  meta: PersistedMeta
+  gameState: PersistedGameState
+  reports?: PersistedReportArchive
+  eventLog?: PersistedEventArchive
 }
 ```
 
@@ -365,25 +374,25 @@ Example breakdown:
 
 ```ts
 interface PersistedMeta {
-  saveVersion: number;
-  gameVersion?: string;
-  currentWeek: number;
-  campaignId: string;
-  savedAt: string;
+  saveVersion: number
+  gameVersion?: string
+  currentWeek: number
+  campaignId: string
+  savedAt: string
 }
 
 interface PersistedGameState {
-  agency: AgencyState;
-  operatives: Record<string, OperativeState>;
-  teams: Record<string, TeamState>;
-  incidents: Record<string, IncidentState>;
-  missions: Record<string, MissionState>;
-  factions: Record<string, FactionState>;
-  hub: HubState;
-  facilities: FacilityState;
-  economy: EconomyState;
-  knowledge: KnowledgeState;
-  world: WorldState;
+  agency: AgencyState
+  operatives: Record<string, OperativeState>
+  teams: Record<string, TeamState>
+  incidents: Record<string, IncidentState>
+  missions: Record<string, MissionState>
+  factions: Record<string, FactionState>
+  hub: HubState
+  facilities: FacilityState
+  economy: EconomyState
+  knowledge: KnowledgeState
+  world: WorldState
 }
 ```
 

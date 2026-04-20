@@ -1,6 +1,6 @@
 // Tests for defeat-condition gating utility
 import { describe, it, expect } from 'vitest'
-import { applyDefeatConditionKnowledge, hasDefeatConditionCertainty, getKnowledgeKey } from '../domain/knowledge'
+import { applyDefeatConditionKnowledge, hasDefeatConditionCertainty } from '../domain/knowledge'
 
 describe('Defeat-Condition Gating Utility', () => {
   it('should gate actions based on certainty ladder', () => {

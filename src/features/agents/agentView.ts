@@ -17,6 +17,11 @@ import {
   resolveEquippedItems,
   type EquipmentSlotKind,
 } from '../../domain/equipment'
+import {
+  formatGovernanceInheritedPowerOutcomeType,
+  formatGovernanceInheritedPowerTier,
+  formatGovernanceTransferMetrics,
+} from '../../domain/governanceTransfers'
 import { evaluateAgentBreakdown } from '../../domain/evaluateAgent'
 import { buildAgencyProtocolState } from '../../domain/protocols'
 import { getProgressionSnapshot, synchronizeProgressionState } from '../../domain/progression'
@@ -155,6 +160,13 @@ export interface AgentTraitViewItem {
   active: boolean
 }
 
+export interface AgentHeldAuthorityViewItem {
+  id: string
+  label: string
+  metricsLabel: string
+  statusLabel: string
+}
+
 export interface MaterializedAgentState {
   identity: {
     specialization: string
@@ -183,6 +195,13 @@ export interface MaterializedAgentState {
     deploymentEligible: boolean
     recoveryRequired: boolean
     riskFlags: string[]
+  }
+  inheritance: {
+    latentLineageTier: string
+    realizedTier: string
+    lastOutcomeLabel?: string
+    lastUpdatedWeek?: number
+    heldAuthorities: AgentHeldAuthorityViewItem[]
   }
   vitals: {
     health: number
@@ -583,6 +602,24 @@ function buildMaterializedAgentState(
   }
   const assignmentCaseId =
     agent.assignment?.state === 'assigned' ? agent.assignment.caseId : undefined
+  const heldAuthorities = (game.governance?.authorities ?? [])
+    .filter((authority) => authority.holderId === agent.id)
+    .map((authority) => ({
+      id: authority.id,
+      label: authority.label,
+      metricsLabel: formatGovernanceTransferMetrics(
+        authority.transferredAuthority,
+        authority.recognizedLegitimacy,
+        authority.practicalControl
+      ),
+      statusLabel: authority.contested
+        ? authority.unstable
+          ? 'Contested / unstable'
+          : 'Contested'
+        : authority.unstable
+          ? 'Stable but fragile'
+          : 'Stable',
+    }))
 
   return {
     identity: {
@@ -617,6 +654,25 @@ function buildMaterializedAgentState(
       deploymentEligible: readinessProfile.deploymentEligible,
       recoveryRequired: readinessProfile.recoveryRequired,
       riskFlags: [...readinessProfile.riskFlags],
+    },
+    inheritance: {
+      latentLineageTier: formatGovernanceInheritedPowerTier(
+        agent.inheritedPower?.latentLineageTier ?? 'none'
+      ),
+      realizedTier: formatGovernanceInheritedPowerTier(
+        agent.inheritedPower?.realizedTier ?? 'none'
+      ),
+      ...(agent.inheritedPower?.lastOutcome
+        ? {
+            lastOutcomeLabel: formatGovernanceInheritedPowerOutcomeType(
+              agent.inheritedPower.lastOutcome
+            ),
+          }
+        : {}),
+      ...(agent.inheritedPower?.lastUpdatedWeek !== undefined
+        ? { lastUpdatedWeek: agent.inheritedPower.lastUpdatedWeek }
+        : {}),
+      heldAuthorities,
     },
     vitals: {
       health: agent.vitals?.health ?? (agent.status === 'dead' ? 0 : 100),

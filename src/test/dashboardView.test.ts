@@ -215,4 +215,117 @@ describe('getDashboardMetrics', () => {
     expect(metrics.raidUnderstaffedCount).toBe(0)
     expect(metrics.overstretchedTeamCount).toBe(0)
   })
+
+  it('includes canonical territorial power summary fields for dashboard inspection', () => {
+    const game = createStartingState()
+    game.territorialPower = {
+      nodes: [
+        {
+          id: 'node-ember',
+          yield: 7,
+          suppressed: false,
+          controller: 'Containment Protocol',
+        },
+      ],
+      conduits: [
+        {
+          from: 'node-ember',
+          to: 'ward-south',
+          status: 'open',
+          capacity: 5,
+        },
+      ],
+      castingEligibility: [
+        {
+          scopeId: 'node-ember',
+          scopeType: 'node',
+          eligible: true,
+        },
+      ],
+      lastExpenditure: {
+        scopeId: 'node-ember',
+        scopeType: 'node',
+        nodeId: 'node-ember',
+        result: 'spent',
+        amount: 5,
+        availableYield: 7,
+        conduitCapacity: 5,
+      },
+    }
+
+    const metrics = getDashboardMetrics(game)
+
+    expect(metrics.territorialPower).toMatchObject({
+      nodeCount: 1,
+      availableYield: 7,
+      openConduitCount: 1,
+      eligibleScopeCount: 1,
+    })
+  })
+
+  it('includes canonical supply-network summary fields for dashboard inspection', () => {
+    const game = createStartingState()
+    game.supplyNetwork = {
+      nodes: [
+        {
+          id: 'node-command',
+          label: 'Directorate Command',
+          type: 'command_center',
+          controller: 'agency',
+          active: true,
+          strategicValue: 3,
+          regionTags: ['global'],
+        },
+      ],
+      sources: [
+        {
+          id: 'source-command',
+          label: 'Directorate Dispatch',
+          type: 'command',
+          nodeId: 'node-command',
+          active: true,
+          throughput: 2,
+        },
+      ],
+      links: [],
+      transportAssets: [
+        {
+          id: 'transport-main',
+          label: 'Main Column',
+          class: 'truck_column',
+          mode: 'road',
+          status: 'ready',
+          lift: 2,
+          fragility: 2,
+          routeNodeIds: ['node-command'],
+        },
+      ],
+      traces: [
+        {
+          regionTag: 'global',
+          state: 'supported',
+          sourceId: 'source-command',
+          sourceLabel: 'Directorate Dispatch',
+          targetNodeId: 'node-command',
+          targetNodeLabel: 'Directorate Command',
+          transportAssetId: 'transport-main',
+          transportAssetLabel: 'Main Column',
+          pathNodeIds: ['node-command'],
+          pathLinkIds: [],
+          deliveredLift: 2,
+          explanation: 'global: Directorate Dispatch reached Directorate Command via Main Column.',
+        },
+      ],
+    }
+
+    const metrics = getDashboardMetrics(game)
+
+    expect(metrics.supplyNetwork).toMatchObject({
+      tracedRegionCount: 1,
+      supportedRegionCount: 1,
+      readyTransportCount: 1,
+      deliveredLift: 2,
+      strategicControlScore: 3,
+    })
+  })
 })

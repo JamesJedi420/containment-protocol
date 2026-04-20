@@ -1,5 +1,11 @@
 import { APP_ROUTES } from '../../app/routes'
 import { readStringParam, writeEnumParam, writeStringParam } from '../../app/searchParams'
+import {
+  describeGovernanceTransferResult,
+  formatGovernanceInheritedPowerOutcome,
+  formatGovernanceTransferMetrics,
+  formatGovernanceTransferPath,
+} from '../../domain/governanceTransfers'
 import { buildEventQueryIndex, queryEvents } from '../../domain/events'
 import { formatProductionMaterialSummary, formatProductionOutputLabel } from '../../domain/crafting'
 import {
@@ -213,6 +219,10 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'faction.standing_changed': 'Faction Standing',
   'agency.containment_updated': 'Agency Update',
   'directive.applied': 'Directive Applied',
+  'system.supply_network_updated': 'Supply Network',
+  'system.fortification_updated': 'Fortification Update',
+  'governance.turn_resolved': 'Governance Turn',
+  'governance.transfer_processed': 'Authority Transfer',
   'system.academy_upgraded': 'Academy Upgraded',
 }
 
@@ -251,6 +261,10 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'faction.standing_changed': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
   'directive.applied': 'agency_posture',
+  'system.supply_network_updated': 'operations_logistics',
+  'system.fortification_updated': 'agency_posture',
+  'governance.turn_resolved': 'agency_posture',
+  'governance.transfer_processed': 'agency_posture',
   'system.academy_upgraded': 'operations_logistics',
 }
 
@@ -801,6 +815,130 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `${event.payload.directiveLabel} ${event.payload.directiveId} directive`.toLowerCase(),
       }
+
+    case 'system.supply_network_updated':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Supply network updated',
+        detail:
+          `Week ${event.payload.week} / ${event.payload.summary}` +
+          `${event.payload.blockedDetails.length > 0 ? ` / ${event.payload.blockedDetails[0]}` : ''}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.unsupportedRegionCount > 0 ? 'warning' : 'success',
+        href: APP_ROUTES.agency,
+        searchText:
+          `supply network ${event.payload.summary} ${event.payload.blockedRegions.join(' ')} ${event.payload.blockedDetails.join(' ')}`.toLowerCase(),
+      }
+
+    case 'system.fortification_updated':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.regionLabel} fortification updated`,
+        detail:
+          `Week ${event.payload.week} / Integrity ${event.payload.integrityBefore} -> ${event.payload.integrityAfter}` +
+          ` / Siege ${event.payload.siegePressureBefore} -> ${event.payload.siegePressureAfter}` +
+          ` / ${event.payload.action}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone:
+          event.payload.integrityAfter > event.payload.integrityBefore
+            ? 'success'
+            : event.payload.siegePressureAfter > event.payload.siegePressureBefore
+              ? 'warning'
+              : 'neutral',
+        href: APP_ROUTES.containmentSite,
+        searchText:
+          `${event.payload.regionLabel} ${event.payload.regionId} fortification ` +
+          `${event.payload.controllerBefore} ${event.payload.controllerAfter} ${event.payload.action} ` +
+          `${event.payload.summary}`.toLowerCase(),
+      }
+
+    case 'governance.turn_resolved':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Governance turn resolved for week ${event.payload.week}`,
+        detail:
+          `Authority ${event.payload.authorityBefore} -> ${event.payload.authorityAfter}` +
+          ` / Funding net ${event.payload.fundingNet >= 0 ? '+' : ''}${event.payload.fundingNet}` +
+          ` / Upkeep ${event.payload.upkeepCost}` +
+          ` / War ${event.payload.atWarRegions} / Occupied ${event.payload.occupiedRegions}` +
+          ` / Siege ${event.payload.underSiegeRegions}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone:
+          event.payload.contestedRegions > 0 || event.payload.underSiegeRegions > 0
+            ? 'warning'
+            : event.payload.fundingNet >= 0
+              ? 'success'
+              : 'neutral',
+        href: APP_ROUTES.agency,
+        searchText:
+          `${event.payload.summary} ${event.payload.primacy} ${event.payload.courtMode} ` +
+          `${event.payload.courtRegionId ?? ''}`.toLowerCase(),
+      }
+
+    case 'governance.transfer_processed': {
+      const inheritedPowerLabel = formatGovernanceInheritedPowerOutcome(
+        event.payload.inheritedPowerOutcome
+          ? {
+              type: event.payload.inheritedPowerOutcome,
+              previousTier: event.payload.inheritedPowerPreviousTier ?? 'none',
+              nextTier: event.payload.inheritedPowerNextTier ?? 'none',
+              recipientId: event.payload.inheritedPowerRecipientId,
+              recipientName: event.payload.inheritedPowerRecipientName,
+              reason: event.payload.inheritedPowerReason ?? '',
+            }
+          : undefined
+      )
+      return {
+        event,
+        week: event.payload.week,
+        title: describeGovernanceTransferResult({
+          authorityLabel: event.payload.authorityLabel,
+          transferPath: event.payload.transferPath ?? 'recognized_transfer',
+          outcome: event.payload.outcome,
+          successorName: event.payload.successorName,
+          sourceActorName: event.payload.sourceActorName,
+          blockers: event.payload.blockers,
+        }).replace(/\.$/, ''),
+        detail:
+          `Week ${event.payload.week} / ${event.payload.state} / ${formatGovernanceTransferPath(
+            event.payload.transferPath ?? 'recognized_transfer'
+          )} / ${formatGovernanceTransferMetrics(
+            event.payload.transferredAuthority,
+            event.payload.recognizedLegitimacy,
+            event.payload.practicalControl
+          )}` +
+          `${event.payload.batchLabel ? ` / ${event.payload.batchLabel}` : ''}` +
+          `${event.payload.sourceActorName ? ` / Source ${event.payload.sourceActorName}` : ''}` +
+          `${inheritedPowerLabel ? ` / ${inheritedPowerLabel}` : ''}` +
+          `${event.payload.inheritedPowerReason ? ` / ${event.payload.inheritedPowerReason}` : ''}` +
+          `${event.payload.blockers.length > 0 ? ` / ${event.payload.blockers[0]}` : ''}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone:
+          event.payload.state === 'completed'
+            ? 'success'
+            : event.payload.state === 'contested'
+              ? 'warning'
+              : 'danger',
+        href: APP_ROUTES.agency,
+        searchText:
+          `${event.payload.authorityLabel} ${event.payload.authorityId} ` +
+          `${event.payload.successorName ?? ''} ${event.payload.outcome} ` +
+          `${event.payload.transferPath ?? ''} ${event.payload.sourceActorName ?? ''} ` +
+          `${event.payload.inheritedPowerOutcome ?? ''} ${event.payload.inheritedPowerReason ?? ''} ` +
+          `${event.payload.batchLabel ?? ''} ${event.payload.blockers.join(' ')}`.toLowerCase(),
+      }
+    }
 
     case 'system.academy_upgraded':
       return {

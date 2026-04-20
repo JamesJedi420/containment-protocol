@@ -1,0 +1,15 @@
+# Ignore node_modules and build outputs
+node_modules
+coverage
+dist
+build
+.vscode
+*.vsix
+*.log
+*.tsbuildinfo
+.tmp.driveupload
+
+# Ignore test and docs
+src/test/
+docs/
+qa/

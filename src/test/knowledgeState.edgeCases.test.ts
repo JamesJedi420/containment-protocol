@@ -5,7 +5,6 @@ import {
   applyObscuredSignature,
   applyRelayDelay,
   applyDefeatConditionKnowledge,
-  getFilteredKnowledgeView,
   getKnowledgeKey
 } from '../domain/knowledge'
 

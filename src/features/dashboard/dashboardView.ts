@@ -1,8 +1,13 @@
+import type { RegionalState } from '../../domain/models'
 import { buildAgencySummary } from '../../domain/agency'
+import { buildCampaignGovernanceSummary } from '../../domain/campaignGovernance'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import { type GameState } from '../../domain/models'
+import { getVisibleReports } from '../../domain/reporting'
 import { getAdvisories } from '../../domain/advisory'
 import { getResponseGridConfig } from '../../domain/pressure'
+import { buildTerritorialPowerSummary } from '../../domain/territorialPower'
+import { buildSupplyNetworkSummary } from '../../domain/supplyNetwork'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 import { getCaseListItemView, type CaseListItemView } from '../cases/caseView'
 import { getTeamListItemView, type TeamListItemView } from '../teams/teamView'
@@ -38,6 +43,24 @@ export function getDashboardMetrics(game: GameState) {
   const cases = Object.values(game.cases)
   const agents = Object.values(game.agents)
   const fieldStatusViews = getFieldStatusViews(game)
+  const emergency = game.emergencyGovernance || { active: false }
+  const territorialPower = buildTerritorialPowerSummary(game.territorialPower)
+  const supplyNetwork = buildSupplyNetworkSummary(game.supplyNetwork)
+  const campaignGovernance = buildCampaignGovernanceSummary(game.campaignGovernance)
+
+  // Minimal regional summary: count, agency-controlled, hostile-controlled, known regions
+  const regional = (() => {
+    const state: RegionalState | undefined = game.regionalState
+    if (!state) return { regionCount: 0, agencyControlled: 0, hostileControlled: 0, knownRegions: 0 }
+    const regionCount = state.regions.length
+    let agencyControlled = 0, hostileControlled = 0, knownRegions = 0
+    for (const region of state.regions) {
+      if (state.control[region] === 'agency') agencyControlled++
+      if (state.control[region] === 'hostile') hostileControlled++
+      if (state.knowledge[region]?.tier === 'confirmed') knownRegions++
+    }
+    return { regionCount, agencyControlled, hostileControlled, knownRegions }
+  })()
 
   return {
     open: cases.filter((currentCase) => currentCase.status === 'open').length,
@@ -52,15 +75,24 @@ export function getDashboardMetrics(game: GameState) {
     deadlineRiskCount: fieldStatusViews.filter((view) => view.signals.deadlineRisk).length,
     criticalStageCount: fieldStatusViews.filter((view) => view.signals.criticalStage).length,
     raidUnderstaffedCount: fieldStatusViews.filter((view) => view.signals.raidUnderstaffed).length,
-    overstretchedTeamCount: fieldStatusViews.filter((view) => view.status === 'overstretched')
-      .length,
+    overstretchedTeamCount: fieldStatusViews.filter((view) => view.status === 'overstretched').length,
+    // Emergency governance surfacing
+    emergencyActive: !!emergency.active,
+    emergencyExpiresWeek: emergency.expiresWeek,
+    emergencyActivatedWeek: emergency.activatedWeek,
+    emergencyEffects: emergency.effects,
+    emergencyTriggeredBy: emergency.triggeredBy,
+    campaignGovernance,
+    territorialPower,
+    supplyNetwork,
+    regional,
   }
 }
 
 
 
 export function getLatestReportSummary(game: GameState) {
-  const latestReport = game.reports.at(-1)
+  const latestReport = getVisibleReports(game.reports).at(-1)
 
   if (!latestReport) {
     return undefined
@@ -136,8 +168,9 @@ export function getOperationsDeskAdvisories(game: GameState, limit = 5) {
 }
 
 export function getOperationsDeskPerformance(game: GameState) {
-  const resolvedCount = game.reports.reduce((sum, report) => sum + report.resolvedCases.length, 0)
-  const failedCount = game.reports.reduce((sum, report) => sum + report.failedCases.length, 0)
+  const reports = getVisibleReports(game.reports)
+  const resolvedCount = reports.reduce((sum, report) => sum + report.resolvedCases.length, 0)
+  const failedCount = reports.reduce((sum, report) => sum + report.failedCases.length, 0)
   const completedQueueCount = game.events.filter(
     (event) => event.type === 'production.queue_completed'
   ).length

@@ -36,6 +36,31 @@ than rebuilding local interpretations. In practice this means:
 - dashboard, agency, containment, and shared copy surfaces render those shared
   outputs instead of duplicating rule interpretation in UI or copy constants
 
+## Supply Network and Connected Support Surfacing (Issue #72)
+
+The supply-network pass adds a small canonical logistics substrate rather than
+folding connected support into UI-only summaries or ad hoc per-case flags.
+
+Canonical ownership now lives in:
+
+- `src/domain/supplyNetwork.ts`
+- `GameState.supplyNetwork`
+- `WeeklyReport.supplyNetwork`
+
+This substrate owns:
+
+- explicit supply sources
+- strategic support nodes with controller and region coverage
+- traced road links and blocked-path reasons
+- vulnerable transport assets with bounded lift and disruption state
+- supported or unsupported region traces and deterministic weekly summaries
+
+`src/domain/sim/advanceWeek.ts` now recomputes the supply snapshot before case
+resolution. Region-anchored operations read supported vs unsupported state from
+that canonical trace, not from UI logic. Report notes, operation events, the
+dashboard, and the agency summary render canonical supply summaries instead of
+re-deriving blocked support or transport status locally.
+
 ## Purpose
 
 This document describes the high-level structure of Containment Protocol’s
@@ -83,6 +108,8 @@ interface GameState {
   facilities: FacilityState
   economy: EconomyState
   knowledge: KnowledgeState
+  territorialPower: TerritorialPowerState
+  supplyNetwork: SupplyNetworkState
   reports: WeeklyReport[]
   eventLog: DomainEvent[]
 }

@@ -93,6 +93,13 @@ it('renders agent assignment, progression, history, and passive traits', async (
         trainedRelationships: {},
       },
     },
+    inheritedPower: {
+      latentLineageTier: 'vested',
+      realizedTier: 'trace',
+      lastOutcome: 'new_gain',
+      lastUpdatedWeek: 3,
+      lastTransferId: 'transfer-directorate',
+    },
     history: {
       counters: {
         assignmentsCompleted: 3,
@@ -183,6 +190,28 @@ it('renders agent assignment, progression, history, and passive traits', async (
       },
     ],
   }
+  game.governance = {
+    authorities: [
+      {
+        id: 'authority-directorate',
+        label: 'Directorate Mandate',
+        class: 'sovereign_authority',
+        holderId: agent.id,
+        holderName: agent.name,
+        holderStatus: 'active',
+        inheritedPowerTier: 'ascendant',
+        transferredAuthority: 100,
+        recognizedLegitimacy: 82,
+        practicalControl: 76,
+        contested: true,
+        unstable: true,
+        lastTransferId: 'transfer-directorate',
+      },
+    ],
+    transfers: [],
+    contracts: [],
+    history: [],
+  }
   game.trainingQueue = [
     {
       id: 'training-test-entry',
@@ -217,6 +246,15 @@ it('renders agent assignment, progression, history, and passive traits', async (
   expect(screen.getAllByText(/investigator/i).length).toBeGreaterThan(0)
   expect(screen.getByText(/training locked/i)).toBeInTheDocument()
   expect(screen.getByText(/fatigue watch/i)).toBeInTheDocument()
+  expect(screen.getByText(/lineage potential/i)).toBeInTheDocument()
+  expect(screen.getByText(/^vested$/i)).toBeInTheDocument()
+  expect(screen.getByText(/realized inheritance/i)).toBeInTheDocument()
+  expect(screen.getByText(/^trace$/i)).toBeInTheDocument()
+  expect(screen.getByText(/succession update/i)).toBeInTheDocument()
+  expect(screen.getByText(/new gain \/ week 3/i)).toBeInTheDocument()
+  expect(screen.getByText(/held authority/i)).toBeInTheDocument()
+  expect(screen.getByText(/directorate mandate/i)).toBeInTheDocument()
+  expect(screen.getByText(/authority 100 \/ legitimacy 82 \/ control 76/i)).toBeInTheDocument()
   expect(screen.getByRole('tab', { name: /stats/i })).toBeInTheDocument()
   expect(screen.getByRole('tab', { name: /history/i })).toBeInTheDocument()
 

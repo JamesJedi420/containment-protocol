@@ -1,4 +1,4 @@
-import { explainDefeatConditionKnowledge, explainRelayStatus, explainHazardKnowledge, explainRelayChain, explainDecay, explainFusion } from '../../domain/explanations'
+import { explainDefeatConditionKnowledge, explainHazardKnowledge, explainRelayChain, explainDecay, explainFusion } from '../../domain/explanations'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
@@ -34,25 +34,6 @@ function getDecayExplanation(ks) {
 function getFusionExplanation(ks) {
   return ks ? explainFusion(ks) : ''
 }
-// UI hook: defeat-condition knowledge and relay status
-// (Stub: replace with real data wiring as needed)
-import { explainDefeatConditionKnowledge, explainRelayStatus } from '../../domain/explanations'
-import { useState } from 'react'
-import { useParams } from 'react-router'
-import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
-import { useGameStore } from '../../app/store/gameStore'
-import { calcWeekScore } from '../../domain/sim/scoring'
-import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
-import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
-import { TrendSummaryPanel } from './TrendSummaryPanel'
-import { getRunTrendSummary } from './reportTrendView'
-import {
-  filterReportNotesByCategory,
-  getAvailableReportNoteCategories,
-  REPORT_NOTE_CATEGORY_LABELS,
-  type ReportNoteCategory,
-} from './reportNoteView'
 
 export default function ReportDetailPage() {
   const { week } = useParams()

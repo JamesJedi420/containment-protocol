@@ -1,6 +1,6 @@
 // Tests for defeat-condition and relay explanation utilities
 import { describe, it, expect } from 'vitest'
-import { applyDefeatConditionKnowledge, applyRelayDelay, getKnowledgeKey } from '../domain/knowledge'
+import { applyDefeatConditionKnowledge, applyRelayDelay } from '../domain/knowledge'
 import { explainDefeatConditionKnowledge, explainRelayStatus } from '../domain/explanations'
 
 describe('Knowledge/Relay Explanation Utilities', () => {

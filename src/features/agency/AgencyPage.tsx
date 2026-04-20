@@ -1,13 +1,20 @@
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
+import { formatCampaignGovernanceSummaryLines } from '../../domain/campaignGovernance'
 import { formatOutcomeCountSummary } from '../../domain/reportNotes'
 import { buildAgencyOverview, formatCadenceSummary } from '../../domain/strategicState'
+import { formatTerritorialPowerSummaryLines } from '../../domain/territorialPower'
+import { formatSupplyNetworkSummaryLines } from '../../domain/supplyNetwork'
 
 export default function AgencyPage() {
   const { game } = useGameStore()
   const overview = buildAgencyOverview(game)
   const { summary } = overview
+  const governanceTurnLines = formatCampaignGovernanceSummaryLines(summary.campaignGovernance)
+  const governance = summary.governanceTransfers
+  const territorialPowerLines = formatTerritorialPowerSummaryLines(summary.territorialPower)
+  const supplyNetworkLines = formatSupplyNetworkSummaryLines(summary.supplyNetwork)
 
   return (
     <section className="space-y-4">
@@ -117,6 +124,33 @@ export default function AgencyPage() {
             <li>Top external actor: {overview.factions[0]?.label ?? 'None'}</li>
           </ul>
         </article>
+
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">Governance turn</h3>
+          <ul className="space-y-2 text-sm opacity-80">
+            {governanceTurnLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">Territorial power</h3>
+          <ul className="space-y-2 text-sm opacity-80">
+            {territorialPowerLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </article>
+
+        <article className="panel space-y-3">
+          <h3 className="text-base font-semibold">Supply network</h3>
+          <ul className="space-y-2 text-sm opacity-80">
+            {supplyNetworkLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </article>
       </div>
 
       <article className="panel space-y-3">
@@ -178,6 +212,89 @@ export default function AgencyPage() {
           </li>
           <li>External revenue share: {summary.externalRevenueShare}%</li>
         </ul>
+      </article>
+
+      <article className="panel space-y-3">
+        <h3 className="text-base font-semibold">Authority transfer & succession</h3>
+        <div className="grid gap-3 md:grid-cols-4">
+          <Metric label="Authorities tracked" value={String(governance.authorityCount)} />
+          <Metric label="Active transfers" value={String(governance.activeTransferCount)} />
+          <Metric label="Blocked transfers" value={String(governance.blockedTransferCount)} />
+          <Metric label="Armed contracts" value={String(governance.armedContractCount)} />
+        </div>
+        {governance.latestBatch ? (
+          <p className="text-sm opacity-70">
+            Latest batch: {governance.latestBatch.label} / completed {governance.latestBatch.completed}
+            {' / '}contested {governance.latestBatch.contested} / failed{' '}
+            {governance.latestBatch.failed}
+          </p>
+        ) : null}
+        {governance.activeTransfers.length === 0 &&
+        governance.recentTransfers.length === 0 &&
+        governance.contracts.length === 0 ? (
+          <p className="text-sm opacity-60">
+            No authority-transfer ceremonies or succession contracts are active.
+          </p>
+        ) : (
+          <div className="grid gap-3 xl:grid-cols-3">
+            <div className="rounded border border-white/10 px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Active transfers</p>
+              <ul className="mt-2 space-y-2 text-sm opacity-80">
+                {governance.activeTransfers.length > 0 ? (
+                  governance.activeTransfers.map((transfer) => (
+                    <li key={transfer.id}>
+                      <span className="font-medium">
+                        {transfer.authorityLabel} / {transfer.stateLabel}
+                      </span>
+                      <div className="opacity-60">{transfer.successorLabel}</div>
+                      <div className="opacity-60">{transfer.metricsLabel}</div>
+                      {transfer.blockerLabel ? <div className="opacity-60">{transfer.blockerLabel}</div> : null}
+                    </li>
+                  ))
+                ) : (
+                  <li className="opacity-60">No transfers are awaiting ceremony validation.</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="rounded border border-white/10 px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Recent outcomes</p>
+              <ul className="mt-2 space-y-2 text-sm opacity-80">
+                {governance.recentTransfers.length > 0 ? (
+                  governance.recentTransfers.map((transfer) => (
+                    <li key={transfer.id}>
+                      <span className="font-medium">
+                        {transfer.authorityLabel} / {transfer.stateLabel}
+                      </span>
+                      <div className="opacity-60">{transfer.successorLabel}</div>
+                      <div className="opacity-60">{transfer.metricsLabel}</div>
+                      {transfer.outcomeLabel ? <div className="opacity-60">{transfer.outcomeLabel}</div> : null}
+                    </li>
+                  ))
+                ) : (
+                  <li className="opacity-60">No transfer outcomes have been logged.</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="rounded border border-white/10 px-3 py-3">
+              <p className="text-xs uppercase tracking-[0.24em] opacity-50">Deferred contracts</p>
+              <ul className="mt-2 space-y-2 text-sm opacity-80">
+                {governance.contracts.length > 0 ? (
+                  governance.contracts.map((contract) => (
+                    <li key={contract.id}>
+                      <span className="font-medium">{contract.authorityLabel}</span>
+                      <div className="opacity-60">{contract.successorLabel}</div>
+                      <div className="opacity-60">{contract.triggerLabel}</div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="opacity-60">No deferred succession contracts are armed.</li>
+                )}
+              </ul>
+            </div>
+          </div>
+        )}
       </article>
 
       <article className="panel space-y-3">

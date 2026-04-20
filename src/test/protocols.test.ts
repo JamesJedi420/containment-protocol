@@ -71,6 +71,7 @@ function makeProtocolGameState(overrides: Partial<NonNullable<GameState['agency'
       containmentRating,
       clearanceLevel,
       funding,
+      supportAvailable: overrides.supportAvailable ?? state.agency.supportAvailable ?? 0,
     },
     containmentRating,
     clearanceLevel,

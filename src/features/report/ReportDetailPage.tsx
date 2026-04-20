@@ -145,16 +145,16 @@ export default function ReportDetailPage() {
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-sm opacity-70 sm:grid-cols-4">
-          <span>
+          <span className="font-bold text-cyan-200">
             {REPORT_LABELS.new}: {report.newCases.length}
           </span>
-          <span>
+          <span className="font-bold text-amber-200">
             {REPORT_LABELS.progressed}: {report.progressedCases.length}
           </span>
-          <span>
+          <span className="font-bold text-rose-200">
             {REPORT_LABELS.partial}: {report.partialCases.length}
           </span>
-          <span>
+          <span className="font-bold text-emerald-200">
             {REPORT_LABELS.resolved}: {report.resolvedCases.length}
           </span>
           <span>

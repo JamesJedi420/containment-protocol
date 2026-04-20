@@ -1,6 +1,7 @@
+// cspell:words greentape unassignment
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { assignTeam, unassignTeam } from '../domain/sim/assign'
+import { assignTeam, launchMajorIncident, unassignTeam } from '../domain/sim/assign'
 import type { OperationEvent } from '../domain/models'
 
 describe('assignTeam', () => {
@@ -315,3 +316,132 @@ describe('unassignTeam', () => {
     expect(assignedBackNightWatch.teams['t_greentape'].assignedCaseId).toBeUndefined()
   })
 })
+
+describe('launchMajorIncident', () => {
+  it('requires every required team before an operational incident starts', () => {
+    const state = createOperationalMajorIncidentState()
+
+    const next = launchMajorIncident(state, 'major-incident', ['team-alpha', 'team-bravo'])
+
+    expect(next.cases['major-incident'].status).toBe('open')
+    expect(next.cases['major-incident'].assignedTeamIds).toEqual([])
+  })
+
+  it('locks all selected teams for the full duration once the incident launches', () => {
+    const state = createOperationalMajorIncidentState()
+
+    const next = launchMajorIncident(
+      state,
+      'major-incident',
+      ['team-alpha', 'team-bravo', 'team-charlie'],
+      'balanced',
+      ['medical_supplies']
+    )
+
+    expect(next.cases['major-incident'].status).toBe('in_progress')
+    expect(next.cases['major-incident'].assignedTeamIds).toEqual([
+      'team-alpha',
+      'team-bravo',
+      'team-charlie',
+    ])
+    expect(next.cases['major-incident'].majorIncident?.requiredTeams).toBe(3)
+    expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
+    expect(next.teams['team-bravo'].assignedCaseId).toBe('major-incident')
+    expect(next.teams['team-charlie'].assignedCaseId).toBe('major-incident')
+    expect(next.inventory['medical_supplies']).toBe(state.inventory['medical_supplies'] - 2)
+  })
+
+  it('does not allow active major incident teams to be unassigned mid-operation', () => {
+    const state = createOperationalMajorIncidentState()
+    const launched = launchMajorIncident(
+      state,
+      'major-incident',
+      ['team-alpha', 'team-bravo', 'team-charlie']
+    )
+
+    const next = unassignTeam(launched, 'major-incident', 'team-alpha')
+
+    expect(next.cases['major-incident'].assignedTeamIds).toEqual([
+      'team-alpha',
+      'team-bravo',
+      'team-charlie',
+    ])
+    expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
+  })
+})
+
+function createOperationalMajorIncidentState() {
+  const state = createStartingState()
+  const baseAgent = state.agents.a_ava
+
+  state.agents['agent-alpha'] = {
+    ...baseAgent,
+    id: 'agent-alpha',
+    name: 'Alpha',
+    role: 'hunter',
+    baseStats: { combat: 90, investigation: 80, utility: 74, social: 50 },
+    fatigue: 5,
+    status: 'active',
+  }
+  state.agents['agent-bravo'] = {
+    ...baseAgent,
+    id: 'agent-bravo',
+    name: 'Bravo',
+    role: 'tech',
+    baseStats: { combat: 72, investigation: 86, utility: 92, social: 46 },
+    fatigue: 7,
+    status: 'active',
+  }
+  state.agents['agent-charlie'] = {
+    ...baseAgent,
+    id: 'agent-charlie',
+    name: 'Charlie',
+    role: 'field_recon',
+    baseStats: { combat: 74, investigation: 88, utility: 90, social: 54 },
+    fatigue: 9,
+    status: 'active',
+  }
+
+  state.teams['team-alpha'] = {
+    id: 'team-alpha',
+    name: 'Alpha Team',
+    agentIds: ['agent-alpha'],
+    memberIds: ['agent-alpha'],
+    leaderId: 'agent-alpha',
+    tags: ['field'],
+  }
+  state.teams['team-bravo'] = {
+    id: 'team-bravo',
+    name: 'Bravo Team',
+    agentIds: ['agent-bravo'],
+    memberIds: ['agent-bravo'],
+    leaderId: 'agent-bravo',
+    tags: ['tech'],
+  }
+  state.teams['team-charlie'] = {
+    id: 'team-charlie',
+    name: 'Charlie Team',
+    agentIds: ['agent-charlie'],
+    memberIds: ['agent-charlie'],
+    leaderId: 'agent-charlie',
+    tags: ['recon'],
+  }
+
+  state.inventory['medical_supplies'] = 5
+
+  state.cases['major-incident'] = {
+    ...state.cases['case-003'],
+    id: 'major-incident',
+    title: 'City Fracture',
+    kind: 'raid',
+    stage: 3,
+    deadlineRemaining: 1,
+    durationWeeks: 4,
+    requiredTags: [],
+    requiredRoles: [],
+    raid: { minTeams: 2, maxTeams: 4 },
+    assignedTeamIds: [],
+  }
+
+  return state
+}

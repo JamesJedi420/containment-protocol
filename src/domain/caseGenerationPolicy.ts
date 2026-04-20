@@ -1,3 +1,4 @@
+// cspell:words lookback
 import type { CaseTemplate, GameState } from './models'
 
 export interface CaseGenerationPolicy {

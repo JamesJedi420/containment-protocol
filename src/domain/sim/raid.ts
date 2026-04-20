@@ -21,6 +21,8 @@ export interface RaidResolutionContext {
   partyCardScoreBonus?: number
   partyCardReasons?: string[]
   protocolState?: AgencyProtocolState
+  scoreAdjustment?: number
+  scoreAdjustmentReason?: string
 }
 
 /**
@@ -48,6 +50,8 @@ export function resolveRaid(
     ? buildAggregatedLeaderBonus(assignedTeams, agentsById)
     : undefined
   const coordination = getRaidCoordinationAdjustment(assignedTeams.length, config)
+  const factionAdjustment = context.scoreAdjustment ?? 0
+  const factionReason = context.scoreAdjustmentReason
 
   return evaluateCaseResolutionContext({
     caseData: c,
@@ -61,8 +65,8 @@ export function resolveRaid(
         minTeamCount: c.raid?.minTeams ?? 2,
       },
       leaderBonusOverride,
-      scoreAdjustment: coordination.scoreAdjustment,
-      scoreAdjustmentReason: coordination.reason,
+      scoreAdjustment: coordination.scoreAdjustment + factionAdjustment,
+      scoreAdjustmentReason: [coordination.reason, factionReason].filter(Boolean).join(' / '),
       partyCardScoreBonus: context.partyCardScoreBonus,
       partyCardReasons: context.partyCardReasons,
       protocolState: context.protocolState,

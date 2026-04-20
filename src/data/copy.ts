@@ -1,3 +1,4 @@
+// cspell:words blacksite psionic stabilised
 import {
   type AgentRole,
   type CaseMode,
@@ -225,6 +226,8 @@ export const EMPTY_STATES: Record<string, string> = {
   noEvents:
     'No operational events yet. Assign a team or advance the week to generate simulation output.',
   noEventMatches: 'No operational events match the current filters.',
+  noUrgentCasePressure: 'No urgent case pressure right now.',
+  noAtRiskTeams: 'No stressed teams are currently flagged.',
   noAssignment: 'Unassigned',
   noAgentsMatch: 'No agents match the current filters.',
   noRegistryMatches: 'No personnel match the current search.',

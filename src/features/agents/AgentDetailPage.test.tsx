@@ -1,3 +1,4 @@
+// cspell:words callsign fieldcraft medkits nightglass
 import '../../test/setup'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

@@ -1,3 +1,4 @@
+// cspell:words cand
 import { describe, expect, it } from 'vitest'
 import { hireCandidate } from '../../domain/sim/hire'
 import { buildAgentCandidate, buildRecruitmentState } from './fixtures'

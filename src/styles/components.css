@@ -1,4 +1,229 @@
 @layer components {
+  .topbar-shell {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) auto minmax(320px, 1fr);
+    align-items: center;
+    gap: 0.7rem;
+    min-height: 3rem;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--panel-hi) 92%, black 8%);
+    box-shadow: var(--panel-shadow);
+    padding: 0.45rem 0.72rem;
+  }
+
+  .topbar-left {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.05rem;
+  }
+
+  .topbar-org-name {
+    margin: 0;
+    color: var(--text-strong);
+    font-family: var(--font-heading);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.05;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .topbar-org-tier {
+    margin: 0;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 0.69rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .topbar-center {
+    justify-self: center;
+    width: min(100%, 64rem);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .topbar-status-strip {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .topbar-status-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-metrics {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    margin: 0;
+    min-width: 0;
+    padding: 0;
+    list-style: none;
+    flex-shrink: 0;
+  }
+
+  .topbar-metrics::-webkit-scrollbar {
+    display: none;
+  }
+
+  .topbar-metric {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.22rem;
+    min-width: 0;
+    padding: 0 0.36rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .topbar-metric:last-child {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .topbar-metric-label {
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .topbar-metric-value {
+    color: var(--text-strong);
+    font-weight: 700;
+  }
+
+  .topbar-signal-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+  }
+
+  .topbar-signal-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    min-height: 1.9rem;
+    padding: 0.24rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-soft);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      border-color 120ms ease,
+      background-color 120ms ease,
+      color 120ms ease;
+  }
+
+  .topbar-signal-chip:hover {
+    border-color: rgba(117, 255, 213, 0.35);
+    color: var(--text-strong);
+    background: rgba(117, 255, 213, 0.08);
+  }
+
+  .topbar-signal-chip--neutral {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-soft);
+  }
+
+  .topbar-signal-chip--info {
+    border-color: rgba(90, 208, 255, 0.24);
+    background: rgba(90, 208, 255, 0.08);
+    color: #d7f5ff;
+  }
+
+  .topbar-signal-chip--warning {
+    border-color: rgba(255, 198, 90, 0.3);
+    background: rgba(255, 198, 90, 0.1);
+    color: #ffe8ba;
+  }
+
+  .topbar-signal-chip--danger {
+    border-color: rgba(255, 118, 118, 0.32);
+    background: rgba(255, 118, 118, 0.12);
+    color: #ffd5d5;
+  }
+
+  .topbar-signal-label {
+    color: inherit;
+    opacity: 0.72;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .topbar-signal-value {
+    color: inherit;
+    font-weight: 700;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.34rem;
+    justify-self: end;
+    min-width: max-content;
+  }
+
+  .topbar-utility-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.03);
+    padding: 0.14rem 0.2rem;
+  }
+
+  .topbar-utility-label {
+    display: none;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0 0.2rem;
+    white-space: nowrap;
+  }
+
+  .topbar-divider {
+    display: inline-block;
+    width: 1px;
+    height: 1.45rem;
+    margin: 0 0.15rem;
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .topbar-icon-btn {
+    min-width: 2rem;
+    padding-left: 0.48rem;
+    padding-right: 0.48rem;
+    font-size: 0.72rem;
+  }
+
   .btn {
     display: inline-flex;
     align-items: center;
@@ -67,6 +292,72 @@
     border-radius: var(--radius-sm);
     font-size: 0.8rem;
     padding: 0.45rem 0.72rem;
+  }
+
+  .btn-xs {
+    border-radius: var(--radius-sm);
+    font-size: 0.76rem;
+    padding: 0.34rem 0.58rem;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid rgba(168, 255, 231, 0.95);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+  }
+
+  .skip-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    z-index: 999;
+    border: 1px solid rgba(117, 255, 213, 0.62);
+    border-radius: var(--radius-sm);
+    background: #0a1318;
+    color: var(--text-strong);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.45rem 0.72rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .skip-link:focus-visible {
+    left: 0.75rem;
+    top: 0.75rem;
+    outline: 2px solid rgba(168, 255, 231, 0.95);
+    outline-offset: 2px;
+  }
+
+  @media (pointer: coarse) {
+    .btn-xs {
+      min-height: 2.5rem;
+      padding: 0.48rem 0.72rem;
+    }
+  }
+
+  @media (max-width: 960px) {
+    .topbar-shell {
+      grid-template-columns: minmax(140px, 1fr) minmax(0, 1fr) auto;
+      gap: 0.5rem;
+    }
+
+    .topbar-right .btn {
+      padding-left: 0.52rem;
+      padding-right: 0.52rem;
+    }
+  }
+
+  @media (min-width: 1180px) {
+    .topbar-utility-label {
+      display: inline;
+    }
   }
 }
 

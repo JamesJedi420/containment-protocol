@@ -1,3 +1,4 @@
+// cspell:words cooldown cooldowns
 import { describe, expect, it } from 'vitest'
 import { createAgent } from '../domain/agent/factory'
 import {

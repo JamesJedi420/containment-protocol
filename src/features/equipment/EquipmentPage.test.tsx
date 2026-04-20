@@ -1,3 +1,4 @@
+// cspell:words lockdown unequip unequips
 import '../../test/setup'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

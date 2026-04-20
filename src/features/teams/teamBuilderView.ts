@@ -1,3 +1,4 @@
+// cspell:words editability
 import { evaluateAgent } from '../../domain/evaluateAgent'
 import { type Agent, type GameState, type Team } from '../../domain/models'
 import {

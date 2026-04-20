@@ -10,6 +10,13 @@ export type CandidateCategory =
 
 export type CandidatePipelineStatus = 'available' | 'reserved' | 'expired' | 'candidate'
 
+export type RecruitmentFunnelStage =
+  | 'prospect'
+  | 'contacted'
+  | 'screening'
+  | 'hired'
+  | 'lost'
+
 export type CandidateCostEstimate = 'low' | 'moderate' | 'high' | 'unknown'
 
 export type CandidateRevealLevel = 0 | 1 | 2
@@ -47,6 +54,27 @@ export interface CandidateBase {
 
   revealLevel: CandidateRevealLevel
   expiryWeek: number
+  sourceFactionId?: string
+  sourceFactionName?: string
+  sourceContactId?: string
+  sourceContactName?: string
+  sourceSummary?: string
+  origin?: string
+  sourceDisposition?: 'supportive' | 'adversarial'
+  sourceRequiredTier?: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied'
+  sourceMaxTier?: 'hostile' | 'unfriendly' | 'neutral' | 'friendly' | 'allied'
+  roleInclination?: string
+  skills?: string[]
+  liabilities?: string[]
+  availabilityWindow?: {
+    opensWeek: number
+    closesWeek: number
+  }
+  funnelStage?: RecruitmentFunnelStage
+  createdWeek?: number
+  lastUpdatedWeek?: number
+  lossReason?: string
+  transitionNotes?: string[]
   /** Hidden exact ceiling tier used when the candidate becomes a live agent. */
   actualPotentialTier?: ExactPotentialTier
   /** Optional scouting estimate commissioned from the recruitment layer. */

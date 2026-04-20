@@ -1,3 +1,4 @@
+// cspell:words cand
 import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
@@ -134,6 +135,57 @@ describe('core agent model integration', () => {
     expect(agent.abilities).toEqual([])
     expect(agent.assignment).toEqual({ state: 'idle' })
     expect(agent.history?.logs).toEqual([])
+  })
+
+  it('hydrates academy tier and preserves training queue metadata', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame({
+      ...fallback,
+      academyTier: 999,
+      trainingQueue: [
+        {
+          id: 'training-legacy-1',
+          trainingId: 'coordination-drill',
+          trainingName: 'Coordination Drill',
+          scope: 'team',
+          agentId: 'a_ava',
+          agentName: 'Ava Brooks',
+          teamId: 't_nightwatch',
+          teamName: 'Night Watch',
+          drillGroupId: 'group-1',
+          memberIds: ['a_ava', 'a_rook'],
+          targetStat: 'utility',
+          statDelta: 1,
+          startedWeek: 2,
+          durationWeeks: 2,
+          remainingWeeks: 1,
+          fundingCost: 15,
+          fatigueDelta: 6,
+          recoveryBonus: 1,
+          stabilityResistanceDelta: 1,
+          stabilityToleranceDelta: 1,
+          academyStatBonus: 1,
+          relationshipDelta: 0.25,
+          trainedRelationshipDelta: 2,
+        },
+      ],
+    })
+
+    expect(hydrated.academyTier).toBe(3)
+    expect(hydrated.trainingQueue).toHaveLength(1)
+    expect(hydrated.trainingQueue[0]).toMatchObject({
+      scope: 'team',
+      teamId: 't_nightwatch',
+      teamName: 'Night Watch',
+      drillGroupId: 'group-1',
+      memberIds: ['a_ava', 'a_rook'],
+      recoveryBonus: 1,
+      stabilityResistanceDelta: 1,
+      stabilityToleranceDelta: 1,
+      academyStatBonus: 1,
+      relationshipDelta: 0.25,
+      trainedRelationshipDelta: 2,
+    })
   })
 
   it('creates fully populated agents when hiring candidates into the roster', () => {

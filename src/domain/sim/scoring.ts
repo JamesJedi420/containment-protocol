@@ -1,3 +1,4 @@
+// cspell:words medkits
 import {
   type Agent,
   type AgentAbilityTrigger,

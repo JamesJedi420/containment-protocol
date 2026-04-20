@@ -1,4 +1,5 @@
 import type { Candidate, GameState } from '../models'
+import { getFactionReputationTier } from '../factions'
 import {
   getCandidateWeeklyCost,
   getCandidateOverall,
@@ -10,6 +11,22 @@ export interface CandidatePreview {
   canHire: boolean
   reasons: string[]
   estimatedValue: number
+}
+
+function isTierAtLeast(
+  current: ReturnType<typeof getFactionReputationTier>,
+  minimum: NonNullable<Candidate['sourceRequiredTier']>
+) {
+  const order = ['hostile', 'unfriendly', 'neutral', 'friendly', 'allied']
+  return order.indexOf(current) >= order.indexOf(minimum)
+}
+
+function isTierAtMost(
+  current: ReturnType<typeof getFactionReputationTier>,
+  maximum: NonNullable<Candidate['sourceMaxTier']>
+) {
+  const order = ['hostile', 'unfriendly', 'neutral', 'friendly', 'allied']
+  return order.indexOf(current) <= order.indexOf(maximum)
 }
 
 function deriveEstimatedValue(candidate: Candidate) {
@@ -36,31 +53,65 @@ function deriveEstimatedValue(candidate: Candidate) {
 
 export function previewCandidate(candidate: Candidate, game: GameState): CandidatePreview {
   const reasons: string[] = []
+  const pushReason = (reason: string) => {
+    if (!reasons.includes(reason)) {
+      reasons.push(reason)
+    }
+  }
   const normalizedCategory = normalizeCandidateCategory(candidate.category)
   const weeklyCost = getCandidateWeeklyCost(candidate) ?? 0
 
   if (!isCandidateHireable(candidate.hireStatus)) {
-    reasons.push('unavailable')
+    pushReason('unavailable')
   }
 
   if (weeklyCost > game.funding) {
-    reasons.push('insufficient-funding')
+    pushReason('insufficient-funding')
   }
 
   if (normalizedCategory === 'agent' && !candidate.agentData) {
-    reasons.push('missing-agent-data')
+    pushReason('missing-agent-data')
   }
 
   if (normalizedCategory === 'staff' && !candidate.staffData) {
-    reasons.push('missing-staff-data')
+    pushReason('missing-staff-data')
   }
 
   if (normalizedCategory === 'instructor' && !candidate.instructorData) {
-    reasons.push('missing-instructor-data')
+    pushReason('missing-instructor-data')
   }
 
   if (normalizedCategory === 'specialist') {
-    reasons.push('unsupported-category')
+    pushReason('unsupported-category')
+  }
+
+  if (candidate.sourceFactionId) {
+    const sourceFaction = game.factions?.[candidate.sourceFactionId]
+    const sourceTier = getFactionReputationTier(sourceFaction?.reputation ?? 0)
+
+    if (candidate.sourceRequiredTier && !isTierAtLeast(sourceTier, candidate.sourceRequiredTier)) {
+      pushReason('faction-locked')
+    }
+
+    if (candidate.sourceMaxTier && !isTierAtMost(sourceTier, candidate.sourceMaxTier)) {
+      pushReason('faction-locked')
+    }
+
+    if (candidate.sourceContactId) {
+      const contact = sourceFaction?.contacts.find((entry) => entry.id === candidate.sourceContactId)
+      if (candidate.sourceDisposition !== 'adversarial' && contact?.status === 'hostile') {
+        pushReason('contact-hostile')
+      }
+
+      if (
+        candidate.sourceDisposition !== 'adversarial' &&
+        contact?.status !== 'hostile' &&
+        typeof contact?.relationship === 'number' &&
+        contact.relationship < 15
+      ) {
+        pushReason('faction-locked')
+      }
+    }
   }
 
   return {

@@ -1,3 +1,4 @@
+// cspell:words greentape
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { type CaseInstance } from '../domain/models'
@@ -36,6 +37,9 @@ function createRaidCase(id: string, overrides: Partial<CaseInstance> = {}): Case
     deadlineWeeks: 10,
     deadlineRemaining: 10,
     weeksRemaining: 1,
+    intelConfidence: 1,
+    intelUncertainty: 0,
+    intelLastUpdatedWeek: 0,
     assignedTeamIds: ['t_nightwatch', 't_greentape'],
     onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
     onUnresolved: {

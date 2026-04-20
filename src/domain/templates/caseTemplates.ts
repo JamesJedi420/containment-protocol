@@ -1,9 +1,90 @@
+// cspell:words cataloguers cutovers exfiltration psionic
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
 import { occultCaseTemplates } from './caseTemplates.occult'
 import { operationsCaseTemplates } from './caseTemplates.operations'
 import { psionicCaseTemplates } from './caseTemplates.psionic'
 
 const baseCaseTemplates: CaseTemplate[] = [
+  // --- Year 2 Expansion ---
+  {
+    templateId: 'escalation-psi-002',
+    title: 'Psi Escalation — Cognitive Breach',
+    description:
+      'A psi-active breach is causing cognitive drift among staff in the lower archives. Pressure is mounting as containment teams report memory loss and hallucinations. Specialized psi and investigation teams are required to stabilize the zone.',
+    mode: 'probability',
+    kind: 'case',
+    difficulty: { combat: 20, investigation: 80, utility: 40, social: 30 },
+    weights: { combat: 0.1, investigation: 0.6, utility: 0.2, social: 0.1 },
+    durationWeeks: 3,
+    deadlineWeeks: 2,
+    tags: ['psi', 'escalation', 'tier-3'],
+    requiredTags: ['psi'],
+    preferredTags: ['analyst', 'forensics'],
+    onFail: {
+      stageDelta: 2,
+      spawnCount: { min: 1, max: 2 },
+      spawnTemplateIds: ['escalation-psi-002', 'bio-001'],
+    },
+    onUnresolved: {
+      stageDelta: 2,
+      deadlineResetWeeks: 2,
+      spawnCount: { min: 2, max: 3 },
+      spawnTemplateIds: ['escalation-psi-002', 'anomaly-raid-001', 'psi-004'],
+    },
+  },
+  {
+    templateId: 'ops-critical-staffing',
+    title: 'Critical Staffing — Multi-Shift Response',
+    description:
+      'A multi-shift incident requires continuous coverage. Staffing demands are high, and teams must rotate to avoid burnout. Failure to maintain coverage increases risk of escalation and negative consequences.',
+    mode: 'threshold',
+    kind: 'case',
+    difficulty: { combat: 30, investigation: 50, utility: 60, social: 20 },
+    weights: { combat: 0.15, investigation: 0.35, utility: 0.4, social: 0.1 },
+    durationWeeks: 4,
+    deadlineWeeks: 3,
+    tags: ['staffing', 'critical', 'tier-3'],
+    requiredTags: [],
+    preferredTags: ['medic', 'utility'],
+    onFail: {
+      stageDelta: 2,
+      spawnCount: { min: 1, max: 2 },
+      spawnTemplateIds: ['ops-critical-staffing', 'bio-001'],
+    },
+    onUnresolved: {
+      stageDelta: 2,
+      deadlineResetWeeks: 2,
+      spawnCount: { min: 2, max: 3 },
+      spawnTemplateIds: ['ops-critical-staffing', 'anomaly-raid-001'],
+    },
+  },
+  {
+    templateId: 'reward-mixed-bundle',
+    title: 'Mixed Reward Bundle — Recovery Operation',
+    description:
+      'A recovery operation offers a mixed bundle of funding, materials, and research unlocks. Teams must balance risk and reward to maximize gains.',
+    mode: 'deterministic',
+    kind: 'case',
+    difficulty: { combat: 15, investigation: 45, utility: 55, social: 25 },
+    weights: { combat: 0.1, investigation: 0.4, utility: 0.4, social: 0.1 },
+    durationWeeks: 2,
+    deadlineWeeks: 2,
+    tags: ['reward', 'mixed', 'tier-2'],
+    requiredTags: [],
+    preferredTags: ['field_recon', 'tech'],
+    onFail: {
+      stageDelta: 1,
+      spawnCount: { min: 1, max: 2 },
+      spawnTemplateIds: ['reward-mixed-bundle'],
+    },
+    onUnresolved: {
+      stageDelta: 2,
+      deadlineResetWeeks: 1,
+      spawnCount: { min: 1, max: 2 },
+      spawnTemplateIds: ['reward-mixed-bundle', 'ops-006'],
+    },
+  },
+  // --- End Year 2 Expansion ---
   {
     templateId: 'chem-001',
     title: 'Containment Breach — Sector 7 Reagent Leak',

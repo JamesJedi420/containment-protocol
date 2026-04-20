@@ -1,3 +1,4 @@
+// cspell:words pathfinding
 import type { Agent, AgentAppliedKit } from './models'
 import {
   aggregateRuntimeModifierResults,

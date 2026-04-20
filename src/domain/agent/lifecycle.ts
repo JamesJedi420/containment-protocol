@@ -407,6 +407,24 @@ function buildProjectedHistoryEntryFromEvent(event: OperationEvent): AgentHistor
         'agent.training_cancelled',
         `${event.payload.trainingName} cancelled.`
       )
+    case 'agent.instructor_assigned':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'agent.instructor_assigned',
+        `${event.payload.instructorName} assigned as instructor (${event.payload.instructorSpecialty}).`
+      )
+    case 'agent.instructor_unassigned':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'agent.instructor_unassigned',
+        `${event.payload.instructorName} unassigned as instructor (${event.payload.instructorSpecialty}).`
+      )
+    case 'agent.relationship_changed':
+      return createAgentHistoryEntry(
+        event.payload.week,
+        'agent.relationship_changed',
+        `Relationship with ${event.payload.counterpartName} changed by ${event.payload.delta >= 0 ? '+' : ''}${event.payload.delta.toFixed(2)} (${event.payload.reason.replace(/_/g, ' ')}).`
+      )
     case 'agent.injured':
       return createAgentHistoryEntry(
         event.payload.week,
@@ -416,13 +434,13 @@ function buildProjectedHistoryEntryFromEvent(event: OperationEvent): AgentHistor
     case 'agent.betrayed':
       return createAgentHistoryEntry(
         event.payload.week,
-        'simulation.weekly_tick',
+        'agent.betrayed',
         `${event.payload.betrayerName} betrayed ${event.payload.betrayedName}.`
       )
     case 'agent.resigned':
       return createAgentHistoryEntry(
         event.payload.week,
-        'simulation.weekly_tick',
+        'agent.resigned',
         `${event.payload.agentName} resigned (${event.payload.reason.replace(/_/g, ' ')}).`
       )
     case 'agent.promoted':

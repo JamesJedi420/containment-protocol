@@ -1,3 +1,4 @@
+// cspell:words callsign fieldcraft nightglass
 import '../../test/setup'
 import { fireEvent, render, screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

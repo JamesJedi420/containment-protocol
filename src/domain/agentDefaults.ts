@@ -49,7 +49,8 @@ export function createDefaultAgentVitals(
 export function createDefaultAgentProgression(
   level: number = 1,
   potentialTier: PotentialTier = 'C',
-  growthProfile: string = 'balanced'
+  growthProfile: string = 'balanced',
+  role: Agent['role'] = 'investigator'
 ): AgentProgression {
   return {
     xp: 0,
@@ -58,6 +59,17 @@ export function createDefaultAgentProgression(
     growthProfile,
     growthStats: {},
     skillTree: createDefaultAgentSkillTree(),
+    trainingPoints: 0,
+    trainingHistory: [],
+    certProgress: {},
+    certifications: {},
+    failedAttemptsByTrainingId: {},
+    trainingProfile: {
+      agentId: '',
+      currentRole: role,
+      trainingStatus: 'idle',
+      readinessImpact: 0,
+    },
   }
 }
 

@@ -1,0 +1,48 @@
+.major-incident-response-option {
+  margin-bottom: 12px;
+}
+.major-incident-response-desc {
+  font-size: 12px;
+}
+.major-incident-page {
+  display: flex;
+  height: 100%;
+  gap: 16px;
+}
+.major-incident-left {
+  flex: 1;
+  min-width: 220px;
+  border-right: 1px solid #ccc;
+  padding: 12px;
+}
+.major-incident-center {
+  flex: 2;
+  min-width: 320px;
+  border-right: 1px solid #ccc;
+  padding: 12px;
+}
+.major-incident-response-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  padding: 8px;
+  cursor: pointer;
+  background: #fff;
+}
+.major-incident-response-btn.selected {
+  background: #eef;
+}
+.major-incident-response-blockers {
+  color: #c00;
+  font-size: 12px;
+}
+.major-incident-outcome-preview {
+  margin-top: 24px;
+  color: #333;
+}
+.major-incident-right {
+  flex: 1;
+  min-width: 220px;
+  padding: 12px;
+}

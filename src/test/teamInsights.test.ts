@@ -50,6 +50,9 @@ function makeCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstan
     weeksRemaining: undefined,
     deadlineWeeks: 12,
     deadlineRemaining: 12,
+    intelConfidence: 1,
+    intelUncertainty: 0,
+    intelLastUpdatedWeek: 0,
     assignedTeamIds: [],
     onFail: {
       stageDelta: 1,

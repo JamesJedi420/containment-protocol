@@ -4,13 +4,21 @@ import {
   appendOperationEventDrafts,
   type AnyOperationEventDraft,
   createAgentHiredDraft,
+  createFactionStandingChangedDraft,
+  createFactionUnlockAvailableDraft,
 } from '../events'
 import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
 import { createAgent, mergeDomainStats, mapAgentRoleToOperationalRole } from '../agent/factory'
 import { createDefaultAgentProgression, deriveDomainStatsFromBase } from '../agentDefaults'
 import { appendAgentHistoryEntry, createAgentHistoryEntry } from '../agent/lifecycle'
 import {
+  applyFactionRecruitInteraction,
+  diffFactionRecruitUnlocks,
+  getFactionRecruitUnlocks,
+} from '../factions'
+import {
   getCandidatePool,
+  getCandidateFunnelStage,
   getCandidateWeeklyCost,
   isCandidateHireable,
   mapRecruitRoleToAgentRole,
@@ -159,6 +167,10 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
     return normalizeNoopIfDirty(state)
   }
 
+  if (getCandidateFunnelStage(candidate) === 'lost') {
+    return normalizeNoopIfDirty(state)
+  }
+
   const preview = previewCandidate(candidate, state)
   if (!preview.canHire) {
     return normalizeNoopIfDirty(state)
@@ -169,12 +181,42 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
   const remainingCandidates = currentRecruitmentPool.filter((entry) => entry.id !== candidateId)
   const eventDrafts: AnyOperationEventDraft[] = []
   const recruitCategory = normalizeCandidateCategory(candidate.category)
+  const previousUnlocks = getFactionRecruitUnlocks({ factions: state.factions ?? {} })
 
   if (recruitCategory === 'agent' && candidate.agentData) {
+    const sourceDisposition = candidate.sourceDisposition ?? 'supportive'
+    const relationshipDelta = candidate.sourceContactId
+      ? sourceDisposition === 'adversarial'
+        ? -6
+        : 6
+      : 0
+    const reputationDelta = candidate.sourceFactionId
+      ? sourceDisposition === 'adversarial'
+        ? -4
+        : 4
+      : 0
+    const factionBefore = candidate.sourceFactionId ? state.factions?.[candidate.sourceFactionId] : undefined
+    const contactBefore =
+      candidate.sourceFactionId && candidate.sourceContactId
+        ? factionBefore?.contacts.find((contact) => contact.id === candidate.sourceContactId)
+        : undefined
+    const nextFactions = applyFactionRecruitInteraction(state.factions ?? {}, {
+      factionId: candidate.sourceFactionId,
+      contactId: candidate.sourceContactId,
+      relationshipDelta,
+      reputationDelta,
+    })
+    const factionAfter = candidate.sourceFactionId ? nextFactions[candidate.sourceFactionId] : undefined
+    const contactAfter =
+      candidate.sourceFactionId && candidate.sourceContactId
+        ? factionAfter?.contacts.find((contact) => contact.id === candidate.sourceContactId)
+        : undefined
+    const nextUnlocks = getFactionRecruitUnlocks({ factions: nextFactions })
     const nextState = syncCandidatePoolState(
       {
         ...state,
         funding: state.funding - weeklyCost,
+        factions: nextFactions,
         agents: {
           ...state.agents,
           [candidateId]: createActiveAgent(
@@ -197,8 +239,53 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
         agentId: candidateId,
         agentName: candidate.name,
         recruitCategory,
+        sourceFactionId: candidate.sourceFactionId,
+        sourceFactionName: candidate.sourceFactionName,
+        sourceContactId: candidate.sourceContactId,
+        sourceContactName: candidate.sourceContactName,
       })
     )
+
+    if (candidate.sourceFactionId && factionBefore && factionAfter) {
+      eventDrafts.push(
+        createFactionStandingChangedDraft({
+          week: state.week,
+          factionId: candidate.sourceFactionId,
+          factionName: candidate.sourceFactionName ?? factionAfter.name,
+          delta: reputationDelta,
+          standingBefore: Math.round((factionBefore.reputation ?? 0) / 5),
+          standingAfter: Math.round((factionAfter.reputation ?? factionBefore.reputation) / 5),
+          reputationBefore: factionBefore.reputation,
+          reputationAfter: factionAfter.reputation,
+          reason: 'recruitment.hired',
+          interactionLabel:
+            candidate.sourceSummary ??
+            `${candidate.name} entered through a ${sourceDisposition} faction channel`,
+          contactId: candidate.sourceContactId,
+          contactName: candidate.sourceContactName,
+          contactRelationshipBefore: contactBefore?.relationship,
+          contactRelationshipAfter: contactAfter?.relationship,
+          contactDelta: relationshipDelta,
+        })
+      )
+
+      for (const unlock of diffFactionRecruitUnlocks(previousUnlocks, nextUnlocks).filter(
+        (entry) => entry.factionId === candidate.sourceFactionId
+      )) {
+        eventDrafts.push(
+          createFactionUnlockAvailableDraft({
+            week: state.week,
+            factionId: unlock.factionId,
+            factionName: unlock.factionName,
+            contactId: unlock.contactId,
+            contactName: unlock.contactName,
+            label: unlock.label,
+            summary: unlock.summary,
+            disposition: unlock.disposition,
+          })
+        )
+      }
+    }
 
     return normalizeGameState(appendOperationEventDrafts(nextState, eventDrafts))
   }

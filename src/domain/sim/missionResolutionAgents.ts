@@ -16,6 +16,7 @@ import {
 } from '../agent/lifecycle'
 import {
   createAgentInjuredDraft,
+  createAgentKilledDraft,
   createAgentPromotedDraft,
   createAgentRelationshipChangedDraft,
   createProgressionXpGainedDraft,
@@ -27,12 +28,14 @@ import type {
   CaseInstance,
   GameState,
   LeaderBonus,
+  MissionFatalityRecord,
   ResolutionOutcome,
 } from '../models'
 import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
 import { applyBetrayalConsequences } from './betrayal'
 import { createDefaultAgentProgression } from '../agentDefaults'
+import { evaluateMissionAgentFailureRisk } from './injuryForecast'
 
 const XP_GAIN_SUCCESS = 150
 const XP_GAIN_PARTIAL = 75
@@ -67,6 +70,7 @@ interface ApplyMissionResolutionAgentMutationsInput {
 interface ApplyMissionResolutionAgentMutationsOutput {
   nextAgents: GameState['agents']
   missionInjuries: MissionInjuryRecord[]
+  missionFatalities: MissionFatalityRecord[]
   eventDrafts: AnyOperationEventDraft[]
   fundingDelta: number
 }
@@ -111,6 +115,14 @@ function buildInjuryHistoryEntry(
     week,
     eventType: 'agent.injured',
     note: `Injured during ${currentCase.title} (${severity}).`,
+  }
+}
+
+function buildFatalityHistoryEntry(week: number, currentCase: CaseInstance): AgentHistoryEntry {
+  return {
+    week,
+    eventType: 'simulation.weekly_tick',
+    note: `Killed during ${currentCase.title}.`,
   }
 }
 
@@ -217,6 +229,36 @@ function hasChemistryContextFit(
 
 function roundRelationshipDelta(value: number) {
   return Math.round(value * 100) / 100
+}
+
+function aggregateAssignedPerformanceSummary(outcome: ResolutionOutcome) {
+  return (outcome.agentPerformance ?? []).reduce(
+    (summary, performance) => ({
+      contribution: Number((summary.contribution + (performance.contribution ?? 0)).toFixed(2)),
+      threatHandled: Number((summary.threatHandled + (performance.threatHandled ?? 0)).toFixed(2)),
+      damageTaken: Number((summary.damageTaken + (performance.damageTaken ?? 0)).toFixed(2)),
+      healingPerformed: Number(
+        (summary.healingPerformed + (performance.healingPerformed ?? 0)).toFixed(2)
+      ),
+      evidenceGathered: Number(
+        (summary.evidenceGathered + (performance.evidenceGathered ?? 0)).toFixed(2)
+      ),
+      containmentActionsCompleted: Number(
+        (
+          summary.containmentActionsCompleted +
+          (performance.containmentActionsCompleted ?? 0)
+        ).toFixed(2)
+      ),
+    }),
+    {
+      contribution: 0,
+      threatHandled: 0,
+      damageTaken: 0,
+      healingPerformed: 0,
+      evidenceGathered: 0,
+      containmentActionsCompleted: 0,
+    }
+  )
 }
 
 function getMissionPotentialDiscoveryDelta(
@@ -399,34 +441,62 @@ function applyRelationshipOutcome(
   }
 }
 
-function rollInjurySeverity(
-  currentCase: CaseInstance,
-  agent: NonNullable<GameState['agents'][string]>,
-  outcome: ResolutionOutcome,
+function rollMissionCasualty(input: {
+  currentCase: CaseInstance
+  agent: NonNullable<GameState['agents'][string]>
+  outcome: ResolutionOutcome
+  performance?: AgentResolutionPerformance
+  assignedAgents: NonNullable<GameState['agents'][string]>[]
+  teamPerformanceSummary: ReturnType<typeof aggregateAssignedPerformanceSummary>
   rng: () => number
-): InjurySeverity | null {
+}): { injurySeverity: InjurySeverity | null; fatal: boolean } {
+  const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } = input
+
   if (outcome.result !== 'fail' || agent.status !== 'active') {
-    return null
+    return { injurySeverity: null, fatal: false }
   }
+
+  const riskProfile = evaluateMissionAgentFailureRisk({
+    currentCase,
+    agent,
+    performance,
+    performanceSummary: teamPerformanceSummary,
+    agents: assignedAgents,
+  })
 
   if (agent.fatigue >= GUARANTEED_INJURY_FATIGUE) {
-    return 'moderate'
+    if (riskProfile.deathChanceOnFailure > 0 && rng() <= riskProfile.deathChanceOnFailure) {
+      return { injurySeverity: null, fatal: true }
+    }
+
+    return { injurySeverity: 'moderate', fatal: false }
   }
 
-  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN) {
-    return null
+  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0) {
+    return { injurySeverity: null, fatal: false }
   }
 
-  const fatigueWeight = (agent.fatigue - INJURY_RISK_FATIGUE_MIN) / 40
-  const stageModifier = Math.max(0, currentCase.stage - 1) * 0.08
-  const raidModifier = currentCase.kind === 'raid' ? 0.08 : 0
-  const injuryChance = clamp(0.12 + fatigueWeight * 0.45 + stageModifier + raidModifier, 0, 0.8)
-
-  if (rng() > injuryChance) {
-    return null
+  if (rng() > riskProfile.injuryChanceOnFailure) {
+    return { injurySeverity: null, fatal: false }
   }
 
-  return agent.fatigue >= 70 || currentCase.stage >= 3 ? 'moderate' : 'minor'
+  if (
+    riskProfile.deathChanceOnFailure > 0 &&
+    rng() <= riskProfile.deathChanceOnFailure / Math.max(riskProfile.injuryChanceOnFailure, 0.001)
+  ) {
+    return { injurySeverity: null, fatal: true }
+  }
+
+  const moderateShare = riskProfile.injuryChanceOnFailure
+    ? (riskProfile.moderateInjuryChanceOnFailure + riskProfile.deathChanceOnFailure) /
+      riskProfile.injuryChanceOnFailure
+    : 0
+
+  return {
+    injurySeverity:
+      moderateShare >= 0.5 || agent.fatigue >= 70 || currentCase.stage >= 3 ? 'moderate' : 'minor',
+    fatal: false,
+  }
 }
 
 export function applyMissionResolutionAgentMutations({
@@ -440,11 +510,13 @@ export function applyMissionResolutionAgentMutations({
 }: ApplyMissionResolutionAgentMutationsInput): ApplyMissionResolutionAgentMutationsOutput {
   const eventDrafts: AnyOperationEventDraft[] = []
   const missionInjuries: MissionInjuryRecord[] = []
+  const missionFatalities: MissionFatalityRecord[] = []
   let fundingDelta = 0
   let nextAgents = { ...agents }
   const performanceByAgentId = new Map(
     (outcome.agentPerformance ?? []).map((performance) => [performance.agentId, performance])
   )
+  const teamPerformanceSummary = aggregateAssignedPerformanceSummary(outcome)
 
   const xpGain =
     outcome.result === 'success'
@@ -455,8 +527,24 @@ export function applyMissionResolutionAgentMutations({
 
   for (const agent of assignedAgents) {
     const leaderBonus = assignedAgentLeaderBonuses[agent.id]
-    const injurySeverity = rollInjurySeverity(effectiveCase, agent, outcome, rng)
-    const sustainedDamage = injurySeverity === 'moderate' ? 25 : injurySeverity === 'minor' ? 10 : 0
+    const performance = performanceByAgentId.get(agent.id)
+    const casualty = rollMissionCasualty({
+      currentCase: effectiveCase,
+      agent,
+      outcome,
+      performance,
+      assignedAgents,
+      teamPerformanceSummary,
+      rng,
+    })
+    const injurySeverity = casualty.injurySeverity
+    const sustainedDamage = casualty.fatal
+      ? 100
+      : injurySeverity === 'moderate'
+        ? 25
+        : injurySeverity === 'minor'
+          ? 10
+          : 0
     const anomalyExposure = hasAnomalyCaseContext(effectiveCase) ? 1 : 0
     const evidenceRecovered =
       outcome.result !== 'fail' && hasEvidenceRecoveryContext(effectiveCase) ? 1 : 0
@@ -466,7 +554,14 @@ export function applyMissionResolutionAgentMutations({
       buildCaseResolutionHistoryEntry(week, effectiveCase, outcome.result),
     ]
 
-    if (injurySeverity) {
+    if (casualty.fatal) {
+      missionFatalities.push({
+        agentId: agent.id,
+        agentName: agent.name,
+        damage: sustainedDamage,
+      })
+      historyEntries.push(buildFatalityHistoryEntry(week, effectiveCase))
+    } else if (injurySeverity) {
       missionInjuries.push({
         agentId: agent.id,
         agentName: agent.name,
@@ -484,14 +579,30 @@ export function applyMissionResolutionAgentMutations({
         : outcome.result === 'partial'
           ? `Case '${effectiveCase.title}' partially resolved`
           : `Case '${effectiveCase.title}' failed`
-    const nextAssignment = injurySeverity
+    const nextAssignment = casualty.fatal
+      ? ({ state: 'idle' } as const)
+      : injurySeverity
       ? {
           state: 'recovery' as const,
           teamId: agent.assignment?.teamId,
           startedWeek: week,
         }
       : ({ state: 'idle' } as const)
-    const nextVitals = injurySeverity
+    const nextVitals = casualty.fatal
+      ? {
+          ...(agent.vitals ?? {
+            health: 100,
+            stress: agent.fatigue,
+            morale: Math.max(0, 100 - agent.fatigue),
+            wounds: 0,
+            statusFlags: [],
+          }),
+          health: 0,
+          morale: 0,
+          wounds: 100,
+          statusFlags: ['fatality'],
+        }
+      : injurySeverity
       ? {
           ...(agent.vitals ?? {
             health: 100,
@@ -506,7 +617,7 @@ export function applyMissionResolutionAgentMutations({
             100
           ),
           morale: clamp(
-            (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
+              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
               (injurySeverity === 'moderate' ? 18 : 8),
             0,
             100
@@ -520,7 +631,7 @@ export function applyMissionResolutionAgentMutations({
       setAgentAssignment(
         {
           ...agent,
-          status: injurySeverity ? 'injured' : agent.status,
+          status: casualty.fatal ? 'dead' : injurySeverity ? 'injured' : agent.status,
           ...(nextVitals ? { vitals: nextVitals } : {}),
         },
         nextAssignment
@@ -537,104 +648,107 @@ export function applyMissionResolutionAgentMutations({
         anomaliesContained,
       }
     )
-    const progressedAgent = applyAgentProgressionUpdate(resolvedAgent, progressionUpdate)
-    const progressedAgentWithXpLog = recordAgentXpGain(
-      progressedAgent,
-      xpGainAdjusted,
-      xpReasonLabel,
-      week
-    )
+    let nextAgent = resolvedAgent
 
-    let nextAgent = progressionUpdate.reachedLevels.reduce(
-      (currentAgent, level) =>
-        appendAgentHistoryEntry(
-          currentAgent,
-          createAgentHistoryEntry(week, 'simulation.weekly_tick', `Reached level ${level}.`)
-        ),
-      progressedAgentWithXpLog
-    )
-    const performance = performanceByAgentId.get(agent.id)
-    const discovery = observePotentialIntel(
-      nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
-      {
-        week,
-        source: 'mission',
-        discoveryDelta: getMissionPotentialDiscoveryDelta(effectiveCase, outcome, performance),
-      }
-    )
-
-    nextAgent = {
-      ...nextAgent,
-      progression: {
-        ...(nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1)),
-        potentialIntel: discovery.potentialIntel,
-      },
-    }
-
-    if (discovery.note) {
-      nextAgent = appendAgentHistoryEntry(
-        nextAgent,
-        createAgentHistoryEntry(week, 'simulation.weekly_tick', discovery.note)
-      )
-    }
-
-    if (shouldTriggerMissionBreakthrough(nextAgent, effectiveCase, outcome, performance)) {
-      const breakthrough = applyPotentialBreakthrough(
-        nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+    if (!casualty.fatal) {
+      const progressedAgent = applyAgentProgressionUpdate(resolvedAgent, progressionUpdate)
+      const progressedAgentWithXpLog = recordAgentXpGain(
+        progressedAgent,
+        xpGainAdjusted,
+        xpReasonLabel,
         week
       )
 
-      if (breakthrough.changed) {
-        nextAgent = {
-          ...nextAgent,
-          progression: {
-            ...breakthrough.progression,
-            statCaps: buildAgentStatCaps(
-              nextAgent.baseStats,
-              breakthrough.progression.potentialTier,
-              breakthrough.progression.growthProfile,
-              nextAgent.progression?.statCaps
-            ),
-          },
+      nextAgent = progressionUpdate.reachedLevels.reduce(
+        (currentAgent, level) =>
+          appendAgentHistoryEntry(
+            currentAgent,
+            createAgentHistoryEntry(week, 'simulation.weekly_tick', `Reached level ${level}.`)
+          ),
+        progressedAgentWithXpLog
+      )
+      const discovery = observePotentialIntel(
+        nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+        {
+          week,
+          source: 'mission',
+          discoveryDelta: getMissionPotentialDiscoveryDelta(effectiveCase, outcome, performance),
         }
+      )
 
-        if (breakthrough.note) {
-          nextAgent = appendAgentHistoryEntry(
-            nextAgent,
-            createAgentHistoryEntry(week, 'simulation.weekly_tick', breakthrough.note)
-          )
+      nextAgent = {
+        ...nextAgent,
+        progression: {
+          ...(nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1)),
+          potentialIntel: discovery.potentialIntel,
+        },
+      }
+
+      if (discovery.note) {
+        nextAgent = appendAgentHistoryEntry(
+          nextAgent,
+          createAgentHistoryEntry(week, 'simulation.weekly_tick', discovery.note)
+        )
+      }
+
+      if (shouldTriggerMissionBreakthrough(nextAgent, effectiveCase, outcome, performance)) {
+        const breakthrough = applyPotentialBreakthrough(
+          nextAgent.progression ?? createDefaultAgentProgression(nextAgent.level ?? 1),
+          week
+        )
+
+        if (breakthrough.changed) {
+          nextAgent = {
+            ...nextAgent,
+            progression: {
+              ...breakthrough.progression,
+              statCaps: buildAgentStatCaps(
+                nextAgent.baseStats,
+                breakthrough.progression.potentialTier,
+                breakthrough.progression.growthProfile,
+                nextAgent.progression?.statCaps
+              ),
+            },
+          }
+
+          if (breakthrough.note) {
+            nextAgent = appendAgentHistoryEntry(
+              nextAgent,
+              createAgentHistoryEntry(week, 'simulation.weekly_tick', breakthrough.note)
+            )
+          }
         }
       }
-    }
 
-    if (progressionUpdate.xpGained > 0) {
-      eventDrafts.push(
-        createProgressionXpGainedDraft({
-          week,
-          agentId: agent.id,
-          agentName: agent.name,
-          xpAmount: progressionUpdate.xpGained,
-          reason: xpReasonLabel,
-          totalXp: progressionUpdate.progression.xp,
-          level: progressionUpdate.level,
-          levelsGained: progressionUpdate.levelsGained,
-        })
-      )
-    }
+      if (progressionUpdate.xpGained > 0) {
+        eventDrafts.push(
+          createProgressionXpGainedDraft({
+            week,
+            agentId: agent.id,
+            agentName: agent.name,
+            xpAmount: progressionUpdate.xpGained,
+            reason: xpReasonLabel,
+            totalXp: progressionUpdate.progression.xp,
+            level: progressionUpdate.level,
+            levelsGained: progressionUpdate.levelsGained,
+          })
+        )
+      }
 
-    if (progressionUpdate.leveledUp) {
-      eventDrafts.push(
-        createAgentPromotedDraft({
-          week,
-          agentId: agent.id,
-          agentName: agent.name,
-          newRole: agent.role,
-          previousLevel: progressionUpdate.previousLevel,
-          newLevel: progressionUpdate.level,
-          levelsGained: progressionUpdate.levelsGained,
-          skillPointsGranted: progressionUpdate.skillPointsGranted,
-        })
-      )
+      if (progressionUpdate.leveledUp) {
+        eventDrafts.push(
+          createAgentPromotedDraft({
+            week,
+            agentId: agent.id,
+            agentName: agent.name,
+            newRole: agent.role,
+            previousLevel: progressionUpdate.previousLevel,
+            newLevel: progressionUpdate.level,
+            levelsGained: progressionUpdate.levelsGained,
+            skillPointsGranted: progressionUpdate.skillPointsGranted,
+          })
+        )
+      }
     }
 
     if (injurySeverity) {
@@ -644,6 +758,18 @@ export function applyMissionResolutionAgentMutations({
           agentId: agent.id,
           agentName: agent.name,
           severity: injurySeverity,
+        })
+      )
+    }
+
+    if (casualty.fatal) {
+      eventDrafts.push(
+        createAgentKilledDraft({
+          week,
+          agentId: agent.id,
+          agentName: agent.name,
+          caseId: effectiveCase.id,
+          caseTitle: effectiveCase.title,
         })
       )
     }
@@ -709,7 +835,7 @@ export function applyMissionResolutionAgentMutations({
     const collaboratorIds = assignedAgents
       .map((candidate) => candidate.id)
       .filter((candidateId) => candidateId !== agent.id)
-    const performance = performanceByAgentId.get(agent.id)
+    const agentPerformance = performanceByAgentId.get(agent.id)
     const currentAgent = nextAgents[agent.id]
 
     if (!currentAgent) {
@@ -718,11 +844,11 @@ export function applyMissionResolutionAgentMutations({
 
     let collaboratorAgent = recordAgentCollaborators(currentAgent, collaboratorIds)
 
-    if (performance) {
+    if (agentPerformance) {
       collaboratorAgent = recordAgentPerformance(
         collaboratorAgent,
-        performance,
-        performance.powerImpact
+        agentPerformance,
+        agentPerformance.powerImpact
       )
     }
 
@@ -758,6 +884,7 @@ export function applyMissionResolutionAgentMutations({
   return {
     nextAgents,
     missionInjuries,
+    missionFatalities,
     eventDrafts,
     fundingDelta,
   }

@@ -1,3 +1,4 @@
+// cspell:words pathfinding
 import { createDefaultAgentProgression } from '../agentDefaults'
 import {
   type Agent,

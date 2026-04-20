@@ -1,3 +1,4 @@
+// cspell:words cooldown cooldowns
 import type { Agent, AgentAbility, AgentAbilityState, GameState } from '../models'
 
 function getActiveAbility(agent: Agent, abilityId: string): AgentAbility | undefined {

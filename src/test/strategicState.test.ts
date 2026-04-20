@@ -1,3 +1,4 @@
+// cspell:words cryptid
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {

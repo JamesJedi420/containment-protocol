@@ -1,3 +1,4 @@
+// cspell:words callsign
 import { type ReactNode, useState } from 'react'
 import { Link } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'

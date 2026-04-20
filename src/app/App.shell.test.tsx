@@ -41,6 +41,7 @@ describe('minimal shell layout', () => {
   it('renders the primary tab navigation', () => {
     renderShell()
 
+    expect(screen.getByRole('banner', { name: /shell status bar/i })).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: /primary operations/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /^operations desk$/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /^cases$/i })).toBeInTheDocument()
@@ -78,6 +79,7 @@ describe('minimal shell layout', () => {
 
     await user.click(screen.getByRole('link', { name: /^agents$/i }))
 
+    expect(screen.getByRole('banner', { name: /shell status bar/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 1, name: /^agents$/i })).toBeInTheDocument()
     expect(screen.getByText(/current roster/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /ava brooks/i })).toBeInTheDocument()
@@ -90,6 +92,7 @@ describe('minimal shell layout', () => {
 
     await user.click(screen.getByRole('link', { name: /^recruitment$/i }))
 
+    expect(screen.getByRole('banner', { name: /shell status bar/i })).toBeInTheDocument()
     expect(screen.getByText(/candidate board/i)).toBeInTheDocument()
   })
 })

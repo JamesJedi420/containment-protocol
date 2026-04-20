@@ -1,3 +1,4 @@
+// cspell:words exfiltration greentape kellan sato unassigns
 import '../test/setup'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -38,6 +39,12 @@ function getNightWatchCard() {
 
 function getGreenTapeCard() {
   return getTeamCard(GREENTAPE_NAME)
+}
+
+function getAdvanceWeekButton() {
+  return within(screen.getByRole('region', { name: /simulation controls/i })).getByRole('button', {
+    name: /advance week/i,
+  })
 }
 
 function renderApp(route = '/') {
@@ -484,8 +491,8 @@ describe('game app routes', () => {
 
     expect(screen.getByRole('heading', { name: /containment protocol/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /^operations desk$/i })).toBeInTheDocument()
-    expect(screen.getByText(/^active cases$/i)).toBeInTheDocument()
-    expect(screen.getByText(/^clearance$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^pending operations$/i)).toBeInTheDocument()
+    expect(screen.getByText(/^active deployments$/i)).toBeInTheDocument()
     expect(
       screen.getByText(new RegExp(`week 1 / active cap ${activeCaseCap}`, 'i'))
     ).toBeInTheDocument()
@@ -692,9 +699,10 @@ describe('game app routes', () => {
     renderApp()
 
     const avgFatigueCard = screen.getByText(/team fatigue/i).closest('div')
-
     expect(avgFatigueCard).not.toBeNull()
-    expect(within(avgFatigueCard!).getByText('0')).toBeInTheDocument()
+    // Use test id for robust selection
+    const valueNode = within(avgFatigueCard!).getByTestId('dashboard-stat-value-team-fatigue-/-avg-fatigue')
+    expect(valueNode).toHaveTextContent('0')
   })
 
   it('renders an empty team card with zero fatigue and no assigned case', () => {
@@ -856,7 +864,7 @@ describe('game app routes', () => {
     useGameStore.setState({ game })
     renderApp()
 
-    expect(screen.getByText(/2 resolved, 2 unresolved triggers, 2 spawneds/i)).toBeInTheDocument()
+    expect(screen.getByText(/2 resolved, 2 unresolved triggers, 2 spawned cases/i)).toBeInTheDocument()
     expect(
       screen.getByText(/avg fatigue 12 \/ max stage 4 \/ rng before 2024 -> 2025/i)
     ).toBeInTheDocument()
@@ -980,7 +988,7 @@ describe('game app routes', () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.click(screen.getByRole('button', { name: /advance week/i }))
+    await user.click(getAdvanceWeekButton())
 
     expect(
       screen.getByText(new RegExp(`week 2 / active cap ${activeCaseCap}`, 'i'))
@@ -1067,13 +1075,13 @@ describe('game app routes', () => {
     renderApp()
 
     expect(screen.getByText(/simulation halted: active case cap exceeded\./i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /advance week/i })).toBeDisabled()
+    expect(getAdvanceWeekButton()).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: /^reset$/i }))
     await user.click(screen.getByRole('button', { name: /confirm reset/i }))
 
     expect(screen.queryByText(/simulation halted:/i)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /advance week/i })).toBeEnabled()
+    expect(getAdvanceWeekButton()).toBeEnabled()
     expect(
       screen.getByText(new RegExp(`week 1 / active cap ${activeCaseCap}`, 'i'))
     ).toBeInTheDocument()
@@ -1093,14 +1101,14 @@ describe('game app routes', () => {
         /simulation halted: breach threshold crossed\. containment protocol failed\./i
       )
     ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /advance week/i })).toBeDisabled()
+    expect(getAdvanceWeekButton()).toBeDisabled()
   })
 
   it('resets the simulation back to the initial dashboard state', async () => {
     const user = userEvent.setup()
     renderApp()
 
-    await user.click(screen.getByRole('button', { name: /advance week/i }))
+    await user.click(getAdvanceWeekButton())
     await user.click(screen.getByRole('button', { name: /^reset$/i }))
     await user.click(screen.getByRole('button', { name: /confirm reset/i }))
 

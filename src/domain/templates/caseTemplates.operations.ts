@@ -1,3 +1,4 @@
+// cspell:words courtline decon
 import { type CaseTemplate } from '../models'
 
 export const operationsCaseTemplates: CaseTemplate[] = [

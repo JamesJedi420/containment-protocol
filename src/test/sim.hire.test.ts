@@ -1,3 +1,4 @@
+// cspell:words cand
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { hireCandidate } from '../domain/sim/hire'
@@ -245,6 +246,64 @@ describe('hireCandidate', () => {
       confidence: 'medium',
       discoveryProgress: 45,
       source: 'recruitment_scout',
+    })
+  })
+
+  it('applies faction and contact reputation shifts when a sponsored recruit is hired', () => {
+    const state = createStartingState()
+    const factions = state.factions
+    if (!factions) {
+      throw new Error('Expected faction state to be present for hire interaction test.')
+    }
+
+    factions.institutions.reputation = 80
+    factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+      contact.id === 'institutions-halden'
+        ? {
+            ...contact,
+            relationship: 20,
+            status: 'active',
+          }
+        : contact
+    )
+
+    const candidate = makeAgentCandidate({
+      id: 'cand-sponsored-01',
+      hireStatus: 'available',
+      sourceFactionId: 'institutions',
+      sourceFactionName: 'Academic Institutions',
+      sourceContactId: 'institutions-halden',
+      sourceContactName: 'Miren Halden',
+      sourceSummary: 'Research fellowship via institutional research channel',
+      sourceRequiredTier: 'friendly',
+    })
+    state.candidates = [candidate]
+
+    const next = hireCandidate(state, candidate.id)
+    const nextFactions = next.factions
+    if (!nextFactions) {
+      throw new Error('Expected factions to persist after sponsored hire.')
+    }
+
+    expect(nextFactions.institutions.reputation).toBe(84)
+    expect(
+      nextFactions.institutions.contacts.find((contact) => contact.id === 'institutions-halden')
+        ?.relationship
+    ).toBe(26)
+    expect(
+      next.events.find(
+        (event) =>
+          event.type === 'faction.standing_changed' &&
+          event.payload.reason === 'recruitment.hired' &&
+          event.payload.factionId === 'institutions'
+      )
+    ).toMatchObject({
+      payload: expect.objectContaining({
+        interactionLabel: 'Research fellowship via institutional research channel',
+        contactId: 'institutions-halden',
+        delta: 4,
+        contactDelta: 6,
+      }),
     })
   })
 

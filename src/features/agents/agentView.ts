@@ -1,3 +1,4 @@
+// cspell:words callsign reassignable
 import { APP_ROUTES } from '../../app/routes'
 import {
   buildAgentStatCaps,

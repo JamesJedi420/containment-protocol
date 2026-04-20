@@ -1,3 +1,4 @@
+// cspell:words greentape
 import '../../test/setup'
 import { render, screen, within, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
@@ -154,6 +155,46 @@ it('renders recommended action guidance for assignable cases', () => {
   expect(screen.getAllByText(/best current success:/i).length).toBeGreaterThan(0)
 })
 
+it('supports top-option comparison and shows confidence/commit cues on assignment actions', async () => {
+  const user = userEvent.setup()
+
+  renderCasesPage(['/cases'])
+
+  const compareButton = screen.getAllByRole('button', { name: /compare top 2/i })[0]
+  expect(compareButton).toHaveAttribute('aria-expanded', 'false')
+  const controlsId = compareButton.getAttribute('aria-controls')
+  expect(controlsId).toBeTruthy()
+  await user.click(compareButton)
+
+  expect(compareButton).toHaveAttribute('aria-expanded', 'true')
+  expect(document.getElementById(controlsId!)).not.toBeNull()
+  expect(screen.getByText(/success delta:/i)).toBeInTheDocument()
+  expect(screen.getByText(/fail delta:/i)).toBeInTheDocument()
+  expect(screen.getAllByText(/confidence:/i).length).toBeGreaterThan(0)
+  expect(screen.getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
+})
+
+it('renders a major incident planner and warns when one selected team is much weaker', async () => {
+  const user = userEvent.setup()
+  const game = createMajorIncidentPlannerState()
+
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases'])
+
+  const incidentCard = getCardByName('Regional Fracture Event')
+  expect(within(incidentCard).getByText(/major incident planner/i)).toBeInTheDocument()
+
+  await user.click(within(incidentCard).getByRole('button', { name: /alpha team/i }))
+  await user.click(within(incidentCard).getByRole('button', { name: /bravo team/i }))
+  await user.click(within(incidentCard).getByRole('button', { name: /charlie team/i }))
+
+  expect(within(incidentCard).getByText(/bottlenecking the operation/i)).toBeInTheDocument()
+  expect(within(incidentCard).getByText(/weakest-power gate:/i)).toBeInTheDocument()
+  expect(within(incidentCard).getAllByText(/reward upside:/i).length).toBeGreaterThan(0)
+  expect(within(incidentCard).getAllByText(/operational cost:/i).length).toBeGreaterThan(0)
+  expect(within(incidentCard).getAllByText(/net read:/i).length).toBeGreaterThan(0)
+})
+
 it('toggles the at-risk filter and syncs it to query state', async () => {
   const user = userEvent.setup()
   const game = createStartingState()
@@ -218,6 +259,42 @@ it('renders the case assignment guidance panel', () => {
     screen.getByText(/some cases require specific team tags or baseline role coverage/i)
   ).toBeInTheDocument()
   expect(screen.getByText(/stage 4\+ cases auto-escalate/i)).toBeInTheDocument()
+})
+
+it('renders the contract board and launches a contract into the live case queue', async () => {
+  const user = userEvent.setup()
+
+  renderCasesPage(['/cases'])
+
+  const contractBoard = screen.getByRole('region', { name: /contract board/i })
+  expect(within(contractBoard).getByText(/mission board/i)).toBeInTheDocument()
+
+  const launchButton = within(contractBoard).getByRole('button', { name: /launch with/i })
+  await user.click(launchButton)
+
+  const activeContractCase = Object.values(useGameStore.getState().game.cases).find(
+    (currentCase) => currentCase.contract && currentCase.assignedTeamIds.length > 0
+  )
+
+  expect(activeContractCase).toBeDefined()
+  expect(useGameStore.getState().game.events.some((event) => event.type === 'case.spawned')).toBe(
+    true
+  )
+})
+
+it('renders keyboard skip links for filters and results', () => {
+  renderCasesPage(['/cases'])
+
+  expect(screen.getByRole('link', { name: /skip to case filters/i })).toHaveAttribute(
+    'href',
+    '#cases-filters'
+  )
+  expect(screen.getByRole('link', { name: /skip to case results/i })).toHaveAttribute(
+    'href',
+    '#cases-results'
+  )
+  expect(document.getElementById('cases-filters')).not.toBeNull()
+  expect(document.getElementById('cases-results')).not.toBeNull()
 })
 
 it('rehydrates case filters from URL after remount', async () => {
@@ -309,6 +386,9 @@ function makeCase(id: string, title: string, overrides: Partial<CaseInstance> = 
     weeksRemaining: overrides.weeksRemaining,
     deadlineWeeks: overrides.deadlineWeeks ?? 3,
     deadlineRemaining: overrides.deadlineRemaining ?? 3,
+    intelConfidence: overrides.intelConfidence ?? 1,
+    intelUncertainty: overrides.intelUncertainty ?? 0,
+    intelLastUpdatedWeek: overrides.intelLastUpdatedWeek ?? 0,
     assignedTeamIds: overrides.assignedTeamIds ?? [],
     requiredRoles: overrides.requiredRoles ?? [],
     requiredTags: overrides.requiredTags ?? [],
@@ -337,4 +417,100 @@ const DEFAULT_SPAWN_RULE = {
   stageDelta: 1,
   spawnCount: { min: 0, max: 1 },
   spawnTemplateIds: ['alpha'],
+}
+
+function createMajorIncidentPlannerState() {
+  const game = createStartingState()
+  const baseAgent = game.agents.a_ava
+
+  game.agents = {}
+  game.teams = {}
+
+  game.agents['agent-alpha'] = {
+    ...baseAgent,
+    id: 'agent-alpha',
+    name: 'Alpha',
+    role: 'hunter',
+    baseStats: { combat: 90, investigation: 82, utility: 78, social: 50 },
+    fatigue: 4,
+    status: 'active',
+  }
+  game.agents['agent-bravo'] = {
+    ...baseAgent,
+    id: 'agent-bravo',
+    name: 'Bravo',
+    role: 'tech',
+    baseStats: { combat: 72, investigation: 86, utility: 94, social: 46 },
+    fatigue: 8,
+    status: 'active',
+  }
+  game.agents['agent-charlie'] = {
+    ...baseAgent,
+    id: 'agent-charlie',
+    name: 'Charlie',
+    role: 'negotiator',
+    baseStats: { combat: 12, investigation: 16, utility: 14, social: 30 },
+    fatigue: 10,
+    status: 'active',
+  }
+  game.agents['agent-delta'] = {
+    ...baseAgent,
+    id: 'agent-delta',
+    name: 'Delta',
+    role: 'field_recon',
+    baseStats: { combat: 74, investigation: 88, utility: 90, social: 54 },
+    fatigue: 6,
+    status: 'active',
+  }
+
+  game.teams['team-alpha'] = {
+    id: 'team-alpha',
+    name: 'Alpha Team',
+    agentIds: ['agent-alpha'],
+    memberIds: ['agent-alpha'],
+    leaderId: 'agent-alpha',
+    tags: ['field'],
+  }
+  game.teams['team-bravo'] = {
+    id: 'team-bravo',
+    name: 'Bravo Team',
+    agentIds: ['agent-bravo'],
+    memberIds: ['agent-bravo'],
+    leaderId: 'agent-bravo',
+    tags: ['tech'],
+  }
+  game.teams['team-charlie'] = {
+    id: 'team-charlie',
+    name: 'Charlie Team',
+    agentIds: ['agent-charlie'],
+    memberIds: ['agent-charlie'],
+    leaderId: 'agent-charlie',
+    tags: ['social'],
+  }
+  game.teams['team-delta'] = {
+    id: 'team-delta',
+    name: 'Delta Team',
+    agentIds: ['agent-delta'],
+    memberIds: ['agent-delta'],
+    leaderId: 'agent-delta',
+    tags: ['recon'],
+  }
+
+  game.inventory['medical_supplies'] = 5
+  game.inventory['signal_jammers'] = 2
+  game.inventory['emf_sensors'] = 2
+  game.inventory['silver_rounds'] = 2
+
+  game.cases['incident-major'] = makeCase('incident-major', 'Regional Fracture Event', {
+    kind: 'raid',
+    stage: 3,
+    deadlineRemaining: 1,
+    durationWeeks: 4,
+    requiredTags: [],
+    requiredRoles: [],
+    preferredTags: ['field', 'tech', 'analysis'],
+    raid: { minTeams: 2, maxTeams: 4 },
+  })
+
+  return game
 }

@@ -12,7 +12,11 @@ import {
   formatProductionOutputLabel,
 } from '../crafting'
 import { type GameState, type ProductionQueueEntry } from '../models'
-import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
+import {
+  ensureNormalizedGameState,
+  normalizeGameState,
+  resolveFundingSensitiveNoopState,
+} from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
   hasRecipeMaterialStock,
@@ -29,18 +33,18 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
   const recipe = getProductionRecipe(recipeId)
 
   if (!recipe) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   const snapshot = buildProductionJobSnapshot(recipe, state.market)
   const fundingCost = snapshot.fundingCost
 
   if (state.funding < fundingCost) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   if (!hasRecipeMaterialStock(recipe, state.inventory)) {
-    return ensureNormalizedGameState(state)
+    return resolveFundingSensitiveNoopState(state)
   }
 
   const queueEntry: ProductionQueueEntry = buildProductionQueueEntry(
@@ -89,52 +93,51 @@ export function purchaseMarketInventory(
   return purchaseMarketListingInventory(state, recipeId, bundles)
 }
 
-export function advanceProductionQueues(state: GameState) {
+export function advanceProductionQueues(state: GameState, opts?: { procurementMultiplier?: number }) {
   if (state.productionQueue.length === 0) {
     return {
       state: ensureNormalizedGameState(state),
-      completed: [] as ProductionQueueEntry[],
-      notes: [] as string[],
-      eventDrafts: [] as AnyOperationEventDraft[],
+      completed: [],
+      notes: [],
+      eventDrafts: [],
     }
   }
 
+  const completed: ProductionQueueEntry[] = [];
+  const notes: string[] = [];
+  const nextInventory = { ...state.inventory };
+
   const nextQueue: ProductionQueueEntry[] = []
-  const completed: ProductionQueueEntry[] = []
-  const nextInventory = { ...state.inventory }
-  const notes: string[] = []
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
-    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
-
+    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0);
     if (remainingWeeks > 0) {
       nextQueue.push({
         ...entry,
         remainingWeeks,
-      })
-      continue
+      });
+    } else {
+      completed.push(entry);
+      nextInventory[entry.outputItemId] =
+        (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity;
+      notes.push(
+        `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
+      );
+      eventDrafts.push(
+        createProductionQueueCompletedDraft({
+          week: state.week,
+          queueId: entry.id,
+          queueName: entry.recipeName,
+          recipeId: entry.recipeId,
+          outputId: entry.outputItemId,
+          outputName: entry.outputItemName,
+          outputQuantity: entry.outputQuantity,
+          fundingCost: entry.fundingCost,
+          inputMaterials: entry.inputMaterials ?? [],
+        })
+      );
     }
-
-    completed.push(entry)
-    nextInventory[entry.outputItemId] =
-      (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity
-    notes.push(
-      `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
-    )
-    eventDrafts.push(
-      createProductionQueueCompletedDraft({
-        week: state.week,
-        queueId: entry.id,
-        queueName: entry.recipeName,
-        recipeId: entry.recipeId,
-        outputId: entry.outputItemId,
-        outputName: entry.outputItemName,
-        outputQuantity: entry.outputQuantity,
-        fundingCost: entry.fundingCost,
-        inputMaterials: entry.inputMaterials ?? [],
-      })
-    )
   }
 
   return {
@@ -146,7 +149,7 @@ export function advanceProductionQueues(state: GameState) {
     completed,
     notes,
     eventDrafts,
-  }
+  };
 }
 
 export function advanceMarketState(state: GameState, rng: () => number) {

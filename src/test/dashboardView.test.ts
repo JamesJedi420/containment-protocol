@@ -1,3 +1,4 @@
+// cspell:words greentape
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getDashboardMetrics, getFieldStatusViews } from '../features/dashboard/dashboardView'

@@ -1,3 +1,4 @@
+// cspell:words editability
 /**
  * Selector Parity Test Fixtures
  *

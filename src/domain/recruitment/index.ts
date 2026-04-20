@@ -1,3 +1,4 @@
+// cspell:words scoutable
 export type {
   AgentCandidateData,
   AgentCandidateRole,
@@ -10,6 +11,7 @@ export type {
   CandidatePipelineStatus,
   CandidatePotentialTier,
   CandidateRevealLevel,
+  RecruitmentFunnelStage,
   CandidateScoutStage,
   CandidateScoutReport,
   InstructorCandidateData,
@@ -31,6 +33,9 @@ export {
   isCandidateHireable,
   normalizeCandidateCategory,
   normalizeCandidateHireStatus,
+  normalizeRecruitmentFunnelStage,
+  getCandidateFunnelStage,
+  canTransitionCandidateFunnelStage,
   normalizeStaffCandidateSpecialty,
   scoreToCandidatePotentialTier,
   syncCandidatePoolState,
@@ -43,8 +48,20 @@ export {
   buildCandidateScoutReport,
   getNextCandidateScoutStage,
   getCandidateScoutCost,
+  getCandidateScoutStage,
   isCandidateScoutable,
+  isCandidateScoutConfirmed,
   resolveCandidateActualPotentialTier,
 } from './scouting'
 export type { CandidatePreview } from './preview'
 export { previewCandidate } from './preview'
+export type {
+  RecruitmentFunnelSummary,
+  RecruitmentFunnelTransitionInput,
+  RecruitmentFunnelTransitionResult,
+} from './funnel'
+export {
+  buildRecruitmentFunnelSummary,
+  listCandidatesByFunnelStage,
+  transitionRecruitmentCandidate,
+} from './funnel'

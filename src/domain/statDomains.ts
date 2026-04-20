@@ -1,3 +1,4 @@
+// cspell:words psionic
 import {
   type Agent,
   type AgentRole,

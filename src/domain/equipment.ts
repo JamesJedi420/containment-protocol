@@ -1,4 +1,6 @@
-import type { Agent, CaseInstance, DomainStats, EquipmentSlots, StatKey } from './models'
+// cspell:words biocontainment medkits pathfinding psionic stims
+import type { Agent, CaseInstance, DomainStats, EquipmentSlots, GameState, Id, StatKey } from './models'
+import { assessResearchRequirements } from './research'
 import { cloneDomainStats } from './statDomains'
 
 export type EquipmentSlotKind =
@@ -90,6 +92,7 @@ export interface EquipmentEvaluationContext {
   caseData?: CaseInstance
   supportTags?: string[]
   teamTags?: string[]
+  state?: Pick<GameState, 'researchState'>
 }
 
 export interface EquipmentContextRule {
@@ -142,6 +145,45 @@ export interface EquipmentLoadoutSummary {
   equippedTags: string[]
 }
 
+export interface RoleLoadoutConstraintProfile {
+  role: Agent['role']
+  allowedTags: string[]
+  recommendedSlots: EquipmentSlotKind[]
+}
+
+export interface LoadoutAssignmentValidationResult {
+  valid: boolean
+  roleCompatible: boolean
+  slotCompatible: boolean
+  blockingIssues: string[]
+  warnings: string[]
+  conflicts: string[]
+  readinessSummary: {
+    current: AgentLoadoutReadinessSummary
+    projected: AgentLoadoutReadinessSummary
+  }
+  inventoryImplications: {
+    availableStock: number
+    consumesFromStock: boolean
+    transferFromAssignment?: {
+      agentId: Id
+      slot: EquipmentSlotKind
+    }
+    deltas: Array<{ itemId: string; delta: number }>
+  }
+}
+
+export interface AgentLoadoutReadinessSummary {
+  agentId: string
+  role: Agent['role']
+  equippedItemCount: number
+  compatibleItemCount: number
+  incompatibleItemCount: number
+  emptySlotCount: number
+  readiness: 'ready' | 'partial' | 'blocked'
+  issues: string[]
+}
+
 export interface TeamEquipmentSummary extends EquipmentLoadoutSummary {
   agentCount: number
   equippedItems: EquipmentItem[]
@@ -183,6 +225,144 @@ const FORBIDDEN_ITEM_DESIGN_KEYS = [
   'statVariance',
   'qualityVariance',
 ] as const
+
+const ROLE_LOADOUT_CONSTRAINTS: Record<Agent['role'], RoleLoadoutConstraintProfile> = {
+  hunter: {
+    role: 'hunter',
+    allowedTags: ['combat', 'breach', 'threat', 'tactical', 'protection', 'field'],
+    recommendedSlots: ['primary', 'armor', 'secondary'],
+  },
+  occultist: {
+    role: 'occultist',
+    allowedTags: ['occult', 'ritual', 'containment', 'anomaly', 'stabilization', 'support'],
+    recommendedSlots: ['primary', 'secondary', 'utility1', 'utility2'],
+  },
+  investigator: {
+    role: 'investigator',
+    allowedTags: [
+      'analysis',
+      'investigation',
+      'evidence',
+      'surveillance',
+      'signal',
+      'field',
+      'occult',
+      'containment',
+      'ritual',
+    ],
+    recommendedSlots: ['headgear', 'utility1', 'utility2', 'secondary'],
+  },
+  field_recon: {
+    role: 'field_recon',
+    allowedTags: ['recon', 'surveillance', 'signal', 'analysis', 'field-kit', 'communication'],
+    recommendedSlots: ['headgear', 'secondary', 'utility1', 'utility2'],
+  },
+  medium: {
+    role: 'medium',
+    allowedTags: ['occult', 'ritual', 'anomaly', 'stabilization', 'support', 'social'],
+    recommendedSlots: ['secondary', 'utility1', 'utility2', 'headgear'],
+  },
+  tech: {
+    role: 'tech',
+    allowedTags: ['signal', 'analysis', 'surveillance', 'communication', 'field-kit', 'anomaly'],
+    recommendedSlots: ['secondary', 'headgear', 'utility1', 'utility2'],
+  },
+  medic: {
+    role: 'medic',
+    allowedTags: [
+      'medical',
+      'stabilization',
+      'hazmat',
+      'support',
+      'protection',
+      'field',
+      'signal',
+      'surveillance',
+      'analysis',
+    ],
+    recommendedSlots: ['armor', 'utility1', 'utility2', 'secondary'],
+  },
+  negotiator: {
+    role: 'negotiator',
+    allowedTags: ['social', 'negotiation', 'communication', 'support', 'analysis', 'interview'],
+    recommendedSlots: ['secondary', 'headgear', 'utility1', 'utility2'],
+  },
+}
+
+const ITEM_ROLE_PREREQUISITES: Partial<Record<string, Agent['role'][]>> = {
+  advanced_recon_suite: ['field_recon', 'investigator', 'tech'],
+  signal_intercept_kit: ['field_recon', 'investigator', 'tech'],
+  occult_detection_array: ['occultist', 'medium', 'field_recon'],
+}
+
+const ITEM_CERTIFICATION_PREREQUISITES: Partial<Record<string, string[]>> = {
+  advanced_recon_suite: ['field-systems-cert'],
+  signal_intercept_kit: ['field-systems-cert'],
+  occult_detection_array: ['containment-specialist-cert'],
+}
+
+const ITEM_RESEARCH_PREREQUISITES: Partial<Record<string, string[]>> = {
+  signal_intercept_kit: ['signal_intercept_kit'],
+}
+
+const LOADOUT_MUTUAL_EXCLUSIONS: Array<{
+  itemA: string
+  itemB: string
+  reason: string
+}> = [
+  {
+    itemA: 'combat_stims',
+    itemB: 'medkits',
+    reason: 'stimulant-medical-conflict',
+  },
+  {
+    itemA: 'signal_jammers',
+    itemB: 'ward_seals',
+    reason: 'signal-occult-interference',
+  },
+]
+
+function canTransferAssignmentOwner(agent: Agent | undefined) {
+  return Boolean(agent && agent.status === 'active' && agent.assignment?.state === 'idle')
+}
+
+function buildProjectedEquipmentSlots(
+  equipmentSlots: EquipmentSlots | undefined,
+  slot: EquipmentSlotKind,
+  itemId: string
+) {
+  const nextSlots = { ...(equipmentSlots ?? {}) }
+
+  for (const alias of EQUIPMENT_SLOT_ALIASES[slot]) {
+    delete nextSlots[alias]
+  }
+
+  nextSlots[slot] = itemId
+  return nextSlots
+}
+
+function listSlottedItemIds(equipmentSlots: EquipmentSlots | undefined) {
+  return [
+    ...new Set(
+      EQUIPMENT_SLOT_KINDS.map((slot) => getEquipmentSlotItemId(equipmentSlots, slot)).filter(
+        (itemId): itemId is string => typeof itemId === 'string' && itemId.length > 0
+      )
+    ),
+  ]
+}
+
+function buildEmptyReadinessSummary(agent: Agent): AgentLoadoutReadinessSummary {
+  return {
+    agentId: agent.id,
+    role: agent.role,
+    equippedItemCount: 0,
+    compatibleItemCount: 0,
+    incompatibleItemCount: 0,
+    emptySlotCount: EQUIPMENT_SLOT_KINDS.length,
+    readiness: 'partial',
+    issues: ['validation-could-not-project'],
+  }
+}
 
 const EQUIPMENT_DEFINITION_KEYS = new Set<keyof EquipmentDefinition>([
   'id',
@@ -1198,6 +1378,275 @@ export function getCompatibleEquipmentDefinitions(slot: EquipmentSlotKind) {
   return getEquipmentCatalogEntries().filter((definition) => definition.allowedSlots.includes(slot))
 }
 
+export function getRoleLoadoutConstraintProfile(role: Agent['role']) {
+  return {
+    ...ROLE_LOADOUT_CONSTRAINTS[role],
+    allowedTags: [...ROLE_LOADOUT_CONSTRAINTS[role].allowedTags],
+    recommendedSlots: [...ROLE_LOADOUT_CONSTRAINTS[role].recommendedSlots],
+  }
+}
+
+export function isEquipmentRoleCompatible(role: Agent['role'], item: string | EquipmentDefinition) {
+  const definition = typeof item === 'string' ? getEquipmentDefinition(item) : item
+
+  if (!definition) {
+    return false
+  }
+
+  const profile = ROLE_LOADOUT_CONSTRAINTS[role]
+  return definition.tags.some((tag) => profile.allowedTags.includes(tag))
+}
+
+export function validateAgentLoadoutAssignment(
+  agent: Agent,
+  slot: EquipmentSlotKind,
+  itemId: string,
+  options?: {
+    state?: Pick<GameState, 'agents' | 'inventory' | 'researchState'>
+  }
+): LoadoutAssignmentValidationResult {
+  const definition = getEquipmentDefinition(itemId)
+  const blockingIssues: string[] = []
+  const warnings: string[] = []
+  const conflicts: string[] = []
+  const currentReadiness = buildAgentLoadoutReadinessSummary(agent, {
+    state: options?.state,
+  })
+  let projectedReadiness = currentReadiness
+  const inventoryDeltas = new Map<string, number>()
+  let availableStock = 0
+  let consumesFromStock = false
+  let transferFromAssignment: { agentId: Id; slot: EquipmentSlotKind } | undefined
+
+  if (!definition) {
+    blockingIssues.push('unknown-item')
+    return {
+      valid: false,
+      roleCompatible: false,
+      slotCompatible: false,
+      blockingIssues,
+      warnings,
+      conflicts,
+      readinessSummary: {
+        current: currentReadiness,
+        projected: buildEmptyReadinessSummary(agent),
+      },
+      inventoryImplications: {
+        availableStock,
+        consumesFromStock,
+        deltas: [],
+      },
+    }
+  }
+
+  const slotCompatible = definition.allowedSlots.includes(slot)
+  const roleCompatible = isEquipmentRoleCompatible(agent.role, definition)
+  const currentItemId = getEquipmentSlotItemId(agent.equipmentSlots, slot)
+
+  if (!slotCompatible) {
+    blockingIssues.push('slot-incompatible')
+  }
+
+  if (!roleCompatible) {
+    blockingIssues.push('role-incompatible')
+  }
+
+  const allowedRoles = ITEM_ROLE_PREREQUISITES[itemId]
+  if (allowedRoles && !allowedRoles.includes(agent.role)) {
+    blockingIssues.push('prerequisite-role-gate')
+  }
+
+  const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
+  if (definition.quality >= 2 && resolvedLevel < 2) {
+    blockingIssues.push('prerequisite-level-gate')
+  }
+
+  const requiredCertifications = ITEM_CERTIFICATION_PREREQUISITES[itemId] ?? []
+  if (requiredCertifications.length > 0) {
+    const certifications = agent.progression?.certifications ?? {}
+    const missingCertifications = requiredCertifications.filter(
+      (certificationId) => certifications[certificationId]?.state !== 'certified'
+    )
+
+    if (missingCertifications.length > 0) {
+      blockingIssues.push('prerequisite-certification-gate')
+      warnings.push(`missing-certifications:${missingCertifications.join(',')}`)
+    }
+  }
+
+  const requiredResearchIds = ITEM_RESEARCH_PREREQUISITES[itemId] ?? []
+  if (requiredResearchIds.length > 0) {
+    const assessment = assessResearchRequirements(
+      { researchState: options?.state?.researchState },
+      requiredResearchIds
+    )
+
+    if (!assessment.satisfied) {
+      blockingIssues.push('prerequisite-research-gate')
+      warnings.push(`missing-research:${assessment.missingIds.join(',')}`)
+    }
+  }
+
+  const projectedSlots = buildProjectedEquipmentSlots(agent.equipmentSlots, slot, itemId)
+  const projectedItemIds = new Set(listSlottedItemIds(projectedSlots))
+
+  for (const rule of LOADOUT_MUTUAL_EXCLUSIONS) {
+    if (projectedItemIds.has(rule.itemA) && projectedItemIds.has(rule.itemB)) {
+      blockingIssues.push('mutual-exclusion')
+      conflicts.push(`${rule.itemA}+${rule.itemB}:${rule.reason}`)
+    }
+  }
+
+  try {
+    projectedReadiness = buildAgentLoadoutReadinessSummary({
+      ...agent,
+      equipmentSlots: projectedSlots,
+    }, {
+      state: options?.state,
+    })
+  } catch {
+    projectedReadiness = buildEmptyReadinessSummary(agent)
+  }
+
+  const profile = ROLE_LOADOUT_CONSTRAINTS[agent.role]
+  if (!profile.recommendedSlots.includes(slot)) {
+    warnings.push('off-profile-slot')
+  }
+
+  if (currentItemId === itemId) {
+    warnings.push('no-op-assignment')
+  }
+
+  if (options?.state) {
+    availableStock = Math.max(0, Math.trunc(options.state.inventory[itemId] ?? 0))
+
+    if (currentItemId !== itemId) {
+      const assignments = listEquippedItemAssignments(options.state.agents, itemId).filter(
+        (assignment) => !(assignment.agentId === agent.id && assignment.slot === slot)
+      )
+      const transferCandidate = assignments
+        .filter((assignment) => canTransferAssignmentOwner(options.state?.agents[assignment.agentId]))
+        .sort((left, right) => left.agentId.localeCompare(right.agentId))[0]
+
+      if (availableStock > 0) {
+        consumesFromStock = true
+        inventoryDeltas.set(itemId, (inventoryDeltas.get(itemId) ?? 0) - 1)
+      } else if (transferCandidate) {
+        warnings.push('singleton-transfer')
+        transferFromAssignment = {
+          agentId: transferCandidate.agentId,
+          slot: transferCandidate.slot,
+        }
+      } else {
+        blockingIssues.push('inventory-unavailable')
+        if (assignments.length > 0) {
+          blockingIssues.push('singleton-locked')
+        }
+      }
+
+      if (currentItemId) {
+        inventoryDeltas.set(currentItemId, (inventoryDeltas.get(currentItemId) ?? 0) + 1)
+      }
+    }
+  }
+
+  return {
+    valid: blockingIssues.length === 0,
+    roleCompatible,
+    slotCompatible,
+    blockingIssues,
+    warnings,
+    conflicts,
+    readinessSummary: {
+      current: currentReadiness,
+      projected: projectedReadiness,
+    },
+    inventoryImplications: {
+      availableStock,
+      consumesFromStock,
+      ...(transferFromAssignment ? { transferFromAssignment } : {}),
+      deltas: [...inventoryDeltas.entries()].map(([deltaItemId, delta]) => ({
+        itemId: deltaItemId,
+        delta,
+      })),
+    },
+  }
+}
+
+export function getRoleCompatibleEquipmentDefinitions(slot: EquipmentSlotKind, role: Agent['role']) {
+  return getCompatibleEquipmentDefinitions(slot).filter((definition) =>
+    isEquipmentRoleCompatible(role, definition)
+  )
+}
+
+function isEquipmentPrerequisiteSatisfiedForState(
+  agent: Agent,
+  itemId: string,
+  state?: Pick<GameState, 'researchState'>
+) {
+  const definition = getEquipmentDefinition(itemId)
+  if (!definition) {
+    return false
+  }
+
+  const allowedRoles = ITEM_ROLE_PREREQUISITES[itemId]
+  if (allowedRoles && !allowedRoles.includes(agent.role)) {
+    return false
+  }
+
+  const resolvedLevel = Math.max(1, Math.trunc(agent.progression?.level ?? agent.level ?? 1))
+  if (definition.quality >= 2 && resolvedLevel < 2) {
+    return false
+  }
+
+  const requiredCertifications = ITEM_CERTIFICATION_PREREQUISITES[itemId] ?? []
+  if (requiredCertifications.length > 0) {
+    const certifications = agent.progression?.certifications ?? {}
+    const hasAllCertifications = requiredCertifications.every(
+      (certificationId) => certifications[certificationId]?.state === 'certified'
+    )
+
+    if (!hasAllCertifications) {
+      return false
+    }
+  }
+
+  const requiredResearchIds = ITEM_RESEARCH_PREREQUISITES[itemId] ?? []
+  if (requiredResearchIds.length > 0) {
+    const assessment = assessResearchRequirements(
+      { researchState: state?.researchState },
+      requiredResearchIds
+    )
+
+    if (!assessment.satisfied) {
+      return false
+    }
+  }
+
+  return true
+}
+
+export function isEquipmentPrerequisiteSatisfied(
+  agent: Agent,
+  itemId: string,
+  state?: Pick<GameState, 'researchState'>
+) {
+  return isEquipmentPrerequisiteSatisfiedForState(agent, itemId, state)
+}
+
+export function getAgentLoadoutConflicts(agent: Agent) {
+  const itemIds = new Set(listSlottedItemIds(agent.equipmentSlots))
+  const conflicts: string[] = []
+
+  for (const rule of LOADOUT_MUTUAL_EXCLUSIONS) {
+    if (itemIds.has(rule.itemA) && itemIds.has(rule.itemB)) {
+      conflicts.push(`${rule.itemA}+${rule.itemB}:${rule.reason}`)
+    }
+  }
+
+  return conflicts
+}
+
 export function getEquipmentSlotAliases(slot: EquipmentSlotKind) {
   return EQUIPMENT_SLOT_ALIASES[slot]
 }
@@ -1557,6 +2006,68 @@ export function buildAgentEquipmentSummary(
   context: EquipmentEvaluationContext = {}
 ): EquipmentLoadoutSummary {
   return buildLoadoutSummary(resolveEquippedItems(agent, context), EQUIPMENT_SLOT_KINDS.length)
+}
+
+export function buildAgentLoadoutReadinessSummary(
+  agent: Agent,
+  context: EquipmentEvaluationContext = {}
+): AgentLoadoutReadinessSummary {
+  const equippedItems = resolveEquippedItems(agent, context)
+  const compatibleItemCount = equippedItems.filter((item) =>
+    isEquipmentRoleCompatible(agent.role, item.id) &&
+    isEquipmentPrerequisiteSatisfied(agent, item.id, context.state)
+  ).length
+  const incompatibleItemCount = Math.max(0, equippedItems.length - compatibleItemCount)
+  const emptySlotCount = Math.max(0, EQUIPMENT_SLOT_KINDS.length - equippedItems.length)
+  const issues: string[] = []
+  const roleIncompatibleItems = equippedItems.filter((item) =>
+    !isEquipmentRoleCompatible(agent.role, item.id)
+  )
+
+  if (roleIncompatibleItems.length > 0) {
+    issues.push('role-incompatible-items-equipped')
+  }
+
+  const researchGatedItems = equippedItems.filter((item) => {
+    const requiredResearchIds = ITEM_RESEARCH_PREREQUISITES[item.id] ?? []
+    if (requiredResearchIds.length === 0) {
+      return false
+    }
+
+    return !assessResearchRequirements(
+      { researchState: context.state?.researchState },
+      requiredResearchIds
+    ).satisfied
+  })
+
+  if (researchGatedItems.length > 0) {
+    issues.push('research-gated-items-equipped')
+    for (const item of researchGatedItems) {
+      const missingResearchIds = assessResearchRequirements(
+        { researchState: context.state?.researchState },
+        ITEM_RESEARCH_PREREQUISITES[item.id] ?? []
+      ).missingIds
+      issues.push(`missing-research:${item.id}:${missingResearchIds.join(',')}`)
+    }
+  }
+
+  const readiness =
+    incompatibleItemCount > 0
+      ? 'blocked'
+      : emptySlotCount >= 4
+        ? 'partial'
+        : 'ready'
+
+  return {
+    agentId: agent.id,
+    role: agent.role,
+    equippedItemCount: equippedItems.length,
+    compatibleItemCount,
+    incompatibleItemCount,
+    emptySlotCount,
+    readiness,
+    issues,
+  }
 }
 
 export function buildTeamEquipmentSummary(

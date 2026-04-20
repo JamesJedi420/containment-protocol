@@ -1,3 +1,4 @@
+// cspell:words greentape kellan
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { Agent, CaseInstance, Team } from '../domain/models'

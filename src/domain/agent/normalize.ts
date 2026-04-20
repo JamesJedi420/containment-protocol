@@ -1,3 +1,4 @@
+// cspell:words callsign cooldown
 import {
   buildAgentStatCaps,
   normalizePotentialIntel,
@@ -97,6 +98,107 @@ function normalizeGrowthStats(
   )
 }
 
+function normalizeTrainingStatus(value: unknown) {
+  return value === 'idle' ||
+    value === 'queued' ||
+    value === 'in_progress' ||
+    value === 'blocked' ||
+    value === 'completed_recently'
+    ? value
+    : 'idle'
+}
+
+function normalizeCertificationState(value: unknown) {
+  return value === 'not_started' ||
+    value === 'in_progress' ||
+    value === 'eligible_review' ||
+    value === 'certified' ||
+    value === 'expired' ||
+    value === 'revoked'
+    ? value
+    : 'not_started'
+}
+
+function normalizeTrainingHistory(history: AgentProgression['trainingHistory']) {
+  return (history ?? [])
+    .filter((entry) =>
+      Boolean(
+        entry &&
+          typeof entry.trainingId === 'string' &&
+          entry.trainingId.length > 0 &&
+          typeof entry.week === 'number' &&
+          Number.isFinite(entry.week)
+      )
+    )
+    .map((entry) => ({
+      trainingId: entry.trainingId,
+      week: Math.max(1, Math.trunc(entry.week)),
+    }))
+    .slice(-24)
+}
+
+function normalizeCertProgress(progress: AgentProgression['certProgress']) {
+  return Object.fromEntries(
+    Object.entries(progress ?? {}).filter(
+      ([key, value]) =>
+        typeof key === 'string' &&
+        key.length > 0 &&
+        typeof value === 'number' &&
+        Number.isFinite(value)
+    )
+  ) as NonNullable<AgentProgression['certProgress']>
+}
+
+function normalizeFailedAttempts(
+  failedAttempts: AgentProgression['failedAttemptsByTrainingId']
+) {
+  return Object.fromEntries(
+    Object.entries(failedAttempts ?? {}).filter(
+      ([key, value]) =>
+        typeof key === 'string' &&
+        key.length > 0 &&
+        typeof value === 'number' &&
+        Number.isFinite(value)
+    )
+  ) as NonNullable<AgentProgression['failedAttemptsByTrainingId']>
+}
+
+function normalizeCertifications(certifications: AgentProgression['certifications']) {
+  return Object.fromEntries(
+    Object.entries(certifications ?? {})
+      .filter(
+        ([certificationId, certification]) =>
+          typeof certificationId === 'string' &&
+          certificationId.length > 0 &&
+          Boolean(certification)
+      )
+      .map(([certificationId, certification]) => [
+        certificationId,
+        {
+          certificationId,
+          state: normalizeCertificationState(certification?.state),
+          awardedWeek:
+            typeof certification?.awardedWeek === 'number' && Number.isFinite(certification.awardedWeek)
+              ? Math.max(1, Math.trunc(certification.awardedWeek))
+              : undefined,
+          expiresWeek:
+            typeof certification?.expiresWeek === 'number' && Number.isFinite(certification.expiresWeek)
+              ? Math.max(1, Math.trunc(certification.expiresWeek))
+              : undefined,
+          sourceTrainingIds: Array.isArray(certification?.sourceTrainingIds)
+            ? certification.sourceTrainingIds.filter(
+                (entry): entry is string => typeof entry === 'string' && entry.length > 0
+              )
+            : undefined,
+          notes:
+            typeof certification?.notes === 'string' && certification.notes.length > 0
+              ? certification.notes
+              : undefined,
+        },
+      ])
+  ) as NonNullable<AgentProgression['certifications']>
+}
+
 function normalizeAgentProgression(agent: Agent): AgentProgression {
   const levelSource =
     typeof agent.progression?.level === 'number'
@@ -104,7 +206,12 @@ function normalizeAgentProgression(agent: Agent): AgentProgression {
       : typeof agent.level === 'number'
         ? agent.level
         : 1
-  const fallback = createDefaultAgentProgression(levelSource)
+  const fallback = createDefaultAgentProgression(
+    levelSource,
+    undefined,
+    undefined,
+    agent.role
+  )
 
   return synchronizeProgressionState(
     {
@@ -135,6 +242,68 @@ function normalizeAgentProgression(agent: Agent): AgentProgression {
         agent.progression?.statCaps
       ),
       growthStats: normalizeGrowthStats(agent.progression?.growthStats ?? fallback.growthStats),
+      trainingPoints: Math.max(
+        0,
+        Math.trunc(agent.progression?.trainingPoints ?? fallback.trainingPoints ?? 0)
+      ),
+      trainingHistory: normalizeTrainingHistory(
+        agent.progression?.trainingHistory ?? fallback.trainingHistory
+      ),
+      certProgress: normalizeCertProgress(agent.progression?.certProgress ?? fallback.certProgress),
+      certifications: normalizeCertifications(
+        agent.progression?.certifications ?? fallback.certifications
+      ),
+      specializationTrack:
+        agent.progression?.specializationTrack === 'combat' ||
+        agent.progression?.specializationTrack === 'investigation' ||
+        agent.progression?.specializationTrack === 'utility' ||
+        agent.progression?.specializationTrack === 'social'
+          ? agent.progression.specializationTrack
+          : undefined,
+      lastTrainingWeek:
+        typeof agent.progression?.lastTrainingWeek === 'number' &&
+        Number.isFinite(agent.progression.lastTrainingWeek)
+          ? Math.max(1, Math.trunc(agent.progression.lastTrainingWeek))
+          : undefined,
+      failedAttemptsByTrainingId: normalizeFailedAttempts(
+        agent.progression?.failedAttemptsByTrainingId ?? fallback.failedAttemptsByTrainingId
+      ),
+      trainingProfile: {
+        agentId:
+          typeof agent.progression?.trainingProfile?.agentId === 'string' &&
+          agent.progression.trainingProfile.agentId.length > 0
+            ? agent.progression.trainingProfile.agentId
+            : agent.id,
+        currentRole: agent.role,
+        trainingStatus: normalizeTrainingStatus(
+          agent.progression?.trainingProfile?.trainingStatus ?? fallback.trainingProfile?.trainingStatus
+        ),
+        assignedTrainingId:
+          typeof agent.progression?.trainingProfile?.assignedTrainingId === 'string' &&
+          agent.progression.trainingProfile.assignedTrainingId.length > 0
+            ? agent.progression.trainingProfile.assignedTrainingId
+            : undefined,
+        trainingStartedWeek:
+          typeof agent.progression?.trainingProfile?.trainingStartedWeek === 'number' &&
+          Number.isFinite(agent.progression.trainingProfile.trainingStartedWeek)
+            ? Math.max(1, Math.trunc(agent.progression.trainingProfile.trainingStartedWeek))
+            : undefined,
+        trainingEtaWeek:
+          typeof agent.progression?.trainingProfile?.trainingEtaWeek === 'number' &&
+          Number.isFinite(agent.progression.trainingProfile.trainingEtaWeek)
+            ? Math.max(1, Math.trunc(agent.progression.trainingProfile.trainingEtaWeek))
+            : undefined,
+        trainingQueuePosition:
+          typeof agent.progression?.trainingProfile?.trainingQueuePosition === 'number' &&
+          Number.isFinite(agent.progression.trainingProfile.trainingQueuePosition)
+            ? Math.max(1, Math.trunc(agent.progression.trainingProfile.trainingQueuePosition))
+            : undefined,
+        readinessImpact:
+          typeof agent.progression?.trainingProfile?.readinessImpact === 'number' &&
+          Number.isFinite(agent.progression.trainingProfile.readinessImpact)
+            ? clamp(agent.progression.trainingProfile.readinessImpact, -100, 100)
+            : 0,
+      },
       skillTree: {
         ...createDefaultAgentSkillTree(),
         ...(agent.progression?.skillTree ?? fallback.skillTree),

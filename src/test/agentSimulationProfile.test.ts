@@ -1,3 +1,4 @@
+// cspell:words kellan
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { buildAgentSimulationProfile } from '../domain/agent/simulation'

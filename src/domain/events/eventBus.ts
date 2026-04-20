@@ -66,6 +66,7 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
       ]
     case 'agent.training_started':
     case 'agent.training_completed':
+    case 'agent.relationship_changed':
     case 'agent.instructor_assigned':
     case 'agent.instructor_unassigned':
     case 'agent.injured':
@@ -111,6 +112,153 @@ function appendAgentLogsFromEvents(state: GameState, events: readonly OperationE
   }
 }
 
+function appendFactionLogsFromEvents(state: GameState, events: readonly OperationEvent[]): GameState {
+  if (events.length === 0 || Object.keys(state.factions ?? {}).length === 0) {
+    return state
+  }
+
+  const nextFactions = { ...(state.factions ?? {}) }
+
+  for (const event of events) {
+    if (event.type === 'faction.standing_changed') {
+      const faction = nextFactions[event.payload.factionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+
+      nextFactions[event.payload.factionId] = {
+        ...faction,
+        history: {
+          ...faction.history,
+          interactionLog: [...faction.history.interactionLog, eventRef],
+        },
+        contacts: faction.contacts.map((contact) =>
+          contact.id === event.payload.contactId
+            ? {
+                ...contact,
+                history: {
+                  interactions: [...contact.history.interactions, eventRef],
+                },
+              }
+            : contact
+        ),
+      }
+      continue
+    }
+
+    if (
+      (event.type === 'recruitment.scouting_initiated' ||
+        event.type === 'recruitment.scouting_refined' ||
+        event.type === 'recruitment.intel_confirmed') &&
+      event.payload.sourceFactionId
+    ) {
+      const faction = nextFactions[event.payload.sourceFactionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+
+      nextFactions[event.payload.sourceFactionId] = {
+        ...faction,
+        history: {
+          ...faction.history,
+          interactionLog: [...faction.history.interactionLog, eventRef],
+        },
+        contacts: faction.contacts.map((contact) =>
+          contact.id === event.payload.sourceContactId
+            ? {
+                ...contact,
+                history: {
+                  interactions: [...contact.history.interactions, eventRef],
+                },
+              }
+            : contact
+        ),
+      }
+      continue
+    }
+
+    if (event.type === 'agent.hired' && event.payload.sourceFactionId) {
+      const faction = nextFactions[event.payload.sourceFactionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+
+      nextFactions[event.payload.sourceFactionId] = {
+        ...faction,
+        history: {
+          ...faction.history,
+          interactionLog: [...faction.history.interactionLog, eventRef],
+        },
+        contacts: faction.contacts.map((contact) =>
+          contact.id === event.payload.sourceContactId
+            ? {
+                ...contact,
+                history: {
+                  interactions: [...contact.history.interactions, eventRef],
+                },
+              }
+            : contact
+        ),
+      }
+      continue
+    }
+
+    if (event.type === 'faction.unlock_available') {
+      const faction = nextFactions[event.payload.factionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+
+      nextFactions[event.payload.factionId] = {
+        ...faction,
+        history: {
+          ...faction.history,
+          interactionLog: [...faction.history.interactionLog, eventRef],
+        },
+        contacts: faction.contacts.map((contact) =>
+          contact.id === event.payload.contactId
+            ? {
+                ...contact,
+                history: {
+                  interactions: [...contact.history.interactions, eventRef],
+                },
+              }
+            : contact
+        ),
+      }
+    }
+  }
+
+  return {
+    ...state,
+    factions: nextFactions,
+  }
+}
+
 export function appendOperationEventDrafts(
   state: GameState,
   drafts: AnyOperationEventDraft[]
@@ -128,11 +276,14 @@ export function appendOperationEventDrafts(
     createdEvents.push(createdEvent)
   }
 
-  return appendAgentLogsFromEvents(
-    {
-      ...state,
-      events,
-    },
+  return appendFactionLogsFromEvents(
+    appendAgentLogsFromEvents(
+      {
+        ...state,
+        events,
+      },
+      createdEvents
+    ),
     createdEvents
   )
 }
@@ -240,6 +391,16 @@ export function createAgentInjuredDraft(
 ): OperationEventDraft<'agent.injured'> {
   return {
     type: 'agent.injured',
+    sourceSystem: 'agent',
+    payload,
+  }
+}
+
+export function createAgentKilledDraft(
+  payload: OperationEventPayloadMap['agent.killed']
+): OperationEventDraft<'agent.killed'> {
+  return {
+    type: 'agent.killed',
     sourceSystem: 'agent',
     payload,
   }
@@ -376,6 +537,16 @@ export function createFactionStandingChangedDraft(
 ): OperationEventDraft<'faction.standing_changed'> {
   return {
     type: 'faction.standing_changed',
+    sourceSystem: 'faction',
+    payload,
+  }
+}
+
+export function createFactionUnlockAvailableDraft(
+  payload: OperationEventPayloadMap['faction.unlock_available']
+): OperationEventDraft<'faction.unlock_available'> {
+  return {
+    type: 'faction.unlock_available',
     sourceSystem: 'faction',
     payload,
   }

@@ -1,3 +1,4 @@
+// cspell:words mult substats
 import type {
   Agent,
   AgentTraitModifierKey,

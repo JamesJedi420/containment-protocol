@@ -1,3 +1,4 @@
+// cspell:words kellan
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'
@@ -220,7 +221,7 @@ describe('injury and recovery lifecycle', () => {
 
     expect(next.agents.a_ava.status).toBe('active')
     expect(next.agents.a_ava.assignment).toMatchObject({ state: 'idle' })
-    expect(next.agents.a_ava.vitals?.morale).toBe(65)
+    expect(next.agents.a_ava.vitals?.morale).toBe(67)
   })
 
   it('applies passive ability recovery bonuses through the weekly recovery path', () => {
@@ -268,7 +269,7 @@ describe('injury and recovery lifecycle', () => {
     const next = advanceWeek(recoveryBase)
 
     expect(next.agents.a_ava.status).toBe('active')
-    expect(next.agents.a_ava.vitals?.morale).toBe(74)
+    expect(next.agents.a_ava.vitals?.morale).toBe(76)
   })
 
   it('does not add recovery-phase morale bonuses for generic passive support buffs', () => {

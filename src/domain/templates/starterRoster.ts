@@ -1,3 +1,4 @@
+// cspell:words greentape kellan sato
 import { assertKnownAuthoredAbilities } from '../abilities'
 import { type Team } from '../models'
 import { createStarterAgent, type StarterAgentBlueprint } from './classTables'

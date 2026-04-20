@@ -117,7 +117,7 @@ describe('explanations', () => {
       ward_seals: 2,
     }
 
-    const equipped = equipAgentItem(base, 'a_ava', 'secondary', 'ward_seals')
+    const equipped = equipAgentItem(base, 'a_kellan', 'secondary', 'ward_seals')
     const currentCase = {
       ...equipped.cases['case-001'],
       tags: ['occult', 'ritual', 'spirit'],
@@ -158,8 +158,8 @@ describe('explanations', () => {
       ritual_components: 1,
     }
 
-    const withSeal = equipAgentItem(base, 'a_ava', 'secondary', 'ward_seals')
-    const equipped = equipAgentItem(withSeal, 'a_ava', 'utility2', 'ritual_components')
+    const withSeal = equipAgentItem(base, 'a_kellan', 'secondary', 'ward_seals')
+    const equipped = equipAgentItem(withSeal, 'a_kellan', 'utility2', 'ritual_components')
     const currentCase = {
       ...equipped.cases['case-001'],
       tags: ['occult', 'ritual', 'containment', 'anomaly', 'spirit'],

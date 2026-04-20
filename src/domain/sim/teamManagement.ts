@@ -1,3 +1,4 @@
+// cspell:words editability
 import { type Agent, type GameState, type Id, type Team } from '../models'
 import {
   ensureNormalizedGameState,

@@ -1,3 +1,4 @@
+// cspell:words callsign cooldown cooldowns substat substats
 import type { OperationEvent, OperationEventType } from '../events/types'
 import type { Id } from '../models'
 
@@ -182,6 +183,49 @@ export interface PotentialIntel {
   lastUpdatedWeek?: number
 }
 
+export type TrainingStatus = 'idle' | 'queued' | 'in_progress' | 'blocked' | 'completed_recently'
+
+export type TrainingCategory =
+  | 'core_role_drills'
+  | 'domain_skill_tracks'
+  | 'operational_discipline_modules'
+  | 'equipment_proficiency_modules'
+  | 'cross_role_bridge_training'
+  | 'advanced_certification_programs'
+
+export type CertificationState =
+  | 'not_started'
+  | 'in_progress'
+  | 'eligible_review'
+  | 'certified'
+  | 'expired'
+  | 'revoked'
+
+export interface TrainingHistoryEntry {
+  trainingId: string
+  week: number
+}
+
+export interface AgentCertificationRecord {
+  certificationId: string
+  state: CertificationState
+  awardedWeek?: number
+  expiresWeek?: number
+  sourceTrainingIds?: string[]
+  notes?: string
+}
+
+export interface AgentTrainingProfile {
+  agentId: Id
+  currentRole: AgentRole
+  trainingStatus: TrainingStatus
+  assignedTrainingId?: string
+  trainingStartedWeek?: number
+  trainingEtaWeek?: number
+  trainingQueuePosition?: number
+  readinessImpact: number
+}
+
 /**
  * Agent progression tracking: experience, level, potential tier, and growth profile.
  */
@@ -197,6 +241,22 @@ export interface AgentProgression {
   growthStats?: AgentGrowthStats
   /** Skills and specialization tracking for training system */
   skillTree?: SkillTree
+  /** Bounded progression budget earned from training completions and review steps. */
+  trainingPoints?: number
+  /** Bounded completion log for deterministic progression and certification prerequisites. */
+  trainingHistory?: TrainingHistoryEntry[]
+  /** Explicit per-certification milestone counters. */
+  certProgress?: Record<string, number>
+  /** Explicit finite certification records keyed by certification id. */
+  certifications?: Record<string, AgentCertificationRecord>
+  /** Optional specialization lane distinct from skillTree specialization for training programs. */
+  specializationTrack?: 'combat' | 'investigation' | 'utility' | 'social'
+  /** Last week this operative completed a training program. */
+  lastTrainingWeek?: number
+  /** Explicit failed-attempt counters by training/certification identifier. */
+  failedAttemptsByTrainingId?: Record<string, number>
+  /** Canonical training lifecycle payload for UI/debug/readiness consumers. */
+  trainingProfile?: AgentTrainingProfile
 }
 
 export interface SkillTree {
@@ -646,6 +706,23 @@ export type HireStatus = 'candidate' | 'active'
  * - `assignment` tracks current state: idle/assigned/recovery/training.
  * - `fatigue` (0..100) is mapped to vitals.stress and statically reduces effectiveness.
  */
+export interface AgentRecoveryStatus {
+  state: 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
+  detail?: string
+  sinceWeek: number
+}
+
+export interface AgentTraumaState {
+  traumaLevel: number
+  traumaTags: string[]
+  lastEventWeek: number
+}
+
+export interface AgentDowntimeActivity {
+  activity: 'rest' | 'training' | 'therapy' | 'other'
+  sinceWeek: number
+}
+
 export interface Agent {
   id: Id
   name: string
@@ -672,6 +749,9 @@ export interface Agent {
 
   /** Canonical progression state (preferred over top-level `level`). */
   progression?: AgentProgression
+
+  /** Canonical attrition/loss state for deterministic personnel pressure. */
+  attritionState?: import('../models').AgentAttritionState
 
   equipment?: Record<string, number>
   equipmentSlots?: EquipmentSlots
@@ -717,4 +797,9 @@ export interface Agent {
 
   /** Prototype status hooks (injury/trauma can be expanded later). */
   status: 'active' | 'injured' | 'recovering' | 'resigned' | 'dead'
+
+  /** Canonical recovery state for deterministic recovery/trauma/downtime system. */
+  recoveryStatus?: AgentRecoveryStatus
+  trauma?: AgentTraumaState
+  downtimeActivity?: AgentDowntimeActivity
 }

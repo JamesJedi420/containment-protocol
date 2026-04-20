@@ -3,6 +3,7 @@ import {
   type EvaluateAgentContext,
   type EvaluatedAgentBreakdown,
 } from '../evaluateAgent'
+import { isAgentAttritionUnavailable } from './attrition'
 import type {
   Agent,
   AgentAvailabilityProfile,
@@ -45,6 +46,10 @@ function buildEligibilityStatusFromNormalized(
 
   if (agent.status === 'dead' || agent.status === 'resigned') {
     reasons.push('dead')
+  }
+
+  if (isAgentAttritionUnavailable(agent)) {
+    reasons.push('unavailable')
   }
 
   if (purpose === 'assignment') {

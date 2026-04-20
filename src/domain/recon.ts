@@ -1,3 +1,4 @@
+// cspell:words fieldcraft pathfinding pathing psionic
 import { effectiveStats } from './agent/evaluation'
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
@@ -41,6 +42,10 @@ export interface RecruitmentScoutSupport {
   reliabilityBonus: number
   costDiscount: number
   revealBoost: number
+  fieldReconCount: number
+  investigatorCount: number
+  techCount: number
+  leadRole?: Agent['role']
 }
 
 export interface CaseReconSummary {
@@ -175,7 +180,7 @@ function buildCaseHiddenModifiers(caseData: CaseInstance) {
       label: 'Escalation volatility',
       keywords: ['stage'],
       matchedKeywords: ['stage'],
-      revealThreshold: 36,
+      revealThreshold: 34, // was 36; extends recon payoff window
       uncertainty: 1.25,
       scoreBonus: 1,
       probabilityBonus: 0.01,
@@ -361,24 +366,62 @@ function roundTo(value: number, digits = 2) {
 }
 
 export function evaluateRecruitmentScoutSupport(agents: Record<string, Agent>) {
-  const operativeScores = Object.values(agents)
-    .map((agent) => getRecruitmentScoutContribution(agent))
-    .filter((score) => score > 0)
-    .sort((left, right) => right - left)
+  const contributors = Object.values(agents)
+    .map((agent) => ({
+      role: agent.role,
+      score: getRecruitmentScoutContribution(agent),
+    }))
+    .filter((entry) => entry.score > 0)
+    .sort((left, right) => {
+      if (left.score !== right.score) {
+        return right.score - left.score
+      }
+
+      const rolePriority = getRecruitmentScoutRolePriority(left.role) - getRecruitmentScoutRolePriority(right.role)
+      if (rolePriority !== 0) {
+        return rolePriority
+      }
+
+      return left.role.localeCompare(right.role)
+    })
+  const operativeScores = contributors.map((entry) => entry.score)
   const operativeCount = operativeScores.length
   const supportScore = clamp(
     operativeScores.slice(0, 3).reduce((sum, score) => sum + score, 0),
     0,
     100
   )
+  const fieldReconCount = contributors.filter((entry) => entry.role === 'field_recon').length
+  const investigatorCount = contributors.filter((entry) => entry.role === 'investigator').length
+  const techCount = contributors.filter((entry) => entry.role === 'tech').length
 
   return {
     operativeCount,
     supportScore,
     reliabilityBonus: roundTo(clamp(supportScore / 420, 0, 0.18), 4),
     costDiscount: Math.min(6, Math.round(supportScore / 20)),
-    revealBoost: supportScore >= 55 ? 1 : 0,
+    revealBoost: supportScore >= 48 ? 1 : 0,
+    fieldReconCount,
+    investigatorCount,
+    techCount,
+    leadRole: contributors[0]?.role,
   } satisfies RecruitmentScoutSupport
+}
+
+function getRecruitmentScoutRolePriority(role: Agent['role']) {
+  if (role === 'field_recon') {
+    return 0
+  }
+
+  if (role === 'investigator') {
+    return 1
+  }
+
+  if (role === 'tech') {
+    return 2
+  }
+
+  return 3
 }
 
 export function evaluateTeamCaseRecon(
@@ -464,7 +507,7 @@ export function evaluateTeamCaseRecon(
 
   let scoreAdjustment =
     revealedModifiers.reduce((sum, modifier) => sum + modifier.scoreBonus, 0) +
-    Math.max(0, reconScore - 28) * 0.018 +
+    Math.max(0, reconScore - 28) * 0.02 + // was 0.018; slightly flattens decay
     unknownVariableCoverage * (caseData.mode === 'probability' ? 0.85 : 0.35)
   scoreAdjustment = roundTo(Math.min(scoreAdjustment, 5.5))
 

@@ -2,6 +2,7 @@ import { lazy, Suspense, type ComponentType } from 'react'
 import { Route, Routes } from 'react-router'
 import AppShell from './AppShell'
 import OperationsDeskPage from '../features/operations/OperationsDeskPage'
+import ContractBoardPage from '../features/contracts/ContractBoardPage'
 import CasesPage from '../features/cases/CasesPage'
 import CaseDetailPage from '../features/cases/CaseDetailPage'
 import TeamsPage from '../features/teams/TeamsPage'
@@ -64,13 +65,7 @@ const MarketsSuppliersRoute = createRouteComponent(() =>
     },
   }))
 )
-const FactionsRoute = createRouteComponent(() =>
-  import('../features/divisions/SystemBoundaryPage').then((module) => ({
-    default: function FactionsRoute() {
-      return <module.SystemBoundaryPage boundary="factions" />
-    },
-  }))
-)
+const FactionsPage = createRouteComponent(() => import('../features/factions/FactionsPage'))
 const RankingsRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function RankingsRoute() {
@@ -85,6 +80,7 @@ const AgencyRoute = createRouteComponent(() =>
     },
   }))
 )
+const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpPlaceholderPage'))
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -98,6 +94,7 @@ export default function App() {
     <Routes>
       <Route element={<AppShell />}>
         <Route index element={<OperationsDeskPage />} />
+        <Route path="contracts" element={<ContractBoardPage />} />
         <Route path="agents">
           <Route index element={renderLazyRoute(AgentsPage)} />
           <Route path=":agentId" element={renderLazyRoute(AgentDetailPage)} />
@@ -105,6 +102,7 @@ export default function App() {
         <Route path="recruitment" element={renderLazyRoute(RecruitmentPage)} />
         <Route path="cards" element={renderLazyRoute(CardsPage)} />
         <Route path="registry" element={renderLazyRoute(RegistryPage)} />
+        <Route path="registry/:agentId" element={renderLazyRoute(AgentDetailPage)} />
         <Route path="cases">
           <Route index element={<CasesPage />} />
           <Route path=":caseId" element={<CaseDetailPage />} />
@@ -117,9 +115,10 @@ export default function App() {
         <Route path="fabrication" element={renderLazyRoute(FabricationPage)} />
         <Route path="containment-site" element={renderLazyRoute(ContainmentSiteRoute)} />
         <Route path="markets-suppliers" element={renderLazyRoute(MarketsSuppliersRoute)} />
-        <Route path="factions" element={renderLazyRoute(FactionsRoute)} />
+        <Route path="factions" element={renderLazyRoute(FactionsPage)} />
         <Route path="rankings" element={renderLazyRoute(RankingsRoute)} />
         <Route path="agency" element={renderLazyRoute(AgencyRoute)} />
+        <Route path="help" element={renderLazyRoute(HelpRoute)} />
         <Route path="report">
           <Route index element={<ReportPage />} />
           <Route path=":week" element={<ReportDetailPage />} />

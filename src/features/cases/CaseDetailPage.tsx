@@ -46,6 +46,8 @@ export default function CaseDetailPage() {
   const assignmentInsights = getCaseAssignmentInsights(currentCase, game)
   const generationProfile = buildCaseGenerationProfile(currentCase, game)
   const rewardPreview = generationProfile.rewardProfile
+
+  // Presentation: Add visual cues for pressure, staffing, and consequence
   const handCards = (game.partyCards?.hand ?? [])
     .map((cardId) => game.partyCards?.cards[cardId])
     .filter((card): card is NonNullable<typeof card> => Boolean(card))
@@ -539,7 +541,8 @@ export default function CaseDetailPage() {
             {currentCase.status !== 'resolved' ? (
               assignmentInsights.availableTeams.length > 0 ? (
                 <ul className="space-y-2">
-                  {assignmentInsights.availableTeams.map(({ team, odds, reconSummary }) => (
+                  {assignmentInsights.availableTeams.map(
+                    ({ team, odds, injuryForecast, reconSummary }) => (
                     <li
                       key={team.id}
                       className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
@@ -552,6 +555,17 @@ export default function CaseDetailPage() {
                           S {formatPercent(odds.success)} / P {formatPercent(odds.partial)} / F{' '}
                           {formatPercent(odds.fail)}
                         </p>
+                        <p className="text-xs opacity-55">
+                          Injury {formatPercent(injuryForecast.injuryChance)} /{' '}
+                          {injuryForecast.expectedInjuryLabel} / Death{' '}
+                          {formatPercent(injuryForecast.deathChance)}
+                        </p>
+                        <p className="text-xs opacity-55">
+                          Downtime {formatDowntime(injuryForecast.expectedDowntimeWeeks)} /{' '}
+                          {injuryForecast.tempoLossLabel}
+                        </p>
+                        <p className="text-xs text-amber-200/90">{injuryForecast.primaryWarning}</p>
+                        <p className="text-xs opacity-60">{injuryForecast.guidance}</p>
                         {reconSummary && reconSummary.hiddenModifierCount > 0 ? (
                           <p className="text-xs opacity-50">
                             Recon {formatPercent(reconSummary.intelConfidence)} confidence /{' '}
@@ -569,7 +583,8 @@ export default function CaseDetailPage() {
                         Assign
                       </button>
                     </li>
-                  ))}
+                    )
+                  )}
                 </ul>
               ) : (
                 <p className="text-sm opacity-50">{CASE_UI_LABELS.noEligibleResponseUnits}</p>
@@ -674,6 +689,10 @@ function formatWeeks(value: number) {
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`
+}
+
+function formatDowntime(value: number) {
+  return `${value.toFixed(1)} agent-weeks`
 }
 
 function signedNumber(value: number) {

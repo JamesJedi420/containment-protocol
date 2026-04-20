@@ -1,3 +1,4 @@
+// cspell:words pathfinding
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { aggregateEquipmentKitEffects, resolveAgentEquipmentKits } from '../domain/kits'

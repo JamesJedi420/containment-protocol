@@ -1,7 +1,8 @@
+// cspell:words cooldown explainability sato unassigns
 import '../../test/setup'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, useLocation } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
@@ -10,9 +11,16 @@ import { queueTraining } from '../../domain/sim/training'
 import { RECONCILIATION_COST } from '../../domain/sim/reconciliation'
 import TrainingDivisionPage from './TrainingDivisionPage'
 
-function renderTrainingDivisionPage() {
+function LocationProbe() {
+  const location = useLocation()
+
+  return <output data-testid="location-search">{location.search}</output>
+}
+
+function renderTrainingDivisionPage(route = '/training-division') {
   return render(
-    <MemoryRouter initialEntries={['/training-division']}>
+    <MemoryRouter initialEntries={[route]}>
+      <LocationProbe />
       <TrainingDivisionPage />
     </MemoryRouter>
   )
@@ -31,11 +39,51 @@ beforeEach(() => {
 })
 
 describe('TrainingDivisionPage', () => {
+  it('hydrates advanced/history panel visibility from URL and keeps it in sync', async () => {
+    const user = userEvent.setup()
+
+    renderTrainingDivisionPage('/training-division?advanced=1&history=1')
+
+    expect(screen.getByRole('heading', { name: /academy analysis/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /recent training events/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /hide advanced panels/i }))
+    await user.click(screen.getByRole('button', { name: /hide history panels/i }))
+
+    expect(screen.getByTestId('location-search')).toHaveTextContent('')
+    expect(screen.queryByRole('heading', { name: /academy analysis/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: /recent training events/i })
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders keyboard skip links for summary, queue, and roster sections', () => {
+    renderTrainingDivisionPage()
+
+    expect(screen.getByRole('link', { name: /skip to training summary/i })).toHaveAttribute(
+      'href',
+      '#training-summary'
+    )
+    expect(screen.getByRole('link', { name: /skip to active queue/i })).toHaveAttribute(
+      'href',
+      '#training-active-queue'
+    )
+    expect(screen.getByRole('link', { name: /skip to eligible roster/i })).toHaveAttribute(
+      'href',
+      '#training-roster'
+    )
+    expect(document.getElementById('training-summary')).not.toBeNull()
+    expect(document.getElementById('training-active-queue')).not.toBeNull()
+    expect(document.getElementById('training-roster')).not.toBeNull()
+  })
+
   it('shows a recommended next move strip with payoff-oriented detail', () => {
     renderTrainingDivisionPage()
 
     expect(screen.getByText(/recommended next move/i)).toBeInTheDocument()
     expect(screen.getByText(/best immediate gain:/i)).toBeInTheDocument()
+    expect(screen.getByText(/confidence:/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
   })
 
   it('groups agents by readiness and links into agent detail', async () => {
@@ -434,7 +482,7 @@ describe('TrainingDivisionPage', () => {
   it('resets training filters back to defaults from the header action', async () => {
     const user = userEvent.setup()
 
-    renderTrainingDivisionPage()
+    renderTrainingDivisionPage('/training-division?advanced=1&history=1')
 
     expect(screen.getByText(/filters: default/i)).toBeInTheDocument()
 
@@ -457,6 +505,8 @@ describe('TrainingDivisionPage', () => {
     expect(screen.getByText(/filters: default/i)).toBeInTheDocument()
     expect(within(rosterSection).getByText(/ava brooks/i)).toBeInTheDocument()
     expect(within(rosterSection).getByText(/dr\. sato/i)).toBeInTheDocument()
+    expect(screen.getByTestId('location-search')).toHaveTextContent('advanced=1')
+    expect(screen.getByTestId('location-search')).toHaveTextContent('history=1')
   })
 
   it('filters roster by readiness status', async () => {

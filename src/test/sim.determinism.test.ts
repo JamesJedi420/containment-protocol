@@ -1,3 +1,4 @@
+// cspell:words greentape sato spookhaus
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'
@@ -63,7 +64,7 @@ function runScriptedDeterministicScenario(seed: number) {
     }
  * ensuring the stability hardening fix prevents state leaks.
  */
-describe('Simulation Determinism Hardenin', () => {
+describe('Simulation Determinism Hardening', () => {
   it('produces identical 10-week runs from the same seed', () => {
     const seedValue = 12345
 

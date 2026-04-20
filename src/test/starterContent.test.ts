@@ -1,3 +1,4 @@
+// cspell:words greentape kellan psionic sato
 import { describe, expect, it } from 'vitest'
 import { caseTemplateMap } from '../data/caseTemplates'
 import { CASE_LORE_STUBS } from '../data/copy'

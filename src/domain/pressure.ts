@@ -1,4 +1,6 @@
+// cspell:words psionic
 import type { CaseInstance, CaseTemplate, GameState } from './models'
+import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
 
 export interface ResponseGridConfig {
   majorIncidentThreshold: number
@@ -7,9 +9,9 @@ export interface ResponseGridConfig {
 }
 
 export const DEFAULT_RESPONSE_GRID: ResponseGridConfig = {
-  majorIncidentThreshold: 100,
+  majorIncidentThreshold: PRESSURE_CALIBRATION.defaultMajorIncidentThreshold,
   majorIncidentTemplateIds: ['raid-001', 'anomaly-raid-001', 'cyber-raid-001'],
-  pressureDecayPerWeek: 0,
+  pressureDecayPerWeek: PRESSURE_CALIBRATION.defaultPressureDecayPerWeek,
 }
 
 export const DEFAULT_CASE_REGION_TAG = 'global'
@@ -107,6 +109,8 @@ export function getResponseGridConfig(
   state: GameState | { responseGrid?: Partial<ResponseGridConfig> }
 ): ResponseGridConfig {
   const responseGrid = state && 'responseGrid' in state ? state.responseGrid : undefined
+  const week = state && 'week' in state && typeof state.week === 'number' ? state.week : undefined
+  const secondEscalationBand = week !== undefined && isSecondEscalationBandWeek(week)
   const threshold =
     typeof responseGrid?.majorIncidentThreshold === 'number' &&
     Number.isFinite(responseGrid.majorIncidentThreshold)
@@ -129,6 +133,8 @@ export function getResponseGridConfig(
       templateIds.length > 0
         ? [...new Set(templateIds)]
         : DEFAULT_RESPONSE_GRID.majorIncidentTemplateIds,
-    pressureDecayPerWeek: decayPerWeek,
+    pressureDecayPerWeek: secondEscalationBand
+      ? decayPerWeek + PRESSURE_CALIBRATION.secondEscalationPressureDecayBonus
+      : decayPerWeek,
   }
 }

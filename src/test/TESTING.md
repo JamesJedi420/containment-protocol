@@ -1,3 +1,5 @@
+<!-- cspell:words microtasks -->
+
 # Test Robustness Conventions
 
 This project uses Vitest + Testing Library.

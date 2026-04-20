@@ -1,3 +1,4 @@
+// cspell:words sato
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { useGameStore } from '../app/store/gameStore'

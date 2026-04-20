@@ -1,8 +1,10 @@
 import { getCasePressureValue, getCaseRegionTag, getResponseGridConfig } from '../pressure'
 import { type CaseInstance, type GameState } from '../models'
+import { getAgencyProgressionPressureTemplateIds } from '../agencyProgression'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './spawn'
+import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
 
-const MAX_PRESSURE_INCIDENTS_PER_TICK = 3
+const MAX_PRESSURE_INCIDENTS_PER_TICK = PRESSURE_CALIBRATION.maxPressureIncidentsPerTick
 
 interface PressurePipelineInput {
   sourceState: GameState
@@ -27,7 +29,10 @@ function filterExistingAssignedTeamIds(caseData: CaseInstance, teams: GameState[
 
 function selectPressureMajorIncidentTemplate(state: GameState, rng: () => number) {
   const responseGrid = getResponseGridConfig(state)
-  const configuredTemplates = responseGrid.majorIncidentTemplateIds
+  const configuredTemplates = getAgencyProgressionPressureTemplateIds(
+    state,
+    responseGrid.majorIncidentTemplateIds
+  )
     .map((templateId: string) => state.templates[templateId])
     .filter(Boolean)
 
@@ -58,9 +63,10 @@ export function executePressurePipeline(
   input: PressurePipelineInput,
   rng: () => number
 ): PressurePipelineResult {
+  const secondEscalationBand = isSecondEscalationBandWeek(input.sourceState.week)
   const sourceState = input.sourceState as LegacyPressureState
   const projectedState = input.nextState as LegacyPressureState
-  const unresolvedPressureDelta = input.unresolvedTriggers.reduce((sum, caseId) => {
+  const unresolvedPressureDeltaRaw = input.unresolvedTriggers.reduce((sum, caseId) => {
     const currentCase = input.sourceState.cases[caseId]
     if (!currentCase) {
       return sum
@@ -68,8 +74,13 @@ export function executePressurePipeline(
 
     return sum + getCasePressureValue(currentCase)
   }, 0)
+  const unresolvedPressureDelta = secondEscalationBand
+    ? Math.ceil(
+        unresolvedPressureDeltaRaw * PRESSURE_CALIBRATION.secondEscalationUnresolvedPressureWeight
+      )
+    : unresolvedPressureDeltaRaw
 
-  const ambientPressureDelta = input.initialCaseIds.reduce((sum, caseId) => {
+  const ambientPressureDeltaRaw = input.initialCaseIds.reduce((sum, caseId) => {
     const currentCase = input.sourceState.cases[caseId]
     const assignedTeamIds = currentCase
       ? filterExistingAssignedTeamIds(currentCase, input.sourceState.teams)
@@ -86,9 +97,15 @@ export function executePressurePipeline(
 
     return sum + 1
   }, 0)
+  const ambientPressureDelta = secondEscalationBand
+    ? Math.ceil(ambientPressureDeltaRaw * PRESSURE_CALIBRATION.secondEscalationAmbientPressureWeight)
+    : ambientPressureDeltaRaw
 
   const startingGlobalPressure = sourceState.globalPressure ?? 0
   const responseGrid = getResponseGridConfig(projectedState)
+  const maxPressureIncidentsPerTick = secondEscalationBand
+    ? PRESSURE_CALIBRATION.secondEscalationMaxPressureIncidentsPerTick
+    : MAX_PRESSURE_INCIDENTS_PER_TICK
   const pressureAfterDecay = Math.max(
     0,
     startingGlobalPressure - (responseGrid.pressureDecayPerWeek ?? 0)
@@ -107,7 +124,7 @@ export function executePressurePipeline(
 
   while (
     currentPressure > responseGrid.majorIncidentThreshold &&
-    spawnedCases.length < MAX_PRESSURE_INCIDENTS_PER_TICK
+    spawnedCases.length < maxPressureIncidentsPerTick
   ) {
     const template = selectPressureMajorIncidentTemplate(nextState, rng)
     if (!template) {
@@ -129,7 +146,7 @@ export function executePressurePipeline(
         })
 
     const usedIds = new Set(Object.keys(nextState.cases))
-    const spawnedBase = instantiateFromTemplate(template, rng, usedIds)
+    const spawnedBase = instantiateFromTemplate(template, rng, usedIds, input.sourceState.week)
     const majorIncidentCase = {
       ...spawnedBase,
       title: `Major Incident — ${spawnedBase.title}`,

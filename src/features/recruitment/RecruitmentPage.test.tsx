@@ -1,5 +1,6 @@
+// cspell:words cand
 import '../../test/setup'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -135,7 +136,9 @@ describe('RecruitmentPage', () => {
     expect(screen.getByText(/avery holt/i)).toBeInTheDocument()
     expect(screen.getByText(/briar lane/i)).toBeInTheDocument()
     expect(screen.getAllByText(/expiring soon/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/weekly wage: \$30/i)).toBeInTheDocument()
+    const averyCard = screen.getByText(/^avery holt$/i).closest('li')
+    expect(averyCard).not.toBeNull()
+    expect(within(averyCard!).getByText(/weekly wage:/i)).toHaveTextContent(/\$30/i)
 
     const searchInput = screen.getByRole('textbox', { name: /^search$/i })
     await user.type(searchInput, 'briar')
@@ -256,7 +259,17 @@ describe('RecruitmentPage', () => {
 
     expect(useGameStore.getState().game.funding).toBeLessThan(fundingBefore)
     expect(useGameStore.getState().game.candidates[0]?.scoutReport).toBeDefined()
-    expect(screen.getByText(/scout report: projected /i)).toBeInTheDocument()
+    const averyCard = screen.getByText(/^avery holt$/i).closest('li')
+    expect(averyCard).not.toBeNull()
+    expect(within(averyCard!).getByText(/scout report: projected /i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/scout confidence: /i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/broad ceiling bands:/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/known now:/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/uncertainty:/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/next scout:/i)).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /scouting posture/i })).toBeInTheDocument()
+    expect(screen.getByText(/recent scouting outcomes/i)).toBeInTheDocument()
+    expect(screen.getByText(/avery holt scouting initiated/i)).toBeInTheDocument()
   })
 
   it('shows the eventual hire class for remapped agent candidates', () => {
@@ -265,6 +278,24 @@ describe('RecruitmentPage', () => {
     renderRecruitmentPage()
 
     expect(screen.getByText(/hire outcome: field recon/i)).toBeInTheDocument()
+    expect(screen.getByText(/field recon path/i)).toBeInTheDocument()
+  })
+
+  it('reveals exact ceiling intel only after a confirmed deep scan', async () => {
+    const user = userEvent.setup()
+    useGameStore.setState({ game: buildRecruitmentGame() })
+
+    renderRecruitmentPage()
+
+    await user.click(screen.getByRole('button', { name: /^scout/i }))
+    await user.click(screen.getByRole('button', { name: /^follow-up scout/i }))
+    await user.click(screen.getByRole('button', { name: /^deep recon scan/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/confirmed ceiling intel:/i)).toBeInTheDocument()
+      expect(screen.queryByText(/broad ceiling bands:/i)).not.toBeInTheDocument()
+      expect(screen.getByText(/avery holt intel confirmed/i)).toBeInTheDocument()
+    })
   })
 
   it('disables hire when the domain preview reports insufficient funding', () => {

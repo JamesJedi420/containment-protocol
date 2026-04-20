@@ -6,10 +6,11 @@ import {
 import { aggregateAbilityEffects, resolveAgentAbilityEffects } from '../abilities'
 import { clamp } from '../math'
 import type { Agent, AgentHistoryEntry, GameState } from '../models'
+import { RECOVERY_CALIBRATION } from './calibration'
 import { aggregateTraitEffects, resolveAgentTraitEffects } from '../traits'
 
-const MINOR_RECOVERY_DURATION_WEEKS = 2
-const MODERATE_RECOVERY_DURATION_WEEKS = 3
+const MINOR_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.minorRecoveryDurationWeeks
+const MODERATE_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.moderateRecoveryDurationWeeks
 
 export type InjurySeverity = 'minor' | 'moderate'
 
@@ -19,7 +20,7 @@ interface AdvanceRecoveryInput {
   nextAgents: GameState['agents']
 }
 
-function getRecoveryDurationWeeks(severity: InjurySeverity) {
+export function getRecoveryDurationWeeks(severity: InjurySeverity) {
   return severity === 'moderate' ? MODERATE_RECOVERY_DURATION_WEEKS : MINOR_RECOVERY_DURATION_WEEKS
 }
 
@@ -87,10 +88,10 @@ export function advanceRecoveryAgentsForWeek({
 
     const severity = getInjurySeverityFlag(agent.vitals?.statusFlags) ?? 'minor'
     const startedWeek = agent.assignment.startedWeek ?? Math.max(0, week - 1)
-    const elapsedWeeks = Math.max(0, week - startedWeek)
+      const elapsedWeeks = Math.max(0, week - startedWeek)
     const moraleRecoveryDelta = getRecoveryMoraleDelta(agent)
 
-    if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
+      if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
       updatedAgents[agentId] = appendAgentHistoryEntry(
         setAgentAssignment(
           {
@@ -106,7 +107,10 @@ export function advanceRecoveryAgentsForWeek({
               }),
               health: 100,
               morale: clamp(
-                Math.max(agent.vitals?.morale ?? 100, 70 + moraleRecoveryDelta),
+                Math.max(
+                  agent.vitals?.morale ?? 100,
+                  RECOVERY_CALIBRATION.returningMoraleFloor + moraleRecoveryDelta
+                ),
                 0,
                 100
               ),
@@ -122,7 +126,7 @@ export function advanceRecoveryAgentsForWeek({
       continue
     }
 
-    if (elapsedWeeks >= 1 && agent.status === 'injured') {
+      if (elapsedWeeks >= 1 && agent.status === 'injured') {
       updatedAgents[agentId] = appendAgentHistoryEntry(
         {
           ...agent,
@@ -136,7 +140,9 @@ export function advanceRecoveryAgentsForWeek({
               statusFlags: [],
             }),
             morale: clamp(
-              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) - 5 + moraleRecoveryDelta,
+              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
+                RECOVERY_CALIBRATION.recoveringMoralePenalty +
+                moraleRecoveryDelta,
               0,
               100
             ),
@@ -150,8 +156,14 @@ export function advanceRecoveryAgentsForWeek({
       continue
     }
 
+    if (agent.status === 'injured') {
+      updatedAgents[agentId] = agent
+      continue
+    }
+
     updatedAgents[agentId] = appendAgentHistoryEntries(agent, [], { recoveryWeeks: 1 })
   }
 
   return updatedAgents
 }
+

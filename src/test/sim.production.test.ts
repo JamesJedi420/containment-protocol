@@ -1,3 +1,4 @@
+// cspell:words craftable
 /**
  * Isolated tests for the production and market simulation subsystem.
  * Covers queueFabrication, advanceProductionQueues, and advanceMarketState

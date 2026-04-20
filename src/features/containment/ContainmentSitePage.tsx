@@ -91,7 +91,10 @@ export default function ContainmentSitePage() {
               <li key={incident.caseId} className="rounded border border-white/10 px-3 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium">{incident.caseTitle}</p>
+                    <p className="font-medium flex items-center gap-2 flex-wrap">
+                      {incident.caseTitle}
+                      {/* Removed derived UI logic; must be provided by view-model if needed. */}
+                    </p>
                     <p className="text-sm opacity-60">
                       {incident.archetypeLabel} / Stage {incident.stage} /{' '}
                       {incident.currentStageLabel} / {incident.kind === 'raid' ? 'Raid' : 'Case'} /

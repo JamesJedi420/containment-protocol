@@ -1,3 +1,4 @@
+// cspell:words sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'

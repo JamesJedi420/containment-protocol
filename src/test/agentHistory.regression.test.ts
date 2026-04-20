@@ -1,3 +1,4 @@
+// cspell:words fieldcraft
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { trainingCatalog } from '../data/training'
@@ -105,12 +106,20 @@ describe('agent history regression coverage', () => {
     const agentId = assigned.teams.t_nightwatch.agentIds[0]!
     const agent = next.agents[agentId]!
 
-    const expectedLogIds = next.events
+    const relevantEvents = next.events.filter(
+      (event) =>
+        (event.type === 'assignment.team_assigned' && event.payload.teamId === 't_nightwatch') ||
+        (event.type === 'case.resolved' && event.payload.caseId === 'case-001') ||
+        (event.type === 'progression.xp_gained' && event.payload.agentId === agentId) ||
+        (event.type === 'agent.relationship_changed' && event.payload.agentId === agentId)
+    )
+    const expectedLogIds = relevantEvents
       .filter(
         (event) =>
-          (event.type === 'assignment.team_assigned' && event.payload.teamId === 't_nightwatch') ||
-          (event.type === 'case.resolved' && event.payload.caseId === 'case-001') ||
-          (event.type === 'progression.xp_gained' && event.payload.agentId === agentId)
+          event.type === 'assignment.team_assigned' ||
+          event.type === 'case.resolved' ||
+          event.type === 'progression.xp_gained' ||
+          event.type === 'agent.relationship_changed'
       )
       .map((event) => event.id)
 
@@ -122,6 +131,8 @@ describe('agent history regression coverage', () => {
       'assignment.team_assigned',
       'case.resolved',
       'progression.xp_gained',
+      'agent.relationship_changed',
+      'agent.relationship_changed',
     ])
     expect(agent.history?.casesCompleted).toBe(1)
     expect(agent.history?.counters.assignmentsCompleted).toBe(1)

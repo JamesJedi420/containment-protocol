@@ -87,7 +87,19 @@ export default function TeamsPage() {
 
   return (
     <section className="space-y-6">
-      <article className="panel panel-primary space-y-4 p-4">
+      <nav className="skip-links" aria-label="Teams keyboard shortcuts">
+        <a href="#teams-builder" className="skip-link">
+          Skip to squad builder
+        </a>
+        <a href="#teams-filters" className="skip-link">
+          Skip to team filters
+        </a>
+        <a href="#teams-results" className="skip-link">
+          Skip to team results
+        </a>
+      </nav>
+
+      <article id="teams-builder" className="panel panel-primary space-y-4 p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold">Squad builder</h2>
@@ -168,7 +180,12 @@ export default function TeamsPage() {
         ) : null}
       </article>
 
-      <header className="panel panel-primary space-y-4 p-4" role="region" aria-label="Team filters">
+      <header
+        id="teams-filters"
+        className="panel panel-primary space-y-4 p-4"
+        role="region"
+        aria-label="Team filters"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <h2 className="text-lg font-semibold">Teams operations</h2>
@@ -244,7 +261,7 @@ export default function TeamsPage() {
       </header>
 
       {teamViews.length > 0 ? (
-        <ul className="space-y-4" aria-label="Team results">
+        <ul id="teams-results" className="space-y-4" aria-label="Team results">
           {teamViews.map((view) => (
             <TeamCard
               key={view.team.id}
@@ -258,6 +275,7 @@ export default function TeamsPage() {
         </ul>
       ) : (
         <div
+          id="teams-results"
           className="panel panel-support space-y-3 p-4"
           role="region"
           aria-label="No matching teams"
@@ -265,6 +283,23 @@ export default function TeamsPage() {
           <p className="text-sm font-medium">No teams match these filters.</p>
           <p className="text-sm opacity-70">{TEAM_GUIDANCE.noTeamsFilteredSubtitle}</p>
           <p className="text-xs opacity-60">{TEAM_GUIDANCE.fatigueImpactHint}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                className="btn btn-xs btn-ghost"
+                onClick={() => updateFilters(DEFAULT_TEAM_LIST_FILTERS)}
+              >
+                Clear filters
+              </button>
+            ) : null}
+            <Link to={APP_ROUTES.recruitment} className="btn btn-xs btn-ghost">
+              Open recruitment
+            </Link>
+            <Link to={APP_ROUTES.trainingDivision} className="btn btn-xs btn-ghost">
+              Open training division
+            </Link>
+          </div>
         </div>
       )}
     </section>
@@ -303,20 +338,20 @@ function TeamCard({
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone={assignedCase ? 'success' : 'neutral'}>
-              {assignedCase ? 'Assigned' : 'Unassigned'}
+              <span className="font-bold text-base tracking-wide">{assignedCase ? 'Assigned' : 'Unassigned'}</span>
             </Badge>
             <Badge tone={fatigueTone}>
-              {TEAM_UI_LABELS.avgFatigue} {view.capabilitySummary.averageFatigue}
+              <span className="font-bold text-base tracking-wide">{TEAM_UI_LABELS.avgFatigue} {view.capabilitySummary.averageFatigue}</span>
             </Badge>
             <Badge tone={managementState.editable ? 'neutral' : 'warning'}>
-              {view.team.status?.state ?? 'ready'}
+              <span className="font-bold text-base tracking-wide">{view.team.status?.state ?? 'ready'}</span>
             </Badge>
-            {view.fatigueBand !== 'steady' ? <Badge tone={fatigueTone}>Overstretched</Badge> : null}
+            {view.fatigueBand !== 'steady' ? <Badge tone={fatigueTone}><span className="font-bold text-base tracking-wide">Overstretched</span></Badge> : null}
           </div>
           <p className="font-semibold">
             <Link
               to={`${APP_ROUTES.teamDetail(view.team.id)}${querySuffix}`}
-              className="hover:underline"
+              className="hover:underline focus-ring"
             >
               {AGENCY_LABELS.responseUnit} {view.team.name}
             </Link>
@@ -384,7 +419,10 @@ function TeamCard({
           {assignedCase ? (
             <p>
               <span className="opacity-50">{CASE_UI_LABELS.assignedTo}: </span>
-              <Link to={APP_ROUTES.caseDetail(assignedCase.id)} className="hover:underline">
+              <Link
+                to={APP_ROUTES.caseDetail(assignedCase.id)}
+                className="hover:underline focus-ring"
+              >
                 {assignedCase.title}
               </Link>
             </p>

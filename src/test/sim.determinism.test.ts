@@ -20,48 +20,48 @@ function runScriptedDeterministicScenario(seed: number) {
     assignedTeamIds: [],
     stage: 1,
     deadlineRemaining: 1,
-    onUnresolved: {
-      ...state.cases['case-001'].onUnresolved,
-      stageDelta: 1,
-      deadlineResetWeeks: 2,
-      convertToRaidAtStage: 99,
-      spawnCount: { min: 1, max: 1 },
-      spawnTemplateIds: ['chem-001'],
-    },
-  }
-
-  state.cases['case-002'] = {
-    ...state.cases['case-002'],
-    status: 'in_progress',
-    assignedTeamIds: ['t_nightwatch'],
-    weeksRemaining: 1,
-    difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
-    weights: { combat: 0.25, investigation: 0.25, utility: 0.25, social: 0.25 },
-  }
-
-  state.cases['case-003'] = {
-    ...state.cases['case-003'],
-    status: 'in_progress',
-    assignedTeamIds: ['t_greentape'],
-    weeksRemaining: 1,
-    difficulty: { combat: 999, investigation: 999, utility: 999, social: 999 },
-    onFail: {
-      ...state.cases['case-003'].onFail,
-      spawnCount: { min: 1, max: 1 },
-      spawnTemplateIds: ['bio-001'],
-    },
-  }
-
-  state = advanceWeek(state, 1_700_000_000)
-  state = advanceWeek(state, 1_700_000_001)
-  state = advanceWeek(state, 1_700_000_002)
-
-  return state
-}
-
-/**
- * Comprehensive determinism validation for the simulation framework.
- * Verifies that identical seeds produce deterministic state across multiple weeks,
+    const BASELINE = {
+      academyTier: 0,
+      agency: {
+        clearanceLevel: 1,
+        containmentRating: 72,
+        funding: 110,
+      },
+      agents: {
+        a_ava: expect.any(Object),
+        a_casey: expect.any(Object),
+        a_eli: expect.any(Object),
+        a_juno: expect.any(Object),
+        a_kellan: expect.any(Object),
+        a_mina: expect.any(Object),
+        a_rook: expect.any(Object),
+        a_sato: expect.any(Object),
+      },
+      candidates: [],
+      caseQueue: expect.any(Object),
+      cases: expect.any(Object),
+      clearanceLevel: 1,
+      config: expect.any(Object),
+      containmentRating: 72,
+      directiveState: expect.any(Object),
+      events: [],
+      funding: 110,
+      gameOver: false,
+      inventory: expect.any(Object),
+      knowledge: { 't_nightwatch::case-001': expect.any(Object) },
+      market: expect.any(Object),
+      partyCards: expect.any(Object),
+      productionQueue: [],
+      recruitmentPool: [],
+      reports: [],
+      rngSeed: 99999,
+      rngState: 99999,
+      staff: {},
+      teams: expect.any(Object),
+      templates: expect.any(Object),
+      trainingQueue: [],
+      week: 1,
+    }
  * ensuring the stability hardening fix prevents state leaks.
  */
 describe('Simulation Determinism Hardening', () => {

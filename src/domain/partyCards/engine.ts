@@ -1,5 +1,6 @@
 import { randInt } from '../math'
 import type { GameState, Id } from '../models'
+import { hasAllTags } from '../shared/tags'
 import type {
   PartyCardDefinition,
   PartyCardPlay,
@@ -29,13 +30,7 @@ function normalizeCount(value: number) {
 
 function canPlayCard(card: PartyCardDefinition, caseTags: string[]) {
   const requiredTags = card.effect.requiredCaseTags ?? []
-
-  if (requiredTags.length === 0) {
-    return true
-  }
-
-  const tags = new Set(caseTags)
-  return requiredTags.every((tag) => tags.has(tag))
+  return hasAllTags(caseTags, requiredTags)
 }
 
 export function drawPartyCards(

@@ -1,10 +1,12 @@
 // cspell:words cand medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import type { DistortionState } from '../../domain/shared/distortion'
 import { queueTraining } from '../../domain/sim/training'
 import {
   GAME_STORE_VERSION,
   RUN_EXPORT_KIND,
+  buildReportCaseSnapshot,
   createRunExportPayload,
   migratePersistedStore,
   parseRunExport,
@@ -13,6 +15,36 @@ import {
 } from './runTransfer'
 
 describe('runTransfer helpers', () => {
+  it('propagates canonical distortion state into report snapshots', () => {
+    const caseWithDistortion = {
+      id: 'case-distorted',
+      templateId: 'template-1',
+      title: 'Distorted Case',
+      description: 'A case with misleading intel.',
+      mode: 'threshold',
+      kind: 'case',
+      status: 'open',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      weeksRemaining: 2,
+      deadlineWeeks: 2,
+      deadlineRemaining: 2,
+      assignedTeamIds: [],
+      onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+      onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+      distortion: ['misleading', 'fragmented'] as DistortionState[],
+    }
+
+    const snapshot = buildReportCaseSnapshot(caseWithDistortion)
+
+    expect(snapshot.distortion).toEqual(['misleading', 'fragmented'])
+  })
+
   it('migrates v1 persisted saves into the current persisted store shape', () => {
     const fallback = createStartingState()
     const persistedGame = createStartingState()

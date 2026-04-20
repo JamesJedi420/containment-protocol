@@ -4,7 +4,10 @@ import { createNote } from '../data/copy'
 import type { AnyOperationEventDraft } from '../domain/events'
 import {
   buildDeterministicReportNotesFromEventDrafts,
+  countWeeklyReportOutcomes,
   createDeterministicReportNote,
+  formatLatestReportRollup,
+  formatOutcomeCountSummary,
 } from '../domain/reportNotes'
 
 describe('Event Feed Note Identity', () => {
@@ -457,6 +460,29 @@ describe('Event Feed Note Identity', () => {
           },
         },
       ])
+    })
+
+    it('formats canonical outcome-band summaries and dashboard report rollups', () => {
+      const report = {
+        resolvedCases: ['case-001', 'case-002'],
+        partialCases: ['case-003'],
+        failedCases: ['case-004'],
+        unresolvedTriggers: ['case-005', 'case-006'],
+        spawnedCases: ['case-007'],
+      }
+
+      expect(countWeeklyReportOutcomes(report)).toEqual({
+        resolved: 2,
+        partial: 1,
+        failed: 1,
+        unresolved: 2,
+      })
+      expect(formatOutcomeCountSummary(countWeeklyReportOutcomes(report))).toBe(
+        '2 resolved / 1 partial / 1 failed / 2 unresolved'
+      )
+      expect(formatLatestReportRollup(report)).toBe(
+        '2 resolved / 1 partial / 1 failed / 2 unresolved / 1 spawned case'
+      )
     })
   })
 })

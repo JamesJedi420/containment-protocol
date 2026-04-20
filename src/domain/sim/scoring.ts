@@ -553,12 +553,25 @@ export function evaluateCaseResolutionContext(
   if (caseData.mode === 'probability') {
     const probability = buildProbabilityOutcome(caseData, config, delta, teamScore, resolutionRoll)
 
+    // SPE-38: Apply supportShortfall penalty if present
+    let outcome = probability.outcome
+    if (caseData.supportShortfall) {
+      // Degrade outcome by one level and add explanation
+      if (outcome.result === 'success') {
+        outcome = { ...outcome, result: 'partial', reasons: [...outcome.reasons, 'Support shortfall: degraded to partial.'] }
+      } else if (outcome.result === 'partial') {
+        outcome = { ...outcome, result: 'fail', reasons: [...outcome.reasons, 'Support shortfall: degraded to fail.'] }
+      } else {
+        outcome = { ...outcome, reasons: [...outcome.reasons, 'Support shortfall: no further degradation.'] }
+      }
+    }
+
     return {
       deployableAgents,
       validationResult,
       teamScore,
       requiredScore,
-      outcome: probability.outcome,
+      outcome,
       modifiersApplied: teamScore.modifierBreakdown,
       delta,
       blockedByRequiredTags,
@@ -568,7 +581,7 @@ export function evaluateCaseResolutionContext(
   }
 
   const thresholdReasons = [...teamScore.reasons, `Delta=${delta.toFixed(1)} (threshold)`]
-  const thresholdOutcome =
+  let thresholdOutcome =
     delta >= 0
       ? buildResolvedOutcome(caseData, 'success', delta, thresholdReasons, teamScore)
       : delta >= -config.partialMargin
@@ -580,6 +593,17 @@ export function evaluateCaseResolutionContext(
             teamScore
           )
         : buildResolvedOutcome(caseData, 'fail', delta, thresholdReasons, teamScore)
+
+  // SPE-38: Apply supportShortfall penalty if present
+  if (caseData.supportShortfall) {
+    if (thresholdOutcome.result === 'success') {
+      thresholdOutcome = { ...thresholdOutcome, result: 'partial', reasons: [...thresholdOutcome.reasons, 'Support shortfall: degraded to partial.'] }
+    } else if (thresholdOutcome.result === 'partial') {
+      thresholdOutcome = { ...thresholdOutcome, result: 'fail', reasons: [...thresholdOutcome.reasons, 'Support shortfall: degraded to fail.'] }
+    } else {
+      thresholdOutcome = { ...thresholdOutcome, reasons: [...thresholdOutcome.reasons, 'Support shortfall: no further degradation.'] }
+    }
+  }
 
   return {
     deployableAgents,
@@ -693,6 +717,24 @@ function normalizeDisplayLabel(value: unknown) {
 
 export function computeTeamScore(agents: Agent[], c: CaseInstance, context: TeamScoreContext = {}) {
   const reasons: string[] = []
+  // Niche-driven containment specialist bonus/penalty
+  let containmentNicheBonus = 0;
+  // Hybrid penalty: agent with both recon-specialist and containment-specialist
+  if (agents.some(a => a.tags?.includes('containment-specialist') && a.tags?.includes('recon-specialist'))) {
+    containmentNicheBonus -= 2;
+    reasons.push('Hybrid specialist penalty: recon + containment -2.');
+  } else if (agents.some(a => a.tags?.includes('containment-specialist'))) {
+    containmentNicheBonus += 2;
+    reasons.push('Containment specialist present: +2 containment bonus.');
+  } else if (agents.some(a => a.tags?.includes('recon-specialist'))) {
+    containmentNicheBonus -= 1;
+    reasons.push('Recon specialist substituted: -1 containment penalty.');
+  } else if (agents.some(a => a.tags?.includes('recovery-support'))) {
+    containmentNicheBonus -= 2;
+    reasons.push('Recovery specialist substituted: -2 containment penalty.');
+  } else {
+    reasons.push('No specialist present: reduced reliability in containment.');
+  }
   const profile = buildAgentSquadCompositionProfile(
     agents,
     context.leaderId ?? null,
@@ -706,6 +748,11 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       protocolState: context.protocolState,
     }
   )
+
+  // Apply containment niche bonus directly to the containment axis
+  if (containmentNicheBonus !== 0) {
+    profile.resolutionProfile.containment += containmentNicheBonus;
+  }
   const caseWeights = legacyWeightsToResolutionProfile(c.weights)
   // Resolution is driven by bucketed outputs plus explicit modifiers.
   // `derivedStats.overall` is a summary metric for UI surfaces only.

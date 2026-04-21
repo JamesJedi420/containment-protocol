@@ -1,7 +1,11 @@
 // cspell:words greentape
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { getDashboardMetrics, getFieldStatusViews } from '../features/dashboard/dashboardView'
+import {
+  getDashboardMetrics,
+  getFieldStatusViews,
+  getLatestReportSummary,
+} from '../features/dashboard/dashboardView'
 
 function setTeamFatigue(
   game: ReturnType<typeof createStartingState>,
@@ -215,5 +219,68 @@ describe('getDashboardMetrics', () => {
     expect(metrics.criticalStageCount).toBe(0)
     expect(metrics.raidUnderstaffedCount).toBe(0)
     expect(metrics.overstretchedTeamCount).toBe(0)
+  })
+})
+
+describe('getLatestReportSummary', () => {
+  it('surfaces persisted aggregate battle rollups from the latest report', () => {
+    const game = createStartingState()
+
+    game.reports = [
+      {
+        ...game.reports[0],
+        week: 2,
+        caseSnapshots: {
+          'case-raid': {
+            caseId: 'case-raid',
+            title: 'Catacomb Breach',
+            kind: 'raid',
+            mode: 'threshold',
+            status: 'resolved',
+            stage: 4,
+            deadlineRemaining: 0,
+            durationWeeks: 1,
+            assignedTeamIds: [],
+            aggregateBattle: {
+              battleId: 'case-raid-week-2',
+              regionTag: 'occult_district',
+              roundsResolved: 3,
+              winnerSideId: 'operators',
+              winnerLabel: 'Containment Teams',
+              friendlySideId: 'operators',
+              friendlyLabel: 'Containment Teams',
+              hostileSideId: 'hostiles',
+              hostileLabel: 'Hostile Forces',
+              movementDeniedCount: 2,
+              movementDeniedUnits: ['Green Tape'],
+              friendlyRoutedUnits: [],
+              hostileRoutedUnits: ['Hostile Screen', 'Reserve Cell'],
+              specialDamage: [
+                {
+                  unitId: 'hostile-special',
+                  label: 'Reliquary Guardian',
+                  sideId: 'hostiles',
+                  hitsTaken: 2,
+                  hitsToBreak: 3,
+                  destroyed: false,
+                },
+              ],
+              summaryTable: [],
+            },
+          },
+        },
+      },
+    ]
+
+    const summary = getLatestReportSummary(game)
+
+    expect(summary?.battleRollup).toEqual({
+      battleCount: 1,
+      friendlyRoutedCount: 0,
+      hostileRoutedCount: 2,
+      specialDamageCount: 1,
+      specialHitsTaken: 2,
+      movementDeniedCount: 2,
+    })
   })
 })

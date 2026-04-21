@@ -150,7 +150,9 @@ export default function DashboardPage() {
       <section className="panel space-y-3">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">Escalation & Pressure Cadence</h2>
-          <p className="text-sm opacity-60">Systemic cadence, bounded checks, and urgent escalations surfaced for this week.</p>
+          <p className="text-sm opacity-60">
+            Systemic cadence, bounded checks, and urgent escalations surfaced for this week.
+          </p>
         </div>
         <ul className="text-xs opacity-80 space-y-1">
           {cadenceSummary.map((line, i) => (
@@ -658,8 +660,8 @@ export default function DashboardPage() {
         </div>
 
         {latestReportSummary ? (
-        <LatestReportSummary score={latestReportSummary.score} />
-      ) : (
+          <LatestReportSummary score={latestReportSummary.score} />
+        ) : (
           <p className="text-sm opacity-60">{EMPTY_STATES.noReports}</p>
         )}
       </section>
@@ -728,7 +730,7 @@ function LatestReportSummary({ score }: { score: number }) {
     return null
   }
 
-  const { report } = latestReportSummary
+  const { report, battleRollup } = latestReportSummary
 
   return (
     <div className="space-y-2">
@@ -744,9 +746,15 @@ function LatestReportSummary({ score }: { score: number }) {
         </p>
       </div>
 
-      <p className="text-sm opacity-70">
-        {formatLatestReportRollup(report)}
-      </p>
+      <p className="text-sm opacity-70">{formatLatestReportRollup(report)}</p>
+
+      {battleRollup.battleCount > 0 ? (
+        <p className="text-sm opacity-60">
+          Battle layer {battleRollup.battleCount} / hostile routed {battleRollup.hostileRoutedCount}
+          {' / '}friendly routed {battleRollup.friendlyRoutedCount} / durable contacts hit{' '}
+          {battleRollup.specialDamageCount}
+        </p>
+      ) : null}
 
       <p className="text-sm opacity-60">
         Avg Fatigue {report.avgFatigue} / Max Stage {report.maxStage} / RNG Before{' '}

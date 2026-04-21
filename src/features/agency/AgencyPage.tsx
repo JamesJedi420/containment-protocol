@@ -51,7 +51,9 @@ export default function AgencyPage() {
         </div>
 
         <div className="mt-2">
-          <h3 className="text-xs uppercase tracking-wide opacity-50 mb-1">Escalation & Pressure Cadence</h3>
+          <h3 className="text-xs uppercase tracking-wide opacity-50 mb-1">
+            Escalation & Pressure Cadence
+          </h3>
           <ul className="text-xs opacity-80 space-y-1">
             {formatCadenceSummary(overview).map((line, i) => (
               <li key={i}>{line}</li>
@@ -184,7 +186,9 @@ export default function AgencyPage() {
                 <li className="opacity-60">No council data</li>
               ) : (
                 Object.entries(summary.councilPowerDistribution).map(([council, pct]) => (
-                  <li key={council}>{council}: {pct}%</li>
+                  <li key={council}>
+                    {council}: {pct}%
+                  </li>
                 ))
               )}
             </ul>
@@ -199,6 +203,11 @@ export default function AgencyPage() {
           <li>Latest week: {summary.report.latestWeek ?? 'No reports logged'}</li>
           <li>Outcomes: {formatOutcomeCountSummary(summary.report)}</li>
           <li>Report notes: {summary.report.notes}</li>
+          <li>
+            Battle layer: {summary.report.battles} engagement(s) / hostile routed{' '}
+            {summary.report.hostileRouted} / friendly routed {summary.report.friendlyRouted} /
+            durable contacts hit {summary.report.specialDamaged}
+          </li>
           <li>
             Ranking: {summary.ranking.tier} / {summary.ranking.score}
           </li>

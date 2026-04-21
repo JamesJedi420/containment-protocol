@@ -1,15 +1,8 @@
 // Surface escalation consequences and severe hits in report notes
-import {
-  describeConsequenceRoute,
-  resolveConsequenceRoute,
-} from './shared/outcomes'
+import { describeConsequenceRoute, resolveConsequenceRoute } from './shared/outcomes'
 import { inspectDistortion } from './shared/distortion'
 import { buildFactionStates } from './factions'
-import {
-  type CaseInstance,
-  type GameState,
-  type ReportNote,
-} from './models'
+import { type CaseInstance, type GameState, type ReportNote } from './models'
 
 export function buildEscalationConsequenceNote(
   escalatedCase: CaseInstance,
@@ -52,7 +45,10 @@ export function buildEscalationConsequenceNote(
 // Surface Threshold Court proxy-conflict effect in report notes
 import { ProxyConflictOutcome } from './proxyConflict'
 
-export function buildThresholdCourtProxyConflictNote(outcome: ProxyConflictOutcome, week: number): ReportNote | null {
+export function buildThresholdCourtProxyConflictNote(
+  outcome: ProxyConflictOutcome,
+  week: number
+): ReportNote | null {
   if (outcome.effect === 'proxy_interference') {
     return createDeterministicReportNote(
       `Threshold Court Proxy Conflict — ${outcome.explanation}`,
@@ -71,7 +67,10 @@ export function buildThresholdCourtProxyConflictNote(outcome: ProxyConflictOutco
 // Surface Threshold Court protocol contact outcome in report notes
 import { ProtocolContactOutcome } from './protocol'
 
-export function buildThresholdCourtProtocolNote(outcome: ProtocolContactOutcome, week: number): ReportNote {
+export function buildThresholdCourtProtocolNote(
+  outcome: ProtocolContactOutcome,
+  week: number
+): ReportNote {
   return createDeterministicReportNote(
     `Threshold Court Contact — ${outcome.explanation}`,
     week,
@@ -247,7 +246,10 @@ export function formatRaidConvertedNoteContent() {
 }
 
 export function countWeeklyReportOutcomes(
-  report: Pick<WeeklyReport, 'resolvedCases' | 'partialCases' | 'failedCases' | 'unresolvedTriggers'>
+  report: Pick<
+    WeeklyReport,
+    'resolvedCases' | 'partialCases' | 'failedCases' | 'unresolvedTriggers'
+  >
 ): OutcomeCountSummary {
   return {
     resolved: report.resolvedCases.length,
@@ -380,6 +382,35 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
+    case 'case.aggregate_battle':
+      return {
+        content:
+          `${draft.payload.caseTitle}: aggregate battle resolved. ` +
+          `${draft.payload.winnerLabel ?? 'No side'} held the field after ${draft.payload.roundsResolved} round(s). ` +
+          `Friendly routed ${draft.payload.friendlyRoutedCount}, hostile routed ${draft.payload.hostileRoutedCount}.` +
+          (draft.payload.specialDamageCount > 0
+            ? ` Durable contacts marked: ${draft.payload.specialDamage.join(', ')}.`
+            : '') +
+          (draft.payload.movementDeniedCount > 0
+            ? ` Movement denied on ${draft.payload.movementDeniedCount} lane(s).`
+            : ''),
+        type: 'case.aggregate_battle',
+        metadata: {
+          caseId: draft.payload.caseId,
+          caseTitle: draft.payload.caseTitle,
+          battleId: draft.payload.battleId,
+          roundsResolved: draft.payload.roundsResolved,
+          winnerLabel: draft.payload.winnerLabel,
+          friendlyRoutedCount: draft.payload.friendlyRoutedCount,
+          hostileRoutedCount: draft.payload.hostileRoutedCount,
+          friendlyRoutedUnits: draft.payload.friendlyRoutedUnits,
+          hostileRoutedUnits: draft.payload.hostileRoutedUnits,
+          specialDamageCount: draft.payload.specialDamageCount,
+          specialDamage: draft.payload.specialDamage,
+          movementDeniedCount: draft.payload.movementDeniedCount,
+        },
+      }
+
     case 'agent.training_completed':
       return {
         content: `${draft.payload.agentName}: ${draft.payload.trainingName} completed.`,
@@ -392,7 +423,6 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
-
     case 'system.equipment_recovered':
       return {
         content: draft.payload.content,
@@ -400,8 +430,16 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         metadata: {
           recovered: Array.isArray(draft.payload.recovered) ? draft.payload.recovered : [],
           delayed: Array.isArray(draft.payload.delayed) ? draft.payload.delayed : [],
-          recoveredCount: Array.isArray(draft.payload.recovered) ? draft.payload.recovered.length : (typeof draft.payload.recovered === 'number' ? draft.payload.recovered : 0),
-          delayedCount: Array.isArray(draft.payload.delayed) ? draft.payload.delayed.length : (typeof draft.payload.delayed === 'number' ? draft.payload.delayed : 0),
+          recoveredCount: Array.isArray(draft.payload.recovered)
+            ? draft.payload.recovered.length
+            : typeof draft.payload.recovered === 'number'
+              ? draft.payload.recovered
+              : 0,
+          delayedCount: Array.isArray(draft.payload.delayed)
+            ? draft.payload.delayed.length
+            : typeof draft.payload.delayed === 'number'
+              ? draft.payload.delayed
+              : 0,
           maintenanceCapacity: draft.payload.maintenanceCapacity,
           damagedCount: draft.payload.damagedCount,
         },

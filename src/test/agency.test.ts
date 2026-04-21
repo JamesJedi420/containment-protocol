@@ -86,6 +86,45 @@ describe('agency', () => {
         avgFatigue: 18,
         teamStatus: [],
         notes: [],
+        caseSnapshots: {
+          [reputationCase.id]: {
+            caseId: reputationCase.id,
+            title: reputationCase.title,
+            kind: reputationCase.kind,
+            mode: reputationCase.mode,
+            status: 'resolved',
+            stage: reputationCase.stage,
+            deadlineRemaining: reputationCase.deadlineRemaining,
+            durationWeeks: reputationCase.durationWeeks,
+            assignedTeamIds: [],
+            aggregateBattle: {
+              battleId: `${reputationCase.id}-week-1`,
+              regionTag: reputationCase.regionTag ?? 'urban_sector',
+              roundsResolved: 3,
+              winnerSideId: 'operators',
+              winnerLabel: 'Containment Teams',
+              friendlySideId: 'operators',
+              friendlyLabel: 'Containment Teams',
+              hostileSideId: 'hostiles',
+              hostileLabel: 'Hostile Forces',
+              movementDeniedCount: 1,
+              movementDeniedUnits: ['Green Tape'],
+              friendlyRoutedUnits: [],
+              hostileRoutedUnits: ['Hostile Screen'],
+              specialDamage: [
+                {
+                  unitId: 'hostile-special',
+                  label: 'Reliquary Guardian',
+                  sideId: 'hostiles',
+                  hitsTaken: 2,
+                  hitsToBreak: 3,
+                  destroyed: false,
+                },
+              ],
+              summaryTable: [],
+            },
+          },
+        },
       },
     ]
     stressed.events = [
@@ -125,5 +164,8 @@ describe('agency', () => {
     expect(stressedSummary.report.resolved).toBe(1)
     expect(stressedSummary.report.failed).toBe(1)
     expect(stressedSummary.report.unresolved).toBe(1)
+    expect(stressedSummary.report.battles).toBe(1)
+    expect(stressedSummary.report.hostileRouted).toBe(1)
+    expect(stressedSummary.report.specialDamaged).toBe(1)
   })
 })

@@ -35,6 +35,14 @@ export type CaseSpawnTrigger =
   | 'pressure_threshold'
 
 export interface OperationEventPayloadMap {
+  'system.equipment_recovered': {
+    week: number
+    content: string
+    recovered: string[]
+    delayed: string[]
+    maintenanceCapacity: number
+    damagedCount: number
+  }
   'assignment.team_assigned': {
     week: number
     caseId: Id
@@ -121,6 +129,26 @@ export interface OperationEventPayloadMap {
     trigger: CaseEscalationTrigger
     minTeams: number
     maxTeams: number
+  }
+  'case.aggregate_battle': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    mode: CaseMode
+    kind: CaseKind
+    battleId: string
+    roundsResolved: number
+    winnerSideId: string | null
+    winnerLabel: string | null
+    friendlyLabel: string
+    hostileLabel: string
+    movementDeniedCount: number
+    friendlyRoutedCount: number
+    hostileRoutedCount: number
+    friendlyRoutedUnits: string[]
+    hostileRoutedUnits: string[]
+    specialDamageCount: number
+    specialDamage: string[]
   }
   'intel.report_generated': {
     week: number
@@ -431,6 +459,7 @@ export interface OperationEventPayloadMap {
 export type OperationEventType = keyof OperationEventPayloadMap
 
 export interface OperationEventTypeToSourceSystemMap {
+  'system.equipment_recovered': 'system'
   'assignment.team_assigned': 'assignment'
   'assignment.team_unassigned': 'assignment'
   'case.resolved': 'incident'
@@ -439,6 +468,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'case.escalated': 'incident'
   'case.spawned': 'incident'
   'case.raid_converted': 'incident'
+  'case.aggregate_battle': 'incident'
   'intel.report_generated': 'intel'
   'agent.training_started': 'agent'
   'agent.training_completed': 'agent'
@@ -471,6 +501,7 @@ export interface OperationEventTypeToSourceSystemMap {
 }
 
 export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSystemMap> = {
+  'system.equipment_recovered': 'system',
   'assignment.team_assigned': 'assignment',
   'assignment.team_unassigned': 'assignment',
   'case.resolved': 'incident',
@@ -479,6 +510,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'case.escalated': 'incident',
   'case.spawned': 'incident',
   'case.raid_converted': 'incident',
+  'case.aggregate_battle': 'incident',
   'intel.report_generated': 'intel',
   'agent.training_started': 'agent',
   'agent.training_completed': 'agent',

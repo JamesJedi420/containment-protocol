@@ -1,4 +1,8 @@
 import { buildAgencySummary } from '../../domain/agency'
+import {
+  isAggregateBattleCampaignSummary,
+  rollupAggregateBattleCampaignSummaries,
+} from '../../domain/aggregateBattle'
 import { calcWeekScore } from '../../domain/sim/scoring'
 import { type GameState } from '../../domain/models'
 import { getAdvisories } from '../../domain/advisory'
@@ -57,8 +61,6 @@ export function getDashboardMetrics(game: GameState) {
   }
 }
 
-
-
 export function getLatestReportSummary(game: GameState) {
   const latestReport = game.reports.at(-1)
 
@@ -66,9 +68,14 @@ export function getLatestReportSummary(game: GameState) {
     return undefined
   }
 
+  const aggregateBattles = Object.values(latestReport.caseSnapshots ?? {}).flatMap((snapshot) =>
+    isAggregateBattleCampaignSummary(snapshot.aggregateBattle) ? [snapshot.aggregateBattle] : []
+  )
+
   return {
     report: latestReport,
     score: calcWeekScore(latestReport),
+    battleRollup: rollupAggregateBattleCampaignSummaries(aggregateBattles),
   }
 }
 

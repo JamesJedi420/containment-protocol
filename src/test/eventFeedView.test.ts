@@ -232,6 +232,38 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('4')
   })
 
+  it('case.aggregate_battle — renders routed and durable-contact details', () => {
+    const event = makeEvent('case.aggregate_battle', {
+      week: 10,
+      caseId: 'case-006',
+      caseTitle: 'The Rift Protocol',
+      mode: 'threshold',
+      kind: 'raid',
+      battleId: 'case-006-week-10',
+      roundsResolved: 3,
+      winnerSideId: 'operators',
+      winnerLabel: 'Containment Teams',
+      friendlyLabel: 'Containment Teams',
+      hostileLabel: 'Hostile Forces',
+      movementDeniedCount: 2,
+      friendlyRoutedCount: 0,
+      hostileRoutedCount: 2,
+      friendlyRoutedUnits: [],
+      hostileRoutedUnits: ['Hostile Screen', 'Reserve Cell'],
+      specialDamageCount: 1,
+      specialDamage: ['Reliquary Guardian 2/3'],
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('success')
+    expect(view.title).toContain('The Rift Protocol')
+    expect(view.detail).toContain('Containment Teams')
+    expect(view.detail).toContain('Routed 0 friendly, 2 hostile')
+    expect(view.detail).toContain('Durable contacts 1')
+    expect(view.detail).toContain('Movement denied 2')
+    expect(view.searchText).toContain('reliquary guardian 2/3')
+  })
+
   it('intel.report_generated positive score — success tone', () => {
     const event = makeEvent('intel.report_generated', {
       week: 5,

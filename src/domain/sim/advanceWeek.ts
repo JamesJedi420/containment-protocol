@@ -32,9 +32,7 @@ function getDamagedEquipmentQueue(state: GameState): string[] {
   // For demo/testing, use state.damagedEquipmentQueue if present, else []
   const { damagedEquipmentQueue } = state as AdvanceWeekState
 
-  return Array.isArray(damagedEquipmentQueue)
-    ? [...damagedEquipmentQueue]
-    : []
+  return Array.isArray(damagedEquipmentQueue) ? [...damagedEquipmentQueue] : []
 }
 
 /**
@@ -52,6 +50,18 @@ function applyEquipmentRecoveryBottleneck(
   }
 }
 import { clamp, createSeededRng } from '../math'
+import {
+  buildAggregateBattleCampaignSummary,
+  buildAggregateBattleContextFromCase,
+  buildAggregateBattleSideState,
+  createAggregateBattleCommandOverlayFromLeaderBonus,
+  formatAggregateBattleCampaignSummary,
+  resolveAggregateBattle,
+  type AggregateBattleArea,
+  type AggregateBattleCampaignSummary,
+  type AggregateBattleInput,
+  type AggregateBattleUnit,
+} from '../aggregateBattle'
 import { getDistortionStatesForScore, mergeDistortionStates } from '../shared/distortion'
 import {
   assertExclusiveOutcomeBuckets,
@@ -142,10 +152,7 @@ import {
   buildUnresolvedCaseOutcomeDraft,
 } from './caseOutcomePipeline'
 import { decrementActiveAbilityCooldowns, markActiveAbilityUsed } from './abilityExecution'
-import {
-  createTimingCheckState,
-  shouldRunTimingCheck,
-} from './timingCheckHelper'
+import { createTimingCheckState, shouldRunTimingCheck } from './timingCheckHelper'
 import { applyMissionResolutionAgentMutations } from './missionResolutionAgents'
 import {
   buildCaseEscalatedEventDraft,
@@ -232,9 +239,7 @@ function getCampaignToIncidentHook() {
     campaignToIncidentHook?: CampaignToIncidentHook
   }
 
-  return typeof root.campaignToIncidentHook === 'function'
-    ? root.campaignToIncidentHook
-    : undefined
+  return typeof root.campaignToIncidentHook === 'function' ? root.campaignToIncidentHook : undefined
 }
 
 function computeFundingDelta(
@@ -430,7 +435,10 @@ function getFatigueBand(value: number): WeeklyReportTeamStatus['fatigueBand'] {
   return 'steady'
 }
 
-function buildReportCaseSnapshot(currentCase: CaseInstance, knowledge?: KnowledgeStateMap): WeeklyReportCaseSnapshot {
+function buildReportCaseSnapshot(
+  currentCase: CaseInstance,
+  knowledge?: KnowledgeStateMap
+): WeeklyReportCaseSnapshot {
   // Gather knowledge for all assigned teams for this case (anomaly)
   const caseKnowledge: Record<string, KnowledgeState> = {}
   const explanationParts: string[] = []
@@ -448,8 +456,10 @@ function buildReportCaseSnapshot(currentCase: CaseInstance, knowledge?: Knowledg
           explainFusion(ks),
           explainDecay(ks),
           explainRelayChain(ks),
-          explainHazardKnowledge(ks)
-        ].filter(Boolean).join(' | ')
+          explainHazardKnowledge(ks),
+        ]
+          .filter(Boolean)
+          .join(' | ')
         if (extra) part += ` (${extra})`
         explanationParts.push(part)
       }
@@ -464,11 +474,11 @@ function buildReportCaseSnapshot(currentCase: CaseInstance, knowledge?: Knowledg
   )
   if (spatialExplanation) explanationParts.push(spatialExplanation)
   // Only include revealExplanation if it is not the default/no-op string
-  let revealExplanation: string | undefined = undefined;
+  let revealExplanation: string | undefined = undefined
   if (explanationParts.length > 0) {
-    const joined = explanationParts.join(' | ');
+    const joined = explanationParts.join(' | ')
     if (joined !== 'No spatial constraints.') {
-      revealExplanation = joined;
+      revealExplanation = joined
     }
   }
   return {
@@ -492,7 +502,8 @@ function buildReportCaseSnapshots(
   missionResultByCaseId: Partial<Record<string, MissionResult>>,
   rewardByCaseId: Partial<Record<string, MissionRewardBreakdown>>,
   performanceByCaseId: Partial<Record<string, PerformanceMetricSummary>>,
-  powerImpactByCaseId: Partial<Record<string, PowerImpactSummary>>
+  powerImpactByCaseId: Partial<Record<string, PowerImpactSummary>>,
+  aggregateBattleByCaseId: Partial<Record<string, AggregateBattleCampaignSummary>>
 ) {
   const cases = state.cases
   const anchorDistortion = buildFactionStates(state)[0]?.distortion ?? 0
@@ -504,17 +515,38 @@ function buildReportCaseSnapshots(
       // Only include extra fields if they are defined
       const extra: Partial<WeeklyReportCaseSnapshot> = {}
       const distortion = mergeDistortionStates(currentCase.distortion, anchorDistortionStates)
-      if (missionResultByCaseId[currentCase.id] !== undefined) extra.missionResult = missionResultByCaseId[currentCase.id]
-      if (rewardByCaseId[currentCase.id] !== undefined) extra.rewardBreakdown = rewardByCaseId[currentCase.id]
-      if (performanceByCaseId[currentCase.id] !== undefined) extra.performanceSummary = performanceByCaseId[currentCase.id]
-      if (powerImpactByCaseId[currentCase.id] !== undefined) extra.powerImpact = powerImpactByCaseId[currentCase.id]
+      if (missionResultByCaseId[currentCase.id] !== undefined)
+        extra.missionResult = missionResultByCaseId[currentCase.id]
+      if (rewardByCaseId[currentCase.id] !== undefined)
+        extra.rewardBreakdown = rewardByCaseId[currentCase.id]
+      if (performanceByCaseId[currentCase.id] !== undefined)
+        extra.performanceSummary = performanceByCaseId[currentCase.id]
+      if (powerImpactByCaseId[currentCase.id] !== undefined)
+        extra.powerImpact = powerImpactByCaseId[currentCase.id]
+      if (aggregateBattleByCaseId[currentCase.id] !== undefined)
+        extra.aggregateBattle = aggregateBattleByCaseId[currentCase.id]
       if (distortion.length > 0) extra.distortion = distortion
       // Only include fields that are defined in base
       const minimal: Partial<WeeklyReportCaseSnapshot> = {}
       for (const key of Object.keys(base)) {
         if (base[key] !== undefined) minimal[key] = base[key]
       }
-      return [currentCase.id, { ...minimal, ...extra }]
+      // Ensure required fields are present and not undefined
+      const snapshot: WeeklyReportCaseSnapshot = {
+        caseId: currentCase.id,
+        title: currentCase.title,
+        kind: currentCase.kind,
+        mode: currentCase.mode,
+        status: currentCase.status,
+        stage: currentCase.stage,
+        deadlineRemaining: currentCase.deadlineRemaining,
+        durationWeeks: currentCase.durationWeeks,
+        weeksRemaining: currentCase.weeksRemaining,
+        assignedTeamIds: [...currentCase.assignedTeamIds],
+        ...minimal,
+        ...extra,
+      }
+      return [currentCase.id, snapshot]
     })
   )
 }
@@ -587,11 +619,521 @@ function buildAssignedAgentLeaderBonuses(
   )
 }
 
+function inferAggregateBattleSiteLayer(
+  currentCase: Pick<CaseInstance, 'siteLayer' | 'tags' | 'kind'>
+): NonNullable<CaseInstance['siteLayer']> {
+  if (currentCase.siteLayer) {
+    return currentCase.siteLayer
+  }
+
+  if (currentCase.tags.some((tag) => ['vault', 'catacomb', 'archive', 'chapel'].includes(tag))) {
+    return 'interior'
+  }
+
+  return currentCase.kind === 'raid' ? 'transition' : 'exterior'
+}
+
+function inferAggregateBattleVisibilityState(
+  currentCase: Pick<CaseInstance, 'visibilityState' | 'tags'>
+): NonNullable<CaseInstance['visibilityState']> {
+  if (currentCase.visibilityState) {
+    return currentCase.visibilityState
+  }
+
+  if (
+    currentCase.tags.some((tag) => ['fog', 'blackout', 'smoke', 'mirror', 'archive'].includes(tag))
+  ) {
+    return 'obstructed'
+  }
+
+  if (currentCase.tags.some((tag) => ['perimeter', 'street', 'watchtower'].includes(tag))) {
+    return 'exposed'
+  }
+
+  return 'clear'
+}
+
+function inferAggregateBattleTransitionType(
+  currentCase: Pick<CaseInstance, 'transitionType' | 'tags' | 'kind'>
+): NonNullable<CaseInstance['transitionType']> {
+  if (currentCase.transitionType) {
+    return currentCase.transitionType
+  }
+
+  if (
+    currentCase.tags.some((tag) =>
+      ['vault', 'catacomb', 'reliquary', 'chapel', 'bunker', 'containment'].includes(tag)
+    )
+  ) {
+    return 'chokepoint'
+  }
+
+  return currentCase.kind === 'raid' ? 'threshold' : 'open-approach'
+}
+
+function buildAggregateBattleAreasForOperation(currentCase: CaseInstance): AggregateBattleArea[] {
+  const transitionType = inferAggregateBattleTransitionType(currentCase)
+  const centerFrontage = transitionType === 'chokepoint' ? 4 : 6
+  const flankFrontage = transitionType === 'chokepoint' ? 3 : 5
+
+  return [
+    {
+      id: 'att-reserve',
+      label: 'Operator Reserve',
+      kind: 'reserve',
+      occupancyCapacity: 8,
+      frontageCapacity: 2,
+      adjacent: ['center-line', 'left-flank'],
+    },
+    {
+      id: 'att-support',
+      label: 'Operator Support',
+      kind: 'support',
+      occupancyCapacity: 4,
+      frontageCapacity: 1,
+      adjacent: ['left-flank'],
+    },
+    {
+      id: 'center-line',
+      label: transitionType === 'chokepoint' ? 'Breach Line' : 'Central Line',
+      kind: 'line',
+      occupancyCapacity: 8,
+      frontageCapacity: centerFrontage,
+      adjacent: ['att-reserve', 'def-reserve', 'left-flank'],
+    },
+    {
+      id: 'left-flank',
+      label: transitionType === 'chokepoint' ? 'Service Lane' : 'Left Flank',
+      kind: 'line',
+      occupancyCapacity: 6,
+      frontageCapacity: flankFrontage,
+      adjacent: ['att-reserve', 'att-support', 'center-line', 'def-support'],
+    },
+    {
+      id: 'def-reserve',
+      label: 'Hostile Reserve',
+      kind: 'reserve',
+      occupancyCapacity: 8,
+      frontageCapacity: 2,
+      adjacent: ['center-line', 'def-support'],
+    },
+    {
+      id: 'def-support',
+      label: 'Hostile Support',
+      kind: 'support',
+      occupancyCapacity: 4,
+      frontageCapacity: 1,
+      adjacent: ['left-flank', 'def-reserve'],
+    },
+  ]
+}
+
+function classifyAggregateBattleFamilyForTeam(team: Team, agents: GameState['agents']) {
+  const profile = buildTeamCompositionProfile(team, agents)
+  const memberIds = getTeamMemberIds(team)
+
+  if (
+    team.tags.includes('lab-kit') &&
+    profile.derivedStats.investigation + profile.derivedStats.support >=
+      profile.derivedStats.fieldPower + 12
+  ) {
+    return 'artillery_section' as const
+  }
+
+  if (
+    memberIds.length >= 4 ||
+    profile.derivedStats.fieldPower >= 48 ||
+    profile.derivedStats.containment >= 48
+  ) {
+    return 'line_company' as const
+  }
+
+  return 'mounted_wing' as const
+}
+
+function buildAggregateBattleOperatorForce(input: {
+  currentCase: CaseInstance
+  state: GameState
+  assignedTeamLeaderBonuses: Record<string, LeaderBonus>
+}) {
+  const units: AggregateBattleUnit[] = []
+  const commandOverlays = []
+
+  input.currentCase.assignedTeamIds.forEach((teamId, index) => {
+    const team = input.state.teams[teamId]
+    if (!team) {
+      return
+    }
+
+    const profile = buildTeamCompositionProfile(team, input.state.agents)
+    const memberCount = Math.max(1, getTeamMemberIds(team).length)
+    const family = classifyAggregateBattleFamilyForTeam(team, input.state.agents)
+    const overlayId = `${input.currentCase.id}-${teamId}-command`
+    const startAreaId =
+      family === 'artillery_section' ? 'att-support' : index === 0 ? 'att-reserve' : 'att-support'
+    const plannedPath =
+      family === 'artillery_section'
+        ? ['left-flank', 'def-support']
+        : index === 0
+          ? ['center-line', 'def-reserve']
+          : ['left-flank', 'center-line']
+    const strengthSteps = clamp(
+      Math.round(
+        memberCount /
+          (family === 'artillery_section' ? 2.5 : family === 'mounted_wing' ? 1.75 : 1.5)
+      ),
+      1,
+      family === 'artillery_section' ? 3 : 4
+    )
+
+    units.push({
+      id: `${input.currentCase.id}-${teamId}`,
+      label: team.name,
+      sideId: 'operators',
+      family,
+      strengthSteps,
+      areaId: startAreaId,
+      order: family === 'artillery_section' ? 'screen' : index === 0 ? 'press' : 'advance',
+      plannedPath,
+      meleeFactor: clamp(
+        Math.round(
+          (profile.derivedStats.fieldPower * 0.55 +
+            profile.derivedStats.containment * 0.35 +
+            profile.derivedStats.cohesion * 0.1) /
+            12
+        ) + (family === 'mounted_wing' ? 1 : 0),
+        3,
+        9
+      ),
+      missileFactor:
+        family === 'artillery_section'
+          ? clamp(
+              Math.round(
+                (profile.derivedStats.investigation * 0.4 + profile.derivedStats.support * 0.6) / 12
+              ),
+              4,
+              9
+            )
+          : family === 'mounted_wing'
+            ? clamp(
+                Math.round(
+                  (profile.derivedStats.fieldPower + profile.derivedStats.investigation) / 22
+                ),
+                1,
+                6
+              )
+            : clamp(
+                Math.round(
+                  (profile.derivedStats.fieldPower + profile.derivedStats.investigation) / 26
+                ),
+                1,
+                5
+              ),
+      defenseFactor: clamp(
+        Math.round(
+          (profile.derivedStats.overall +
+            profile.derivedStats.readiness +
+            profile.derivedStats.cohesion) /
+            36
+        ),
+        3,
+        8
+      ),
+      morale: clamp(
+        Math.round((profile.derivedStats.cohesion + profile.derivedStats.readiness) / 2),
+        42,
+        92
+      ),
+      readiness: clamp(profile.derivedStats.readiness, 35, 95),
+      commanderOverlayId: input.assignedTeamLeaderBonuses[teamId] ? overlayId : undefined,
+    })
+
+    const leaderBonus = input.assignedTeamLeaderBonuses[teamId]
+    if (leaderBonus) {
+      commandOverlays.push(
+        createAggregateBattleCommandOverlayFromLeaderBonus({
+          id: overlayId,
+          sideId: 'operators',
+          label: `${team.name} Command`,
+          areaId: startAreaId,
+          anchorUnitId: `${input.currentCase.id}-${teamId}`,
+          leaderBonus,
+          authority: input.state.legitimacy?.sanctionLevel,
+        })
+      )
+    }
+  })
+
+  return {
+    units,
+    commandOverlays,
+  }
+}
+
+function buildAggregateBattleHostileUnits(currentCase: CaseInstance): AggregateBattleUnit[] {
+  const needsSpecialUnit =
+    currentCase.stage >= 3 ||
+    currentCase.tags.some((tag) =>
+      ['occult', 'ritual', 'vampire', 'anomaly', 'reliquary', 'breach', 'raid'].includes(tag)
+    )
+  const frontlineFamily =
+    currentCase.tags.some((tag) => ['cult', 'swarm', 'outbreak', 'horde'].includes(tag)) ||
+    currentCase.stage >= 4
+      ? 'horde_mass'
+      : 'line_company'
+  const frontlineSteps = clamp(
+    2 + Math.round(currentCase.stage / 2),
+    2,
+    frontlineFamily === 'horde_mass' ? 3 : 4
+  )
+  const specialLabel = currentCase.tags.includes('reliquary')
+    ? 'Reliquary Guardian'
+    : currentCase.tags.includes('vampire')
+      ? 'Predator Alpha'
+      : currentCase.tags.includes('ritual') || currentCase.tags.includes('occult')
+        ? 'Ritual Vanguard'
+        : currentCase.tags.includes('infrastructure')
+          ? 'Grid Warden'
+          : 'Anomaly Anchor'
+
+  const units: AggregateBattleUnit[] = [
+    {
+      id: `${currentCase.id}-hostile-line`,
+      label: frontlineFamily === 'horde_mass' ? 'Hostile Mass' : 'Hostile Screen',
+      sideId: 'hostiles',
+      family: frontlineFamily,
+      strengthSteps: frontlineSteps,
+      areaId: 'center-line',
+      order: 'hold',
+      meleeFactor: clamp(
+        Math.round((currentCase.difficulty.combat * 0.6 + currentCase.stage * 12) / 6),
+        4,
+        9
+      ),
+      missileFactor: clamp(Math.round(currentCase.difficulty.utility / 12), 0, 4),
+      defenseFactor: clamp(
+        Math.round((currentCase.difficulty.combat + currentCase.difficulty.utility) / 14),
+        3,
+        8
+      ),
+      morale: clamp(48 + currentCase.stage * 4, 36, 80),
+      readiness: clamp(44 + currentCase.stage * 5, 34, 84),
+    },
+  ]
+
+  if (needsSpecialUnit) {
+    units.push({
+      id: `${currentCase.id}-hostile-special`,
+      label: specialLabel,
+      sideId: 'hostiles',
+      family: 'special_creature',
+      strengthSteps: 1,
+      areaId: 'def-support',
+      order: 'press',
+      plannedPath: ['left-flank', 'att-support'],
+      meleeFactor: clamp(
+        Math.round((currentCase.difficulty.combat + currentCase.difficulty.utility) / 8) +
+          currentCase.stage,
+        6,
+        10
+      ),
+      missileFactor: currentCase.tags.some((tag) => ['ritual', 'signal', 'occult'].includes(tag))
+        ? clamp(
+            Math.round((currentCase.difficulty.investigation + currentCase.stage * 6) / 10),
+            2,
+            6
+          )
+        : 0,
+      defenseFactor: clamp(
+        Math.round((currentCase.difficulty.utility + currentCase.difficulty.investigation) / 10),
+        5,
+        9
+      ),
+      morale: clamp(56 + currentCase.stage * 5, 46, 90),
+      readiness: clamp(54 + currentCase.stage * 5, 44, 90),
+      specialDurability: {
+        hitsToBreak: 3,
+      },
+    })
+  }
+
+  if (currentCase.stage >= 4) {
+    units.push({
+      id: `${currentCase.id}-hostile-reserve`,
+      label: 'Reserve Cell',
+      sideId: 'hostiles',
+      family: 'line_company',
+      strengthSteps: 2,
+      order: 'advance',
+      reinforcement: {
+        round: 2,
+        areaId: 'def-reserve',
+      },
+      plannedPath: ['center-line'],
+      meleeFactor: clamp(Math.round(currentCase.difficulty.combat / 8) + 3, 3, 7),
+      defenseFactor: clamp(Math.round(currentCase.difficulty.utility / 12) + 3, 3, 7),
+      morale: clamp(46 + currentCase.stage * 3, 34, 78),
+      readiness: clamp(42 + currentCase.stage * 3, 32, 80),
+    })
+  }
+
+  return units
+}
+
+function resolveOperationAggregateBattle(
+  currentCase: CaseInstance,
+  state: GameState,
+  assignedTeamLeaderBonuses: Record<string, LeaderBonus>
+): AggregateBattleCampaignSummary | undefined {
+  if (currentCase.kind !== 'raid' || currentCase.assignedTeamIds.length === 0) {
+    return undefined
+  }
+
+  const context = buildAggregateBattleContextFromCase({
+    ...currentCase,
+    siteLayer: inferAggregateBattleSiteLayer(currentCase),
+    visibilityState: inferAggregateBattleVisibilityState(currentCase),
+    transitionType: inferAggregateBattleTransitionType(currentCase),
+    spatialFlags: [...(currentCase.spatialFlags ?? [])],
+  })
+  const areas = buildAggregateBattleAreasForOperation(currentCase)
+  const operatorSupportAvailable = Math.max(
+    0,
+    (state.agency?.supportAvailable ?? 0) - (currentCase.supportShortfall ? 1 : 0)
+  )
+  const hostileSupportAvailable = clamp(
+    currentCase.stage +
+      (currentCase.kind === 'raid' ? 1 : 0) -
+      (currentCase.supportShortfall ? 1 : 0),
+    0,
+    4
+  )
+  const sides = [
+    buildAggregateBattleSideState({
+      id: 'operators',
+      label: 'Containment Teams',
+      reserveAreaId: 'att-reserve',
+      supportAreaId: 'att-support',
+      supportAvailable: operatorSupportAvailable,
+      coordinationFrictionActive: Boolean(
+        state.agency?.coordinationFrictionActive ?? state.coordinationFrictionActive
+      ),
+      legitimacy: state.legitimacy,
+    }),
+    buildAggregateBattleSideState({
+      id: 'hostiles',
+      label: 'Hostile Forces',
+      reserveAreaId: 'def-reserve',
+      supportAreaId: 'def-support',
+      supportAvailable: hostileSupportAvailable,
+      coordinationFrictionActive: currentCase.stage >= 4,
+      legitimacy: {
+        sanctionLevel:
+          currentCase.tags.includes('cult') || currentCase.tags.includes('occult')
+            ? 'unsanctioned'
+            : currentCase.tags.includes('raid')
+              ? 'tolerated'
+              : 'covert',
+      },
+    }),
+  ]
+  const operatorForce = buildAggregateBattleOperatorForce({
+    currentCase,
+    state,
+    assignedTeamLeaderBonuses,
+  })
+
+  if (operatorForce.units.length === 0) {
+    return undefined
+  }
+
+  const battleInput: AggregateBattleInput = {
+    battleId: `${currentCase.id}-week-${state.week}`,
+    roundLimit: currentCase.stage >= 4 ? 3 : 2,
+    areas,
+    sides,
+    units: [...operatorForce.units, ...buildAggregateBattleHostileUnits(currentCase)],
+    context,
+    commandOverlays: operatorForce.commandOverlays,
+  }
+  const result = resolveAggregateBattle(battleInput)
+
+  return buildAggregateBattleCampaignSummary({
+    context,
+    result,
+    friendlySideId: 'operators',
+    friendlyLabel: 'Containment Teams',
+    hostileSideId: 'hostiles',
+    hostileLabel: 'Hostile Forces',
+  })
+}
+
+function buildAggregateBattleResolutionReasons(summary?: AggregateBattleCampaignSummary) {
+  if (!summary) {
+    return []
+  }
+
+  const reasons = [formatAggregateBattleCampaignSummary(summary)]
+
+  if (summary.hostileRoutedUnits.length > 0) {
+    reasons.push(`Routed hostile elements: ${summary.hostileRoutedUnits.join(', ')}.`)
+  }
+
+  if (summary.friendlyRoutedUnits.length > 0) {
+    reasons.push(`Friendly elements forced back routed: ${summary.friendlyRoutedUnits.join(', ')}.`)
+  }
+
+  if (summary.specialDamage.length > 0) {
+    reasons.push(
+      `Durable contacts marked: ${summary.specialDamage
+        .map((entry) => `${entry.label} ${entry.hitsTaken}/${entry.hitsToBreak}`)
+        .join(', ')}.`
+    )
+  }
+
+  return reasons
+}
+
+function buildAggregateBattleEventDraft(
+  week: number,
+  currentCase: Pick<CaseInstance, 'id' | 'title' | 'mode' | 'kind'>,
+  summary: AggregateBattleCampaignSummary
+): AnyOperationEventDraft {
+  return {
+    type: 'case.aggregate_battle',
+    sourceSystem: 'incident',
+    payload: {
+      week,
+      caseId: currentCase.id,
+      caseTitle: currentCase.title,
+      mode: currentCase.mode,
+      kind: currentCase.kind,
+      battleId: summary.battleId,
+      roundsResolved: summary.roundsResolved,
+      winnerSideId: summary.winnerSideId,
+      winnerLabel: summary.winnerLabel,
+      friendlyLabel: summary.friendlyLabel,
+      hostileLabel: summary.hostileLabel,
+      movementDeniedCount: summary.movementDeniedCount,
+      friendlyRoutedCount: summary.friendlyRoutedUnits.length,
+      hostileRoutedCount: summary.hostileRoutedUnits.length,
+      friendlyRoutedUnits: [...summary.friendlyRoutedUnits],
+      hostileRoutedUnits: [...summary.hostileRoutedUnits],
+      specialDamageCount: summary.specialDamage.length,
+      specialDamage: summary.specialDamage.map(
+        (entry) =>
+          `${entry.label} ${entry.hitsTaken}/${entry.hitsToBreak}${entry.destroyed ? ' broken' : ''}`
+      ),
+    },
+  }
+}
+
 interface WeeklyCaseResolutionStrategy {
   assignedAgents: NonNullable<GameState['agents'][string]>[]
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcomeWithDetails
+  aggregateBattleSummary?: AggregateBattleCampaignSummary
 }
 
 type SeededRng = ReturnType<typeof createSeededRng>
@@ -621,6 +1163,7 @@ interface WeeklyExecutionContext {
   missionResultByCaseId: Partial<Record<string, MissionResult>>
   performanceByCaseId: Partial<Record<string, PerformanceMetricSummary>>
   powerImpactByCaseId: Partial<Record<string, PowerImpactSummary>>
+  aggregateBattleByCaseId: Partial<Record<string, AggregateBattleCampaignSummary>>
   initialRecruitmentPool: GameState['candidates']
   initialRecruitmentCandidateIdSet: Set<string>
   generatedRecruitmentCandidates: GameState['candidates']
@@ -647,9 +1190,14 @@ function resolveAssignedCaseForWeek(
     reasons: string[]
     fatigueAdjustmentByTeam: Record<string, number>
   }
-): WeeklyCaseResolutionStrategy {
+): WeeklyCaseResolutionStrategy & {
+  campaignToIncident?: CampaignToIncidentPacket
+  incidentToCampaign?: IncidentToCampaignPacket
+} {
   if (currentCase.assignedTeamIds.length === 0) {
-    throw new Error(`resolveAssignedCaseForWeek requires at least one assigned team for ${currentCase.id}.`)
+    throw new Error(
+      `resolveAssignedCaseForWeek requires at least one assigned team for ${currentCase.id}.`
+    )
   }
 
   const primaryTeamId = currentCase.assignedTeamIds[0]
@@ -685,14 +1233,13 @@ function resolveAssignedCaseForWeek(
     teamId: primaryTeamId,
     teamSnapshot: state.teams[primaryTeamId],
     campaignDirectives: [state.directiveState.selectedId].filter(Boolean) as string[],
-    knowledgeState:
-      state.knowledge[getKnowledgeKey(primaryTeamId, currentCase.id)] ?? {
-        tier: 'unknown',
-        entityId: primaryTeamId,
-        entityType: 'team',
-        subjectId: currentCase.id,
-        subjectType: caseSubjectType,
-      },
+    knowledgeState: state.knowledge[getKnowledgeKey(primaryTeamId, currentCase.id)] ?? {
+      tier: 'unknown',
+      entityId: primaryTeamId,
+      entityType: 'team',
+      subjectId: currentCase.id,
+      subjectType: caseSubjectType,
+    },
   }
 
   // Modular integration point: allow optional modules to inspect/modify the handoff packet
@@ -722,10 +1269,18 @@ function resolveAssignedCaseForWeek(
               currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
             ),
           ],
-          leaderId: currentCase.assignedTeamIds.length === 1 ? (state.teams[primaryTeamId]?.leaderId ?? null) : null,
+          leaderId:
+            currentCase.assignedTeamIds.length === 1
+              ? (state.teams[primaryTeamId]?.leaderId ?? null)
+              : null,
           partyCardScoreBonus: cardBonus?.scoreAdjustment,
           partyCardReasons: cardBonus?.reasons,
         })
+  const aggregateBattleSummary = resolveOperationAggregateBattle(
+    currentCase,
+    state,
+    assignedTeamLeaderBonuses
+  )
   const incidentToCampaign: IncidentToCampaignPacket = {
     caseId: currentCase.id,
     teamId: primaryTeamId,
@@ -743,6 +1298,7 @@ function resolveAssignedCaseForWeek(
     assignedAgentLeaderBonuses,
     activeTeamStressModifiers,
     outcome,
+    aggregateBattleSummary,
     campaignToIncident,
     incidentToCampaign,
   }
@@ -787,8 +1343,11 @@ function createWeeklyExecutionContext(
     missionResultByCaseId: {},
     performanceByCaseId: {},
     powerImpactByCaseId: {},
+    aggregateBattleByCaseId: {},
     initialRecruitmentPool,
-    initialRecruitmentCandidateIdSet: new Set(initialRecruitmentPool.map((candidate) => candidate.id)),
+    initialRecruitmentCandidateIdSet: new Set(
+      initialRecruitmentPool.map((candidate) => candidate.id)
+    ),
     generatedRecruitmentCandidates: [],
     noteBaseTimestamp,
   }
@@ -1120,10 +1679,15 @@ function applyActiveTriggerCooldowns(
 }
 
 // Accept timingCheckState as parameter for shared cadence
-function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, timingCheckState: ReturnType<typeof createTimingCheckState>) {
+function resolveAssignments(
+  context: WeeklyExecutionContext,
+  rng: SeededRng,
+  timingCheckState: ReturnType<typeof createTimingCheckState>
+) {
   // SPE-38: Track support pool and apply support shortage/fallout
   // Use agency.supportAvailable as canonical support pool for the week
-  const hasConfiguredSupportCapacity = typeof context.sourceState.agency?.supportAvailable === 'number'
+  const hasConfiguredSupportCapacity =
+    typeof context.sourceState.agency?.supportAvailable === 'number'
   let supportAvailable = hasConfiguredSupportCapacity
     ? (context.sourceState.agency?.supportAvailable ?? 0)
     : Number.POSITIVE_INFINITY
@@ -1174,11 +1738,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
     if (nextWeeksRemaining > 0) {
       // Use shared timing/check helper for bounded cadence
       if (
-        shouldRunTimingCheck(
-          timingCheckState,
-          'OnLongCaseDurationCheck',
-          context.sourceState.week
-        )
+        shouldRunTimingCheck(timingCheckState, 'OnLongCaseDurationCheck', context.sourceState.week)
       ) {
         applyActiveTriggerCooldowns(context, {
           agentIds: getUniqueTeamMembers(
@@ -1253,7 +1813,12 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
       ...context.nextState.cases[caseId],
       supportShortfall: isSupportShortfall,
     }
-    const { assignedAgentLeaderBonuses, activeTeamStressModifiers, outcome } = weeklyResolution
+    const {
+      assignedAgentLeaderBonuses,
+      activeTeamStressModifiers,
+      outcome,
+      aggregateBattleSummary,
+    } = weeklyResolution
     const effectiveCase = {
       ...currentCase,
       assignedTeamIds: existingAssignedTeamIds,
@@ -1269,13 +1834,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
     ).map((agent) => agent.id)
 
     // Use shared timing/check helper for OnResolutionCheck (bounded)
-    if (
-      shouldRunTimingCheck(
-        timingCheckState,
-        'OnResolutionCheck',
-        context.sourceState.week
-      )
-    ) {
+    if (shouldRunTimingCheck(timingCheckState, 'OnResolutionCheck', context.sourceState.week)) {
       applyActiveTriggerCooldowns(context, {
         agentIds: assignedAgentIds,
         triggerEvent: 'OnCaseStart',
@@ -1308,8 +1867,15 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
 
     const performanceSummary = aggregateOutcomePerformanceSummary(outcome)
     const powerImpact = aggregateOutcomePowerImpact(outcome)
+    const resolutionReasons = [
+      ...outcome.reasons,
+      ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
+    ]
     context.performanceByCaseId[caseId] = performanceSummary
     context.powerImpactByCaseId[caseId] = powerImpact
+    if (aggregateBattleSummary) {
+      context.aggregateBattleByCaseId[caseId] = aggregateBattleSummary
+    }
 
     if (outcome.result === 'success') {
       const rewardBreakdown = buildMissionRewardBreakdown(
@@ -1330,7 +1896,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
         performanceSummary,
         powerImpact,
         injuries: missionAgentMutations.missionInjuries,
-        resolutionReasons: outcome.reasons,
+        resolutionReasons,
       })
 
       // --- Knowledge-State: Deterministic Gain/Confirmation ---
@@ -1350,7 +1916,11 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
         subjectId: string,
         subjectType: KnowledgeSubjectType,
         outcome: ResolutionOutcome['result'],
-        opts?: { provisionalClassification?: string; trueClassification?: string; contextTag?: string }
+        opts?: {
+          provisionalClassification?: string
+          trueClassification?: string
+          contextTag?: string
+        }
       ) => {
         const key = getKnowledgeKey(teamId, subjectId)
         const prev: KnowledgeState | undefined = context.nextState.knowledge[key]
@@ -1361,7 +1931,8 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
         let notes = ''
         let lastConfirmedWeek = prev?.lastConfirmedWeek
         let lastOperationalizedWeek = prev?.lastOperationalizedWeek
-        let confirmationState: 'provisional' | 'confirmed' = prev?.confirmationState || 'provisional'
+        let confirmationState: 'provisional' | 'confirmed' =
+          prev?.confirmationState || 'provisional'
         let provisionalClassification = prev?.provisionalClassification
         let trueClassification = prev?.trueClassification
         const contextTag = opts?.contextTag ?? prev?.contextTag
@@ -1389,7 +1960,7 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           }
           notes += 'Direct containment success.'
           // Demotion recovery: if previously fragmented, restore to confirmed
-          if (prev?.tier === 'fragmented') {
+          if (prev?.fragmentation === 'fragmented') {
             tier = 'confirmed'
             fragmented = false
             notes += ' Knowledge recovered from fragmentation by new success.'
@@ -1435,7 +2006,10 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           obsolete = true
           fragmentation = 'obsolete'
           notes += ' Knowledge obsolete due to subject mutation.'
-        } else if (prev?.lastConfirmedWeek !== undefined && context.sourceState.week - prev.lastConfirmedWeek > 8) {
+        } else if (
+          prev?.lastConfirmedWeek !== undefined &&
+          context.sourceState.week - prev.lastConfirmedWeek > 8
+        ) {
           fragmented = true
           fragmentation = 'fragmented'
           lastDecayWeek = context.sourceState.week
@@ -1490,6 +2064,15 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           performanceSummary,
         })
       )
+      if (aggregateBattleSummary) {
+        context.eventDrafts.push(
+          buildAggregateBattleEventDraft(
+            context.sourceState.week,
+            effectiveCase,
+            aggregateBattleSummary
+          )
+        )
+      }
       continue
     }
 
@@ -1534,18 +2117,12 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           detail: `Case escalated to stage ${escalatedCase.stage}.`,
         },
       ],
-      resolutionReasons: outcome.reasons,
+      resolutionReasons,
     })
 
     if (outcome.result === 'fail') {
       // Use shared timing/check helper for OnThreatEncounter (bounded as extra check)
-      if (
-        shouldRunTimingCheck(
-          timingCheckState,
-          'OnExtraCheck',
-          context.sourceState.week
-        )
-      ) {
+      if (shouldRunTimingCheck(timingCheckState, 'OnExtraCheck', context.sourceState.week)) {
         applyActiveTriggerCooldowns(context, {
           agentIds: assignedAgentIds,
           triggerEvent: 'OnThreatEncounter',
@@ -1570,18 +2147,21 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           performanceSummary,
         })
       )
+      if (aggregateBattleSummary) {
+        context.eventDrafts.push(
+          buildAggregateBattleEventDraft(
+            context.sourceState.week,
+            effectiveCase,
+            aggregateBattleSummary
+          )
+        )
+      }
       continue
     }
 
     if (outcome.result === 'partial') {
       // Use shared timing/check helper for OnExtraCheck (bounded)
-      if (
-        shouldRunTimingCheck(
-          timingCheckState,
-          'OnExtraCheck',
-          context.sourceState.week
-        )
-      ) {
+      if (shouldRunTimingCheck(timingCheckState, 'OnExtraCheck', context.sourceState.week)) {
         applyActiveTriggerCooldowns(context, {
           agentIds: assignedAgentIds,
           triggerEvent: 'OnThreatEncounter',
@@ -1606,6 +2186,15 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
           performanceSummary,
         })
       )
+      if (aggregateBattleSummary) {
+        context.eventDrafts.push(
+          buildAggregateBattleEventDraft(
+            context.sourceState.week,
+            effectiveCase,
+            aggregateBattleSummary
+          )
+        )
+      }
       continue
     }
   }
@@ -1628,7 +2217,10 @@ function resolveAssignments(context: WeeklyExecutionContext, rng: SeededRng, tim
 }
 
 // Accept timingCheckState as parameter for shared cadence
-function escalateCases(context: WeeklyExecutionContext, timingCheckState: ReturnType<typeof createTimingCheckState>) {
+function escalateCases(
+  context: WeeklyExecutionContext,
+  timingCheckState: ReturnType<typeof createTimingCheckState>
+) {
   for (const caseId of context.initialCaseIds) {
     if (context.finalizedCaseIds.has(caseId)) {
       continue
@@ -1660,11 +2252,7 @@ function escalateCases(context: WeeklyExecutionContext, timingCheckState: Return
     if (nextDeadlineRemaining > 0) {
       // Only run deadline escalation if allowed by bounded helper
       if (
-        shouldRunTimingCheck(
-          timingCheckState,
-          'OnDeadlineEscalation',
-          context.sourceState.week
-        )
+        shouldRunTimingCheck(timingCheckState, 'OnDeadlineEscalation', context.sourceState.week)
       ) {
         context.nextState.cases[caseId] = countdownCase
       }
@@ -1984,8 +2572,12 @@ function refreshPartyCards(context: WeeklyExecutionContext, rng: SeededRng) {
 
 function spawnFollowUps(context: WeeklyExecutionContext, rng: SeededRng) {
   // Only spawn follow-ups for cases that were actually failed or unresolved this tick
-  const filteredFailedSources = context.failedSpawnSources.filter(cid => context.initialCaseIdSet.has(cid))
-  const filteredUnresolvedTriggers = context.unresolvedTriggers.filter(cid => context.initialCaseIdSet.has(cid))
+  const filteredFailedSources = context.failedSpawnSources.filter((cid) =>
+    context.initialCaseIdSet.has(cid)
+  )
+  const filteredUnresolvedTriggers = context.unresolvedTriggers.filter((cid) =>
+    context.initialCaseIdSet.has(cid)
+  )
 
   const failureSpawn = spawnFromFailures(context.nextState, filteredFailedSources, rng.next)
   context.nextState = { ...failureSpawn.state, rngState: rng.getState() }
@@ -2122,14 +2714,12 @@ function advanceQueues(context: WeeklyExecutionContext) {
   // Surface bottleneck/help signals in report notes
   if (damagedQueue.length > 0) {
     // Use a unique event draft for equipment recovery
-    const noteDraft = {
+    const noteDraft: AnyOperationEventDraft = {
       type: 'system.equipment_recovered',
       sourceSystem: 'system',
       payload: {
-        content:
-          delayed.length === 0
-            ? `All damaged equipment recovered (${recovered.length} item${recovered.length === 1 ? '' : 's'}).`
-            : `${recovered.length} equipment item${recovered.length === 1 ? '' : 's'} recovered; ${delayed.length} delayed due to maintenance bottleneck.`,
+        week: context.nextState.week,
+        content: `Equipment maintenance recovered ${recovered.length} item(s); ${delayed.length} item(s) remain delayed.`,
         recovered,
         delayed,
         maintenanceCapacity,
@@ -2231,19 +2821,21 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
   const hubNotes = context.hubNotes
 
   // Only include cases that were present at the start of the tick for all report buckets
-  const filterInitial = (arr: string[]) => arr.filter(cid => context.initialCaseIdSet.has(cid));
-  const filteredResolved = filterInitial(context.resolvedCases);
-  const filteredFailed = filterInitial(context.failedCases);
-  const filteredPartial = filterInitial(context.partialCases);
-  const filteredUnresolved = filterInitial(context.unresolvedTriggers);
+  const filterInitial = (arr: string[]) => arr.filter((cid) => context.initialCaseIdSet.has(cid))
+  const filteredResolved = filterInitial(context.resolvedCases)
+  const filteredFailed = filterInitial(context.failedCases)
+  const filteredPartial = filterInitial(context.partialCases)
+  const filteredUnresolved = filterInitial(context.unresolvedTriggers)
   // Only include spawned cases that are not in the initial case set (i.e., truly new this tick)
-  const filteredSpawnedCaseIds = context.spawnedCaseIds.filter(cid => !context.initialCaseIdSet.has(cid));
+  const filteredSpawnedCaseIds = context.spawnedCaseIds.filter(
+    (cid) => !context.initialCaseIdSet.has(cid)
+  )
 
   // Only include notes that are not related to unrelated cases (for strict test alignment, keep only anchor/hub notes)
   const filteredNotes = [
     ...(anchorInstabilityNote ? [anchorInstabilityNote] : []),
     ...(hubNotes ?? []),
-  ];
+  ]
 
   const report: WeeklyReport = {
     week: context.sourceState.week,
@@ -2271,7 +2863,8 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
       context.missionResultByCaseId,
       context.rewardByCaseId,
       context.performanceByCaseId,
-      context.powerImpactByCaseId
+      context.powerImpactByCaseId,
+      context.aggregateBattleByCaseId
     ),
     notes: filteredNotes,
   }
@@ -2353,7 +2946,12 @@ function updateAgencyMetrics(
     prevAgency = context.sourceState.agency
   }
   if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = {}
+    prevAgency = {
+      containmentRating: 0,
+      clearanceLevel: 1,
+      funding: 0,
+      supportAvailable: 0,
+    }
   }
   prevAgency = canonicalizeAgencyState(prevAgency)
   const nextAgency = {
@@ -2401,14 +2999,16 @@ function finalizeEvents(
     ),
   }
   // Always overlay canonical agency object
-  const canonicalAgency = (agencyMetrics.finalState.agency && Object.keys(agencyMetrics.finalState.agency).length > 0)
-    ? agencyMetrics.finalState.agency
-    : context.nextState.agency || context.sourceState.agency || {
-        containmentRating: 0,
-        clearanceLevel: 1,
-        funding: 0,
-        supportAvailable: 0,
-      }
+  const canonicalAgency =
+    agencyMetrics.finalState.agency && Object.keys(agencyMetrics.finalState.agency).length > 0
+      ? agencyMetrics.finalState.agency
+      : context.nextState.agency ||
+        context.sourceState.agency || {
+          containmentRating: 0,
+          clearanceLevel: 1,
+          funding: 0,
+          supportAvailable: 0,
+        }
   const finalStateWithReport = {
     ...agencyMetrics.finalState,
     agency: canonicalAgency,
@@ -2421,9 +3021,13 @@ function finalizeEvents(
     sourceSystem: 'intel',
     payload: {
       week: report.week,
+      resolvedCount: report.resolvedCases.length,
+      failedCount: report.failedCases.length,
+      partialCount: report.partialCases.length,
+      unresolvedCount: report.unresolvedTriggers.length,
+      spawnedCount: report.spawnedCases.length,
       noteCount: report.notes.length,
-      // Only include noteCount and week for strict test alignment
-      // (legacy fields can be added if needed by other consumers)
+      score: builtReport.weekScore,
     },
   })
 
@@ -2445,8 +3049,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)
-  const sourceState =
-    sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+  const sourceState = sourceReports === state.reports ? state : { ...state, reports: sourceReports }
 
   // Create a single timingCheckState for the week
   const timingCheckState = createTimingCheckState()
@@ -2466,7 +3069,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     : 0
   // Coordination friction triggers if (activeCases + prevSupportShortfall) > threshold
   const COORDINATION_OVERLOAD_THRESHOLD = 4 // Bounded, deterministic threshold (tune as needed)
-  const coordinationFrictionActive = activeCases + prevSupportShortfall > COORDINATION_OVERLOAD_THRESHOLD
+  const coordinationFrictionActive =
+    activeCases + prevSupportShortfall > COORDINATION_OVERLOAD_THRESHOLD
   let coordinationFrictionReason = undefined
   if (coordinationFrictionActive) {
     coordinationFrictionReason = `Coordination overload: ${activeCases} active ops + ${prevSupportShortfall} support shortfall (threshold ${COORDINATION_OVERLOAD_THRESHOLD})`
@@ -2482,19 +3086,19 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   // SPE-95: If coordination friction is active, deterministically downgrade one follow-through outcome
   if (coordinationFrictionActive) {
     // Find a 'success' in context.resolvedCases and downgrade to 'partial' (if any)
-    const downgradeCaseId = context.resolvedCases.find(cid => {
-      const mission = context.missionResultDraftByCaseId[cid];
-      return mission && mission.outcome === 'success';
-    });
+    const downgradeCaseId = context.resolvedCases.find((cid) => {
+      const mission = context.missionResultDraftByCaseId[cid]
+      return mission && mission.outcome === 'success'
+    })
     if (downgradeCaseId) {
       // Downgrade the mission result
-      const mission = context.missionResultDraftByCaseId[downgradeCaseId];
+      const mission = context.missionResultDraftByCaseId[downgradeCaseId]
       if (mission) {
         mission.outcome = 'partial'
         mission.explanationNotes = [
           ...(mission.explanationNotes || []),
           'Command-coordination friction under pressure reduced operation follow-through this week.',
-        ];
+        ]
       }
       // Remove from resolvedCases if present, and record as partial (exclusive)
       context.resolvedCases = context.resolvedCases.filter((cid) => cid !== downgradeCaseId)
@@ -2521,23 +3125,24 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   let builtReport = buildReports(context)
   // SPE-95: Surface a coordination friction note if active
   if (coordinationFrictionActive && builtReport.report) {
-    const note = {
+    const note: ReportNote = {
       id: `note-coordination-friction-${state.week}`,
-      content: 'Command-coordination friction under pressure reduced operation follow-through this week.',
+      content:
+        'Command-coordination friction under pressure reduced operation follow-through this week.',
       timestamp: Date.now(),
-      type: 'agency.coordination_friction',
+      type: 'system.week_delta',
       metadata: {
-        reason: coordinationFrictionReason,
+        reason: coordinationFrictionReason ?? '',
         week: sourceState.week,
       },
-    };
+    }
     builtReport = {
       ...builtReport,
       report: {
         ...builtReport.report,
         notes: [...(builtReport.report.notes || []), note],
       },
-    };
+    }
   }
   const agencyMetrics = updateAgencyMetrics(context, builtReport)
 
@@ -2553,18 +3158,18 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   // SPE-95: Patch output state for test assertions
   if (coordinationFrictionActive) {
     if (result.agency) {
-      result.agency.coordinationFrictionActive = true;
-      result.agency.coordinationFrictionReason = coordinationFrictionReason;
+      result.agency.coordinationFrictionActive = true
+      result.agency.coordinationFrictionReason = coordinationFrictionReason
     }
-    result.coordinationFrictionActive = true;
-    result.coordinationFrictionReason = coordinationFrictionReason;
+    result.coordinationFrictionActive = true
+    result.coordinationFrictionReason = coordinationFrictionReason
   } else {
     if (result.agency) {
-      result.agency.coordinationFrictionActive = false;
-      result.agency.coordinationFrictionReason = undefined;
+      result.agency.coordinationFrictionActive = false
+      result.agency.coordinationFrictionReason = undefined
     }
-    result.coordinationFrictionActive = false;
-    result.coordinationFrictionReason = undefined;
+    result.coordinationFrictionActive = false
+    result.coordinationFrictionReason = undefined
   }
   return result
 }

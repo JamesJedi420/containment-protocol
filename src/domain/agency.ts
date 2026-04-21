@@ -1,5 +1,9 @@
 import { clamp } from './math'
 import type { CaseInstance, GameState } from './models'
+import {
+  isAggregateBattleCampaignSummary,
+  rollupAggregateBattleCampaignSummaries,
+} from './aggregateBattle'
 import { buildFactionStates } from './factions'
 import { buildLogisticsOverview } from './logistics'
 import { buildMajorIncidentProfile } from './majorIncidents'
@@ -51,6 +55,10 @@ export interface AgencyReportSummary {
   failed: number
   unresolved: number
   notes: number
+  battles: number
+  friendlyRouted: number
+  hostileRouted: number
+  specialDamaged: number
 }
 
 export interface AgencySummary {
@@ -256,8 +264,17 @@ function buildAgencyReportSummary(game: GameState): AgencyReportSummary {
       failed: 0,
       unresolved: 0,
       notes: 0,
+      battles: 0,
+      friendlyRouted: 0,
+      hostileRouted: 0,
+      specialDamaged: 0,
     }
   }
+
+  const aggregateBattles = Object.values(latestReport.caseSnapshots ?? {}).flatMap((snapshot) =>
+    isAggregateBattleCampaignSummary(snapshot.aggregateBattle) ? [snapshot.aggregateBattle] : []
+  )
+  const battleRollup = rollupAggregateBattleCampaignSummaries(aggregateBattles)
 
   return {
     latestWeek: latestReport.week,
@@ -266,6 +283,10 @@ function buildAgencyReportSummary(game: GameState): AgencyReportSummary {
     failed: latestReport.failedCases.length,
     unresolved: latestReport.unresolvedTriggers.length,
     notes: latestReport.notes.length,
+    battles: battleRollup.battleCount,
+    friendlyRouted: battleRollup.friendlyRoutedCount,
+    hostileRouted: battleRollup.hostileRoutedCount,
+    specialDamaged: battleRollup.specialDamageCount,
   }
 }
 
@@ -285,16 +306,13 @@ export function buildAgencySummary(game: GameState): AgencySummary {
 
   // --- Deterministic placeholder logic for new fields ---
   // Chokepoint leverage: based on market pressure and major incidents
-  const chokepointLeverage = clamp(
-    Math.round((pressure.market + pressure.incident) / 2),
-    0,
-    100
-  )
+  const chokepointLeverage = clamp(Math.round((pressure.market + pressure.incident) / 2), 0, 100)
   // Council power: distribute based on top 3 factions' standing
   const factions = buildFactionStates(game)
   const councilPowerDistribution: { [council: string]: number } = {}
-  const councilNames = factions.slice(0, 3).map(f => f.name)
-  const totalStanding = factions.slice(0, 3).reduce((sum, f) => sum + Math.max(0, f.standing), 0) || 1
+  const councilNames = factions.slice(0, 3).map((f) => f.name)
+  const totalStanding =
+    factions.slice(0, 3).reduce((sum, f) => sum + Math.max(0, f.standing), 0) || 1
   councilNames.forEach((name, i) => {
     const standing = Math.max(0, factions[i]?.standing ?? 0)
     councilPowerDistribution[name] = Math.round((standing / totalStanding) * 100)
@@ -303,12 +321,14 @@ export function buildAgencySummary(game: GameState): AgencySummary {
   const sum = Object.values(councilPowerDistribution).reduce((a, b) => a + b, 0)
   if (sum !== 100 && sum > 0) {
     // Adjust the largest to make sum exactly 100
-    const maxKey = Object.keys(councilPowerDistribution).reduce((a, b) => councilPowerDistribution[a] > councilPowerDistribution[b] ? a : b)
+    const maxKey = Object.keys(councilPowerDistribution).reduce((a, b) =>
+      councilPowerDistribution[a] > councilPowerDistribution[b] ? a : b
+    )
     councilPowerDistribution[maxKey] += 100 - sum
   }
   // External revenue share: based on market pressure and funding
   const externalRevenueShare = clamp(
-    Math.round((pressure.market + (agency.funding / 1000)) / 2),
+    Math.round((pressure.market + agency.funding / 1000) / 2),
     0,
     100
   )

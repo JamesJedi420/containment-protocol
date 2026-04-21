@@ -256,6 +256,86 @@ function makeMissionResultState(outcome: 'success' | 'partial' | 'fail' | 'unres
   return assigned
 }
 
+function makeAggregateBattleIntegrationState() {
+  const state = createStartingState()
+  state.rngSeed = 211
+  state.rngState = 211
+  state.partyCards = undefined
+  state.events = []
+  state.reports = []
+  state.legitimacy = { sanctionLevel: 'sanctioned' }
+  state.agency = {
+    ...state.agency,
+    supportAvailable: 4,
+  }
+
+  const isolatedCases = isolateResolvedCaseSet(state)
+  state.cases = {
+    ...isolatedCases,
+    'case-raid-battle': {
+      ...state.cases['case-003'],
+      id: 'case-raid-battle',
+      templateId: 'case-raid-battle',
+      title: 'Catacomb Breach',
+      kind: 'raid',
+      mode: 'threshold',
+      status: 'in_progress',
+      stage: 4,
+      durationWeeks: 1,
+      weeksRemaining: 1,
+      deadlineWeeks: 1,
+      deadlineRemaining: 1,
+      tags: ['occult', 'reliquary', 'cult', 'raid'],
+      requiredTags: [],
+      preferredTags: ['tech', 'holy'],
+      difficulty: { combat: 22, investigation: 8, utility: 12, social: 4 },
+      weights: { combat: 0.7, investigation: 0.1, utility: 0.15, social: 0.05 },
+      assignedTeamIds: ['t_nightwatch', 't_greentape'],
+      raid: { minTeams: 2, maxTeams: 2 },
+      siteLayer: 'interior',
+      visibilityState: 'clear',
+      transitionType: 'chokepoint',
+      spatialFlags: ['night'],
+    },
+  }
+  state.teams['t_nightwatch'] = {
+    ...state.teams['t_nightwatch'],
+    assignedCaseId: 'case-raid-battle',
+  }
+  state.teams['t_greentape'] = {
+    ...state.teams['t_greentape'],
+    assignedCaseId: 'case-raid-battle',
+  }
+
+  for (const agentId of state.teams['t_nightwatch'].agentIds) {
+    state.agents[agentId] = {
+      ...state.agents[agentId],
+      fatigue: 0,
+      baseStats: {
+        combat: 92,
+        investigation: 54,
+        utility: 48,
+        social: 36,
+      },
+    }
+  }
+
+  for (const agentId of state.teams['t_greentape'].agentIds) {
+    state.agents[agentId] = {
+      ...state.agents[agentId],
+      fatigue: 0,
+      baseStats: {
+        combat: 28,
+        investigation: 86,
+        utility: 84,
+        social: 48,
+      },
+    }
+  }
+
+  return state
+}
+
 describe('advanceWeek', () => {
   it('increments the week counter', () => {
     const next = advanceWeek(startingState)
@@ -1305,6 +1385,44 @@ describe('advanceWeek', () => {
       equipmentContributionDelta: 0,
       protocolScoreDelta: 0,
     })
+  })
+
+  it('persists aggregate battle summaries through the live weekly raid resolution flow', () => {
+    const next = advanceWeek(makeAggregateBattleIntegrationState())
+    const report = next.reports.at(-1)
+    const snapshot = report?.caseSnapshots?.['case-raid-battle']
+    const aggregateBattle = snapshot?.aggregateBattle as
+      | {
+          movementDeniedCount: number
+          hostileRoutedUnits: string[]
+          specialDamage: Array<{ hitsTaken: number; hitsToBreak: number; destroyed: boolean }>
+        }
+      | undefined
+    const battleEvent = next.events.find(
+      (event): event is OperationEvent<'case.aggregate_battle'> =>
+        event.type === 'case.aggregate_battle' && event.payload.caseId === 'case-raid-battle'
+    )
+
+    expect(aggregateBattle).toBeDefined()
+    expect(aggregateBattle?.movementDeniedCount).toBeGreaterThan(0)
+    expect(aggregateBattle?.hostileRoutedUnits.length).toBeGreaterThan(0)
+    expect(
+      aggregateBattle?.specialDamage.some(
+        (entry) => entry.hitsTaken > 0 && entry.hitsTaken < entry.hitsToBreak && !entry.destroyed
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) => note.includes('Aggregate battle'))
+    ).toBe(true)
+    expect(
+      report?.notes.some(
+        (note) =>
+          note.type === 'case.aggregate_battle' && note.metadata?.caseId === 'case-raid-battle'
+      )
+    ).toBe(true)
+    expect(battleEvent).toBeDefined()
+    expect(battleEvent?.payload.hostileRoutedCount).toBe(aggregateBattle?.hostileRoutedUnits.length)
+    expect(battleEvent?.payload.specialDamageCount).toBe(aggregateBattle?.specialDamage.length)
   })
 
   it('applies raid coordination penalty when two teams resolve a raid case', () => {

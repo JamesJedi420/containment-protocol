@@ -1,3 +1,21 @@
+// --- Sim/advanceWeek compatibility types ---
+export type ResolutionOutcomeWithDetails = ResolutionOutcome & {
+  rewards?: IncidentToCampaignPacket['rewards']
+  falloutTags?: IncidentToCampaignPacket['falloutTags']
+  powerImpact?: PowerImpactSummary
+  injuries?: IncidentToCampaignPacket['injuries']
+}
+
+export interface WeeklyCaseResolutionStrategy {
+  assignedAgents: NonNullable<GameState['agents'][string]>[]
+  assignedAgentLeaderBonuses: Record<string, LeaderBonus>
+  activeTeamStressModifiers: Record<string, number>
+  outcome: ResolutionOutcomeWithDetails
+  campaignToIncident?: unknown
+  incidentToCampaign?: unknown
+}
+// Add missing types for sim/advanceWeek compatibility
+export type KnowledgeTier = 'unknown' | 'fragmented' | 'partial' | 'confirmed'
 // SPE-64: Explicit cross-scale handoff contracts
 
 /**
@@ -5,14 +23,14 @@
  * Contains only the bounded, deterministic state needed for incident resolution.
  */
 export interface CampaignToIncidentPacket {
-  campaignId: string;
-  week: number;
-  caseId: string;
-  caseTitle: string;
-  teamId: string;
-  teamSnapshot: Team; // snapshot of team at handoff
-  campaignDirectives: string[]; // e.g., directive tags or ids
-  knowledgeState: KnowledgeState;
+  campaignId: string
+  week: number
+  caseId: string
+  caseTitle: string
+  teamId: string
+  teamSnapshot: Team // snapshot of team at handoff
+  campaignDirectives: string[] // e.g., directive tags or ids
+  knowledgeState: KnowledgeState
   // Add other minimal, explicit fields as needed
 }
 
@@ -21,14 +39,14 @@ export interface CampaignToIncidentPacket {
  * Contains only the bounded, deterministic effects to apply to campaign state.
  */
 export interface IncidentToCampaignPacket {
-  caseId: string;
-  teamId: string;
-  outcome: string; // e.g., 'success', 'partial', 'fail', etc.
-  rewards: unknown; // Use MissionRewardBreakdown or similar if available
-  falloutTags?: string[]; // Optional: tags for modular fallout handling
-  performanceSummary?: PerformanceMetricSummary;
-  powerImpact?: PowerImpactSummary;
-  injuries?: unknown; // Use MissionInjuryRecord[] or similar if available
+  caseId: string
+  teamId: string
+  outcome: string // e.g., 'success', 'partial', 'fail', etc.
+  rewards: unknown // Use MissionRewardBreakdown or similar if available
+  falloutTags?: string[] // Optional: tags for modular fallout handling
+  performanceSummary?: PerformanceMetricSummary
+  powerImpact?: PowerImpactSummary
+  injuries?: unknown // Use MissionInjuryRecord[] or similar if available
   // Add other minimal, explicit fields as needed
 }
 
@@ -54,9 +72,9 @@ import type {
   ProtocolTier,
   ProtocolType,
 } from './agent/models'
-import type { KnowledgeState, KnowledgeStateMap } from './knowledge';
+import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 // SPE-59: Export KnowledgeState for projection/report typing
-export type { KnowledgeState };
+export type { KnowledgeState }
 
 // Re-export all agent-related types
 export type {
@@ -330,11 +348,11 @@ export interface ChemistryPredictionInput {
   baseTeamId: string
 
   /** Canonical site-space state for bounded spatial logic (SPE-57) */
-  siteLayer?: 'exterior' | 'transition' | 'interior';
-  visibilityState?: 'clear' | 'obstructed' | 'exposed';
-  transitionType?: 'open-approach' | 'threshold' | 'chokepoint';
+  siteLayer?: 'exterior' | 'transition' | 'interior'
+  visibilityState?: 'clear' | 'obstructed' | 'exposed'
+  transitionType?: 'open-approach' | 'threshold' | 'chokepoint'
   /** Optional: bounded spatial flags for deterministic effects */
-  spatialFlags?: string[];
+  spatialFlags?: string[]
   proposedAgentIds: string[]
   currentAgents: Record<string, Agent>
   currentTeams: Record<string, Team>
@@ -501,11 +519,11 @@ export interface MissionRewardBreakdown {
   caseType: string
 
   /** Canonical site-space state for bounded spatial logic (SPE-57) */
-  siteLayer?: 'exterior' | 'transition' | 'interior';
-  visibilityState?: 'clear' | 'obstructed' | 'exposed';
-  transitionType?: 'open-approach' | 'threshold' | 'chokepoint';
+  siteLayer?: 'exterior' | 'transition' | 'interior'
+  visibilityState?: 'clear' | 'obstructed' | 'exposed'
+  transitionType?: 'open-approach' | 'threshold' | 'chokepoint'
   /** Optional: bounded spatial flags for deterministic effects */
-  spatialFlags?: string[];
+  spatialFlags?: string[]
   caseTypeLabel: string
   operationValue: number
   factors: readonly MissionRewardFactor[]
@@ -698,10 +716,10 @@ export interface CaseTemplate {
 }
 
 export interface CaseInstance {
-    /**
-     * SPE-38: True if this operation suffered a support shortfall this week (deterministic, for fallout/penalty).
-     */
-    supportShortfall?: boolean
+  /**
+   * SPE-38: True if this operation suffered a support shortfall this week (deterministic, for fallout/penalty).
+   */
+  supportShortfall?: boolean
   id: Id
   templateId: string
 
@@ -748,6 +766,12 @@ export interface CaseInstance {
   regionTag?: string
 
   raid?: { minTeams: number; maxTeams: number }
+
+  // Added for spatial/visibility/transition support (SPE-57, SPE-XX)
+  siteLayer?: 'exterior' | 'transition' | 'interior'
+  visibilityState?: 'clear' | 'obstructed' | 'exposed'
+  transitionType?: 'open-approach' | 'threshold' | 'chokepoint'
+  spatialFlags?: string[]
 }
 
 export interface ResolutionOutcome {
@@ -794,6 +818,8 @@ export interface WeeklyReportCaseSnapshot {
   knowledge?: Record<string, import('./knowledge').KnowledgeState>
   /** Canonical explanation of what was unknown, revealed, and remains uncertain. */
   revealExplanation?: string
+  // Allow dynamic property access for sim/report compatibility
+  [key: string]: unknown
 }
 
 export interface WeeklyReportTeamStatus {
@@ -813,6 +839,7 @@ export type ReportNoteType =
   | 'case.escalated'
   | 'case.spawned'
   | 'case.raid_converted'
+  | 'case.aggregate_battle'
   | 'agent.training_completed'
   | 'production.queue_completed'
   | 'market.shifted'
@@ -831,6 +858,8 @@ export type ReportNoteType =
   | 'system.protocol_contact'
   | 'system.anchor_instability'
   | 'directive.applied'
+  // Add support.shortfall for fallout reporting
+  | 'support.shortfall'
 
 export type ReportNoteMetadataValue =
   | string
@@ -1055,8 +1084,8 @@ export interface AgencyState {
 }
 
 export interface GameState {
-    /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
-    legitimacy?: LegitimacyState
+  /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
+  legitimacy?: LegitimacyState
   week: number
   rngSeed: number
   rngState: number
@@ -1113,4 +1142,9 @@ export interface GameState {
 
   /** Canonical persistent knowledge-state map (keyed by entity/subject) */
   knowledge: KnowledgeStateMap
+
+  // Added for sim/advanceWeek compatibility
+  factions?: Record<string, unknown>
+  hubState?: unknown
+  prevHubState?: unknown
 }

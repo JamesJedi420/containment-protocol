@@ -188,6 +188,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'case.escalated': 'Case Escalated',
   'case.spawned': 'Incident Opened',
   'case.raid_converted': 'Raid Conversion',
+  'case.aggregate_battle': 'Battle Result',
   'intel.report_generated': 'Intel Report',
   'agent.training_started': 'Training Started',
   'agent.training_completed': 'Training Complete',
@@ -228,6 +229,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'case.escalated': 'incident_response',
   'case.spawned': 'incident_response',
   'case.raid_converted': 'incident_response',
+  'case.aggregate_battle': 'incident_response',
   'intel.report_generated': 'intel_briefing',
   'agent.training_started': 'personnel',
   'agent.training_completed': 'personnel',
@@ -430,6 +432,32 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.caseDetail(event.payload.caseId),
         searchText:
           `${event.payload.caseTitle} raid converted ${event.payload.caseId}`.toLowerCase(),
+      }
+
+    case 'case.aggregate_battle':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.caseTitle} confrontation resolved`,
+        detail:
+          `Week ${event.payload.week} / ${event.payload.winnerLabel ?? 'No side'} held the field / ` +
+          `Routed ${event.payload.friendlyRoutedCount} friendly, ${event.payload.hostileRoutedCount} hostile / ` +
+          `Durable contacts ${event.payload.specialDamageCount}` +
+          (event.payload.movementDeniedCount > 0
+            ? ` / Movement denied ${event.payload.movementDeniedCount}`
+            : ''),
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone:
+          event.payload.winnerSideId === 'operators'
+            ? 'success'
+            : event.payload.winnerSideId === 'hostiles'
+              ? 'danger'
+              : 'warning',
+        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        searchText:
+          `${event.payload.caseTitle} battle ${event.payload.caseId} ${event.payload.friendlyRoutedUnits.join(' ')} ${event.payload.hostileRoutedUnits.join(' ')} ${event.payload.specialDamage.join(' ')}`.toLowerCase(),
       }
 
     case 'intel.report_generated':

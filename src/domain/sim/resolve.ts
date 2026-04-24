@@ -1,6 +1,8 @@
 import {
+  type ActiveContractRuntime,
   type Agent,
   type CaseInstance,
+  type ContractRequirements,
   type GameConfig,
   type GameState,
   type Id,
@@ -54,6 +56,19 @@ function buildBlockedOdds(
   }
 }
 
+function hasContractRoleFitInput(
+  contract: CaseInstance['contract']
+): contract is Pick<ActiveContractRuntime, 'requirements' | 'modifiers'> | {
+  requirements: ContractRequirements
+  modifiers?: ActiveContractRuntime['modifiers']
+} {
+  const requirements = (contract as { requirements?: ContractRequirements } | undefined)?.requirements
+  return (
+    Array.isArray(requirements?.recommendedClasses) &&
+    Array.isArray(requirements?.discouragedClasses)
+  )
+}
+
 function buildTeamScoreContextForTeamIds(
   c: CaseInstance,
   state: GameState,
@@ -82,7 +97,8 @@ function buildTeamScoreContextForTeamIds(
       ? [`Party cards: ${partyCardBonus.scoreAdjustment.toFixed(1)}`]
       : undefined
   const factionContext = buildFactionMissionContext(c, state)
-  const contractFit = c.contract ? evaluateContractRoleFit(c.contract, agents) : null
+  const contractFit =
+    c.contract && hasContractRoleFitInput(c.contract) ? evaluateContractRoleFit(c.contract, agents) : null
 
   return {
     teamIds: normalizedTeamIds,

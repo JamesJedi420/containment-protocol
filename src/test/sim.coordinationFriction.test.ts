@@ -1,5 +1,8 @@
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { GameState } from '../domain/models'
+import { buildMissionRewardBreakdown } from '../domain/missionResults'
+import type { GameState } from '../domain/models'
+import { createStartingState } from '../data/startingState'
+import { createResolutionEscalationTransition } from '../domain/sim/escalation'
 
 describe('SPE-95: Command-coordination friction', () => {
   function makeBaseState(): GameState {
@@ -20,7 +23,7 @@ describe('SPE-95: Command-coordination friction', () => {
       inventory: {},
       trainingQueue: [],
       productionQueue: [],
-      market: { week: 1, featuredRecipeId: '', pressure: 0, costMultiplier: 1 },
+      market: { week: 1, featuredRecipeId: '', pressure: 'stable', costMultiplier: 1 },
       config: {
         maxActiveCases: 10,
         trainingSlots: 2,
@@ -45,6 +48,12 @@ describe('SPE-95: Command-coordination friction', () => {
       containmentRating: 50,
       clearanceLevel: 1,
       funding: 1000,
+      agency: {
+        containmentRating: 50,
+        clearanceLevel: 1,
+        funding: 1000,
+        supportAvailable: 10,
+      },
       knowledge: {},
     }
   }
@@ -67,42 +76,76 @@ describe('SPE-95: Command-coordination friction', () => {
   })
 
   it('triggers friction above threshold and downgrades one outcome', () => {
-      const caseStatuses = Object.values(report.caseSnapshots).map((c: any) => c.status)
-      const partialCount = caseStatuses.filter(s => s === 'partial').length
-      const resolvedCount = caseStatuses.filter(s => s === 'resolved').length
-      expect(partialCount).toBeGreaterThan(0)
-      expect(resolvedCount).toBeLessThan(5)
-      // Should surface a coordination note
-      expect(report.notes.some(n => n.content.toLowerCase().includes('coordination'))).toBeTruthy()
     const state = makeBaseState()
+    const baseAgent = createStartingState().agents.a_ava
     // 5 active cases, 0 support shortfall
     for (let i = 0; i < 5; ++i) {
       state.cases['c' + i] = { id: 'c' + i, templateId: 't', title: 'C' + i, description: '', mode: 'deterministic', kind: 'case', status: 'in_progress', difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 }, weights: { combat: 1, investigation: 1, utility: 1, social: 1 }, tags: [], requiredTags: [], preferredTags: [], stage: 1, durationWeeks: 1, deadlineWeeks: 1, deadlineRemaining: 1, assignedTeamIds: ['t' + i], onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] }, onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] } }
-      state.teams['t' + i] = { id: 't' + i, name: 'T' + i, agentIds: [], tags: [] }
+      state.agents['a' + i] = {
+        ...baseAgent,
+        id: 'a' + i,
+        name: 'Agent ' + i,
+        baseStats: { combat: 100, investigation: 100, utility: 100, social: 100 },
+        fatigue: 0,
+        status: 'active',
+      }
+      state.teams['t' + i] = {
+        id: 't' + i,
+        name: 'T' + i,
+        agentIds: ['a' + i],
+        memberIds: ['a' + i],
+        leaderId: 'a' + i,
+        tags: [],
+      }
     }
+    const successReward = buildMissionRewardBreakdown(state.cases.c0, 'success', state.config)
+    const partialReward = buildMissionRewardBreakdown(
+      createResolutionEscalationTransition(state.cases.c0, 'partial').nextCase,
+      'partial',
+      state.config
+    )
     const next = advanceWeek(state)
     expect(next.agency?.coordinationFrictionActive).toBeTruthy()
     expect(next.coordinationFrictionActive).toBeTruthy()
     // Should downgrade one outcome from success to partial
     const report = next.reports[next.reports.length - 1]
-    // Debug output for diagnosis
-    // TEMP: Throw for immediate test output visibility
-    // Check actual case outcomes by status
-    if (!report.caseSnapshots) {
-      throw new Error('Test failure: report.caseSnapshots is undefined. Full report: ' + JSON.stringify(report, null, 2))
-    }
-    const caseStatuses = Object.values(report.caseSnapshots).map((c: any) => c.status)
-    const partialCount = caseStatuses.filter(s => s === 'partial').length
-    const resolvedCount = caseStatuses.filter(s => s === 'resolved').length
-    expect(partialCount).toBeGreaterThan(0)
-    expect(resolvedCount).toBeLessThan(5)
-    // Should surface a coordination note
-    expect(report.notes.some(n => n.content.toLowerCase().includes('coordination'))).toBeTruthy()
     const partials = report.partialCases.length
     const resolved = report.resolvedCases.length
     expect(partials).toBeGreaterThan(0)
     expect(resolved).toBeLessThan(5)
-    // Should surface a coordination note
-    expect(report.notes.some(n => n.content.toLowerCase().includes('coordination'))).toBeTruthy()
+    expect(report.partialCases).toContain('c0')
+    expect(next.cases.c0).toMatchObject({
+      status: 'open',
+      stage: 2,
+      assignedTeamIds: [],
+    })
+    expect(
+      next.events.some((event) => event.type === 'case.resolved' && event.payload.caseId === 'c0')
+    ).toBe(false)
+
+    const partialEvent = next.events.find(
+      (event): event is Extract<(typeof next.events)[number], { type: 'case.partially_resolved' }> =>
+        event.type === 'case.partially_resolved' && event.payload.caseId === 'c0'
+    )
+    expect(partialEvent).toBeDefined()
+    if (!partialEvent?.payload.rewardBreakdown) {
+      throw new Error('Expected downgraded partial event to carry a reward breakdown.')
+    }
+    const partialRewardBreakdown = partialEvent.payload.rewardBreakdown
+    expect(partialRewardBreakdown).toEqual(partialReward)
+    expect(partialRewardBreakdown).not.toEqual(successReward)
+    expect(partialRewardBreakdown.fundingDelta).toBeLessThan(successReward.fundingDelta)
+
+    const factionEvent = next.events.find(
+      (event): event is Extract<(typeof next.events)[number], { type: 'faction.standing_changed' }> =>
+        event.type === 'faction.standing_changed' && event.payload.caseId === 'c0'
+    )
+    if (!factionEvent) {
+      throw new Error('Expected faction standing change for the downgraded case.')
+    }
+    expect(factionEvent.payload.delta).toBe(partialReward.factionStanding[0]?.delta)
+    expect(next.funding).toBeLessThan(
+      state.funding + state.config.fundingBasePerWeek + successReward.fundingDelta * 5
+    )
   })
 })

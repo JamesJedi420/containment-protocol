@@ -21,6 +21,43 @@ function recordCaseOutcome(
     outcomeType
   )
 }
+
+function getMissionResultHiddenStateFields(
+  currentCase: CaseInstance
+): Pick<
+  MissionResultInput,
+  'hiddenState' | 'detectionConfidence' | 'counterDetection' | 'displacementTarget' | 'route'
+> {
+  const resolvedHiddenState =
+    currentCase.hiddenState === 'hidden' && currentCase.counterDetection
+      ? 'revealed'
+      : currentCase.hiddenState
+  const detectionConfidence =
+    typeof currentCase.detectionConfidence === 'number'
+      ? Math.max(0, Math.min(1, currentCase.detectionConfidence))
+      : resolvedHiddenState === 'revealed'
+        ? 1
+        : resolvedHiddenState === 'displaced'
+          ? 0.55
+          : resolvedHiddenState === 'hidden'
+            ? 0.25
+            : undefined
+  const displacementTarget = currentCase.displacementTarget ?? null
+  const route =
+    typeof currentCase.route === 'string'
+      ? resolvedHiddenState === 'displaced' && displacementTarget
+        ? `${currentCase.route}->${displacementTarget}`
+        : currentCase.route
+      : null
+
+  return {
+    hiddenState: resolvedHiddenState,
+    detectionConfidence,
+    counterDetection: currentCase.counterDetection,
+    displacementTarget,
+    route,
+  }
+}
 // SPE-94: Maintenance Specialist Bottleneck for Equipment Recovery
 /**
  * Returns a deterministic queue of damaged equipment item IDs for recovery.
@@ -28,8 +65,6 @@ function recordCaseOutcome(
  * In a real system, this would be derived from agent/equipment state each week.
  */
 function getDamagedEquipmentQueue(state: GameState): string[] {
-  // Placeholder: in a real implementation, derive from agent/equipment state.
-  // For demo/testing, use state.damagedEquipmentQueue if present, else []
   const { damagedEquipmentQueue } = state as AdvanceWeekState
 
   return Array.isArray(damagedEquipmentQueue) ? [...damagedEquipmentQueue] : []
@@ -59,6 +94,7 @@ import {
   resolveAggregateBattle,
   type AggregateBattleArea,
   type AggregateBattleCampaignSummary,
+  type AggregateBattleCommandOverlay,
   type AggregateBattleInput,
   type AggregateBattleUnit,
 } from '../aggregateBattle'
@@ -68,12 +104,7 @@ import {
   recordExclusiveOutcome,
   type ExclusiveOutcomeType,
 } from '../shared/outcomes'
-import type {
-  KnowledgeState,
-  KnowledgeStateMap,
-  KnowledgeSubjectType,
-  KnowledgeTier,
-} from '../knowledge'
+import type { KnowledgeState, KnowledgeStateMap, KnowledgeSubjectType, KnowledgeTier } from '../knowledge'
 import { getKnowledgeKey, explainSpatialState } from '../knowledge'
 import {
   explainDecay,
@@ -109,12 +140,20 @@ import {
   recordAppliedDirective,
 } from '../directives'
 import { resolveAgentAbilityEffects } from '../abilities'
-import { buildFactionStandingMap, buildFactionStates, getFactionDefinition } from '../factions'
+import {
+  applyFactionRecruitInteraction,
+  buildFactionStandingMap,
+  buildFactionStates,
+  diffFactionRecruitUnlocks,
+  getFactionDefinition,
+  getFactionRecruitUnlocks,
+} from '../factions'
 import { generateHubState } from '../hub/hubState'
 import { buildHubReportNotes } from '../hub/hubReportNotes'
+import { degradeMissionIntelRecord } from '../intel'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import type { CampaignToIncidentPacket, IncidentToCampaignPacket } from '../models'
-import { buildAgencyProtocolState } from '../protocols'
+import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
 import {
   buildAnchorFactionInstabilityNote,
   buildDeterministicReportNotesFromEventDrafts,
@@ -129,10 +168,10 @@ import {
   getUniqueTeamMembers,
   normalizeGameState,
 } from '../teamSimulation'
+import { buildAssignedTeamLeaderBonuses } from '../teamBonuses'
 import { deriveRelationshipStability, deriveRelationshipState } from './relationshipProjection'
-import { applyRaids, resolveRaid } from './raid'
+import { applyRaids } from './raid'
 import { advanceMarketState, advanceProductionQueues } from './production'
-import { resolveCase } from './resolve'
 import { calcWeekScore } from './scoring'
 import { spawnFromEscalations, spawnFromFailures, type SpawnedCaseRecord } from './spawn'
 import {
@@ -154,6 +193,7 @@ import {
 import { decrementActiveAbilityCooldowns, markActiveAbilityUsed } from './abilityExecution'
 import { createTimingCheckState, shouldRunTimingCheck } from './timingCheckHelper'
 import { applyMissionResolutionAgentMutations } from './missionResolutionAgents'
+import { getResearchIntelModifiers } from '../research'
 import {
   buildCaseEscalatedEventDraft,
   buildCaseFailedEventDraft,
@@ -344,18 +384,6 @@ function releaseTeams(teams: GameState['teams'], releasedTeamIds: string[]): Gam
   )
 }
 
-function getAverageFatigue(team: Team, agents: GameState['agents']) {
-  const memberIds = getTeamMemberIds(team)
-
-  if (memberIds.length === 0) {
-    return 0
-  }
-
-  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
-
-  return Math.round(totalFatigue / memberIds.length)
-}
-
 function getMissionFatigue(config: GameState['config']) {
   return config.durationModel === 'attrition'
     ? config.attritionPerWeek
@@ -423,6 +451,18 @@ function getAverageRosterFatigue(agents: GameState['agents']) {
   return Math.round(values.reduce((sum, agent) => sum + agent.fatigue, 0) / values.length)
 }
 
+function getAverageFatigue(team: Team, agents: GameState['agents']) {
+  const memberIds = getTeamMemberIds(team)
+
+  if (memberIds.length === 0) {
+    return 0
+  }
+
+  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
+
+  return Math.round(totalFatigue / memberIds.length)
+}
+
 function getFatigueBand(value: number): WeeklyReportTeamStatus['fatigueBand'] {
   if (value >= 45) {
     return 'critical'
@@ -439,19 +479,22 @@ function buildReportCaseSnapshot(
   currentCase: CaseInstance,
   knowledge?: KnowledgeStateMap
 ): WeeklyReportCaseSnapshot {
-  // Gather knowledge for all assigned teams for this case (anomaly)
   const caseKnowledge: Record<string, KnowledgeState> = {}
   const explanationParts: string[] = []
+
   if (knowledge && currentCase.assignedTeamIds.length > 0) {
     for (const teamId of currentCase.assignedTeamIds) {
       const key = getKnowledgeKey(teamId, currentCase.id)
       const ks = knowledge[key]
+
       if (ks) {
         caseKnowledge[teamId] = ks
-        // Compose explanation for this team's knowledge
         let part = `[${teamId}] ${ks.tier}`
-        if (ks.notes) part += `: ${ks.notes}`
-        // Add fusion/decay/relay/hazard explanations if present
+
+        if (ks.notes) {
+          part += `: ${ks.notes}`
+        }
+
         const extra = [
           explainFusion(ks),
           explainDecay(ks),
@@ -460,27 +503,33 @@ function buildReportCaseSnapshot(
         ]
           .filter(Boolean)
           .join(' | ')
-        if (extra) part += ` (${extra})`
+
+        if (extra) {
+          part += ` (${extra})`
+        }
+
         explanationParts.push(part)
       }
     }
   }
-  // SPE-57: Add spatial explanation for operational legibility
+
   const spatialExplanation = explainSpatialState(
     currentCase.siteLayer,
     currentCase.visibilityState,
     currentCase.transitionType,
     currentCase.spatialFlags
   )
-  if (spatialExplanation) explanationParts.push(spatialExplanation)
-  // Only include revealExplanation if it is not the default/no-op string
-  let revealExplanation: string | undefined = undefined
-  if (explanationParts.length > 0) {
-    const joined = explanationParts.join(' | ')
-    if (joined !== 'No spatial constraints.') {
-      revealExplanation = joined
-    }
+
+  if (spatialExplanation) {
+    explanationParts.push(spatialExplanation)
   }
+
+  const joinedExplanation = explanationParts.join(' | ')
+  const revealExplanation =
+    joinedExplanation.length > 0 && joinedExplanation !== 'No spatial constraints.'
+      ? joinedExplanation
+      : undefined
+
   return {
     caseId: currentCase.id,
     title: currentCase.title,
@@ -512,41 +561,40 @@ function buildReportCaseSnapshots(
   return Object.fromEntries(
     Object.values(cases).map((currentCase) => {
       const base = buildReportCaseSnapshot(currentCase, state.knowledge)
-      // Only include extra fields if they are defined
       const extra: Partial<WeeklyReportCaseSnapshot> = {}
       const distortion = mergeDistortionStates(currentCase.distortion, anchorDistortionStates)
-      if (missionResultByCaseId[currentCase.id] !== undefined)
+
+      if (missionResultByCaseId[currentCase.id] !== undefined) {
         extra.missionResult = missionResultByCaseId[currentCase.id]
-      if (rewardByCaseId[currentCase.id] !== undefined)
+      }
+
+      if (rewardByCaseId[currentCase.id] !== undefined) {
         extra.rewardBreakdown = rewardByCaseId[currentCase.id]
-      if (performanceByCaseId[currentCase.id] !== undefined)
+      }
+
+      if (performanceByCaseId[currentCase.id] !== undefined) {
         extra.performanceSummary = performanceByCaseId[currentCase.id]
-      if (powerImpactByCaseId[currentCase.id] !== undefined)
+      }
+
+      if (powerImpactByCaseId[currentCase.id] !== undefined) {
         extra.powerImpact = powerImpactByCaseId[currentCase.id]
-      if (aggregateBattleByCaseId[currentCase.id] !== undefined)
+      }
+
+      if (aggregateBattleByCaseId[currentCase.id] !== undefined) {
         extra.aggregateBattle = aggregateBattleByCaseId[currentCase.id]
-      if (distortion.length > 0) extra.distortion = distortion
-      // Only include fields that are defined in base
-      const minimal: Partial<WeeklyReportCaseSnapshot> = {}
-      for (const key of Object.keys(base)) {
-        if (base[key] !== undefined) minimal[key] = base[key]
       }
-      // Ensure required fields are present and not undefined
-      const snapshot: WeeklyReportCaseSnapshot = {
-        caseId: currentCase.id,
-        title: currentCase.title,
-        kind: currentCase.kind,
-        mode: currentCase.mode,
-        status: currentCase.status,
-        stage: currentCase.stage,
-        deadlineRemaining: currentCase.deadlineRemaining,
-        durationWeeks: currentCase.durationWeeks,
-        weeksRemaining: currentCase.weeksRemaining,
-        assignedTeamIds: [...currentCase.assignedTeamIds],
-        ...minimal,
-        ...extra,
+
+      if (distortion.length > 0) {
+        extra.distortion = distortion
       }
-      return [currentCase.id, snapshot]
+
+      return [
+        currentCase.id,
+        {
+          ...base,
+          ...extra,
+        },
+      ]
     })
   )
 }
@@ -576,47 +624,6 @@ function buildReportTeamStatus(
   cases: GameState['cases']
 ) {
   return Object.values(teams).map((team) => buildReportTeamStatusEntry(team, agents, cases))
-}
-
-function buildAssignedTeamLeaderBonuses(
-  teamIds: string[],
-  teams: GameState['teams'],
-  agents: GameState['agents']
-) {
-  return Object.fromEntries(
-    teamIds
-      .map((teamId) => {
-        const team = teams[teamId]
-
-        if (!team) {
-          return null
-        }
-
-        return [teamId, buildTeamCompositionProfile(team, agents).leaderBonus] as const
-      })
-      .filter((entry): entry is readonly [string, LeaderBonus] => Boolean(entry))
-  )
-}
-
-function buildAssignedAgentLeaderBonuses(
-  teamIds: string[],
-  teams: GameState['teams'],
-  agents: GameState['agents']
-) {
-  const teamLeaderBonuses = buildAssignedTeamLeaderBonuses(teamIds, teams, agents)
-
-  return Object.fromEntries(
-    teamIds.flatMap((teamId) => {
-      const team = teams[teamId]
-      const leaderBonus = teamLeaderBonuses[teamId]
-
-      if (!team || !leaderBonus) {
-        return []
-      }
-
-      return getTeamMemberIds(team).map((agentId) => [agentId, leaderBonus] as const)
-    })
-  )
 }
 
 function inferAggregateBattleSiteLayer(
@@ -757,7 +764,7 @@ function buildAggregateBattleOperatorForce(input: {
   assignedTeamLeaderBonuses: Record<string, LeaderBonus>
 }) {
   const units: AggregateBattleUnit[] = []
-  const commandOverlays = []
+  const commandOverlays: AggregateBattleCommandOverlay[] = []
 
   input.currentCase.assignedTeamIds.forEach((teamId, index) => {
     const team = input.state.teams[teamId]
@@ -1134,6 +1141,7 @@ interface WeeklyCaseResolutionStrategy {
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
+  weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
 type SeededRng = ReturnType<typeof createSeededRng>
@@ -1207,21 +1215,12 @@ function resolveAssignedCaseForWeek(
     state.teams,
     state.agents
   )
-  const assignedAgentLeaderBonuses = buildAssignedAgentLeaderBonuses(
-    currentCase.assignedTeamIds,
-    state.teams,
-    state.agents
+  const canonicalResolution = resolveCanonicalAssignedCaseForWeek(
+    currentCase,
+    state,
+    rng,
+    cardBonus
   )
-  const activeTeamStressModifiers = Object.fromEntries(
-    currentCase.assignedTeamIds.map((teamId) => [
-      teamId,
-      (assignedTeamLeaderBonuses[teamId]?.stressModifier ?? 0) +
-        (cardBonus?.fatigueAdjustmentByTeam[teamId] ?? 0),
-    ])
-  )
-  const assignedAgents = [
-    ...getUniqueTeamMembers(currentCase.assignedTeamIds, state.teams, state.agents),
-  ]
 
   // SPE-64: Use explicit handoff contracts for campaign-to-incident and incident-to-campaign (bounded, non-breaking)
   // Build CampaignToIncidentPacket for this case/team (for explicit, testable handoff)
@@ -1245,39 +1244,9 @@ function resolveAssignedCaseForWeek(
   // Modular integration point: allow optional modules to inspect/modify the handoff packet
   // Example: campaignToIncidentHook can be set by optional modules to extend/modify the packet
   getCampaignToIncidentHook()?.(campaignToIncident, currentCase, state)
-  // Pass packet to incident/operation resolver (simulate with resolveCase for now)
-  const outcome: ResolutionOutcomeWithDetails =
-    currentCase.kind === 'raid'
-      ? resolveRaid(
-          currentCase,
-          currentCase.assignedTeamIds.map((id) => state.teams[id]).filter(Boolean),
-          state.agents,
-          state.config,
-          rng,
-          state.inventory,
-          {
-            partyCardScoreBonus: cardBonus?.scoreAdjustment,
-            partyCardReasons: cardBonus?.reasons,
-            protocolState: buildAgencyProtocolState(state),
-          }
-        )
-      : resolveCase(currentCase, assignedAgents, state.config, rng, {
-          inventory: state.inventory,
-          protocolState: buildAgencyProtocolState(state),
-          supportTags: [
-            ...new Set(
-              currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
-            ),
-          ],
-          leaderId:
-            currentCase.assignedTeamIds.length === 1
-              ? (state.teams[primaryTeamId]?.leaderId ?? null)
-              : null,
-          partyCardScoreBonus: cardBonus?.scoreAdjustment,
-          partyCardReasons: cardBonus?.reasons,
-        })
+  const outcome: ResolutionOutcomeWithDetails = canonicalResolution.outcome
   const aggregateBattleSummary = resolveOperationAggregateBattle(
-    currentCase,
+    canonicalResolution.effectiveCase,
     state,
     assignedTeamLeaderBonuses
   )
@@ -1294,11 +1263,12 @@ function resolveAssignedCaseForWeek(
 
   // Return the original outcome object for downstream consumers, but attach the explicit contracts for testability
   return {
-    assignedAgents,
-    assignedAgentLeaderBonuses,
-    activeTeamStressModifiers,
+    assignedAgents: canonicalResolution.assignedAgents,
+    assignedAgentLeaderBonuses: canonicalResolution.assignedAgentLeaderBonuses,
+    activeTeamStressModifiers: canonicalResolution.activeTeamStressModifiers,
     outcome,
     aggregateBattleSummary,
+    weakestLinkResult: canonicalResolution.weakestLinkResult,
     campaignToIncident,
     incidentToCampaign,
   }
@@ -1317,6 +1287,7 @@ function createWeeklyExecutionContext(
     cases: { ...state.cases },
     teams: { ...state.teams },
     agents: { ...state.agents },
+    knowledge: { ...state.knowledge },
   }
   return {
     sourceState: state,
@@ -1728,6 +1699,16 @@ function resolveAssignments(
     } else {
       // Not enough support: mark for fallout/penalty
       supportShortfallCases.push(caseId)
+      context.eventDrafts.push({
+        type: 'support.shortfall',
+        sourceSystem: 'system',
+        payload: {
+          week: context.sourceState.week,
+          caseId,
+          caseTitle: currentCase.title,
+          remainingSupport: Math.max(0, supportAvailable),
+        },
+      })
     }
 
     const nextWeeksRemaining = Math.max(
@@ -1818,6 +1799,7 @@ function resolveAssignments(
       activeTeamStressModifiers,
       outcome,
       aggregateBattleSummary,
+      weakestLinkResult,
     } = weeklyResolution
     const effectiveCase = {
       ...currentCase,
@@ -1892,6 +1874,8 @@ function resolveAssignments(
           teamId,
           teamName: context.sourceState.teams[teamId]?.name,
         })),
+        ...getMissionResultHiddenStateFields(effectiveCase),
+        weakestLink: weakestLinkResult,
         rewards: rewardBreakdown,
         performanceSummary,
         powerImpact,
@@ -1902,7 +1886,6 @@ function resolveAssignments(
       // --- Knowledge-State: Deterministic Gain/Confirmation ---
       // --- Knowledge-State: Deterministic Transitions ---
       // Handles all outcomes: success, partial, fail, repeated exposure, reconfirmation, mutation, fragmentation, operationalized promotion
-      // Import { getKnowledgeKey, KnowledgeState, KnowledgeTier } from '../knowledge' at top
       /**
        * Update knowledge state for a team/subject, tracking provisional vs true classification and context.
        * @param teamId
@@ -2103,7 +2086,9 @@ function resolveAssignments(
         teamId,
         teamName: context.sourceState.teams[teamId]?.name,
       })),
+      ...getMissionResultHiddenStateFields(escalatedCase),
       outcome: outcome.result,
+      weakestLink: weakestLinkResult,
       rewards: rewardBreakdown,
       performanceSummary,
       powerImpact,
@@ -2204,16 +2189,104 @@ function resolveAssignments(
       ...context.sourceState.agency,
       supportAvailable: hasConfiguredSupportCapacity ? supportAvailable : 0,
     })
-    console.log('SIM: set agency (no prev):', JSON.stringify(context.nextState.agency, null, 2))
   } else {
     context.nextState.agency = canonicalizeAgencyState({
       ...context.nextState.agency,
       supportAvailable: hasConfiguredSupportCapacity ? supportAvailable : 0,
     })
-    console.log('SIM: set agency (with prev):', JSON.stringify(context.nextState.agency, null, 2))
   }
   // At the end of resolveAssignments, always coerce agency fields again to guarantee validity
   context.nextState.agency = canonicalizeAgencyState(context.nextState.agency)
+}
+
+function downgradeResolvedCaseToPartial(
+  context: WeeklyExecutionContext,
+  caseId: string,
+  note: string
+) {
+  const sourceCase = context.sourceState.cases[caseId]
+  const mission = context.missionResultDraftByCaseId[caseId]
+
+  if (!sourceCase || !mission || mission.outcome !== 'success') {
+    return
+  }
+
+  const existingAssignedTeamIds = sourceCase.assignedTeamIds.filter((teamId) =>
+    Boolean(context.sourceState.teams[teamId])
+  )
+  const resolutionEscalation = createResolutionEscalationTransition(sourceCase, 'partial')
+  const downgradedCase = {
+    ...resolutionEscalation.nextCase,
+    status: 'open' as const,
+    assignedTeamIds: [],
+    weeksRemaining: undefined,
+    supportShortfall: context.nextState.cases[caseId]?.supportShortfall ?? false,
+  }
+  const nextState = {
+    ...context.nextState,
+    cases: {
+      ...context.nextState.cases,
+      [caseId]: downgradedCase,
+    },
+  }
+  const rewardBreakdown = buildMissionRewardBreakdown(
+    downgradedCase,
+    'partial',
+    nextState.config,
+    nextState
+  )
+
+  context.nextState = nextState
+  context.rewardByCaseId[caseId] = rewardBreakdown
+  context.missionResultDraftByCaseId[caseId] = {
+    ...buildEscalatedCaseOutcomeDraft({
+      caseId,
+      caseTitle: sourceCase.title,
+      teamsUsed: mission.teamsUsed,
+      ...getMissionResultHiddenStateFields(downgradedCase),
+      outcome: 'partial',
+      weakestLink: mission.weakestLink,
+      rewards: rewardBreakdown,
+      performanceSummary: mission.performanceSummary,
+      powerImpact: mission.powerImpact,
+      injuries: mission.injuries,
+      fatalities: mission.fatalities,
+      spawnedConsequences: [
+        {
+          type: 'stage_escalation',
+          caseId,
+          caseTitle: sourceCase.title,
+          stage: downgradedCase.stage,
+          detail: `Case escalated to stage ${downgradedCase.stage}.`,
+        },
+      ],
+      resolutionReasons: mission.resolutionReasons,
+    }),
+    explanationNotes: [...(mission.explanationNotes ?? []), note],
+  }
+
+  context.resolvedCases = context.resolvedCases.filter((currentCaseId) => currentCaseId !== caseId)
+  context.finalizedCaseIds.delete(caseId)
+  recordCaseOutcome(context, caseId, 'partial')
+
+  const partialEventDraft = buildCasePartiallyResolvedEventDraft({
+    week: context.sourceState.week,
+    caseData: sourceCase,
+    toStage: resolutionEscalation.nextStage,
+    teamIds: existingAssignedTeamIds,
+    rewardBreakdown,
+    performanceSummary: mission.performanceSummary,
+  })
+  const resolvedEventDraftIndex = context.eventDrafts.findIndex(
+    (draft) => draft.type === 'case.resolved' && draft.payload.caseId === caseId
+  )
+
+  if (resolvedEventDraftIndex >= 0) {
+    context.eventDrafts[resolvedEventDraftIndex] = partialEventDraft
+    return
+  }
+
+  context.eventDrafts.push(partialEventDraft)
 }
 
 // Accept timingCheckState as parameter for shared cadence
@@ -2272,6 +2345,7 @@ function escalateCases(
     context.missionResultDraftByCaseId[caseId] = buildUnresolvedCaseOutcomeDraft({
       caseId,
       caseTitle: currentCase.title,
+      ...getMissionResultHiddenStateFields(escalatedCase),
       rewards: rewardBreakdown,
       spawnedConsequences: [
         {
@@ -2571,6 +2645,48 @@ function refreshPartyCards(context: WeeklyExecutionContext, rng: SeededRng) {
 }
 
 function spawnFollowUps(context: WeeklyExecutionContext, rng: SeededRng) {
+  const limitSpawnResultToAvailableSlots = <
+    TSpawnResult extends {
+      state: GameState
+      spawnedCaseIds: string[]
+      spawnedCases: SpawnedCaseRecord[]
+    },
+  >(
+    stateBeforeSpawn: GameState,
+    spawnResult: TSpawnResult
+  ): TSpawnResult => {
+    const openCaseCount = Object.values(stateBeforeSpawn.cases).filter(
+      (currentCase) => currentCase.status !== 'resolved'
+    ).length
+    const availableSlots = Math.max(0, stateBeforeSpawn.config.maxActiveCases - openCaseCount)
+
+    if (spawnResult.spawnedCases.length <= availableSlots) {
+      return spawnResult
+    }
+
+    const retainedSpawnedCaseIds = new Set(
+      spawnResult.spawnedCaseIds.slice(0, Math.max(0, availableSlots))
+    )
+
+    return {
+      ...spawnResult,
+      state: {
+        ...spawnResult.state,
+        cases: Object.fromEntries(
+          Object.entries(spawnResult.state.cases).filter(
+            ([caseId]) => caseId in stateBeforeSpawn.cases || retainedSpawnedCaseIds.has(caseId)
+          )
+        ),
+      },
+      spawnedCaseIds: spawnResult.spawnedCaseIds.filter((caseId) =>
+        retainedSpawnedCaseIds.has(caseId)
+      ),
+      spawnedCases: spawnResult.spawnedCases.filter((spawnedCase) =>
+        retainedSpawnedCaseIds.has(spawnedCase.caseId)
+      ),
+    }
+  }
+
   // Only spawn follow-ups for cases that were actually failed or unresolved this tick
   const filteredFailedSources = context.failedSpawnSources.filter((cid) =>
     context.initialCaseIdSet.has(cid)
@@ -2579,15 +2695,17 @@ function spawnFollowUps(context: WeeklyExecutionContext, rng: SeededRng) {
     context.initialCaseIdSet.has(cid)
   )
 
-  const failureSpawn = spawnFromFailures(context.nextState, filteredFailedSources, rng.next)
+  const failureSpawn = limitSpawnResultToAvailableSlots(
+    context.nextState,
+    spawnFromFailures(context.nextState, filteredFailedSources, rng.next)
+  )
   context.nextState = { ...failureSpawn.state, rngState: rng.getState() }
   registerSpawnedCases(context, failureSpawn.spawnedCases)
   appendSpawnedCaseEventDrafts(context, context.nextState, failureSpawn.spawnedCases)
 
-  const escalationSpawn = spawnFromEscalations(
+  const escalationSpawn = limitSpawnResultToAvailableSlots(
     context.nextState,
-    filteredUnresolvedTriggers,
-    rng.next
+    spawnFromEscalations(context.nextState, filteredUnresolvedTriggers, rng.next)
   )
   context.nextState = { ...escalationSpawn.state, rngState: rng.getState() }
   registerSpawnedCases(context, escalationSpawn.spawnedCases)
@@ -2759,6 +2877,8 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
       events: context.sourceState.events,
     }),
   }
+  let projectedFactions = context.sourceState.factions
+  let previousRecruitUnlocks = getFactionRecruitUnlocks({ factions: projectedFactions })
 
   for (const missionResult of Object.values(context.missionResultByCaseId)) {
     if (!missionResult) {
@@ -2778,6 +2898,28 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
       const before = standingByFactionId[standing.factionId] ?? 0
       const after = clamp(before + standing.delta, -20, 20)
       standingByFactionId[standing.factionId] = after
+      const sourceCase = context.sourceState.cases[missionResult.caseId] as
+        | (CaseInstance & { contactId?: string; contactName?: string })
+        | undefined
+      const sourceFaction = projectedFactions?.[standing.factionId]
+      const sourceContact = sourceCase?.contactId
+        ? (sourceFaction?.contacts ?? []).find((contact) => contact.id === sourceCase.contactId)
+        : undefined
+      const reputationBefore = sourceFaction?.reputation ?? before * 5
+      const reputationAfter = clamp(reputationBefore + standing.delta, -100, 100)
+      const contactDelta =
+        sourceCase?.contactId && missionResult.outcome === 'success'
+          ? 6
+          : sourceCase?.contactId && missionResult.outcome === 'partial'
+            ? 2
+            : sourceCase?.contactId
+              ? -4
+              : undefined
+      const contactRelationshipBefore = sourceContact?.relationship
+      const contactRelationshipAfter =
+        typeof contactRelationshipBefore === 'number' && typeof contactDelta === 'number'
+          ? clamp(contactRelationshipBefore + contactDelta, -100, 100)
+          : undefined
 
       context.eventDrafts.push({
         type: 'faction.standing_changed',
@@ -2789,11 +2931,47 @@ function finalizeMissionResults(context: WeeklyExecutionContext) {
           delta: standing.delta,
           standingBefore: before,
           standingAfter: after,
+          reputationBefore,
+          reputationAfter,
           reason,
           caseId: missionResult.caseId,
           caseTitle: missionResult.caseTitle,
+          contactId: sourceCase?.contactId,
+          contactName: sourceCase?.contactName ?? sourceContact?.name,
+          contactRelationshipBefore,
+          contactRelationshipAfter,
+          contactDelta,
         },
       })
+
+      projectedFactions = applyFactionRecruitInteraction(projectedFactions ?? {}, {
+        factionId: standing.factionId,
+        contactId: sourceCase?.contactId,
+        reputationDelta: standing.delta,
+        relationshipDelta: contactDelta,
+      })
+
+      const nextRecruitUnlocks = getFactionRecruitUnlocks({ factions: projectedFactions })
+      for (const unlock of diffFactionRecruitUnlocks(
+        previousRecruitUnlocks,
+        nextRecruitUnlocks
+      ).filter((entry) => entry.factionId === standing.factionId)) {
+        context.eventDrafts.push({
+          type: 'faction.unlock_available',
+          sourceSystem: 'faction',
+          payload: {
+            week: context.sourceState.week,
+            factionId: unlock.factionId,
+            factionName: unlock.factionName,
+            contactId: unlock.contactId,
+            contactName: unlock.contactName,
+            label: unlock.label,
+            summary: unlock.summary ?? unlock.label,
+            disposition: unlock.disposition === 'adversarial' ? 'adversarial' : 'supportive',
+          },
+        })
+      }
+      previousRecruitUnlocks = nextRecruitUnlocks
     }
   }
 }
@@ -3049,7 +3227,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   const sourceReports = getSimulationSourceReports(state.reports)
-  const sourceState = sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+  const sourceStateBase =
+    sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+  const sourceState = {
+    ...sourceStateBase,
+    cases: degradeMissionIntelRecord(
+      sourceStateBase.cases,
+      sourceStateBase.week,
+      getResearchIntelModifiers(sourceStateBase)
+    ),
+  }
 
   // Create a single timingCheckState for the week
   const timingCheckState = createTimingCheckState()
@@ -3091,19 +3278,11 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       return mission && mission.outcome === 'success'
     })
     if (downgradeCaseId) {
-      // Downgrade the mission result
-      const mission = context.missionResultDraftByCaseId[downgradeCaseId]
-      if (mission) {
-        mission.outcome = 'partial'
-        mission.explanationNotes = [
-          ...(mission.explanationNotes || []),
-          'Command-coordination friction under pressure reduced operation follow-through this week.',
-        ]
-      }
-      // Remove from resolvedCases if present, and record as partial (exclusive)
-      context.resolvedCases = context.resolvedCases.filter((cid) => cid !== downgradeCaseId)
-      context.finalizedCaseIds.delete(downgradeCaseId)
-      recordCaseOutcome(context, downgradeCaseId, 'partial')
+      downgradeResolvedCaseToPartial(
+        context,
+        downgradeCaseId,
+        'Command-coordination friction under pressure reduced operation follow-through this week.'
+      )
     }
   }
   escalateCases(context, timingCheckState)

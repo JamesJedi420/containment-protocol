@@ -1,13 +1,21 @@
-import { explainDefeatConditionKnowledge, explainRelayStatus, explainHazardKnowledge, explainRelayChain, explainDecay, explainFusion } from '../../domain/explanations'
+import {
+  explainDecay,
+  explainDefeatConditionKnowledge,
+  explainFusion,
+  explainHazardKnowledge,
+  explainRelayChain,
+} from '../../domain/explanations'
+import type { KnowledgeState, KnowledgeStateMap } from '../../domain/knowledge'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
-import { calcWeekScore } from '../../domain/sim/scoring'
-import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
 import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
+import { calcWeekScore } from '../../domain/sim/scoring'
 import { TrendSummaryPanel } from './TrendSummaryPanel'
+import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
+import { getCaseTemplateFamily } from './reportIntelProjection'
 import { getRunTrendSummary } from './reportTrendView'
 import {
   filterReportNotesByCategory,
@@ -17,47 +25,51 @@ import {
 } from './reportNoteView'
 
 // --- Real-data knowledge/relay/fusion/decay UI helpers ---
-function getTeamAnomalyKnowledgeLadder(knowledge, teamId, anomalyId) {
-  const key = Object.keys(knowledge).find(k => k.includes(teamId) && k.includes(anomalyId))
+function getTeamKnowledgeLadder(
+  knowledge: KnowledgeStateMap,
+  teamId: string,
+  subjectId: string
+) {
+  const key = Object.keys(knowledge).find(
+    (entryKey) => entryKey.includes(teamId) && entryKey.includes(subjectId)
+  )
   return key ? knowledge[key] : undefined
 }
-function getTeamHazardKnowledgeLadder(knowledge, teamId, hazardId) {
-  const key = Object.keys(knowledge).find(k => k.includes(teamId) && k.includes(hazardId))
-  return key ? knowledge[key] : undefined
+
+function getTeamAnomalyKnowledgeLadder(
+  knowledge: KnowledgeStateMap,
+  teamId: string,
+  anomalyId: string
+) {
+  return getTeamKnowledgeLadder(knowledge, teamId, anomalyId)
 }
-function getRelayChainExplanation(ks) {
-  return ks ? explainRelayChain(ks) : ''
+
+function getTeamHazardKnowledgeLadder(
+  knowledge: KnowledgeStateMap,
+  teamId: string,
+  hazardId: string
+) {
+  return getTeamKnowledgeLadder(knowledge, teamId, hazardId)
 }
-function getDecayExplanation(ks) {
-  return ks ? explainDecay(ks) : ''
+
+function getRelayChainExplanation(knowledgeState?: KnowledgeState) {
+  return knowledgeState ? explainRelayChain(knowledgeState) : ''
 }
-function getFusionExplanation(ks) {
-  return ks ? explainFusion(ks) : ''
+
+function getDecayExplanation(knowledgeState?: KnowledgeState) {
+  return knowledgeState ? explainDecay(knowledgeState) : ''
 }
-// UI hook: defeat-condition knowledge and relay status
-// (Stub: replace with real data wiring as needed)
-import { explainDefeatConditionKnowledge, explainRelayStatus } from '../../domain/explanations'
-import { useState } from 'react'
-import { useParams } from 'react-router'
-import LocalNotFound from '../../app/LocalNotFound'
-import { APP_ROUTES } from '../../app/routes'
-import { useGameStore } from '../../app/store/gameStore'
-import { calcWeekScore } from '../../domain/sim/scoring'
-import { ReportCaseGroup, ReportTeamStatusList } from './reportDetailHelpers'
-import { REPORT_LABELS, REPORT_UI_TEXT, SHELL_UI_TEXT, TOOLTIPS } from '../../data/copy'
-import { TrendSummaryPanel } from './TrendSummaryPanel'
-import { getRunTrendSummary } from './reportTrendView'
-import {
-  filterReportNotesByCategory,
-  getAvailableReportNoteCategories,
-  REPORT_NOTE_CATEGORY_LABELS,
-  type ReportNoteCategory,
-} from './reportNoteView'
+
+function getFusionExplanation(knowledgeState?: KnowledgeState) {
+  return knowledgeState ? explainFusion(knowledgeState) : ''
+}
 
 export default function ReportDetailPage() {
   const { week } = useParams()
   const { game } = useGameStore()
-  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>('all')
+  const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
+    'all'
+  )
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
@@ -88,11 +100,14 @@ export default function ReportDetailPage() {
   const anomalyIds = Object.keys(game.cases)
   // Hazards are cases whose template family is 'hazard-incident' or have a 'hazard' tag
   const hazardIds = Object.values(game.cases)
-    .filter(c => {
-      const template = game.templates[c.templateId]
-      return template?.family === 'hazard-incident' || template?.tags?.includes('hazard')
+    .filter((currentCase) => {
+      const template = game.templates[currentCase.templateId]
+      return (
+        getCaseTemplateFamily(currentCase.templateId) === 'hazard' ||
+        template?.tags?.includes('hazard')
+      )
     })
-    .map(c => c.id)
+    .map((currentCase) => currentCase.id)
 
   return (
     <section className="space-y-4">

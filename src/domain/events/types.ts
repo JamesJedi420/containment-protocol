@@ -446,6 +446,12 @@ export interface OperationEventPayloadMap {
     directiveId: WeeklyDirectiveId
     directiveLabel: string
   }
+  'support.shortfall': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    remainingSupport: number
+  }
   'system.academy_upgraded': {
     week: number
     tierBefore: number
@@ -497,6 +503,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
   'directive.applied': 'system'
+  'support.shortfall': 'system'
   'system.academy_upgraded': 'system'
 }
 
@@ -539,6 +546,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',
   'directive.applied': 'system',
+  'support.shortfall': 'system',
   'system.academy_upgraded': 'system',
 }
 

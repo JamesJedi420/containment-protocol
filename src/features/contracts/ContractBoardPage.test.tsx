@@ -22,6 +22,19 @@ function renderContractBoard() {
   )
 }
 
+function getContractListButton(name: string) {
+  const list = screen.getByTestId('contract-board-list')
+  const button = within(list)
+    .getAllByRole('button')
+    .find((entry) => entry.querySelector('p')?.textContent?.startsWith(name))
+
+  if (!button) {
+    throw new Error(`Expected contract button for ${name}`)
+  }
+
+  return button
+}
+
 describe('ContractBoardPage', () => {
   beforeEach(() => {
     useGameStore.persist.clearStorage()
@@ -41,8 +54,8 @@ describe('ContractBoardPage', () => {
     const list = screen.getByTestId('contract-board-list')
     expect(list).toBeInTheDocument()
     expect(screen.getByTestId('contract-board-detail')).toBeInTheDocument()
-    expect(within(list).getByRole('button', { name: new RegExp(offers[0]!.name, 'i') })).toBeInTheDocument()
-    expect(within(list).getByRole('button', { name: new RegExp(offers[1]!.name, 'i') })).toBeInTheDocument()
+    expect(getContractListButton(offers[0]!.name)).toBeInTheDocument()
+    expect(getContractListButton(offers[1]!.name)).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /reward framing/i })).toBeInTheDocument()
     expect(screen.getAllByText(/priority/i).length).toBeGreaterThan(0)
   })
@@ -55,7 +68,7 @@ describe('ContractBoardPage', () => {
 
     renderContractBoard()
 
-    await user.click(screen.getByRole('button', { name: new RegExp(offers[1]!.name, 'i') }))
+    await user.click(getContractListButton(offers[1]!.name))
 
     await waitFor(() => {
       expect(
@@ -89,7 +102,7 @@ describe('ContractBoardPage', () => {
 
     renderContractBoard()
 
-    await user.click(screen.getByRole('button', { name: new RegExp(researchOffer!.name, 'i') }))
+    await user.click(getContractListButton(researchOffer!.name))
 
     await waitFor(() => {
       const detail = within(screen.getByTestId('contract-board-detail'))
@@ -113,7 +126,7 @@ describe('ContractBoardPage', () => {
 
     const oversightOffer = getContractOffers(game).find((offer) => offer.factionId === 'oversight')
 
-    await user.click(screen.getByRole('button', { name: new RegExp(oversightOffer!.name, 'i') }))
+    await user.click(getContractListButton(oversightOffer!.name))
 
     await waitFor(() => {
       const detail = within(screen.getByTestId('contract-board-detail'))

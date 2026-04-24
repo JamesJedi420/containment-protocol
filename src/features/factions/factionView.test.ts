@@ -8,7 +8,8 @@ describe('factionView', () => {
   it('keeps contact relationship separate from faction-wide standing and preserves hidden-effect uncertainty', () => {
     const state = createStartingState()
     state.factions!.institutions.reputation = 45
-    state.factions!.institutions.contacts = state.factions!.institutions.contacts.map((contact) =>
+    const institutionContacts = state.factions!.institutions.contacts ?? []
+    state.factions!.institutions.contacts = institutionContacts.map((contact) =>
       contact.id === 'institutions-halden'
         ? {
             ...contact,
@@ -29,7 +30,8 @@ describe('factionView', () => {
 
   it('prioritizes active and recently active contacts before lower-visibility channels', () => {
     const state = createStartingState()
-    state.factions!.institutions.contacts = state.factions!.institutions.contacts.map((contact) =>
+    const institutionContacts = state.factions!.institutions.contacts ?? []
+    state.factions!.institutions.contacts = institutionContacts.map((contact) =>
       contact.id === 'institutions-halden'
         ? {
             ...contact,

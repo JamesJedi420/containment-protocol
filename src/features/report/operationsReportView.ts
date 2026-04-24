@@ -1,4 +1,5 @@
 import type { GameState, Id, MissionPriorityBand, MissionRoutingStateKind } from '../../domain/models'
+import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import {
   explainDeploymentReadiness,
@@ -260,6 +261,7 @@ export function getDeploymentReadinessReportView(
       }
 
       const explanation = explainDeploymentReadiness(game, teamId, entry.missionId)
+      const readinessState = buildTeamDeploymentReadinessState(game, teamId, entry.missionId)
       const missionTitle = game.cases[entry.missionId]?.title ?? entry.missionId
 
       return {
@@ -267,9 +269,7 @@ export function getDeploymentReadinessReportView(
         missionTitle,
         teamId,
         teamName: team.name,
-        readinessCategoryLabel: formatReadinessCategoryLabel(
-          team.deploymentReadinessState?.readinessCategory ?? 'hard_blocked'
-        ),
+        readinessCategoryLabel: formatReadinessCategoryLabel(readinessState.readinessCategory),
         readinessScore: explanation.readinessScore ?? 0,
         summary: explanation.summary,
         dominantFactorLabel: capitalizeLabel(

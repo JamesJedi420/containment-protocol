@@ -1,10 +1,20 @@
 import { createStartingState } from '../../data/startingState'
 import { getProductionRecipe } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
-import { createDefaultWeeklyDirectiveState, isWeeklyDirectiveId } from '../../domain/directives'
+import { refreshContractBoard } from '../../domain/contracts'
+import {
+  createDefaultWeeklyDirectiveState,
+  getWeeklyDirectiveDefinitions,
+  isWeeklyDirectiveId,
+} from '../../domain/directives'
+import { buildReplacementPressureState } from '../../domain/agent/attrition'
+import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
 import { buildOperationEventTimestamp, inferOperationEventSourceSystem } from '../../domain/events'
+import { normalizeRuntimeState } from '../../domain/gameStateManager'
+import { normalizeMissionIntelRecord } from '../../domain/intel'
 import { clamp, normalizeSeed } from '../../domain/math'
 import { createDeterministicReportNote } from '../../domain/reportNotes'
+import { MAX_ACADEMY_TIER } from '../../domain/sim/academyUpgrade'
 import {
   getTeamAssignedCaseId,
   getTeamMemberIds,
@@ -68,6 +78,7 @@ const OPERATION_EVENT_TYPES = [
   'agent.resigned',
   'agent.promoted',
   'agent.hired',
+  'progression.xp_gained',
   'system.recruitment_expired',
   'system.recruitment_generated',
   'recruitment.scouting_initiated',
@@ -79,14 +90,24 @@ const OPERATION_EVENT_TYPES = [
   'market.shifted',
   'market.transaction_recorded',
   'faction.standing_changed',
+  'faction.unlock_available',
   'faction.activity',
   'agency.containment_updated',
   'directive.applied',
+  'support.shortfall',
   'system.academy_upgraded',
 ] as const
 
 const CASE_ESCALATION_TRIGGERS: CaseEscalationTrigger[] = ['deadline', 'failure']
-const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = ['failure', 'unresolved', 'raid_pressure']
+const CASE_SPAWN_TRIGGERS: CaseSpawnTrigger[] = [
+  'failure',
+  'unresolved',
+  'raid_pressure',
+  'world_activity',
+  'faction_offer',
+  'faction_pressure',
+  'pressure_threshold',
+]
 const MARKET_PRESSURES: MarketPressure[] = ['discounted', 'stable', 'tight']
 const RECRUIT_CATEGORIES = [
   'agent',
@@ -97,6 +118,11 @@ const RECRUIT_CATEGORIES = [
   'instructor',
 ] as const
 const STAT_KEYS = ['combat', 'investigation', 'utility', 'social'] as const
+const EXACT_POTENTIAL_TIERS = ['F', 'D', 'C', 'B', 'A', 'S'] as const
+const SCOUT_CONFIDENCES = ['low', 'medium', 'high', 'confirmed'] as const
+const MARKET_TRANSACTION_ACTIONS = ['buy', 'sell'] as const
+const MARKET_TRANSACTION_CATEGORIES = ['equipment', 'component', 'material'] as const
+const FACTION_UNLOCK_DISPOSITIONS = ['supportive', 'adversarial'] as const
 const REPORT_NOTE_TYPES = [
   'case.resolved',
   'case.partially_resolved',
@@ -121,8 +147,12 @@ const REPORT_NOTE_TYPES = [
   'system.anchor_instability',
   'market.transaction_recorded',
   'faction.standing_changed',
+  'faction.unlock_available',
   'directive.applied',
+  'support.shortfall',
 ] as const
+
+const FALLBACK_WEEKLY_DIRECTIVE_ID = getWeeklyDirectiveDefinitions()[0]?.id ?? 'intel-surge'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -604,6 +634,9 @@ function sanitizeCaseSnapshots(
         snapshot.assignedTeamIds.every((teamId) => typeof teamId === 'string')
           ? [...snapshot.assignedTeamIds]
           : (fallbackSnapshot?.assignedTeamIds ?? []),
+      missionResult: isRecord(snapshot.missionResult)
+        ? (snapshot.missionResult as unknown as WeeklyReportCaseSnapshot['missionResult'])
+        : fallbackSnapshot?.missionResult,
     }) as WeeklyReportCaseSnapshot
   }
 
@@ -728,6 +761,7 @@ function sanitizeTrainingQueue(value: unknown): TrainingQueueEntry[] {
     const trainingId =
       typeof entry.trainingId === 'string' ? entry.trainingId : `training-${index + 1}`
     const program = getTrainingProgram(trainingId)
+    const memberIds = sanitizeStringList(entry.memberIds)
     const durationWeeks = sanitizeInteger(
       entry.durationWeeks as number | undefined,
       program?.durationWeeks ?? 1,
@@ -747,6 +781,10 @@ function sanitizeTrainingQueue(value: unknown): TrainingQueueEntry[] {
           : (program?.scope ?? 'agent'),
       agentId: typeof entry.agentId === 'string' ? entry.agentId : `agent-${index + 1}`,
       agentName: typeof entry.agentName === 'string' ? entry.agentName : `Agent ${index + 1}`,
+      teamId: typeof entry.teamId === 'string' ? entry.teamId : undefined,
+      teamName: typeof entry.teamName === 'string' ? entry.teamName : undefined,
+      drillGroupId: typeof entry.drillGroupId === 'string' ? entry.drillGroupId : undefined,
+      ...(memberIds.length > 0 ? { memberIds } : {}),
       targetStat: isOneOf(entry.targetStat, STAT_KEYS)
         ? entry.targetStat
         : (program?.targetStat ?? 'combat'),
@@ -764,6 +802,30 @@ function sanitizeTrainingQueue(value: unknown): TrainingQueueEntry[] {
         program?.fatigueDelta ?? 0,
         0
       ),
+      recoveryBonus:
+        typeof entry.recoveryBonus === 'number'
+          ? sanitizeInteger(entry.recoveryBonus, 0, 0)
+          : undefined,
+      stabilityResistanceDelta:
+        typeof entry.stabilityResistanceDelta === 'number'
+          ? sanitizeInteger(entry.stabilityResistanceDelta, 0, 0)
+          : undefined,
+      stabilityToleranceDelta:
+        typeof entry.stabilityToleranceDelta === 'number'
+          ? sanitizeInteger(entry.stabilityToleranceDelta, 0, 0)
+          : undefined,
+      academyStatBonus:
+        typeof entry.academyStatBonus === 'number'
+          ? sanitizeInteger(entry.academyStatBonus, 0, 0)
+          : undefined,
+      relationshipDelta:
+        typeof entry.relationshipDelta === 'number'
+          ? sanitizeDecimal(entry.relationshipDelta, 0, Number.NEGATIVE_INFINITY)
+          : undefined,
+      trainedRelationshipDelta:
+        typeof entry.trainedRelationshipDelta === 'number'
+          ? sanitizeInteger(entry.trainedRelationshipDelta, 0, 0)
+          : undefined,
     })
   }
 
@@ -1043,6 +1105,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.parentCaseId === 'string' ? payload.parentCaseId : undefined,
               parentCaseTitle:
                 typeof payload.parentCaseTitle === 'string' ? payload.parentCaseTitle : undefined,
+              factionId: typeof payload.factionId === 'string' ? payload.factionId : undefined,
+              factionLabel:
+                typeof payload.factionLabel === 'string' ? payload.factionLabel : undefined,
+              sourceReason:
+                typeof payload.sourceReason === 'string' ? payload.sourceReason : undefined,
             },
           })
         )
@@ -1187,11 +1254,58 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 payload.reason === 'mission_partial' ||
                 payload.reason === 'mission_fail' ||
                 payload.reason === 'passive_drift' ||
+                payload.reason === 'external_event' ||
                 payload.reason === 'reconciliation' ||
                 payload.reason === 'spontaneous_event' ||
                 payload.reason === 'betrayal'
                   ? payload.reason
                   : 'passive_drift',
+            },
+          })
+        )
+        break
+
+      case 'agent.instructor_assigned':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('agent.instructor_assigned'),
+            payload: {
+              week,
+              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
+              instructorName:
+                typeof payload.instructorName === 'string'
+                  ? payload.instructorName
+                  : `Instructor ${index + 1}`,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
+                ? payload.instructorSpecialty
+                : 'combat',
+              bonus: sanitizeInteger(payload.bonus as number | undefined, 0, 0),
+            },
+          })
+        )
+        break
+
+      case 'agent.instructor_unassigned':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('agent.instructor_unassigned'),
+            payload: {
+              week,
+              staffId: typeof payload.staffId === 'string' ? payload.staffId : `staff-${index + 1}`,
+              instructorName:
+                typeof payload.instructorName === 'string'
+                  ? payload.instructorName
+                  : `Instructor ${index + 1}`,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              instructorSpecialty: isOneOf(payload.instructorSpecialty, STAT_KEYS)
+                ? payload.instructorSpecialty
+                : 'combat',
+              bonus: sanitizeInteger(payload.bonus as number | undefined, 0, 0),
             },
           })
         )
@@ -1324,6 +1438,25 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
         )
         break
 
+      case 'progression.xp_gained':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('progression.xp_gained'),
+            payload: {
+              week,
+              agentId: typeof payload.agentId === 'string' ? payload.agentId : `agent-${index + 1}`,
+              agentName:
+                typeof payload.agentName === 'string' ? payload.agentName : `Agent ${index + 1}`,
+              xpAmount: sanitizeInteger(payload.xpAmount as number | undefined, 0, 0),
+              reason: typeof payload.reason === 'string' ? payload.reason : 'unknown',
+              totalXp: sanitizeInteger(payload.totalXp as number | undefined, 0, 0),
+              level: sanitizeInteger(payload.level as number | undefined, 1, 1),
+              levelsGained: sanitizeInteger(payload.levelsGained as number | undefined, 0, 0),
+            },
+          })
+        )
+        break
+
       case 'system.recruitment_expired':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -1355,6 +1488,55 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
             payload: {
               week,
               count: sanitizeInteger(payload.count as number | undefined, 0, 0),
+            },
+          })
+        )
+        break
+
+      case 'recruitment.scouting_initiated':
+      case 'recruitment.scouting_refined':
+      case 'recruitment.intel_confirmed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase(eventType),
+            payload: {
+              week,
+              candidateId:
+                typeof payload.candidateId === 'string' ? payload.candidateId : `cand-${index + 1}`,
+              candidateName:
+                typeof payload.candidateName === 'string'
+                  ? payload.candidateName
+                  : `Candidate ${index + 1}`,
+              fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
+              stage: clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as 1 | 2 | 3,
+              projectedTier: isOneOf(payload.projectedTier, EXACT_POTENTIAL_TIERS)
+                ? payload.projectedTier
+                : 'C',
+              confidence: isOneOf(payload.confidence, SCOUT_CONFIDENCES)
+                ? payload.confidence
+                : 'low',
+              previousProjectedTier: isOneOf(payload.previousProjectedTier, EXACT_POTENTIAL_TIERS)
+                ? payload.previousProjectedTier
+                : undefined,
+              previousConfidence: isOneOf(payload.previousConfidence, SCOUT_CONFIDENCES)
+                ? payload.previousConfidence
+                : undefined,
+              confirmedTier: isOneOf(payload.confirmedTier, EXACT_POTENTIAL_TIERS)
+                ? payload.confirmedTier
+                : undefined,
+              revealLevel: sanitizeInteger(payload.revealLevel as number | undefined, 1, 1),
+              sourceFactionId:
+                typeof payload.sourceFactionId === 'string' ? payload.sourceFactionId : undefined,
+              sourceFactionName:
+                typeof payload.sourceFactionName === 'string'
+                  ? payload.sourceFactionName
+                  : undefined,
+              sourceContactId:
+                typeof payload.sourceContactId === 'string' ? payload.sourceContactId : undefined,
+              sourceContactName:
+                typeof payload.sourceContactName === 'string'
+                  ? payload.sourceContactName
+                  : undefined,
             },
           })
         )
@@ -1433,6 +1615,40 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
         )
         break
 
+      case 'market.transaction_recorded':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.transaction_recorded'),
+            payload: {
+              week,
+              marketWeek: sanitizeInteger(payload.marketWeek as number | undefined, week, 1),
+              transactionId:
+                typeof payload.transactionId === 'string'
+                  ? payload.transactionId
+                  : `txn-${week}-${index + 1}`,
+              action: isOneOf(payload.action, MARKET_TRANSACTION_ACTIONS) ? payload.action : 'buy',
+              listingId:
+                typeof payload.listingId === 'string' ? payload.listingId : `listing-${index + 1}`,
+              itemId: typeof payload.itemId === 'string' ? payload.itemId : `item-${index + 1}`,
+              itemName:
+                typeof payload.itemName === 'string' ? payload.itemName : `Item ${index + 1}`,
+              category: isOneOf(payload.category, MARKET_TRANSACTION_CATEGORIES)
+                ? payload.category
+                : 'material',
+              quantity: sanitizeInteger(payload.quantity as number | undefined, 1, 0),
+              bundleCount: sanitizeInteger(payload.bundleCount as number | undefined, 1, 0),
+              unitPrice: sanitizeInteger(payload.unitPrice as number | undefined, 0, 0),
+              totalPrice: sanitizeInteger(payload.totalPrice as number | undefined, 0, 0),
+              remainingAvailability: sanitizeInteger(
+                payload.remainingAvailability as number | undefined,
+                0,
+                0
+              ),
+            },
+          })
+        )
+        break
+
       case 'faction.activity':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -1477,11 +1693,58 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               reason:
                 payload.reason === 'case.partially_resolved' ||
                 payload.reason === 'case.failed' ||
-                payload.reason === 'case.escalated'
+                payload.reason === 'case.escalated' ||
+                payload.reason === 'recruitment.hired'
                   ? payload.reason
                   : 'case.resolved',
               caseId: typeof payload.caseId === 'string' ? payload.caseId : undefined,
               caseTitle: typeof payload.caseTitle === 'string' ? payload.caseTitle : undefined,
+              interactionLabel:
+                typeof payload.interactionLabel === 'string'
+                  ? payload.interactionLabel
+                  : undefined,
+              contactId: typeof payload.contactId === 'string' ? payload.contactId : undefined,
+              contactName:
+                typeof payload.contactName === 'string' ? payload.contactName : undefined,
+              contactRelationshipBefore: sanitizeInteger(
+                payload.contactRelationshipBefore as number | undefined,
+                0,
+                -9999
+              ),
+              contactRelationshipAfter: sanitizeInteger(
+                payload.contactRelationshipAfter as number | undefined,
+                0,
+                -9999
+              ),
+              contactDelta: sanitizeInteger(payload.contactDelta as number | undefined, 0, -9999),
+            },
+          })
+        )
+        break
+
+      case 'faction.unlock_available':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('faction.unlock_available'),
+            payload: {
+              week,
+              factionId:
+                typeof payload.factionId === 'string' ? payload.factionId : `faction-${index + 1}`,
+              factionName:
+                typeof payload.factionName === 'string'
+                  ? payload.factionName
+                  : `Faction ${index + 1}`,
+              contactId: typeof payload.contactId === 'string' ? payload.contactId : undefined,
+              contactName:
+                typeof payload.contactName === 'string' ? payload.contactName : undefined,
+              label: typeof payload.label === 'string' ? payload.label : `Unlock ${index + 1}`,
+              summary:
+                typeof payload.summary === 'string'
+                  ? payload.summary
+                  : `Faction unlock available (${index + 1})`,
+              disposition: isOneOf(payload.disposition, FACTION_UNLOCK_DISPOSITIONS)
+                ? payload.disposition
+                : 'supportive',
             },
           })
         )
@@ -1521,6 +1784,61 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
               fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
               fundingDelta: sanitizeInteger(payload.fundingDelta as number | undefined, 0, -10000),
+            },
+          })
+        )
+        break
+
+      case 'directive.applied':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('directive.applied'),
+            payload: {
+              week,
+              directiveId: isWeeklyDirectiveId(payload.directiveId)
+                ? payload.directiveId
+                : FALLBACK_WEEKLY_DIRECTIVE_ID,
+              directiveLabel:
+                typeof payload.directiveLabel === 'string'
+                  ? payload.directiveLabel
+                  : 'Directive applied',
+            },
+          })
+        )
+        break
+
+      case 'support.shortfall':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('support.shortfall'),
+            payload: {
+              week,
+              caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
+              caseTitle:
+                typeof payload.caseTitle === 'string'
+                  ? payload.caseTitle
+                  : `Case ${index + 1}`,
+              remainingSupport: sanitizeInteger(
+                payload.remainingSupport as number | undefined,
+                0,
+                0
+              ),
+            },
+          })
+        )
+        break
+
+      case 'system.academy_upgraded':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('system.academy_upgraded'),
+            payload: {
+              week,
+              tierBefore: sanitizeInteger(payload.tierBefore as number | undefined, 0, 0),
+              tierAfter: sanitizeInteger(payload.tierAfter as number | undefined, 1, 0),
+              fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
+              fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
+              cost: sanitizeInteger(payload.cost as number | undefined, 0, 0),
             },
           })
         )
@@ -1608,6 +1926,8 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
     return fallback
   }
 
+  const hasPersistedContracts = Object.prototype.hasOwnProperty.call(game, 'contracts')
+  const week = sanitizeInteger(game.week as number | undefined, fallback.week, 1)
   const candidates = Array.isArray(game.candidates)
     ? (game.candidates as GameState['candidates'])
     : fallback.candidates
@@ -1626,13 +1946,14 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
     isRecord(game.cases) && Object.values(game.cases).every((currentCase) => isRecord(currentCase))
       ? (game.cases as GameState['cases'])
       : fallback.cases
+  const normalizedCases = normalizeMissionIntelRecord(cases, week)
   const rngSeed = normalizeSeed((game.rngSeed as number | undefined) ?? fallback.rngSeed)
 
-  return syncTeamSimulationState(
+  const hydrated = syncTeamSimulationState(
     stripUndefinedFields({
       ...fallback,
       ...game,
-      week: sanitizeInteger(game.week as number | undefined, fallback.week, 1),
+      week,
       rngSeed,
       rngState: normalizeSeed((game.rngState as number | undefined) ?? rngSeed),
       gameOver: typeof game.gameOver === 'boolean' ? game.gameOver : fallback.gameOver,
@@ -1643,15 +1964,22 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       candidates: recruitmentPool,
       recruitmentPool,
       teams,
-      cases,
-      reports: sanitizeWeeklyReports(game.reports, cases, teams, agents),
+      cases: normalizedCases,
+      reports: sanitizeWeeklyReports(game.reports, normalizedCases, teams, agents),
       events: sanitizeOperationEvents(game.events, fallback.events),
       inventory: sanitizeInventory(game.inventory, fallback.inventory),
+      runtimeState: normalizeRuntimeState(game.runtimeState, week, fallback.runtimeState),
       partyCards: sanitizePartyCardState(game.partyCards, fallback.partyCards),
       trainingQueue: sanitizeTrainingQueue(game.trainingQueue),
       productionQueue: sanitizeProductionQueue(game.productionQueue),
       market: sanitizeMarket(game.market, fallback.market),
       config: sanitizeGameConfig(game.config, fallback.config),
+      contracts: hasPersistedContracts ? game.contracts : undefined,
+      academyTier: clamp(
+        sanitizeInteger(game.academyTier as number | undefined, fallback.academyTier ?? 0, 0),
+        0,
+        MAX_ACADEMY_TIER
+      ),
       containmentRating: sanitizeInteger(
         game.containmentRating as number | undefined,
         fallback.containmentRating,
@@ -1666,6 +1994,20 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       templates: fallback.templates,
     }) as GameState
   )
+
+  return refreshContractBoard({
+    ...hydrated,
+    replacementPressureState: buildReplacementPressureState(hydrated),
+    teams: Object.fromEntries(
+      Object.entries(hydrated.teams).map(([teamId, team]) => [
+        teamId,
+        {
+          ...team,
+          deploymentReadinessState: buildTeamDeploymentReadinessState(hydrated, teamId),
+        },
+      ])
+    ),
+  })
 }
 
 export function migratePersistedStore(

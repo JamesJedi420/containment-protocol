@@ -1,7 +1,7 @@
 import { assessAttritionPressure } from './agent/attrition'
 import { createSeededRng, normalizeSeed } from './math'
 import { buildAgentLoadoutReadinessSummary } from './equipment'
-import { evaluateDeploymentEligibility } from './deploymentReadiness'
+import { buildTeamDeploymentReadinessState, evaluateDeploymentEligibility } from './deploymentReadiness'
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
 import { INTEL_CALIBRATION, isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
@@ -278,6 +278,7 @@ function buildMissionRoutingCandidate(
   })
   const composition = buildTeamCompositionState(team, state.agents, state.teams)
   const eligibility = evaluateDeploymentEligibility(state, currentCase.id, team.id)
+  const readinessState = buildTeamDeploymentReadinessState(state, team.id, currentCase.id)
   const members = getTeamMembers(team, state.agents)
   const loadoutBlocked = members.some((member) =>
     buildAgentLoadoutReadinessSummary(member, { state }).readiness === 'blocked'
@@ -310,8 +311,8 @@ function buildMissionRoutingCandidate(
     teamId: team.id,
     valid: eligibility.eligible && blockerCodes.length === 0 && validation.valid,
     completeness: validation.requiredRoles.length - validation.missingRoles.length,
-    readinessCategory: team.deploymentReadinessState?.readinessCategory ?? 'mission_ready',
-    readinessScore: team.deploymentReadinessState?.readinessScore ?? 0,
+    readinessCategory: readinessState.readinessCategory,
+    readinessScore: readinessState.readinessScore,
     cohesionScore: composition.cohesion.cohesionScore,
     readiness: members.length > 0
       ? Math.round(

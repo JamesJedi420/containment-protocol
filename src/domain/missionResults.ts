@@ -1,6 +1,7 @@
 import { inventoryItemLabels } from '../data/production'
 import { getEquipmentDefinition } from './equipment'
 import { buildFactionRewardInfluence, FACTION_DEFINITIONS } from './factions'
+import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
 import type {
   CaseInstance,
   GameConfig,
@@ -50,14 +51,24 @@ export interface MissionResultInput {
   caseTitle: string
   teamsUsed: MissionTeamUsage[]
   outcome: MissionResolutionKind
+  hiddenState?: 'hidden' | 'revealed' | 'displaced'
+  detectionConfidence?: number
+  counterDetection?: boolean
+  displacementTarget?: string | null
+  route?: string | null
+  weakestLink?: WeakestLinkMissionResolutionResult
   rewards: MissionRewardBreakdown
   performanceSummary?: PerformanceMetricSummary
   powerImpact?: PowerImpactSummary
   fatigueChanges?: MissionFatigueChange[]
   injuries?: MissionInjuryRecord[]
+  fatalities?: import('./models').MissionFatalityRecord[]
   spawnedConsequences?: MissionSpawnedConsequence[]
   resolutionReasons?: string[]
   explanationNotes?: string[]
+  knowledge?: GameState['knowledge']
+  requiredDefeatCertainty?: import('./knowledge').DefeatConditionCertainty
+  anomalyId?: string
 }
 
 const PARTIAL_FUNDING_RATE = 0.48
@@ -697,8 +708,11 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
     const explanationNotes: string[] = []
     // --- Knowledge-state gating/risk: defeat-condition certainty check ---
     if (input.knowledge && input.requiredDefeatCertainty && input.anomalyId && input.teamsUsed?.length) {
-      const teamId = input.teamsUsed[0].teamId
-      const key = Object.keys(input.knowledge).find(k => k.includes(teamId) && k.includes(input.anomalyId))
+      const teamId = input.teamsUsed[0]?.teamId ?? ''
+      const anomalyId = input.anomalyId
+      const key = Object.keys(input.knowledge).find(
+        (knowledgeKey) => knowledgeKey.includes(teamId) && knowledgeKey.includes(anomalyId)
+      )
       const entry = key ? input.knowledge[key] : undefined
       const order = ['unknown', 'suspected', 'family', 'exact']
       const currentIdx = entry && entry.defeatConditionCertainty ? order.indexOf(entry.defeatConditionCertainty) : -1
@@ -707,11 +721,12 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
         appendUniqueNote(explanationNotes, `Insufficient defeat-condition certainty: required ${input.requiredDefeatCertainty}, found ${entry?.defeatConditionCertainty ?? 'none'}. Risk of mission failure or escalation.`)
       }
     }
-    const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
-    const powerImpact = input.powerImpact
-    const fatigueChanges = input.fatigueChanges ?? []
-    const injuries = input.injuries ?? []
-    const spawnedConsequences = input.spawnedConsequences ?? []
+  const performanceSummary = input.performanceSummary ?? EMPTY_PERFORMANCE_METRIC_SUMMARY
+  const powerImpact = input.powerImpact
+  const fatigueChanges = input.fatigueChanges ?? []
+  const injuries = input.injuries ?? []
+  const fatalities = input.fatalities ?? []
+  const spawnedConsequences = input.spawnedConsequences ?? []
 
   for (const reason of input.resolutionReasons ?? []) {
     appendUniqueNote(explanationNotes, reason)
@@ -746,6 +761,18 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
     caseTitle: input.caseTitle,
     teamsUsed: [...input.teamsUsed],
     outcome: input.outcome,
+    ...(input.hiddenState ? { hiddenState: input.hiddenState } : {}),
+    ...(typeof input.detectionConfidence === 'number'
+      ? { detectionConfidence: input.detectionConfidence }
+      : {}),
+    ...(typeof input.counterDetection === 'boolean'
+      ? { counterDetection: input.counterDetection }
+      : {}),
+    ...(input.displacementTarget !== undefined
+      ? { displacementTarget: input.displacementTarget }
+      : {}),
+    ...(input.route !== undefined ? { route: input.route } : {}),
+    ...(input.weakestLink ? { weakestLink: input.weakestLink } : {}),
     performanceSummary: { ...performanceSummary },
     ...(powerImpact
       ? {
@@ -768,6 +795,7 @@ export function buildMissionResult(input: MissionResultInput): MissionResult {
     penalties: buildMissionPenaltyBreakdown(input.rewards),
     fatigueChanges: fatigueChanges.map((change) => ({ ...change })),
     injuries: injuries.map((injury) => ({ ...injury })),
+    ...(fatalities.length > 0 ? { fatalities: fatalities.map((fatality) => ({ ...fatality })) } : {}),
     spawnedConsequences: spawnedConsequences.map((consequence) => ({ ...consequence })),
     explanationNotes,
   }

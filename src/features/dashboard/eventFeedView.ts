@@ -180,6 +180,7 @@ export const EVENT_SOURCE_LABELS: Record<OperationEventSourceSystem, string> = {
 }
 
 export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
+  'system.equipment_recovered': 'Equipment Recovered',
   'assignment.team_assigned': 'Team Assigned',
   'assignment.team_unassigned': 'Team Unassigned',
   'case.resolved': 'Case Resolved',
@@ -217,10 +218,12 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
   'directive.applied': 'Directive Applied',
+  'support.shortfall': 'Support Shortfall',
   'system.academy_upgraded': 'Academy Upgraded',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
+  'system.equipment_recovered': 'operations_logistics',
   'assignment.team_assigned': 'incident_response',
   'assignment.team_unassigned': 'incident_response',
   'case.resolved': 'incident_response',
@@ -258,6 +261,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
   'directive.applied': 'agency_posture',
+  'support.shortfall': 'operations_logistics',
   'system.academy_upgraded': 'operations_logistics',
 }
 
@@ -313,6 +317,22 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
   const typeLabel = EVENT_TYPE_LABELS[event.type]
 
   switch (event.type) {
+    case 'system.equipment_recovered':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Equipment recovery processed',
+        detail:
+          `Week ${event.payload.week} / ${event.payload.recovered.length} recovered / ` +
+          `${event.payload.delayed.length} delayed / Capacity ${event.payload.maintenanceCapacity}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.delayed.length > 0 ? 'warning' : 'success',
+        searchText:
+          `${event.payload.content} ${event.payload.recovered.join(' ')} ${event.payload.delayed.join(' ')}`.toLowerCase(),
+      }
+
     case 'assignment.team_assigned':
       return {
         event,
@@ -870,6 +890,21 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `${event.payload.directiveLabel} ${event.payload.directiveId} directive`.toLowerCase(),
       }
 
+    case 'support.shortfall':
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.caseTitle} support shortfall`,
+        detail: `Week ${event.payload.week} / ${event.payload.remainingSupport} support slot(s) remained uncovered`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        searchText:
+          `${event.payload.caseTitle} support shortfall ${event.payload.caseId} ${event.payload.remainingSupport}`.toLowerCase(),
+      }
+
     case 'system.academy_upgraded':
       return {
         event,
@@ -885,6 +920,8 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `academy upgraded ${event.payload.tierBefore} ${event.payload.tierAfter} ${event.payload.cost}`.toLowerCase(),
       }
   }
+
+  throw new Error(`Unhandled event feed type: ${(event as OperationEvent).type}`)
 }
 
 export function getAvailableEventSources(events: OperationEvent[]) {

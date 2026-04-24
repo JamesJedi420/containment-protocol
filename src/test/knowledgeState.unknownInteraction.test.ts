@@ -1,9 +1,8 @@
 // SPE-59: Unknown Interaction Engine (bounded pass)
 // Deterministic tests for unknown/partial/confirmed reveal progression, misread, context, and explanation output
 import { describe, it, expect } from 'vitest'
-import { applyKnowledgeFusion, applyKnowledgeDecay, getKnowledgeKey, KnowledgeState, KnowledgeTier } from '../domain/knowledge'
+import type { KnowledgeState, KnowledgeStateMap, KnowledgeTier } from '../domain/knowledge'
 import { resolveScouting } from '../domain/scoutingResolution'
-import { getOutcomeBand } from '../domain/outcomes'
 import { buildReportCaseSnapshot } from '../app/store/runTransfer'
 
 // Helper: build minimal knowledge state
@@ -73,7 +72,7 @@ describe('SPE-59: Unknown Interaction Engine', () => {
 
   it('outputs report/projection with both provisional and true classification and context', () => {
     // Simulate a knowledge map for a case with two teams
-    const knowledgeMap = {
+    const knowledgeMap: KnowledgeStateMap = {
       T1: {
         tier: 'observed',
         entityId: 'T1',
@@ -139,9 +138,16 @@ describe('SPE-59: Unknown Interaction Engine', () => {
   it('supports bounded misread/false-confidence state', () => {
     // Simulate a scouting fail after confirmed
     let ks = makeKnowledge('confirmed')
-    ks = { ...ks, tier: 'fragmented', fragmented: true, notes: 'Failed resolution: knowledge fragmented.' }
-    expect(ks.tier).toBe('fragmented')
+    ks = {
+      ...ks,
+      tier: 'partial',
+      fragmented: true,
+      fragmentation: 'fragmented',
+      notes: 'Failed resolution: knowledge fragmented.'
+    }
+    expect(ks.tier).toBe('partial')
     expect(ks.fragmented).toBe(true)
+    expect(ks.fragmentation).toBe('fragmented')
   })
 
   it('is context-sensitive: environment/containment/gear affect outcome', () => {

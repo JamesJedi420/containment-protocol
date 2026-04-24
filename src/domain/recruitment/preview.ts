@@ -98,7 +98,9 @@ export function previewCandidate(candidate: Candidate, game: GameState): Candida
     }
 
     if (candidate.sourceContactId) {
-      const contact = sourceFaction?.contacts.find((entry) => entry.id === candidate.sourceContactId)
+      const contact = (sourceFaction?.contacts ?? []).find(
+        (entry) => entry.id === candidate.sourceContactId
+      )
       if (candidate.sourceDisposition !== 'adversarial' && contact?.status === 'hostile') {
         pushReason('contact-hostile')
       }

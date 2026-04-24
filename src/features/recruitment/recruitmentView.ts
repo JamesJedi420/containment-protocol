@@ -1,6 +1,6 @@
 import { assessAttritionPressure } from '../../domain/agent/attrition'
 import { buildAgentStatCaps } from '../../domain/agentPotential'
-import { type Candidate, type GameState } from '../../domain/models'
+import { type Candidate, type GameState, type StatBlock } from '../../domain/models'
 import { ROLE_LABELS } from '../../data/copy'
 import { evaluateRecruitmentScoutSupport } from '../../domain/recon'
 import { filterCandidates, type CandidateFilters } from '../../domain/sim/candidateFilter'
@@ -360,6 +360,10 @@ function formatCapStatLabel(stat: (typeof CANDIDATE_STAT_KEYS)[number]) {
   return stat[0]!.toUpperCase() + stat.slice(1)
 }
 
+function toStatBlock(stats: VisibleCandidateStats): StatBlock {
+  return { ...stats }
+}
+
 function buildCandidateScoutIntel(candidate: Candidate) {
   if (normalizeCandidateCategory(candidate.category) !== 'agent' || !candidate.agentData) {
     return {
@@ -430,7 +434,13 @@ function buildCandidateScoutIntel(candidate: Candidate) {
   }
 
   const growthProfile = candidate.agentData.growthProfile ?? 'balanced'
-  const caps = buildAgentStatCaps(baseStats, tier, growthProfile, undefined, candidate.evaluation.overallValue)
+  const caps = buildAgentStatCaps(
+    toStatBlock(baseStats),
+    tier,
+    growthProfile,
+    undefined,
+    candidate.evaluation.overallValue
+  )
   const statOrder = getCapStatOrder(baseStats).slice(0, exactKnown ? 4 : 2)
   const capDetails = statOrder.map((stat) =>
     exactKnown

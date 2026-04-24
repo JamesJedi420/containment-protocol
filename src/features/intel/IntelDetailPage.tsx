@@ -28,6 +28,10 @@ export default function IntelDetailPage() {
 
   const convertStage =
     intel.template.onUnresolved.convertToRaidAtStage ?? intel.template.onFail.convertToRaidAtStage
+  const failSpawnCount = intel.template.onFail.spawnCount ?? { min: 0, max: 0 }
+  const unresolvedSpawnCount = intel.template.onUnresolved.spawnCount ?? { min: 0, max: 0 }
+  const failStageDelta = intel.template.onFail.stageDelta ?? 0
+  const unresolvedStageDelta = intel.template.onUnresolved.stageDelta ?? 0
 
   const distortion = inspectDistortion(intel.template)
   const distortionText = distortion.primary ? distortion.summary : undefined
@@ -124,17 +128,17 @@ export default function IntelDetailPage() {
             <div className="grid gap-4 xl:grid-cols-3">
               <RuleCard
                 title={INTEL_UI_TEXT.escalationOnFail}
-                stageDelta={intel.template.onFail.stageDelta}
-                min={intel.template.onFail.spawnCount.min}
-                max={intel.template.onFail.spawnCount.max}
+                stageDelta={failStageDelta}
+                min={failSpawnCount.min}
+                max={failSpawnCount.max}
                 convertToRaidAtStage={intel.template.onFail.convertToRaidAtStage}
                 links={intel.failTargets}
               />
               <RuleCard
                 title={INTEL_UI_TEXT.escalationOnUnresolved}
-                stageDelta={intel.template.onUnresolved.stageDelta}
-                min={intel.template.onUnresolved.spawnCount.min}
-                max={intel.template.onUnresolved.spawnCount.max}
+                stageDelta={unresolvedStageDelta}
+                min={unresolvedSpawnCount.min}
+                max={unresolvedSpawnCount.max}
                 convertToRaidAtStage={intel.template.onUnresolved.convertToRaidAtStage}
                 links={intel.unresolvedTargets}
               />

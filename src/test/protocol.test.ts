@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { evaluateThresholdCourtContact, ProtocolContactContext } from '../domain/protocol'
+import { evaluateThresholdCourtContact, type ProtocolContactContext } from '../domain/protocol'
 import { buildFactionStates } from '../domain/factions'
 import { createStartingState } from '../data/startingState'
 

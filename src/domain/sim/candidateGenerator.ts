@@ -639,7 +639,7 @@ function buildFactionSponsoredCandidate(
         unlock.disposition === 'adversarial'
           ? `${unlock.label} surfaced via ${roleSummary}. Vetting risk remains elevated.`
           : `${unlock.label} via ${roleSummary}`,
-      sourceDisposition: unlock.disposition,
+      sourceDisposition: unlock.disposition === 'adversarial' ? 'adversarial' : 'supportive',
       sourceRequiredTier: unlock.minTier,
       sourceMaxTier: unlock.maxTier,
       roleInclination: agentData.role,

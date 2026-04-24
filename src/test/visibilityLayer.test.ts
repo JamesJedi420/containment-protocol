@@ -145,7 +145,7 @@ describe('visibility layer / decision legibility', () => {
       requiredTags: [],
       intelConfidence: 0.24,
       intelUncertainty: 0.76,
-      intelLastUpdatedWeek: state.week - 1,
+      intelLastUpdatedWeek: state.week,
     }
 
     const before = {

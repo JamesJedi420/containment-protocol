@@ -2,31 +2,17 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import * as gameStoreModule from '../../app/store/gameStore'
+import { createStartingState } from '../../data/startingState'
 import * as strategicStateModule from '../../domain/strategicState'
 import { buildAgencyOverview } from '../../domain/strategicState'
 import { TrendSummaryPanel } from '../report/TrendSummaryPanel'
 
 describe('TrendSummaryPanel cadence/extra check surfacing', () => {
   it('renders escalation/pressure cadence and extra checks', () => {
-    // Minimal game state with one urgent escalation
-    const game = {
-      week: 1,
-      agents: {},
-      teams: {},
-      cases: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      productionQueue: [],
-      trainingQueue: [],
-      market: { pressure: 'stable', week: 1, featuredRecipeId: '', costMultiplier: 1 },
-      config: { maxActiveCases: 3 },
-      funding: 100,
-      containmentRating: 10,
-      clearanceLevel: 1,
-      templates: {},
-      staff: {},
-    }
+    const game = createStartingState()
+    game.cases = {}
+    game.reports = []
+    game.events = []
     const overview = buildAgencyOverview(game)
     overview.encounterStructure.urgentEscalations = [
       {

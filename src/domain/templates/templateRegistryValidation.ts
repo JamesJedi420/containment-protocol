@@ -65,8 +65,8 @@ function buildReachability(templates: CaseTemplate[], entryTemplateIds: string[]
     visited.add(templateId)
 
     for (const linkedId of [
-      ...template.onFail.spawnTemplateIds,
-      ...template.onUnresolved.spawnTemplateIds,
+      ...(template.onFail.spawnTemplateIds ?? []),
+      ...(template.onUnresolved.spawnTemplateIds ?? []),
     ]) {
       if (!visited.has(linkedId) && byId.has(linkedId)) {
         queue.push(linkedId)

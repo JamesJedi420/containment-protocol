@@ -1,4 +1,10 @@
-import type { FundingState, GameState, Id, ReplacementPressureState } from '../models'
+import type {
+  FundingState,
+  GameState,
+  Id,
+  ReplacementPressureState,
+  SupportStaffSummary,
+} from '../models'
 import { clamp } from '../math'
 import { RECOVERY_CALIBRATION } from './calibration'
 
@@ -22,6 +28,7 @@ export interface AdvanceRecoveryDowntimeInput {
   downtimeAssignments: Record<Id, DowntimeActivity>
   fundingState?: FundingState
   replacementPressureState?: ReplacementPressureState
+  supportStaff?: SupportStaffSummary
 }
 
 export function advanceRecoveryDowntimeForWeek({
@@ -31,6 +38,7 @@ export function advanceRecoveryDowntimeForWeek({
   downtimeAssignments,
   fundingState,
   replacementPressureState,
+  supportStaff,
 }: AdvanceRecoveryDowntimeInput): RecoveryProgressionResult {
   const updatedAgents: GameState['agents'] = { ...sourceAgents }
   const updatedTeams: GameState['teams'] = { ...sourceTeams }
@@ -42,6 +50,11 @@ export function advanceRecoveryDowntimeForWeek({
   let throughputPenaltyApplied = budgetPressureApplied >= 3 ? 2 : budgetPressureApplied >= 2 ? 1 : 0
   let attritionThroughputPenaltyApplied = attritionPressureApplied >= 4 ? 2 : attritionPressureApplied >= 2 ? 1 : 0
   // Support staff (medical) can reduce throughput penalty deterministically
+  const medicalRelief = Math.max(
+    0,
+    (supportStaff?.medical ?? 0) >= 8 ? 2 : (supportStaff?.medical ?? 0) >= 4 ? 1 : 0
+  )
+  throughputPenaltyApplied = Math.max(0, throughputPenaltyApplied - medicalRelief)
   const combinedThroughputPenalty = throughputPenaltyApplied + attritionThroughputPenaltyApplied
   const therapyTraumaReductionPenalty = budgetPressureApplied >= 4 ? 1 : 0
 

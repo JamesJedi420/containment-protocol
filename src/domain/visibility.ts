@@ -75,6 +75,7 @@ const ROUTING_BLOCKER_LABELS: Record<MissionRoutingBlockerCode, string> = {
   'missing-certification': 'missing certification',
   'fatigue-over-threshold': 'fatigue threshold exceeded',
   'no-eligible-teams': 'no eligible teams',
+  'no-valid-team': 'no valid team',
   'capacity-locked': 'team capacity locked',
   'team-state-incompatible': 'team state incompatible',
   'routing-state-blocked': 'routing state blocked',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  type ExclusiveOutcomeRegistry,
   assertExclusiveOutcomeBuckets,
   recordExclusiveOutcome,
   resolveConsequenceRoute,
@@ -26,33 +27,18 @@ describe('shared outcomes substrate', () => {
     const partial: string[] = []
     const unresolved: string[] = []
     const finalizedIds = new Set<string>()
+    const registry: ExclusiveOutcomeRegistry<string> = {
+      finalizedIds,
+      recorders: {
+        resolved: (id) => resolved.push(id),
+        failed: (id) => failed.push(id),
+        partial: (id) => partial.push(id),
+        unresolved: (id) => unresolved.push(id),
+      },
+    }
 
-    const firstRecord = recordExclusiveOutcome(
-      {
-        finalizedIds,
-        recorders: {
-          resolved: (id) => resolved.push(id),
-          failed: (id) => failed.push(id),
-          partial: (id) => partial.push(id),
-          unresolved: (id) => unresolved.push(id),
-        },
-      },
-      'case-1',
-      'resolved'
-    )
-    const secondRecord = recordExclusiveOutcome(
-      {
-        finalizedIds,
-        recorders: {
-          resolved: (id) => resolved.push(id),
-          failed: (id) => failed.push(id),
-          partial: (id) => partial.push(id),
-          unresolved: (id) => unresolved.push(id),
-        },
-      },
-      'case-1',
-      'failed'
-    )
+    const firstRecord = recordExclusiveOutcome(registry, 'case-1', 'resolved')
+    const secondRecord = recordExclusiveOutcome(registry, 'case-1', 'failed')
 
     expect(firstRecord).toBe(true)
     expect(secondRecord).toBe(false)

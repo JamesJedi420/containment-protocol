@@ -372,9 +372,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByText(/reset to week 1\?/i)).not.toBeInTheDocument();
     expect(useGameStore.getState().game).toMatchObject({
       week: 1,
-      reports: [
-        expect.objectContaining({ week: 1 })
-      ],
+      reports: [],
     });
   });
 
@@ -712,13 +710,7 @@ it('starts a fresh run from the current config without changing the config', asy
     week: 1,
     rngSeed: 77,
     rngState: 77,
-    // createStartingState always includes a default week 1 report
-    reports: [
-      expect.objectContaining({
-        week: 1,
-        maxStage: 1,
-      })
-    ],
+    reports: [],
     config: expect.objectContaining({
       maxActiveCases: 9,
       partialMargin: 22,

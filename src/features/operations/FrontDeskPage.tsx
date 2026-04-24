@@ -225,7 +225,12 @@ export default function FrontDeskPage() {
                     <span className="rounded-full border border-cyan-400/35 bg-cyan-500/10 text-cyan-100 px-2 py-0.5 text-[10px] font-bold">Recovery Bottleneck</span>
                   )}
                 </div>
-                <p className="mt-2 text-2xl font-semibold">{card.value}</p>
+                <p
+                  className="mt-2 text-2xl font-semibold"
+                  data-testid={`dashboard-stat-value-${card.label.toLowerCase().replace(/\s+/g, '-')}`}
+                >
+                  {card.value}
+                </p>
               </Link>
             </div>
           ))}

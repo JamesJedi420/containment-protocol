@@ -168,7 +168,7 @@ function getWorldTemplateWeight(template: CaseTemplate, game: GameState) {
     weight += 1
   }
 
-  if (unresolvedMomentum >= 4 && template.onUnresolved.spawnCount.max > 0) {
+  if (unresolvedMomentum >= 4 && (template.onUnresolved.spawnCount?.max ?? 0) > 0) {
     weight += 1
   }
 
@@ -203,7 +203,7 @@ function getFactionTemplateWeight(
   let weight = 1 + factionTagMatches * 3
 
   if (mode === 'hostile') {
-    if (template.onFail.spawnCount.max > 0 || template.onUnresolved.spawnCount.max > 0) {
+    if ((template.onFail.spawnCount?.max ?? 0) > 0 || (template.onUnresolved.spawnCount?.max ?? 0) > 0) {
       weight += 0.5
     }
 
@@ -215,7 +215,7 @@ function getFactionTemplateWeight(
       weight += 0.75
     }
 
-    if (template.onFail.spawnCount.max === 0 && template.onUnresolved.spawnCount.max === 0) {
+    if ((template.onFail.spawnCount?.max ?? 0) === 0 && (template.onUnresolved.spawnCount?.max ?? 0) === 0) {
       weight += 0.5
     }
 
@@ -314,6 +314,8 @@ export function generateAmbientCases(
     .filter(
       (faction) =>
         faction.stance !== 'supportive' &&
+        faction.reputationTier !== 'friendly' &&
+        faction.reputationTier !== 'allied' &&
         faction.pressureScore >= getFactionPressureSpawnThreshold(faction)
     )
     .sort(
@@ -646,15 +648,15 @@ function buildCaseEscalationPreview(
   return [
     {
       trigger: 'failure',
-      nextStage: Math.min(currentCase.stage + currentCase.onFail.stageDelta, 5),
+      nextStage: Math.min(currentCase.stage + (currentCase.onFail.stageDelta ?? 0), 5),
       convertsToRaid:
         currentCase.onFail.convertToRaidAtStage !== undefined &&
-        currentCase.stage + currentCase.onFail.stageDelta >=
+        currentCase.stage + (currentCase.onFail.stageDelta ?? 0) >=
           currentCase.onFail.convertToRaidAtStage,
       raidTeamRange: currentCase.raid
         ? `${currentCase.raid.minTeams}-${currentCase.raid.maxTeams}`
         : undefined,
-      targets: [...new Set(currentCase.onFail.spawnTemplateIds)]
+      targets: [...new Set(currentCase.onFail.spawnTemplateIds ?? [])]
         .map((templateId) => ({
           templateId,
           title: templates[templateId]?.title ?? templateId,
@@ -663,15 +665,15 @@ function buildCaseEscalationPreview(
     },
     {
       trigger: 'unresolved',
-      nextStage: Math.min(currentCase.stage + currentCase.onUnresolved.stageDelta, 5),
+      nextStage: Math.min(currentCase.stage + (currentCase.onUnresolved.stageDelta ?? 0), 5),
       convertsToRaid:
         currentCase.onUnresolved.convertToRaidAtStage !== undefined &&
-        currentCase.stage + currentCase.onUnresolved.stageDelta >=
+        currentCase.stage + (currentCase.onUnresolved.stageDelta ?? 0) >=
           currentCase.onUnresolved.convertToRaidAtStage,
       raidTeamRange: currentCase.raid
         ? `${currentCase.raid.minTeams}-${currentCase.raid.maxTeams}`
         : undefined,
-      targets: [...new Set(currentCase.onUnresolved.spawnTemplateIds)]
+      targets: [...new Set(currentCase.onUnresolved.spawnTemplateIds ?? [])]
         .map((templateId) => ({
           templateId,
           title: templates[templateId]?.title ?? templateId,

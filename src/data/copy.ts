@@ -47,6 +47,7 @@ export const MODE_LABELS: Record<CaseMode, string> = {
   threshold: 'Threshold',
   probability: 'Probability',
   deterministic: 'Deterministic',
+  standard: 'Standard',
 }
 
 /**
@@ -809,6 +810,8 @@ export const CASE_LORE_STUBS: Record<string, string> = {
     'Archive mention: Sector 9 contamination mirrors waveforms seen before the Harrow Quarantine.',
   'raid-001':
     'Archive mention: Site Gamma has never reached full-breach status in surviving Directorate records.',
+  'escalation-psi-002':
+    'Archive mention: Lower-archive cognitive breach logs were sealed after responders began sharing identical false memories across shifts.',
   combat_vampire_nest:
     'Archive mention: Stockyard disappearances track a pre-Protocol burn ledger marked Night Harvest.',
   puzzle_whispering_archive:
@@ -845,6 +848,10 @@ export const CASE_LORE_STUBS: Record<string, string> = {
     'Archive mention: Cold-chain anomalies first appeared in procurement audits following a sealed municipal decommission order.',
   'ops-009':
     'Archive mention: Evidence warehouse quarantines are usually preceded by tampered custody manifests and scrubbed access logs.',
+  'ops-critical-staffing':
+    'Archive mention: Multi-shift response failures usually begin with silent staffing gaps long before any public-facing containment breach is logged.',
+  'reward-mixed-bundle':
+    'Archive mention: Recovery bundles that mix funding, material access, and research priority were historically used to mask high-risk salvage operations.',
   'bio-forensics-001':
     'Archive mention: Forensics-lab contamination chains were historically linked to mislabeled biohazard evidence returns.',
   'cyber-raid-001':

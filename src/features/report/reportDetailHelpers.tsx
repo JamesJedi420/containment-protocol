@@ -56,6 +56,57 @@ function getCaseMeta(caseId: string, currentCases: CaseMap, snapshots?: CaseSnap
   return formatCaseMeta(snapshot ?? currentCase)
 }
 
+function formatDetectionConfidence(value?: number) {
+  if (typeof value !== 'number') {
+    return null
+  }
+
+  return `${Math.round(value * 100)}%`
+}
+
+export function MissionResultSummary({
+  missionResult,
+}: {
+  missionResult?: WeeklyReportCaseSnapshot['missionResult']
+}) {
+  if (!missionResult) {
+    return null
+  }
+
+  const detectionConfidence = formatDetectionConfidence(missionResult.detectionConfidence)
+  const hasExplanationNotes = missionResult.explanationNotes.length > 0
+  const hasDetails =
+    Boolean(missionResult.hiddenState) ||
+    Boolean(detectionConfidence) ||
+    typeof missionResult.counterDetection === 'boolean' ||
+    missionResult.displacementTarget !== undefined ||
+    hasExplanationNotes
+
+  if (!hasDetails) {
+    return null
+  }
+
+  return (
+    <div className="mt-2 space-y-1 text-xs opacity-70">
+      {missionResult.hiddenState ? <p>Hidden state: {missionResult.hiddenState}</p> : null}
+      {detectionConfidence ? <p>Detection confidence: {detectionConfidence}</p> : null}
+      {typeof missionResult.counterDetection === 'boolean' ? (
+        <p>Counter-detection: {missionResult.counterDetection ? 'active' : 'inactive'}</p>
+      ) : null}
+      {missionResult.displacementTarget ? (
+        <p>Displacement target: {missionResult.displacementTarget}</p>
+      ) : null}
+      {hasExplanationNotes ? (
+        <ul className="space-y-1">
+          {missionResult.explanationNotes.map((note, index) => (
+            <li key={`${missionResult.caseId}-note-${index}`}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
+}
+
 function ReportCaseEntry({
   caseId,
   existingCaseIds,
@@ -108,6 +159,7 @@ function ReportCaseEntry({
       </div>
 
       {meta ? <p className="mt-2 text-xs opacity-60">{meta}</p> : null}
+      <MissionResultSummary missionResult={snapshot?.missionResult} />
     </li>
   )
 }

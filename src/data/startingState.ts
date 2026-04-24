@@ -1,6 +1,9 @@
 import { type GameState } from '../domain/models'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
+import { createInitialFactionState } from '../domain/factions'
+import { refreshContractBoard } from '../domain/contracts'
 import { syncTeamSimulationState } from '../domain/teamSimulation'
+import { ensureManagedGameState } from '../domain/gameStateManager'
 import { caseTemplateMap, starterCases, starterRoster, starterTeams } from '../domain/templates'
 import { createStartingPartyCardState } from './partyCards'
 import { createStartingInventory, createStartingMarket } from './production'
@@ -35,6 +38,7 @@ const startingStateTemplate: GameState = {
   partyCards: createStartingPartyCardState(),
 
   knowledge: startingKnowledge,
+  factions: createInitialFactionState(),
 
   agency: {
     containmentRating: 72,
@@ -74,29 +78,9 @@ const startingStateTemplate: GameState = {
 }
 
 export function createStartingState(): GameState {
-  const state = syncTeamSimulationState(structuredClone(startingStateTemplate));
-  // Ensure at least one valid report for dashboard tests
-  if (!state.reports || state.reports.length === 0) {
-    state.reports = [
-      {
-        week: 1,
-        rngStateBefore: 1000,
-        rngStateAfter: 1001,
-        newCases: [],
-        progressedCases: [],
-        resolvedCases: [],
-        failedCases: [],
-        partialCases: [],
-        unresolvedTriggers: [],
-        spawnedCases: [],
-        maxStage: 1,
-        avgFatigue: 0,
-        teamStatus: [],
-        notes: [],
-      },
-    ];
-  }
-  return state;
+  return ensureManagedGameState(
+    refreshContractBoard(syncTeamSimulationState(structuredClone(startingStateTemplate)))
+  )
 }
 
 export const startingState = createStartingState()

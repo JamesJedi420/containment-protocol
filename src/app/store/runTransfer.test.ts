@@ -1,6 +1,8 @@
 // cspell:words cand medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { refreshContractBoard } from '../../domain/contracts'
+import type { CaseInstance } from '../../domain/models'
 import type { DistortionState } from '../../domain/shared/distortion'
 import { queueTraining } from '../../domain/sim/training'
 import {
@@ -16,7 +18,7 @@ import {
 
 describe('runTransfer helpers', () => {
   it('propagates canonical distortion state into report snapshots', () => {
-    const caseWithDistortion = {
+    const caseWithDistortion: CaseInstance = {
       id: 'case-distorted',
       templateId: 'template-1',
       title: 'Distorted Case',
@@ -127,6 +129,28 @@ describe('runTransfer helpers', () => {
     const migrated = migratePersistedStore({ game: persistedGame }, 1, fallback)
 
     expect(migrated.game.factions).toEqual(fallback.factions)
+  })
+
+  it('rebuilds the contract board from imported state when legacy saves omit contracts', () => {
+    const fallback = createStartingState()
+    const persistedGame = createStartingState()
+
+    delete (persistedGame as Partial<typeof persistedGame>).contracts
+    persistedGame.week = 6
+    persistedGame.funding = 275
+    persistedGame.containmentRating = 80
+    persistedGame.clearanceLevel = 2
+
+    const expectedContracts = refreshContractBoard({
+      ...fallback,
+      ...persistedGame,
+      contracts: undefined,
+      templates: fallback.templates,
+    }).contracts
+    const migrated = migratePersistedStore({ game: persistedGame }, 1, fallback)
+
+    expect(migrated.game.contracts?.generatedWeek).toBe(6)
+    expect(migrated.game.contracts).toEqual(expectedContracts)
   })
 
   it('builds the current run export payload shape without persisting templates', () => {

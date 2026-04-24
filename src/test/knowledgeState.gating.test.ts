@@ -1,12 +1,13 @@
 // Tests for defeat-condition gating utility
 import { describe, it, expect } from 'vitest'
-import { applyDefeatConditionKnowledge, hasDefeatConditionCertainty, getKnowledgeKey } from '../domain/knowledge'
+import { applyDefeatConditionKnowledge, hasDefeatConditionCertainty } from '../domain/knowledge'
+import type { KnowledgeStateMap } from '../domain/knowledge'
 
 describe('Defeat-Condition Gating Utility', () => {
   it('should gate actions based on certainty ladder', () => {
     const teamId = 'T1'
     const anomalyId = 'A1'
-    let state = {}
+    let state: KnowledgeStateMap = {}
     state = applyDefeatConditionKnowledge(state, teamId, anomalyId, 'suspected', 1)
     expect(hasDefeatConditionCertainty(state, teamId, anomalyId, 'unknown')).toBe(true)
     expect(hasDefeatConditionCertainty(state, teamId, anomalyId, 'suspected')).toBe(true)

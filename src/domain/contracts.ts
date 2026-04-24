@@ -1214,6 +1214,7 @@ function buildSelectionScore(
 ) {
   const seed = buildContractSeed(state, `${definition.id}:selection`)
   const rng = createSeededRng(seed)
+  const contracts = sanitizeContractSystemState(state.contracts)
   const factionTier = getFactionTier(state, definition.factionId)
   const factionBias =
     factionTier === 'allied'
@@ -1230,9 +1231,22 @@ function buildSelectionScore(
   const progressionUnlockBias = (definition.chain.unlockConditions ?? []).some(
     (condition) =>
       condition.type === 'progression_unlock' &&
-      hasAgencyProgressionUnlock(state, condition.unlockId)
+      hasAgencyProgressionUnlock(state, condition.unlockId ?? '')
   )
     ? 0.45
+    : 0
+  const recentChainCompletionBias = (definition.chain.unlockConditions ?? []).some((condition) => {
+    if (condition.type !== 'completed_contract') {
+      return false
+    }
+
+    const record = contracts.history[condition.contractTemplateId ?? '']
+    return (
+      getOutcomeMeetsMinimum(record?.bestOutcome ?? 'none', condition.minimumOutcome) &&
+      record?.lastCompletedWeek === state.week - 1
+    )
+  })
+    ? 0.85
     : 0
 
   return (
@@ -1240,7 +1254,8 @@ function buildSelectionScore(
     progressionFactor * 0.35 +
     powerFactor * 0.2 +
     factionBias +
-    progressionUnlockBias -
+    progressionUnlockBias +
+    recentChainCompletionBias -
     freshnessPenalty
   )
 }
@@ -1257,18 +1272,18 @@ function meetsUnlockCondition(
 
   switch (condition.type) {
     case 'completed_contract': {
-      const record = contracts.history[condition.contractTemplateId]
-      return getOutcomeMeetsMinimum(record?.bestOutcome ?? 'none', condition.minimumOutcome)
+      const record = contracts.history[condition.contractTemplateId ?? '']
+      return getOutcomeMeetsMinimum(record?.bestOutcome ?? 'none', condition.minimumOutcome ?? 'success')
     }
     case 'research_unlocked':
-      return completedResearchUnlockIds.has(condition.researchId)
+      return completedResearchUnlockIds.has(condition.researchId ?? '')
     case 'faction_tier':
       return (
-        getTierRank(getFactionTier(state, condition.factionId)) >=
-        getTierRank(condition.minimumTier)
+        getTierRank(getFactionTier(state, condition.factionId ?? '')) >=
+        getTierRank(condition.minimumTier ?? 'neutral')
       )
     case 'progression_unlock':
-      return hasAgencyProgressionUnlock(state, condition.unlockId)
+      return hasAgencyProgressionUnlock(state, condition.unlockId ?? '')
     default:
       return false
   }
@@ -1342,13 +1357,14 @@ function getContractAvailabilityBlockers(
 
     switch (condition.type) {
       case 'completed_contract': {
-        const record = contracts.history[condition.contractTemplateId]
+        const contractTemplateId = condition.contractTemplateId ?? ''
+        const record = contracts.history[contractTemplateId]
         blockers.push({
           code: 'missing-contract-chain',
           detail: `Requires ${getContractDisplayLabel(
-            condition.contractTemplateId
+            contractTemplateId
           )} to reach ${formatContractResolutionLabel(
-            condition.minimumOutcome
+            condition.minimumOutcome ?? 'success'
           )}. Current best outcome ${formatContractResolutionLabel(record?.bestOutcome)}.`,
         })
         break
@@ -1356,16 +1372,16 @@ function getContractAvailabilityBlockers(
       case 'research_unlocked':
         blockers.push({
           code: 'missing-research-unlock',
-          detail: `Requires research unlock ${formatContractIdLabel(condition.researchId)}.`,
+          detail: `Requires research unlock ${formatContractIdLabel(condition.researchId ?? '')}.`,
         })
         break
       case 'faction_tier':
         blockers.push({
           code: 'missing-faction-tier',
-          detail: `Requires ${getFactionDefinition(condition.factionId)?.label ?? formatContractIdLabel(condition.factionId)} standing ${formatContractTierLabel(
-            condition.minimumTier
+          detail: `Requires ${getFactionDefinition(condition.factionId ?? '')?.label ?? formatContractIdLabel(condition.factionId ?? '')} standing ${formatContractTierLabel(
+            condition.minimumTier ?? 'neutral'
           )}. Current standing ${formatContractTierLabel(
-            getFactionTier(state, condition.factionId)
+            getFactionTier(state, condition.factionId ?? '')
           )}.`,
         })
         break
@@ -1373,7 +1389,7 @@ function getContractAvailabilityBlockers(
         blockers.push({
           code: 'missing-progression-unlock',
           detail: `Requires progression unlock ${getAgencyProgressionUnlockLabel(
-            condition.unlockId
+            condition.unlockId ?? ''
           )}.`,
         })
         break
@@ -1432,7 +1448,7 @@ function buildRewardPackage(
   const rewardMultiplier = getFactionRewardMultiplier(state, definition.factionId)
   const rewardBonus = definition.modifiers
     .filter((modifier) => modifier.effect === 'reward_bonus')
-    .reduce((sum, modifier) => sum + modifier.value, 0)
+    .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
   const scalar = clamp(rewardMultiplier + rewardBonus * 0.1, 0.6, 1.9)
 
   return {
@@ -1459,7 +1475,7 @@ function deriveRiskLevel(
 ): ContractRiskLevel {
   const injuryPressure = modifiers
     .filter((modifier) => modifier.effect === 'injury_risk' || modifier.effect === 'death_risk')
-    .reduce((sum, modifier) => sum + modifier.value, 0)
+    .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
   const effectiveDifficulty = difficulty + injuryPressure
 
   if (effectiveDifficulty >= 70) {
@@ -1497,7 +1513,7 @@ function buildOfferFromDefinition(
   )
   const difficultyFlat = definition.modifiers
     .filter((modifier) => modifier.effect === 'difficulty_flat')
-    .reduce((sum, modifier) => sum + modifier.value, 0)
+    .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
   const caseDifficulty = scaleDifficultyProfile(template.difficulty, scalar, difficultyFlat)
   const previewCase = buildContractCaseSkeleton(
     {
@@ -1999,7 +2015,8 @@ export function recordContractOutcome(
     return nextContracts
   }
 
-  const currentRecord = nextContracts.history[activeContract.templateId] ?? {
+  const templateId = activeContract.templateId ?? activeContract.contractId ?? activeContract.offerId ?? activeContract.caseId ?? ''
+  const currentRecord = nextContracts.history[templateId] ?? {
     completions: 0,
     bestOutcome: 'none',
   }
@@ -2017,7 +2034,7 @@ export function recordContractOutcome(
     ...nextContracts,
     history: {
       ...nextContracts.history,
-      [activeContract.templateId]: {
+      [templateId]: {
         completions: currentRecord.completions + (completed ? 1 : 0),
         bestOutcome,
         lastOutcome: outcome,

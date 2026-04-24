@@ -82,6 +82,8 @@ export interface TemplateIntelView {
   bestStarterSuccess: number
 }
 
+const EMPTY_SPAWN_COUNT = Object.freeze({ min: 0, max: 0 })
+
 export const DEFAULT_INTEL_FILTERS: IntelFilters = {
   q: '',
   mode: 'all',
@@ -93,6 +95,18 @@ export const DEFAULT_INTEL_FILTERS: IntelFilters = {
 
 const starterIntelGame = createIntelStartingGame()
 const starterIntelPreviewState = buildResolutionPreviewState(starterIntelGame)
+
+function getRuleStageDelta(rule: CaseTemplate['onFail']) {
+  return rule.stageDelta ?? 0
+}
+
+function getRuleSpawnCount(rule: CaseTemplate['onFail']) {
+  return rule.spawnCount ?? EMPTY_SPAWN_COUNT
+}
+
+function getRuleSpawnTemplateIds(rule: CaseTemplate['onFail']) {
+  return rule.spawnTemplateIds ?? []
+}
 
 export function getAllIntelViews(templates: Record<string, CaseTemplate> = caseTemplateMap) {
   return Object.values(templates)
@@ -149,11 +163,11 @@ export function getTemplateIntelView(
     likelyPressure: getLikelyPressure(template),
     pressureSignals: getPressureSignals(template),
     isRaidCapable: isRaidCapableTemplate(template),
-    failTargets: mapRuleTargets(template, 'fail', template.onFail.spawnTemplateIds, templates),
+    failTargets: mapRuleTargets(template, 'fail', getRuleSpawnTemplateIds(template.onFail), templates),
     unresolvedTargets: mapRuleTargets(
       template,
       'unresolved',
-      template.onUnresolved.spawnTemplateIds,
+      getRuleSpawnTemplateIds(template.onUnresolved),
       templates
     ),
     incomingSignals: getIncomingSignals(template, templates),
@@ -272,13 +286,13 @@ function createTemplatePreviewCase(template: CaseTemplate): CaseInstance {
     assignedTeamIds: [],
     onFail: {
       ...template.onFail,
-      spawnCount: { ...template.onFail.spawnCount },
-      spawnTemplateIds: [...template.onFail.spawnTemplateIds],
+      spawnCount: { ...getRuleSpawnCount(template.onFail) },
+      spawnTemplateIds: [...getRuleSpawnTemplateIds(template.onFail)],
     },
     onUnresolved: {
       ...template.onUnresolved,
-      spawnCount: { ...template.onUnresolved.spawnCount },
-      spawnTemplateIds: [...template.onUnresolved.spawnTemplateIds],
+      spawnCount: { ...getRuleSpawnCount(template.onUnresolved) },
+      spawnTemplateIds: [...getRuleSpawnTemplateIds(template.onUnresolved)],
     },
     raid: template.raid ? { ...template.raid } : undefined,
   }
@@ -287,10 +301,10 @@ function createTemplatePreviewCase(template: CaseTemplate): CaseInstance {
 function mapRuleTargets(
   template: CaseTemplate,
   trigger: 'fail' | 'unresolved',
-  templateIds: string[],
+  templateIds: string[] | undefined,
   templates: Record<string, CaseTemplate>
 ) {
-  return [...new Set(templateIds)]
+  return [...new Set(templateIds ?? [])]
     .map<TemplateLinkView | undefined>((targetId) => {
       const target = templates[targetId]
 
@@ -315,7 +329,7 @@ function getIncomingSignals(template: CaseTemplate, templates: Record<string, Ca
     .flatMap((candidate) => {
       const links: TemplateLinkView[] = []
 
-      if (candidate.onFail.spawnTemplateIds.includes(template.templateId)) {
+      if (getRuleSpawnTemplateIds(candidate.onFail).includes(template.templateId)) {
         links.push({
           templateId: candidate.templateId,
           title: candidate.title,
@@ -325,7 +339,7 @@ function getIncomingSignals(template: CaseTemplate, templates: Record<string, Ca
         })
       }
 
-      if (candidate.onUnresolved.spawnTemplateIds.includes(template.templateId)) {
+      if (getRuleSpawnTemplateIds(candidate.onUnresolved).includes(template.templateId)) {
         links.push({
           templateId: candidate.templateId,
           title: candidate.title,
@@ -341,7 +355,8 @@ function getIncomingSignals(template: CaseTemplate, templates: Record<string, Ca
 }
 
 function getRulePressureScore(rule: CaseTemplate['onFail']) {
-  return rule.stageDelta * 2 + rule.spawnCount.max + (rule.convertToRaidAtStage ? 2 : 0)
+  const spawnCount = getRuleSpawnCount(rule)
+  return getRuleStageDelta(rule) * 2 + spawnCount.max + (rule.convertToRaidAtStage ? 2 : 0)
 }
 
 function getLikelyPressure(template: CaseTemplate): IntelPressure {
@@ -371,17 +386,20 @@ function getPressureSignals(template: CaseTemplate) {
     `Deadline ${template.deadlineWeeks} week${template.deadlineWeeks === 1 ? '' : 's'}`,
   ]
 
-  if (template.onFail.stageDelta > 0) {
-    signals.push(`Fail adds ${template.onFail.stageDelta} stage`)
+  const failStageDelta = getRuleStageDelta(template.onFail)
+  if (failStageDelta > 0) {
+    signals.push(`Fail adds ${failStageDelta} stage`)
   }
 
-  if (template.onUnresolved.stageDelta > 0) {
-    signals.push(`Unresolved adds ${template.onUnresolved.stageDelta} stage`)
+  const unresolvedStageDelta = getRuleStageDelta(template.onUnresolved)
+  if (unresolvedStageDelta > 0) {
+    signals.push(`Unresolved adds ${unresolvedStageDelta} stage`)
   }
 
-  if (template.onUnresolved.spawnCount.max > 0) {
+  const unresolvedSpawnCount = getRuleSpawnCount(template.onUnresolved)
+  if (unresolvedSpawnCount.max > 0) {
     signals.push(
-      `Unresolved can spawn up to ${template.onUnresolved.spawnCount.max} follow-up cases`
+      `Unresolved can spawn up to ${unresolvedSpawnCount.max} follow-up cases`
     )
   }
 

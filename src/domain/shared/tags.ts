@@ -218,7 +218,7 @@ function normalizeTagSource(source: TagSource): readonly string[] {
     return [...source]
   }
 
-  return source.tags ?? []
+  return (source as { tags?: readonly string[] }).tags ?? []
 }
 
 export function createTagSet(...sources: readonly TagSource[]) {

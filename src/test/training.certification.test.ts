@@ -10,7 +10,7 @@ import {
   queueTraining,
   reviewCertification,
   transitionCertification,
-} from '../domain/sim/training'
+} from '../domain/sim/training-compat'
 
 describe('training certification system', () => {
   it('provides deterministic compact selectors for category programs and certification definitions', () => {

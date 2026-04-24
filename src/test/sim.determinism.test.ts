@@ -20,48 +20,17 @@ function runScriptedDeterministicScenario(seed: number) {
     assignedTeamIds: [],
     stage: 1,
     deadlineRemaining: 1,
-    const BASELINE = {
-      academyTier: 0,
-      agency: {
-        clearanceLevel: 1,
-        containmentRating: 72,
-        funding: 110,
-      },
-      agents: {
-        a_ava: expect.any(Object),
-        a_casey: expect.any(Object),
-        a_eli: expect.any(Object),
-        a_juno: expect.any(Object),
-        a_kellan: expect.any(Object),
-        a_mina: expect.any(Object),
-        a_rook: expect.any(Object),
-        a_sato: expect.any(Object),
-      },
-      candidates: [],
-      caseQueue: expect.any(Object),
-      cases: expect.any(Object),
-      clearanceLevel: 1,
-      config: expect.any(Object),
-      containmentRating: 72,
-      directiveState: expect.any(Object),
-      events: [],
-      funding: 110,
-      gameOver: false,
-      inventory: expect.any(Object),
-      knowledge: { 't_nightwatch::case-001': expect.any(Object) },
-      market: expect.any(Object),
-      partyCards: expect.any(Object),
-      productionQueue: [],
-      recruitmentPool: [],
-      reports: [],
-      rngSeed: 99999,
-      rngState: 99999,
-      staff: {},
-      teams: expect.any(Object),
-      templates: expect.any(Object),
-      trainingQueue: [],
-      week: 1,
-    }
+  }
+
+  for (let week = 0; week < 4; week += 1) {
+    state = advanceWeek(state)
+  }
+
+  return state
+}
+
+/**
+ * Determinism hardening regression coverage for repeated runs and scripted assignments,
  * ensuring the stability hardening fix prevents state leaks.
  */
 describe('Simulation Determinism Hardening', () => {
@@ -160,7 +129,7 @@ describe('Simulation Determinism Hardening', () => {
     expect(original).toEqual(snapshot)
 
     // Final state must have progressed
-    expect(finalState.week).toBe(3)
+    expect(finalState.week).toBe(4)
   })
 
   it('ensures spawn RNG exhaustion does not corrupt determinism', () => {

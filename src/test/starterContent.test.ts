@@ -290,14 +290,16 @@ describe('starter content contracts', () => {
     caseInstance.requiredRoles?.push('support')
     caseInstance.requiredTags.push('mutated')
     caseInstance.preferredTags.push('mutated')
-    caseInstance.onFail.spawnTemplateIds.push('mutated')
+    caseInstance.onFail.spawnTemplateIds!.push('mutated')
 
     expect(caseInstance.tags).toContain('mutated')
     expect(caseTemplateMap['combat_vampire_nest'].tags).not.toContain('mutated')
     expect(caseTemplateMap['combat_vampire_nest'].requiredRoles ?? []).not.toContain('support')
     expect(caseTemplateMap['combat_vampire_nest'].requiredTags ?? []).not.toContain('mutated')
     expect(caseTemplateMap['combat_vampire_nest'].preferredTags ?? []).not.toContain('mutated')
-    expect(caseTemplateMap['combat_vampire_nest'].onFail.spawnTemplateIds).not.toContain('mutated')
+    expect(caseTemplateMap['combat_vampire_nest'].onFail.spawnTemplateIds ?? []).not.toContain(
+      'mutated'
+    )
 
     expect(() =>
       createStarterCase({
@@ -313,18 +315,20 @@ describe('starter content contracts', () => {
 
     stateA.teams['t_nightwatch'].assignedCaseId = 'case-001'
     stateA.cases['case-001'].assignedTeamIds.push('t_nightwatch')
-    stateA.cases['case-001'].onFail.spawnTemplateIds.push('combat_vampire_nest')
+    stateA.cases['case-001'].onFail.spawnTemplateIds!.push('combat_vampire_nest')
 
     expect(stateB.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
     expect(stateB.cases['case-001'].assignedTeamIds).toEqual([])
-    expect(stateB.cases['case-001'].onFail.spawnTemplateIds).toEqual(['followup_missing_persons'])
+    expect(stateB.cases['case-001'].onFail.spawnTemplateIds ?? []).toEqual([
+      'followup_missing_persons',
+    ])
     expect(stateB.templates).toEqual(caseTemplateMap)
   })
 
   it('keeps case template spawn references resolvable in the template map', () => {
     const referencedTemplateIds = caseTemplates.flatMap((template) => [
-      ...template.onFail.spawnTemplateIds,
-      ...template.onUnresolved.spawnTemplateIds,
+      ...(template.onFail.spawnTemplateIds ?? []),
+      ...(template.onUnresolved.spawnTemplateIds ?? []),
     ])
 
     for (const templateId of referencedTemplateIds) {
@@ -451,9 +455,9 @@ describe('starter content contracts', () => {
 
   it('keeps direct raid-001 ingress templates below concentration cap', () => {
     const directRaidIngressTemplates = caseTemplates.filter((template) => {
-      const referencesRaidFromFail = template.onFail.spawnTemplateIds.includes('raid-001')
+      const referencesRaidFromFail = (template.onFail.spawnTemplateIds ?? []).includes('raid-001')
       const referencesRaidFromUnresolved =
-        template.onUnresolved.spawnTemplateIds.includes('raid-001')
+        (template.onUnresolved.spawnTemplateIds ?? []).includes('raid-001')
 
       return referencesRaidFromFail || referencesRaidFromUnresolved
     })

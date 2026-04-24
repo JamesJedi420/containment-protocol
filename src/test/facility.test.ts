@@ -36,6 +36,36 @@ const TEST_CONFIG: GameState['config'] = {
   containmentDeltaPerUnresolved: 0,
 }
 
+function makeTestState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    containmentRating: 0,
+    clearanceLevel: 0,
+    funding: 0,
+    week: 1,
+    facilityState: { facilities: {} },
+    academyTier: 0,
+    rngSeed: 0,
+    rngState: 0,
+    gameOver: false,
+    directiveState: TEST_DIRECTIVE,
+    agents: {},
+    staff: {},
+    candidates: [],
+    teams: {},
+    cases: {},
+    templates: {},
+    reports: [],
+    events: [],
+    inventory: {},
+    trainingQueue: [],
+    productionQueue: [],
+    knowledge: {},
+    market: TEST_MARKET,
+    config: TEST_CONFIG,
+    ...overrides,
+  }
+}
+
 function makeTestFacility(overrides: Partial<FacilityInstance> = {}): FacilityInstance {
   return {
     facilityId: 'research_lab',
@@ -51,34 +81,12 @@ function makeTestFacility(overrides: Partial<FacilityInstance> = {}): FacilityIn
 describe('Facility Progression System', () => {
   it('initiates an upgrade deterministically', () => {
     const facility = makeTestFacility({ status: 'active', level: 1 })
-    const state: GameState = {
-      containmentRating: 0,
-      clearanceLevel: 0,
+    const state = makeTestState({
       funding: 100,
       week: 10,
       facilityState: { facilities: { research_lab: facility } },
-      academyTier: 0,
-      rngSeed: 0,
-      rngState: 0,
-      gameOver: false,
-      directiveState: TEST_DIRECTIVE,
-      agents: {},
-      staff: {},
-      candidates: [],
-      teams: {},
-      cases: {},
-      templates: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      trainingQueue: [],
-      productionQueue: [],
-      market: TEST_MARKET,
-      config: TEST_CONFIG,
-    }
+    })
     const upgraded = applyFacilityUpgrade(state, 'research_lab', { costMoney: 100, costMaterials: 0, buildWeeks: 2, effectDeltas: { researchSpeedMultiplier: 0.5 } })
-    // Debug output
-    console.log('Facility after upgrade:', upgraded.facilityState?.facilities.research_lab)
     expect(upgraded.facilityState?.facilities.research_lab.upgradeInProgress).toBe(true)
     expect(upgraded.facilityState?.facilities.research_lab.upgradeStartedWeek).toBe(10)
     expect(upgraded.facilityState?.facilities.research_lab.upgradeCompleteWeek).toBe(12)
@@ -87,31 +95,10 @@ describe('Facility Progression System', () => {
 
   it('progresses and completes upgrades deterministically', () => {
     const facility = makeTestFacility({ status: 'upgrading', level: 1, upgradeInProgress: true, upgradeStartedWeek: 10, upgradeCompleteWeek: 12 })
-    let state: GameState = {
-      containmentRating: 0,
-      clearanceLevel: 0,
-      funding: 0,
+    let state = makeTestState({
       week: 11,
       facilityState: { facilities: { research_lab: facility } },
-      academyTier: 0,
-      rngSeed: 0,
-      rngState: 0,
-      gameOver: false,
-      directiveState: TEST_DIRECTIVE,
-      agents: {},
-      staff: {},
-      candidates: [],
-      teams: {},
-      cases: {},
-      templates: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      trainingQueue: [],
-      productionQueue: [],
-      market: TEST_MARKET,
-      config: TEST_CONFIG,
-    }
+    })
     state = advanceFacilityUpgrades(state)
     expect(state.facilityState?.facilities.research_lab.status).toBe('upgrading')
     state = { ...state, week: 12 }
@@ -123,31 +110,10 @@ describe('Facility Progression System', () => {
 
   it('enforces prerequisites and does not upgrade if missing', () => {
     const facility = makeTestFacility({ status: 'available', level: 1 })
-    const state: GameState = {
-      containmentRating: 0,
-      clearanceLevel: 0,
-      funding: 0,
+    const state = makeTestState({
       week: 10,
       facilityState: { facilities: { research_lab: facility } },
-      academyTier: 0,
-      rngSeed: 0,
-      rngState: 0,
-      gameOver: false,
-      directiveState: TEST_DIRECTIVE,
-      agents: {},
-      staff: {},
-      candidates: [],
-      teams: {},
-      cases: {},
-      templates: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      trainingQueue: [],
-      productionQueue: [],
-      market: TEST_MARKET,
-      config: TEST_CONFIG,
-    }
+    })
     // Missing required research
     const upgraded = applyFacilityUpgrade(state, 'research_lab', { costMoney: 100, costMaterials: 0, buildWeeks: 2, requirements: { requiredResearchIds: ['r1'] }, effectDeltas: { researchSpeedMultiplier: 0.5 } })
     expect(upgraded.facilityState?.facilities.research_lab.level).toBe(1)
@@ -156,31 +122,10 @@ describe('Facility Progression System', () => {
 
   it('applies effect deltas on completion', () => {
     const facility = makeTestFacility({ status: 'upgrading', level: 1, upgradeInProgress: true, upgradeStartedWeek: 10, upgradeCompleteWeek: 12, effects: { researchSpeedMultiplier: 1 }, pendingEffectDeltas: { researchSpeedMultiplier: 0.5 } })
-    let state: GameState = {
-      containmentRating: 0,
-      clearanceLevel: 0,
-      funding: 0,
+    let state = makeTestState({
       week: 12,
       facilityState: { facilities: { research_lab: facility } },
-      academyTier: 0,
-      rngSeed: 0,
-      rngState: 0,
-      gameOver: false,
-      directiveState: TEST_DIRECTIVE,
-      agents: {},
-      staff: {},
-      candidates: [],
-      teams: {},
-      cases: {},
-      templates: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      trainingQueue: [],
-      productionQueue: [],
-      market: TEST_MARKET,
-      config: TEST_CONFIG,
-    }
+    })
     state = advanceFacilityUpgrades(state)
     expect(state.facilityState?.facilities.research_lab.effects.researchSpeedMultiplier).toBe(1.5)
   })
@@ -188,31 +133,10 @@ describe('Facility Progression System', () => {
   it('summarizes facility effects for downstream systems', () => {
     const facilityA = makeTestFacility({ facilityId: 'research_lab', effects: { researchSpeedMultiplier: 1.5, researchSlots: 2 } })
     const facilityB = makeTestFacility({ facilityId: 'fabrication_lab', effects: { fabricationYield: 2 } })
-    const state: GameState = {
-      containmentRating: 0,
-      clearanceLevel: 0,
-      funding: 0,
+    const state = makeTestState({
       week: 10,
       facilityState: { facilities: { research_lab: facilityA, fabrication_lab: facilityB } },
-      academyTier: 0,
-      rngSeed: 0,
-      rngState: 0,
-      gameOver: false,
-      directiveState: TEST_DIRECTIVE,
-      agents: {},
-      staff: {},
-      candidates: [],
-      teams: {},
-      cases: {},
-      templates: {},
-      reports: [],
-      events: [],
-      inventory: {},
-      trainingQueue: [],
-      productionQueue: [],
-      market: TEST_MARKET,
-      config: TEST_CONFIG,
-    }
+    })
     const summary = getFacilityEffectSummary(state)
     expect(summary.researchSpeedMultiplier).toBe(1.5)
     expect(summary.researchSlots).toBe(2)

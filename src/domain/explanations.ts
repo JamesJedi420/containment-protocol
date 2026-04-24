@@ -1,4 +1,5 @@
 // --- Fusion Explanation ---
+import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 
 
 export function explainFusion(ks: KnowledgeState): string {
@@ -43,7 +44,6 @@ export function explainHazardKnowledge(ks: KnowledgeState): string {
   }
   return 'No hazard knowledge.';
 }
-import { hasDefeatConditionCertainty, type DefeatConditionCertainty, type KnowledgeStateMap } from './knowledge'
 // --- Knowledge/Relay Explanation Utility ---
 // Returns a human-readable explanation for defeat-condition certainty and relay status
 export function explainDefeatConditionKnowledge(

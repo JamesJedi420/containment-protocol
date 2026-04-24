@@ -106,12 +106,12 @@ export function applyIntelUpdate(
   const nextMission = {
     ...normalizedMission,
     intelConfidence: clamp(
-      normalizedMission.intelConfidence + normalizePositiveDelta(delta.confidenceGain),
+      (normalizedMission.intelConfidence ?? DEFAULT_INTEL_CONFIDENCE) + normalizePositiveDelta(delta.confidenceGain),
       0,
       1
     ),
     intelUncertainty: clamp(
-      normalizedMission.intelUncertainty - normalizePositiveDelta(delta.uncertaintyReduction),
+      (normalizedMission.intelUncertainty ?? DEFAULT_INTEL_UNCERTAINTY) - normalizePositiveDelta(delta.uncertaintyReduction),
       0,
       1
     ),
@@ -133,8 +133,9 @@ export function degradeMissionIntel(
   modifiers: IntelDegradationModifiers = {}
 ): CaseInstance {
   const normalizedMission = normalizeMissionIntel(mission, currentWeek)
-  const normalizedWeek = normalizeWeek(currentWeek, normalizedMission.intelLastUpdatedWeek)
-  const elapsedWeeks = Math.max(0, normalizedWeek - normalizedMission.intelLastUpdatedWeek)
+  const intelLastUpdatedWeek = normalizeWeek(normalizedMission.intelLastUpdatedWeek, currentWeek)
+  const normalizedWeek = normalizeWeek(currentWeek, intelLastUpdatedWeek)
+  const elapsedWeeks = Math.max(0, normalizedWeek - intelLastUpdatedWeek)
   const confidenceDecayMultiplier = normalizeRateMultiplier(modifiers.confidenceDecayMultiplier)
   const uncertaintyGrowthMultiplier = normalizeRateMultiplier(modifiers.uncertaintyGrowthMultiplier)
 
@@ -145,13 +146,13 @@ export function degradeMissionIntel(
   return {
     ...normalizedMission,
     intelConfidence: clamp(
-      normalizedMission.intelConfidence -
+      (normalizedMission.intelConfidence ?? DEFAULT_INTEL_CONFIDENCE) -
         elapsedWeeks * INTEL_CONFIDENCE_DECAY_PER_WEEK * confidenceDecayMultiplier,
       0,
       1
     ),
     intelUncertainty: clamp(
-      normalizedMission.intelUncertainty +
+      (normalizedMission.intelUncertainty ?? DEFAULT_INTEL_UNCERTAINTY) +
         elapsedWeeks * INTEL_UNCERTAINTY_GROWTH_PER_WEEK * uncertaintyGrowthMultiplier,
       0,
       1
@@ -174,21 +175,21 @@ export function degradeMissionIntelRecord(
 
 export function getMissionIntelSummary(
   mission: Pick<CaseInstance, 'intelConfidence' | 'intelUncertainty' | 'intelLastUpdatedWeek'>,
-  currentWeek = mission.intelLastUpdatedWeek
+  currentWeek = mission.intelLastUpdatedWeek ?? 1
 ): MissionIntelSummary {
   const lastUpdatedWeek = normalizeWeek(mission.intelLastUpdatedWeek, currentWeek)
   const normalizedCurrentWeek = normalizeWeek(currentWeek, lastUpdatedWeek)
 
   return {
-    confidence: clamp(mission.intelConfidence, 0, 1),
-    uncertainty: clamp(mission.intelUncertainty, 0, 1),
+    confidence: clamp(mission.intelConfidence ?? DEFAULT_INTEL_CONFIDENCE, 0, 1),
+    uncertainty: clamp(mission.intelUncertainty ?? DEFAULT_INTEL_UNCERTAINTY, 0, 1),
     age: Math.max(0, normalizedCurrentWeek - lastUpdatedWeek),
   }
 }
 
 export function getMissionIntelRisk(
   mission: Pick<CaseInstance, 'intelConfidence' | 'intelUncertainty' | 'intelLastUpdatedWeek'>,
-  currentWeek = mission.intelLastUpdatedWeek
+  currentWeek = mission.intelLastUpdatedWeek ?? 1
 ) {
   const summary = getMissionIntelSummary(mission, currentWeek)
 

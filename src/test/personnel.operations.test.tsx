@@ -1,6 +1,6 @@
 // cspell:words cand fieldcraft
 import '../test/setup'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import AppShell from '../app/AppShell'
@@ -8,7 +8,7 @@ import { useGameStore } from '../app/store/gameStore'
 import { type Candidate } from '../domain/models'
 import AgentDetailPage from '../features/agents/AgentDetailPage'
 import AgentsPage from '../features/agents/AgentsPage'
-// import TrainingDivisionPage from '../features/training/TrainingDivisionPage'
+import TrainingDivisionPage from '../features/training/TrainingDivisionPage'
 import { trainingCatalog } from '../data/training'
 import { createFixtureState, resetGameStoreFixture } from './storeFixtures'
 
@@ -22,7 +22,7 @@ function renderApp(route = '/') {
             <Route index element={<AgentsPage />} />
             <Route path=":agentId" element={<AgentDetailPage />} />
           </Route>
-          <Route path="training-division" element={<require('../features/training/TrainingDivisionPage').default />} />
+          <Route path="training-division" element={<TrainingDivisionPage />} />
           <Route path="recruitment" element={<RecruitmentProbe />} />
         </Route>
       </Routes>

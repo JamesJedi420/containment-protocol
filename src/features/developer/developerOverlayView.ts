@@ -245,9 +245,14 @@ export interface DeveloperOverlaySnapshot {
  * logic inside the overlay component.
  */
 export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlaySnapshot {
-    // Facility debug/inspection summary
-    const facilityDebug = game.facilityState
-      ? Object.values(game.facilityState.facilities).map(facility => ({
+  const facilityDebug = game.facilityState
+    ? Object.values(game.facilityState.facilities).map((facility) => {
+        const compatFacility = facility as typeof facility & {
+          requirements?: unknown
+          lastUpdatedWeek?: number
+        }
+
+        return {
           facilityId: facility.facilityId,
           category: facility.category,
           level: facility.level,
@@ -257,10 +262,11 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
           upgradeStartedWeek: facility.upgradeStartedWeek,
           upgradeCompleteWeek: facility.upgradeCompleteWeek,
           effects: facility.effects,
-          requirements: facility.requirements,
-          lastUpdatedWeek: facility.lastUpdatedWeek,
-        }))
-      : []
+          requirements: compatFacility.requirements ?? null,
+          lastUpdatedWeek: compatFacility.lastUpdatedWeek,
+        }
+      })
+    : []
   const runtime = readGameStateManager(game)
   const flagSnapshot = buildFlagSystemSnapshot(game)
   const developerLog = buildDeveloperLogSnapshot(game, 30)
@@ -328,6 +334,7 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
   return {
     location: {
       ...runtime.currentLocation,
+      updatedWeek: runtime.currentLocation.updatedWeek ?? game.week,
       facilities: facilityDebug,
     },
     ...(runtime.ui.authoring?.activeContextId
@@ -340,7 +347,7 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
       .map(([id, record]) => ({
         id,
         ...(record.source ? { source: record.source } : {}),
-        firstSeenWeek: record.firstSeenWeek,
+        firstSeenWeek: record.firstSeenWeek ?? game.week,
       }))
       .sort((left, right) => left.id.localeCompare(right.id)),
     loadouts: {
@@ -494,10 +501,10 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
       hidden: clock.visibility === 'hidden',
       ...(clock.completedAtWeek ? { completedAtWeek: clock.completedAtWeek } : {}),
     })),
-    encounters: Object.values(runtime.encounterState)
-      .map((encounter) => ({
-        id: encounter.encounterId,
-        status: encounter.status,
+    encounters: Object.entries(runtime.encounterState)
+      .map(([encounterId, encounter]) => ({
+        id: encounter.encounterId ?? encounterId,
+        status: encounter.status ?? 'unknown',
         ...(encounter.phase ? { phase: encounter.phase } : {}),
         ...(typeof encounter.startedWeek === 'number' ? { startedWeek: encounter.startedWeek } : {}),
         ...(typeof encounter.resolvedWeek === 'number'
@@ -506,13 +513,13 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
         ...(encounter.latestOutcome ? { latestOutcome: encounter.latestOutcome } : {}),
         ...(encounter.lastResolutionId ? { lastResolutionId: encounter.lastResolutionId } : {}),
         followUpIds: [...(encounter.followUpIds ?? [])],
-        hiddenModifierCount: encounter.hiddenModifierIds.length,
-        revealedModifierCount: encounter.revealedModifierIds.length,
-        activeFlags: Object.entries(encounter.flags)
+        hiddenModifierCount: (encounter.hiddenModifierIds ?? []).length,
+        revealedModifierCount: (encounter.revealedModifierIds ?? []).length,
+        activeFlags: Object.entries(encounter.flags ?? {})
           .filter(([, enabled]) => enabled)
           .map(([flagId]) => flagId)
           .sort((left, right) => left.localeCompare(right)),
-        lastUpdatedWeek: encounter.lastUpdatedWeek,
+        lastUpdatedWeek: encounter.lastUpdatedWeek ?? game.week,
       }))
       .sort((left, right) => left.id.localeCompare(right.id)),
     routedContent: {

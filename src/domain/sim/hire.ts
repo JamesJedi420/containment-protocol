@@ -198,7 +198,7 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
     const factionBefore = candidate.sourceFactionId ? state.factions?.[candidate.sourceFactionId] : undefined
     const contactBefore =
       candidate.sourceFactionId && candidate.sourceContactId
-        ? factionBefore?.contacts.find((contact) => contact.id === candidate.sourceContactId)
+        ? (factionBefore?.contacts ?? []).find((contact) => contact.id === candidate.sourceContactId)
         : undefined
     const nextFactions = applyFactionRecruitInteraction(state.factions ?? {}, {
       factionId: candidate.sourceFactionId,
@@ -209,7 +209,7 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
     const factionAfter = candidate.sourceFactionId ? nextFactions[candidate.sourceFactionId] : undefined
     const contactAfter =
       candidate.sourceFactionId && candidate.sourceContactId
-        ? factionAfter?.contacts.find((contact) => contact.id === candidate.sourceContactId)
+        ? (factionAfter?.contacts ?? []).find((contact) => contact.id === candidate.sourceContactId)
         : undefined
     const nextUnlocks = getFactionRecruitUnlocks({ factions: nextFactions })
     const nextState = syncCandidatePoolState(
@@ -251,12 +251,14 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
         createFactionStandingChangedDraft({
           week: state.week,
           factionId: candidate.sourceFactionId,
-          factionName: candidate.sourceFactionName ?? factionAfter.name,
+          factionName: candidate.sourceFactionName ?? factionAfter.name ?? candidate.sourceFactionId,
           delta: reputationDelta,
           standingBefore: Math.round((factionBefore.reputation ?? 0) / 5),
-          standingAfter: Math.round((factionAfter.reputation ?? factionBefore.reputation) / 5),
-          reputationBefore: factionBefore.reputation,
-          reputationAfter: factionAfter.reputation,
+          standingAfter: Math.round(
+            (factionAfter.reputation ?? factionBefore.reputation ?? 0) / 5
+          ),
+          reputationBefore: factionBefore.reputation ?? 0,
+          reputationAfter: factionAfter.reputation ?? factionBefore.reputation ?? 0,
           reason: 'recruitment.hired',
           interactionLabel:
             candidate.sourceSummary ??
@@ -280,8 +282,8 @@ export function hireCandidate(state: GameState, candidateId: string): GameState 
             contactId: unlock.contactId,
             contactName: unlock.contactName,
             label: unlock.label,
-            summary: unlock.summary,
-            disposition: unlock.disposition,
+            summary: unlock.summary ?? unlock.label,
+            disposition: unlock.disposition === 'adversarial' ? 'adversarial' : 'supportive',
           })
         )
       }

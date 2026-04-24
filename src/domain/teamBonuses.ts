@@ -1,4 +1,4 @@
-import type { GameState, LeaderBonus, Team } from './models'
+import type { GameState, LeaderBonus } from './models'
 import { buildTeamCompositionProfile, getTeamMemberIds } from './teamSimulation'
 
 export function buildAssignedTeamLeaderBonuses(

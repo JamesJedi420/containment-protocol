@@ -28,10 +28,10 @@ function getModifierTotal(
 ) {
   return modifiers
     .filter((modifierEntry) => modifierEntry.effect === effect)
-    .reduce((sum, modifierEntry) => sum + modifierEntry.value, 0)
+    .reduce((sum, modifierEntry) => sum + (modifierEntry.value ?? 0), 0)
 }
 
-function getDistinctRoles(agents: readonly Pick<Agent, 'role'>[]) {
+function getDistinctRoles(agents: readonly Pick<Agent, 'role'>[]): string[] {
   return [...new Set(agents.map((agent) => agent.role))]
 }
 
@@ -42,16 +42,17 @@ export function evaluateContractRoleFit(
   agents: readonly Pick<Agent, 'role'>[]
 ): ContractRoleFitSummary {
   const distinctRoles = getDistinctRoles(agents)
-  const recommendedHits = contract.requirements.recommendedClasses.filter((role) =>
+  const requirements = contract.requirements ?? { recommendedClasses: [], discouragedClasses: [] }
+  const recommendedHits = requirements.recommendedClasses.filter((role) =>
     distinctRoles.includes(role)
   ).length
-  const discouragedHits = contract.requirements.discouragedClasses.filter((role) =>
+  const discouragedHits = requirements.discouragedClasses.filter((role) =>
     distinctRoles.includes(role)
   ).length
-  const missingRecommended = contract.requirements.recommendedClasses.filter(
+  const missingRecommended = requirements.recommendedClasses.filter(
     (role) => !distinctRoles.includes(role)
   )
-  const presentDiscouraged = contract.requirements.discouragedClasses.filter((role) =>
+  const presentDiscouraged = requirements.discouragedClasses.filter((role) =>
     distinctRoles.includes(role)
   )
   const successBonus = getModifierTotal(contract.modifiers ?? [], 'success_bonus')
@@ -127,7 +128,7 @@ export function buildContractInventoryRewards(
   const rewardBonus = getContractModifierTotal(contract, 'reward_bonus')
   const quantityMultiplier = clamp(rewardMultiplier + rewardBonus * 0.1, 0, 1.8)
 
-  return (contract.rewards.materials ?? [])
+  return (contract.rewards?.materials ?? [])
     .map((drop) => buildInventoryGrant(drop.itemId, Math.max(0, Math.round(drop.quantity * quantityMultiplier))))
     .filter((grant): grant is MissionRewardInventoryGrant => Boolean(grant))
 }
@@ -138,7 +139,7 @@ export function getContractFundingReward(
 ) {
   const rewardMultiplier = getContractOutcomeRewardMultiplier(outcome)
   const rewardBonus = getContractModifierTotal(contract, 'reward_bonus')
-  return Math.max(0, Math.round(contract.rewards.funding * clamp(rewardMultiplier + rewardBonus * 0.1, 0, 1.8)))
+  return Math.max(0, Math.round((contract.rewards?.funding ?? 0) * clamp(rewardMultiplier + rewardBonus * 0.1, 0, 1.8)))
 }
 
 export function getContractResearchUnlocks(
@@ -149,5 +150,5 @@ export function getContractResearchUnlocks(
     return []
   }
 
-  return [...(contract.rewards.research ?? [])]
+  return [...(contract.rewards?.research ?? [])]
 }

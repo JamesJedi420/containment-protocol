@@ -77,10 +77,10 @@ export function resolveDistortionStates(
   }
 
   if (Array.isArray(input)) {
-    return normalizeDistortionStates(input)
+    return normalizeDistortionStates(input as readonly DistortionState[])
   }
 
-  return normalizeDistortionStates(input?.distortion)
+  return normalizeDistortionStates((input as DistortionCarrier | undefined)?.distortion)
 }
 
 export function mergeDistortionStates(

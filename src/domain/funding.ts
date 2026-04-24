@@ -361,7 +361,7 @@ export function getCanonicalFundingState(
 }
 
 export function assessFundingPressure(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week'>
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week'>
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)
   const pendingProcurementRequestIds = fundingState.procurementBacklog
@@ -381,6 +381,12 @@ export function assessFundingPressure(
 
   // Support staff (admin/logistics) can reduce procurement throughput penalty deterministically
   let recoveryThroughputPenalty = budgetPressure >= 3 ? 2 : constrained ? 1 : 0
+  const adminLogisticsRelief = (game.supportStaff?.admin ?? 0) + (game.supportStaff?.logistics ?? 0)
+  if (adminLogisticsRelief >= 10) {
+    recoveryThroughputPenalty = Math.max(0, recoveryThroughputPenalty - 2)
+  } else if (adminLogisticsRelief >= 5) {
+    recoveryThroughputPenalty = Math.max(0, recoveryThroughputPenalty - 1)
+  }
 
   const therapyTraumaReductionPenalty = severeConstraint ? 1 : 0
   const replacementPressurePenalty = Math.min(

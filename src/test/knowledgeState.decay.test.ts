@@ -1,11 +1,12 @@
 // Tests for time-based decay/regression of knowledge certainty
 import { describe, it, expect } from 'vitest'
 import { applyKnowledgeDecay, getKnowledgeKey } from '../domain/knowledge'
+import type { KnowledgeStateMap } from '../domain/knowledge'
 
 describe('Knowledge Decay/Regression', () => {
   it('should regress confirmed knowledge to partial after decay period', () => {
     const teamId = 'T1', anomalyId = 'A1'
-    const initial = {
+    const initial: KnowledgeStateMap = {
       [getKnowledgeKey(teamId, anomalyId)]: {
         tier: 'confirmed', entityId: teamId, subjectId: anomalyId, subjectType: 'anomaly', lastConfirmedWeek: 1
       }
@@ -18,7 +19,7 @@ describe('Knowledge Decay/Regression', () => {
   })
   it('should regress partial knowledge to unknown after further decay', () => {
     const teamId = 'T1', anomalyId = 'A1'
-    const initial = {
+    const initial: KnowledgeStateMap = {
       [getKnowledgeKey(teamId, anomalyId)]: {
         tier: 'partial', entityId: teamId, subjectId: anomalyId, subjectType: 'anomaly', lastDecayedWeek: 4
       }

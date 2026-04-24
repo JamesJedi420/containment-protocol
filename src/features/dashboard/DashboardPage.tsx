@@ -698,8 +698,15 @@ function DashboardStatLink({
   return (
     <div className={`panel panel-hi ${toneClass}`}>
       <Link to={to} className="block transition hover:opacity-100">
-        <p className="text-label opacity-80">{label}</p>
-        <p className="mt-2 text-stat">{value}</p>
+        <div>
+          <p className="text-label opacity-80">{label}</p>
+          <p
+            className="mt-2 text-stat"
+            data-testid={`dashboard-stat-value-${label.toLowerCase().replace(/\s+/g, '-')}`}
+          >
+            {value}
+          </p>
+        </div>
       </Link>
     </div>
   )
@@ -726,11 +733,17 @@ function LatestReportSummary({ score }: { score: number }) {
   const { game } = useGameStore()
   const latestReportSummary = getLatestReportSummary(game)
 
-  if (!latestReportSummary) {
+  if (!latestReportSummary?.report) {
     return null
   }
 
-  const { report, battleRollup } = latestReportSummary
+  const { report } = latestReportSummary
+  const battleRollup = latestReportSummary.battleRollup ?? {
+    battleCount: 0,
+    hostileRoutedCount: 0,
+    friendlyRoutedCount: 0,
+    specialDamageCount: 0,
+  }
 
   return (
     <div className="space-y-2">

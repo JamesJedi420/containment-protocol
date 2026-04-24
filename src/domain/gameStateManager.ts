@@ -293,7 +293,7 @@ function sanitizeEncounterRuntimeState(
     return fallback
   }
 
-  const normalizedStatus = sanitizeString(value.status, fallback.status)
+  const normalizedStatus = sanitizeString(value.status, fallback.status ?? 'available')
   const status: EncounterRuntimeStatus =
     normalizedStatus === 'hidden' ||
     normalizedStatus === 'available' ||
@@ -301,7 +301,7 @@ function sanitizeEncounterRuntimeState(
     normalizedStatus === 'resolved' ||
     normalizedStatus === 'archived'
       ? normalizedStatus
-      : fallback.status
+      : fallback.status ?? 'available'
 
   return {
     encounterId,
@@ -780,9 +780,9 @@ export function readGameStateManager(state: GameState): GameStateManagerView {
         encounterId,
         {
           ...encounter,
-          hiddenModifierIds: [...encounter.hiddenModifierIds],
-          revealedModifierIds: [...encounter.revealedModifierIds],
-          flags: { ...encounter.flags },
+          hiddenModifierIds: [...(encounter.hiddenModifierIds ?? [])],
+          revealedModifierIds: [...(encounter.revealedModifierIds ?? [])],
+          flags: { ...(encounter.flags ?? {}) },
         },
       ])
     ),
@@ -1084,7 +1084,7 @@ export function recordSceneVisit(state: GameState, input: SceneVisitInput) {
             sceneId,
             updatedWeek: nextEntry.week,
           },
-          nextEntry.week
+          nextEntry.week ?? state.week
         ),
         ui: {
           ...runtimeState.ui,

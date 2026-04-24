@@ -188,11 +188,13 @@ export function evaluateScreenRouteCondition<Context extends ScreenRouteContext 
         const requiredFlags = normalizeStringList(condition.encounter.requiredFlags)
         const blockedFlags = normalizeStringList(condition.encounter.blockedFlags)
 
-        if (requiredFlags.some((flagId) => encounter.flags[flagId] !== true)) {
+        const encounterFlags = encounter.flags ?? {}
+
+        if (requiredFlags.some((flagId) => encounterFlags[flagId] !== true)) {
           return [encounterId]
         }
 
-        if (blockedFlags.some((flagId) => encounter.flags[flagId] === true)) {
+        if (blockedFlags.some((flagId) => encounterFlags[flagId] === true)) {
           return [encounterId]
         }
 

@@ -18,8 +18,8 @@ export function buildHubReportNotes(hub: HubState, week: number): ReportNote[] {
         factionId: opp.factionId,
         confidence: opp.confidence,
         misleading: !!opp.misleading,
-        accessState: opp.accessState,
-        requiredSanctionLevel: opp.requiredSanctionLevel,
+        ...(opp.accessState ? { accessState: opp.accessState } : {}),
+        ...(opp.requiredSanctionLevel ? { requiredSanctionLevel: opp.requiredSanctionLevel } : {}),
         week,
       },
     })

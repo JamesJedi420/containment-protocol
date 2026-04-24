@@ -1,7 +1,7 @@
 import { buildTeamDeploymentReadinessState } from './deploymentReadiness'
-import type { CaseInstance, GameState, LeaderBonus, MissionResult, MissionResultInput, PerformanceMetricSummary, PowerImpactSummary, ResolutionOutcome, Team } from './models'
+import type { CaseInstance, GameState, LeaderBonus, ResolutionOutcome } from './models'
 import { buildFactionMissionContext } from './factions'
-import { buildTeamCompositionProfile, getTeamAssignedCaseId, getTeamMemberIds, getUniqueTeamMembers } from './teamSimulation'
+import { buildTeamCompositionProfile, getTeamMemberIds, getUniqueTeamMembers } from './teamSimulation'
 import { buildTeamCohesionSummary } from './teamComposition'
 import { buildAgentLoadoutReadinessSummary } from './equipment'
 import { buildAgencyProtocolState } from './protocols'
@@ -10,7 +10,6 @@ import { resolveWeakestLinkMission } from './weakestLinkResolution'
 import { resolveMajorIncidentOutcome, buildMajorIncidentEffectiveCase, isOperationalMajorIncidentCase } from './majorIncidentOperations'
 import { resolveRaid } from './sim/raid'
 import { resolveCase } from './sim/resolve'
-import type { AnyOperationEventDraft } from './events'
 
 export interface WeeklyCaseResolutionStrategy {
   effectiveCase: CaseInstance

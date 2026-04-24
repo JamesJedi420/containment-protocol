@@ -15,7 +15,6 @@ import { type GameState, type ProductionQueueEntry } from '../models'
 import {
   ensureNormalizedGameState,
   normalizeGameState,
-  resolveFundingSensitiveNoopState,
 } from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
@@ -33,18 +32,18 @@ export function queueFabrication(state: GameState, recipeId: string): GameState 
   const recipe = getProductionRecipe(recipeId)
 
   if (!recipe) {
-    return resolveFundingSensitiveNoopState(state)
+    return ensureNormalizedGameState(state)
   }
 
   const snapshot = buildProductionJobSnapshot(recipe, state.market)
   const fundingCost = snapshot.fundingCost
 
   if (state.funding < fundingCost) {
-    return resolveFundingSensitiveNoopState(state)
+    return ensureNormalizedGameState(state)
   }
 
   if (!hasRecipeMaterialStock(recipe, state.inventory)) {
-    return resolveFundingSensitiveNoopState(state)
+    return ensureNormalizedGameState(state)
   }
 
   const queueEntry: ProductionQueueEntry = buildProductionQueueEntry(
@@ -93,7 +92,7 @@ export function purchaseMarketInventory(
   return purchaseMarketListingInventory(state, recipeId, bundles)
 }
 
-export function advanceProductionQueues(state: GameState, opts?: { procurementMultiplier?: number }) {
+export function advanceProductionQueues(state: GameState) {
   if (state.productionQueue.length === 0) {
     return {
       state: ensureNormalizedGameState(state),

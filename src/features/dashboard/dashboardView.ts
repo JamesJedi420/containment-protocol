@@ -11,6 +11,16 @@ import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimula
 import { getCaseListItemView, type CaseListItemView } from '../cases/caseView'
 import { getTeamListItemView, type TeamListItemView } from '../teams/teamView'
 
+function ensureScorableReport(report: GameState['reports'][number]): GameState['reports'][number] {
+  return {
+    ...report,
+    resolvedCases: report.resolvedCases ?? [],
+    unresolvedTriggers: report.unresolvedTriggers ?? [],
+    failedCases: report.failedCases ?? [],
+    partialCases: report.partialCases ?? [],
+  }
+}
+
 export function getPriorityCaseViews(game: GameState, limit = 5): CaseListItemView[] {
   return Object.values(game.cases)
     .map((currentCase) => getCaseListItemView(currentCase, game))
@@ -47,7 +57,7 @@ export function getDashboardMetrics(game: GameState) {
     open: cases.filter((currentCase) => currentCase.status === 'open').length,
     inProgress: cases.filter((currentCase) => currentCase.status === 'in_progress').length,
     resolved: cases.filter((currentCase) => currentCase.status === 'resolved').length,
-    totalScore: game.reports.reduce((sum, report) => sum + calcWeekScore(report), 0),
+    totalScore: game.reports.reduce((sum, report) => sum + calcWeekScore(ensureScorableReport(report)), 0),
     avgFatigue:
       agents.length > 0
         ? Math.round(agents.reduce((sum, agent) => sum + agent.fatigue, 0) / agents.length)
@@ -74,7 +84,7 @@ export function getLatestReportSummary(game: GameState) {
 
   return {
     report: latestReport,
-    score: calcWeekScore(latestReport),
+    score: calcWeekScore(ensureScorableReport(latestReport)),
     battleRollup: rollupAggregateBattleCampaignSummaries(aggregateBattles),
   }
 }

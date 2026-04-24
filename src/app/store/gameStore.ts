@@ -121,7 +121,10 @@ import {
   GAME_STORE_VERSION,
   hydrateGame,
   migratePersistedStore,
+  parseRunExport,
+  RUN_EXPORT_KIND,
   sanitizeGameConfig,
+  serializeRunExport,
   stripGameTemplates,
   type PersistedStore,
 } from './runTransfer'
@@ -284,8 +287,8 @@ function areEncounterStatesEqual(
     return false
   }
 
-  const leftFlags = Object.entries(left.flags).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
-  const rightFlags = Object.entries(right.flags).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
+  const leftFlags = Object.entries(left.flags ?? {}).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
+  const rightFlags = Object.entries(right.flags ?? {}).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
 
   return (
     left.encounterId === right.encounterId &&
@@ -295,10 +298,10 @@ function areEncounterStatesEqual(
     left.resolvedWeek === right.resolvedWeek &&
     left.latestOutcome === right.latestOutcome &&
     left.lastResolutionId === right.lastResolutionId &&
-    areStringListsEqual(left.followUpIds, right.followUpIds) &&
+    areStringListsEqual(left.followUpIds ?? [], right.followUpIds ?? []) &&
     left.lastUpdatedWeek === right.lastUpdatedWeek &&
-    areStringListsEqual(left.hiddenModifierIds, right.hiddenModifierIds) &&
-    areStringListsEqual(left.revealedModifierIds, right.revealedModifierIds) &&
+    areStringListsEqual(left.hiddenModifierIds ?? [], right.hiddenModifierIds ?? []) &&
+    areStringListsEqual(left.revealedModifierIds ?? [], right.revealedModifierIds ?? []) &&
     JSON.stringify(leftFlags) === JSON.stringify(rightFlags)
   )
 }
@@ -926,11 +929,11 @@ export const useGameStore = create<GameStore>()(
               encounterId,
               ...(afterEncounter?.status ? { status: afterEncounter.status } : {}),
               ...(afterEncounter?.phase ? { phase: afterEncounter.phase } : {}),
-              ...(afterEncounter?.hiddenModifierIds.length
-                ? { hiddenModifierIds: afterEncounter.hiddenModifierIds }
+              ...((afterEncounter?.hiddenModifierIds ?? []).length
+                ? { hiddenModifierIds: afterEncounter?.hiddenModifierIds ?? [] }
                 : {}),
-              ...(afterEncounter?.revealedModifierIds.length
-                ? { revealedModifierIds: afterEncounter.revealedModifierIds }
+              ...((afterEncounter?.revealedModifierIds ?? []).length
+                ? { revealedModifierIds: afterEncounter?.revealedModifierIds ?? [] }
                 : {}),
             },
           })
@@ -1370,9 +1373,50 @@ export const useGameStore = create<GameStore>()(
         })
       },
 
-      exportRun: () => get().exportSave(),
+      exportRun: () => {
+        let payload = ''
 
-      importRun: (raw) => get().importSave(raw),
+        set((s) => {
+          const game = appendDeveloperLogEventState(s.game, {
+            type: 'save.exported',
+            summary: 'Run exported',
+            details: {
+              kind: RUN_EXPORT_KIND,
+              version: GAME_STORE_VERSION,
+            },
+          })
+          payload = serializeRunExport(game)
+          return { game }
+        })
+
+        return payload
+      },
+
+      importRun: (raw) => {
+        const importedGame = parseRunExport(raw)
+        let payloadVersion = GAME_STORE_VERSION
+
+        try {
+          const parsed = JSON.parse(raw) as Partial<{ version: number }>
+          if (typeof parsed.version === 'number' && Number.isFinite(parsed.version)) {
+            payloadVersion = Math.trunc(parsed.version)
+          }
+        } catch {
+          // `parseRunExport` already validates the payload; this metadata parse
+          // only feeds the debug log after a successful import.
+        }
+
+        set({
+          game: appendDeveloperLogEventState(importedGame, {
+            type: 'save.imported',
+            summary: 'Run imported',
+            details: {
+              kind: RUN_EXPORT_KIND,
+              version: payloadVersion,
+            },
+          }),
+        })
+      },
 
       newRunFromCurrentConfig: () =>
         set((s) => ({

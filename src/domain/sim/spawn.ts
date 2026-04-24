@@ -3,6 +3,7 @@ import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
+import { normalizeSpawnRule } from '../spawnRules'
 import { SIM_NOTES } from '../../data/copy'
 import { EVENT_NOTE_BUILDERS } from './eventNoteBuilders'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
@@ -119,18 +120,22 @@ export function applySpawnRule(
   rng: () => number,
   usedIds: Set<string> = new Set()
 ) {
+  const normalizedRule = normalizeSpawnRule(rule)
   const notes: string[] = []
 
   let mutated: CaseInstance = {
     ...parent,
-    stage: Math.min(parent.stage + rule.stageDelta, 5),
+    stage: Math.min(parent.stage + normalizedRule.stageDelta, 5),
     status: 'open',
     assignedTeamIds: [],
     weeksRemaining: undefined,
-    deadlineRemaining: rule.deadlineResetWeeks ?? parent.deadlineWeeks,
+    deadlineRemaining: normalizedRule.deadlineResetWeeks ?? parent.deadlineWeeks,
   }
 
-  if (rule.convertToRaidAtStage !== undefined && mutated.stage >= rule.convertToRaidAtStage) {
+  if (
+    normalizedRule.convertToRaidAtStage !== undefined &&
+    mutated.stage >= normalizedRule.convertToRaidAtStage
+  ) {
     mutated = {
       ...mutated,
       kind: 'raid',
@@ -139,13 +144,12 @@ export function applySpawnRule(
     notes.push(SIM_NOTES.convertedToRaid())
   }
 
-  // SPE-38: Default spawnCount to { min: 0, max: 0 } if missing for robust testability
-  const spawnCount = rule.spawnCount ?? { min: 0, max: 0 }
+  const spawnCount = normalizedRule.spawnCount
   const count = randInt(rng, spawnCount.min, spawnCount.max)
   const spawned: CaseInstance[] = []
 
   for (let i = 0; i < count; i++) {
-    const template = pickRuleTemplate(templates, rule.spawnTemplateIds, rng)
+    const template = pickRuleTemplate(templates, normalizedRule.spawnTemplateIds, rng)
     if (!template) {
       continue
     }
@@ -203,7 +207,7 @@ function spawnFromCaseRule(
       return []
     }
 
-    const baseRule = getRule(sourceCase)
+    const baseRule = normalizeSpawnRule(getRule(sourceCase))
     const rule =
       followUpSpawnReduction > 0
         ? {

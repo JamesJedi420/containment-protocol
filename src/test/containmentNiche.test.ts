@@ -1,14 +1,11 @@
-  it('applies hybrid penalty for recon+containment', () => {
-    const agents = [makeAgent(['containment-specialist', 'recon-specialist'])];
-    const caze = makeCase();
-    const result = computeTeamScore(agents, caze, {});
-    expect(result.reasons.join(' ')).toMatch(/hybrid.*-2/i);
-  });
-import { describe, it, expect } from 'vitest';
-import { computeTeamScore } from '../domain/sim/scoring';
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import type { Agent, CaseInstance } from '../domain/models'
+import { computeTeamScore } from '../domain/sim/scoring'
 
-const makeAgent = (tags: string[] = []) => ({
-  id: 'a',
+const makeAgent = (tags: string[] = []): Agent => ({
+  ...createStartingState().agents.a_ava,
+  id: 'agent-containment-niche',
   name: 'Agent A',
   role: 'investigator',
   tags,
@@ -25,42 +22,60 @@ const makeAgent = (tags: string[] = []) => ({
   relationships: {},
   status: 'active',
   assignment: { state: 'idle' },
-});
+})
 
-const makeCase = () => ({
-  id: 'c',
+const makeCase = (): CaseInstance => ({
+  ...createStartingState().cases['case-001'],
+  id: 'case-containment-niche',
+  templateId: 'case-containment-niche-template',
+  title: 'Containment Niche',
+  description: 'Fixture case for containment specialist scoring.',
   kind: 'standard',
   mode: 'threshold',
   tags: [],
   requiredTags: [],
   preferredTags: [],
-  weights: { combat: 0, investigation: 0, utility: 0, social: 0 },
   difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
-});
+  weights: { combat: 0, investigation: 0, utility: 0, social: 0 },
+  stage: 1,
+  durationWeeks: 1,
+  deadlineWeeks: 4,
+  deadlineRemaining: 4,
+  assignedTeamIds: [],
+})
 
 describe('Containment specialist niche effects', () => {
   it('gives +2 bonus for containment-specialist', () => {
-    const agents = [makeAgent(['containment-specialist'])];
-    const caze = makeCase();
-    const result = computeTeamScore(agents, caze, {});
-    expect(result.reasons.join(' ')).toMatch(/containment specialist.*\+2/i);
-  });
+    const result = computeTeamScore([makeAgent(['containment-specialist'])], makeCase(), {})
+
+    expect(result.reasons.join(' ')).toMatch(/containment specialist.*\+2/i)
+  })
+
   it('gives -1 penalty for recon-specialist', () => {
-    const agents = [makeAgent(['recon-specialist'])];
-    const caze = makeCase();
-    const result = computeTeamScore(agents, caze, {});
-    expect(result.reasons.join(' ')).toMatch(/recon specialist.*-1/i);
-  });
+    const result = computeTeamScore([makeAgent(['recon-specialist'])], makeCase(), {})
+
+    expect(result.reasons.join(' ')).toMatch(/recon specialist.*-1/i)
+  })
+
   it('gives -2 penalty for recovery-support', () => {
-    const agents = [makeAgent(['recovery-support'])];
-    const caze = makeCase();
-    const result = computeTeamScore(agents, caze, {});
-    expect(result.reasons.join(' ')).toMatch(/recovery specialist.*-2/i);
-  });
+    const result = computeTeamScore([makeAgent(['recovery-support'])], makeCase(), {})
+
+    expect(result.reasons.join(' ')).toMatch(/recovery specialist.*-2/i)
+  })
+
   it('notes missing specialist', () => {
-    const agents = [makeAgent([])];
-    const caze = makeCase();
-    const result = computeTeamScore(agents, caze, {});
-    expect(result.reasons.join(' ')).toMatch(/no specialist/i);
-  });
-});
+    const result = computeTeamScore([makeAgent([])], makeCase(), {})
+
+    expect(result.reasons.join(' ')).toMatch(/no specialist/i)
+  })
+
+  it('applies hybrid penalty for recon+containment', () => {
+    const result = computeTeamScore(
+      [makeAgent(['containment-specialist', 'recon-specialist'])],
+      makeCase(),
+      {}
+    )
+
+    expect(result.reasons.join(' ')).toMatch(/hybrid.*-2/i)
+  })
+})

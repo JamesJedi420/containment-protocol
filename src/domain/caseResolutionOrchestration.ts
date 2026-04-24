@@ -4,6 +4,11 @@ import { buildFactionMissionContext } from './factions'
 import { buildTeamCompositionProfile, getTeamMemberIds, getUniqueTeamMembers } from './teamSimulation'
 import { buildTeamCohesionSummary } from './teamComposition'
 import { buildAgentLoadoutReadinessSummary } from './equipment'
+import {
+  applyBehaviorWeightedDisguiseValidationToCase,
+  evaluateBehaviorWeightedDisguiseValidation,
+  type BehaviorWeightedDisguiseValidationResult,
+} from './disguiseValidation'
 import { buildAgencyProtocolState } from './protocols'
 import { computeTeamScore, computeRequiredScore } from './sim/scoring'
 import { resolveWeakestLinkMission } from './weakestLinkResolution'
@@ -17,6 +22,7 @@ export interface WeeklyCaseResolutionStrategy {
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
+  behaviorValidation?: BehaviorWeightedDisguiseValidationResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
@@ -68,11 +74,38 @@ export function resolveAssignedCaseForWeek(
   const assignedAgents = [
     ...getUniqueTeamMembers(currentCase.assignedTeamIds, state.teams, state.agents),
   ]
+  const supportTags = [
+    ...new Set(currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])),
+  ]
+  const leaderId =
+    currentCase.assignedTeamIds.length === 1
+      ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
+      : null
+  const behaviorValidation = evaluateBehaviorWeightedDisguiseValidation(
+    effectiveCase,
+    assignedAgents,
+    {
+      supportTags,
+      teamTags: supportTags,
+      leaderId,
+    }
+  )
+  const resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
+    effectiveCase,
+    behaviorValidation
+  )
+  const scoreAdjustment = factionContext.scoreAdjustment + behaviorValidation.scoreAdjustment
+  const scoreAdjustmentReason = [
+    ...factionContext.reasons,
+    behaviorValidation.scoreAdjustmentReason,
+  ]
+    .filter(Boolean)
+    .join(' / ')
   const invalidMajorIncidentOutcome: ResolutionOutcome = {
     caseId: currentCase.id,
     mode: 'probability',
     kind: 'raid',
-    delta: -effectiveCase.durationWeeks,
+    delta: -resolvedEffectiveCase.durationWeeks,
     successChance: 0,
     result: 'fail',
     reasons: ['Major incident launch state was invalid at resolution time.'],
@@ -85,26 +118,19 @@ export function resolveAssignedCaseForWeek(
     const assignedTeamId = currentCase.assignedTeamIds[0]
     const team = state.teams[assignedTeamId]
     const agentsById = state.agents
-    const supportTags = [
-      ...new Set(currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])),
-    ]
-    const leaderId =
-      currentCase.assignedTeamIds.length === 1
-        ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
-        : null
-    const baseScore = computeTeamScore(assignedAgents, effectiveCase, {
+    const baseScore = computeTeamScore(assignedAgents, resolvedEffectiveCase, {
       inventory: state.inventory,
       protocolState: buildAgencyProtocolState(state),
       supportTags,
       teamTags: supportTags,
       leaderId,
-      scoreAdjustment: factionContext.scoreAdjustment,
-      scoreAdjustmentReason: factionContext.reasons.join(' / '),
+      scoreAdjustment,
+      scoreAdjustmentReason,
       partyCardScoreBonus: cardBonus?.scoreAdjustment,
       partyCardReasons: cardBonus?.reasons,
       config: state.config,
     }).score
-    const requiredScore = computeRequiredScore(effectiveCase, state.config)
+    const requiredScore = computeRequiredScore(resolvedEffectiveCase, state.config)
     const readiness = buildTeamDeploymentReadinessState(state, assignedTeamId)
     const cohesion = buildTeamCohesionSummary(team, agentsById)
     const members = team.memberIds || team.agentIds || []
@@ -119,8 +145,8 @@ export function resolveAssignedCaseForWeek(
       week: state.week,
       baseScore,
       requiredScore,
-      intelConfidence: effectiveCase.intelConfidence,
-      intelUncertainty: effectiveCase.intelUncertainty,
+      intelConfidence: resolvedEffectiveCase.intelConfidence,
+      intelUncertainty: resolvedEffectiveCase.intelUncertainty,
       teamReadiness: readiness,
       teamCohesion: cohesion,
       loadoutSummaries,
@@ -137,6 +163,9 @@ export function resolveAssignedCaseForWeek(
       successChance: undefined,
       result: weakestLinkResult.resultKind,
       reasons: [
+        ...(behaviorValidation.scoreAdjustmentReason
+          ? [behaviorValidation.scoreAdjustmentReason]
+          : []),
         `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
         ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
       ],
@@ -148,7 +177,7 @@ export function resolveAssignedCaseForWeek(
           invalidMajorIncidentOutcome
         : currentCase.kind === 'raid'
         ? resolveRaid(
-            effectiveCase,
+            resolvedEffectiveCase,
             currentCase.assignedTeamIds.map((id) => state.teams[id]).filter(Boolean),
             state.agents,
             state.config,
@@ -156,34 +185,28 @@ export function resolveAssignedCaseForWeek(
             state.inventory,
             {
               protocolState: buildAgencyProtocolState(state),
-              scoreAdjustment: factionContext.scoreAdjustment,
-              scoreAdjustmentReason: factionContext.reasons.join(' / '),
+              scoreAdjustment,
+              scoreAdjustmentReason,
             }
           )
-        : resolveCase(currentCase, assignedAgents, state.config, rng, {
+        : resolveCase(resolvedEffectiveCase, assignedAgents, state.config, rng, {
             inventory: state.inventory,
             protocolState: buildAgencyProtocolState(state),
-            supportTags: [
-              ...new Set(
-                currentCase.assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])
-              ),
-            ],
-            leaderId:
-              currentCase.assignedTeamIds.length === 1
-                ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
-                : null,
-            scoreAdjustment: factionContext.scoreAdjustment,
-            scoreAdjustmentReason: factionContext.reasons.join(' / '),
+            supportTags,
+            leaderId,
+            scoreAdjustment,
+            scoreAdjustmentReason,
             partyCardScoreBonus: cardBonus?.scoreAdjustment,
             partyCardReasons: cardBonus?.reasons,
           })
   }
   return {
-    effectiveCase,
+    effectiveCase: resolvedEffectiveCase,
     assignedAgents,
     assignedAgentLeaderBonuses,
     activeTeamStressModifiers,
     outcome,
+    behaviorValidation,
     weakestLinkResult,
   }
 }

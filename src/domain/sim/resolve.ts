@@ -15,6 +15,7 @@ import { previewResolutionPartyCards } from '../partyCards/engine'
 import { buildAgencyProtocolState } from '../protocols'
 import { buildFactionMissionContext } from '../factions'
 import { evaluateContractRoleFit } from '../contractsRuntime'
+import { evaluateBehaviorWeightedDisguiseValidation } from '../disguiseValidation'
 import {
   buildAggregatedLeaderBonus,
   createDefaultPerformanceMetricSummary,
@@ -77,6 +78,8 @@ function buildTeamScoreContextForTeamIds(
   const normalizedTeamIds = [...new Set(teamIds)].filter((teamId) => Boolean(state.teams[teamId]))
   const teams = normalizedTeamIds.map((teamId) => state.teams[teamId]).filter(Boolean)
   const agents = getUniqueTeamMembers(normalizedTeamIds, state.teams, state.agents)
+  const supportTags = getSupportTags(state, normalizedTeamIds)
+  const protocolState = buildAgencyProtocolState(state)
 
   const coordination =
     c.kind === 'raid' && normalizedTeamIds.length > 1
@@ -99,13 +102,33 @@ function buildTeamScoreContextForTeamIds(
   const factionContext = buildFactionMissionContext(c, state)
   const contractFit =
     c.contract && hasContractRoleFitInput(c.contract) ? evaluateContractRoleFit(c.contract, agents) : null
+  const behaviorValidation = evaluateBehaviorWeightedDisguiseValidation(c, agents, {
+    supportTags,
+    teamTags: supportTags,
+    leaderId:
+      normalizedTeamIds.length === 1
+        ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
+        : null,
+  })
+  const baseScoreAdjustment =
+    (coordination?.scoreAdjustment ?? 0) +
+    factionContext.scoreAdjustment +
+    (contractFit?.scoreAdjustment ?? 0)
+  const scoreAdjustmentReason = [
+    coordination?.reason,
+    ...factionContext.reasons,
+    ...(contractFit?.reasons ?? []),
+    behaviorValidation.scoreAdjustmentReason,
+  ]
+    .filter(Boolean)
+    .join(' / ')
 
   return {
     teamIds: normalizedTeamIds,
     agents,
     context: {
       inventory: state.inventory,
-      supportTags: getSupportTags(state, normalizedTeamIds),
+      supportTags,
       preflight: {
         selectedTeamCount: normalizedTeamIds.length,
         minTeamCount: c.kind === 'raid' ? (c.raid?.minTeams ?? 2) : undefined,
@@ -114,16 +137,11 @@ function buildTeamScoreContextForTeamIds(
         normalizedTeamIds.length === 1
           ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
           : null,
-      scoreAdjustment:
-        (coordination?.scoreAdjustment ?? 0) +
-        factionContext.scoreAdjustment +
-        (contractFit?.scoreAdjustment ?? 0),
-      scoreAdjustmentReason: [coordination?.reason, ...factionContext.reasons, ...(contractFit?.reasons ?? [])]
-        .filter(Boolean)
-        .join(' / '),
+      scoreAdjustment: baseScoreAdjustment + behaviorValidation.scoreAdjustment,
+      scoreAdjustmentReason,
       partyCardScoreBonus: partyCardBonus?.scoreAdjustment,
       partyCardReasons: partyCardReason,
-      protocolState: buildAgencyProtocolState(state),
+      protocolState,
       leaderBonusOverride:
         normalizedTeamIds.length > 1 && teams.some((team) => getTeamMemberIds(team).length > 1)
           ? buildAggregatedLeaderBonus(teams, state.agents)

@@ -221,7 +221,7 @@ describe('recruitment candidate generation', () => {
     }
 
     factions.institutions.reputation = 80
-    factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+    factions.institutions.contacts = (factions.institutions.contacts ?? []).map((contact) =>
       contact.id === 'institutions-halden'
         ? {
             ...contact,
@@ -261,7 +261,7 @@ describe('recruitment candidate generation', () => {
       }
 
       factions.institutions.reputation = 80
-      factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+      factions.institutions.contacts = (factions.institutions.contacts ?? []).map((contact) =>
         contact.id === 'institutions-halden'
           ? {
               ...contact,
@@ -277,7 +277,7 @@ describe('recruitment candidate generation', () => {
     }
 
     boostedState.factions.institutions.contacts =
-      boostedState.factions.institutions.contacts.map((contact) =>
+      (boostedState.factions.institutions.contacts ?? []).map((contact) =>
         contact.id === 'institutions-halden'
           ? {
               ...contact,

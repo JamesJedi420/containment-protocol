@@ -8,6 +8,7 @@ import {
   validateTeamComposition,
 } from '../domain/teamComposition'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import type { TeamCompositionState } from '../domain/models'
 
 describe('team composition and cohesion rules', () => {
   it('returns deterministic structured validation with explicit coverage buckets', () => {
@@ -106,9 +107,12 @@ describe('team composition and cohesion rules', () => {
     }
 
     const roundTripped = loadGameSave(serializeGameSave(withComposition))
+    const compositionState = roundTripped.teams.t_nightwatch.compositionState as
+      | TeamCompositionState
+      | undefined
 
-    expect(roundTripped.teams.t_nightwatch.compositionState?.cohesion.cohesionScore).toBeGreaterThanOrEqual(0)
-    expect(roundTripped.teams.t_nightwatch.compositionState?.requiredCoverageRoles).toEqual(
+    expect(compositionState?.cohesion.cohesionScore).toBeGreaterThanOrEqual(0)
+    expect(compositionState?.requiredCoverageRoles).toEqual(
       expect.arrayContaining(['containment', 'investigator', 'support', 'tactical'])
     )
   })

@@ -135,6 +135,9 @@ const MAJOR_INCIDENT_STRATEGY_LABELS: Record<MajorIncidentStrategy, string> = {
   aggressive: 'Aggressive',
   balanced: 'Balanced',
   cautious: 'Cautious',
+  rapid_response: 'Rapid Response',
+  containment_first: 'Containment First',
+  risk_accepting: 'Risk Accepting',
 }
 
 const MAJOR_INCIDENT_STRATEGY_EFFECTS: Record<
@@ -163,6 +166,24 @@ const MAJOR_INCIDENT_STRATEGY_EFFECTS: Record<
     rewardMultiplier: 0.82,
     injuryDelta: -0.1,
     deathDelta: -0.04,
+  },
+  rapid_response: {
+    successMultiplier: 1.02,
+    rewardMultiplier: 0.9,
+    injuryDelta: 0.04,
+    deathDelta: 0.01,
+  },
+  containment_first: {
+    successMultiplier: 1.01,
+    rewardMultiplier: 0.95,
+    injuryDelta: -0.04,
+    deathDelta: -0.02,
+  },
+  risk_accepting: {
+    successMultiplier: 0.98,
+    rewardMultiplier: 1.12,
+    injuryDelta: 0.08,
+    deathDelta: 0.03,
   },
 }
 
@@ -506,6 +527,14 @@ function scaleMaterialRewards(materials: ContractMaterialDrop[], multiplier: num
   }))
 }
 
+function getMajorIncidentRewards(runtime: ActiveMajorIncidentRuntime) {
+  return {
+    materials: runtime.rewards?.materials ?? [],
+    gear: runtime.rewards?.gear ?? [],
+    progressionUnlocks: runtime.rewards?.progressionUnlocks ?? [],
+  }
+}
+
 function buildTeamPreview(
   team: Team,
   state: GameState,
@@ -621,11 +650,12 @@ function buildRewardPreview(
   const strategyEffects = MAJOR_INCIDENT_STRATEGY_EFFECTS[strategy]
   const provisionEffects = getProvisionEffects(provisions)
   const rewardMultiplier = strategyEffects.rewardMultiplier * provisionEffects.rewardMultiplier
+  const rewards = getMajorIncidentRewards(runtime)
 
   return {
-    materials: scaleMaterialRewards(runtime.rewards.materials, rewardMultiplier),
-    gear: runtime.rewards.gear?.map((gear) => ({ ...gear })) ?? [],
-    progressionUnlocks: [...(runtime.rewards.progressionUnlocks ?? [])],
+    materials: scaleMaterialRewards(rewards.materials, rewardMultiplier),
+    gear: rewards.gear.map((gear) => ({ ...gear })),
+    progressionUnlocks: [...rewards.progressionUnlocks],
   } satisfies MajorIncidentRewardPreview
 }
 
@@ -956,12 +986,13 @@ export function getAppliedMajorIncidentRewardPreview(
   const provisionEffects = getProvisionEffects(runtime.provisions)
   const rewardMultiplier = strategyEffects.rewardMultiplier * provisionEffects.rewardMultiplier
   const materialScale = outcome === 'success' ? rewardMultiplier : rewardMultiplier * 0.55
-  const materials = scaleMaterialRewards(runtime.rewards.materials, materialScale)
-  const gear = outcome === 'success' ? runtime.rewards.gear?.map((entry) => ({ ...entry })) ?? [] : []
-  const progressionUnlocks = outcome === 'success' ? [...(runtime.rewards.progressionUnlocks ?? [])] : []
+  const rewards = getMajorIncidentRewards(runtime)
+  const materials = scaleMaterialRewards(rewards.materials, materialScale)
+  const gear = outcome === 'success' ? rewards.gear.map((entry) => ({ ...entry })) : []
+  const progressionUnlocks = outcome === 'success' ? [...rewards.progressionUnlocks] : []
   const rumorLoot =
     runtime.rumor && outcome === 'success'
-      ? runtime.rumor.hiddenLootModifiers.map((modifier) => ({ ...modifier }))
+      ? (runtime.rumor.hiddenLootModifiers ?? []).map((modifier) => ({ ...modifier }))
       : []
 
   return {

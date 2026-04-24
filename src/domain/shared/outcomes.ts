@@ -247,8 +247,11 @@ export function assertExclusiveOutcomeBuckets<
   errorMessage = 'Weekly case outcome buckets overlap within the same tick.'
 ) {
   const bucketValues = Object.values(buckets)
-  const uniqueIds = new Set(bucketValues.flatMap((bucket) => bucket))
-  const bucketEntryCount = bucketValues.reduce((sum, bucket) => sum + bucket.length, 0)
+  const uniqueIds = new Set(bucketValues.flatMap((bucket) => bucket as readonly Id[]))
+  const bucketEntryCount = bucketValues.reduce<number>(
+    (sum, bucket) => sum + (bucket as readonly Id[]).length,
+    0
+  )
 
   if (uniqueIds.size !== bucketEntryCount) {
     throw new Error(errorMessage)

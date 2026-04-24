@@ -68,7 +68,7 @@ export const starterRosterBlueprints: StarterAgentBlueprint[] = [
     potentialTier: 'B',
     growthProfile: 'adaptive',
     fatigue: 0,
-    tags: ['medium', 'spirit'],
+    tags: ['medium', 'psi', 'spirit'],
     relationships: { a_sato: 2, a_eli: -1 },
     baseStats: { combat: 10, investigation: 50, utility: 50, social: 30 },
     abilities: [

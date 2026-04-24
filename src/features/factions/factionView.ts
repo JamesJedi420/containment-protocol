@@ -15,6 +15,7 @@ export type FactionViewTone = 'neutral' | 'info' | 'warning' | 'danger' | 'succe
 export interface FactionPageMetricView {
   label: string
   value: string
+  tone?: FactionViewTone
 }
 
 export interface FactionRecentActivityView {
@@ -531,10 +532,14 @@ export function getFactionPageView(game: GameState): FactionPageView {
             'active contact channel'
           )} and ${pluralize(hiddenEffects, 'unresolved hidden effect')} feeding current campaign posture.`,
     metrics: [
-      { label: 'Tracked factions', value: String(factions.length) },
-      { label: 'Hostile postures', value: String(hostileCount) },
-      { label: 'Active contacts', value: String(activeContacts) },
-      { label: 'Open favors', value: String(positiveChannels) },
+      { label: 'Tracked factions', value: String(factions.length), tone: 'info' },
+      {
+        label: 'Hostile postures',
+        value: String(hostileCount),
+        tone: hostileCount > 0 ? 'danger' : 'success',
+      },
+      { label: 'Active contacts', value: String(activeContacts), tone: 'success' },
+      { label: 'Open favors', value: String(positiveChannels), tone: 'info' },
     ],
     recentActivity: buildRecentActivityViews(
       game.events.filter((event) => {

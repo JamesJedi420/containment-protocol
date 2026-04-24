@@ -1,5 +1,6 @@
 // cspell:words cataloguers cutovers exfiltration psionic
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
+import { normalizeSpawnRule } from '../spawnRules'
 import { occultCaseTemplates } from './caseTemplates.occult'
 import { operationsCaseTemplates } from './caseTemplates.operations'
 import { psionicCaseTemplates } from './caseTemplates.psionic'
@@ -589,6 +590,9 @@ function normalizeRequiredRoles(roles: TeamCoverageRole[] | undefined) {
 }
 
 function cloneTemplate(template: CaseTemplate): CaseTemplate {
+  const onFail = normalizeSpawnRule(template.onFail)
+  const onUnresolved = normalizeSpawnRule(template.onUnresolved)
+
   return {
     ...template,
     tags: normalizeTagList(template.tags),
@@ -599,14 +603,14 @@ function cloneTemplate(template: CaseTemplate): CaseTemplate {
     weights: { ...template.weights },
     raid: template.raid ? { ...template.raid } : undefined,
     onFail: {
-      ...template.onFail,
-      spawnCount: { ...template.onFail.spawnCount },
-      spawnTemplateIds: normalizeTagList(template.onFail.spawnTemplateIds),
+      ...onFail,
+      spawnCount: { ...onFail.spawnCount },
+      spawnTemplateIds: normalizeTagList(onFail.spawnTemplateIds),
     },
     onUnresolved: {
-      ...template.onUnresolved,
-      spawnCount: { ...template.onUnresolved.spawnCount },
-      spawnTemplateIds: normalizeTagList(template.onUnresolved.spawnTemplateIds),
+      ...onUnresolved,
+      spawnCount: { ...onUnresolved.spawnCount },
+      spawnTemplateIds: normalizeTagList(onUnresolved.spawnTemplateIds),
     },
   }
 }
@@ -690,24 +694,26 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
       ['onFail', template.onFail],
       ['onUnresolved', template.onUnresolved],
     ] as const) {
+      const normalizedRule = normalizeSpawnRule(rule)
+
       if (
-        !Number.isFinite(rule.spawnCount.min) ||
-        !Number.isFinite(rule.spawnCount.max) ||
-        rule.spawnCount.min < 0 ||
-        rule.spawnCount.max < rule.spawnCount.min
+        !Number.isFinite(normalizedRule.spawnCount.min) ||
+        !Number.isFinite(normalizedRule.spawnCount.max) ||
+        normalizedRule.spawnCount.min < 0 ||
+        normalizedRule.spawnCount.max < normalizedRule.spawnCount.min
       ) {
         errors.push(`Template ${template.templateId} has invalid ${ruleName} spawnCount.`)
       }
 
-      if (rule.spawnCount.max > 0 && rule.spawnTemplateIds.length === 0) {
+      if (normalizedRule.spawnCount.max > 0 && normalizedRule.spawnTemplateIds.length === 0) {
         errors.push(`Template ${template.templateId} has empty ${ruleName} spawn targets.`)
       }
 
       if (
-        rule.convertToRaidAtStage !== undefined &&
-        (!Number.isFinite(rule.convertToRaidAtStage) ||
-          rule.convertToRaidAtStage < 2 ||
-          rule.convertToRaidAtStage > 5)
+        normalizedRule.convertToRaidAtStage !== undefined &&
+        (!Number.isFinite(normalizedRule.convertToRaidAtStage) ||
+          normalizedRule.convertToRaidAtStage < 2 ||
+          normalizedRule.convertToRaidAtStage > 5)
       ) {
         errors.push(`Template ${template.templateId} has invalid ${ruleName} convertToRaidAtStage.`)
       }
@@ -719,7 +725,7 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
       ['onFail', template.onFail],
       ['onUnresolved', template.onUnresolved],
     ] as const) {
-      for (const targetId of rule.spawnTemplateIds) {
+      for (const targetId of normalizeSpawnRule(rule).spawnTemplateIds) {
         if (!byId.has(targetId)) {
           errors.push(
             `Template ${template.templateId} has unknown ${ruleName} spawn target: ${targetId}`

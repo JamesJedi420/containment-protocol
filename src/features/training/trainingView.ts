@@ -1,4 +1,15 @@
 // Centralized projection/view-model for TrainingDivisionPage
+import { trainingCatalog } from '../../data/training'
+import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
+import { clamp } from '../../domain/math'
+import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
+import {
+  hasPairReconciledThisWeek,
+  RECONCILIATION_COST,
+  RECONCILIATION_DELTA_NEGATIVE,
+  RECONCILIATION_DELTA_NON_NEGATIVE,
+} from '../../domain/sim/reconciliation'
+
 export function getTrainingDivisionView(game: GameState, filters: TrainingListFilters) {
   // Filters
   const hasActiveFilters =
@@ -16,9 +27,6 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
   const teamViews = getTeamTrainingViews(game)
 
   // Academy/Programs
-  import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
-  import { trainingCatalog } from '../../data/training'
-  import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
   const academyOverview = buildAcademyOverview(game)
   const agentPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'agent')
   const teamPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'team')
@@ -133,8 +141,6 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
     inactive: filteredRosterViews.filter((view) => view.readiness === 'inactive'),
   }
   // Reconciliation candidates
-  const { hasPairReconciledThisWeek, RECONCILIATION_COST, RECONCILIATION_DELTA_NEGATIVE, RECONCILIATION_DELTA_NON_NEGATIVE } = require('../../domain/sim/reconciliation')
-  const { clamp } = require('../../domain/math')
   const reconciliationCandidates = (() => {
     const agents = Object.values(game.agents)
       .filter((agent) => agent.status === 'active')

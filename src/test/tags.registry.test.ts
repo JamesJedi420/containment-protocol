@@ -1,4 +1,4 @@
-import { getTagsByFamily, isValidTagKey, attachTags, TAGS } from '../../src/domain/tags';
+import { getTagsByFamily, isValidTagKey, attachTags } from '../../src/domain/tags';
 
 describe('Tag Registry', () => {
   it('returns tags by family', () => {

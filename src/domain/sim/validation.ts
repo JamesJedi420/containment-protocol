@@ -163,9 +163,9 @@ function applyCampaignIntelPressure(
 function applyBaselineValidationBuffer(state: GameState): GameState {
   return mapUnresolvedCases(state, (currentCase) => ({
     ...currentCase,
-    deadlineRemaining: currentCase.deadlineRemaining + 2,
+    deadlineRemaining: currentCase.deadlineRemaining + 3,
     weeksRemaining:
-      currentCase.weeksRemaining === undefined ? undefined : currentCase.weeksRemaining + 1,
+      currentCase.weeksRemaining === undefined ? undefined : currentCase.weeksRemaining + 2,
   }))
 }
 
@@ -180,7 +180,7 @@ function applyCampaignEscalationPressure(state: GameState): GameState {
       deadlineRemaining: Math.min(currentCase.deadlineRemaining, 1),
       onUnresolved: {
         ...currentCase.onUnresolved,
-        stageDelta: Math.max(currentCase.onUnresolved.stageDelta, 2),
+        stageDelta: Math.max(currentCase.onUnresolved.stageDelta ?? 0, 2),
         deadlineResetWeeks: Math.min(currentCase.onUnresolved.deadlineResetWeeks ?? 1, 1),
       },
     })),
@@ -321,7 +321,8 @@ function getAverageIntelConfidence(state: GameState) {
   }
 
   return roundTo(
-    activeCases.reduce((sum, currentCase) => sum + currentCase.intelConfidence, 0) / activeCases.length,
+    activeCases.reduce((sum, currentCase) => sum + (currentCase.intelConfidence ?? 1), 0) /
+      activeCases.length,
     2
   )
 }
@@ -374,10 +375,24 @@ export function computeBudgetPressureIndex(funding: number) {
 }
 
 function getEscalationBurden(state: GameState) {
+  const activeCaseBurden = Object.values(state.cases)
+    .filter((currentCase) => currentCase.status !== 'resolved')
+    .reduce(
+      (sum, currentCase) =>
+        sum +
+        Math.max(0, currentCase.escalationLevel ?? 0) +
+        Math.max(0, currentCase.threatDrift ?? 0) +
+        Math.max(0, currentCase.timePressure ?? 0),
+      0
+    )
+  const ambientPressureBurden = Math.round(Math.max(0, state.globalPressure ?? 0) / 8)
+
   return (
     (state.globalEscalationLevel ?? 0) +
     (state.globalThreatDrift ?? 0) +
-    (state.globalTimePressure ?? 0)
+    (state.globalTimePressure ?? 0) +
+    activeCaseBurden +
+    ambientPressureBurden
   )
 }
 

@@ -3,7 +3,6 @@ import {
   createTimingCheckState,
   shouldRunTimingCheck,
   getRunCountThisWeek,
-  TimingCheckType,
 } from '../domain/sim/timingCheckHelper';
 
 // Deterministic, edge-case, and boundedness tests for the shared timing/check helper
@@ -12,10 +11,10 @@ describe('timingCheckHelper', () => {
   it('should allow only bounded number of checks per week', () => {
     const state = createTimingCheckState();
     const week = 5;
-    // Default: 1 per week for most, 2 for OnExtraCheck
-    expect(shouldRunTimingCheck(state, 'OnLongCaseDurationCheck', week)).toBe(true);
-    expect(shouldRunTimingCheck(state, 'OnLongCaseDurationCheck', week)).toBe(false);
-    expect(getRunCountThisWeek(state, 'OnLongCaseDurationCheck', week)).toBe(1);
+    // Pressure checks remain bounded to one pass per week by default.
+    expect(shouldRunTimingCheck(state, 'OnPressureCheck', week)).toBe(true);
+    expect(shouldRunTimingCheck(state, 'OnPressureCheck', week)).toBe(false);
+    expect(getRunCountThisWeek(state, 'OnPressureCheck', week)).toBe(1);
     // OnExtraCheck allows 2
     expect(shouldRunTimingCheck(state, 'OnExtraCheck', week)).toBe(true);
     expect(shouldRunTimingCheck(state, 'OnExtraCheck', week)).toBe(true);
@@ -25,6 +24,7 @@ describe('timingCheckHelper', () => {
 
   it('should reset run count on new week', () => {
     const state = createTimingCheckState();
+    state.maxPerWeek.OnResolutionCheck = 1;
     const week = 10;
     expect(shouldRunTimingCheck(state, 'OnResolutionCheck', week)).toBe(true);
     expect(shouldRunTimingCheck(state, 'OnResolutionCheck', week)).toBe(false);
@@ -34,7 +34,8 @@ describe('timingCheckHelper', () => {
   });
 
   it('should allow custom maxPerWeek overrides', () => {
-    const state = createTimingCheckState({ maxPerWeek: { OnPressureCheck: 3 } });
+    const state = createTimingCheckState();
+    state.maxPerWeek.OnPressureCheck = 3;
     const week = 2;
     expect(shouldRunTimingCheck(state, 'OnPressureCheck', week)).toBe(true);
     expect(shouldRunTimingCheck(state, 'OnPressureCheck', week)).toBe(true);

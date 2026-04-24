@@ -1,7 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { CampaignToIncidentPacket, IncidentToCampaignPacket } from '../domain/models'
+import type {
+  CampaignToIncidentPacket,
+  IncidentToCampaignPacket,
+  KnowledgeState,
+  Team,
+} from '../domain/models'
 
 // Example deterministic test for contract structure
+const teamSnapshot: Team = {
+  id: 'team-001',
+  name: 'Alpha',
+  assignedCaseId: 'case-001',
+  agentIds: [],
+  memberIds: [],
+  tags: [],
+}
+const knowledgeState: KnowledgeState = {
+  tier: 'unknown',
+  entityId: 'team-001',
+  subjectId: 'case-001',
+}
 
 describe('Cross-scale handoff contracts', () => {
   it('should construct a valid CampaignToIncidentPacket', () => {
@@ -11,9 +29,9 @@ describe('Cross-scale handoff contracts', () => {
       caseId: 'case-001',
       caseTitle: 'Test Case',
       teamId: 'team-001',
-      teamSnapshot: { id: 'team-001', name: 'Alpha', assignedCaseId: 'case-001', members: [], status: undefined },
+      teamSnapshot,
       campaignDirectives: ['directive-1'],
-      knowledgeState: {},
+      knowledgeState,
     }
     expect(packet.campaignId).toBe('main')
     expect(packet.week).toBe(1)

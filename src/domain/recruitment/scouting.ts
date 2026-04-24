@@ -91,7 +91,7 @@ export function resolveCandidateActualPotentialTier(candidate: Candidate): LiveP
   if (candidate.evaluation.potentialTier) {
     return normalizePotentialTier(
       candidate.evaluation.potentialTier,
-      candidate.agentData?.stats,
+      candidate.agentData?.stats as Partial<import('../models').StatBlock> | undefined,
       getCandidateScoreHint(candidate)
     )
   }

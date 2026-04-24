@@ -698,10 +698,10 @@ describe('game app routes', () => {
     useGameStore.setState({ game })
     renderApp()
 
-    const avgFatigueCard = screen.getByText(/team fatigue/i).closest('div')
-    expect(avgFatigueCard).not.toBeNull()
-    // Use test id for robust selection
-    const valueNode = within(avgFatigueCard!).getByTestId('dashboard-stat-value-team-fatigue-/-avg-fatigue')
+    const avgFatigueCard = screen.getByRole('link', { name: /team fatigue\s*\/\s*avg fatigue/i })
+    const valueNode = within(avgFatigueCard).getByTestId(
+      'dashboard-stat-value-team-fatigue-/-avg-fatigue'
+    )
     expect(valueNode).toHaveTextContent('0')
   })
 

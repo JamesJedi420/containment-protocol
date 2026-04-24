@@ -808,6 +808,7 @@ describe('resolveCase', () => {
       containmentRating: 90,
       clearanceLevel: 2,
       funding: 200,
+      supportAvailable: state.agency?.supportAvailable ?? 0,
     }
     state.containmentRating = 90
     state.clearanceLevel = 2

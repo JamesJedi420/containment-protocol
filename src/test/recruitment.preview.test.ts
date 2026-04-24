@@ -127,7 +127,7 @@ describe('previewCandidate', () => {
     }
 
     factions.black_budget.reputation = 80
-    factions.black_budget.contacts = factions.black_budget.contacts.map((contact) =>
+    factions.black_budget.contacts = (factions.black_budget.contacts ?? []).map((contact) =>
       contact.id === 'blackbudget-ossian'
         ? {
             ...contact,

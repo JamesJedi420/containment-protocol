@@ -82,6 +82,7 @@ describe('TrainingDivisionPage', () => {
 
     expect(screen.getByText(/recommended next move/i)).toBeInTheDocument()
     expect(screen.getByText(/best immediate gain:/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/best immediate gain:/i)).toHaveLength(1)
     expect(screen.getByText(/confidence:/i)).toBeInTheDocument()
     expect(screen.getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
   })

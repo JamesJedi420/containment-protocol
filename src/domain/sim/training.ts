@@ -37,6 +37,7 @@ import {
   getTeamMemberIds,
   normalizeGameState,
 } from '../teamSimulation'
+import { assessResearchRequirements } from '../research'
 import {
   type Agent,
   type AgentRole,
@@ -65,6 +66,12 @@ export const ROLE_TRAINING_APTITUDE: Record<AgentRole, StatKey> = {
   medic: 'utility',
   negotiator: 'social',
 }
+
+export {
+  buildTrainingCertificationSummary,
+  reviewCertification,
+  transitionCertification,
+} from './training-compat'
 
 export function getTrainingAptitudeBonus(agentRole: AgentRole, targetStat: StatKey): number {
   if (agentRole === 'field_recon' && (targetStat === 'investigation' || targetStat === 'utility')) {
@@ -320,6 +327,7 @@ export interface AgentTrainingQueueAssessment {
   reason?: AgentTrainingQueueBlockReason
   requiredTier?: number
   requiredFunding?: number
+  missingResearchIds?: string[]
 }
 
 export type TeamTrainingQueueBlockReason =
@@ -337,6 +345,7 @@ export interface TeamTrainingQueueAssessment {
   reason?: TeamTrainingQueueBlockReason
   requiredTier?: number
   requiredFunding?: number
+  missingResearchIds?: string[]
   participantIds: Id[]
   scaledCost: number
 }
@@ -375,6 +384,15 @@ export function assessAgentTrainingQueue(
       canQueue: false,
       reason: 'program_locked',
       requiredTier: program.minAcademyTier ?? 0,
+    }
+  }
+
+  const researchAssessment = assessResearchRequirements(state, program.requiredResearchIds ?? [])
+  if (!researchAssessment.satisfied) {
+    return {
+      canQueue: false,
+      reason: 'program_locked',
+      missingResearchIds: researchAssessment.missingIds,
     }
   }
 
@@ -442,6 +460,17 @@ export function assessTeamTrainingQueue(
       canQueue: false,
       reason: 'program_locked',
       requiredTier: program.minAcademyTier ?? 0,
+      participantIds: [],
+      scaledCost: 0,
+    }
+  }
+
+  const researchAssessment = assessResearchRequirements(state, program.requiredResearchIds ?? [])
+  if (!researchAssessment.satisfied) {
+    return {
+      canQueue: false,
+      reason: 'program_locked',
+      missingResearchIds: researchAssessment.missingIds,
       participantIds: [],
       scaledCost: 0,
     }

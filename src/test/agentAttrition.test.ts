@@ -24,7 +24,7 @@ describe('progressAttritionState', () => {
   it('remains lost if already lost', () => {
     const prev: AgentAttritionState = {
       attritionStatus: 'lost',
-      attritionCategory: 'fatality',
+      attritionCategory: 'injury_exit',
       attritionSinceWeek: 2,
       lossReasonCodes: ['fatality'],
       replacementPriority: 1,

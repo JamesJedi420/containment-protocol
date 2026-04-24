@@ -1,12 +1,13 @@
 // Tests for defeat-condition certainty ladder
 import { describe, it, expect } from 'vitest'
 import { applyDefeatConditionKnowledge, getKnowledgeKey } from '../domain/knowledge'
+import type { KnowledgeStateMap } from '../domain/knowledge'
 
 describe('Defeat-Condition Knowledge Ladder', () => {
   it('should represent multi-level certainty for defeat condition', () => {
     const teamId = 'T1'
     const anomalyId = 'A1'
-    let state = {}
+    let state: KnowledgeStateMap = {}
     // Unknown
     state = applyDefeatConditionKnowledge(state, teamId, anomalyId, 'unknown', 1)
     let key = getKnowledgeKey(teamId, anomalyId)

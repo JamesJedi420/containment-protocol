@@ -3,6 +3,7 @@ import type {
   Agent,
   AgentPerformanceOutput,
   CaseInstance,
+  ContractModifier,
   MajorIncidentProvisionType,
   MajorIncidentStrategy,
   PerformanceMetricSummary,
@@ -90,6 +91,18 @@ const STRATEGY_CASUALTY_EFFECTS: Record<
     injuryDelta: -0.12,
     deathDelta: -0.04,
   },
+  rapid_response: {
+    injuryDelta: 0.04,
+    deathDelta: 0.01,
+  },
+  containment_first: {
+    injuryDelta: -0.04,
+    deathDelta: -0.02,
+  },
+  risk_accepting: {
+    injuryDelta: 0.08,
+    deathDelta: 0.03,
+  },
 }
 
 const PROVISION_CASUALTY_EFFECTS: Record<
@@ -166,9 +179,11 @@ function hasSurvivalSpecialist(agent: Agent) {
 }
 
 function getContractRiskModifierTotal(currentCase: CaseInstance, effect: 'injury_risk' | 'death_risk') {
-  return (currentCase.contract?.modifiers ?? [])
+  const modifiers =
+    ((currentCase.contract as { modifiers?: ContractModifier[] } | undefined)?.modifiers ?? [])
+  return modifiers
     .filter((modifier) => modifier.effect === effect)
-    .reduce((total, modifier) => total + modifier.value, 0)
+    .reduce((total, modifier) => total + (modifier.value ?? 0), 0)
 }
 
 function buildMissionRiskModifiers(currentCase: CaseInstance): MissionRiskModifierSet {

@@ -1,18 +1,32 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { CampaignToIncidentPacket } from '../domain/models'
+import type { CampaignToIncidentPacket, KnowledgeState, Team } from '../domain/models'
 
 // Mock state and case for integration test
+const mockTeamId = 't-1'
+const mockTeam: Team = {
+  id: mockTeamId,
+  name: 'Bravo',
+  assignedCaseId: 'c-1',
+  agentIds: [],
+  memberIds: [],
+  tags: [],
+}
+const mockKnowledgeState: KnowledgeState = {
+  tier: 'unknown',
+  entityId: mockTeamId,
+  subjectId: 'c-1',
+}
 const mockState = {
   id: 'main',
   week: 2,
   directiveState: { selectedId: 'dir-1' },
-  teams: { 't-1': { id: 't-1', name: 'Bravo', assignedCaseId: 'c-1', members: [], status: undefined } },
-  knowledge: {},
+  teams: { [mockTeamId]: mockTeam } as Record<string, Team>,
+  knowledge: { [`${mockTeamId}::c-1`]: mockKnowledgeState },
 }
 const mockCase = {
   id: 'c-1',
   title: 'Incident X',
-  assignedTeamIds: ['t-1'],
+  assignedTeamIds: [mockTeamId],
   kind: 'normal',
 }
 
@@ -39,10 +53,10 @@ describe('campaignToIncidentHook integration', () => {
       week: mockState.week,
       caseId: mockCase.id,
       caseTitle: mockCase.title,
-      teamId: mockCase.assignedTeamIds[0],
-      teamSnapshot: mockState.teams[mockCase.assignedTeamIds[0]],
+      teamId: mockTeamId,
+      teamSnapshot: mockState.teams[mockTeamId]!,
       campaignDirectives: [mockState.directiveState.selectedId],
-      knowledgeState: {},
+      knowledgeState: mockKnowledgeState,
     }
     if (typeof (globalThis as any).campaignToIncidentHook === 'function') {
       (globalThis as any).campaignToIncidentHook(packet, mockCase, mockState)

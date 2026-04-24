@@ -1,12 +1,13 @@
 // Tests for obscured-signature counter-sensing path
 import { describe, it, expect } from 'vitest'
-import { applyAnomalySignatureSensing, applyObscuredSignature, getKnowledgeKey } from '../domain/knowledge'
+import { applyObscuredSignature, getKnowledgeKey } from '../domain/knowledge'
+import type { KnowledgeStateMap } from '../domain/knowledge'
 
 describe('Obscured Signature Counter-Sensing', () => {
   it('should set knowledge to masked when signature is obscured', () => {
     const teamId = 'T1'
     const anomalyId = 'A1'
-    const initial = {}
+    const initial: KnowledgeStateMap = {}
     // First, try to sense but signature is obscured
     const result = applyObscuredSignature(initial, teamId, anomalyId, 5)
     const key = getKnowledgeKey(teamId, anomalyId)

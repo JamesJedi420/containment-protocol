@@ -1,5 +1,5 @@
 import { clamp } from './math'
-import type { CaseInstance, GameState } from './models'
+import type { CaseInstance, GameState, SupportStaffSummary } from './models'
 import {
   isAggregateBattleCampaignSummary,
   rollupAggregateBattleCampaignSummaries,
@@ -67,6 +67,7 @@ export interface AgencySummary {
   funding: number
   containmentRating: number
   clearanceLevel: number
+  supportStaff?: SupportStaffSummary
   teams: AgencyTeamSummary
   activeOperations: AgencyOperationsSummary
   pressure: AgencyPressureSummary
@@ -343,6 +344,7 @@ export function buildAgencySummary(game: GameState): AgencySummary {
     funding: agency.funding,
     containmentRating: agency.containmentRating,
     clearanceLevel: agency.clearanceLevel,
+    ...(game.supportStaff ? { supportStaff: { ...game.supportStaff } } : {}),
     teams,
     activeOperations: buildAgencyOperationsSummary(game),
     pressure,

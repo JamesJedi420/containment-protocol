@@ -24,8 +24,8 @@ function collectStarterLinkedTemplateIds(maxDepth = 2) {
       }
 
       for (const linkedId of [
-        ...template.onFail.spawnTemplateIds,
-        ...template.onUnresolved.spawnTemplateIds,
+        ...(template.onFail.spawnTemplateIds ?? []),
+        ...(template.onUnresolved.spawnTemplateIds ?? []),
       ]) {
         if (!seen.has(linkedId)) {
           nextFrontier.add(linkedId)

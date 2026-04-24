@@ -49,8 +49,8 @@ function EquipmentPage() {
         {(() => {
           // Simulate recommendations for test compatibility
           const recommendations = [];
-          if (game.cases && Object.values(game.cases).some((c: any) => c.status !== 'resolved')) {
-            const openCase = Object.values(game.cases).find((c: any) => c.status !== 'resolved');
+          const openCase = Object.values(game.cases ?? {}).find((c: any) => c.status !== 'resolved');
+          if (openCase) {
             recommendations.push({
               caseId: openCase.id,
               caseTitle: openCase.title,

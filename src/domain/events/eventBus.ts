@@ -11,6 +11,20 @@ import {
 
 const EVENT_CLOCK_START_MS = Date.UTC(2042, 0, 1, 0, 0, 0)
 const EVENT_WEEK_MS = 7 * 24 * 60 * 60 * 1000
+const EMPTY_FACTION_HISTORY = Object.freeze({
+  missionsCompleted: 0,
+  missionsFailed: 0,
+  successRate: 0,
+  interactionLog: [] as GameState['factions'] extends Record<string, infer TFaction>
+    ? TFaction extends { history?: infer THistory }
+      ? THistory extends { interactionLog: infer TInteractionLog }
+        ? TInteractionLog
+        : never
+      : never
+    : never,
+})
+
+type RuntimeFaction = NonNullable<GameState['factions']>[string]
 
 export type OperationEventDraft<TType extends OperationEventType = OperationEventType> = {
   type: TType
@@ -40,6 +54,14 @@ export function createOperationEvent<TType extends OperationEventType>(
     payload: draft.payload,
     timestamp: buildOperationEventTimestamp(eventWeek, sequence),
   }) as unknown as OperationEvent<TType>
+}
+
+function getFactionHistory(faction: RuntimeFaction) {
+  return faction.history ?? EMPTY_FACTION_HISTORY
+}
+
+function getFactionContacts(faction: RuntimeFaction) {
+  return faction.contacts ?? []
 }
 
 function getTeamMemberIds(state: GameState, teamId: string) {
@@ -117,7 +139,7 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
     return state
   }
 
-  const nextFactions = { ...(state.factions ?? {}) }
+  const nextFactions: NonNullable<GameState['factions']> = { ...(state.factions ?? {}) }
 
   for (const event of events) {
     if (event.type === 'faction.standing_changed') {
@@ -131,17 +153,53 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
         type: event.type,
         week: event.payload.week,
       }
+      const history = getFactionHistory(faction)
+      const contacts = getFactionContacts(faction)
+      const missionsCompleted =
+        event.payload.reason === 'case.resolved'
+          ? history.missionsCompleted + 1
+          : history.missionsCompleted
+      const missionsFailed =
+        event.payload.reason === 'case.failed' || event.payload.reason === 'case.escalated'
+          ? history.missionsFailed + 1
+          : history.missionsFailed
+      const totalMissions = missionsCompleted + missionsFailed
 
       nextFactions[event.payload.factionId] = {
         ...faction,
+        reputation:
+          typeof event.payload.reputationAfter === 'number'
+            ? event.payload.reputationAfter
+            : Math.max(
+                -100,
+                Math.min(100, (typeof faction.reputation === 'number' ? faction.reputation : 0) + event.payload.delta)
+              ),
         history: {
-          ...faction.history,
-          interactionLog: [...faction.history.interactionLog, eventRef],
+          ...history,
+          missionsCompleted,
+          missionsFailed,
+          successRate: totalMissions > 0 ? (missionsCompleted / totalMissions) * 100 : 0,
+          interactionLog: [...history.interactionLog, eventRef],
         },
-        contacts: faction.contacts.map((contact) =>
+        contacts: contacts.map((contact) =>
           contact.id === event.payload.contactId
             ? {
                 ...contact,
+                relationship:
+                  typeof event.payload.contactRelationshipAfter === 'number'
+                    ? event.payload.contactRelationshipAfter
+                    : Math.max(
+                        -100,
+                        Math.min(100, contact.relationship + (event.payload.contactDelta ?? 0))
+                      ),
+                status:
+                  typeof event.payload.contactRelationshipAfter === 'number'
+                    ? event.payload.contactRelationshipAfter <= -40
+                      ? 'hostile'
+                      : event.payload.contactRelationshipAfter >= 15
+                        ? 'active'
+                        : contact.status
+                    : contact.status,
                 history: {
                   interactions: [...contact.history.interactions, eventRef],
                 },
@@ -168,14 +226,16 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
         type: event.type,
         week: event.payload.week,
       }
+      const history = getFactionHistory(faction)
+      const contacts = getFactionContacts(faction)
 
       nextFactions[event.payload.sourceFactionId] = {
         ...faction,
         history: {
-          ...faction.history,
-          interactionLog: [...faction.history.interactionLog, eventRef],
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
         },
-        contacts: faction.contacts.map((contact) =>
+        contacts: contacts.map((contact) =>
           contact.id === event.payload.sourceContactId
             ? {
                 ...contact,
@@ -200,14 +260,16 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
         type: event.type,
         week: event.payload.week,
       }
+      const history = getFactionHistory(faction)
+      const contacts = getFactionContacts(faction)
 
       nextFactions[event.payload.sourceFactionId] = {
         ...faction,
         history: {
-          ...faction.history,
-          interactionLog: [...faction.history.interactionLog, eventRef],
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
         },
-        contacts: faction.contacts.map((contact) =>
+        contacts: contacts.map((contact) =>
           contact.id === event.payload.sourceContactId
             ? {
                 ...contact,
@@ -232,14 +294,16 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
         type: event.type,
         week: event.payload.week,
       }
+      const history = getFactionHistory(faction)
+      const contacts = getFactionContacts(faction)
 
       nextFactions[event.payload.factionId] = {
         ...faction,
         history: {
-          ...faction.history,
-          interactionLog: [...faction.history.interactionLog, eventRef],
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
         },
-        contacts: faction.contacts.map((contact) =>
+        contacts: contacts.map((contact) =>
           contact.id === event.payload.contactId
             ? {
                 ...contact,

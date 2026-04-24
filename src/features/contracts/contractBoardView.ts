@@ -100,6 +100,9 @@ export interface ContractBoardDetailView {
 
 export interface ContractBoardView {
   boardSummary: string
+  factionLabel?: string
+  riskLabel?: string
+  rewardLabel?: string
   availableCount: number
   lockedCount: number
   activeCount: number
@@ -429,6 +432,12 @@ function buildFactionContext(
     faction.hiddenModifierCount > 0
       ? `Unknown influence detected: ${faction.hiddenModifierCount} hidden faction effect${faction.hiddenModifierCount === 1 ? '' : 's'} remain unresolved for this dossier.`
       : 'No unresolved hidden faction effects remain for this dossier.'
+  const history = faction.history ?? {
+    missionsCompleted: 0,
+    missionsFailed: 0,
+    successRate: 0,
+    interactionLog: [],
+  }
 
   return {
     summary: `${faction.label} is currently ${faction.reputationTier} and ${faction.stance}, with standing ${faction.standing >= 0 ? '+' : ''}${faction.standing} and pressure ${faction.pressureScore}.`,
@@ -443,7 +452,7 @@ function buildFactionContext(
           : 'No dedicated contact channel is attached to this contract packet.',
         knownEffects,
         hiddenEffects,
-        `History: ${faction.history.missionsCompleted} successful / ${faction.history.missionsFailed} failed interactions.`,
+        `History: ${history.missionsCompleted} successful / ${history.missionsFailed} failed interactions.`,
       ],
       MAX_DETAILS
     ),
@@ -471,18 +480,15 @@ function buildFactionImpactSummary(
     inspection.state
   )
   const successStanding = successReward.factionStanding.find(
-    (standing) =>
-      standing.factionId === entry.factionId &&
-      (entry.contactId ? standing.contactId === entry.contactId : true)
+    (standing) => standing.factionId === entry.factionId
   )
   const failStanding = failReward.factionStanding.find(
-    (standing) =>
-      standing.factionId === entry.factionId &&
-      (entry.contactId ? standing.contactId === entry.contactId : true)
+    (standing) => standing.factionId === entry.factionId
   )
 
   if (!successStanding && !failStanding) {
-    return undefined
+    const factionLabel = getContractFactionLabel(entry)
+    return `Success likely improves ${factionLabel} standing. Failure likely strains ${factionLabel}.`
   }
 
   return uniqueBounded(
@@ -492,9 +498,6 @@ function buildFactionImpactSummary(
         : '',
       failStanding
         ? `Failure likely strains ${failStanding.label} ${failStanding.delta >= 0 ? '+' : ''}${failStanding.delta}.`
-        : '',
-      successStanding?.contactName && typeof successStanding.contactDelta === 'number'
-        ? `${successStanding.contactName} would likely shift ${successStanding.contactDelta >= 0 ? '+' : ''}${successStanding.contactDelta} on success.`
         : '',
     ],
     3
@@ -870,6 +873,13 @@ export function getContractBoardView(
       availableEntries.length > 0
         ? `${availableEntries.length} live contract channel${availableEntries.length === 1 ? '' : 's'} on the weekly board, ${lockedEntries.length} blocked or locked follow-up${lockedEntries.length === 1 ? '' : 's'}.`
         : 'No live contract channels are available this week. Review blockers and current pressure before the next advance.',
+    ...(selectedEntry
+      ? {
+          factionLabel: getContractFactionLabel(selectedEntry),
+          riskLabel: selectedDetail?.riskLabel,
+          rewardLabel: selectedDetail?.rewardLabel,
+        }
+      : {}),
     availableCount: availableEntries.length,
     lockedCount: lockedEntries.length,
     activeCount: activeEntries.length,

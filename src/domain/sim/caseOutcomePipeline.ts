@@ -15,6 +15,12 @@ interface BaseResolvedDraftInput {
   caseTitle: string
   teamsUsed: MissionTeamUsage[]
   rewards: MissionRewardBreakdown
+  hiddenState?: MissionResultInput['hiddenState']
+  detectionConfidence?: MissionResultInput['detectionConfidence']
+  counterDetection?: MissionResultInput['counterDetection']
+  displacementTarget?: MissionResultInput['displacementTarget']
+  route?: MissionResultInput['route']
+  weakestLink?: MissionResultInput['weakestLink']
   performanceSummary?: PerformanceMetricSummary
   powerImpact?: PowerImpactSummary
   injuries?: MissionInjuryRecord[]
@@ -31,6 +37,11 @@ interface UnresolvedDraftInput {
   caseId: string
   caseTitle: string
   rewards: MissionRewardBreakdown
+  hiddenState?: MissionResultInput['hiddenState']
+  detectionConfidence?: MissionResultInput['detectionConfidence']
+  counterDetection?: MissionResultInput['counterDetection']
+  displacementTarget?: MissionResultInput['displacementTarget']
+  route?: MissionResultInput['route']
   spawnedConsequences: MissionSpawnedConsequence[]
   explanationNotes: string[]
 }
@@ -41,6 +52,12 @@ export function buildSuccessCaseOutcomeDraft(input: BaseResolvedDraftInput): Mis
     caseTitle: input.caseTitle,
     teamsUsed: input.teamsUsed,
     outcome: 'success',
+    hiddenState: input.hiddenState,
+    detectionConfidence: input.detectionConfidence,
+    counterDetection: input.counterDetection,
+    displacementTarget: input.displacementTarget,
+    route: input.route,
+    weakestLink: input.weakestLink,
     rewards: input.rewards,
     performanceSummary: input.performanceSummary,
     powerImpact: input.powerImpact,
@@ -56,6 +73,12 @@ export function buildEscalatedCaseOutcomeDraft(input: EscalatedDraftInput): Miss
     caseTitle: input.caseTitle,
     teamsUsed: input.teamsUsed,
     outcome: input.outcome,
+    hiddenState: input.hiddenState,
+    detectionConfidence: input.detectionConfidence,
+    counterDetection: input.counterDetection,
+    displacementTarget: input.displacementTarget,
+    route: input.route,
+    weakestLink: input.weakestLink,
     rewards: input.rewards,
     performanceSummary: input.performanceSummary,
     powerImpact: input.powerImpact,
@@ -72,6 +95,11 @@ export function buildUnresolvedCaseOutcomeDraft(input: UnresolvedDraftInput): Mi
     caseTitle: input.caseTitle,
     teamsUsed: [],
     outcome: 'unresolved',
+    hiddenState: input.hiddenState,
+    detectionConfidence: input.detectionConfidence,
+    counterDetection: input.counterDetection,
+    displacementTarget: input.displacementTarget,
+    route: input.route,
     rewards: input.rewards,
     powerImpact: createDefaultPowerImpactSummary(),
     spawnedConsequences: input.spawnedConsequences,

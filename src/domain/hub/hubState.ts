@@ -1,5 +1,6 @@
 // Canonical bounded hub-state generator for SPE-53
 import type { GameState } from '../models'
+import { buildFactionStates } from '../factions'
 import { inspectDistortion } from '../shared/distortion'
 
 export interface HubOpportunity {
@@ -39,7 +40,7 @@ export function generateHubState(game: GameState): HubState {
   const districts = ['central_hub', 'industrial_zone']
   // Faction presence: use standing as presence proxy
   const factionPresence: Record<string, number> = {}
-  const factions = Object.values(game.factions ?? {})
+  const factions = buildFactionStates(game)
   for (const f of factions) {
     factionPresence[f.id] = f.standing
   }

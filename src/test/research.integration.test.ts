@@ -179,10 +179,10 @@ describe('research integration completion pass', () => {
     )[caseId]
 
     expect(degradedWithResearch.intelConfidence).toBeGreaterThan(
-      degradedWithoutResearch.intelConfidence
+      degradedWithoutResearch.intelConfidence ?? 0
     )
     expect(degradedWithResearch.intelUncertainty).toBeLessThan(
-      degradedWithoutResearch.intelUncertainty
+      degradedWithoutResearch.intelUncertainty ?? 1
     )
   })
 

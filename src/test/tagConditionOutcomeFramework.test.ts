@@ -5,6 +5,7 @@ import { aggregateModifiers, explainModifiers } from '../domain/modifiers';
 import { resolveScouting } from '../domain/scoutingResolution';
 import { getVulnerabilityEffect } from '../domain/vulnerability';
 import { propagateDistortion, interpretDistortion } from '../domain/distortion';
+import type { ConditionKey } from '../domain/shared/tags';
 import { describe, it, expect } from 'vitest';
 
 describe('Tag registry and attachment', () => {
@@ -23,10 +24,10 @@ describe('Tag registry and attachment', () => {
 describe('Condition effects and allowed carriers', () => {
   it('should only allow valid conditions for carriers', () => {
     expect(getCondition('fatigued')).toBeDefined();
-    const agent: { type: string; conditions?: string[] } = { type: 'agent' };
+    const agent: { type: string; conditions?: ConditionKey[] } = { type: 'agent' };
     attachCondition(agent, 'fatigued', 'agent');
     expect(agent.conditions).toContain('fatigued');
-    const intel: { type: string; conditions?: string[] } = { type: 'intel' };
+    const intel: { type: string; conditions?: ConditionKey[] } = { type: 'intel' };
     attachCondition(intel, 'fatigued', 'intel');
     expect(intel.conditions).toBeUndefined();
   });

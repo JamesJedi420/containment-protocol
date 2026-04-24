@@ -28,6 +28,7 @@ import {
   queueTraining as queueTrainingDomain,
 } from '../../domain/sim/training'
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave } from './saveSystem'
+import { RUN_EXPORT_KIND } from './runTransfer'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -110,7 +111,7 @@ describe('gameStore', () => {
     expect(game.runtimeState?.oneShotEvents['event.prologue']?.source).toBe('opening')
     expect(game.runtimeState?.currentLocation.sceneId).toBe('briefing-room')
     expect(game.runtimeState?.sceneHistory.at(-1)?.sceneId).toBe('briefing-room')
-    expect(game.runtimeState?.encounterState['case-001']?.flags.foreshadowed).toBe(true)
+    expect(game.runtimeState?.encounterState['case-001']?.flags?.foreshadowed).toBe(true)
     expect(game.runtimeState?.progressClocks['story.clock']?.value).toBe(2)
     expect(game.runtimeState?.ui.debug.flags.tracing).toBe(true)
     expect(game.inventory.debug_supplies).toBe(2)
@@ -807,8 +808,8 @@ describe('gameStore', () => {
     expect(new Date(payload.savedAt).toISOString()).toBe(payload.savedAt)
     expect(payload.state).not.toHaveProperty('templates')
     expect(JSON.parse(useGameStore.getState().exportRun())).toMatchObject({
-      kind: GAME_SAVE_KIND,
-      version: GAME_SAVE_VERSION,
+      kind: RUN_EXPORT_KIND,
+      version: GAME_STORE_VERSION,
     })
 
     useGameStore.getState().reset()

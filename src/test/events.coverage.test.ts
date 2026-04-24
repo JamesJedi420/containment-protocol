@@ -32,13 +32,16 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'system.party_cards_drawn': 'covered',
   'production.queue_completed': 'covered',
   'production.queue_started': 'covered',
+  'system.equipment_recovered': 'covered',
   'market.shifted': 'covered',
   'market.transaction_recorded': 'covered',
   'faction.standing_changed': 'covered',
   'faction.unlock_available': 'covered',
   'agency.containment_updated': 'covered',
   'directive.applied': 'covered',
+  'support.shortfall': 'covered',
   'system.academy_upgraded': 'covered',
+  'case.aggregate_battle': 'covered',
 }
 
 describe('event type coverage contract', () => {

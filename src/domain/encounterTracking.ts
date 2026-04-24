@@ -49,7 +49,7 @@ export function readEncounterTracking(state: GameState, encounterId: string) {
 
 export function listEncounterTracking(state: GameState) {
   return Object.values(readGameStateManager(state).encounterState).sort((left, right) =>
-    left.encounterId.localeCompare(right.encounterId)
+    (left.encounterId ?? '').localeCompare(right.encounterId ?? '')
   )
 }
 
@@ -209,11 +209,11 @@ export function selectEncounterTrackingSummary(
   followUpIds: string[]
 } {
   return {
-    id: encounter.encounterId,
-    status: encounter.status,
+    id: encounter.encounterId ?? '',
+    status: encounter.status ?? 'available',
     ...(encounter.phase ? { phase: encounter.phase } : {}),
     ...(typeof encounter.startedWeek === 'number' ? { startedWeek: encounter.startedWeek } : {}),
-    updatedWeek: encounter.lastUpdatedWeek,
+    updatedWeek: encounter.lastUpdatedWeek ?? 0,
     ...(typeof encounter.resolvedWeek === 'number' ? { resolvedWeek: encounter.resolvedWeek } : {}),
     ...(encounter.latestOutcome ? { latestOutcome: encounter.latestOutcome } : {}),
     ...(encounter.lastResolutionId ? { lastResolutionId: encounter.lastResolutionId } : {}),

@@ -3,6 +3,8 @@ import { describeConsequenceRoute, resolveConsequenceRoute } from './shared/outc
 import { inspectDistortion } from './shared/distortion'
 import { buildFactionStates } from './factions'
 import { type CaseInstance, type GameState, type ReportNote } from './models'
+import type { ProxyConflictOutcome } from './proxyConflict'
+import type { ProtocolContactOutcome } from './protocol'
 
 export function buildEscalationConsequenceNote(
   escalatedCase: CaseInstance,
@@ -43,8 +45,6 @@ export function buildEscalationConsequenceNote(
   )
 }
 // Surface Threshold Court proxy-conflict effect in report notes
-import { ProxyConflictOutcome } from './proxyConflict'
-
 export function buildThresholdCourtProxyConflictNote(
   outcome: ProxyConflictOutcome,
   week: number
@@ -65,8 +65,6 @@ export function buildThresholdCourtProxyConflictNote(
   return null
 }
 // Surface Threshold Court protocol contact outcome in report notes
-import { ProtocolContactOutcome } from './protocol'
-
 export function buildThresholdCourtProtocolNote(
   outcome: ProtocolContactOutcome,
   week: number
@@ -423,6 +421,17 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
+    case 'support.shortfall':
+      return {
+        content: `${draft.payload.caseTitle}: support shortfall reduced operational coverage.`,
+        type: 'support.shortfall',
+        metadata: {
+          caseId: draft.payload.caseId,
+          caseTitle: draft.payload.caseTitle,
+          remainingSupport: draft.payload.remainingSupport,
+        },
+      }
+
     case 'system.equipment_recovered':
       return {
         content: draft.payload.content,
@@ -486,6 +495,20 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           reason: draft.payload.reason,
           caseId: draft.payload.caseId ?? null,
           caseTitle: draft.payload.caseTitle ?? null,
+        },
+      }
+
+    case 'faction.unlock_available':
+      return {
+        content: `${draft.payload.factionName}: ${draft.payload.label} channel available.`,
+        type: 'faction.unlock_available',
+        metadata: {
+          factionId: draft.payload.factionId,
+          factionName: draft.payload.factionName,
+          contactId: draft.payload.contactId ?? null,
+          contactName: draft.payload.contactName ?? null,
+          label: draft.payload.label,
+          disposition: draft.payload.disposition,
         },
       }
 

@@ -1,203 +1,154 @@
-import { generateHubState } from '../domain/hub/hubState'
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import { createOperationEvent } from '../domain/events/eventBus'
 import { buildHubReportNotes } from '../domain/hub/hubReportNotes'
+import { generateHubState, type HubState } from '../domain/hub/hubState'
+import type { GameState, LegitimacyState } from '../domain/models'
+
+function makeHubGame(overrides: Partial<GameState> = {}): GameState {
+  return {
+    ...structuredClone(createStartingState()),
+    events: [],
+    ...overrides,
+  }
+}
+
+function makeStandingEvent(
+  sequence: number,
+  factionId: 'oversight' | 'black_budget',
+  delta: number
+) {
+  const factionName = factionId === 'oversight' ? 'Oversight Bureau' : 'Black Budget Programs'
+
+  return createOperationEvent(sequence, {
+    type: 'faction.standing_changed',
+    sourceSystem: 'faction',
+    payload: {
+      week: 1,
+      factionId,
+      factionName,
+      delta,
+      standingBefore: 0,
+      standingAfter: delta,
+      reason: 'case.resolved',
+    },
+  })
+}
+
+function makeRankedHubGame(legitimacy?: LegitimacyState): GameState {
+  return makeHubGame({
+    legitimacy,
+    events: [makeStandingEvent(1, 'oversight', 10), makeStandingEvent(2, 'black_budget', 8)],
+  })
+}
 
 describe('SPE-53: Hub Simulation & Opportunity Generation', () => {
-    type HubGameInput = Parameters<typeof generateHubState>[0]
-    it('gates first opportunity by legitimacy and explains result', () => {
-      const baseGame = {
-        week: 1,
-        factions: {
-          red_hand: {
-            id: 'red_hand',
-            name: 'Red Hand',
-            label: 'Red Hand',
-            category: 'covert',
-            standing: 10,
-            pressureScore: 50,
-            stance: 'supportive',
-            matchingCases: 1,
-            reasons: ['Test Case'],
-            feedback: 'Test feedback',
-            influenceModifiers: { caseGenerationWeight: 1, rewardModifier: 0, opportunityAccess: 2 },
-            opportunities: [
-              { id: 'red_hand-support-window', label: 'Test Opportunity', detail: 'Test detail', direction: 'positive' }
-            ],
-            cohesion: 70,
-            agendaPressure: 20,
-            reliability: 80,
-            distortion: 10,
-          },
-        },
-      } as HubGameInput
-      // Test all legitimacy levels
-      const levels = [
-        { sanctionLevel: 'sanctioned', expect: { state: 'allowed', explanation: /sanctioned/ } },
-        { sanctionLevel: 'covert', expect: { state: 'risky', explanation: /covert/ } },
-        { sanctionLevel: 'tolerated', expect: { state: 'costly', explanation: /costly/ } },
-        { sanctionLevel: 'unsanctioned', expect: { state: 'blocked', explanation: /blocked/ } },
-      ]
-      for (const { sanctionLevel, expect: exp } of levels) {
-        const game = { ...baseGame, legitimacy: { sanctionLevel } }
-        const hub = generateHubState(game)
-        const opp = hub.opportunities[0]
-        expect(opp.requiredSanctionLevel).toBe('sanctioned')
-        expect(opp.accessState).toBe(exp.state)
-        expect(opp.accessExplanation).toMatch(exp.explanation)
-      }
-    })
-
-    it('adds fallout note for unsanctioned/covert/costly access', () => {
-      // Simulate a game state with a hub opportunity accessed as covert
-      const game = {
-        week: 1,
-        legitimacy: { sanctionLevel: 'covert' },
-        factions: {
-          red_hand: {
-            id: 'red_hand',
-            name: 'Red Hand',
-            label: 'Red Hand',
-            category: 'covert',
-            standing: 10,
-            pressureScore: 50,
-            stance: 'supportive',
-            matchingCases: 1,
-            reasons: ['Test Case'],
-            feedback: 'Test feedback',
-            influenceModifiers: { caseGenerationWeight: 1, rewardModifier: 0, opportunityAccess: 2 },
-            opportunities: [
-              { id: 'red_hand-support-window', label: 'Test Opportunity', detail: 'Test detail', direction: 'positive' }
-            ],
-            cohesion: 70,
-            agendaPressure: 20,
-            reliability: 80,
-            distortion: 10,
-          },
-        },
-        reports: [{ notes: [], resolvedCases: [], failedCases: [], partialCases: [], unresolvedTriggers: [], spawnedCases: [] }],
-        hubState: undefined,
-      } as HubGameInput
-      // Generate hub state and simulate advanceWeek
-      const hub = generateHubState(game)
-      game.hubState = hub
-      // Simulate advanceWeek fallout logic
-      // (Directly call the fallout logic for this test)
-      if (hub.opportunities[0].accessState !== 'allowed') {
-        const falloutNote = {
-          id: `note-hub-fallout-${hub.opportunities[0].id}-${game.week}`,
-          content: expect.stringContaining('covert'),
-          type: 'hub.fallout',
-        }
-        // Attach to the report
-        game.reports[0].notes.push(falloutNote)
-        expect(game.reports[0].notes.some(n => n.type === 'hub.fallout')).toBe(true)
-        expect(game.reports[0].notes.find(n => n.type === 'hub.fallout')?.content).toEqual(expect.stringContaining('covert'))
-      }
-    })
-  it('generates multiple opportunities and rumors for top factions', () => {
-    const game = {
-      week: 1,
-      factions: {
-        red_hand: {
-          id: 'red_hand',
-          name: 'Red Hand',
-          label: 'Red Hand',
-          category: 'covert',
-          standing: 10,
-          pressureScore: 50,
-          stance: 'supportive',
-          matchingCases: 1,
-          reasons: ['Test Case'],
-          feedback: 'Test feedback',
-          influenceModifiers: { caseGenerationWeight: 1, rewardModifier: 0, opportunityAccess: 2 },
-          opportunities: [
-            { id: 'red_hand-support-window', label: 'Test Opportunity', detail: 'Test detail', direction: 'positive' }
-          ],
-          cohesion: 70,
-          agendaPressure: 20,
-          reliability: 80,
-          distortion: 10,
-        },
-        blue_sun: {
-          id: 'blue_sun',
-          name: 'Blue Sun',
-          label: 'Blue Sun',
-          category: 'covert',
-          standing: 8,
-          pressureScore: 40,
-          stance: 'contested',
-          matchingCases: 1,
-          reasons: ['Test Case'],
-          feedback: 'Blue feedback',
-          influenceModifiers: { caseGenerationWeight: 1, rewardModifier: 0, opportunityAccess: 2 },
-          opportunities: [
-            { id: 'blue_sun-window', label: 'Blue Opportunity', detail: 'Blue detail', direction: 'positive' }
-          ],
-          cohesion: 60,
-          agendaPressure: 10,
-          reliability: 60,
-          distortion: 40,
-        },
+  it('gates first opportunity by legitimacy and explains result', () => {
+    const levels: Array<{
+      legitimacy: LegitimacyState
+      state: 'allowed' | 'risky' | 'costly' | 'blocked'
+      explanation: RegExp
+    }> = [
+      {
+        legitimacy: { sanctionLevel: 'sanctioned' },
+        state: 'allowed',
+        explanation: /sanctioned/i,
       },
-    } as HubGameInput
+      {
+        legitimacy: { sanctionLevel: 'covert' },
+        state: 'risky',
+        explanation: /covert/i,
+      },
+      {
+        legitimacy: { sanctionLevel: 'tolerated' },
+        state: 'costly',
+        explanation: /costly/i,
+      },
+      {
+        legitimacy: { sanctionLevel: 'unsanctioned' },
+        state: 'blocked',
+        explanation: /blocked/i,
+      },
+    ]
+
+    for (const level of levels) {
+      const hub = generateHubState(makeRankedHubGame(level.legitimacy))
+      const opportunity = hub.opportunities[0]
+
+      expect(opportunity?.requiredSanctionLevel).toBe('sanctioned')
+      expect(opportunity?.accessState).toBe(level.state)
+      expect(opportunity?.accessExplanation).toMatch(level.explanation)
+    }
+  })
+
+  it('surfaces risky access state in hub opportunity notes', () => {
+    const game = makeRankedHubGame({ sanctionLevel: 'covert' })
     const hub = generateHubState(game)
+    const notes = buildHubReportNotes(hub, game.week)
+    const opportunityNote = notes.find((note) => note.type === 'hub.opportunity')
+
+    expect(opportunityNote).toBeDefined()
+    expect(opportunityNote?.content).toContain('covert')
+    expect(opportunityNote?.metadata?.accessState).toBe('risky')
+    expect(opportunityNote?.metadata?.requiredSanctionLevel).toBe('sanctioned')
+  })
+
+  it('generates multiple opportunities and rumors for top factions', () => {
+    const hub = generateHubState(makeRankedHubGame())
+
     expect(hub.districtKey).toBe('central_hub')
-    expect(hub.opportunities.length).toBe(2)
-    expect(hub.opportunities.map(o => o.label)).toContain('Test Opportunity')
-    expect(hub.opportunities.map(o => o.label)).toContain('Blue Opportunity')
-    expect(hub.rumors.length).toBe(2)
-    expect(hub.rumors.some(r => r.label && typeof r.confidence === 'number')).toBe(true)
+    expect(hub.opportunities).toHaveLength(2)
+    expect(hub.opportunities.map((opportunity) => opportunity.factionId)).toEqual([
+      'oversight',
+      'black_budget',
+    ])
+    expect(hub.rumors).toHaveLength(2)
+    expect(hub.rumors.every((rumor) => typeof rumor.confidence === 'number')).toBe(true)
   })
 
   it('persists hub state across weeks', () => {
-    const game = {
-      week: 1,
-      factions: {
-        red_hand: {
-          id: 'red_hand',
-          name: 'Red Hand',
-          label: 'Red Hand',
-          category: 'covert',
-          standing: 10,
-          pressureScore: 50,
-          stance: 'supportive',
-          matchingCases: 1,
-          reasons: ['Test Case'],
-          feedback: 'Test feedback',
-          influenceModifiers: { caseGenerationWeight: 1, rewardModifier: 0, opportunityAccess: 2 },
-          opportunities: [
-            { id: 'red_hand-support-window', label: 'Test Opportunity', detail: 'Test detail', direction: 'positive' }
-          ],
-          cohesion: 70,
-          agendaPressure: 20,
-          reliability: 80,
-          distortion: 10,
-        },
-      },
-      hubState: undefined,
-    } as HubGameInput
+    const game = makeRankedHubGame()
     const hub1 = generateHubState(game)
+    const hub2 = generateHubState({ ...game, week: 2, hubState: hub1 })
+
     expect(hub1.districtKey).toBe('central_hub')
-    // Simulate persisting hub state
-    const game2 = { ...game, hubState: hub1 }
-    const hub2 = generateHubState(game2)
     expect(hub2.districtKey).toBe('central_hub')
     expect(hub2.opportunities.length).toBeGreaterThan(0)
   })
 
-  it('surfaces hub opportunity and rumor in report notes', () => {
-    const hub = {
+  it('surfaces hub opportunity and rumor metadata in report notes', () => {
+    const hub: HubState = {
       districtKey: 'central_hub',
-      factionPresence: { red_hand: 10 },
+      factionPresence: { oversight: 10 },
       opportunities: [
-        { id: 'opportunity-red_hand', label: 'Test Opportunity', detail: 'Test detail', factionId: 'red_hand', confidence: 0.8 },
+        {
+          id: 'opportunity-oversight',
+          label: 'Test Opportunity',
+          detail: 'Test detail',
+          factionId: 'oversight',
+          confidence: 0.8,
+          accessState: 'allowed',
+          requiredSanctionLevel: 'sanctioned',
+        },
       ],
       rumors: [
-        { id: 'rumor-red_hand', label: 'Test Rumor', detail: 'Rumor detail', confidence: 0.4, misleading: true, filtered: true },
+        {
+          id: 'rumor-oversight',
+          label: 'Test Rumor',
+          detail: 'Rumor detail',
+          confidence: 0.4,
+          misleading: true,
+          filtered: true,
+        },
       ],
     }
+
     const notes = buildHubReportNotes(hub, 1)
-    expect(notes.some((n) => n.type === 'hub.opportunity')).toBe(true)
-    expect(notes.some((n) => n.type === 'hub.rumor')).toBe(true)
-    expect(notes.find((n) => n.type === 'hub.rumor')?.misleading).toBeUndefined() // misleading is in metadata
+    const rumorNote = notes.find((note) => note.type === 'hub.rumor')
+
+    expect(notes.some((note) => note.type === 'hub.opportunity')).toBe(true)
+    expect(rumorNote).toBeDefined()
+    expect(rumorNote?.metadata?.misleading).toBe(true)
+    expect(rumorNote?.metadata?.filtered).toBe(true)
   })
 })

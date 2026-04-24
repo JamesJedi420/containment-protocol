@@ -46,6 +46,12 @@ describe('Agency Support Staff Layer', () => {
     containmentRating: 50,
     clearanceLevel: 1,
     funding: 1000,
+    agency: {
+      containmentRating: 50,
+      clearanceLevel: 1,
+      funding: 1000,
+    },
+    knowledge: {},
   }
 
   it('should surface support staff in agency summary', () => {

@@ -257,7 +257,7 @@ describe('hireCandidate', () => {
     }
 
     factions.institutions.reputation = 80
-    factions.institutions.contacts = factions.institutions.contacts.map((contact) =>
+    factions.institutions.contacts = (factions.institutions.contacts ?? []).map((contact) =>
       contact.id === 'institutions-halden'
         ? {
             ...contact,
@@ -287,7 +287,9 @@ describe('hireCandidate', () => {
 
     expect(nextFactions.institutions.reputation).toBe(84)
     expect(
-      nextFactions.institutions.contacts.find((contact) => contact.id === 'institutions-halden')
+      (nextFactions.institutions.contacts ?? []).find(
+        (contact) => contact.id === 'institutions-halden'
+      )
         ?.relationship
     ).toBe(26)
     expect(

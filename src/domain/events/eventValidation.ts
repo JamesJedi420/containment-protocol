@@ -482,6 +482,15 @@ const directiveAppliedSchema = z
   })
   .strict()
 
+const supportShortfallSchema = z
+  .object({
+    week: weekSchema,
+    caseId: idSchema,
+    caseTitle: z.string(),
+    remainingSupport: z.number(),
+  })
+  .strict()
+
 const systemAcademyUpgradedSchema = z
   .object({
     week: weekSchema,
@@ -530,7 +539,10 @@ export const operationEventPayloadSchemas = {
   'faction.unlock_available': factionUnlockAvailableSchema,
   'agency.containment_updated': agencyContainmentUpdatedSchema,
   'directive.applied': directiveAppliedSchema,
+  'support.shortfall': supportShortfallSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
+  'system.equipment_recovered': z.object({}).passthrough(),
+  'case.aggregate_battle': z.object({}).passthrough(),
 } satisfies Record<OperationEventType, z.ZodTypeAny>
 
 export function validateOperationEventPayload<TType extends OperationEventType>(

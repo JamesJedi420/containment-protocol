@@ -27,7 +27,17 @@ export function applyKnowledgeFusion(
   const all = states
     .map((s) => Object.values(s).find((ks) => ks.subjectId === subjectId))
     .filter(Boolean) as KnowledgeState[]
-  if (all.length === 0) return { subjectId, tier: 'unknown', fusedFrom: [], lastFusedWeek: week }
+  if (all.length === 0) {
+    return {
+      subjectId,
+      subjectType: 'anomaly',
+      entityId: '',
+      entityType: 'team',
+      tier: 'unknown',
+      fusedFrom: [],
+      lastFusedWeek: week,
+    }
+  }
   // Priority: confirmed > partial > unknown
   let tier: 'confirmed' | 'partial' | 'unknown' = 'unknown'
   if (all.some((ks) => ks.tier === 'confirmed')) tier = 'confirmed'
@@ -253,7 +263,7 @@ export function getFilteredKnowledgeView(
           ...value,
           notes,
           // Redact other details for public except for 'exact', which can show tier
-          tier: value.defeatConditionCertainty === 'exact' ? value.tier : undefined,
+          tier: value.defeatConditionCertainty === 'exact' ? value.tier : 'unknown',
           lastConfirmedWeek: value.defeatConditionCertainty === 'exact' ? value.lastConfirmedWeek : undefined,
         }
       }
@@ -278,16 +288,12 @@ export function applyRelayDelay(
   const key = getKnowledgeKey(teamId, anomalyId)
   const prev = state[key]
   const next: KnowledgeState = {
+    ...prev,
     tier: 'pending-relay',
     entityId: teamId,
     entityType: 'team',
     subjectId: anomalyId,
     subjectType: 'anomaly',
-    relayAvailableWeek: currentWeek + delay,
-    source: 'relay',
-    ...prev,
-    // Overwrite with new relay state
-    tier: 'pending-relay',
     relayAvailableWeek: currentWeek + delay,
     source: 'relay',
     notes: `Relay in progress, available week ${currentWeek + delay}.`
@@ -305,17 +311,12 @@ export function applyObscuredSignature(
   const key = getKnowledgeKey(teamId, anomalyId)
   const prev = state[key]
   const next: KnowledgeState = {
+    ...prev,
     tier: 'unknown',
     entityId: teamId,
     entityType: 'team',
     subjectId: anomalyId,
     subjectType: 'anomaly',
-    masked: true,
-    lastMaskedWeek: week,
-    source: 'obscured-signature',
-    ...prev,
-    // Overwrite with new masked state
-    tier: 'unknown',
     masked: true,
     lastMaskedWeek: week,
     source: 'obscured-signature',
@@ -357,6 +358,9 @@ export function applyAnomalySignatureSensing(
 // Tiers remain compact; fragmentation/obsolescence are state flags, not tiers
 export type KnowledgeTier =
   | 'unknown'           // No relevant information
+  | 'partial'
+  | 'relayed'
+  | 'pending-relay'
   | 'suspected'         // Hints or partial intel
   | 'observed'          // Direct but unconfirmed exposure
   | 'confirmed'         // Mechanically validated
@@ -373,9 +377,9 @@ export type KnowledgeSubjectType = 'site' | 'anomaly' | 'hazard' | 'protocol' | 
 export interface KnowledgeState {
   tier: KnowledgeTier
   entityId: string
-  entityType: KnowledgeOwnerType
+  entityType?: KnowledgeOwnerType
   subjectId: string
-  subjectType: KnowledgeSubjectType
+  subjectType?: KnowledgeSubjectType
   lastConfirmedWeek?: number
   lastOperationalizedWeek?: number
   lastDecayWeek?: number
@@ -399,6 +403,19 @@ export interface KnowledgeState {
   confirmationState?: 'provisional' | 'confirmed'
   /** Bounded context tag (e.g., container/site/zone) that affected this knowledge */
   contextTag?: string
+  fusedFrom?: string[]
+  lastFusedWeek?: number
+  decayed?: boolean
+  lastDecayedWeek?: number
+  relaySource?: string
+  lastRelayedWeek?: number
+  relayFailed?: boolean
+  lastRelayFailedWeek?: number
+  relayAvailableWeek?: number
+  masked?: boolean
+  lastMaskedWeek?: number
+  defeatConditionCertainty?: DefeatConditionCertainty
+  lastDefeatConditionUpdateWeek?: number
 }
 
 // Example: Team T1 has confirmed knowledge of Anomaly A1

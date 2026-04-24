@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { checkAndUnlockContainmentSpecialist } from '../domain/academy';
+import type { Agent } from '../domain/models';
 
-const makeAgent = (resistance: number, tags: string[] = []) => ({
+const makeAgent = (resistance: number, tags: string[] = []): Agent => ({
   id: 'a',
   name: 'Agent A',
   role: 'investigator',

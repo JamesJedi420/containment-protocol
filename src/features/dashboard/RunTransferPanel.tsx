@@ -8,7 +8,7 @@ type TransferStatus = {
 }
 
 export function RunTransferPanel() {
-  const { exportSave, importSave, newRunFromCurrentConfig } = useGameStore()
+  const { exportRun, importRun, newRunFromCurrentConfig } = useGameStore()
   const [payloadText, setPayloadText] = useState('')
   const [status, setStatus] = useState<TransferStatus>({
     kind: 'idle',
@@ -16,7 +16,7 @@ export function RunTransferPanel() {
   })
 
   function handleExport() {
-    setPayloadText(exportSave())
+    setPayloadText(exportRun())
     setStatus({
       kind: 'success',
       message: FEEDBACK_MESSAGES.runExportReady,
@@ -25,8 +25,8 @@ export function RunTransferPanel() {
 
   function handleImport() {
     try {
-      importSave(payloadText)
-      setPayloadText(exportSave())
+      importRun(payloadText)
+      setPayloadText(exportRun())
       setStatus({
         kind: 'success',
         message: FEEDBACK_MESSAGES.runImported,
@@ -41,7 +41,7 @@ export function RunTransferPanel() {
 
   function handleNewRun() {
     newRunFromCurrentConfig()
-    setPayloadText(exportSave())
+    setPayloadText(exportRun())
     setStatus({
       kind: 'success',
       message: FEEDBACK_MESSAGES.runStartedFromCurrentConfig,

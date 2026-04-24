@@ -13,6 +13,11 @@ import {
   formatDifficultyPressureSummary,
   formatEndgameThresholdSummary,
 } from '../domain/strategicState'
+import type {
+  EndgameScalingState,
+  EncounterStructureState,
+  MajorIncidentEntry,
+} from '../domain/strategicState'
 
 describe('strategicState', () => {
   it('builds deterministic encounter generation pressure from open cases', () => {
@@ -210,6 +215,54 @@ describe('strategicState', () => {
   })
 
   it('formats canonical cadence, threshold, and difficulty-pressure summaries for shared surfaces', () => {
+    const baseIncident: MajorIncidentEntry = {
+      caseId: 'case-urgent',
+      caseTitle: 'Threshold Bloom',
+      kind: 'case',
+      stage: 3,
+      archetypeId: 'threshold-bloom',
+      archetypeLabel: 'Threshold Bloom',
+      currentStageIndex: 2,
+      currentStageLabel: 'Stage 3',
+      totalStages: 5,
+      deadlineRemaining: 1,
+      assignedTeams: 1,
+      requiredTeams: 1,
+      recommendedTeams: 2,
+      pressureScore: 18,
+      effectiveDifficultyMultiplier: 1.5,
+      effectiveDifficulty: { combat: 4, investigation: 3, utility: 2, social: 1 },
+      difficultyPressure: { combat: 2, investigation: 1 },
+      modifiers: [],
+      specialMechanics: [],
+      progression: [],
+    }
+    const baseEndgame: EndgameScalingState = {
+      severity: 'watch',
+      pressureScore: 6,
+      nextThreshold: 8,
+      pressureToNextThreshold: 2,
+      activeIncidents: 0,
+      bossIncidents: 0,
+      totalRequiredTeams: 0,
+      totalRecommendedTeams: 0,
+      averageDifficultyMultiplier: 1,
+      maxStage: 0,
+      progressionBands: [],
+      incidents: [],
+    }
+    const baseEncounterStructure: EncounterStructureState = {
+      totalOpenCases: 0,
+      openSlots: 0,
+      types: [],
+      origins: [],
+      stageBreakdown: [],
+      urgentEscalations: [],
+      pressureTags: [],
+      likelyFollowUps: [],
+      likelyRaidConversions: [],
+    }
+
     expect(
       formatCadenceSummary({
         incidents: {
@@ -218,13 +271,8 @@ describe('strategicState', () => {
           incidents: [],
           unresolvedMomentum: 1,
         },
-        endgame: {
-          nextThreshold: 8,
-          pressureToNextThreshold: 2,
-        },
-        encounterStructure: {
-          urgentEscalations: [],
-        },
+        endgame: baseEndgame,
+        encounterStructure: baseEncounterStructure,
       })
     ).toEqual([
       'Pressure: 6 (watch)',
@@ -238,19 +286,28 @@ describe('strategicState', () => {
         incidents: {
           pressureScore: 18,
           severity: 'danger',
-          incidents: [{ caseId: 'case-urgent' }],
+          incidents: [baseIncident],
           unresolvedMomentum: 3,
         },
         endgame: {
-          nextThreshold: null,
+          ...baseEndgame,
+          severity: 'danger',
+          pressureScore: 18,
           pressureToNextThreshold: 0,
+          nextThreshold: null,
+          activeIncidents: 1,
+          incidents: [baseIncident],
         },
         encounterStructure: {
+          ...baseEncounterStructure,
           urgentEscalations: [
             {
               caseId: 'case-urgent',
               caseTitle: 'Threshold Bloom',
+              encounterTypeLabel: 'Threshold anomaly',
+              originLabel: 'Escalation chain',
               stage: 3,
+              deadlineRemaining: 1,
               nextStage: 4,
               followUpCount: 1,
               convertsToRaid: true,

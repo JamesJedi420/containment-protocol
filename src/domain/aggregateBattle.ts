@@ -1470,7 +1470,7 @@ function buildMeleePairs(
 
         return (
           candidate.areaId === unit.areaId ||
-          areaMap.get(unit.areaId)?.adjacent.includes(candidate.areaId)
+          areaMap.get(unit.areaId ?? '')?.adjacent.includes(candidate.areaId ?? '')
         )
       })
       .sort((left, right) => {

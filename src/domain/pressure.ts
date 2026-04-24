@@ -71,7 +71,7 @@ export function inferCasePressureValue(
     source.difficulty.social * source.weights.social
   const difficultyBand = Math.max(1, Math.round(weightedDifficulty / 18))
   const urgencyBand = Math.max(1, 5 - Math.min(source.deadlineWeeks, 4))
-  const escalationBand = Math.max(0, source.onUnresolved.stageDelta - 1)
+  const escalationBand = Math.max(0, (source.onUnresolved.stageDelta ?? 0) - 1)
   const durationBand = Math.max(0, source.durationWeeks - 1)
   const kindBand = source.kind === 'raid' ? 3 : 0
 

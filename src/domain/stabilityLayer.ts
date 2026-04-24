@@ -17,7 +17,7 @@ import {
 import { buildReplacementPressureState } from './agent/attrition'
 import { assessFundingPressure, getCanonicalFundingState } from './funding'
 import { getTrainingProgram } from '../data/training'
-import { getCertificationDefinitions } from './sim/training'
+import { getCertificationDefinitions } from './sim/training-compat'
 import { buildTeamCompositionState } from './teamComposition'
 import { buildTeamDeploymentReadinessState } from './deploymentReadiness'
 import { normalizeMissionRoutingState, routeMission, triageMission } from './missionIntakeRouting'
@@ -132,9 +132,9 @@ function buildRuntimeStateFromView(state: GameState): RuntimeState {
         encounterId,
         {
           ...encounter,
-          hiddenModifierIds: [...encounter.hiddenModifierIds],
-          revealedModifierIds: [...encounter.revealedModifierIds],
-          flags: { ...encounter.flags },
+          hiddenModifierIds: [...(encounter.hiddenModifierIds ?? [])],
+          revealedModifierIds: [...(encounter.revealedModifierIds ?? [])],
+          flags: { ...(encounter.flags ?? {}) },
           ...(encounter.followUpIds ? { followUpIds: [...encounter.followUpIds] } : {}),
         },
       ])
@@ -667,10 +667,14 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
   }
 
   for (const currentCase of Object.values(state.cases)) {
+    const intelConfidence = currentCase.intelConfidence ?? 1
+    const intelUncertainty = currentCase.intelUncertainty ?? 0
+    const intelLastUpdatedWeek = currentCase.intelLastUpdatedWeek ?? state.week
+
     if (
-      !Number.isFinite(currentCase.intelConfidence) ||
-      currentCase.intelConfidence < 0 ||
-      currentCase.intelConfidence > 1
+      !Number.isFinite(intelConfidence) ||
+      intelConfidence < 0 ||
+      intelConfidence > 1
     ) {
       pushIssue(issues, {
         id: `restored-state.intel-confidence-invalid.${currentCase.id}`,
@@ -683,9 +687,9 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
     }
 
     if (
-      !Number.isFinite(currentCase.intelUncertainty) ||
-      currentCase.intelUncertainty < 0 ||
-      currentCase.intelUncertainty > 1
+      !Number.isFinite(intelUncertainty) ||
+      intelUncertainty < 0 ||
+      intelUncertainty > 1
     ) {
       pushIssue(issues, {
         id: `restored-state.intel-uncertainty-invalid.${currentCase.id}`,
@@ -698,8 +702,8 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
     }
 
     if (
-      !Number.isFinite(currentCase.intelLastUpdatedWeek) ||
-      currentCase.intelLastUpdatedWeek < 1
+      !Number.isFinite(intelLastUpdatedWeek) ||
+      intelLastUpdatedWeek < 1
     ) {
       pushIssue(issues, {
         id: `restored-state.intel-last-updated-invalid.${currentCase.id}`,
@@ -712,14 +716,14 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
     }
 
     if (
-      Number.isFinite(currentCase.intelLastUpdatedWeek) &&
-      currentCase.intelLastUpdatedWeek > state.week
+      Number.isFinite(intelLastUpdatedWeek) &&
+      intelLastUpdatedWeek > state.week
     ) {
       pushIssue(issues, {
         id: `restored-state.intel-last-updated-future.${currentCase.id}`,
         category: 'restored-state',
         severity: 'warning',
-        summary: `Mission ${currentCase.id} has future-dated intelLastUpdatedWeek (${currentCase.intelLastUpdatedWeek}).`,
+        summary: `Mission ${currentCase.id} has future-dated intelLastUpdatedWeek (${intelLastUpdatedWeek}).`,
         recoveryActions: ['review-frontdesk-fallback-routing'],
       })
       recoveryIds.add('review-frontdesk-fallback-routing')
@@ -1140,7 +1144,9 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
         category: 'team-composition',
         severity: 'warning',
         summary: `Team ${team.id} has composition validation issues.`,
-        details: compositionState.validationIssues.map((issue) => issue.detail).join(' | '),
+        details: compositionState.validationIssues
+          .map((issue: { detail: string }) => issue.detail)
+          .join(' | '),
         recoveryActions: ['review-frontdesk-fallback-routing'],
       })
       recoveryIds.add('review-frontdesk-fallback-routing')

@@ -19,7 +19,7 @@ export interface ResolutionEscalationTransition {
 export function createDeadlineEscalationTransition(
   currentCase: CaseInstance
 ): DeadlineEscalationTransition {
-  const nextStage = Math.min(currentCase.stage + currentCase.onUnresolved.stageDelta, 5)
+  const nextStage = Math.min(currentCase.stage + (currentCase.onUnresolved.stageDelta ?? 0), 5)
   const convertedToRaid =
     currentCase.onUnresolved.convertToRaidAtStage !== undefined &&
     nextStage >= currentCase.onUnresolved.convertToRaidAtStage
@@ -67,7 +67,7 @@ export function createResolutionEscalationTransition(
   const nextStage =
     result === 'partial'
       ? Math.min(currentCase.stage + 1, 5)
-      : Math.min(currentCase.stage + currentCase.onFail.stageDelta, 5)
+      : Math.min(currentCase.stage + (currentCase.onFail.stageDelta ?? 0), 5)
 
   return {
     nextStage,

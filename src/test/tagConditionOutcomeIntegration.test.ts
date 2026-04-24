@@ -1,6 +1,7 @@
 import { resolveScouting } from '../domain/scoutingResolution';
 import { getVulnerabilityEffect } from '../domain/vulnerability';
 import { propagateDistortion, interpretDistortion } from '../domain/distortion';
+import type { ConditionKey } from '../domain/shared/tags';
 import { describe, it, expect } from 'vitest';
 
 describe('Protocol material prep/recognition integration', () => {
@@ -15,7 +16,10 @@ describe('Protocol material prep/recognition integration', () => {
 
 describe('Incident/hazard escalation integration', () => {
   it('should escalate incident with conditions and distortion', () => {
-    const incident = { conditions: ['escalating'], distortion: ['misleading'] as const }
+    const incident: { conditions: ConditionKey[]; distortion: readonly ['misleading'] } = {
+      conditions: ['escalating'],
+      distortion: ['misleading'],
+    }
     expect(incident.conditions).toContain('escalating')
     expect(incident.distortion).toContain('misleading')
     const intel = propagateDistortion(incident, {})

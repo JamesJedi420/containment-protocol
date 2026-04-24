@@ -287,7 +287,7 @@ export function evaluateDeploymentEligibility(
   const hardBlockers = uniqueSorted([
     missionValidation.missingRoles.length > 0 ? 'missing-coverage' : '',
     composition.validationIssues.some(
-      (issue) =>
+      (issue: { code: string }) =>
         issue.code === 'invalid-team' ||
         issue.code === 'invalid-leader' ||
         issue.code === 'duplicate-membership' ||

@@ -2,6 +2,7 @@ import { type CaseInstance } from '../models'
 import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
+import { normalizeSpawnRule } from '../spawnRules'
 import { caseTemplateMap } from './caseTemplates'
 
 export interface StarterCaseSeed {
@@ -63,6 +64,9 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     throw new Error(`Unknown starter case template: ${seed.templateId}`)
   }
 
+  const onFail = normalizeSpawnRule(template.onFail)
+  const onUnresolved = normalizeSpawnRule(template.onUnresolved)
+
   return {
     id: seed.id,
     templateId: template.templateId,
@@ -88,14 +92,14 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     ...createMissionIntelState(1),
     assignedTeamIds: [...new Set(seed.assignedTeamIds ?? [])],
     onFail: {
-      ...template.onFail,
-      spawnCount: { ...template.onFail.spawnCount },
-      spawnTemplateIds: [...template.onFail.spawnTemplateIds],
+      ...onFail,
+      spawnCount: { ...onFail.spawnCount },
+      spawnTemplateIds: [...onFail.spawnTemplateIds],
     },
     onUnresolved: {
-      ...template.onUnresolved,
-      spawnCount: { ...template.onUnresolved.spawnCount },
-      spawnTemplateIds: [...template.onUnresolved.spawnTemplateIds],
+      ...onUnresolved,
+      spawnCount: { ...onUnresolved.spawnCount },
+      spawnTemplateIds: [...onUnresolved.spawnTemplateIds],
     },
     raid: template.raid ? { ...template.raid } : undefined,
   }

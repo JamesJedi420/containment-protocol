@@ -18,7 +18,7 @@ export interface ProtocolContactOutcome {
 
 // Deterministic contact evaluator for Threshold Court
 export function evaluateThresholdCourtContact(
-  faction: FactionState,
+  _faction: FactionState,
   context: ProtocolContactContext
 ): ProtocolContactOutcome {
   // Etiquette logic: correct protocol, naming, and role acknowledgment

@@ -1628,18 +1628,44 @@ function buildMissileValue(
   return clamp(Math.round(value), 0, 12)
 }
 
+// Traversal modifiers keyed by the ingress spatial flag (ingress:<type>) emitted by the
+// site-generation pipeline. These represent how entry method shapes combat conditions.
+// attackMeleeMod    — applied to the attacker's melee attack value
+// defenseVsMeleeMod — applied to the defender's defense value for melee
+// defenseVsMissileMod — applied to the defender's defense value for missile
+interface IngressCombatModifier {
+  attackMeleeMod: number
+  defenseVsMeleeMod: number
+  defenseVsMissileMod: number
+}
+
+const INGRESS_COMBAT_MODIFIERS: Readonly<Record<string, IngressCombatModifier>> = {
+  // Reinforced flood-gate channel; defender holds position more effectively
+  'ingress:floodgate': { attackMeleeMod: 0, defenseVsMeleeMod: 1, defenseVsMissileMod: 0 },
+  // Tight maintenance shaft; attacker cannot bring full force, missile angles blocked
+  'ingress:maintenance_shaft': { attackMeleeMod: -1, defenseVsMeleeMod: 0, defenseVsMissileMod: 1 },
+  // Standard service door; no special modifier
+  'ingress:service_door': { attackMeleeMod: 0, defenseVsMeleeMod: 0, defenseVsMissileMod: 0 },
+  // Covert storm drain tunnel; attacker restricted, overhead missile angles poor
+  'ingress:storm_drain': { attackMeleeMod: -1, defenseVsMeleeMod: 0, defenseVsMissileMod: 1 },
+}
+
 function buildMeleeValue(
   unit: RuntimeAggregateBattleUnit,
   context: AggregateBattleContext,
   side: AggregateBattleSideState | undefined,
   overlay: AggregateBattleCommandOverlay | undefined
 ) {
+  const ingressFlag = context.spatialFlags.find((f) => f.startsWith('ingress:'))
   let value = unit.meleeFactor + (overlay?.attackBonus ?? 0)
   if (side?.coordinationFriction) {
     value -= 1
   }
   if (context.transitionType === 'chokepoint') {
     value += 1
+  }
+  if (ingressFlag) {
+    value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
   }
   if (unit.moraleState === 'shaken') {
     value -= 1
@@ -1655,6 +1681,7 @@ function buildDefenseValue(
   overlay: AggregateBattleCommandOverlay | undefined,
   mode: 'missile' | 'melee'
 ) {
+  const ingressFlag = context.spatialFlags.find((f) => f.startsWith('ingress:'))
   let value = unit.defenseFactor + (overlay?.defenseBonus ?? 0)
   if (side?.supplyState === 'secure') {
     value += 1
@@ -1664,6 +1691,12 @@ function buildDefenseValue(
   }
   if (mode === 'melee' && context.transitionType === 'chokepoint') {
     value += 1
+  }
+  if (ingressFlag) {
+    const ingressMod = INGRESS_COMBAT_MODIFIERS[ingressFlag]
+    if (ingressMod) {
+      value += mode === 'melee' ? ingressMod.defenseVsMeleeMod : ingressMod.defenseVsMissileMod
+    }
   }
   if (unit.moraleState === 'retreating') {
     value -= 1

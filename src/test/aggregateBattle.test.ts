@@ -555,4 +555,114 @@ describe('aggregate battle layer', () => {
       destroyed: false,
     })
   })
+
+  it('ingress:maintenance_shaft reduces attacker melee effectiveness vs unmodified baseline', () => {
+    // Attack band 2 (value 5) vs defense band 0 (value 2, supply cut) = 2 step hits baseline.
+    // maintenance_shaft applies attackMeleeMod -1: attack band 1 (value 4) = 1 step hit.
+    function runWithIngress(ingressFlag?: string) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `ingress-maintenance-${ingressFlag ?? 'none'}`,
+          roundLimit: 1,
+          units: [
+            {
+              id: 'assault-team',
+              label: 'Assault Team',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'press',
+              meleeFactor: 5,
+              defenseFactor: 4,
+              morale: 70,
+              readiness: 70,
+            },
+            {
+              id: 'gate-hold',
+              label: 'Gate Hold',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 2,
+              defenseFactor: 2,
+              morale: 70,
+              readiness: 68,
+            },
+          ],
+          sides: createSides({ attackerSupport: 3, defenderSupport: 0 }),
+          context: createContext({
+            transitionType: undefined,
+            spatialFlags: ingressFlag ? [ingressFlag] : [],
+          }),
+        })
+      )
+    }
+
+    const baseline = runWithIngress()
+    const restricted = runWithIngress('ingress:maintenance_shaft')
+    const baselineDefenderSteps =
+      baseline.summaryTable.find((r) => r.unitId === 'gate-hold')?.remainingStrengthSteps ?? -1
+    const restrictedDefenderSteps =
+      restricted.summaryTable.find((r) => r.unitId === 'gate-hold')?.remainingStrengthSteps ?? -1
+
+    expect(baselineDefenderSteps).toBeLessThan(restrictedDefenderSteps)
+  })
+
+  it('ingress:floodgate increases defender melee protection vs unmodified baseline', () => {
+    // Attack band 2 (value 5) vs defense band 0 (value 2, supply cut) = 2 step hits baseline.
+    // floodgate applies defenseVsMeleeMod +1: defender defense band 1 (value 3) = 1 step hit.
+    function runWithIngress(ingressFlag?: string) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `ingress-floodgate-${ingressFlag ?? 'none'}`,
+          roundLimit: 1,
+          units: [
+            {
+              id: 'breach-team',
+              label: 'Breach Team',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'press',
+              meleeFactor: 5,
+              defenseFactor: 4,
+              morale: 70,
+              readiness: 70,
+            },
+            {
+              id: 'gate-hold',
+              label: 'Gate Hold',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 2,
+              defenseFactor: 2,
+              morale: 70,
+              readiness: 68,
+            },
+          ],
+          sides: createSides({ attackerSupport: 3, defenderSupport: 0 }),
+          context: createContext({
+            transitionType: undefined,
+            spatialFlags: ingressFlag ? [ingressFlag] : [],
+          }),
+        })
+      )
+    }
+
+    const baseline = runWithIngress()
+    const fortified = runWithIngress('ingress:floodgate')
+    const baselineDefenderSteps =
+      baseline.summaryTable.find((r) => r.unitId === 'gate-hold')?.remainingStrengthSteps ?? -1
+    const fortifiedDefenderSteps =
+      fortified.summaryTable.find((r) => r.unitId === 'gate-hold')?.remainingStrengthSteps ?? -1
+
+    expect(baselineDefenderSteps).toBeLessThan(fortifiedDefenderSteps)
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import type { GameState } from '../domain/models'
 import {
   advanceTrainingCertificationState,
   advanceTrainingQueues,
@@ -11,6 +12,10 @@ import {
   reviewCertification,
   transitionCertification,
 } from '../domain/sim/training-compat'
+import {
+  advanceTrainingQueues as advanceRuntimeTrainingQueues,
+  queueTraining as queueRuntimeTraining,
+} from '../domain/sim/training'
 
 describe('training certification system', () => {
   it('provides deterministic compact selectors for category programs and certification definitions', () => {
@@ -137,5 +142,46 @@ describe('training certification system', () => {
     expect(summary.trainingPoints).toBeGreaterThan(0)
     expect(summary.certifications.some((certification) => certification.progress > 0)).toBe(true)
     expect(roundTripped.agents.a_ava.progression?.trainingHistory?.length).toBeGreaterThan(0)
+  })
+
+  it('unlocks containment-specialist from training-driven resistance thresholds', () => {
+    const base = createStartingState()
+    const baseAgent = base.agents.a_ava
+    const baseStats = baseAgent.stats!
+    let state: GameState = {
+      ...base,
+      academyTier: 1,
+      funding: 999,
+      agents: {
+        ...base.agents,
+        a_ava: {
+          ...baseAgent,
+          stats: {
+            ...baseStats,
+            physical: { ...baseStats.physical },
+            tactical: { ...baseStats.tactical },
+            cognitive: { ...baseStats.cognitive },
+            social: { ...baseStats.social },
+            stability: {
+              ...baseStats.stability,
+              resistance: 7,
+            },
+            technical: { ...baseStats.technical },
+          },
+        },
+      },
+    }
+
+    state = queueRuntimeTraining(state, 'a_ava', 'psych-conditioning')
+    state = {
+      ...state,
+      trainingQueue: state.trainingQueue.map((entry) =>
+        entry.agentId === 'a_ava' ? { ...entry, remainingWeeks: 1 } : entry
+      ),
+    }
+
+    const completed = advanceRuntimeTrainingQueues(state).state
+
+    expect(completed.agents.a_ava.tags).toContain('containment-specialist')
   })
 })

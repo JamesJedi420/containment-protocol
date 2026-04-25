@@ -3,6 +3,7 @@ import { buildAgentLoadoutReadinessSummary } from './equipment'
 import { assessFundingPressure } from './funding'
 import { getMissionIntelRisk, getMissionIntelSummary } from './intel'
 import { clamp } from './math'
+import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity'
 import { INTEL_CALIBRATION } from './sim/calibration'
 import {
   buildTeamCompositionState,
@@ -22,6 +23,7 @@ import type {
   MissionRoutingStateKind,
   MissionTimeCostSummary,
   Team,
+  TeamCoverageRole,
   TeamDeploymentReadinessState,
 } from './models'
 
@@ -44,6 +46,21 @@ function getTeamMembers(team: Pick<Team, 'memberIds' | 'agentIds'>, agentsById: 
   return getTeamMemberIds(team)
     .map((agentId) => agentsById[agentId])
     .filter((agent): agent is Agent => Boolean(agent))
+}
+
+function getNicheEligibleMembers(members: Agent[]) {
+  return members.filter((member) => {
+    const availabilityState = getAgentAvailabilityState(member)
+    return availabilityState === 'idle' || availabilityState === 'assigned'
+  })
+}
+
+function buildMissionNicheSummary(
+  members: Agent[],
+  requiredRoles: readonly TeamCoverageRole[] | undefined
+) {
+  const requiredNiches = mapCoverageRolesToNiches(requiredRoles)
+  return buildTeamNicheSummary(members, requiredNiches.length > 0 ? requiredNiches : undefined)
 }
 
 function uniqueSorted(values: string[]) {
@@ -264,6 +281,14 @@ export function evaluateDeploymentEligibility(
     requiredRoles: mission.requiredRoles,
   })
   const members = getTeamMembers(team, state.agents)
+  const nicheEligibleMembers = getNicheEligibleMembers(members)
+  const missionNicheSummary = buildMissionNicheSummary(
+    nicheEligibleMembers,
+    missionValidation.requiredRoles
+  )
+  const hasMissionNicheMismatch =
+    missionNicheSummary.missingNiches.length > 0 ||
+    missionNicheSummary.substituteNiches.length > 0
   const agentSnapshots = members.map((member) =>
     buildAgentDeploymentReadinessSnapshot(member, mission.requiredTags, state)
   )
@@ -324,7 +349,8 @@ export function evaluateDeploymentEligibility(
       : '',
     averageFatigue >= 55 ? 'high-fatigue-burden' : '',
     weakestLink.totalPenalty > 0 ? 'weakest-link-risk' : '',
-    composition.category === 'balanced_rapid_response_team' && mission.kind === 'raid'
+    (composition.category === 'balanced_rapid_response_team' && mission.kind === 'raid') ||
+    hasMissionNicheMismatch
       ? 'strategic-mismatch'
       : '',
     fundingPressure.deploymentSetupDelayWeeks > 0 ? 'budget-pressure' : '',
@@ -356,6 +382,10 @@ export function evaluateDeploymentEligibility(
       `Budget pressure: ${fundingPressure.budgetPressure}/4 with ${fundingPressure.pendingProcurementRequestIds.length} pending procurement item(s).`,
       `Attrition pressure: ${attritionPressure.replacementPressure} replacement pressure, ${attritionPressure.staffingGap} staffing gap, ${attritionPressure.temporaryUnavailableCount} temporary absence(s).`,
       `Mission intel risk: ${missionIntelEffect.penalty}/${INTEL_CALIBRATION.deploymentPenaltyCap} (confidence ${missionIntelEffect.summary.confidence.toFixed(2)}, uncertainty ${missionIntelEffect.summary.uncertainty.toFixed(2)}, age ${missionIntelEffect.summary.age})`,
+      missionNicheSummary.summaryLines[0] ?? '',
+      missionNicheSummary.overlappingNiches.length > 0
+        ? `Niche overlap: ${missionNicheSummary.overlappingNiches.join(', ')}.`
+        : '',
       `Routing state: ${(missionRoutingState ?? 'queued') satisfies MissionRoutingStateKind | 'queued'}`,
     ],
   }
@@ -381,6 +411,11 @@ export function buildTeamDeploymentReadinessState(
 
   const eligibility = evaluateDeploymentEligibility(state, effectiveMissionId, teamId)
   const composition = team ? buildTeamCompositionState(team, state.agents, state.teams) : undefined
+  const nicheEligibleMembers = getNicheEligibleMembers(members)
+  const nicheSummary =
+    effectiveMission && team
+      ? buildMissionNicheSummary(nicheEligibleMembers, missionValidation?.requiredRoles)
+      : undefined
 
   const minimumMemberReadiness =
     members.length > 0
@@ -413,6 +448,7 @@ export function buildTeamDeploymentReadinessState(
     readinessScore: Math.round(readinessScore),
     hardBlockers: [...eligibility.hardBlockers],
     softRisks: [...eligibility.softRisks],
+    nicheSummary,
     intelPenalty: missionIntelEffect.penalty,
     coverageCompleteness: {
       required: [...(missionValidation?.requiredRoles ?? composition?.requiredCoverageRoles ?? [])],

@@ -30,6 +30,10 @@ import {
 } from '../agent/lifecycle'
 import { getAgentInstructorBonus } from './instructorAssignment'
 import { getAcademyStatBonus } from './academyUpgrade'
+import {
+  applyAgentNicheUnlocks,
+  getAgentTrainingNicheAptitude,
+} from '../nicheIdentity'
 import { cloneDomainStats, deriveDomainStatsFromBase } from '../statDomains'
 import {
   ensureNormalizedGameState,
@@ -713,10 +717,16 @@ function applyTrainingCompletionToAgent(
   // Team drills are chemistry-only: no stat gain, no XP, no instructor or academy bonuses.
   const aptitudeBonus =
     entry.scope === 'team' ? 0 : getTrainingAptitudeBonus(currentAgent.role, entry.targetStat)
+  const nicheAptitudeBonus =
+    entry.scope === 'team' ? 0 : getAgentTrainingNicheAptitude(currentAgent, entry.targetStat).bonus
+  const totalAptitudeBonus = aptitudeBonus + nicheAptitudeBonus
   const rawGain =
     entry.scope === 'team'
       ? 0
-      : entry.statDelta + (entry.academyStatBonus ?? 0) + aptitudeBonus + instructorBonus
+      : entry.statDelta +
+        (entry.academyStatBonus ?? 0) +
+        totalAptitudeBonus +
+        instructorBonus
   const targetCap = getAgentStatCap(currentAgent, entry.targetStat)
   const cappedStat = clamp(currentAgent.baseStats[entry.targetStat] + rawGain, 0, targetCap)
   const actualGain = cappedStat - currentAgent.baseStats[entry.targetStat]
@@ -726,7 +736,7 @@ function applyTrainingCompletionToAgent(
   // Agents who deliberately train outside their aptitude earn a cross-training bonus
   // that scales with program length to reward intentional stat diversification.
   const crossTrainingXp =
-    entry.scope !== 'team' && aptitudeBonus === 0 ? Math.round(5 * (entry.durationWeeks / 2)) : 0
+    entry.scope !== 'team' && totalAptitudeBonus <= 0 ? Math.round(5 * (entry.durationWeeks / 2)) : 0
   // Instructors also improve retention, yielding a modest XP bonus on completion.
   const instructorXpBonus =
     entry.scope !== 'team' && instructorBonus > 0
@@ -809,7 +819,16 @@ function applyTrainingCompletionToAgent(
     createAgentHistoryEntry(week, 'agent.training_completed', buildTrainingCompletedNote(entry)),
     { trainingWeeks: entry.durationWeeks }
   )
-  const progressedAgent = applyAgentProgressionUpdate(completedAgent, progressionUpdate)
+  const unlockedAgent = applyAgentNicheUnlocks(completedAgent)
+  const completedAgentWithUnlockNotes = unlockedAgent.notes.reduce(
+    (agent, note) =>
+      appendAgentHistoryEntry(
+        agent,
+        createAgentHistoryEntry(week, 'simulation.weekly_tick', note)
+      ),
+    unlockedAgent.agent
+  )
+  const progressedAgent = applyAgentProgressionUpdate(completedAgentWithUnlockNotes, progressionUpdate)
   const progressedAgentWithXpLog = recordAgentXpGain(
     progressedAgent,
     progressionUpdate.xpGained,

@@ -207,6 +207,14 @@ function buildOutcomeNetSummary(
   return 'Net positive: the gain landed without meaningful follow-on drag.'
 }
 
+function getNicheOutcomeDetail(
+  missionResult: NonNullable<GameState['reports'][number]['caseSnapshots']>[string]['missionResult']
+) {
+  return missionResult?.explanationNotes.find((note) =>
+    /specialist|hybrid|substitut|niche|anchored/i.test(note)
+  )
+}
+
 export function getMissionRoutingReportView(
   game: GameState,
   limit = MAX_ROUTING_ITEMS
@@ -323,7 +331,13 @@ export function getWeakestLinkOutcomeReportView(
       dominantFactorLabel: capitalizeLabel(
         formatVisibilityFactorLabel(explanation.dominantFactor)
       ),
-      contributors: explanation.details.slice(0, MAX_DETAILS),
+      contributors: takeBounded(
+        [
+          getNicheOutcomeDetail(snapshot.missionResult),
+          ...explanation.details,
+        ].filter((detail): detail is string => Boolean(detail)),
+        MAX_DETAILS
+      ),
       recoveryIndicator,
       gainSummary: buildOutcomeGainSummary(snapshot.missionResult),
       costSummary: buildOutcomeCostSummary(snapshot.missionResult),

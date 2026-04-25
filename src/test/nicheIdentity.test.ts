@@ -72,18 +72,18 @@ describe('Niche-specific training aptitude', () => {
     relationships: {},
     status: 'active',
   };
-  const programTactical = { trainingId: 'tac', name: 'Tactical', targetStat: 'tactical' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Tactical training' };
-  const programStability = { trainingId: 'stab', name: 'Stability', targetStat: 'stability' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Stability training' };
-  const programSupport = { trainingId: 'sup', name: 'Support', targetStat: 'support' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Support training' };
-  it('recon-specialist gets bonus in tactical training', () => {
-    const preview = previewTrainingImpact(agentRecon, programTactical);
+  const programRecon = { trainingId: 'rec', name: 'Recon', targetStat: 'investigation' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Recon training' };
+  const programContainment = { trainingId: 'con', name: 'Containment', targetStat: 'investigation' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Containment training' };
+  const programSupport = { trainingId: 'sup', name: 'Support', targetStat: 'utility' as StatKey, statDelta: 1, durationWeeks: 1, fundingCost: 1, fatigueDelta: 0, description: 'Support training' };
+  it('recon-specialist gets bonus on the canonical recon training surface', () => {
+    const preview = previewTrainingImpact(agentRecon, programRecon);
     expect(preview.aptitudeBonus).toBe(2);
   });
-  it('containment-specialist gets bonus in stability training', () => {
-    const preview = previewTrainingImpact(agentContain, programStability);
+  it('containment-specialist gets bonus on the canonical containment training surface', () => {
+    const preview = previewTrainingImpact(agentContain, programContainment);
     expect(preview.aptitudeBonus).toBe(2);
   });
-  it('recovery-support gets bonus in support training', () => {
+  it('recovery-support gets bonus on the canonical support training surface', () => {
     const preview = previewTrainingImpact(agentRecovery, programSupport);
     expect(preview.aptitudeBonus).toBe(2);
   });

@@ -2,6 +2,7 @@
 // Uses tags, conditions, modifiers, and outcome bands
 import { aggregateModifiers } from './modifiers';
 import type { ModifierSource } from './modifiers';
+import { evaluateTagNicheFit, getTeamNicheModifier } from './nicheIdentity';
 import { getOutcomeBand, explainOutcome } from './outcomes';
 import { hasEffectiveCountermeasure } from './resistances';
 
@@ -81,21 +82,16 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
   ];
 
   // Niche-driven modifiers and explanation
-  let roleExplanation = '';
-  if (input.teamTags?.includes('recon-specialist')) {
-    sources.push({ source: 'niche:recon-specialist', value: 2 });
-    roleExplanation = 'Recon specialist present: +2 scouting bonus.';
-  } else if (input.teamTags?.includes('containment-specialist')) {
-    sources.push({ source: 'niche:containment-specialist', value: -1 });
-    roleExplanation = 'Containment specialist substituted: -1 scouting penalty.';
-  } else if (input.teamTags?.includes('recovery-support')) {
-    sources.push({ source: 'niche:recovery-support', value: -2 });
-    roleExplanation = 'Recovery specialist substituted: -2 scouting penalty.';
+  const nicheModifier = getTeamNicheModifier(
+    evaluateTagNicheFit(input.teamTags ?? [], 'recon'),
+    { contextLabel: 'scouting' }
+  );
+  let roleExplanation = nicheModifier.reason;
+  if (nicheModifier.delta !== 0) {
+    sources.push({ source: 'niche:recon-fit', value: nicheModifier.delta });
   } else if (input.teamTags?.includes('scout')) {
     sources.push({ source: 'tag:scout', value: 1 });
     roleExplanation = 'Scout present: +1 bonus.';
-  } else {
-    roleExplanation = 'No specialist present: reduced reliability.';
   }
   if (input.anomalyTags?.includes('shapeshifter')) {
     sources.push({ source: 'tag:shapeshifter', value: 1 });

@@ -19,6 +19,7 @@ import {
   type EquipmentSlotKind,
 } from '../../domain/equipment'
 import { evaluateAgentBreakdown } from '../../domain/evaluateAgent'
+import { deriveAgentNicheIdentity, getNicheLabel } from '../../domain/nicheIdentity'
 import { buildAgencyProtocolState } from '../../domain/protocols'
 import { getProgressionSnapshot, synchronizeProgressionState } from '../../domain/progression'
 import {
@@ -164,6 +165,8 @@ export interface MaterializedAgentState {
     age?: number
     background?: string
     operationalRole?: string
+    roleIdentity?: string
+    secondaryRoleIdentities?: string[]
   }
   assignment: {
     lifecycleState: string
@@ -584,6 +587,7 @@ function buildMaterializedAgentState(
   }
   const assignmentCaseId =
     agent.assignment?.state === 'assigned' ? agent.assignment.caseId : undefined
+  const nicheIdentity = deriveAgentNicheIdentity(agent)
 
   return {
     identity: {
@@ -595,6 +599,8 @@ function buildMaterializedAgentState(
       operationalRole: agent.operationalRole
         ? OPERATIONAL_ROLE_LABELS[agent.operationalRole]
         : undefined,
+      roleIdentity: nicheIdentity.primaryNiche ? nicheIdentity.summary : undefined,
+      secondaryRoleIdentities: nicheIdentity.secondaryNiches.map((niche) => getNicheLabel(niche)),
     },
     assignment: {
       lifecycleState: agent.assignment?.state ?? agent.assignmentStatus?.state ?? 'idle',

@@ -2,6 +2,7 @@
 import { effectiveStats } from './agent/evaluation'
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
+import { evaluateTeamNicheFit, getTeamNicheModifier } from './nicheIdentity'
 import { resolveEquippedItems } from './equipment'
 import type { AgencyProtocolState } from './protocols'
 
@@ -386,21 +387,26 @@ export function evaluateRecruitmentScoutSupport(agents: Record<string, Agent>) {
     })
   const operativeScores = contributors.map((entry) => entry.score)
   const operativeCount = operativeScores.length
+  const reconFit = evaluateTeamNicheFit(Object.values(agents), 'recon')
+  const reconModifier = getTeamNicheModifier(reconFit, {
+    contextLabel: 'scouting',
+  })
   const supportScore = clamp(
     operativeScores.slice(0, 3).reduce((sum, score) => sum + score, 0),
     0,
     100
   )
+  const adjustedSupportScore = clamp(supportScore + reconModifier.delta * 4, 0, 100)
   const fieldReconCount = contributors.filter((entry) => entry.role === 'field_recon').length
   const investigatorCount = contributors.filter((entry) => entry.role === 'investigator').length
   const techCount = contributors.filter((entry) => entry.role === 'tech').length
 
   return {
     operativeCount,
-    supportScore,
-    reliabilityBonus: roundTo(clamp(supportScore / 420, 0, 0.18), 4),
-    costDiscount: Math.min(6, Math.round(supportScore / 20)),
-    revealBoost: supportScore >= 48 ? 1 : 0,
+    supportScore: adjustedSupportScore,
+    reliabilityBonus: roundTo(clamp(adjustedSupportScore / 420, 0, 0.18), 4),
+    costDiscount: Math.min(6, Math.round(adjustedSupportScore / 20)),
+    revealBoost: adjustedSupportScore >= 48 ? 1 : 0,
     fieldReconCount,
     investigatorCount,
     techCount,
@@ -448,13 +454,17 @@ export function evaluateTeamCaseRecon(
   }
 
   const hiddenModifiers = buildCaseHiddenModifiers(caseData)
+  const reconFit = evaluateTeamNicheFit(agents, 'recon')
+  const reconModifier = getTeamNicheModifier(reconFit, {
+    contextLabel: 'scouting',
+  })
   const agentScores = agents
     .map((agent) => getAgentReconContribution(agent, { ...context, caseData }))
     .filter((score) => score > 0)
     .sort((left, right) => right - left)
   const operativeCount = agentScores.length
   const reconScore = clamp(
-    agentScores.reduce((sum, score) => sum + score, 0),
+    agentScores.reduce((sum, score) => sum + score, 0) + reconModifier.delta * 3,
     0,
     100
   )
@@ -517,6 +527,8 @@ export function evaluateTeamCaseRecon(
   probabilityBonus = roundTo(clamp(probabilityBonus, 0, 0.08), 4)
 
   const reasons: string[] = []
+
+  reasons.push(reconModifier.reason)
 
   if (hiddenModifierCount > 0 && operativeCount > 0) {
     reasons.push(

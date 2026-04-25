@@ -684,9 +684,15 @@ function buildCaseEscalationPreview(
 }
 
 function buildCauseSignals(currentCase: CaseInstance) {
-  return [
-    ...new Set([...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags]),
-  ]
+  // site:* tags are pipeline-internal spatial metadata and must not appear as
+  // authored cause signals — they carry no semantic meaning for case generation.
+  const semanticTags = [
+    ...currentCase.tags,
+    ...currentCase.requiredTags,
+    ...currentCase.preferredTags,
+  ].filter((tag) => !tag.startsWith('site:'))
+
+  return [...new Set(semanticTags)]
     .sort((left, right) => left.localeCompare(right))
     .slice(0, 8)
 }

@@ -66,6 +66,50 @@ describe('spawn flows', () => {
     expect(caseInstance.preferredTags).toEqual([])
   })
 
+  it('applies pilot layered site generation for mapped templates', () => {
+    const state = createStartingState()
+    const template = state.templates['mixed_eclipse_ritual']
+
+    const caseInstance = instantiateFromTemplate(template, () => 0.25, new Set())
+
+    expect(caseInstance.tags).toEqual(
+      expect.arrayContaining([
+        'site:packet:ritual-riverfront.v1',
+        expect.stringMatching(/^site:purpose:/),
+        expect.stringMatching(/^site:ingress:/),
+        expect.stringMatching(/^site:topology:/),
+      ])
+    )
+    expect(caseInstance.siteLayer).toBeDefined()
+    expect(caseInstance.visibilityState).toBeDefined()
+    expect(caseInstance.transitionType).toBeDefined()
+    expect(caseInstance.spatialFlags?.length ?? 0).toBeGreaterThan(0)
+  })
+
+  it('leaves non-pilot templates untouched by site pipeline tags', () => {
+    const template: CaseTemplate = {
+      templateId: 'custom-no-pilot',
+      title: 'Custom Non Pilot Template',
+      description: 'Custom template for non-pilot coverage.',
+      mode: 'threshold',
+      kind: 'case',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      durationWeeks: 1,
+      deadlineWeeks: 1,
+      tags: ['custom'],
+      onFail: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+      onUnresolved: { stageDelta: 1, spawnCount: { min: 0, max: 0 }, spawnTemplateIds: [] },
+    }
+
+    const caseInstance = instantiateFromTemplate(template, () => 0.25, new Set())
+
+    expect(caseInstance.tags.some((tag) => tag.startsWith('site:packet:'))).toBe(false)
+    expect(caseInstance.siteLayer).toBeUndefined()
+    expect(caseInstance.visibilityState).toBeUndefined()
+    expect(caseInstance.transitionType).toBeUndefined()
+  })
+
   it('derives pressure metadata when templates omit explicit pressure fields', () => {
     const template: CaseTemplate = {
       templateId: 'custom-pressure-001',

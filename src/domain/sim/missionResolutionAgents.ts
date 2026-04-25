@@ -163,11 +163,13 @@ function hasChemistryContextFit(
   currentCase: CaseInstance,
   performance?: AgentResolutionPerformance
 ) {
+  // site:* tags are pipeline-internal metadata; exclude from tag-coverage scoring
+  // to avoid diluting the authored semantic signal for agent-case affinity.
   const allCaseTags = [
     ...currentCase.tags,
     ...currentCase.requiredTags,
     ...currentCase.preferredTags,
-  ]
+  ].filter((tag) => !tag.startsWith('site:'))
   const sharedTags = allCaseTags.filter((tag) => agent.tags.includes(tag)).length
   const caseTagCoverage = allCaseTags.length > 0 ? sharedTags / allCaseTags.length : 0
   const weightedAxisPotential = clamp(

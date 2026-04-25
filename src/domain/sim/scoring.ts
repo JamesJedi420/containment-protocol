@@ -28,6 +28,7 @@ import {
   createDefaultEquipmentLoadoutSummary,
   createDefaultTeamEquipmentSummary,
 } from '../equipment'
+import { evaluateTeamNicheFit, getTeamNicheModifier } from '../nicheIdentity'
 import type { AgencyProtocolState } from '../protocols'
 import { evaluateTeamCaseRecon, type CaseReconSummary } from '../recon'
 
@@ -717,24 +718,10 @@ function normalizeDisplayLabel(value: unknown) {
 
 export function computeTeamScore(agents: Agent[], c: CaseInstance, context: TeamScoreContext = {}) {
   const reasons: string[] = []
-  // Niche-driven containment specialist bonus/penalty
-  let containmentNicheBonus = 0;
-  // Hybrid penalty: agent with both recon-specialist and containment-specialist
-  if (agents.some(a => a.tags?.includes('containment-specialist') && a.tags?.includes('recon-specialist'))) {
-    containmentNicheBonus -= 2;
-    reasons.push('Hybrid specialist penalty: recon + containment -2.');
-  } else if (agents.some(a => a.tags?.includes('containment-specialist'))) {
-    containmentNicheBonus += 2;
-    reasons.push('Containment specialist present: +2 containment bonus.');
-  } else if (agents.some(a => a.tags?.includes('recon-specialist'))) {
-    containmentNicheBonus -= 1;
-    reasons.push('Recon specialist substituted: -1 containment penalty.');
-  } else if (agents.some(a => a.tags?.includes('recovery-support'))) {
-    containmentNicheBonus -= 2;
-    reasons.push('Recovery specialist substituted: -2 containment penalty.');
-  } else {
-    reasons.push('No specialist present: reduced reliability in containment.');
-  }
+  const containmentNicheFit = evaluateTeamNicheFit(agents, 'containment')
+  const containmentModifier = getTeamNicheModifier(containmentNicheFit, {
+    contextLabel: 'containment',
+  })
   const profile = buildAgentSquadCompositionProfile(
     agents,
     context.leaderId ?? null,
@@ -750,9 +737,10 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
   )
 
   // Apply containment niche bonus directly to the containment axis
-  if (containmentNicheBonus !== 0) {
-    profile.resolutionProfile.containment += containmentNicheBonus;
+  if (containmentModifier.delta !== 0) {
+    profile.resolutionProfile.containment += containmentModifier.delta
   }
+  reasons.push(containmentModifier.reason)
   const caseWeights = legacyWeightsToResolutionProfile(c.weights)
   // Resolution is driven by bucketed outputs plus explicit modifiers.
   // `derivedStats.overall` is a summary metric for UI surfaces only.

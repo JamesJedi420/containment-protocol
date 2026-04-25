@@ -2,6 +2,7 @@
 import { trainingCatalog } from '../../data/training'
 import { buildAcademyOverview, getAgentTrainingImpacts } from '../../domain/academy'
 import { clamp } from '../../domain/math'
+import { deriveAgentNicheIdentity } from '../../domain/nicheIdentity'
 import { getAcademyStatBonus } from '../../domain/sim/academyUpgrade'
 import {
   hasPairReconciledThisWeek,
@@ -293,6 +294,7 @@ export interface TrainingRosterView {
   assignedInstructorName?: string
   instructorBonus?: number
   instructorSpecialty?: StatKey
+  roleIdentityLabel?: string
 }
 
 export interface TeamTrainingView {
@@ -529,6 +531,7 @@ export function getTrainingRosterViews(game: GameState): TrainingRosterView[] {
       const queueEntry = game.trainingQueue.find((entry) => entry.agentId === agent.id)
       const readiness = getAgentReadiness(agent.status, queueEntry, teamState?.assignedCaseTitle)
       const instructorEntry = instructorByAgentId.get(agent.id)
+      const nicheIdentity = deriveAgentNicheIdentity(agent)
 
       return {
         agent,
@@ -552,6 +555,7 @@ export function getTrainingRosterViews(game: GameState): TrainingRosterView[] {
             : 0
           : undefined,
         instructorSpecialty: instructorEntry?.record.instructorSpecialty,
+        roleIdentityLabel: nicheIdentity.primaryNiche ? nicheIdentity.summary : undefined,
       }
     })
     .sort((left, right) => {

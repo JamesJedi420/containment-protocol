@@ -118,6 +118,7 @@ export interface TeamDeploymentReadinessState {
   readinessScore: number
   hardBlockers: DeploymentHardBlockerCode[]
   softRisks: DeploymentSoftRiskCode[]
+  nicheSummary?: TeamNicheSummary
   intelPenalty?: number
   coverageCompleteness: {
     required: string[]
@@ -442,6 +443,17 @@ export type TeamCategory =
 
 export type TeamCohesionBand = 'strong' | 'steady' | 'unstable' | 'fragile'
 
+export type OperativeNicheKey = 'recon' | 'containment' | 'support'
+
+export interface TeamNicheSummary {
+  protectedNiches: OperativeNicheKey[]
+  hybridNiches: OperativeNicheKey[]
+  substituteNiches: OperativeNicheKey[]
+  missingNiches: OperativeNicheKey[]
+  overlappingNiches: OperativeNicheKey[]
+  summaryLines: string[]
+}
+
 export interface TeamCohesionSummary {
   cohesionScore: number
   cohesionBand: TeamCohesionBand
@@ -457,6 +469,7 @@ export interface TeamCompositionState {
   requiredCoverageRoles: TeamCoverageRole[]
   coveredRoles: TeamCoverageRole[]
   missingRoles: TeamCoverageRole[]
+  nicheSummary?: TeamNicheSummary
   compositionValid: boolean
   validationIssues: ValidationIssue[]
   cohesion: TeamCohesionSummary

@@ -57,6 +57,9 @@ export function AgentEntityPanel({
                   ? `Codename ${materialized.identity.codename ?? materialized.identity.callsign}`
                   : 'No codename on file'}
               </p>
+              {materialized.identity.roleIdentity ? (
+                <p className="text-sm opacity-60">Role identity {materialized.identity.roleIdentity}</p>
+              ) : null}
               {materialized.identity.background ? (
                 <p className="max-w-3xl text-sm opacity-60">{materialized.identity.background}</p>
               ) : null}

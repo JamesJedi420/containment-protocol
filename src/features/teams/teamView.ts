@@ -11,6 +11,7 @@ import {
   type StatKey,
   type Team,
 } from '../../domain/models'
+import { buildTeamCompositionState } from '../../domain/teamComposition'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 import { getCoverageRolesForTeam } from '../../domain/validateTeam'
 
@@ -63,6 +64,7 @@ export function getCapabilitySummary(team: Team, game: GameState) {
   const activeAgents = agents.filter(
     (agent) => agent.status !== 'dead' && agent.assignment?.state !== 'training'
   )
+  const composition = buildTeamCompositionState(team, game.agents, game.teams)
   const statTotals = activeAgents.reduce<StatBlock>(
     (totals, agent) => ({
       combat: totals.combat + agent.baseStats.combat,
@@ -83,6 +85,7 @@ export function getCapabilitySummary(team: Team, game: GameState) {
     strongestStat,
     coverageTags,
     roleCoverage,
+    nicheSummary: composition.nicheSummary,
     averageFatigue: getAverageFatigue(agents),
   }
 }

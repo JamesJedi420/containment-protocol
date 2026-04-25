@@ -653,6 +653,7 @@ function RosterCard({
 
       <div className="mt-3 space-y-1 text-sm opacity-80">
         {rosterView.assignedCaseTitle ? <p>Assigned case: {rosterView.assignedCaseTitle}</p> : null}
+        {rosterView.roleIdentityLabel ? <p>Role identity: {rosterView.roleIdentityLabel}</p> : null}
         {bestImpact ? <p>Best projected gain: +{bestImpact.scoreDelta.toFixed(2)}</p> : null}
         {rosterView.assignedInstructorName ? (
           <p>Instructor: {rosterView.assignedInstructorName} (+{rosterView.instructorBonus ?? 0})</p>

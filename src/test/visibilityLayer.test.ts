@@ -42,6 +42,19 @@ describe('visibility layer / decision legibility', () => {
     expect(first.details.length).toBeLessThanOrEqual(3)
   })
 
+  it('surfaces niche-fit weakness in deployment readiness explanations', () => {
+    const state = createStartingState()
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      requiredRoles: ['support'],
+      requiredTags: [],
+    }
+
+    const explanation = explainDeploymentReadiness(state, 't_nightwatch', 'case-001')
+
+    expect(explanation.details.join(' ')).toMatch(/support niche is uncovered|covered only by substitutes/i)
+  })
+
   it('identifies a dominant weakest-link factor', () => {
     const result = resolveWeakestLinkMission({
       missionId: 'fatigue-case',

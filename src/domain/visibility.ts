@@ -495,6 +495,10 @@ export function explainDeploymentReadiness(
       readiness.softRisks.length > 0
         ? `Soft risks: ${readiness.softRisks.map((risk) => formatVisibilityFactorLabel(risk)).join(', ')}.`
         : undefined,
+      readiness.nicheSummary?.summaryLines[0],
+      readiness.nicheSummary && readiness.nicheSummary.overlappingNiches.length > 0
+        ? `Niche overlap: ${readiness.nicheSummary.overlappingNiches.join(', ')}.`
+        : undefined,
       readiness.intelPenalty && readiness.intelPenalty > 0
         ? `Intel penalty is ${readiness.intelPenalty} at confidence ${intel.confidence.toFixed(2)}, uncertainty ${intel.uncertainty.toFixed(2)}, age ${intel.age}.`
         : undefined,

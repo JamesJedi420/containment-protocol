@@ -116,4 +116,15 @@ describe('team composition and cohesion rules', () => {
       expect.arrayContaining(['containment', 'investigator', 'support', 'tactical'])
     )
   })
+
+  it('surfaces missing and protected niches in the composition state', () => {
+    const state = createStartingState()
+    const composition = buildTeamCompositionState(state.teams.t_nightwatch, state.agents, state.teams)
+
+    expect(composition.nicheSummary?.protectedNiches).toEqual(['containment'])
+    expect(composition.nicheSummary?.substituteNiches).toEqual(
+      expect.arrayContaining(['recon', 'support'])
+    )
+    expect(composition.nicheSummary?.summaryLines.join(' ')).toMatch(/support.*substitutes/i)
+  })
 })

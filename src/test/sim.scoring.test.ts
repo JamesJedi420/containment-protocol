@@ -60,7 +60,8 @@ describe('scoring helpers', () => {
 
     expect(result.score).toBeGreaterThan(0)
     expect(result.reasons).toEqual([
-      'No specialist present: reduced reliability in containment.',
+      'No containment specialist anchored the team.',
+      'No scouting specialist anchored the team.',
     ])
     expect(result.resolutionProfile.fieldPower).toBeGreaterThan(0)
     expect(result.modifierBreakdown.chemistryBonus).toBe(0)
@@ -265,7 +266,10 @@ describe('scoring helpers', () => {
 
     expect(result.agentPerformance).toEqual(profile.agentPerformance)
     expect(result.performanceSummary).toEqual(profile.performanceSummary)
-    expect(result.resolutionProfile).toEqual(profile.resolutionProfile)
+    expect(result.resolutionProfile).toMatchObject({
+      ...profile.resolutionProfile,
+      containment: profile.resolutionProfile.containment - 2,
+    })
   })
 
   it('surfaces active equipment kits and protocols in the readable team score reasons', () => {

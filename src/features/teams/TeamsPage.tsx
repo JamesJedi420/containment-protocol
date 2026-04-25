@@ -413,6 +413,14 @@ function TeamCard({
                 .join(', ') || 'None'}
             </span>
           </p>
+          {view.capabilitySummary.nicheSummary?.summaryLines[0] ? (
+            <p className="opacity-70">
+              Niche fit:{' '}
+              <span className="text-white/90">
+                {view.capabilitySummary.nicheSummary.summaryLines[0]}
+              </span>
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-2 text-sm">

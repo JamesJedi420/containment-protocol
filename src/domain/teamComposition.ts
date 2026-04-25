@@ -1,5 +1,6 @@
 import { clamp } from './math'
 import { isAgentAttritionUnavailable } from './agent/attrition'
+import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity'
 import {
   TEAM_COVERAGE_ROLES,
   type Agent,
@@ -441,12 +442,21 @@ export function buildTeamCompositionState(
   const category = normalizeCategory(team.category) ?? deriveTeamCategory(team, agentsById)
   const validation = validateTeamComposition(team, agentsById, teams)
   const cohesion = buildTeamCohesionSummary(team, agentsById)
+  const activeMembers = validation.activeMemberIds
+    .map((memberId) => agentsById[memberId])
+    .filter((agent): agent is Agent => Boolean(agent))
+  const requiredNiches = mapCoverageRolesToNiches(validation.requiredRoles)
+  const nicheSummary = buildTeamNicheSummary(
+    activeMembers,
+    requiredNiches.length > 0 ? requiredNiches : undefined
+  )
 
   return {
     category,
     requiredCoverageRoles: [...validation.requiredRoles],
     coveredRoles: [...validation.coveredRoles],
     missingRoles: [...validation.missingRoles],
+    nicheSummary,
     compositionValid: validation.valid,
     validationIssues: [...validation.issues],
     cohesion,

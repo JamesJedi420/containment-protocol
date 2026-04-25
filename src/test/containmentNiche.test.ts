@@ -60,13 +60,13 @@ describe('Containment specialist niche effects', () => {
   it('gives -2 penalty for recovery-support', () => {
     const result = computeTeamScore([makeAgent(['recovery-support'])], makeCase(), {})
 
-    expect(result.reasons.join(' ')).toMatch(/recovery specialist.*-2/i)
+    expect(result.reasons.join(' ')).toMatch(/support specialist.*-2/i)
   })
 
   it('notes missing specialist', () => {
     const result = computeTeamScore([makeAgent([])], makeCase(), {})
 
-    expect(result.reasons.join(' ')).toMatch(/no specialist/i)
+    expect(result.reasons.join(' ')).toMatch(/no containment specialist anchored/i)
   })
 
   it('applies hybrid penalty for recon+containment', () => {
@@ -76,6 +76,6 @@ describe('Containment specialist niche effects', () => {
       {}
     )
 
-    expect(result.reasons.join(' ')).toMatch(/hybrid.*-2/i)
+    expect(result.reasons.join(' ')).toMatch(/hybrid.*\+1/i)
   })
 })

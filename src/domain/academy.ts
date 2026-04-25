@@ -1,27 +1,12 @@
-// Threshold for unlocking containment-specialist (example: stability.resistance >= 8)
-const CONTAINMENT_SPECIALIST_UNLOCK_THRESHOLD = 8;
-
-/**
- * Checks and unlocks the containment-specialist tag for an agent if they meet the threshold.
- * Returns a tuple: [updatedAgent, unlockNote]
- */
-export function checkAndUnlockContainmentSpecialist(agent: Agent): [Agent, string | null] {
-  const resistance = agent.stats?.stability.resistance ?? 0;
-  if (!hasTag(agent.tags, 'containment-specialist') && resistance >= CONTAINMENT_SPECIALIST_UNLOCK_THRESHOLD) {
-    const updated = {
-      ...agent,
-      tags: appendUniqueTags(agent.tags, ['containment-specialist']),
-    };
-    return [updated, 'Containment specialist unlocked: resistance threshold met.'];
-  }
-  return [agent, null];
-}
 import { trainingCatalog } from '../data/training'
 import { getAgentStatCap } from './agentPotential'
 import { evaluateAgentBreakdown } from './evaluateAgent'
 import { clamp } from './math'
+import {
+  applyAgentNicheUnlocks,
+  getAgentTrainingNicheAptitude,
+} from './nicheIdentity'
 import { applyBoundedDelta } from './shared/modifiers'
-import { appendUniqueTags, hasTag } from './shared/tags'
 import { computeTeamScore } from './sim/scoring'
 import { deriveDomainStatsFromBase, cloneDomainStats } from './statDomains'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
@@ -110,28 +95,26 @@ export interface AcademyOverview {
   }>
 }
 
+/**
+ * Checks and unlocks the containment-specialist tag for an agent if they meet the threshold.
+ * Returns a tuple: [updatedAgent, unlockNote]
+ */
+export function checkAndUnlockContainmentSpecialist(agent: Agent): [Agent, string | null] {
+  const unlocked = applyAgentNicheUnlocks(agent)
+  return [unlocked.agent, unlocked.notes[0] ?? null]
+}
+
+function getTrainingIdentityAptitudeBonus(agent: Agent, targetStat: StatKey) {
+  return getTrainingAptitudeBonus(agent.role, targetStat) + getAgentTrainingNicheAptitude(agent, targetStat).bonus
+}
+
 function applyProgram(
   agent: Agent,
   program: TrainingProgram,
   academyStatBonus = 0,
   instructorBonus = 0
 ): Agent {
-  // Niche-specific training aptitude bonuses
-  let aptitudeBonus = getTrainingAptitudeBonus(agent.role, program.targetStat)
-  // Accept both StatKey and legacy string values for targetStat
-  if (hasTag(agent.tags, 'recon-specialist') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus += 2; // Recon excels at tactical training
-  } else if (hasTag(agent.tags, 'containment-specialist') && program.targetStat === ('stability' as StatKey)) {
-    aptitudeBonus += 2; // Containment excels at stability training
-  } else if (hasTag(agent.tags, 'recovery-support') && program.targetStat === ('support' as StatKey)) {
-    aptitudeBonus += 2; // Recovery-support excels at support training
-  } else if (hasTag(agent.tags, 'recon-specialist') && program.targetStat === ('support' as StatKey)) {
-    aptitudeBonus -= 1; // Recon is weaker at support
-  } else if (hasTag(agent.tags, 'containment-specialist') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus -= 1; // Containment is weaker at tactical
-  } else if (hasTag(agent.tags, 'recovery-support') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus -= 1; // Recovery-support is weaker at tactical
-  }
+  const aptitudeBonus = getTrainingIdentityAptitudeBonus(agent, program.targetStat)
   const statCap = getAgentStatCap(agent, program.targetStat)
   const nextBaseStats = {
     ...agent.baseStats,
@@ -210,21 +193,7 @@ export function previewTrainingImpact(
     applyProgram(agent, program, academyStatBonus, instructorBonus)
   )
 
-  // Compute the actual aptitudeBonus as in applyProgram
-  let aptitudeBonus = getTrainingAptitudeBonus(agent.role, program.targetStat)
-  if (hasTag(agent.tags, 'recon-specialist') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus += 2;
-  } else if (hasTag(agent.tags, 'containment-specialist') && program.targetStat === ('stability' as StatKey)) {
-    aptitudeBonus += 2;
-  } else if (hasTag(agent.tags, 'recovery-support') && program.targetStat === ('support' as StatKey)) {
-    aptitudeBonus += 2;
-  } else if (hasTag(agent.tags, 'recon-specialist') && program.targetStat === ('support' as StatKey)) {
-    aptitudeBonus -= 1;
-  } else if (hasTag(agent.tags, 'containment-specialist') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus -= 1;
-  } else if (hasTag(agent.tags, 'recovery-support') && program.targetStat === ('tactical' as StatKey)) {
-    aptitudeBonus -= 1;
-  }
+  const aptitudeBonus = getTrainingIdentityAptitudeBonus(agent, program.targetStat)
   return {
     trainingId: program.trainingId,
     trainingName: program.name,

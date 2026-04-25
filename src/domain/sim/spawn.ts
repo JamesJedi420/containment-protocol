@@ -4,6 +4,7 @@ import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { applySiteGenerationToCase } from '../siteGeneration'
 import { SIM_NOTES } from '../../data/copy'
 import { EVENT_NOTE_BUILDERS } from './eventNoteBuilders'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
@@ -83,7 +84,7 @@ export function instantiateFromTemplate(
   usedIds: Set<string> = new Set(),
   week = 1
 ): CaseInstance {
-  return {
+  const instantiated: CaseInstance = {
     id: nextId(usedIds, rng),
     templateId: template.templateId,
     title: template.title,
@@ -111,6 +112,12 @@ export function instantiateFromTemplate(
     onUnresolved: { ...template.onUnresolved },
     raid: template.raid,
   }
+
+  return applySiteGenerationToCase({
+    currentCase: instantiated,
+    template,
+    seedKey: instantiated.id,
+  })
 }
 
 export function applySpawnRule(

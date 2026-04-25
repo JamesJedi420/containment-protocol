@@ -259,6 +259,35 @@ describe('starter content contracts', () => {
     })
   })
 
+  it('applies deterministic layered site generation to pilot starter cases', () => {
+    expect(starterCases['case-001'].tags).toEqual(
+      expect.arrayContaining([
+        'site:packet:predator-stockyard.v1',
+        expect.stringMatching(/^site:purpose:/),
+        expect.stringMatching(/^site:hazard:/),
+      ])
+    )
+
+    expect(starterCases['case-003'].tags).toEqual(
+      expect.arrayContaining([
+        'site:packet:ritual-riverfront.v1',
+        expect.stringMatching(/^site:purpose:/),
+        expect.stringMatching(/^site:treasure:/),
+      ])
+    )
+
+    expect(starterCases['case-001'].siteLayer).toBeDefined()
+    expect(starterCases['case-003'].transitionType).toBeDefined()
+
+    const replayA = createStarterCase({ id: 'case-replay', templateId: 'mixed_eclipse_ritual' })
+    const replayB = createStarterCase({ id: 'case-replay', templateId: 'mixed_eclipse_ritual' })
+
+    expect(replayA.tags).toEqual(replayB.tags)
+    expect(replayA.siteLayer).toBe(replayB.siteLayer)
+    expect(replayA.visibilityState).toBe(replayB.visibilityState)
+    expect(replayA.transitionType).toBe(replayB.transitionType)
+  })
+
   it('normalizes malformed starter case overrides while keeping template data intact', () => {
     const caseInstance = createStarterCase({
       id: 'case-test',

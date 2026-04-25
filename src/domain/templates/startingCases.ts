@@ -3,6 +3,7 @@ import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { applySiteGenerationToCase } from '../siteGeneration'
 import { caseTemplateMap } from './caseTemplates'
 
 export interface StarterCaseSeed {
@@ -67,7 +68,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
   const onFail = normalizeSpawnRule(template.onFail)
   const onUnresolved = normalizeSpawnRule(template.onUnresolved)
 
-  return {
+  const starterCase: CaseInstance = {
     id: seed.id,
     templateId: template.templateId,
     title: seed.title ?? template.title,
@@ -103,6 +104,12 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     },
     raid: template.raid ? { ...template.raid } : undefined,
   }
+
+  return applySiteGenerationToCase({
+    currentCase: starterCase,
+    template,
+    seedKey: `${seed.id}:${template.templateId}`,
+  })
 }
 
 export const starterCases = Object.fromEntries(

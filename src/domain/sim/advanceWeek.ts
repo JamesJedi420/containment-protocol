@@ -1136,11 +1136,13 @@ function buildAggregateBattleEventDraft(
 }
 
 interface WeeklyCaseResolutionStrategy {
+  effectiveCase: CaseInstance
   assignedAgents: NonNullable<GameState['agents'][string]>[]
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
+  behaviorValidation?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['behaviorValidation']
   weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
@@ -1263,11 +1265,13 @@ function resolveAssignedCaseForWeek(
 
   // Return the original outcome object for downstream consumers, but attach the explicit contracts for testability
   return {
+    effectiveCase: canonicalResolution.effectiveCase,
     assignedAgents: canonicalResolution.assignedAgents,
     assignedAgentLeaderBonuses: canonicalResolution.assignedAgentLeaderBonuses,
     activeTeamStressModifiers: canonicalResolution.activeTeamStressModifiers,
     outcome,
     aggregateBattleSummary,
+    behaviorValidation: canonicalResolution.behaviorValidation,
     weakestLinkResult: canonicalResolution.weakestLinkResult,
     campaignToIncident,
     incidentToCampaign,
@@ -1795,16 +1799,14 @@ function resolveAssignments(
       supportShortfall: isSupportShortfall,
     }
     const {
+      effectiveCase,
       assignedAgentLeaderBonuses,
       activeTeamStressModifiers,
       outcome,
       aggregateBattleSummary,
+      behaviorValidation,
       weakestLinkResult,
     } = weeklyResolution
-    const effectiveCase = {
-      ...currentCase,
-      assignedTeamIds: existingAssignedTeamIds,
-    }
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)
     context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)
@@ -2032,7 +2034,7 @@ function resolveAssignments(
 
       recordCaseOutcome(context, caseId, 'resolved')
       context.nextState.cases[caseId] = {
-        ...currentCase,
+        ...effectiveCase,
         assignedTeamIds: [],
         status: 'resolved',
         weeksRemaining: 0,
@@ -2056,10 +2058,13 @@ function resolveAssignments(
           )
         )
       }
+      if (behaviorValidation?.shouldDegradeSuccessToPartial && behaviorValidation.degradeSuccessReason) {
+        downgradeResolvedCaseToPartial(context, caseId, behaviorValidation.degradeSuccessReason)
+      }
       continue
     }
 
-    const resolutionEscalation = createResolutionEscalationTransition(currentCase, outcome.result)
+    const resolutionEscalation = createResolutionEscalationTransition(effectiveCase, outcome.result)
     const escalatedCase = {
       ...resolutionEscalation.nextCase,
       status: 'open' as const,
@@ -2205,6 +2210,7 @@ function downgradeResolvedCaseToPartial(
   note: string
 ) {
   const sourceCase = context.sourceState.cases[caseId]
+  const resolvedCase = context.nextState.cases[caseId] ?? sourceCase
   const mission = context.missionResultDraftByCaseId[caseId]
 
   if (!sourceCase || !mission || mission.outcome !== 'success') {
@@ -2214,7 +2220,7 @@ function downgradeResolvedCaseToPartial(
   const existingAssignedTeamIds = sourceCase.assignedTeamIds.filter((teamId) =>
     Boolean(context.sourceState.teams[teamId])
   )
-  const resolutionEscalation = createResolutionEscalationTransition(sourceCase, 'partial')
+  const resolutionEscalation = createResolutionEscalationTransition(resolvedCase, 'partial')
   const downgradedCase = {
     ...resolutionEscalation.nextCase,
     status: 'open' as const,

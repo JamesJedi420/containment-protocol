@@ -10,10 +10,27 @@ export function explainSpatialState(
   spatialFlags?: string[]
 ): string {
   const parts: string[] = [];
+  const ingressFlag = spatialFlags?.find((flag) => flag.startsWith('ingress:'));
+  const ingressType = ingressFlag ? ingressFlag.replace(/^ingress:/, '') : undefined;
+
+  const ingressExplanationByType: Readonly<Record<string, string>> = {
+    floodgate: 'Gate channel favors fortified defense and controlled lanes.',
+    maintenance_shaft: 'Shaft ingress constrains frontage and sight-lines.',
+    service_door: 'Service ingress supports standard traversal flow.',
+    storm_drain: 'Drain ingress obscures routes and complicates tracking.',
+  };
+
+  const nonIngressFlags = (spatialFlags ?? []).filter((flag) => !flag.startsWith('ingress:'));
+
   if (siteLayer) parts.push(`Site layer: ${siteLayer}`);
   if (transitionType) parts.push(`Transition: ${transitionType}`);
   if (visibilityState) parts.push(`Visibility: ${visibilityState}`);
-  if (spatialFlags && spatialFlags.length > 0) parts.push(`Flags: ${spatialFlags.join(', ')}`);
+  if (ingressType) {
+    parts.push(
+      `Ingress: ${ingressType}${ingressExplanationByType[ingressType] ? ` — ${ingressExplanationByType[ingressType]}` : ''}`
+    );
+  }
+  if (nonIngressFlags.length > 0) parts.push(`Flags: ${nonIngressFlags.join(', ')}`);
   return parts.length > 0 ? parts.join(' | ') : 'No spatial constraints.';
 }
 // --- Multi-source/Team Knowledge Fusion ---

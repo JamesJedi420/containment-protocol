@@ -59,10 +59,13 @@ describe('scoring helpers', () => {
     })
 
     expect(result.score).toBeGreaterThan(0)
-    expect(result.reasons).toEqual([
-      'No containment specialist anchored the team.',
-      'No scouting specialist anchored the team.',
-    ])
+    expect(result.reasons).toEqual(
+      expect.arrayContaining([
+        'No containment specialist anchored the team.',
+        'No scouting specialist anchored the team.',
+      ])
+    )
+    expect(result.reasons.some((r) => r.startsWith('Recon sweep:'))).toBe(true)
     expect(result.resolutionProfile.fieldPower).toBeGreaterThan(0)
     expect(result.modifierBreakdown.chemistryBonus).toBe(0)
     expect(result.agentPerformance[0]).toMatchObject({

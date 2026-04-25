@@ -194,6 +194,7 @@ export function buildEncounterStructureState(game: GameState): EncounterStructur
     stageCounts.set(currentCase.stage, (stageCounts.get(currentCase.stage) ?? 0) + 1)
 
     for (const tag of currentCase.tags) {
+      if (tag.startsWith('site:')) continue
       tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
     }
 

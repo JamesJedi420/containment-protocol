@@ -5,6 +5,7 @@ import type { Agent, CaseInstance, Id } from './models'
 import { evaluateTeamNicheFit, getTeamNicheModifier } from './nicheIdentity'
 import { resolveEquippedItems } from './equipment'
 import type { AgencyProtocolState } from './protocols'
+import type { MapLayerResult } from './siteGeneration/mapMetadata'
 
 const RECON_AGENT_TAGS = new Set([
   'recon',
@@ -35,6 +36,52 @@ interface HiddenCaseModifierDefinition {
   uncertainty: number
   scoreBonus: number
   probabilityBonus: number
+}
+
+const INGRESS_RECON_MODIFIERS: Readonly<
+  Record<
+    string,
+    Omit<HiddenCaseModifierDefinition, 'keywords'> & {
+      matchedKeywords: string[]
+    }
+  >
+> = {
+  'ingress:maintenance_shaft': {
+    id: 'ingress-shaft-occlusion',
+    label: 'Shaft occlusion',
+    revealThreshold: 26,
+    uncertainty: 1,
+    scoreBonus: 0.8,
+    probabilityBonus: 0.008,
+    matchedKeywords: ['ingress', 'shaft'],
+  },
+  'ingress:storm_drain': {
+    id: 'ingress-drain-ambiguity',
+    label: 'Drain-route ambiguity',
+    revealThreshold: 25,
+    uncertainty: 0.9,
+    scoreBonus: 0.75,
+    probabilityBonus: 0.007,
+    matchedKeywords: ['ingress', 'drain'],
+  },
+  'ingress:floodgate': {
+    id: 'ingress-gate-killzone',
+    label: 'Gate killzone geometry',
+    revealThreshold: 24,
+    uncertainty: 0.85,
+    scoreBonus: 0.7,
+    probabilityBonus: 0.006,
+    matchedKeywords: ['ingress', 'gate'],
+  },
+  'ingress:service_door': {
+    id: 'ingress-service-lane',
+    label: 'Service-lane access',
+    revealThreshold: 22,
+    uncertainty: 0.6,
+    scoreBonus: 0.5,
+    probabilityBonus: 0.004,
+    matchedKeywords: ['ingress', 'service'],
+  },
 }
 
 export interface RecruitmentScoutSupport {
@@ -70,6 +117,12 @@ export interface TeamReconContext {
   teamTags?: string[]
   leaderId?: Id | null
   protocolState?: AgencyProtocolState
+  /**
+   * Optional map-layer result from the site-generation pipeline.
+   * When provided, hidden symbols and authoring mode are folded into
+   * the hidden modifier set so recon can reveal structured map content.
+   */
+  mapLayer?: MapLayerResult
 }
 
 const HIDDEN_CASE_MODIFIERS: readonly HiddenCaseModifierDefinition[] = [
@@ -145,7 +198,49 @@ function countMatchingTags(values: Iterable<string>, tags: Set<string>) {
   return matches
 }
 
-function buildCaseHiddenModifiers(caseData: CaseInstance) {
+function buildMapLayerHiddenModifiers(mapLayer: MapLayerResult) {
+  type ActiveModifier = HiddenCaseModifierDefinition & { matchedKeywords: string[] }
+  const modifiers: ActiveModifier[] = []
+
+  // Each hidden symbol becomes a hidden modifier; symbols with routeEffect are weighted higher
+  const allHiddenSymbolIds = new Set(mapLayer.zones.flatMap((z) => z.hiddenSymbolIds))
+  const legendById = new Map(mapLayer.legend.map((s) => [s.id, s]))
+
+  for (const symbolId of allHiddenSymbolIds) {
+    const symbol = legendById.get(symbolId)
+    if (!symbol) continue
+
+    const hasPassRestriction = symbol.routeEffect?.passRestriction != null
+    modifiers.push({
+      id: `map-symbol:${symbol.id}`,
+      label: symbol.name,
+      keywords: ['map-metadata'],
+      matchedKeywords: ['map-metadata'],
+      revealThreshold: hasPassRestriction ? 27 : 23,
+      uncertainty: hasPassRestriction ? 1.1 : 0.7,
+      scoreBonus: hasPassRestriction ? 0.9 : 0.6,
+      probabilityBonus: hasPassRestriction ? 0.009 : 0.005,
+    })
+  }
+
+  // map-metadata-first sites have a structured layer that rewards deeper recon
+  if (mapLayer.authoringMode === 'map-metadata-first') {
+    modifiers.push({
+      id: 'metadata-layer-depth',
+      label: 'Metadata layer depth',
+      keywords: ['map-metadata'],
+      matchedKeywords: ['map-metadata'],
+      revealThreshold: 22,
+      uncertainty: 0.8,
+      scoreBonus: 0.65,
+      probabilityBonus: 0.005,
+    })
+  }
+
+  return modifiers
+}
+
+function buildCaseHiddenModifiers(caseData: CaseInstance, mapLayer?: MapLayerResult) {
   const caseTags = buildCaseTagSet(caseData)
   const activeModifiers = HIDDEN_CASE_MODIFIERS.flatMap((modifier) => {
     const matchedKeywords = modifier.keywords.filter((keyword) => caseTags.has(keyword))
@@ -161,6 +256,21 @@ function buildCaseHiddenModifiers(caseData: CaseInstance) {
       },
     ]
   })
+
+  const ingressFlag = caseData.spatialFlags?.find((flag) => flag.startsWith('ingress:'))
+  if (ingressFlag) {
+    const ingressModifier = INGRESS_RECON_MODIFIERS[ingressFlag]
+    if (ingressModifier) {
+      activeModifiers.push({
+        ...ingressModifier,
+        keywords: [...ingressModifier.matchedKeywords],
+      })
+    }
+  }
+
+  if (mapLayer) {
+    activeModifiers.push(...buildMapLayerHiddenModifiers(mapLayer))
+  }
 
   if (caseData.mode === 'probability') {
     activeModifiers.push({
@@ -453,7 +563,7 @@ export function evaluateTeamCaseRecon(
     }
   }
 
-  const hiddenModifiers = buildCaseHiddenModifiers(caseData)
+  const hiddenModifiers = buildCaseHiddenModifiers(caseData, context.mapLayer)
   const reconFit = evaluateTeamNicheFit(agents, 'recon')
   const reconModifier = getTeamNicheModifier(reconFit, {
     contextLabel: 'scouting',

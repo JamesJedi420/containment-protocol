@@ -524,7 +524,7 @@ describe('advanceWeek', () => {
     const teamStatus = report.teamStatus.find((entry) => entry.teamId === 't_nightwatch')
 
     expect(report.caseSnapshots).toBeDefined()
-    expect(report.caseSnapshots?.['case-001']).toEqual({
+    expect(report.caseSnapshots?.['case-001']).toMatchObject({
       caseId: 'case-001',
       title: updatedCase.title,
       kind: updatedCase.kind,

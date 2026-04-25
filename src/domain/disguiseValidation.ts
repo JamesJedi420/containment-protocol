@@ -6,6 +6,19 @@ const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court']
 const PROCEDURAL_SCRUTINY_TAGS = ['witness', 'interview', 'civilian', 'court']
 const HIERARCHY_READER_TAGS = ['liaison', 'negotiation']
 const PROCEDURAL_READER_TAGS = ['investigator', 'forensics', 'field-kit', 'analyst']
+const SOCIAL_SCRUTINY_WEIGHT_THRESHOLD = 0.55
+const STAT_READ_STRONG_THRESHOLD = 55
+const STAT_READ_MEANINGFUL_THRESHOLD = 45
+const DETECTION_CONFIDENCE_PRESSURE_THRESHOLD = 0.45
+const STRONG_VALIDATION_SCORE_THRESHOLD = 2
+const ESCALATION_VALIDATION_SCORE_THRESHOLD = 1
+const ESCALATION_COUNTER_PRESSURE_THRESHOLD = 1
+const STRONG_VALIDATION_SCORE_ADJUSTMENT = 4.5
+const MEANINGFUL_VALIDATION_SCORE_ADJUSTMENT = 2.5
+const MEANINGFUL_DETECTION_CONFIDENCE_FLOOR = 0.6
+const FULL_DETECTION_CONFIDENCE = 1
+const PARTIAL_BEHAVIOR_SIGNAL = 0.5
+const FULL_BEHAVIOR_SIGNAL = 1
 
 export interface BehaviorWeightedDisguiseValidationContext {
   supportTags?: string[]
@@ -85,7 +98,8 @@ export function evaluateBehaviorWeightedDisguiseValidation(
   const caseTags = collectCaseTags(caseData)
   const authorityScrutiny = hasAnyTag(caseTags, AUTHORITY_SCRUTINY_TAGS)
   const proceduralScrutiny = hasAnyTag(caseTags, PROCEDURAL_SCRUTINY_TAGS)
-  const silenceScrutiny = authorityScrutiny || caseData.weights.social >= 0.55
+  const silenceScrutiny =
+    authorityScrutiny || caseData.weights.social >= SOCIAL_SCRUTINY_WEIGHT_THRESHOLD
 
   if (!authorityScrutiny && !proceduralScrutiny && !silenceScrutiny) {
     return INACTIVE_BEHAVIOR_VALIDATION
@@ -97,14 +111,21 @@ export function evaluateBehaviorWeightedDisguiseValidation(
   const evidenceSignals: string[] = []
   let validationScore = 0
 
-  const hierarchyRead = hasAnyTag(observerTags, HIERARCHY_READER_TAGS) ? 1 : 0
-  const silenceRead = averageSocial >= 55 ? 1 : averageSocial >= 45 ? 0.5 : 0
+  const hierarchyRead = hasAnyTag(observerTags, HIERARCHY_READER_TAGS)
+    ? FULL_BEHAVIOR_SIGNAL
+    : 0
+  const silenceRead =
+    averageSocial >= STAT_READ_STRONG_THRESHOLD
+      ? FULL_BEHAVIOR_SIGNAL
+      : averageSocial >= STAT_READ_MEANINGFUL_THRESHOLD
+        ? PARTIAL_BEHAVIOR_SIGNAL
+        : 0
   const procedureRead = hasAnyTag(observerTags, PROCEDURAL_READER_TAGS)
-    ? 1
-    : averageInvestigation >= 55
-      ? 1
-      : averageInvestigation >= 45
-        ? 0.5
+    ? FULL_BEHAVIOR_SIGNAL
+    : averageInvestigation >= STAT_READ_STRONG_THRESHOLD
+      ? FULL_BEHAVIOR_SIGNAL
+      : averageInvestigation >= STAT_READ_MEANINGFUL_THRESHOLD
+        ? PARTIAL_BEHAVIOR_SIGNAL
         : 0
 
   if (authorityScrutiny && hierarchyRead > 0) {
@@ -128,10 +149,10 @@ export function evaluateBehaviorWeightedDisguiseValidation(
       : 0
   const counterDetectionPressure =
     (caseData.counterDetection ? 1 : 0) +
-    (priorDetectionConfidence >= 0.45 ? 1 : 0) +
+    (priorDetectionConfidence >= DETECTION_CONFIDENCE_PRESSURE_THRESHOLD ? 1 : 0) +
     (hasEffectiveCountermeasure({ family: 'deception', presentTags: observerTags }) ? 0.5 : 0)
 
-  if (validationScore < 1) {
+  if (validationScore < ESCALATION_VALIDATION_SCORE_THRESHOLD) {
     return {
       ...INACTIVE_BEHAVIOR_VALIDATION,
       active: true,
@@ -140,15 +161,20 @@ export function evaluateBehaviorWeightedDisguiseValidation(
   }
 
   const level =
-    validationScore >= 2 || (validationScore >= 1 && counterDetectionPressure >= 1)
+    validationScore >= STRONG_VALIDATION_SCORE_THRESHOLD ||
+    (validationScore >= ESCALATION_VALIDATION_SCORE_THRESHOLD &&
+      counterDetectionPressure >= ESCALATION_COUNTER_PRESSURE_THRESHOLD)
       ? 'strong'
       : 'meaningful'
-  const scoreAdjustment = level === 'strong' ? 4.5 : 2.5
+  const scoreAdjustment =
+    level === 'strong'
+      ? STRONG_VALIDATION_SCORE_ADJUSTMENT
+      : MEANINGFUL_VALIDATION_SCORE_ADJUSTMENT
   const scoreAdjustmentReason = `Behavior validation: +${scoreAdjustment.toFixed(1)} (${formatSignals(evidenceSignals)})`
   const detectionConfidence =
     level === 'strong'
-      ? 1
-      : Math.max(priorDetectionConfidence, 0.6)
+      ? FULL_DETECTION_CONFIDENCE
+      : Math.max(priorDetectionConfidence, MEANINGFUL_DETECTION_CONFIDENCE_FLOOR)
 
   return {
     active: true,

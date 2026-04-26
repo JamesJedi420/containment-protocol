@@ -1,6 +1,7 @@
 import { clamp } from './math'
 import { getCaseRegionTag } from './pressure'
-import type { CaseInstance, LeaderBonus, LegitimacyState } from './models'
+import type { CaseInstance, HarvestedMindLoadout, LeaderBonus, LegitimacyState } from './models'
+import { aggregateLoadoutModifiers } from './hostileLoadouts'
 
 export const AGGREGATE_BATTLE_PHASES = ['movement', 'missile', 'melee', 'morale', 'rally'] as const
 
@@ -114,6 +115,8 @@ export interface AggregateBattleUnit {
   commanderOverlayId?: string
   reinforcement?: AggregateBattleReinforcement
   specialDurability?: AggregateBattleDurabilityTrack
+  /** Optional harvested-mind loadout. When present, grants capability-derived combat modifiers. */
+  harvestedLoadout?: HarvestedMindLoadout
 }
 
 export interface AggregateBattleSideState {
@@ -292,6 +295,7 @@ interface RuntimeAggregateBattleUnit {
   roundShock: number
   roundSpecialHits: number
   missileLockoutRounds: number
+  harvestedLoadout?: HarvestedMindLoadout
 }
 
 interface CombatTableCell {
@@ -738,6 +742,7 @@ function normalizeAggregateBattleUnit(unit: AggregateBattleUnit): RuntimeAggrega
     roundStepLosses: 0,
     roundShock: 0,
     roundSpecialHits: 0,
+    harvestedLoadout: unit.harvestedLoadout,
     missileLockoutRounds: 0,
   }
 }
@@ -1667,6 +1672,9 @@ function buildMeleeValue(
   if (ingressFlag) {
     value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
   }
+  if (unit.harvestedLoadout) {
+    value += aggregateLoadoutModifiers(unit.harvestedLoadout).meleeMod
+  }
   if (unit.moraleState === 'shaken') {
     value -= 1
   }
@@ -1697,6 +1705,9 @@ function buildDefenseValue(
     if (ingressMod) {
       value += mode === 'melee' ? ingressMod.defenseVsMeleeMod : ingressMod.defenseVsMissileMod
     }
+  }
+  if (unit.harvestedLoadout) {
+    value += aggregateLoadoutModifiers(unit.harvestedLoadout).defenseMod
   }
   if (unit.moraleState === 'retreating') {
     value -= 1

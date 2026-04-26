@@ -2,15 +2,9 @@ import type { CaseInstance, CaseTemplate } from '../models'
 import {
   getPilotSitePacketForTemplate,
   type PilotSiteGenerationPacket,
-  type SiteBuilderId,
   type SiteGenerationStageSnapshot,
   type SiteHazardId,
   type SiteInhabitantId,
-  type SiteIngressId,
-  type SiteLocationId,
-  type SitePurposeId,
-  type SiteTopologyId,
-  type SiteTreasureId,
   type WeightedStageOption,
 } from './packets'
 import { resolveMapMetadata, type MapLayerResult } from './mapMetadata'

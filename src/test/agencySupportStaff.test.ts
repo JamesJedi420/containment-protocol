@@ -100,7 +100,7 @@ describe('Agency Support Staff Layer', () => {
     const teams = {}
     const result = advanceRecoveryDowntimeForWeek({
       week: 1,
-      sourceAgents: agents as any,
+      sourceAgents: agents as unknown as GameState['agents'],
       sourceTeams: teams,
       downtimeAssignments: { a1: 'rest' },
       supportStaff,

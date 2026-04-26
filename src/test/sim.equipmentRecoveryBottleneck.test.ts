@@ -2,11 +2,15 @@ import { describe, it, expect } from 'vitest'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { createStartingState } from '../data/startingState'
 
+type RuntimeStateWithDamagedQueue = ReturnType<typeof createStartingState> & {
+  damagedEquipmentQueue?: string[]
+}
+
 describe('SPE-94: Equipment Recovery Bottleneck', () => {
 
   it('recovers up to maintenanceSpecialistsAvailable damaged items per week, delaying the rest (player-facing)', () => {
     const state = createStartingState()
-    ;(state as any).damagedEquipmentQueue = [
+    ;(state as RuntimeStateWithDamagedQueue).damagedEquipmentQueue = [
       'itemA', 'itemB', 'itemC', 'itemD', 'itemE'
     ]
     state.agency!.maintenanceSpecialistsAvailable = 2
@@ -26,7 +30,7 @@ describe('SPE-94: Equipment Recovery Bottleneck', () => {
 
   it('recovers all items if capacity >= queue length (player-facing)', () => {
     const state = createStartingState()
-    ;(state as any).damagedEquipmentQueue = ['itemA', 'itemB']
+    ;(state as RuntimeStateWithDamagedQueue).damagedEquipmentQueue = ['itemA', 'itemB']
     state.agency!.maintenanceSpecialistsAvailable = 5
 
     const next = advanceWeek(state)
@@ -43,7 +47,7 @@ describe('SPE-94: Equipment Recovery Bottleneck', () => {
 
   it('delays all items if capacity is zero (player-facing)', () => {
     const state = createStartingState()
-    ;(state as any).damagedEquipmentQueue = ['itemA', 'itemB', 'itemC']
+    ;(state as RuntimeStateWithDamagedQueue).damagedEquipmentQueue = ['itemA', 'itemB', 'itemC']
     state.agency!.maintenanceSpecialistsAvailable = 0
 
     const next = advanceWeek(state)

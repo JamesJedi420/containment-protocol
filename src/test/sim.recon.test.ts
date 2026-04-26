@@ -410,7 +410,7 @@ describe('occupier-unknown-route recon modifiers', () => {
     const agent = makeReconAgent()
 
     const resultSanctum = evaluateTeamCaseRecon([agent], { ...baseCase, mapLayer }, { config: state.config, mapLayer } as never)
-    const resultCollapsed = evaluateTeamCaseRecon([agent], { ...baseCase2, mapLayer: mapLayerCollapsed }, { config: state2.config, mapLayer: mapLayerCollapsed } as never)
+    evaluateTeamCaseRecon([agent], { ...baseCase2, mapLayer: mapLayerCollapsed }, { config: state2.config, mapLayer: mapLayerCollapsed } as never)
 
     // concentric_sanctum has hidden ward_glyph symbols — some hidden modifiers — but NO unknown-route modifiers
     // collapsed_cells has 1 concealed route → more hidden modifiers than sanctum on route side

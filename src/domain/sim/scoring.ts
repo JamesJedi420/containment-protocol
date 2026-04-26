@@ -795,6 +795,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     teamTags: context.teamTags ?? context.supportTags,
     leaderId: context.leaderId ?? null,
     protocolState: context.protocolState,
+    mapLayer: c.mapLayer,
   })
   reasons.push(...reconSummary.reasons)
   const partyCardBonus = context.partyCardScoreBonus ?? 0

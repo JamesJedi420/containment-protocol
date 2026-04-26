@@ -6,6 +6,7 @@ import { computeTeamScore } from '../domain/sim/scoring'
 import { previewResolutionForTeamIds } from '../domain/sim/resolve'
 import { evaluateTeamCaseRecon } from '../domain/recon'
 import { resolveMapMetadata } from '../domain/siteGeneration/mapMetadata'
+import { applySiteGenerationToCase } from '../domain/siteGeneration/pipeline'
 import type { SiteGenerationStageSnapshot } from '../domain/siteGeneration/packets'
 
 describe('field recon systems', () => {
@@ -313,3 +314,33 @@ function evaluateTeconCaseReconHelper(
 ) {
   return evaluateTeamCaseRecon([agent], caseData, { config: state.config, mapLayer } as never)
 }
+
+describe('recon mapLayer production path', () => {
+  it('applySiteGenerationToCase + computeTeamScore threads mapLayer into recon evaluation', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+    const template = { templateId: 'mixed_eclipse_ritual' as const }
+
+    const siteCase = applySiteGenerationToCase({ currentCase: baseCase, template })
+    expect(siteCase.mapLayer).toBeDefined()
+
+    const agent = makeReconAgent()
+    const result = computeTeamScore([agent], siteCase, { config: state.config })
+
+    expect(result.reconSummary.hiddenModifierCount).toBeGreaterThan(0)
+  })
+
+  it('produces deterministic hiddenModifierCount across identical calls', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+    const template = { templateId: 'mixed_eclipse_ritual' as const }
+
+    const siteCase = applySiteGenerationToCase({ currentCase: baseCase, template })
+    const agent = makeReconAgent()
+
+    const r1 = computeTeamScore([agent], siteCase, { config: state.config })
+    const r2 = computeTeamScore([agent], siteCase, { config: state.config })
+
+    expect(r1.reconSummary.hiddenModifierCount).toBe(r2.reconSummary.hiddenModifierCount)
+  })
+})

@@ -289,5 +289,6 @@ export function applySiteGenerationToCase(input: {
     visibilityState: generated.spatial.visibilityState,
     transitionType: generated.spatial.transitionType,
     spatialFlags: nextSpatialFlags,
+    mapLayer: generated.mapLayer,
   }
 }

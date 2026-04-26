@@ -1209,6 +1209,8 @@ export interface CaseInstance {
   visibilityState?: 'clear' | 'obstructed' | 'exposed'
   transitionType?: 'open-approach' | 'threshold' | 'chokepoint'
   spatialFlags?: string[]
+  /** Resolved map-layer from the site-generation pipeline. Populated by applySiteGenerationToCase. */
+  mapLayer?: import('./siteGeneration/mapMetadata').MapLayerResult
 }
 
 export interface ResolutionOutcome {

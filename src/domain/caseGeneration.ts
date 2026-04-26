@@ -81,6 +81,9 @@ function getCasePressureTags(game: GameState) {
       ...currentCase.requiredTags,
       ...currentCase.preferredTags,
     ]) {
+      // Exclude pipeline-internal spatial metadata — site:* tags must not
+      // inflate authored semantic tag counts or displace them from ranked slices
+      if (tag.startsWith('site:')) continue
       counts.set(tag, (counts.get(tag) ?? 0) + 1)
     }
   }

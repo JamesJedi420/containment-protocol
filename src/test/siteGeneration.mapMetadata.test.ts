@@ -252,4 +252,42 @@ describe('resolveMapMetadata', () => {
       expect(resultA!.mapLayer).toEqual(resultB!.mapLayer)
     })
   })
+
+  describe('occupier known-topology subset', () => {
+    it('collapsed_cells: occupierKnownRouteIds is empty — concealed route excluded', () => {
+      const result = resolveMapMetadata(
+        makeStages({ topology: 'collapsed_cells', hazards: [] }),
+        createSequenceRng([0.5]),
+      )
+      expect(result.occupierKnownRouteIds).toEqual([])
+    })
+
+    it('concentric_sanctum: both choke routes are occupier-known', () => {
+      const result = resolveMapMetadata(
+        makeStages({ topology: 'concentric_sanctum' }),
+        createSequenceRng([0.1]),
+      )
+      expect(result.occupierKnownRouteIds).toContain('outer_to_middle')
+      expect(result.occupierKnownRouteIds).toContain('middle_to_inner')
+      expect(result.occupierKnownRouteIds).toHaveLength(2)
+    })
+
+    it('lure_corridors: both routes are occupier-known (rigged = occupier-placed)', () => {
+      const result = resolveMapMetadata(
+        makeStages({ topology: 'lure_corridors', hazards: ['predator_ambush', 'blood_traps'] }),
+        createSequenceRng([0.5]),
+      )
+      expect(result.occupierKnownRouteIds).toContain('entry_to_bait')
+      expect(result.occupierKnownRouteIds).toContain('bait_to_collapse')
+      expect(result.occupierKnownRouteIds).toHaveLength(2)
+    })
+
+    it('occupierKnownRouteIds is deterministic across identical calls', () => {
+      const stagesA = makeStages({ topology: 'concentric_sanctum' })
+      const stagesB = makeStages({ topology: 'concentric_sanctum' })
+      const resultA = resolveMapMetadata(stagesA, createSequenceRng([0.1]))
+      const resultB = resolveMapMetadata(stagesB, createSequenceRng([0.1]))
+      expect(resultA.occupierKnownRouteIds).toEqual(resultB.occupierKnownRouteIds)
+    })
+  })
 })

@@ -44,6 +44,8 @@ export interface MapLayerResult {
   legend: readonly MapSymbol[]
   zones: readonly ZoneAnnotation[]
   routes: readonly RouteAnnotation[]
+  /** Route IDs known to current occupiers. Concealed routes are excluded — they predate or escape occupier awareness. Derived deterministically at generation time. */
+  occupierKnownRouteIds: readonly string[]
 }
 
 // ─── Symbol catalog ───────────────────────────────────────────────────────────
@@ -297,10 +299,15 @@ export function resolveMapMetadata(
     .map((id) => lookupSymbol(id))
     .filter((s): s is MapSymbol => s !== undefined)
 
+  const occupierKnownRouteIds = profile.baseRoutes
+    .filter((r) => r.routeClass !== 'concealed')
+    .map((r) => r.id)
+
   return {
     authoringMode: profile.authoringMode,
     legend,
     zones,
     routes: profile.baseRoutes,
+    occupierKnownRouteIds,
   }
 }

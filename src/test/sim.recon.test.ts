@@ -229,9 +229,12 @@ describe('recon mapLayer consumer', () => {
     const noLayer = evaluateTeamCaseRecon([agent], baseCase, { config: state.config } as never)
     const withLayer = evaluateTeconCaseReconHelper(agent, baseCase, state, mapLayer)
 
-    // prose-key-first does NOT add metadata-layer-depth; only genuine hidden symbols if any
+    // prose-key-first does NOT add metadata-layer-depth; only genuine hidden symbols + unknown-route modifiers
     const hiddenSymbolCount = mapLayer.zones.flatMap((z) => z.hiddenSymbolIds).length
-    expect(withLayer.hiddenModifierCount).toBe(noLayer.hiddenModifierCount + hiddenSymbolCount)
+    const unknownRouteCount = mapLayer.routes.filter(
+      (r) => !mapLayer.occupierKnownRouteIds.includes(r.id),
+    ).length
+    expect(withLayer.hiddenModifierCount).toBe(noLayer.hiddenModifierCount + hiddenSymbolCount + unknownRouteCount)
   })
 
   it('a hidden symbol with routeEffect (ward_glyph) is revealed and named in revealedModifierLabels at sufficient reconScore', () => {
@@ -342,5 +345,116 @@ describe('recon mapLayer production path', () => {
     const r2 = computeTeamScore([agent], siteCase, { config: state.config })
 
     expect(r1.reconSummary.hiddenModifierCount).toBe(r2.reconSummary.hiddenModifierCount)
+  })
+})
+
+describe('occupier-unknown-route recon modifiers', () => {
+  it('collapsed_cells mapLayer emits occupier-unknown-route modifier for concealed route', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+
+    const mapLayer = resolveMapMetadata(
+      {
+        purpose: 'ritual_complex',
+        builder: 'cult_engineers',
+        location: 'riverfront_substrate',
+        ingress: 'floodgate',
+        topology: 'collapsed_cells',
+        hazards: [],
+        treasure: [],
+        inhabitants: [],
+      },
+      () => 0.5,
+    )
+    const caseWithLayer = { ...baseCase, mapLayer }
+    const agent = makeReconAgent()
+
+    const result = evaluateTeamCaseRecon([agent], caseWithLayer, { config: state.config, mapLayer } as never)
+    // collapsed_cells has 1 concealed route → hiddenModifierCount should include it
+    expect(result.hiddenModifierCount).toBeGreaterThan(0)
+  })
+
+  it('concentric_sanctum mapLayer does NOT emit occupier-unknown-route modifier', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+
+    const mapLayer = resolveMapMetadata(
+      {
+        purpose: 'ritual_complex',
+        builder: 'cult_engineers',
+        location: 'riverfront_substrate',
+        ingress: 'floodgate',
+        topology: 'concentric_sanctum',
+        hazards: ['ward_feedback'],
+        treasure: [],
+        inhabitants: [],
+      },
+      () => 0.1,
+    )
+    // Compare hiddenModifierCount for concentric_sanctum (no unknown routes) vs collapsed_cells (has 1)
+    const mapLayerCollapsed = resolveMapMetadata(
+      {
+        purpose: 'ritual_complex',
+        builder: 'cult_engineers',
+        location: 'riverfront_substrate',
+        ingress: 'floodgate',
+        topology: 'collapsed_cells',
+        hazards: [],
+        treasure: [],
+        inhabitants: [],
+      },
+      () => 0.5,
+    )
+    const state2 = createStartingState()
+    const baseCase2 = state2.cases['case-001']
+    const agent = makeReconAgent()
+
+    const resultSanctum = evaluateTeamCaseRecon([agent], { ...baseCase, mapLayer }, { config: state.config, mapLayer } as never)
+    const resultCollapsed = evaluateTeamCaseRecon([agent], { ...baseCase2, mapLayer: mapLayerCollapsed }, { config: state2.config, mapLayer: mapLayerCollapsed } as never)
+
+    // concentric_sanctum has hidden ward_glyph symbols — some hidden modifiers — but NO unknown-route modifiers
+    // collapsed_cells has 1 concealed route → more hidden modifiers than sanctum on route side
+    // Key assertion: sanctum's revealedModifierLabels must NOT contain 'Unpatrolled route'
+    expect(resultSanctum.revealedModifierLabels.some((l) => l.startsWith('Unpatrolled route'))).toBe(false)
+  })
+
+  it('occupier-unknown-route modifier label contains "Unpatrolled route"', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+
+    // Use a super-capable agent to ensure reconScore >= 32 (threshold for unknown-route reveal)
+    const superAgent = createAgent({
+      id: 'super-recon',
+      name: 'Super Recon',
+      role: 'field_recon',
+      baseStats: { combat: 40, investigation: 99, utility: 99, social: 28 },
+      tags: ['recon', 'surveillance', 'pathfinding', 'field-kit'],
+      equipmentSlots: {
+        secondary: 'anomaly_scanner',
+        headgear: 'advanced_recon_suite',
+        utility1: 'signal_intercept_kit',
+      },
+    })
+
+    const mapLayer = resolveMapMetadata(
+      {
+        purpose: 'ritual_complex',
+        builder: 'cult_engineers',
+        location: 'riverfront_substrate',
+        ingress: 'floodgate',
+        topology: 'collapsed_cells',
+        hazards: [],
+        treasure: [],
+        inhabitants: [],
+      },
+      () => 0.5,
+    )
+    const caseWithLayer = { ...baseCase, mapLayer }
+
+    const result = evaluateTeamCaseRecon([superAgent], caseWithLayer, { config: state.config, mapLayer } as never)
+    const unknownRouteLabels = result.revealedModifierLabels.filter((label) =>
+      label.startsWith('Unpatrolled route'),
+    )
+    expect(unknownRouteLabels.length).toBeGreaterThan(0)
   })
 })

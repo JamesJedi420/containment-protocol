@@ -175,4 +175,52 @@ describe('caseGeneration', () => {
 
     expect(result.spawnedCases.some((spawned) => spawned.trigger === 'faction_pressure')).toBe(false)
   })
+
+  it('excludes site:* tags from pressure ranking so authored semantic tags are not displaced', () => {
+    // Force world_activity path: low containment rating, one slot open
+    const state = createStartingState()
+    state.config = { ...state.config, maxActiveCases: 2 }
+    state.containmentRating = 30
+    state.agency = {
+      containmentRating: 30,
+      clearanceLevel: state.clearanceLevel,
+      funding: state.funding,
+    }
+    // Replace starter cases with one open case that has many site:* tags
+    // and a single authored semantic tag ('vampire'). Without the filter,
+    // the site:* tags would out-count 'vampire' and displace it from the
+    // ranked pressure slice used by getWorldTemplateWeight and buildWorldActivityReason.
+    state.cases = {
+      'case-site-tagged': {
+        ...state.cases['case-001'],
+        id: 'case-site-tagged',
+        tags: [
+          'vampire',
+          'site:packet:ritual-sanctum.v1',
+          'site:purpose:ritual_complex',
+          'site:builder:cult_engineers',
+          'site:location:urban_basement',
+          'site:ingress:maintenance_shaft',
+          'site:topology:concentric_sanctum',
+          'site:hazard:ward_feedback',
+          'site:hazard:collapsed_floor',
+          'site:inhabitant:ritual_adepts',
+        ],
+        requiredTags: [],
+        preferredTags: [],
+        status: 'open',
+        assignedTeamIds: [],
+      },
+    }
+
+    const result = generateAmbientCases(state, createSeededRng(9001).next)
+
+    // At least one case must have been spawned via world_activity
+    const worldCase = result.spawnedCases.find((spawned) => spawned.trigger === 'world_activity')
+    expect(worldCase).toBeDefined()
+
+    // The sourceReason must not contain any site:* tag strings
+    const reason = worldCase?.sourceReason ?? ''
+    expect(reason).not.toMatch(/site:/)
+  })
 })

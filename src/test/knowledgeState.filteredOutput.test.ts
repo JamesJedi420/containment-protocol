@@ -28,7 +28,7 @@ describe('Filtered Report Output', () => {
     expect(Object.keys(internal)).toContain(getKnowledgeKey(teamId, anomalyId))
 
     // If masked, should be omitted from public
-    let maskedState = applyObscuredSignature({}, teamId, anomalyId, 5)
+    const maskedState = applyObscuredSignature({}, teamId, anomalyId, 5)
     const publicMasked = getFilteredKnowledgeView(maskedState, 'public')
     expect(Object.keys(publicMasked)).not.toContain(getKnowledgeKey(teamId, anomalyId))
   })

@@ -48,8 +48,14 @@ function EquipmentPage() {
         {/* Recommendations Section for test compatibility */}
         {(() => {
           // Simulate recommendations for test compatibility
-          const recommendations = [];
-          const openCase = Object.values(game.cases ?? {}).find((c: any) => c.status !== 'resolved');
+          const recommendations: Array<{
+            caseId: string;
+            caseTitle: string;
+            itemName: string;
+            stock: number;
+            queued: number;
+          }> = [];
+          const openCase = Object.values(game.cases ?? {}).find((c) => c.status !== 'resolved');
           if (openCase) {
             recommendations.push({
               caseId: openCase.id,
@@ -85,7 +91,7 @@ function EquipmentPage() {
           <p className="text-sm opacity-60">No operatives are currently available for equipment.</p>
         ) : (
           <ul className="space-y-3">
-            {loadoutViews.map((view: any) => (
+            {loadoutViews.map((view) => (
               <li key={view.agentId} className="rounded border border-white/10 px-3 py-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -102,7 +108,7 @@ function EquipmentPage() {
                 </div>
 
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
-                  {view.slots.map((slot: any) => (
+                  {view.slots.map((slot) => (
                     <div key={slot.slot} className="rounded border border-white/10 px-3 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
@@ -129,11 +135,11 @@ function EquipmentPage() {
                       </div>
 
                       <div className="mt-3 flex flex-wrap gap-2">
-                        {slot.stockOptions.filter((option: any) => option.itemId !== slot.itemId)
+                        {slot.stockOptions.filter((option) => option.itemId !== slot.itemId)
                           .length > 0 ? (
                           slot.stockOptions
-                            .filter((option: any) => option.itemId !== slot.itemId)
-                            .map((option: any) => (
+                            .filter((option) => option.itemId !== slot.itemId)
+                            .map((option) => (
                               <button
                                 key={`${view.agentId}-${slot.slot}-${option.itemId}`}
                                 type="button"

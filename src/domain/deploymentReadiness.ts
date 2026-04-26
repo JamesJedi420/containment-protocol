@@ -5,6 +5,7 @@ import { getMissionIntelRisk, getMissionIntelSummary } from './intel'
 import { clamp } from './math'
 import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity'
 import { INTEL_CALIBRATION } from './sim/calibration'
+import { evaluateConstructionReadinessBurden } from './constructionProgress'
 import {
   buildTeamCompositionState,
   buildTeamWeakestLinkSummary,
@@ -431,13 +432,17 @@ export function buildTeamDeploymentReadinessState(
     (riskCode) => riskCode !== 'intel-uncertainty'
   ).length
 
+  // SPE-110: Construction-incomplete site burden — read-only, does not alter softRisks list.
+  const constructionBurden = evaluateConstructionReadinessBurden(state, effectiveMissionId)
+
   const readinessScore = clamp(
     100 -
       averageFatigue -
       eligibility.hardBlockers.length * 12 -
       nonIntelSoftRiskCount * 6 +
       ((composition?.requiredCoverageRoles.length ?? 0) - (composition?.missingRoles.length ?? 0)) * 8 -
-      missionIntelEffect.penalty,
+      missionIntelEffect.penalty -
+      constructionBurden,
     0,
     100
   )

@@ -33,12 +33,19 @@ const mockCase = {
 describe('campaignToIncidentHook integration', () => {
   let hookCalled = false
   let receivedPacket: CampaignToIncidentPacket | undefined
+  const globalHooks = globalThis as typeof globalThis & {
+    campaignToIncidentHook?: (
+      packet: CampaignToIncidentPacket,
+      currentCase: typeof mockCase,
+      state: typeof mockState
+    ) => void
+  }
 
   beforeEach(() => {
     hookCalled = false
     receivedPacket = undefined
     // Set the global hook
-    ;(globalThis as any).campaignToIncidentHook = (packet: CampaignToIncidentPacket) => {
+    globalHooks.campaignToIncidentHook = (packet: CampaignToIncidentPacket) => {
       hookCalled = true
       receivedPacket = { ...packet, campaignId: 'hooked' }
       // Mutate the packet for test
@@ -58,8 +65,8 @@ describe('campaignToIncidentHook integration', () => {
       campaignDirectives: [mockState.directiveState.selectedId],
       knowledgeState: mockKnowledgeState,
     }
-    if (typeof (globalThis as any).campaignToIncidentHook === 'function') {
-      (globalThis as any).campaignToIncidentHook(packet, mockCase, mockState)
+    if (typeof globalHooks.campaignToIncidentHook === 'function') {
+      globalHooks.campaignToIncidentHook(packet, mockCase, mockState)
     }
     expect(hookCalled).toBe(true)
     expect(packet.campaignId).toBe('hooked')

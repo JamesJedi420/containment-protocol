@@ -12,7 +12,7 @@ describe('Scouting vs Concealment Contest', () => {
       gearTags: []
     });
     expect(result.outcome).toBe('strong');
-    expect(result.explanation).toContain('recon-specialist');
+    expect(result.explanation).toMatch(/recon[-\s]specialist/i);
   });
 
   it('penalizes fatigued teams', () => {

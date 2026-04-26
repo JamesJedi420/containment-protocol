@@ -19,7 +19,7 @@ describe('Agency Standing & Ranking', () => {
       agents: {},
       productionQueue: [],
       inventory: {},
-    } as any;
+    } as unknown as GameState;
     const summary = buildAgencySummary(game);
     const ranking = buildAgencyRanking(game);
     expect(summary.ranking.score).toBe(ranking.score);
@@ -28,7 +28,7 @@ describe('Agency Standing & Ranking', () => {
 
   it('ranking penalizes unresolved and failed cases', () => {
     const game: GameState = {
-      ...({} as any),
+      ...({} as unknown as GameState),
       agency: { containmentRating: 60, clearanceLevel: 2, funding: 80 },
       containmentRating: 60,
       clearanceLevel: 2,
@@ -51,7 +51,7 @@ describe('Agency Standing & Ranking', () => {
       agents: {},
       productionQueue: [],
       inventory: {},
-    } as any;
+    } as unknown as GameState;
     const summary = buildAgencySummary(game);
     expect(summary.ranking.score).toBeLessThan(50);
     expect(['C', 'D']).toContain(summary.ranking.tier);

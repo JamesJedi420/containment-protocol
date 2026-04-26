@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveSiteGenerationStages } from '../domain/siteGeneration'
+import { resolveSiteGenerationStages, isMultiScaleMapLayer } from '../domain/siteGeneration'
 import {
   PILOT_SITE_PACKETS,
   validatePilotSitePacketCatalog,
@@ -271,5 +271,133 @@ describe('pilot packet coverage validation', () => {
     }
 
     expect(validatePilotSitePacket(empty)).toContain('test-empty.v0: purposes array is empty')
+  })
+})
+
+describe('dual-influence active/legacy substratum', () => {
+  // Force ritual_complex as active purpose: RNG[0] = 0.01 (< 0.7 threshold → ritual_complex wins).
+  // Remaining values fill the active-purpose picks, then legacy picks consume RNG[9] and RNG[10].
+  const RITUAL_FORCED_RNG = [0.01, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8]
+
+  it('stages.legacyPurpose is predator_nest for RITUAL_PACKET runs', () => {
+    const result = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(RITUAL_FORCED_RNG)
+    )
+    expect(result).toBeTruthy()
+    expect(result?.stages.purpose).toBe('ritual_complex')
+    expect(result?.stages.legacyPurpose).toBe('predator_nest')
+  })
+
+  it('hazards contain specimens from both active and legacy purpose pools', () => {
+    const result = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(RITUAL_FORCED_RNG)
+    )
+    expect(result).toBeTruthy()
+    const hazards = result!.stages.hazards
+    // At least one hazard from the ritual_complex pool
+    const ritualHazards: string[] = ['ward_feedback', 'ritual_backwash']
+    // At least one hazard from the predator_nest pool
+    const predatorHazards: string[] = ['predator_ambush', 'blood_traps']
+    expect(hazards.some((h) => ritualHazards.includes(h))).toBe(true)
+    expect(hazards.some((h) => predatorHazards.includes(h))).toBe(true)
+  })
+
+  it('inhabitants contain specimens from both active and legacy purpose pools', () => {
+    const result = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(RITUAL_FORCED_RNG)
+    )
+    expect(result).toBeTruthy()
+    const inhabitants = result!.stages.inhabitants
+    // ritual_complex|cult_engineers pool: ritual_adepts, bound_sentinels, captured_witnesses, harvested_minds
+    const ritualInhabitants: string[] = ['ritual_adepts', 'bound_sentinels', 'captured_witnesses', 'harvested_minds']
+    // predator_nest|cult_engineers pool: bound_sentinels, feral_packmates, captured_witnesses
+    const predatorInhabitants: string[] = ['feral_packmates', 'captured_witnesses', 'bound_sentinels']
+    expect(inhabitants.some((i) => ritualInhabitants.includes(i))).toBe(true)
+    expect(inhabitants.some((i) => predatorInhabitants.includes(i))).toBe(true)
+  })
+
+  it('site:legacy tag is emitted in pipeline result tags', () => {
+    const result = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(RITUAL_FORCED_RNG)
+    )
+    expect(result).toBeTruthy()
+    expect(result!.tags).toContain('site:legacy:predator_nest')
+  })
+
+  it('dual-influence is deterministic — identical seeds produce identical combined stages and tags', () => {
+    const rngA = createSequenceRng(RITUAL_FORCED_RNG)
+    const rngB = createSequenceRng(RITUAL_FORCED_RNG)
+    const resultA = resolveSiteGenerationStages('mixed_eclipse_ritual', rngA)
+    const resultB = resolveSiteGenerationStages('mixed_eclipse_ritual', rngB)
+    expect(resultA).toEqual(resultB)
+    expect(resultA?.stages.legacyPurpose).toBe(resultB?.stages.legacyPurpose)
+    expect(resultA?.stages.hazards).toEqual(resultB?.stages.hazards)
+    expect(resultA?.tags).toEqual(resultB?.tags)
+  })
+
+  it('PREDATOR_PACKET: legacyPurpose is undefined — single-influence behavior unchanged', () => {
+    const result = resolveSiteGenerationStages(
+      'combat_vampire_nest',
+      createSequenceRng([0.2, 0.6, 0.4, 0.1, 0.9, 0.3, 0.7, 0.8])
+    )
+    expect(result).toBeTruthy()
+    expect(result?.stages.legacyPurpose).toBeUndefined()
+    expect(result?.stages.hazards.length).toBe(2)
+    expect(result?.tags.every((t) => !t.startsWith('site:legacy:'))).toBe(true)
+  })
+})
+
+// ─── SPE-451: Scale anchors in pipeline output ────────────────────────────────
+
+describe('scale anchors in pipeline output', () => {
+  it('pipeline result includes scaleAnchors on mapLayer', () => {
+    const result = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng([0.01, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8])
+    )
+    expect(result).toBeTruthy()
+    expect(result!.mapLayer.scaleAnchors).toBeDefined()
+    expect(Array.isArray(result!.mapLayer.scaleAnchors)).toBe(true)
+  })
+
+  it('concentric_sanctum topology produces 2 scale anchors in pipeline output', () => {
+    const rngValues = [0.01, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8]
+    const concentricResult = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(rngValues)
+    )
+
+    expect(concentricResult?.stages.topology).toBe('concentric_sanctum')
+    expect(concentricResult!.mapLayer.scaleAnchors).toHaveLength(2)
+    expect(isMultiScaleMapLayer(concentricResult!.mapLayer)).toBe(true)
+  })
+
+  it('lure_corridors topology produces 0 scale anchors in pipeline output', () => {
+    const lureResult = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng([0.99, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8])
+    )
+
+    expect(lureResult).toBeTruthy()
+    expect(lureResult!.stages.topology).toBe('lure_corridors')
+    expect(lureResult!.mapLayer.scaleAnchors).toHaveLength(0)
+    expect(isMultiScaleMapLayer(lureResult!.mapLayer)).toBe(false)
+  })
+
+  it('same seed produces identical scaleAnchors — determinism preserved', () => {
+    const rngValues = [0.01, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8]
+    const resultA = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(rngValues)
+    )
+    const resultB = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(rngValues)
+    )
+    expect(resultA!.mapLayer.scaleAnchors).toEqual(resultB!.mapLayer.scaleAnchors)
   })
 })

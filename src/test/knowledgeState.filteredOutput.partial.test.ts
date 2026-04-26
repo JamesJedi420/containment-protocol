@@ -10,7 +10,7 @@ describe('Filtered Output: Partial/Cryptic Defeat-Condition Knowledge', () => {
     // Suspected
     state = applyDefeatConditionKnowledge(state, teamId, anomalyId, 'suspected', 1)
     let publicView = getFilteredKnowledgeView(state, 'public')
-    let key = getKnowledgeKey(teamId, anomalyId)
+    const key = getKnowledgeKey(teamId, anomalyId)
     expect(publicView[key]).toBeDefined()
     expect(publicView[key].notes).toBe('Possible bypass exists.')
     // Family

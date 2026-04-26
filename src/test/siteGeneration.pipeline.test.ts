@@ -365,36 +365,15 @@ describe('scale anchors in pipeline output', () => {
   })
 
   it('concentric_sanctum topology produces 2 scale anchors in pipeline output', () => {
-    // mixed_eclipse_ritual with RNG[0]=0.01 → ritual_complex purpose
-    // Iterating all pilot templates to find one that resolves concentric_sanctum
-    let concentricResult = null
     const rngValues = [0.01, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8]
-    for (const packet of PILOT_SITE_PACKETS) {
-      for (let attempt = 0; attempt < packet.templateIds.length; attempt++) {
-        const r = resolveSiteGenerationStages(
-          packet.templateIds[attempt]!,
-          createSequenceRng(rngValues)
-        )
-        if (r?.stages.topology === 'concentric_sanctum') {
-          concentricResult = r
-          break
-        }
-      }
-      if (concentricResult) break
-    }
-    // If a concentric_sanctum topology was found, verify anchor count
-    if (concentricResult) {
-      expect(concentricResult.mapLayer.scaleAnchors).toHaveLength(2)
-      expect(isMultiScaleMapLayer(concentricResult.mapLayer)).toBe(true)
-    } else {
-      // No template forced concentric_sanctum — verify the invariant that
-      // scaleAnchors is always an array (possibly empty) on every pipeline result
-      const fallback = resolveSiteGenerationStages(
-        'mixed_eclipse_ritual',
-        createSequenceRng(rngValues)
-      )
-      expect(Array.isArray(fallback!.mapLayer.scaleAnchors)).toBe(true)
-    }
+    const concentricResult = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng(rngValues)
+    )
+
+    expect(concentricResult?.stages.topology).toBe('concentric_sanctum')
+    expect(concentricResult!.mapLayer.scaleAnchors).toHaveLength(2)
+    expect(isMultiScaleMapLayer(concentricResult!.mapLayer)).toBe(true)
   })
 
   it('lure_corridors topology produces 0 scale anchors in pipeline output', () => {

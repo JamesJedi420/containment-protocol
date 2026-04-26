@@ -377,32 +377,15 @@ describe('scale anchors in pipeline output', () => {
   })
 
   it('lure_corridors topology produces 0 scale anchors in pipeline output', () => {
-    let lureResult = null
-    const rngValues = [0.99, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8]
-    for (const packet of PILOT_SITE_PACKETS) {
-      for (let attempt = 0; attempt < packet.templateIds.length; attempt++) {
-        const r = resolveSiteGenerationStages(
-          packet.templateIds[attempt]!,
-          createSequenceRng(rngValues)
-        )
-        if (r?.stages.topology === 'lure_corridors') {
-          lureResult = r
-          break
-        }
-      }
-      if (lureResult) break
-    }
-    if (lureResult) {
-      expect(lureResult.mapLayer.scaleAnchors).toHaveLength(0)
-      expect(isMultiScaleMapLayer(lureResult.mapLayer)).toBe(false)
-    } else {
-      // Fallback: verify the pipeline always produces an array
-      const fallback = resolveSiteGenerationStages(
-        'combat_vampire_nest',
-        createSequenceRng([0.2, 0.6, 0.4, 0.1, 0.9, 0.3, 0.7, 0.8])
-      )
-      expect(Array.isArray(fallback!.mapLayer.scaleAnchors)).toBe(true)
-    }
+    const lureResult = resolveSiteGenerationStages(
+      'mixed_eclipse_ritual',
+      createSequenceRng([0.99, 0.4, 0.3, 0.25, 0.2, 0.1, 0.5, 0.6, 0.7, 0.3, 0.8])
+    )
+
+    expect(lureResult).toBeTruthy()
+    expect(lureResult!.stages.topology).toBe('lure_corridors')
+    expect(lureResult!.mapLayer.scaleAnchors).toHaveLength(0)
+    expect(isMultiScaleMapLayer(lureResult!.mapLayer)).toBe(false)
   })
 
   it('same seed produces identical scaleAnchors — determinism preserved', () => {

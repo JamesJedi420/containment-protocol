@@ -212,6 +212,7 @@ import {
   CONSTRUCTION_INCOMPLETE_FLAG,
   CONSTRUCTION_PROGRESS_MAX,
   evaluateConstructionLogisticsBonus,
+  getConstructionProgressClockId,
   isCaseUnderConstruction,
 } from '../constructionProgress'
 import { doesProgressClockMeetThreshold } from '../progressClocks'
@@ -2843,7 +2844,7 @@ function advanceConstructionProgress(context: WeeklyExecutionContext) {
     if (!isCaseUnderConstruction(currentCase)) continue
     if (context.finalizedCaseIds.has(currentCase.id)) continue
 
-    const clockId = `construction.site.${currentCase.id}.progress`
+    const clockId = getConstructionProgressClockId(currentCase.id)
     const alreadyComplete = doesProgressClockMeetThreshold(
       context.nextState,
       clockId,

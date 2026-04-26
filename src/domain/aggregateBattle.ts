@@ -1684,7 +1684,7 @@ function buildMeleeValue(
   if (ingressFlag) {
     value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
   }
-  // SPE-110: Incomplete construction site makes attacker advances easier (+1 melee)
+  // SPE-110: Incomplete construction site creates chaotic close-quarters fighting (+1 melee)
   if (context.spatialFlags.includes('construction.incomplete')) {
     value += 1
   }

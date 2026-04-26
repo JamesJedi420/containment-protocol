@@ -95,6 +95,7 @@ import {
   type AggregateBattleArea,
   type AggregateBattleCampaignSummary,
   type AggregateBattleCommandOverlay,
+  type AggregateBattleContext,
   type AggregateBattleInput,
   type AggregateBattleUnit,
 } from '../aggregateBattle'
@@ -1005,13 +1006,16 @@ function resolveOperationAggregateBattle(
     return undefined
   }
 
-  const context = buildAggregateBattleContextFromCase({
-    ...currentCase,
-    siteLayer: inferAggregateBattleSiteLayer(currentCase),
-    visibilityState: inferAggregateBattleVisibilityState(currentCase),
-    transitionType: inferAggregateBattleTransitionType(currentCase),
-    spatialFlags: [...(currentCase.spatialFlags ?? [])],
-  })
+  const context: AggregateBattleContext = {
+    ...buildAggregateBattleContextFromCase({
+      ...currentCase,
+      siteLayer: inferAggregateBattleSiteLayer(currentCase),
+      visibilityState: inferAggregateBattleVisibilityState(currentCase),
+      transitionType: inferAggregateBattleTransitionType(currentCase),
+      spatialFlags: [...(currentCase.spatialFlags ?? [])],
+    }),
+    defenderSideId: 'hostiles',
+  }
   const areas = buildAggregateBattleAreasForOperation(currentCase)
   const operatorSupportAvailable = Math.max(
     0,

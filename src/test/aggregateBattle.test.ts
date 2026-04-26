@@ -761,7 +761,7 @@ describe('construction.incomplete spatial flag modifiers', () => {
           },
         ],
         sides: createSides({ attackerSupport: 3, defenderSupport: 2 }),
-        context: createContext({ transitionType: undefined, spatialFlags: flags }),
+        context: createContext({ transitionType: undefined, spatialFlags: flags, defenderSideId: 'defenders' }),
       })
     )
   }

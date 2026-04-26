@@ -140,6 +140,12 @@ export interface AggregateBattleContext {
   spatialFlags: string[]
   /** SPE-451: cross-scale map layer, used to derive restricted-anchor defense bonus. */
   mapLayer?: MapLayerResult
+  /**
+   * SPE-110/SPE-451: The side ID of the institutional defender (the side that occupies and
+   * controls the site). When set, construction.incomplete defense penalties and restricted
+   * scale-anchor bonuses apply only to units on this side.
+   */
+  defenderSideId?: string
 }
 
 export interface AggregateBattleCommandOverlay {
@@ -1716,8 +1722,11 @@ function buildDefenseValue(
       value += mode === 'melee' ? ingressMod.defenseVsMeleeMod : ingressMod.defenseVsMissileMod
     }
   }
-  // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes)
-  if (context.spatialFlags.includes('construction.incomplete')) {
+  // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes).
+  // Only applies to the institutional defender side (the side that controls the site).
+  const isInstitutionalDefender =
+    !context.defenderSideId || unit.sideId === context.defenderSideId
+  if (context.spatialFlags.includes('construction.incomplete') && isInstitutionalDefender) {
     value -= 1
   }
   // SPE-451: Restricted/locked cross-scale anchors give institutional defenders inherent
@@ -1725,7 +1734,7 @@ function buildDefenseValue(
   const restrictedAnchorCount = context.mapLayer
     ? getRestrictedScaleAnchors(context.mapLayer).length
     : 0
-  if (restrictedAnchorCount > 0) {
+  if (restrictedAnchorCount > 0 && isInstitutionalDefender) {
     value += restrictedAnchorCount
   }
   if (unit.harvestedLoadout) {

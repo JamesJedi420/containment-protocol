@@ -21,6 +21,7 @@ import {
   buildAggregateBattleSideState,
   resolveAggregateBattle,
   type AggregateBattleArea,
+  type AggregateBattleContext,
   type AggregateBattleInput,
   type AggregateBattleUnit,
 } from '../domain/aggregateBattle'
@@ -279,17 +280,20 @@ describe('battle consumer — restricted anchors increase defense value', () => 
       spatialFlags: [],
     })
 
-    const ctxWithAnchor = buildAggregateBattleContextFromCase({
-      tags: [],
-      requiredTags: [],
-      preferredTags: [],
-      regionTag: 'urban',
-      siteLayer: 'interior',
-      visibilityState: 'clear',
-      transitionType: 'threshold',
-      spatialFlags: [],
-      mapLayer: concentricMap,
-    })
+    const ctxWithAnchor: AggregateBattleContext = {
+      ...buildAggregateBattleContextFromCase({
+        tags: [],
+        requiredTags: [],
+        preferredTags: [],
+        regionTag: 'urban',
+        siteLayer: 'interior',
+        visibilityState: 'clear',
+        transitionType: 'threshold',
+        spatialFlags: [],
+        mapLayer: concentricMap,
+      }),
+      defenderSideId: 'defenders',
+    }
 
     const resultNoAnchor = resolveAggregateBattle({ ...sharedInput, context: ctxNoAnchor })
     const resultWithAnchor = resolveAggregateBattle({ ...sharedInput, context: ctxWithAnchor })
@@ -306,17 +310,20 @@ describe('battle consumer — restricted anchors increase defense value', () => 
 
   it('results are deterministic — same inputs produce same anchor-modified outcomes', () => {
     const concentricMap = resolveMapMetadata(concentricStages, fixedRng)
-    const ctx = buildAggregateBattleContextFromCase({
-      tags: [],
-      requiredTags: [],
-      preferredTags: [],
-      regionTag: 'urban',
-      siteLayer: 'interior',
-      visibilityState: 'clear',
-      transitionType: 'threshold',
-      spatialFlags: [],
-      mapLayer: concentricMap,
-    })
+    const ctx: AggregateBattleContext = {
+      ...buildAggregateBattleContextFromCase({
+        tags: [],
+        requiredTags: [],
+        preferredTags: [],
+        regionTag: 'urban',
+        siteLayer: 'interior',
+        visibilityState: 'clear',
+        transitionType: 'threshold',
+        spatialFlags: [],
+        mapLayer: concentricMap,
+      }),
+      defenderSideId: 'defenders',
+    }
     const input: AggregateBattleInput = {
       battleId: 'anchor-determinism-test',
       roundLimit: 2,

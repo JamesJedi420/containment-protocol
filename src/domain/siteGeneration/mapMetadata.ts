@@ -27,11 +27,42 @@ export interface RouteAnnotation {
   activeSymbolIds: readonly string[]
 }
 
+// ─── Cross-scale types ───────────────────────────────────────────────────────
+
+/** Depth band assigned to a zone — from coarsest (region) to finest (room) grain. */
+export type ZoneDepthBand = 'region' | 'district' | 'building' | 'room'
+
+/**
+ * A directed link between two zones that cross a scale boundary.
+ * Anchors are always aligned to a specific route and carry an access tier that
+ * determines whether institutional defenders gain a positional advantage.
+ */
+export interface ScaleAnchor {
+  /** Stable identifier, e.g. 'district_to_building'. */
+  id: string
+  fromDepthBand: ZoneDepthBand
+  toDepthBand: ZoneDepthBand
+  /** Must match a ZoneAnnotation.id in the same MapLayerResult. */
+  fromZoneId: string
+  /** Must match a ZoneAnnotation.id in the same MapLayerResult. */
+  toZoneId: string
+  /** Must match a RouteAnnotation.id in the same MapLayerResult. */
+  routeId: string
+  /**
+   * open: scale transition is uncontrolled (no institutional advantage).
+   * restricted: access is checked — defenders have a positional advantage.
+   * locked: access is actively denied — maximum positional advantage.
+   */
+  accessTier: 'open' | 'restricted' | 'locked'
+}
+
 export interface ZoneAnnotation {
   id: string
   name: string
   symbolIds: readonly string[]
   hiddenSymbolIds: readonly string[]
+  /** Depth-band classification for this zone. Undefined on non-annotated single-scale topologies. */
+  depthBand?: ZoneDepthBand
 }
 
 export interface MapLayerResult {
@@ -46,6 +77,12 @@ export interface MapLayerResult {
   routes: readonly RouteAnnotation[]
   /** Route IDs known to current occupiers. Concealed routes are excluded — they predate or escape occupier awareness. Derived deterministically at generation time. */
   occupierKnownRouteIds: readonly string[]
+  /**
+   * SPE-451: Directed cross-scale links. Empty for single-scale topologies.
+   * Each anchor ties a route to a scale-boundary transition, allowing consumers
+   * to distinguish institutional depth-band traversal from intra-scale movement.
+   */
+  scaleAnchors: readonly ScaleAnchor[]
 }
 
 // ─── Symbol catalog ───────────────────────────────────────────────────────────
@@ -117,19 +154,25 @@ interface HazardSymbolPlacement {
 
 interface TopologyMapProfile {
   authoringMode: 'map-metadata-first' | 'prose-key-first'
-  baseZones: readonly { id: string; name: string }[]
+  baseZones: readonly { id: string; name: string; depthBand?: ZoneDepthBand }[]
   baseRoutes: readonly RouteAnnotation[]
   staticSymbolsByZone: Readonly<Record<string, { visible: readonly string[]; hidden: readonly string[] }>>
   hazardSymbolPlacements: readonly HazardSymbolPlacement[]
+  scaleAnchors: readonly ScaleAnchor[]
 }
 
 const TOPOLOGY_MAP_PROFILES: Record<SiteTopologyId, TopologyMapProfile> = {
+  // SPE-451: concentric_sanctum is the canonical multi-scale institutional topology.
+  // outer_ring = district-scale public approach; middle_ring = building-scale controlled
+  // corridor; inner_sanctum = room-scale secure core. Two scale anchors mark the
+  // transitions: the first is restricted (access checked), the second is locked
+  // (access actively denied), conferring increasing institutional defense advantage.
   concentric_sanctum: {
     authoringMode: 'map-metadata-first',
     baseZones: [
-      { id: 'outer_ring', name: 'Outer Ring' },
-      { id: 'middle_ring', name: 'Middle Ring' },
-      { id: 'inner_sanctum', name: 'Inner Sanctum' },
+      { id: 'outer_ring', name: 'Outer Ring', depthBand: 'district' },
+      { id: 'middle_ring', name: 'Middle Ring', depthBand: 'building' },
+      { id: 'inner_sanctum', name: 'Inner Sanctum', depthBand: 'room' },
     ],
     baseRoutes: [
       {
@@ -156,14 +199,34 @@ const TOPOLOGY_MAP_PROFILES: Record<SiteTopologyId, TopologyMapProfile> = {
       { hazardId: 'ritual_backwash', zoneId: 'inner_sanctum', symbolId: 'ward_glyph' },
       { hazardId: 'structural_fall', zoneId: 'outer_ring', symbolId: 'structural_crack' },
     ],
+    scaleAnchors: [
+      {
+        id: 'district_to_building',
+        fromDepthBand: 'district',
+        toDepthBand: 'building',
+        fromZoneId: 'outer_ring',
+        toZoneId: 'middle_ring',
+        routeId: 'outer_to_middle',
+        accessTier: 'restricted',
+      },
+      {
+        id: 'building_to_room',
+        fromDepthBand: 'building',
+        toDepthBand: 'room',
+        fromZoneId: 'middle_ring',
+        toZoneId: 'inner_sanctum',
+        routeId: 'middle_to_inner',
+        accessTier: 'locked',
+      },
+    ],
   },
 
   lure_corridors: {
     authoringMode: 'map-metadata-first',
     baseZones: [
-      { id: 'entry_gallery', name: 'Entry Gallery' },
-      { id: 'bait_chamber', name: 'Bait Chamber' },
-      { id: 'collapse_throat', name: 'Collapse Throat' },
+      { id: 'entry_gallery', name: 'Entry Gallery', depthBand: 'building' },
+      { id: 'bait_chamber', name: 'Bait Chamber', depthBand: 'building' },
+      { id: 'collapse_throat', name: 'Collapse Throat', depthBand: 'building' },
     ],
     baseRoutes: [
       {
@@ -189,13 +252,14 @@ const TOPOLOGY_MAP_PROFILES: Record<SiteTopologyId, TopologyMapProfile> = {
       { hazardId: 'blood_traps', zoneId: 'collapse_throat', symbolId: 'blood_trap_marker' },
       { hazardId: 'structural_fall', zoneId: 'collapse_throat', symbolId: 'structural_crack' },
     ],
+    scaleAnchors: [],
   },
 
   collapsed_cells: {
     authoringMode: 'prose-key-first',
     baseZones: [
-      { id: 'cell_block', name: 'Cell Block' },
-      { id: 'rubble_access', name: 'Rubble Access' },
+      { id: 'cell_block', name: 'Cell Block', depthBand: 'building' },
+      { id: 'rubble_access', name: 'Rubble Access', depthBand: 'building' },
     ],
     baseRoutes: [
       {
@@ -213,6 +277,7 @@ const TOPOLOGY_MAP_PROFILES: Record<SiteTopologyId, TopologyMapProfile> = {
       { hazardId: 'structural_fall', zoneId: 'cell_block', symbolId: 'structural_crack' },
       { hazardId: 'structural_fall', zoneId: 'rubble_access', symbolId: 'structural_crack' },
     ],
+    scaleAnchors: [],
   },
 }
 
@@ -283,6 +348,7 @@ export function resolveMapMetadata(
     name: z.name,
     symbolIds: [...(zoneVisible[z.id] ?? [])],
     hiddenSymbolIds: [...(zoneHidden[z.id] ?? [])],
+    depthBand: z.depthBand,
   }))
 
   // Collect all referenced symbol IDs to assemble the legend
@@ -309,5 +375,27 @@ export function resolveMapMetadata(
     zones,
     routes: profile.baseRoutes,
     occupierKnownRouteIds,
+    scaleAnchors: profile.scaleAnchors,
   }
+}
+
+// ─── Cross-scale helpers ──────────────────────────────────────────────────────
+
+/**
+ * Returns true if this map layer spans more than one depth band
+ * (i.e., at least one scale anchor exists).
+ */
+export function isMultiScaleMapLayer(mapLayer: MapLayerResult): boolean {
+  return mapLayer.scaleAnchors.length > 0
+}
+
+/**
+ * Returns scale anchors whose access tier is 'restricted' or 'locked'.
+ * These represent controlled boundaries between depth bands where institutional
+ * defenders hold a positional advantage.
+ */
+export function getRestrictedScaleAnchors(mapLayer: MapLayerResult): readonly ScaleAnchor[] {
+  return mapLayer.scaleAnchors.filter(
+    (anchor) => anchor.accessTier === 'restricted' || anchor.accessTier === 'locked'
+  )
 }

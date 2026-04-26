@@ -2,6 +2,8 @@ import { clamp } from './math'
 import { getCaseRegionTag } from './pressure'
 import type { CaseInstance, HarvestedMindLoadout, LeaderBonus, LegitimacyState } from './models'
 import { aggregateLoadoutModifiers } from './hostileLoadouts'
+import type { MapLayerResult } from './siteGeneration/mapMetadata'
+import { getRestrictedScaleAnchors } from './siteGeneration/mapMetadata'
 
 export const AGGREGATE_BATTLE_PHASES = ['movement', 'missile', 'melee', 'morale', 'rally'] as const
 
@@ -136,6 +138,8 @@ export interface AggregateBattleContext {
   visibilityState?: CaseInstance['visibilityState']
   transitionType?: CaseInstance['transitionType']
   spatialFlags: string[]
+  /** SPE-451: cross-scale map layer, used to derive restricted-anchor defense bonus. */
+  mapLayer?: MapLayerResult
 }
 
 export interface AggregateBattleCommandOverlay {
@@ -391,6 +395,7 @@ export function buildAggregateBattleContextFromCase(
     | 'visibilityState'
     | 'transitionType'
     | 'spatialFlags'
+    | 'mapLayer'
   >
 ): AggregateBattleContext {
   return {
@@ -399,6 +404,7 @@ export function buildAggregateBattleContextFromCase(
     visibilityState: caseData.visibilityState,
     transitionType: caseData.transitionType,
     spatialFlags: [...(caseData.spatialFlags ?? [])],
+    mapLayer: caseData.mapLayer,
   }
 }
 
@@ -1713,6 +1719,14 @@ function buildDefenseValue(
   // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes)
   if (context.spatialFlags.includes('construction.incomplete')) {
     value -= 1
+  }
+  // SPE-451: Restricted/locked cross-scale anchors give institutional defenders inherent
+  // advantage — they control these chokepoints between scale boundaries.
+  const restrictedAnchorCount = context.mapLayer
+    ? getRestrictedScaleAnchors(context.mapLayer).length
+    : 0
+  if (restrictedAnchorCount > 0) {
+    value += restrictedAnchorCount
   }
   if (unit.harvestedLoadout) {
     value += aggregateLoadoutModifiers(unit.harvestedLoadout).defenseMod

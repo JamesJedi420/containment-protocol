@@ -24,6 +24,7 @@ export type SiteInhabitantId =
   | 'bound_sentinels'
   | 'feral_packmates'
   | 'captured_witnesses'
+  | 'harvested_minds'
 
 export interface SpatialProfile {
   siteLayer: 'exterior' | 'transition' | 'interior'
@@ -221,6 +222,7 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'ritual_adepts', weight: 8 },
       { id: 'bound_sentinels', weight: 6 },
       { id: 'captured_witnesses', weight: 2 },
+      { id: 'harvested_minds', weight: 3 },
     ],
     'ritual_complex|feral_pack': [
       { id: 'ritual_adepts', weight: 5 },
@@ -241,6 +243,7 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'feral_packmates', weight: 8 },
       { id: 'captured_witnesses', weight: 6 },
       { id: 'bound_sentinels', weight: 2 },
+      { id: 'harvested_minds', weight: 4 },
     ],
     'predator_nest|collapsed_infrastructure': [
       { id: 'captured_witnesses', weight: 7 },
@@ -253,13 +256,13 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       siteLayer: 'interior',
       visibilityState: 'obstructed',
       transitionType: 'threshold',
-      spatialFlags: ['warded-rings', 'ritual-anchors'],
+      spatialFlags: ['warded-rings', 'ritual-anchors', 'institution_funnel'],
     },
     lure_corridors: {
       siteLayer: 'transition',
       visibilityState: 'obstructed',
       transitionType: 'chokepoint',
-      spatialFlags: ['ambush-lanes', 'false-doors'],
+      spatialFlags: ['ambush-lanes', 'false-doors', 'institution_funnel'],
     },
     collapsed_cells: {
       siteLayer: 'interior',

@@ -1823,6 +1823,59 @@ export interface MissionFatalityRecord {
   reason?: string
 }
 
+// ── SPE-687: Harvested-mind loadouts ─────────────────────────────────────────
+// Compact predator-power layer. Hostiles that consume high-value minds gain
+// victim-specific capabilities stored as a bounded loadout. Reserve organ slots
+// allow swapping the active toolkit. Institution funnels mature and sort victims
+// for harvest without direct hunting.
+
+/** Identifies the type of harvested victim that produced a capability set. */
+export type HarvestSourceId =
+  | 'academic'   // scholar, researcher — grants perception, cognitive reach
+  | 'mystic'     // occult practitioner — grants ward manipulation, remote sense
+  | 'engineer'   // technical expert — grants structural exploitation, trap bypass
+  | 'soldier'    // combat-trained — grants melee and formation awareness bonuses
+  | 'administrator' // bureaucratic/institutional — grants social infiltration, cover depth
+
+/** One slot in a hostile's reserve organ store. */
+export interface ReserveOrganSlot {
+  /** Position index in the reserve array (0-based, max 3). */
+  slotIndex: number
+  /** The victim type whose organ is stored here. */
+  sourceId: HarvestSourceId
+  /** Whether this slot currently holds a preserved organ (false = empty/spent). */
+  occupied: boolean
+}
+
+/** Runtime loadout derived from harvested minds. Attached to a hostile unit. */
+export interface HarvestedMindLoadout {
+  /** The victim type currently driving the active capability set. Null = no harvest yet. */
+  activeSourceId: HarvestSourceId | null
+  /** Up to 3 preserved reserve slots for toolkit swapping. */
+  reserveSlots: ReserveOrganSlot[]
+  /** Resolved capability IDs derived from activeSourceId at creation/swap time. */
+  derivedCapabilityIds: string[]
+  /** Opaque seed string used to deterministically resolve capabilities. */
+  seedKey: string
+}
+
+/** Cultivation stages an institution funnel passes through. */
+export type InstitutionFunnelStage = 'recruiting' | 'maturing' | 'sorting' | 'harvesting'
+
+/** Tracks the state of a predatory institution that matures victims for harvest. */
+export interface InstitutionFunnelState {
+  /** Template ID of the institution (e.g. 'academy_front', 'clinic_front'). */
+  templateId: string
+  /** Current cultivation stage. */
+  stage: InstitutionFunnelStage
+  /** Number of matured candidates currently in the victim pool. */
+  victimPoolSize: number
+  /** Opaque seed string for deterministic stage resolution. */
+  seedKey: string
+}
+
+// ── end SPE-687 types ─────────────────────────────────────────────────────────
+
 export type {
   CaseEscalationTrigger,
   CaseSpawnTrigger,

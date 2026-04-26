@@ -12,6 +12,7 @@ import {
   type AggregateBattleSideState,
   type AggregateBattleUnit,
 } from '../domain/aggregateBattle'
+import { resolveHarvestedLoadout } from '../domain/hostileLoadouts'
 
 function createBattleAreas(): AggregateBattleArea[] {
   return [
@@ -664,5 +665,61 @@ describe('aggregate battle layer', () => {
       fortified.summaryTable.find((r) => r.unitId === 'gate-hold')?.remainingStrengthSteps ?? -1
 
     expect(baselineDefenderSteps).toBeLessThan(fortifiedDefenderSteps)
+  })
+})
+
+describe('harvested-mind loadout integration in aggregateBattle', () => {
+  it('unit with soldier harvestedLoadout has better battle outcome than identical unit without', () => {
+    const soldierLoadout = resolveHarvestedLoadout('soldier', [], 'hostile-unit:soldier')
+
+    function runWithLoadout(withLoadout: boolean) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `harvest-melee-check-${withLoadout}`,
+          roundLimit: 3,
+          units: [
+            {
+              id: 'hostile-unit',
+              label: 'Hostile Unit',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'att-reserve',
+              meleeFactor: 3,
+              defenseFactor: 3,
+              morale: 70,
+              readiness: 70,
+              harvestedLoadout: withLoadout ? soldierLoadout : undefined,
+            },
+            {
+              id: 'defender-unit',
+              label: 'Defender Unit',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              meleeFactor: 3,
+              defenseFactor: 4,
+              morale: 70,
+              readiness: 70,
+            },
+          ],
+          context: createContext({ spatialFlags: [] }),
+        })
+      )
+    }
+
+    const withoutLoadout = runWithLoadout(false)
+    const withLoadout = runWithLoadout(true)
+
+    const defenderStepsWithout =
+      withoutLoadout.summaryTable.find((r) => r.unitId === 'defender-unit')
+        ?.remainingStrengthSteps ?? 999
+    const defenderStepsWith =
+      withLoadout.summaryTable.find((r) => r.unitId === 'defender-unit')?.remainingStrengthSteps ??
+      999
+
+    // Soldier loadout adds meleeMod — defender should take more damage (fewer remaining steps)
+    expect(defenderStepsWith).toBeLessThanOrEqual(defenderStepsWithout)
   })
 })

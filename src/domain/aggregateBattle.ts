@@ -1672,6 +1672,10 @@ function buildMeleeValue(
   if (ingressFlag) {
     value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
   }
+  // SPE-110: Incomplete construction site makes attacker advances easier (+1 melee)
+  if (context.spatialFlags.includes('construction.incomplete')) {
+    value += 1
+  }
   if (unit.harvestedLoadout) {
     value += aggregateLoadoutModifiers(unit.harvestedLoadout).meleeMod
   }
@@ -1705,6 +1709,10 @@ function buildDefenseValue(
     if (ingressMod) {
       value += mode === 'melee' ? ingressMod.defenseVsMeleeMod : ingressMod.defenseVsMissileMod
     }
+  }
+  // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes)
+  if (context.spatialFlags.includes('construction.incomplete')) {
+    value -= 1
   }
   if (unit.harvestedLoadout) {
     value += aggregateLoadoutModifiers(unit.harvestedLoadout).defenseMod

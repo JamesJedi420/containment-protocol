@@ -206,6 +206,15 @@ import { advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
 import { applySpontaneousChemistryEvent } from './spontaneousChemistry'
 import { expireBetrayalConsequences, recoverTrustDamagePassively } from './betrayal'
+import {
+  advanceCaseConstructionClock,
+  CONSTRUCTION_INCOMPLETE_FLAG,
+  CONSTRUCTION_PROGRESS_MAX,
+  evaluateConstructionLogisticsBonus,
+  isCaseUnderConstruction,
+} from '../constructionProgress'
+import { doesProgressClockMeetThreshold } from '../progressClocks'
+import { evaluateThresholdCourtProxyConflict } from '../proxyConflict'
 
 type AdvanceWeekState = GameState & {
   damagedEquipmentQueue?: string[]
@@ -2815,6 +2824,72 @@ function processRaidPressure(context: WeeklyExecutionContext, rng: SeededRng) {
   appendSpawnedCaseEventDrafts(context, context.nextState, raidResult.spawnedCases)
 }
 
+// SPE-110: Advance construction progress for all open cases with site-generation outputs.
+// Runs after logistics queues are advanced so logistics bonus reflects updated stock counts.
+// Does not consume inventory stock — read-only logistics check.
+function advanceConstructionProgress(context: WeeklyExecutionContext) {
+  const logisticsBonus = evaluateConstructionLogisticsBonus(context.nextState)
+  const factionStates = buildFactionStates(context.nextState)
+  const anchorFaction = factionStates.find((f) => f.id === 'threshold_court')
+  const interferenceActive =
+    anchorFaction !== undefined &&
+    evaluateThresholdCourtProxyConflict(anchorFaction).effect === 'proxy_interference'
+
+  for (const currentCase of Object.values(context.nextState.cases)) {
+    if (!isCaseUnderConstruction(currentCase)) continue
+    if (context.finalizedCaseIds.has(currentCase.id)) continue
+
+    const clockId = `construction.site.${currentCase.id}.progress`
+    const alreadyComplete = doesProgressClockMeetThreshold(
+      context.nextState,
+      clockId,
+      CONSTRUCTION_PROGRESS_MAX
+    )
+    if (alreadyComplete) continue
+
+    // delta: base +1, +1 if logistics adequate, 0 total if interference active
+    const delta = interferenceActive ? 0 : 1 + logisticsBonus
+
+    context.nextState = advanceCaseConstructionClock(context.nextState, currentCase, delta)
+
+    // Sync the construction.incomplete spatial flag based on updated clock state
+    const nowComplete = doesProgressClockMeetThreshold(
+      context.nextState,
+      clockId,
+      CONSTRUCTION_PROGRESS_MAX
+    )
+    const existingFlags: string[] = context.nextState.cases[currentCase.id]?.spatialFlags ?? []
+    const hasIncompleteFlag = existingFlags.includes(CONSTRUCTION_INCOMPLETE_FLAG)
+
+    if (!nowComplete && !hasIncompleteFlag) {
+      context.nextState = {
+        ...context.nextState,
+        cases: {
+          ...context.nextState.cases,
+          [currentCase.id]: {
+            ...context.nextState.cases[currentCase.id]!,
+            spatialFlags: [...existingFlags, CONSTRUCTION_INCOMPLETE_FLAG],
+          },
+        },
+      }
+    } else if (nowComplete && hasIncompleteFlag) {
+      context.nextState = {
+        ...context.nextState,
+        cases: {
+          ...context.nextState.cases,
+          [currentCase.id]: {
+            ...context.nextState.cases[currentCase.id]!,
+            spatialFlags: existingFlags.filter((f) => f !== CONSTRUCTION_INCOMPLETE_FLAG),
+          },
+        },
+      }
+    }
+
+    // SPE-110: Construction progress/stall is observable via clock state and spatialFlags.
+    // Dedicated event types will be registered when the event registry is extended (future sprint).
+  }
+}
+
 function advanceQueues(context: WeeklyExecutionContext) {
   const trainingResult = advanceTrainingQueues(context.nextState)
   context.nextState = trainingResult.state
@@ -3300,6 +3375,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   expireOldCandidates(context)
   processRaidPressure(context, rng)
   advanceQueues(context)
+  // SPE-110: Construction progress mutation — after logistics queues, before relationship drift.
+  advanceConstructionProgress(context)
   applyPassiveRelationshipDrift(context)
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)

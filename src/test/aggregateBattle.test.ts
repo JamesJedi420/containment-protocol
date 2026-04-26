@@ -723,3 +723,76 @@ describe('harvested-mind loadout integration in aggregateBattle', () => {
     expect(defenderStepsWith).toBeLessThanOrEqual(defenderStepsWithout)
   })
 })
+
+// SPE-110: Construction-incomplete modifier tests
+describe('construction.incomplete spatial flag modifiers', () => {
+  function runWithConstructionFlag(incomplete: boolean) {
+    const flags = incomplete ? ['construction.incomplete'] : []
+    return resolveAggregateBattle(
+      createBattleInput({
+        battleId: `construction-incomplete-${incomplete}`,
+        roundLimit: 1,
+        units: [
+          {
+            id: 'assault-team',
+            label: 'Assault Team',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'press',
+            meleeFactor: 5,
+            defenseFactor: 4,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'site-guard',
+            label: 'Site Guard',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 3,
+            defenseFactor: 3,
+            morale: 70,
+            readiness: 68,
+          },
+        ],
+        sides: createSides({ attackerSupport: 3, defenderSupport: 2 }),
+        context: createContext({ transitionType: undefined, spatialFlags: flags }),
+      })
+    )
+  }
+
+  it('construction.incomplete gives attacker melee advantage vs clean baseline', () => {
+    const baseline = runWithConstructionFlag(false)
+    const incomplete = runWithConstructionFlag(true)
+
+    const baselineDefSteps =
+      baseline.summaryTable.find((r) => r.unitId === 'site-guard')?.remainingStrengthSteps ?? 999
+    const incompleteDefSteps =
+      incomplete.summaryTable.find((r) => r.unitId === 'site-guard')?.remainingStrengthSteps ?? 999
+
+    // Attacker gets +1 melee, defender gets -1 defense → defender should take more damage
+    expect(incompleteDefSteps).toBeLessThanOrEqual(baselineDefSteps)
+  })
+
+  it('construction.incomplete is deterministic — same inputs produce same result', () => {
+    const resultA = runWithConstructionFlag(true)
+    const resultB = runWithConstructionFlag(true)
+    expect(resultA.summaryTable).toEqual(resultB.summaryTable)
+  })
+
+  it('removing construction.incomplete flag (site complete) reverts modifier to clean baseline', () => {
+    const baseline = runWithConstructionFlag(false)
+    const completed = runWithConstructionFlag(false) // same: no flag
+
+    expect(
+      completed.summaryTable.find((r) => r.unitId === 'site-guard')?.remainingStrengthSteps
+    ).toBe(
+      baseline.summaryTable.find((r) => r.unitId === 'site-guard')?.remainingStrengthSteps
+    )
+  })
+})

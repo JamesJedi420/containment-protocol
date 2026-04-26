@@ -35,6 +35,8 @@ export interface SpatialProfile {
 
 export interface SiteGenerationStageSnapshot {
   purpose: SitePurposeId
+  /** Ghost purpose carried from packet declaration. When set, hazards and inhabitants include one additive pick from this pool. */
+  legacyPurpose?: SitePurposeId
   builder: SiteBuilderId
   location: SiteLocationId
   ingress: SiteIngressId
@@ -48,6 +50,8 @@ export interface PilotSiteGenerationPacket {
   id: string
   templateIds: readonly string[]
   purposes: readonly WeightedStageOption<SitePurposeId>[]
+  /** Optional ghost/substratum purpose. When declared, one extra hazard and one extra inhabitant are picked from this purpose's pools and merged into the active result. */
+  legacyPurposeId?: SitePurposeId
   buildersByPurpose: Readonly<Record<SitePurposeId, readonly WeightedStageOption<SiteBuilderId>[]>>
   locationsByPurpose: Readonly<Record<SitePurposeId, readonly WeightedStageOption<SiteLocationId>[]>>
   ingressByPurposeAndLocation: Readonly<
@@ -75,6 +79,7 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
     { id: 'ritual_complex', weight: 7 },
     { id: 'predator_nest', weight: 3 },
   ],
+  legacyPurposeId: 'predator_nest',
   buildersByPurpose: {
     ritual_complex: [
       { id: 'cult_engineers', weight: 7 },
@@ -277,6 +282,7 @@ const PREDATOR_PACKET: PilotSiteGenerationPacket = {
   ...RITUAL_PACKET,
   id: 'predator-stockyard.v1',
   templateIds: ['combat_vampire_nest'],
+  legacyPurposeId: undefined,
   purposes: [
     { id: 'predator_nest', weight: 7 },
     { id: 'ritual_complex', weight: 3 },
@@ -386,6 +392,26 @@ export function validatePilotSitePacket(packet: PilotSiteGenerationPacket): stri
   for (const topology of allTopologies) {
     if (!packet.topologySpatialProfiles[topology]) {
       errors.push(`${packet.id}: missing topologySpatialProfiles["${topology}"]`)
+    }
+  }
+
+  if (packet.legacyPurposeId) {
+    const legacyId = packet.legacyPurposeId
+    for (const topology of allTopologies) {
+      const key = `${legacyId}|${topology}` as const
+      if (!packet.hazardsByPurposeAndTopology[key]?.length) {
+        errors.push(
+          `${packet.id}: legacyPurposeId "${legacyId}" is missing hazardsByPurposeAndTopology["${key}"]`
+        )
+      }
+    }
+    for (const builder of allBuilders) {
+      const key = `${legacyId}|${builder}` as const
+      if (!packet.inhabitantsByPurposeAndBuilder[key]?.length) {
+        errors.push(
+          `${packet.id}: legacyPurposeId "${legacyId}" is missing inhabitantsByPurposeAndBuilder["${key}"]`
+        )
+      }
     }
   }
 

@@ -134,6 +134,7 @@ function toPipelineTags(result: SiteGenerationPipelineResult) {
   return [
     `site:packet:${result.packetId}`,
     `site:purpose:${result.stages.purpose}`,
+    ...(result.stages.legacyPurpose ? [`site:legacy:${result.stages.legacyPurpose}`] : []),
     `site:builder:${result.stages.builder}`,
     `site:location:${result.stages.location}`,
     `site:ingress:${result.stages.ingress}`,
@@ -232,19 +233,48 @@ export function resolveSiteGenerationStages(
     rng
   )
 
+  // Dual-influence: additive picks from legacy purpose pool (opt-in per packet)
+  let allHazards: SiteHazardId[] = hazards
+  let allInhabitants: SiteInhabitantId[] = inhabitants
+  if (packet.legacyPurposeId) {
+    const legacyHazardPool = packet.hazardsByPurposeAndTopology[`${packet.legacyPurposeId}|${topology}`]
+    if (legacyHazardPool?.length) {
+      const legacyHazardPicks = pickWeightedDistinct(
+        legacyHazardPool.filter((opt) => !hazards.includes(opt.id)),
+        1,
+        rng
+      )
+      allHazards = mergeUniquePreserveOrder(hazards, legacyHazardPicks) as SiteHazardId[]
+    }
+    const legacyInhabitantPool =
+      packet.inhabitantsByPurposeAndBuilder[`${packet.legacyPurposeId}|${builder}`]
+    if (legacyInhabitantPool?.length) {
+      const legacyInhabitantPicks = pickWeightedDistinct(
+        legacyInhabitantPool.filter((opt) => !inhabitants.includes(opt.id)),
+        1,
+        rng
+      )
+      allInhabitants = mergeUniquePreserveOrder(
+        inhabitants,
+        legacyInhabitantPicks
+      ) as SiteInhabitantId[]
+    }
+  }
+
   const spatialProfile = packet.topologySpatialProfiles[topology]
 
   const result: SiteGenerationPipelineResult = {
     packetId: packet.id,
     stages: {
       purpose,
+      legacyPurpose: packet.legacyPurposeId,
       builder,
       location,
       ingress,
       topology,
-      hazards,
+      hazards: allHazards,
       treasure,
-      inhabitants,
+      inhabitants: allInhabitants,
     },
     tags: [],
     spatial: {
@@ -254,7 +284,7 @@ export function resolveSiteGenerationStages(
       spatialFlags: [...spatialProfile.spatialFlags, `ingress:${ingress}`],
     },
     mapLayer: resolveMapMetadata(
-      { purpose, builder, location, ingress, topology, hazards, treasure, inhabitants },
+      { purpose, builder, location, ingress, topology, hazards: allHazards, treasure, inhabitants: allInhabitants },
       rng
     ),
   }

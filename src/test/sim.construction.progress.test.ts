@@ -53,6 +53,11 @@ describe('construction progress — clock helpers', () => {
     const currentCase = buildConstructionCase('c-test', { deadlineRemaining: 0 })
     expect(isCaseUnderConstruction(currentCase as Parameters<typeof isCaseUnderConstruction>[0])).toBe(false)
   })
+
+  it('isCaseUnderConstruction returns false for resolved cases even with active spatialFlags and deadline', () => {
+    const currentCase = buildConstructionCase('c-test', { status: 'resolved' })
+    expect(isCaseUnderConstruction(currentCase as Parameters<typeof isCaseUnderConstruction>[0])).toBe(false)
+  })
 })
 
 describe('construction progress — logistics bonus', () => {

@@ -26,7 +26,11 @@ export function getConstructionProgressClockId(caseId: string): string {
  * and is still within its active timeline (deadline has not expired).
  */
 export function isCaseUnderConstruction(currentCase: CaseInstance): boolean {
-  return (currentCase.spatialFlags?.length ?? 0) > 0 && currentCase.deadlineRemaining > 0
+  return (
+    currentCase.status !== 'resolved' &&
+    (currentCase.spatialFlags?.length ?? 0) > 0 &&
+    currentCase.deadlineRemaining > 0
+  )
 }
 
 /**

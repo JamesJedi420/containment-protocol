@@ -76,7 +76,7 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     concealment = Math.max(0, concealment - 1);
     contextExplanation += 'Open container: -1 concealment bonus.';
   }
-  let base = input.teamCapability - concealment;
+  const base = input.teamCapability - concealment;
   const sources: ModifierSource[] = [
     { source: 'base', value: base }
   ];

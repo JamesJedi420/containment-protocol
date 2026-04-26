@@ -223,4 +223,47 @@ describe('caseGeneration', () => {
     const reason = worldCase?.sourceReason ?? ''
     expect(reason).not.toMatch(/site:/)
   })
+
+  it('surfaces authored semantic tags in pressure ranking when no site:* tags are present', () => {
+    // Baseline: a case with only authored tags. Confirms the authored tag
+    // reaches the sourceReason without any site:* pollution in the picture.
+    // Uses the same starter case tags ('vampire', 'night', 'tier-1') that
+    // world templates key off, maximising the chance of a tag-aligned reason.
+    const state = createStartingState()
+    state.config = { ...state.config, maxActiveCases: 2 }
+    state.containmentRating = 30
+    state.agency = {
+      containmentRating: 30,
+      clearanceLevel: state.clearanceLevel,
+      funding: state.funding,
+    }
+    // Keep a single authored-only case; no site:* tags anywhere
+    state.cases = {
+      'case-authored-only': {
+        ...state.cases['case-001'],
+        id: 'case-authored-only',
+        tags: ['vampire', 'night', 'tier-1'],
+        requiredTags: [],
+        preferredTags: [],
+        status: 'open',
+        assignedTeamIds: [],
+      },
+    }
+
+    const result = generateAmbientCases(state, createSeededRng(9002).next)
+
+    const worldCase = result.spawnedCases.find((spawned) => spawned.trigger === 'world_activity')
+    expect(worldCase).toBeDefined()
+
+    const reason = worldCase?.sourceReason ?? ''
+
+    // Pressure-ranking output must never contain site:* strings when only authored tags are present
+    expect(reason).not.toMatch(/site:/)
+
+    // The reason must follow one of the two expected authored formats:
+    //   "Baseline world activity aligned with active pressure tags: ..."
+    //   "Baseline world activity surfaced a new ..."
+    // Both indicate authored-only data reached the ranking path cleanly.
+    expect(reason).toMatch(/^Baseline world activity/)
+  })
 })

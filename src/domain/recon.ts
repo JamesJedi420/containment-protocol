@@ -223,6 +223,21 @@ function buildMapLayerHiddenModifiers(mapLayer: MapLayerResult) {
     })
   }
 
+  // Occupier-unknown routes: concealed passages not patrolled because occupiers lack knowledge of them
+  const unknownRoutes = mapLayer.routes.filter((r) => !mapLayer.occupierKnownRouteIds.includes(r.id))
+  for (const route of unknownRoutes) {
+    modifiers.push({
+      id: `occupier-unknown-route:${route.id}`,
+      label: `Unpatrolled route: ${route.label}`,
+      keywords: ['map-metadata'],
+      matchedKeywords: ['map-metadata'],
+      revealThreshold: 32,
+      uncertainty: 1.4,
+      scoreBonus: 1.1,
+      probabilityBonus: 0.011,
+    })
+  }
+
   // map-metadata-first sites have a structured layer that rewards deeper recon
   if (mapLayer.authoringMode === 'map-metadata-first') {
     modifiers.push({

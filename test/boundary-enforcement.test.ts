@@ -21,7 +21,7 @@ describe('Dependency boundary enforcement', () => {
   function isInternalFeatureImport(filePath, importPath) {
     // Allow any import from a file within the same feature directory
     // e.g., src/features/agents/hooks/useTabRegistry.ts importing from ../tabs or ../agentTabsModel
-    const featureMatch = filePath.replace(/\\/g, '/').match(/src\/features\/([^\/]+)/)
+    const featureMatch = filePath.replace(/\\/g, '/').match(/src\/features\/([^/]+)/)
     if (!featureMatch) return false
     const feature = featureMatch[1]
     // ../tabs, ../agentTabsModel, ../tabRegistry, etc

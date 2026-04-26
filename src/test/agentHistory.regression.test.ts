@@ -178,6 +178,7 @@ describe('agent history regression coverage', () => {
     expect(agent.history?.timeline.map((entry) => entry.eventType)).toEqual([
       'agent.training_started',
       'agent.training_completed',
+      'simulation.weekly_tick',
       'progression.xp_gained',
     ])
     expect(agent.history?.counters.trainingWeeks).toBe(queuedEntry.durationWeeks)

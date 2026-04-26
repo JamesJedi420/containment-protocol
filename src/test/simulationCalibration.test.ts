@@ -94,7 +94,7 @@ describe('simulation calibration', () => {
         estimatedDeployWeeks: 0,
         estimatedRecoveryWeeks: 0,
         computedWeek: 4,
-      } as any,
+      } as unknown as Parameters<typeof resolveWeakestLinkMission>[0]['teamReadiness'],
       teamCohesion: {
         cohesionBand: 'strong',
         cohesionScore: 90,
@@ -155,7 +155,7 @@ describe('simulation calibration', () => {
       intelConfidence: 0.2,
       intelUncertainty: 0.8,
       intelLastUpdatedWeek: state.week - 2,
-    } as any
+    } as unknown as typeof state.cases[typeof missionId]
 
     const triage = triageMission(state, state.cases[missionId])
     const readiness = buildTeamDeploymentReadinessState(state, 't_nightwatch', missionId)

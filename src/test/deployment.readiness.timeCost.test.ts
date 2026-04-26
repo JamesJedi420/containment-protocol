@@ -6,6 +6,13 @@ import {
   evaluateDeploymentEligibility,
 } from '../domain/deploymentReadiness'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import {
+  CONSTRUCTION_INCOMPLETE_FLAG,
+  CONSTRUCTION_PROGRESS_MAX,
+  CONSTRUCTION_READINESS_PENALTY,
+  getConstructionProgressClockId,
+} from '../domain/constructionProgress'
+import { advanceDefinedProgressClock } from '../domain/progressClocks'
 
 describe('deployment readiness and time-cost', () => {
   it('marks mission-ready team as eligible with no hard blockers', () => {
@@ -197,5 +204,96 @@ describe('deployment readiness and time-cost', () => {
 
     const roundTripped = loadGameSave(serializeGameSave(state))
     expect(roundTripped.teams.t_nightwatch.deploymentReadinessState?.readinessScore).toBeLessThanOrEqual(100)
+  })
+
+  // SPE-110: Construction burden tests
+  it('reduces readiness score by CONSTRUCTION_READINESS_PENALTY when construction.incomplete flag is set', () => {
+    const baseline = createStartingState()
+    baseline.cases['case-001'] = {
+      ...baseline.cases['case-001']!,
+      requiredRoles: [],
+      requiredTags: [],
+    }
+    // Add fatigue so the formula value sits below 100, making the 8-pt burden penalty observable.
+    for (const memberId of baseline.teams.t_nightwatch.memberIds ?? baseline.teams.t_nightwatch.agentIds) {
+      baseline.agents[memberId] = { ...baseline.agents[memberId]!, fatigue: 50 }
+    }
+    const baseScore = buildTeamDeploymentReadinessState(baseline, 't_nightwatch', 'case-001').readinessScore
+
+    let withBurden = createStartingState()
+    const clockId = getConstructionProgressClockId('case-001')
+    withBurden.cases['case-001'] = {
+      ...withBurden.cases['case-001']!,
+      requiredRoles: [],
+      requiredTags: [],
+      spatialFlags: [
+        ...(withBurden.cases['case-001']?.spatialFlags ?? []),
+        CONSTRUCTION_INCOMPLETE_FLAG,
+      ],
+    }
+    for (const memberId of withBurden.teams.t_nightwatch.memberIds ?? withBurden.teams.t_nightwatch.agentIds) {
+      withBurden.agents[memberId] = { ...withBurden.agents[memberId]!, fatigue: 50 }
+    }
+    withBurden = advanceDefinedProgressClock(withBurden, clockId, 1, {
+      label: 'Construction: Test',
+      max: CONSTRUCTION_PROGRESS_MAX,
+    })
+
+    const burdenScore = buildTeamDeploymentReadinessState(withBurden, 't_nightwatch', 'case-001').readinessScore
+    expect(baseScore - burdenScore).toBe(CONSTRUCTION_READINESS_PENALTY)
+  })
+
+  it('does not apply construction burden when construction is complete', () => {
+    const baseline = createStartingState()
+    baseline.cases['case-001'] = { ...baseline.cases['case-001']!, requiredRoles: [], requiredTags: [] }
+    const baseScore = buildTeamDeploymentReadinessState(baseline, 't_nightwatch', 'case-001').readinessScore
+
+    let withComplete = createStartingState()
+    const clockId = getConstructionProgressClockId('case-001')
+    withComplete.cases['case-001'] = {
+      ...withComplete.cases['case-001']!,
+      requiredRoles: [],
+      requiredTags: [],
+      spatialFlags: [
+        ...(withComplete.cases['case-001']?.spatialFlags ?? []),
+        CONSTRUCTION_INCOMPLETE_FLAG,
+      ],
+    }
+    // Complete the construction clock
+    withComplete = advanceDefinedProgressClock(withComplete, clockId, CONSTRUCTION_PROGRESS_MAX, {
+      label: 'Construction: Test',
+      max: CONSTRUCTION_PROGRESS_MAX,
+    })
+
+    const completedScore = buildTeamDeploymentReadinessState(withComplete, 't_nightwatch', 'case-001').readinessScore
+    expect(completedScore).toBe(baseScore)
+  })
+
+  it('construction burden penalty is independent of inventory stock changes', () => {
+    const applyBurden = (s: ReturnType<typeof createStartingState>) => {
+      const clockId = getConstructionProgressClockId('case-001')
+      s.cases['case-001'] = {
+        ...s.cases['case-001']!,
+        requiredRoles: [],
+        requiredTags: [],
+        spatialFlags: [
+          ...(s.cases['case-001']?.spatialFlags ?? []),
+          CONSTRUCTION_INCOMPLETE_FLAG,
+        ],
+      }
+      return advanceDefinedProgressClock(s, clockId, 1, {
+        label: 'Construction: Test',
+        max: CONSTRUCTION_PROGRESS_MAX,
+      })
+    }
+
+    const lowStock = applyBurden(createStartingState())
+    const highStock = applyBurden(createStartingState())
+    for (const key of Object.keys(lowStock.inventory)) lowStock.inventory[key] = 0
+    highStock.inventory['medical_supplies'] = 20
+
+    const scoreA = buildTeamDeploymentReadinessState(lowStock, 't_nightwatch', 'case-001').readinessScore
+    const scoreB = buildTeamDeploymentReadinessState(highStock, 't_nightwatch', 'case-001').readinessScore
+    expect(scoreA).toBe(scoreB)
   })
 })

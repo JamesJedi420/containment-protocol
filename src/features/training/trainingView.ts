@@ -29,16 +29,16 @@ export function getTrainingDivisionView(game: GameState, filters: TrainingListFi
 
   // Academy/Programs
   const academyOverview = buildAcademyOverview(game)
-  const agentPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'agent')
-  const teamPrograms = trainingCatalog.filter((program: any) => (program.scope ?? 'agent') === 'team')
+  const agentPrograms = trainingCatalog.filter((program) => (program.scope ?? 'agent') === 'agent')
+  const teamPrograms = trainingCatalog.filter((program) => (program.scope ?? 'agent') === 'team')
   const academyStatBonus = getAcademyStatBonus(game.academyTier ?? 0)
   const agentImpactPreviewMap = new Map(
     allRosterViews.map((view) => [
       view.agent.id,
       new Map(
-        agentPrograms.map((program: any) => {
+        agentPrograms.map((program) => {
           const impacts = getAgentTrainingImpacts(view.agent, academyStatBonus)
-          const impact = impacts.find((i: any) => i.trainingId === program.trainingId)
+          const impact = impacts.find((i) => i.trainingId === program.trainingId)
           return [program.trainingId, impact]
         })
       ),

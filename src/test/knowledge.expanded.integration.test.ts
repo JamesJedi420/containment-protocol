@@ -125,7 +125,7 @@ describe('Knowledge-State Expansion', () => {
   })
 
   it('promotes to operationalized after repeated confirmation', () => {
-    let state = setupAssignedCase(createStartingState(), 'case-002')
+    const state = setupAssignedCase(createStartingState(), 'case-002')
     const key = getKnowledgeKey('t_nightwatch', 'case-002')
 
     state.knowledge[key] = {
@@ -148,7 +148,7 @@ describe('Knowledge-State Expansion', () => {
   })
 
   it('recovers from fragmentation on a new success', () => {
-    let state = setupAssignedCase(createStartingState(), 'case-demo-fragmented')
+    const state = setupAssignedCase(createStartingState(), 'case-demo-fragmented')
     const key = getKnowledgeKey('t_nightwatch', 'case-demo-fragmented')
 
     state.knowledge[key] = {
@@ -171,7 +171,7 @@ describe('Knowledge-State Expansion', () => {
   })
 
   it('manages lastDecayWeek and fragmentation metadata', () => {
-    let state = setupAssignedCase(createStartingState(), 'case-frag-meta')
+    const state = setupAssignedCase(createStartingState(), 'case-frag-meta')
     const key = getKnowledgeKey('t_nightwatch', 'case-frag-meta')
 
     state.knowledge[key] = {
@@ -237,7 +237,7 @@ describe('Knowledge-State Expansion', () => {
   })
 
   it('marks knowledge obsolete if subject mutates', () => {
-    let state = setupAssignedCase(createStartingState(), 'case-mut')
+    const state = setupAssignedCase(createStartingState(), 'case-mut')
     const key = getKnowledgeKey('t_nightwatch', 'case-mut')
 
     state.knowledge[key] = {
@@ -259,7 +259,7 @@ describe('Knowledge-State Expansion', () => {
   })
 
   it('promotes to institutionalized after repeated operationalization', () => {
-    let state = setupAssignedCase(createStartingState(), 'case-003')
+    const state = setupAssignedCase(createStartingState(), 'case-003')
     const key = getKnowledgeKey('t_nightwatch', 'case-003')
 
     state.knowledge[key] = {

@@ -2,6 +2,8 @@ import { clamp } from './math'
 import { getCaseRegionTag } from './pressure'
 import type { CaseInstance, HarvestedMindLoadout, LeaderBonus, LegitimacyState } from './models'
 import { aggregateLoadoutModifiers } from './hostileLoadouts'
+import type { MapLayerResult } from './siteGeneration/mapMetadata'
+import { getRestrictedScaleAnchors } from './siteGeneration/mapMetadata'
 
 export const AGGREGATE_BATTLE_PHASES = ['movement', 'missile', 'melee', 'morale', 'rally'] as const
 
@@ -136,6 +138,14 @@ export interface AggregateBattleContext {
   visibilityState?: CaseInstance['visibilityState']
   transitionType?: CaseInstance['transitionType']
   spatialFlags: string[]
+  /** SPE-451: cross-scale map layer, used to derive restricted-anchor defense bonus. */
+  mapLayer?: MapLayerResult
+  /**
+   * SPE-110/SPE-451: The side ID of the institutional defender (the side that occupies and
+   * controls the site). When set, construction.incomplete defense penalties and restricted
+   * scale-anchor bonuses apply only to units on this side.
+   */
+  defenderSideId?: string
 }
 
 export interface AggregateBattleCommandOverlay {
@@ -391,6 +401,7 @@ export function buildAggregateBattleContextFromCase(
     | 'visibilityState'
     | 'transitionType'
     | 'spatialFlags'
+    | 'mapLayer'
   >
 ): AggregateBattleContext {
   return {
@@ -399,6 +410,7 @@ export function buildAggregateBattleContextFromCase(
     visibilityState: caseData.visibilityState,
     transitionType: caseData.transitionType,
     spatialFlags: [...(caseData.spatialFlags ?? [])],
+    mapLayer: caseData.mapLayer,
   }
 }
 
@@ -1672,6 +1684,10 @@ function buildMeleeValue(
   if (ingressFlag) {
     value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
   }
+  // SPE-110: Incomplete construction site creates chaotic close-quarters fighting (+1 melee)
+  if (context.spatialFlags.includes('construction.incomplete')) {
+    value += 1
+  }
   if (unit.harvestedLoadout) {
     value += aggregateLoadoutModifiers(unit.harvestedLoadout).meleeMod
   }
@@ -1705,6 +1721,21 @@ function buildDefenseValue(
     if (ingressMod) {
       value += mode === 'melee' ? ingressMod.defenseVsMeleeMod : ingressMod.defenseVsMissileMod
     }
+  }
+  // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes).
+  // Only applies to the institutional defender side (the side that controls the site).
+  const isInstitutionalDefender =
+    !context.defenderSideId || unit.sideId === context.defenderSideId
+  if (context.spatialFlags.includes('construction.incomplete') && isInstitutionalDefender) {
+    value -= 1
+  }
+  // SPE-451: Restricted/locked cross-scale anchors give institutional defenders inherent
+  // advantage — they control these chokepoints between scale boundaries.
+  const restrictedAnchorCount = context.mapLayer
+    ? getRestrictedScaleAnchors(context.mapLayer).length
+    : 0
+  if (restrictedAnchorCount > 0 && isInstitutionalDefender) {
+    value += restrictedAnchorCount
   }
   if (unit.harvestedLoadout) {
     value += aggregateLoadoutModifiers(unit.harvestedLoadout).defenseMod

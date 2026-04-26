@@ -126,6 +126,7 @@ function buildQueueEntryCompat(
 }
 
 export function buildTrainingCertificationSummary(agent: Agent, _week: number) {
+  void _week
   if (!agent) {
     return buildSummaryFallback()
   }
@@ -315,6 +316,7 @@ export function transitionCertification(
   toState: CertificationState,
   _options?: unknown
 ) {
+  void _options
   const agent = state.agents[agentId]
   const current = agent?.progression?.certifications?.[certificationId]
 
@@ -355,6 +357,7 @@ export function reviewCertification(
   approved: boolean,
   _options?: unknown
 ) {
+  void _options
   if (approved) {
     const transitioned = transitionCertification(state, agentId, certificationId, 'certified')
     return {

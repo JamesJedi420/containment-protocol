@@ -45,6 +45,16 @@ Templates can declare:
 
 If omitted, runtime inference remains active via tag/difficulty heuristics.
 
+## Belief track runtime field
+
+`CaseInstance` carries an optional `beliefTracks?: BeliefTrackState` field (SPE-677).
+
+When present, `institutionalJudgment` and `crowdConsensus` tiers contribute a pressure bonus to the simulation loop via `getCasePressureWithBelief`. The bonus ranges from 0 (all clear) to +6 (both tracks condemned).
+
+- `factTruth` is intentionally excluded from pressure scoring.
+- Authored content can set initial belief state; runtime movers (`applyBeliefTrackDivergence`, `applyBeliefTrackReveal`) update it deterministically.
+- See `src/domain/beliefTracks.ts` for the full API.
+
 ## Narrative content pass
 
 When adding a new template, also add an entry in `CASE_LORE_STUBS` (`src/data/copy.ts`) so Intel details remain flavorful and complete.

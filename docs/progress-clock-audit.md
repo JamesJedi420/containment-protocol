@@ -104,3 +104,18 @@ Use deterministic threshold patterns that are easy to evaluate and debug:
 - What policy governs changing `max` for clocks that already exist in persisted saves?
 - Should hidden clocks ever be serialized into player-facing export artifacts, or only internal saves?
 - Do we want a standard dashboard/overlay grouping by clock tags/domains for large authored catalogs?
+
+## 8) Construction-clock operational policy (current runtime)
+
+For construction-site progression clocks, runtime behavior follows these guardrails:
+
+- **Resolved cases do not advance construction clocks**
+  - Construction progression is considered active only for non-resolved cases with active spatial construction flags and positive timeline.
+
+- **Clock entries initialize even when weekly delta is `0`**
+  - A stalled week (e.g., interference) still creates/retains the clock entry at value `0`.
+  - This keeps state inspectable from first touch and avoids invisible “flag-only” progression.
+
+- **Advancement remains deterministic and clamped**
+  - Once interference clears, subsequent positive deltas continue from the initialized value.
+  - Clock math remains bounded by canonical progress-clock helpers.

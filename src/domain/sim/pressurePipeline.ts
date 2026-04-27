@@ -1,4 +1,4 @@
-import { getCasePressureValue, getCaseRegionTag, getResponseGridConfig } from '../pressure'
+import { getCasePressureValue, getCasePressureWithBelief, getCaseRegionTag, getResponseGridConfig } from '../pressure'
 import { type CaseInstance, type GameState } from '../models'
 import { getAgencyProgressionPressureTemplateIds } from '../agencyProgression'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './spawn'
@@ -72,7 +72,7 @@ export function executePressurePipeline(
       return sum
     }
 
-    return sum + getCasePressureValue(currentCase)
+    return sum + getCasePressureWithBelief(currentCase, currentCase.beliefTracks)
   }, 0)
   const unresolvedPressureDelta = secondEscalationBand
     ? Math.ceil(

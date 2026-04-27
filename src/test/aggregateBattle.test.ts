@@ -666,6 +666,73 @@ describe('aggregate battle layer', () => {
 
     expect(baselineDefenderSteps).toBeLessThan(fortifiedDefenderSteps)
   })
+
+  it('ingress:maintenance_shaft attackMeleeMod does not penalise institutional defenders when defenderSideId is set', () => {
+    // With defenderSideId = 'defenders', the defender (hostiles/site occupiers) should NOT
+    // receive the ingress melee penalty when they counter-attack — they are already inside.
+    function runBattle(ingressFlag?: string) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `ingress-side-gate-${ingressFlag ?? 'none'}`,
+          roundLimit: 1,
+          units: [
+            {
+              id: 'assault-team',
+              label: 'Assault Team',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'press',
+              meleeFactor: 5,
+              defenseFactor: 4,
+              morale: 70,
+              readiness: 70,
+            },
+            {
+              id: 'site-occupier',
+              label: 'Site Occupier',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 5,
+              defenseFactor: 4,
+              morale: 70,
+              readiness: 70,
+            },
+          ],
+          sides: createSides({ attackerSupport: 0, defenderSupport: 0 }),
+          context: createContext({
+            transitionType: undefined,
+            spatialFlags: ingressFlag ? [ingressFlag] : [],
+            defenderSideId: 'defenders',
+          }),
+        })
+      )
+    }
+
+    const baseline = runBattle()
+    const withIngress = runBattle('ingress:maintenance_shaft')
+
+    // Attacker should be weakened by maintenance_shaft (fewer steps remaining for the site occupier)
+    const baselineAttackerSteps =
+      baseline.summaryTable.find((r) => r.unitId === 'assault-team')?.remainingStrengthSteps ?? -1
+    const ingressAttackerSteps =
+      withIngress.summaryTable.find((r) => r.unitId === 'assault-team')?.remainingStrengthSteps ?? -1
+
+    // Defender outcome should NOT worsen — institutional defender is not penalised
+    const baselineDefenderSteps =
+      baseline.summaryTable.find((r) => r.unitId === 'site-occupier')?.remainingStrengthSteps ?? -1
+    const ingressDefenderSteps =
+      withIngress.summaryTable.find((r) => r.unitId === 'site-occupier')?.remainingStrengthSteps ?? -1
+
+    // Attackers are weaker with ingress penalty (or equal in degenerate round)
+    expect(ingressAttackerSteps).toBeLessThanOrEqual(baselineAttackerSteps)
+    // Defenders are not additionally penalised by the ingress penalty
+    expect(ingressDefenderSteps).toBeGreaterThanOrEqual(baselineDefenderSteps)
+  })
 })
 
 describe('harvested-mind loadout integration in aggregateBattle', () => {

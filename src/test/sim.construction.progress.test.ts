@@ -53,6 +53,11 @@ describe('construction progress — clock helpers', () => {
     const currentCase = buildConstructionCase('c-test', { deadlineRemaining: 0 })
     expect(isCaseUnderConstruction(currentCase as Parameters<typeof isCaseUnderConstruction>[0])).toBe(false)
   })
+
+  it('isCaseUnderConstruction returns false for resolved cases even with active spatialFlags and deadline', () => {
+    const currentCase = buildConstructionCase('c-test', { status: 'resolved' })
+    expect(isCaseUnderConstruction(currentCase as Parameters<typeof isCaseUnderConstruction>[0])).toBe(false)
+  })
 })
 
 describe('construction progress — logistics bonus', () => {
@@ -187,8 +192,10 @@ describe('construction progress — interference projection', () => {
     const deltaWithInterference = 0
     state = advanceCaseConstructionClock(state, currentCase as Parameters<typeof advanceCaseConstructionClock>[1], deltaWithInterference)
     const clock = readProgressClock(state, getConstructionProgressClockId('case-interfere'))
-    // Clock should not exist or have value 0 since delta was 0
-    expect(clock === null || clock.value === 0).toBe(true)
+    // Clock MUST exist at value 0 — interference stalls progress but the clock is
+    // always initialised so state is inspectable from the first tick.
+    expect(clock).not.toBeNull()
+    expect(clock!.value).toBe(0)
   })
 
   it('without interference: delta is 1 + logistics bonus, advancing progress', () => {

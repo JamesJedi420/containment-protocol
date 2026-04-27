@@ -26,7 +26,11 @@ export function getConstructionProgressClockId(caseId: string): string {
  * and is still within its active timeline (deadline has not expired).
  */
 export function isCaseUnderConstruction(currentCase: CaseInstance): boolean {
-  return (currentCase.spatialFlags?.length ?? 0) > 0 && currentCase.deadlineRemaining > 0
+  return (
+    currentCase.status !== 'resolved' &&
+    (currentCase.spatialFlags?.length ?? 0) > 0 &&
+    currentCase.deadlineRemaining > 0
+  )
 }
 
 /**
@@ -47,7 +51,9 @@ export function advanceCaseConstructionClock(
   currentCase: CaseInstance,
   delta: number
 ): GameState {
-  if (delta === 0) return state
+  // Always call through (even for delta = 0) so the clock entry is created in state
+  // from the first tick — ensures the clock is inspectable when interference stalls
+  // progress before any advancement has occurred.
   const clockId = getConstructionProgressClockId(currentCase.id)
   return advanceDefinedProgressClock(state, clockId, delta, {
     label: `Construction: ${currentCase.title}`,

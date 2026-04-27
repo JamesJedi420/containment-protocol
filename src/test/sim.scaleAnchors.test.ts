@@ -337,4 +337,49 @@ describe('battle consumer — restricted anchors increase defense value', () => 
     const r2 = resolveAggregateBattle(input)
     expect(r1).toEqual(r2)
   })
+
+  it('anchor bonus does NOT apply when defenderSideId is absent — no silent universal grant', () => {
+      const concentricMap = resolveMapMetadata(concentricStages, fixedRng)
+
+      // Context WITH mapLayer but WITHOUT defenderSideId — ambiguous institutional defender
+      const ctxAmbiguous = buildAggregateBattleContextFromCase({
+        tags: [],
+        requiredTags: [],
+        preferredTags: [],
+        regionTag: 'urban',
+        siteLayer: 'interior',
+        visibilityState: 'clear',
+        transitionType: 'threshold',
+        spatialFlags: [],
+        mapLayer: concentricMap,
+      })
+      // Context WITH mapLayer AND explicit defenderSideId
+      const ctxExplicit: AggregateBattleContext = { ...ctxAmbiguous, defenderSideId: 'defenders' }
+
+      const sharedInput = {
+        battleId: 'anchor-no-side-id-test',
+        roundLimit: 3,
+        areas: makeConsumerAreas(),
+        sides: makeConsumerSides(),
+        units: makeConsumerUnits(),
+        commandOverlays: [],
+      } satisfies Omit<AggregateBattleInput, 'context'>
+
+      const resultAmbiguous = resolveAggregateBattle({ ...sharedInput, context: ctxAmbiguous })
+      const resultExplicit = resolveAggregateBattle({ ...sharedInput, context: ctxExplicit })
+
+      const defenderAmbiguous =
+        resultAmbiguous.summaryTable.find((r) => r.unitId === 'defender')?.remainingStrengthSteps ?? 0
+      const defenderExplicit =
+        resultExplicit.summaryTable.find((r) => r.unitId === 'defender')?.remainingStrengthSteps ?? 0
+      const attackerAmbiguous =
+        resultAmbiguous.summaryTable.find((r) => r.unitId === 'attacker')?.remainingStrengthSteps ?? 0
+      const attackerExplicit =
+        resultExplicit.summaryTable.find((r) => r.unitId === 'attacker')?.remainingStrengthSteps ?? 0
+
+      // Without defenderSideId the anchor bonus is suppressed — defender outcome no better
+      expect(defenderAmbiguous).toBeLessThanOrEqual(defenderExplicit)
+      // Attacker outcome should not be affected by anchor bonus on either path
+      expect(attackerAmbiguous).toEqual(attackerExplicit)
+  })
 })

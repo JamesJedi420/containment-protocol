@@ -1,9 +1,11 @@
+import type { WeirdRoomProfile } from '../models'
+
 export interface WeightedStageOption<T extends string> {
   id: T
   weight: number
 }
 
-export type SitePurposeId = 'ritual_complex' | 'predator_nest'
+export type SitePurposeId = 'ritual_complex' | 'predator_nest' | 'detention_complex'
 export type SiteBuilderId = 'cult_engineers' | 'feral_pack' | 'collapsed_infrastructure'
 export type SiteLocationId = 'riverfront_substrate' | 'stockyard_labyrinth'
 export type SiteIngressId = 'floodgate' | 'maintenance_shaft' | 'service_door' | 'storm_drain'
@@ -70,6 +72,8 @@ export interface PilotSiteGenerationPacket {
     Record<`${SitePurposeId}|${SiteBuilderId}`, readonly WeightedStageOption<SiteInhabitantId>[]>
   >
   topologySpatialProfiles: Readonly<Record<SiteTopologyId, SpatialProfile>>
+  /** SPE-815: Weird-room profiles authored per topology. Absent topologies produce no weird rooms. */
+  topologyWeirdRoomProfiles?: Readonly<Partial<Record<SiteTopologyId, readonly WeirdRoomProfile[]>>>
 }
 
 const RITUAL_PACKET: PilotSiteGenerationPacket = {
@@ -276,6 +280,51 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       spatialFlags: ['fall-risk', 'broken-cover'],
     },
   },
+  topologyWeirdRoomProfiles: {
+    concentric_sanctum: [
+      {
+        id: 'inner_sanctum_false_shell',
+        kind: 'false_environment_shell',
+        hiddenFromSurface: true,
+        overrides: [
+          { domain: 'perception', deltaConcealment: 2 },
+          { domain: 'traversal', blocksExit: false },
+        ],
+        escalationTriggers: [
+          {
+            activator: 'dwell',
+            threshold: 2,
+            resultKind: 'shifted_affordances',
+            addedOverrides: [
+              { domain: 'interaction', addedFlag: 'ritual-grammar-active' },
+              { domain: 'traversal', suppressedFlag: 'ritual-anchors' },
+            ],
+          },
+        ],
+      },
+    ],
+    lure_corridors: [
+      {
+        id: 'ambush_hazard_room',
+        kind: 'stateful_hazard_room',
+        hiddenFromSurface: false,
+        overrides: [
+          { domain: 'traversal', deltaConcealment: 1, addedFlag: 'hazard-active' },
+        ],
+        escalationTriggers: [
+          {
+            activator: 'disturbance',
+            threshold: 1,
+            resultKind: 'passive_influence',
+            addedOverrides: [
+              { domain: 'timing', deltaConcealment: 1 },
+              { domain: 'traversal', suppressedFlag: 'false-doors', addedFlag: 'trap-sprung' },
+            ],
+          },
+        ],
+      },
+    ],
+  },
 }
 
 const PREDATOR_PACKET: PilotSiteGenerationPacket = {
@@ -287,6 +336,8 @@ const PREDATOR_PACKET: PilotSiteGenerationPacket = {
     { id: 'predator_nest', weight: 7 },
     { id: 'ritual_complex', weight: 3 },
   ],
+  // Predator nests do not carry ritual weird-room profiles; opt out of inherited definitions.
+  topologyWeirdRoomProfiles: {},
 }
 
 export const PILOT_SITE_PACKETS: readonly PilotSiteGenerationPacket[] = [

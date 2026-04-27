@@ -236,6 +236,7 @@ import type {
   ProtocolTier,
   ProtocolType,
 } from './agent/models'
+import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 // SPE-59: Export KnowledgeState for projection/report typing
 export type { KnowledgeState }
@@ -1168,6 +1169,7 @@ export interface CaseInstance {
   severeHit?: import('./shared/outcomes').ConsequenceKey[]
   escalationBand?: import('./shared/outcomes').OutcomeBand
   counterExplanation?: string
+  beliefTracks?: BeliefTrackState
   factionId?: string
   contactId?: string
   contract?: { templateId?: string; [key: string]: unknown }
@@ -1211,6 +1213,8 @@ export interface CaseInstance {
   spatialFlags?: string[]
   /** Resolved map-layer from the site-generation pipeline. Populated by applySiteGenerationToCase. */
   mapLayer?: import('./siteGeneration/mapMetadata').MapLayerResult
+  /** Runtime weird-room state packets attached to this site. Populated by applySiteGenerationToCase. */
+  weirdRoomPackets?: WeirdRoomPacket[]
 }
 
 export interface ResolutionOutcome {
@@ -2031,8 +2035,235 @@ export interface GameState {
   /** Canonical persistent knowledge-state map (keyed by entity/subject) */
   knowledge: KnowledgeStateMap
 
+  /** Optional active compromised-authority runtime packet (SPE-746). */
+  compromisedAuthority?: CompromisedAuthorityState
+
   // Added for sim/advanceWeek compatibility
   factions?: Record<string, FactionRuntimeState>
   hubState?: unknown
   prevHubState?: unknown
+}
+
+// ---------------------------------------------------------------------------
+// SPE-809: Cross-institution prisoner trafficking pipeline
+// ---------------------------------------------------------------------------
+
+/** The named stages a subject passes through in a custody pipeline. */
+export type CustodyStageKind =
+  | 'intake'
+  | 'holding'
+  | 'transfer_en_route'
+  | 'handoff'
+  | 'delivered'
+  | 'released_hostile'
+
+/** Custody-specific distortion tags attached to a single stage record. */
+export type CustodyDistortionContext =
+  | 'custody_record_scrubbed'
+  | 'forged_transfer_credentials'
+  | 'vanished_file'
+
+/** One stage in the chain, with which institution owns it and any record-tampering context. */
+export interface CustodyStageRecord {
+  kind: CustodyStageKind
+  institutionId: string
+  /** Distortion contexts applied to this stage's records. */
+  distortionContext?: CustodyDistortionContext[]
+  /** True when a suppress_record marker has fired at this stage. */
+  suppressed?: boolean
+}
+
+/**
+ * A hidden routing instruction embedded in the pipeline.
+ * Fires at a specific transition point and silently changes how the subject is processed.
+ */
+export interface CustodyMarker {
+  triggeredAt: 'handoff' | 'processing'
+  /**
+   * Effect applied when this marker fires.
+   * 'compromised_authority_release' (SPE-746): combines suppress_record + accelerate_transfer
+   * via the compromised-authority pipeline; bypasses normal review stages.
+   */
+  effect: 'reroute' | 'suppress_record' | 'accelerate_transfer' | 'compromised_authority_release'
+  /** For reroute: overrides the next institutionId. */
+  targetInstitutionId: string
+}
+
+/** How the subject entered the custody pipeline. */
+export type CustodyEntryMode = 'standard' | 'deliberate_arrest' | 'frame_up'
+
+/**
+ * A chained custody pipeline spanning one or more institutions.
+ * Pure data packet — no mutations; advance via advanceCustodyStage().
+ */
+export interface CustodyChain {
+  id: string
+  /** Ordered institution IDs for the declared routing path. */
+  institutionIds: string[]
+  stages: CustodyStageRecord[]
+  currentStageIndex: number
+  hiddenMarkers: CustodyMarker[]
+  entryMode: CustodyEntryMode
+  /** Set when the chain terminal is reached via hostile handoff or sale. */
+  resolvedHostile?: boolean
+}
+
+/** The type of corruption evidence surfaced by an investigation. */
+export type CustodyDiscoveryEventType =
+  | 'missing_record'
+  | 'marker_revealed'
+  | 'compromised_actor_identified'
+
+/** A single discovery produced by resolveCorruptionDiscovery(). */
+export interface CustodyDiscoveryEvent {
+  type: CustodyDiscoveryEventType
+  stageIndex: number
+  institutionId: string
+}
+
+// ---------------------------------------------------------------------------
+// SPE-815: Weird-room state and local rule overrides
+// ---------------------------------------------------------------------------
+
+/** Operational category of weirdness a room exhibits once entered. */
+export type WeirdRoomStateKind =
+  | 'false_environment_shell'  // room presents false visual/spatial profile
+  | 'shifted_affordances'      // interaction grammar altered: exits, items, doors resolve differently
+  | 'passive_influence'        // actors affected continuously without discrete trigger events
+  | 'stateful_hazard_room'     // room has internal state that escalates through dwell/disturbance
+
+/** Which dimension of local operation a rule override modifies. */
+export type LocalRuleOverrideDomain = 'traversal' | 'perception' | 'interaction' | 'timing'
+
+/** A single local rule that applies while a room packet is active. */
+export interface LocalRuleOverride {
+  domain: LocalRuleOverrideDomain
+  /** spatialFlag removed while this override is active. */
+  suppressedFlag?: string
+  /** spatialFlag injected while this override is active. */
+  addedFlag?: string
+  /** Signed concealment modifier applied during resolution checks in this room. */
+  deltaConcealment?: number
+  /** Traversal: prevents exit from the room unless an external condition clears it. */
+  blocksExit?: boolean
+}
+
+/** What event class advances an escalation counter for a room. */
+export type RoomEscalationActivator = 'dwell' | 'disturbance' | 'staged_interaction'
+
+/**
+ * A threshold at which a room's local state escalates.
+ * Thresholds are per-activator and evaluated independently.
+ */
+export interface RoomEscalationTrigger {
+  activator: RoomEscalationActivator
+  /** Events required to fire (dwell: turns; disturbance: event count; staged_interaction: count). */
+  threshold: number
+  /** WeirdRoomStateKind the room transitions to when this trigger fires. */
+  resultKind: WeirdRoomStateKind
+  /** Overrides merged into active overrides when this trigger fires. Existing overrides are preserved. */
+  addedOverrides: LocalRuleOverride[]
+}
+
+/**
+ * Authoring-time profile describing what kind of weird room a topology can contain.
+ * Instantiated into a WeirdRoomPacket at site generation time.
+ */
+export interface WeirdRoomProfile {
+  id: string
+  kind: WeirdRoomStateKind
+  overrides: LocalRuleOverride[]
+  escalationTriggers: RoomEscalationTrigger[]
+  /** Whether the room's true state is hidden from operatives when first entered. */
+  hiddenFromSurface: boolean
+}
+
+/**
+ * Runtime state packet for a single weird-room instance attached to a CaseInstance.
+ * All transitions happen through pure sim functions — never mutated directly.
+ */
+export interface WeirdRoomPacket {
+  id: string
+  kind: WeirdRoomStateKind
+  /** Currently active local overrides. May grow through escalation. */
+  overrides: LocalRuleOverride[]
+  escalationTriggers: RoomEscalationTrigger[]
+  /** True when the room's true state has not yet been revealed to operatives. */
+  hiddenFromSurface: boolean
+  /** Turns operatives have dwelt in this room during the current engagement. */
+  dwellCount: number
+  /** Disturbance events that have fired in this room. */
+  disturbanceCount: number
+  /** Staged interactions completed in this room. */
+  stagedInteractionCount: number
+  /** Week-turn when the room's true state became known. Undefined until revealed. */
+  revealedAt?: number
+}
+
+// ---------------------------------------------------------------------------
+// SPE-746: Corrupt authority and compromised security response
+// ---------------------------------------------------------------------------
+
+/** The institutional role whose holder is secretly compromised. */
+export type CompromisedOfficialRole =
+  | 'sheriff'
+  | 'magistrate'
+  | 'watchCommander'
+  | 'inquisitor'
+
+/** Response categories a compromised official can distort. */
+export type CompromisedResponseCategory =
+  | 'patrol'
+  | 'interrogation'
+  | 'custody'
+  | 'evidence'
+
+/** How deeply the official is embedded in the hostile network. */
+export type CorruptionDepth = 'shallow_cover' | 'embedded_control'
+
+/**
+ * State packet for a single compromised authority surface.
+ * Attaches to a zone, location, or CaseInstance in the campaign layer.
+ */
+export interface CompromisedAuthorityState {
+  /** Which office the compromised holder fills. */
+  officialRole: CompromisedOfficialRole
+  /** Faction that benefits from the distortion (matches an existing faction anchor key). */
+  benefittingFactionId: string
+  /** Which response categories are currently being distorted. */
+  distortedCategories: CompromisedResponseCategory[]
+  /** Depth of compromise — shallow_cover means plausible deniability still holds. */
+  corruptionDepth: CorruptionDepth
+  /**
+   * Cumulative patrol anomaly count. Incremented each time a patrol-distortion-weighted
+   * spawn passes through this authority surface. When it reaches EXPOSURE_THRESHOLD the
+   * exposure path fires.
+   */
+  patrolAnomalyCount: number
+  /**
+   * True when a recovered document with an authority_link flag has been confirmed.
+   * Acts as an alternate exposure trigger.
+   * [TEMPORARY STUB — full evidence model owned by SPE-867]
+   */
+  authorityLinkEvidenceFound?: boolean
+}
+
+/** How evidence is handled when a compromised authority controls the evidence category. */
+export type EvidenceRoutingMode = 'suppress' | 'misroute' | 'forward_to_faction'
+
+/**
+ * The resolved set of overrides a compromised authority applies to a security event.
+ * Pure data packet — callers decide which overrides to apply.
+ */
+export interface CompromisedResponseOverride {
+  /** Signed delta applied to anti-faction intel template weights (<0 = deprioritise). */
+  patrolWeightDelta: number
+  /** Signed delta applied to investigator-harassment template weights (>0 = prioritise). */
+  harassmentWeightDelta: number
+  /** When true, interrogation should be redirected away from faction-linked targets. */
+  redirectInterrogation: boolean
+  /** Custody marker to inject when 'custody' is in distortedCategories. */
+  custodyMarker?: Pick<CustodyMarker, 'effect' | 'triggeredAt' | 'targetInstitutionId'>
+  /** Evidence routing mode when 'evidence' is in distortedCategories. */
+  evidenceRoutingMode?: EvidenceRoutingMode
 }

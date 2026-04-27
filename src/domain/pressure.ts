@@ -1,6 +1,8 @@
 // cspell:words psionic
 import type { CaseInstance, CaseTemplate, GameState } from './models'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
+import { getBeliefDrivenCasePressure } from './beliefTracks'
+import type { BeliefTrackState } from './beliefTracks'
 
 export interface ResponseGridConfig {
   majorIncidentThreshold: number
@@ -137,4 +139,28 @@ export function getResponseGridConfig(
       ? decayPerWeek + PRESSURE_CALIBRATION.secondEscalationPressureDecayBonus
       : decayPerWeek,
   }
+}
+
+/**
+ * Returns the effective case pressure value, augmented by external-party belief
+ * state when available.  The belief bonus is driven by institutionalJudgment and
+ * crowdConsensus only — factTruth is intentionally excluded.
+ *
+ * Falls back to getCasePressureValue when no beliefTracks are supplied.
+ */
+export function getCasePressureWithBelief(
+  currentCase: Pick<
+    CaseInstance,
+    'difficulty' | 'weights' | 'deadlineWeeks' | 'durationWeeks' | 'kind' | 'onUnresolved' | 'tags'
+  > & {
+    pressureValue?: number
+  },
+  beliefTracks?: BeliefTrackState
+): number {
+  const base = getCasePressureValue(currentCase)
+  if (beliefTracks === undefined) {
+    return base
+  }
+
+  return base + getBeliefDrivenCasePressure(beliefTracks)
 }

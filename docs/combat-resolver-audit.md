@@ -161,3 +161,22 @@ These three categories are enough for authored branching while staying compact.
 - Outcome categories remain stable (`success` / `partial` / `failure`).
 - Integrations reuse existing helpers (flags, clocks, queue, routing predicates).
 - Tests assert deterministic outcome selection and structured apply behavior.
+
+## 8) Current aggregate-battle side-gating invariants
+
+The aggregate-battle resolver currently applies ingress and anchor logic with explicit side semantics:
+
+- **Ingress melee attack modifiers are attacker-side only when `defenderSideId` is set**
+  - Institutional defenders are treated as already inside the site and are not penalized by ingress traversal when counter-attacking.
+  - If `defenderSideId` is absent, the legacy symmetric fallback remains (modifier may apply to all sides).
+
+- **`construction.incomplete` defense penalty keeps loose fallback behavior**
+  - Penalty is intended for the institutional defender side.
+  - When `defenderSideId` is absent, behavior remains backward-compatible and can affect all sides.
+
+- **Restricted/locked anchor defense bonus requires explicit defender identity**
+  - Anchor-derived defense bonus is granted only when `defenderSideId` is explicitly provided and matches the unit side.
+  - No silent universal anchor bonus is granted when defender identity is ambiguous.
+
+- **Determinism requirement**
+  - Given identical battle input/context, side-gating outcomes are stable and reproducible across runs.

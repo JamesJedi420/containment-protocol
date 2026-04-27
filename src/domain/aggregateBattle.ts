@@ -1733,11 +1733,7 @@ function buildDefenseValue(
   // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes).
   // Only applies to the institutional defender side (the side that controls the site).
   // Uses a loose check: when defenderSideId is unset (legacy callers) the penalty applies
-<<<<<<< HEAD
   // to all units, preserving the original SPE-110 symmetric behavior.
-=======
-  // to all units, preserving the original SPE-110 symmetric behaviour.
->>>>>>> origin/main
   const isInstitutionalDefender =
     !context.defenderSideId || unit.sideId === context.defenderSideId
   if (context.spatialFlags.includes('construction.incomplete') && isInstitutionalDefender) {

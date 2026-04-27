@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
 import { resolveSiteGenerationStages, isMultiScaleMapLayer } from '../domain/siteGeneration'
+import { applySiteGenerationToCase } from '../domain/siteGeneration/pipeline'
 import {
   PILOT_SITE_PACKETS,
   validatePilotSitePacketCatalog,
@@ -64,6 +66,31 @@ describe('site generation layered pipeline', () => {
     expect(result?.stages.hazards.length).toBeGreaterThan(0)
     expect(result?.stages.treasure.length).toBeGreaterThan(0)
     expect(result?.stages.inhabitants.length).toBeGreaterThan(0)
+  })
+
+  it('applySiteGenerationToCase instantiates weirdRoomPackets from topology profiles deterministically', () => {
+    const state = createStartingState()
+    const baseCase = state.cases['case-001']
+    const template = { templateId: 'mixed_eclipse_ritual' as const }
+
+    const siteCaseA = applySiteGenerationToCase({
+      currentCase: baseCase,
+      template,
+      rng: createSequenceRng([0, 0, 0, 0, 0, 0, 0, 0]),
+    })
+    const siteCaseB = applySiteGenerationToCase({
+      currentCase: baseCase,
+      template,
+      rng: createSequenceRng([0, 0, 0, 0, 0, 0, 0, 0]),
+    })
+
+    expect(siteCaseA.weirdRoomPackets).toBeDefined()
+    expect(siteCaseA.weirdRoomPackets?.length).toBeGreaterThan(0)
+    expect(siteCaseA.weirdRoomPackets).toEqual(siteCaseB.weirdRoomPackets)
+
+    for (const packet of siteCaseA.weirdRoomPackets ?? []) {
+      expect(packet.id.startsWith(`${baseCase.id}:`)).toBe(true)
+    }
   })
 })
 

@@ -1,4 +1,4 @@
-import type { CaseInstance, CaseTemplate } from '../models'
+import type { CaseInstance, CaseTemplate, WeirdRoomPacket } from '../models'
 import {
   getPilotSitePacketForTemplate,
   type PilotSiteGenerationPacket,
@@ -8,6 +8,7 @@ import {
   type WeightedStageOption,
 } from './packets'
 import { resolveMapMetadata, type MapLayerResult } from './mapMetadata'
+import { buildWeirdRoomPacket } from '../sim/weirdRoom'
 
 export type { SiteGenerationStageSnapshot } from './packets'
 
@@ -306,6 +307,13 @@ export function applySiteGenerationToCase(input: {
     generated.spatial.spatialFlags
   )
 
+  const packet = getPilotSitePacketForTemplate(input.template.templateId)
+  const topology = generated.stages.topology
+  const weirdRoomProfiles = packet?.topologyWeirdRoomProfiles?.[topology] ?? []
+  const weirdRoomPackets: WeirdRoomPacket[] = weirdRoomProfiles.map((profile) =>
+    buildWeirdRoomPacket(profile, `${input.currentCase.id}:${profile.id}`)
+  )
+
   return {
     ...input.currentCase,
     tags: mergeUniquePreserveOrder(input.currentCase.tags, generated.tags),
@@ -314,5 +322,6 @@ export function applySiteGenerationToCase(input: {
     transitionType: generated.spatial.transitionType,
     spatialFlags: nextSpatialFlags,
     mapLayer: generated.mapLayer,
+    ...(weirdRoomPackets.length > 0 ? { weirdRoomPackets } : {}),
   }
 }

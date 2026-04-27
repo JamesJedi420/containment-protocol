@@ -1,13 +1,18 @@
 import { randInt } from '../math'
 import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
-import { type CaseInstance, type CaseTemplate, type GameState, type SpawnRule } from '../models'
+import { type CaseInstance, type CaseTemplate, type CompromisedAuthorityState, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
 import { applySiteGenerationToCase } from '../siteGeneration'
 import { SIM_NOTES } from '../../data/copy'
 import { EVENT_NOTE_BUILDERS } from './eventNoteBuilders'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './calibration'
+import {
+  applyPatrolWeightDistortion,
+  resolveCompromisedAuthorityExposure,
+  resolveCompromisedAuthorityResponse,
+} from './compromisedAuthority'
 
 export interface SpawnedCaseRecord {
   caseId: string
@@ -23,6 +28,13 @@ export interface SpawnedCaseRecord {
   factionId?: string
   factionLabel?: string
   sourceReason?: string
+  /**
+   * [TEMPORARY SPE-867 seam]
+   * Deterministic runtime evidence-routing result for this spawn transition.
+   * - retained: no override applied (baseline behavior)
+   * - suppress/misroute/forward_to_faction: overridden by compromised authority routing mode
+   */
+  evidenceRoutingOutcome?: 'retained' | 'suppress' | 'misroute' | 'forward_to_faction'
 }
 
 function nextId(usedIds: Set<string>, rng: () => number): string {
@@ -40,42 +52,75 @@ function nextId(usedIds: Set<string>, rng: () => number): string {
 function pickTemplateId(
   templates: Record<string, CaseTemplate>,
   requestedTemplateIds: string[],
-  rng: () => number
+  rng: () => number,
+  authority?: CompromisedAuthorityState
 ) {
-  const candidates = requestedTemplateIds.map((templateId) => templates[templateId]).filter(Boolean)
+  const selected = pickTemplateWithPatrolDistortion(
+    templates,
+    requestedTemplateIds,
+    rng,
+    authority
+  )
 
-  if (candidates.length > 0) {
-    return candidates[randInt(rng, 0, candidates.length - 1)]!
-  }
-
-  const templateList = Object.values(templates)
-
-  if (templateList.length === 0) {
+  if (!selected) {
     throw new Error('No templates available in state')
   }
 
-  return templateList[randInt(rng, 0, templateList.length - 1)]!
+  return selected
 }
 
 function pickRuleTemplate(
   templates: Record<string, CaseTemplate>,
   requestedTemplateIds: string[],
-  rng: () => number
+  rng: () => number,
+  authority?: CompromisedAuthorityState
 ) {
-  const requestedTemplates = requestedTemplateIds
-    .map((templateId) => templates[templateId])
-    .filter(Boolean)
+  return pickTemplateWithPatrolDistortion(templates, requestedTemplateIds, rng, authority)
+}
 
-  if (requestedTemplates.length > 0) {
-    return requestedTemplates[randInt(rng, 0, requestedTemplates.length - 1)]
+/**
+ * SPE-746: Pick a case template from a pool, applying patrol-distortion weights
+ * when an active CompromisedAuthorityState covering the 'patrol' category is provided.
+ *
+ * Anti-faction intel templates are deprioritised; investigator-harassment templates
+ * are boosted. The weight distortion works by duplicating templates in the selection
+ * pool — making it deterministic given the same seeded RNG.
+ *
+ * When no authority state is provided the function behaves identically to
+ * the unweighted internal pickRuleTemplate.
+ *
+ * @param templates      - all available CaseTemplate records
+ * @param requestedIds   - optional preferred template IDs (empty = use full pool)
+ * @param rng            - seeded RNG
+ * @param authority      - optional active CompromisedAuthorityState
+ * @returns the selected CaseTemplate, or undefined if the pool is empty
+ */
+export function pickTemplateWithPatrolDistortion(
+  templates: Record<string, CaseTemplate>,
+  requestedIds: string[],
+  rng: () => number,
+  authority?: CompromisedAuthorityState
+): CaseTemplate | undefined {
+  // Resolve the base pool
+  const requested = requestedIds.map((id) => templates[id]).filter((t): t is CaseTemplate => Boolean(t))
+  const basePool: CaseTemplate[] = requested.length > 0
+    ? requested
+    : Object.values(templates)
+
+  if (basePool.length === 0) return undefined
+
+  // If no authority with patrol distortion, fall back to uniform pick
+  if (!authority || !authority.distortedCategories.includes('patrol')) {
+    return basePool[randInt(rng, 0, basePool.length - 1)]
   }
 
-  const allTemplates = Object.values(templates)
-  if (allTemplates.length === 0) {
-    return undefined
-  }
-
-  return allTemplates[randInt(rng, 0, allTemplates.length - 1)]
+  // Resolve override then apply weight distortion to the pool
+  const override = resolveCompromisedAuthorityResponse(
+    new Set(['patrol']),
+    authority
+  )
+  const weightedPool = applyPatrolWeightDistortion(basePool, override)
+  return weightedPool[randInt(rng, 0, weightedPool.length - 1)]
 }
 
 export function instantiateFromTemplate(
@@ -125,7 +170,8 @@ export function applySpawnRule(
   rule: SpawnRule,
   templates: Record<string, CaseTemplate>,
   rng: () => number,
-  usedIds: Set<string> = new Set()
+  usedIds: Set<string> = new Set(),
+  authority?: CompromisedAuthorityState
 ) {
   const normalizedRule = normalizeSpawnRule(rule)
   const notes: string[] = []
@@ -156,7 +202,12 @@ export function applySpawnRule(
   const spawned: CaseInstance[] = []
 
   for (let i = 0; i < count; i++) {
-    const template = pickRuleTemplate(templates, normalizedRule.spawnTemplateIds, rng)
+    const template = pickRuleTemplate(
+      templates,
+      normalizedRule.spawnTemplateIds,
+      rng,
+      authority
+    )
     if (!template) {
       continue
     }
@@ -180,9 +231,10 @@ export function spawnCase(
   reason: 'escalation' | 'raid',
   templateIds: string[] = [],
   rng: () => number,
-  usedIds: Set<string> = new Set(Object.keys(state.cases))
+  usedIds: Set<string> = new Set(Object.keys(state.cases)),
+  authority?: CompromisedAuthorityState
 ): CaseInstance {
-  const template = pickTemplateId(state.templates, templateIds, rng)
+  const template = pickTemplateId(state.templates, templateIds, rng, authority)
   const stage = parentCase ? Math.min(parentCase.stage + 1, 5) : 1
   const spawnedCase = instantiateFromTemplate(template, rng, usedIds, state.week)
 
@@ -200,8 +252,10 @@ function spawnFromCaseRule(
   sourceCaseIds: string[],
   getRule: (currentCase: CaseInstance) => SpawnRule,
   trigger: SpawnedCaseRecord['trigger'],
-  rng: () => number
+  rng: () => number,
+  authority?: CompromisedAuthorityState
 ) {
+  let runtimeAuthority = authority ? { ...authority } : undefined
   const usedIds = new Set(Object.keys(state.cases))
   const notes: string[] = []
   const followUpSpawnReduction = isSecondEscalationBandWeek(state.week)
@@ -230,8 +284,17 @@ function spawnFromCaseRule(
       rule,
       state.templates,
       rng,
-      usedIds
+      usedIds,
+      authority
     )
+
+    const evidenceRoutingOutcome = runtimeAuthority
+      ? (resolveCompromisedAuthorityResponse(
+        new Set(['evidence']),
+        runtimeAuthority
+      ).evidenceRoutingMode ??
+        'retained')
+      : 'retained'
 
     ruleNotes.forEach((note) => {
       if (note === SIM_NOTES.convertedToRaid()) {
@@ -250,10 +313,30 @@ function spawnFromCaseRule(
     })
 
     return spawned.map((spawnedCase) => {
-      const nextCase = {
+      const nextCaseBase = {
         ...spawnedCase,
         stage: Math.min(sourceCase.stage + 1, 5),
       }
+
+      const nextCase =
+        runtimeAuthority && sourceCase.beliefTracks
+          ? (() => {
+              const exposure = resolveCompromisedAuthorityExposure(
+                runtimeAuthority,
+                sourceCase.beliefTracks
+              )
+
+              runtimeAuthority = {
+                ...runtimeAuthority,
+                patrolAnomalyCount: exposure.updatedAnomalyCount,
+              }
+
+              return {
+                ...nextCaseBase,
+                beliefTracks: exposure.updatedBeliefTracks,
+              }
+            })()
+          : nextCaseBase
 
       return {
         currentCase: nextCase,
@@ -261,6 +344,7 @@ function spawnFromCaseRule(
           caseId: nextCase.id,
           parentCaseId: sourceCase.id,
           trigger,
+          evidenceRoutingOutcome,
         } satisfies SpawnedCaseRecord,
       }
     })
@@ -273,6 +357,7 @@ function spawnFromCaseRule(
   return {
     state: {
       ...state,
+      compromisedAuthority: runtimeAuthority,
       cases: {
         ...state.cases,
         ...Object.fromEntries(
@@ -289,23 +374,31 @@ function spawnFromCaseRule(
 export function spawnFromEscalations(
   state: GameState,
   escalatedCaseIds: string[],
-  rng: () => number
+  rng: () => number,
+  authority?: CompromisedAuthorityState
 ) {
   return spawnFromCaseRule(
     state,
     escalatedCaseIds,
     (currentCase) => currentCase.onUnresolved,
     'unresolved',
-    rng
+    rng,
+    authority
   )
 }
 
-export function spawnFromFailures(state: GameState, failedCaseIds: string[], rng: () => number) {
+export function spawnFromFailures(
+  state: GameState,
+  failedCaseIds: string[],
+  rng: () => number,
+  authority?: CompromisedAuthorityState
+) {
   return spawnFromCaseRule(
     state,
     failedCaseIds,
     (currentCase) => currentCase.onFail,
     'failure',
-    rng
+    rng,
+    authority
   )
 }

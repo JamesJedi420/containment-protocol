@@ -86,7 +86,9 @@
     "unequips",
     "unslotted",
     "voss",
-    "watchlist"
-    ,"Unlockable"
+    "watchlist",
+    "Unlockable",
+    "chokepoint",
+    "chokepoints"
   ]
 }

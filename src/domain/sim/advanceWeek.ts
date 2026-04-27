@@ -217,6 +217,7 @@ import {
 } from '../constructionProgress'
 import { doesProgressClockMeetThreshold } from '../progressClocks'
 import { evaluateThresholdCourtProxyConflict } from '../proxyConflict'
+import { applyDwell } from './weirdRoom'
 
 type AdvanceWeekState = GameState & {
   damagedEquipmentQueue?: string[]
@@ -2717,7 +2718,12 @@ function spawnFollowUps(context: WeeklyExecutionContext, rng: SeededRng) {
 
   const failureSpawn = limitSpawnResultToAvailableSlots(
     context.nextState,
-    spawnFromFailures(context.nextState, filteredFailedSources, rng.next)
+    spawnFromFailures(
+      context.nextState,
+      filteredFailedSources,
+      rng.next,
+      context.nextState.compromisedAuthority
+    )
   )
   context.nextState = { ...failureSpawn.state, rngState: rng.getState() }
   registerSpawnedCases(context, failureSpawn.spawnedCases)
@@ -2725,7 +2731,12 @@ function spawnFollowUps(context: WeeklyExecutionContext, rng: SeededRng) {
 
   const escalationSpawn = limitSpawnResultToAvailableSlots(
     context.nextState,
-    spawnFromEscalations(context.nextState, filteredUnresolvedTriggers, rng.next)
+    spawnFromEscalations(
+      context.nextState,
+      filteredUnresolvedTriggers,
+      rng.next,
+      context.nextState.compromisedAuthority
+    )
   )
   context.nextState = { ...escalationSpawn.state, rngState: rng.getState() }
   registerSpawnedCases(context, escalationSpawn.spawnedCases)
@@ -2892,6 +2903,23 @@ function advanceConstructionProgress(context: WeeklyExecutionContext) {
 
     // SPE-110: Construction progress/stall is observable via clock state and spatialFlags.
     // Dedicated event types will be registered when the event registry is extended (future sprint).
+  }
+}
+
+// SPE-815: Increment dwell counter for all in-progress cases that carry weird-room packets.
+// "In-progress" in the source state means a team was on-site during this week — that is the
+// narrowest definition of dwelling. The updated packets are written to nextState so downstream
+// readers (UI, future disturbance/staged-interaction paths) see current escalation state.
+function advanceWeirdRoomDwell(context: WeeklyExecutionContext) {
+  for (const caseId of context.initialCaseIds) {
+    const sourceCase = context.sourceState.cases[caseId]
+    if (sourceCase.status !== 'in_progress') continue
+    const packets = sourceCase.weirdRoomPackets
+    if (!packets || packets.length === 0) continue
+
+    const updatedPackets = packets.map(applyDwell)
+    const nextCase = context.nextState.cases[caseId] ?? sourceCase
+    context.nextState.cases[caseId] = { ...nextCase, weirdRoomPackets: updatedPackets }
   }
 }
 
@@ -3382,6 +3410,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   advanceQueues(context)
   // SPE-110: Construction progress mutation — after logistics queues, before relationship drift.
   advanceConstructionProgress(context)
+  // SPE-815: Weird-room dwell escalation — increments dwell counter for every in-progress case with weird rooms.
+  advanceWeirdRoomDwell(context)
   applyPassiveRelationshipDrift(context)
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)

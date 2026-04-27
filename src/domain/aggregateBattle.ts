@@ -1732,6 +1732,8 @@ function buildDefenseValue(
   }
   // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes).
   // Only applies to the institutional defender side (the side that controls the site).
+  // Uses a loose check: when defenderSideId is unset (legacy callers) the penalty applies
+  // to all units, preserving the original SPE-110 symmetric behaviour.
   const isInstitutionalDefender =
     !context.defenderSideId || unit.sideId === context.defenderSideId
   if (context.spatialFlags.includes('construction.incomplete') && isInstitutionalDefender) {
@@ -1739,10 +1741,14 @@ function buildDefenseValue(
   }
   // SPE-451: Restricted/locked cross-scale anchors give institutional defenders inherent
   // advantage — they control these chokepoints between scale boundaries.
+  // Uses a strict check: defenderSideId must be explicitly set. When absent we cannot
+  // identify who holds the site, so no bonus is granted rather than granting it to everyone.
+  const isExplicitInstitutionalDefender =
+    context.defenderSideId !== undefined && unit.sideId === context.defenderSideId
   const restrictedAnchorCount = context.mapLayer
     ? getRestrictedScaleAnchors(context.mapLayer).length
     : 0
-  if (restrictedAnchorCount > 0 && isInstitutionalDefender) {
+  if (restrictedAnchorCount > 0 && isExplicitInstitutionalDefender) {
     value += restrictedAnchorCount
   }
   if (unit.harvestedLoadout) {

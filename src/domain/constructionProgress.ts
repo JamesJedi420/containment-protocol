@@ -51,7 +51,9 @@ export function advanceCaseConstructionClock(
   currentCase: CaseInstance,
   delta: number
 ): GameState {
-  if (delta === 0) return state
+  // Always call through (even for delta = 0) so the clock entry is created in state
+  // from the first tick — ensures the clock is inspectable when interference stalls
+  // progress before any advancement has occurred.
   const clockId = getConstructionProgressClockId(currentCase.id)
   return advanceDefinedProgressClock(state, clockId, delta, {
     label: `Construction: ${currentCase.title}`,

@@ -1685,10 +1685,10 @@ function buildMeleeValue(
     // Ingress traversal penalty applies only to the invading side — institutional defenders
     // are already inside the site and do not traverse the ingress point when counter-attacking.
     // When defenderSideId is unset, fall back to applying the modifier to all units (existing
-    // behaviour is preserved and the existing tests without defenderSideId still pass).
-    const isInstitutionalDefender =
+    // behavior is preserved and the existing tests without defenderSideId still pass).
+    const isExplicitInstitutionalDefender =
       context.defenderSideId !== undefined && unit.sideId === context.defenderSideId
-    if (!isInstitutionalDefender) {
+    if (!isExplicitInstitutionalDefender) {
       value += INGRESS_COMBAT_MODIFIERS[ingressFlag]?.attackMeleeMod ?? 0
     }
   }
@@ -1733,7 +1733,7 @@ function buildDefenseValue(
   // SPE-110: Incomplete construction site weakens defender positions (-1 defense, all modes).
   // Only applies to the institutional defender side (the side that controls the site).
   // Uses a loose check: when defenderSideId is unset (legacy callers) the penalty applies
-  // to all units, preserving the original SPE-110 symmetric behaviour.
+  // to all units, preserving the original SPE-110 symmetric behavior.
   const isInstitutionalDefender =
     !context.defenderSideId || unit.sideId === context.defenderSideId
   if (context.spatialFlags.includes('construction.incomplete') && isInstitutionalDefender) {

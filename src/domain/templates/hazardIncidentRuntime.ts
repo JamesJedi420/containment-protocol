@@ -1,10 +1,13 @@
 // Deterministic runtime logic for hazard/incident templates (SPE-48)
 import type { HazardIncidentTemplate } from './hazardIncidentTemplates'
+import { cloneIncidentImpact, type IncidentImpact } from './incidentImpact'
 
 export type IncidentState = {
   escalationStep: number
   risk: number
   resolved: boolean
+  /** SPE-820: Canonical typed impact snapshot currently attached to this incident. */
+  impact?: IncidentImpact
 }
 
 export function resolveIncident(
@@ -25,9 +28,17 @@ export function resolveIncident(
     nextStep >= template.escalation.steps.length ||
     (nextStep === template.escalation.steps.length - 1 &&
       template.resolution.requiredActions.includes(action));
+
+  const impact = template.impact
+    ? cloneIncidentImpact(template.impact)
+    : state.impact
+      ? cloneIncidentImpact(state.impact)
+      : undefined
+
   return {
     escalationStep: nextStep,
     risk: state.risk,
     resolved,
+    impact,
   };
 }

@@ -266,4 +266,151 @@ describe('caseGeneration', () => {
     // Both indicate authored-only data reached the ranking path cleanly.
     expect(reason).toMatch(/^Baseline world activity/)
   })
+
+  it('SPE-109: district and time band materially change live world-activity output', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+
+    const makeState = (districtScheduleState: NonNullable<ReturnType<typeof createStartingState>['districtScheduleState']>) => {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = 40
+      state.agency = {
+        containmentRating: 40,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+        },
+      }
+      state.templates = {
+        'sched-cult': {
+          ...templateBase,
+          templateId: 'sched-cult',
+          title: 'Cult Window',
+          kind: 'case',
+          tags: ['cult_activity', 'occult', 'night'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+        'sched-criminal': {
+          ...templateBase,
+          templateId: 'sched-criminal',
+          title: 'Criminal Window',
+          kind: 'case',
+          tags: ['criminal_network', 'signal', 'public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = districtScheduleState
+      return state
+    }
+
+    const hubNightSchedule = {
+      settlementId: 'test-hub-night',
+      districts: {
+        hub: {
+          id: 'hub',
+          label: 'Central Hub',
+          encounterFamilyTags: ['cult_activity'],
+          escalationModifiers: { stage_delta: 0.2 },
+          authorityResponseProfile: 'rapid_response',
+        },
+      },
+      timeBands: {
+        night: {
+          id: 'night',
+          label: 'Night',
+          baselinePopulation: 120,
+          witnessModifier: 0.2,
+          visibilityModifier: 0.1,
+          covertAdvantage: true,
+        },
+      },
+      events: [
+        {
+          id: 'night_market_shutdown',
+          label: 'Night Market Shutdown',
+          appliesTo: ['hub'],
+          startWeek: 1,
+          endWeek: 5,
+          trafficModifier: { populationDelta: -20, witnessModifier: -0.05 },
+          seedKey: 'night_market_shutdown',
+        },
+      ],
+    }
+
+    const docksAfternoonSchedule = {
+      settlementId: 'test-docks-afternoon',
+      districts: {
+        docks: {
+          id: 'docks',
+          label: 'Harbor Docks',
+          encounterFamilyTags: ['criminal_network'],
+          escalationModifiers: { stage_delta: 0.3 },
+          authorityResponseProfile: 'slow_reaction',
+        },
+      },
+      timeBands: {
+        afternoon: {
+          id: 'afternoon',
+          label: 'Afternoon',
+          baselinePopulation: 600,
+          witnessModifier: 0.85,
+          visibilityModifier: 1,
+          covertAdvantage: false,
+        },
+      },
+      events: [
+        {
+          id: 'harbor_inspection',
+          label: 'Harbor Inspection',
+          appliesTo: ['docks'],
+          startWeek: 1,
+          endWeek: 5,
+          trafficModifier: { populationDelta: 40, witnessModifier: 0.05 },
+          seedKey: 'harbor_inspection',
+        },
+      ],
+    }
+
+    const cultResult = generateAmbientCases(makeState(hubNightSchedule), createSeededRng(7777).next)
+    const criminalResult = generateAmbientCases(makeState(docksAfternoonSchedule), createSeededRng(7777).next)
+
+    const cultCase = cultResult.state.cases[cultResult.spawnedCaseIds[0]!]
+    const criminalCase = criminalResult.state.cases[criminalResult.spawnedCaseIds[0]!]
+
+    expect(cultCase.templateId).toBe('sched-cult')
+    expect(criminalCase.templateId).toBe('sched-criminal')
+
+    expect(cultCase.tags).toEqual(
+      expect.arrayContaining([
+        'district:hub',
+        'timeband:night',
+        'schedule:covert-advantage',
+        'schedule:witness-low',
+        'schedule-event:night_market_shutdown',
+      ])
+    )
+    expect(criminalCase.tags).toEqual(
+      expect.arrayContaining([
+        'district:docks',
+        'timeband:afternoon',
+        'schedule:witness-high',
+        'schedule-event:harbor_inspection',
+      ])
+    )
+    expect(criminalCase.tags).not.toContain('schedule:covert-advantage')
+
+    expect(cultResult.spawnedCases[0]?.sourceReason).toContain('Schedule:')
+    expect(cultResult.spawnedCases[0]?.sourceReason).toContain('covert window active')
+    expect(criminalResult.spawnedCases[0]?.sourceReason).toContain('high witness density')
+  })
 })

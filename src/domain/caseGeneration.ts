@@ -8,6 +8,7 @@ import {
   getFactionPressureSpawnThreshold,
   getFactionSupportiveMissionTags,
 } from './factions'
+import { getScheduleSnapshot } from './districtSchedule'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './sim/spawn'
 import { starterCaseSeeds } from './templates/startingCases'
 
@@ -176,6 +177,63 @@ function getWorldTemplateWeight(template: CaseTemplate, game: GameState) {
   }
 
   return applyTemplateDiversityWeight(template, weight, game)
+}
+
+/**
+ * Incorporate district schedule context into template weighting (SPE-109).
+ * Uses the live schedule snapshot so district identity and additive overlays
+ * can both influence encounter output.
+ */
+function getDistrictScheduleWeightBonus(
+  template: CaseTemplate,
+  scheduleContext: NonNullable<ReturnType<typeof getScheduleSnapshot>>
+): number {
+  const tagSet = getCaseTagSet(template)
+  const familyMatches = countMatchingTags(tagSet, scheduleContext.context.encounterFamilyTags)
+  let weightBonus = 1 + Math.min(2.5, familyMatches * 0.5)
+
+  if (
+    scheduleContext.traffic.covertAdvantage &&
+    matchesAnyTag(tagSet, ['night', 'occult', 'cult', 'criminal', 'smuggling', 'stealth'])
+  ) {
+    weightBonus += 0.75
+  }
+
+  if (
+    scheduleContext.traffic.witnessModifier >= 0.7 &&
+    matchesAnyTag(tagSet, ['signal', 'infrastructure', 'public', 'classified', 'information'])
+  ) {
+    weightBonus += 0.5
+  }
+
+  if (scheduleContext.traffic.appliedEvents.length > 0) {
+    weightBonus += 0.25 * scheduleContext.traffic.appliedEvents.length
+  }
+
+  return weightBonus
+}
+
+function buildScheduleReasonFragment(
+  scheduleContext: NonNullable<ReturnType<typeof getScheduleSnapshot>>,
+  game: GameState
+) {
+  const districtLabel =
+    game.districtScheduleState?.districts[scheduleContext.context.districtId]?.label ??
+    scheduleContext.context.districtId
+  const timeBandLabel =
+    game.districtScheduleState?.timeBands[scheduleContext.context.timeBandId]?.label ??
+    scheduleContext.context.timeBandId
+  const timeStateSummary = scheduleContext.traffic.covertAdvantage
+    ? 'covert window active'
+    : scheduleContext.traffic.witnessModifier >= 0.7
+      ? 'high witness density'
+      : 'normal witness density'
+  const overlaySummary =
+    scheduleContext.traffic.appliedEvents.length > 0
+      ? ` overlays: ${scheduleContext.traffic.appliedEvents.join(', ')}`
+      : ''
+
+  return `${districtLabel} / ${timeBandLabel} / ${timeStateSummary}${overlaySummary}`
 }
 
 function buildWorldActivityReason(template: CaseTemplate, game: GameState) {
@@ -350,6 +408,11 @@ export function generateAmbientCases(
     template: CaseTemplate
     factionId?: string
     factionLabel?: string
+    districtId?: string
+    timeBandId?: string
+    scheduleCovertAdvantage?: boolean
+    scheduleWitnessBand?: 'high' | 'low' | 'normal'
+    appliedScheduleEvents?: string[]
     reason: string
   }> = []
 
@@ -418,18 +481,51 @@ export function generateAmbientCases(
   }
 
   if (agency.containmentRating <= 45 || unresolvedMomentum >= 4) {
+    // SPE-109: Select district + time band when a schedule exists and derive
+    // a live snapshot (baseline + additive overlays) for weighting/output.
+    const schedule = state.districtScheduleState
+    const selectedDistrictId = schedule
+      ? Object.keys(schedule.districts)[Math.floor(rng() * Object.keys(schedule.districts).length)]
+      : undefined
+    const selectedTimeBandId = schedule
+      ? Object.keys(schedule.timeBands)[Math.floor(rng() * Object.keys(schedule.timeBands).length)]
+      : undefined
+    const scheduleContext =
+      schedule && selectedDistrictId && selectedTimeBandId
+        ? getScheduleSnapshot(schedule, selectedDistrictId, selectedTimeBandId, state.week, state.rngState)
+        : null
+
     const worldTemplate = pickWeightedTemplate(
       eligibleTemplates,
-      (template) => getWorldTemplateWeight(template, state),
+      (template) => {
+        const baseWeight = getWorldTemplateWeight(template, state)
+        const districtBonus = scheduleContext ? getDistrictScheduleWeightBonus(template, scheduleContext) : 1
+        return baseWeight * districtBonus
+      },
       rng
     )
 
     if (worldTemplate) {
+      const witnessBand = scheduleContext
+        ? scheduleContext.traffic.witnessModifier >= 0.7
+          ? 'high'
+          : scheduleContext.traffic.witnessModifier <= 0.35
+            ? 'low'
+            : 'normal'
+        : undefined
+
       spawnPlans.push({
         priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4,
         trigger: 'world_activity',
         template: worldTemplate,
-        reason: buildWorldActivityReason(worldTemplate, state),
+        districtId: selectedDistrictId,
+        timeBandId: selectedTimeBandId,
+        scheduleCovertAdvantage: scheduleContext?.traffic.covertAdvantage,
+        scheduleWitnessBand: witnessBand,
+        appliedScheduleEvents: scheduleContext?.traffic.appliedEvents ?? [],
+        reason:
+          buildWorldActivityReason(worldTemplate, state) +
+          (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : ''),
       })
     }
   }
@@ -444,12 +540,27 @@ export function generateAmbientCases(
             ...instantiatedCase,
             factionId: plan.factionId,
           }
-        : instantiatedCase
+         : instantiatedCase
+
+      // SPE-109: Add district/time-state tags when case was generated in a schedule context.
+      const taggedCase = plan.districtId
+        ? {
+            ...currentCase,
+            tags: [
+              ...currentCase.tags,
+              `district:${plan.districtId}`,
+              ...(plan.timeBandId ? [`timeband:${plan.timeBandId}`] : []),
+              ...(plan.scheduleCovertAdvantage ? ['schedule:covert-advantage'] : []),
+              ...(plan.scheduleWitnessBand ? [`schedule:witness-${plan.scheduleWitnessBand}`] : []),
+              ...((plan.appliedScheduleEvents ?? []).map((eventId) => `schedule-event:${eventId}`)),
+            ],
+          }
+        : currentCase
 
     spawnedEntries.push({
-      currentCase,
-      record: createSpawnRecord(currentCase, plan.trigger, {
-        factionId: plan.factionId,
+       currentCase: taggedCase,
+        record: createSpawnRecord(taggedCase, plan.trigger, {
+         factionId: plan.factionId,
         factionLabel: plan.factionLabel,
         sourceReason: plan.reason,
       }),

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   AGGREGATE_BATTLE_PHASES,
+  buildAggregateBattleCampaignSummary,
   buildAggregateBattleContextFromCase,
   buildAggregateBattleSideState,
   createAggregateBattleCommandOverlayFromLeaderBonus,
@@ -119,6 +120,7 @@ function createBattleInput(input: {
   sides?: AggregateBattleSideState[]
   context?: ReturnType<typeof buildAggregateBattleContextFromCase>
   commandOverlays?: AggregateBattleCommandOverlay[]
+  supernaturalPressure?: AggregateBattleInput['supernaturalPressure']
 }): AggregateBattleInput {
   return {
     battleId: input.battleId,
@@ -128,6 +130,7 @@ function createBattleInput(input: {
     units: input.units,
     context: input.context ?? createContext(),
     commandOverlays: input.commandOverlays ?? [],
+    supernaturalPressure: input.supernaturalPressure,
   }
 }
 
@@ -732,6 +735,367 @@ describe('aggregate battle layer', () => {
     expect(ingressAttackerSteps).toBeLessThanOrEqual(baselineAttackerSteps)
     // Defenders are not additionally penalised by the ingress penalty
     expect(ingressDefenderSteps).toBeGreaterThanOrEqual(baselineDefenderSteps)
+  })
+})
+
+describe('aggregate battle hidden deployment', () => {
+  it('keeps round-trigger hidden units untargetable when reveal round is beyond round limit', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'hidden-round-gate',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'storm-wyrm',
+            label: 'Storm Wyrm',
+            sideId: 'defenders',
+            family: 'special_creature',
+            strengthSteps: 1,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 7,
+            defenseFactor: 5,
+            morale: 78,
+            readiness: 72,
+            hidden: true,
+            revealCondition: { kind: 'round', round: 2 },
+          },
+          {
+            id: 'field-guns',
+            label: 'Field Guns',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-reserve',
+            order: 'hold',
+            meleeFactor: 2,
+            missileFactor: 9,
+            defenseFactor: 4,
+            morale: 70,
+            readiness: 70,
+          },
+        ],
+        context: createContext({ transitionType: undefined }),
+      })
+    )
+
+    const hiddenRow = result.summaryTable.find((row) => row.unitId === 'storm-wyrm')
+    expect(hiddenRow?.stepLosses).toBe(0)
+    expect(hiddenRow?.specialHitsTaken).toBe(0)
+    expect(hiddenRow?.wasHidden).toBe(true)
+  })
+
+  it('reveals area-trigger hidden units when enemies share the reveal area and then resolves combat', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'hidden-area-reveal',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'storm-wyrm',
+            label: 'Storm Wyrm',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 7,
+            defenseFactor: 5,
+            morale: 74,
+            readiness: 72,
+            hidden: true,
+            revealCondition: { kind: 'area', areaId: 'center-line' },
+          },
+          {
+            id: 'breach-line',
+            label: 'Breach Line',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'press',
+            meleeFactor: 7,
+            defenseFactor: 5,
+            morale: 72,
+            readiness: 70,
+          },
+        ],
+        context: createContext({ transitionType: undefined }),
+      })
+    )
+
+    const hiddenRow = result.summaryTable.find((row) => row.unitId === 'storm-wyrm')
+    expect(hiddenRow?.wasHidden).toBe(true)
+    expect(hiddenRow?.stepLosses).toBeGreaterThan(0)
+    expect(
+      result.phaseLog.some(
+        (entry) =>
+          entry.segment === 'phase-window' &&
+          entry.detail === 'Storm Wyrm revealed in Center Line.'
+      )
+    ).toBe(true)
+  })
+
+  it('area-revealed hidden unit takes comparable damage to an identical non-hidden unit', () => {
+    function runScenario(hidden: boolean) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `hidden-parity-${hidden}`,
+          roundLimit: 1,
+          units: [
+            {
+              id: 'storm-wyrm',
+              label: 'Storm Wyrm',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 7,
+              defenseFactor: 5,
+              morale: 74,
+              readiness: 72,
+              hidden,
+              revealCondition: hidden ? { kind: 'area', areaId: 'center-line' } : undefined,
+            },
+            {
+              id: 'breach-line',
+              label: 'Breach Line',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'press',
+              meleeFactor: 7,
+              defenseFactor: 5,
+              morale: 72,
+              readiness: 70,
+            },
+          ],
+          context: createContext({ transitionType: undefined }),
+        })
+      )
+    }
+
+    const revealed = runScenario(true)
+    const baseline = runScenario(false)
+    const revealedSteps =
+      revealed.summaryTable.find((row) => row.unitId === 'storm-wyrm')?.stepLosses ?? -1
+    const baselineSteps =
+      baseline.summaryTable.find((row) => row.unitId === 'storm-wyrm')?.stepLosses ?? -1
+
+    expect(revealedSteps).toBe(baselineSteps)
+  })
+})
+
+describe('aggregate battle supernatural pressure', () => {
+  it('degrades defender morale outcomes compared with baseline when pressure is applied', () => {
+    function runScenario(withPressure: boolean) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `pressure-morale-${withPressure}`,
+          roundLimit: 2,
+          sides: createSides({ attackerSupport: 3, defenderSupport: 0, defenderCoordination: true }),
+          units: [
+            {
+              id: 'assault-line',
+              label: 'Assault Line',
+              sideId: 'attackers',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'press',
+              meleeFactor: 8,
+              defenseFactor: 6,
+              morale: 72,
+              readiness: 70,
+            },
+            {
+              id: 'defender-line',
+              label: 'Defender Line',
+              sideId: 'defenders',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 6,
+              defenseFactor: 6,
+              morale: 66,
+              readiness: 66,
+            },
+          ],
+          context: createContext({ transitionType: undefined }),
+          supernaturalPressure: withPressure
+            ? [
+                {
+                  affectedSideId: 'defenders',
+                  moraleDrainPerRound: 10,
+                  readinessPenalty: 15,
+                  label: 'Whispering Veil',
+                },
+              ]
+            : undefined,
+        })
+      )
+    }
+
+    const baseline = runScenario(false)
+    const pressured = runScenario(true)
+    const rank = { steady: 0, shaken: 1, retreating: 2, routed: 3 } as const
+
+    const baselineState = baseline.summaryTable.find((row) => row.unitId === 'defender-line')
+      ?.moraleState
+    const pressuredState = pressured.summaryTable.find((row) => row.unitId === 'defender-line')
+      ?.moraleState
+
+    expect(baselineState).toBeDefined()
+    expect(pressuredState).toBeDefined()
+    expect(rank[pressuredState as keyof typeof rank]).toBeGreaterThanOrEqual(
+      rank[baselineState as keyof typeof rank]
+    )
+  })
+
+  it('marks supernaturalPressureApplied in result and campaign summary when pressure exists', () => {
+    const withPressure = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'pressure-flag-true',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'assault-line',
+            label: 'Assault Line',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            meleeFactor: 7,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'defender-line',
+            label: 'Defender Line',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            meleeFactor: 6,
+            defenseFactor: 6,
+            morale: 68,
+            readiness: 68,
+          },
+        ],
+        supernaturalPressure: [
+          {
+            affectedSideId: 'defenders',
+            moraleDrainPerRound: 10,
+            readinessPenalty: 15,
+            label: 'Whispering Veil',
+          },
+        ],
+      })
+    )
+    const withoutPressure = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'pressure-flag-false',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'assault-line',
+            label: 'Assault Line',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            meleeFactor: 7,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'defender-line',
+            label: 'Defender Line',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            meleeFactor: 6,
+            defenseFactor: 6,
+            morale: 68,
+            readiness: 68,
+          },
+        ],
+      })
+    )
+
+    const summaryWithPressure = buildAggregateBattleCampaignSummary({
+      context: createContext(),
+      result: withPressure,
+      friendlySideId: 'attackers',
+      friendlyLabel: 'Attackers',
+      hostileSideId: 'defenders',
+      hostileLabel: 'Defenders',
+    })
+    const summaryWithoutPressure = buildAggregateBattleCampaignSummary({
+      context: createContext(),
+      result: withoutPressure,
+      friendlySideId: 'attackers',
+      friendlyLabel: 'Attackers',
+      hostileSideId: 'defenders',
+      hostileLabel: 'Defenders',
+    })
+
+    expect(withPressure.supernaturalPressureApplied).toBe(true)
+    expect(summaryWithPressure.supernaturalPressureApplied).toBe(true)
+    expect(withoutPressure.supernaturalPressureApplied).toBe(false)
+    expect(summaryWithoutPressure.supernaturalPressureApplied).toBe(false)
+  })
+
+  it('remains deterministic with identical supernatural pressure inputs', () => {
+    const input = createBattleInput({
+      battleId: 'pressure-deterministic',
+      roundLimit: 2,
+      units: [
+        {
+          id: 'assault-line',
+          label: 'Assault Line',
+          sideId: 'attackers',
+          family: 'line_company',
+          strengthSteps: 4,
+          areaId: 'center-line',
+          meleeFactor: 7,
+          defenseFactor: 6,
+          morale: 72,
+          readiness: 70,
+        },
+        {
+          id: 'defender-line',
+          label: 'Defender Line',
+          sideId: 'defenders',
+          family: 'line_company',
+          strengthSteps: 4,
+          areaId: 'center-line',
+          meleeFactor: 6,
+          defenseFactor: 6,
+          morale: 68,
+          readiness: 68,
+        },
+      ],
+      supernaturalPressure: [
+        {
+          affectedSideId: 'defenders',
+          moraleDrainPerRound: 10,
+          readinessPenalty: 15,
+          label: 'Whispering Veil',
+        },
+      ],
+    })
+
+    const resultA = resolveAggregateBattle(input)
+    const resultB = resolveAggregateBattle(input)
+
+    expect(resultA).toEqual(resultB)
   })
 })
 

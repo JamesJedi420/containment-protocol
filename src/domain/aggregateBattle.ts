@@ -93,6 +93,10 @@ export interface AggregateBattleReinforcement {
   areaId: string
 }
 
+export type AggregateBattleRevealCondition =
+  | { kind: 'round'; round: number }
+  | { kind: 'area'; areaId: string }
+
 export interface AggregateBattleUnit {
   id: string
   label: string
@@ -117,8 +121,17 @@ export interface AggregateBattleUnit {
   commanderOverlayId?: string
   reinforcement?: AggregateBattleReinforcement
   specialDurability?: AggregateBattleDurabilityTrack
+  hidden?: boolean
+  revealCondition?: AggregateBattleRevealCondition
   /** Optional harvested-mind loadout. When present, grants capability-derived combat modifiers. */
   harvestedLoadout?: HarvestedMindLoadout
+}
+
+export interface AggregateBattleSupernaturalPressure {
+  affectedSideId?: string
+  moraleDrainPerRound: number
+  readinessPenalty: number
+  label: string
 }
 
 export interface AggregateBattleSideState {
@@ -169,6 +182,7 @@ export interface AggregateBattleInput {
   units: AggregateBattleUnit[]
   context: AggregateBattleContext
   commandOverlays?: AggregateBattleCommandOverlay[]
+  supernaturalPressure?: AggregateBattleSupernaturalPressure[]
 }
 
 export type AggregateBattleLogSegment =
@@ -222,6 +236,7 @@ export interface AggregateBattleUnitResult {
   routedRounds: number
   specialHitsTaken: number
   specialHitsToBreak: number
+  wasHidden: boolean
   destroyed: boolean
 }
 
@@ -233,6 +248,7 @@ export interface AggregateBattleResult {
   phaseLog: AggregateBattleLogEntry[]
   movementDenials: AggregateBattleMovementDenial[]
   summaryTable: AggregateBattleUnitResult[]
+  supernaturalPressureApplied: boolean
 }
 
 export interface AggregateBattleSpecialDamageSummary {
@@ -259,6 +275,7 @@ export interface AggregateBattleCampaignSummary {
   friendlyRoutedUnits: string[]
   hostileRoutedUnits: string[]
   specialDamage: AggregateBattleSpecialDamageSummary[]
+  supernaturalPressureApplied: boolean
   summaryTable: AggregateBattleUnitResult[]
 }
 
@@ -305,6 +322,9 @@ interface RuntimeAggregateBattleUnit {
   roundShock: number
   roundSpecialHits: number
   missileLockoutRounds: number
+  isHidden: boolean
+  wasHidden: boolean
+  revealCondition?: AggregateBattleRevealCondition
   harvestedLoadout?: HarvestedMindLoadout
 }
 
@@ -489,11 +509,20 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
   const unitsById = new Map(units.map((unit) => [unit.id, unit]))
   const phaseLog: AggregateBattleLogEntry[] = []
   const movementDenials: AggregateBattleMovementDenial[] = []
+  const supernaturalPressure = input.supernaturalPressure ?? []
+  const supernaturalPressureApplied = supernaturalPressure.length > 0
   let roundsResolved = 0
 
   for (let round = 1; round <= Math.max(1, Math.trunc(input.roundLimit)); round += 1) {
     roundsResolved = round
     resetRoundState(units)
+
+    if (round === 1 && supernaturalPressureApplied) {
+      applySupernaturalReadinessPenalty(round, units, input.sides, supernaturalPressure, phaseLog)
+    }
+    if (supernaturalPressureApplied) {
+      applySupernaturalMoraleDrain(round, units, input.sides, supernaturalPressure, phaseLog)
+    }
 
     const roundHasActivity = ensureReinforcementsArrive(
       round,
@@ -502,8 +531,13 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
       input.sides,
       areaMap
     )
+
+    revealRoundTriggeredHiddenUnits(round, units, areaMap, phaseLog)
+
     openPhaseWindow(phaseLog, round, 'movement')
     resolveMovementPhase(round, units, input.sides, areaMap, movementDenials, phaseLog)
+
+    revealAreaTriggeredHiddenUnits(round, units, areaMap, phaseLog)
 
     openPhaseWindow(phaseLog, round, 'missile')
     resolveMissilePhase(round, units, unitsById, input, areaMap, sideMap, overlayMap, phaseLog)
@@ -559,6 +593,7 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
     phaseLog,
     movementDenials,
     summaryTable,
+    supernaturalPressureApplied,
   }
 }
 
@@ -630,6 +665,7 @@ export function buildAggregateBattleCampaignSummary(input: {
     friendlyRoutedUnits,
     hostileRoutedUnits,
     specialDamage,
+    supernaturalPressureApplied: input.result.supernaturalPressureApplied,
     summaryTable: input.result.summaryTable.map((row) => ({ ...row })),
   }
 }
@@ -672,6 +708,7 @@ export function isAggregateBattleCampaignSummary(
   return (
     typeof candidate.battleId === 'string' &&
     typeof candidate.regionTag === 'string' &&
+    typeof candidate.supernaturalPressureApplied === 'boolean' &&
     Array.isArray(candidate.summaryTable) &&
     Array.isArray(candidate.friendlyRoutedUnits) &&
     Array.isArray(candidate.hostileRoutedUnits) &&
@@ -754,6 +791,9 @@ function normalizeAggregateBattleUnit(unit: AggregateBattleUnit): RuntimeAggrega
     roundStepLosses: 0,
     roundShock: 0,
     roundSpecialHits: 0,
+    isHidden: Boolean(unit.hidden),
+    wasHidden: Boolean(unit.hidden),
+    revealCondition: normalizeRevealCondition(unit.revealCondition),
     harvestedLoadout: unit.harvestedLoadout,
     missileLockoutRounds: 0,
   }
@@ -782,7 +822,165 @@ function buildUnitResultRow(
     routedRounds: unit.routedRounds,
     specialHitsTaken: unit.specialDurability?.hitsTaken ?? 0,
     specialHitsToBreak: unit.specialDurability?.hitsToBreak ?? 0,
+    wasHidden: unit.wasHidden,
     destroyed: isUnitDestroyed(unit),
+  }
+}
+
+function normalizeRevealCondition(
+  revealCondition: AggregateBattleRevealCondition | undefined
+): AggregateBattleRevealCondition | undefined {
+  if (!revealCondition) {
+    return undefined
+  }
+
+  if (revealCondition.kind === 'round') {
+    return {
+      kind: 'round',
+      round: Math.max(1, Math.trunc(revealCondition.round)),
+    }
+  }
+
+  return {
+    kind: 'area',
+    areaId: revealCondition.areaId,
+  }
+}
+
+function revealRoundTriggeredHiddenUnits(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  areaMap: Map<string, AggregateBattleArea>,
+  phaseLog: AggregateBattleLogEntry[]
+) {
+  for (const unit of units) {
+    if (!unit.isHidden || !unit.areaId || !unit.revealCondition) {
+      continue
+    }
+
+    if (unit.revealCondition.kind !== 'round' || unit.revealCondition.round !== round) {
+      continue
+    }
+
+    unit.isHidden = false
+    phaseLog.push({
+      round,
+      phase: 'movement',
+      segment: 'phase-window',
+      unitId: unit.id,
+      areaId: unit.areaId,
+      detail: `${unit.label} revealed in ${areaMap.get(unit.areaId)?.label ?? unit.areaId}.`,
+    })
+  }
+}
+
+function revealAreaTriggeredHiddenUnits(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  areaMap: Map<string, AggregateBattleArea>,
+  phaseLog: AggregateBattleLogEntry[]
+) {
+  for (const unit of units) {
+    if (!unit.isHidden || !unit.areaId || !unit.revealCondition) {
+      continue
+    }
+
+    if (unit.revealCondition.kind !== 'area' || unit.revealCondition.areaId !== unit.areaId) {
+      continue
+    }
+
+    const enemyPresent = units.some(
+      (candidate) =>
+        candidate.id !== unit.id &&
+        candidate.sideId !== unit.sideId &&
+        candidate.areaId === unit.areaId &&
+        !isUnitDestroyed(candidate)
+    )
+    if (!enemyPresent) {
+      continue
+    }
+
+    unit.isHidden = false
+    phaseLog.push({
+      round,
+      phase: 'missile',
+      segment: 'phase-window',
+      unitId: unit.id,
+      areaId: unit.areaId,
+      detail: `${unit.label} revealed in ${areaMap.get(unit.areaId)?.label ?? unit.areaId}.`,
+    })
+  }
+}
+
+function applySupernaturalReadinessPenalty(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  sides: AggregateBattleSideState[],
+  pressureEffects: AggregateBattleSupernaturalPressure[],
+  phaseLog: AggregateBattleLogEntry[]
+) {
+  for (const pressure of pressureEffects) {
+    const readinessPenalty = Math.max(0, Math.trunc(pressure.readinessPenalty))
+    if (readinessPenalty <= 0) {
+      continue
+    }
+
+    for (const side of sides) {
+      if (pressure.affectedSideId && side.id !== pressure.affectedSideId) {
+        continue
+      }
+
+      for (const unit of units) {
+        if (unit.sideId !== side.id || isUnitDestroyed(unit)) {
+          continue
+        }
+
+        unit.readiness = Math.max(0, unit.readiness - readinessPenalty)
+      }
+
+      phaseLog.push({
+        round,
+        phase: 'movement',
+        segment: 'phase-window',
+        detail: `${pressure.label} reduced ${side.label} readiness by ${readinessPenalty}.`,
+      })
+    }
+  }
+}
+
+function applySupernaturalMoraleDrain(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  sides: AggregateBattleSideState[],
+  pressureEffects: AggregateBattleSupernaturalPressure[],
+  phaseLog: AggregateBattleLogEntry[]
+) {
+  for (const pressure of pressureEffects) {
+    const moraleDrainPerRound = Math.max(0, Math.trunc(pressure.moraleDrainPerRound))
+    if (moraleDrainPerRound <= 0) {
+      continue
+    }
+
+    for (const side of sides) {
+      if (pressure.affectedSideId && side.id !== pressure.affectedSideId) {
+        continue
+      }
+
+      for (const unit of units) {
+        if (unit.sideId !== side.id || isUnitDestroyed(unit)) {
+          continue
+        }
+
+        unit.morale = Math.max(0, unit.morale - moraleDrainPerRound)
+      }
+
+      phaseLog.push({
+        round,
+        phase: 'movement',
+        segment: 'phase-window',
+        detail: `${pressure.label} drained ${side.label} morale by ${moraleDrainPerRound}.`,
+      })
+    }
   }
 }
 
@@ -1396,6 +1594,7 @@ function getHostileControlAreas(
       unit.sideId === sideId ||
       !unit.areaId ||
       isUnitDestroyed(unit) ||
+      unit.isHidden ||
       unit.moraleState === 'routed'
     ) {
       continue
@@ -1437,7 +1636,12 @@ function selectMissileTarget(
 
   return units
     .filter((target) => {
-      if (target.sideId === unit.sideId || !target.areaId || isUnitDestroyed(target)) {
+      if (
+        target.sideId === unit.sideId ||
+        !target.areaId ||
+        isUnitDestroyed(target) ||
+        target.isHidden
+      ) {
         return false
       }
 
@@ -1466,6 +1670,7 @@ function buildMeleePairs(
       engagedIds.has(unit.id) ||
       !unit.areaId ||
       isUnitDestroyed(unit) ||
+      unit.isHidden ||
       unit.moraleState === 'routed' ||
       unit.moraleState === 'retreating'
     ) {
@@ -1479,6 +1684,7 @@ function buildMeleePairs(
           candidate.sideId === unit.sideId ||
           !candidate.areaId ||
           isUnitDestroyed(candidate) ||
+          candidate.isHidden ||
           candidate.moraleState === 'routed' ||
           candidate.moraleState === 'retreating'
         ) {
@@ -1811,7 +2017,12 @@ function battleHasDecisiveState(
   }
 
   for (const unit of units) {
-    if (!unit.areaId || isUnitDestroyed(unit) || unit.moraleState === 'routed') {
+    if (
+      !unit.areaId ||
+      isUnitDestroyed(unit) ||
+      unit.isHidden ||
+      unit.moraleState === 'routed'
+    ) {
       continue
     }
 
@@ -1832,6 +2043,7 @@ function computeAreaController(
         (unit) =>
           unit.areaId === areaId &&
           !isUnitDestroyed(unit) &&
+          !unit.isHidden &&
           unit.moraleState !== 'routed' &&
           unit.moraleState !== 'retreating'
       )

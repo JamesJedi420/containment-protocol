@@ -723,6 +723,26 @@ export interface AgentDowntimeActivity {
   sinceWeek: number
 }
 
+/**
+ * Three-channel fatigue state for SPE-130 Phase 1.
+ *
+ * Each channel accumulates from distinct causes and recovers at distinct rates:
+ * - `physicalExhaustion`: travel, prolonged deployment, combat physical wear
+ * - `mentalExhaustion`: investigation load, concentration pressure
+ * - `combatStress`: acute crisis/combat events
+ *
+ * All channels are 0–100. Optional on Agent; absent agents are treated as
+ * zero across all channels for backward compatibility.
+ */
+export interface AgentFatigueChannels {
+  /** Physical wear from travel, combat, and prolonged deployment. 0..100. */
+  physicalExhaustion: number
+  /** Mental strain from investigation and concentration pressure. 0..100. */
+  mentalExhaustion: number
+  /** Acute stress from combat encounters and crisis events. 0..100. */
+  combatStress: number
+}
+
 export interface Agent {
   id: Id
   name: string
@@ -802,4 +822,10 @@ export interface Agent {
   recoveryStatus?: AgentRecoveryStatus
   trauma?: AgentTraumaState
   downtimeActivity?: AgentDowntimeActivity
+
+  /**
+   * Three-axis fatigue channel state (SPE-130 Phase 1).
+   * Optional; absent agents treated as zero across all channels.
+   */
+  fatigueChannels?: AgentFatigueChannels
 }

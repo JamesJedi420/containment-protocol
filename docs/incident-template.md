@@ -1,9 +1,8 @@
-# Containment Protocol — Incident Template
+﻿# Containment Protocol — Incident Template
 
 ## Purpose
 
 This template defines how incidents should be authored for Containment Protocol.
-
 
 Incidents are one of the main drivers of the weekly campaign loop. They create:
 
@@ -12,7 +11,6 @@ Incidents are one of the main drivers of the weekly campaign loop. They create:
 - escalation risk
 - information uncertainty
 - strategic tradeoffs
-
 
 A good incident gives the player a meaningful problem to interpret and respond to.
 
@@ -24,7 +22,6 @@ It should:
 - imply consequences clearly
 - avoid overexplaining hidden truth
 
-
 This template is for:
 
 - designers
@@ -35,7 +32,7 @@ This template is for:
 
 ---
 
-# 1. Authoring goals
+## 1. Authoring goals
 
 An incident should do five things:
 
@@ -44,7 +41,6 @@ An incident should do five things:
 3. imply the likely response challenge
 4. preserve some uncertainty where appropriate
 5. connect cleanly into routing, deployment, and resolution systems
-
 
 A strong incident helps the player answer:
 
@@ -56,15 +52,17 @@ A strong incident helps the player answer:
 
 ---
 
-# 2. Incident template overview
+## 2. Incident template overview
 
 Use this template as the baseline structure.
 
 ```md
 ## Title
+
 [Short operational title]
 
 ## Summary
+
 [2–5 sentence incident description]
 
 ## Observable problem
@@ -93,15 +91,15 @@ Use this template as the baseline structure.
 
 Not every implementation needs all of these as visible fields, but every authored incident should define them.
 
-# 3. Required authoring fields
+## 3. Required authoring fields
 
 ## 3.1 Title
 
-**Purpose**
+#### Purpose
 
 Provides a short, scan-friendly operational label.
 
-**Rules**
+#### Rules
 
 - 4–10 words
 - should identify the problem, not explain everything
@@ -109,7 +107,7 @@ Provides a short, scan-friendly operational label.
 - avoid excessive flavor wording
 - avoid vague titles that do not imply action
 
-**Good examples**
+#### Good examples
 
 - Unresponsive Warehouse Perimeter
 - Distorted Transit Tunnel Collapse
@@ -117,7 +115,7 @@ Provides a short, scan-friendly operational label.
 - Repeating Fire Suppression Failure
 - Unlicensed Clinic Memory Drift Reports
 
-**Bad examples**
+#### Bad examples
 
 - A Darkness in the Night
 - Something Strange Is Happening
@@ -126,11 +124,11 @@ Provides a short, scan-friendly operational label.
 
 ## 3.2 Summary
 
-**Purpose**
+#### Purpose
 
 Provides the core player-facing incident description.
 
-**Rules**
+#### Rules
 
 - 2–5 sentences
 - start with observable facts
@@ -140,19 +138,18 @@ Provides the core player-facing incident description.
 - do not fully reveal hidden truth unless the design requires it
 - avoid lore dumping
 
-**Recommended structure**
+#### Recommended structure
 
 - visible disruption or problem
 - local stakes
 - bounded uncertainty or anomaly
 - why action matters now
 
-
 ### Good example
 
 A warehouse in the river district lost power during a routine inventory transfer and has remained sealed from the inside for six hours. Two responders entered and withdrew without usable testimony. Nearby traffic is being rerouted, and civilian attention is rising.
 
-**Why it works:**
+#### Why it works
 
 - visible problem
 - social/operational stakes
@@ -161,17 +158,16 @@ A warehouse in the river district lost power during a routine inventory transfer
 
 ## 3.3 Observable problem
 
-**Purpose**
+#### Purpose
 
 Defines what the agency can directly know at intake.
 
-**Rules**
+#### Rules
 
 - use concrete, externalized facts
 - write what is seen, reported, measured, or failing
 - avoid hidden-cause narration unless known
 - 2–5 bullets
-
 
 ### Examples
 
@@ -181,8 +177,7 @@ Defines what the agency can directly know at intake.
 - sealed entrances with internal movement signatures
 - repeated emergency call dropouts
 
-
-**Why this matters:**
+#### Why this matters
 
 This supports:
 
@@ -193,17 +188,16 @@ This supports:
 
 ## 3.4 Immediate stakes
 
-**Purpose**
+#### Purpose
 
 Defines what is at risk if the player delays or misroutes the incident.
 
-**Rules**
+#### Rules
 
 - identify at least one meaningful consequence
 - keep stakes bounded and actionable
 - can include operational, social, political, or containment consequences
 - avoid abstract doom language
-
 
 ### Good examples
 
@@ -213,7 +207,6 @@ Defines what is at risk if the player delays or misroutes the incident.
 - infrastructure damage could spread to adjacent service corridors
 - faction attention is likely if the event remains public
 
-
 ### Bad examples
 
 - the world may end
@@ -222,17 +215,16 @@ Defines what is at risk if the player delays or misroutes the incident.
 
 ## 3.5 Uncertainty / anomalies
 
-**Purpose**
+#### Purpose
 
 Defines what is unclear, misleading, or unusual about the incident.
 
-**Rules**
+#### Rules
 
 - 1–3 bullets
 - preserve bounded ambiguity
 - connect uncertainty to gameplay, not just atmosphere
 - identify what the player does not know yet
-
 
 ### Examples
 
@@ -242,8 +234,7 @@ Defines what is unclear, misleading, or unusual about the incident.
 - local rumor attributes the event to gang activity, but evidence is weak
 - prior site records are incomplete or redacted
 
-
-**Why this matters:**
+#### Why this matters
 
 This drives:
 
@@ -254,16 +245,15 @@ This drives:
 
 ## 3.6 Operational implications
 
-**Purpose**
+#### Purpose
 
 Defines what kind of response challenge the incident creates.
 
-**Rules**
+#### Rules
 
 - explain what the agency will likely need to solve
 - tie to actual gameplay systems where possible
 - 2–4 bullets
-
 
 ### Examples
 
@@ -273,8 +263,7 @@ Defines what kind of response challenge the incident creates.
 - support strain may degrade clean follow-through
 - route is time-sensitive due to local authority activity
 
-
-**Why this matters:**
+#### Why this matters
 
 This helps:
 
@@ -285,16 +274,15 @@ This helps:
 
 ## 3.7 Suggested tags
 
-**Purpose**
+#### Purpose
 
 Provides content/system labels used for routing, generation, and domain matching.
 
-**Rules**
+#### Rules
 
 - use canonical tags only
 - prefer a small, meaningful set
 - tags should help systems and content, not replace description
-
 
 ### Example categories
 
@@ -309,7 +297,6 @@ Provides content/system labels used for routing, generation, and domain matching
 - industrial-site
 - urban
 
-
 ### Good tag set
 
 - anomaly
@@ -320,17 +307,16 @@ Provides content/system labels used for routing, generation, and domain matching
 
 ## 3.8 Escalation if delayed
 
-**Purpose**
+#### Purpose
 
 Defines the deterministic worsening path if the player does not respond effectively.
 
-**Rules**
+#### Rules
 
 - describe one bounded escalation pattern
 - escalation should be specific
 - tie to actual consequences
 - avoid generic “gets worse” phrasing
-
 
 ### Good examples
 
@@ -340,20 +326,17 @@ Defines the deterministic worsening path if the player does not respond effectiv
 - anomaly spreads into adjacent systems
 - rival faction capture/interference becomes possible
 
-
 ### Bad examples
 
 - things spiral out of control
 - chaos spreads everywhere
 - disaster ensues
 
-# 4. Optional authoring fields
-
+## 4. Optional authoring fields
 
 These are optional but recommended for richer implementation.
 
 ## 4.1 Source
-
 
 Where the incident came from:
 
@@ -367,7 +350,6 @@ Where the incident came from:
 
 ## 4.2 Region / site
 
-
 Where the incident is rooted:
 
 - district
@@ -377,7 +359,6 @@ Where the incident is rooted:
 
 ## 4.3 Visibility state
 
-
 How public the incident currently is:
 
 - quiet
@@ -386,7 +367,6 @@ How public the incident currently is:
 - politically exposed
 
 ## 4.4 Response lane suggestion
-
 
 Useful for design-side planning:
 
@@ -402,23 +382,64 @@ Useful for design-side planning:
 
 Internal design-only note for what is actually going on.
 
-
 ### Rules
 
 - never assume this is fully shown to the player
 - must still connect to deterministic system consequences
 - should explain why visible facts behave the way they do
 
+## 4.6 Impact (IncidentImpact)
 
-# 5. Full template
+Canonical typed consequence data for the incident, using the `IncidentImpact` schema (SPE-820).
+
+This field is optional. When provided it gives the simulation deterministic, comparable numbers for triage, escalation scoring, and report generation.
+
+#### When to author it
+
+- incidents with concrete, quantifiable consequences (population affected, facilities down, hazmat radius)
+- incidents intended for deterministic scoring or cross-incident comparison
+- escalation paths that change impact figures at each step
+
+#### Standard fields (all optional, use only what applies)
+
+- `affectedPopulation` — people at risk or displaced
+- `fatalities` — confirmed or estimated deaths
+- `rescueDemand` — people requiring active rescue
+- `shelterDemand` — people or households needing shelter
+- `outages` — customers, households, or services without power/access
+- `facilityImpact` — facilities affected or compromised
+- `serviceDisruption` — services, customers, or organizations disrupted
+- `hazmatExposure` — people exposed or plume radius in km
+- `organizationImpact` — organizations affected
+- `jurisdictionImpact` — jurisdictions involved
+
+Each field takes a `value` plus optional `denominator` (kind + total + label), `uncertainty` (level: low/medium/high, plus optional basis), and `note`.
+
+#### Extension fields
+
+Non-standard metrics go under `extensions` as a keyed map. Extension entries do not affect canonical field reads.
+
+#### Rules
+
+- use the canonical field names — do not invent parallel fields for the same concept
+- always include `schemaVersion: 'spe-820.v1'`
+- omit fields that genuinely do not apply — sparse objects are fine
+- use `uncertainty.level` to reflect information quality at intake, not worst-case projection
+- do not duplicate impact values in the summary text; the summary should describe the scene, not restate the numbers
+
+See `src/domain/templates/incidentImpact.ts` and `SCHEMA_REGISTRY.md` for the full type definition and versioning notes.
+
+## 5. Full template
 
 Use this full version in design docs.
 
 ```md
 ## Title
+
 [Short operational title]
 
 ## Summary
+
 [2–5 sentence player-facing description]
 
 ## Observable problem
@@ -452,11 +473,10 @@ Use this full version in design docs.
 - Visibility state: [state]
 - Response lane suggestion: [lane]
 - Hidden truth: [internal only]
+- Impact: schemaVersion, [field]: { value, denominator, uncertainty }
 ```
 
-
-# 6. Example completed incident
-
+## 6. Example completed incident
 
 ## Title
 Unresponsive Freight Archive
@@ -509,10 +529,9 @@ A records warehouse on the freight line has stopped all outbound communication a
 - Response lane suggestion: recon-first
 - Hidden truth: localized identity bleed across indexed records and staff memory anchors
 
-# 7. Incident quality checklist
+## 7. Incident quality checklist
 
 Before approving an incident, confirm:
-
 
 ### Clarity
 
@@ -520,38 +539,32 @@ Before approving an incident, confirm:
 - Does the title scan well in a list?
 - Is the summary operationally legible?
 
-
 ### Stakes
 
 - Is there a reason to care now?
 - Is at least one consequence of delay visible?
-
 
 ### Uncertainty
 
 - Is there useful ambiguity rather than confusion?
 - Does uncertainty create gameplay value?
 
-
 ### Routing value
 
 - Does the incident imply something about response type, risk, or requirements?
 - Can the player reasonably compare it to other incidents?
-
 
 ### Boundedness
 
 - Is the scale controlled?
 - Does the text imply more simulation depth than the systems can support?
 
-
 ### Tone
 
 - Does it sound like Containment Protocol?
 - Is it restrained, procedural, and eerie rather than theatrical?
 
-# 8. Common mistakes
-
+## 8. Common mistakes
 
 ### Mistake 1: Vague spooky writing
 
@@ -559,12 +572,11 @@ Bad:
 
 Workers vanished under strange circumstances and a feeling of dread hangs over the building.
 
-**Why it fails:**
+#### Why it fails
 
 - low operational signal
 - weak routing value
 - generic tone
-
 
 ### Mistake 2: Full hidden truth exposition
 
@@ -572,12 +584,11 @@ Bad:
 
 An extradimensional memory parasite has entered the filing system and is now replicating through document identity chains.
 
-**Why it fails:**
+#### Why it fails
 
 - overreveals
 - removes investigatory pressure
 - sounds like internal design notes, not intake text
-
 
 ### Mistake 3: No stakes
 
@@ -585,12 +596,11 @@ Bad:
 
 Some odd noises were reported from a warehouse.
 
-**Why it fails:**
+#### Why it fails
 
 - not urgent
 - not clearly consequential
 - hard to route meaningfully
-
 
 ### Mistake 4: Overwritten prose
 
@@ -598,15 +608,16 @@ Bad:
 
 The warehouse stood like a tomb of industrial grief, haunted by voices no living throat could carry.
 
-**Why it fails:**
+#### Why it fails
 
 - too literary
 - poor institutional tone
 - obscures usable information
 
-# 9. Integration notes for implementation
+## 9. Integration notes for implementation
 
 Each incident should be mappable to:
+
 - severity
 - escalation pattern
 - visibility/public pressure
@@ -615,12 +626,16 @@ Each incident should be mappable to:
 - likely routing lane
 - possible report note causes
 - deterministic worsening path
+- canonical impact metrics (via `IncidentImpact` — see section 4.6 and `SCHEMA_REGISTRY.md`)
+
+The `impact` field on `HazardIncidentTemplate` is the authoring seam for typed consequence data. The runtime carries it forward via `cloneIncidentImpact()` on each `resolveIncident()` call. `IncidentState.impact` provides a fallback for impact that originates from dynamic simulation rather than the template.
 
 If an incident cannot map to systems cleanly, it needs revision.
 
-# 10. Summary
+## 10. Summary
 
 A good Containment Protocol incident is:
+
 - clear
 - tense
 - bounded

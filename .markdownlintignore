@@ -1,0 +1,4 @@
+# Generated/export artifacts: keep out of editorial markdown linting
+linear-export
+linear-export/**
+**/linear-export/**

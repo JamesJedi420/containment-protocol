@@ -1964,6 +1964,110 @@ export interface AgencyState {
   fundingState?: FundingState
 }
 
+// ── SPE-109: District time-cadence encounter scheduling ──────────────────────
+/**
+ * Baseline traffic state for a district at a specific time band.
+ * Deterministic, composed from baseline + rare event overlays.
+ */
+export interface TrafficSnapshot {
+  /** Baseline population count (absolute, not percentage). */
+  baselinePopulation: number
+  /** Witness density modifier (0-1, where 1 is maximum witness presence). */
+  witnessModifier: number
+  /** Visibility modifier applied to covert operations (0-1, where 0 is invisible). */
+  visibilityModifier: number
+  /** Whether this time-state confers a covert advantage to hidden actors. */
+  covertAdvantage: boolean
+  /** Applied event overlays, for audit trail. */
+  appliedEvents: string[]
+  /** Seed used for deterministic reproducibility. */
+  seedKey: string
+}
+
+/**
+ * Encounter-generation context derived from district identity and time band.
+ * Shapes case weighting, escalation modifiers, and authority response.
+ */
+export interface EncounterContext {
+  /** District ID. */
+  districtId: string
+  /** Time band ID. */
+  timeBandId: string
+  /** Encounter family tags to bias case selection (e.g., ["cult_activity", "supernatural"]). */
+  encounterFamilyTags: string[]
+  /** Escalation rule modifiers (e.g., {"stage_delta": 0.5, "pressure_weight": 1.2}). */
+  escalationModifiers: Record<string, number>
+  /** Authority response profile (e.g., "rapid_response", "slow_reaction", "corruption"). */
+  authorityResponseProfile: string
+}
+
+/**
+ * Public traffic profile for a single time band (Dawn, Morning, Afternoon, Evening, Night).
+ */
+export interface TimeBandProfile {
+  id: string
+  label: string
+  /** Baseline population state at this time band. */
+  baselinePopulation: number
+  /** Witness density (0-1). */
+  witnessModifier: number
+  /** Visibility (0-1, where 0 is darkness). */
+  visibilityModifier: number
+  /** Whether this time band confers covert advantage. */
+  covertAdvantage?: boolean
+}
+
+/**
+ * District profile: encounters, escalation, authority response, and time-band overrides.
+ */
+export interface DistrictProfile {
+  id: string
+  label: string
+  /** Case encounter families biased by district (e.g., ["feral_pack", "criminal"]). */
+  encounterFamilyTags: string[]
+  /** Escalation modifiers specific to this district. */
+  escalationModifiers: Record<string, number>
+  /** Authority response archetype. */
+  authorityResponseProfile: string
+  /** Optional time-band overrides (e.g., Night in Outskirts = lowered witness). */
+  timeBandOverrides?: Record<string, Partial<TimeBandProfile>>
+}
+
+/**
+ * Rare event overlay applied on top of baseline traffic.
+ */
+export interface RareEventOverlay {
+  id: string
+  label: string
+  /** Districts this event affects. */
+  appliesTo: string[]
+  /** Week range this event is active. */
+  startWeek: number
+  endWeek: number
+  /** Traffic modifiers (additive or override). */
+  trafficModifier: { populationDelta?: number; witnessModifier?: number; visibilityModifier?: number }
+  /** Encounter family bias (combines with district baseline). */
+  encounterFamilyBias?: string[]
+  /** Seed key for deterministic application. */
+  seedKey: string
+}
+
+/**
+ * Complete district-time schedule for a settlement.
+ * Optional in GameState; when present, drives encounter generation.
+ */
+export interface DistrictScheduleState {
+  /** Settlement ID (typically "haven" for MVP). */
+  settlementId: string
+  /** District definitions. */
+  districts: Record<string, DistrictProfile>
+  /** Time band definitions. */
+  timeBands: Record<string, TimeBandProfile>
+  /** Active rare events. */
+  events: RareEventOverlay[]
+}
+// ── end SPE-109 types ────────────────────────────────────────────────────────
+
 export interface GameState {
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
   legitimacy?: LegitimacyState
@@ -1987,6 +2091,8 @@ export interface GameState {
   templates: Record<string, CaseTemplate>
   reports: WeeklyReport[]
   events: OperationEvent[]
+  /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
+  districtScheduleState?: DistrictScheduleState
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>

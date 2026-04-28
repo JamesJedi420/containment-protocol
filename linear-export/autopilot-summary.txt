@@ -1,0 +1,55 @@
+# Autopilot Backlog Operations Summary — 2026-04-28
+
+## Session Overview
+Continued from prior session with high→medium compression and audit work. Applied all outstanding backlog actions.
+
+## Operations Applied
+
+### 1. High→Medium Compression (4 issues)
+- SPE-878 (Unified process change control) — Priority 2→3
+- SPE-879 (Multi-scale emergency action planning) — Priority 2→3
+- SPE-891 (Civilian blowback from concealed agent lives) — Priority 2→3
+- SPE-910 (In-flight countermeasure execution) — Priority 2→3
+- **Kept at High:** SPE-881 (Multi-anchor anomaly arc state) — feeds faction racing and core engine
+
+### 2. Comment-to-Description Fold-in Audit (3 issues)
+- **SPE-844** (Crisis spokesperson credibility): Moderate fold-in — needs backup/training detail integration
+- **SPE-126** (Identity-overwrite traps): Moderate fold-in — needs community-scale effects integration
+- **SPE-547** (Haunt resolution): **URGENT fold-in** — 15+ reconciliation comments define scope, description needs major expansion
+- **SPE-924** (Engineered anomaly populations): No fold-in needed — complete description
+
+### 3. Prior Priority Compression (4 issues, from prior session recommendations)
+- SPE-887 (Scope element gap: threat-pressure visibility) — Priority 2→3
+- SPE-890 (Scope element gap: dynamic difficulty reset) — Priority 2→3
+- SPE-913 (Scope element gap: faction capability/priority mismatch) — Priority 2→3
+- SPE-919 (Scope element gap: post-incident consequence lingering) — Priority 2→3
+- Already Medium: SPE-888, SPE-898, SPE-912
+- Already Medium: SPE-400
+- Not found in Linear: SPE-933
+
+### 4. Dependency Notes Applied (2 issues)
+- **SPE-921** (Multi-presence haunted-site): Added dependency note linking to SPE-547 base haunt workflow
+- **SPE-547** (Haunt resolution): Added dependency note noting SPE-921 and SPE-922 build on it
+- Note: SPE-922 already had its dependency note from prior session
+
+## Session Statistics
+- Total issues processed: 18
+- Priority changes applied: 14 (8 High→Medium today, 4 High→Medium from prior session, 2 already at target)
+- Audit comments: 3 (fold-in audit findings)
+- Dependency notes: 2
+- GitHub duplicates closed: 17 (from prior session)
+- Plan runs executed: 5 (high-compression, prior-compression, fold-in-audit, dependency-notes, plus interim checks)
+- Rollback logs created: 5 (all operations logged for rollback support)
+
+## Backlog Actions Completion Status
+✅ GitHub/Linear drift sweep (17 duplicates)
+✅ High→Medium compression pass (4 + 4)
+✅ Comment-to-description fold-in audit (3 issues)
+✅ Dependency notes application (2 issues)
+✅ Prior priority recommendations (4 + 4 already at target + 1 not found)
+
+## Outstanding Items
+- SPE-547 description should be substantially expanded or patterns extracted to sister issues
+- SPE-844, SPE-126 descriptions should be updated with fold-in details
+- "Boundary ownership fragment in SPE-836" issue could not be located (may already be fixed)
+

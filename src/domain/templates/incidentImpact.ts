@@ -100,15 +100,7 @@ export function cloneIncidentImpact(impact: IncidentImpact): IncidentImpact {
               key,
               {
                 ...value,
-                metric: {
-                  ...value.metric,
-                  ...(value.metric.denominator
-                    ? { denominator: { ...value.metric.denominator } }
-                    : {}),
-                  ...(value.metric.uncertainty
-                    ? { uncertainty: { ...value.metric.uncertainty } }
-                    : {}),
-                },
+                metric: cloneMetric(value.metric)!,
               },
             ])
           ),

@@ -1964,6 +1964,35 @@ export interface AgencyState {
   fundingState?: FundingState
 }
 
+// ── SPE-93: External support reliability and trust state ──────────────────────
+
+/**
+ * Class of external support asset. Only 'contractor' is used in the live path for this pass.
+ * Other classes are defined here for future bounded expansion without type changes.
+ */
+export type ExternalSupportAssetClass = 'contractor' | 'informant' | 'auxiliary' | 'defector'
+
+/**
+ * Trust band derived from reliability at read time — never stored separately.
+ * high ≥ 70 | moderate ≥ 40 | degraded ≥ 15 | failed < 15
+ */
+export type ExternalAssetTrustBand = 'high' | 'moderate' | 'degraded' | 'failed'
+
+/**
+ * An agency-side external support asset with explicit reliability state.
+ * NOT deployable as a squad member — support-layer only.
+ */
+export interface ExternalSupportAsset {
+  id: string
+  label: string
+  assetClass: ExternalSupportAssetClass
+  /** 0–100. Drives trust band and downstream outcome modifiers deterministically. */
+  reliability: number
+  tags: string[]
+  /** Optional free-text reason for the last reliability change, for report surfacing. */
+  lastDriftReason?: string
+}
+
 // ── SPE-109: District time-cadence encounter scheduling ──────────────────────
 /**
  * Baseline traffic state for a district at a specific time band.
@@ -2093,6 +2122,8 @@ export interface GameState {
   events: OperationEvent[]
   /** District time-cadence schedule (SPE-109). When present, drives encounter generation. */
   districtScheduleState?: DistrictScheduleState
+  /** Agency-side external support assets with reliability/trust state (SPE-93). */
+  externalSupportAssets?: Record<string, ExternalSupportAsset>
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>

@@ -112,6 +112,7 @@ import {
   getInstructorBonus,
   unassignInstructor,
 } from '../../domain/sim/instructorAssignment'
+import { applyRallySupportStaffAction } from '../../domain/hub/supportActions'
 import { recomputeMissionRouting, routeMissionToTeam } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
@@ -230,6 +231,7 @@ interface GameStore {
   refreshMissionRouting: () => void
   evaluateMissionDeployment: (missionId: Id, teamId: Id) => ReturnType<typeof evaluateDeploymentEligibility> | null
   assignMissionTeam: (missionId: Id, teamId: Id) => boolean
+  rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   advanceWeek: () => void
   setSeed: (seed: number) => void
   updateConfig: (patch: Partial<GameConfig>) => void
@@ -1296,6 +1298,18 @@ export const useGameStore = create<GameStore>()(
 
         set(() => ({ game: assignTeam(routed.state, missionId, teamId) }))
         return true
+      },
+
+      rallySupportStaff: (amount = 2) => {
+        let note: ReturnType<typeof applyRallySupportStaffAction>['note'] = null
+
+        set((s) => {
+          const result = applyRallySupportStaffAction(s.game, amount)
+          note = result.note
+          return { game: result.nextState }
+        })
+
+        return note
       },
 
       advanceWeek: () => set((s) => ({ game: advanceWeek(s.game) })),

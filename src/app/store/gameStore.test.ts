@@ -1,5 +1,5 @@
 // cspell:words cand greentape medkits unassigns unequip
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import { createStartingState } from '../../data/startingState'
 import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
@@ -23,12 +23,14 @@ import {
   renameTeam as renameTeamDomain,
   setTeamLeader as setTeamLeaderDomain,
 } from '../../domain/sim/teamManagement'
+import { assignTeam as assignTeamDomain } from '../../domain/sim/assign'
 import {
   queueTeamTraining as queueTeamTrainingDomain,
   queueTraining as queueTrainingDomain,
 } from '../../domain/sim/training'
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave } from './saveSystem'
 import { RUN_EXPORT_KIND } from './runTransfer'
+import * as supportActions from '../../domain/hub/supportActions'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -37,6 +39,61 @@ function getPersistedState() {
     | { state: { game: Record<string, unknown> }; version: number }
     | null
     | undefined
+}
+
+function makeLiveSupportOperationState() {
+  let state = createStartingState()
+  state.agency = {
+    ...state.agency!,
+    supportAvailable: 0,
+  }
+  state.supportAvailable = 0
+  state.externalSupportAssets = {
+    'contractor-live': {
+      id: 'contractor-live',
+      label: 'Agency Contractor',
+      assetClass: 'contractor',
+      reliability: 80,
+      tags: ['support'],
+    },
+  }
+
+  state.cases['case-001'] = {
+    ...state.cases['case-001'],
+    status: 'open',
+    durationWeeks: 1,
+    weeksRemaining: undefined,
+    difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+    weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+    requiredTags: [],
+    preferredTags: [],
+  }
+  state.cases['case-002'] = {
+    ...state.cases['case-002'],
+    status: 'open',
+    durationWeeks: 1,
+    weeksRemaining: undefined,
+    difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+    weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+    requiredTags: [],
+    preferredTags: [],
+  }
+
+  state = assignTeamDomain(state, 'case-001', 't_nightwatch')
+  state = assignTeamDomain(state, 'case-002', 't_greentape')
+
+  state.cases['case-001'] = {
+    ...state.cases['case-001'],
+    status: 'in_progress',
+    weeksRemaining: 1,
+  }
+  state.cases['case-002'] = {
+    ...state.cases['case-002'],
+    status: 'in_progress',
+    weeksRemaining: 1,
+  }
+
+  return state
 }
 
 function expectCanonicalTeams(game: ReturnType<typeof createStartingState>) {
@@ -74,6 +131,43 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().game.week).toBe(2)
     expect(useGameStore.getState().game.reports).toHaveLength(1)
+  })
+
+  it('routes rally support through the store and persists contractor reliability into later support-facing simulation', () => {
+    const spy = vi.spyOn(supportActions, 'applyRallySupportStaffAction')
+    const baselineResult = advanceWeekDomain(makeLiveSupportOperationState())
+
+    useGameStore.setState({ game: makeLiveSupportOperationState() })
+
+    const note = useGameStore.getState().rallySupportStaff(1)
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    expect(note?.type).toBe('support.restored')
+    expect(note?.content).toContain('Agency Contractor')
+    expect(note?.content).toContain('Trust level: high')
+
+    expect(useGameStore.getState().game.externalSupportAssets?.['contractor-live']).toMatchObject({
+      reliability: 92,
+    })
+
+    const stored = getPersistedState()
+    expect(stored?.state.game.externalSupportAssets).toMatchObject({
+      'contractor-live': expect.objectContaining({
+        reliability: 92,
+        lastDriftReason: expect.stringContaining('Agency Contractor reliability improved'),
+      }),
+    })
+
+    useGameStore.getState().advanceWeek()
+
+    const next = useGameStore.getState().game
+    const baselineShortfalls = Object.values(baselineResult.cases).filter((currentCase) => currentCase.supportShortfall)
+    const nextShortfalls = Object.values(next.cases).filter((currentCase) => currentCase.supportShortfall)
+
+    expect(nextShortfalls).toHaveLength(0)
+    expect(baselineShortfalls).toHaveLength(2)
+
+    spy.mockRestore()
   })
 
   it('exposes canonical runtime-state actions without direct mutation', () => {

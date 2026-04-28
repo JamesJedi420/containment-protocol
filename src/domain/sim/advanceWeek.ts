@@ -216,8 +216,14 @@ import {
   isCaseUnderConstruction,
 } from '../constructionProgress'
 import { doesProgressClockMeetThreshold } from '../progressClocks'
+import {
+  applySuccessfulInvestigation,
+  askInvestigationQuestion,
+  listAvailableInvestigationQuestions,
+} from '../investigationEconomy'
 import { evaluateThresholdCourtProxyConflict } from '../proxyConflict'
 import { applyDwell } from './weirdRoom'
+import { previewResolutionForTeamIds } from './resolve'
 
 type AdvanceWeekState = GameState & {
   damagedEquipmentQueue?: string[]
@@ -1797,6 +1803,16 @@ function resolveAssignments(
 
     // Pass supportShortfall flag to resolution
     const isSupportShortfall = supportShortfallCases.includes(caseId)
+    const tacticalReadPreview = previewResolutionForTeamIds(
+      {
+        ...currentCase,
+        assignedTeamIds: existingAssignedTeamIds,
+        supportShortfall: isSupportShortfall,
+      },
+      context.sourceState,
+      existingAssignedTeamIds
+    )
+
     const weeklyResolution = resolveAssignedCaseForWeek(
       {
         ...currentCase,
@@ -1877,6 +1893,36 @@ function resolveAssignments(
     }
 
     if (outcome.result === 'success') {
+      if ((tacticalReadPreview.reconSummary?.revealedModifierCount ?? 0) > 0) {
+        context.nextState = applySuccessfulInvestigation(context.nextState, {
+          caseId,
+          forensicBudget: 0,
+          tacticalBudget: 1,
+        })
+
+        const tacticalQuestion = listAvailableInvestigationQuestions(
+          context.nextState,
+          caseId,
+          'tactical'
+        )[0]
+
+        if (tacticalQuestion) {
+          const tacticalReadResult = askInvestigationQuestion(context.nextState, {
+            caseId,
+            domain: 'tactical',
+            questionId: tacticalQuestion.id,
+          })
+
+          context.nextState = tacticalReadResult.state
+
+          if (tacticalReadResult.applied && tacticalReadResult.question) {
+            resolutionReasons.push(
+              `Tactical read leverage: ${tacticalReadResult.question.leverage.label}`
+            )
+          }
+        }
+      }
+
       const rewardBreakdown = buildMissionRewardBreakdown(
         effectiveCase,
         'success',

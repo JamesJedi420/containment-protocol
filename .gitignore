@@ -32,3 +32,6 @@ remaining-subset.json
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets
+linear-export/.env

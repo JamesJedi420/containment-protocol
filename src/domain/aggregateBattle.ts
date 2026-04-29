@@ -193,6 +193,8 @@ export interface AggregateBattleParallelObjectiveTrack {
   sustainAreaIds: string[]
   progressTarget: number
   disruptionThreshold: number
+  /** Multiplier applied to disruption gain in round 1 only (startup vulnerability). Default 1. */
+  startupDisruptionMultiplier?: number
 }
 
 export interface AggregateBattleParallelObjectiveResult {
@@ -407,6 +409,7 @@ interface RuntimeAggregateBattleParallelObjectiveTrack {
   sustainAreaIds: string[]
   progressTarget: number
   disruptionThreshold: number
+  startupDisruptionMultiplier: number
   progress: number
   disruption: number
   completedRound?: number
@@ -949,6 +952,7 @@ function normalizeParallelObjectiveTrack(
     sustainAreaIds: [...new Set(track.sustainAreaIds)],
     progressTarget: Math.max(1, Math.trunc(track.progressTarget)),
     disruptionThreshold: Math.max(1, Math.trunc(track.disruptionThreshold)),
+    startupDisruptionMultiplier: Math.max(1, track.startupDisruptionMultiplier ?? 1),
     progress: 0,
     disruption: 0,
   }
@@ -986,7 +990,9 @@ function resolveParallelObjectivePhase(
       track.sustainAreaIds.includes(unit.areaId)
   ).length
   const sufferedDisruption = operator.roundStepLosses + operator.roundShock > 0 ? 1 : 0
-  const disruptionGain = hostilePressure + sufferedDisruption
+  const baseDisruptionGain = hostilePressure + sufferedDisruption
+  const startupMultiplier = round === 1 ? track.startupDisruptionMultiplier : 1
+  const disruptionGain = Math.trunc(baseDisruptionGain * startupMultiplier)
   if (disruptionGain > 0) {
     track.disruption = Math.min(track.disruptionThreshold, track.disruption + disruptionGain)
   }

@@ -5,6 +5,7 @@ import {
   buildAggregateBattleContextFromCase,
   buildAggregateBattleSideState,
   createAggregateBattleCommandOverlayFromLeaderBonus,
+  formatAggregateBattleCampaignSummary,
   resolveAggregateBattle,
   summarizeAggregateBattle,
   type AggregateBattleArea,
@@ -1359,6 +1360,183 @@ describe('aggregate battle layer', () => {
       pressure: 'medium',
       outcome: 'contested',
     })
+  })
+
+  it('startup disruption multiplier raises round-1 disruption faster than baseline', () => {
+    // Baseline: one hostile in sustain area, no operator damage => disruptionGain = 1 / round
+    const baseline = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-startup-baseline',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'probe-unit',
+            label: 'Probe Unit',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 2,
+            morale: 60,
+            readiness: 60,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'stabilize-startup-baseline',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 4,
+          disruptionThreshold: 8,
+        },
+      })
+    )
+
+    // Amplified: same scenario but with startupDisruptionMultiplier: 3
+    const amplified = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-startup-amplified',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'probe-unit',
+            label: 'Probe Unit',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 2,
+            morale: 60,
+            readiness: 60,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'stabilize-startup-amplified',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 4,
+          disruptionThreshold: 8,
+          startupDisruptionMultiplier: 3,
+        },
+      })
+    )
+
+    expect(amplified.parallelObjective?.disruption).toBeGreaterThan(
+      baseline.parallelObjective?.disruption ?? 0
+    )
+  })
+
+  it('too-late restoration: ritual success coexists with extraction overrun and formatted output is legible', () => {
+    // Ritual cell is in att-support with no hostiles in sustain area — completes progress in round 1.
+    // Breach team has morale 1 and is isolated in att-reserve (no combat) — routs from morale phase.
+    // Def-heavy is in def-reserve (untouched) — survives as residual threat => extraction overrun.
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-too-late',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'breach-team',
+            label: 'Breach Team',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 2,
+            areaId: 'att-reserve',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 1,
+            morale: 1,
+            readiness: 1,
+          },
+          {
+            id: 'def-heavy',
+            label: 'Defender Heavy',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'def-reserve',
+            order: 'hold',
+            meleeFactor: 8,
+            defenseFactor: 6,
+            morale: 74,
+            readiness: 72,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'bind-sovereign-anchor',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 1,
+          disruptionThreshold: 4,
+        },
+      })
+    )
+
+    const summary = buildAggregateBattleCampaignSummary({
+      context: createContext(),
+      result,
+      friendlySideId: 'attackers',
+      friendlyLabel: 'Attackers',
+      hostileSideId: 'defenders',
+      hostileLabel: 'Defenders',
+    })
+
+    // Ritual completed — too late to stop the defenders holding the field.
+    expect(summary.parallelObjective?.outcome).toBe('success')
+    expect(summary.extractionFollowThrough?.outcome).toBe('overrun')
+    expect(summary.extractionFollowThrough?.required).toBe(true)
+
+    // Legibility: formatted string must contain both objective and extraction details.
+    const formatted = formatAggregateBattleCampaignSummary(summary)
+    expect(formatted).toContain('bind-sovereign-anchor')
+    expect(formatted).toContain('success')
+    expect(formatted).toContain('extraction overrun')
+    expect(formatted).toMatch(/Aggregate battle:/)
   })
 })
 

@@ -2,14 +2,12 @@
  * SPE-130 Phase 1 — targeted tests for three-channel fatigue accumulation,
  * differentiated recovery, and deployment-readiness consumption.
  *
- * Scope of this slice:
- *   - physicalExhaustion, mentalExhaustion, combatStress accumulation
- *   - differentiated recovery (rest / therapy / medical)
- *   - channel-differentiated readiness penalties
- *   - fatiguePipeline weekly tick wires channels onto agents
+ * SPE-130 Phase 2 — mission resolution as second downstream consumer:
+ *   combatStress bypasses flat fatigue injury gate; elevated combatStress
+ *   forces moderate severity independently of flat fatigue.
  *
  * Out of scope (later slices): overdrive, lockout, transit vulnerability,
- *   capability-use overtesting, injury-risk consumer.
+ *   capability-use overtesting.
  */
 import { describe, it, expect } from 'vitest'
 import {
@@ -22,8 +20,10 @@ import {
   COMBAT_STRESS_PENALTY_THRESHOLD,
 } from '../domain/agentFatigueChannels'
 import { applyWeeklyAgentFatigue } from '../domain/sim/fatiguePipeline'
+import { applyMissionResolutionAgentMutations } from '../domain/sim/missionResolutionAgents'
+import { createStartingState } from '../data/startingState'
 import type { AgentFatigueChannels } from '../domain/agent/models'
-import type { GameState } from '../domain/models'
+import type { GameState, ResolutionOutcome } from '../domain/models'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -277,5 +277,122 @@ describe('applyWeeklyAgentFatigue — channel wiring', () => {
     })
 
     expect(result['a4'].fatigue).toBeGreaterThan(0)
+  })
+})
+
+// ── 5. Mission resolution — second downstream consumer ────────────────────
+
+describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path differently', () => {
+  function makeOutcome(overrides: Partial<ResolutionOutcome> = {}): ResolutionOutcome {
+    return {
+      caseId: 'case-001',
+      mode: 'threshold',
+      kind: 'case',
+      delta: -10,
+      result: 'fail',
+      reasons: ['test-outcome'],
+      ...overrides,
+    }
+  }
+
+  it('agent with low flat fatigue but high combatStress is injured on failure (gate bypass)', () => {
+    // Without combatStress the flat gate (fatigue < 45) would suppress injury entirely.
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...state.agents[agentId]!,
+      fatigue: 10, // well below INJURY_RISK_FATIGUE_MIN = 45
+      status: 'active' as const,
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 60 }, // >= 55 threshold
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, ...Object.fromEntries(assignedAgents.map((a) => [a.id, a])) },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: { ...state.cases['case-001'], stage: 1, assignedTeamIds: ['t_nightwatch'] },
+      outcome: makeOutcome(),
+      week: state.week,
+      rng: () => 0, // always triggers injury roll
+    })
+
+    // At least one agent should be injured despite low flat fatigue.
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+  })
+
+  it('agent with low flat fatigue and low combatStress is NOT injured on failure (gate holds)', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...state.agents[agentId]!,
+      fatigue: 10,
+      status: 'active' as const,
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 10 }, // below 55
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, ...Object.fromEntries(assignedAgents.map((a) => [a.id, a])) },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: { ...state.cases['case-001'], stage: 1, assignedTeamIds: ['t_nightwatch'] },
+      outcome: makeOutcome(),
+      week: state.week,
+      rng: () => 0.99, // very unlikely injury roll
+    })
+
+    expect(result.missionInjuries).toHaveLength(0)
+  })
+
+  it('elevated combatStress forces moderate severity independently of flat fatigue', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    // Flat fatigue below 70 so the old path alone would yield 'minor'.
+    // combatStress >= 70 should force 'moderate'.
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...state.agents[agentId]!,
+      fatigue: 50, // above INJURY_RISK_FATIGUE_MIN, below 70
+      status: 'active' as const,
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 75 }, // >= 70 threshold
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, ...Object.fromEntries(assignedAgents.map((a) => [a.id, a])) },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: { ...state.cases['case-001'], stage: 1, assignedTeamIds: ['t_nightwatch'] },
+      outcome: makeOutcome(),
+      week: state.week,
+      rng: () => 0, // always triggers injury, picks minimum severity path
+    })
+
+    const injuries = result.missionInjuries
+    expect(injuries.length).toBeGreaterThan(0)
+    expect(injuries.every((inj) => inj.severity === 'moderate')).toBe(true)
+  })
+
+  it('physicalExhaustion alone does not affect the injury gate (channels react differently)', () => {
+    // This confirms channels are differentiated: physicalExhaustion above the
+    // readiness threshold does NOT bypass the injury gate — only combatStress does.
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const assignedAgents = team.agentIds.map((agentId) => ({
+      ...state.agents[agentId]!,
+      fatigue: 10,
+      status: 'active' as const,
+      fatigueChannels: { physicalExhaustion: 80, mentalExhaustion: 0, combatStress: 0 }, // high physical, zero combat
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, ...Object.fromEntries(assignedAgents.map((a) => [a.id, a])) },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: { ...state.cases['case-001'], stage: 1, assignedTeamIds: ['t_nightwatch'] },
+      outcome: makeOutcome(),
+      week: state.week,
+      rng: () => 0.99,
+    })
+
+    // Gate should hold — physicalExhaustion alone doesn't bypass it.
+    expect(result.missionInjuries).toHaveLength(0)
   })
 })

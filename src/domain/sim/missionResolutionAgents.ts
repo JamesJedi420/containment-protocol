@@ -23,6 +23,7 @@ import {
   type AnyOperationEventDraft,
 } from '../events'
 import { clamp } from '../math'
+import { createDefaultFatigueChannels } from '../agentFatigueChannels'
 import type {
   AgentHistoryEntry,
   CaseInstance,
@@ -47,6 +48,10 @@ const RELATIONSHIP_DELTA_PARTIAL = 0.5
 const RELATIONSHIP_DELTA_FAIL = -1
 const INJURY_RISK_FATIGUE_MIN = 45
 const GUARANTEED_INJURY_FATIGUE = 85
+/** combatStress at or above this value bypasses the flat fatigue injury gate on failure. */
+const COMBAT_STRESS_INJURY_THRESHOLD = 55
+/** combatStress at or above this value forces at least moderate injury severity. */
+const COMBAT_STRESS_MODERATE_THRESHOLD = 70
 
 type AgentResolutionPerformance = NonNullable<ResolutionOutcome['agentPerformance']>[number]
 
@@ -474,7 +479,12 @@ function rollMissionCasualty(input: {
     return { injurySeverity: 'moderate', fatal: false }
   }
 
-  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0) {
+  // SPE-130 Phase 2: combatStress above threshold bypasses the flat fatigue gate —
+  // a stressed agent is at injury risk even when not physically exhausted.
+  const combatStress = (agent.fatigueChannels ?? createDefaultFatigueChannels()).combatStress
+  const combatStressBypassesGate = combatStress >= COMBAT_STRESS_INJURY_THRESHOLD
+
+  if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0 && !combatStressBypassesGate) {
     return { injurySeverity: null, fatal: false }
   }
 
@@ -494,9 +504,16 @@ function rollMissionCasualty(input: {
       riskProfile.injuryChanceOnFailure
     : 0
 
+  // SPE-130 Phase 2: elevated combatStress forces at least moderate severity —
+  // a different channel driving a different outcome than deploymentReadiness.
+  const forceModerate =
+    moderateShare >= 0.5 ||
+    agent.fatigue >= 70 ||
+    currentCase.stage >= 3 ||
+    combatStress >= COMBAT_STRESS_MODERATE_THRESHOLD
+
   return {
-    injurySeverity:
-      moderateShare >= 0.5 || agent.fatigue >= 70 || currentCase.stage >= 3 ? 'moderate' : 'minor',
+    injurySeverity: forceModerate ? 'moderate' : 'minor',
     fatal: false,
   }
 }

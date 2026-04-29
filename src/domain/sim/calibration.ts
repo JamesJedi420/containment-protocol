@@ -142,3 +142,56 @@ export const ATTRITION_CALIBRATION = {
   atRiskLossAfterWeeks: 5,
   maxReplacementPressure: 10,
 } as const
+
+// SPE-1072 slice 1: wood material family calibration
+export const WOOD_CALIBRATION = {
+  /** Build cost delta (negative = cheaper) vs stone/metal baseline (0). */
+  buildCostDelta: -30,
+  /** Build duration delta in weeks (negative = faster). */
+  buildDurationDelta: -1,
+  /** Recovery throughput additive delta for wood-furnished rooms. */
+  comfortRecoveryDelta: 4,
+  /** Morale additive delta for wood-furnished rooms. */
+  comfortMoraleDelta: 3,
+  /**
+   * Room categories eligible for the comfort bonus.
+   * Containment rooms, storage, and offices are explicitly excluded.
+   */
+  comfortEligibleCategories: [
+    'housing',
+    'lounge',
+    'chapel',
+    'therapy',
+  ] as const,
+  /**
+   * Room categories where wood is a valid material input.
+   * containment_high is excluded — it requires stone/metal.
+   */
+  woodAcceptedCategories: [
+    'housing',
+    'lounge',
+    'chapel',
+    'therapy',
+    'office',
+    'storage',
+    'containment_low',
+  ] as const,
+  /**
+   * Room categories where wood is explicitly rejected.
+   * Any category not in woodAcceptedCategories is also rejected by default.
+   */
+  woodRejectedCategories: ['containment_high'] as const,
+  /** Vulnerability: state after fire exposure (from intact). */
+  fireTransitionFrom: 'intact' as const,
+  fireDamagedState: 'fire-damaged' as const,
+  /** Vulnerability: state after rot/moisture exposure (from intact). */
+  rotDamagedState: 'rot-damaged' as const,
+  /** Compounded state when both fire and rot damage are present. */
+  compromisedState: 'compromised' as const,
+  /** Investigation/ritual modifier for memory-bearing provenance. */
+  provenanceMemoryBearingModifier: 8,
+  /** Investigation/ritual modifier for gallows-timber provenance. */
+  provenanceGallowsTimberModifier: 12,
+  /** Investigation/ritual modifier for fresh-sourced wood (no provenance). */
+  provenanceFreshModifier: 0,
+} as const

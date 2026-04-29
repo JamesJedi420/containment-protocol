@@ -1930,6 +1930,35 @@ describe('advanceWeek', () => {
     expect(next.gameOverReason).toBe('All active operations concluded. Directorate stands down.')
   })
 
+// SPE-1071 slice 1: campaign-calendar date stamping on weekly reports.
+it('stamps WeeklyReport.date with the source week and progresses monotonically across advanceWeek calls', () => {
+  let state = createStartingState()
+  const stampedDates: Array<{ absoluteWeek: number; year: number; weekOfYear: number; season: string }> = []
+
+  for (let i = 0; i < 4; i++) {
+    const sourceWeek = state.week
+    const reportsBefore = state.reports.length
+    state = advanceWeek(state)
+    if (state.reports.length === reportsBefore) {
+      // No new report appended this tick (e.g., game-over short-circuit); skip.
+      continue
+    }
+    const latestReport = state.reports[state.reports.length - 1]
+    expect(latestReport.date).toBeDefined()
+    // The report covers the source week (state.week BEFORE this tick).
+    expect(latestReport.week).toBe(sourceWeek)
+    expect(latestReport.date!.absoluteWeek).toBe(sourceWeek)
+    expect(latestReport.date!.absoluteWeek).toBe(latestReport.week)
+    stampedDates.push(latestReport.date!)
+  }
+
+  // At least two stamped reports needed to verify monotonicity.
+  expect(stampedDates.length).toBeGreaterThanOrEqual(2)
+  for (let i = 1; i < stampedDates.length; i++) {
+    expect(stampedDates[i].absoluteWeek).toBeGreaterThan(stampedDates[i - 1].absoluteWeek)
+  }
+})
+
   it('ends the game when active cases exceed maxActiveCases', () => {
     const state = createStartingState()
     state.config.maxActiveCases = 1

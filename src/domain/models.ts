@@ -1328,10 +1328,48 @@ export interface ReportNote {
   metadata?: ReportNoteMetadata
 }
 
+/**
+ * Bounded set of seasons used by the shared campaign-calendar surface.
+ * SPE-1071 slice 1: derivation only, no seasonal modifiers yet.
+ */
+export type CampaignSeason = 'spring' | 'summer' | 'autumn' | 'winter'
+
+/**
+ * Pure derivation of `GameState.week` into a typed campaign-date surface.
+ * SPE-1071 slice 1: no month/lunar/anniversary semantics. `absoluteWeek`
+ * matches `GameState.week` and is the single mutable source of truth.
+ */
+export interface CampaignDate {
+  absoluteWeek: number
+  year: number
+  weekOfYear: number
+  season: CampaignSeason
+}
+
+/**
+ * Resolved calendar configuration. `weeksPerYear` mirrors
+ * `GameConfig.weeksPerYear`; `weeksPerSeason` is derived (default 4 seasons
+ * per year). Epoch defaults place absolute week 0 at Year 1, Week 1.
+ * SPE-1071 slice 1.
+ */
+export interface CalendarConfig {
+  weeksPerYear: number
+  weeksPerSeason: number
+  epochYear: number
+  epochWeekOfYear: number
+}
+
 export interface WeeklyReport {
   week: number
   rngStateBefore: number
   rngStateAfter: number
+
+  /**
+   * Shared campaign-calendar date stamp (SPE-1071 slice 1). Optional so
+   * legacy persisted reports remain valid; populated for new reports.
+   * `date.absoluteWeek === week` by construction.
+   */
+  date?: CampaignDate
 
   /** Aggregate case-resolution outputs, not a combat transcript. */
   newCases: Id[]

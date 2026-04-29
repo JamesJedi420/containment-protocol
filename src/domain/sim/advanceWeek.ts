@@ -134,6 +134,7 @@ import {
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
 } from '../models'
+import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
 import {
   applyIntelSurgeToCandidates,
@@ -3320,6 +3321,10 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
 
   const report: WeeklyReport = {
     week: context.sourceState.week,
+    date: getCampaignDate(
+      context.sourceState.week,
+      resolveCalendarConfig(context.sourceState.config)
+    ),
     rngStateBefore: context.sourceState.rngState,
     rngStateAfter: context.nextState.rngState,
     newCases: [...filteredSpawnedCaseIds],

@@ -4,6 +4,7 @@ import {
   accumulateFatigueChannels,
   applyChannelDifferentiatedRecovery,
   createDefaultFatigueChannels,
+  resetCapabilityUsesPhaseCounter,
 } from '../agentFatigueChannels'
 import { getTeamMemberIds } from '../teamSimulation'
 
@@ -83,13 +84,16 @@ export function applyWeeklyAgentFatigue({
         : isTraining
           ? accumulateFatigueChannels(baseChannels, { type: 'training' })
           : applyChannelDifferentiatedRecovery(baseChannels, 'rest')
+      
+      // SPE-130 Phase 3: reset capability use counter at end of weekly tick
+      const resetChannels = resetCapabilityUsesPhaseCounter(updatedChannels)
 
       return [
         id,
         {
           ...agent,
           fatigue: clamp(agent.fatigue + delta, 0, 100),
-          fatigueChannels: updatedChannels,
+          fatigueChannels: resetChannels,
         },
       ]
     })

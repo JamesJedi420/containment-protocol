@@ -15,9 +15,11 @@ import {
   applyChannelDifferentiatedRecovery,
   createDefaultFatigueChannels,
   deriveFatigueChannelPenalties,
+  resetCapabilityUsesPhaseCounter,
   PHYSICAL_READINESS_THRESHOLD,
   MENTAL_CONCENTRATION_THRESHOLD,
   COMBAT_STRESS_PENALTY_THRESHOLD,
+  CAPABILITY_OVERTESTING_THRESHOLD,
 } from '../domain/agentFatigueChannels'
 import { applyWeeklyAgentFatigue } from '../domain/sim/fatiguePipeline'
 import { applyMissionResolutionAgentMutations } from '../domain/sim/missionResolutionAgents'
@@ -394,5 +396,83 @@ describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path
 
     // Gate should hold — physicalExhaustion alone doesn't bypass it.
     expect(result.missionInjuries).toHaveLength(0)
+  })
+})
+
+describe('SPE-130 Phase 3 — capability-use overtesting and counter reset', () => {
+  it('capability_use increments counter; no strain below threshold', () => {
+    const start = channels({ capabilityUsesThisPhase: 0 })
+    const after1 = accumulateFatigueChannels(start, { type: 'capability_use' })
+
+    expect(after1.capabilityUsesThisPhase).toBe(1)
+    expect(after1.physicalExhaustion).toBe(0)
+    expect(after1.mentalExhaustion).toBe(0)
+  })
+
+  it('capability_use at counter 1 applies no strain (below threshold)', () => {
+    const start = channels({ capabilityUsesThisPhase: 1, physicalExhaustion: 10, mentalExhaustion: 15 })
+    const after = accumulateFatigueChannels(start, { type: 'capability_use' })
+
+    expect(after.capabilityUsesThisPhase).toBe(2)
+    // Counter reached 2, still below threshold 3, no strain.
+    expect(after.physicalExhaustion).toBe(10)
+    expect(after.mentalExhaustion).toBe(15)
+  })
+
+  it('capability_use applies strain when counter >= threshold', () => {
+    const start = channels({ capabilityUsesThisPhase: 2, physicalExhaustion: 10, mentalExhaustion: 15 })
+    const after = accumulateFatigueChannels(start, { type: 'capability_use' })
+
+    expect(after.capabilityUsesThisPhase).toBe(3)
+    // Counter reached 3, so threshold crossed and strain applied.
+    expect(after.physicalExhaustion).toBe(10 + 5) // +5 physical strain
+    expect(after.mentalExhaustion).toBe(15 + 8) // +8 mental strain
+  })
+
+  it('capability_use at counter 4+ continues applying strain', () => {
+    const start = channels({ capabilityUsesThisPhase: 4, physicalExhaustion: 20, mentalExhaustion: 30 })
+    const after = accumulateFatigueChannels(start, { type: 'capability_use' })
+
+    expect(after.capabilityUsesThisPhase).toBe(5)
+    // Still above threshold, so strain applies.
+    expect(after.physicalExhaustion).toBe(20 + 5)
+    expect(after.mentalExhaustion).toBe(30 + 8)
+  })
+
+  it('weekly tick resets capability use counter to 0', () => {
+    const start = channels({ capabilityUsesThisPhase: 5 })
+    const reset = resetCapabilityUsesPhaseCounter(start)
+
+    expect(reset.capabilityUsesThisPhase).toBe(0)
+    // Other channels unchanged.
+    expect(reset.physicalExhaustion).toBe(start.physicalExhaustion)
+    expect(reset.mentalExhaustion).toBe(start.mentalExhaustion)
+    expect(reset.combatStress).toBe(start.combatStress)
+  })
+
+  it('mission_deployment preserves capability use counter', () => {
+    const start = channels({ capabilityUsesThisPhase: 3 })
+    const after = accumulateFatigueChannels(start, { type: 'mission_deployment' })
+
+    expect(after.capabilityUsesThisPhase).toBe(3) // preserved, not reset or incremented
+    expect(after.physicalExhaustion).toBeGreaterThan(0) // mission still accumulates
+    expect(after.mentalExhaustion).toBeGreaterThan(0)
+  })
+
+  it('training preserves capability use counter', () => {
+    const start = channels({ capabilityUsesThisPhase: 3 })
+    const after = accumulateFatigueChannels(start, { type: 'training' })
+
+    expect(after.capabilityUsesThisPhase).toBe(3)
+    expect(after.physicalExhaustion).toBeGreaterThan(0)
+    expect(after.mentalExhaustion).toBeGreaterThan(0)
+  })
+
+  it('combat_encounter preserves capability use counter', () => {
+    const start = channels({ capabilityUsesThisPhase: 3 })
+    const after = accumulateFatigueChannels(start, { type: 'combat_encounter' })
+
+    expect(after.capabilityUsesThisPhase).toBe(3)
+    expect(after.combatStress).toBeGreaterThan(0)
   })
 })

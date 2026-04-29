@@ -931,6 +931,105 @@ describe('aggregate battle layer', () => {
     expect(apocalypseStepsCeasefire).toBeLessThan(apocalypseStepsBaseline)
   })
 
+  it('applies specialist knowledge as responder-side tactical value against the shared threat', () => {
+    function run(withCeasefire: boolean) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `ceasefire-specialist-knowledge-${withCeasefire}`,
+          roundLimit: 1,
+          sides: [
+            buildAggregateBattleSideState({
+              id: 'responders',
+              label: 'Responders',
+              reserveAreaId: 'att-reserve',
+              supportAreaId: 'att-support',
+              supportAvailable: 2,
+            }),
+            buildAggregateBattleSideState({
+              id: 'hostiles',
+              label: 'Hostiles',
+              reserveAreaId: 'def-reserve',
+              supportAreaId: 'def-support',
+              supportAvailable: 2,
+            }),
+            buildAggregateBattleSideState({
+              id: 'catastrophe',
+              label: 'Catastrophe',
+              reserveAreaId: 'def-reserve',
+              supportAvailable: 1,
+            }),
+          ],
+          units: [
+            {
+              id: 'alpha-responder-line',
+              label: 'Responder Line',
+              sideId: 'responders',
+              family: 'line_company',
+              strengthSteps: 5,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 5,
+              defenseFactor: 5,
+              morale: 68,
+              readiness: 66,
+            },
+            {
+              id: 'bravo-hostile-broker',
+              label: 'Hostile Broker',
+              sideId: 'hostiles',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 4,
+              defenseFactor: 5,
+              morale: 66,
+              readiness: 64,
+            },
+            {
+              id: 'zulu-apocalypse-vanguard',
+              label: 'Apocalypse Vanguard',
+              sideId: 'catastrophe',
+              family: 'line_company',
+              strengthSteps: 2,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 6,
+              defenseFactor: 5,
+              morale: 70,
+              readiness: 68,
+            },
+          ],
+          ceasefireWindow: withCeasefire
+            ? {
+                startRound: 1,
+                endRound: 1,
+                responderSideId: 'responders',
+                hostileSideId: 'hostiles',
+                sharedThreatSideId: 'catastrophe',
+                hostileActorUnitId: 'bravo-hostile-broker',
+                objectiveId: 'split-objective-bridge',
+                motive: 'selfish_status_quo_preservation',
+                tacticalValue: 'specialist_knowledge',
+              }
+            : undefined,
+        })
+      )
+    }
+
+    const baseline = run(false)
+    const ceasefire = run(true)
+
+    const apocalypseStepsBaseline =
+      baseline.summaryTable.find((row) => row.unitId === 'zulu-apocalypse-vanguard')
+        ?.remainingStrengthSteps ?? 99
+    const apocalypseStepsCeasefire =
+      ceasefire.summaryTable.find((row) => row.unitId === 'zulu-apocalypse-vanguard')
+        ?.remainingStrengthSteps ?? 99
+
+    expect(apocalypseStepsCeasefire).toBeLessThan(apocalypseStepsBaseline)
+  })
+
   it('reverts hostile side to enemy posture after objective window closes', () => {
     const result = resolveAggregateBattle(
       createBattleInput({

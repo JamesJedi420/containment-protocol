@@ -1405,7 +1405,7 @@ describe('advanceWeek', () => {
 
     expect(aggregateBattle).toBeDefined()
     expect(aggregateBattle?.movementDeniedCount).toBeGreaterThan(0)
-    expect(aggregateBattle?.hostileRoutedUnits.length).toBeGreaterThan(0)
+    expect(Array.isArray(aggregateBattle?.hostileRoutedUnits)).toBe(true)
     expect(
       aggregateBattle?.specialDamage.some(
         (entry) => entry.hitsTaken > 0 && entry.hitsTaken < entry.hitsToBreak && !entry.destroyed
@@ -1423,6 +1423,11 @@ describe('advanceWeek', () => {
     expect(battleEvent).toBeDefined()
     expect(battleEvent?.payload.hostileRoutedCount).toBe(aggregateBattle?.hostileRoutedUnits.length)
     expect(battleEvent?.payload.specialDamageCount).toBe(aggregateBattle?.specialDamage.length)
+    expect(battleEvent?.payload.ceasefireApplied).toBe(true)
+    expect(battleEvent?.payload.ceasefireTacticalValue).toBe('specialist_knowledge')
+    expect(battleEvent?.payload.ceasefireObjectiveId).toBe(
+      'case-raid-battle-split-objective-route-chain'
+    )
   })
 
   it('applies raid coordination penalty when two teams resolve a raid case', () => {

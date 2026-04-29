@@ -149,6 +149,9 @@ export interface OperationEventPayloadMap {
     hostileRoutedUnits: string[]
     specialDamageCount: number
     specialDamage: string[]
+    ceasefireApplied?: boolean
+    ceasefireObjectiveId?: string
+    ceasefireTacticalValue?: 'temporary_manpower' | 'specialist_knowledge'
   }
   'intel.report_generated': {
     week: number

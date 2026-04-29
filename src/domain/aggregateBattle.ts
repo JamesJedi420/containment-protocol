@@ -183,7 +183,7 @@ export interface AggregateBattleCeasefireWindow {
   hostileActorUnitId: string
   objectiveId: string
   motive: 'selfish_status_quo_preservation'
-  tacticalValue: 'temporary_manpower'
+  tacticalValue: 'temporary_manpower' | 'specialist_knowledge'
 }
 
 export interface AggregateBattleInput {
@@ -362,7 +362,7 @@ interface RuntimeAggregateBattleCeasefireWindow {
   hostileActorUnitId: string
   objectiveId: string
   motive: 'selfish_status_quo_preservation'
-  tacticalValue: 'temporary_manpower'
+  tacticalValue: 'temporary_manpower' | 'specialist_knowledge'
 }
 
 const ZERO_TABLE_CELL: CombatTableCell = {
@@ -1338,7 +1338,7 @@ function resolveMissilePhase(
       sideMap.get(unit.sideId),
       getActiveCommandOverlay(unit, overlayMap, unitsById)
     )
-    const attackValue = applyCeasefireManpowerAttackBonus(
+    const attackValue = applyCeasefireTacticalAttackBonus(
       baseAttackValue,
       unit,
       target,
@@ -1394,7 +1394,7 @@ function resolveMeleePhase(
     const attacker = pair.left
     const defender = pair.right
 
-    const leftAttackValue = applyCeasefireManpowerAttackBonus(
+    const leftAttackValue = applyCeasefireTacticalAttackBonus(
       buildMeleeValue(
         attacker,
         input.context,
@@ -1420,7 +1420,7 @@ function resolveMeleePhase(
         )
       )
     )
-    const rightAttackValue = applyCeasefireManpowerAttackBonus(
+    const rightAttackValue = applyCeasefireTacticalAttackBonus(
       buildMeleeValue(
         defender,
         input.context,
@@ -2372,26 +2372,37 @@ function isSidesHostile(
   return true
 }
 
-function applyCeasefireManpowerAttackBonus(
+function applyCeasefireTacticalAttackBonus(
   baseAttackValue: number,
   attacker: RuntimeAggregateBattleUnit,
   target: RuntimeAggregateBattleUnit,
   ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
   ceasefireActive: boolean
 ) {
-  if (
-    !ceasefireActive ||
-    !ceasefireWindow ||
-    ceasefireWindow.tacticalValue !== 'temporary_manpower'
-  ) {
+  if (!ceasefireActive || !ceasefireWindow) {
     return baseAttackValue
   }
 
-  if (
-    attacker.sideId === ceasefireWindow.hostileSideId &&
-    target.sideId === ceasefireWindow.sharedThreatSideId
-  ) {
-    return clamp(baseAttackValue + 1, 0, 12)
+  if (ceasefireWindow.tacticalValue === 'temporary_manpower') {
+    if (
+      attacker.sideId === ceasefireWindow.hostileSideId &&
+      target.sideId === ceasefireWindow.sharedThreatSideId
+    ) {
+      return clamp(baseAttackValue + 1, 0, 12)
+    }
+
+    return baseAttackValue
+  }
+
+  if (ceasefireWindow.tacticalValue === 'specialist_knowledge') {
+    if (
+      attacker.sideId === ceasefireWindow.responderSideId &&
+      target.sideId === ceasefireWindow.sharedThreatSideId
+    ) {
+      return clamp(baseAttackValue + 1, 0, 12)
+    }
+
+    return baseAttackValue
   }
 
   return baseAttackValue

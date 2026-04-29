@@ -94,6 +94,7 @@ import {
   resolveAggregateBattle,
   type AggregateBattleArea,
   type AggregateBattleCampaignSummary,
+  type AggregateBattleCeasefireWindow,
   type AggregateBattleCommandOverlay,
   type AggregateBattleContext,
   type AggregateBattleInput,
@@ -1005,6 +1006,61 @@ function buildAggregateBattleHostileUnits(currentCase: CaseInstance): AggregateB
   return units
 }
 
+function isEndgameSplitObjectiveOperationCase(currentCase: CaseInstance) {
+  return (
+    currentCase.kind === 'raid' &&
+    currentCase.assignedTeamIds.length >= 2 &&
+    (Boolean(currentCase.majorIncident) || currentCase.stage >= 4)
+  )
+}
+
+function buildAggregateBattleCatastrophicUnits(currentCase: CaseInstance): AggregateBattleUnit[] {
+  return [
+    {
+      id: `${currentCase.id}-catastrophe-core`,
+      label: 'Catastrophic Core',
+      sideId: 'catastrophe',
+      family: 'special_creature',
+      strengthSteps: 2,
+      areaId: 'left-flank',
+      order: 'press',
+      plannedPath: ['center-line', 'att-reserve'],
+      meleeFactor: clamp(Math.round(currentCase.difficulty.combat / 7) + 4, 6, 10),
+      missileFactor: clamp(Math.round(currentCase.difficulty.utility / 11) + 1, 1, 6),
+      defenseFactor: clamp(
+        Math.round((currentCase.difficulty.combat + currentCase.difficulty.utility) / 11),
+        6,
+        10
+      ),
+      morale: clamp(58 + currentCase.stage * 4, 50, 94),
+      readiness: clamp(56 + currentCase.stage * 4, 48, 94),
+      specialDurability: {
+        hitsToBreak: 4,
+      },
+    },
+  ]
+}
+
+function buildAggregateBattleCeasefireWindowForOperation(
+  currentCase: CaseInstance
+): AggregateBattleCeasefireWindow | undefined {
+  if (!isEndgameSplitObjectiveOperationCase(currentCase)) {
+    return undefined
+  }
+
+  return {
+    startRound: 1,
+    endRound: 1,
+    responderSideId: 'operators',
+    hostileSideId: 'hostiles',
+    sharedThreatSideId: 'catastrophe',
+    hostileActorUnitId: `${currentCase.id}-hostile-special`,
+    objectiveId: `${currentCase.id}-split-objective-route-chain`,
+    motive: 'selfish_status_quo_preservation',
+    tacticalValue: 'specialist_knowledge',
+  }
+}
+
 function resolveOperationAggregateBattle(
   currentCase: CaseInstance,
   state: GameState,
@@ -1036,6 +1092,7 @@ function resolveOperationAggregateBattle(
     0,
     4
   )
+  const ceasefireWindow = buildAggregateBattleCeasefireWindowForOperation(currentCase)
   const sides = [
     buildAggregateBattleSideState({
       id: 'operators',
@@ -1065,6 +1122,21 @@ function resolveOperationAggregateBattle(
       },
     }),
   ]
+  if (ceasefireWindow) {
+    sides.push(
+      buildAggregateBattleSideState({
+        id: 'catastrophe',
+        label: 'Catastrophic Threat',
+        reserveAreaId: 'def-reserve',
+        supportAreaId: 'def-support',
+        supportAvailable: clamp(currentCase.stage - 2, 1, 4),
+        coordinationFrictionActive: false,
+        legitimacy: {
+          sanctionLevel: 'unsanctioned',
+        },
+      })
+    )
+  }
   const operatorForce = buildAggregateBattleOperatorForce({
     currentCase,
     state,
@@ -1080,9 +1152,14 @@ function resolveOperationAggregateBattle(
     roundLimit: currentCase.stage >= 4 ? 3 : 2,
     areas,
     sides,
-    units: [...operatorForce.units, ...buildAggregateBattleHostileUnits(currentCase)],
+    units: [
+      ...operatorForce.units,
+      ...buildAggregateBattleHostileUnits(currentCase),
+      ...(ceasefireWindow ? buildAggregateBattleCatastrophicUnits(currentCase) : []),
+    ],
     context,
     commandOverlays: operatorForce.commandOverlays,
+    ceasefireWindow,
   }
   const result = resolveAggregateBattle(battleInput)
 
@@ -1125,7 +1202,8 @@ function buildAggregateBattleResolutionReasons(summary?: AggregateBattleCampaign
 function buildAggregateBattleEventDraft(
   week: number,
   currentCase: Pick<CaseInstance, 'id' | 'title' | 'mode' | 'kind'>,
-  summary: AggregateBattleCampaignSummary
+  summary: AggregateBattleCampaignSummary,
+  ceasefireWindow?: AggregateBattleCeasefireWindow
 ): AnyOperationEventDraft {
   return {
     type: 'case.aggregate_battle',
@@ -1152,6 +1230,9 @@ function buildAggregateBattleEventDraft(
         (entry) =>
           `${entry.label} ${entry.hitsTaken}/${entry.hitsToBreak}${entry.destroyed ? ' broken' : ''}`
       ),
+      ceasefireApplied: Boolean(ceasefireWindow),
+      ceasefireObjectiveId: ceasefireWindow?.objectiveId,
+      ceasefireTacticalValue: ceasefireWindow?.tacticalValue,
     },
   }
 }
@@ -1886,6 +1967,9 @@ function resolveAssignments(
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
     ]
+    const aggregateBattleCeasefireWindow = buildAggregateBattleCeasefireWindowForOperation(
+      effectiveCase
+    )
     context.performanceByCaseId[caseId] = performanceSummary
     context.powerImpactByCaseId[caseId] = powerImpact
     if (aggregateBattleSummary) {
@@ -2115,7 +2199,8 @@ function resolveAssignments(
           buildAggregateBattleEventDraft(
             context.sourceState.week,
             effectiveCase,
-            aggregateBattleSummary
+            aggregateBattleSummary,
+            aggregateBattleCeasefireWindow
           )
         )
       }
@@ -2203,7 +2288,8 @@ function resolveAssignments(
           buildAggregateBattleEventDraft(
             context.sourceState.week,
             effectiveCase,
-            aggregateBattleSummary
+            aggregateBattleSummary,
+            aggregateBattleCeasefireWindow
           )
         )
       }
@@ -2242,7 +2328,8 @@ function resolveAssignments(
           buildAggregateBattleEventDraft(
             context.sourceState.week,
             effectiveCase,
-            aggregateBattleSummary
+            aggregateBattleSummary,
+            aggregateBattleCeasefireWindow
           )
         )
       }

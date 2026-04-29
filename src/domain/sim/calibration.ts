@@ -195,3 +195,84 @@ export const WOOD_CALIBRATION = {
   /** Investigation/ritual modifier for fresh-sourced wood (no provenance). */
   provenanceFreshModifier: 0,
 } as const
+
+// SPE-1074 slice 1: material density / weight calibration
+export const DENSITY_CALIBRATION = {
+  /**
+   * Abstract mass units per density class.
+   * medium (1.0) is the neutral baseline; other classes scale relative to it.
+   */
+  massUnitsByClass: {
+    ultralight: 0.2,
+    light: 0.6,
+    medium: 1.0,
+    heavy: 2.5,
+    extreme: 6.0,
+  } as const,
+
+  /**
+   * Minimum mass units required to trigger each handling tier.
+   * A profile whose massUnits are at or above this threshold uses that tier.
+   */
+  handlingTierThresholds: {
+    minimal: 0,       // any mass — one person can carry unaided
+    standard: 0.5,    // requires a second person or basic cart
+    assisted: 1.2,    // requires small team + reinforced cart / pallet jack
+    specialist: 2.0,  // requires specialist team + machinery
+    'crane-only': 5.0,// crane or equivalent lift mandatory
+  } as const,
+
+  /** Extra person-weeks of labor per massUnit above 1.0 (medium baseline). */
+  laborPerExcessMassUnit: 1.5,
+
+  /**
+   * Minimum handling tier that requires equipment (i.e., not human-only).
+   * 'assisted' and above need listed equipment.
+   */
+  equipmentThresholdTier: 'assisted' as const,
+
+  /**
+   * Floor rating capacity in massUnits per installation unit.
+   * If the profile's massUnits exceed the floor rating, installation is blocked.
+   */
+  floorRatingCapacity: {
+    standard: 1.5,
+    reinforced: 3.5,
+    'heavy-rated': 7.0,
+  } as const,
+
+  /**
+   * Delay in weeks added when a heavy material clears floor rating constraints
+   * only with friction (e.g., reinforced but not heavy-rated).
+   */
+  frictionDelayWeeks: 1,
+
+  /**
+   * Injury risk delta added per handling tier above 'minimal' when crew/equipment
+   * is under-provisioned relative to required tier.
+   */
+  injuryRiskDeltaPerTierGap: 0.10,
+
+  /**
+   * Handling tier gap at or above which routeBlockageRisk activates.
+   * A gap of 2 means crew is two tiers below the required tier.
+   */
+  routeBlockageRiskTierGap: 2,
+
+  /**
+   * Handling tier gap at or above which infrastructureDamageRisk activates.
+   */
+  infrastructureDamageRiskTierGap: 3,
+
+  /**
+   * Breach resistance multiplier applied to massUnits to produce breachResistanceIndex.
+   * higher density = proportionally higher resistance.
+   */
+  breachResistanceMultiplier: 12,
+
+  /**
+   * Deployment speed penalty per massUnit above medium baseline.
+   * Used in tradeoff computation: positive = heavier is slower to deploy.
+   */
+  deploymentSpeedPenaltyPerMassUnit: 0.8,
+} as const

@@ -98,6 +98,7 @@ import {
   type AggregateBattleCommandOverlay,
   type AggregateBattleContext,
   type AggregateBattleInput,
+  type AggregateBattleParallelObjectiveTrack,
   type AggregateBattleUnit,
 } from '../aggregateBattle'
 import { getDistortionStatesForScore, mergeDistortionStates } from '../shared/distortion'
@@ -1041,6 +1042,49 @@ function buildAggregateBattleCatastrophicUnits(currentCase: CaseInstance): Aggre
   ]
 }
 
+function buildAggregateBattleParallelObjectiveForOperation(
+  currentCase: CaseInstance
+): AggregateBattleParallelObjectiveTrack | undefined {
+  if (currentCase.kind !== 'raid' || !currentCase.tags.includes('ritual')) {
+    return undefined
+  }
+
+  return {
+    kind: 'defend_operator_ritual',
+    objectiveId: `${currentCase.id}-ritual-stabilization`,
+    operatorUnitId: `${currentCase.id}-ritual-support`,
+    sustainAreaIds: ['att-support', 'left-flank'],
+    progressTarget: 2,
+    disruptionThreshold: 3,
+  }
+}
+
+function buildAggregateBattleObjectiveSupportUnits(
+  currentCase: CaseInstance,
+  parallelObjective: AggregateBattleParallelObjectiveTrack | undefined
+): AggregateBattleUnit[] {
+  if (!parallelObjective) {
+    return []
+  }
+
+  return [
+    {
+      id: `${currentCase.id}-ritual-support`,
+      label: 'Ritual Support Cell',
+      sideId: 'operators',
+      family: 'artillery_section',
+      strengthSteps: 1,
+      areaId: 'att-support',
+      order: 'hold',
+      meleeFactor: 1,
+      missileFactor: 0,
+      defenseFactor: 3,
+      morale: 62,
+      readiness: 64,
+    },
+  ]
+}
+
 function buildAggregateBattleCeasefireWindowForOperation(
   currentCase: CaseInstance
 ): AggregateBattleCeasefireWindow | undefined {
@@ -1093,6 +1137,7 @@ function resolveOperationAggregateBattle(
     4
   )
   const ceasefireWindow = buildAggregateBattleCeasefireWindowForOperation(currentCase)
+  const parallelObjectiveTrack = buildAggregateBattleParallelObjectiveForOperation(currentCase)
   const sides = [
     buildAggregateBattleSideState({
       id: 'operators',
@@ -1154,12 +1199,14 @@ function resolveOperationAggregateBattle(
     sides,
     units: [
       ...operatorForce.units,
+      ...buildAggregateBattleObjectiveSupportUnits(currentCase, parallelObjectiveTrack),
       ...buildAggregateBattleHostileUnits(currentCase),
       ...(ceasefireWindow ? buildAggregateBattleCatastrophicUnits(currentCase) : []),
     ],
     context,
     commandOverlays: operatorForce.commandOverlays,
     ceasefireWindow,
+    parallelObjectiveTrack,
   }
   const result = resolveAggregateBattle(battleInput)
 
@@ -1230,6 +1277,11 @@ function buildAggregateBattleEventDraft(
         (entry) =>
           `${entry.label} ${entry.hitsTaken}/${entry.hitsToBreak}${entry.destroyed ? ' broken' : ''}`
       ),
+      parallelObjectiveId: summary.parallelObjective?.objectiveId,
+      parallelObjectiveOutcome: summary.parallelObjective?.outcome,
+      parallelObjectiveProgress: summary.parallelObjective
+        ? `${summary.parallelObjective.progress}/${summary.parallelObjective.progressTarget}`
+        : undefined,
       ceasefireApplied: Boolean(ceasefireWindow),
       ceasefireObjectiveId: ceasefireWindow?.objectiveId,
       ceasefireTacticalValue: ceasefireWindow?.tacticalValue,

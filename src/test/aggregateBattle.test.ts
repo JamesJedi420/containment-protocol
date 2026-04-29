@@ -122,6 +122,7 @@ function createBattleInput(input: {
   commandOverlays?: AggregateBattleCommandOverlay[]
   supernaturalPressure?: AggregateBattleInput['supernaturalPressure']
   ceasefireWindow?: AggregateBattleInput['ceasefireWindow']
+  parallelObjectiveTrack?: AggregateBattleInput['parallelObjectiveTrack']
 }): AggregateBattleInput {
   return {
     battleId: input.battleId,
@@ -133,6 +134,7 @@ function createBattleInput(input: {
     commandOverlays: input.commandOverlays ?? [],
     supernaturalPressure: input.supernaturalPressure,
     ceasefireWindow: input.ceasefireWindow,
+    parallelObjectiveTrack: input.parallelObjectiveTrack,
   }
 }
 
@@ -1129,6 +1131,157 @@ describe('aggregate battle layer', () => {
           entry.detail.includes('Hostile Broker') &&
           entry.detail.includes('Responder Line') &&
           entry.detail.includes('resolved melee simultaneously.')
+      )
+    ).toBe(true)
+  })
+
+  it('lets ritual stabilization succeed even when the defenders still hold the field', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-success-diverges',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 3,
+            morale: 60,
+            readiness: 64,
+          },
+          {
+            id: 'thin-screen',
+            label: 'Thin Screen',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 1,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 2,
+            morale: 42,
+            readiness: 40,
+          },
+          {
+            id: 'defender-wall',
+            label: 'Defender Wall',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 6,
+            defenseFactor: 6,
+            morale: 72,
+            readiness: 70,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'stabilize-ward-lane',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support', 'left-flank'],
+          progressTarget: 1,
+          disruptionThreshold: 2,
+        },
+      })
+    )
+
+    expect(result.winnerSideId).toBe('defenders')
+    expect(result.parallelObjective).toMatchObject({
+      objectiveId: 'stabilize-ward-lane',
+      outcome: 'success',
+      progress: 1,
+      progressTarget: 1,
+    })
+  })
+
+  it('fails the ritual objective from hostile disruption spread even if attackers win the battle', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-fail-diverges',
+        roundLimit: 2,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 4,
+            morale: 64,
+            readiness: 66,
+          },
+          {
+            id: 'breach-team',
+            label: 'Breach Team',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'press',
+            meleeFactor: 7,
+            defenseFactor: 6,
+            morale: 72,
+            readiness: 70,
+          },
+          {
+            id: 'defender-wall',
+            label: 'Defender Wall',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 1,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 2,
+            morale: 40,
+            readiness: 38,
+          },
+          {
+            id: 'disruption-raider',
+            label: 'Disruption Raider',
+            sideId: 'defenders',
+            family: 'special_creature',
+            strengthSteps: 1,
+            areaId: 'left-flank',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 8,
+            morale: 74,
+            readiness: 70,
+            specialDurability: { hitsToBreak: 3 },
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'stabilize-ward-lane',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support', 'left-flank'],
+          progressTarget: 2,
+          disruptionThreshold: 2,
+        },
+      })
+    )
+
+    expect(result.winnerSideId).toBe('attackers')
+    expect(result.parallelObjective).toMatchObject({
+      objectiveId: 'stabilize-ward-lane',
+      outcome: 'fail',
+      disruption: 2,
+      disruptionThreshold: 2,
+    })
+    expect(
+      result.phaseLog.some((entry) =>
+        entry.detail.includes('stabilize-ward-lane progress 0/2; disruption 2/2.')
       )
     ).toBe(true)
   })

@@ -336,6 +336,86 @@ function makeAggregateBattleIntegrationState() {
   return state
 }
 
+function makeParallelObjectiveAggregateBattleState() {
+  const state = createStartingState()
+  state.rngSeed = 313
+  state.rngState = 313
+  state.partyCards = undefined
+  state.events = []
+  state.reports = []
+  state.legitimacy = { sanctionLevel: 'sanctioned' }
+  state.agency = {
+    ...state.agency!,
+    supportAvailable: 4,
+  }
+
+  const isolatedCases = isolateResolvedCaseSet(state)
+  state.cases = {
+    ...isolatedCases,
+    'case-ritual-battle': {
+      ...state.cases['case-003'],
+      id: 'case-ritual-battle',
+      templateId: 'case-ritual-battle',
+      title: 'Wardline Under Fire',
+      kind: 'raid',
+      mode: 'threshold',
+      status: 'in_progress',
+      stage: 4,
+      durationWeeks: 1,
+      weeksRemaining: 1,
+      deadlineWeeks: 1,
+      deadlineRemaining: 1,
+      tags: ['occult', 'ritual', 'seal', 'raid'],
+      requiredTags: [],
+      preferredTags: ['holy', 'tech'],
+      difficulty: { combat: 20, investigation: 8, utility: 14, social: 4 },
+      weights: { combat: 0.65, investigation: 0.1, utility: 0.2, social: 0.05 },
+      assignedTeamIds: ['t_nightwatch', 't_greentape'],
+      raid: { minTeams: 2, maxTeams: 2 },
+      siteLayer: 'interior',
+      visibilityState: 'clear',
+      transitionType: 'chokepoint',
+      spatialFlags: ['night'],
+    },
+  }
+  state.teams['t_nightwatch'] = {
+    ...state.teams['t_nightwatch'],
+    assignedCaseId: 'case-ritual-battle',
+  }
+  state.teams['t_greentape'] = {
+    ...state.teams['t_greentape'],
+    assignedCaseId: 'case-ritual-battle',
+  }
+
+  for (const agentId of state.teams['t_nightwatch'].agentIds) {
+    state.agents[agentId] = {
+      ...state.agents[agentId],
+      fatigue: 0,
+      baseStats: {
+        combat: 88,
+        investigation: 52,
+        utility: 50,
+        social: 36,
+      },
+    }
+  }
+
+  for (const agentId of state.teams['t_greentape'].agentIds) {
+    state.agents[agentId] = {
+      ...state.agents[agentId],
+      fatigue: 0,
+      baseStats: {
+        combat: 26,
+        investigation: 84,
+        utility: 88,
+        social: 48,
+      },
+    }
+  }
+
+  return state
+}
+
 describe('advanceWeek', () => {
   it('increments the week counter', () => {
     const next = advanceWeek(startingState)
@@ -1427,6 +1507,43 @@ describe('advanceWeek', () => {
     expect(battleEvent?.payload.ceasefireTacticalValue).toBe('specialist_knowledge')
     expect(battleEvent?.payload.ceasefireObjectiveId).toBe(
       'case-raid-battle-split-objective-route-chain'
+    )
+  })
+
+  it('persists ritual parallel-objective outcome alongside live aggregate battle resolution', () => {
+    const next = advanceWeek(makeParallelObjectiveAggregateBattleState())
+    const report = next.reports.at(-1)
+    const snapshot = report?.caseSnapshots?.['case-ritual-battle']
+    const aggregateBattle = snapshot?.aggregateBattle as
+      | {
+          parallelObjective?: {
+            objectiveId: string
+            outcome: 'success' | 'partial' | 'fail'
+            progress: number
+            progressTarget: number
+          }
+        }
+      | undefined
+    const battleEvent = next.events.find(
+      (event): event is OperationEvent<'case.aggregate_battle'> =>
+        event.type === 'case.aggregate_battle' && event.payload.caseId === 'case-ritual-battle'
+    )
+
+    expect(aggregateBattle?.parallelObjective).toBeDefined()
+    expect(aggregateBattle?.parallelObjective?.objectiveId).toBe(
+      'case-ritual-battle-ritual-stabilization'
+    )
+    expect(['success', 'partial', 'fail']).toContain(
+      aggregateBattle?.parallelObjective?.outcome
+    )
+    expect(battleEvent?.payload.parallelObjectiveId).toBe(
+      'case-ritual-battle-ritual-stabilization'
+    )
+    expect(battleEvent?.payload.parallelObjectiveOutcome).toBe(
+      aggregateBattle?.parallelObjective?.outcome
+    )
+    expect(battleEvent?.payload.parallelObjectiveProgress).toBe(
+      `${aggregateBattle?.parallelObjective?.progress}/${aggregateBattle?.parallelObjective?.progressTarget}`
     )
   })
 

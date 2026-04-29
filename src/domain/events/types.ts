@@ -149,6 +149,9 @@ export interface OperationEventPayloadMap {
     hostileRoutedUnits: string[]
     specialDamageCount: number
     specialDamage: string[]
+    parallelObjectiveId?: string
+    parallelObjectiveOutcome?: 'success' | 'partial' | 'fail'
+    parallelObjectiveProgress?: string
     ceasefireApplied?: boolean
     ceasefireObjectiveId?: string
     ceasefireTacticalValue?: 'temporary_manpower' | 'specialist_knowledge'

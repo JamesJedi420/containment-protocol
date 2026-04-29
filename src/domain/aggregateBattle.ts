@@ -186,6 +186,29 @@ export interface AggregateBattleCeasefireWindow {
   tacticalValue: 'temporary_manpower' | 'specialist_knowledge'
 }
 
+export interface AggregateBattleParallelObjectiveTrack {
+  kind: 'defend_operator_ritual'
+  objectiveId: string
+  operatorUnitId: string
+  sustainAreaIds: string[]
+  progressTarget: number
+  disruptionThreshold: number
+}
+
+export interface AggregateBattleParallelObjectiveResult {
+  kind: 'defend_operator_ritual'
+  objectiveId: string
+  operatorUnitId: string
+  progress: number
+  progressTarget: number
+  disruption: number
+  disruptionThreshold: number
+  outcome: 'success' | 'partial' | 'fail'
+  operatorSurvived: boolean
+  completedRound?: number
+  failedRound?: number
+}
+
 export interface AggregateBattleInput {
   battleId: string
   roundLimit: number
@@ -196,6 +219,7 @@ export interface AggregateBattleInput {
   commandOverlays?: AggregateBattleCommandOverlay[]
   supernaturalPressure?: AggregateBattleSupernaturalPressure[]
   ceasefireWindow?: AggregateBattleCeasefireWindow
+  parallelObjectiveTrack?: AggregateBattleParallelObjectiveTrack
 }
 
 export type AggregateBattleLogSegment =
@@ -206,6 +230,7 @@ export type AggregateBattleLogSegment =
   | 'reinforcement'
   | 'combat'
   | 'morale'
+  | 'objective'
   | 'rally'
 
 export interface AggregateBattleLogEntry {
@@ -262,6 +287,7 @@ export interface AggregateBattleResult {
   movementDenials: AggregateBattleMovementDenial[]
   summaryTable: AggregateBattleUnitResult[]
   supernaturalPressureApplied: boolean
+  parallelObjective?: AggregateBattleParallelObjectiveResult
 }
 
 export interface AggregateBattleSpecialDamageSummary {
@@ -290,6 +316,7 @@ export interface AggregateBattleCampaignSummary {
   specialDamage: AggregateBattleSpecialDamageSummary[]
   supernaturalPressureApplied: boolean
   summaryTable: AggregateBattleUnitResult[]
+  parallelObjective?: AggregateBattleParallelObjectiveResult
 }
 
 export interface AggregateBattleCampaignRollup {
@@ -363,6 +390,19 @@ interface RuntimeAggregateBattleCeasefireWindow {
   objectiveId: string
   motive: 'selfish_status_quo_preservation'
   tacticalValue: 'temporary_manpower' | 'specialist_knowledge'
+}
+
+interface RuntimeAggregateBattleParallelObjectiveTrack {
+  kind: 'defend_operator_ritual'
+  objectiveId: string
+  operatorUnitId: string
+  sustainAreaIds: string[]
+  progressTarget: number
+  disruptionThreshold: number
+  progress: number
+  disruption: number
+  completedRound?: number
+  failedRound?: number
 }
 
 const ZERO_TABLE_CELL: CombatTableCell = {
@@ -537,6 +577,7 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
   const supernaturalPressure = input.supernaturalPressure ?? []
   const supernaturalPressureApplied = supernaturalPressure.length > 0
   const ceasefireWindow = normalizeCeasefireWindow(input.ceasefireWindow)
+  const parallelObjective = normalizeParallelObjectiveTrack(input.parallelObjectiveTrack)
   let ceasefireWasActive = false
   let roundsResolved = 0
 
@@ -660,6 +701,8 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
       ceasefireActive
     )
 
+    resolveParallelObjectivePhase(round, units, phaseLog, parallelObjective)
+
     for (const unit of units) {
       if (unit.missileLockoutRounds > 0) {
         unit.missileLockoutRounds -= 1
@@ -688,6 +731,8 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
       )
     })
 
+  const parallelObjectiveResult = buildParallelObjectiveResult(units, parallelObjective)
+
   return {
     battleId: input.battleId,
     roundsResolved,
@@ -697,6 +742,7 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
     movementDenials,
     summaryTable,
     supernaturalPressureApplied,
+    parallelObjective: parallelObjectiveResult,
   }
 }
 
@@ -770,6 +816,7 @@ export function buildAggregateBattleCampaignSummary(input: {
     specialDamage,
     supernaturalPressureApplied: input.result.supernaturalPressureApplied,
     summaryTable: input.result.summaryTable.map((row) => ({ ...row })),
+    parallelObjective: input.result.parallelObjective,
   }
 }
 
@@ -796,6 +843,12 @@ export function formatAggregateBattleCampaignSummary(summary: AggregateBattleCam
     )
   }
 
+  if (summary.parallelObjective) {
+    detailParts.push(
+      `${summary.parallelObjective.objectiveId} ${summary.parallelObjective.outcome} ${summary.parallelObjective.progress}/${summary.parallelObjective.progressTarget}`
+    )
+  }
+
   return `Aggregate battle: ${resultLine} after ${detailParts.join(' / ')}.`
 }
 
@@ -817,6 +870,122 @@ export function isAggregateBattleCampaignSummary(
     Array.isArray(candidate.hostileRoutedUnits) &&
     Array.isArray(candidate.specialDamage)
   )
+}
+
+function normalizeParallelObjectiveTrack(
+  track: AggregateBattleParallelObjectiveTrack | undefined
+): RuntimeAggregateBattleParallelObjectiveTrack | undefined {
+  if (!track) {
+    return undefined
+  }
+
+  return {
+    kind: 'defend_operator_ritual',
+    objectiveId: track.objectiveId,
+    operatorUnitId: track.operatorUnitId,
+    sustainAreaIds: [...new Set(track.sustainAreaIds)],
+    progressTarget: Math.max(1, Math.trunc(track.progressTarget)),
+    disruptionThreshold: Math.max(1, Math.trunc(track.disruptionThreshold)),
+    progress: 0,
+    disruption: 0,
+  }
+}
+
+function resolveParallelObjectivePhase(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  phaseLog: AggregateBattleLogEntry[],
+  track: RuntimeAggregateBattleParallelObjectiveTrack | undefined
+) {
+  if (!track || track.completedRound !== undefined || track.failedRound !== undefined) {
+    return
+  }
+
+  const operator = units.find((unit) => unit.id === track.operatorUnitId)
+  if (!operator || !operator.areaId || isUnitDestroyed(operator) || operator.moraleState === 'routed') {
+    track.failedRound = round
+    phaseLog.push({
+      round,
+      phase: 'rally',
+      segment: 'objective',
+      unitId: track.operatorUnitId,
+      detail: `${track.objectiveId} failed when the sustaining operator collapsed before stabilization.`,
+    })
+    return
+  }
+
+  const hostilePressure = units.filter(
+    (unit) =>
+      unit.sideId !== operator.sideId &&
+      unit.areaId &&
+      !isUnitDestroyed(unit) &&
+      unit.moraleState !== 'routed' &&
+      track.sustainAreaIds.includes(unit.areaId)
+  ).length
+  const sufferedDisruption = operator.roundStepLosses + operator.roundShock > 0 ? 1 : 0
+  const disruptionGain = hostilePressure + sufferedDisruption
+  if (disruptionGain > 0) {
+    track.disruption = Math.min(track.disruptionThreshold, track.disruption + disruptionGain)
+  }
+
+  const canAdvance =
+    disruptionGain === 0 &&
+    operator.moraleState !== 'retreating' &&
+    operator.areaId === track.sustainAreaIds[0]
+  if (canAdvance) {
+    track.progress = Math.min(track.progressTarget, track.progress + 1)
+  }
+
+  if (track.progress >= track.progressTarget) {
+    track.completedRound = round
+  } else if (track.disruption >= track.disruptionThreshold) {
+    track.failedRound = round
+  }
+
+  phaseLog.push({
+    round,
+    phase: 'rally',
+    segment: 'objective',
+    unitId: operator.id,
+    areaId: operator.areaId,
+    detail: `${track.objectiveId} progress ${track.progress}/${track.progressTarget}; disruption ${track.disruption}/${track.disruptionThreshold}.`,
+  })
+}
+
+function buildParallelObjectiveResult(
+  units: RuntimeAggregateBattleUnit[],
+  track: RuntimeAggregateBattleParallelObjectiveTrack | undefined
+): AggregateBattleParallelObjectiveResult | undefined {
+  if (!track) {
+    return undefined
+  }
+
+  const operator = units.find((unit) => unit.id === track.operatorUnitId)
+  const operatorSurvived = Boolean(
+    operator && operator.areaId && !isUnitDestroyed(operator) && operator.moraleState !== 'routed'
+  )
+  const outcome =
+    track.completedRound !== undefined
+      ? 'success'
+      : track.failedRound !== undefined
+        ? 'fail'
+        : track.progress > 0
+          ? 'partial'
+          : 'fail'
+
+  return {
+    kind: 'defend_operator_ritual',
+    objectiveId: track.objectiveId,
+    operatorUnitId: track.operatorUnitId,
+    progress: track.progress,
+    progressTarget: track.progressTarget,
+    disruption: track.disruption,
+    disruptionThreshold: track.disruptionThreshold,
+    outcome,
+    operatorSurvived,
+    completedRound: track.completedRound,
+    failedRound: track.failedRound,
+  }
 }
 
 export function rollupAggregateBattleCampaignSummaries(

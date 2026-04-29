@@ -7,6 +7,10 @@ import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity
 import { INTEL_CALIBRATION } from './sim/calibration'
 import { evaluateConstructionReadinessBurden } from './constructionProgress'
 import {
+  createDefaultFatigueChannels,
+  deriveFatigueChannelPenalties,
+} from './agentFatigueChannels'
+import {
   buildTeamCompositionState,
   buildTeamWeakestLinkSummary,
   validateTeamComposition,
@@ -435,9 +439,23 @@ export function buildTeamDeploymentReadinessState(
   // SPE-110: Construction-incomplete site burden — read-only, does not alter softRisks list.
   const constructionBurden = evaluateConstructionReadinessBurden(state, effectiveMissionId)
 
+  // SPE-130 Phase 1: derive per-member channel penalties and average them across the team.
+  const averageChannelPenalty =
+    members.length > 0
+      ? Math.round(
+          members.reduce((sum, member) => {
+            const penalties = deriveFatigueChannelPenalties(
+              member.fatigueChannels ?? createDefaultFatigueChannels()
+            )
+            return sum + penalties.readinessPenalty
+          }, 0) / members.length
+        )
+      : 0
+
   const readinessScore = clamp(
     100 -
       averageFatigue -
+      averageChannelPenalty -
       eligibility.hardBlockers.length * 12 -
       nonIntelSoftRiskCount * 6 +
       ((composition?.requiredCoverageRoles.length ?? 0) - (composition?.missingRoles.length ?? 0)) * 8 -

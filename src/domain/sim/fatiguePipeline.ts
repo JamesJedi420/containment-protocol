@@ -1,5 +1,10 @@
 import { clamp } from '../math'
 import type { GameState, Team } from '../models'
+import {
+  accumulateFatigueChannels,
+  applyChannelDifferentiatedRecovery,
+  createDefaultFatigueChannels,
+} from '../agentFatigueChannels'
 import { getTeamMemberIds } from '../teamSimulation'
 
 function getMissionFatigue(config: GameState['config']) {
@@ -63,17 +68,28 @@ export function applyWeeklyAgentFatigue({
 
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
-      const delta = activeAgentIds.has(id)
+      const isActive = activeAgentIds.has(id)
+      const isTraining = trainingAgentIds.has(id)
+
+      const delta = isActive
         ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
-        : trainingAgentIds.has(id)
+        : isTraining
           ? 0
           : -recoveryFatigue
+
+      const baseChannels = agent.fatigueChannels ?? createDefaultFatigueChannels()
+      const updatedChannels = isActive
+        ? accumulateFatigueChannels(baseChannels, { type: 'mission_deployment' })
+        : isTraining
+          ? accumulateFatigueChannels(baseChannels, { type: 'training' })
+          : applyChannelDifferentiatedRecovery(baseChannels, 'rest')
 
       return [
         id,
         {
           ...agent,
           fatigue: clamp(agent.fatigue + delta, 0, 100),
+          fatigueChannels: updatedChannels,
         },
       ]
     })

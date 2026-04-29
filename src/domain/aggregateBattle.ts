@@ -174,6 +174,18 @@ export interface AggregateBattleCommandOverlay {
   authority: LegitimacyState['sanctionLevel']
 }
 
+export interface AggregateBattleCeasefireWindow {
+  startRound: number
+  endRound: number
+  responderSideId: string
+  hostileSideId: string
+  sharedThreatSideId: string
+  hostileActorUnitId: string
+  objectiveId: string
+  motive: 'selfish_status_quo_preservation'
+  tacticalValue: 'temporary_manpower'
+}
+
 export interface AggregateBattleInput {
   battleId: string
   roundLimit: number
@@ -183,6 +195,7 @@ export interface AggregateBattleInput {
   context: AggregateBattleContext
   commandOverlays?: AggregateBattleCommandOverlay[]
   supernaturalPressure?: AggregateBattleSupernaturalPressure[]
+  ceasefireWindow?: AggregateBattleCeasefireWindow
 }
 
 export type AggregateBattleLogSegment =
@@ -338,6 +351,18 @@ interface AggregateBattleHitRecord extends CombatTableCell {
   sourceId: string
   targetId: string
   mode: 'missile' | 'melee'
+}
+
+interface RuntimeAggregateBattleCeasefireWindow {
+  startRound: number
+  endRound: number
+  responderSideId: string
+  hostileSideId: string
+  sharedThreatSideId: string
+  hostileActorUnitId: string
+  objectiveId: string
+  motive: 'selfish_status_quo_preservation'
+  tacticalValue: 'temporary_manpower'
 }
 
 const ZERO_TABLE_CELL: CombatTableCell = {
@@ -511,6 +536,8 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
   const movementDenials: AggregateBattleMovementDenial[] = []
   const supernaturalPressure = input.supernaturalPressure ?? []
   const supernaturalPressureApplied = supernaturalPressure.length > 0
+  const ceasefireWindow = normalizeCeasefireWindow(input.ceasefireWindow)
+  let ceasefireWasActive = false
   let roundsResolved = 0
 
   for (let round = 1; round <= Math.max(1, Math.trunc(input.roundLimit)); round += 1) {
@@ -531,16 +558,61 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
       input.sides,
       areaMap
     )
+    const ceasefireActive = isCeasefireActive(round, units, ceasefireWindow)
+    if (ceasefireActive && !ceasefireWasActive && ceasefireWindow) {
+      phaseLog.push({
+        round,
+        phase: 'movement',
+        segment: 'phase-window',
+        detail: `Temporary ceasefire formed for objective ${ceasefireWindow.objectiveId}; motive=${ceasefireWindow.motive}; conflict=expected_betrayal.`,
+      })
+    }
+    if (!ceasefireActive && ceasefireWasActive && ceasefireWindow) {
+      phaseLog.push({
+        round,
+        phase: 'movement',
+        segment: 'phase-window',
+        detail: `Temporary ceasefire closed for objective ${ceasefireWindow.objectiveId}; ${ceasefireWindow.hostileSideId} reverted to enemy posture against ${ceasefireWindow.responderSideId}.`,
+      })
+    }
+    ceasefireWasActive = ceasefireActive
 
     revealRoundTriggeredHiddenUnits(round, units, areaMap, phaseLog)
 
     openPhaseWindow(phaseLog, round, 'movement')
-    resolveMovementPhase(round, units, input.sides, areaMap, movementDenials, phaseLog)
+    resolveMovementPhase(
+      round,
+      units,
+      input.sides,
+      areaMap,
+      movementDenials,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
-    revealAreaTriggeredHiddenUnits(round, units, areaMap, phaseLog)
+    revealAreaTriggeredHiddenUnits(
+      round,
+      units,
+      areaMap,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     openPhaseWindow(phaseLog, round, 'missile')
-    resolveMissilePhase(round, units, unitsById, input, areaMap, sideMap, overlayMap, phaseLog)
+    resolveMissilePhase(
+      round,
+      units,
+      unitsById,
+      input,
+      areaMap,
+      sideMap,
+      overlayMap,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     openPhaseWindow(phaseLog, round, 'melee')
     phaseLog.push({
@@ -549,13 +621,44 @@ export function resolveAggregateBattle(input: AggregateBattleInput): AggregateBa
       segment: 'mutual-resolution',
       detail: 'Mutual melee resolution window.',
     })
-    resolveMeleePhase(round, units, unitsById, input, areaMap, sideMap, overlayMap, phaseLog)
+    resolveMeleePhase(
+      round,
+      units,
+      unitsById,
+      input,
+      areaMap,
+      sideMap,
+      overlayMap,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     openPhaseWindow(phaseLog, round, 'morale')
-    resolveMoralePhase(round, units, unitsById, input.sides, areaMap, overlayMap, phaseLog)
+    resolveMoralePhase(
+      round,
+      units,
+      unitsById,
+      input.sides,
+      areaMap,
+      overlayMap,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     openPhaseWindow(phaseLog, round, 'rally')
-    resolveRallyPhase(round, units, unitsById, input.sides, areaMap, overlayMap, phaseLog)
+    resolveRallyPhase(
+      round,
+      units,
+      unitsById,
+      input.sides,
+      areaMap,
+      overlayMap,
+      phaseLog,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     for (const unit of units) {
       if (unit.missileLockoutRounds > 0) {
@@ -878,7 +981,9 @@ function revealAreaTriggeredHiddenUnits(
   round: number,
   units: RuntimeAggregateBattleUnit[],
   areaMap: Map<string, AggregateBattleArea>,
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   for (const unit of units) {
     if (!unit.isHidden || !unit.areaId || !unit.revealCondition) {
@@ -892,7 +997,7 @@ function revealAreaTriggeredHiddenUnits(
     const enemyPresent = units.some(
       (candidate) =>
         candidate.id !== unit.id &&
-        candidate.sideId !== unit.sideId &&
+        isSidesHostile(unit.sideId, candidate.sideId, ceasefireWindow, ceasefireActive) &&
         candidate.areaId === unit.areaId &&
         !isUnitDestroyed(candidate)
     )
@@ -1059,7 +1164,9 @@ function resolveMovementPhase(
   sides: AggregateBattleSideState[],
   areaMap: Map<string, AggregateBattleArea>,
   movementDenials: AggregateBattleMovementDenial[],
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   const unitsById = new Map(units.map((unit) => [unit.id, unit]))
 
@@ -1079,7 +1186,13 @@ function resolveMovementPhase(
 
     let currentAreaId = unit.areaId
     const attemptedPath = normalizeMovementPath(unit, currentAreaId)
-    const hostileControl = getHostileControlAreas(unit.sideId, units, areaMap)
+    const hostileControl = getHostileControlAreas(
+      unit.sideId,
+      units,
+      areaMap,
+      ceasefireWindow,
+      ceasefireActive
+    )
 
     for (const nextAreaId of attemptedPath.slice(1, unit.movement + 1)) {
       const currentArea = areaMap.get(currentAreaId)
@@ -1188,7 +1301,9 @@ function resolveMissilePhase(
   areaMap: Map<string, AggregateBattleArea>,
   sideMap: Map<string, AggregateBattleSideState>,
   overlayMap: Map<string, AggregateBattleCommandOverlay>,
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   phaseLog.push({
     round,
@@ -1212,21 +1327,28 @@ function resolveMissilePhase(
       continue
     }
 
-    const target = selectMissileTarget(unit, units, areaMap)
+    const target = selectMissileTarget(unit, units, areaMap, ceasefireWindow, ceasefireActive)
     if (!target) {
       continue
     }
 
+    const baseAttackValue = buildMissileValue(
+      unit,
+      input.context,
+      sideMap.get(unit.sideId),
+      getActiveCommandOverlay(unit, overlayMap, unitsById)
+    )
+    const attackValue = applyCeasefireManpowerAttackBonus(
+      baseAttackValue,
+      unit,
+      target,
+      ceasefireWindow,
+      ceasefireActive
+    )
+
     const cell = lookupCombatCell(
       MISSILE_RESULT_TABLE,
-      getAttackBand(
-        buildMissileValue(
-          unit,
-          input.context,
-          sideMap.get(unit.sideId),
-          getActiveCommandOverlay(unit, overlayMap, unitsById)
-        )
-      ),
+      getAttackBand(attackValue),
       getAttackBand(
         buildDefenseValue(
           target,
@@ -1261,25 +1383,33 @@ function resolveMeleePhase(
   areaMap: Map<string, AggregateBattleArea>,
   sideMap: Map<string, AggregateBattleSideState>,
   overlayMap: Map<string, AggregateBattleCommandOverlay>,
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
-  const engagementPairs = buildMeleePairs(units, areaMap)
+  const engagementPairs = buildMeleePairs(units, areaMap, ceasefireWindow, ceasefireActive)
   const hits: AggregateBattleHitRecord[] = []
 
   for (const pair of engagementPairs) {
     const attacker = pair.left
     const defender = pair.right
 
+    const leftAttackValue = applyCeasefireManpowerAttackBonus(
+      buildMeleeValue(
+        attacker,
+        input.context,
+        sideMap.get(attacker.sideId),
+        getActiveCommandOverlay(attacker, overlayMap, unitsById)
+      ),
+      attacker,
+      defender,
+      ceasefireWindow,
+      ceasefireActive
+    )
+
     const leftCell = lookupCombatCell(
       MELEE_RESULT_TABLE,
-      getAttackBand(
-        buildMeleeValue(
-          attacker,
-          input.context,
-          sideMap.get(attacker.sideId),
-          getActiveCommandOverlay(attacker, overlayMap, unitsById)
-        )
-      ),
+      getAttackBand(leftAttackValue),
       getAttackBand(
         buildDefenseValue(
           defender,
@@ -1290,16 +1420,22 @@ function resolveMeleePhase(
         )
       )
     )
+    const rightAttackValue = applyCeasefireManpowerAttackBonus(
+      buildMeleeValue(
+        defender,
+        input.context,
+        sideMap.get(defender.sideId),
+        getActiveCommandOverlay(defender, overlayMap, unitsById)
+      ),
+      defender,
+      attacker,
+      ceasefireWindow,
+      ceasefireActive
+    )
+
     const rightCell = lookupCombatCell(
       MELEE_RESULT_TABLE,
-      getAttackBand(
-        buildMeleeValue(
-          defender,
-          input.context,
-          sideMap.get(defender.sideId),
-          getActiveCommandOverlay(defender, overlayMap, unitsById)
-        )
-      ),
+      getAttackBand(rightAttackValue),
       getAttackBand(
         buildDefenseValue(
           attacker,
@@ -1352,7 +1488,9 @@ function resolveMoralePhase(
   sides: AggregateBattleSideState[],
   areaMap: Map<string, AggregateBattleArea>,
   overlayMap: Map<string, AggregateBattleCommandOverlay>,
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   for (const unit of units) {
     if (!unit.areaId || isUnitDestroyed(unit)) {
@@ -1360,7 +1498,13 @@ function resolveMoralePhase(
     }
 
     const previousState = unit.moraleState
-    const hostileControl = getHostileControlAreas(unit.sideId, units, areaMap)
+    const hostileControl = getHostileControlAreas(
+      unit.sideId,
+      units,
+      areaMap,
+      ceasefireWindow,
+      ceasefireActive
+    )
     const side = sides.find((currentSide) => currentSide.id === unit.sideId)
     const overlay = getActiveCommandOverlay(unit, overlayMap, unitsById)
     if (!side) {
@@ -1425,7 +1569,9 @@ function resolveRallyPhase(
   sides: AggregateBattleSideState[],
   areaMap: Map<string, AggregateBattleArea>,
   overlayMap: Map<string, AggregateBattleCommandOverlay>,
-  phaseLog: AggregateBattleLogEntry[]
+  phaseLog: AggregateBattleLogEntry[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   for (const unit of units) {
     if (!unit.areaId || isUnitDestroyed(unit) || unit.moraleState === 'steady') {
@@ -1441,7 +1587,13 @@ function resolveRallyPhase(
     const authorityBonus = getAuthorityMoraleBonus(side.authority)
     const supportBonus =
       side.supplyState === 'secure' ? 8 : side.supplyState === 'strained' ? 2 : -4
-    const controlPenalty = getHostileControlAreas(unit.sideId, units, areaMap).has(unit.areaId)
+    const controlPenalty = getHostileControlAreas(
+      unit.sideId,
+      units,
+      areaMap,
+      ceasefireWindow,
+      ceasefireActive
+    ).has(unit.areaId)
       ? 4
       : 0
     const routedPenalty = unit.routedRounds * 8
@@ -1585,13 +1737,15 @@ function getAreaOccupancy(
 function getHostileControlAreas(
   sideId: string,
   units: RuntimeAggregateBattleUnit[],
-  areaMap: Map<string, AggregateBattleArea>
+  areaMap: Map<string, AggregateBattleArea>,
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   const controlled = new Set<string>()
 
   for (const unit of units) {
     if (
-      unit.sideId === sideId ||
+      !isSidesHostile(sideId, unit.sideId, ceasefireWindow, ceasefireActive) ||
       !unit.areaId ||
       isUnitDestroyed(unit) ||
       unit.isHidden ||
@@ -1625,7 +1779,9 @@ function getHostileControlAreas(
 function selectMissileTarget(
   unit: RuntimeAggregateBattleUnit,
   units: RuntimeAggregateBattleUnit[],
-  areaMap: Map<string, AggregateBattleArea>
+  areaMap: Map<string, AggregateBattleArea>,
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   if (!unit.areaId) {
     return undefined
@@ -1637,7 +1793,7 @@ function selectMissileTarget(
   return units
     .filter((target) => {
       if (
-        target.sideId === unit.sideId ||
+        !isSidesHostile(unit.sideId, target.sideId, ceasefireWindow, ceasefireActive) ||
         !target.areaId ||
         isUnitDestroyed(target) ||
         target.isHidden
@@ -1659,7 +1815,9 @@ function selectMissileTarget(
 
 function buildMeleePairs(
   units: RuntimeAggregateBattleUnit[],
-  areaMap: Map<string, AggregateBattleArea>
+  areaMap: Map<string, AggregateBattleArea>,
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
 ) {
   const engagedIds = new Set<string>()
   const frontageByArea = new Map<string, number>()
@@ -1681,7 +1839,7 @@ function buildMeleePairs(
       .filter((candidate) => {
         if (
           engagedIds.has(candidate.id) ||
-          candidate.sideId === unit.sideId ||
+          !isSidesHostile(unit.sideId, candidate.sideId, ceasefireWindow, ceasefireActive) ||
           !candidate.areaId ||
           isUnitDestroyed(candidate) ||
           candidate.isHidden ||
@@ -2133,4 +2291,108 @@ function findShortestPath(
   }
 
   return [startAreaId]
+}
+
+function normalizeCeasefireWindow(
+  ceasefireWindow: AggregateBattleCeasefireWindow | undefined
+): RuntimeAggregateBattleCeasefireWindow | undefined {
+  if (!ceasefireWindow) {
+    return undefined
+  }
+
+  const startRound = Math.max(1, Math.trunc(ceasefireWindow.startRound))
+
+  return {
+    startRound,
+    endRound: Math.max(startRound, Math.max(1, Math.trunc(ceasefireWindow.endRound))),
+    responderSideId: ceasefireWindow.responderSideId,
+    hostileSideId: ceasefireWindow.hostileSideId,
+    sharedThreatSideId: ceasefireWindow.sharedThreatSideId,
+    hostileActorUnitId: ceasefireWindow.hostileActorUnitId,
+    objectiveId: ceasefireWindow.objectiveId,
+    motive: ceasefireWindow.motive,
+    tacticalValue: ceasefireWindow.tacticalValue,
+  }
+}
+
+function isCeasefireActive(
+  round: number,
+  units: RuntimeAggregateBattleUnit[],
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined
+) {
+  if (!ceasefireWindow) {
+    return false
+  }
+
+  if (round < ceasefireWindow.startRound || round > ceasefireWindow.endRound) {
+    return false
+  }
+
+  const hostileActor = units.find((unit) => unit.id === ceasefireWindow.hostileActorUnitId)
+  if (!hostileActor || hostileActor.sideId !== ceasefireWindow.hostileSideId) {
+    return false
+  }
+
+  if (!hostileActor.areaId || isUnitDestroyed(hostileActor) || hostileActor.moraleState === 'routed') {
+    return false
+  }
+
+  const sharedThreatStillActive = units.some(
+    (unit) =>
+      unit.sideId === ceasefireWindow.sharedThreatSideId &&
+      unit.areaId &&
+      !isUnitDestroyed(unit) &&
+      unit.moraleState !== 'routed'
+  )
+
+  return sharedThreatStillActive
+}
+
+function isSidesHostile(
+  leftSideId: string,
+  rightSideId: string,
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
+) {
+  if (leftSideId === rightSideId) {
+    return false
+  }
+
+  if (
+    ceasefireActive &&
+    ceasefireWindow &&
+    ((leftSideId === ceasefireWindow.responderSideId &&
+      rightSideId === ceasefireWindow.hostileSideId) ||
+      (leftSideId === ceasefireWindow.hostileSideId &&
+        rightSideId === ceasefireWindow.responderSideId))
+  ) {
+    return false
+  }
+
+  return true
+}
+
+function applyCeasefireManpowerAttackBonus(
+  baseAttackValue: number,
+  attacker: RuntimeAggregateBattleUnit,
+  target: RuntimeAggregateBattleUnit,
+  ceasefireWindow: RuntimeAggregateBattleCeasefireWindow | undefined,
+  ceasefireActive: boolean
+) {
+  if (
+    !ceasefireActive ||
+    !ceasefireWindow ||
+    ceasefireWindow.tacticalValue !== 'temporary_manpower'
+  ) {
+    return baseAttackValue
+  }
+
+  if (
+    attacker.sideId === ceasefireWindow.hostileSideId &&
+    target.sideId === ceasefireWindow.sharedThreatSideId
+  ) {
+    return clamp(baseAttackValue + 1, 0, 12)
+  }
+
+  return baseAttackValue
 }

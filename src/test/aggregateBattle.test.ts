@@ -121,6 +121,7 @@ function createBattleInput(input: {
   context?: ReturnType<typeof buildAggregateBattleContextFromCase>
   commandOverlays?: AggregateBattleCommandOverlay[]
   supernaturalPressure?: AggregateBattleInput['supernaturalPressure']
+  ceasefireWindow?: AggregateBattleInput['ceasefireWindow']
 }): AggregateBattleInput {
   return {
     battleId: input.battleId,
@@ -131,6 +132,7 @@ function createBattleInput(input: {
     context: input.context ?? createContext(),
     commandOverlays: input.commandOverlays ?? [],
     supernaturalPressure: input.supernaturalPressure,
+    ceasefireWindow: input.ceasefireWindow,
   }
 }
 
@@ -735,6 +737,301 @@ describe('aggregate battle layer', () => {
     expect(ingressAttackerSteps).toBeLessThanOrEqual(baselineAttackerSteps)
     // Defenders are not additionally penalised by the ingress penalty
     expect(ingressDefenderSteps).toBeGreaterThanOrEqual(baselineDefenderSteps)
+  })
+
+  it('forms a temporary selfish ceasefire and logs motive conflict while a shared threat is active', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'ceasefire-formation-motive',
+        roundLimit: 1,
+        sides: [
+          buildAggregateBattleSideState({
+            id: 'responders',
+            label: 'Responders',
+            reserveAreaId: 'att-reserve',
+            supportAreaId: 'att-support',
+            supportAvailable: 2,
+          }),
+          buildAggregateBattleSideState({
+            id: 'hostiles',
+            label: 'Hostiles',
+            reserveAreaId: 'def-reserve',
+            supportAreaId: 'def-support',
+            supportAvailable: 2,
+          }),
+          buildAggregateBattleSideState({
+            id: 'catastrophe',
+            label: 'Catastrophe',
+            reserveAreaId: 'def-reserve',
+            supportAvailable: 1,
+          }),
+        ],
+        units: [
+          {
+            id: 'responder-line',
+            label: 'Responder Line',
+            sideId: 'responders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 5,
+            defenseFactor: 5,
+            morale: 68,
+            readiness: 66,
+          },
+          {
+            id: 'hostile-broker',
+            label: 'Hostile Broker',
+            sideId: 'hostiles',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 5,
+            defenseFactor: 5,
+            morale: 68,
+            readiness: 66,
+          },
+          {
+            id: 'apocalypse-vanguard',
+            label: 'Apocalypse Vanguard',
+            sideId: 'catastrophe',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'left-flank',
+            order: 'advance',
+            plannedPath: ['left-flank', 'center-line'],
+            meleeFactor: 6,
+            defenseFactor: 5,
+            morale: 70,
+            readiness: 68,
+          },
+        ],
+        ceasefireWindow: {
+          startRound: 1,
+          endRound: 1,
+          responderSideId: 'responders',
+          hostileSideId: 'hostiles',
+          sharedThreatSideId: 'catastrophe',
+          hostileActorUnitId: 'hostile-broker',
+          objectiveId: 'seal-threshold',
+          motive: 'selfish_status_quo_preservation',
+          tacticalValue: 'temporary_manpower',
+        },
+      })
+    )
+
+    expect(
+      result.phaseLog.some(
+        (entry) =>
+          entry.detail.includes('Temporary ceasefire formed for objective seal-threshold') &&
+          entry.detail.includes('motive=selfish_status_quo_preservation') &&
+          entry.detail.includes('conflict=expected_betrayal')
+      )
+    ).toBe(true)
+  })
+
+  it('changes combat outcome via temporary hostile manpower against a worse shared threat', () => {
+    function run(withCeasefire: boolean) {
+      return resolveAggregateBattle(
+        createBattleInput({
+          battleId: `ceasefire-manpower-${withCeasefire}`,
+          roundLimit: 1,
+          sides: [
+            buildAggregateBattleSideState({
+              id: 'responders',
+              label: 'Responders',
+              reserveAreaId: 'att-reserve',
+              supportAreaId: 'att-support',
+              supportAvailable: 2,
+            }),
+            buildAggregateBattleSideState({
+              id: 'hostiles',
+              label: 'Hostiles',
+              reserveAreaId: 'def-reserve',
+              supportAreaId: 'def-support',
+              supportAvailable: 2,
+            }),
+            buildAggregateBattleSideState({
+              id: 'catastrophe',
+              label: 'Catastrophe',
+              reserveAreaId: 'def-reserve',
+              supportAvailable: 1,
+            }),
+          ],
+          units: [
+            {
+              id: 'alpha-responder-line',
+              label: 'Responder Line',
+              sideId: 'responders',
+              family: 'line_company',
+              strengthSteps: 5,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 6,
+              defenseFactor: 5,
+              morale: 70,
+              readiness: 68,
+            },
+            {
+              id: 'bravo-hostile-broker',
+              label: 'Hostile Broker',
+              sideId: 'hostiles',
+              family: 'line_company',
+              strengthSteps: 4,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 5,
+              defenseFactor: 5,
+              morale: 68,
+              readiness: 66,
+            },
+            {
+              id: 'zulu-apocalypse-vanguard',
+              label: 'Apocalypse Vanguard',
+              sideId: 'catastrophe',
+              family: 'line_company',
+              strengthSteps: 2,
+              areaId: 'center-line',
+              order: 'hold',
+              meleeFactor: 6,
+              defenseFactor: 5,
+              morale: 70,
+              readiness: 68,
+            },
+          ],
+          ceasefireWindow: withCeasefire
+            ? {
+                startRound: 1,
+                endRound: 1,
+                responderSideId: 'responders',
+                hostileSideId: 'hostiles',
+                sharedThreatSideId: 'catastrophe',
+                hostileActorUnitId: 'bravo-hostile-broker',
+                objectiveId: 'seal-threshold',
+                motive: 'selfish_status_quo_preservation',
+                tacticalValue: 'temporary_manpower',
+              }
+            : undefined,
+        })
+      )
+    }
+
+    const baseline = run(false)
+    const ceasefire = run(true)
+
+    const apocalypseStepsBaseline =
+      baseline.summaryTable.find((row) => row.unitId === 'zulu-apocalypse-vanguard')
+        ?.remainingStrengthSteps ?? 99
+    const apocalypseStepsCeasefire =
+      ceasefire.summaryTable.find((row) => row.unitId === 'zulu-apocalypse-vanguard')
+        ?.remainingStrengthSteps ?? 99
+
+    expect(apocalypseStepsCeasefire).toBeLessThan(apocalypseStepsBaseline)
+  })
+
+  it('reverts hostile side to enemy posture after objective window closes', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'ceasefire-reversion',
+        roundLimit: 2,
+        sides: [
+          buildAggregateBattleSideState({
+            id: 'responders',
+            label: 'Responders',
+            reserveAreaId: 'att-reserve',
+            supportAreaId: 'att-support',
+            supportAvailable: 2,
+          }),
+          buildAggregateBattleSideState({
+            id: 'hostiles',
+            label: 'Hostiles',
+            reserveAreaId: 'def-reserve',
+            supportAreaId: 'def-support',
+            supportAvailable: 2,
+          }),
+          buildAggregateBattleSideState({
+            id: 'catastrophe',
+            label: 'Catastrophe',
+            reserveAreaId: 'def-reserve',
+            supportAvailable: 1,
+          }),
+        ],
+        units: [
+          {
+            id: 'responder-line',
+            label: 'Responder Line',
+            sideId: 'responders',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 5,
+            defenseFactor: 5,
+            morale: 68,
+            readiness: 66,
+          },
+          {
+            id: 'hostile-broker',
+            label: 'Hostile Broker',
+            sideId: 'hostiles',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 5,
+            defenseFactor: 5,
+            morale: 68,
+            readiness: 66,
+          },
+          {
+            id: 'distant-catastrophe',
+            label: 'Distant Catastrophe',
+            sideId: 'catastrophe',
+            family: 'line_company',
+            strengthSteps: 4,
+            areaId: 'left-flank',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 1,
+            morale: 40,
+            readiness: 40,
+            hidden: true,
+            revealCondition: { kind: 'round', round: 99 },
+          },
+        ],
+        ceasefireWindow: {
+          startRound: 1,
+          endRound: 1,
+          responderSideId: 'responders',
+          hostileSideId: 'hostiles',
+          sharedThreatSideId: 'catastrophe',
+          hostileActorUnitId: 'hostile-broker',
+          objectiveId: 'seal-threshold',
+          motive: 'selfish_status_quo_preservation',
+          tacticalValue: 'temporary_manpower',
+        },
+      })
+    )
+
+    expect(
+      result.phaseLog.some((entry) =>
+        entry.detail.includes(
+          'Temporary ceasefire closed for objective seal-threshold; hostiles reverted to enemy posture against responders.'
+        )
+      )
+    ).toBe(true)
+    expect(
+      result.phaseLog.some(
+        (entry) =>
+          entry.round === 2 &&
+          entry.phase === 'melee' &&
+          entry.detail.includes('Hostile Broker') &&
+          entry.detail.includes('Responder Line') &&
+          entry.detail.includes('resolved melee simultaneously.')
+      )
+    ).toBe(true)
   })
 })
 

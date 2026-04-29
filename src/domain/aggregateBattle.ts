@@ -195,6 +195,8 @@ export interface AggregateBattleParallelObjectiveTrack {
   disruptionThreshold: number
   /** Multiplier applied to disruption gain in round 1 only (startup vulnerability). Default 1. */
   startupDisruptionMultiplier?: number
+  /** Additional disruption gain per round from competing operational demands on the same operator. Default 0. */
+  competingLoadDisruptionPerRound?: number
 }
 
 export interface AggregateBattleParallelObjectiveResult {
@@ -410,6 +412,7 @@ interface RuntimeAggregateBattleParallelObjectiveTrack {
   progressTarget: number
   disruptionThreshold: number
   startupDisruptionMultiplier: number
+  competingLoadDisruptionPerRound: number
   progress: number
   disruption: number
   completedRound?: number
@@ -953,6 +956,7 @@ function normalizeParallelObjectiveTrack(
     progressTarget: Math.max(1, Math.trunc(track.progressTarget)),
     disruptionThreshold: Math.max(1, Math.trunc(track.disruptionThreshold)),
     startupDisruptionMultiplier: Math.max(1, track.startupDisruptionMultiplier ?? 1),
+    competingLoadDisruptionPerRound: Math.max(0, Math.trunc(track.competingLoadDisruptionPerRound ?? 0)),
     progress: 0,
     disruption: 0,
   }
@@ -990,7 +994,7 @@ function resolveParallelObjectivePhase(
       track.sustainAreaIds.includes(unit.areaId)
   ).length
   const sufferedDisruption = operator.roundStepLosses + operator.roundShock > 0 ? 1 : 0
-  const baseDisruptionGain = hostilePressure + sufferedDisruption
+  const baseDisruptionGain = hostilePressure + sufferedDisruption + track.competingLoadDisruptionPerRound
   const startupMultiplier = round === 1 ? track.startupDisruptionMultiplier : 1
   const disruptionGain = Math.trunc(baseDisruptionGain * startupMultiplier)
   if (disruptionGain > 0) {
@@ -1017,7 +1021,7 @@ function resolveParallelObjectivePhase(
     segment: 'objective',
     unitId: operator.id,
     areaId: operator.areaId,
-    detail: `${track.objectiveId} progress ${track.progress}/${track.progressTarget}; disruption ${track.disruption}/${track.disruptionThreshold}.`,
+    detail: `${track.objectiveId} progress ${track.progress}/${track.progressTarget}; disruption ${track.disruption}/${track.disruptionThreshold}${track.competingLoadDisruptionPerRound > 0 ? ` (+${track.competingLoadDisruptionPerRound} competing load)` : ''}.`,
   })
 }
 

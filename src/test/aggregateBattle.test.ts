@@ -1538,6 +1538,140 @@ describe('aggregate battle layer', () => {
     expect(formatted).toContain('extraction overrun')
     expect(formatted).toMatch(/Aggregate battle:/)
   })
+
+  it('competing load raises disruption and suppresses progress vs identical baseline', () => {
+    const makeInput = (withLoad: boolean) =>
+      createBattleInput({
+        battleId: `competing-load-${withLoad ? 'loaded' : 'baseline'}`,
+        roundLimit: 3,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'track-competing-load',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 6,
+          disruptionThreshold: 6,
+          ...(withLoad ? { competingLoadDisruptionPerRound: 2 } : {}),
+        },
+      })
+
+    const baseline = resolveAggregateBattle(makeInput(false))
+    const loaded = resolveAggregateBattle(makeInput(true))
+
+    expect(loaded.parallelObjective?.disruption).toBeGreaterThan(
+      baseline.parallelObjective?.disruption ?? 0
+    )
+    // Progress must be less than or equal (load never helps).
+    expect(loaded.parallelObjective?.progress ?? 0).toBeLessThanOrEqual(
+      baseline.parallelObjective?.progress ?? 0
+    )
+  })
+
+  it('competing load divergence proof: same combat, objective outcome worsens due to load alone', () => {
+    // No hostiles in sustain area — pure competing-load effect.
+    // Threshold set low enough that load alone tips to fail within round limit.
+    const makeInput = (withLoad: boolean) =>
+      createBattleInput({
+        battleId: `competing-load-divergence-${withLoad ? 'loaded' : 'baseline'}`,
+        roundLimit: 2,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+          {
+            id: 'combat-probe',
+            label: 'Combat Probe',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 1,
+            areaId: 'def-reserve',
+            order: 'hold',
+            meleeFactor: 2,
+            defenseFactor: 2,
+            morale: 60,
+            readiness: 60,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'competing-load-divergence',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 10,
+          disruptionThreshold: 3,
+          ...(withLoad ? { competingLoadDisruptionPerRound: 2 } : {}),
+        },
+      })
+
+    const baseline = resolveAggregateBattle(makeInput(false))
+    const loaded = resolveAggregateBattle(makeInput(true))
+
+    // Same combat: both sides identical, defender stays in def-reserve away from sustain area.
+    expect(baseline.parallelObjective?.outcome).not.toBe('fail')
+    expect(loaded.parallelObjective?.outcome).toBe('fail')
+  })
+
+  it('competing load is visible in objective phase log detail string', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'competing-load-legibility',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 6,
+            morale: 70,
+            readiness: 70,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'legibility-check',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support'],
+          progressTarget: 8,
+          disruptionThreshold: 8,
+          competingLoadDisruptionPerRound: 3,
+        },
+      })
+    )
+
+    const objectiveLog = result.phaseLog.filter((e) => e.segment === 'objective')
+    expect(objectiveLog.length).toBeGreaterThan(0)
+    expect(objectiveLog[0].detail).toContain('+3 competing load')
+  })
 })
 
 describe('aggregate battle hidden deployment', () => {

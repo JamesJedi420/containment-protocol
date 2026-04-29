@@ -1971,6 +1971,15 @@ export interface GameConfig {
 
   /** Clearance progression thresholds by cumulative score, ascending. */
   clearanceThresholds: number[]
+
+  /**
+   * SPE-1070 slice 1: agency-wide substance policy for off-duty coping behavior.
+   * Optional; defaults to 'permitted' at read time — no save migration required.
+   * - 'permitted': coping yields full fatigue/morale relief.
+   * - 'restricted': coping yields relief but emits a misconduct event.
+   * - 'prohibited': coping yields no relief, applies a morale penalty, and emits a misconduct event.
+   */
+  substancePolicy?: 'permitted' | 'restricted' | 'prohibited'
 }
 
 /** Canonical agency progression state for new development. */

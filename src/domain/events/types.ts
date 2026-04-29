@@ -470,6 +470,17 @@ export interface OperationEventPayloadMap {
     fundingAfter: number
     cost: number
   }
+  'staff.coping.applied': {
+    week: number
+    agentId: Id
+    streak: number
+    policy: 'permitted' | 'restricted' | 'prohibited'
+  }
+  'staff.coping.misconduct': {
+    week: number
+    agentId: Id
+    policy: 'restricted' | 'prohibited'
+  }
 }
 
 export type OperationEventType = keyof OperationEventPayloadMap
@@ -515,6 +526,8 @@ export interface OperationEventTypeToSourceSystemMap {
   'directive.applied': 'system'
   'support.shortfall': 'system'
   'system.academy_upgraded': 'system'
+  'staff.coping.applied': 'agent'
+  'staff.coping.misconduct': 'agent'
 }
 
 export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSystemMap> = {
@@ -558,6 +571,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'directive.applied': 'system',
   'support.shortfall': 'system',
   'system.academy_upgraded': 'system',
+  'staff.coping.applied': 'agent',
+  'staff.coping.misconduct': 'agent',
 }
 
 export type OperationEventSourceSystemFor<TType extends OperationEventType> =

@@ -70,6 +70,14 @@ export const RECOVERY_CALIBRATION = {
     incapacitated: 2.0, // was 2.2; further reduces stacking penalty in second band
     traumaLevel: 0.5,
   },
+  // SPE-1070 slice 1: off-duty coping (alcohol family)
+  copingFatigueRelief: 8,
+  copingMoraleRelief: 6,
+  /** Effective team-score multiplier per impaired agent's contribution fraction. 0.85 = 15% penalty. */
+  copingNextWeekPenaltyMultiplier: 0.85,
+  copingDependencyThreshold: 3,
+  copingProhibitedMoralePenalty: 5,
+  therapyCopingStreakDecrement: 3,
 } as const
 
 // Band-gated overrides for second escalation band

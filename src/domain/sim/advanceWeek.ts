@@ -2794,6 +2794,27 @@ function applySpontaneousRelationshipEvents(context: WeeklyExecutionContext, rng
 function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
   const preFatigueAgents = context.nextState.agents
 
+  // SPE-1070 slice 1: clear one-week impairment flags before fatigue is applied
+  const clearedAgents: GameState['agents'] = {}
+  for (const [agentId, agent] of Object.entries(preFatigueAgents)) {
+    const currentFlags = agent.vitals?.statusFlags ?? []
+    if (currentFlags.includes('impaired:alcohol')) {
+      clearedAgents[agentId] = {
+        ...agent,
+        vitals: {
+          health: agent.vitals?.health ?? 100,
+          stress: agent.vitals?.stress ?? 0,
+          wounds: agent.vitals?.wounds ?? 0,
+          morale: agent.vitals?.morale ?? 50,
+          statusFlags: currentFlags.filter((f) => f !== 'impaired:alcohol'),
+        },
+      }
+    } else {
+      clearedAgents[agentId] = agent
+    }
+  }
+  context.nextState = { ...context.nextState, agents: clearedAgents }
+
   const fatiguedAgents = applyAgentFatigue(
     context.nextState.agents,
     context.nextState.teams,

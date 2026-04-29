@@ -719,7 +719,7 @@ export interface AgentTraumaState {
 }
 
 export interface AgentDowntimeActivity {
-  activity: 'rest' | 'training' | 'therapy' | 'other'
+  activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping'
   sinceWeek: number
 }
 
@@ -857,4 +857,11 @@ export interface Agent {
    * Optional and backward-compatible; absent means no overdrive state/history.
    */
   overdrive?: AgentOverdriveState
+
+  /**
+   * SPE-1070 slice 1: consecutive off-duty coping weeks.
+   * Increments each week coping is used; resets to 0 on any non-coping downtime.
+   * Reaches copingDependencyThreshold → `dependency-risk:alcohol` tag on `tags`.
+   */
+  copingStreak?: number
 }

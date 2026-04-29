@@ -7,9 +7,10 @@ import type {
 } from '../models'
 import { clamp } from '../math'
 import { RECOVERY_CALIBRATION } from './calibration'
+import type { AnyOperationEventDraft } from '../events'
 
 export type RecoveryState = 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
-export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other'
+export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other' | 'coping'
 
 export interface RecoveryProgressionResult {
   updatedAgents: GameState['agents']
@@ -18,6 +19,7 @@ export interface RecoveryProgressionResult {
   attritionPressureApplied: number
   throughputPenaltyApplied: number
   attritionThroughputPenaltyApplied: number
+  eventDrafts: AnyOperationEventDraft[]
 }
 
 
@@ -29,6 +31,7 @@ export interface AdvanceRecoveryDowntimeInput {
   fundingState?: FundingState
   replacementPressureState?: ReplacementPressureState
   supportStaff?: SupportStaffSummary
+  substancePolicy?: 'permitted' | 'restricted' | 'prohibited'
 }
 
 export function advanceRecoveryDowntimeForWeek({
@@ -39,9 +42,11 @@ export function advanceRecoveryDowntimeForWeek({
   fundingState,
   replacementPressureState,
   supportStaff,
+  substancePolicy,
 }: AdvanceRecoveryDowntimeInput): RecoveryProgressionResult {
   const updatedAgents: GameState['agents'] = { ...sourceAgents }
   const updatedTeams: GameState['teams'] = { ...sourceTeams }
+  const eventDrafts: AnyOperationEventDraft[] = []
   const budgetPressureApplied = Math.max(0, Math.trunc(fundingState?.budgetPressure ?? 0))
   const attritionPressureApplied = Math.max(
     0,
@@ -156,12 +161,93 @@ export function advanceRecoveryDowntimeForWeek({
     }
 
     // Update agent state
+    let agentTags = agent.tags
+    let agentVitals = agent.vitals
+    let copingStreak = agent.copingStreak ?? 0
+
+    if (downtime === 'coping') {
+      // SPE-1070 slice 1: off-duty coping (alcohol family)
+      const policy = substancePolicy ?? 'permitted'
+      const applyRelief = policy !== 'prohibited'
+
+      // Apply fatigue/morale relief (gated by policy)
+      if (applyRelief) {
+        fatigue = clamp(fatigue - RECOVERY_CALIBRATION.copingFatigueRelief, 0, 100)
+        agentVitals = {
+          health: agentVitals?.health ?? 100,
+          stress: agentVitals?.stress ?? 0,
+          wounds: agentVitals?.wounds ?? 0,
+          morale: clamp(
+            (agentVitals?.morale ?? 50) + RECOVERY_CALIBRATION.copingMoraleRelief,
+            0,
+            100
+          ),
+          statusFlags: agentVitals?.statusFlags ?? [],
+        }
+      } else {
+        // Prohibited: apply morale penalty
+        agentVitals = {
+          health: agentVitals?.health ?? 100,
+          stress: agentVitals?.stress ?? 0,
+          wounds: agentVitals?.wounds ?? 0,
+          morale: clamp(
+            (agentVitals?.morale ?? 50) - RECOVERY_CALIBRATION.copingProhibitedMoralePenalty,
+            0,
+            100
+          ),
+          statusFlags: agentVitals?.statusFlags ?? [],
+        }
+      }
+
+      // Set impaired:alcohol flag for next week (idempotent)
+      const baseFlags = agentVitals.statusFlags ?? []
+      agentVitals = {
+        ...agentVitals,
+        statusFlags: baseFlags.includes('impaired:alcohol')
+          ? baseFlags
+          : [...baseFlags, 'impaired:alcohol'],
+      }
+
+      // Increment streak and gate dependency-risk tag
+      copingStreak += 1
+      if (copingStreak >= RECOVERY_CALIBRATION.copingDependencyThreshold) {
+        agentTags = agentTags.includes('dependency-risk:alcohol')
+          ? agentTags
+          : [...agentTags, 'dependency-risk:alcohol']
+      }
+
+      // Emit coping-applied event
+      eventDrafts.push({
+        type: 'staff.coping.applied',
+        sourceSystem: 'agent',
+        payload: { week, agentId, streak: copingStreak, policy },
+      })
+
+      // Emit misconduct event for restricted or prohibited policy
+      if (policy === 'restricted' || policy === 'prohibited') {
+        eventDrafts.push({
+          type: 'staff.coping.misconduct',
+          sourceSystem: 'agent',
+          payload: { week, agentId, policy },
+        })
+      }
+    } else {
+      // Non-coping activity: reset streak and clear dependency-risk tag if streak was non-zero
+      if (copingStreak > 0) {
+        copingStreak = 0
+        agentTags = agentTags.filter((t) => t !== 'dependency-risk:alcohol')
+      }
+    }
+
     updatedAgents[agentId] = {
       ...agent,
       recoveryStatus,
       trauma,
       downtimeActivity: { activity: downtime, sinceWeek: week },
       fatigue,
+      vitals: agentVitals,
+      tags: agentTags,
+      copingStreak,
     }
   }
 
@@ -204,5 +290,6 @@ export function advanceRecoveryDowntimeForWeek({
     attritionPressureApplied,
     throughputPenaltyApplied,
     attritionThroughputPenaltyApplied,
+    eventDrafts,
   }
 }

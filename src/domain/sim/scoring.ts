@@ -14,6 +14,7 @@ import {
   type WeeklyReport,
 } from '../models'
 import { clamp, sigmoid } from '../math'
+import { RECOVERY_CALIBRATION } from './calibration'
 import {
   buildAgentSquadCompositionProfile,
   dotResolutionProfile,
@@ -809,6 +810,19 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     )
   }
   const contextAdjustment = externalContextAdjustment + reconSummary.scoreAdjustment
+
+  // AC5 operational vulnerability: each impaired agent (impaired:alcohol) reduces team output
+  const impairedCount = agents.filter((a) =>
+    (a.vitals?.statusFlags ?? []).includes('impaired:alcohol')
+  ).length
+  const impairedPenalty =
+    impairedCount > 0
+      ? -(base * (1 - RECOVERY_CALIBRATION.copingNextWeekPenaltyMultiplier) * (impairedCount / Math.max(1, agents.length)))
+      : 0
+  if (impairedPenalty !== 0) {
+    reasons.push(`Impaired: ${impairedPenalty.toFixed(1)}`)
+  }
+
   const nonAxisModifierTotal = computeNonAxisModifierTotal({
     leaderBonus,
     synergyBonus,
@@ -817,7 +831,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     preferredBonus,
     equipmentScore: equipment.score,
     partyCardScore: partyCardBonus,
-    contextAdjustment,
+    contextAdjustment: contextAdjustment + impairedPenalty,
   })
   const comparison = compareResolutionAgainstCase(
     profile.resolutionProfile,
@@ -861,7 +875,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       { id: 'preferred-tags', label: 'Preferred tags', delta: preferredBonus },
       { id: 'equipment', label: 'Equipment', delta: equipment.score },
       { id: 'party-cards', label: 'Party cards', delta: partyCardBonus },
-      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment },
+      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment + impairedPenalty },
     ],
   }
 
@@ -897,7 +911,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       preferredTagBonus: preferredBonus,
       equipmentBonus: equipment.score,
       partyCardBonus,
-      contextAdjustment,
+      contextAdjustment: contextAdjustment + impairedPenalty,
     }),
     layerBreakdown,
     comparison,

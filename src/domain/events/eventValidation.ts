@@ -543,6 +543,17 @@ export const operationEventPayloadSchemas = {
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
   'case.aggregate_battle': z.object({}).passthrough(),
+  'staff.coping.applied': z.object({
+    week: z.number(),
+    agentId: z.string(),
+    streak: z.number(),
+    policy: z.enum(['permitted', 'restricted', 'prohibited']),
+  }),
+  'staff.coping.misconduct': z.object({
+    week: z.number(),
+    agentId: z.string(),
+    policy: z.enum(['restricted', 'prohibited']),
+  }),
 } satisfies Record<OperationEventType, z.ZodTypeAny>
 
 export function validateOperationEventPayload<TType extends OperationEventType>(

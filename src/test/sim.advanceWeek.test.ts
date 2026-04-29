@@ -1545,6 +1545,14 @@ describe('advanceWeek', () => {
     expect(battleEvent?.payload.parallelObjectiveProgress).toBe(
       `${aggregateBattle?.parallelObjective?.progress}/${aggregateBattle?.parallelObjective?.progressTarget}`
     )
+    expect(battleEvent?.payload.extractionRequired).toBe(
+      aggregateBattle?.parallelObjective?.outcome !== 'fail'
+    )
+    expect(['not_required', 'secured', 'contested', 'overrun']).toContain(
+      battleEvent?.payload.extractionOutcome
+    )
+    expect(['low', 'medium', 'high']).toContain(battleEvent?.payload.extractionPressure)
+    expect(typeof battleEvent?.payload.extractionResidualThreatUnits).toBe('number')
   })
 
   it('applies raid coordination penalty when two teams resolve a raid case', () => {

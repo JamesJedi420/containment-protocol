@@ -1282,6 +1282,10 @@ function buildAggregateBattleEventDraft(
       parallelObjectiveProgress: summary.parallelObjective
         ? `${summary.parallelObjective.progress}/${summary.parallelObjective.progressTarget}`
         : undefined,
+      extractionRequired: summary.extractionFollowThrough?.required,
+      extractionOutcome: summary.extractionFollowThrough?.outcome,
+      extractionPressure: summary.extractionFollowThrough?.pressure,
+      extractionResidualThreatUnits: summary.extractionFollowThrough?.residualThreatUnits,
       ceasefireApplied: Boolean(ceasefireWindow),
       ceasefireObjectiveId: ceasefireWindow?.objectiveId,
       ceasefireTacticalValue: ceasefireWindow?.tacticalValue,

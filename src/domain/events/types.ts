@@ -152,6 +152,10 @@ export interface OperationEventPayloadMap {
     parallelObjectiveId?: string
     parallelObjectiveOutcome?: 'success' | 'partial' | 'fail'
     parallelObjectiveProgress?: string
+    extractionRequired?: boolean
+    extractionOutcome?: 'not_required' | 'secured' | 'contested' | 'overrun'
+    extractionPressure?: 'low' | 'medium' | 'high'
+    extractionResidualThreatUnits?: number
     ceasefireApplied?: boolean
     ceasefireObjectiveId?: string
     ceasefireTacticalValue?: 'temporary_manpower' | 'specialist_knowledge'

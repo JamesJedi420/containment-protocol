@@ -209,6 +209,13 @@ export interface AggregateBattleParallelObjectiveResult {
   failedRound?: number
 }
 
+export interface AggregateBattleExtractionFollowThrough {
+  required: boolean
+  residualThreatUnits: number
+  pressure: 'low' | 'medium' | 'high'
+  outcome: 'not_required' | 'secured' | 'contested' | 'overrun'
+}
+
 export interface AggregateBattleInput {
   battleId: string
   roundLimit: number
@@ -317,6 +324,7 @@ export interface AggregateBattleCampaignSummary {
   supernaturalPressureApplied: boolean
   summaryTable: AggregateBattleUnitResult[]
   parallelObjective?: AggregateBattleParallelObjectiveResult
+  extractionFollowThrough?: AggregateBattleExtractionFollowThrough
 }
 
 export interface AggregateBattleCampaignRollup {
@@ -787,6 +795,12 @@ export function buildAggregateBattleCampaignSummary(input: {
       hitsToBreak: row.specialHitsToBreak,
       destroyed: row.destroyed,
     }))
+  const extractionFollowThrough = buildExtractionFollowThrough({
+    summaryTable: input.result.summaryTable,
+    hostileSideId: input.hostileSideId,
+    friendlyRoutedUnits,
+    parallelObjective: input.result.parallelObjective,
+  })
 
   return {
     battleId: input.result.battleId,
@@ -817,6 +831,7 @@ export function buildAggregateBattleCampaignSummary(input: {
     supernaturalPressureApplied: input.result.supernaturalPressureApplied,
     summaryTable: input.result.summaryTable.map((row) => ({ ...row })),
     parallelObjective: input.result.parallelObjective,
+    extractionFollowThrough,
   }
 }
 
@@ -849,7 +864,55 @@ export function formatAggregateBattleCampaignSummary(summary: AggregateBattleCam
     )
   }
 
+  if (summary.extractionFollowThrough?.required) {
+    detailParts.push(
+      `extraction ${summary.extractionFollowThrough.outcome} under ${summary.extractionFollowThrough.pressure} residual threat (${summary.extractionFollowThrough.residualThreatUnits})`
+    )
+  }
+
   return `Aggregate battle: ${resultLine} after ${detailParts.join(' / ')}.`
+}
+
+function buildExtractionFollowThrough(input: {
+  summaryTable: AggregateBattleUnitResult[]
+  hostileSideId: string
+  friendlyRoutedUnits: string[]
+  parallelObjective: AggregateBattleParallelObjectiveResult | undefined
+}): AggregateBattleExtractionFollowThrough {
+  const required =
+    input.parallelObjective?.kind === 'defend_operator_ritual' &&
+    input.parallelObjective.outcome !== 'fail'
+  if (!required) {
+    return {
+      required: false,
+      residualThreatUnits: 0,
+      pressure: 'low',
+      outcome: 'not_required',
+    }
+  }
+
+  const residualThreatUnits = input.summaryTable.filter(
+    (row) =>
+      row.sideId === input.hostileSideId &&
+      !row.destroyed &&
+      row.moraleState !== 'routed' &&
+      row.moraleState !== 'retreating'
+  ).length
+  const pressure =
+    residualThreatUnits >= 2 ? 'high' : residualThreatUnits === 1 ? 'medium' : 'low'
+  const outcome =
+    residualThreatUnits === 0
+      ? 'secured'
+      : input.friendlyRoutedUnits.length === 0
+        ? 'contested'
+        : 'overrun'
+
+  return {
+    required: true,
+    residualThreatUnits,
+    pressure,
+    outcome,
+  }
 }
 
 export function isAggregateBattleCampaignSummary(

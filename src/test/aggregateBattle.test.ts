@@ -1285,6 +1285,81 @@ describe('aggregate battle layer', () => {
       )
     ).toBe(true)
   })
+
+  it('marks post-combat extraction as contested when ritual succeeds under residual hostile threat', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'parallel-objective-extraction-contested',
+        roundLimit: 1,
+        units: [
+          {
+            id: 'ritual-cell',
+            label: 'Ritual Cell',
+            sideId: 'attackers',
+            family: 'artillery_section',
+            strengthSteps: 1,
+            areaId: 'att-support',
+            order: 'hold',
+            meleeFactor: 1,
+            defenseFactor: 4,
+            morale: 64,
+            readiness: 66,
+          },
+          {
+            id: 'breach-team',
+            label: 'Breach Team',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 2,
+            areaId: 'center-line',
+            order: 'hold',
+            meleeFactor: 4,
+            defenseFactor: 4,
+            morale: 66,
+            readiness: 64,
+          },
+          {
+            id: 'residual-cell',
+            label: 'Residual Cell',
+            sideId: 'defenders',
+            family: 'line_company',
+            strengthSteps: 2,
+            areaId: 'def-reserve',
+            order: 'hold',
+            meleeFactor: 4,
+            defenseFactor: 4,
+            morale: 66,
+            readiness: 64,
+          },
+        ],
+        parallelObjectiveTrack: {
+          kind: 'defend_operator_ritual',
+          objectiveId: 'stabilize-ward-lane',
+          operatorUnitId: 'ritual-cell',
+          sustainAreaIds: ['att-support', 'left-flank'],
+          progressTarget: 1,
+          disruptionThreshold: 2,
+        },
+      })
+    )
+
+    const summary = buildAggregateBattleCampaignSummary({
+      context: createContext(),
+      result,
+      friendlySideId: 'attackers',
+      friendlyLabel: 'Attackers',
+      hostileSideId: 'defenders',
+      hostileLabel: 'Defenders',
+    })
+
+    expect(summary.parallelObjective?.outcome).toBe('success')
+    expect(summary.extractionFollowThrough).toMatchObject({
+      required: true,
+      residualThreatUnits: 1,
+      pressure: 'medium',
+      outcome: 'contested',
+    })
+  })
 })
 
 describe('aggregate battle hidden deployment', () => {

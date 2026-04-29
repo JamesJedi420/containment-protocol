@@ -35,3 +35,12 @@ remaining-subset.json
 
 # Secrets
 linear-export/.env
+
+# Linear / GitHub backlog tooling — local-only working scripts, data dumps,
+# and notes used by the maintenance agent. Nothing in this folder is intended
+# to ship to the repository.
+linear-export/
+
+# Loose coverage / test output dumps at the repo root
+coverage_out.txt
+coverage_out_*.txt

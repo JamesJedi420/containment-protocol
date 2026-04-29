@@ -13,6 +13,7 @@ Scope:
 * support document-backed infiltrations where forged papers, diplomatic packets, seals, and status bundles carry more weight than speech checks alone in the right context
 * support correct local kit and uniform backing granting strong but context-bound disguise leverage especially when paired with appropriate paperwork or carried authority markers
 * support low-status or drunken camouflage personas where social disregard does more work than cosmetic disguise quality and the persona is durable precisely because it attracts no scrutiny
+* support soft identity handoff failures at arrival points such as exchange arrivals, guest pickup, or other trust-based intake where verification is weak and the expected arrival is not well known visually; delayed baggage or transport contradictions may preserve the impersonation long enough for the hostile to embed socially before truth-reveal catches up
 * support specialist-targeted invitation lures where a credentialed investigator, scholar, or authority figure invites a targeted specialist using professional respect or exclusivity as the primary lowered-suspicion mechanism before the trap closes
 * support hostile actors wearing authority cover so an apparent lead investigator, guard officer, or credentialed responder is actually the threat actor, using official access to redirect suspicion, manage scene control, and remain close to the response team
 * support city clothing norms, common silhouettes, and low-visibility conditions making authority passing viable even when exact facial duplication is absent
@@ -33,6 +34,7 @@ Acceptance criteria:
 * at least one later threshold forces a shift into overt violence or emergency escape
 * at least one civilian authority role provides long-horizon institution-backed access through repeated proximity rather than one-shot infiltration
 * at least one cover identity branches materially by claimed role type across the same zone
+* at least one weak-verification arrival point allows a hostile impersonation to embed socially before delayed transport or baggage evidence exposes the mismatch
 * at least one active cover identity is treated as a full encounter state with documents, doctrine, and guide-witness components rather than a costume tag
 * at least one hostile actor wears authority cover and uses it to redirect suspicion rather than to hide from it
 * targeted tests cover deterministic uniform-infiltration behavior, role-branched encounter outcomes, cover-state maintenance, and guide-witness exposure paths

@@ -15,6 +15,7 @@ Scope:
 * support cure stage ordering constraints where exact sequencing of absolution, disease purge, and curse removal matters, and failed or misordered attempts can snap back into hostile retransformation or frenzy
 * support origin-class cure variation so inherited, transmitted, and curse-derived conditions do not share one uniform treatment path
 * support kill method and ritual treatment at death as determinants of which converted class a body becomes rather than assuming all death conversion produces one default outcome
+* support burial-site or grave-handling reactivation so postmortem conversion can enter a second hostile phase after apparent scene resolution, making corpse treatment and grave return a meaningful delayed trigger surface rather than resolving risk at the original feeding or bargain site only
 * support failed restoration as a transformation pathway so failed raise or resurrection attempts can produce hostile or transformed outcomes rather than simple null results
 * scale conversion result or progression severity by victim tier, class, or biology where relevant
 * connect the layer to attrition, corpse handling, undead and transformed actor systems, cure logic, and civic consequence systems where relevant
@@ -26,6 +27,7 @@ Constraints:
 * no assumption that all death conversion happens instantly on exposure
 * no single uniform converted result for all targets by default
 * no assumption that every contact vector chains into indefinite propagation
+* no assumption that escaping the original threat venue or surviving the first crowd event resolves postmortem-conversion risk before corpse handling and burial are complete
 * no assumption that cure is always achievable through one generic cleanse
 * prefer compact delayed-state and conversion tables over sprawling undead ontologies
 * keep cure timing, stage progression, and origin-class variation legible enough for intervention play
@@ -39,5 +41,6 @@ Acceptance criteria:
 * at least one active condition suppresses healing from items and consumables independently of damage state
 * at least one cure sequence requires multi-phase ordering and fails catastrophically if the chain breaks or is misordered
 * at least one failed restoration attempt produces a hostile or transformed outcome rather than a null result
+* at least one delayed conversion reactivates at burial or grave handling, producing a second hostile phase after apparent scene resolution
 * at least one cure path varies by origin class so transmitted and curse-derived conditions do not share one treatment
-* targeted tests cover deterministic delayed trigger, death conversion, staged progression, healing suppression, cure ordering, cure-failure transformation, origin-class variation, and tier-scaling behavior
+* targeted tests cover deterministic delayed trigger, death conversion, staged progression, healing suppression, cure ordering, cure-failure transformation, burial-reactivation risk, origin-class variation, and tier-scaling behavior

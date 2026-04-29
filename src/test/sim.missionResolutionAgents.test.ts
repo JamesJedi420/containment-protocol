@@ -230,4 +230,138 @@ describe('applyMissionResolutionAgentMutations', () => {
     // should not produce more injuries than the non-overdrive baseline.
     expect(highResult.missionInjuries.length).toBeLessThanOrEqual(lowResult.missionInjuries.length)
   })
+
+  it('transit vulnerability can trigger return-route ambush injury outside main fail roll', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const subjectId = team.agentIds[0]
+    const subject = {
+      ...state.agents[subjectId]!,
+      fatigue: 10,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(state.agents[subjectId]!.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        physicalExhaustion: 70,
+        mentalExhaustion: 45,
+        combatStress: 20,
+      },
+    }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...state.agents,
+        [subject.id]: subject,
+      },
+      assignedAgents: [subject],
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 1,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -5 }),
+      week: state.week,
+      rng: () => 0,
+    })
+
+    expect(result.missionInjuries.length).toBeGreaterThan(0)
+    expect(result.missionInjuries.every((injury) => injury.severity === 'minor')).toBe(true)
+  })
+
+  it('transit vulnerability does not trigger when return path is not solo', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const ids = team.agentIds.slice(0, 2)
+    const assignedAgents = ids.map((id) => ({
+      ...state.agents[id]!,
+      fatigue: 10,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(state.agents[id]!.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        physicalExhaustion: 70,
+        mentalExhaustion: 45,
+        combatStress: 20,
+      },
+    }))
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...state.agents,
+        ...Object.fromEntries(assignedAgents.map((agent) => [agent.id, agent])),
+      },
+      assignedAgents,
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 1,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -5 }),
+      week: state.week,
+      rng: () => 0,
+    })
+
+    // Not solo: bounded transit vulnerability window is disabled.
+    expect(result.missionInjuries).toHaveLength(0)
+  })
+
+  it('transit ambush injury applies extra morale penalty', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const subjectId = team.agentIds[0]
+    const subject = {
+      ...state.agents[subjectId]!,
+      fatigue: 10,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(state.agents[subjectId]!.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        physicalExhaustion: 70,
+        mentalExhaustion: 45,
+        combatStress: 20,
+      },
+      vitals: {
+        health: 100,
+        stress: 10,
+        morale: 90,
+        wounds: 0,
+        statusFlags: [],
+      },
+    }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...state.agents,
+        [subject.id]: subject,
+      },
+      assignedAgents: [subject],
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 1,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -5 }),
+      week: state.week,
+      rng: () => 0,
+    })
+
+    const next = result.nextAgents[subject.id]
+    // Base minor injury morale loss is 8; transit penalty adds 6 => total 14.
+    expect(next?.vitals?.morale).toBe(76)
+  })
 })

@@ -12,6 +12,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD,
+  TRANSIT_VULNERABILITY_MENTAL_THRESHOLD,
+  TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD,
   accumulateFatigueChannels,
   activateAgentOverdrive,
   applyOverdriveRecoveryDebtTick,
@@ -21,6 +23,7 @@ import {
   createDefaultOverdriveState,
   deriveFatigueChannelPenalties,
   expireAgentOverdrive,
+  isTransitAmbushVulnerable,
   resetCapabilityUsesPhaseCounter,
   PHYSICAL_READINESS_THRESHOLD,
   MENTAL_CONCENTRATION_THRESHOLD,
@@ -527,5 +530,46 @@ describe('SPE-130 Phase 4 — bounded overdrive helpers and debt aftermath', () 
   it('activation threshold remains bounded and explicit for mission consumer', () => {
     expect(OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD).toBeGreaterThanOrEqual(50)
     expect(OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD).toBeLessThanOrEqual(90)
+  })
+})
+
+describe('SPE-130 Phase 5 — bounded transit vulnerability window helper', () => {
+  it('returns true only when fatigue + solitude + routine return path are all present', () => {
+    const vulnerable = isTransitAmbushVulnerable({
+      channels: channels({
+        physicalExhaustion: TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD,
+        mentalExhaustion: TRANSIT_VULNERABILITY_MENTAL_THRESHOLD,
+      }),
+      isSoloTransit: true,
+      onRoutineReturnPath: true,
+    })
+
+    expect(vulnerable).toBe(true)
+  })
+
+  it('returns false when not solo, even if fatigue thresholds are met', () => {
+    const notSolo = isTransitAmbushVulnerable({
+      channels: channels({
+        physicalExhaustion: TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD,
+        mentalExhaustion: TRANSIT_VULNERABILITY_MENTAL_THRESHOLD,
+      }),
+      isSoloTransit: false,
+      onRoutineReturnPath: true,
+    })
+
+    expect(notSolo).toBe(false)
+  })
+
+  it('returns false when return path condition is not active', () => {
+    const noReturnWindow = isTransitAmbushVulnerable({
+      channels: channels({
+        physicalExhaustion: TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD,
+        mentalExhaustion: TRANSIT_VULNERABILITY_MENTAL_THRESHOLD,
+      }),
+      isSoloTransit: true,
+      onRoutineReturnPath: false,
+    })
+
+    expect(noReturnWindow).toBe(false)
   })
 })

@@ -51,6 +51,16 @@ export const OVERDRIVE_DEBT_PHYSICAL_DELTA = 6
 export const OVERDRIVE_DEBT_MENTAL_DELTA = 6
 export const OVERDRIVE_DEBT_COMBAT_STRESS_DELTA = 2
 
+// Transit vulnerability constants (SPE-130 Phase 5)
+/** Physical exhaustion threshold for ambushable return transit state. */
+export const TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD = 55
+/** Mental/cognitive strain threshold for ambushable return transit state. */
+export const TRANSIT_VULNERABILITY_MENTAL_THRESHOLD = 35
+/** Deterministic trigger chance for return-route ambush when vulnerable. */
+export const TRANSIT_AMBUSH_TRIGGER_CHANCE = 0.35
+/** Extra morale loss when injury is sustained via vulnerable return-route ambush. */
+export const TRANSIT_AMBUSH_MORALE_PENALTY = 6
+
 // ── Context types (bounded to this slice only) ─────────────────────────────
 
 export type FatigueChannelContext =
@@ -271,4 +281,26 @@ export function applyOverdriveRecoveryDebtTick(input: {
       recoveryDebt: Math.max(0, overdrive.recoveryDebt - 1),
     },
   }
+}
+
+/**
+ * Bounded transit vulnerability window (outside formal patrol/hunt):
+ * fatigue + solitude + routine return path create an ambushable state.
+ */
+export function isTransitAmbushVulnerable(input: {
+  channels: AgentFatigueChannels
+  isSoloTransit: boolean
+  onRoutineReturnPath: boolean
+}): boolean {
+  const { channels, isSoloTransit, onRoutineReturnPath } = input
+
+  if (!isSoloTransit || !onRoutineReturnPath) {
+    return false
+  }
+
+  return (
+    channels.physicalExhaustion >= TRANSIT_VULNERABILITY_PHYSICAL_THRESHOLD &&
+    (channels.mentalExhaustion >= TRANSIT_VULNERABILITY_MENTAL_THRESHOLD ||
+      channels.combatStress >= COMBAT_STRESS_PENALTY_THRESHOLD)
+  )
 }

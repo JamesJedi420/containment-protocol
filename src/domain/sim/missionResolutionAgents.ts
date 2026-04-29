@@ -27,11 +27,14 @@ import {
   OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD,
   OVERDRIVE_FATALITY_CHANCE_MULTIPLIER,
   OVERDRIVE_INJURY_CHANCE_MULTIPLIER,
+  TRANSIT_AMBUSH_MORALE_PENALTY,
+  TRANSIT_AMBUSH_TRIGGER_CHANCE,
   activateAgentOverdrive,
   canActivateAgentOverdrive,
   createDefaultFatigueChannels,
   createDefaultOverdriveState,
   expireAgentOverdrive,
+  isTransitAmbushVulnerable,
 } from '../agentFatigueChannels'
 import type {
   AgentHistoryEntry,
@@ -469,12 +472,37 @@ function rollMissionCasualty(input: {
   injurySeverity: InjurySeverity | null
   fatal: boolean
   overdrive: NonNullable<GameState['agents'][string]>['overdrive']
+  transitAmbushTriggered: boolean
 } {
   const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } = input
   let overdrive = agent.overdrive ?? createDefaultOverdriveState()
+  const channels = agent.fatigueChannels ?? createDefaultFatigueChannels()
+  const transitVulnerable = isTransitAmbushVulnerable({
+    channels,
+    isSoloTransit: assignedAgents.length === 1,
+    onRoutineReturnPath: outcome.result === 'fail',
+  })
+
+  const maybeTransitAmbush = () => {
+    if (transitVulnerable && rng() <= TRANSIT_AMBUSH_TRIGGER_CHANCE) {
+      return {
+        injurySeverity: 'minor' as const,
+        fatal: false,
+        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        transitAmbushTriggered: true,
+      }
+    }
+
+    return {
+      injurySeverity: null,
+      fatal: false,
+      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      transitAmbushTriggered: false,
+    }
+  }
 
   if (outcome.result !== 'fail' || agent.status !== 'active') {
-    return { injurySeverity: null, fatal: false, overdrive }
+    return { injurySeverity: null, fatal: false, overdrive, transitAmbushTriggered: false }
   }
 
   const riskProfile = evaluateMissionAgentFailureRisk({
@@ -487,7 +515,7 @@ function rollMissionCasualty(input: {
 
   // SPE-130 Phase 2: combatStress above threshold bypasses the flat fatigue gate —
   // a stressed agent is at injury risk even when not physically exhausted.
-  const combatStress = (agent.fatigueChannels ?? createDefaultFatigueChannels()).combatStress
+  const combatStress = channels.combatStress
   // SPE-130 Phase 4: one bounded activation path — high combat stress on mission-fail roll.
   if (
     combatStress >= OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD &&
@@ -509,6 +537,7 @@ function rollMissionCasualty(input: {
         injurySeverity: null,
         fatal: true,
         overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+        transitAmbushTriggered: false,
       }
     }
 
@@ -516,25 +545,18 @@ function rollMissionCasualty(input: {
       injurySeverity: 'moderate',
       fatal: false,
       overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      transitAmbushTriggered: false,
     }
   }
 
   const combatStressBypassesGate = combatStress >= COMBAT_STRESS_INJURY_THRESHOLD
 
   if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0 && !combatStressBypassesGate) {
-    return {
-      injurySeverity: null,
-      fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
-    }
+    return maybeTransitAmbush()
   }
 
   if (rng() > injuryChance) {
-    return {
-      injurySeverity: null,
-      fatal: false,
-      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
-    }
+    return maybeTransitAmbush()
   }
 
   if (
@@ -545,6 +567,7 @@ function rollMissionCasualty(input: {
       injurySeverity: null,
       fatal: true,
       overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      transitAmbushTriggered: false,
     }
   }
 
@@ -565,6 +588,7 @@ function rollMissionCasualty(input: {
     injurySeverity: forceModerate ? 'moderate' : 'minor',
     fatal: false,
     overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    transitAmbushTriggered: false,
   }
 }
 
@@ -687,7 +711,8 @@ export function applyMissionResolutionAgentMutations({
           ),
           morale: clamp(
               (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
-              (injurySeverity === 'moderate' ? 18 : 8),
+              (injurySeverity === 'moderate' ? 18 : 8) -
+              (casualty.transitAmbushTriggered ? TRANSIT_AMBUSH_MORALE_PENALTY : 0),
             0,
             100
           ),

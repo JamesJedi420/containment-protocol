@@ -276,3 +276,11 @@ export const DENSITY_CALIBRATION = {
    */
   deploymentSpeedPenaltyPerMassUnit: 0.8,
 } as const
+
+// SPE-1069 slice 1: civilization parent-actor calibration
+export const CIVILIZATION_CALIBRATION = {
+  defaultMemoryCapacity: 10,
+  institutionDerivationMinProbability: 0.3,
+  minInstitutionsPerGeneration: 1,
+  maxInstitutionsPerGeneration: 4,
+} as const

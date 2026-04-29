@@ -733,6 +733,10 @@ export interface AgentDowntimeActivity {
  *
  * All channels are 0–100. Optional on Agent; absent agents are treated as
  * zero across all channels for backward compatibility.
+ *
+ * SPE-130 Phase 3: `capabilityUsesThisPhase` tracks repeated heavy capability
+ * use in the current phase; resets to 0 each weekly tick. When >= threshold,
+ * additional mental + physical strain is applied during capability_use context.
  */
 export interface AgentFatigueChannels {
   /** Physical wear from travel, combat, and prolonged deployment. 0..100. */
@@ -741,6 +745,25 @@ export interface AgentFatigueChannels {
   mentalExhaustion: number
   /** Acute stress from combat encounters and crisis events. 0..100. */
   combatStress: number
+  /** Heavy capability uses accumulated this phase; resets weekly. 0..n. */
+  capabilityUsesThisPhase: number
+}
+
+/**
+ * SPE-130 Phase 4 minimal overdrive runtime state.
+ *
+ * Keep this bounded to only what the current slice needs:
+ * - active/inactive
+ * - remaining short-window duration (phase count)
+ * - deterministic recovery debt remaining after expiry
+ */
+export interface AgentOverdriveState {
+  /** Whether overdrive is currently active. */
+  active: boolean
+  /** Remaining short-window duration (phase count). */
+  remainingPhases: number
+  /** Deterministic recovery debt remaining after overdrive expiry. */
+  recoveryDebt: number
 }
 
 export interface Agent {
@@ -828,4 +851,10 @@ export interface Agent {
    * Optional; absent agents treated as zero across all channels.
    */
   fatigueChannels?: AgentFatigueChannels
+
+  /**
+   * SPE-130 Phase 4 bounded overdrive state.
+   * Optional and backward-compatible; absent means no overdrive state/history.
+   */
+  overdrive?: AgentOverdriveState
 }

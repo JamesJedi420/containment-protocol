@@ -2,7 +2,9 @@ import { clamp } from '../math'
 import type { GameState, Team } from '../models'
 import {
   accumulateFatigueChannels,
+  applyOverdriveRecoveryDebtTick,
   applyChannelDifferentiatedRecovery,
+  createDefaultOverdriveState,
   createDefaultFatigueChannels,
   resetCapabilityUsesPhaseCounter,
 } from '../agentFatigueChannels'
@@ -84,16 +86,22 @@ export function applyWeeklyAgentFatigue({
         : isTraining
           ? accumulateFatigueChannels(baseChannels, { type: 'training' })
           : applyChannelDifferentiatedRecovery(baseChannels, 'rest')
-      
+
       // SPE-130 Phase 3: reset capability use counter at end of weekly tick
       const resetChannels = resetCapabilityUsesPhaseCounter(updatedChannels)
+      // SPE-130 Phase 4: apply deterministic overdrive recovery debt aftermath (if any).
+      const debtTick = applyOverdriveRecoveryDebtTick({
+        channels: resetChannels,
+        overdrive: agent.overdrive ?? createDefaultOverdriveState(),
+      })
 
       return [
         id,
         {
           ...agent,
           fatigue: clamp(agent.fatigue + delta, 0, 100),
-          fatigueChannels: resetChannels,
+          fatigueChannels: debtTick.channels,
+          overdrive: debtTick.overdrive,
         },
       ]
     })

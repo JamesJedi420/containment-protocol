@@ -15,7 +15,7 @@
  */
 
 import { clamp } from './math'
-import type { AgentFatigueChannels } from './agent/models'
+import type { AgentFatigueChannels, AgentOverdriveState } from './agent/models'
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -34,6 +34,22 @@ export const COMBAT_STRESS_PENALTY_THRESHOLD = 45
 // Overtesting and repeated-use thresholds (Linear: repeated heavy capability use degrades through overtesting)
 /** Capability uses in current phase at or above this trigger overtesting strain. Adjustable per repo scale. */
 export const CAPABILITY_OVERTESTING_THRESHOLD = 3
+
+// Bounded overdrive constants (SPE-130 Phase 4)
+/** Combat stress required to auto-activate bounded overdrive in mission-resolution path. */
+export const OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD = 65
+/** Overdrive lasts for one bounded phase in this slice. */
+export const OVERDRIVE_DURATION_PHASES = 1
+/** Recovery debt duration after overdrive expiry (weeks/phases in weekly tick). */
+export const OVERDRIVE_RECOVERY_DEBT_DURATION = 2
+/** Injury chance multiplier while overdrive is active (short-term protection). */
+export const OVERDRIVE_INJURY_CHANCE_MULTIPLIER = 0.6
+/** Fatality chance multiplier while overdrive is active (bounded suppression). */
+export const OVERDRIVE_FATALITY_CHANCE_MULTIPLIER = 0.75
+/** Debt strain applied per weekly tick while recovery debt remains. */
+export const OVERDRIVE_DEBT_PHYSICAL_DELTA = 6
+export const OVERDRIVE_DEBT_MENTAL_DELTA = 6
+export const OVERDRIVE_DEBT_COMBAT_STRESS_DELTA = 2
 
 // ── Context types (bounded to this slice only) ─────────────────────────────
 
@@ -188,4 +204,71 @@ export function resetCapabilityUsesPhaseCounter(
   channels: AgentFatigueChannels
 ): AgentFatigueChannels {
   return { ...channels, capabilityUsesThisPhase: 0 }
+}
+
+/** Create default bounded overdrive runtime state. */
+export function createDefaultOverdriveState(): AgentOverdriveState {
+  return {
+    active: false,
+    remainingPhases: 0,
+    recoveryDebt: 0,
+  }
+}
+
+/**
+ * Overdrive can only activate when currently inactive and not under recovery debt.
+ * This uses recovery debt as the temporary lockout mechanism for this bounded slice.
+ */
+export function canActivateAgentOverdrive(overdrive: AgentOverdriveState): boolean {
+  return !overdrive.active && overdrive.recoveryDebt <= 0
+}
+
+/** Activate bounded overdrive state with fixed duration and deterministic debt aftermath. */
+export function activateAgentOverdrive(overdrive: AgentOverdriveState): AgentOverdriveState {
+  if (!canActivateAgentOverdrive(overdrive)) {
+    return overdrive
+  }
+
+  return {
+    active: true,
+    remainingPhases: OVERDRIVE_DURATION_PHASES,
+    recoveryDebt: OVERDRIVE_RECOVERY_DEBT_DURATION,
+  }
+}
+
+/** Expire bounded overdrive phase while preserving debt for weekly aftermath handling. */
+export function expireAgentOverdrive(overdrive: AgentOverdriveState): AgentOverdriveState {
+  return {
+    ...overdrive,
+    active: false,
+    remainingPhases: 0,
+  }
+}
+
+/**
+ * Apply deterministic post-overdrive recovery debt strain to channels and decrement debt by one.
+ * Returns both updated channels and overdrive state.
+ */
+export function applyOverdriveRecoveryDebtTick(input: {
+  channels: AgentFatigueChannels
+  overdrive: AgentOverdriveState
+}): { channels: AgentFatigueChannels; overdrive: AgentOverdriveState } {
+  const { channels, overdrive } = input
+
+  if (overdrive.recoveryDebt <= 0) {
+    return { channels, overdrive }
+  }
+
+  return {
+    channels: {
+      ...channels,
+      physicalExhaustion: clamp(channels.physicalExhaustion + OVERDRIVE_DEBT_PHYSICAL_DELTA, 0, 100),
+      mentalExhaustion: clamp(channels.mentalExhaustion + OVERDRIVE_DEBT_MENTAL_DELTA, 0, 100),
+      combatStress: clamp(channels.combatStress + OVERDRIVE_DEBT_COMBAT_STRESS_DELTA, 0, 100),
+    },
+    overdrive: {
+      ...overdrive,
+      recoveryDebt: Math.max(0, overdrive.recoveryDebt - 1),
+    },
+  }
 }

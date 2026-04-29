@@ -23,7 +23,16 @@ import {
   type AnyOperationEventDraft,
 } from '../events'
 import { clamp } from '../math'
-import { createDefaultFatigueChannels } from '../agentFatigueChannels'
+import {
+  OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD,
+  OVERDRIVE_FATALITY_CHANCE_MULTIPLIER,
+  OVERDRIVE_INJURY_CHANCE_MULTIPLIER,
+  activateAgentOverdrive,
+  canActivateAgentOverdrive,
+  createDefaultFatigueChannels,
+  createDefaultOverdriveState,
+  expireAgentOverdrive,
+} from '../agentFatigueChannels'
 import type {
   AgentHistoryEntry,
   CaseInstance,
@@ -456,11 +465,16 @@ function rollMissionCasualty(input: {
   assignedAgents: NonNullable<GameState['agents'][string]>[]
   teamPerformanceSummary: ReturnType<typeof aggregateAssignedPerformanceSummary>
   rng: () => number
-}): { injurySeverity: InjurySeverity | null; fatal: boolean } {
+}): {
+  injurySeverity: InjurySeverity | null
+  fatal: boolean
+  overdrive: NonNullable<GameState['agents'][string]>['overdrive']
+} {
   const { currentCase, agent, outcome, performance, assignedAgents, teamPerformanceSummary, rng } = input
+  let overdrive = agent.overdrive ?? createDefaultOverdriveState()
 
   if (outcome.result !== 'fail' || agent.status !== 'active') {
-    return { injurySeverity: null, fatal: false }
+    return { injurySeverity: null, fatal: false, overdrive }
   }
 
   const riskProfile = evaluateMissionAgentFailureRisk({
@@ -471,32 +485,67 @@ function rollMissionCasualty(input: {
     agents: assignedAgents,
   })
 
-  if (agent.fatigue >= GUARANTEED_INJURY_FATIGUE) {
-    if (riskProfile.deathChanceOnFailure > 0 && rng() <= riskProfile.deathChanceOnFailure) {
-      return { injurySeverity: null, fatal: true }
-    }
-
-    return { injurySeverity: 'moderate', fatal: false }
-  }
-
   // SPE-130 Phase 2: combatStress above threshold bypasses the flat fatigue gate —
   // a stressed agent is at injury risk even when not physically exhausted.
   const combatStress = (agent.fatigueChannels ?? createDefaultFatigueChannels()).combatStress
+  // SPE-130 Phase 4: one bounded activation path — high combat stress on mission-fail roll.
+  if (
+    combatStress >= OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD &&
+    canActivateAgentOverdrive(overdrive)
+  ) {
+    overdrive = activateAgentOverdrive(overdrive)
+  }
+
+  const injuryChance =
+    riskProfile.injuryChanceOnFailure *
+    (overdrive.active ? OVERDRIVE_INJURY_CHANCE_MULTIPLIER : 1)
+  const deathChance =
+    riskProfile.deathChanceOnFailure *
+    (overdrive.active ? OVERDRIVE_FATALITY_CHANCE_MULTIPLIER : 1)
+
+  if (agent.fatigue >= GUARANTEED_INJURY_FATIGUE) {
+    if (deathChance > 0 && rng() <= deathChance) {
+      return {
+        injurySeverity: null,
+        fatal: true,
+        overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+      }
+    }
+
+    return {
+      injurySeverity: 'moderate',
+      fatal: false,
+      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    }
+  }
+
   const combatStressBypassesGate = combatStress >= COMBAT_STRESS_INJURY_THRESHOLD
 
   if (agent.fatigue < INJURY_RISK_FATIGUE_MIN && riskProfile.injuryChanceOnFailure <= 0 && !combatStressBypassesGate) {
-    return { injurySeverity: null, fatal: false }
+    return {
+      injurySeverity: null,
+      fatal: false,
+      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    }
   }
 
-  if (rng() > riskProfile.injuryChanceOnFailure) {
-    return { injurySeverity: null, fatal: false }
+  if (rng() > injuryChance) {
+    return {
+      injurySeverity: null,
+      fatal: false,
+      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    }
   }
 
   if (
-    riskProfile.deathChanceOnFailure > 0 &&
-    rng() <= riskProfile.deathChanceOnFailure / Math.max(riskProfile.injuryChanceOnFailure, 0.001)
+    deathChance > 0 &&
+    rng() <= deathChance / Math.max(injuryChance, 0.001)
   ) {
-    return { injurySeverity: null, fatal: true }
+    return {
+      injurySeverity: null,
+      fatal: true,
+      overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
+    }
   }
 
   const moderateShare = riskProfile.injuryChanceOnFailure
@@ -515,6 +564,7 @@ function rollMissionCasualty(input: {
   return {
     injurySeverity: forceModerate ? 'moderate' : 'minor',
     fatal: false,
+    overdrive: overdrive.active ? expireAgentOverdrive(overdrive) : overdrive,
   }
 }
 
@@ -651,6 +701,7 @@ export function applyMissionResolutionAgentMutations({
         {
           ...agent,
           status: casualty.fatal ? 'dead' : injurySeverity ? 'injured' : agent.status,
+          overdrive: casualty.overdrive,
           ...(nextVitals ? { vitals: nextVitals } : {}),
         },
         nextAssignment

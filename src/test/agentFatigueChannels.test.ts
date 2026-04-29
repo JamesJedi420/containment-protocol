@@ -11,10 +11,16 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
+  OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD,
   accumulateFatigueChannels,
+  activateAgentOverdrive,
+  applyOverdriveRecoveryDebtTick,
   applyChannelDifferentiatedRecovery,
+  canActivateAgentOverdrive,
   createDefaultFatigueChannels,
+  createDefaultOverdriveState,
   deriveFatigueChannelPenalties,
+  expireAgentOverdrive,
   resetCapabilityUsesPhaseCounter,
   PHYSICAL_READINESS_THRESHOLD,
   MENTAL_CONCENTRATION_THRESHOLD,
@@ -474,5 +480,52 @@ describe('SPE-130 Phase 3 — capability-use overtesting and counter reset', () 
 
     expect(after.capabilityUsesThisPhase).toBe(3)
     expect(after.combatStress).toBeGreaterThan(0)
+  })
+})
+
+describe('SPE-130 Phase 4 — bounded overdrive helpers and debt aftermath', () => {
+  it('activates overdrive only when not active and debt-free', () => {
+    const base = createDefaultOverdriveState()
+    expect(canActivateAgentOverdrive(base)).toBe(true)
+
+    const active = activateAgentOverdrive(base)
+    expect(active.active).toBe(true)
+    expect(active.remainingPhases).toBe(1)
+    expect(active.recoveryDebt).toBe(2)
+
+    expect(canActivateAgentOverdrive(active)).toBe(false)
+  })
+
+  it('expires overdrive phase and preserves debt for aftermath', () => {
+    const active = activateAgentOverdrive(createDefaultOverdriveState())
+    const expired = expireAgentOverdrive(active)
+
+    expect(expired.active).toBe(false)
+    expect(expired.remainingPhases).toBe(0)
+    expect(expired.recoveryDebt).toBe(active.recoveryDebt)
+  })
+
+  it('applies deterministic debt strain and decrements debt each weekly tick', () => {
+    const overdrive = { active: false, remainingPhases: 0, recoveryDebt: 2 }
+    const input = channels({ physicalExhaustion: 10, mentalExhaustion: 20, combatStress: 30 })
+
+    const tick1 = applyOverdriveRecoveryDebtTick({ channels: input, overdrive })
+    expect(tick1.channels.physicalExhaustion).toBe(16)
+    expect(tick1.channels.mentalExhaustion).toBe(26)
+    expect(tick1.channels.combatStress).toBe(32)
+    expect(tick1.overdrive.recoveryDebt).toBe(1)
+
+    const tick2 = applyOverdriveRecoveryDebtTick(tick1)
+    expect(tick2.overdrive.recoveryDebt).toBe(0)
+
+    const tick3 = applyOverdriveRecoveryDebtTick(tick2)
+    // No more debt, no further strain.
+    expect(tick3.channels).toEqual(tick2.channels)
+    expect(tick3.overdrive.recoveryDebt).toBe(0)
+  })
+
+  it('activation threshold remains bounded and explicit for mission consumer', () => {
+    expect(OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD).toBeGreaterThanOrEqual(50)
+    expect(OVERDRIVE_ACTIVATION_COMBAT_STRESS_THRESHOLD).toBeLessThanOrEqual(90)
   })
 })

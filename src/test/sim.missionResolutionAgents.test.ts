@@ -123,4 +123,111 @@ describe('applyMissionResolutionAgentMutations', () => {
     expect(firstAgent?.assignment?.state).toBe('idle')
     expect(firstAgent?.vitals?.health).toBe(0)
   })
+
+  it('activates bounded overdrive on high combat stress and stores expiry aftermath debt', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const subjectId = team.agentIds[0]
+    const subject = {
+      ...state.agents[subjectId]!,
+      fatigue: 50,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(state.agents[subjectId]!.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        combatStress: 70,
+      },
+    }
+
+    const result = applyMissionResolutionAgentMutations({
+      agents: {
+        ...state.agents,
+        [subject.id]: subject,
+      },
+      assignedAgents: [subject],
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 2,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: state.week,
+      rng: () => 0.6,
+    })
+
+    const next = result.nextAgents[subject.id]
+    expect(next?.overdrive?.active).toBe(false)
+    expect(next?.overdrive?.remainingPhases).toBe(0)
+    expect(next?.overdrive?.recoveryDebt).toBeGreaterThan(0)
+  })
+
+  it('overdrive provides short-term injury protection versus same agent without activation', () => {
+    const state = createStartingState()
+    const team = state.teams['t_nightwatch']
+    const subjectId = team.agentIds[0]
+    const base = state.agents[subjectId]!
+
+    const lowStress = {
+      ...base,
+      fatigue: 50,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(base.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        combatStress: 40,
+      },
+    }
+
+    const highStress = {
+      ...base,
+      fatigue: 50,
+      status: 'active' as const,
+      fatigueChannels: {
+        ...(base.fatigueChannels ?? {
+          physicalExhaustion: 0,
+          mentalExhaustion: 0,
+          combatStress: 0,
+          capabilityUsesThisPhase: 0,
+        }),
+        combatStress: 70,
+      },
+    }
+
+    const commonInput = {
+      assignedAgentLeaderBonuses: {},
+      effectiveCase: {
+        ...state.cases['case-001'],
+        stage: 2,
+        assignedTeamIds: ['t_nightwatch'],
+      },
+      outcome: makeOutcome({ result: 'fail', delta: -20 }),
+      week: state.week,
+      rng: () => 0.6,
+    }
+
+    const lowResult = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, [lowStress.id]: lowStress },
+      assignedAgents: [lowStress],
+      ...commonInput,
+    })
+
+    const highResult = applyMissionResolutionAgentMutations({
+      agents: { ...state.agents, [highStress.id]: highStress },
+      assignedAgents: [highStress],
+      ...commonInput,
+    })
+
+    // Deterministic protection expectation: high-stress run activates overdrive and
+    // should not produce more injuries than the non-overdrive baseline.
+    expect(highResult.missionInjuries.length).toBeLessThanOrEqual(lowResult.missionInjuries.length)
+  })
 })

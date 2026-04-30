@@ -1,4 +1,12 @@
 import type { WorldRemapZone, WorldZoneStatus } from './simulationMapInterface'
+import {
+  projectOperationalRealityAssessment,
+  projectRealityRuleFamilyAssessment,
+  projectRealityScopeAssessment,
+  type RealityRuleFamilyType,
+  type RealityScopeLevel,
+  type RealityStatePacket,
+} from './realityModel'
 
 export type CounterfactualBranchCondition =
   | 'removed_before_response'
@@ -207,6 +215,39 @@ export interface CounterfactualBranchReviewSummary {
   doctrineSignals: string[]
 }
 
+export interface CounterfactualOntologyAwareBranchReviewInput {
+  branch: CounterfactualBranchPacket
+  consequenceReality: RealityStatePacket
+  evaluationFamilyType?: RealityRuleFamilyType
+  evaluationScope?: RealityScopeLevel
+}
+
+export interface CounterfactualOntologyAwareOptionReview {
+  optionId: string
+  label: string
+  perceivedAvailability: CounterfactualOptionAvailability
+  actualAvailability: CounterfactualOptionAvailability
+  reviewReason: string
+}
+
+export interface CounterfactualOntologyAwareBranchReviewSummary {
+  branchId: string
+  reviewFrame: 'ontology_aware_counterfactual_branch_review'
+  decisionMomentLabel: string
+  actualConsequenceState: string
+  perceivedConsequenceState: string
+  believedConsequenceState: string
+  observationStatus: RealityStatePacket['observationStatus']
+  ontologyConfidence: 'high' | 'qualified' | 'low'
+  actualOptionCounts: Record<CounterfactualOptionAvailability, number>
+  perceivedOptionCounts: Record<CounterfactualOptionAvailability, number>
+  optionReviews: CounterfactualOntologyAwareOptionReview[]
+  responsibilitySignals: string[]
+  retrainingSignals: string[]
+  doctrineSignals: string[]
+  certaintyNote: string
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -256,6 +297,13 @@ function createEmptySurfaceSignals(): Record<CounterfactualReviewSurface, string
     responsibility: [],
     retraining: [],
     doctrine: [],
+  }
+}
+
+function pushUniqueSignal(target: string[], value: string) {
+  const normalized = normalizeString(value)
+  if (normalized.length > 0) {
+    target.push(normalized)
   }
 }
 
@@ -550,5 +598,175 @@ export function projectCounterfactualBranchReviewSummary(
     responsibilitySignals: [...branch.optionAudit.surfaceSignals.responsibility],
     retrainingSignals: [...branch.optionAudit.surfaceSignals.retraining],
     doctrineSignals: [...branch.optionAudit.surfaceSignals.doctrine],
+  }
+}
+
+export function projectOntologyAwareCounterfactualBranchReview(
+  input: CounterfactualOntologyAwareBranchReviewInput
+): CounterfactualOntologyAwareBranchReviewSummary | null {
+  const { branch, consequenceReality } = input
+  if (!branch.optionAudit) {
+    return null
+  }
+
+  const operationalAssessment = projectOperationalRealityAssessment(consequenceReality)
+  const ruleFamilyAssessment = consequenceReality.ruleFamilyProfile
+    ? projectRealityRuleFamilyAssessment(
+        consequenceReality,
+        input.evaluationFamilyType ?? 'baseline_physical'
+      )
+    : null
+  const scopeAssessment =
+    consequenceReality.scopeProfile && input.evaluationScope
+      ? projectRealityScopeAssessment(consequenceReality, input.evaluationScope)
+      : null
+
+  const actualOptionCounts = createEmptyOptionCounts()
+  const perceivedOptionCounts = { ...branch.optionAudit.counts }
+  const surfaceSignals = createEmptySurfaceSignals()
+
+  const optionReviews = branch.optionAudit.options.map((option) => {
+    let actualAvailability = option.availability
+    const reviewReasons: string[] = []
+    let ruleOutcomeApplied = false
+
+    if (
+      ruleFamilyAssessment &&
+      scopeAssessment?.overrideApplies !== false &&
+      ruleFamilyAssessment.validityPosture === 'allow_under_declared_override'
+    ) {
+      const allowedOutcomes = consequenceReality.ruleFamilyProfile?.allowedOutcomes ?? []
+      const invalidatedOutcomes = consequenceReality.ruleFamilyProfile?.invalidatedOutcomes ?? []
+
+      if (invalidatedOutcomes.includes(option.optionId)) {
+        actualAvailability = 'blocked'
+        reviewReasons.push('invalidated by active declared rule family')
+        ruleOutcomeApplied = true
+      } else if (allowedOutcomes.includes(option.optionId)) {
+        actualAvailability = 'available'
+        reviewReasons.push('enabled by active declared rule family')
+        ruleOutcomeApplied = true
+      }
+    }
+
+    if (
+      !ruleOutcomeApplied &&
+      ruleFamilyAssessment?.validityPosture === 'deny_until_triggered' &&
+      (consequenceReality.ruleFamilyProfile?.allowedOutcomes ?? []).includes(option.optionId)
+    ) {
+      actualAvailability = 'blocked'
+      reviewReasons.push('blocked because declared trigger conditions were inactive')
+    }
+
+    if (
+      !ruleOutcomeApplied &&
+      ruleFamilyAssessment?.validityPosture === 'wrong_family_contradiction' &&
+      option.availability === 'available'
+    ) {
+      actualAvailability = 'falsely_perceived'
+      reviewReasons.push('evaluated under the wrong active rule family')
+    }
+
+    if (
+      consequenceReality.observationStatus === 'false_reading' &&
+      option.availability === 'available' &&
+      actualAvailability === 'available'
+    ) {
+      actualAvailability = 'falsely_perceived'
+      reviewReasons.push('perceived branch condition diverged from actual branch consequence')
+    }
+
+    if (
+      consequenceReality.observationStatus === 'uncertain' &&
+      option.availability === 'available' &&
+      actualAvailability === 'available'
+    ) {
+      actualAvailability = 'unknown'
+      reviewReasons.push('actual branch consequence remained ontology-uncertain')
+    }
+
+    if (
+      scopeAssessment &&
+      scopeAssessment.overrideApplies &&
+      scopeAssessment.handlingMode === 'broad_override_handling'
+    ) {
+      reviewReasons.push(`override propagated to ${scopeAssessment.evaluationScope} scope`)
+    } else if (
+      scopeAssessment &&
+      !scopeAssessment.overrideApplies &&
+      consequenceReality.scopeProfile &&
+      consequenceReality.ruleFamilyProfile &&
+      consequenceReality.ruleFamilyProfile.familyType !== 'baseline_physical'
+    ) {
+      reviewReasons.push(`baseline truth remained preserved at ${scopeAssessment.evaluationScope} scope`)
+    }
+
+    const reviewReason =
+      reviewReasons.length > 0
+        ? uniqueSorted(reviewReasons).join('; ')
+        : 'authored branch review remained unchanged under current ontology evidence'
+
+    actualOptionCounts[actualAvailability] += 1
+
+    const signal =
+      actualAvailability === option.availability
+        ? `${option.label} remains ${actualAvailability.replace(/_/g, ' ')} under ontology-aware review.`
+        : `${option.label} shifts from ${option.availability.replace(/_/g, ' ')} to ${actualAvailability.replace(/_/g, ' ')}: ${reviewReason}.`
+
+    for (const surface of option.reviewSurfaces) {
+      pushUniqueSignal(surfaceSignals[surface], signal)
+    }
+
+    return {
+      optionId: option.optionId,
+      label: option.label,
+      perceivedAvailability: option.availability,
+      actualAvailability,
+      reviewReason,
+    }
+  })
+
+  const ontologyConfidence: CounterfactualOntologyAwareBranchReviewSummary['ontologyConfidence'] =
+    operationalAssessment.visibilityTrust === 'trusted' &&
+    (!scopeAssessment || scopeAssessment.truthStatus === 'baseline_preserved' || scopeAssessment.overrideApplies) &&
+    (!ruleFamilyAssessment || ruleFamilyAssessment.validityPosture === 'allow_under_baseline' || ruleFamilyAssessment.validityPosture === 'allow_under_declared_override')
+      ? 'high'
+      : consequenceReality.observationStatus === 'false_reading' ||
+          consequenceReality.observationStatus === 'uncertain' ||
+          ruleFamilyAssessment?.validityPosture === 'hold_for_rule_verification' ||
+          scopeAssessment?.truthStatus === 'uncertain'
+        ? 'low'
+        : 'qualified'
+
+  const certaintyParts = [
+    branch.optionAudit.certaintyNote,
+    `Actual branch consequence resolves as "${consequenceReality.actualState}" while perceived consequence resolves as "${consequenceReality.perceivedState}".`,
+    ...(ruleFamilyAssessment
+      ? [`Rule-family posture: ${ruleFamilyAssessment.validityPosture}.`]
+      : []),
+    ...(scopeAssessment
+      ? [`Scope posture at ${scopeAssessment.evaluationScope}: ${scopeAssessment.truthStatus}.`]
+      : []),
+    operationalAssessment.visibilityTrust === 'rejected'
+      ? 'Review remains non-omniscient because the perceived branch consequence was a false reading.'
+      : 'Review remains bounded and does not assert omniscient rewind truth.',
+  ]
+
+  return {
+    branchId: branch.identity.branchId,
+    reviewFrame: 'ontology_aware_counterfactual_branch_review',
+    decisionMomentLabel: branch.optionAudit.decisionMomentLabel,
+    actualConsequenceState: consequenceReality.actualState,
+    perceivedConsequenceState: consequenceReality.perceivedState,
+    believedConsequenceState: consequenceReality.believedState,
+    observationStatus: consequenceReality.observationStatus,
+    ontologyConfidence,
+    actualOptionCounts,
+    perceivedOptionCounts,
+    optionReviews,
+    responsibilitySignals: uniqueSorted(surfaceSignals.responsibility),
+    retrainingSignals: uniqueSorted(surfaceSignals.retraining),
+    doctrineSignals: uniqueSorted(surfaceSignals.doctrine),
+    certaintyNote: certaintyParts.join(' '),
   }
 }

@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveCounterfactualBranchFromRemoval,
+  projectOntologyAwareCounterfactualBranchReview,
   projectCounterfactualBranchReviewSummary,
   projectCounterfactualBranchWorldRemap,
   type CounterfactualBranchAuthoringInput,
 } from '../domain/counterfactualBranches'
+import { deriveRealityStatePacket } from '../domain/realityModel'
 
 function makeAuthoringInput(): CounterfactualBranchAuthoringInput {
   return {
@@ -227,6 +229,197 @@ describe('counterfactualBranches', () => {
     )
   })
 
+  it('uses ontology-aware review to distinguish actual branch consequence from perceived branch consequence', () => {
+    const input = makeAuthoringInput()
+    input.optionAudit!.options = [
+      {
+        optionId: 'alt-civilian-evac',
+        label: 'Civilian evacuation corridor',
+        availability: 'available',
+        summary: 'Perception suggested the corridor remained open.',
+        reviewSurfaces: ['responsibility', 'doctrine'],
+      },
+    ]
+
+    const review = projectOntologyAwareCounterfactualBranchReview({
+      branch: deriveCounterfactualBranchFromRemoval(input),
+      consequenceReality: deriveRealityStatePacket({
+        packetId: 'reality:rivergate-counterfactual-window',
+        subjectId: 'branch:rivergate-window',
+        label: 'Rivergate Counterfactual Window',
+        actualState: 'evacuation corridor already sealed',
+        perceivedState: 'evacuation corridor still open',
+        believedState: 'evacuation corridor still open',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        deviationFamily: 'false_continuity',
+        confidence: 0.67,
+        evidence: 'false_reading',
+      }),
+    })
+
+    expect(review).not.toBeNull()
+    expect(review?.actualConsequenceState).toBe('evacuation corridor already sealed')
+    expect(review?.perceivedConsequenceState).toBe('evacuation corridor still open')
+    expect(review?.observationStatus).toBe('false_reading')
+    expect(review?.optionReviews).toEqual([
+      {
+        optionId: 'alt-civilian-evac',
+        label: 'Civilian evacuation corridor',
+        perceivedAvailability: 'available',
+        actualAvailability: 'falsely_perceived',
+        reviewReason: 'perceived branch condition diverged from actual branch consequence',
+      },
+    ])
+    expect(review?.ontologyConfidence).toBe('low')
+  })
+
+  it('changes option classification when symbolic rule activation changes actual validity', () => {
+    const input = makeAuthoringInput()
+    input.optionAudit!.options = [
+      {
+        optionId: 'named_passage_valid',
+        label: 'Named threshold passage',
+        availability: 'blocked',
+        summary: 'Baseline review assumed the threshold stayed sealed.',
+        reviewSurfaces: ['responsibility', 'retraining'],
+      },
+      {
+        optionId: 'forced_entry_valid',
+        label: 'Forced breach route',
+        availability: 'available',
+        summary: 'Responders believed a forced breach remained viable.',
+        reviewSurfaces: ['responsibility', 'doctrine'],
+      },
+    ]
+
+    const review = projectOntologyAwareCounterfactualBranchReview({
+      branch: deriveCounterfactualBranchFromRemoval(input),
+      consequenceReality: deriveRealityStatePacket({
+        packetId: 'reality:named-threshold-branch',
+        subjectId: 'threshold:named-threshold',
+        label: 'Named Threshold Branch',
+        actualState: 'threshold yields only to true-name invocation',
+        perceivedState: 'threshold behaves like a sealed barrier',
+        believedState: 'forced breach remains viable',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        deviationFamily: 'symbolic_override',
+        confidence: 0.86,
+        evidence: 'contradicted',
+        ruleFamilyProfile: {
+          familyType: 'symbolic_threshold',
+          triggerConditions: ['true_name_spoken'],
+          validityConditions: ['threshold_mark_unbroken'],
+          activationStatus: 'active',
+          overrideScope: 'site',
+          allowedOutcomes: ['named_passage_valid'],
+          invalidatedOutcomes: ['forced_entry_valid'],
+          confidence: 0.86,
+        },
+        scopeProfile: {
+          anchorScope: 'site',
+          anchorId: 'site:rivergate-threshold',
+          propagationBehavior: 'contained',
+          overriddenScopes: ['site'],
+          confidence: 0.86,
+        },
+      }),
+      evaluationFamilyType: 'symbolic_threshold',
+      evaluationScope: 'site',
+    })
+
+    expect(review?.actualOptionCounts).toEqual({
+      available: 1,
+      blocked: 1,
+      unknown: 0,
+      falsely_perceived: 0,
+    })
+    expect(review?.optionReviews).toEqual([
+      {
+        optionId: 'forced_entry_valid',
+        label: 'Forced breach route',
+        perceivedAvailability: 'available',
+        actualAvailability: 'blocked',
+        reviewReason:
+          'invalidated by active declared rule family',
+      },
+      {
+        optionId: 'named_passage_valid',
+        label: 'Named threshold passage',
+        perceivedAvailability: 'blocked',
+        actualAvailability: 'available',
+        reviewReason:
+          'enabled by active declared rule family',
+      },
+    ])
+  })
+
+  it('keeps ontology-aware review non-omniscient when scope or perception only partially resolves validity', () => {
+    const input = makeAuthoringInput()
+    input.optionAudit!.options = [
+      {
+        optionId: 'district-relay',
+        label: 'District relay handoff',
+        availability: 'available',
+        summary: 'Reviewers believed the district relay remained in play.',
+        reviewSurfaces: ['responsibility', 'doctrine'],
+      },
+    ]
+
+    const review = projectOntologyAwareCounterfactualBranchReview({
+      branch: deriveCounterfactualBranchFromRemoval(input),
+      consequenceReality: deriveRealityStatePacket({
+        packetId: 'reality:district-relay-review',
+        subjectId: 'district:relay-review',
+        label: 'District Relay Review',
+        actualState: 'site override may not have propagated to district relay',
+        perceivedState: 'district relay remains viable',
+        believedState: 'district relay remains viable',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        deviationFamily: 'symbolic_override',
+        confidence: 0.62,
+        evidence: 'clear',
+        ruleFamilyProfile: {
+          familyType: 'patron_mediated',
+          triggerConditions: ['offering_accepted'],
+          validityConditions: ['site_bond_intact'],
+          activationStatus: 'uncertain',
+          overrideScope: 'site',
+          allowedOutcomes: ['district-relay'],
+          confidence: 0.62,
+        },
+        scopeProfile: {
+          anchorScope: 'site',
+          anchorId: 'site:rivergate-sanctum',
+          propagationBehavior: 'contained',
+          confidence: 0.62,
+        },
+      }),
+      evaluationFamilyType: 'patron_mediated',
+      evaluationScope: 'district',
+    })
+
+    expect(review?.actualOptionCounts).toEqual({
+      available: 0,
+      blocked: 0,
+      unknown: 1,
+      falsely_perceived: 0,
+    })
+    expect(review?.optionReviews).toEqual([
+      {
+        optionId: 'district-relay',
+        label: 'District relay handoff',
+        perceivedAvailability: 'available',
+        actualAvailability: 'unknown',
+        reviewReason: 'actual branch consequence remained ontology-uncertain; baseline truth remained preserved at district scope',
+      },
+    ])
+    expect(review?.certaintyNote).toContain('does not assert omniscient rewind truth')
+    expect(review?.ontologyConfidence).toBe('low')
+  })
+
   it('remains repeatable for identical authored inputs', () => {
     const firstInput = makeAuthoringInput()
     const secondInput = makeAuthoringInput()
@@ -239,6 +432,39 @@ describe('counterfactualBranches', () => {
     )
     expect(projectCounterfactualBranchReviewSummary(secondBranch)).toEqual(
       projectCounterfactualBranchReviewSummary(firstBranch)
+    )
+    expect(
+      projectOntologyAwareCounterfactualBranchReview({
+        branch: secondBranch,
+        consequenceReality: deriveRealityStatePacket({
+          packetId: 'reality:repeatable-counterfactual-review',
+          subjectId: 'branch:repeatable-review',
+          label: 'Repeatable Review',
+          actualState: 'relay sealed under review',
+          perceivedState: 'relay sealed under review',
+          believedState: 'relay sealed under review',
+          existenceMode: 'physical',
+          ruleDomain: 'presence',
+          confidence: 0.91,
+          evidence: 'clear',
+        }),
+      })
+    ).toEqual(
+      projectOntologyAwareCounterfactualBranchReview({
+        branch: firstBranch,
+        consequenceReality: deriveRealityStatePacket({
+          packetId: 'reality:repeatable-counterfactual-review',
+          subjectId: 'branch:repeatable-review',
+          label: 'Repeatable Review',
+          actualState: 'relay sealed under review',
+          perceivedState: 'relay sealed under review',
+          believedState: 'relay sealed under review',
+          existenceMode: 'physical',
+          ruleDomain: 'presence',
+          confidence: 0.91,
+          evidence: 'clear',
+        }),
+      })
     )
   })
 })

@@ -11,6 +11,8 @@ import {
   deriveCivilizationPairConflict,
   deriveCivilizationPairConflicts,
   deriveCivilizationPopulationInheritance,
+  deriveCivilizationAccessPacket,
+  deriveCivilizationAccessDifferential,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -593,5 +595,80 @@ describe('deriveCivilizationPopulationInheritance', () => {
     expect(pressured.loyaltyTags).toContain('loyalty:agency-resistant')
     expect(pressured.conflictSurfaceTags).toContain('conflict:retaliatory-posture')
     expect(pressured.conflictSurfaceTags).toContain('conflict:memory-grievance')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 5: civilization resource/knowledge access differentiation
+// ---------------------------------------------------------------------------
+
+describe('deriveCivilizationAccessPacket', () => {
+  it('derives deterministic access packet for a civilization', () => {
+    const civ = classifyCivilization('civic_medical_trust')!
+    const packet = deriveCivilizationAccessPacket(civ)
+
+    expect(packet.packetId).toBe('civic_medical_trust:access:v1')
+    expect(packet.civilizationCategory).toBe('medical')
+    expect(packet.resourceChannels).toContain('resource:medical-staff')
+    expect(packet.knowledgeChannels).toContain('knowledge:clinical-triage')
+    expect(packet.accessScore).toBeGreaterThan(0)
+  })
+
+  it('is repeatable for identical inputs', () => {
+    const civ = classifyCivilization('institute_applied_research')!
+    const a = deriveCivilizationAccessPacket(civ)
+    const b = deriveCivilizationAccessPacket(civ)
+    expect(a).toEqual(b)
+  })
+
+  it('shows meaningful cross-civilization access differences', () => {
+    const medical = classifyCivilization('civic_medical_trust')!
+    const criminal = classifyCivilization('gray_market_collective')!
+
+    const medPacket = deriveCivilizationAccessPacket(medical)
+    const crimPacket = deriveCivilizationAccessPacket(criminal)
+
+    expect(medPacket.resourceChannels).toContain('resource:medical-staff')
+    expect(crimPacket.resourceChannels).toContain('resource:contraband')
+    expect(medPacket.resourceChannels).not.toEqual(crimPacket.resourceChannels)
+    expect(medPacket.knowledgeChannels).not.toEqual(crimPacket.knowledgeChannels)
+  })
+
+  it('modulates access output when civilization state is pressured/opposed', () => {
+    const civ = classifyCivilization('gray_market_collective')!
+    const baseState = createCivilizationState({
+      civilizationId: civ.id,
+      diplomaticBaseline: civ.diplomaticBaseline,
+    })
+    const pressuredState = accumulateCivilizationMemory(baseState, [
+      { eventId: 'a1', week: 2, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'a2', week: 3, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    const neutralPacket = deriveCivilizationAccessPacket(civ, baseState)
+    const pressuredPacket = deriveCivilizationAccessPacket(civ, pressuredState)
+
+    expect(pressuredState.cooperationBand).toBe('opposed')
+    expect(pressuredPacket.accessScore).toBeLessThanOrEqual(neutralPacket.accessScore)
+    expect(pressuredPacket.frictionTags).toContain('access-friction:retaliatory-screening')
+    expect(pressuredPacket.frictionTags).toContain('access-friction:memory-review-gate')
+  })
+})
+
+describe('deriveCivilizationAccessDifferential', () => {
+  it('builds deterministic downstream-ready access differential between civilizations', () => {
+    const gov = classifyCivilization('metropolitan_authority')!
+    const occult = classifyCivilization('hidden_covenant')!
+
+    const diff = deriveCivilizationAccessDifferential(gov, occult)
+
+    expect(diff.pairId).toBe('hidden_covenant::metropolitan_authority')
+    expect(diff.onlyAResourceChannels.length).toBeGreaterThan(0)
+    expect(diff.onlyBResourceChannels.length).toBeGreaterThan(0)
+    expect(diff.onlyAKnowledgeChannels.length).toBeGreaterThan(0)
+    expect(diff.onlyBKnowledgeChannels.length).toBeGreaterThan(0)
+
+    const rerun = deriveCivilizationAccessDifferential(gov, occult)
+    expect(rerun).toEqual(diff)
   })
 })

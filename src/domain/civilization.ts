@@ -159,6 +159,32 @@ export interface CivilizationPopulationInheritancePacket {
   resourceAffinityTags: string[]
 }
 
+export type CivilizationAccessBand = 'open' | 'conditional' | 'restricted'
+
+export interface CivilizationAccessPacket {
+  packetId: string
+  civilizationId: string
+  civilizationCategory: CivilizationCategory
+  diplomaticBaseline: DiplomaticBaseline
+  accessBand: CivilizationAccessBand
+  accessScore: number
+  resourceChannels: string[]
+  knowledgeChannels: string[]
+  frictionTags: string[]
+}
+
+export interface CivilizationAccessDifferential {
+  pairId: string
+  civilizationAId: string
+  civilizationBId: string
+  sharedResourceChannels: string[]
+  onlyAResourceChannels: string[]
+  onlyBResourceChannels: string[]
+  onlyAKnowledgeChannels: string[]
+  onlyBKnowledgeChannels: string[]
+  accessScoreGap: number
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -564,6 +590,27 @@ const SUBJECT_EXPECTATION_TAGS: Record<CivilizationPopulationSubjectKind, string
   specialist: ['expectation:domain-rigor', 'expectation:institutional-gatekeeping'],
 }
 
+const CATEGORY_KNOWLEDGE_CHANNELS: Record<CivilizationCategory, string[]> = {
+  government: ['jurisdiction-protocols', 'civic-command-structure'],
+  religious: ['ritual-legitimacy', 'doctrinal-sanctions'],
+  medical: ['clinical-triage', 'epidemic-surveillance'],
+  academic: ['archive-research', 'peer-review-methods'],
+  criminal: ['illicit-routing', 'counter-surveillance-tradecraft'],
+  occult: ['esoteric-rites', 'anomaly-communion'],
+  rival_containment: ['covert-containment-doctrine', 'classified-incident-response'],
+  nonhuman: ['threshold-law', 'anomaly-node-cartography'],
+}
+
+const BASELINE_ACCESS_SCORE: Record<DiplomaticBaseline, number> = {
+  cooperative: 72,
+  suspicious: 54,
+  hostile: 28,
+  dependent: 64,
+  infiltrated: 38,
+  exploitative: 44,
+  secretly_aligned: 34,
+}
+
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
@@ -680,6 +727,40 @@ function resolvePopulationLoyaltyBand(
   }
 
   return 'conditional'
+}
+
+function clampAccessScore(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function resolveAccessBand(score: number): CivilizationAccessBand {
+  if (score >= 65) {
+    return 'open'
+  }
+
+  if (score >= 40) {
+    return 'conditional'
+  }
+
+  return 'restricted'
+}
+
+function toTaggedChannels(prefix: 'resource' | 'knowledge', entries: readonly string[]): string[] {
+  return entries.map((entry) => `${prefix}:${toSlug(entry)}`)
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right))
+}
+
+function difference(left: readonly string[], right: readonly string[]): string[] {
+  const rightSet = new Set(right)
+  return left.filter((value) => !rightSet.has(value))
+}
+
+function intersection(left: readonly string[], right: readonly string[]): string[] {
+  const rightSet = new Set(right)
+  return left.filter((value) => rightSet.has(value))
 }
 
 /**
@@ -979,5 +1060,85 @@ export function deriveCivilizationPopulationInheritance(
     loyaltyTags,
     conflictSurfaceTags,
     resourceAffinityTags,
+  }
+}
+
+/**
+ * Derive deterministic civilization-specific resource/knowledge access packet.
+ * Optional civilization state can modulate access score and friction tags.
+ */
+export function deriveCivilizationAccessPacket(
+  civilization: CivilizationProfile,
+  state?: CivilizationState
+): CivilizationAccessPacket {
+  const resourceChannels = uniqueSorted(toTaggedChannels('resource', civilization.resourceAccess))
+
+  const knowledgeChannels = uniqueSorted([
+    ...toTaggedChannels('knowledge', CATEGORY_KNOWLEDGE_CHANNELS[civilization.category]),
+    ...toTaggedChannels('knowledge', civilization.culturePacket.ethics.map((ethic) => `ethic-${ethic}`)),
+    ...toTaggedChannels(
+      'knowledge',
+      civilization.culturePacket.toleratedBehaviors.map((behavior) => `behavior-${behavior}`)
+    ),
+  ])
+
+  const tabooFrictionTags = civilization.culturePacket.taboos
+    .slice(0, 2)
+    .map((taboo) => `access-friction:taboo-${toSlug(taboo)}`)
+
+  let accessScore = BASELINE_ACCESS_SCORE[civilization.diplomaticBaseline]
+  const frictionTags: string[] = [...tabooFrictionTags]
+
+  if (state) {
+    accessScore += Math.round((state.cooperation - 50) * 0.35)
+    accessScore -= Math.min(20, Math.floor(state.memoryPressure / 3))
+
+    if (state.cooperationBand === 'opposed') {
+      frictionTags.push('access-friction:retaliatory-screening')
+    }
+
+    if (state.memoryPressure >= 20) {
+      frictionTags.push('access-friction:memory-review-gate')
+    }
+  }
+
+  const normalizedScore = clampAccessScore(accessScore)
+
+  return {
+    packetId: `${civilization.id}:access:v1`,
+    civilizationId: civilization.id,
+    civilizationCategory: civilization.category,
+    diplomaticBaseline: civilization.diplomaticBaseline,
+    accessBand: resolveAccessBand(normalizedScore),
+    accessScore: normalizedScore,
+    resourceChannels,
+    knowledgeChannels,
+    frictionTags: uniqueSorted(frictionTags),
+  }
+}
+
+/**
+ * Build deterministic access differential between two civilizations.
+ * Intended for downstream institution/faction/campaign consumers.
+ */
+export function deriveCivilizationAccessDifferential(
+  civilizationA: CivilizationProfile,
+  civilizationB: CivilizationProfile,
+  stateA?: CivilizationState,
+  stateB?: CivilizationState
+): CivilizationAccessDifferential {
+  const accessA = deriveCivilizationAccessPacket(civilizationA, stateA)
+  const accessB = deriveCivilizationAccessPacket(civilizationB, stateB)
+
+  return {
+    pairId: toCivilizationPairId(civilizationA.id, civilizationB.id),
+    civilizationAId: civilizationA.id,
+    civilizationBId: civilizationB.id,
+    sharedResourceChannels: intersection(accessA.resourceChannels, accessB.resourceChannels),
+    onlyAResourceChannels: difference(accessA.resourceChannels, accessB.resourceChannels),
+    onlyBResourceChannels: difference(accessB.resourceChannels, accessA.resourceChannels),
+    onlyAKnowledgeChannels: difference(accessA.knowledgeChannels, accessB.knowledgeChannels),
+    onlyBKnowledgeChannels: difference(accessB.knowledgeChannels, accessA.knowledgeChannels),
+    accessScoreGap: accessA.accessScore - accessB.accessScore,
   }
 }

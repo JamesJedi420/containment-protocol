@@ -4,6 +4,7 @@ import {
   projectBehavioralRealityAssessment,
   projectFuturePressureAssessment,
   projectOperationalRealityAssessment,
+  projectRealityIdentityAssessment,
   resolveRealityRuleSurface,
 } from '../domain/realityModel'
 
@@ -404,6 +405,96 @@ describe('realityModel', () => {
     expect(conditional?.reasonCodes).toContain('falsifiability-conditions-present')
   })
 
+  it('preserves identity across non-essential surface change when invariants hold', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:recovered-relic',
+      subjectId: 'artifact:saint-bell',
+      label: 'Saint Bell Relic',
+      actualState: 'relocated_and_scored',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      confidence: 0.88,
+      evidence: 'clear',
+      identityProfile: {
+        realIdentityId: 'relic:saint-bell',
+        invariantProperties: ['origin:sanctum-cast', 'seal-pattern:eightfold', 'tone-signature:ash-bell'],
+        mutableTraits: ['surface:charred', 'location:rivergate-vault'],
+        preservedInvariantProperties: ['origin:sanctum-cast', 'seal-pattern:eightfold', 'tone-signature:ash-bell'],
+        brokenInvariantProperties: [],
+        persistenceStatus: 'preserved',
+        nominalAlignment: 'aligned',
+        confidence: 0.88,
+      },
+    })
+
+    expect(projectRealityIdentityAssessment(packet)).toMatchObject({
+      identityInterpretation: 'preserve_continuity',
+      handlingMode: 'continuity_sensitive_handling',
+      identityTrusted: true,
+    })
+  })
+
+  it('treats identity as broken when invariant rules fail', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:fractured-host',
+      subjectId: 'entity:fractured-host',
+      label: 'Fractured Host',
+      actualState: 'split-and-overwritten',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      confidence: 0.81,
+      evidence: 'contradicted',
+      identityProfile: {
+        realIdentityId: 'host:arden',
+        invariantProperties: ['essence-anchor:arden', 'vow-binding:lantern-oath'],
+        mutableTraits: ['voice:altered', 'body:scarred'],
+        preservedInvariantProperties: [],
+        brokenInvariantProperties: ['essence-anchor:arden', 'vow-binding:lantern-oath'],
+        persistenceStatus: 'broken',
+        nominalAlignment: 'aligned',
+        confidence: 0.81,
+      },
+    })
+
+    expect(projectRealityIdentityAssessment(packet)).toMatchObject({
+      identityInterpretation: 'treat_as_identity_break',
+      handlingMode: 'new-entity-containment',
+      identityTrusted: false,
+    })
+  })
+
+  it('separates nominal classification from real invariant identity when they diverge', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:misfiled-agent',
+      subjectId: 'contact:misfiled-agent',
+      label: 'Misfiled Agent',
+      actualState: 'present',
+      perceivedState: 'hostile-impostor',
+      believedState: 'hostile-impostor',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      confidence: 0.73,
+      evidence: 'contradicted',
+      identityProfile: {
+        realIdentityId: 'agent:iris-quill',
+        nominalIdentityId: 'impostor:red-echo',
+        invariantProperties: ['memory-key:iris-quill', 'service-mark:seven-knot'],
+        mutableTraits: ['uniform:forged', 'voice:distorted'],
+        preservedInvariantProperties: ['memory-key:iris-quill', 'service-mark:seven-knot'],
+        brokenInvariantProperties: [],
+        persistenceStatus: 'preserved',
+        nominalAlignment: 'misclassified',
+        confidence: 0.73,
+      },
+    })
+
+    expect(projectRealityIdentityAssessment(packet)).toMatchObject({
+      identityInterpretation: 'reclassify_nominal_identity',
+      handlingMode: 'identity_reclassification',
+      identityTrusted: false,
+    })
+  })
+
   it('remains repeatable for identical inputs', () => {
     const input = {
       packetId: 'reality:future-ledger',
@@ -431,6 +522,16 @@ describe('realityModel', () => {
         falsifiabilityConditions: ['pressure-threshold-not-reached'],
         confidence: 0.62,
       },
+      identityProfile: {
+        realIdentityId: 'record:future-ledger',
+        invariantProperties: ['ledger-seal:amber', 'scribe-mark:outer-ring'],
+        mutableTraits: ['cover:burned'],
+        preservedInvariantProperties: ['ledger-seal:amber'],
+        brokenInvariantProperties: [],
+        persistenceStatus: 'uncertain' as const,
+        nominalAlignment: 'uncertain' as const,
+        confidence: 0.59,
+      },
     }
 
     const first = deriveRealityStatePacket(input)
@@ -445,6 +546,9 @@ describe('realityModel', () => {
     )
     expect(projectFuturePressureAssessment(second)).toEqual(
       projectFuturePressureAssessment(first)
+    )
+    expect(projectRealityIdentityAssessment(second)).toEqual(
+      projectRealityIdentityAssessment(first)
     )
   })
 })

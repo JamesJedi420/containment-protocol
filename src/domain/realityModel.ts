@@ -69,6 +69,15 @@ export type FutureRecordSourceType =
   | 'anomaly_log'
   | 'contract_term'
   | 'observer_report'
+export type RealityIdentityPersistenceStatus =
+  | 'preserved'
+  | 'degraded_but_preserved'
+  | 'broken'
+  | 'uncertain'
+export type RealityNominalIdentityAlignment =
+  | 'aligned'
+  | 'misclassified'
+  | 'uncertain'
 
 export interface RealityStateInput {
   packetId: string
@@ -84,6 +93,7 @@ export interface RealityStateInput {
   evidence?: RealityObservationEvidence
   behaviorProfile?: RealityBehaviorProfileInput
   futurePressureProfile?: FuturePressureProfileInput
+  identityProfile?: RealityIdentityProfileInput
 }
 
 export interface RealityRuleSurface {
@@ -133,6 +143,30 @@ export interface FuturePressureProfile {
   confidence: number
 }
 
+export interface RealityIdentityProfileInput {
+  realIdentityId: string
+  nominalIdentityId?: string
+  invariantProperties: readonly string[]
+  mutableTraits: readonly string[]
+  preservedInvariantProperties?: readonly string[]
+  brokenInvariantProperties?: readonly string[]
+  persistenceStatus: RealityIdentityPersistenceStatus
+  nominalAlignment?: RealityNominalIdentityAlignment
+  confidence?: number
+}
+
+export interface RealityIdentityProfile {
+  realIdentityId: string
+  nominalIdentityId: string
+  invariantProperties: string[]
+  mutableTraits: string[]
+  preservedInvariantProperties: string[]
+  brokenInvariantProperties: string[]
+  persistenceStatus: RealityIdentityPersistenceStatus
+  nominalAlignment: RealityNominalIdentityAlignment
+  confidence: number
+}
+
 export interface RealityStatePacket {
   packetId: string
   subjectId: string
@@ -149,6 +183,7 @@ export interface RealityStatePacket {
   ruleSurface: RealityRuleSurface
   behaviorProfile?: RealityBehaviorProfile
   futurePressureProfile?: FuturePressureProfile
+  identityProfile?: RealityIdentityProfile
 }
 
 export interface RealityOperationalAssessment {
@@ -205,6 +240,25 @@ export interface FuturePressureAssessment {
   reasonCodes: string[]
 }
 
+export interface RealityIdentityAssessment {
+  packetId: string
+  subjectId: string
+  identityInterpretation:
+    | 'preserve_continuity'
+    | 'preserve_continuity_with_degradation'
+    | 'treat_as_identity_break'
+    | 'reclassify_nominal_identity'
+    | 'hold_for_identity_verification'
+  handlingMode:
+    | 'continuity_sensitive_handling'
+    | 'degraded_continuity_handling'
+    | 'new-entity-containment'
+    | 'identity_reclassification'
+    | 'identity_verification'
+  identityTrusted: boolean
+  reasonCodes: string[]
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -247,6 +301,26 @@ function buildFuturePressureProfile(
     sourceType: input.sourceType,
     triggerConditions: uniqueSorted([...(input.triggerConditions ?? [])]),
     falsifiabilityConditions: uniqueSorted([...(input.falsifiabilityConditions ?? [])]),
+    confidence: normalizeConfidence(input.confidence),
+  }
+}
+
+function buildRealityIdentityProfile(
+  input: RealityIdentityProfileInput | undefined
+): RealityIdentityProfile | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    realIdentityId: normalizeString(input.realIdentityId),
+    nominalIdentityId: normalizeString(input.nominalIdentityId) || normalizeString(input.realIdentityId),
+    invariantProperties: uniqueSorted([...(input.invariantProperties ?? [])]),
+    mutableTraits: uniqueSorted([...(input.mutableTraits ?? [])]),
+    preservedInvariantProperties: uniqueSorted([...(input.preservedInvariantProperties ?? [])]),
+    brokenInvariantProperties: uniqueSorted([...(input.brokenInvariantProperties ?? [])]),
+    persistenceStatus: input.persistenceStatus,
+    nominalAlignment: input.nominalAlignment ?? 'aligned',
     confidence: normalizeConfidence(input.confidence),
   }
 }
@@ -384,6 +458,9 @@ export function deriveRealityStatePacket(input: RealityStateInput): RealityState
       : {}),
     ...(buildFuturePressureProfile(input.futurePressureProfile)
       ? { futurePressureProfile: buildFuturePressureProfile(input.futurePressureProfile) }
+      : {}),
+    ...(buildRealityIdentityProfile(input.identityProfile)
+      ? { identityProfile: buildRealityIdentityProfile(input.identityProfile) }
       : {}),
   }
 }
@@ -643,5 +720,78 @@ export function projectFuturePressureAssessment(
         guaranteedTruth: false,
         reasonCodes,
       }
+  }
+}
+
+export function projectRealityIdentityAssessment(
+  packet: RealityStatePacket
+): RealityIdentityAssessment | null {
+  const profile = packet.identityProfile
+  if (!profile) {
+    return null
+  }
+
+  const reasonCodes = uniqueSorted([
+    `persistence:${profile.persistenceStatus}`,
+    `nominal-alignment:${profile.nominalAlignment}`,
+    ...(profile.brokenInvariantProperties.length > 0 ? ['broken-invariants-present'] : []),
+    ...(profile.preservedInvariantProperties.length > 0 ? ['preserved-invariants-present'] : []),
+    ...(profile.confidence < 0.75 ? ['low-identity-confidence'] : []),
+  ])
+
+  if (profile.nominalAlignment === 'misclassified') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      identityInterpretation: 'reclassify_nominal_identity',
+      handlingMode: 'identity_reclassification',
+      identityTrusted: false,
+      reasonCodes,
+    }
+  }
+
+  if (
+    profile.persistenceStatus === 'broken' ||
+    profile.brokenInvariantProperties.length >= Math.max(1, profile.invariantProperties.length)
+  ) {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      identityInterpretation: 'treat_as_identity_break',
+      handlingMode: 'new-entity-containment',
+      identityTrusted: false,
+      reasonCodes,
+    }
+  }
+
+  if (profile.persistenceStatus === 'degraded_but_preserved') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      identityInterpretation: 'preserve_continuity_with_degradation',
+      handlingMode: 'degraded_continuity_handling',
+      identityTrusted: true,
+      reasonCodes,
+    }
+  }
+
+  if (profile.persistenceStatus === 'uncertain' || profile.nominalAlignment === 'uncertain') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      identityInterpretation: 'hold_for_identity_verification',
+      handlingMode: 'identity_verification',
+      identityTrusted: false,
+      reasonCodes,
+    }
+  }
+
+  return {
+    packetId: packet.packetId,
+    subjectId: packet.subjectId,
+    identityInterpretation: 'preserve_continuity',
+    handlingMode: 'continuity_sensitive_handling',
+    identityTrusted: true,
+    reasonCodes,
   }
 }

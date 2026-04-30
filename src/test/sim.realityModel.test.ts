@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveRealityStatePacket,
+  projectBehavioralRealityAssessment,
   projectOperationalRealityAssessment,
   resolveRealityRuleSurface,
 } from '../domain/realityModel'
@@ -125,6 +126,152 @@ describe('realityModel', () => {
     })
   })
 
+  it('keeps behaviorally coherent appearance separate from uncertain inner-state', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:coherent-witness',
+      subjectId: 'witness:echo-12',
+      label: 'Echo Witness',
+      actualState: 'present',
+      perceivedState: 'present',
+      believedState: 'present_and_reliable',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      confidence: 0.81,
+      evidence: 'clear',
+      behaviorProfile: {
+        apparentBehaviorState: 'coherent',
+        inferredInnerStateStatus: 'uncertain',
+        realizationClass: 'realized_being',
+        counterpartEquivalence: 'not_applicable',
+        inferenceConfidence: 0.52,
+      },
+    })
+
+    expect(packet.behaviorProfile).toMatchObject({
+      apparentBehaviorState: 'coherent',
+      inferredInnerStateStatus: 'uncertain',
+      realizationClass: 'realized_being',
+    })
+    expect(projectBehavioralRealityAssessment(packet)).toMatchObject({
+      classification: 'treat_as_uncertain_agent',
+      handlingMode: 'verification_interview',
+      trustLevel: 'guarded',
+    })
+  })
+
+  it('does not grant automatic equivalence to simulated, replayed, or duplicated behavior', () => {
+    const simulated = projectBehavioralRealityAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:sim-archivist',
+        subjectId: 'construct:sim-archivist',
+        label: 'Simulated Archivist',
+        actualState: 'active',
+        perceivedState: 'active',
+        believedState: 'helpful_archivist',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        confidence: 0.74,
+        evidence: 'clear',
+        behaviorProfile: {
+          apparentBehaviorState: 'simulated_sociality',
+          inferredInnerStateStatus: 'non_equivalent',
+          realizationClass: 'simulated_construct',
+          counterpartEquivalence: 'non_equivalent',
+          inferenceConfidence: 0.71,
+        },
+      })
+    )
+
+    const replayed = projectBehavioralRealityAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:replay-clerk',
+        subjectId: 'pattern:replay-clerk',
+        label: 'Replay Clerk',
+        actualState: 'looping',
+        perceivedState: 'obedient',
+        believedState: 'obedient',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'presence',
+        deviationFamily: 'false_continuity',
+        confidence: 0.63,
+        evidence: 'contradicted',
+        behaviorProfile: {
+          apparentBehaviorState: 'replay_loop',
+          inferredInnerStateStatus: 'unknown',
+          realizationClass: 'replayed_pattern',
+          counterpartEquivalence: 'non_equivalent',
+          inferenceConfidence: 0.33,
+        },
+      })
+    )
+
+    const duplicate = projectBehavioralRealityAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:duplicate-contact',
+        subjectId: 'contact:double-ava',
+        label: 'Duplicate Ava',
+        actualState: 'present',
+        perceivedState: 'present',
+        believedState: 'trusted_ally',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        confidence: 0.78,
+        evidence: 'clear',
+        behaviorProfile: {
+          apparentBehaviorState: 'coherent',
+          inferredInnerStateStatus: 'unknown',
+          realizationClass: 'duplicate_instance',
+          counterpartEquivalence: 'unverified',
+          inferenceConfidence: 0.49,
+        },
+      })
+    )
+
+    expect(simulated).toMatchObject({
+      classification: 'treat_as_non_equivalent_construct',
+      handlingMode: 'pattern_containment',
+      trustLevel: 'restricted',
+    })
+    expect(replayed).toMatchObject({
+      classification: 'treat_as_replayed_pattern',
+      handlingMode: 'pattern_containment',
+      trustLevel: 'restricted',
+    })
+    expect(duplicate).toMatchObject({
+      classification: 'treat_as_uncertain_agent',
+      handlingMode: 'verification_interview',
+      trustLevel: 'guarded',
+    })
+  })
+
+  it('supports apparently sincere but misclassified real cases', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:misclassified-contact',
+      subjectId: 'contact:mira',
+      label: 'Mira Contact',
+      actualState: 'present',
+      perceivedState: 'hostile_construct',
+      believedState: 'hostile_construct',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      confidence: 0.72,
+      evidence: 'contradicted',
+      behaviorProfile: {
+        apparentBehaviorState: 'distressed',
+        inferredInnerStateStatus: 'sincere',
+        realizationClass: 'misclassified_real',
+        counterpartEquivalence: 'not_applicable',
+        inferenceConfidence: 0.84,
+      },
+    })
+
+    expect(projectBehavioralRealityAssessment(packet)).toMatchObject({
+      classification: 'treat_as_misclassified_real',
+      handlingMode: 'identity_reclassification',
+      trustLevel: 'guarded',
+    })
+  })
+
   it('remains repeatable for identical inputs', () => {
     const input = {
       packetId: 'reality:future-ledger',
@@ -138,6 +285,13 @@ describe('realityModel', () => {
       deviationFamily: 'future_pressure_conditional' as const,
       confidence: 0.77,
       evidence: 'clear' as const,
+      behaviorProfile: {
+        apparentBehaviorState: 'coherent' as const,
+        inferredInnerStateStatus: 'unknown' as const,
+        realizationClass: 'duplicate_instance' as const,
+        counterpartEquivalence: 'unverified' as const,
+        inferenceConfidence: 0.58,
+      },
     }
 
     const first = deriveRealityStatePacket(input)
@@ -146,6 +300,9 @@ describe('realityModel', () => {
     expect(second).toEqual(first)
     expect(projectOperationalRealityAssessment(second)).toEqual(
       projectOperationalRealityAssessment(first)
+    )
+    expect(projectBehavioralRealityAssessment(second)).toEqual(
+      projectBehavioralRealityAssessment(first)
     )
   })
 })

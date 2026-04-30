@@ -33,6 +33,30 @@ export type RealityBaselineRuleId =
   | 'future_records_are_advisory'
 
 export type RealityRuleResolution = 'baseline' | 'override'
+export type ApparentBehaviorState =
+  | 'coherent'
+  | 'distressed'
+  | 'obedient'
+  | 'hostile'
+  | 'replay_loop'
+  | 'simulated_sociality'
+export type InferredInnerStateStatus =
+  | 'unknown'
+  | 'uncertain'
+  | 'sincere'
+  | 'distorted'
+  | 'non_equivalent'
+export type OntologicalRealizationClass =
+  | 'realized_being'
+  | 'simulated_construct'
+  | 'replayed_pattern'
+  | 'duplicate_instance'
+  | 'misclassified_real'
+export type CounterpartEquivalenceStatus =
+  | 'not_applicable'
+  | 'equivalent'
+  | 'non_equivalent'
+  | 'unverified'
 
 export interface RealityStateInput {
   packetId: string
@@ -46,6 +70,7 @@ export interface RealityStateInput {
   deviationFamily?: RealityDeviationFamily
   confidence?: number
   evidence?: RealityObservationEvidence
+  behaviorProfile?: RealityBehaviorProfileInput
 }
 
 export interface RealityRuleSurface {
@@ -63,6 +88,22 @@ export interface RealityTruthGap {
   actualVsBelieved: boolean
 }
 
+export interface RealityBehaviorProfileInput {
+  apparentBehaviorState: ApparentBehaviorState
+  inferredInnerStateStatus: InferredInnerStateStatus
+  realizationClass: OntologicalRealizationClass
+  counterpartEquivalence?: CounterpartEquivalenceStatus
+  inferenceConfidence?: number
+}
+
+export interface RealityBehaviorProfile {
+  apparentBehaviorState: ApparentBehaviorState
+  inferredInnerStateStatus: InferredInnerStateStatus
+  realizationClass: OntologicalRealizationClass
+  counterpartEquivalence: CounterpartEquivalenceStatus
+  inferenceConfidence: number
+}
+
 export interface RealityStatePacket {
   packetId: string
   subjectId: string
@@ -77,6 +118,7 @@ export interface RealityStatePacket {
   observationStatus: RealityObservationStatus
   truthGap: RealityTruthGap
   ruleSurface: RealityRuleSurface
+  behaviorProfile?: RealityBehaviorProfile
 }
 
 export interface RealityOperationalAssessment {
@@ -96,6 +138,24 @@ export interface RealityOperationalAssessment {
   reasonCodes: string[]
 }
 
+export interface RealityBehaviorAssessment {
+  packetId: string
+  subjectId: string
+  classification:
+    | 'treat_as_real_counterpart'
+    | 'treat_as_uncertain_agent'
+    | 'treat_as_non_equivalent_construct'
+    | 'treat_as_replayed_pattern'
+    | 'treat_as_misclassified_real'
+  handlingMode:
+    | 'full_personhood_caution'
+    | 'verification_interview'
+    | 'pattern_containment'
+    | 'identity_reclassification'
+  trustLevel: 'provisional' | 'guarded' | 'restricted'
+  reasonCodes: string[]
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -108,6 +168,22 @@ function uniqueSorted(values: readonly string[]) {
 
 function normalizeConfidence(value: number | undefined) {
   return Number(clamp(Number.isFinite(value) ? (value as number) : 0.5, 0, 1).toFixed(4))
+}
+
+function buildRealityBehaviorProfile(
+  input: RealityBehaviorProfileInput | undefined
+): RealityBehaviorProfile | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    apparentBehaviorState: input.apparentBehaviorState,
+    inferredInnerStateStatus: input.inferredInnerStateStatus,
+    realizationClass: input.realizationClass,
+    counterpartEquivalence: input.counterpartEquivalence ?? 'not_applicable',
+    inferenceConfidence: normalizeConfidence(input.inferenceConfidence),
+  }
 }
 
 export function resolveRealityRuleSurface(
@@ -238,6 +314,9 @@ export function deriveRealityStatePacket(input: RealityStateInput): RealityState
     observationStatus,
     truthGap,
     ruleSurface: resolveRealityRuleSurface(input.ruleDomain, deviationFamily),
+    ...(buildRealityBehaviorProfile(input.behaviorProfile)
+      ? { behaviorProfile: buildRealityBehaviorProfile(input.behaviorProfile) }
+      : {}),
   }
 }
 
@@ -334,5 +413,101 @@ export function projectOperationalRealityAssessment(
     decisionMode: 'act_on_visible_state',
     recommendedAction: 'physical_commitment',
     reasonCodes: [],
+  }
+}
+
+export function projectBehavioralRealityAssessment(
+  packet: RealityStatePacket
+): RealityBehaviorAssessment | null {
+  const profile = packet.behaviorProfile
+  if (!profile) {
+    return null
+  }
+
+  const reasonCodes: string[] = []
+
+  if (profile.realizationClass === 'replayed_pattern') {
+    reasonCodes.push('replayed-pattern')
+    if (profile.counterpartEquivalence === 'non_equivalent') {
+      reasonCodes.push('non-equivalent')
+    }
+
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      classification: 'treat_as_replayed_pattern',
+      handlingMode: 'pattern_containment',
+      trustLevel: 'restricted',
+      reasonCodes: uniqueSorted(reasonCodes),
+    }
+  }
+
+  if (
+    profile.realizationClass === 'simulated_construct' ||
+    profile.counterpartEquivalence === 'non_equivalent' ||
+    profile.inferredInnerStateStatus === 'non_equivalent'
+  ) {
+    reasonCodes.push('non-equivalent')
+    if (profile.realizationClass === 'simulated_construct') {
+      reasonCodes.push('simulated-construct')
+    }
+
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      classification: 'treat_as_non_equivalent_construct',
+      handlingMode: 'pattern_containment',
+      trustLevel: 'restricted',
+      reasonCodes: uniqueSorted(reasonCodes),
+    }
+  }
+
+  if (profile.realizationClass === 'misclassified_real') {
+    reasonCodes.push('misclassified-real')
+    if (profile.inferredInnerStateStatus === 'sincere') {
+      reasonCodes.push('sincere-signal')
+    }
+
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      classification: 'treat_as_misclassified_real',
+      handlingMode: 'identity_reclassification',
+      trustLevel: 'guarded',
+      reasonCodes: uniqueSorted(reasonCodes),
+    }
+  }
+
+  if (
+    profile.inferredInnerStateStatus === 'unknown' ||
+    profile.inferredInnerStateStatus === 'uncertain' ||
+    profile.inferenceConfidence < 0.75
+  ) {
+    reasonCodes.push('inner-state-uncertain')
+    if (profile.inferenceConfidence < 0.75) {
+      reasonCodes.push('low-inference-confidence')
+    }
+    if (profile.apparentBehaviorState === 'coherent' || profile.apparentBehaviorState === 'simulated_sociality') {
+      reasonCodes.push('behaviorally-coherent')
+    }
+
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      classification: 'treat_as_uncertain_agent',
+      handlingMode: 'verification_interview',
+      trustLevel: 'guarded',
+      reasonCodes: uniqueSorted(reasonCodes),
+    }
+  }
+
+  return {
+    packetId: packet.packetId,
+    subjectId: packet.subjectId,
+    classification: 'treat_as_real_counterpart',
+    handlingMode: 'full_personhood_caution',
+    trustLevel: 'provisional',
+    reasonCodes:
+      profile.counterpartEquivalence === 'equivalent' ? ['equivalent-counterpart'] : [],
   }
 }

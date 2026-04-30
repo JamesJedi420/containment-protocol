@@ -67,3 +67,37 @@ Non-standard metrics go under `extensions: Record<string, IncidentImpactExtensio
 
 - No migration path defined yet (single version)
 - If a breaking field change is needed, bump the discriminant string and add a migration function alongside `eventMigration.ts`
+
+---
+
+## PersistedStore Schema
+
+Documents the versioned serialization format for the full game store state.
+
+**Current version**: `GAME_STORE_VERSION = 6`
+
+**Location**: `src/app/store/runTransfer.ts`
+
+**Migration**: `migratePersistedStore(raw, version)` — handles incremental upgrades from older versions to version 6.
+
+### Notes
+
+- On load, the persisted payload version is checked against `GAME_STORE_VERSION`
+- Older payloads are migrated forward via `migratePersistedStore`
+- Missing or unrecognised version causes fallback to a fresh store
+
+---
+
+## SaveFile Envelope Schema
+
+Documents the versioned envelope wrapping persisted save files.
+
+**Current version**: `GAME_SAVE_VERSION = 1`
+
+**Location**: `src/app/store/saveSystem.ts`
+
+### Notes
+
+- Save files with `version > GAME_SAVE_VERSION` are rejected (written by a newer build)
+- Save files with `version < GAME_SAVE_VERSION` may still be loaded if the inner store migration handles them
+- No explicit migration function at the envelope level; version guard is rejection-only

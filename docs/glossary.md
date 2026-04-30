@@ -63,9 +63,19 @@ A person in the recruitment funnel who has not yet become a full operative.
 
 A relationship-bearing actor or organization that affects access, information, opportunities, or support.
 
+### Condition
+
+A named status applied to an agent or anomaly that affects combat, mission, or recovery mechanics. Conditions have carrier rules that control which entity types can hold them.
+
+Examples: fatigued, injured, alerted, disoriented.
+
 ### Faction
 
 A persistent organization, bloc, institution, rival, or interest group with its own pressure, alignment, and response to player activity.
+
+### Faction standing
+
+A per-faction numeric value in `[-20, +20]` tracking the agency's relationship with that faction. Increases on mission rewards or standing-change events; decreases on failure, faction pressure, or enemy-faction success. Distinct from the broad agency-wide `Standing`.
 
 ### Legitimacy
 
@@ -73,9 +83,17 @@ The agency’s recognized authority, tolerated presence, or socially/politically
 
 Legitimacy affects access, cooperation, risk, and opportunity quality.
 
+### Reputation tier
+
+The discrete label derived from faction standing: `hostile | unfriendly | neutral | friendly | allied`. Governs access to faction contacts, recruit unlocks, and cooperation modifiers.
+
 ### Standing
 
-The agency’s comparative rank, reputation, or perceived competence relative to rivals or external institutions.
+The agency's comparative rank, reputation, or perceived competence relative to rivals or external institutions.
+
+### Tag
+
+A string label applied to agents, cases, gear, or anomalies that drives scope matching, modifier targeting, niche evaluation, and protocol activation. Tags are not boolean flags — they participate in multi-dimensional matching across skills, protocols, and encounter resolution.
 
 ---
 
@@ -192,9 +210,29 @@ A downstream negative consequence caused by overload, failure, delay, misallocat
 
 The risk that an operational outcome causes secondary harm outside the intended target.
 
+### Case stage
+
+The current escalation level of a case, numbered 1–5. Stage 4+ triggers major incident eligibility. Stage 5 is terminal (maximum escalation). Stages advance on deadline lapse or failed containment.
+
 ### Escalation
 
 A worsening of threat state, urgency, severity, or operational consequences over time or due to ineffective response.
+
+### Incident archetype
+
+The thematic template governing a major incident's mechanics, boss entities, and difficulty scaling. Five archetypes: `mass_exposure`, `infrastructure_collapse`, `hostile_escalation`, `occult_surge`, `containment_breach`. Archetype is matched from case tags.
+
+### Major incident
+
+A high-severity case activated when a case reaches Stage 4 (or Stage 3 with deadline ≤ 1 week, or raid kind). Major incidents use archetype-based scaling and may include boss entities at Stage 3+.
+
+### Spawn
+
+A case created as a consequence of another case resolution, faction pressure, world activity, or pressure threshold breach. Spawned cases appear in the weekly report with a source attribution.
+
+### Threat family
+
+The category label that classifies the nature of a case threat for consequence routing and escalation behavior. Examples: `occult`, `hazmat`, `signal`, `biological`, `containment`.
 
 ### Threat drift
 
@@ -257,6 +295,14 @@ Higher tiers on `institutionalJudgment` and `crowdConsensus` tracks contribute t
 
 A state where one or more public-facing belief tracks (`witnessInterpretation`, `institutionalJudgment`, `crowdConsensus`) differ from `factTruth`. Represents the gap between objective reality and external-party perception.
 
+### Intel confidence
+
+A normalized ratio in `[0.18, 0.98]` representing how much useful intelligence was surfaced during a case recon pass. Higher values indicate more revealed hidden modifiers and stronger recon coverage. Displayed in the deployment readiness panel as a low/medium/high band.
+
+### Recon
+
+The pre-deployment intel evaluation process that surfaces hidden case modifiers and produces an `intel confidence` value. Recon results are not persisted — they are recomputed when the deployment panel is rendered.
+
 ---
 
 ## Resource and progression terms
@@ -307,6 +353,22 @@ The period where assets or operatives are unavailable due to recovery, repair, o
 
 Loss, degradation, or depletion of personnel or institutional effectiveness over time.
 
+### Market listing
+
+A single purchasable entry in the procurement market. Listings have a source (recipe, material, or direct equipment), a price, and a seeded availability value that resets each market cycle.
+
+### Market pressure
+
+A global economic factor (one of `stable | elevated | volatile | crisis`) that modifies procurement pricing and availability across all market listings for the current cycle.
+
+### Protocol
+
+An agency doctrine modifier that activates during mission resolution when its unlock condition (based on clearance level, containment rating, or funding) and activation context are both satisfied. Protocols apply per-agent based on scope matching. Sometimes called _agency protocol_ to distinguish from Threshold Court protocol-contact events.
+
+### Protocol scope
+
+The targeting rule that limits which agents a protocol applies to: `all_agents`, `role` (specific role list), or `tag` (agent must carry any matching tag).
+
 ### Replacement pressure
 
 The strain created when the agency must refill depleted personnel or capability.
@@ -335,9 +397,17 @@ Pressure caused by insufficient support capacity relative to operational demand.
 
 A bounded agency-side penalty representing degraded operational coherence under overload.
 
+### Modifier cap
+
+The bounded floor and ceiling applied to runtime modifier aggregation before an outcome band is resolved. Currently `[-3, +3]`. Prevents extreme stacking from making outcomes deterministically unwinnable or trivially easy.
+
 ### Overload
 
 A state where demand exceeds bounded institutional capacity.
+
+### Resistance profile
+
+A predefined anomaly-side defense configuration pairing a primary tag (e.g. `hardened`, `ethereal`, `adaptive`) with countering tags and a modifier delta. Six profiles exist. A matching countermeasure neutralizes or reverses the resistance delta.
 
 ### Handoff mismatch
 

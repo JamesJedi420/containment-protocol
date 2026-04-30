@@ -6,6 +6,7 @@ import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
+import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 import { SIM_NOTES } from '../data/copy'
 import type { Agent, DomainStats, OperationEvent } from '../domain/models'
 
@@ -416,6 +417,19 @@ function makeParallelObjectiveAggregateBattleState() {
   return state
 }
 
+function withNeighborhoodPackets(
+  state: ReturnType<typeof createStartingState>,
+  neighborhoodPackets: ReturnType<typeof createNeighborhoodIncidentPacket>[]
+) {
+  const nextState = state as ReturnType<typeof createStartingState> & {
+    neighborhoodPackets?: ReturnType<typeof createNeighborhoodIncidentPacket>[]
+  }
+
+  nextState.neighborhoodPackets = neighborhoodPackets
+
+  return nextState
+}
+
 describe('advanceWeek', () => {
   it('increments the week counter', () => {
     const next = advanceWeek(startingState)
@@ -701,6 +715,173 @@ describe('advanceWeek', () => {
     expect(updatedCase.deadlineRemaining).toBe(
       startingState.cases['case-001'].deadlineRemaining - 1
     )
+  })
+
+  it('applies sustained local neighborhood pressure to matching-district open cases by accelerating deadline escalation', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:docks'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const pressuredState = withNeighborhoodPackets(state, [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-active',
+        districtId: 'docks',
+        blockId: 'dock-1',
+        seedKey: 'spe-539-slice-3-active',
+        sourceKind: 'business_tool_misuse',
+        sourceLabel: 'Persistent local hazard at docks',
+        baseCadenceWeeks: 1,
+        baseSeverity: 0.8,
+      }),
+    ])
+
+    const next = advanceWeek(pressuredState)
+
+    expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
+    expect(next.cases['case-001'].stage).toBeGreaterThan(state.cases['case-001'].stage)
+    expect(next.cases['case-001'].deadlineRemaining).toBeGreaterThan(0)
+  })
+
+  it('does not apply district-local pressure to non-matching districts', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:hub'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const pressuredState = withNeighborhoodPackets(state, [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-only',
+        districtId: 'docks',
+        blockId: 'dock-2',
+        seedKey: 'spe-539-slice-3-nonmatch',
+        sourceKind: 'operator_tool_misuse',
+        sourceLabel: 'Only docks should be pressured',
+        baseCadenceWeeks: 1,
+        baseSeverity: 0.85,
+      }),
+    ])
+
+    const next = advanceWeek(pressuredState)
+
+    expect(next.reports[0].unresolvedTriggers).toEqual([])
+    expect(next.cases['case-001'].deadlineRemaining).toBe(1)
+  })
+
+  it('does not apply local pressure when matching-district incidents are quiescent that week', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:docks'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const pressuredState = withNeighborhoodPackets(state, [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-quiescent',
+        districtId: 'docks',
+        blockId: 'dock-3',
+        seedKey: 'spe-539-slice-3-quiescent',
+        sourceKind: 'decorative_biohazard',
+        sourceLabel: 'Cadence skips week 1',
+        baseCadenceWeeks: 2,
+        baseSeverity: 0.8,
+      }),
+    ])
+
+    const next = advanceWeek(pressuredState)
+
+    expect(next.reports[0].unresolvedTriggers).toEqual([])
+    expect(next.cases['case-001'].deadlineRemaining).toBe(1)
+  })
+
+  it('keeps neighborhood-pressure escalation bounded to matching district cases and read-only incident packets', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-docks': {
+        ...state.cases['case-001'],
+        id: 'case-docks',
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:docks'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+      'case-hub': {
+        ...state.cases['case-002'],
+        id: 'case-hub',
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-002'].tags, 'district:hub'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-002'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const neighborhoodPackets = [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-local-only',
+        districtId: 'docks',
+        blockId: 'dock-4',
+        seedKey: 'spe-539-slice-3-local-bounded',
+        sourceKind: 'business_tool_misuse',
+        sourceLabel: 'Local docks activity only',
+        baseCadenceWeeks: 1,
+        baseSeverity: 0.9,
+      }),
+    ]
+    const packetsBefore = structuredClone(neighborhoodPackets)
+    const pressuredState = withNeighborhoodPackets(state, neighborhoodPackets)
+
+    const next = advanceWeek(pressuredState)
+
+    expect(next.reports[0].unresolvedTriggers).toContain('case-docks')
+    expect(next.reports[0].unresolvedTriggers).not.toContain('case-hub')
+    expect(next.cases['case-hub'].deadlineRemaining).toBe(1)
+    expect(neighborhoodPackets).toEqual(packetsBefore)
   })
 
   it('treats open cases with only stale assigned team ids as unassigned for deadline aging', () => {

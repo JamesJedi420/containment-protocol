@@ -204,6 +204,10 @@ import {
   buildCasePartiallyResolvedEventDraft,
   buildCaseResolvedEventDraft,
 } from './eventDraftPipeline'
+import {
+  aggregateDistrictLocalPressure,
+  type NeighborhoodIncidentPacket,
+} from '../urbanNeighborhoodIncidents'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
@@ -231,6 +235,48 @@ import { previewResolutionForTeamIds } from './resolve'
 type AdvanceWeekState = GameState & {
   damagedEquipmentQueue?: string[]
   id?: string
+  neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
+}
+
+const DISTRICT_TAG_PREFIX = 'district:'
+const NEIGHBORHOOD_PRESSURE_TAG_PREFIX = 'neighborhood-pressure:'
+
+function getAttributedDistrictIds(currentCase: Pick<CaseInstance, 'tags' | 'regionTag'>) {
+  const attributed = new Set<string>()
+
+  for (const tag of currentCase.tags) {
+    if (tag.startsWith(DISTRICT_TAG_PREFIX)) {
+      attributed.add(tag.slice(DISTRICT_TAG_PREFIX.length))
+      continue
+    }
+
+    if (tag.startsWith(NEIGHBORHOOD_PRESSURE_TAG_PREFIX)) {
+      attributed.add(tag.slice(NEIGHBORHOOD_PRESSURE_TAG_PREFIX.length))
+    }
+  }
+
+  if (typeof currentCase.regionTag === 'string' && currentCase.regionTag.startsWith(DISTRICT_TAG_PREFIX)) {
+    attributed.add(currentCase.regionTag.slice(DISTRICT_TAG_PREFIX.length))
+  }
+
+  return [...attributed]
+}
+
+function getDistrictLocalEscalationPressureBoost(
+  currentCase: Pick<CaseInstance, 'tags' | 'regionTag'>,
+  neighborhoodPackets: readonly NeighborhoodIncidentPacket[],
+  week: number
+) {
+  const districtIds = getAttributedDistrictIds(currentCase)
+
+  if (districtIds.length === 0 || neighborhoodPackets.length === 0) {
+    return 0
+  }
+
+  return districtIds.reduce((maxBoost, districtId) => {
+    const localPressure = aggregateDistrictLocalPressure(neighborhoodPackets, districtId, week)
+    return Math.max(maxBoost, localPressure.pressureBoost)
+  }, 0)
 }
 
 type CaseWithSubjectType = CaseInstance & {
@@ -2505,6 +2551,8 @@ function escalateCases(
   context: WeeklyExecutionContext,
   timingCheckState: ReturnType<typeof createTimingCheckState>
 ) {
+  const neighborhoodPackets = (context.sourceState as AdvanceWeekState).neighborhoodPackets ?? []
+
   for (const caseId of context.initialCaseIds) {
     if (context.finalizedCaseIds.has(caseId)) {
       continue
@@ -2531,14 +2579,21 @@ function escalateCases(
     recordProcessedCase(context, caseId, 'escalateCases')
 
     const countdownCase = decrementOpenDeadline(currentCase)
-    const nextDeadlineRemaining = countdownCase.deadlineRemaining
+    const localPressureBoost = getDistrictLocalEscalationPressureBoost(
+      currentCase,
+      neighborhoodPackets,
+      context.sourceState.week
+    )
+    const pressuredCountdownCase =
+      localPressureBoost > 0 ? decrementOpenDeadline(countdownCase) : countdownCase
+    const nextDeadlineRemaining = pressuredCountdownCase.deadlineRemaining
 
     if (nextDeadlineRemaining > 0) {
       // Only run deadline escalation if allowed by bounded helper
       if (
         shouldRunTimingCheck(timingCheckState, 'OnDeadlineEscalation', context.sourceState.week)
       ) {
-        context.nextState.cases[caseId] = countdownCase
+        context.nextState.cases[caseId] = pressuredCountdownCase
       }
       continue
     }

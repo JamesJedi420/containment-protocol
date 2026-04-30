@@ -319,6 +319,45 @@ describe('mapAwareness reality-vs-map separation', () => {
     expect(correctedEdge!.confidence).toBeLessThanOrEqual(invalidatedEdge!.confidence)
   })
 
+  it('clears outdated route error state when an authoritative system event restores the route', () => {
+    const reality = buildReality()
+    const initial = createPlayerMapState(reality, {
+      seed: 1108,
+      knownNodeIds: ['room-a', 'room-b'],
+    })
+
+    const invalidated = applyMapUpdateEvents(reality, initial, [
+      {
+        eventId: 'evt-route-down',
+        week: 2,
+        type: 'system_route_state_event',
+        source: 'system',
+        confidence: 0.61,
+        realityEdgeId: 'a-b-door',
+        invalidated: true,
+      },
+    ])
+
+    const restored = applyMapUpdateEvents(reality, invalidated, [
+      {
+        eventId: 'evt-route-restored',
+        week: 3,
+        type: 'system_route_state_event',
+        source: 'system',
+        confidence: 0.93,
+        realityEdgeId: 'a-b-door',
+        doorState: 'open',
+        invalidated: false,
+      },
+    ])
+
+    const restoredEdge = restored.edges.find((edge) => edge.realityEdgeId === 'a-b-door')
+    expect(restoredEdge).toBeDefined()
+    expect(restoredEdge!.visibility).toBe('known_connection')
+    expect(restoredEdge!.errorState).toBe('none')
+    expect(restoredEdge!.doorState).toBe('open')
+  })
+
   it('preserves inferred-hazard non-omniscience after map update events', () => {
     const reality = buildReality()
     const initial = applyMapObservation(

@@ -460,17 +460,22 @@ export function applyMapUpdateEvent(
   }
 
   if (event.type === 'system_route_state_event' && event.realityEdgeId) {
+    const existingRouteState = mapState.routeStateByEdgeId[event.realityEdgeId]
+    const nextInvalidated = event.invalidated ?? existingRouteState?.invalidated
+    const nextErrorState =
+      event.invalidated === true
+        ? 'outdated'
+        : event.invalidated === false
+          ? 'none'
+          : existingRouteState?.errorState
     const nextRouteStateByEdgeId: Record<string, RouteStateOverride> = {
       ...mapState.routeStateByEdgeId,
       [event.realityEdgeId]: {
-        ...(mapState.routeStateByEdgeId[event.realityEdgeId] ?? {}),
+        ...(existingRouteState ?? {}),
         doorState: event.doorState,
-        invalidated: event.invalidated ?? mapState.routeStateByEdgeId[event.realityEdgeId]?.invalidated,
+        invalidated: nextInvalidated,
         confidence: clamp01(event.confidence),
-        errorState:
-          event.invalidated === true
-            ? 'outdated'
-            : mapState.routeStateByEdgeId[event.realityEdgeId]?.errorState,
+        errorState: nextErrorState,
       },
     }
 

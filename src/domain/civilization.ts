@@ -240,6 +240,34 @@ export interface CivilizationEvolutionPacket {
   signals: CivilizationEvolutionSignal[]
 }
 
+export type CivilizationLocalEntityType = 'institution' | 'faction'
+
+export interface CivilizationLocalEntityPacket {
+  entityId: string
+  parentCivilizationId: string
+  entityType: CivilizationLocalEntityType
+  institutionKind: string
+  roleTags: string[]
+  accessHints: string[]
+  conflictHooks: string[]
+  culturalMarkers: string[]
+}
+
+export interface CivilizationLocalDerivationInput {
+  seed: number
+  week: number
+  maxEntities?: number
+  includeFactionAnchor?: boolean
+}
+
+export interface CivilizationLocalDerivationPacket {
+  packetId: string
+  parentCivilizationId: string
+  seed: number
+  week: number
+  entities: CivilizationLocalEntityPacket[]
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -742,6 +770,17 @@ const CHANGE_VECTOR_ORDER: CivilizationChangeVector[] = [
   'reform_pressure',
   'alliance_shift_pressure',
 ]
+
+const CATEGORY_LOCAL_ROLE_TAGS: Record<CivilizationCategory, string[]> = {
+  government: ['role:governance', 'role:public-order'],
+  religious: ['role:doctrinal-authority', 'role:ritual-oversight'],
+  medical: ['role:care-delivery', 'role:clinical-oversight'],
+  academic: ['role:research-governance', 'role:archive-stewardship'],
+  criminal: ['role:network-brokerage', 'role:covert-logistics'],
+  occult: ['role:ritual-network', 'role:esoteric-coordination'],
+  rival_containment: ['role:parallel-containment', 'role:classified-operations'],
+  nonhuman: ['role:threshold-mediation', 'role:node-custodianship'],
+}
 
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
@@ -1596,5 +1635,92 @@ export function deriveCivilizationEvolutionPacket(
       riskScore: clampAccessScore(100 - stabilityScore),
     },
     signals,
+  }
+}
+
+/**
+ * Derive deterministic local institution/faction entities from a parent
+ * civilization actor without crossing into full institution-profile ownership.
+ */
+export function deriveCivilizationLocalEntities(
+  civilization: CivilizationProfile,
+  input: CivilizationLocalDerivationInput,
+  state?: CivilizationState
+): CivilizationLocalDerivationPacket {
+  const maxEntities = Math.max(1, input.maxEntities ?? 4)
+  const institutionKinds = deriveSubordinateInstitutionTypes(civilization, input.seed)
+  const accessPacket = deriveCivilizationAccessPacket(civilization, state)
+  const evolutionPacket = deriveCivilizationEvolutionPacket(
+    civilization,
+    { seed: input.seed, week: input.week },
+    state
+  )
+
+  const sharedConflictHooks = [
+    `hook:trajectory-${evolutionPacket.trajectoryBand}`,
+    `hook:dominant-${evolutionPacket.dominantChange.replace('_pressure', '')}`,
+    `hook:access-${accessPacket.accessBand}`,
+    ...(state?.cooperationBand === 'opposed' ? ['hook:cooperation-opposed'] : []),
+  ]
+
+  const baseCulturalMarkers = [
+    `culture:naming-${toSlug(civilization.culturePacket.namingStyle)}`,
+    ...civilization.culturePacket.ethics.slice(0, 2).map((ethic) => `culture:ethic-${toSlug(ethic)}`),
+    ...civilization.culturePacket.toleratedBehaviors
+      .slice(0, 1)
+      .map((behavior) => `culture:tolerates-${toSlug(behavior)}`),
+  ]
+
+  const institutionEntities: CivilizationLocalEntityPacket[] = institutionKinds
+    .slice(0, maxEntities)
+    .map((kind, idx) => ({
+      entityId: `${civilization.id}:institution:${input.week}:${idx + 1}:${toSlug(kind)}`,
+      parentCivilizationId: civilization.id,
+      entityType: 'institution',
+      institutionKind: kind,
+      roleTags: uniqueSorted([
+        `role:kind-${toSlug(kind)}`,
+        ...CATEGORY_LOCAL_ROLE_TAGS[civilization.category],
+      ]),
+      accessHints: uniqueSorted([
+        `access:band-${accessPacket.accessBand}`,
+        ...accessPacket.resourceChannels.slice(0, 2),
+      ]),
+      conflictHooks: uniqueSorted(sharedConflictHooks),
+      culturalMarkers: uniqueSorted(baseCulturalMarkers),
+    }))
+
+  const entities = [...institutionEntities]
+  const includeFactionAnchor = input.includeFactionAnchor ?? true
+  if (includeFactionAnchor && entities.length < maxEntities) {
+    entities.push({
+      entityId: `${civilization.id}:faction:${input.week}:1:${toSlug(civilization.category)}-network`,
+      parentCivilizationId: civilization.id,
+      entityType: 'faction',
+      institutionKind: `${civilization.category}_network`,
+      roleTags: uniqueSorted([
+        'role:faction-anchor',
+        ...CATEGORY_LOCAL_ROLE_TAGS[civilization.category],
+      ]),
+      accessHints: uniqueSorted([
+        `access:band-${accessPacket.accessBand}`,
+        ...accessPacket.knowledgeChannels.slice(0, 2),
+      ]),
+      conflictHooks: uniqueSorted([
+        ...sharedConflictHooks,
+        ...accessPacket.frictionTags.slice(0, 2).map((tag) => `hook:${tag.replace(':', '-')}`),
+      ]),
+      culturalMarkers: uniqueSorted(baseCulturalMarkers),
+    })
+  }
+
+  return {
+    packetId: `${civilization.id}:locals:${input.week}:${input.seed}`,
+    parentCivilizationId: civilization.id,
+    seed: input.seed,
+    week: input.week,
+    entities: entities
+      .slice(0, maxEntities)
+      .sort((left, right) => left.entityId.localeCompare(right.entityId)),
   }
 }

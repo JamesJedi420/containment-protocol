@@ -14,6 +14,7 @@ import {
   deriveCivilizationAccessPacket,
   deriveCivilizationAccessDifferential,
   deriveCivilizationEvolutionPacket,
+  deriveCivilizationLocalEntities,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -748,5 +749,65 @@ describe('deriveCivilizationEvolutionPacket', () => {
     expect(packet.significantChange).toBe(true)
     expect(packet.dominantDriver).toBe('radicalization_pressure')
     expect(packet.resultingPhase).toBe('radicalizing')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 7: local institution/faction derivation from parent actors
+// ---------------------------------------------------------------------------
+
+describe('deriveCivilizationLocalEntities', () => {
+  it('derives local institutions tied to a parent civilization', () => {
+    const parent = classifyCivilization('metropolitan_authority')!
+    const packet = deriveCivilizationLocalEntities(parent, { seed: 901, week: 14 })
+
+    expect(packet.parentCivilizationId).toBe(parent.id)
+    expect(packet.packetId).toBe('metropolitan_authority:locals:14:901')
+    expect(packet.entities.length).toBeGreaterThan(0)
+    expect(packet.entities.every((entity) => entity.parentCivilizationId === parent.id)).toBe(true)
+    expect(packet.entities.some((entity) => entity.entityType === 'institution')).toBe(true)
+  })
+
+  it('is repeatable for identical seed/week input', () => {
+    const parent = classifyCivilization('civic_medical_trust')!
+    const a = deriveCivilizationLocalEntities(parent, { seed: 33, week: 8 })
+    const b = deriveCivilizationLocalEntities(parent, { seed: 33, week: 8 })
+
+    expect(a).toEqual(b)
+  })
+
+  it('shows meaningful variation across civilization categories', () => {
+    const medical = classifyCivilization('civic_medical_trust')!
+    const occult = classifyCivilization('hidden_covenant')!
+
+    const medPacket = deriveCivilizationLocalEntities(medical, { seed: 100, week: 22 })
+    const occPacket = deriveCivilizationLocalEntities(occult, { seed: 100, week: 22 })
+
+    expect(medPacket.entities[0]?.institutionKind).not.toBe(occPacket.entities[0]?.institutionKind)
+    expect(medPacket.entities[0]?.culturalMarkers).not.toEqual(occPacket.entities[0]?.culturalMarkers)
+    expect(medPacket.entities[0]?.roleTags).not.toEqual(occPacket.entities[0]?.roleTags)
+  })
+
+  it('reflects pressured boundary state in conflict hooks', () => {
+    const parent = classifyCivilization('gray_market_collective')!
+    const baseState = createCivilizationState({
+      civilizationId: parent.id,
+      diplomaticBaseline: parent.diplomaticBaseline,
+    })
+    const pressuredState = accumulateCivilizationMemory(baseState, [
+      { eventId: 'loc-1', week: 2, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'loc-2', week: 3, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    const neutral = deriveCivilizationLocalEntities(parent, { seed: 42, week: 9 }, baseState)
+    const pressured = deriveCivilizationLocalEntities(parent, { seed: 42, week: 9 }, pressuredState)
+
+    expect(pressuredState.cooperationBand).toBe('opposed')
+    expect(
+      neutral.entities.some((entity) => entity.conflictHooks.includes('hook:cooperation-opposed'))
+    ).toBe(false)
+    expect(
+      pressured.entities.some((entity) => entity.conflictHooks.includes('hook:cooperation-opposed'))
+    ).toBe(true)
   })
 })

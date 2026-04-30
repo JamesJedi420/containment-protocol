@@ -7,6 +7,7 @@ import {
   generateAmbientCases,
 } from '../domain/caseGeneration'
 import { createSeededRng } from '../domain/math'
+import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 
 describe('caseGeneration', () => {
   it('builds a readable encounter profile for seeded starter cases', () => {
@@ -1016,5 +1017,102 @@ describe('caseGeneration', () => {
     expect(roleReason).toContain('active_hunt')
     expect(socialReason).toContain('rapid_lockdown')
     expect(socialReason).toContain('escalating_activity')
+  })
+
+
+  describe('SPE-539: neighborhood pressure integration', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]!
+
+    function makeNeighborhoodState() {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = 40
+      state.agency = {
+        containmentRating: 40,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+        },
+      }
+      state.templates = {
+        'ambient-hazmat': {
+          ...templateBase,
+          templateId: 'ambient-hazmat',
+          title: 'Ambient Hazmat Incident',
+          kind: 'case',
+          tags: ['biological', 'hazmat', 'public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      // Single district named 'docks' so selectedDistrictId is always 'docks'.
+      state.districtScheduleState = {
+        settlementId: 'spe-539-test-settlement',
+        districts: {
+          docks: {
+            id: 'docks',
+            label: 'Harbor Docks',
+            encounterFamilyTags: ['biological', 'hazmat'],
+            escalationModifiers: { stage_delta: 0.2 },
+            authorityResponseProfile: 'slow_reaction',
+          },
+        },
+        timeBands: {
+          day: {
+            id: 'day',
+            label: 'Day',
+            baselinePopulation: 400,
+            witnessModifier: 0.7,
+            visibilityModifier: 0.8,
+            covertAdvantage: false,
+          },
+        },
+        events: [],
+      }
+      return state
+    }
+
+    it('stamps neighborhood-pressure tag and appends reason fragment when local incidents are active', () => {
+      const state = makeNeighborhoodState()
+      // Week 1 with cadence=1 guarantees the packet occurs at week 1.
+      const packet = createNeighborhoodIncidentPacket({
+        incidentId: 'docks-spill-1',
+        districtId: 'docks',
+        blockId: 'pier-3',
+        seedKey: 'spe-539-integ-active',
+        sourceKind: 'decorative_biohazard',
+        sourceLabel: 'Spore cloud from rooftop garden',
+        baseCadenceWeeks: 1,
+        baseSeverity: 0.8,
+      })
+
+      const result = generateAmbientCases(state, createSeededRng(5539).next, {
+        neighborhoodPackets: [packet],
+      })
+
+      const worldCase = result.spawnedCases.find((c) => c.trigger === 'world_activity')
+      expect(worldCase).toBeDefined()
+      const spawnedCase = result.state.cases[result.spawnedCaseIds[0]!]
+      expect(spawnedCase?.tags).toContain('neighborhood-pressure:docks')
+      expect(worldCase?.sourceReason).toContain('neighborhood-pressure district:docks')
+    })
+
+    it('does not stamp neighborhood-pressure tag when no neighborhood packets are provided', () => {
+      const state = makeNeighborhoodState()
+
+      const result = generateAmbientCases(state, createSeededRng(5540).next)
+
+      const spawnedCase = result.state.cases[result.spawnedCaseIds[0]!]
+      const hasPressureTag = spawnedCase?.tags.some((t) => t.startsWith('neighborhood-pressure:'))
+      expect(hasPressureTag ?? false).toBe(false)
+    })
   })
 })

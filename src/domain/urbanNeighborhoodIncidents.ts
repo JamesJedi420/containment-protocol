@@ -238,3 +238,33 @@ export function applyNeighborhoodMitigation(
     },
   }
 }
+
+export interface DistrictLocalPressureResult {
+  pressureBoost: number
+  activeIncidents: string[]
+  reasonFragment: string
+}
+
+/**
+ * Aggregates active neighborhood incident severity for a single district.
+ * Purely local: only packets matching districtId are considered.
+ * No cross-site propagation, no citywide aggregation.
+ */
+export function aggregateDistrictLocalPressure(
+  packets: readonly NeighborhoodIncidentPacket[],
+  districtId: string,
+  week: number
+): DistrictLocalPressureResult {
+  const localPackets = packets.filter((p) => p.districtId === districtId)
+  const recurrences = localPackets.map((p) => resolveNeighborhoodIncidentRecurrence(p, week))
+  const activeRecurrences = recurrences.filter((r) => r.occurred)
+  const rawSeverity = activeRecurrences.reduce((sum, r) => sum + r.severity, 0)
+  const pressureBoost = clamp(rawSeverity * 0.2, 0, 0.5)
+  const activeIncidents = activeRecurrences.map((r) => r.incidentId)
+  const reasonFragment =
+    activeIncidents.length > 0
+      ? `neighborhood-pressure district:${districtId} active:${activeIncidents.length} boost:${pressureBoost.toFixed(3)}`
+      : `neighborhood-pressure district:${districtId} quiescent`
+
+  return { pressureBoost, activeIncidents, reasonFragment }
+}

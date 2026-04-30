@@ -29,6 +29,10 @@ import {
 } from './campaignEraProfiles'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './sim/spawn'
 import { starterCaseSeeds } from './templates/startingCases'
+import {
+  aggregateDistrictLocalPressure,
+  type NeighborhoodIncidentPacket,
+} from './urbanNeighborhoodIncidents'
 
 export type EncounterType =
   | 'haunting'
@@ -462,7 +466,10 @@ function createSpawnRecord(
 
 export function generateAmbientCases(
   state: GameState,
-  rng: () => number
+  rng: () => number,
+  context?: {
+    neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
+  }
 ): {
   state: GameState
   spawnedCaseIds: string[]
@@ -523,6 +530,8 @@ export function generateAmbientCases(
     scheduleWitnessBand?: 'high' | 'low' | 'normal'
     appliedScheduleEvents?: string[]
     reason: string
+    neighborhoodPressureDistrictId?: string
+    neighborhoodPressureBoost?: number
   }> = []
 
   if (topSupportiveFaction) {
@@ -735,8 +744,17 @@ export function generateAmbientCases(
             : 'normal'
         : undefined
 
+      // SPE-539 slice-2: aggregate local pressure only for the selected district.
+      const neighborhoodPressure =
+        selectedDistrictId && context?.neighborhoodPackets && context.neighborhoodPackets.length > 0
+          ? aggregateDistrictLocalPressure(context.neighborhoodPackets, selectedDistrictId, state.week)
+          : undefined
+      const neighborhoodPriorityBonus = neighborhoodPressure
+        ? Math.round(neighborhoodPressure.pressureBoost * 10)
+        : 0
+
       spawnPlans.push({
-        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4,
+        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4 + neighborhoodPriorityBonus,
         trigger: 'world_activity',
         template: worldTemplate,
         districtId: selectedDistrictId,
@@ -744,6 +762,11 @@ export function generateAmbientCases(
         scheduleCovertAdvantage: scheduleContext?.traffic.covertAdvantage,
         scheduleWitnessBand: witnessBand,
         appliedScheduleEvents: scheduleContext?.traffic.appliedEvents ?? [],
+        neighborhoodPressureDistrictId:
+          neighborhoodPressure && neighborhoodPressure.pressureBoost > 0
+            ? selectedDistrictId
+            : undefined,
+        neighborhoodPressureBoost: neighborhoodPressure?.pressureBoost,
         reason:
           buildWorldActivityReason(worldTemplate, state) +
           (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : '') +
@@ -755,6 +778,9 @@ export function generateAmbientCases(
                 truthProfile: truthProfileId,
                 eraSuppressionCount: eraOverlay.suppressedInteractionSurfaces.length + eraOverlay.powerAvailability.suppressed.length,
               })}.`
+            : '') +
+          (neighborhoodPressure && neighborhoodPressure.pressureBoost > 0
+            ? ` Neighborhood: ${neighborhoodPressure.reasonFragment}.`
             : ''),
       })
     }
@@ -783,6 +809,9 @@ export function generateAmbientCases(
               ...(plan.scheduleCovertAdvantage ? ['schedule:covert-advantage'] : []),
               ...(plan.scheduleWitnessBand ? [`schedule:witness-${plan.scheduleWitnessBand}`] : []),
               ...((plan.appliedScheduleEvents ?? []).map((eventId) => `schedule-event:${eventId}`)),
+              ...(plan.neighborhoodPressureDistrictId
+                ? [`neighborhood-pressure:${plan.neighborhoodPressureDistrictId}`]
+                : []),
             ],
           }
         : currentCase

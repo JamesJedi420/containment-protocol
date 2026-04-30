@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aggregateDistrictLocalPressure,
   applyNeighborhoodMitigation,
   createNeighborhoodIncidentPacket,
   resolveNeighborhoodIncidentRecurrence,
@@ -125,5 +126,88 @@ describe('urbanNeighborhoodIncidents', () => {
     expect(spillover.radiusBlocks).toBeLessThanOrEqual(1)
     expect(spillover.citywidePropagation).toBe(false)
     expect(spillover.crossSitePropagation).toBe(false)
+  })
+
+  it('aggregateDistrictLocalPressure returns zero boost and empty activeIncidents when no packets match the district', () => {
+    const packet = createNeighborhoodIncidentPacket({
+      incidentId: 'incident-other-district',
+      districtId: 'industrial',
+      blockId: 'forge-a',
+      seedKey: 'spe-539-agg-zero',
+      sourceKind: 'business_tool_misuse',
+      sourceLabel: 'Misuse in industrial district',
+      baseCadenceWeeks: 1,
+      baseSeverity: 0.8,
+    })
+
+    const result = aggregateDistrictLocalPressure([packet], 'residential', 2)
+
+    expect(result.pressureBoost).toBe(0)
+    expect(result.activeIncidents).toHaveLength(0)
+    expect(result.reasonFragment).toContain('residential')
+    expect(result.reasonFragment).toContain('quiescent')
+  })
+
+  it('aggregateDistrictLocalPressure returns positive boost and lists active incidentIds for the matching district', () => {
+    const packetA = createNeighborhoodIncidentPacket({
+      incidentId: 'incident-docks-a',
+      districtId: 'docks',
+      blockId: 'pier-1',
+      seedKey: 'spe-539-agg-active-a',
+      sourceKind: 'operator_tool_misuse',
+      sourceLabel: 'Operator misuse at pier',
+      baseCadenceWeeks: 2,
+      baseSeverity: 0.7,
+    })
+    const packetB = createNeighborhoodIncidentPacket({
+      incidentId: 'incident-docks-b',
+      districtId: 'docks',
+      blockId: 'pier-2',
+      seedKey: 'spe-539-agg-active-b',
+      sourceKind: 'business_tool_misuse',
+      sourceLabel: 'Business tool misuse at pier 2',
+      baseCadenceWeeks: 1,
+      baseSeverity: 0.65,
+    })
+
+    const result = aggregateDistrictLocalPressure([packetA, packetB], 'docks', 2)
+
+    expect(result.pressureBoost).toBeGreaterThan(0)
+    expect(result.pressureBoost).toBeLessThanOrEqual(0.5)
+    expect(result.activeIncidents).toContain('incident-docks-a')
+    expect(result.activeIncidents).toContain('incident-docks-b')
+    expect(result.reasonFragment).toContain('docks')
+    expect(result.reasonFragment).toContain('active:2')
+  })
+
+  it('aggregateDistrictLocalPressure filters cross-district packets and only counts local ones', () => {
+    const localPacket = createNeighborhoodIncidentPacket({
+      incidentId: 'incident-hub-local',
+      districtId: 'hub',
+      blockId: 'hub-central',
+      seedKey: 'spe-539-agg-filter-local',
+      sourceKind: 'decorative_biohazard',
+      sourceLabel: 'Local biohazard in hub',
+      baseCadenceWeeks: 1,
+      baseSeverity: 0.8,
+    })
+    const crossDistrictPacket = createNeighborhoodIncidentPacket({
+      incidentId: 'incident-docks-cross',
+      districtId: 'docks',
+      blockId: 'dock-far',
+      seedKey: 'spe-539-agg-filter-cross',
+      sourceKind: 'business_tool_misuse',
+      sourceLabel: 'Cross-district incident should be excluded',
+      baseCadenceWeeks: 1,
+      baseSeverity: 0.9,
+    })
+
+    const result = aggregateDistrictLocalPressure([localPacket, crossDistrictPacket], 'hub', 1)
+
+    expect(result.activeIncidents).toContain('incident-hub-local')
+    expect(result.activeIncidents).not.toContain('incident-docks-cross')
+    expect(result.pressureBoost).toBeGreaterThan(0)
+    const localOnly = aggregateDistrictLocalPressure([localPacket], 'hub', 1)
+    expect(result.pressureBoost).toBe(localOnly.pressureBoost)
   })
 })

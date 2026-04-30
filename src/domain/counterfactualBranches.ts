@@ -16,6 +16,12 @@ export type CounterfactualConsequenceSeverity = 'low' | 'medium' | 'high'
 export type SupportContinuityStatus = 'stable' | 'fragile' | 'failed'
 export type UnsyncedResponderMode = 'arrives_capable_unsynced' | 'operational_non_buy_in'
 export type UnsyncedResponderBuyIn = 'absent' | 'conditional'
+export type CounterfactualOptionAvailability =
+  | 'available'
+  | 'blocked'
+  | 'unknown'
+  | 'falsely_perceived'
+export type CounterfactualReviewSurface = 'responsibility' | 'retraining' | 'doctrine'
 export type FamiliarHostileRole =
   | 'hostile_enforcer'
   | 'curfew_broker'
@@ -67,6 +73,24 @@ export interface CounterfactualInvertedActorInput {
   summary: string
 }
 
+export interface CounterfactualOptionAuditEntryInput {
+  optionId: string
+  label: string
+  availability: CounterfactualOptionAvailability
+  summary: string
+  reviewSurfaces: readonly CounterfactualReviewSurface[]
+  blockerReason?: string
+  uncertaintyReason?: string
+  falsePerceptionSource?: string
+}
+
+export interface CounterfactualOptionAuditInput {
+  decisionMomentId: string
+  decisionMomentLabel: string
+  certaintyNote?: string
+  options: readonly CounterfactualOptionAuditEntryInput[]
+}
+
 export interface CounterfactualBranchAuthoringInput {
   removedActor: CounterfactualRemovedActorInput
   trigger: CounterfactualBranchTriggerInput
@@ -74,6 +98,7 @@ export interface CounterfactualBranchAuthoringInput {
   supportContinuity: CounterfactualSupportContinuityInput
   unsyncedResponder: CounterfactualUnsyncedResponderInput
   invertedFamiliarActors: readonly CounterfactualInvertedActorInput[]
+  optionAudit?: CounterfactualOptionAuditInput
 }
 
 export interface CounterfactualBranchIdentity {
@@ -125,6 +150,27 @@ export interface CounterfactualInvertedActor {
   summary: string
 }
 
+export interface CounterfactualOptionAuditEntry {
+  optionId: string
+  label: string
+  availability: CounterfactualOptionAvailability
+  summary: string
+  reviewSurfaces: CounterfactualReviewSurface[]
+  blockerReason?: string
+  uncertaintyReason?: string
+  falsePerceptionSource?: string
+}
+
+export interface CounterfactualOptionAudit {
+  reviewFrame: 'bounded_counterfactual_branch_review'
+  decisionMomentId: string
+  decisionMomentLabel: string
+  certaintyNote: string
+  options: CounterfactualOptionAuditEntry[]
+  counts: Record<CounterfactualOptionAvailability, number>
+  surfaceSignals: Record<CounterfactualReviewSurface, string[]>
+}
+
 export interface CounterfactualBranchPacket {
   identity: CounterfactualBranchIdentity
   removedActor: CounterfactualRemovedActor
@@ -136,6 +182,7 @@ export interface CounterfactualBranchPacket {
   supportContinuity: CounterfactualSupportContinuityState
   unsyncedResponder: CounterfactualUnsyncedResponderState
   invertedFamiliarActors: CounterfactualInvertedActor[]
+  optionAudit?: CounterfactualOptionAudit
 }
 
 export interface CounterfactualBranchWorldRemap {
@@ -143,6 +190,21 @@ export interface CounterfactualBranchWorldRemap {
   worldZones: WorldRemapZone[]
   actionableSignals: string[]
   supportContinuityStatus: SupportContinuityStatus
+}
+
+export interface CounterfactualBranchReviewSummary {
+  branchId: string
+  reviewFrame: 'bounded_counterfactual_branch_review'
+  decisionMomentLabel: string
+  certaintyNote: string
+  optionCounts: Record<CounterfactualOptionAvailability, number>
+  availableAlternatives: string[]
+  blockedAlternatives: string[]
+  unknownAlternatives: string[]
+  falselyPerceivedAlternatives: string[]
+  responsibilitySignals: string[]
+  retrainingSignals: string[]
+  doctrineSignals: string[]
 }
 
 function normalizeString(value: string | undefined | null) {
@@ -177,6 +239,23 @@ function getSeverityWeight(severity: CounterfactualConsequenceSeverity) {
     case 'low':
     default:
       return 0.74
+  }
+}
+
+function createEmptyOptionCounts(): Record<CounterfactualOptionAvailability, number> {
+  return {
+    available: 0,
+    blocked: 0,
+    unknown: 0,
+    falsely_perceived: 0,
+  }
+}
+
+function createEmptySurfaceSignals(): Record<CounterfactualReviewSurface, string[]> {
+  return {
+    responsibility: [],
+    retraining: [],
+    doctrine: [],
   }
 }
 
@@ -252,6 +331,82 @@ function buildSupportContinuityState(
   }
 }
 
+function buildOptionAudit(
+  input: CounterfactualOptionAuditInput,
+  branchId: string
+): CounterfactualOptionAudit {
+  const options = sortById(
+    input.options.map((option) => ({
+      optionId: normalizeString(option.optionId),
+      label: normalizeString(option.label),
+      availability: option.availability,
+      summary: normalizeString(option.summary),
+      reviewSurfaces: uniqueSorted(option.reviewSurfaces).filter(
+        (surface): surface is CounterfactualReviewSurface =>
+          surface === 'responsibility' || surface === 'retraining' || surface === 'doctrine'
+      ),
+      ...(normalizeString(option.blockerReason)
+        ? { blockerReason: normalizeString(option.blockerReason) }
+        : {}),
+      ...(normalizeString(option.uncertaintyReason)
+        ? { uncertaintyReason: normalizeString(option.uncertaintyReason) }
+        : {}),
+      ...(normalizeString(option.falsePerceptionSource)
+        ? { falsePerceptionSource: normalizeString(option.falsePerceptionSource) }
+        : {}),
+    })),
+    'optionId'
+  )
+
+  const counts = createEmptyOptionCounts()
+  const surfaceSignals = createEmptySurfaceSignals()
+
+  for (const option of options) {
+    counts[option.availability] += 1
+
+    for (const surface of option.reviewSurfaces) {
+      switch (option.availability) {
+        case 'available':
+          surfaceSignals[surface].push(
+            `${option.label} remained available at ${input.decisionMomentLabel}.`
+          )
+          break
+        case 'blocked':
+          surfaceSignals[surface].push(
+            `${option.label} was blocked${option.blockerReason ? `: ${option.blockerReason}` : '.'}`
+          )
+          break
+        case 'unknown':
+          surfaceSignals[surface].push(
+            `${option.label} remained unknown at review time${option.uncertaintyReason ? `: ${option.uncertaintyReason}` : '.'}`
+          )
+          break
+        case 'falsely_perceived':
+          surfaceSignals[surface].push(
+            `${option.label} was falsely perceived as viable${option.falsePerceptionSource ? `: ${option.falsePerceptionSource}` : '.'}`
+          )
+          break
+      }
+    }
+  }
+
+  return {
+    reviewFrame: 'bounded_counterfactual_branch_review',
+    decisionMomentId: `${branchId}:review:${slugify(input.decisionMomentId)}`,
+    decisionMomentLabel: normalizeString(input.decisionMomentLabel),
+    certaintyNote:
+      normalizeString(input.certaintyNote) ||
+      'Bounded counterfactual review from authored branch inputs; does not assert omniscient rewind truth.',
+    options,
+    counts,
+    surfaceSignals: {
+      responsibility: uniqueSorted(surfaceSignals.responsibility),
+      retraining: uniqueSorted(surfaceSignals.retraining),
+      doctrine: uniqueSorted(surfaceSignals.doctrine),
+    },
+  }
+}
+
 export function deriveCounterfactualBranchFromRemoval(
   input: CounterfactualBranchAuthoringInput
 ): CounterfactualBranchPacket {
@@ -318,6 +473,11 @@ export function deriveCounterfactualBranchFromRemoval(
       summary: normalizeString(input.unsyncedResponder.summary),
     },
     invertedFamiliarActors,
+    ...(input.optionAudit
+      ? {
+          optionAudit: buildOptionAudit(input.optionAudit, branchId),
+        }
+      : {}),
   }
 }
 
@@ -359,5 +519,36 @@ export function projectCounterfactualBranchWorldRemap(
     worldZones,
     actionableSignals,
     supportContinuityStatus: branch.supportContinuity.status,
+  }
+}
+
+export function projectCounterfactualBranchReviewSummary(
+  branch: CounterfactualBranchPacket
+): CounterfactualBranchReviewSummary | null {
+  if (!branch.optionAudit) {
+    return null
+  }
+
+  return {
+    branchId: branch.identity.branchId,
+    reviewFrame: branch.optionAudit.reviewFrame,
+    decisionMomentLabel: branch.optionAudit.decisionMomentLabel,
+    certaintyNote: branch.optionAudit.certaintyNote,
+    optionCounts: { ...branch.optionAudit.counts },
+    availableAlternatives: branch.optionAudit.options
+      .filter((option) => option.availability === 'available')
+      .map((option) => option.label),
+    blockedAlternatives: branch.optionAudit.options
+      .filter((option) => option.availability === 'blocked')
+      .map((option) => option.label),
+    unknownAlternatives: branch.optionAudit.options
+      .filter((option) => option.availability === 'unknown')
+      .map((option) => option.label),
+    falselyPerceivedAlternatives: branch.optionAudit.options
+      .filter((option) => option.availability === 'falsely_perceived')
+      .map((option) => option.label),
+    responsibilitySignals: [...branch.optionAudit.surfaceSignals.responsibility],
+    retrainingSignals: [...branch.optionAudit.surfaceSignals.retraining],
+    doctrineSignals: [...branch.optionAudit.surfaceSignals.doctrine],
   }
 }

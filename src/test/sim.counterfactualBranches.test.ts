@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   deriveCounterfactualBranchFromRemoval,
+  projectCounterfactualBranchReviewSummary,
   projectCounterfactualBranchWorldRemap,
   type CounterfactualBranchAuthoringInput,
 } from '../domain/counterfactualBranches'
@@ -78,6 +79,43 @@ function makeAuthoringInput(): CounterfactualBranchAuthoringInput {
         summary: 'Casey now brokers rationed treatment through curfew checkpoints.',
       },
     ],
+    optionAudit: {
+      decisionMomentId: 'rivergate-failure-window',
+      decisionMomentLabel: 'Rivergate failure window',
+      options: [
+        {
+          optionId: 'alt-civilian-evac',
+          label: 'Civilian evacuation corridor',
+          availability: 'available',
+          summary: 'A local civilian corridor remained open long enough for a partial evacuation.',
+          reviewSurfaces: ['responsibility', 'doctrine'],
+        },
+        {
+          optionId: 'alt-medical-relay',
+          label: 'Medical relay fallback',
+          availability: 'blocked',
+          summary: 'The fallback medical relay could not be reactivated once escort continuity failed.',
+          reviewSurfaces: ['responsibility', 'retraining'],
+          blockerReason: 'Escort continuity collapsed before the relay handoff could occur.',
+        },
+        {
+          optionId: 'alt-basement-egress',
+          label: 'Basement egress route',
+          availability: 'unknown',
+          summary: 'Review cannot confirm whether the basement route was still traversable.',
+          reviewSurfaces: ['doctrine'],
+          uncertaintyReason: 'Sensor coverage failed before route confirmation.',
+        },
+        {
+          optionId: 'alt-safehouse-rumor',
+          label: 'Rumored safehouse pickup',
+          availability: 'falsely_perceived',
+          summary: 'A rumored safehouse pickup looked viable but was never real in this branch review.',
+          reviewSurfaces: ['retraining', 'doctrine'],
+          falsePerceptionSource: 'Witness traffic repeated a stale coordination rumor as live support.',
+        },
+      ],
+    },
   }
 }
 
@@ -126,6 +164,12 @@ describe('counterfactualBranches', () => {
         summary: 'Casey now brokers rationed treatment through curfew checkpoints.',
       },
     ])
+    expect(branch.optionAudit?.counts).toEqual({
+      available: 1,
+      blocked: 1,
+      unknown: 1,
+      falsely_perceived: 1,
+    })
   })
 
   it('projects a narrow world-remap surface from the branch without touching map-core ownership', () => {
@@ -151,6 +195,38 @@ describe('counterfactualBranches', () => {
     )
   })
 
+  it('keeps blocked, unknown, and falsely perceived alternatives distinct in branch review output', () => {
+    const review = projectCounterfactualBranchReviewSummary(
+      deriveCounterfactualBranchFromRemoval(makeAuthoringInput())
+    )
+
+    expect(review).not.toBeNull()
+    expect(review?.availableAlternatives).toEqual(['Civilian evacuation corridor'])
+    expect(review?.blockedAlternatives).toEqual(['Medical relay fallback'])
+    expect(review?.unknownAlternatives).toEqual(['Basement egress route'])
+    expect(review?.falselyPerceivedAlternatives).toEqual(['Rumored safehouse pickup'])
+  })
+
+  it('produces responsibility-sensitive review signals without claiming omniscient rewind truth', () => {
+    const review = projectCounterfactualBranchReviewSummary(
+      deriveCounterfactualBranchFromRemoval(makeAuthoringInput())
+    )
+
+    expect(review?.certaintyNote).toContain('does not assert omniscient rewind truth')
+    expect(review?.responsibilitySignals).toContain(
+      'Civilian evacuation corridor remained available at Rivergate failure window.'
+    )
+    expect(review?.responsibilitySignals).toContain(
+      'Medical relay fallback was blocked: Escort continuity collapsed before the relay handoff could occur.'
+    )
+    expect(review?.retrainingSignals).toContain(
+      'Rumored safehouse pickup was falsely perceived as viable: Witness traffic repeated a stale coordination rumor as live support.'
+    )
+    expect(review?.doctrineSignals).toContain(
+      'Basement egress route remained unknown at review time: Sensor coverage failed before route confirmation.'
+    )
+  })
+
   it('remains repeatable for identical authored inputs', () => {
     const firstInput = makeAuthoringInput()
     const secondInput = makeAuthoringInput()
@@ -160,6 +236,9 @@ describe('counterfactualBranches', () => {
     expect(secondBranch).toEqual(firstBranch)
     expect(projectCounterfactualBranchWorldRemap(secondBranch)).toEqual(
       projectCounterfactualBranchWorldRemap(firstBranch)
+    )
+    expect(projectCounterfactualBranchReviewSummary(secondBranch)).toEqual(
+      projectCounterfactualBranchReviewSummary(firstBranch)
     )
   })
 })

@@ -9,6 +9,24 @@ import {
   getFactionSupportiveMissionTags,
 } from './factions'
 import { getScheduleSnapshot } from './districtSchedule'
+import {
+  buildUrbanEncounterSignal,
+  type UrbanEncounterSignal,
+} from './urbanEncounterSignals'
+import {
+  createCompactRegionPacket,
+  deriveRegionEcologyProfiles,
+  surfaceThreatHabitatHints,
+} from './regionPackets'
+import { buildSimulationMapInterface } from './simulationMapInterface'
+import {
+  deriveTruthProfilePressureSurface,
+  type TruthProfileId,
+} from './folkloreTruthProfiles'
+import {
+  createCampaignEraProfilePacket,
+  deriveCampaignEraOverlay,
+} from './campaignEraProfiles'
 import { instantiateFromTemplate, type SpawnedCaseRecord } from './sim/spawn'
 import { starterCaseSeeds } from './templates/startingCases'
 
@@ -114,6 +132,56 @@ function countMatchingTags(tagSet: Set<string>, tags: readonly string[]) {
   return tags.filter((tag) => tagSet.has(tag)).length
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Number(value.toFixed(3))))
+}
+
+function uniqueSorted(values: readonly string[]) {
+  return Array.from(new Set(values.filter(Boolean))).sort((left, right) => left.localeCompare(right))
+}
+
+function toDistrictEcologyToken(districtId: string) {
+  const normalized = districtId.toLowerCase()
+  if (normalized.includes('dock')) return 'district:old-docks'
+  if (normalized.includes('cemetery') || normalized.includes('grave')) return 'district:cemetery-belt'
+  if (normalized.includes('quarry')) return 'district:quarry-belt'
+  if (normalized.includes('flood') || normalized.includes('river')) return 'district:floodplain'
+  if (normalized.includes('mall')) return 'district:dead-mall'
+  return ''
+}
+
+function inferTruthProfileIdFromState(state: GameState): TruthProfileId {
+  if (state.containmentRating <= 38 || state.globalThreatDrift !== undefined && state.globalThreatDrift >= 3) {
+    return 'active_folklore'
+  }
+
+  if (
+    state.market.pressure === 'tight' ||
+    state.containmentRating <= 60 ||
+    state.clearanceLevel >= 2
+  ) {
+    return 'veiled_intrusion'
+  }
+
+  return 'skeptical_modern'
+}
+
+function buildUrbanContextSourceFragment(input: {
+  ecologyTokens: readonly string[]
+  mapState?: string
+  truthProfile: TruthProfileId
+  eraSuppressionCount: number
+}) {
+  const ecologyFragment =
+    input.ecologyTokens.length > 0 ? `ecology ${input.ecologyTokens.join(', ')}` : 'ecology baseline'
+  const mapFragment = input.mapState ? `map ${input.mapState}` : 'map default'
+  const eraFragment =
+    input.eraSuppressionCount > 0
+      ? `era suppression x${input.eraSuppressionCount}`
+      : 'era unrestricted'
+  return `${ecologyFragment}; ${mapFragment}; truth ${input.truthProfile}; ${eraFragment}`
+}
+
 function isAmbientEligibleTemplate(template: CaseTemplate) {
   return !template.templateId.startsWith('followup_') && template.kind === 'case'
 }
@@ -186,7 +254,8 @@ function getWorldTemplateWeight(template: CaseTemplate, game: GameState) {
  */
 function getDistrictScheduleWeightBonus(
   template: CaseTemplate,
-  scheduleContext: NonNullable<ReturnType<typeof getScheduleSnapshot>>
+  scheduleContext: NonNullable<ReturnType<typeof getScheduleSnapshot>>,
+  urbanSignal?: UrbanEncounterSignal
 ): number {
   const tagSet = getCaseTagSet(template)
   const familyMatches = countMatchingTags(tagSet, scheduleContext.context.encounterFamilyTags)
@@ -210,7 +279,47 @@ function getDistrictScheduleWeightBonus(
     weightBonus += 0.25 * scheduleContext.traffic.appliedEvents.length
   }
 
+  if (urbanSignal) {
+    const authorityTags = ['authority', 'inspection', 'patrol', 'enforcement', 'checkpoint']
+    const criminalTags = ['criminal', 'smuggling', 'gang', 'black_market']
+    const occultTags = ['occult', 'cult', 'ritual', 'anomaly', 'haunt']
+    const civilianTags = ['public', 'civilian', 'witness', 'market', 'crowd']
+    const specialistTags = ['signal', 'infrastructure', 'classified', 'technical', 'scholar']
+    const eliteTags = ['noble', 'elite', 'court', 'manor', 'academy']
+    const streetTags = ['slum', 'dock', 'alley', 'backstreet', 'undercity']
+
+    const roleWeightContribution =
+      (countMatchingTags(tagSet, authorityTags) > 0 ? urbanSignal.roleWeights.authority - 1 : 0) +
+      (countMatchingTags(tagSet, criminalTags) > 0 ? urbanSignal.roleWeights.criminal - 1 : 0) +
+      (countMatchingTags(tagSet, occultTags) > 0 ? urbanSignal.roleWeights.occult - 1 : 0) +
+      (countMatchingTags(tagSet, civilianTags) > 0 ? urbanSignal.roleWeights.civilian - 1 : 0) +
+      (countMatchingTags(tagSet, specialistTags) > 0 ? urbanSignal.roleWeights.specialist - 1 : 0)
+
+    const socialTierContribution =
+      (countMatchingTags(tagSet, eliteTags) > 0 ? urbanSignal.socialTierWeights.elite - 1 : 0) +
+      (countMatchingTags(tagSet, streetTags) > 0 ? urbanSignal.socialTierWeights.street - 1 : 0)
+
+    const scalarBlend =
+      (urbanSignal.weightModifiers.roleAxis - 1) * 0.35 +
+      (urbanSignal.weightModifiers.socialTierAxis - 1) * 0.2 +
+      (urbanSignal.weightModifiers.authorityResponse - 1) * 0.15 +
+      (urbanSignal.weightModifiers.hostileResponse - 1) * 0.15 +
+      (urbanSignal.weightModifiers.noncombatBias - 1) * 0.1 +
+      (urbanSignal.weightModifiers.districtIdentity - 1) * 0.05
+
+    const urbanBlend = clamp(1 + roleWeightContribution * 0.3 + socialTierContribution * 0.25 + scalarBlend, 0.8, 2)
+    weightBonus *= urbanBlend
+  }
+
   return weightBonus
+}
+
+function buildUrbanSignalReasonFragment(urbanSignal: UrbanEncounterSignal) {
+  const branches = urbanSignal.escalationHints.likelyBranches.slice(0, 2)
+  const branchFragment = branches.length > 0 ? `; branches ${branches.join(', ')}` : ''
+  const roleAxis = urbanSignal.weightModifiers.roleAxis.toFixed(3)
+  const socialAxis = urbanSignal.weightModifiers.socialTierAxis.toFixed(3)
+  return `urban signal ${urbanSignal.escalationHints.authorityResponseHint}/${urbanSignal.escalationHints.hostileResponseHint} (${urbanSignal.escalationHints.socialEscalationRisk} social risk; role-axis ${roleAxis}; social-axis ${socialAxis}${branchFragment})`
 }
 
 function buildScheduleReasonFragment(
@@ -494,12 +603,124 @@ export function generateAmbientCases(
       schedule && selectedDistrictId && selectedTimeBandId
         ? getScheduleSnapshot(schedule, selectedDistrictId, selectedTimeBandId, state.week, state.rngState)
         : null
+    const simulationMap = buildSimulationMapInterface(state)
+    const districtEcologyToken = scheduleContext
+      ? toDistrictEcologyToken(scheduleContext.context.districtId)
+      : ''
+    const ecologyTokens = uniqueSorted([
+      ...(districtEcologyToken ? [districtEcologyToken] : []),
+      ...(scheduleContext ? [`district:${scheduleContext.context.districtId}`] : []),
+    ])
+    const ecologyPacket = createCompactRegionPacket({
+      regionId: `region:auto:${scheduleContext?.context.districtId ?? 'unknown'}`,
+      label: `Auto region for ${scheduleContext?.context.districtId ?? 'unknown'}`,
+      factions: [],
+      externalPressure: {
+        actorId: 'pressure:auto',
+        label: 'Auto pressure',
+        pressureType: 'subversion',
+        severity: 'low',
+        targetFactionIds: [],
+      },
+      supraFactionOrder: {
+        orderId: 'order:auto',
+        label: 'Auto order',
+        doctrine: 'civil_protection',
+        memberFactionIds: [],
+      },
+      keyNpcs: [],
+      threatPool: Object.values(state.cases)
+        .filter((currentCase) => currentCase.status !== 'resolved')
+        .slice(0, 4)
+        .map((currentCase, index) => ({
+          threatId: `threat:auto:${index}`,
+          label: currentCase.title,
+          category: matchesAnyTag(new Set(currentCase.tags), ['cult', 'ritual'])
+            ? 'cult'
+            : matchesAnyTag(new Set(currentCase.tags), ['cryptid', 'beast', 'vampire'])
+              ? 'cryptid'
+              : 'anomalous_hazard',
+          districtTokens: [...ecologyTokens],
+        })),
+      objectives: [],
+      districtEcologyTokens: ecologyTokens,
+      ecologyZones: scheduleContext
+        ? [{
+            zoneId: `zone:auto:${scheduleContext.context.districtId}`,
+            label: `${scheduleContext.context.districtId} zone`,
+            ecologyTokens,
+          }]
+        : [],
+    })
+    const ecologyProfiles = deriveRegionEcologyProfiles(ecologyPacket)
+    const threatHabitatHints = surfaceThreatHabitatHints(ecologyPacket)
+      .flatMap((surface) => surface.habitatHints)
+    const mapState = simulationMap.routeState.dominantWorldState
+    const truthProfileId = inferTruthProfileIdFromState(state)
+    const truthPressureSurface = deriveTruthProfilePressureSurface(truthProfileId)
+    const eraOverlay = deriveCampaignEraOverlay(
+      createCampaignEraProfilePacket({
+        profileId: `auto-era-${state.market.pressure}`,
+        label: 'Auto era surface',
+        eraLayers: state.market.pressure === 'tight' ? ['colonial', 'renaissance'] : ['medieval'],
+        allowedRoles: ['officer', 'scholar', 'forester'],
+        suppressedRoles: state.market.pressure === 'tight' ? ['bard'] : [],
+        availableEquipmentCategories: state.market.pressure === 'tight'
+          ? ['blackpowder', 'field_medicine']
+          : ['plate_armor', 'ritual_implements'],
+        suppressedEquipmentCategories: state.market.pressure === 'tight' ? ['printing_press'] : [],
+        enabledPowerFamilies: state.clearanceLevel >= 2 ? ['alchemy', 'folk_rite', 'miracle'] : ['folk_rite'],
+        suppressedPowerFamilies: state.market.pressure === 'tight' ? ['arcane'] : [],
+        moneyModel: state.market.pressure === 'tight' ? 'mercantile_credit' : 'coinage',
+        prevalentMonsterFamilies: ['urban_anomaly'],
+        settlementStyleHints: ['fortified_market_town'],
+        suppressedInteractionSurfaces: state.market.pressure === 'tight'
+          ? ['wizard_colleges']
+          : [],
+      })
+    )
+    const urbanSignal = scheduleContext
+      ? buildUrbanEncounterSignal({
+          schedule: {
+            districtId: scheduleContext.context.districtId,
+            timeBandId: scheduleContext.context.timeBandId,
+            encounterFamilyTags: scheduleContext.context.encounterFamilyTags,
+            authorityResponseProfile: scheduleContext.context.authorityResponseProfile,
+            witnessModifier: scheduleContext.traffic.witnessModifier,
+            covertAdvantage: scheduleContext.traffic.covertAdvantage,
+            appliedEvents: scheduleContext.traffic.appliedEvents,
+          },
+          ecology: {
+            districtEcologyTokens: ecologyTokens,
+            operationalModifierHints: ecologyProfiles.flatMap((profile) => profile.operationalModifierHints),
+            threatHabitatHints,
+          },
+          map: {
+            dominantWorldState: simulationMap.routeState.dominantWorldState,
+            safeHubContinuity: simulationMap.routeState.safeHubContinuity,
+            actionableSignals: simulationMap.actionableSignals,
+          },
+          truth: {
+            anomalyEncounterPressure: truthPressureSurface.anomalyEncounterPressure,
+            witnessReliability: truthPressureSurface.witnessReliability,
+            institutionalResponsePosture: truthPressureSurface.institutionalResponsePosture,
+            publicLegibility: truthPressureSurface.publicLegibility,
+          },
+          era: {
+            mixedEra: eraOverlay.mixedEra,
+            suppressedInteractionSurfaces: eraOverlay.suppressedInteractionSurfaces,
+            powerAvailability: eraOverlay.powerAvailability,
+          },
+        })
+      : undefined
 
     const worldTemplate = pickWeightedTemplate(
       eligibleTemplates,
       (template) => {
         const baseWeight = getWorldTemplateWeight(template, state)
-        const districtBonus = scheduleContext ? getDistrictScheduleWeightBonus(template, scheduleContext) : 1
+        const districtBonus = scheduleContext
+          ? getDistrictScheduleWeightBonus(template, scheduleContext, urbanSignal)
+          : 1
         return baseWeight * districtBonus
       },
       rng
@@ -525,7 +746,16 @@ export function generateAmbientCases(
         appliedScheduleEvents: scheduleContext?.traffic.appliedEvents ?? [],
         reason:
           buildWorldActivityReason(worldTemplate, state) +
-          (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : ''),
+          (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : '') +
+          (urbanSignal
+            ? ` Urban: ${buildUrbanSignalReasonFragment(urbanSignal)}.` +
+              ` Inputs: ${buildUrbanContextSourceFragment({
+                ecologyTokens,
+                mapState,
+                truthProfile: truthProfileId,
+                eraSuppressionCount: eraOverlay.suppressedInteractionSurfaces.length + eraOverlay.powerAvailability.suppressed.length,
+              })}.`
+            : ''),
       })
     }
   }

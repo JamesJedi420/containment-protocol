@@ -289,6 +289,40 @@ describe('caseGeneration', () => {
           status: 'open',
         },
       }
+      state.reports = [
+        {
+          week: 1,
+          rngStateBefore: 0,
+          rngStateAfter: 0,
+          newCases: [],
+          progressedCases: [],
+          resolvedCases: [],
+          failedCases: [],
+          partialCases: [],
+          unresolvedTriggers: ['a', 'b'],
+          spawnedCases: [],
+          maxStage: 1,
+          avgFatigue: 0,
+          teamStatus: [],
+          notes: [],
+        },
+        {
+          week: 2,
+          rngStateBefore: 0,
+          rngStateAfter: 0,
+          newCases: [],
+          progressedCases: [],
+          resolvedCases: [],
+          failedCases: [],
+          partialCases: [],
+          unresolvedTriggers: ['c', 'd'],
+          spawnedCases: [],
+          maxStage: 1,
+          avgFatigue: 0,
+          teamStatus: [],
+          notes: [],
+        },
+      ]
       state.templates = {
         'sched-cult': {
           ...templateBase,
@@ -412,5 +446,575 @@ describe('caseGeneration', () => {
     expect(cultResult.spawnedCases[0]?.sourceReason).toContain('Schedule:')
     expect(cultResult.spawnedCases[0]?.sourceReason).toContain('covert window active')
     expect(criminalResult.spawnedCases[0]?.sourceReason).toContain('high witness density')
+  })
+
+  it('SPE-139: wired urban signal changes weighted world-activity outputs across district contexts', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+
+    const makeState = (
+      districtScheduleState: NonNullable<ReturnType<typeof createStartingState>['districtScheduleState']>
+    ) => {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = 40
+      state.agency = {
+        containmentRating: 40,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+          tags: ['public', 'signal', 'infrastructure'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.templates = {
+        'urban-authority': {
+          ...templateBase,
+          templateId: 'urban-authority',
+          title: 'Authority Inspection Sweep',
+          kind: 'case',
+          tags: ['authority', 'inspection', 'public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+        'urban-criminal': {
+          ...templateBase,
+          templateId: 'urban-criminal',
+          title: 'Smuggling Relay Shadow',
+          kind: 'case',
+          tags: ['criminal_network', 'smuggling'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = districtScheduleState
+      return state
+    }
+
+    const authoritySchedule = {
+      settlementId: 'test-authority-context',
+      districts: {
+        civic: {
+          id: 'civic',
+          label: 'Civic Core',
+          encounterFamilyTags: ['public'],
+          escalationModifiers: { stage_delta: 0.1 },
+          authorityResponseProfile: 'rapid_response',
+        },
+      },
+      timeBands: {
+        day: {
+          id: 'day',
+          label: 'Day',
+          baselinePopulation: 500,
+          witnessModifier: 0.9,
+          visibilityModifier: 1,
+          covertAdvantage: false,
+        },
+      },
+      events: [],
+    }
+
+    const hostileSchedule = {
+      settlementId: 'test-hostile-context',
+      districts: {
+        shadow: {
+          id: 'shadow',
+          label: 'Shadow Belt',
+          encounterFamilyTags: ['public'],
+          escalationModifiers: { stage_delta: 0.3 },
+          authorityResponseProfile: 'corruption',
+        },
+      },
+      timeBands: {
+        night: {
+          id: 'night',
+          label: 'Night',
+          baselinePopulation: 100,
+          witnessModifier: 0.2,
+          visibilityModifier: 0.2,
+          covertAdvantage: true,
+        },
+      },
+      events: [],
+    }
+
+    const authorityResult = generateAmbientCases(
+      makeState(authoritySchedule),
+      createSeededRng(8123).next
+    )
+    const hostileResult = generateAmbientCases(
+      makeState(hostileSchedule),
+      createSeededRng(8123).next
+    )
+
+    const authorityCase = authorityResult.state.cases[authorityResult.spawnedCaseIds[0]!]
+    const hostileCase = hostileResult.state.cases[hostileResult.spawnedCaseIds[0]!]
+
+    expect(authorityCase.templateId).toBe('urban-authority')
+    expect(hostileCase.templateId).toBe('urban-criminal')
+    expect(authorityResult.spawnedCases[0]?.sourceReason).toContain('Urban:')
+    expect(hostileResult.spawnedCases[0]?.sourceReason).toContain('Urban:')
+  })
+
+  it('SPE-139: noncombat-first branch remains reusable in wired world-activity flow', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+    const state = createStartingState()
+    state.config = { ...state.config, maxActiveCases: 4 }
+    state.containmentRating = 40
+    state.agency = {
+      containmentRating: 40,
+      clearanceLevel: state.clearanceLevel,
+      funding: state.funding,
+    }
+    state.cases = {
+      'case-seed': {
+        ...state.cases['case-001'],
+        id: 'case-seed',
+        stage: 1,
+        deadlineRemaining: 4,
+        assignedTeamIds: [],
+        status: 'open',
+        tags: ['public'],
+        requiredTags: [],
+        preferredTags: [],
+      },
+    }
+    state.templates = {
+      'urban-public-signal': {
+        ...templateBase,
+        templateId: 'urban-public-signal',
+        title: 'Public Signal Dispute',
+        kind: 'case',
+        tags: ['public', 'signal', 'market'],
+        requiredTags: [],
+        preferredTags: [],
+      },
+    }
+    state.districtScheduleState = {
+      settlementId: 'noncombat-window',
+      districts: {
+        hub: {
+          id: 'hub',
+          label: 'Hub',
+          encounterFamilyTags: ['public', 'signal'],
+          escalationModifiers: { stage_delta: 0.1 },
+          authorityResponseProfile: 'rapid_response',
+        },
+      },
+      timeBands: {
+        day: {
+          id: 'day',
+          label: 'Day',
+          baselinePopulation: 700,
+          witnessModifier: 0.92,
+          visibilityModifier: 1,
+          covertAdvantage: false,
+        },
+      },
+      events: [{
+        id: 'inspection_sweep',
+        label: 'Inspection Sweep',
+        appliesTo: ['hub'],
+        startWeek: 1,
+        endWeek: 5,
+        trafficModifier: { witnessModifier: 0.02 },
+        seedKey: 'inspection_sweep',
+      }],
+    }
+
+    const result = generateAmbientCases(state, createSeededRng(9151).next)
+
+    expect(result.spawnedCases[0]?.sourceReason).toContain('noncombat_negotiation')
+  })
+
+  it('SPE-139: authority/hostile response hints change by local context and appear in reason text', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+
+    const makeState = (
+      districtScheduleState: NonNullable<ReturnType<typeof createStartingState>['districtScheduleState']>
+    ) => {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = 40
+      state.agency = {
+        containmentRating: 40,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+          tags: ['public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.templates = {
+        'urban-authority': {
+          ...templateBase,
+          templateId: 'urban-authority',
+          title: 'Authority Inspection Sweep',
+          kind: 'case',
+          tags: ['authority', 'inspection', 'public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+        'urban-criminal': {
+          ...templateBase,
+          templateId: 'urban-criminal',
+          title: 'Smuggling Relay Shadow',
+          kind: 'case',
+          tags: ['criminal_network', 'smuggling', 'night'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = districtScheduleState
+      return state
+    }
+
+    const rapidContext = {
+      settlementId: 'rapid-context',
+      districts: {
+        civic: {
+          id: 'civic',
+          label: 'Civic Core',
+          encounterFamilyTags: ['public'],
+          escalationModifiers: { stage_delta: 0.1 },
+          authorityResponseProfile: 'rapid_response',
+        },
+      },
+      timeBands: {
+        day: {
+          id: 'day',
+          label: 'Day',
+          baselinePopulation: 650,
+          witnessModifier: 0.88,
+          visibilityModifier: 1,
+          covertAdvantage: false,
+        },
+      },
+      events: [],
+    }
+
+    const degradedContext = {
+      settlementId: 'degraded-context',
+      districts: {
+        shadow: {
+          id: 'shadow',
+          label: 'Shadow Belt',
+          encounterFamilyTags: ['public'],
+          escalationModifiers: { stage_delta: 0.35 },
+          authorityResponseProfile: 'corruption',
+        },
+      },
+      timeBands: {
+        night: {
+          id: 'night',
+          label: 'Night',
+          baselinePopulation: 90,
+          witnessModifier: 0.18,
+          visibilityModifier: 0.2,
+          covertAdvantage: true,
+        },
+      },
+      events: [],
+    }
+
+    const rapidResult = generateAmbientCases(makeState(rapidContext), createSeededRng(7007).next)
+    const degradedResult = generateAmbientCases(makeState(degradedContext), createSeededRng(7007).next)
+
+    expect(rapidResult.spawnedCases[0]?.sourceReason).toContain('rapid_lockdown')
+    expect(degradedResult.spawnedCases[0]?.sourceReason).toContain('thin_coverage')
+    expect(degradedResult.spawnedCases[0]?.sourceReason).toContain('active_hunt')
+  })
+
+  it('SPE-139: additional threaded map/truth/era/ecology surfaces materially change output and explanation', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+
+    const makeState = (input: {
+      marketPressure: ReturnType<typeof createStartingState>['market']['pressure']
+      containment: number
+      threatDrift?: number
+      districtId: string
+      authorityProfile: string
+      covertAdvantage: boolean
+      witnessModifier: number
+    }) => {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = input.containment
+      state.agency = {
+        containmentRating: input.containment,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.globalThreatDrift = input.threatDrift
+      state.market = {
+        ...state.market,
+        pressure: input.marketPressure,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+          tags: ['public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.templates = {
+        'urban-criminal': {
+          ...templateBase,
+          templateId: 'urban-criminal',
+          title: 'Criminal Backstreet Relay',
+          kind: 'case',
+          tags: ['criminal_network', 'smuggling', 'night'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+        'urban-public': {
+          ...templateBase,
+          templateId: 'urban-public',
+          title: 'Public Civic Disturbance',
+          kind: 'case',
+          tags: ['public', 'signal', 'market'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = {
+        settlementId: 'upstream-threading-check',
+        districts: {
+          [input.districtId]: {
+            id: input.districtId,
+            label: input.districtId,
+            encounterFamilyTags: ['public'],
+            escalationModifiers: { stage_delta: 0.2 },
+            authorityResponseProfile: input.authorityProfile,
+          },
+        },
+        timeBands: {
+          slot: {
+            id: 'slot',
+            label: 'Slot',
+            baselinePopulation: 300,
+            witnessModifier: input.witnessModifier,
+            visibilityModifier: 0.7,
+            covertAdvantage: input.covertAdvantage,
+          },
+        },
+        events: [],
+      }
+      return state
+    }
+
+    const baselineInput = {
+      marketPressure: 'normal' as const,
+      containment: 44,
+      districtId: 'hub',
+      authorityProfile: 'rapid_response',
+      covertAdvantage: false,
+      witnessModifier: 0.82,
+    }
+
+    const pressuredInput = {
+      marketPressure: 'tight' as const,
+      containment: 34,
+      threatDrift: 4,
+      districtId: 'dock-shadow',
+      authorityProfile: 'corruption',
+      covertAdvantage: true,
+      witnessModifier: 0.22,
+    }
+
+    let baselineCriminalSelections = 0
+    let pressuredCriminalSelections = 0
+
+    for (let seed = 9901; seed <= 9920; seed += 1) {
+      const baseline = generateAmbientCases(makeState(baselineInput), createSeededRng(seed).next)
+      const pressured = generateAmbientCases(makeState(pressuredInput), createSeededRng(seed).next)
+
+      const baselineSpawn = baseline.spawnedCases.find((entry) => entry.trigger === 'world_activity')
+      const pressuredSpawn = pressured.spawnedCases.find((entry) => entry.trigger === 'world_activity')
+
+      expect(baselineSpawn).toBeDefined()
+      expect(pressuredSpawn).toBeDefined()
+
+      if (baseline.state.cases[baselineSpawn!.caseId]?.templateId === 'urban-criminal') {
+        baselineCriminalSelections += 1
+      }
+
+      if (pressured.state.cases[pressuredSpawn!.caseId]?.templateId === 'urban-criminal') {
+        pressuredCriminalSelections += 1
+      }
+    }
+
+    // Weighted output materially shifts toward criminal template under pressured upstream surfaces.
+    expect(pressuredCriminalSelections).toBeGreaterThan(baselineCriminalSelections)
+
+    const baselineProbe = generateAmbientCases(makeState(baselineInput), createSeededRng(9901).next)
+    const pressuredProbe = generateAmbientCases(makeState(pressuredInput), createSeededRng(9901).next)
+    const baselineReason =
+      baselineProbe.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+    const pressuredReason =
+      pressuredProbe.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+
+    // Bias/hint shift (authority/hostile/noncombat surfaces)
+    expect(baselineReason).toContain('rapid_lockdown')
+    expect(pressuredReason).toContain('active_hunt')
+    expect(pressuredReason).toContain('noncombat_negotiation')
+
+    // Explanation includes newly threaded upstream surfaces.
+    expect(pressuredReason).toContain('Inputs:')
+    expect(pressuredReason).toContain('district:old-docks')
+    expect(pressuredReason).toContain('truth active_folklore')
+    expect(pressuredReason).toContain('era suppression')
+  })
+
+  it('SPE-139: wired flow exposes separate role-axis and social-axis resolution with visible response variation', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]
+
+    const extractAxis = (reason: string, axis: 'role-axis' | 'social-axis') => {
+      const match = reason.match(new RegExp(`${axis}\\s+([0-9]+\\.[0-9]+)`))
+      expect(match, `Expected ${axis} in reason: ${reason}`).toBeTruthy()
+      return Number.parseFloat(match![1]!)
+    }
+
+    const makeState = (input: {
+      districtId: string
+      authorityResponseProfile: string
+      encounterFamilyTags: string[]
+      witnessModifier: number
+      covertAdvantage: boolean
+      marketPressure?: ReturnType<typeof createStartingState>['market']['pressure']
+      containmentRating?: number
+    }) => {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 4 }
+      state.containmentRating = input.containmentRating ?? 40
+      state.agency = {
+        containmentRating: state.containmentRating,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      if (input.marketPressure) {
+        state.market = { ...state.market, pressure: input.marketPressure }
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          stage: 1,
+          deadlineRemaining: 4,
+          assignedTeamIds: [],
+          status: 'open',
+          tags: ['public', 'signal'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.templates = {
+        'urban-balanced': {
+          ...templateBase,
+          templateId: 'urban-balanced',
+          title: 'Balanced City Pressure',
+          kind: 'case',
+          tags: ['public', 'signal', 'market'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = {
+        settlementId: `axis-${input.districtId}`,
+        districts: {
+          [input.districtId]: {
+            id: input.districtId,
+            label: input.districtId,
+            encounterFamilyTags: input.encounterFamilyTags,
+            escalationModifiers: { stage_delta: 0.2 },
+            authorityResponseProfile: input.authorityResponseProfile,
+          },
+        },
+        timeBands: {
+          slot: {
+            id: 'slot',
+            label: 'Slot',
+            baselinePopulation: 300,
+            witnessModifier: input.witnessModifier,
+            visibilityModifier: input.covertAdvantage ? 0.2 : 0.9,
+            covertAdvantage: input.covertAdvantage,
+          },
+        },
+        events: [],
+      }
+
+      return state
+    }
+
+    const roleHeavy = generateAmbientCases(
+      makeState({
+        districtId: 'dock-shadow',
+        authorityResponseProfile: 'corruption',
+        encounterFamilyTags: ['criminal_network', 'cult_activity'],
+        witnessModifier: 0.2,
+        covertAdvantage: true,
+        marketPressure: 'tight',
+        containmentRating: 34,
+      }),
+      createSeededRng(1301).next
+    )
+
+    const socialHeavy = generateAmbientCases(
+      makeState({
+        districtId: 'civic-court',
+        authorityResponseProfile: 'rapid_response',
+        encounterFamilyTags: ['public', 'signal', 'court', 'noble'],
+        witnessModifier: 0.9,
+        covertAdvantage: false,
+        containmentRating: 44,
+      }),
+      createSeededRng(1301).next
+    )
+
+    const roleReason = roleHeavy.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+    const socialReason =
+      socialHeavy.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+
+    const roleAxisRoleHeavy = extractAxis(roleReason, 'role-axis')
+    const socialAxisRoleHeavy = extractAxis(roleReason, 'social-axis')
+    const roleAxisSocialHeavy = extractAxis(socialReason, 'role-axis')
+    const socialAxisSocialHeavy = extractAxis(socialReason, 'social-axis')
+
+    // Separate axis resolution is directly inspectable and varies independently by context.
+    expect(roleAxisRoleHeavy).toBeGreaterThan(roleAxisSocialHeavy)
+    expect(socialAxisSocialHeavy).toBeGreaterThan(socialAxisRoleHeavy)
+
+    // Noncombat-first branch remains present in at least one wired branch output.
+    expect(roleReason.includes('noncombat_negotiation') || socialReason.includes('noncombat_negotiation')).toBe(true)
+
+    // Authority/hostile response visibility still varies by district/local context.
+    expect(roleReason).toContain('thin_coverage')
+    expect(roleReason).toContain('active_hunt')
+    expect(socialReason).toContain('rapid_lockdown')
+    expect(socialReason).toContain('escalating_activity')
   })
 })

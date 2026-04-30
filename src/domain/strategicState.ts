@@ -12,6 +12,10 @@ import {
   type MajorIncidentSpecialMechanic,
 } from './majorIncidents'
 import { buildAgencyRanking, type AgencyRankingView } from './rankings'
+import {
+  buildSimulationMapInterface,
+  type SimulationMapInterface,
+} from './simulationMapInterface'
 import { getTeamAssignedCaseId } from './teamSimulation'
 
 export interface EncounterGenerationTarget {
@@ -131,6 +135,7 @@ export interface AgencyOverview {
   incidents: MajorIncidentState
   endgame: EndgameScalingState
   factions: FactionState[]
+  simulationMap: SimulationMapInterface
   ranking: AgencyRankingView
 }
 
@@ -469,6 +474,7 @@ export function buildAgencyOverview(game: GameState): AgencyOverview {
     incidents: buildMajorIncidentState(game),
     endgame: buildEndgameScalingState(game),
     factions: buildFactionStates(game),
+    simulationMap: buildSimulationMapInterface(game),
     ranking: buildAgencyRanking(game),
   }
 }

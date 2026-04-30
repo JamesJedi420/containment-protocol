@@ -336,3 +336,12 @@ export const LIVE_REGISTRY_QUERY_CALIBRATION = {
    */
   overloadThreshold: 5,
 } as const
+
+// SPE-1045 slice 4: alert-center / worklist orchestration calibration
+export const LIVE_REGISTRY_ALERT_CENTER_CALIBRATION = {
+  /**
+   * When escalatedCount reaches or exceeds this value the worklist raises
+   * overloadFlag — operators must triage rather than handle sequentially.
+   */
+  escalationOverloadThreshold: 3,
+} as const

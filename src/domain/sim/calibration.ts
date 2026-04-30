@@ -284,3 +284,12 @@ export const CIVILIZATION_CALIBRATION = {
   minInstitutionsPerGeneration: 1,
   maxInstitutionsPerGeneration: 4,
 } as const
+
+// SPE-1059 slice 1: competency framework calibration
+export const COMPETENCY_CALIBRATION = {
+  minimumScore: 0,
+  maxScore: 100,
+  baseUseGain: 4,
+  decayPerWeek: 2,
+  decayStartAfterWeeks: 3,
+} as const

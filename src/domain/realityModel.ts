@@ -78,6 +78,13 @@ export type RealityNominalIdentityAlignment =
   | 'aligned'
   | 'misclassified'
   | 'uncertain'
+export type RealityRuleFamilyType =
+  | 'baseline_physical'
+  | 'symbolic_threshold'
+  | 'oath_binding'
+  | 'patron_mediated'
+export type RealityRuleFamilyActivationStatus = 'active' | 'inactive' | 'uncertain'
+export type RealityRuleFamilyOverrideScope = 'none' | 'subject' | 'object' | 'site'
 
 export interface RealityStateInput {
   packetId: string
@@ -94,6 +101,7 @@ export interface RealityStateInput {
   behaviorProfile?: RealityBehaviorProfileInput
   futurePressureProfile?: FuturePressureProfileInput
   identityProfile?: RealityIdentityProfileInput
+  ruleFamilyProfile?: RealityRuleFamilyProfileInput
 }
 
 export interface RealityRuleSurface {
@@ -167,6 +175,28 @@ export interface RealityIdentityProfile {
   confidence: number
 }
 
+export interface RealityRuleFamilyProfileInput {
+  familyType: RealityRuleFamilyType
+  triggerConditions?: readonly string[]
+  validityConditions?: readonly string[]
+  activationStatus?: RealityRuleFamilyActivationStatus
+  overrideScope?: RealityRuleFamilyOverrideScope
+  allowedOutcomes?: readonly string[]
+  invalidatedOutcomes?: readonly string[]
+  confidence?: number
+}
+
+export interface RealityRuleFamilyProfile {
+  familyType: RealityRuleFamilyType
+  triggerConditions: string[]
+  validityConditions: string[]
+  activationStatus: RealityRuleFamilyActivationStatus
+  overrideScope: RealityRuleFamilyOverrideScope
+  allowedOutcomes: string[]
+  invalidatedOutcomes: string[]
+  confidence: number
+}
+
 export interface RealityStatePacket {
   packetId: string
   subjectId: string
@@ -184,6 +214,7 @@ export interface RealityStatePacket {
   behaviorProfile?: RealityBehaviorProfile
   futurePressureProfile?: FuturePressureProfile
   identityProfile?: RealityIdentityProfile
+  ruleFamilyProfile?: RealityRuleFamilyProfile
 }
 
 export interface RealityOperationalAssessment {
@@ -259,6 +290,26 @@ export interface RealityIdentityAssessment {
   reasonCodes: string[]
 }
 
+export interface RealityRuleFamilyAssessment {
+  packetId: string
+  subjectId: string
+  resolvedFamilyType: RealityRuleFamilyType
+  evaluationFamilyType: RealityRuleFamilyType
+  validityPosture:
+    | 'allow_under_baseline'
+    | 'allow_under_declared_override'
+    | 'deny_until_triggered'
+    | 'wrong_family_contradiction'
+    | 'hold_for_rule_verification'
+  handlingMode:
+    | 'standard_physical_handling'
+    | 'condition_gated_handling'
+    | 'symbolic_rule_compliance'
+    | 'rule-family-verification'
+  contradictionDetected: boolean
+  reasonCodes: string[]
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -321,6 +372,25 @@ function buildRealityIdentityProfile(
     brokenInvariantProperties: uniqueSorted([...(input.brokenInvariantProperties ?? [])]),
     persistenceStatus: input.persistenceStatus,
     nominalAlignment: input.nominalAlignment ?? 'aligned',
+    confidence: normalizeConfidence(input.confidence),
+  }
+}
+
+function buildRealityRuleFamilyProfile(
+  input: RealityRuleFamilyProfileInput | undefined
+): RealityRuleFamilyProfile | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    familyType: input.familyType,
+    triggerConditions: uniqueSorted([...(input.triggerConditions ?? [])]),
+    validityConditions: uniqueSorted([...(input.validityConditions ?? [])]),
+    activationStatus: input.activationStatus ?? 'inactive',
+    overrideScope: input.overrideScope ?? 'none',
+    allowedOutcomes: uniqueSorted([...(input.allowedOutcomes ?? [])]),
+    invalidatedOutcomes: uniqueSorted([...(input.invalidatedOutcomes ?? [])]),
     confidence: normalizeConfidence(input.confidence),
   }
 }
@@ -461,6 +531,9 @@ export function deriveRealityStatePacket(input: RealityStateInput): RealityState
       : {}),
     ...(buildRealityIdentityProfile(input.identityProfile)
       ? { identityProfile: buildRealityIdentityProfile(input.identityProfile) }
+      : {}),
+    ...(buildRealityRuleFamilyProfile(input.ruleFamilyProfile)
+      ? { ruleFamilyProfile: buildRealityRuleFamilyProfile(input.ruleFamilyProfile) }
       : {}),
   }
 }
@@ -792,6 +865,103 @@ export function projectRealityIdentityAssessment(
     identityInterpretation: 'preserve_continuity',
     handlingMode: 'continuity_sensitive_handling',
     identityTrusted: true,
+    reasonCodes,
+  }
+}
+
+export function projectRealityRuleFamilyAssessment(
+  packet: RealityStatePacket,
+  evaluationFamilyType: RealityRuleFamilyType = 'baseline_physical'
+): RealityRuleFamilyAssessment | null {
+  const profile = packet.ruleFamilyProfile
+  if (!profile) {
+    return null
+  }
+
+  const reasonCodes = uniqueSorted([
+    `rule-family:${profile.familyType}`,
+    `rule-scope:${profile.overrideScope}`,
+    `activation:${profile.activationStatus}`,
+    ...(profile.triggerConditions.length > 0 ? ['trigger-conditions-present'] : []),
+    ...(profile.validityConditions.length > 0 ? ['validity-conditions-present'] : []),
+    ...(profile.allowedOutcomes.length > 0 ? ['allowed-outcomes-present'] : []),
+    ...(profile.invalidatedOutcomes.length > 0 ? ['invalidated-outcomes-present'] : []),
+    ...(profile.confidence < 0.75 ? ['low-rule-confidence'] : []),
+  ])
+
+  if (profile.activationStatus === 'uncertain') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      resolvedFamilyType: profile.familyType,
+      evaluationFamilyType,
+      validityPosture: 'hold_for_rule_verification',
+      handlingMode: 'rule-family-verification',
+      contradictionDetected: false,
+      reasonCodes,
+    }
+  }
+
+  if (profile.activationStatus === 'inactive') {
+    if (evaluationFamilyType === profile.familyType && profile.familyType !== 'baseline_physical') {
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        resolvedFamilyType: profile.familyType,
+        evaluationFamilyType,
+        validityPosture: 'deny_until_triggered',
+        handlingMode: 'condition_gated_handling',
+        contradictionDetected: false,
+        reasonCodes,
+      }
+    }
+
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      resolvedFamilyType: 'baseline_physical',
+      evaluationFamilyType,
+      validityPosture: 'allow_under_baseline',
+      handlingMode: 'standard_physical_handling',
+      contradictionDetected: false,
+      reasonCodes,
+    }
+  }
+
+  if (profile.familyType === 'baseline_physical') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      resolvedFamilyType: profile.familyType,
+      evaluationFamilyType,
+      validityPosture: 'allow_under_baseline',
+      handlingMode: 'standard_physical_handling',
+      contradictionDetected: false,
+      reasonCodes,
+    }
+  }
+
+  if (evaluationFamilyType !== profile.familyType) {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      resolvedFamilyType: profile.familyType,
+      evaluationFamilyType,
+      validityPosture: 'wrong_family_contradiction',
+      handlingMode: 'rule-family-verification',
+      contradictionDetected: true,
+      reasonCodes: uniqueSorted([...reasonCodes, 'wrong-family-interpretation']),
+    }
+  }
+
+  return {
+    packetId: packet.packetId,
+    subjectId: packet.subjectId,
+    resolvedFamilyType: profile.familyType,
+    evaluationFamilyType,
+    validityPosture: 'allow_under_declared_override',
+    handlingMode: 'symbolic_rule_compliance',
+    contradictionDetected: false,
     reasonCodes,
   }
 }

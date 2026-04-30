@@ -5,6 +5,7 @@ import {
   projectFuturePressureAssessment,
   projectOperationalRealityAssessment,
   projectRealityIdentityAssessment,
+  projectRealityRuleFamilyAssessment,
   resolveRealityRuleSurface,
 } from '../domain/realityModel'
 
@@ -495,6 +496,177 @@ describe('realityModel', () => {
     })
   })
 
+  it('switches from baseline handling to declared symbolic override when the rule family is active', () => {
+    const baseline = projectRealityRuleFamilyAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:ordinary-threshold',
+        subjectId: 'threshold:ordinary-threshold',
+        label: 'Ordinary Threshold',
+        actualState: 'closed',
+        perceivedState: 'closed',
+        believedState: 'closed',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        confidence: 0.92,
+        evidence: 'clear',
+        ruleFamilyProfile: {
+          familyType: 'baseline_physical',
+          activationStatus: 'active',
+          overrideScope: 'object',
+          allowedOutcomes: ['standard_entry_denial'],
+          confidence: 0.92,
+        },
+      }),
+      'baseline_physical'
+    )
+
+    const symbolicOverride = projectRealityRuleFamilyAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:named-threshold',
+        subjectId: 'threshold:named-threshold',
+        label: 'Named Threshold',
+        actualState: 'passage_valid_only_if_named',
+        perceivedState: 'sealed',
+        believedState: 'sealed',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        deviationFamily: 'symbolic_override',
+        confidence: 0.84,
+        evidence: 'contradicted',
+        ruleFamilyProfile: {
+          familyType: 'symbolic_threshold',
+          triggerConditions: ['true_name_spoken'],
+          validityConditions: ['threshold_mark_unbroken'],
+          activationStatus: 'active',
+          overrideScope: 'site',
+          allowedOutcomes: ['named_passage_valid'],
+          invalidatedOutcomes: ['forced_entry_valid'],
+          confidence: 0.84,
+        },
+      }),
+      'symbolic_threshold'
+    )
+
+    expect(baseline).toMatchObject({
+      resolvedFamilyType: 'baseline_physical',
+      validityPosture: 'allow_under_baseline',
+      handlingMode: 'standard_physical_handling',
+      contradictionDetected: false,
+    })
+    expect(symbolicOverride).toMatchObject({
+      resolvedFamilyType: 'symbolic_threshold',
+      validityPosture: 'allow_under_declared_override',
+      handlingMode: 'symbolic_rule_compliance',
+      contradictionDetected: false,
+    })
+  })
+
+  it('treats declared trigger conditions as activation gates rather than automatic overrides', () => {
+    const inactive = projectRealityRuleFamilyAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:oath-lock-inactive',
+        subjectId: 'lock:oath-lock',
+        label: 'Oath Lock',
+        actualState: 'sealed',
+        perceivedState: 'sealed',
+        believedState: 'sealed',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        confidence: 0.79,
+        evidence: 'clear',
+        ruleFamilyProfile: {
+          familyType: 'oath_binding',
+          triggerConditions: ['oath_spoken'],
+          validityConditions: ['witness_present'],
+          activationStatus: 'inactive',
+          overrideScope: 'object',
+          allowedOutcomes: ['oath_entry_valid'],
+          invalidatedOutcomes: ['unauthorized_entry_valid'],
+          confidence: 0.79,
+        },
+      }),
+      'oath_binding'
+    )
+
+    expect(inactive).toMatchObject({
+      validityPosture: 'deny_until_triggered',
+      handlingMode: 'condition_gated_handling',
+      contradictionDetected: false,
+    })
+    expect(inactive?.reasonCodes).toContain('trigger-conditions-present')
+  })
+
+  it('leaves baseline handling intact when a declared non-natural family is inactive', () => {
+    const baseline = projectRealityRuleFamilyAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:patron-door-inactive',
+        subjectId: 'door:patron-door',
+        label: 'Patron Door',
+        actualState: 'locked',
+        perceivedState: 'locked',
+        believedState: 'locked',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        confidence: 0.82,
+        evidence: 'clear',
+        ruleFamilyProfile: {
+          familyType: 'patron_mediated',
+          triggerConditions: ['patron_consent'],
+          activationStatus: 'inactive',
+          overrideScope: 'site',
+          allowedOutcomes: ['patron_entry_valid'],
+          confidence: 0.82,
+        },
+      }),
+      'baseline_physical'
+    )
+
+    expect(baseline).toMatchObject({
+      resolvedFamilyType: 'baseline_physical',
+      validityPosture: 'allow_under_baseline',
+      handlingMode: 'standard_physical_handling',
+      contradictionDetected: false,
+    })
+  })
+
+  it('flags contradiction when behavior is interpreted under the wrong active rule family', () => {
+    const contradiction = projectRealityRuleFamilyAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:offering-gate',
+        subjectId: 'gate:offering-gate',
+        label: 'Offering Gate',
+        actualState: 'passage_valid_after_offering',
+        perceivedState: 'impassable_barrier',
+        believedState: 'impassable_barrier',
+        existenceMode: 'partially_instantiated',
+        ruleDomain: 'presence',
+        deviationFamily: 'symbolic_override',
+        confidence: 0.71,
+        evidence: 'contradicted',
+        ruleFamilyProfile: {
+          familyType: 'patron_mediated',
+          triggerConditions: ['offering_accepted'],
+          validityConditions: ['site_bond_intact'],
+          activationStatus: 'active',
+          overrideScope: 'site',
+          allowedOutcomes: ['petitioner_passage_valid'],
+          invalidatedOutcomes: ['forced_breach_valid'],
+          confidence: 0.71,
+        },
+      }),
+      'baseline_physical'
+    )
+
+    expect(contradiction).toMatchObject({
+      resolvedFamilyType: 'patron_mediated',
+      evaluationFamilyType: 'baseline_physical',
+      validityPosture: 'wrong_family_contradiction',
+      handlingMode: 'rule-family-verification',
+      contradictionDetected: true,
+    })
+    expect(contradiction?.reasonCodes).toContain('wrong-family-interpretation')
+  })
+
   it('remains repeatable for identical inputs', () => {
     const input = {
       packetId: 'reality:future-ledger',
@@ -532,6 +704,16 @@ describe('realityModel', () => {
         nominalAlignment: 'uncertain' as const,
         confidence: 0.59,
       },
+      ruleFamilyProfile: {
+        familyType: 'symbolic_threshold' as const,
+        triggerConditions: ['threshold-name-spoken'],
+        validityConditions: ['seal-remains-intact'],
+        activationStatus: 'uncertain' as const,
+        overrideScope: 'site' as const,
+        allowedOutcomes: ['named_entry_valid'],
+        invalidatedOutcomes: ['forced_entry_valid'],
+        confidence: 0.61,
+      },
     }
 
     const first = deriveRealityStatePacket(input)
@@ -549,6 +731,9 @@ describe('realityModel', () => {
     )
     expect(projectRealityIdentityAssessment(second)).toEqual(
       projectRealityIdentityAssessment(first)
+    )
+    expect(projectRealityRuleFamilyAssessment(second)).toEqual(
+      projectRealityRuleFamilyAssessment(first)
     )
   })
 })

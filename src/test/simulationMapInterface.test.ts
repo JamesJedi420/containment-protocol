@@ -100,6 +100,45 @@ describe('simulationMapInterface', () => {
     expect(
       first.uncertaintySummary.warningTags.includes('scope:relationship:contradiction-hotspot')
     ).toBe(true)
+    expect(first.uncertaintySummary.transitions.persistentlyContradictedHotspots.length).toBeGreaterThan(0)
+    expect(first.uncertaintySummary.groupedCounts.bySignalCategory.contradiction).toBeGreaterThan(0)
+    expect(first.uncertaintySummary.recommendations.topVerificationTargets.length).toBeGreaterThan(0)
+    expect(
+      first.uncertaintySummary.recommendations.topVerificationTargets[0]?.rationaleTags.includes('action:verify')
+    ).toBe(true)
+    expect(
+      ['contradiction', 'route_uncertainty', 'low_confidence', 'false_reading', 'remap_instability']
+    ).toContain(first.uncertaintySummary.triage.highestRiskCategory)
+    expect(
+      ['investigate_contradiction', 'verify_route', 'verify_social', 'monitor_remap']
+    ).toContain(first.uncertaintySummary.triage.topActionType)
+    expect(
+      first.uncertaintySummary.triage.priorityPostureTags.includes(
+        `posture:action:${first.uncertaintySummary.triage.topActionType}`
+      )
+    ).toBe(true)
+    expect(['improving', 'stable', 'degrading']).toContain(
+      first.uncertaintySummary.stabilityOutlook.uncertaintyTrend
+    )
+    expect(
+      ['verification', 'monitoring', 'rerouting', 'social_follow_up']
+    ).toContain(first.uncertaintySummary.stabilityOutlook.favoredOperationalPosture)
+    expect(
+      first.uncertaintySummary.stabilityOutlook.rationaleTags.includes(
+        `outlook:posture:${first.uncertaintySummary.stabilityOutlook.favoredOperationalPosture}`
+      )
+    ).toBe(true)
+    expect(first.uncertaintySummary.watchlistSnapshot.remainingUrgent.length).toBeGreaterThan(0)
+    expect(
+      first.uncertaintySummary.watchlistSnapshot.newlyEnteringUrgent.length +
+        first.uncertaintySummary.watchlistSnapshot.remainingUrgent.length
+    ).toBeGreaterThan(0)
+    const firstUrgentWatchEntry =
+      first.uncertaintySummary.watchlistSnapshot.newlyEnteringUrgent[0] ??
+      first.uncertaintySummary.watchlistSnapshot.remainingUrgent[0]
+    expect(
+      firstUrgentWatchEntry?.rationaleTags.some((tag) => tag.startsWith('watchlist:status:'))
+    ).toBe(true)
   })
 
   it('remaps world zones under responder absence and hostile dominance', () => {
@@ -210,6 +249,45 @@ describe('simulationMapInterface', () => {
         (cluster) => cluster.scope === 'route' && cluster.memberIds.length > 0
       )
     ).toBe(true)
+    expect(simulationMap.uncertaintySummary.operationalPriority.length).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.transitions.newlyDegradedClusters.length).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.groupedCounts.bySignalCategory.routePriority).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.recommendations.topRouteRecheckTargets.length).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.recommendations.topRemapWatchZones.length).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.recommendations.topRemapWatchZones[0]?.rationaleTags.includes(
+        'action:remap-watch'
+      )
+    ).toBe(true)
+    expect(simulationMap.uncertaintySummary.triage.highestRiskCategory).toBe('route_uncertainty')
+    expect(simulationMap.uncertaintySummary.triage.topActionType).toBe('verify_route')
+    expect(simulationMap.uncertaintySummary.triage.urgentItemCount).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.triage.monitorOnlyItemCount).toBeGreaterThanOrEqual(0)
+    expect(
+      simulationMap.uncertaintySummary.triage.priorityPostureTags.includes('posture:safehub-fragility')
+    ).toBe(true)
+    expect(simulationMap.uncertaintySummary.stabilityOutlook.uncertaintyTrend).toBe('degrading')
+    expect(simulationMap.uncertaintySummary.stabilityOutlook.likelyNextPressureSource).toBe(
+      'route_network'
+    )
+    expect(simulationMap.uncertaintySummary.stabilityOutlook.uncertaintySpread).toBe('system_wide')
+    expect(simulationMap.uncertaintySummary.stabilityOutlook.favoredOperationalPosture).toBe(
+      'rerouting'
+    )
+    expect(
+      simulationMap.uncertaintySummary.stabilityOutlook.rationaleTags.includes(
+        'outlook:pressure:route_network'
+      )
+    ).toBe(true)
+    expect(simulationMap.uncertaintySummary.watchlistSnapshot.newlyEnteringUrgent.length).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.watchlistSnapshot.topPersistentTargetsByCategory.route
+        .length
+    ).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.watchlistSnapshot.topPersistentTargetsByCategory.remap
+        .length
+    ).toBeGreaterThan(0)
   })
 
   it('derives false-reading and low-confidence social clusters from rumor-path uncertainty', () => {
@@ -241,6 +319,66 @@ describe('simulationMapInterface', () => {
     ).toBe(true)
     expect(
       simulationMap.uncertaintySummary.warningTags.includes('scope:relationship:false-reading-risk')
+    ).toBe(true)
+  })
+
+  it('separates recent contradiction transitions from persistent contradiction transitions', () => {
+    const state = createStartingState()
+    state.week = 3
+    state.agents.a_ava.relationships.a_kellan = 2
+    state.agents.a_kellan.relationships.a_ava = -1
+    state.agents.a_ava.relationships.a_mina = -2
+    state.agents.a_mina.relationships.a_ava = -1
+    state.relationshipHistory = [
+      {
+        week: 3,
+        agentAId: 'a_ava',
+        agentBId: 'a_mina',
+        value: 2,
+        modifiers: [],
+        reason: 'external_event',
+      },
+    ]
+
+    const simulationMap = buildSimulationMapInterface(state)
+
+    expect(simulationMap.uncertaintySummary.transitions.recentlyContradictedHotspots.length).toBe(1)
+    expect(
+      simulationMap.uncertaintySummary.transitions.recentlyContradictedHotspots[0]?.sourceFactIds.some(
+        (factId) => factId.includes('social:rumor:')
+      )
+    ).toBe(true)
+    expect(simulationMap.uncertaintySummary.transitions.persistentlyContradictedHotspots.length).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.groupedCounts.byScope.social).toBeGreaterThan(0)
+    expect(simulationMap.uncertaintySummary.recommendations.topSocialRecheckTargets.length).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.recommendations.topSocialRecheckTargets.every((entry, index, entries) => {
+        if (index === 0) {
+          return true
+        }
+
+        return entries[index - 1]!.score >= entry.score
+      })
+    ).toBe(true)
+    expect(simulationMap.uncertaintySummary.triage.priorityPostureTags.some((tag) => tag.startsWith('posture:risk:'))).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.stabilityOutlook.rationaleTags.some((tag) =>
+        tag.startsWith('outlook:spread:')
+      )
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.watchlistSnapshot.newlyEnteringUrgent.some(
+        (entry) => entry.category === 'contradiction'
+      )
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.watchlistSnapshot.topPersistentTargetsByCategory
+        .contradiction.length
+    ).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.watchlistSnapshot.improvingOutOfUrgent.every((entry) =>
+        entry.rationaleTags.includes('watchlist:status:improving')
+      )
     ).toBe(true)
   })
 

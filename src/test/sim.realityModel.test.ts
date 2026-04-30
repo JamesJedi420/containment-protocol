@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveRealityStatePacket,
   projectBehavioralRealityAssessment,
+  projectFuturePressureAssessment,
   projectOperationalRealityAssessment,
   resolveRealityRuleSurface,
 } from '../domain/realityModel'
@@ -272,6 +273,137 @@ describe('realityModel', () => {
     })
   })
 
+  it('classifies future-pressure families deterministically for operational interpretation', () => {
+    const fixed = projectFuturePressureAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:sealed-forecast',
+        subjectId: 'forecast:sealed-001',
+        label: 'Sealed Forecast',
+        actualState: 'storm-arrival-locked',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'future_pressure',
+        deviationFamily: 'future_pressure_fixed',
+        confidence: 0.91,
+        evidence: 'clear',
+        futurePressureProfile: {
+          family: 'fixed',
+          sourceType: 'sealed_forecast',
+          confidence: 0.91,
+        },
+      })
+    )
+
+    const predictive = projectFuturePressureAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:risk-ledger',
+        subjectId: 'forecast:risk-ledger',
+        label: 'Risk Ledger',
+        actualState: 'riot-risk-elevated',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'future_pressure',
+        confidence: 0.64,
+        evidence: 'clear',
+        futurePressureProfile: {
+          family: 'statistically_predictive',
+          sourceType: 'anomaly_log',
+          confidence: 0.64,
+        },
+      })
+    )
+
+    expect(fixed).toMatchObject({
+      trustPosture: 'treat_as_fixed_constraint',
+      handlingMode: 'compliance_planning',
+      guaranteedTruth: true,
+    })
+    expect(predictive).toMatchObject({
+      trustPosture: 'treat_as_advisory_signal',
+      handlingMode: 'probabilistic_preparation',
+      guaranteedTruth: false,
+    })
+  })
+
+  it('distinguishes fixed, self-fulfilling, and manipulative-false future records', () => {
+    const selfFulfilling = projectFuturePressureAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:prophecy-loop',
+        subjectId: 'record:prophecy-loop',
+        label: 'Prophecy Loop',
+        actualState: 'panic-escalation-risk',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'future_pressure',
+        confidence: 0.83,
+        evidence: 'clear',
+        futurePressureProfile: {
+          family: 'self_fulfilling',
+          sourceType: 'prophecy',
+          triggerConditions: ['public_disclosure', 'command_overreaction'],
+          confidence: 0.83,
+        },
+      })
+    )
+    const manipulativeFalse = projectFuturePressureAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:false-contract',
+        subjectId: 'record:false-contract',
+        label: 'False Contract Warning',
+        actualState: 'deception-channel-active',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'future_pressure',
+        deviationFamily: 'future_pressure_false',
+        confidence: 0.79,
+        evidence: 'contradicted',
+        futurePressureProfile: {
+          family: 'manipulative_false',
+          sourceType: 'contract_term',
+          confidence: 0.79,
+        },
+      })
+    )
+
+    expect(selfFulfilling).toMatchObject({
+      trustPosture: 'treat_as_escalation_risk',
+      handlingMode: 'interruption_planning',
+      guaranteedTruth: false,
+    })
+    expect(selfFulfilling?.reasonCodes).toContain('trigger-conditions-present')
+    expect(manipulativeFalse).toMatchObject({
+      trustPosture: 'treat_as_deception',
+      handlingMode: 'counter_deception_review',
+      guaranteedTruth: false,
+    })
+  })
+
+  it('keeps conditionally falsifiable future pressure testable rather than absolute', () => {
+    const conditional = projectFuturePressureAssessment(
+      deriveRealityStatePacket({
+        packetId: 'reality:observer-report',
+        subjectId: 'record:observer-report',
+        label: 'Observer Report',
+        actualState: 'watch-if-gate-opens',
+        existenceMode: 'recorded_only',
+        ruleDomain: 'future_pressure',
+        deviationFamily: 'future_pressure_conditional',
+        confidence: 0.76,
+        evidence: 'clear',
+        futurePressureProfile: {
+          family: 'conditionally_falsifiable',
+          sourceType: 'observer_report',
+          triggerConditions: ['north_gate_unsealed'],
+          falsifiabilityConditions: ['north_gate_remains_locked', 'secondary-sensor-clear'],
+          confidence: 0.76,
+        },
+      })
+    )
+
+    expect(conditional).toMatchObject({
+      trustPosture: 'treat_as_testable_contingency',
+      handlingMode: 'condition_verification',
+      guaranteedTruth: false,
+    })
+    expect(conditional?.reasonCodes).toContain('falsifiability-conditions-present')
+  })
+
   it('remains repeatable for identical inputs', () => {
     const input = {
       packetId: 'reality:future-ledger',
@@ -292,6 +424,13 @@ describe('realityModel', () => {
         counterpartEquivalence: 'unverified' as const,
         inferenceConfidence: 0.58,
       },
+      futurePressureProfile: {
+        family: 'statistically_predictive' as const,
+        sourceType: 'anomaly_log' as const,
+        triggerConditions: ['pressure-threshold-exceeded'],
+        falsifiabilityConditions: ['pressure-threshold-not-reached'],
+        confidence: 0.62,
+      },
     }
 
     const first = deriveRealityStatePacket(input)
@@ -303,6 +442,9 @@ describe('realityModel', () => {
     )
     expect(projectBehavioralRealityAssessment(second)).toEqual(
       projectBehavioralRealityAssessment(first)
+    )
+    expect(projectFuturePressureAssessment(second)).toEqual(
+      projectFuturePressureAssessment(first)
     )
   })
 })

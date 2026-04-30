@@ -57,6 +57,18 @@ export type CounterpartEquivalenceStatus =
   | 'equivalent'
   | 'non_equivalent'
   | 'unverified'
+export type FuturePressureFamily =
+  | 'fixed'
+  | 'self_fulfilling'
+  | 'manipulative_false'
+  | 'statistically_predictive'
+  | 'conditionally_falsifiable'
+export type FutureRecordSourceType =
+  | 'prophecy'
+  | 'sealed_forecast'
+  | 'anomaly_log'
+  | 'contract_term'
+  | 'observer_report'
 
 export interface RealityStateInput {
   packetId: string
@@ -71,6 +83,7 @@ export interface RealityStateInput {
   confidence?: number
   evidence?: RealityObservationEvidence
   behaviorProfile?: RealityBehaviorProfileInput
+  futurePressureProfile?: FuturePressureProfileInput
 }
 
 export interface RealityRuleSurface {
@@ -104,6 +117,22 @@ export interface RealityBehaviorProfile {
   inferenceConfidence: number
 }
 
+export interface FuturePressureProfileInput {
+  family: FuturePressureFamily
+  sourceType: FutureRecordSourceType
+  triggerConditions?: readonly string[]
+  falsifiabilityConditions?: readonly string[]
+  confidence?: number
+}
+
+export interface FuturePressureProfile {
+  family: FuturePressureFamily
+  sourceType: FutureRecordSourceType
+  triggerConditions: string[]
+  falsifiabilityConditions: string[]
+  confidence: number
+}
+
 export interface RealityStatePacket {
   packetId: string
   subjectId: string
@@ -119,6 +148,7 @@ export interface RealityStatePacket {
   truthGap: RealityTruthGap
   ruleSurface: RealityRuleSurface
   behaviorProfile?: RealityBehaviorProfile
+  futurePressureProfile?: FuturePressureProfile
 }
 
 export interface RealityOperationalAssessment {
@@ -156,6 +186,25 @@ export interface RealityBehaviorAssessment {
   reasonCodes: string[]
 }
 
+export interface FuturePressureAssessment {
+  packetId: string
+  subjectId: string
+  trustPosture:
+    | 'treat_as_fixed_constraint'
+    | 'treat_as_escalation_risk'
+    | 'treat_as_deception'
+    | 'treat_as_advisory_signal'
+    | 'treat_as_testable_contingency'
+  handlingMode:
+    | 'compliance_planning'
+    | 'interruption_planning'
+    | 'counter_deception_review'
+    | 'probabilistic_preparation'
+    | 'condition_verification'
+  guaranteedTruth: boolean
+  reasonCodes: string[]
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -183,6 +232,22 @@ function buildRealityBehaviorProfile(
     realizationClass: input.realizationClass,
     counterpartEquivalence: input.counterpartEquivalence ?? 'not_applicable',
     inferenceConfidence: normalizeConfidence(input.inferenceConfidence),
+  }
+}
+
+function buildFuturePressureProfile(
+  input: FuturePressureProfileInput | undefined
+): FuturePressureProfile | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    family: input.family,
+    sourceType: input.sourceType,
+    triggerConditions: uniqueSorted([...(input.triggerConditions ?? [])]),
+    falsifiabilityConditions: uniqueSorted([...(input.falsifiabilityConditions ?? [])]),
+    confidence: normalizeConfidence(input.confidence),
   }
 }
 
@@ -316,6 +381,9 @@ export function deriveRealityStatePacket(input: RealityStateInput): RealityState
     ruleSurface: resolveRealityRuleSurface(input.ruleDomain, deviationFamily),
     ...(buildRealityBehaviorProfile(input.behaviorProfile)
       ? { behaviorProfile: buildRealityBehaviorProfile(input.behaviorProfile) }
+      : {}),
+    ...(buildFuturePressureProfile(input.futurePressureProfile)
+      ? { futurePressureProfile: buildFuturePressureProfile(input.futurePressureProfile) }
       : {}),
   }
 }
@@ -509,5 +577,71 @@ export function projectBehavioralRealityAssessment(
     trustLevel: 'provisional',
     reasonCodes:
       profile.counterpartEquivalence === 'equivalent' ? ['equivalent-counterpart'] : [],
+  }
+}
+
+export function projectFuturePressureAssessment(
+  packet: RealityStatePacket
+): FuturePressureAssessment | null {
+  const profile = packet.futurePressureProfile
+  if (!profile) {
+    return null
+  }
+
+  const reasonCodes = uniqueSorted([
+    `future-family:${profile.family}`,
+    `future-source:${profile.sourceType}`,
+    ...(profile.triggerConditions.length > 0 ? ['trigger-conditions-present'] : []),
+    ...(profile.falsifiabilityConditions.length > 0 ? ['falsifiability-conditions-present'] : []),
+    ...(profile.confidence < 0.75 ? ['low-future-confidence'] : []),
+  ])
+
+  switch (profile.family) {
+    case 'fixed':
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        trustPosture: 'treat_as_fixed_constraint',
+        handlingMode: 'compliance_planning',
+        guaranteedTruth: true,
+        reasonCodes,
+      }
+    case 'self_fulfilling':
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        trustPosture: 'treat_as_escalation_risk',
+        handlingMode: 'interruption_planning',
+        guaranteedTruth: false,
+        reasonCodes,
+      }
+    case 'manipulative_false':
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        trustPosture: 'treat_as_deception',
+        handlingMode: 'counter_deception_review',
+        guaranteedTruth: false,
+        reasonCodes,
+      }
+    case 'conditionally_falsifiable':
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        trustPosture: 'treat_as_testable_contingency',
+        handlingMode: 'condition_verification',
+        guaranteedTruth: false,
+        reasonCodes,
+      }
+    case 'statistically_predictive':
+    default:
+      return {
+        packetId: packet.packetId,
+        subjectId: packet.subjectId,
+        trustPosture: 'treat_as_advisory_signal',
+        handlingMode: 'probabilistic_preparation',
+        guaranteedTruth: false,
+        reasonCodes,
+      }
   }
 }

@@ -10,6 +10,7 @@ import {
   accumulateCivilizationMemory,
   deriveCivilizationPairConflict,
   deriveCivilizationPairConflicts,
+  deriveCivilizationPopulationInheritance,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -500,5 +501,97 @@ describe('deriveCivilizationPairConflicts', () => {
 
     const rerun = deriveCivilizationPairConflicts(civilizations)
     expect(rerun).toEqual(result)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 4: civilization-linked population inheritance scaffolding
+// ---------------------------------------------------------------------------
+
+describe('deriveCivilizationPopulationInheritance', () => {
+  it('derives deterministic inheritance packet for a recruit', () => {
+    const civ = classifyCivilization('metropolitan_authority')!
+
+    const packet = deriveCivilizationPopulationInheritance(civ, {
+      subjectKind: 'recruit',
+      seed: 4401,
+      variantIndex: 0,
+    })
+
+    expect(packet.packetId).toBe('metropolitan_authority:recruit:4401:0')
+    expect(packet.subjectKind).toBe('recruit')
+    expect(packet.expectationTags.length).toBeGreaterThan(0)
+    expect(packet.traitTags.length).toBeGreaterThan(0)
+    expect(packet.loyaltyTags).toContain('loyalty:civic-mandate')
+    expect(packet.conflictSurfaceTags.length).toBeGreaterThan(0)
+  })
+
+  it('is repeatable for identical civilization and input seed', () => {
+    const civ = classifyCivilization('civic_medical_trust')!
+
+    const a = deriveCivilizationPopulationInheritance(civ, {
+      subjectKind: 'witness',
+      seed: 9001,
+      variantIndex: 2,
+    })
+
+    const b = deriveCivilizationPopulationInheritance(civ, {
+      subjectKind: 'witness',
+      seed: 9001,
+      variantIndex: 2,
+    })
+
+    expect(a).toEqual(b)
+  })
+
+  it('produces meaningful inherited differences across civilization types', () => {
+    const gov = classifyCivilization('metropolitan_authority')!
+    const occult = classifyCivilization('hidden_covenant')!
+
+    const govPacket = deriveCivilizationPopulationInheritance(gov, {
+      subjectKind: 'specialist',
+      seed: 2202,
+    })
+
+    const occultPacket = deriveCivilizationPopulationInheritance(occult, {
+      subjectKind: 'specialist',
+      seed: 2202,
+    })
+
+    expect(govPacket.loyaltyTags).toContain('loyalty:civic-mandate')
+    expect(occultPacket.loyaltyTags).toContain('loyalty:rite-oath')
+    expect(govPacket.conflictSurfaceTags).not.toEqual(occultPacket.conflictSurfaceTags)
+    expect(govPacket.resourceAffinityTags).not.toEqual(occultPacket.resourceAffinityTags)
+  })
+
+  it('reflects memory/cooperation boundary state in loyalty and conflict outputs', () => {
+    const civ = classifyCivilization('gray_market_collective')!
+    const baseState = createCivilizationState({
+      civilizationId: civ.id,
+      diplomaticBaseline: civ.diplomaticBaseline,
+    })
+
+    const pressuredState = accumulateCivilizationMemory(baseState, [
+      { eventId: 'p1', week: 3, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'p2', week: 4, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    const neutral = deriveCivilizationPopulationInheritance(
+      civ,
+      { subjectKind: 'witness', seed: 3301 },
+      baseState
+    )
+
+    const pressured = deriveCivilizationPopulationInheritance(
+      civ,
+      { subjectKind: 'witness', seed: 3301 },
+      pressuredState
+    )
+
+    expect(pressuredState.cooperationBand).toBe('opposed')
+    expect(neutral.loyaltyTags).toContain('loyalty:agency-conditional')
+    expect(pressured.loyaltyTags).toContain('loyalty:agency-resistant')
+    expect(pressured.conflictSurfaceTags).toContain('conflict:retaliatory-posture')
+    expect(pressured.conflictSurfaceTags).toContain('conflict:memory-grievance')
   })
 })

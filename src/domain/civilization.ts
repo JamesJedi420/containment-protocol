@@ -136,6 +136,29 @@ export interface CivilizationPairConflict {
   signals: CivilizationConflictSignal[]
 }
 
+export type CivilizationPopulationSubjectKind = 'recruit' | 'witness' | 'specialist'
+
+export type CivilizationPopulationLoyaltyBand = 'integrated' | 'conditional' | 'fractured'
+
+export interface CivilizationPopulationInheritanceInput {
+  subjectKind: CivilizationPopulationSubjectKind
+  seed: number
+  variantIndex?: number
+}
+
+export interface CivilizationPopulationInheritancePacket {
+  packetId: string
+  civilizationId: string
+  civilizationCategory: CivilizationCategory
+  subjectKind: CivilizationPopulationSubjectKind
+  loyaltyBand: CivilizationPopulationLoyaltyBand
+  expectationTags: string[]
+  traitTags: string[]
+  loyaltyTags: string[]
+  conflictSurfaceTags: string[]
+  resourceAffinityTags: string[]
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -513,6 +536,34 @@ const AXIS_PRESSURE_TAGS: Record<CivilizationConflictAxis, string[]> = {
   anomaly_governance: ['institution:containment-policy-conflict', 'institution:threshold-friction'],
 }
 
+const POPULATION_CATEGORY_LOYALTY_TAGS: Record<CivilizationCategory, string> = {
+  government: 'loyalty:civic-mandate',
+  religious: 'loyalty:doctrinal-chain',
+  medical: 'loyalty:care-obligation',
+  academic: 'loyalty:knowledge-charter',
+  criminal: 'loyalty:crew-code',
+  occult: 'loyalty:rite-oath',
+  rival_containment: 'loyalty:jurisdiction-chain',
+  nonhuman: 'loyalty:threshold-compact',
+}
+
+const POPULATION_CATEGORY_CONFLICT_TAGS: Record<CivilizationCategory, string> = {
+  government: 'conflict:oversight-liability',
+  religious: 'conflict:heresy-risk',
+  medical: 'conflict:ethical-breach-risk',
+  academic: 'conflict:classification-disclosure-friction',
+  criminal: 'conflict:law-enforcement-pressure',
+  occult: 'conflict:exposure-risk',
+  rival_containment: 'conflict:turf-contest',
+  nonhuman: 'conflict:cross-threshold-friction',
+}
+
+const SUBJECT_EXPECTATION_TAGS: Record<CivilizationPopulationSubjectKind, string[]> = {
+  recruit: ['expectation:chain-of-command', 'expectation:operational-discipline'],
+  witness: ['expectation:narrative-self-protection', 'expectation:social-trust-filtering'],
+  specialist: ['expectation:domain-rigor', 'expectation:institutional-gatekeeping'],
+}
+
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
@@ -565,6 +616,70 @@ function toConflictSeverity(tensionScore: number): CivilizationConflictSeverity 
   }
 
   return 'low'
+}
+
+function toSlug(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function hashText(value: string): number {
+  let hash = 2166136261
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+
+  return hash >>> 0
+}
+
+function pickDeterministicTags(
+  source: readonly string[],
+  count: number,
+  seed: number
+): string[] {
+  if (source.length === 0 || count <= 0) {
+    return []
+  }
+
+  const rng = createSeededRng(seed)
+  const pool = [...source]
+  const picked: string[] = []
+  const boundedCount = Math.min(count, pool.length)
+
+  while (picked.length < boundedCount && pool.length > 0) {
+    const idx = Math.floor(rng.next() * pool.length)
+    picked.push(pool[idx]!)
+    pool.splice(idx, 1)
+  }
+
+  return picked
+}
+
+function resolvePopulationLoyaltyBand(
+  baseline: DiplomaticBaseline,
+  state?: CivilizationState
+): CivilizationPopulationLoyaltyBand {
+  if (state) {
+    if (state.cooperationBand === 'aligned') {
+      return 'integrated'
+    }
+
+    if (state.cooperationBand === 'opposed') {
+      return 'fractured'
+    }
+
+    return 'conditional'
+  }
+
+  if (baseline === 'cooperative' || baseline === 'dependent') {
+    return 'integrated'
+  }
+
+  if (baseline === 'hostile' || baseline === 'secretly_aligned' || baseline === 'infiltrated') {
+    return 'fractured'
+  }
+
+  return 'conditional'
 }
 
 /**
@@ -784,4 +899,85 @@ export function deriveCivilizationPairConflicts(
     }
     return left.pairId.localeCompare(right.pairId)
   })
+}
+
+/**
+ * Derive a compact deterministic inheritance packet for a civilization-linked
+ * recruit, witness, or specialist profile.
+ */
+export function deriveCivilizationPopulationInheritance(
+  civilization: CivilizationProfile,
+  input: CivilizationPopulationInheritanceInput,
+  state?: CivilizationState
+): CivilizationPopulationInheritancePacket {
+  const variantIndex = Math.max(0, input.variantIndex ?? 0)
+  const mixSeed = hashText(`${civilization.id}:${input.subjectKind}:${input.seed}:${variantIndex}`)
+
+  const expectationSources = [
+    ...SUBJECT_EXPECTATION_TAGS[input.subjectKind],
+    ...civilization.culturePacket.toleratedBehaviors.map((entry) => `expectation:tolerates-${toSlug(entry)}`),
+  ]
+
+  const traitSources = [
+    ...civilization.culturePacket.ethics.map((entry) => `trait:ethic-${toSlug(entry)}`),
+    `trait:naming-style-${toSlug(civilization.culturePacket.namingStyle)}`,
+  ]
+
+  const tabooConflictSources = civilization.culturePacket.taboos.map(
+    (entry) => `conflict:taboo-${toSlug(entry)}`
+  )
+
+  const loyaltyBand = resolvePopulationLoyaltyBand(civilization.diplomaticBaseline, state)
+  const cooperationLoyaltyTag =
+    loyaltyBand === 'integrated'
+      ? 'loyalty:agency-compatible'
+      : loyaltyBand === 'fractured'
+        ? 'loyalty:agency-resistant'
+        : 'loyalty:agency-conditional'
+
+  const loyaltyTags = Array.from(
+    new Set([
+      POPULATION_CATEGORY_LOYALTY_TAGS[civilization.category],
+      cooperationLoyaltyTag,
+      `loyalty:baseline-${civilization.diplomaticBaseline}`,
+    ])
+  ).sort((left, right) => left.localeCompare(right))
+
+  const conflictSurfaceTags = Array.from(
+    new Set([
+      POPULATION_CATEGORY_CONFLICT_TAGS[civilization.category],
+      ...pickDeterministicTags(tabooConflictSources, 2, mixSeed + 11),
+      ...(state && state.memoryPressure >= 20 ? ['conflict:memory-grievance'] : []),
+      ...(state && state.cooperationBand === 'opposed' ? ['conflict:retaliatory-posture'] : []),
+    ])
+  ).sort((left, right) => left.localeCompare(right))
+
+  const expectationTags = Array.from(
+    new Set(pickDeterministicTags(expectationSources, 3, mixSeed + 17))
+  ).sort((left, right) => left.localeCompare(right))
+
+  const traitTags = Array.from(new Set(pickDeterministicTags(traitSources, 3, mixSeed + 23))).sort(
+    (left, right) => left.localeCompare(right)
+  )
+
+  const resourceAffinityTags = Array.from(
+    new Set(
+      pickDeterministicTags(civilization.resourceAccess, 2, mixSeed + 29).map(
+        (entry) => `resource-affinity:${toSlug(entry)}`
+      )
+    )
+  ).sort((left, right) => left.localeCompare(right))
+
+  return {
+    packetId: `${civilization.id}:${input.subjectKind}:${input.seed}:${variantIndex}`,
+    civilizationId: civilization.id,
+    civilizationCategory: civilization.category,
+    subjectKind: input.subjectKind,
+    loyaltyBand,
+    expectationTags,
+    traitTags,
+    loyaltyTags,
+    conflictSurfaceTags,
+    resourceAffinityTags,
+  }
 }

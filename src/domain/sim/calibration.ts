@@ -325,3 +325,14 @@ export const LIVE_REGISTRY_CALIBRATION = {
     confidenceDrop: 'warning',
   } as const,
 } as const
+
+// SPE-1045 slice 3: registry query/view calibration
+export const LIVE_REGISTRY_QUERY_CALIBRATION = {
+  /** Number of entries surfaced in the digest top-priority list. */
+  digestTopN: 5,
+  /**
+   * When activeThreatCount reaches or exceeds this value, the registry
+   * digest raises the overloadFlag to signal triage mode.
+   */
+  overloadThreshold: 5,
+} as const

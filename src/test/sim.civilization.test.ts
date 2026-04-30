@@ -6,6 +6,8 @@ import {
   deriveSubordinateInstitutionTypes,
   evaluateDiplomaticBaseline,
   CIVILIZATION_TEMPLATES,
+  createCivilizationState,
+  accumulateCivilizationMemory,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -329,5 +331,103 @@ describe('AC1 integration proof', () => {
     const evaluated = evaluateDiplomaticBaseline(civ)
     expect(evaluated.baseline).toBe(civ.diplomaticBaseline)
     expect(evaluated.reason.length).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 2: civilization state + memory + stance updates
+// ---------------------------------------------------------------------------
+
+describe('createCivilizationState', () => {
+  it('creates compact deterministic state from baseline', () => {
+    const state = createCivilizationState({
+      civilizationId: 'metropolitan_authority',
+      diplomaticBaseline: 'cooperative',
+      memoryCapacity: 3,
+    })
+
+    expect(state.civilizationId).toBe('metropolitan_authority')
+    expect(state.diplomaticBaseline).toBe('cooperative')
+    expect(state.cooperation).toBe(66)
+    expect(state.cooperationBand).toBe('aligned')
+    expect(state.memoryCapacity).toBe(3)
+    expect(state.memoryEvents).toEqual([])
+    expect(state.rememberedEventIds).toEqual([])
+    expect(state.memoryPressure).toBe(0)
+  })
+})
+
+describe('accumulateCivilizationMemory', () => {
+  it('deterministically accumulates memory from explicit events', () => {
+    const base = createCivilizationState({
+      civilizationId: 'bureau_exceptional_incidents',
+      diplomaticBaseline: 'suspicious',
+      memoryCapacity: 5,
+    })
+
+    const updated = accumulateCivilizationMemory(base, [
+      { eventId: 'evt-2', week: 2, type: 'agency_violated_agreement', intensity: 1 },
+      { eventId: 'evt-1', week: 1, type: 'agency_shared_intel', intensity: 1 },
+    ])
+
+    expect(updated.memoryEvents.map((entry) => entry.eventId)).toEqual(['evt-1', 'evt-2'])
+    expect(updated.rememberedEventCounts.agency_shared_intel).toBe(1)
+    expect(updated.rememberedEventCounts.agency_violated_agreement).toBe(1)
+    expect(updated.cooperation).toBe(39)
+    expect(updated.lastMemoryWeek).toBe(2)
+  })
+
+  it('ignores repeated events with the same eventId', () => {
+    const base = createCivilizationState({
+      civilizationId: 'threshold_assembly',
+      diplomaticBaseline: 'dependent',
+      memoryCapacity: 5,
+    })
+
+    const first = accumulateCivilizationMemory(base, [
+      { eventId: 'evt-repeat', week: 7, type: 'agency_violated_agreement' },
+    ])
+    const second = accumulateCivilizationMemory(first, [
+      { eventId: 'evt-repeat', week: 7, type: 'agency_violated_agreement' },
+    ])
+
+    expect(second.cooperation).toBe(first.cooperation)
+    expect(second.rememberedEventCounts.agency_violated_agreement).toBe(1)
+    expect(second.memoryEvents).toHaveLength(1)
+  })
+
+  it('keeps newest memory events up to memoryCapacity', () => {
+    const base = createCivilizationState({
+      civilizationId: 'gray_market_collective',
+      diplomaticBaseline: 'exploitative',
+      memoryCapacity: 2,
+    })
+
+    const updated = accumulateCivilizationMemory(base, [
+      { eventId: 'evt-a', week: 1, type: 'agency_shared_intel' },
+      { eventId: 'evt-b', week: 2, type: 'agency_saved_lives' },
+      { eventId: 'evt-c', week: 3, type: 'agency_violated_agreement' },
+    ])
+
+    expect(updated.memoryEvents.map((entry) => entry.eventId)).toEqual(['evt-b', 'evt-c'])
+    expect(updated.rememberedEventIds).toEqual(['evt-b', 'evt-c'])
+  })
+
+  it('changes cooperation band when remembered behavior turns negative', () => {
+    const base = createCivilizationState({
+      civilizationId: 'metropolitan_authority',
+      diplomaticBaseline: 'cooperative',
+      memoryCapacity: 6,
+    })
+
+    const updated = accumulateCivilizationMemory(base, [
+      { eventId: 'evt-1', week: 1, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'evt-2', week: 2, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    expect(base.cooperationBand).toBe('aligned')
+    expect(updated.cooperation).toBe(22)
+    expect(updated.cooperationBand).toBe('opposed')
+    expect(updated.memoryPressure).toBeGreaterThan(0)
   })
 })

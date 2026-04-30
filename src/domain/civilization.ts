@@ -63,6 +63,52 @@ export interface GeneratedCivilizationSet {
   seed: number
 }
 
+export type CivilizationCooperationBand = 'aligned' | 'watchful' | 'opposed'
+
+export type CivilizationMemoryEventType =
+  | 'agency_saved_lives'
+  | 'agency_shared_intel'
+  | 'agency_honored_agreement'
+  | 'agency_violated_agreement'
+  | 'agency_exposed_coverup'
+  | 'agency_raided_civilian_site'
+
+export interface CivilizationMemoryEventInput {
+  eventId: string
+  week: number
+  type: CivilizationMemoryEventType
+  intensity?: number
+  summary?: string
+}
+
+export interface CivilizationMemoryEventRecord {
+  eventId: string
+  week: number
+  type: CivilizationMemoryEventType
+  intensity: number
+  cooperationDelta: number
+  summary?: string
+}
+
+export interface CivilizationState {
+  civilizationId: string
+  diplomaticBaseline: DiplomaticBaseline
+  cooperation: number
+  cooperationBand: CivilizationCooperationBand
+  memoryCapacity: number
+  memoryEvents: CivilizationMemoryEventRecord[]
+  rememberedEventCounts: Record<CivilizationMemoryEventType, number>
+  rememberedEventIds: string[]
+  memoryPressure: number
+  lastMemoryWeek?: number
+}
+
+export interface CivilizationStateCreationInput {
+  civilizationId: string
+  diplomaticBaseline: DiplomaticBaseline
+  memoryCapacity?: number
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -362,5 +408,141 @@ export function evaluateDiplomaticBaseline(civ: CivilizationProfile): {
   return {
     baseline: civ.diplomaticBaseline,
     reason: baselineReasons[civ.diplomaticBaseline],
+  }
+}
+
+const BASELINE_COOPERATION: Record<DiplomaticBaseline, number> = {
+  cooperative: 66,
+  suspicious: 48,
+  hostile: 20,
+  dependent: 56,
+  infiltrated: 34,
+  exploitative: 38,
+  secretly_aligned: 28,
+}
+
+const MEMORY_EVENT_COOPERATION_WEIGHTS: Record<CivilizationMemoryEventType, number> = {
+  agency_saved_lives: 8,
+  agency_shared_intel: 5,
+  agency_honored_agreement: 7,
+  agency_violated_agreement: -14,
+  agency_exposed_coverup: -10,
+  agency_raided_civilian_site: -16,
+}
+
+function clampCooperation(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function resolveCooperationBand(cooperation: number): CivilizationCooperationBand {
+  if (cooperation >= 65) {
+    return 'aligned'
+  }
+
+  if (cooperation <= 35) {
+    return 'opposed'
+  }
+
+  return 'watchful'
+}
+
+function createEmptyRememberedCounts(): Record<CivilizationMemoryEventType, number> {
+  return {
+    agency_saved_lives: 0,
+    agency_shared_intel: 0,
+    agency_honored_agreement: 0,
+    agency_violated_agreement: 0,
+    agency_exposed_coverup: 0,
+    agency_raided_civilian_site: 0,
+  }
+}
+
+/**
+ * Create compact civilization runtime state.
+ * Pure constructor; no GameState wiring.
+ */
+export function createCivilizationState(input: CivilizationStateCreationInput): CivilizationState {
+  const memoryCapacity = Math.max(1, input.memoryCapacity ?? CIVILIZATION_CALIBRATION.defaultMemoryCapacity)
+  const baselineCooperation = clampCooperation(BASELINE_COOPERATION[input.diplomaticBaseline])
+
+  return {
+    civilizationId: input.civilizationId,
+    diplomaticBaseline: input.diplomaticBaseline,
+    cooperation: baselineCooperation,
+    cooperationBand: resolveCooperationBand(baselineCooperation),
+    memoryCapacity,
+    memoryEvents: [],
+    rememberedEventCounts: createEmptyRememberedCounts(),
+    rememberedEventIds: [],
+    memoryPressure: 0,
+    lastMemoryWeek: undefined,
+  }
+}
+
+/**
+ * Deterministically apply explicit memory events to civilization state.
+ * - Order-independent by sorting events by week/eventId before application.
+ * - Duplicate eventIds are ignored once remembered.
+ * - Cooperation and cooperation-band update from remembered behavior.
+ */
+export function accumulateCivilizationMemory(
+  state: CivilizationState,
+  events: readonly CivilizationMemoryEventInput[]
+): CivilizationState {
+  if (events.length === 0) {
+    return state
+  }
+
+  const rememberedIds = new Set(state.rememberedEventIds)
+  const nextCounts = { ...state.rememberedEventCounts }
+  const sortedEvents = [...events].sort((left, right) => {
+    if (left.week !== right.week) {
+      return left.week - right.week
+    }
+    return left.eventId.localeCompare(right.eventId)
+  })
+
+  let cooperation = state.cooperation
+  let memoryPressure = state.memoryPressure
+  let lastMemoryWeek = state.lastMemoryWeek
+  const nextMemoryEvents = [...state.memoryEvents]
+
+  for (const event of sortedEvents) {
+    if (rememberedIds.has(event.eventId)) {
+      continue
+    }
+
+    const intensity = Math.max(1, Math.round(event.intensity ?? 1))
+    const cooperationDelta = MEMORY_EVENT_COOPERATION_WEIGHTS[event.type] * intensity
+
+    rememberedIds.add(event.eventId)
+    nextCounts[event.type] += 1
+    cooperation = clampCooperation(cooperation + cooperationDelta)
+    memoryPressure += cooperationDelta < 0 ? Math.abs(cooperationDelta) : -Math.min(2, cooperationDelta)
+    memoryPressure = Math.max(0, memoryPressure)
+    lastMemoryWeek = Math.max(lastMemoryWeek ?? event.week, event.week)
+
+    nextMemoryEvents.push({
+      eventId: event.eventId,
+      week: event.week,
+      type: event.type,
+      intensity,
+      cooperationDelta,
+      summary: event.summary,
+    })
+  }
+
+  const prunedEvents = nextMemoryEvents.slice(-state.memoryCapacity)
+  const rememberedEventIds = prunedEvents.map((entry) => entry.eventId)
+
+  return {
+    ...state,
+    cooperation,
+    cooperationBand: resolveCooperationBand(cooperation),
+    memoryEvents: prunedEvents,
+    rememberedEventCounts: nextCounts,
+    rememberedEventIds,
+    memoryPressure,
+    lastMemoryWeek,
   }
 }

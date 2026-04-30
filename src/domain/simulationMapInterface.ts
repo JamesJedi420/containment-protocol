@@ -61,12 +61,37 @@ export interface RouteRemapState {
   dominantWorldState: WorldZoneStatus
 }
 
+export interface UncertaintyHotspot {
+  id: string
+  category: 'contradiction' | 'false_reading'
+  scope: 'social' | 'route'
+  confidence: number
+  sourceFactIds: readonly string[]
+  detail: string
+}
+
+export interface LowConfidenceCluster {
+  id: string
+  scope: 'social' | 'route'
+  averageConfidence: number
+  memberIds: readonly string[]
+  detail: string
+}
+
+export interface MapUncertaintySummary {
+  contradictionHotspots: readonly UncertaintyHotspot[]
+  falseReadingHotspots: readonly UncertaintyHotspot[]
+  lowConfidenceClusters: readonly LowConfidenceCluster[]
+  warningTags: readonly string[]
+}
+
 export interface SimulationMapInterface {
   subjects: readonly SimulationMapSubject[]
   socialFacts: readonly SocialMapFact[]
   worldZones: readonly WorldRemapZone[]
   routeState: RouteRemapState
   actionableSignals: readonly string[]
+  uncertaintySummary: MapUncertaintySummary
 }
 
 function clamp01(value: number) {
@@ -505,6 +530,103 @@ function buildActionableSignals(worldZones: readonly WorldRemapZone[], routeStat
   return uniqueStrings(signals).slice(0, 4)
 }
 
+function buildUncertaintySummary(
+  socialFacts: readonly SocialMapFact[],
+  worldZones: readonly WorldRemapZone[],
+  routeState: RouteRemapState
+): MapUncertaintySummary {
+  const contradictionFacts = socialFacts.filter(
+    (fact) => fact.visibility === 'contradicted' || fact.errorState === 'contradicted'
+  )
+  const contradictionHotspots: UncertaintyHotspot[] = contradictionFacts.map((fact) => ({
+    id: `uncertainty:contradiction:${fact.id}`,
+    category: 'contradiction',
+    scope: 'social',
+    confidence: clamp01(Math.max(0.35, fact.confidence)),
+    sourceFactIds: [fact.id],
+    detail: `${fact.detail} This social link is currently contradiction-prone.`,
+  }))
+
+  const falseReadingFacts = socialFacts.filter((fact) => {
+    if (fact.kind === 'rumor_path' && fact.visibility === 'contradicted') {
+      return true
+    }
+
+    if (fact.sourceTags.includes('one-sided-read') && fact.confidence <= 0.56) {
+      return true
+    }
+
+    return fact.errorState === 'sensor_limited' && fact.confidence <= 0.6
+  })
+  const falseReadingHotspots: UncertaintyHotspot[] = falseReadingFacts.map((fact) => ({
+    id: `uncertainty:false-reading:${fact.id}`,
+    category: 'false_reading',
+    scope: 'social',
+    confidence: clamp01(Math.max(0.3, fact.confidence)),
+    sourceFactIds: [fact.id],
+    detail: `${fact.detail} This read carries elevated false-interpretation risk.`,
+  }))
+
+  const lowConfidenceSocialFacts = socialFacts.filter((fact) => {
+    return fact.confidence <= 0.58 || fact.errorState === 'incomplete' || fact.errorState === 'sensor_limited'
+  })
+  const lowConfidenceRouteZones = worldZones.filter((zone) => zone.confidence <= 0.74)
+  const lowConfidenceClusters: LowConfidenceCluster[] = []
+
+  if (lowConfidenceSocialFacts.length > 0) {
+    lowConfidenceClusters.push({
+      id: 'uncertainty:cluster:social-readings',
+      scope: 'social',
+      averageConfidence: clamp01(
+        lowConfidenceSocialFacts.reduce((sum, fact) => sum + fact.confidence, 0) /
+          lowConfidenceSocialFacts.length
+      ),
+      memberIds: lowConfidenceSocialFacts.map((fact) => fact.id).sort((left, right) => left.localeCompare(right)),
+      detail: `${lowConfidenceSocialFacts.length} social links are low-confidence or partially observed.`,
+    })
+  }
+
+  if (lowConfidenceRouteZones.length > 0) {
+    lowConfidenceClusters.push({
+      id: 'uncertainty:cluster:route-zones',
+      scope: 'route',
+      averageConfidence: clamp01(
+        lowConfidenceRouteZones.reduce((sum, zone) => sum + zone.confidence, 0) / lowConfidenceRouteZones.length
+      ),
+      memberIds: lowConfidenceRouteZones.map((zone) => zone.id).sort((left, right) => left.localeCompare(right)),
+      detail: `${lowConfidenceRouteZones.length} route-adjacent zones are being interpreted below high-confidence threshold.`,
+    })
+  }
+
+  const warningTags: string[] = []
+  if (contradictionHotspots.length > 0) {
+    warningTags.push('scope:relationship:contradiction-hotspot')
+  }
+  if (falseReadingHotspots.length > 0) {
+    warningTags.push('scope:relationship:false-reading-risk')
+  }
+  if (lowConfidenceClusters.some((cluster) => cluster.scope === 'route')) {
+    warningTags.push('scope:routes:low-confidence-cluster')
+  }
+  if (routeState.safeHubContinuity === 'broken') {
+    warningTags.push('scope:agency-hub:continuity-broken')
+  }
+  if (
+    routeState.dominantWorldState === 'abandoned_hub' ||
+    routeState.dominantWorldState === 'industrial_kill_site' ||
+    routeState.dominantWorldState === 'hostile_territory'
+  ) {
+    warningTags.push('scope:world:critical-dominance')
+  }
+
+  return {
+    contradictionHotspots: sortById(contradictionHotspots),
+    falseReadingHotspots: sortById(falseReadingHotspots),
+    lowConfidenceClusters: sortById(lowConfidenceClusters),
+    warningTags: uniqueStrings(warningTags),
+  }
+}
+
 export function buildSimulationMapInterface(game: GameState): SimulationMapInterface {
   const factionStates = buildFactionStates(game)
   const openCases = Object.values(game.cases).filter((currentCase) => currentCase.status !== 'resolved')
@@ -537,5 +659,6 @@ export function buildSimulationMapInterface(game: GameState): SimulationMapInter
     worldZones,
     routeState,
     actionableSignals: buildActionableSignals(worldZones, routeState),
+    uncertaintySummary: buildUncertaintySummary(socialFacts, worldZones, routeState),
   }
 }

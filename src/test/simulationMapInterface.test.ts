@@ -69,6 +69,7 @@ describe('simulationMapInterface', () => {
     const second = buildSimulationMapInterface(state)
 
     expect(second).toEqual(first)
+    expect(first.uncertaintySummary).toEqual(second.uncertaintySummary)
     expect(
       first.socialFacts.some(
         (fact) =>
@@ -93,6 +94,11 @@ describe('simulationMapInterface', () => {
           fact.fromSubjectId === 'faction:occult_networks' &&
           fact.toSubjectId === 'agency:containment'
       )
+    ).toBe(true)
+    expect(first.uncertaintySummary.contradictionHotspots.length).toBeGreaterThan(0)
+    expect(first.uncertaintySummary.falseReadingHotspots.length).toBeGreaterThan(0)
+    expect(
+      first.uncertaintySummary.warningTags.includes('scope:relationship:contradiction-hotspot')
     ).toBe(true)
   })
 
@@ -191,6 +197,51 @@ describe('simulationMapInterface', () => {
     expect(simulationMap.routeState.safeHubContinuity).toBe('broken')
     expect(simulationMap.routeState.severedRouteCount).toBeGreaterThan(0)
     expect(simulationMap.actionableSignals.length).toBeGreaterThan(0)
+    expect(
+      simulationMap.uncertaintySummary.warningTags.includes(
+        'scope:agency-hub:continuity-broken'
+      )
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.warningTags.includes('scope:routes:low-confidence-cluster')
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.lowConfidenceClusters.some(
+        (cluster) => cluster.scope === 'route' && cluster.memberIds.length > 0
+      )
+    ).toBe(true)
+  })
+
+  it('derives false-reading and low-confidence social clusters from rumor-path uncertainty', () => {
+    const state = createStartingState()
+    state.relationshipHistory = [
+      {
+        week: 1,
+        agentAId: 'a_ava',
+        agentBId: 'a_mina',
+        value: 1,
+        modifiers: [],
+        reason: 'external_event',
+      },
+    ]
+
+    const simulationMap = buildSimulationMapInterface(state)
+
+    expect(
+      simulationMap.uncertaintySummary.falseReadingHotspots.some((hotspot) =>
+        hotspot.sourceFactIds.some((factId) => factId.includes('social:rumor:'))
+      )
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.lowConfidenceClusters.some(
+        (cluster) =>
+          cluster.scope === 'social' &&
+          cluster.memberIds.some((memberId) => memberId.includes('social:rumor:'))
+      )
+    ).toBe(true)
+    expect(
+      simulationMap.uncertaintySummary.warningTags.includes('scope:relationship:false-reading-risk')
+    ).toBe(true)
   })
 
   it('threads the simulation map into agency overview as a derived surface', () => {

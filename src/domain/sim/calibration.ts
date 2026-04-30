@@ -293,3 +293,23 @@ export const COMPETENCY_CALIBRATION = {
   decayPerWeek: 2,
   decayStartAfterWeeks: 3,
 } as const
+
+// SPE-1024 slice 1: responder duty-state evaluation calibration
+export const RESPONDER_DUTY_CALIBRATION = {
+  readinessWeights: {
+    certification: 0.35,
+    gear: 0.35,
+    condition: 0.3,
+  },
+  fatiguePenaltyWeight: 0.6,
+  injuredPenalty: 20,
+  recoveringPenalty: 30,
+  trainingPenalty: 15,
+  fitReadinessBonus: 8,
+  mismatchReadinessPenalty: 18,
+  visibleIndirectPanicBase: 55,
+  visibleReachablePanicBase: 35,
+  blackoutPanicPenalty: 10,
+  minimumDeployScore: 55,
+  panicHoldThreshold: 75,
+} as const

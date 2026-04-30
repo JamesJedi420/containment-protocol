@@ -240,6 +240,40 @@ export interface CivilizationEvolutionPacket {
   signals: CivilizationEvolutionSignal[]
 }
 
+export interface InstitutionPublicIdentity {
+  displayName: string
+  formalName: string
+  visibleRole: string
+}
+
+export interface InstitutionProfile {
+  profileId: string
+  parentCivilizationId: string
+  institutionKind: string
+  publicIdentity: InstitutionPublicIdentity
+  aliases: string[]
+  visualIdentifiers: string[]
+  doctrineTags: string[]
+  permissionTags: string[]
+  operationalTags: string[]
+  umbrellaProfileId?: string
+  branchKey?: string
+}
+
+export interface InstitutionProfileDerivationInput {
+  institutionKind: string
+  seed: number
+  week: number
+  branchIndex?: number
+}
+
+export interface InstitutionProfileAccessSurface {
+  profileId: string
+  accessHints: string[]
+  conflictHooks: string[]
+  culturalMarkers: string[]
+}
+
 export type CivilizationLocalEntityType = 'institution' | 'faction'
 
 export interface CivilizationLocalEntityPacket {
@@ -247,6 +281,7 @@ export interface CivilizationLocalEntityPacket {
   parentCivilizationId: string
   entityType: CivilizationLocalEntityType
   institutionKind: string
+  institutionProfile?: InstitutionProfile
   roleTags: string[]
   accessHints: string[]
   conflictHooks: string[]
@@ -782,6 +817,39 @@ const CATEGORY_LOCAL_ROLE_TAGS: Record<CivilizationCategory, string[]> = {
   nonhuman: ['role:threshold-mediation', 'role:node-custodianship'],
 }
 
+const CATEGORY_CORE_DOCTRINE_TAGS: Record<CivilizationCategory, string[]> = {
+  government: ['doctrine:civic-legitimacy'],
+  religious: ['doctrine:ritual-orthodoxy'],
+  medical: ['doctrine:care-obligation'],
+  academic: ['doctrine:knowledge-stewardship'],
+  criminal: ['doctrine:crew-loyalty'],
+  occult: ['doctrine:esoteric-discipline'],
+  rival_containment: ['doctrine:operational-secrecy'],
+  nonhuman: ['doctrine:threshold-law'],
+}
+
+const CATEGORY_PERMISSION_TAGS: Record<CivilizationCategory, string[]> = {
+  government: ['permission:public-badge', 'permission:chain-of-command'],
+  religious: ['permission:rite-clearance', 'permission:symbol-recognition'],
+  medical: ['permission:clinical-clearance', 'permission:triage-priority'],
+  academic: ['permission:archive-clearance', 'permission:research-sponsorship'],
+  criminal: ['permission:crew-vetting', 'permission:broker-introduction'],
+  occult: ['permission:rite-initiation', 'permission:sigil-clearance'],
+  rival_containment: ['permission:classification-gate', 'permission:jurisdiction-screening'],
+  nonhuman: ['permission:threshold-attunement', 'permission:node-passage'],
+}
+
+const CATEGORY_VISUAL_IDENTIFIER_TAGS: Record<CivilizationCategory, string[]> = {
+  government: ['symbol:civic-seal'],
+  religious: ['symbol:devotional-icon'],
+  medical: ['symbol:clinical-insignia'],
+  academic: ['symbol:scholastic-mark'],
+  criminal: ['symbol:crew-mark'],
+  occult: ['symbol:ritual-sigil'],
+  rival_containment: ['symbol:clearance-badge'],
+  nonhuman: ['symbol:threshold-glyph'],
+}
+
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
@@ -838,6 +906,15 @@ function toConflictSeverity(tensionScore: number): CivilizationConflictSeverity 
 
 function toSlug(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+}
+
+function toDisplayLabel(value: string): string {
+  return value
+    .trim()
+    .split(/[^a-zA-Z0-9]+/)
+    .filter(Boolean)
+    .map((segment) => segment[0]!.toUpperCase() + segment.slice(1).toLowerCase())
+    .join(' ')
 }
 
 function hashText(value: string): number {
@@ -1062,6 +1139,10 @@ function difference(left: readonly string[], right: readonly string[]): string[]
 function intersection(left: readonly string[], right: readonly string[]): string[] {
   const rightSet = new Set(right)
   return left.filter((value) => rightSet.has(value))
+}
+
+function toHookTags(source: readonly string[], prefix: string, count: number): string[] {
+  return source.slice(0, count).map((entry) => `${prefix}${entry.replace(/:/g, '-')}`)
 }
 
 /**
@@ -1639,6 +1720,138 @@ export function deriveCivilizationEvolutionPacket(
 }
 
 /**
+ * Derive a compact deterministic institution profile for one local institution.
+ * Keeps doctrine, identity, permissions, and operational reach typed and bounded.
+ */
+export function deriveInstitutionProfile(
+  civilization: CivilizationProfile,
+  input: InstitutionProfileDerivationInput,
+  state?: CivilizationState
+): InstitutionProfile {
+  const branchIndex = Math.max(1, input.branchIndex ?? 1)
+  const kindLabel = toDisplayLabel(input.institutionKind)
+  const accessPacket = deriveCivilizationAccessPacket(civilization, state)
+  const evolutionPacket = deriveCivilizationEvolutionPacket(
+    civilization,
+    { seed: input.seed, week: input.week },
+    state
+  )
+
+  const aliases = uniqueSorted([
+    `${kindLabel} Desk`,
+    ...(branchIndex > 1 ? [`${kindLabel} Branch ${branchIndex}`] : []),
+  ]).slice(0, 2)
+
+  const visualIdentifiers = uniqueSorted([
+    ...CATEGORY_VISUAL_IDENTIFIER_TAGS[civilization.category],
+    `symbol:kind-${toSlug(input.institutionKind)}`,
+    `visual:naming-${toSlug(civilization.culturePacket.namingStyle)}`,
+  ]).slice(0, 3)
+
+  const doctrineTags = uniqueSorted([
+    ...CATEGORY_CORE_DOCTRINE_TAGS[civilization.category],
+    ...civilization.culturePacket.ethics.slice(0, 2).map((entry) => `doctrine:ethic-${toSlug(entry)}`),
+    ...civilization.culturePacket.taboos.slice(0, 1).map((entry) => `doctrine:taboo-${toSlug(entry)}`),
+  ]).slice(0, 4)
+
+  const permissionTags = uniqueSorted([
+    `permission:access-${accessPacket.accessBand}`,
+    ...CATEGORY_PERMISSION_TAGS[civilization.category],
+    ...(state?.cooperationBand === 'opposed' ? ['permission:elevated-screening'] : []),
+  ]).slice(0, 4)
+
+  const operationalTags = uniqueSorted([
+    `operation:kind-${toSlug(input.institutionKind)}`,
+    ...civilization.resourceAccess.slice(0, 2).map((entry) => `operation:resource-${toSlug(entry)}`),
+    ...evolutionPacket.effectHints.institutionPressureTags
+      .slice(0, 1)
+      .map((entry) => `operation:pressure-${entry.replace(/^institution:/, '')}`),
+  ]).slice(0, 4)
+
+  return {
+    profileId: `${civilization.id}:profile:${input.week}:${branchIndex}:${toSlug(input.institutionKind)}`,
+    parentCivilizationId: civilization.id,
+    institutionKind: input.institutionKind,
+    publicIdentity: {
+      displayName: `${kindLabel} ${branchIndex > 1 ? `Branch ${branchIndex}` : 'Office'}`,
+      formalName: `${civilization.name} ${kindLabel}`,
+      visibleRole: kindLabel,
+    },
+    aliases,
+    visualIdentifiers,
+    doctrineTags,
+    permissionTags,
+    operationalTags,
+    umbrellaProfileId:
+      branchIndex > 1 ? `${civilization.id}:umbrella:${toSlug(input.institutionKind)}` : undefined,
+    branchKey: branchIndex > 1 ? `${toSlug(input.institutionKind)}-${branchIndex}` : undefined,
+  }
+}
+
+/**
+ * Validate the bounded institution profile shape without introducing narrative rules.
+ */
+export function validateInstitutionProfile(profile: InstitutionProfile): string[] {
+  const errors: string[] = []
+
+  if (!profile.profileId) errors.push('Missing profileId')
+  if (!profile.parentCivilizationId) errors.push('Missing parentCivilizationId')
+  if (!profile.institutionKind) errors.push('Missing institutionKind')
+  if (!profile.publicIdentity.displayName) errors.push('Missing publicIdentity.displayName')
+  if (!profile.publicIdentity.formalName) errors.push('Missing publicIdentity.formalName')
+  if (!profile.publicIdentity.visibleRole) errors.push('Missing publicIdentity.visibleRole')
+  if (profile.visualIdentifiers.length === 0) errors.push(`${profile.profileId}: visualIdentifiers array is empty`)
+  if (profile.doctrineTags.length === 0) errors.push(`${profile.profileId}: doctrineTags array is empty`)
+  if (profile.permissionTags.length === 0) errors.push(`${profile.profileId}: permissionTags array is empty`)
+  if (profile.operationalTags.length === 0) errors.push(`${profile.profileId}: operationalTags array is empty`)
+
+  const uniqueFields: Array<[label: string, values: string[]]> = [
+    ['aliases', profile.aliases],
+    ['visualIdentifiers', profile.visualIdentifiers],
+    ['doctrineTags', profile.doctrineTags],
+    ['permissionTags', profile.permissionTags],
+    ['operationalTags', profile.operationalTags],
+  ]
+
+  for (const [label, values] of uniqueFields) {
+    if (values.join('|') !== uniqueSorted(values).join('|')) {
+      errors.push(`${profile.profileId}: ${label} must be unique-sorted`)
+    }
+  }
+
+  if ((profile.umbrellaProfileId && !profile.branchKey) || (!profile.umbrellaProfileId && profile.branchKey)) {
+    errors.push(`${profile.profileId}: umbrellaProfileId and branchKey must appear together`)
+  }
+
+  return errors
+}
+
+/**
+ * Convert institution profile fields into downstream-ready access/culture hints.
+ * This is the bounded consumer for local-entity scaffolding.
+ */
+export function deriveInstitutionAccessSurface(
+  profile: InstitutionProfile
+): InstitutionProfileAccessSurface {
+  return {
+    profileId: profile.profileId,
+    accessHints: uniqueSorted([
+      `access:role-${toSlug(profile.publicIdentity.visibleRole)}`,
+      ...profile.permissionTags.slice(0, 2).map((entry) => `access:${entry.replace(/^permission:/, '')}`),
+      ...profile.operationalTags.slice(0, 1).map((entry) => `access:${entry.replace(/^operation:/, '')}`),
+    ]),
+    conflictHooks: uniqueSorted([
+      ...toHookTags(profile.doctrineTags, 'hook:', 2),
+      ...toHookTags(profile.permissionTags, 'hook:', 1),
+    ]),
+    culturalMarkers: uniqueSorted([
+      ...profile.visualIdentifiers.slice(0, 2),
+      ...profile.aliases.slice(0, 1).map((alias) => `identity:alias-${toSlug(alias)}`),
+    ]),
+  }
+}
+
+/**
  * Derive deterministic local institution/faction entities from a parent
  * civilization actor without crossing into full institution-profile ownership.
  */
@@ -1670,25 +1883,50 @@ export function deriveCivilizationLocalEntities(
       .slice(0, 1)
       .map((behavior) => `culture:tolerates-${toSlug(behavior)}`),
   ]
+  const kindCounts = new Map<string, number>()
 
   const institutionEntities: CivilizationLocalEntityPacket[] = institutionKinds
     .slice(0, maxEntities)
-    .map((kind, idx) => ({
-      entityId: `${civilization.id}:institution:${input.week}:${idx + 1}:${toSlug(kind)}`,
-      parentCivilizationId: civilization.id,
-      entityType: 'institution',
-      institutionKind: kind,
-      roleTags: uniqueSorted([
-        `role:kind-${toSlug(kind)}`,
-        ...CATEGORY_LOCAL_ROLE_TAGS[civilization.category],
-      ]),
-      accessHints: uniqueSorted([
-        `access:band-${accessPacket.accessBand}`,
-        ...accessPacket.resourceChannels.slice(0, 2),
-      ]),
-      conflictHooks: uniqueSorted(sharedConflictHooks),
-      culturalMarkers: uniqueSorted(baseCulturalMarkers),
-    }))
+    .map((kind, idx) => {
+      const branchIndex = (kindCounts.get(kind) ?? 0) + 1
+      kindCounts.set(kind, branchIndex)
+      const institutionProfile = deriveInstitutionProfile(
+        civilization,
+        {
+          institutionKind: kind,
+          seed: input.seed,
+          week: input.week,
+          branchIndex,
+        },
+        state
+      )
+      const accessSurface = deriveInstitutionAccessSurface(institutionProfile)
+
+      return {
+        entityId: `${civilization.id}:institution:${input.week}:${idx + 1}:${toSlug(kind)}`,
+        parentCivilizationId: civilization.id,
+        entityType: 'institution',
+        institutionKind: kind,
+        institutionProfile,
+        roleTags: uniqueSorted([
+          `role:kind-${toSlug(kind)}`,
+          ...CATEGORY_LOCAL_ROLE_TAGS[civilization.category],
+        ]),
+        accessHints: uniqueSorted([
+          `access:band-${accessPacket.accessBand}`,
+          ...accessPacket.resourceChannels.slice(0, 2),
+          ...accessSurface.accessHints,
+        ]),
+        conflictHooks: uniqueSorted([
+          ...sharedConflictHooks,
+          ...accessSurface.conflictHooks,
+        ]),
+        culturalMarkers: uniqueSorted([
+          ...baseCulturalMarkers,
+          ...accessSurface.culturalMarkers,
+        ]),
+      }
+    })
 
   const entities = [...institutionEntities]
   const includeFactionAnchor = input.includeFactionAnchor ?? true

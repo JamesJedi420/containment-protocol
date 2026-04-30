@@ -15,6 +15,9 @@ import {
   deriveCivilizationAccessDifferential,
   deriveCivilizationEvolutionPacket,
   deriveCivilizationLocalEntities,
+  deriveInstitutionAccessSurface,
+  deriveInstitutionProfile,
+  validateInstitutionProfile,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -809,5 +812,132 @@ describe('deriveCivilizationLocalEntities', () => {
     expect(
       pressured.entities.some((entity) => entity.conflictHooks.includes('hook:cooperation-opposed'))
     ).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-698 slice 1: institution profile schema + bounded downstream consumer
+// ---------------------------------------------------------------------------
+
+describe('deriveInstitutionProfile', () => {
+  it('derives a deterministic institution profile with structured identity and access fields', () => {
+    const civ = classifyCivilization('radiant_order')!
+    const profile = deriveInstitutionProfile(civ, {
+      institutionKind: 'sanctuary',
+      seed: 515,
+      week: 18,
+    })
+
+    expect(profile.profileId).toBe('radiant_order:profile:18:1:sanctuary')
+    expect(profile.publicIdentity.displayName).toBe('Sanctuary Office')
+    expect(profile.publicIdentity.formalName).toBe('Radiant Order Sanctuary')
+    expect(profile.visualIdentifiers).toContain('symbol:devotional-icon')
+    expect(profile.doctrineTags).toContain('doctrine:ritual-orthodoxy')
+    expect(profile.permissionTags.some((tag) => tag.startsWith('permission:access-'))).toBe(true)
+    expect(profile.operationalTags).toContain('operation:kind-sanctuary')
+  })
+
+  it('adds deterministic branch linkage only when repeated branch structure is needed', () => {
+    const civ = classifyCivilization('metropolitan_authority')!
+    const profile = deriveInstitutionProfile(civ, {
+      institutionKind: 'precinct',
+      seed: 101,
+      week: 9,
+      branchIndex: 2,
+    })
+
+    expect(profile.umbrellaProfileId).toBe('metropolitan_authority:umbrella:precinct')
+    expect(profile.branchKey).toBe('precinct-2')
+    expect(profile.aliases).toContain('Precinct Branch 2')
+  })
+
+  it('is repeatable for identical inputs', () => {
+    const civ = classifyCivilization('hidden_covenant')!
+    const a = deriveInstitutionProfile(civ, {
+      institutionKind: 'shrine',
+      seed: 707,
+      week: 4,
+    })
+    const b = deriveInstitutionProfile(civ, {
+      institutionKind: 'shrine',
+      seed: 707,
+      week: 4,
+    })
+
+    expect(a).toEqual(b)
+  })
+})
+
+describe('validateInstitutionProfile', () => {
+  it('accepts a valid deterministic profile', () => {
+    const civ = classifyCivilization('civic_medical_trust')!
+    const profile = deriveInstitutionProfile(civ, {
+      institutionKind: 'clinic',
+      seed: 311,
+      week: 6,
+    })
+
+    expect(validateInstitutionProfile(profile)).toEqual([])
+  })
+
+  it('flags unsorted or incomplete profile fields', () => {
+    const errors = validateInstitutionProfile({
+      profileId: 'broken',
+      parentCivilizationId: 'broken-civ',
+      institutionKind: '',
+      publicIdentity: {
+        displayName: '',
+        formalName: '',
+        visibleRole: '',
+      },
+      aliases: ['Zulu', 'Alpha'],
+      visualIdentifiers: [],
+      doctrineTags: ['doctrine:z', 'doctrine:a'],
+      permissionTags: [],
+      operationalTags: [],
+      umbrellaProfileId: 'broken:umbrella',
+    })
+
+    expect(errors).toContain('Missing institutionKind')
+    expect(errors).toContain('Missing publicIdentity.displayName')
+    expect(errors).toContain('broken: visualIdentifiers array is empty')
+    expect(errors).toContain('broken: doctrineTags must be unique-sorted')
+    expect(errors).toContain('broken: umbrellaProfileId and branchKey must appear together')
+  })
+})
+
+describe('deriveInstitutionAccessSurface', () => {
+  it('produces downstream-ready access and identity hints from an institution profile', () => {
+    const civ = classifyCivilization('bureau_exceptional_incidents')!
+    const profile = deriveInstitutionProfile(civ, {
+      institutionKind: 'field-office',
+      seed: 902,
+      week: 16,
+    })
+
+    const surface = deriveInstitutionAccessSurface(profile)
+
+    expect(surface.profileId).toBe(profile.profileId)
+    expect(surface.accessHints).toContain('access:role-field-office')
+    expect(surface.conflictHooks.some((tag) => tag.startsWith('hook:doctrine-'))).toBe(true)
+    expect(surface.culturalMarkers.some((tag) => tag.startsWith('symbol:'))).toBe(true)
+  })
+
+  it('is consumed by local institution derivation without breaking determinism', () => {
+    const civ = classifyCivilization('metropolitan_authority')!
+    const packet = deriveCivilizationLocalEntities(civ, { seed: 901, week: 14 })
+    const institution = packet.entities.find((entity) => entity.entityType === 'institution')
+
+    expect(institution?.institutionProfile?.profileId).toBe(
+      'metropolitan_authority:profile:14:1:precinct'
+    )
+    expect(institution?.accessHints.some((tag) => tag.startsWith('access:role-'))).toBe(true)
+    expect(institution?.conflictHooks.some((tag) => tag.startsWith('hook:doctrine-'))).toBe(true)
+    expect(institution?.culturalMarkers.some((tag) => tag.startsWith('symbol:'))).toBe(true)
+    expect(
+      institution?.institutionProfile
+        ? validateInstitutionProfile(institution.institutionProfile)
+        : ['missing']
+    ).toEqual([])
   })
 })

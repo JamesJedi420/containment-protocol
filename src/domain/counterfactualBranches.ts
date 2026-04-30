@@ -227,7 +227,27 @@ export interface CounterfactualOntologyAwareOptionReview {
   label: string
   perceivedAvailability: CounterfactualOptionAvailability
   actualAvailability: CounterfactualOptionAvailability
+  truthDrivers: string[]
   reviewReason: string
+}
+
+export interface CounterfactualOntologyTruthPosture {
+  visibilityTrust: 'trusted' | 'qualified' | 'rejected'
+  observationStatus: RealityStatePacket['observationStatus']
+  ruleFamilyPosture:
+    | 'not_applicable'
+    | 'allow_under_baseline'
+    | 'allow_under_declared_override'
+    | 'deny_until_triggered'
+    | 'wrong_family_contradiction'
+    | 'hold_for_rule_verification'
+  scopeTruthStatus: 'not_applicable' | 'baseline_preserved' | 'override_active' | 'uncertain'
+  scopeHandlingMode:
+    | 'not_applicable'
+    | 'standard_scope_handling'
+    | 'localized_override_handling'
+    | 'broad_override_handling'
+    | 'scope_verification'
 }
 
 export interface CounterfactualOntologyAwareBranchReviewSummary {
@@ -239,6 +259,8 @@ export interface CounterfactualOntologyAwareBranchReviewSummary {
   believedConsequenceState: string
   observationStatus: RealityStatePacket['observationStatus']
   ontologyConfidence: 'high' | 'qualified' | 'low'
+  truthPosture: CounterfactualOntologyTruthPosture
+  availabilityShiftCount: number
   actualOptionCounts: Record<CounterfactualOptionAvailability, number>
   perceivedOptionCounts: Record<CounterfactualOptionAvailability, number>
   optionReviews: CounterfactualOntologyAwareOptionReview[]
@@ -624,10 +646,12 @@ export function projectOntologyAwareCounterfactualBranchReview(
   const actualOptionCounts = createEmptyOptionCounts()
   const perceivedOptionCounts = { ...branch.optionAudit.counts }
   const surfaceSignals = createEmptySurfaceSignals()
+  let availabilityShiftCount = 0
 
   const optionReviews = branch.optionAudit.options.map((option) => {
     let actualAvailability = option.availability
     const reviewReasons: string[] = []
+    const truthDrivers: string[] = []
     let ruleOutcomeApplied = false
 
     if (
@@ -641,10 +665,12 @@ export function projectOntologyAwareCounterfactualBranchReview(
       if (invalidatedOutcomes.includes(option.optionId)) {
         actualAvailability = 'blocked'
         reviewReasons.push('invalidated by active declared rule family')
+        truthDrivers.push('rule_family_override')
         ruleOutcomeApplied = true
       } else if (allowedOutcomes.includes(option.optionId)) {
         actualAvailability = 'available'
         reviewReasons.push('enabled by active declared rule family')
+        truthDrivers.push('rule_family_override')
         ruleOutcomeApplied = true
       }
     }
@@ -656,6 +682,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
     ) {
       actualAvailability = 'blocked'
       reviewReasons.push('blocked because declared trigger conditions were inactive')
+      truthDrivers.push('rule_family_inactive')
     }
 
     if (
@@ -665,6 +692,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
     ) {
       actualAvailability = 'falsely_perceived'
       reviewReasons.push('evaluated under the wrong active rule family')
+      truthDrivers.push('wrong_family_interpretation')
     }
 
     if (
@@ -674,6 +702,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
     ) {
       actualAvailability = 'falsely_perceived'
       reviewReasons.push('perceived branch condition diverged from actual branch consequence')
+      truthDrivers.push('perception_divergence')
     }
 
     if (
@@ -683,6 +712,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
     ) {
       actualAvailability = 'unknown'
       reviewReasons.push('actual branch consequence remained ontology-uncertain')
+      truthDrivers.push('ontology_uncertainty')
     }
 
     if (
@@ -691,6 +721,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
       scopeAssessment.handlingMode === 'broad_override_handling'
     ) {
       reviewReasons.push(`override propagated to ${scopeAssessment.evaluationScope} scope`)
+      truthDrivers.push('scope_override_propagation')
     } else if (
       scopeAssessment &&
       !scopeAssessment.overrideApplies &&
@@ -699,14 +730,20 @@ export function projectOntologyAwareCounterfactualBranchReview(
       consequenceReality.ruleFamilyProfile.familyType !== 'baseline_physical'
     ) {
       reviewReasons.push(`baseline truth remained preserved at ${scopeAssessment.evaluationScope} scope`)
+      truthDrivers.push('scope_preserved_baseline')
     }
 
     const reviewReason =
       reviewReasons.length > 0
         ? uniqueSorted(reviewReasons).join('; ')
         : 'authored branch review remained unchanged under current ontology evidence'
+    const normalizedTruthDrivers =
+      truthDrivers.length > 0 ? uniqueSorted(truthDrivers) : ['authored_review']
 
     actualOptionCounts[actualAvailability] += 1
+    if (actualAvailability !== option.availability) {
+      availabilityShiftCount += 1
+    }
 
     const signal =
       actualAvailability === option.availability
@@ -722,6 +759,7 @@ export function projectOntologyAwareCounterfactualBranchReview(
       label: option.label,
       perceivedAvailability: option.availability,
       actualAvailability,
+      truthDrivers: normalizedTruthDrivers,
       reviewReason,
     }
   })
@@ -761,6 +799,14 @@ export function projectOntologyAwareCounterfactualBranchReview(
     believedConsequenceState: consequenceReality.believedState,
     observationStatus: consequenceReality.observationStatus,
     ontologyConfidence,
+    truthPosture: {
+      visibilityTrust: operationalAssessment.visibilityTrust,
+      observationStatus: consequenceReality.observationStatus,
+      ruleFamilyPosture: ruleFamilyAssessment?.validityPosture ?? 'not_applicable',
+      scopeTruthStatus: scopeAssessment?.truthStatus ?? 'not_applicable',
+      scopeHandlingMode: scopeAssessment?.handlingMode ?? 'not_applicable',
+    },
+    availabilityShiftCount,
     actualOptionCounts,
     perceivedOptionCounts,
     optionReviews,

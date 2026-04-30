@@ -268,10 +268,19 @@ describe('counterfactualBranches', () => {
         label: 'Civilian evacuation corridor',
         perceivedAvailability: 'available',
         actualAvailability: 'falsely_perceived',
+        truthDrivers: ['perception_divergence'],
         reviewReason: 'perceived branch condition diverged from actual branch consequence',
       },
     ])
     expect(review?.ontologyConfidence).toBe('low')
+    expect(review?.truthPosture).toEqual({
+      visibilityTrust: 'rejected',
+      observationStatus: 'false_reading',
+      ruleFamilyPosture: 'not_applicable',
+      scopeTruthStatus: 'not_applicable',
+      scopeHandlingMode: 'not_applicable',
+    })
+    expect(review?.availabilityShiftCount).toBe(1)
   })
 
   it('changes option classification when symbolic rule activation changes actual validity', () => {
@@ -341,18 +350,26 @@ describe('counterfactualBranches', () => {
         label: 'Forced breach route',
         perceivedAvailability: 'available',
         actualAvailability: 'blocked',
-        reviewReason:
-          'invalidated by active declared rule family',
+        truthDrivers: ['rule_family_override'],
+        reviewReason: 'invalidated by active declared rule family',
       },
       {
         optionId: 'named_passage_valid',
         label: 'Named threshold passage',
         perceivedAvailability: 'blocked',
         actualAvailability: 'available',
-        reviewReason:
-          'enabled by active declared rule family',
+        truthDrivers: ['rule_family_override'],
+        reviewReason: 'enabled by active declared rule family',
       },
     ])
+    expect(review?.truthPosture).toEqual({
+      visibilityTrust: 'qualified',
+      observationStatus: 'contradicted',
+      ruleFamilyPosture: 'allow_under_declared_override',
+      scopeTruthStatus: 'override_active',
+      scopeHandlingMode: 'localized_override_handling',
+    })
+    expect(review?.availabilityShiftCount).toBe(2)
   })
 
   it('keeps ontology-aware review non-omniscient when scope or perception only partially resolves validity', () => {
@@ -413,11 +430,20 @@ describe('counterfactualBranches', () => {
         label: 'District relay handoff',
         perceivedAvailability: 'available',
         actualAvailability: 'unknown',
+        truthDrivers: ['ontology_uncertainty', 'scope_preserved_baseline'],
         reviewReason: 'actual branch consequence remained ontology-uncertain; baseline truth remained preserved at district scope',
       },
     ])
     expect(review?.certaintyNote).toContain('does not assert omniscient rewind truth')
     expect(review?.ontologyConfidence).toBe('low')
+    expect(review?.truthPosture).toEqual({
+      visibilityTrust: 'qualified',
+      observationStatus: 'uncertain',
+      ruleFamilyPosture: 'hold_for_rule_verification',
+      scopeTruthStatus: 'baseline_preserved',
+      scopeHandlingMode: 'standard_scope_handling',
+    })
+    expect(review?.availabilityShiftCount).toBe(1)
   })
 
   it('remains repeatable for identical authored inputs', () => {

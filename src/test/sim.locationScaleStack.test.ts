@@ -454,6 +454,28 @@ describe('locationScaleStack', () => {
     })
   })
 
+  it('resolves route context using default first handle when no preferred handle is specified', () => {
+    const stack = deriveLinkedLocationStack(makeLinkedLocationInput())
+    const withExplicitHandle = resolveLinkedRoutePhaseContext(stack, 'handle:beacon-causeway')
+    const withDefaultHandle = resolveLinkedRoutePhaseContext(stack)
+
+    expect(withDefaultHandle.routeContextId).toBe(withExplicitHandle.routeContextId)
+    expect(withDefaultHandle.linkedAnchorId).toBe(withExplicitHandle.linkedAnchorId)
+    expect(withDefaultHandle.linkedHandleId).toBe(withExplicitHandle.linkedHandleId)
+    expect(withDefaultHandle.continuityStatus).toBe('continuous')
+  })
+
+  it('returns empty camp actions when approach has no camp anchor', () => {
+    const inputWithoutCamp = makeLinkedLocationInput()
+    const modifiedApproach = { ...inputWithoutCamp.approach }
+    delete (modifiedApproach as { campAnchor?: unknown }).campAnchor
+    const stack = deriveLinkedLocationStack({ ...inputWithoutCamp, approach: modifiedApproach })
+    const travelContext = resolveLinkedLocationTravelContext(stack)
+
+    expect(travelContext.campAnchorId).toBeUndefined()
+    expect(travelContext.supportedCampActions).toEqual([])
+  })
+
   it('remains repeatable for identical authored inputs', () => {
     const first = deriveLinkedLocationStack(makeLinkedLocationInput())
     const second = deriveLinkedLocationStack(makeLinkedLocationInput())

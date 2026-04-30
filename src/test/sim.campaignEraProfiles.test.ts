@@ -91,6 +91,27 @@ describe('campaignEraProfiles', () => {
     expect(overlay.powerAvailability.suppressed).toContain('arcane')
   })
 
+  it('correctly flags single-era profiles as not mixed-era and empty-suppressed profiles as having no suppressed surfaces', () => {
+    const singleEraPacket = createCampaignEraProfilePacket({
+      profileId: 'profile:pure-medieval',
+      label: 'Pure Medieval',
+      eraLayers: ['medieval'],
+      allowedRoles: ['officer', 'preacher'],
+      availableEquipmentCategories: ['plate_armor', 'ritual_implements'],
+      enabledPowerFamilies: ['miracle', 'folk_rite'],
+      moneyModel: 'coinage',
+      prevalentMonsterFamilies: ['undead', 'goblinoid'],
+      settlementStyleHints: ['fortified_market_town', 'cathedral_city'],
+    })
+    const overlay = deriveCampaignEraOverlay(singleEraPacket)
+
+    expect(overlay.mixedEra).toBe(false)
+    expect(hasSuppressedInteractionSurface(singleEraPacket)).toBe(false)
+    expect(overlay.suppressedInteractionSurfaces).toEqual([])
+    expect(overlay.roleAccess.suppressed).toEqual([])
+    expect(overlay.powerAvailability.suppressed).toEqual([])
+  })
+
   it('remains deterministic for identical mixed-era profile input', () => {
     const firstPacket = createCampaignEraProfilePacket(makeMixedEraProfile())
     const secondPacket = createCampaignEraProfilePacket(makeMixedEraProfile())

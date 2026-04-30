@@ -272,6 +272,22 @@ describe('regionPackets', () => {
     ])
   })
 
+  it('returns empty ecology outputs when no ecology zones are provided', () => {
+    const input = makeRegionInput()
+    const { ecologyZones: _zones, districtEcologyTokens: _tokens, ...inputWithoutEcology } = input
+    const packet = createCompactRegionPacket(inputWithoutEcology as Parameters<typeof createCompactRegionPacket>[0])
+
+    expect(packet.ecologyZones).toEqual([])
+    expect(packet.districtEcologyTokens).toEqual([])
+    expect(deriveRegionEcologyProfiles(packet)).toEqual([])
+    expect(surfaceThreatHabitatHints(packet)).toEqual([
+      { threatId: 'threat:brackish-chorus', threatLabel: 'Brackish Chorus', preferredZoneIds: [], habitatHints: [] },
+      { threatId: 'threat:quarry-ghast', threatLabel: 'Quarry Ghast', preferredZoneIds: [], habitatHints: [] },
+      { threatId: 'threat:salt-ash-fallout', threatLabel: 'Salt-Ash Fallout', preferredZoneIds: [], habitatHints: [] },
+    ])
+    expect(surfaceLocalAssetHints(packet)).toEqual([])
+  })
+
   it('is repeatable for identical packet input', () => {
     const first = createCompactRegionPacket(makeRegionInput())
     const second = createCompactRegionPacket(makeRegionInput())

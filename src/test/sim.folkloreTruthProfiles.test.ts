@@ -148,6 +148,15 @@ describe('folkloreTruthProfiles', () => {
     ).toBe('directional')
   })
 
+  it('sets treat_as_field_guidance disposition when two or more claims are mechanically true', () => {
+    const active = resolveFolklorePacket(makeFolklorePacket(), 'active_folklore')
+    const response = deriveFolkloreOperationalResponse(active)
+
+    expect(countMechanicallyTrueClaims(active)).toBeGreaterThanOrEqual(2)
+    expect(response.briefingDisposition).toBe('treat_as_field_guidance')
+    expect(response.timingAdvisory).toBe('treat_as_window_hint')
+  })
+
   it('remains repeatable for identical profile and folklore inputs', () => {
     const firstPacket = resolveFolklorePacket(makeFolklorePacket(), 'veiled_intrusion')
     const secondPacket = resolveFolklorePacket(makeFolklorePacket(), 'veiled_intrusion')

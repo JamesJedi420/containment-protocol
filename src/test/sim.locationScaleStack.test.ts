@@ -3,8 +3,10 @@ import {
   deriveLinkedLocationStack,
   projectLinkedScaleReveal,
   resolveLinkedApproachHandle,
+  resolveLinkedCampPhaseAction,
   resolveLinkedDetachedSiteView,
   resolveLinkedLocationTravelContext,
+  resolveLinkedRoutePhaseContext,
   resolveLinkedScaleTransition,
   type LinkedLocationStackAuthoringInput,
 } from '../domain/locationScaleStack'
@@ -399,6 +401,59 @@ describe('locationScaleStack', () => {
     })
   })
 
+  it('builds one deterministic route context spanning region to site entry', () => {
+    const stack = deriveLinkedLocationStack(makeLinkedLocationInput())
+    const routeContext = resolveLinkedRoutePhaseContext(stack, 'handle:beacon-causeway')
+
+    expect(routeContext).toEqual({
+      routeContextId: 'loc:rivergate-ferry-keep:route-context:handle:beacon-causeway',
+      locationId: 'loc:rivergate-ferry-keep',
+      scaleChain: ['region', 'approach', 'site'],
+      routeChain: ['route:kings-road', 'route:causeway-road', 'route:north-gate'],
+      transitionIds: [
+        'loc:rivergate-ferry-keep:region:approach:region:blackwater-bend:approach:rivergate-causeway',
+        'loc:rivergate-ferry-keep:approach:site:approach:rivergate-causeway:site:lantern-keep',
+      ],
+      preservedFeatureNames: [
+        'Blackwater River',
+        'Lantern Keep',
+        'Market Road',
+        'North Gate',
+        'Rivergate Ferry',
+      ],
+      linkedAnchorId: 'anchor:river-bend-beacon',
+      linkedHandleId: 'handle:beacon-causeway',
+      campAnchorId: 'camp:causeway-grove',
+      supportedCampActions: ['fortification', 'rest'],
+      continuityStatus: 'continuous',
+    })
+  })
+
+  it('attaches camp-phase action to the same shared route context with landmark/handle continuity', () => {
+    const stack = deriveLinkedLocationStack(makeLinkedLocationInput())
+    const routeContext = resolveLinkedRoutePhaseContext(stack, 'handle:beacon-causeway')
+    const campPhase = resolveLinkedCampPhaseAction(stack, 'fortification', 'handle:beacon-causeway')
+
+    expect(campPhase).toEqual({
+      routeContextId: routeContext.routeContextId,
+      locationId: 'loc:rivergate-ferry-keep',
+      phase: 'camp',
+      action: 'fortification',
+      campAnchorId: 'camp:causeway-grove',
+      routeChain: ['route:kings-road', 'route:causeway-road', 'route:north-gate'],
+      linkedAnchorId: 'anchor:river-bend-beacon',
+      linkedHandleId: 'handle:beacon-causeway',
+      preservedFeatureNames: [
+        'Blackwater River',
+        'Lantern Keep',
+        'Market Road',
+        'North Gate',
+        'Rivergate Ferry',
+      ],
+      continuityStatus: 'continuous',
+    })
+  })
+
   it('remains repeatable for identical authored inputs', () => {
     const first = deriveLinkedLocationStack(makeLinkedLocationInput())
     const second = deriveLinkedLocationStack(makeLinkedLocationInput())
@@ -413,6 +468,12 @@ describe('locationScaleStack', () => {
     )
     expect(resolveLinkedDetachedSiteView(second, 'site-view:undercroft-detached')).toEqual(
       resolveLinkedDetachedSiteView(first, 'site-view:undercroft-detached')
+    )
+    expect(resolveLinkedRoutePhaseContext(second, 'handle:beacon-causeway')).toEqual(
+      resolveLinkedRoutePhaseContext(first, 'handle:beacon-causeway')
+    )
+    expect(resolveLinkedCampPhaseAction(second, 'fortification', 'handle:beacon-causeway')).toEqual(
+      resolveLinkedCampPhaseAction(first, 'fortification', 'handle:beacon-causeway')
     )
   })
 })

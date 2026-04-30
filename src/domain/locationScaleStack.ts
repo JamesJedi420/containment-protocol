@@ -274,6 +274,33 @@ export interface LinkedDetachedSiteViewResolution {
   continuityStatus: 'continuous'
 }
 
+export interface LinkedRoutePhaseContext {
+  routeContextId: string
+  locationId: string
+  scaleChain: ['region', 'approach', 'site']
+  routeChain: [string, string, string]
+  transitionIds: [string, string]
+  preservedFeatureNames: string[]
+  linkedAnchorId?: string
+  linkedHandleId?: string
+  campAnchorId?: string
+  supportedCampActions: LinkedCampAction[]
+  continuityStatus: 'continuous'
+}
+
+export interface LinkedCampPhaseResolution {
+  routeContextId: string
+  locationId: string
+  phase: 'camp'
+  action: LinkedCampAction
+  campAnchorId: string
+  routeChain: [string, string, string]
+  linkedAnchorId?: string
+  linkedHandleId?: string
+  preservedFeatureNames: string[]
+  continuityStatus: 'continuous'
+}
+
 function normalizeString(value: string): string {
   return value.trim()
 }
@@ -334,6 +361,10 @@ function buildTransitionId(
   toNodeId: string
 ): string {
   return `${locationId}:${fromScale}:${toScale}:${fromNodeId}:${toNodeId}`
+}
+
+function toRouteContextId(locationId: string, handleId?: string) {
+  return `${locationId}:route-context:${handleId ?? 'default'}`
 }
 
 export function deriveLinkedLocationStack(
@@ -526,6 +557,76 @@ export function resolveLinkedDetachedSiteView(
     continuityRouteId: view.routeId,
     ...(view.linkedAnchorId ? { linkedAnchorId: view.linkedAnchorId } : {}),
     ...(view.linkedHandleId ? { linkedHandleId: view.linkedHandleId } : {}),
+    continuityStatus: 'continuous',
+  }
+}
+
+export function resolveLinkedRoutePhaseContext(
+  packet: LinkedLocationStackPacket,
+  preferredHandleId?: string
+): LinkedRoutePhaseContext {
+  const travelContext = resolveLinkedLocationTravelContext(packet)
+  const selectedHandle =
+    preferredHandleId !== undefined
+      ? packet.approachHandles.find(
+          (handle) => handle.handleId === normalizeString(preferredHandleId)
+        )
+      : packet.approachHandles[0]
+
+  if (preferredHandleId !== undefined && !selectedHandle) {
+    throw new Error(`Missing linked approach handle ${normalizeString(preferredHandleId)}`)
+  }
+
+  const handleResolution = selectedHandle
+    ? resolveLinkedApproachHandle(packet, selectedHandle.handleId)
+    : undefined
+
+  return {
+    routeContextId: toRouteContextId(packet.identity.locationId, selectedHandle?.handleId),
+    locationId: packet.identity.locationId,
+    scaleChain: ['region', 'approach', 'site'],
+    routeChain: [
+      travelContext.routeChain[0]!,
+      travelContext.routeChain[1]!,
+      travelContext.routeChain[2]!,
+    ],
+    transitionIds: [travelContext.transitionIds[0]!, travelContext.transitionIds[1]!],
+    preservedFeatureNames: uniqueSorted([
+      ...travelContext.preservedFeatureNames,
+      ...(handleResolution?.preservedFeatureNames ?? []),
+    ]),
+    ...(handleResolution?.anchorId ? { linkedAnchorId: handleResolution.anchorId } : {}),
+    ...(selectedHandle?.handleId ? { linkedHandleId: selectedHandle.handleId } : {}),
+    ...(travelContext.campAnchorId ? { campAnchorId: travelContext.campAnchorId } : {}),
+    supportedCampActions: [...travelContext.supportedCampActions],
+    continuityStatus: 'continuous',
+  }
+}
+
+export function resolveLinkedCampPhaseAction(
+  packet: LinkedLocationStackPacket,
+  action: LinkedCampAction,
+  preferredHandleId?: string
+): LinkedCampPhaseResolution {
+  const routeContext = resolveLinkedRoutePhaseContext(packet, preferredHandleId)
+  if (!routeContext.campAnchorId) {
+    throw new Error('Missing camp anchor for route context')
+  }
+
+  if (!routeContext.supportedCampActions.includes(action)) {
+    throw new Error(`Camp action ${action} is not supported at anchor ${routeContext.campAnchorId}`)
+  }
+
+  return {
+    routeContextId: routeContext.routeContextId,
+    locationId: routeContext.locationId,
+    phase: 'camp',
+    action,
+    campAnchorId: routeContext.campAnchorId,
+    routeChain: routeContext.routeChain,
+    ...(routeContext.linkedAnchorId ? { linkedAnchorId: routeContext.linkedAnchorId } : {}),
+    ...(routeContext.linkedHandleId ? { linkedHandleId: routeContext.linkedHandleId } : {}),
+    preservedFeatureNames: [...routeContext.preservedFeatureNames],
     continuityStatus: 'continuous',
   }
 }

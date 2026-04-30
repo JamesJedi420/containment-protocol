@@ -109,6 +109,33 @@ export interface CivilizationStateCreationInput {
   memoryCapacity?: number
 }
 
+export type CivilizationConflictAxis =
+  | 'jurisdiction_competition'
+  | 'ideological_collision'
+  | 'resource_competition'
+  | 'secrecy_friction'
+  | 'anomaly_governance'
+
+export type CivilizationConflictSeverity = 'low' | 'moderate' | 'high'
+
+export interface CivilizationConflictSignal {
+  axis: CivilizationConflictAxis
+  weight: number
+  reason: string
+  source: 'category' | 'baseline' | 'memory'
+}
+
+export interface CivilizationPairConflict {
+  pairId: string
+  civilizationAId: string
+  civilizationBId: string
+  tensionScore: number
+  severity: CivilizationConflictSeverity
+  cooperationImpact: number
+  institutionPressureTags: string[]
+  signals: CivilizationConflictSignal[]
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -430,6 +457,62 @@ const MEMORY_EVENT_COOPERATION_WEIGHTS: Record<CivilizationMemoryEventType, numb
   agency_raided_civilian_site: -16,
 }
 
+const BASELINE_CONFLICT_PRESSURE: Record<DiplomaticBaseline, number> = {
+  cooperative: 6,
+  suspicious: 14,
+  hostile: 30,
+  dependent: 10,
+  infiltrated: 22,
+  exploitative: 18,
+  secretly_aligned: 24,
+}
+
+const CATEGORY_PAIR_CONFLICTS: Record<string, { axis: CivilizationConflictAxis; weight: number; reason: string }> = {
+  'criminal|government': {
+    axis: 'jurisdiction_competition',
+    weight: 28,
+    reason: 'Civil enforcement and illicit network autonomy are structurally opposed.',
+  },
+  'occult|religious': {
+    axis: 'ideological_collision',
+    weight: 30,
+    reason: 'Competing ritual authority and taboo systems generate recurring doctrinal conflict.',
+  },
+  'medical|occult': {
+    axis: 'anomaly_governance',
+    weight: 16,
+    reason: 'Clinical safety doctrine collides with occult ritual tolerance and secrecy.',
+  },
+  'academic|rival_containment': {
+    axis: 'secrecy_friction',
+    weight: 14,
+    reason: 'Archive transparency pressure conflicts with classified containment controls.',
+  },
+  'government|rival_containment': {
+    axis: 'jurisdiction_competition',
+    weight: 12,
+    reason: 'Parallel authority structures compete over incident command and legal mandate.',
+  },
+  'government|nonhuman': {
+    axis: 'anomaly_governance',
+    weight: 18,
+    reason: 'Human legal sovereignty and nonhuman threshold-law expectations diverge.',
+  },
+  'criminal|rival_containment': {
+    axis: 'resource_competition',
+    weight: 20,
+    reason: 'Covert logistics interdiction creates persistent competition over routes and assets.',
+  },
+}
+
+const AXIS_PRESSURE_TAGS: Record<CivilizationConflictAxis, string[]> = {
+  jurisdiction_competition: ['institution:command-friction', 'institution:oversight-contest'],
+  ideological_collision: ['institution:doctrine-friction', 'institution:legitimacy-contest'],
+  resource_competition: ['institution:resource-contest', 'institution:supply-friction'],
+  secrecy_friction: ['institution:archive-restriction', 'institution:disclosure-pressure'],
+  anomaly_governance: ['institution:containment-policy-conflict', 'institution:threshold-friction'],
+}
+
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
@@ -455,6 +538,33 @@ function createEmptyRememberedCounts(): Record<CivilizationMemoryEventType, numb
     agency_exposed_coverup: 0,
     agency_raided_civilian_site: 0,
   }
+}
+
+function clampTension(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function toCategoryPairKey(
+  left: CivilizationCategory,
+  right: CivilizationCategory
+): string {
+  return left.localeCompare(right) <= 0 ? `${left}|${right}` : `${right}|${left}`
+}
+
+function toCivilizationPairId(leftId: string, rightId: string): string {
+  return leftId.localeCompare(rightId) <= 0 ? `${leftId}::${rightId}` : `${rightId}::${leftId}`
+}
+
+function toConflictSeverity(tensionScore: number): CivilizationConflictSeverity {
+  if (tensionScore >= 60) {
+    return 'high'
+  }
+
+  if (tensionScore >= 30) {
+    return 'moderate'
+  }
+
+  return 'low'
 }
 
 /**
@@ -545,4 +655,133 @@ export function accumulateCivilizationMemory(
     memoryPressure,
     lastMemoryWeek,
   }
+}
+
+/**
+ * Deterministically derive macro-conflict/tension between two civilizations.
+ * Uses category pairing, diplomatic baselines, and optional memory/cooperation state.
+ */
+export function deriveCivilizationPairConflict(
+  civilizationA: CivilizationProfile,
+  civilizationB: CivilizationProfile,
+  stateA?: CivilizationState,
+  stateB?: CivilizationState
+): CivilizationPairConflict {
+  const signals: CivilizationConflictSignal[] = []
+  const categoryPairKey = toCategoryPairKey(civilizationA.category, civilizationB.category)
+  const pairConflict = CATEGORY_PAIR_CONFLICTS[categoryPairKey]
+
+  if (pairConflict) {
+    signals.push({
+      axis: pairConflict.axis,
+      weight: pairConflict.weight,
+      reason: pairConflict.reason,
+      source: 'category',
+    })
+  }
+
+  const baselineWeight = Math.round(
+    (BASELINE_CONFLICT_PRESSURE[civilizationA.diplomaticBaseline] +
+      BASELINE_CONFLICT_PRESSURE[civilizationB.diplomaticBaseline]) /
+      2
+  )
+
+  if (baselineWeight > 0) {
+    signals.push({
+      axis: 'secrecy_friction',
+      weight: baselineWeight,
+      reason: 'Diplomatic baseline posture contributes persistent inter-civilization caution pressure.',
+      source: 'baseline',
+    })
+  }
+
+  const memoryStates = [stateA, stateB].filter((state): state is CivilizationState => Boolean(state))
+  if (memoryStates.length > 0) {
+    const memoryPressureWeight = memoryStates.reduce((sum, state) => {
+      if (state.memoryPressure >= 40) {
+        return sum + 16
+      }
+      if (state.memoryPressure >= 20) {
+        return sum + 8
+      }
+      return sum
+    }, 0)
+
+    const opposedWeight = memoryStates.some((state) => state.cooperationBand === 'opposed') ? 12 : 0
+    const alignedReduction = memoryStates.every((state) => state.cooperationBand === 'aligned') ? -10 : 0
+    const cooperationDistanceWeight = memoryStates.reduce((sum, state) => {
+      if (state.cooperation <= 35) {
+        return sum + 10
+      }
+      if (state.cooperation >= 65) {
+        return sum - 4
+      }
+      return sum + 2
+    }, 0)
+
+    const memoryWeight = memoryPressureWeight + opposedWeight + alignedReduction + cooperationDistanceWeight
+    if (memoryWeight !== 0) {
+      signals.push({
+        axis: 'resource_competition',
+        weight: memoryWeight,
+        reason:
+          'Remembered pressure and cooperation stance shift conflict intensity in predictable ways.',
+        source: 'memory',
+      })
+    }
+  }
+
+  const tensionScore = clampTension(signals.reduce((sum, signal) => sum + signal.weight, 0))
+  const severity = toConflictSeverity(tensionScore)
+  const cooperationImpact = -Math.max(0, Math.round(tensionScore / 10))
+
+  const institutionPressureTags = Array.from(
+    new Set(
+      signals.flatMap((signal) => AXIS_PRESSURE_TAGS[signal.axis])
+    )
+  ).sort((left, right) => left.localeCompare(right))
+
+  return {
+    pairId: toCivilizationPairId(civilizationA.id, civilizationB.id),
+    civilizationAId: civilizationA.id,
+    civilizationBId: civilizationB.id,
+    tensionScore,
+    severity,
+    cooperationImpact,
+    institutionPressureTags,
+    signals,
+  }
+}
+
+/**
+ * Build deterministic pairwise conflict list for a civilization set.
+ * Output is sorted by tension desc, then pairId asc for stable debugging.
+ */
+export function deriveCivilizationPairConflicts(
+  civilizations: readonly CivilizationProfile[],
+  statesByCivilizationId: Readonly<Record<string, CivilizationState | undefined>> = {}
+): CivilizationPairConflict[] {
+  const conflicts: CivilizationPairConflict[] = []
+
+  for (let i = 0; i < civilizations.length; i++) {
+    const left = civilizations[i]!
+    for (let j = i + 1; j < civilizations.length; j++) {
+      const right = civilizations[j]!
+      conflicts.push(
+        deriveCivilizationPairConflict(
+          left,
+          right,
+          statesByCivilizationId[left.id],
+          statesByCivilizationId[right.id]
+        )
+      )
+    }
+  }
+
+  return conflicts.sort((left, right) => {
+    if (left.tensionScore !== right.tensionScore) {
+      return right.tensionScore - left.tensionScore
+    }
+    return left.pairId.localeCompare(right.pairId)
+  })
 }

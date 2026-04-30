@@ -8,6 +8,8 @@ import {
   CIVILIZATION_TEMPLATES,
   createCivilizationState,
   accumulateCivilizationMemory,
+  deriveCivilizationPairConflict,
+  deriveCivilizationPairConflicts,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -429,5 +431,74 @@ describe('accumulateCivilizationMemory', () => {
     expect(updated.cooperation).toBe(22)
     expect(updated.cooperationBand).toBe('opposed')
     expect(updated.memoryPressure).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 3: deterministic civilization-pair macro-conflict
+// ---------------------------------------------------------------------------
+
+describe('deriveCivilizationPairConflict', () => {
+  it('derives a predictable high-tension religious-vs-occult conflict', () => {
+    const religious = classifyCivilization('radiant_order')!
+    const occult = classifyCivilization('hidden_covenant')!
+
+    const conflict = deriveCivilizationPairConflict(religious, occult)
+
+    expect(conflict.pairId).toBe('hidden_covenant::radiant_order')
+    expect(conflict.tensionScore).toBeGreaterThanOrEqual(45)
+    expect(['moderate', 'high']).toContain(conflict.severity)
+    expect(conflict.institutionPressureTags).toContain('institution:doctrine-friction')
+    expect(conflict.signals.some((signal) => signal.axis === 'ideological_collision')).toBe(true)
+  })
+
+  it('is repeatable for identical inputs', () => {
+    const gov = classifyCivilization('metropolitan_authority')!
+    const criminal = classifyCivilization('gray_market_collective')!
+
+    const a = deriveCivilizationPairConflict(gov, criminal)
+    const b = deriveCivilizationPairConflict(gov, criminal)
+
+    expect(a).toEqual(b)
+  })
+
+  it('increases tension when memory state shifts toward opposed cooperation', () => {
+    const gov = classifyCivilization('metropolitan_authority')!
+    const criminal = classifyCivilization('gray_market_collective')!
+
+    const calmGovState = createCivilizationState({
+      civilizationId: gov.id,
+      diplomaticBaseline: gov.diplomaticBaseline,
+    })
+
+    const stressedGovState = accumulateCivilizationMemory(calmGovState, [
+      { eventId: 'm1', week: 1, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'm2', week: 2, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    const neutralConflict = deriveCivilizationPairConflict(gov, criminal, calmGovState)
+    const stressedConflict = deriveCivilizationPairConflict(gov, criminal, stressedGovState)
+
+    expect(stressedGovState.cooperationBand).toBe('opposed')
+    expect(stressedConflict.tensionScore).toBeGreaterThan(neutralConflict.tensionScore)
+    expect(stressedConflict.cooperationImpact).toBeLessThanOrEqual(neutralConflict.cooperationImpact)
+  })
+})
+
+describe('deriveCivilizationPairConflicts', () => {
+  it('builds deterministic unique pair conflicts for a civilization set', () => {
+    const civilizations = [
+      classifyCivilization('metropolitan_authority')!,
+      classifyCivilization('gray_market_collective')!,
+      classifyCivilization('radiant_order')!,
+    ]
+
+    const result = deriveCivilizationPairConflicts(civilizations)
+
+    expect(result).toHaveLength(3)
+    expect(new Set(result.map((entry) => entry.pairId)).size).toBe(3)
+
+    const rerun = deriveCivilizationPairConflicts(civilizations)
+    expect(rerun).toEqual(result)
   })
 })

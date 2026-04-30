@@ -285,6 +285,16 @@ export const CIVILIZATION_CALIBRATION = {
   maxInstitutionsPerGeneration: 4,
 } as const
 
+// SPE-1069 slice 6: civilization evolution/change scaffolding calibration
+export const CIVILIZATION_EVOLUTION_CALIBRATION = {
+  significantChangeThreshold: 55,
+  severeChangeThreshold: 70,
+  memoryPressureWeight: 0.6,
+  opposedBandPressureBonus: 10,
+  alignedBandReformBonus: 8,
+  topTagCount: 3,
+} as const
+
 // SPE-1059 slice 1: competency framework calibration
 export const COMPETENCY_CALIBRATION = {
   minimumScore: 0,

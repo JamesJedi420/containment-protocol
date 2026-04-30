@@ -1,6 +1,7 @@
 // SPE-1069 slice 1: civilization parent-actor scaffolding
 import { createSeededRng } from './math'
 import { CIVILIZATION_CALIBRATION } from './sim/calibration'
+import { CIVILIZATION_EVOLUTION_CALIBRATION } from './sim/calibration'
 
 // ---------------------------------------------------------------------------
 // Local types — no models.ts changes
@@ -193,9 +194,19 @@ export type CivilizationChangeVector =
   | 'alliance_shift_pressure'
 
 export type CivilizationTrajectoryBand = 'stabilizing' | 'volatile' | 'fracturing'
+export type CivilizationEvolutionPhase =
+  | 'stable'
+  | 'stressed'
+  | 'corroding'
+  | 'radicalizing'
+  | 'fragmenting'
+  | 'reforming'
+  | 'realigning'
 
 export interface CivilizationEvolutionInput {
+  seed: number
   week: number
+  pressure?: Partial<Record<CivilizationChangeVector, number>>
 }
 
 export interface CivilizationEvolutionSignal {
@@ -210,10 +221,22 @@ export interface CivilizationEvolutionPacket {
   civilizationId: string
   week: number
   pressures: Record<CivilizationChangeVector, number>
+  pressureScores: Record<CivilizationChangeVector, number>
   dominantChange: CivilizationChangeVector
+  dominantDriver: CivilizationChangeVector
   stabilityScore: number
   trajectoryBand: CivilizationTrajectoryBand
+  initialPhase: CivilizationEvolutionPhase
+  resultingPhase: CivilizationEvolutionPhase
+  significantChange: boolean
   downstreamChangeTags: string[]
+  effectHints: {
+    institutionPressureTags: string[]
+    factionPressureTags: string[]
+    campaignPressureTags: string[]
+    cooperationDeltaHint: number
+    riskScore: number
+  }
   signals: CivilizationEvolutionSignal[]
 }
 
@@ -886,6 +909,92 @@ function resolveTrajectoryBand(stabilityScore: number): CivilizationTrajectoryBa
   return 'volatile'
 }
 
+function resolveInitialEvolutionPhase(
+  civilization: CivilizationProfile,
+  state?: CivilizationState
+): CivilizationEvolutionPhase {
+  if (!state) {
+    return civilization.diplomaticBaseline === 'hostile' || civilization.diplomaticBaseline === 'infiltrated'
+      ? 'stressed'
+      : 'stable'
+  }
+
+  if (state.cooperationBand === 'opposed' || state.memoryPressure >= 35) {
+    return 'stressed'
+  }
+
+  return 'stable'
+}
+
+function mapDominantDriverToPhase(driver: CivilizationChangeVector): CivilizationEvolutionPhase {
+  switch (driver) {
+    case 'corruption_pressure':
+      return 'corroding'
+    case 'radicalization_pressure':
+      return 'radicalizing'
+    case 'fragmentation_pressure':
+      return 'fragmenting'
+    case 'reform_pressure':
+      return 'reforming'
+    case 'alliance_shift_pressure':
+      return 'realigning'
+    default:
+      return 'stressed'
+  }
+}
+
+function deriveEvolutionHintTags(driver: CivilizationChangeVector): {
+  institutionPressureTags: string[]
+  factionPressureTags: string[]
+  campaignPressureTags: string[]
+  cooperationDeltaHint: number
+} {
+  switch (driver) {
+    case 'corruption_pressure':
+      return {
+        institutionPressureTags: ['institution:integrity-erosion', 'institution:oversight-capture-risk'],
+        factionPressureTags: ['faction:trust-decay', 'faction:coercive-patronage-risk'],
+        campaignPressureTags: ['campaign:legitimacy-drain', 'campaign:compliance-friction'],
+        cooperationDeltaHint: -8,
+      }
+    case 'radicalization_pressure':
+      return {
+        institutionPressureTags: ['institution:doctrine-hardening', 'institution:dissent-suppression'],
+        factionPressureTags: ['faction:polarization', 'faction:escalation-risk'],
+        campaignPressureTags: ['campaign:volatility-spike', 'campaign:incident-severity-bias'],
+        cooperationDeltaHint: -10,
+      }
+    case 'fragmentation_pressure':
+      return {
+        institutionPressureTags: ['institution:branch-fracture', 'institution:chain-of-command-gaps'],
+        factionPressureTags: ['faction:split-loyalties', 'faction:coordination-failure'],
+        campaignPressureTags: ['campaign:coverage-gaps', 'campaign:response-latency'],
+        cooperationDeltaHint: -6,
+      }
+    case 'reform_pressure':
+      return {
+        institutionPressureTags: ['institution:process-rewrite', 'institution:oversight-renewal'],
+        factionPressureTags: ['faction:policy-reset', 'faction:realignment-dialogue'],
+        campaignPressureTags: ['campaign:stability-recovery', 'campaign:access-normalization'],
+        cooperationDeltaHint: 7,
+      }
+    case 'alliance_shift_pressure':
+      return {
+        institutionPressureTags: ['institution:partnership-rewiring', 'institution:mandate-reprioritization'],
+        factionPressureTags: ['faction:bloc-shift', 'faction:jurisdiction-rebalance'],
+        campaignPressureTags: ['campaign:diplomacy-reweighting', 'campaign:route-realignment'],
+        cooperationDeltaHint: 3,
+      }
+    default:
+      return {
+        institutionPressureTags: [],
+        factionPressureTags: [],
+        campaignPressureTags: [],
+        cooperationDeltaHint: 0,
+      }
+  }
+}
+
 function resolveAccessBand(score: number): CivilizationAccessBand {
   if (score >= 65) {
     return 'open'
@@ -1305,6 +1414,7 @@ export function deriveCivilizationEvolutionPacket(
   input: CivilizationEvolutionInput,
   state?: CivilizationState
 ): CivilizationEvolutionPacket {
+  const rng = createSeededRng(hashText(`${civilization.id}:${input.seed}:${input.week}`))
   const signals: CivilizationEvolutionSignal[] = []
   const pressures = createZeroPressures()
 
@@ -1332,6 +1442,38 @@ export function deriveCivilizationEvolutionPacket(
       vector,
       weight,
       reason: 'Civilization category structure adds deterministic change bias.',
+      source: 'category',
+    })
+  }
+
+  for (const vector of CHANGE_VECTOR_ORDER) {
+    const overrideWeight = Math.round(input.pressure?.[vector] ?? 0)
+    if (overrideWeight === 0) {
+      continue
+    }
+
+    pressures[vector] += overrideWeight
+    signals.push({
+      vector,
+      weight: overrideWeight,
+      reason: 'Explicit bounded change pressure input was applied.',
+      source: 'category',
+    })
+  }
+
+  // Deterministic bounded jitter so evolution packets with different seeds diverge
+  // while staying legible and repeatable.
+  for (const vector of CHANGE_VECTOR_ORDER) {
+    const jitter = Math.floor(rng.next() * 4)
+    if (jitter === 0) {
+      continue
+    }
+
+    pressures[vector] += jitter
+    signals.push({
+      vector,
+      weight: jitter,
+      reason: 'Seeded micro-variance adjusts pressure while preserving deterministic replay.',
       source: 'category',
     })
   }
@@ -1391,6 +1533,8 @@ export function deriveCivilizationEvolutionPacket(
   }
 
   const dominantChange = resolveDominantChange(pressures)
+  const dominantDriver = dominantChange
+  const maxPressure = pressures[dominantDriver]
   const stabilityScore = clampAccessScore(
     72 -
       pressures.fragmentation_pressure -
@@ -1399,6 +1543,15 @@ export function deriveCivilizationEvolutionPacket(
       Math.round(pressures.reform_pressure * 0.4) -
       Math.max(0, pressures.alliance_shift_pressure - 20)
   )
+
+  const initialPhase = resolveInitialEvolutionPhase(civilization, state)
+  const significantChange =
+    maxPressure >= CIVILIZATION_EVOLUTION_CALIBRATION.significantChangeThreshold
+  const resultingPhase = significantChange
+    ? mapDominantDriverToPhase(dominantDriver)
+    : initialPhase === 'stable'
+      ? 'stressed'
+      : initialPhase
 
   const downstreamChangeTags = uniqueSorted([
     `change:dominant-${dominantChange.replace('_pressure', '')}`,
@@ -1410,15 +1563,38 @@ export function deriveCivilizationEvolutionPacket(
     ...(pressures.alliance_shift_pressure >= 25 ? ['change:alliance-realignment-window'] : []),
   ])
 
+  const hintTags = deriveEvolutionHintTags(dominantDriver)
+
   return {
-    packetId: `${civilization.id}:evolution:${input.week}`,
+    packetId: `${civilization.id}:evolution:${input.week}:${input.seed}`,
     civilizationId: civilization.id,
     week: input.week,
     pressures,
+    pressureScores: { ...pressures },
     dominantChange,
+    dominantDriver,
     stabilityScore,
     trajectoryBand: resolveTrajectoryBand(stabilityScore),
+    initialPhase,
+    resultingPhase,
+    significantChange,
     downstreamChangeTags,
+    effectHints: {
+      institutionPressureTags: hintTags.institutionPressureTags.slice(
+        0,
+        CIVILIZATION_EVOLUTION_CALIBRATION.topTagCount
+      ),
+      factionPressureTags: hintTags.factionPressureTags.slice(
+        0,
+        CIVILIZATION_EVOLUTION_CALIBRATION.topTagCount
+      ),
+      campaignPressureTags: hintTags.campaignPressureTags.slice(
+        0,
+        CIVILIZATION_EVOLUTION_CALIBRATION.topTagCount
+      ),
+      cooperationDeltaHint: hintTags.cooperationDeltaHint,
+      riskScore: clampAccessScore(100 - stabilityScore),
+    },
     signals,
   }
 }

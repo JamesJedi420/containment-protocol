@@ -38,6 +38,13 @@ function buildReality(): RealityMapGraph {
         layerType: 'security',
         hidden: false,
       },
+      {
+        id: 'a-b-influence',
+        fromNodeId: 'room-a',
+        toNodeId: 'room-b',
+        layerType: 'relationship',
+        hidden: false,
+      },
     ],
     entityPositions: [
       {
@@ -170,6 +177,23 @@ describe('mapAwareness reality-vs-map separation', () => {
     expect(securityView.layerType).toBe('security')
     expect(anomalyView.layerType).toBe('anomaly')
     expect(structuralView).not.toEqual(securityView)
+  })
+
+  it('represents non-geometric relationship links on a dedicated layer', () => {
+    const reality = buildReality()
+    const state = createPlayerMapState(reality, {
+      seed: 1104,
+      knownNodeIds: ['room-a', 'room-b'],
+      activeLayer: 'relationship',
+    })
+
+    const relationshipView = getActiveLayerView(state)
+    expect(relationshipView.layerType).toBe('relationship')
+    expect(
+      relationshipView.edges.some(
+        (edge) => edge.realityEdgeId === 'a-b-influence' && edge.layerType === 'relationship'
+      )
+    ).toBe(true)
   })
 
   it('is repeatable for identical initialization and observation sequence', () => {

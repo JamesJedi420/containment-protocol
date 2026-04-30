@@ -1,4 +1,4 @@
-export type MapLayerType = 'structural' | 'security' | 'anomaly'
+export type MapLayerType = 'structural' | 'security' | 'anomaly' | 'relationship'
 
 export type MapErrorState =
   | 'none'
@@ -243,7 +243,7 @@ function buildVisibleState(
 
   const sortedNodes = sortNodes(nodes)
   const sortedEdges = sortEdges(edges)
-  const layerTypes: MapLayerType[] = ['structural', 'security', 'anomaly']
+  const layerTypes: MapLayerType[] = ['structural', 'security', 'anomaly', 'relationship']
   const layers = layerTypes.map((layerType) => ({
     layerType,
     nodes: sortedNodes.filter((node) => node.layerTags.includes(layerType)),

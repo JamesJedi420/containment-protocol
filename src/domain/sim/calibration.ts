@@ -313,3 +313,15 @@ export const RESPONDER_DUTY_CALIBRATION = {
   minimumDeployScore: 55,
   panicHoldThreshold: 75,
 } as const
+
+// SPE-1045 slice 1: live registry core calibration
+export const LIVE_REGISTRY_CALIBRATION = {
+  confidenceDropThreshold: 0.5,
+  alertSeverities: {
+    escape: 'critical',
+    compromise: 'high',
+    transfer: 'warning',
+    confirmation: 'info',
+    confidenceDrop: 'warning',
+  } as const,
+} as const

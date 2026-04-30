@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
   createCompactRegionPacket,
+  deriveRegionEcologyProfiles,
   hasInternalConflictAndExternalPressure,
   linkRegionFactions,
+  surfaceLocalAssetHints,
   surfaceRegionObjectives,
+  surfaceThreatHabitatHints,
   type RegionPacketInput,
 } from '../domain/regionPackets'
 
@@ -97,6 +100,18 @@ function makeRegionInput(): RegionPacketInput {
       },
     ],
     districtEcologyTokens: ['district:floodplain', 'district:old-docks', 'district:quarry-belt'],
+    ecologyZones: [
+      {
+        zoneId: 'zone:estuary-rim',
+        label: 'Estuary Rim',
+        ecologyTokens: ['district:floodplain', 'district:old-docks'],
+      },
+      {
+        zoneId: 'zone:quarry-ward',
+        label: 'Quarry Ward',
+        ecologyTokens: ['district:quarry-belt'],
+      },
+    ],
   }
 }
 
@@ -111,6 +126,18 @@ describe('regionPackets', () => {
     expect(packet.keyNpcs).toHaveLength(3)
     expect(packet.threatPool).toHaveLength(3)
     expect(packet.objectives).toHaveLength(2)
+    expect(packet.ecologyZones).toEqual([
+      {
+        zoneId: 'zone:estuary-rim',
+        label: 'Estuary Rim',
+        ecologyTokens: ['district:floodplain', 'district:old-docks'],
+      },
+      {
+        zoneId: 'zone:quarry-ward',
+        label: 'Quarry Ward',
+        ecologyTokens: ['district:quarry-belt'],
+      },
+    ])
   })
 
   it('links internal faction conflict and external pressure targets deterministically', () => {
@@ -160,6 +187,91 @@ describe('regionPackets', () => {
     ])
   })
 
+  it('derives deterministic ecology modifier, threat-habitat, and local asset hints', () => {
+    const packet = createCompactRegionPacket(makeRegionInput())
+    const ecologyProfiles = deriveRegionEcologyProfiles(packet)
+    const threatHabitatHints = surfaceThreatHabitatHints(packet)
+    const localAssetHints = surfaceLocalAssetHints(packet)
+
+    expect(ecologyProfiles).toEqual([
+      {
+        zoneId: 'zone:estuary-rim',
+        label: 'Estuary Rim',
+        ecologyTokens: ['district:floodplain', 'district:old-docks'],
+        operationalModifierHints: [
+          'ops:flood-risk',
+          'ops:poor-visibility',
+          'ops:signal-dropout',
+          'ops:waterlogged-access',
+        ],
+        threatHabitatHints: [
+          'habitat:concealed-entry',
+          'habitat:drainage-threat',
+          'habitat:smuggling-cult-activity',
+          'habitat:waterline-anomaly',
+        ],
+        localAssetHints: [
+          'asset:boats',
+          'asset:cold-storage',
+          'asset:harbor-archives',
+          'asset:water-sampling-kits',
+        ],
+      },
+      {
+        zoneId: 'zone:quarry-ward',
+        label: 'Quarry Ward',
+        ecologyTokens: ['district:quarry-belt'],
+        operationalModifierHints: ['ops:echo-comms', 'ops:unstable-ground'],
+        threatHabitatHints: ['habitat:quarry-reverb-anomaly', 'habitat:subsurface-cryptid'],
+        localAssetHints: ['asset:heavy-lift-rigging', 'asset:iron-stock'],
+      },
+    ])
+
+    expect(threatHabitatHints).toEqual([
+      {
+        threatId: 'threat:brackish-chorus',
+        threatLabel: 'Brackish Chorus',
+        preferredZoneIds: ['zone:estuary-rim'],
+        habitatHints: [
+          'habitat:concealed-entry',
+          'habitat:drainage-threat',
+          'habitat:smuggling-cult-activity',
+          'habitat:waterline-anomaly',
+        ],
+      },
+      {
+        threatId: 'threat:quarry-ghast',
+        threatLabel: 'Quarry Ghast',
+        preferredZoneIds: ['zone:quarry-ward'],
+        habitatHints: ['habitat:quarry-reverb-anomaly', 'habitat:subsurface-cryptid'],
+      },
+      {
+        threatId: 'threat:salt-ash-fallout',
+        threatLabel: 'Salt-Ash Fallout',
+        preferredZoneIds: [],
+        habitatHints: [],
+      },
+    ])
+
+    expect(localAssetHints).toEqual([
+      {
+        zoneId: 'zone:estuary-rim',
+        label: 'Estuary Rim',
+        localAssetHints: [
+          'asset:boats',
+          'asset:cold-storage',
+          'asset:harbor-archives',
+          'asset:water-sampling-kits',
+        ],
+      },
+      {
+        zoneId: 'zone:quarry-ward',
+        label: 'Quarry Ward',
+        localAssetHints: ['asset:heavy-lift-rigging', 'asset:iron-stock'],
+      },
+    ])
+  })
+
   it('is repeatable for identical packet input', () => {
     const first = createCompactRegionPacket(makeRegionInput())
     const second = createCompactRegionPacket(makeRegionInput())
@@ -167,5 +279,8 @@ describe('regionPackets', () => {
     expect(second).toEqual(first)
     expect(linkRegionFactions(second)).toEqual(linkRegionFactions(first))
     expect(surfaceRegionObjectives(second)).toEqual(surfaceRegionObjectives(first))
+    expect(deriveRegionEcologyProfiles(second)).toEqual(deriveRegionEcologyProfiles(first))
+    expect(surfaceThreatHabitatHints(second)).toEqual(surfaceThreatHabitatHints(first))
+    expect(surfaceLocalAssetHints(second)).toEqual(surfaceLocalAssetHints(first))
   })
 })

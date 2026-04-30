@@ -45,6 +45,12 @@ export interface RegionObjectiveArtifactInput {
   linkedThreatIds: readonly string[]
 }
 
+export interface RegionEcologyZoneInput {
+  zoneId: string
+  label: string
+  ecologyTokens: readonly string[]
+}
+
 export interface RegionPacketInput {
   regionId: string
   label: string
@@ -55,6 +61,7 @@ export interface RegionPacketInput {
   threatPool: readonly RegionThreatEntryInput[]
   objectives: readonly RegionObjectiveArtifactInput[]
   districtEcologyTokens?: readonly string[]
+  ecologyZones?: readonly RegionEcologyZoneInput[]
 }
 
 export interface RegionFaction {
@@ -101,6 +108,12 @@ export interface RegionObjectiveArtifact {
   linkedThreatIds: string[]
 }
 
+export interface RegionEcologyZone {
+  zoneId: string
+  label: string
+  ecologyTokens: string[]
+}
+
 export interface CompactRegionPacket {
   regionId: string
   label: string
@@ -111,6 +124,7 @@ export interface CompactRegionPacket {
   threatPool: RegionThreatEntry[]
   objectives: RegionObjectiveArtifact[]
   districtEcologyTokens: string[]
+  ecologyZones: RegionEcologyZone[]
 }
 
 export interface RegionFactionLink {
@@ -125,6 +139,52 @@ export interface RegionObjectiveSurface {
   label: string
   objectiveHook: string
   linkedThreatLabels: string[]
+}
+
+export interface RegionEcologyProfile {
+  zoneId: string
+  label: string
+  ecologyTokens: string[]
+  operationalModifierHints: string[]
+  threatHabitatHints: string[]
+  localAssetHints: string[]
+}
+
+export interface RegionThreatHabitatSurface {
+  threatId: string
+  threatLabel: string
+  preferredZoneIds: string[]
+  habitatHints: string[]
+}
+
+export interface RegionLocalAssetSurface {
+  zoneId: string
+  label: string
+  localAssetHints: string[]
+}
+
+const ECOLOGY_OPERATIONAL_HINTS: Readonly<Record<string, readonly string[]>> = {
+  'district:floodplain': ['ops:flood-risk', 'ops:waterlogged-access'],
+  'district:old-docks': ['ops:poor-visibility', 'ops:signal-dropout'],
+  'district:quarry-belt': ['ops:unstable-ground', 'ops:echo-comms'],
+  'district:dead-mall': ['ops:collapsed-interior-lines', 'ops:blind-corners'],
+  'district:cemetery-belt': ['ops:night-witness-variance', 'ops:ritual-residue'],
+}
+
+const ECOLOGY_THREAT_HINTS: Readonly<Record<string, readonly string[]>> = {
+  'district:floodplain': ['habitat:waterline-anomaly', 'habitat:drainage-threat'],
+  'district:old-docks': ['habitat:smuggling-cult-activity', 'habitat:concealed-entry'],
+  'district:quarry-belt': ['habitat:subsurface-cryptid', 'habitat:quarry-reverb-anomaly'],
+  'district:dead-mall': ['habitat:abandoned-hostile-cell', 'habitat:containment-blind-spot'],
+  'district:cemetery-belt': ['habitat:mortuary-cult-ritual', 'habitat:grief-echo-entity'],
+}
+
+const ECOLOGY_LOCAL_ASSET_HINTS: Readonly<Record<string, readonly string[]>> = {
+  'district:floodplain': ['asset:boats', 'asset:water-sampling-kits'],
+  'district:old-docks': ['asset:cold-storage', 'asset:harbor-archives'],
+  'district:quarry-belt': ['asset:iron-stock', 'asset:heavy-lift-rigging'],
+  'district:dead-mall': ['asset:maintenance-tunnels', 'asset:backup-generators'],
+  'district:cemetery-belt': ['asset:mortuary-records', 'asset:chapel-access'],
 }
 
 function normalizeString(value: string) {
@@ -200,6 +260,19 @@ export function createCompactRegionPacket(input: RegionPacketInput): CompactRegi
     (objective) => objective.artifactId
   )
 
+  const ecologyZones = sortByKey(
+    (input.ecologyZones ?? []).map((zone) => ({
+      zoneId: normalizeString(zone.zoneId),
+      label: normalizeString(zone.label),
+      ecologyTokens: uniqueSorted(zone.ecologyTokens),
+    })),
+    (zone) => zone.zoneId
+  )
+
+  const inferredDistrictTokensFromZones = uniqueSorted(
+    ecologyZones.flatMap((zone) => zone.ecologyTokens)
+  )
+
   return {
     regionId: normalizeString(input.regionId),
     label: normalizeString(input.label),
@@ -209,7 +282,11 @@ export function createCompactRegionPacket(input: RegionPacketInput): CompactRegi
     keyNpcs,
     threatPool,
     objectives,
-    districtEcologyTokens: uniqueSorted(input.districtEcologyTokens ?? []),
+    districtEcologyTokens: uniqueSorted([
+      ...(input.districtEcologyTokens ?? []),
+      ...inferredDistrictTokensFromZones,
+    ]),
+    ecologyZones,
   }
 }
 
@@ -242,4 +319,57 @@ export function hasInternalConflictAndExternalPressure(packet: CompactRegionPack
   const hasInternalConflict = packet.factions.some((faction) => faction.rivalFactionIds.length > 0)
   const hasExternalPressureTargets = packet.externalPressure.targetFactionIds.length > 0
   return hasInternalConflict && hasExternalPressureTargets
+}
+
+function deriveOperationalModifierHints(tokens: readonly string[]) {
+  return uniqueSorted(tokens.flatMap((token) => ECOLOGY_OPERATIONAL_HINTS[token] ?? []))
+}
+
+function deriveThreatHabitatHints(tokens: readonly string[]) {
+  return uniqueSorted(tokens.flatMap((token) => ECOLOGY_THREAT_HINTS[token] ?? []))
+}
+
+function deriveLocalAssetHints(tokens: readonly string[]) {
+  return uniqueSorted(tokens.flatMap((token) => ECOLOGY_LOCAL_ASSET_HINTS[token] ?? []))
+}
+
+export function deriveRegionEcologyProfiles(packet: CompactRegionPacket): RegionEcologyProfile[] {
+  return packet.ecologyZones.map((zone) => ({
+    zoneId: zone.zoneId,
+    label: zone.label,
+    ecologyTokens: [...zone.ecologyTokens],
+    operationalModifierHints: deriveOperationalModifierHints(zone.ecologyTokens),
+    threatHabitatHints: deriveThreatHabitatHints(zone.ecologyTokens),
+    localAssetHints: deriveLocalAssetHints(zone.ecologyTokens),
+  }))
+}
+
+export function surfaceThreatHabitatHints(packet: CompactRegionPacket): RegionThreatHabitatSurface[] {
+  const profileByZoneId = new Map(
+    deriveRegionEcologyProfiles(packet).map((profile) => [profile.zoneId, profile])
+  )
+
+  return packet.threatPool.map((threat) => {
+    const preferredZoneIds = packet.ecologyZones
+      .filter((zone) => threat.districtTokens.some((token) => zone.ecologyTokens.includes(token)))
+      .map((zone) => zone.zoneId)
+    const habitatHints = uniqueSorted(
+      preferredZoneIds.flatMap((zoneId) => profileByZoneId.get(zoneId)?.threatHabitatHints ?? [])
+    )
+
+    return {
+      threatId: threat.threatId,
+      threatLabel: threat.label,
+      preferredZoneIds,
+      habitatHints,
+    }
+  })
+}
+
+export function surfaceLocalAssetHints(packet: CompactRegionPacket): RegionLocalAssetSurface[] {
+  return deriveRegionEcologyProfiles(packet).map((profile) => ({
+    zoneId: profile.zoneId,
+    label: profile.label,
+    localAssetHints: [...profile.localAssetHints],
+  }))
 }

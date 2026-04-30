@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   deriveLinkedLocationStack,
   projectLinkedScaleReveal,
+  resolveLinkedApproachHandle,
+  resolveLinkedDetachedSiteView,
   resolveLinkedLocationTravelContext,
   resolveLinkedScaleTransition,
   type LinkedLocationStackAuthoringInput,
@@ -93,6 +95,15 @@ function makeLinkedLocationInput(): LinkedLocationStackAuthoringInput {
       featureIds: ['feature:blackwater-river', 'feature:rivergate-ferry', 'feature:lantern-keep'],
       revealState: 'partial',
     },
+    regionalAnchors: [
+      {
+        anchorId: 'anchor:river-bend-beacon',
+        label: 'River Bend Beacon',
+        featureId: 'feature:blackwater-river',
+        regionNodeId: 'region:blackwater-bend',
+        routeId: 'route:kings-road',
+      },
+    ],
     approach: {
       approachNodeId: 'approach:rivergate-causeway',
       label: 'Rivergate Causeway',
@@ -112,6 +123,16 @@ function makeLinkedLocationInput(): LinkedLocationStackAuthoringInput {
         supportedActions: ['fortification', 'rest'],
       },
     },
+    approachHandles: [
+      {
+        handleId: 'handle:beacon-causeway',
+        label: 'Beacon Causeway Handle',
+        anchorId: 'anchor:river-bend-beacon',
+        approachNodeId: 'approach:rivergate-causeway',
+        routeId: 'route:causeway-road',
+        preservedFeatureIds: ['feature:blackwater-river', 'feature:north-gate'],
+      },
+    ],
     site: {
       siteNodeId: 'site:lantern-keep',
       label: 'Lantern Keep Grounds',
@@ -122,18 +143,33 @@ function makeLinkedLocationInput(): LinkedLocationStackAuthoringInput {
         {
           viewId: 'site-view:keep-plan',
           kind: 'plan',
+          placementKind: 'primary',
           label: 'Lantern Keep Plan',
           routeId: 'route:north-gate',
           featureIds: ['feature:lantern-keep', 'feature:north-gate', 'feature:chapel-yard'],
           revealState: 'partial',
         },
         {
-          viewId: 'site-view:undercroft-cutaway',
-          kind: 'cutaway',
-          label: 'Undercroft Cutaway',
+          viewId: 'site-view:undercroft-detached',
+          kind: 'detached_submap',
+          placementKind: 'detached',
+          label: 'Undercroft Detached Map',
           routeId: 'route:service-stairs',
           featureIds: ['feature:undercroft'],
           revealState: 'hidden',
+          linkedAnchorId: 'anchor:river-bend-beacon',
+          linkedHandleId: 'handle:beacon-causeway',
+          parentViewId: 'site-view:keep-plan',
+        },
+        {
+          viewId: 'site-view:north-gate-section',
+          kind: 'section',
+          placementKind: 'inset',
+          label: 'North Gate Section',
+          routeId: 'route:north-gate',
+          featureIds: ['feature:north-gate'],
+          revealState: 'partial',
+          parentViewId: 'site-view:keep-plan',
         },
       ],
     },
@@ -245,20 +281,98 @@ describe('locationScaleStack', () => {
       {
         viewId: 'site-view:keep-plan',
         kind: 'plan',
+        placementKind: 'primary',
         label: 'Lantern Keep Plan',
         routeId: 'route:north-gate',
         featureIds: ['feature:chapel-yard', 'feature:lantern-keep', 'feature:north-gate'],
         revealState: 'partial',
+        parentSiteNodeId: 'site:lantern-keep',
       },
       {
-        viewId: 'site-view:undercroft-cutaway',
-        kind: 'cutaway',
-        label: 'Undercroft Cutaway',
+        viewId: 'site-view:north-gate-section',
+        kind: 'section',
+        placementKind: 'inset',
+        label: 'North Gate Section',
+        routeId: 'route:north-gate',
+        featureIds: ['feature:north-gate'],
+        revealState: 'partial',
+        parentSiteNodeId: 'site:lantern-keep',
+        parentViewId: 'site-view:keep-plan',
+      },
+      {
+        viewId: 'site-view:undercroft-detached',
+        kind: 'detached_submap',
+        placementKind: 'detached',
+        label: 'Undercroft Detached Map',
         routeId: 'route:service-stairs',
         featureIds: ['feature:undercroft'],
         revealState: 'hidden',
+        parentSiteNodeId: 'site:lantern-keep',
+        parentViewId: 'site-view:keep-plan',
+        linkedAnchorId: 'anchor:river-bend-beacon',
+        linkedHandleId: 'handle:beacon-causeway',
       },
     ])
+  })
+
+  it('preserves landmark-linked placement continuity from regional anchors through approach handles', () => {
+    const stack = deriveLinkedLocationStack(makeLinkedLocationInput())
+    const handleResolution = resolveLinkedApproachHandle(stack, 'handle:beacon-causeway')
+
+    expect(stack.regionalAnchors).toEqual([
+      {
+        anchorId: 'anchor:river-bend-beacon',
+        label: 'River Bend Beacon',
+        featureId: 'feature:blackwater-river',
+        regionNodeId: 'region:blackwater-bend',
+        routeId: 'route:kings-road',
+      },
+    ])
+    expect(stack.approachHandles).toEqual([
+      {
+        handleId: 'handle:beacon-causeway',
+        label: 'Beacon Causeway Handle',
+        anchorId: 'anchor:river-bend-beacon',
+        approachNodeId: 'approach:rivergate-causeway',
+        routeId: 'route:causeway-road',
+        preservedFeatureIds: ['feature:blackwater-river', 'feature:north-gate'],
+      },
+    ])
+    expect(handleResolution).toEqual({
+      locationId: 'loc:rivergate-ferry-keep',
+      handleId: 'handle:beacon-causeway',
+      anchorId: 'anchor:river-bend-beacon',
+      continuityRouteIds: ['route:kings-road', 'route:causeway-road', 'route:north-gate'],
+      preservedFeatureNames: ['Blackwater River', 'North Gate'],
+      continuityStatus: 'continuous',
+    })
+  })
+
+  it('resolves detached and inset site views back to one shared parent site identity', () => {
+    const stack = deriveLinkedLocationStack(makeLinkedLocationInput())
+    const detached = resolveLinkedDetachedSiteView(stack, 'site-view:undercroft-detached')
+    const inset = resolveLinkedDetachedSiteView(stack, 'site-view:north-gate-section')
+
+    expect(detached).toEqual({
+      locationId: 'loc:rivergate-ferry-keep',
+      parentSiteNodeId: 'site:lantern-keep',
+      viewId: 'site-view:undercroft-detached',
+      kind: 'detached_submap',
+      placementKind: 'detached',
+      continuityRouteId: 'route:service-stairs',
+      linkedAnchorId: 'anchor:river-bend-beacon',
+      linkedHandleId: 'handle:beacon-causeway',
+      continuityStatus: 'continuous',
+    })
+    expect(inset).toEqual({
+      locationId: 'loc:rivergate-ferry-keep',
+      parentSiteNodeId: 'site:lantern-keep',
+      viewId: 'site-view:north-gate-section',
+      kind: 'section',
+      placementKind: 'inset',
+      continuityRouteId: 'route:north-gate',
+      continuityStatus: 'continuous',
+    })
   })
 
   it('resolves travel and camp actions through the same linked route-and-location context', () => {
@@ -294,5 +408,11 @@ describe('locationScaleStack', () => {
       resolveLinkedLocationTravelContext(first)
     )
     expect(projectLinkedScaleReveal(second, 'site')).toEqual(projectLinkedScaleReveal(first, 'site'))
+    expect(resolveLinkedApproachHandle(second, 'handle:beacon-causeway')).toEqual(
+      resolveLinkedApproachHandle(first, 'handle:beacon-causeway')
+    )
+    expect(resolveLinkedDetachedSiteView(second, 'site-view:undercroft-detached')).toEqual(
+      resolveLinkedDetachedSiteView(first, 'site-view:undercroft-detached')
+    )
   })
 })

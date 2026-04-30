@@ -23,6 +23,8 @@ export type LinkedCampAction =
   | 'item_attunement'
   | 'rest'
 
+export type LinkedSiteViewPlacementKind = 'primary' | 'detached' | 'inset'
+
 export interface LinkedLocationIdentityInput {
   locationId: string
   canonicalName: string
@@ -44,6 +46,23 @@ export interface LinkedRegionScaleInput {
   revealState: LinkedLocationRevealState
 }
 
+export interface LinkedRegionalAnchorInput {
+  anchorId: string
+  label: string
+  featureId: string
+  regionNodeId: string
+  routeId: string
+}
+
+export interface LinkedApproachHandleInput {
+  handleId: string
+  label: string
+  anchorId: string
+  approachNodeId: string
+  routeId: string
+  preservedFeatureIds: readonly string[]
+}
+
 export interface LinkedApproachCampInput {
   anchorId: string
   label: string
@@ -63,10 +82,14 @@ export interface LinkedApproachScaleInput {
 export interface LinkedSiteViewInput {
   viewId: string
   kind: LinkedSiteViewKind
+  placementKind?: LinkedSiteViewPlacementKind
   label: string
   routeId: string
   featureIds: readonly string[]
   revealState: LinkedLocationRevealState
+  parentViewId?: string
+  linkedAnchorId?: string
+  linkedHandleId?: string
 }
 
 export interface LinkedSiteScaleInput {
@@ -92,7 +115,9 @@ export interface LinkedLocationStackAuthoringInput {
   identity: LinkedLocationIdentityInput
   features: readonly LinkedLocationFeatureInput[]
   region: LinkedRegionScaleInput
+  regionalAnchors?: readonly LinkedRegionalAnchorInput[]
   approach: LinkedApproachScaleInput
+  approachHandles?: readonly LinkedApproachHandleInput[]
   site: LinkedSiteScaleInput
   transitions: readonly LinkedScaleTransitionInput[]
 }
@@ -137,13 +162,35 @@ export interface LinkedApproachScale {
   campAnchor?: LinkedApproachCamp
 }
 
+export interface LinkedRegionalAnchor {
+  anchorId: string
+  label: string
+  featureId: string
+  regionNodeId: string
+  routeId: string
+}
+
+export interface LinkedApproachHandle {
+  handleId: string
+  label: string
+  anchorId: string
+  approachNodeId: string
+  routeId: string
+  preservedFeatureIds: string[]
+}
+
 export interface LinkedSiteView {
   viewId: string
   kind: LinkedSiteViewKind
+  placementKind: LinkedSiteViewPlacementKind
   label: string
   routeId: string
   featureIds: string[]
   revealState: LinkedLocationRevealState
+  parentSiteNodeId: string
+  parentViewId?: string
+  linkedAnchorId?: string
+  linkedHandleId?: string
 }
 
 export interface LinkedSiteScale {
@@ -171,7 +218,9 @@ export interface LinkedLocationStackPacket {
   identity: LinkedLocationIdentity
   features: LinkedLocationFeature[]
   region: LinkedRegionScale
+  regionalAnchors: LinkedRegionalAnchor[]
   approach: LinkedApproachScale
+  approachHandles: LinkedApproachHandle[]
   site: LinkedSiteScale
   transitions: LinkedScaleTransition[]
 }
@@ -202,6 +251,27 @@ export interface LinkedLocationTravelContext {
   preservedFeatureNames: string[]
   campAnchorId?: string
   supportedCampActions: LinkedCampAction[]
+}
+
+export interface LinkedApproachHandleResolution {
+  locationId: string
+  handleId: string
+  anchorId: string
+  continuityRouteIds: [string, string, string]
+  preservedFeatureNames: string[]
+  continuityStatus: 'continuous'
+}
+
+export interface LinkedDetachedSiteViewResolution {
+  locationId: string
+  parentSiteNodeId: string
+  viewId: string
+  kind: LinkedSiteViewKind
+  placementKind: LinkedSiteViewPlacementKind
+  continuityRouteId: string
+  linkedAnchorId?: string
+  linkedHandleId?: string
+  continuityStatus: 'continuous'
 }
 
 function normalizeString(value: string): string {
@@ -301,6 +371,17 @@ export function deriveLinkedLocationStack(
     revealState: input.region.revealState,
   }
 
+  const regionalAnchors: LinkedRegionalAnchor[] = sortByKey(
+    (input.regionalAnchors ?? []).map((anchor) => ({
+      anchorId: normalizeString(anchor.anchorId),
+      label: normalizeString(anchor.label),
+      featureId: normalizeString(anchor.featureId),
+      regionNodeId: normalizeString(anchor.regionNodeId),
+      routeId: normalizeString(anchor.routeId),
+    })),
+    (anchor) => anchor.anchorId
+  )
+
   const approach: LinkedApproachScale = {
     scale: 'approach',
     approachNodeId: normalizeString(input.approach.approachNodeId),
@@ -322,6 +403,18 @@ export function deriveLinkedLocationStack(
       : {}),
   }
 
+  const approachHandles: LinkedApproachHandle[] = sortByKey(
+    (input.approachHandles ?? []).map((handle) => ({
+      handleId: normalizeString(handle.handleId),
+      label: normalizeString(handle.label),
+      anchorId: normalizeString(handle.anchorId),
+      approachNodeId: normalizeString(handle.approachNodeId),
+      routeId: normalizeString(handle.routeId),
+      preservedFeatureIds: uniqueSorted(handle.preservedFeatureIds),
+    })),
+    (handle) => handle.handleId
+  )
+
   const site: LinkedSiteScale = {
     scale: 'site',
     siteNodeId: normalizeString(input.site.siteNodeId),
@@ -333,10 +426,21 @@ export function deriveLinkedLocationStack(
       input.site.views.map((view) => ({
         viewId: normalizeString(view.viewId),
         kind: view.kind,
+        placementKind:
+          view.placementKind ??
+          (view.kind === 'detached_submap'
+            ? 'detached'
+            : view.kind === 'section' || view.kind === 'cutaway'
+              ? 'inset'
+              : 'primary'),
         label: normalizeString(view.label),
         routeId: normalizeString(view.routeId),
         featureIds: uniqueSorted(view.featureIds),
         revealState: view.revealState,
+        parentSiteNodeId: normalizeString(input.site.siteNodeId),
+        ...(view.parentViewId ? { parentViewId: normalizeString(view.parentViewId) } : {}),
+        ...(view.linkedAnchorId ? { linkedAnchorId: normalizeString(view.linkedAnchorId) } : {}),
+        ...(view.linkedHandleId ? { linkedHandleId: normalizeString(view.linkedHandleId) } : {}),
       })),
       (view) => view.viewId
     ),
@@ -366,9 +470,63 @@ export function deriveLinkedLocationStack(
     identity,
     features,
     region,
+    regionalAnchors,
     approach,
+    approachHandles,
     site,
     transitions,
+  }
+}
+
+export function resolveLinkedApproachHandle(
+  packet: LinkedLocationStackPacket,
+  handleId: string
+): LinkedApproachHandleResolution {
+  const normalizedHandleId = normalizeString(handleId)
+  const handle = packet.approachHandles.find((candidate) => candidate.handleId === normalizedHandleId)
+  if (!handle) {
+    throw new Error(`Missing linked approach handle ${normalizedHandleId}`)
+  }
+
+  const anchor = packet.regionalAnchors.find((candidate) => candidate.anchorId === handle.anchorId)
+  if (!anchor) {
+    throw new Error(`Missing linked regional anchor ${handle.anchorId}`)
+  }
+
+  const featureNameById = new Map(packet.features.map((feature) => [feature.featureId, feature.featureName]))
+
+  return {
+    locationId: packet.identity.locationId,
+    handleId: handle.handleId,
+    anchorId: handle.anchorId,
+    continuityRouteIds: [anchor.routeId, handle.routeId, packet.site.routeId],
+    preservedFeatureNames: handle.preservedFeatureIds
+      .map((featureId) => featureNameById.get(featureId))
+      .filter((featureName): featureName is string => Boolean(featureName)),
+    continuityStatus: 'continuous',
+  }
+}
+
+export function resolveLinkedDetachedSiteView(
+  packet: LinkedLocationStackPacket,
+  viewId: string
+): LinkedDetachedSiteViewResolution {
+  const normalizedViewId = normalizeString(viewId)
+  const view = packet.site.views.find((candidate) => candidate.viewId === normalizedViewId)
+  if (!view) {
+    throw new Error(`Missing linked site view ${normalizedViewId}`)
+  }
+
+  return {
+    locationId: packet.identity.locationId,
+    parentSiteNodeId: packet.site.siteNodeId,
+    viewId: view.viewId,
+    kind: view.kind,
+    placementKind: view.placementKind,
+    continuityRouteId: view.routeId,
+    ...(view.linkedAnchorId ? { linkedAnchorId: view.linkedAnchorId } : {}),
+    ...(view.linkedHandleId ? { linkedHandleId: view.linkedHandleId } : {}),
+    continuityStatus: 'continuous',
   }
 }
 

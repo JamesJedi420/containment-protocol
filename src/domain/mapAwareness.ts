@@ -59,6 +59,7 @@ export interface MapEdge {
   confidence: number
   errorState: MapErrorState
   sourceTags: readonly string[]
+  doorState?: 'open' | 'locked' | 'sealed' | 'destroyed'
 }
 
 export interface InferredHazardMarker {
@@ -86,6 +87,14 @@ export interface PlayerMapState {
   knownRealityNodeIds: readonly string[]
   revealedHiddenEdgeIds: readonly string[]
   inferredHazards: readonly InferredHazardMarker[]
+  routeStateByEdgeId: Readonly<Record<string, RouteStateOverride>>
+}
+
+export interface RouteStateOverride {
+  doorState?: 'open' | 'locked' | 'sealed' | 'destroyed'
+  invalidated?: boolean
+  confidence?: number
+  errorState?: MapErrorState
 }
 
 export interface MapInitializationInput {
@@ -112,6 +121,28 @@ export interface MapObservation {
   nodeHintId?: string
   targetMapId?: string
   correctionErrorState?: Exclude<MapErrorState, 'none'>
+}
+
+export type MapUpdateEventType =
+  | 'scan_event'
+  | 'exploration_event'
+  | 'system_route_state_event'
+  | 'contradiction_event'
+
+export interface MapUpdateEvent {
+  eventId: string
+  week: number
+  type: MapUpdateEventType
+  source: 'sensor' | 'exploration' | 'record' | 'system'
+  confidence: number
+  realityNodeId?: string
+  realityEdgeId?: string
+  hazardId?: string
+  nodeHintId?: string
+  targetMapId?: string
+  correctionErrorState?: Exclude<MapErrorState, 'none'>
+  doorState?: 'open' | 'locked' | 'sealed' | 'destroyed'
+  invalidated?: boolean
 }
 
 function clamp01(value: number): number {
@@ -144,7 +175,8 @@ function buildVisibleState(
   activeLayer: MapLayerType,
   knownRealityNodeIds: readonly string[],
   revealedHiddenEdgeIds: readonly string[],
-  inferredHazards: readonly InferredHazardMarker[]
+  inferredHazards: readonly InferredHazardMarker[],
+  routeStateByEdgeId: Readonly<Record<string, RouteStateOverride>>
 ): PlayerMapState {
   const nodeById = new Map(reality.nodes.map((node) => [node.id, node]))
   const knownNodeSet = new Set(knownRealityNodeIds)
@@ -170,6 +202,8 @@ function buildVisibleState(
   }
 
   for (const edge of reality.edges) {
+    const routeOverride = routeStateByEdgeId[edge.id]
+    const invalidated = routeOverride?.invalidated === true
     const fromKnown = knownNodeSet.has(edge.fromNodeId)
     const toKnown = knownNodeSet.has(edge.toNodeId)
 
@@ -182,16 +216,22 @@ function buildVisibleState(
     }
 
     if (fromKnown && toKnown) {
+      const baseVisibility = edge.hidden ? 'hidden_connection' : 'known_connection'
       edges.push({
         id: `edge:${edge.id}`,
         realityEdgeId: edge.id,
         fromNodeId: `node:${edge.fromNodeId}`,
         toNodeId: `node:${edge.toNodeId}`,
         layerType: edge.layerType,
-        visibility: edge.hidden ? 'hidden_connection' : 'known_connection',
-        confidence: edge.hidden ? 0.72 : 0.96,
-        errorState: 'none',
-        sourceTags: edge.hidden ? ['sensor'] : ['exploration'],
+        visibility: invalidated ? 'inferred_connection' : baseVisibility,
+        confidence: routeOverride?.confidence ?? (invalidated ? 0.35 : edge.hidden ? 0.72 : 0.96),
+        errorState: routeOverride?.errorState ?? (invalidated ? 'outdated' : 'none'),
+        sourceTags: invalidated
+          ? ['system']
+          : edge.hidden
+            ? ['sensor']
+            : ['exploration'],
+        doorState: routeOverride?.doorState,
       })
       continue
     }
@@ -259,6 +299,7 @@ function buildVisibleState(
     knownRealityNodeIds: sortedUnique(knownRealityNodeIds),
     revealedHiddenEdgeIds: sortedUnique(revealedHiddenEdgeIds),
     inferredHazards: [...inferredHazards].sort((left, right) => left.id.localeCompare(right.id)),
+    routeStateByEdgeId,
   }
 }
 
@@ -273,7 +314,8 @@ export function createPlayerMapState(
     activeLayer,
     sortedUnique(input.knownNodeIds),
     [],
-    []
+    [],
+    {}
   )
 }
 
@@ -348,7 +390,118 @@ export function applyMapObservation(
     [...knownNodeIds],
     [...revealedHiddenEdgeIds],
     inferredHazards,
+    mapState.routeStateByEdgeId,
   )
+}
+
+export function applyMapUpdateEvent(
+  reality: RealityMapGraph,
+  mapState: PlayerMapState,
+  event: MapUpdateEvent
+): PlayerMapState {
+  if (event.type === 'scan_event') {
+    return applyMapObservation(reality, mapState, {
+      observationId: event.eventId,
+      week: event.week,
+      type: 'scan_connection',
+      source: event.source === 'system' ? 'sensor' : event.source,
+      confidence: event.confidence,
+      realityEdgeId: event.realityEdgeId,
+    })
+  }
+
+  if (event.type === 'exploration_event') {
+    return applyMapObservation(reality, mapState, {
+      observationId: event.eventId,
+      week: event.week,
+      type: 'exploration_room',
+      source: event.source === 'system' ? 'exploration' : event.source,
+      confidence: event.confidence,
+      realityNodeId: event.realityNodeId,
+    })
+  }
+
+  if (event.type === 'contradiction_event') {
+    if (event.targetMapId) {
+      return applyMapObservation(reality, mapState, {
+        observationId: event.eventId,
+        week: event.week,
+        type: 'contradiction_correction',
+        source: event.source === 'system' ? 'record' : event.source,
+        confidence: event.confidence,
+        targetMapId: event.targetMapId,
+        correctionErrorState: event.correctionErrorState,
+      })
+    }
+
+    if (event.realityEdgeId) {
+      const nextRouteStateByEdgeId: Record<string, RouteStateOverride> = {
+        ...mapState.routeStateByEdgeId,
+        [event.realityEdgeId]: {
+          ...(mapState.routeStateByEdgeId[event.realityEdgeId] ?? {}),
+          invalidated: true,
+          confidence: clamp01(event.confidence * 0.5),
+          errorState: event.correctionErrorState ?? 'contradicted',
+        },
+      }
+
+      return buildVisibleState(
+        reality,
+        Number(mapState.packetId.split(':')[1]) || 0,
+        mapState.activeLayer,
+        mapState.knownRealityNodeIds,
+        mapState.revealedHiddenEdgeIds,
+        mapState.inferredHazards,
+        nextRouteStateByEdgeId,
+      )
+    }
+
+    return mapState
+  }
+
+  if (event.type === 'system_route_state_event' && event.realityEdgeId) {
+    const nextRouteStateByEdgeId: Record<string, RouteStateOverride> = {
+      ...mapState.routeStateByEdgeId,
+      [event.realityEdgeId]: {
+        ...(mapState.routeStateByEdgeId[event.realityEdgeId] ?? {}),
+        doorState: event.doorState,
+        invalidated: event.invalidated ?? mapState.routeStateByEdgeId[event.realityEdgeId]?.invalidated,
+        confidence: clamp01(event.confidence),
+        errorState:
+          event.invalidated === true
+            ? 'outdated'
+            : mapState.routeStateByEdgeId[event.realityEdgeId]?.errorState,
+      },
+    }
+
+    return buildVisibleState(
+      reality,
+      Number(mapState.packetId.split(':')[1]) || 0,
+      mapState.activeLayer,
+      mapState.knownRealityNodeIds,
+      mapState.revealedHiddenEdgeIds,
+      mapState.inferredHazards,
+      nextRouteStateByEdgeId,
+    )
+  }
+
+  return mapState
+}
+
+export function applyMapUpdateEvents(
+  reality: RealityMapGraph,
+  mapState: PlayerMapState,
+  events: readonly MapUpdateEvent[]
+): PlayerMapState {
+  const ordered = [...events].sort((left, right) => {
+    if (left.week !== right.week) {
+      return left.week - right.week
+    }
+
+    return left.eventId.localeCompare(right.eventId)
+  })
+
+  return ordered.reduce((state, event) => applyMapUpdateEvent(reality, state, event), mapState)
 }
 
 export function selectMapLayer(

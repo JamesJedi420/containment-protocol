@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyMapObservation,
+  applyMapUpdateEvents,
   createPlayerMapState,
   getActiveLayerView,
   getConfidenceLabel,
@@ -229,5 +230,180 @@ describe('mapAwareness reality-vs-map separation', () => {
     }
 
     expect(applySequence()).toEqual(applySequence())
+  })
+
+  it('applies scan + exploration + system route-state map update events deterministically', () => {
+    const reality = buildReality()
+    const initial = createPlayerMapState(reality, {
+      seed: 1105,
+      knownNodeIds: ['room-a', 'room-b'],
+      activeLayer: 'structural',
+    })
+
+    const updated = applyMapUpdateEvents(reality, initial, [
+      {
+        eventId: 'evt-explore-room-c',
+        week: 3,
+        type: 'exploration_event',
+        source: 'exploration',
+        confidence: 1,
+        realityNodeId: 'room-c',
+      },
+      {
+        eventId: 'evt-scan-tunnel',
+        week: 3,
+        type: 'scan_event',
+        source: 'sensor',
+        confidence: 0.8,
+        realityEdgeId: 'b-c-tunnel',
+      },
+      {
+        eventId: 'evt-door-lock',
+        week: 4,
+        type: 'system_route_state_event',
+        source: 'system',
+        confidence: 0.94,
+        realityEdgeId: 'a-b-door',
+        doorState: 'locked',
+      },
+    ])
+
+    expect(updated.nodes.some((node) => node.id === 'node:room-c')).toBe(true)
+    expect(updated.edges.some((edge) => edge.realityEdgeId === 'b-c-tunnel')).toBe(true)
+    expect(
+      updated.edges.some(
+        (edge) => edge.realityEdgeId === 'a-b-door' && edge.doorState === 'locked'
+      )
+    ).toBe(true)
+  })
+
+  it('supports route invalidation and later contradiction correction on displayed map fact', () => {
+    const reality = buildReality()
+    const initial = createPlayerMapState(reality, {
+      seed: 1106,
+      knownNodeIds: ['room-a', 'room-b'],
+    })
+
+    const invalidated = applyMapUpdateEvents(reality, initial, [
+      {
+        eventId: 'evt-route-invalidated',
+        week: 2,
+        type: 'system_route_state_event',
+        source: 'system',
+        confidence: 0.66,
+        realityEdgeId: 'a-b-door',
+        invalidated: true,
+      },
+    ])
+
+    const invalidatedEdge = invalidated.edges.find((edge) => edge.realityEdgeId === 'a-b-door')
+    expect(invalidatedEdge).toBeDefined()
+    expect(invalidatedEdge!.visibility).toBe('inferred_connection')
+    expect(invalidatedEdge!.errorState).toBe('outdated')
+
+    const corrected = applyMapUpdateEvents(reality, invalidated, [
+      {
+        eventId: 'evt-route-contradiction',
+        week: 3,
+        type: 'contradiction_event',
+        source: 'record',
+        confidence: 0.7,
+        realityEdgeId: 'a-b-door',
+        correctionErrorState: 'contradicted',
+      },
+    ])
+
+    const correctedEdge = corrected.edges.find((edge) => edge.realityEdgeId === 'a-b-door')
+    expect(correctedEdge).toBeDefined()
+    expect(correctedEdge!.errorState).toBe('contradicted')
+    expect(correctedEdge!.confidence).toBeLessThanOrEqual(invalidatedEdge!.confidence)
+  })
+
+  it('preserves inferred-hazard non-omniscience after map update events', () => {
+    const reality = buildReality()
+    const initial = applyMapObservation(
+      reality,
+      createPlayerMapState(reality, {
+        seed: 1107,
+        knownNodeIds: ['room-a', 'room-b'],
+        activeLayer: 'anomaly',
+      }),
+      {
+        observationId: 'obs-hazard-inference',
+        week: 1,
+        type: 'sensor_inferred_hazard',
+        source: 'sensor',
+        confidence: 0.58,
+        hazardId: 'instability-pulse',
+        nodeHintId: 'room-b',
+      }
+    )
+
+    const updated = applyMapUpdateEvents(reality, initial, [
+      {
+        eventId: 'evt-hazard-scan',
+        week: 1,
+        type: 'scan_event',
+        source: 'sensor',
+        confidence: 0.8,
+        realityEdgeId: 'b-c-tunnel',
+      },
+      {
+        eventId: 'evt-hazard-inference',
+        week: 1,
+        type: 'contradiction_event',
+        source: 'record',
+        confidence: 0.7,
+        targetMapId: 'non-existent-hazard-target',
+      },
+    ])
+
+    expect(updated.nodes.some((node) => node.id.includes('inferred-hazard:instability-pulse:room-b'))).toBe(
+      true
+    )
+
+    // Non-omniscience guard: true anomaly location in room-c should not become a known room implicitly.
+    expect(updated.nodes.some((node) => node.realityNodeId === 'room-c' && node.knowledge === 'known')).toBe(
+      false
+    )
+  })
+
+  it('map update event application is repeatable for identical event streams', () => {
+    const reality = buildReality()
+    const run = () =>
+      applyMapUpdateEvents(
+        reality,
+        createPlayerMapState(reality, { seed: 2222, knownNodeIds: ['room-a', 'room-b'] }),
+        [
+          {
+            eventId: 'evt-1',
+            week: 4,
+            type: 'scan_event',
+            source: 'sensor',
+            confidence: 0.81,
+            realityEdgeId: 'b-c-tunnel',
+          },
+          {
+            eventId: 'evt-2',
+            week: 5,
+            type: 'system_route_state_event',
+            source: 'system',
+            confidence: 0.77,
+            realityEdgeId: 'a-b-door',
+            doorState: 'sealed',
+            invalidated: true,
+          },
+          {
+            eventId: 'evt-3',
+            week: 6,
+            type: 'exploration_event',
+            source: 'exploration',
+            confidence: 1,
+            realityNodeId: 'room-c',
+          },
+        ]
+      )
+
+    expect(run()).toEqual(run())
   })
 })

@@ -749,10 +749,27 @@ describe('advanceWeek', () => {
     ])
 
     const next = advanceWeek(pressuredState)
+    const escalatedEvent = next.events.find(
+      (event): event is OperationEvent<'case.escalated'> =>
+        event.type === 'case.escalated' && event.payload.caseId === 'case-001'
+    )
+    const reportEscalationNote = next.reports[0].notes.find(
+      (note) => note.type === 'case.escalated' && note.metadata?.caseId === 'case-001'
+    )
 
     expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
     expect(next.cases['case-001'].stage).toBeGreaterThan(state.cases['case-001'].stage)
     expect(next.cases['case-001'].deadlineRemaining).toBeGreaterThan(0)
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).toContain(
+      'neighborhood-local-accidental'
+    )
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).toContain('district:docks')
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).toMatch(/band:(low|medium|high)/)
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).not.toContain('citywide')
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).not.toContain('cross-site')
+    expect(reportEscalationNote?.metadata?.neighborhoodPressureAuditTag).toBe(
+      escalatedEvent?.payload.neighborhoodPressureAuditTag
+    )
   })
 
   it('does not apply district-local pressure to non-matching districts', () => {
@@ -790,6 +807,11 @@ describe('advanceWeek', () => {
 
     expect(next.reports[0].unresolvedTriggers).toEqual([])
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
+    expect(
+      next.events
+        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
+    ).toBe(true)
   })
 
   it('does not apply local pressure when matching-district incidents are quiescent that week', () => {
@@ -827,6 +849,102 @@ describe('advanceWeek', () => {
 
     expect(next.reports[0].unresolvedTriggers).toEqual([])
     expect(next.cases['case-001'].deadlineRemaining).toBe(1)
+    expect(
+      next.events
+        .filter((event): event is OperationEvent<'case.escalated'> => event.type === 'case.escalated')
+        .every((event) => event.payload.neighborhoodPressureAuditTag === undefined)
+    ).toBe(true)
+  })
+
+  it('does not append the neighborhood-pressure escalation marker during zero-pressure escalation weeks', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:docks'],
+        deadlineRemaining: 1,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const pressuredState = withNeighborhoodPackets(state, [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-zero-pressure-escalation',
+        districtId: 'docks',
+        blockId: 'dock-5',
+        seedKey: 'spe-539-slice-4-zero-pressure-escalation',
+        sourceKind: 'decorative_biohazard',
+        sourceLabel: 'Cadence skips this week so no local pressure applies',
+        baseCadenceWeeks: 2,
+        baseSeverity: 0.85,
+      }),
+    ])
+
+    const next = advanceWeek(pressuredState)
+    const escalatedEvent = next.events.find(
+      (event): event is OperationEvent<'case.escalated'> =>
+        event.type === 'case.escalated' && event.payload.caseId === 'case-001'
+    )
+
+    expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
+    expect(escalatedEvent).toBeDefined()
+    expect(escalatedEvent?.payload.neighborhoodPressureAuditTag).toBeUndefined()
+  })
+
+  it('emits identical neighborhood-pressure escalation audit markers for repeated deterministic runs', () => {
+    const state = createStartingState()
+    state.week = 1
+    state.cases = {
+      'case-001': {
+        ...state.cases['case-001'],
+        status: 'open',
+        assignedTeamIds: [],
+        tags: [...state.cases['case-001'].tags, 'district:docks'],
+        deadlineRemaining: 2,
+        onUnresolved: {
+          ...state.cases['case-001'].onUnresolved,
+          spawnCount: { min: 0, max: 0 },
+          spawnTemplateIds: [],
+        },
+      },
+    }
+
+    const pressuredState = withNeighborhoodPackets(state, [
+      createNeighborhoodIncidentPacket({
+        incidentId: 'incident-docks-repeatable',
+        districtId: 'docks',
+        blockId: 'dock-6',
+        seedKey: 'spe-539-slice-4-repeatable',
+        sourceKind: 'business_tool_misuse',
+        sourceLabel: 'Deterministic audit marker check',
+        baseCadenceWeeks: 1,
+        baseSeverity: 0.8,
+      }),
+    ])
+
+    const nextA = advanceWeek(structuredClone(pressuredState))
+    const nextB = advanceWeek(structuredClone(pressuredState))
+    const escalationA = nextA.events.find(
+      (event): event is OperationEvent<'case.escalated'> =>
+        event.type === 'case.escalated' && event.payload.caseId === 'case-001'
+    )
+    const escalationB = nextB.events.find(
+      (event): event is OperationEvent<'case.escalated'> =>
+        event.type === 'case.escalated' && event.payload.caseId === 'case-001'
+    )
+
+    expect(escalationA?.payload.neighborhoodPressureAuditTag).toBeDefined()
+    expect(escalationA?.payload.neighborhoodPressureAuditTag).toBe(
+      escalationB?.payload.neighborhoodPressureAuditTag
+    )
+    expect(nextA).toEqual(nextB)
   })
 
   it('keeps neighborhood-pressure escalation bounded to matching district cases and read-only incident packets', () => {

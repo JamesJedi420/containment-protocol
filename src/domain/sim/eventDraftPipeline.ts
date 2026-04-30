@@ -20,6 +20,7 @@ interface EscalationEventInput {
   trigger: CaseEscalationTrigger
   deadlineRemaining: number
   convertedToRaid: boolean
+  neighborhoodPressureAuditTag?: string
 }
 
 interface RaidConvertedEventInput {
@@ -115,6 +116,7 @@ export function buildCaseEscalatedEventDraft({
   trigger,
   deadlineRemaining,
   convertedToRaid,
+  neighborhoodPressureAuditTag,
 }: EscalationEventInput): AnyOperationEventDraft {
   return {
     type: 'case.escalated',
@@ -128,6 +130,7 @@ export function buildCaseEscalatedEventDraft({
       trigger,
       deadlineRemaining,
       convertedToRaid,
+      neighborhoodPressureAuditTag,
       rewardBreakdown,
     },
   }

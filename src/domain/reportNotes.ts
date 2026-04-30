@@ -342,6 +342,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           fromStage: draft.payload.fromStage,
           toStage: draft.payload.toStage,
           trigger: draft.payload.trigger,
+          neighborhoodPressureAuditTag: draft.payload.neighborhoodPressureAuditTag ?? null,
           ...(rewardMetadata ?? {}),
         },
       }

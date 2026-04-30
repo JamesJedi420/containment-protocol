@@ -105,6 +105,7 @@ export interface OperationEventPayloadMap {
     trigger: CaseEscalationTrigger
     deadlineRemaining: number
     convertedToRaid: boolean
+    neighborhoodPressureAuditTag?: string
     rewardBreakdown?: MissionRewardBreakdown
   }
   'case.spawned': {

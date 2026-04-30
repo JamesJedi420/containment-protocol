@@ -241,6 +241,16 @@ type AdvanceWeekState = GameState & {
 const DISTRICT_TAG_PREFIX = 'district:'
 const NEIGHBORHOOD_PRESSURE_TAG_PREFIX = 'neighborhood-pressure:'
 
+type DistrictPressureBand = 'low' | 'medium' | 'high'
+
+interface DistrictLocalEscalationPressureInfluence {
+  pressureBoost: number
+  sourceDistrictId?: string
+  pressureBand?: DistrictPressureBand
+  fromNeighborhoodLocalAccidental: boolean
+  auditTag?: string
+}
+
 function getAttributedDistrictIds(currentCase: Pick<CaseInstance, 'tags' | 'regionTag'>) {
   const attributed = new Set<string>()
 
@@ -262,21 +272,79 @@ function getAttributedDistrictIds(currentCase: Pick<CaseInstance, 'tags' | 'regi
   return [...attributed]
 }
 
+function getDistrictPressureBand(pressureBoost: number): DistrictPressureBand {
+  if (pressureBoost >= 0.3) {
+    return 'high'
+  }
+
+  if (pressureBoost >= 0.15) {
+    return 'medium'
+  }
+
+  return 'low'
+}
+
+function buildNeighborhoodPressureAuditTag(input: {
+  districtId: string
+  pressureBoost: number
+  pressureBand: DistrictPressureBand
+}) {
+  return `neighborhood-local-accidental district:${input.districtId} band:${input.pressureBand} boost:${input.pressureBoost.toFixed(3)}`
+}
+
 function getDistrictLocalEscalationPressureBoost(
   currentCase: Pick<CaseInstance, 'tags' | 'regionTag'>,
   neighborhoodPackets: readonly NeighborhoodIncidentPacket[],
   week: number
-) {
+): DistrictLocalEscalationPressureInfluence {
   const districtIds = getAttributedDistrictIds(currentCase)
 
   if (districtIds.length === 0 || neighborhoodPackets.length === 0) {
-    return 0
+    return {
+      pressureBoost: 0,
+      fromNeighborhoodLocalAccidental: true,
+    }
   }
 
-  return districtIds.reduce((maxBoost, districtId) => {
+  const sortedDistrictIds = [...districtIds].sort((left, right) => left.localeCompare(right))
+
+  const strongestDistrict = sortedDistrictIds.reduce<
+    Pick<DistrictLocalEscalationPressureInfluence, 'pressureBoost' | 'sourceDistrictId'>
+  >((maxPressure, districtId) => {
     const localPressure = aggregateDistrictLocalPressure(neighborhoodPackets, districtId, week)
-    return Math.max(maxBoost, localPressure.pressureBoost)
-  }, 0)
+    if (localPressure.pressureBoost > maxPressure.pressureBoost) {
+      return {
+        pressureBoost: localPressure.pressureBoost,
+        sourceDistrictId: districtId,
+      }
+    }
+
+    return maxPressure
+  }, {
+    pressureBoost: 0,
+    sourceDistrictId: undefined,
+  })
+
+  if (strongestDistrict.pressureBoost <= 0 || !strongestDistrict.sourceDistrictId) {
+    return {
+      pressureBoost: 0,
+      fromNeighborhoodLocalAccidental: true,
+    }
+  }
+
+  const pressureBand = getDistrictPressureBand(strongestDistrict.pressureBoost)
+
+  return {
+    pressureBoost: strongestDistrict.pressureBoost,
+    sourceDistrictId: strongestDistrict.sourceDistrictId,
+    pressureBand,
+    fromNeighborhoodLocalAccidental: true,
+    auditTag: buildNeighborhoodPressureAuditTag({
+      districtId: strongestDistrict.sourceDistrictId,
+      pressureBoost: strongestDistrict.pressureBoost,
+      pressureBand,
+    }),
+  }
 }
 
 type CaseWithSubjectType = CaseInstance & {
@@ -2579,11 +2647,12 @@ function escalateCases(
     recordProcessedCase(context, caseId, 'escalateCases')
 
     const countdownCase = decrementOpenDeadline(currentCase)
-    const localPressureBoost = getDistrictLocalEscalationPressureBoost(
+    const localPressureInfluence = getDistrictLocalEscalationPressureBoost(
       currentCase,
       neighborhoodPackets,
       context.sourceState.week
     )
+    const localPressureBoost = localPressureInfluence.pressureBoost
     const pressuredCountdownCase =
       localPressureBoost > 0 ? decrementOpenDeadline(countdownCase) : countdownCase
     const nextDeadlineRemaining = pressuredCountdownCase.deadlineRemaining
@@ -2622,7 +2691,10 @@ function escalateCases(
           detail: `Case escalated to stage ${escalatedCase.stage} after deadline expiry.`,
         },
       ],
-      explanationNotes: ['Case deadline expired before successful resolution.'],
+      explanationNotes: [
+        'Case deadline expired before successful resolution.',
+        ...(localPressureInfluence.auditTag ? [localPressureInfluence.auditTag] : []),
+      ],
     })
     recordCaseOutcome(context, caseId, 'unresolved')
     context.eventDrafts.push(
@@ -2634,6 +2706,7 @@ function escalateCases(
         trigger: 'deadline',
         deadlineRemaining: escalatedCase.deadlineRemaining,
         convertedToRaid: deadlineEscalation.convertedToRaid,
+        neighborhoodPressureAuditTag: localPressureInfluence.auditTag,
       })
     )
 

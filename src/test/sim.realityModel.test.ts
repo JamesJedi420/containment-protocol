@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { RealityStateInput } from '../domain/realityModel'
 import {
   deriveRealityStatePacket,
   projectBehavioralRealityAssessment,
@@ -6,6 +7,8 @@ import {
   projectOperationalRealityAssessment,
   projectRealityIdentityAssessment,
   projectRealityRuleFamilyAssessment,
+  projectRealityScopeAssessment,
+  resolveRealityScopeLayer,
   resolveRealityRuleSurface,
 } from '../domain/realityModel'
 
@@ -667,8 +670,149 @@ describe('realityModel', () => {
     expect(contradiction?.reasonCodes).toContain('wrong-family-interpretation')
   })
 
+  it('applies the same deviation at one scope without automatically applying it at another', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:warded-casket',
+      subjectId: 'artifact:warded-casket',
+      label: 'Warded Casket',
+      actualState: 'touch-valid-only-under-object-ward',
+      perceivedState: 'ordinary_container',
+      believedState: 'ordinary_container',
+      existenceMode: 'physical',
+      ruleDomain: 'presence',
+      deviationFamily: 'symbolic_override',
+      confidence: 0.86,
+      evidence: 'contradicted',
+      scopeProfile: {
+        anchorScope: 'object',
+        anchorId: 'artifact:warded-casket',
+        propagationBehavior: 'contained',
+        overriddenScopes: ['object'],
+        preservedScopes: ['room', 'site', 'district', 'world'],
+        confidence: 0.86,
+      },
+    })
+
+    const objectScope = projectRealityScopeAssessment(packet, 'object')
+    const roomScope = projectRealityScopeAssessment(packet, 'room')
+
+    expect(objectScope).toMatchObject({
+      evaluationScope: 'object',
+      truthStatus: 'override_active',
+      handlingMode: 'localized_override_handling',
+      overrideApplies: true,
+    })
+    expect(roomScope).toMatchObject({
+      evaluationScope: 'room',
+      truthStatus: 'baseline_preserved',
+      handlingMode: 'standard_scope_handling',
+      overrideApplies: false,
+    })
+  })
+
+  it('distinguishes contained override from propagated override across broader scopes', () => {
+    const contained = resolveRealityScopeLayer(
+      deriveRealityStatePacket({
+        packetId: 'reality:sealed-altar-room',
+        subjectId: 'room:altar-01',
+        label: 'Sealed Altar Room',
+        actualState: 'room-rule-active',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        deviationFamily: 'spatial_folding',
+        confidence: 0.81,
+        evidence: 'clear',
+        scopeProfile: {
+          anchorScope: 'room',
+          anchorId: 'room:altar-01',
+          propagationBehavior: 'contained',
+          confidence: 0.81,
+        },
+      }).scopeProfile!,
+      'site'
+    )
+
+    const propagated = resolveRealityScopeLayer(
+      deriveRealityStatePacket({
+        packetId: 'reality:fog-district',
+        subjectId: 'district:fog-quarter',
+        label: 'Fog Quarter',
+        actualState: 'district-rule-active',
+        existenceMode: 'physical',
+        ruleDomain: 'presence',
+        deviationFamily: 'perception_masking',
+        confidence: 0.83,
+        evidence: 'clear',
+        scopeProfile: {
+          anchorScope: 'site',
+          anchorId: 'site:rivergate-sanctum',
+          propagationBehavior: 'propagated',
+          confidence: 0.83,
+        },
+      }).scopeProfile!,
+      'district'
+    )
+
+    expect(contained).toMatchObject({
+      evaluationScope: 'site',
+      truthStatus: 'baseline_preserved',
+      overrideApplies: false,
+      propagationBehavior: 'contained',
+    })
+    expect(propagated).toMatchObject({
+      evaluationScope: 'district',
+      truthStatus: 'override_active',
+      overrideApplies: true,
+      propagationBehavior: 'propagated',
+    })
+  })
+
+  it('changes operational handling depending on the evaluation scope', () => {
+    const packet = deriveRealityStatePacket({
+      packetId: 'reality:sanctum-ripple',
+      subjectId: 'site:sanctum-ripple',
+      label: 'Sanctum Ripple',
+      actualState: 'site-and-district-rule-shift',
+      perceivedState: 'localized-disturbance',
+      believedState: 'localized-disturbance',
+      existenceMode: 'partially_instantiated',
+      ruleDomain: 'presence',
+      deviationFamily: 'symbolic_override',
+      confidence: 0.87,
+      evidence: 'contradicted',
+      scopeProfile: {
+        anchorScope: 'site',
+        anchorId: 'site:sanctum-ripple',
+        propagationBehavior: 'propagated',
+        overriddenScopes: ['site', 'district'],
+        preservedScopes: ['world'],
+        confidence: 0.87,
+      },
+    })
+
+    const siteAssessment = projectRealityScopeAssessment(packet, 'site')
+    const districtAssessment = projectRealityScopeAssessment(packet, 'district')
+    const worldAssessment = projectRealityScopeAssessment(packet, 'world')
+
+    expect(siteAssessment).toMatchObject({
+      handlingMode: 'localized_override_handling',
+      overrideApplies: true,
+      truthStatus: 'override_active',
+    })
+    expect(districtAssessment).toMatchObject({
+      handlingMode: 'broad_override_handling',
+      overrideApplies: true,
+      truthStatus: 'override_active',
+    })
+    expect(worldAssessment).toMatchObject({
+      handlingMode: 'standard_scope_handling',
+      overrideApplies: false,
+      truthStatus: 'baseline_preserved',
+    })
+  })
+
   it('remains repeatable for identical inputs', () => {
-    const input = {
+    const input: RealityStateInput = {
       packetId: 'reality:future-ledger',
       subjectId: 'record:future-ledger',
       label: 'Future Ledger',
@@ -714,6 +858,14 @@ describe('realityModel', () => {
         invalidatedOutcomes: ['forced_entry_valid'],
         confidence: 0.61,
       },
+      scopeProfile: {
+        anchorScope: 'site' as const,
+        anchorId: 'site:future-ledger-vault',
+        propagationBehavior: 'propagated' as const,
+        overriddenScopes: ['site', 'district'],
+        preservedScopes: ['world'],
+        confidence: 0.63,
+      },
     }
 
     const first = deriveRealityStatePacket(input)
@@ -734,6 +886,9 @@ describe('realityModel', () => {
     )
     expect(projectRealityRuleFamilyAssessment(second)).toEqual(
       projectRealityRuleFamilyAssessment(first)
+    )
+    expect(projectRealityScopeAssessment(second, 'site')).toEqual(
+      projectRealityScopeAssessment(first, 'site')
     )
   })
 })

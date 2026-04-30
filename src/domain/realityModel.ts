@@ -85,6 +85,9 @@ export type RealityRuleFamilyType =
   | 'patron_mediated'
 export type RealityRuleFamilyActivationStatus = 'active' | 'inactive' | 'uncertain'
 export type RealityRuleFamilyOverrideScope = 'none' | 'subject' | 'object' | 'site'
+export type RealityScopeLevel = 'object' | 'room' | 'site' | 'district' | 'world'
+export type RealityScopePropagationBehavior = 'contained' | 'propagated' | 'ambient'
+export type RealityScopeTruthStatus = 'baseline_preserved' | 'override_active' | 'uncertain'
 
 export interface RealityStateInput {
   packetId: string
@@ -102,6 +105,7 @@ export interface RealityStateInput {
   futurePressureProfile?: FuturePressureProfileInput
   identityProfile?: RealityIdentityProfileInput
   ruleFamilyProfile?: RealityRuleFamilyProfileInput
+  scopeProfile?: RealityScopeProfileInput
 }
 
 export interface RealityRuleSurface {
@@ -197,6 +201,24 @@ export interface RealityRuleFamilyProfile {
   confidence: number
 }
 
+export interface RealityScopeProfileInput {
+  anchorScope: RealityScopeLevel
+  anchorId?: string
+  propagationBehavior?: RealityScopePropagationBehavior
+  overriddenScopes?: readonly RealityScopeLevel[]
+  preservedScopes?: readonly RealityScopeLevel[]
+  confidence?: number
+}
+
+export interface RealityScopeProfile {
+  anchorScope: RealityScopeLevel
+  anchorId: string
+  propagationBehavior: RealityScopePropagationBehavior
+  overriddenScopes: RealityScopeLevel[]
+  preservedScopes: RealityScopeLevel[]
+  confidence: number
+}
+
 export interface RealityStatePacket {
   packetId: string
   subjectId: string
@@ -215,6 +237,7 @@ export interface RealityStatePacket {
   futurePressureProfile?: FuturePressureProfile
   identityProfile?: RealityIdentityProfile
   ruleFamilyProfile?: RealityRuleFamilyProfile
+  scopeProfile?: RealityScopeProfile
 }
 
 export interface RealityOperationalAssessment {
@@ -310,6 +333,30 @@ export interface RealityRuleFamilyAssessment {
   reasonCodes: string[]
 }
 
+export interface RealityScopeResolution {
+  evaluationScope: RealityScopeLevel
+  anchorScope: RealityScopeLevel
+  truthStatus: RealityScopeTruthStatus
+  overrideApplies: boolean
+  propagationBehavior: RealityScopePropagationBehavior
+  source: 'explicit' | 'derived'
+}
+
+export interface RealityScopeAssessment {
+  packetId: string
+  subjectId: string
+  evaluationScope: RealityScopeLevel
+  anchorScope: RealityScopeLevel
+  truthStatus: RealityScopeTruthStatus
+  handlingMode:
+    | 'standard_scope_handling'
+    | 'localized_override_handling'
+    | 'broad_override_handling'
+    | 'scope_verification'
+  overrideApplies: boolean
+  reasonCodes: string[]
+}
+
 function normalizeString(value: string | undefined | null) {
   return typeof value === 'string' ? value.trim() : ''
 }
@@ -318,6 +365,10 @@ function uniqueSorted(values: readonly string[]) {
   return Array.from(
     new Set(values.map((value) => normalizeString(value)).filter((value) => value.length > 0))
   ).sort((left, right) => left.localeCompare(right))
+}
+
+function uniqueScopeLevels(values: readonly RealityScopeLevel[]) {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right))
 }
 
 function normalizeConfidence(value: number | undefined) {
@@ -393,6 +444,29 @@ function buildRealityRuleFamilyProfile(
     invalidatedOutcomes: uniqueSorted([...(input.invalidatedOutcomes ?? [])]),
     confidence: normalizeConfidence(input.confidence),
   }
+}
+
+function buildRealityScopeProfile(
+  input: RealityScopeProfileInput | undefined
+): RealityScopeProfile | undefined {
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    anchorScope: input.anchorScope,
+    anchorId: normalizeString(input.anchorId),
+    propagationBehavior: input.propagationBehavior ?? 'contained',
+    overriddenScopes: uniqueScopeLevels([...(input.overriddenScopes ?? [])]),
+    preservedScopes: uniqueScopeLevels([...(input.preservedScopes ?? [])]),
+    confidence: normalizeConfidence(input.confidence),
+  }
+}
+
+function derivePropagatedScopes(anchorScope: RealityScopeLevel): RealityScopeLevel[] {
+  const orderedScopes: RealityScopeLevel[] = ['object', 'room', 'site', 'district', 'world']
+  const anchorIndex = orderedScopes.indexOf(anchorScope)
+  return orderedScopes.slice(Math.max(anchorIndex, 0))
 }
 
 export function resolveRealityRuleSurface(
@@ -534,6 +608,9 @@ export function deriveRealityStatePacket(input: RealityStateInput): RealityState
       : {}),
     ...(buildRealityRuleFamilyProfile(input.ruleFamilyProfile)
       ? { ruleFamilyProfile: buildRealityRuleFamilyProfile(input.ruleFamilyProfile) }
+      : {}),
+    ...(buildRealityScopeProfile(input.scopeProfile)
+      ? { scopeProfile: buildRealityScopeProfile(input.scopeProfile) }
       : {}),
   }
 }
@@ -962,6 +1039,122 @@ export function projectRealityRuleFamilyAssessment(
     validityPosture: 'allow_under_declared_override',
     handlingMode: 'symbolic_rule_compliance',
     contradictionDetected: false,
+    reasonCodes,
+  }
+}
+
+export function resolveRealityScopeLayer(
+  profile: RealityScopeProfile,
+  evaluationScope: RealityScopeLevel
+): RealityScopeResolution {
+  if (profile.preservedScopes.includes(evaluationScope)) {
+    return {
+      evaluationScope,
+      anchorScope: profile.anchorScope,
+      truthStatus: 'baseline_preserved',
+      overrideApplies: false,
+      propagationBehavior: profile.propagationBehavior,
+      source: 'explicit',
+    }
+  }
+
+  if (profile.overriddenScopes.includes(evaluationScope)) {
+    return {
+      evaluationScope,
+      anchorScope: profile.anchorScope,
+      truthStatus: profile.confidence < 0.75 ? 'uncertain' : 'override_active',
+      overrideApplies: profile.confidence >= 0.75,
+      propagationBehavior: profile.propagationBehavior,
+      source: 'explicit',
+    }
+  }
+
+  const derivedOverrideScopes =
+    profile.propagationBehavior === 'ambient'
+      ? (['object', 'room', 'site', 'district', 'world'] as RealityScopeLevel[])
+      : profile.propagationBehavior === 'propagated'
+        ? derivePropagatedScopes(profile.anchorScope)
+        : [profile.anchorScope]
+
+  if (derivedOverrideScopes.includes(evaluationScope)) {
+    return {
+      evaluationScope,
+      anchorScope: profile.anchorScope,
+      truthStatus: profile.confidence < 0.75 ? 'uncertain' : 'override_active',
+      overrideApplies: profile.confidence >= 0.75,
+      propagationBehavior: profile.propagationBehavior,
+      source: 'derived',
+    }
+  }
+
+  return {
+    evaluationScope,
+    anchorScope: profile.anchorScope,
+    truthStatus: 'baseline_preserved',
+    overrideApplies: false,
+    propagationBehavior: profile.propagationBehavior,
+    source: 'derived',
+  }
+}
+
+export function projectRealityScopeAssessment(
+  packet: RealityStatePacket,
+  evaluationScope: RealityScopeLevel
+): RealityScopeAssessment | null {
+  const profile = packet.scopeProfile
+  if (!profile) {
+    return null
+  }
+
+  const resolution = resolveRealityScopeLayer(profile, evaluationScope)
+  const reasonCodes = uniqueSorted([
+    `anchor-scope:${profile.anchorScope}`,
+    `evaluation-scope:${evaluationScope}`,
+    `propagation:${profile.propagationBehavior}`,
+    `scope-source:${resolution.source}`,
+    ...(profile.anchorId ? [`anchor-id:${profile.anchorId}`] : []),
+    ...(profile.overriddenScopes.length > 0 ? ['explicit-overridden-scopes'] : []),
+    ...(profile.preservedScopes.length > 0 ? ['explicit-preserved-scopes'] : []),
+    ...(profile.confidence < 0.75 ? ['low-scope-confidence'] : []),
+  ])
+
+  if (resolution.truthStatus === 'uncertain') {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      evaluationScope,
+      anchorScope: profile.anchorScope,
+      truthStatus: resolution.truthStatus,
+      handlingMode: 'scope_verification',
+      overrideApplies: false,
+      reasonCodes,
+    }
+  }
+
+  if (!resolution.overrideApplies) {
+    return {
+      packetId: packet.packetId,
+      subjectId: packet.subjectId,
+      evaluationScope,
+      anchorScope: profile.anchorScope,
+      truthStatus: resolution.truthStatus,
+      handlingMode: 'standard_scope_handling',
+      overrideApplies: false,
+      reasonCodes,
+    }
+  }
+
+  return {
+    packetId: packet.packetId,
+    subjectId: packet.subjectId,
+    evaluationScope,
+    anchorScope: profile.anchorScope,
+    truthStatus: resolution.truthStatus,
+    handlingMode:
+      evaluationScope === profile.anchorScope
+        ? 'localized_override_handling'
+        : 'broad_override_handling',
+    overrideApplies: true,
     reasonCodes,
   }
 }

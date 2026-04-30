@@ -185,6 +185,38 @@ export interface CivilizationAccessDifferential {
   accessScoreGap: number
 }
 
+export type CivilizationChangeVector =
+  | 'corruption_pressure'
+  | 'radicalization_pressure'
+  | 'fragmentation_pressure'
+  | 'reform_pressure'
+  | 'alliance_shift_pressure'
+
+export type CivilizationTrajectoryBand = 'stabilizing' | 'volatile' | 'fracturing'
+
+export interface CivilizationEvolutionInput {
+  week: number
+}
+
+export interface CivilizationEvolutionSignal {
+  vector: CivilizationChangeVector
+  weight: number
+  reason: string
+  source: 'baseline' | 'category' | 'memory'
+}
+
+export interface CivilizationEvolutionPacket {
+  packetId: string
+  civilizationId: string
+  week: number
+  pressures: Record<CivilizationChangeVector, number>
+  dominantChange: CivilizationChangeVector
+  stabilityScore: number
+  trajectoryBand: CivilizationTrajectoryBand
+  downstreamChangeTags: string[]
+  signals: CivilizationEvolutionSignal[]
+}
+
 // ---------------------------------------------------------------------------
 // Templates
 // ---------------------------------------------------------------------------
@@ -611,6 +643,83 @@ const BASELINE_ACCESS_SCORE: Record<DiplomaticBaseline, number> = {
   secretly_aligned: 34,
 }
 
+const BASELINE_EVOLUTION_PRESSURES: Record<
+  DiplomaticBaseline,
+  Record<CivilizationChangeVector, number>
+> = {
+  cooperative: {
+    corruption_pressure: 6,
+    radicalization_pressure: 4,
+    fragmentation_pressure: 6,
+    reform_pressure: 18,
+    alliance_shift_pressure: 8,
+  },
+  suspicious: {
+    corruption_pressure: 12,
+    radicalization_pressure: 10,
+    fragmentation_pressure: 12,
+    reform_pressure: 10,
+    alliance_shift_pressure: 14,
+  },
+  hostile: {
+    corruption_pressure: 18,
+    radicalization_pressure: 22,
+    fragmentation_pressure: 16,
+    reform_pressure: 4,
+    alliance_shift_pressure: 10,
+  },
+  dependent: {
+    corruption_pressure: 8,
+    radicalization_pressure: 6,
+    fragmentation_pressure: 10,
+    reform_pressure: 14,
+    alliance_shift_pressure: 18,
+  },
+  infiltrated: {
+    corruption_pressure: 20,
+    radicalization_pressure: 14,
+    fragmentation_pressure: 14,
+    reform_pressure: 6,
+    alliance_shift_pressure: 16,
+  },
+  exploitative: {
+    corruption_pressure: 18,
+    radicalization_pressure: 10,
+    fragmentation_pressure: 12,
+    reform_pressure: 6,
+    alliance_shift_pressure: 20,
+  },
+  secretly_aligned: {
+    corruption_pressure: 16,
+    radicalization_pressure: 20,
+    fragmentation_pressure: 12,
+    reform_pressure: 4,
+    alliance_shift_pressure: 14,
+  },
+}
+
+const CATEGORY_EVOLUTION_PRESSURE_MODIFIERS: Record<
+  CivilizationCategory,
+  Partial<Record<CivilizationChangeVector, number>>
+> = {
+  government: { reform_pressure: 5, corruption_pressure: 2 },
+  religious: { radicalization_pressure: 6, reform_pressure: 2 },
+  medical: { reform_pressure: 6, fragmentation_pressure: -2 },
+  academic: { reform_pressure: 4, alliance_shift_pressure: 3 },
+  criminal: { corruption_pressure: 8, alliance_shift_pressure: 5 },
+  occult: { radicalization_pressure: 7, corruption_pressure: 4 },
+  rival_containment: { alliance_shift_pressure: 6, fragmentation_pressure: 3 },
+  nonhuman: { alliance_shift_pressure: 7, reform_pressure: 1 },
+}
+
+const CHANGE_VECTOR_ORDER: CivilizationChangeVector[] = [
+  'corruption_pressure',
+  'radicalization_pressure',
+  'fragmentation_pressure',
+  'reform_pressure',
+  'alliance_shift_pressure',
+]
+
 function clampCooperation(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
@@ -731,6 +840,50 @@ function resolvePopulationLoyaltyBand(
 
 function clampAccessScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function createZeroPressures(): Record<CivilizationChangeVector, number> {
+  return {
+    corruption_pressure: 0,
+    radicalization_pressure: 0,
+    fragmentation_pressure: 0,
+    reform_pressure: 0,
+    alliance_shift_pressure: 0,
+  }
+}
+
+function clampEvolutionPressure(value: number): number {
+  return Math.max(0, Math.min(100, Math.round(value)))
+}
+
+function resolveDominantChange(
+  pressures: Record<CivilizationChangeVector, number>
+): CivilizationChangeVector {
+  let best = CHANGE_VECTOR_ORDER[0]!
+  let bestValue = pressures[best]
+
+  for (let index = 1; index < CHANGE_VECTOR_ORDER.length; index += 1) {
+    const candidate = CHANGE_VECTOR_ORDER[index]!
+    const candidateValue = pressures[candidate]
+    if (candidateValue > bestValue) {
+      best = candidate
+      bestValue = candidateValue
+    }
+  }
+
+  return best
+}
+
+function resolveTrajectoryBand(stabilityScore: number): CivilizationTrajectoryBand {
+  if (stabilityScore >= 55) {
+    return 'stabilizing'
+  }
+
+  if (stabilityScore <= 34) {
+    return 'fracturing'
+  }
+
+  return 'volatile'
 }
 
 function resolveAccessBand(score: number): CivilizationAccessBand {
@@ -1140,5 +1293,132 @@ export function deriveCivilizationAccessDifferential(
     onlyAKnowledgeChannels: difference(accessA.knowledgeChannels, accessB.knowledgeChannels),
     onlyBKnowledgeChannels: difference(accessB.knowledgeChannels, accessA.knowledgeChannels),
     accessScoreGap: accessA.accessScore - accessB.accessScore,
+  }
+}
+
+/**
+ * Derive deterministic civilization evolution/change pressures.
+ * Outputs compact downstream-ready pressure vectors and trajectory state.
+ */
+export function deriveCivilizationEvolutionPacket(
+  civilization: CivilizationProfile,
+  input: CivilizationEvolutionInput,
+  state?: CivilizationState
+): CivilizationEvolutionPacket {
+  const signals: CivilizationEvolutionSignal[] = []
+  const pressures = createZeroPressures()
+
+  const baselinePressures = BASELINE_EVOLUTION_PRESSURES[civilization.diplomaticBaseline]
+  for (const vector of CHANGE_VECTOR_ORDER) {
+    const weight = baselinePressures[vector]
+    pressures[vector] += weight
+    signals.push({
+      vector,
+      weight,
+      reason: 'Baseline diplomatic posture contributes stable evolution pressure.',
+      source: 'baseline',
+    })
+  }
+
+  const categoryModifiers = CATEGORY_EVOLUTION_PRESSURE_MODIFIERS[civilization.category]
+  for (const vector of CHANGE_VECTOR_ORDER) {
+    const weight = categoryModifiers[vector] ?? 0
+    if (weight === 0) {
+      continue
+    }
+
+    pressures[vector] += weight
+    signals.push({
+      vector,
+      weight,
+      reason: 'Civilization category structure adds deterministic change bias.',
+      source: 'category',
+    })
+  }
+
+  if (state) {
+    const memoryCorruption = Math.floor(state.memoryPressure / 4)
+    const fragmentationShift =
+      state.cooperationBand === 'opposed' ? 14 : state.cooperationBand === 'watchful' ? 6 : -4
+    const radicalizationShift = state.cooperation <= 35 ? 10 : 0
+    const reformShift =
+      state.cooperation >= 65 ? 10 : state.cooperationBand === 'opposed' ? -8 : 0
+    const allianceShift = Math.round(Math.abs(state.cooperation - 50) / 5)
+
+    const memoryAdjustments: Partial<Record<CivilizationChangeVector, number>> = {
+      corruption_pressure: memoryCorruption,
+      fragmentation_pressure: fragmentationShift,
+      radicalization_pressure: radicalizationShift,
+      reform_pressure: reformShift,
+      alliance_shift_pressure: allianceShift,
+    }
+
+    for (const vector of CHANGE_VECTOR_ORDER) {
+      const weight = memoryAdjustments[vector] ?? 0
+      if (weight === 0) {
+        continue
+      }
+
+      pressures[vector] += weight
+      signals.push({
+        vector,
+        weight,
+        reason: 'Memory pressure and cooperation stance modulate evolution trajectory.',
+        source: 'memory',
+      })
+    }
+
+    if (state.memoryPressure <= 8 && state.cooperationBand === 'aligned') {
+      pressures.reform_pressure += 6
+      pressures.corruption_pressure -= 4
+      signals.push({
+        vector: 'reform_pressure',
+        weight: 6,
+        reason: 'Aligned low-pressure state adds stabilizing reform momentum.',
+        source: 'memory',
+      })
+      signals.push({
+        vector: 'corruption_pressure',
+        weight: -4,
+        reason: 'Aligned low-pressure state suppresses corruption drift.',
+        source: 'memory',
+      })
+    }
+  }
+
+  for (const vector of CHANGE_VECTOR_ORDER) {
+    pressures[vector] = clampEvolutionPressure(pressures[vector])
+  }
+
+  const dominantChange = resolveDominantChange(pressures)
+  const stabilityScore = clampAccessScore(
+    72 -
+      pressures.fragmentation_pressure -
+      Math.round(pressures.radicalization_pressure * 0.5) -
+      Math.round(pressures.corruption_pressure * 0.35) +
+      Math.round(pressures.reform_pressure * 0.4) -
+      Math.max(0, pressures.alliance_shift_pressure - 20)
+  )
+
+  const downstreamChangeTags = uniqueSorted([
+    `change:dominant-${dominantChange.replace('_pressure', '')}`,
+    `change:trajectory-${resolveTrajectoryBand(stabilityScore)}`,
+    ...(pressures.corruption_pressure >= 25 ? ['change:corruption-watch'] : []),
+    ...(pressures.radicalization_pressure >= 25 ? ['change:radicalization-watch'] : []),
+    ...(pressures.fragmentation_pressure >= 25 ? ['change:fragmentation-watch'] : []),
+    ...(pressures.reform_pressure >= 25 ? ['change:reform-window'] : []),
+    ...(pressures.alliance_shift_pressure >= 25 ? ['change:alliance-realignment-window'] : []),
+  ])
+
+  return {
+    packetId: `${civilization.id}:evolution:${input.week}`,
+    civilizationId: civilization.id,
+    week: input.week,
+    pressures,
+    dominantChange,
+    stabilityScore,
+    trajectoryBand: resolveTrajectoryBand(stabilityScore),
+    downstreamChangeTags,
+    signals,
   }
 }

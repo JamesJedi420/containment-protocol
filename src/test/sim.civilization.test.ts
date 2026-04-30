@@ -13,6 +13,7 @@ import {
   deriveCivilizationPopulationInheritance,
   deriveCivilizationAccessPacket,
   deriveCivilizationAccessDifferential,
+  deriveCivilizationEvolutionPacket,
 } from '../domain/civilization'
 
 // ---------------------------------------------------------------------------
@@ -670,5 +671,82 @@ describe('deriveCivilizationAccessDifferential', () => {
 
     const rerun = deriveCivilizationAccessDifferential(gov, occult)
     expect(rerun).toEqual(diff)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// SPE-1069 slice 6: civilization evolution/change scaffolding
+// ---------------------------------------------------------------------------
+
+describe('deriveCivilizationEvolutionPacket', () => {
+  it('derives deterministic evolution packet with explicit pressure scores and hints', () => {
+    const civ = classifyCivilization('hidden_covenant')!
+    const packet = deriveCivilizationEvolutionPacket(civ, { seed: 441, week: 12 })
+
+    expect(packet.packetId).toBe('hidden_covenant:evolution:12:441')
+    expect(packet.civilizationId).toBe('hidden_covenant')
+    expect(packet.pressureScores.radicalization_pressure).toBeGreaterThan(0)
+    expect(packet.effectHints.institutionPressureTags.length).toBeGreaterThan(0)
+    expect(packet.effectHints.factionPressureTags.length).toBeGreaterThan(0)
+    expect(packet.effectHints.campaignPressureTags.length).toBeGreaterThan(0)
+  })
+
+  it('is repeatable for identical civilization and week input', () => {
+    const civ = classifyCivilization('bureau_exceptional_incidents')!
+    const a = deriveCivilizationEvolutionPacket(civ, { seed: 99, week: 20 })
+    const b = deriveCivilizationEvolutionPacket(civ, { seed: 99, week: 20 })
+
+    expect(a).toEqual(b)
+  })
+
+  it('shows meaningful state-change pressure when memory/cooperation degrades', () => {
+    const civ = classifyCivilization('metropolitan_authority')!
+    const baseState = createCivilizationState({
+      civilizationId: civ.id,
+      diplomaticBaseline: civ.diplomaticBaseline,
+    })
+
+    const pressuredState = accumulateCivilizationMemory(baseState, [
+      { eventId: 'ev-1', week: 4, type: 'agency_violated_agreement', intensity: 2 },
+      { eventId: 'ev-2', week: 5, type: 'agency_raided_civilian_site', intensity: 1 },
+    ])
+
+    const neutralPacket = deriveCivilizationEvolutionPacket(civ, { seed: 777, week: 30 }, baseState)
+    const pressuredPacket = deriveCivilizationEvolutionPacket(civ, { seed: 777, week: 30 }, pressuredState)
+
+    expect(pressuredState.cooperationBand).toBe('opposed')
+    expect(pressuredPacket.pressureScores.fragmentation_pressure).toBeGreaterThanOrEqual(
+      neutralPacket.pressureScores.fragmentation_pressure
+    )
+    expect(pressuredPacket.effectHints.riskScore).toBeGreaterThanOrEqual(neutralPacket.effectHints.riskScore)
+  })
+
+  it('reflects stabilizing boundary behavior for aligned low-pressure state', () => {
+    const civ = classifyCivilization('civic_medical_trust')!
+    const alignedState = createCivilizationState({
+      civilizationId: civ.id,
+      diplomaticBaseline: civ.diplomaticBaseline,
+    })
+
+    const packet = deriveCivilizationEvolutionPacket(civ, { seed: 300, week: 8 }, alignedState)
+
+    expect(alignedState.cooperationBand).toBe('aligned')
+    expect(packet.pressureScores.reform_pressure).toBeGreaterThanOrEqual(packet.pressureScores.corruption_pressure)
+    expect(packet.effectHints.cooperationDeltaHint).toBeGreaterThanOrEqual(0)
+  })
+
+  it('drives radicalizing phase under high radicalization pressure input', () => {
+    const civ = classifyCivilization('radiant_order')!
+    const packet = deriveCivilizationEvolutionPacket(civ, {
+      seed: 1500,
+      week: 20,
+      pressure: {
+        radicalization_pressure: 88,
+      },
+    })
+
+    expect(packet.significantChange).toBe(true)
+    expect(packet.dominantDriver).toBe('radicalization_pressure')
+    expect(packet.resultingPhase).toBe('radicalizing')
   })
 })

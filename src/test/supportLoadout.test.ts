@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { equipAgentItem } from '../domain/sim/equipment'
 import {
+  applyWardSealsToSealedAnchor,
   applyPreparedSupportProcedure,
   buildPreparedSupportProcedureExpendedFlagKey,
   buildPreparedSupportProcedureMismatchFlagKey,
+  buildWardSealAnchorFailureFlagKey,
+  buildWardSealAnchorMismatchFlagKey,
+  buildWardSealAnchorSuccessFlagKey,
   buildSignalJammerJammedFlagKey,
   getPreparedSupportProcedureState,
   getSignalJammerState,
@@ -211,5 +215,102 @@ describe('supportLoadout', () => {
     expect(notJammedA).toMatchObject({ repaired: false, reason: 'not-jammed' })
     expect(notJammedB).toMatchObject({ repaired: false, reason: 'not-jammed' })
     expect(notJammedA.jammerState).toEqual(notJammedB.jammerState)
+  })
+
+  it('applies ward_seals to a sealed/keyed encounter anchor target with deterministic success', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed-keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const result = applyWardSealsToSealedAnchor(state, 'case-001', 'a_kellan')
+
+    expect(result.applied).toBe(true)
+    expect(result.outcome).toBe('success')
+    expect(result.supportState.status).toBe('expended')
+    expect(
+      result.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildWardSealAnchorSuccessFlagKey('a_kellan')
+      ]
+    ).toBe(true)
+    expect(result.state.runtimeState?.encounterState['case-001']?.phase).toBe(
+      'support-loadout:ward-seals:anchor:success'
+    )
+  })
+
+  it('emits failure when carried item gate fails for ward_seals anchor application', () => {
+    let state = createStartingState()
+    state.inventory.medkits = 1
+    state = equipAgentItem(state, 'a_casey', 'utility1', 'medkits')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed-keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const result = applyWardSealsToSealedAnchor(state, 'case-001', 'a_casey')
+
+    expect(result.applied).toBe(false)
+    expect(result.outcome).toBe('failure')
+    expect(
+      result.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildWardSealAnchorFailureFlagKey('a_casey')
+      ]
+    ).toBe(true)
+    expect(result.state.runtimeState?.encounterState['case-001']?.phase).toBe(
+      'support-loadout:ward-seals:anchor:failure'
+    )
+  })
+
+  it('emits mismatch when ward_seals are carried but target family is incompatible', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['medical', 'triage'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const result = applyWardSealsToSealedAnchor(state, 'case-001', 'a_kellan')
+
+    expect(result.applied).toBe(false)
+    expect(result.outcome).toBe('mismatch')
+    expect(result.supportState.status).toBe('expended')
+    expect(
+      result.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildWardSealAnchorMismatchFlagKey('a_kellan')
+      ]
+    ).toBe(true)
+    expect(result.state.runtimeState?.encounterState['case-001']?.phase).toBe(
+      'support-loadout:ward-seals:anchor:mismatch'
+    )
+  })
+
+  it('keeps deterministic no-op guard path when already applied', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const first = applyWardSealsToSealedAnchor(state, 'case-001', 'a_kellan')
+    const second = applyWardSealsToSealedAnchor(first.state, 'case-001', 'a_kellan')
+
+    expect(first.outcome).toBe('success')
+    expect(second.applied).toBe(false)
+    expect(second.outcome).toBe('already-applied')
+    expect(second.state).toEqual(first.state)
   })
 })

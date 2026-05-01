@@ -44,6 +44,15 @@ export interface RefreshPreparedSupportProcedureResult {
   supportState: PreparedSupportProcedureState
 }
 
+export type WardSealAnchorApplyOutcome = 'success' | 'failure' | 'mismatch' | 'already-applied'
+
+export interface ApplyWardSealsToAnchorResult {
+  state: GameState
+  applied: boolean
+  outcome: WardSealAnchorApplyOutcome
+  supportState: PreparedSupportProcedureState
+}
+
 export type SignalJammerStatus = 'functional' | 'jammed' | 'unavailable'
 export type SignalJammerJamOutcome = 'jammed' | 'already-jammed' | 'unavailable'
 export type SignalJammerRepairReason =
@@ -81,6 +90,13 @@ const SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT = 'utility2' as const
 const SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES = new Set(['tech', 'investigator', 'field_recon'])
 const SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS = new Set(['emf_sensors'])
 const SIGNAL_JAMMER_ITEM_ID = 'signal_jammers'
+const SEALED_KEYED_ANCHOR_TARGET_TAGS = new Set([
+  'encounter-anchor:sealed-keyed',
+  'encounter-anchor:sealed',
+  'encounter-anchor:keyed',
+  'anchor:sealed',
+  'anchor:keyed',
+])
 
 const PREPARED_SUPPORT_PROCEDURE_ITEMS = {
   medkits: {
@@ -174,12 +190,40 @@ export function buildPreparedSupportProcedureRefreshedFlagKey(
   return `supportProcedure.refreshed.${agentId}.${family}`
 }
 
+export function buildWardSealAnchorSuccessFlagKey(agentId: Id) {
+  return `supportLoadout.wardSeals.anchor.success.${agentId}`
+}
+
+export function buildWardSealAnchorFailureFlagKey(agentId: Id) {
+  return `supportLoadout.wardSeals.anchor.failure.${agentId}`
+}
+
+export function buildWardSealAnchorMismatchFlagKey(agentId: Id) {
+  return `supportLoadout.wardSeals.anchor.mismatch.${agentId}`
+}
+
 export function buildSignalJammerJammedFlagKey(agentId: Id) {
   return `supportLoadout.signalJammer.jammed.${agentId}`
 }
 
 export function buildSignalJammerRepairedFlagKey(agentId: Id) {
   return `supportLoadout.signalJammer.repaired.${agentId}`
+}
+
+function isSealedKeyedEncounterAnchorTarget(state: GameState, encounterId: string) {
+  const caseData = state.cases[encounterId]
+  if (!caseData) {
+    return false
+  }
+
+  const tags = getEncounterSupportTags(caseData)
+  for (const tag of SEALED_KEYED_ANCHOR_TARGET_TAGS) {
+    if (tags.has(tag)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function canAgentRepairSignalJammer(state: GameState, agentId: Id) {
@@ -361,6 +405,84 @@ export function repairSignalJammer(
     repaired: true,
     reason: 'repaired',
     jammerState: getSignalJammerState(nextState, encounterId, agentId),
+  }
+}
+
+export function applyWardSealsToSealedAnchor(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): ApplyWardSealsToAnchorResult {
+  const supportState = getPreparedSupportProcedureState(state, encounterId, agentId)
+  const encounterFlags = getEncounterFlags(state, encounterId)
+
+  const successFlagKey = buildWardSealAnchorSuccessFlagKey(agentId)
+  const failureFlagKey = buildWardSealAnchorFailureFlagKey(agentId)
+  const mismatchFlagKey = buildWardSealAnchorMismatchFlagKey(agentId)
+
+  if (encounterFlags[successFlagKey] === true) {
+    return {
+      state,
+      applied: false,
+      outcome: 'already-applied',
+      supportState,
+    }
+  }
+
+  encounterFlags[successFlagKey] = false
+  encounterFlags[failureFlagKey] = false
+  encounterFlags[mismatchFlagKey] = false
+
+  if (supportState.status === 'unavailable' || supportState.family !== 'containment') {
+    encounterFlags[failureFlagKey] = true
+    const nextState = setEncounterRuntimeState(state, encounterId, {
+      phase: 'support-loadout:ward-seals:anchor:failure',
+      flags: encounterFlags,
+      lastUpdatedWeek: state.week,
+    })
+
+    return {
+      state: nextState,
+      applied: false,
+      outcome: 'failure',
+      supportState: getPreparedSupportProcedureState(nextState, encounterId, agentId),
+    }
+  }
+
+  if (!isSealedKeyedEncounterAnchorTarget(state, encounterId)) {
+    encounterFlags[mismatchFlagKey] = true
+    encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, 'containment')] = true
+
+    const nextState = setEncounterRuntimeState(state, encounterId, {
+      phase: 'support-loadout:ward-seals:anchor:mismatch',
+      flags: encounterFlags,
+      lastUpdatedWeek: state.week,
+    })
+
+    return {
+      state: nextState,
+      applied: false,
+      outcome: 'mismatch',
+      supportState: getPreparedSupportProcedureState(nextState, encounterId, agentId),
+    }
+  }
+
+  encounterFlags[successFlagKey] = true
+  encounterFlags[buildPreparedSupportProcedureAppliedFlagKey(agentId, 'containment')] = true
+  encounterFlags[buildPreparedSupportProcedureMismatchFlagKey(agentId, 'containment')] = false
+  encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, 'containment')] = true
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: 'support-loadout:ward-seals:anchor:success',
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    applied: true,
+    outcome: 'success',
+    supportState: getPreparedSupportProcedureState(nextState, encounterId, agentId),
   }
 }
 

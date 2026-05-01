@@ -44,7 +44,43 @@ export interface RefreshPreparedSupportProcedureResult {
   supportState: PreparedSupportProcedureState
 }
 
+export type SignalJammerStatus = 'functional' | 'jammed' | 'unavailable'
+export type SignalJammerJamOutcome = 'jammed' | 'already-jammed' | 'unavailable'
+export type SignalJammerRepairReason =
+  | 'repaired'
+  | 'not-jammed'
+  | 'missing-capability'
+  | 'missing-repair-support-item'
+  | 'unavailable'
+
+export interface SignalJammerState {
+  encounterId: string
+  agentId: Id
+  slot: 'utility1'
+  itemId?: string
+  status: SignalJammerStatus
+  reasons: string[]
+}
+
+export interface JamSignalJammerResult {
+  state: GameState
+  transitioned: boolean
+  outcome: SignalJammerJamOutcome
+  jammerState: SignalJammerState
+}
+
+export interface RepairSignalJammerResult {
+  state: GameState
+  repaired: boolean
+  reason: SignalJammerRepairReason
+  jammerState: SignalJammerState
+}
+
 const PREPARED_SUPPORT_SLOT = 'utility1' as const
+const SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT = 'utility2' as const
+const SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES = new Set(['tech', 'investigator', 'field_recon'])
+const SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS = new Set(['emf_sensors'])
+const SIGNAL_JAMMER_ITEM_ID = 'signal_jammers'
 
 const PREPARED_SUPPORT_PROCEDURE_ITEMS = {
   medkits: {
@@ -136,6 +172,196 @@ export function buildPreparedSupportProcedureRefreshedFlagKey(
   family: PreparedSupportProcedureFamily
 ) {
   return `supportProcedure.refreshed.${agentId}.${family}`
+}
+
+export function buildSignalJammerJammedFlagKey(agentId: Id) {
+  return `supportLoadout.signalJammer.jammed.${agentId}`
+}
+
+export function buildSignalJammerRepairedFlagKey(agentId: Id) {
+  return `supportLoadout.signalJammer.repaired.${agentId}`
+}
+
+function canAgentRepairSignalJammer(state: GameState, agentId: Id) {
+  const agent = state.agents[agentId]
+
+  if (!agent) {
+    return false
+  }
+
+  if (SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
+    return true
+  }
+
+  const tags = new Set(agent.tags ?? [])
+  return tags.has('tech') || tags.has('investigator') || tags.has('signal')
+}
+
+function hasSignalJammerRepairSupportItem(state: GameState, agentId: Id) {
+  const agent = state.agents[agentId]
+  if (!agent) {
+    return false
+  }
+
+  const repairItemId = getEquipmentSlotItemId(agent.equipmentSlots, SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT)
+  return Boolean(repairItemId && SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS.has(repairItemId))
+}
+
+export function getSignalJammerState(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): SignalJammerState {
+  const agent = state.agents[agentId]
+
+  if (!agent) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      status: 'unavailable',
+      reasons: ['missing-agent'],
+    }
+  }
+
+  const itemId = getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT)
+
+  if (!itemId) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      status: 'unavailable',
+      reasons: ['no-signal-jammer-loadout'],
+    }
+  }
+
+  if (itemId !== SIGNAL_JAMMER_ITEM_ID) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      itemId,
+      status: 'unavailable',
+      reasons: ['unsupported-signal-jammer-item'],
+    }
+  }
+
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  const jammed = encounterFlags[buildSignalJammerJammedFlagKey(agentId)] === true
+
+  return {
+    encounterId,
+    agentId,
+    slot: PREPARED_SUPPORT_SLOT,
+    itemId,
+    status: jammed ? 'jammed' : 'functional',
+    reasons: jammed ? ['signal-jammer-jammed'] : ['signal-jammer-functional'],
+  }
+}
+
+export function jamSignalJammer(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): JamSignalJammerResult {
+  const jammerState = getSignalJammerState(state, encounterId, agentId)
+
+  if (jammerState.status === 'unavailable') {
+    return {
+      state,
+      transitioned: false,
+      outcome: 'unavailable',
+      jammerState,
+    }
+  }
+
+  if (jammerState.status === 'jammed') {
+    return {
+      state,
+      transitioned: false,
+      outcome: 'already-jammed',
+      jammerState,
+    }
+  }
+
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  encounterFlags[buildSignalJammerJammedFlagKey(agentId)] = true
+  encounterFlags[buildSignalJammerRepairedFlagKey(agentId)] = false
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: 'support-loadout:signal-jammers:jammed',
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    transitioned: true,
+    outcome: 'jammed',
+    jammerState: getSignalJammerState(nextState, encounterId, agentId),
+  }
+}
+
+export function repairSignalJammer(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): RepairSignalJammerResult {
+  const jammerState = getSignalJammerState(state, encounterId, agentId)
+
+  if (jammerState.status === 'unavailable') {
+    return {
+      state,
+      repaired: false,
+      reason: 'unavailable',
+      jammerState,
+    }
+  }
+
+  if (jammerState.status !== 'jammed') {
+    return {
+      state,
+      repaired: false,
+      reason: 'not-jammed',
+      jammerState,
+    }
+  }
+
+  if (!canAgentRepairSignalJammer(state, agentId)) {
+    return {
+      state,
+      repaired: false,
+      reason: 'missing-capability',
+      jammerState,
+    }
+  }
+
+  if (!hasSignalJammerRepairSupportItem(state, agentId)) {
+    return {
+      state,
+      repaired: false,
+      reason: 'missing-repair-support-item',
+      jammerState,
+    }
+  }
+
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  encounterFlags[buildSignalJammerJammedFlagKey(agentId)] = false
+  encounterFlags[buildSignalJammerRepairedFlagKey(agentId)] = true
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: 'support-loadout:signal-jammers:repaired',
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    repaired: true,
+    reason: 'repaired',
+    jammerState: getSignalJammerState(nextState, encounterId, agentId),
+  }
 }
 
 export function getPreparedSupportProcedureState(

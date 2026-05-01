@@ -5,7 +5,11 @@ import {
   applyPreparedSupportProcedure,
   buildPreparedSupportProcedureExpendedFlagKey,
   buildPreparedSupportProcedureMismatchFlagKey,
+  buildSignalJammerJammedFlagKey,
   getPreparedSupportProcedureState,
+  getSignalJammerState,
+  jamSignalJammer,
+  repairSignalJammer,
   refreshPreparedSupportProcedure,
 } from '../domain/supportLoadout'
 
@@ -105,5 +109,107 @@ describe('supportLoadout', () => {
       status: 'unavailable',
     })
     expect(supportState.reasons).toContain('unsupported-prepared-support-item')
+  })
+
+  it('deterministically transitions signal_jammers from functional to jammed in utility1', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state = equipAgentItem(state, 'a_rook', 'utility1', 'signal_jammers')
+
+    const before = getSignalJammerState(state, 'case-001', 'a_rook')
+    expect(before.status).toBe('functional')
+
+    const jammed = jamSignalJammer(state, 'case-001', 'a_rook')
+    expect(jammed.transitioned).toBe(true)
+    expect(jammed.outcome).toBe('jammed')
+    expect(jammed.jammerState.status).toBe('jammed')
+    expect(
+      jammed.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildSignalJammerJammedFlagKey('a_rook')
+      ]
+    ).toBe(true)
+
+    const jammedAgain = jamSignalJammer(jammed.state, 'case-001', 'a_rook')
+    expect(jammedAgain.transitioned).toBe(false)
+    expect(jammedAgain.outcome).toBe('already-jammed')
+    expect(jammedAgain.jammerState.status).toBe('jammed')
+  })
+
+  it('denies signal jammer repair when operator capability gate fails', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.emf_sensors = 1
+    state = equipAgentItem(state, 'a_casey', 'utility1', 'signal_jammers')
+    state = equipAgentItem(state, 'a_casey', 'utility2', 'emf_sensors')
+
+    const jammed = jamSignalJammer(state, 'case-001', 'a_casey')
+    const repaired = repairSignalJammer(jammed.state, 'case-001', 'a_casey')
+
+    expect(repaired.repaired).toBe(false)
+    expect(repaired.reason).toBe('missing-capability')
+    expect(repaired.jammerState.status).toBe('jammed')
+  })
+
+  it('denies signal jammer repair when repair support item gate fails', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state = equipAgentItem(state, 'a_rook', 'utility1', 'signal_jammers')
+
+    const jammed = jamSignalJammer(state, 'case-001', 'a_rook')
+    const repaired = repairSignalJammer(jammed.state, 'case-001', 'a_rook')
+
+    expect(repaired.repaired).toBe(false)
+    expect(repaired.reason).toBe('missing-repair-support-item')
+    expect(repaired.jammerState.status).toBe('jammed')
+  })
+
+  it('repairs a jammed signal jammer only when both capability and support-item gates pass', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.emf_sensors = 1
+    state = equipAgentItem(state, 'a_rook', 'utility1', 'signal_jammers')
+    state = equipAgentItem(state, 'a_rook', 'utility2', 'emf_sensors')
+
+    const jammed = jamSignalJammer(state, 'case-001', 'a_rook')
+    const repaired = repairSignalJammer(jammed.state, 'case-001', 'a_rook')
+
+    expect(repaired.repaired).toBe(true)
+    expect(repaired.reason).toBe('repaired')
+    expect(repaired.jammerState.status).toBe('functional')
+    expect(
+      repaired.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildSignalJammerJammedFlagKey('a_rook')
+      ]
+    ).toBe(false)
+  })
+
+  it('keeps guard/no-op paths deterministic for missing agent, missing item, and wrong repair state', () => {
+    const baseline = createStartingState()
+
+    const missingAgentA = jamSignalJammer(baseline, 'case-001', 'a_missing')
+    const missingAgentB = jamSignalJammer(baseline, 'case-001', 'a_missing')
+    expect(missingAgentA).toMatchObject({ transitioned: false, outcome: 'unavailable' })
+    expect(missingAgentB).toMatchObject({ transitioned: false, outcome: 'unavailable' })
+    expect(missingAgentA.jammerState).toEqual(missingAgentB.jammerState)
+
+    let wrongItemState = createStartingState()
+    wrongItemState.inventory.medkits = 1
+    wrongItemState = equipAgentItem(wrongItemState, 'a_rook', 'utility1', 'medkits')
+
+    const missingJammer = jamSignalJammer(wrongItemState, 'case-001', 'a_rook')
+    expect(missingJammer.transitioned).toBe(false)
+    expect(missingJammer.outcome).toBe('unavailable')
+
+    let functionalState = createStartingState()
+    functionalState.inventory.signal_jammers = 1
+    functionalState.inventory.emf_sensors = 1
+    functionalState = equipAgentItem(functionalState, 'a_rook', 'utility1', 'signal_jammers')
+    functionalState = equipAgentItem(functionalState, 'a_rook', 'utility2', 'emf_sensors')
+
+    const notJammedA = repairSignalJammer(functionalState, 'case-001', 'a_rook')
+    const notJammedB = repairSignalJammer(functionalState, 'case-001', 'a_rook')
+    expect(notJammedA).toMatchObject({ repaired: false, reason: 'not-jammed' })
+    expect(notJammedB).toMatchObject({ repaired: false, reason: 'not-jammed' })
+    expect(notJammedA.jammerState).toEqual(notJammedB.jammerState)
   })
 })

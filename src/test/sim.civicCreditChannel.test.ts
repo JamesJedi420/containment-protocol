@@ -1,6 +1,6 @@
-// SPE-1266: Civic credit pressure channel — slices 1–2 unit tests
+// SPE-1266: Civic credit pressure channel — slices 1–3 unit tests
 import { describe, it, expect } from 'vitest'
-import { createCivicCreditPacket, aggregateSiteCreditPressureModifier } from '../domain/civicCreditChannel'
+import { createCivicCreditPacket, aggregateSiteCreditPressureModifier, decayCreditPackets } from '../domain/civicCreditChannel'
 
 describe('SPE-1266: createCivicCreditPacket', () => {
   it('normalizes packetId and siteId tokens', () => {
@@ -149,5 +149,53 @@ describe('SPE-1266: aggregateSiteCreditPressureModifier', () => {
     const result = aggregateSiteCreditPressureModifier(packets, '  SITE A  ')
     expect(result.siteId).toBe('site-a')
     expect(result.appliedPacketIds).toEqual(['p1'])
+  })
+})
+
+describe('SPE-1266: decayCreditPackets', () => {
+  it('reduces creditSignal by decayRate and keeps survivor', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.5, decayRate: 0.1 })
+    const result = decayCreditPackets([packet], 2)
+    expect(result).toHaveLength(1)
+    expect(result[0].creditSignal).toBe(0.4)
+  })
+
+  it('rounds decayed signal to 3 decimal places', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.3, decayRate: 0.1 })
+    const result = decayCreditPackets([packet], 2)
+    expect(result[0].creditSignal).toBe(0.2)
+  })
+
+  it('drops packet when decayed signal falls below 0.05 threshold', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.1, decayRate: 0.1 })
+    const result = decayCreditPackets([packet], 2)
+    // 0.1 - 0.1 = 0.0 < 0.05
+    expect(result).toHaveLength(0)
+  })
+
+  it('retains packet when decayed signal is exactly 0.05', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.1, decayRate: 0.05 })
+    const result = decayCreditPackets([packet], 2)
+    // 0.1 - 0.05 = 0.05 exactly — should survive
+    expect(result).toHaveLength(1)
+    expect(result[0].creditSignal).toBe(0.05)
+  })
+
+  it('updates week to currentWeek on survivors', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.5, decayRate: 0.05 })
+    const result = decayCreditPackets([packet], 7)
+    expect(result[0].week).toBe(7)
+  })
+
+  it('does not mutate the input array or packets', () => {
+    const packet = createCivicCreditPacket({ packetId: 'p1', siteId: 's1', week: 1, creditSignal: 0.5, decayRate: 0.1 })
+    const original = { ...packet }
+    decayCreditPackets([packet], 2)
+    expect(packet.creditSignal).toBe(original.creditSignal)
+    expect(packet.week).toBe(original.week)
+  })
+
+  it('returns empty array for empty input', () => {
+    expect(decayCreditPackets([], 5)).toEqual([])
   })
 })

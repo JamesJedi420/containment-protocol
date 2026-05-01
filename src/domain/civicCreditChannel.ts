@@ -1,4 +1,4 @@
-// SPE-1266: Civic credit pressure channel — slices 1–2 (types, create, aggregate)
+// SPE-1266: Civic credit pressure channel — slices 1–3 (types, create, aggregate, decay)
 
 export interface CivicCreditPacket {
   packetId: string
@@ -107,4 +107,28 @@ export function aggregateSiteCreditPressureModifier(
     appliedPacketIds,
     reasonFragment: parts.join('; '),
   }
+}
+
+const CREDIT_DECAY_THRESHOLD = 0.05
+
+/**
+ * SPE-1266 slice 3: Decay credit packets by one week.
+ * Each packet's creditSignal is reduced by its decayRate (rounded to 3dp).
+ * Packets whose resulting signal falls below 0.05 are dropped.
+ * Survivors have their week updated to currentWeek.
+ * Input is not mutated — returns a new array.
+ */
+export function decayCreditPackets(
+  packets: readonly CivicCreditPacket[],
+  currentWeek: number
+): CivicCreditPacket[] {
+  const results: CivicCreditPacket[] = []
+
+  for (const packet of packets) {
+    const decayed = Math.round((packet.creditSignal - packet.decayRate) * 1000) / 1000
+    if (decayed < CREDIT_DECAY_THRESHOLD) continue
+    results.push({ ...packet, creditSignal: decayed, week: currentWeek })
+  }
+
+  return results
 }

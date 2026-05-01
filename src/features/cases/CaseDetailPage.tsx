@@ -22,6 +22,8 @@ import { type CaseInstance, type GameState, type Team } from '../../domain/model
 import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
+import { IncidentCommandPackageReadinessPanel } from '../incidents/IncidentCommandPackageReadinessPanel'
+import { selectIncidentCommandPackageReadinessView } from '../incidents/incidentCommandPackageReadinessView'
 import { SupportIncidentReferencePanel } from '../incidents/SupportIncidentReferencePanel'
 import { selectSupportIncidentReferenceView } from '../incidents/supportIncidentReferenceView'
 
@@ -51,6 +53,15 @@ export default function CaseDetailPage() {
       ? view.assignedTeams.map((team) => team.id)
       : view.availableTeams.slice(0, 1).map(({ team }) => team.id)
   const supportReference = selectSupportIncidentReferenceView(game, currentCase.id, {
+    teamIds: supportReferenceTeamIds,
+    scopeLabel:
+      view.assignedTeams.length > 0
+        ? 'Assigned team package'
+        : supportReferenceTeamIds.length > 0
+          ? 'Top candidate package'
+          : 'No team package',
+  })
+  const incidentCommandReadiness = selectIncidentCommandPackageReadinessView(game, currentCase.id, {
     teamIds: supportReferenceTeamIds,
     scopeLabel:
       view.assignedTeams.length > 0
@@ -530,6 +541,8 @@ export default function CaseDetailPage() {
             )}
           </article>
 
+          <IncidentCommandPackageReadinessPanel view={incidentCommandReadiness} />
+
           <SupportIncidentReferencePanel view={supportReference} />
 
           <article
@@ -560,46 +573,48 @@ export default function CaseDetailPage() {
                 <ul className="space-y-2">
                   {assignmentInsights.availableTeams.map(
                     ({ team, odds, injuryForecast, reconSummary }) => (
-                    <li
-                      key={team.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {AGENCY_LABELS.responseUnit} {team.name}
-                        </p>
-                        <p className="text-xs opacity-50">
-                          S {formatPercent(odds.success)} / P {formatPercent(odds.partial)} / F{' '}
-                          {formatPercent(odds.fail)}
-                        </p>
-                        <p className="text-xs opacity-55">
-                          Injury {formatPercent(injuryForecast.injuryChance)} /{' '}
-                          {injuryForecast.expectedInjuryLabel} / Death{' '}
-                          {formatPercent(injuryForecast.deathChance)}
-                        </p>
-                        <p className="text-xs opacity-55">
-                          Downtime {formatDowntime(injuryForecast.expectedDowntimeWeeks)} /{' '}
-                          {injuryForecast.tempoLossLabel}
-                        </p>
-                        <p className="text-xs text-amber-200/90">{injuryForecast.primaryWarning}</p>
-                        <p className="text-xs opacity-60">{injuryForecast.guidance}</p>
-                        {reconSummary && reconSummary.hiddenModifierCount > 0 ? (
-                          <p className="text-xs opacity-50">
-                            Recon {formatPercent(reconSummary.intelConfidence)} confidence /{' '}
-                            {reconSummary.revealedModifierCount}/{reconSummary.hiddenModifierCount}{' '}
-                            hidden factors revealed
-                          </p>
-                        ) : null}
-                      </div>
-                      <button
-                        onClick={() => assign(currentCase.id, team.id)}
-                        disabled={odds.blockedByRequiredTags || odds.blockedByRequiredRoles}
-                        aria-label={`Assign ${team.name}`}
-                        className="btn btn-sm"
+                      <li
+                        key={team.id}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded border border-white/10 px-3 py-2"
                       >
-                        Assign
-                      </button>
-                    </li>
+                        <div>
+                          <p className="font-medium">
+                            {AGENCY_LABELS.responseUnit} {team.name}
+                          </p>
+                          <p className="text-xs opacity-50">
+                            S {formatPercent(odds.success)} / P {formatPercent(odds.partial)} / F{' '}
+                            {formatPercent(odds.fail)}
+                          </p>
+                          <p className="text-xs opacity-55">
+                            Injury {formatPercent(injuryForecast.injuryChance)} /{' '}
+                            {injuryForecast.expectedInjuryLabel} / Death{' '}
+                            {formatPercent(injuryForecast.deathChance)}
+                          </p>
+                          <p className="text-xs opacity-55">
+                            Downtime {formatDowntime(injuryForecast.expectedDowntimeWeeks)} /{' '}
+                            {injuryForecast.tempoLossLabel}
+                          </p>
+                          <p className="text-xs text-amber-200/90">
+                            {injuryForecast.primaryWarning}
+                          </p>
+                          <p className="text-xs opacity-60">{injuryForecast.guidance}</p>
+                          {reconSummary && reconSummary.hiddenModifierCount > 0 ? (
+                            <p className="text-xs opacity-50">
+                              Recon {formatPercent(reconSummary.intelConfidence)} confidence /{' '}
+                              {reconSummary.revealedModifierCount}/
+                              {reconSummary.hiddenModifierCount} hidden factors revealed
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          onClick={() => assign(currentCase.id, team.id)}
+                          disabled={odds.blockedByRequiredTags || odds.blockedByRequiredRoles}
+                          aria-label={`Assign ${team.name}`}
+                          className="btn btn-sm"
+                        >
+                          Assign
+                        </button>
+                      </li>
                     )
                   )}
                 </ul>

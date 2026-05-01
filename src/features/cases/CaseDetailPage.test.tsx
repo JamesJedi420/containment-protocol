@@ -185,8 +185,15 @@ it('renders the compact support incident reference from assigned runtime support
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-001')
 
+  const commandPanel = screen.getByRole('region', {
+    name: /incident command package readiness/i,
+  })
   const panel = screen.getByRole('region', { name: /support incident reference/i })
 
+  expect(
+    within(commandPanel).getByRole('heading', { name: /incident package readiness/i })
+  ).toBeInTheDocument()
+  expect(within(commandPanel).getByText(/assigned team package/i)).toBeInTheDocument()
   expect(within(panel).getByText(/assigned team package/i)).toBeInTheDocument()
   expect(within(panel).getByText(/Casey Holt/)).toBeInTheDocument()
   expect(within(panel).getByText(/Prepared: Medical \/ Expended/i)).toBeInTheDocument()

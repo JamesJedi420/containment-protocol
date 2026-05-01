@@ -221,6 +221,10 @@ import {
   decayRumorPackets,
   type CivicRumorPacket,
 } from '../civicRumorChannel'
+import {
+  decayCreditPackets,
+  type CivicCreditPacket,
+} from '../civicCreditChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -253,6 +257,7 @@ type AdvanceWeekState = GameState & {
   civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
   civicAuthoritySources?: readonly AuthoredCivicAuthoritySourceInput[]
   rumorPackets?: readonly CivicRumorPacket[]
+  creditPackets?: readonly CivicCreditPacket[]
   authorityQueuedEvents?: readonly Pick<
     RuntimeQueuedEvent,
     'id' | 'type' | 'targetId' | 'week' | 'payload'
@@ -338,6 +343,7 @@ export function getWeeklyCaseGenerationSeamInput(state: GameState): {
   neighborhoodPackets: readonly NeighborhoodIncidentPacket[]
   civicConsequencePackets: readonly CompactCivicAuthorityConsequencePacket[]
   rumorPackets: readonly CivicRumorPacket[]
+  creditPackets: readonly CivicCreditPacket[]
 } {
   const weeklyState = state as AdvanceWeekState
 
@@ -345,6 +351,7 @@ export function getWeeklyCaseGenerationSeamInput(state: GameState): {
     neighborhoodPackets: weeklyState.neighborhoodPackets ?? [],
     civicConsequencePackets: deriveWeeklyCivicConsequencePackets(state),
     rumorPackets: weeklyState.rumorPackets ?? [],
+    creditPackets: weeklyState.creditPackets ?? [],
   }
 }
 
@@ -3945,6 +3952,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.rumorPackets = decayedRumorPackets
   } else if ('rumorPackets' in outputWeeklyState) {
     delete (outputWeeklyState as Record<string, unknown>).rumorPackets
+  }
+
+  // SPE-1266: Decay credit packets each week; drop packets below the 0.05 signal threshold.
+  const decayedCreditPackets = decayCreditPackets(
+    inputWeeklyState.creditPackets ?? [],
+    result.week
+  )
+  if (decayedCreditPackets.length > 0) {
+    outputWeeklyState.creditPackets = decayedCreditPackets
+  } else if ('creditPackets' in outputWeeklyState) {
+    delete (outputWeeklyState as Record<string, unknown>).creditPackets
   }
 
   // SPE-95: Patch output state for test assertions

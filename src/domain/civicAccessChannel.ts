@@ -40,3 +40,71 @@ export function createCivicAccessPacket(input: CivicAccessPacketInput): CivicAcc
     decayRate: clamp(input.decayRate ?? 0.05, 0, 1),
   }
 }
+
+// SPE-1267 slice 2
+export interface SiteAccessPressureModifier {
+  siteId: string
+  pressureBoost: number // clamped to [−0.2, +0.3]
+  blockedCount: number
+  appliedPacketIds: string[]
+  reasonFragment: string
+}
+
+/**
+ * Aggregate access pressure modifier for a single target site.
+ * Non-blocked packets contribute −accessSignal × 0.15 (open access suppresses pressure).
+ * Blocked packets contribute +accessSignal × 0.12 (blocked access increases pressure).
+ * Final pressureBoost is clamped to [−0.2, +0.3].
+ */
+export function aggregateSiteAccessPressureModifier(
+  packets: readonly CivicAccessPacket[],
+  targetSiteId: string
+): SiteAccessPressureModifier {
+  const normalizedTarget = normalizeToken(targetSiteId)
+  const matching = packets
+    .filter((p) => p.siteId === normalizedTarget)
+    .sort((a, b) => a.packetId.localeCompare(b.packetId))
+
+  if (matching.length === 0) {
+    return {
+      siteId: normalizedTarget,
+      pressureBoost: 0,
+      blockedCount: 0,
+      appliedPacketIds: [],
+      reasonFragment: 'no access pressure',
+    }
+  }
+
+  let rawBoost = 0
+  let blockedCount = 0
+  const appliedPacketIds: string[] = []
+
+  for (const packet of matching) {
+    appliedPacketIds.push(packet.packetId)
+    if (packet.blocked) {
+      rawBoost += packet.accessSignal * 0.12
+      blockedCount += 1
+    } else {
+      rawBoost -= packet.accessSignal * 0.15
+    }
+  }
+
+  const pressureBoost = clamp(rawBoost, -0.2, 0.3)
+  const openCount = matching.length - blockedCount
+  const parts: string[] = []
+  if (pressureBoost < 0) {
+    parts.push(`access suppression ${pressureBoost.toFixed(3)} (${openCount} open)`)
+  } else if (pressureBoost > 0) {
+    parts.push(`access pressure +${pressureBoost.toFixed(3)} (${blockedCount} blocked)`)
+  } else {
+    parts.push('access balanced')
+  }
+
+  return {
+    siteId: normalizedTarget,
+    pressureBoost,
+    blockedCount,
+    appliedPacketIds,
+    reasonFragment: parts.join('; '),
+  }
+}

@@ -58,3 +58,93 @@ describe('SPE-1267: createCivicAccessPacket', () => {
     expect(p.week).toBe(1)
   })
 })
+
+  function makePacket(overrides: {
+    packetId: string
+    siteId?: string
+    accessSignal?: number
+    blocked?: boolean
+  }) {
+    return createCivicAccessPacket({
+      packetId: overrides.packetId,
+      siteId: overrides.siteId ?? 'site-a',
+      week: 1,
+      accessSignal: overrides.accessSignal ?? 0.8,
+      blocked: overrides.blocked,
+    })
+  }
+
+  describe('SPE-1267: aggregateSiteAccessPressureModifier', () => {
+    it('returns zero boost and no-access-pressure reason for empty packets', () => {
+      const result = aggregateSiteAccessPressureModifier([], 'site-a')
+      expect(result.pressureBoost).toBe(0)
+      expect(result.reasonFragment).toBe('no access pressure')
+      expect(result.appliedPacketIds).toEqual([])
+    })
+
+    it('returns zero boost and no-access-pressure reason for unmatched site', () => {
+      const packets = [makePacket({ packetId: 'p1', siteId: 'site-b' })]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBe(0)
+      expect(result.reasonFragment).toBe('no access pressure')
+    })
+
+    it('open packets contribute negative boost (suppression)', () => {
+      const packets = [makePacket({ packetId: 'p1', accessSignal: 1.0, blocked: false })]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBeCloseTo(-0.15, 5)
+      expect(result.blockedCount).toBe(0)
+    })
+
+    it('blocked packets contribute positive boost', () => {
+      const packets = [makePacket({ packetId: 'p1', accessSignal: 1.0, blocked: true })]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBeCloseTo(0.12, 5)
+      expect(result.blockedCount).toBe(1)
+    })
+
+    it('mixed packets sum correctly', () => {
+      const packets = [
+        makePacket({ packetId: 'p1', accessSignal: 1.0, blocked: false }),
+        makePacket({ packetId: 'p2', accessSignal: 1.0, blocked: true }),
+      ]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBeCloseTo(-0.03, 5) // −0.15 + 0.12
+    })
+
+    it('clamps pressureBoost to −0.2 minimum', () => {
+      const packets = [
+        makePacket({ packetId: 'p1', accessSignal: 1.0, blocked: false }),
+        makePacket({ packetId: 'p2', accessSignal: 1.0, blocked: false }),
+        makePacket({ packetId: 'p3', accessSignal: 1.0, blocked: false }),
+      ]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBe(-0.2)
+    })
+
+    it('clamps pressureBoost to +0.3 maximum', () => {
+      const packets = [
+        makePacket({ packetId: 'p1', accessSignal: 1.0, blocked: true }),
+        makePacket({ packetId: 'p2', accessSignal: 1.0, blocked: true }),
+        makePacket({ packetId: 'p3', accessSignal: 1.0, blocked: true }),
+      ]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.pressureBoost).toBe(0.3)
+    })
+
+    it('appliedPacketIds are sorted alphabetically', () => {
+      const packets = [
+        makePacket({ packetId: 'zzz', siteId: 'site-a' }),
+        makePacket({ packetId: 'aaa', siteId: 'site-a' }),
+        makePacket({ packetId: 'mmm', siteId: 'site-a' }),
+      ]
+      const result = aggregateSiteAccessPressureModifier(packets, 'site-a')
+      expect(result.appliedPacketIds).toEqual(['aaa', 'mmm', 'zzz'])
+    })
+
+    it('normalizes targetSiteId before matching', () => {
+      const packets = [makePacket({ packetId: 'p1', siteId: 'site-a' })]
+      const result = aggregateSiteAccessPressureModifier(packets, '  SITE-A  ')
+      expect(result.appliedPacketIds).toContain('p1')
+    })
+  })

@@ -14,6 +14,7 @@ import {
   getSignalJammerState,
   jamSignalJammer,
   repairSignalJammer,
+  resolveSupportLoadoutAffordanceIds,
   refreshPreparedSupportProcedure,
 } from '../domain/supportLoadout'
 
@@ -312,5 +313,80 @@ describe('supportLoadout', () => {
     expect(second.applied).toBe(false)
     expect(second.outcome).toBe('already-applied')
     expect(second.state).toEqual(first.state)
+  })
+
+  it('resolves contextual signal_jammers affordances as jam then repair based on runtime state', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.emf_sensors = 1
+    state = equipAgentItem(state, 'a_rook', 'utility1', 'signal_jammers')
+    state = equipAgentItem(state, 'a_rook', 'utility2', 'emf_sensors')
+
+    const functionalAffordances = resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_rook')
+    expect(functionalAffordances).toEqual(['support-loadout:signal-jammers:jam'])
+
+    const jammedState = jamSignalJammer(state, 'case-001', 'a_rook').state
+    const jammedAffordances = resolveSupportLoadoutAffordanceIds(jammedState, 'case-001', 'a_rook')
+    expect(jammedAffordances).toEqual(['support-loadout:signal-jammers:repair'])
+  })
+
+  it('resolves ward_seals anchor-apply affordance only when containment target and not already applied', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const beforeApply = resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_kellan')
+    expect(beforeApply).toEqual(['support-loadout:ward-seals:anchor-apply'])
+
+    const afterApplyState = applyWardSealsToSealedAnchor(state, 'case-001', 'a_kellan').state
+    const afterApply = resolveSupportLoadoutAffordanceIds(afterApplyState, 'case-001', 'a_kellan')
+    expect(afterApply).toEqual([])
+  })
+
+  it('returns no contextual affordances for negative gates and keeps deterministic no-op output', () => {
+    let missingCapabilityState = createStartingState()
+    missingCapabilityState.inventory.signal_jammers = 1
+    missingCapabilityState.inventory.emf_sensors = 1
+    missingCapabilityState = equipAgentItem(missingCapabilityState, 'a_casey', 'utility1', 'signal_jammers')
+    missingCapabilityState = equipAgentItem(missingCapabilityState, 'a_casey', 'utility2', 'emf_sensors')
+    const jammedMissingCapabilityState = jamSignalJammer(
+      missingCapabilityState,
+      'case-001',
+      'a_casey'
+    ).state
+    expect(resolveSupportLoadoutAffordanceIds(jammedMissingCapabilityState, 'case-001', 'a_casey')).toEqual(
+      []
+    )
+
+    let missingSupportItemState = createStartingState()
+    missingSupportItemState.inventory.signal_jammers = 1
+    missingSupportItemState = equipAgentItem(missingSupportItemState, 'a_rook', 'utility1', 'signal_jammers')
+    const jammedMissingSupportState = jamSignalJammer(missingSupportItemState, 'case-001', 'a_rook').state
+    expect(resolveSupportLoadoutAffordanceIds(jammedMissingSupportState, 'case-001', 'a_rook')).toEqual([])
+
+    let nonTargetWardState = createStartingState()
+    nonTargetWardState.inventory.ward_seals = 1
+    nonTargetWardState = equipAgentItem(nonTargetWardState, 'a_kellan', 'utility1', 'ward_seals')
+    nonTargetWardState.cases['case-001'] = {
+      ...nonTargetWardState.cases['case-001'],
+      tags: ['medical'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    expect(resolveSupportLoadoutAffordanceIds(nonTargetWardState, 'case-001', 'a_kellan')).toEqual([])
+
+    const baseline = createStartingState()
+    const snapshot = JSON.parse(JSON.stringify(baseline)) as ReturnType<typeof createStartingState>
+    const noOpA = resolveSupportLoadoutAffordanceIds(baseline, 'case-001', 'a_missing')
+    const noOpB = resolveSupportLoadoutAffordanceIds(baseline, 'case-001', 'a_missing')
+    expect(noOpA).toEqual([])
+    expect(noOpA).toEqual(noOpB)
+    expect(baseline).toEqual(snapshot)
   })
 })

@@ -7,8 +7,10 @@ import {
   buildPreparedSupportProcedureAppliedFlagKey,
   buildPreparedSupportProcedureMismatchFlagKey,
   getPreparedSupportProcedureState,
+  resolveSupportLoadoutAffordanceIds,
   type PreparedSupportProcedureFamily,
   type PreparedSupportProcedureStatus,
+  type SupportLoadoutAffordanceId,
 } from './supportLoadout'
 import type {
   EncounterResolutionOutcome,
@@ -265,4 +267,12 @@ export function selectPreparedSupportProcedureEncounterSummary(
       typeof supportState.itemId === 'string' &&
       supportState.reserveStock > 0,
   }
+}
+
+export function selectSupportLoadoutAffordanceIds(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): SupportLoadoutAffordanceId[] {
+  return resolveSupportLoadoutAffordanceIds(state, encounterId, agentId)
 }

@@ -9,6 +9,7 @@ import {
   recordEncounterFollowUps,
   selectPreparedSupportProcedureEncounterSummary,
   selectEncounterTrackingSummary,
+  selectSupportLoadoutAffordanceIds,
   updateEncounterPhase,
   updateEncounterStatus,
 } from '../domain/encounterTracking'
@@ -228,5 +229,16 @@ describe('encounterTracking', () => {
       status: 'unavailable',
       refreshAvailable: false,
     })
+  })
+
+  it('selects support-loadout affordances deterministically from runtime context', () => {
+    let state = createStartingState()
+    state.inventory.signal_jammers = 1
+    state.inventory.emf_sensors = 1
+    state = equipAgentItem(state, 'a_rook', 'utility1', 'signal_jammers')
+    state = equipAgentItem(state, 'a_rook', 'utility2', 'emf_sensors')
+
+    const functional = selectSupportLoadoutAffordanceIds(state, 'case-001', 'a_rook')
+    expect(functional).toEqual(['support-loadout:signal-jammers:jam'])
   })
 })

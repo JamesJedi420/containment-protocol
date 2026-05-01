@@ -85,6 +85,11 @@ export interface RepairSignalJammerResult {
   jammerState: SignalJammerState
 }
 
+export type SupportLoadoutAffordanceId =
+  | 'support-loadout:signal-jammers:jam'
+  | 'support-loadout:signal-jammers:repair'
+  | 'support-loadout:ward-seals:anchor-apply'
+
 const PREPARED_SUPPORT_SLOT = 'utility1' as const
 const SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT = 'utility2' as const
 const SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES = new Set(['tech', 'investigator', 'field_recon'])
@@ -406,6 +411,60 @@ export function repairSignalJammer(
     reason: 'repaired',
     jammerState: getSignalJammerState(nextState, encounterId, agentId),
   }
+}
+
+export function resolveSupportLoadoutAffordanceIds(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): SupportLoadoutAffordanceId[] {
+  const agent = state.agents[agentId]
+  if (!agent) {
+    return []
+  }
+
+  const utilityItemId = getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT)
+  if (!utilityItemId) {
+    return []
+  }
+
+  if (utilityItemId === SIGNAL_JAMMER_ITEM_ID) {
+    const jammerState = getSignalJammerState(state, encounterId, agentId)
+
+    if (jammerState.status === 'functional') {
+      return ['support-loadout:signal-jammers:jam']
+    }
+
+    if (
+      jammerState.status === 'jammed' &&
+      canAgentRepairSignalJammer(state, agentId) &&
+      hasSignalJammerRepairSupportItem(state, agentId)
+    ) {
+      return ['support-loadout:signal-jammers:repair']
+    }
+
+    return []
+  }
+
+  if (utilityItemId === 'ward_seals') {
+    const supportState = getPreparedSupportProcedureState(state, encounterId, agentId)
+    if (supportState.status !== 'prepared' || supportState.family !== 'containment') {
+      return []
+    }
+
+    if (!isSealedKeyedEncounterAnchorTarget(state, encounterId)) {
+      return []
+    }
+
+    const encounterFlags = getEncounterFlags(state, encounterId)
+    if (encounterFlags[buildWardSealAnchorSuccessFlagKey(agentId)] === true) {
+      return []
+    }
+
+    return ['support-loadout:ward-seals:anchor-apply']
+  }
+
+  return []
 }
 
 export function applyWardSealsToSealedAnchor(

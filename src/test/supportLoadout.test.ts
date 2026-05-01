@@ -10,12 +10,20 @@ import {
   buildWardSealAnchorMismatchFlagKey,
   buildWardSealAnchorSuccessFlagKey,
   buildSignalJammerJammedFlagKey,
+  buildTemporaryConjuredSupportActiveFlagKey,
+  buildTemporaryConjuredSupportExpiredFlagKey,
+  buildTemporaryConjuredSupportRuntimeId,
+  buildTemporaryConjuredSupportUsedFlagKey,
+  expireTemporaryConjuredSupport,
   getPreparedSupportProcedureState,
   getSignalJammerState,
+  getTemporaryConjuredSupportState,
   jamSignalJammer,
   repairSignalJammer,
   resolveSupportLoadoutAffordanceIds,
+  spawnTemporaryConjuredSupport,
   refreshPreparedSupportProcedure,
+  useTemporaryConjuredSupport,
 } from '../domain/supportLoadout'
 
 function withCaseTags(state: ReturnType<typeof createStartingState>, tags: string[]) {
@@ -459,5 +467,121 @@ describe('supportLoadout', () => {
     expect(noOpA).toEqual([])
     expect(noOpA).toEqual(noOpB)
     expect(state).toEqual(snapshot)
+  })
+
+  it('spawns one deterministic temporary conjured support runtime identity and marks active state', () => {
+    let state = createStartingState()
+    state.inventory.warding_kits = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'warding_kits')
+
+    const spawn = spawnTemporaryConjuredSupport(state, 'case-001', 'a_kellan')
+    const runtimeId = buildTemporaryConjuredSupportRuntimeId('case-001', 'a_kellan')
+
+    expect(spawn.spawned).toBe(true)
+    expect(spawn.reason).toBe('spawned')
+    expect(spawn.conjuredState).toMatchObject({
+      itemId: 'warding_kits',
+      status: 'active',
+      runtimeId,
+    })
+    expect(
+      spawn.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildTemporaryConjuredSupportActiveFlagKey('a_kellan')
+      ]
+    ).toBe(true)
+  })
+
+  it('allows one execution-time use only while temporary conjured support is active', () => {
+    let state = createStartingState()
+    state.inventory.warding_kits = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'warding_kits')
+    const runtimeId = buildTemporaryConjuredSupportRuntimeId('case-001', 'a_kellan')
+
+    const beforeSpawnUse = useTemporaryConjuredSupport(state, 'case-001', 'a_kellan')
+    expect(beforeSpawnUse.used).toBe(false)
+    expect(beforeSpawnUse.reason).toBe('not-active')
+
+    const spawned = spawnTemporaryConjuredSupport(state, 'case-001', 'a_kellan')
+    const activeUse = useTemporaryConjuredSupport(spawned.state, 'case-001', 'a_kellan')
+
+    expect(activeUse.used).toBe(true)
+    expect(activeUse.reason).toBe('used')
+    expect(
+      activeUse.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildTemporaryConjuredSupportUsedFlagKey(runtimeId)
+      ]
+    ).toBe(true)
+  })
+
+  it('expires temporary conjured support with deterministic cleanup and blocks use afterward', () => {
+    let state = createStartingState()
+    state.inventory.warding_kits = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'warding_kits')
+    const runtimeId = buildTemporaryConjuredSupportRuntimeId('case-001', 'a_kellan')
+
+    const spawned = spawnTemporaryConjuredSupport(state, 'case-001', 'a_kellan')
+    const used = useTemporaryConjuredSupport(spawned.state, 'case-001', 'a_kellan')
+    const expired = expireTemporaryConjuredSupport(used.state, 'case-001', 'a_kellan')
+
+    expect(expired.expired).toBe(true)
+    expect(expired.reason).toBe('expired')
+    expect(expired.conjuredState.status).toBe('expired')
+    expect(
+      expired.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildTemporaryConjuredSupportActiveFlagKey('a_kellan')
+      ]
+    ).toBe(false)
+    expect(
+      expired.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildTemporaryConjuredSupportExpiredFlagKey('a_kellan')
+      ]
+    ).toBe(true)
+    expect(
+      expired.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildTemporaryConjuredSupportUsedFlagKey(runtimeId)
+      ]
+    ).toBe(false)
+
+    const useAfterExpiry = useTemporaryConjuredSupport(expired.state, 'case-001', 'a_kellan')
+    expect(useAfterExpiry.used).toBe(false)
+    expect(useAfterExpiry.reason).toBe('expired')
+  })
+
+  it('keeps repeated spawn/expire calls deterministic no-op guards', () => {
+    let state = createStartingState()
+    state.inventory.warding_kits = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'warding_kits')
+
+    const firstSpawn = spawnTemporaryConjuredSupport(state, 'case-001', 'a_kellan')
+    const secondSpawn = spawnTemporaryConjuredSupport(firstSpawn.state, 'case-001', 'a_kellan')
+    expect(secondSpawn.spawned).toBe(false)
+    expect(secondSpawn.reason).toBe('already-active')
+    expect(secondSpawn.state).toEqual(firstSpawn.state)
+
+    const expired = expireTemporaryConjuredSupport(firstSpawn.state, 'case-001', 'a_kellan')
+    const secondExpire = expireTemporaryConjuredSupport(expired.state, 'case-001', 'a_kellan')
+    expect(secondExpire.expired).toBe(false)
+    expect(secondExpire.reason).toBe('not-active')
+    expect(secondExpire.state).toEqual(expired.state)
+
+    const spawnAfterExpiry = spawnTemporaryConjuredSupport(expired.state, 'case-001', 'a_kellan')
+    expect(spawnAfterExpiry.spawned).toBe(false)
+    expect(spawnAfterExpiry.reason).toBe('already-expired')
+  })
+
+  it('reports unavailable conjured state deterministically when item gate is not met', () => {
+    const baseline = createStartingState()
+
+    const missingAgentA = getTemporaryConjuredSupportState(baseline, 'case-001', 'a_missing')
+    const missingAgentB = getTemporaryConjuredSupportState(baseline, 'case-001', 'a_missing')
+    expect(missingAgentA.status).toBe('unavailable')
+    expect(missingAgentA).toEqual(missingAgentB)
+
+    let wrongItem = createStartingState()
+    wrongItem.inventory.medkits = 1
+    wrongItem = equipAgentItem(wrongItem, 'a_rook', 'utility1', 'medkits')
+    const wrongItemSpawn = spawnTemporaryConjuredSupport(wrongItem, 'case-001', 'a_rook')
+    expect(wrongItemSpawn.spawned).toBe(false)
+    expect(wrongItemSpawn.reason).toBe('unavailable')
   })
 })

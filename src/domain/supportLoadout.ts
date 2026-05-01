@@ -94,6 +94,46 @@ export interface RepairSignalJammerResult {
   jammerState: SignalJammerState
 }
 
+export type TemporaryConjuredSupportStatus = 'active' | 'expired' | 'unavailable'
+export type SpawnTemporaryConjuredSupportReason =
+  | 'spawned'
+  | 'already-active'
+  | 'already-expired'
+  | 'unavailable'
+export type UseTemporaryConjuredSupportReason = 'used' | 'not-active' | 'expired' | 'unavailable'
+export type ExpireTemporaryConjuredSupportReason = 'expired' | 'not-active' | 'unavailable'
+
+export interface TemporaryConjuredSupportState {
+  encounterId: string
+  agentId: Id
+  slot: 'utility1'
+  itemId?: string
+  runtimeId?: string
+  status: TemporaryConjuredSupportStatus
+  reasons: string[]
+}
+
+export interface SpawnTemporaryConjuredSupportResult {
+  state: GameState
+  spawned: boolean
+  reason: SpawnTemporaryConjuredSupportReason
+  conjuredState: TemporaryConjuredSupportState
+}
+
+export interface UseTemporaryConjuredSupportResult {
+  state: GameState
+  used: boolean
+  reason: UseTemporaryConjuredSupportReason
+  conjuredState: TemporaryConjuredSupportState
+}
+
+export interface ExpireTemporaryConjuredSupportResult {
+  state: GameState
+  expired: boolean
+  reason: ExpireTemporaryConjuredSupportReason
+  conjuredState: TemporaryConjuredSupportState
+}
+
 export type SupportLoadoutAffordanceId =
   | 'support-loadout:signal-jammers:jam'
   | 'support-loadout:signal-jammers:repair'
@@ -107,6 +147,7 @@ const SIGNAL_JAMMER_ITEM_ID = 'signal_jammers'
 const WARD_SEALS_ITEM_ID = 'ward_seals'
 const WARD_SEAL_PARENT_CONTAINER_ITEM_ID = 'ritual_components'
 const WARD_SEAL_NESTED_CARRY_CAPACITY = 1
+const TEMPORARY_CONJURED_SUPPORT_ITEM_ID = 'warding_kits'
 const SEALED_KEYED_ANCHOR_TARGET_TAGS = new Set([
   'encounter-anchor:sealed-keyed',
   'encounter-anchor:sealed',
@@ -225,6 +266,22 @@ export function buildSignalJammerJammedFlagKey(agentId: Id) {
 
 export function buildSignalJammerRepairedFlagKey(agentId: Id) {
   return `supportLoadout.signalJammer.repaired.${agentId}`
+}
+
+export function buildTemporaryConjuredSupportRuntimeId(encounterId: string, agentId: Id) {
+  return `supportLoadout.tempConjured.runtime.${encounterId}.${agentId}`
+}
+
+export function buildTemporaryConjuredSupportActiveFlagKey(agentId: Id) {
+  return `supportLoadout.tempConjured.active.${agentId}`
+}
+
+export function buildTemporaryConjuredSupportExpiredFlagKey(agentId: Id) {
+  return `supportLoadout.tempConjured.expired.${agentId}`
+}
+
+export function buildTemporaryConjuredSupportUsedFlagKey(runtimeId: string) {
+  return `supportLoadout.tempConjured.used.${runtimeId}`
 }
 
 function isSealedKeyedEncounterAnchorTarget(state: GameState, encounterId: string) {
@@ -544,6 +601,216 @@ export function resolveSupportLoadoutAffordanceIds(
   }
 
   return []
+}
+
+export function getTemporaryConjuredSupportState(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): TemporaryConjuredSupportState {
+  const agent = state.agents[agentId]
+  if (!agent) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      status: 'unavailable',
+      reasons: ['missing-agent'],
+    }
+  }
+
+  const itemId = getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT)
+  if (itemId !== TEMPORARY_CONJURED_SUPPORT_ITEM_ID) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      itemId,
+      status: 'unavailable',
+      reasons: ['unsupported-temporary-conjured-item'],
+    }
+  }
+
+  const runtimeId = buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  const active = encounterFlags[buildTemporaryConjuredSupportActiveFlagKey(agentId)] === true
+  const expired = encounterFlags[buildTemporaryConjuredSupportExpiredFlagKey(agentId)] === true
+
+  if (active) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      itemId,
+      runtimeId,
+      status: 'active',
+      reasons: ['temporary-conjured-item-active'],
+    }
+  }
+
+  if (expired) {
+    return {
+      encounterId,
+      agentId,
+      slot: PREPARED_SUPPORT_SLOT,
+      itemId,
+      runtimeId,
+      status: 'expired',
+      reasons: ['temporary-conjured-item-expired'],
+    }
+  }
+
+  return {
+    encounterId,
+    agentId,
+    slot: PREPARED_SUPPORT_SLOT,
+    itemId,
+    runtimeId,
+    status: 'unavailable',
+    reasons: ['temporary-conjured-item-not-spawned'],
+  }
+}
+
+export function spawnTemporaryConjuredSupport(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): SpawnTemporaryConjuredSupportResult {
+  const conjuredState = getTemporaryConjuredSupportState(state, encounterId, agentId)
+
+  if (conjuredState.status === 'active') {
+    return {
+      state,
+      spawned: false,
+      reason: 'already-active',
+      conjuredState,
+    }
+  }
+
+  if (conjuredState.status === 'expired') {
+    return {
+      state,
+      spawned: false,
+      reason: 'already-expired',
+      conjuredState,
+    }
+  }
+
+  if (!conjuredState.itemId || conjuredState.reasons.includes('unsupported-temporary-conjured-item')) {
+    return {
+      state,
+      spawned: false,
+      reason: 'unavailable',
+      conjuredState,
+    }
+  }
+
+  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  encounterFlags[buildTemporaryConjuredSupportActiveFlagKey(agentId)] = true
+  encounterFlags[buildTemporaryConjuredSupportExpiredFlagKey(agentId)] = false
+  encounterFlags[buildTemporaryConjuredSupportUsedFlagKey(runtimeId)] = false
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: `support-loadout:temp-conjured:active:${runtimeId}`,
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    spawned: true,
+    reason: 'spawned',
+    conjuredState: getTemporaryConjuredSupportState(nextState, encounterId, agentId),
+  }
+}
+
+export function useTemporaryConjuredSupport(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): UseTemporaryConjuredSupportResult {
+  const conjuredState = getTemporaryConjuredSupportState(state, encounterId, agentId)
+
+  if (conjuredState.status === 'expired') {
+    return {
+      state,
+      used: false,
+      reason: 'expired',
+      conjuredState,
+    }
+  }
+
+  if (conjuredState.status !== 'active') {
+    return {
+      state,
+      used: false,
+      reason: conjuredState.reasons.includes('unsupported-temporary-conjured-item') ? 'unavailable' : 'not-active',
+      conjuredState,
+    }
+  }
+
+  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  encounterFlags[buildTemporaryConjuredSupportUsedFlagKey(runtimeId)] = true
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: `support-loadout:temp-conjured:used:${runtimeId}`,
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    used: true,
+    reason: 'used',
+    conjuredState: getTemporaryConjuredSupportState(nextState, encounterId, agentId),
+  }
+}
+
+export function expireTemporaryConjuredSupport(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): ExpireTemporaryConjuredSupportResult {
+  const conjuredState = getTemporaryConjuredSupportState(state, encounterId, agentId)
+
+  if (conjuredState.status === 'unavailable') {
+    return {
+      state,
+      expired: false,
+      reason: 'unavailable',
+      conjuredState,
+    }
+  }
+
+  if (conjuredState.status !== 'active') {
+    return {
+      state,
+      expired: false,
+      reason: 'not-active',
+      conjuredState,
+    }
+  }
+
+  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const encounterFlags = getEncounterFlags(state, encounterId)
+  encounterFlags[buildTemporaryConjuredSupportActiveFlagKey(agentId)] = false
+  encounterFlags[buildTemporaryConjuredSupportExpiredFlagKey(agentId)] = true
+  encounterFlags[buildTemporaryConjuredSupportUsedFlagKey(runtimeId)] = false
+
+  const nextState = setEncounterRuntimeState(state, encounterId, {
+    phase: `support-loadout:temp-conjured:expired:${runtimeId}`,
+    flags: encounterFlags,
+    lastUpdatedWeek: state.week,
+  })
+
+  return {
+    state: nextState,
+    expired: true,
+    reason: 'expired',
+    conjuredState: getTemporaryConjuredSupportState(nextState, encounterId, agentId),
+  }
 }
 
 export function applyWardSealsToSealedAnchor(

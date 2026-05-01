@@ -225,6 +225,10 @@ import {
   decayCreditPackets,
   type CivicCreditPacket,
 } from '../civicCreditChannel'
+  import {
+    decayAccessPackets,
+    type CivicAccessPacket,
+  } from '../civicAccessChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -258,6 +262,7 @@ type AdvanceWeekState = GameState & {
   civicAuthoritySources?: readonly AuthoredCivicAuthoritySourceInput[]
   rumorPackets?: readonly CivicRumorPacket[]
   creditPackets?: readonly CivicCreditPacket[]
+    accessPackets?: readonly CivicAccessPacket[]
   authorityQueuedEvents?: readonly Pick<
     RuntimeQueuedEvent,
     'id' | 'type' | 'targetId' | 'week' | 'payload'
@@ -344,6 +349,7 @@ export function getWeeklyCaseGenerationSeamInput(state: GameState): {
   civicConsequencePackets: readonly CompactCivicAuthorityConsequencePacket[]
   rumorPackets: readonly CivicRumorPacket[]
   creditPackets: readonly CivicCreditPacket[]
+  accessPackets: readonly CivicAccessPacket[]
 } {
   const weeklyState = state as AdvanceWeekState
 
@@ -352,6 +358,7 @@ export function getWeeklyCaseGenerationSeamInput(state: GameState): {
     civicConsequencePackets: deriveWeeklyCivicConsequencePackets(state),
     rumorPackets: weeklyState.rumorPackets ?? [],
     creditPackets: weeklyState.creditPackets ?? [],
+    accessPackets: weeklyState.accessPackets ?? [],
   }
 }
 
@@ -3964,6 +3971,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   } else if ('creditPackets' in outputWeeklyState) {
     delete (outputWeeklyState as Record<string, unknown>).creditPackets
   }
+
+    // SPE-1267: Decay access packets each week; drop packets below the 0.05 signal threshold.
+    const decayedAccessPackets = decayAccessPackets(
+      inputWeeklyState.accessPackets ?? [],
+      result.week
+    )
+    if (decayedAccessPackets.length > 0) {
+      outputWeeklyState.accessPackets = decayedAccessPackets
+    } else if ('accessPackets' in outputWeeklyState) {
+      delete (outputWeeklyState as Record<string, unknown>).accessPackets
+    }
 
   // SPE-95: Patch output state for test assertions
   if (coordinationFrictionActive) {

@@ -38,6 +38,10 @@ import {
   deriveCrossSiteAuthorityModifierForTargetSite,
   type CompactCivicAuthorityConsequencePacket,
 } from './civicConsequenceNetwork'
+import {
+  aggregateSiteRumorPressureModifier,
+  type CivicRumorPacket,
+} from './civicRumorChannel'
 
 export type EncounterType =
   | 'haunting'
@@ -475,6 +479,7 @@ export function generateAmbientCases(
   context?: {
     neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
     civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
+    rumorPackets?: readonly CivicRumorPacket[]
   }
 ): {
   state: GameState
@@ -538,6 +543,8 @@ export function generateAmbientCases(
     reason: string
     neighborhoodPressureDistrictId?: string
     neighborhoodPressureBoost?: number
+    rumorPressureSiteId?: string
+    rumorPressureBoost?: number
   }> = []
 
   if (topSupportiveFaction) {
@@ -770,8 +777,17 @@ export function generateAmbientCases(
         ? Math.round(neighborhoodPressure.pressureBoost * 10)
         : 0
 
+      // SPE-1265: aggregate rumor pressure for the selected district
+      const rumorPressure =
+        selectedDistrictId && context?.rumorPackets && context.rumorPackets.length > 0
+          ? aggregateSiteRumorPressureModifier(context.rumorPackets, selectedDistrictId)
+          : undefined
+      const rumorPriorityBonus = rumorPressure
+        ? Math.round(rumorPressure.pressureBoost * 10)
+        : 0
+
       spawnPlans.push({
-        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4 + neighborhoodPriorityBonus,
+        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4 + neighborhoodPriorityBonus + rumorPriorityBonus,
         trigger: 'world_activity',
         template: worldTemplate,
         districtId: selectedDistrictId,
@@ -784,6 +800,11 @@ export function generateAmbientCases(
             ? selectedDistrictId
             : undefined,
         neighborhoodPressureBoost: neighborhoodPressure?.pressureBoost,
+        rumorPressureSiteId:
+          rumorPressure && rumorPressure.pressureBoost !== 0
+            ? selectedDistrictId
+            : undefined,
+        rumorPressureBoost: rumorPressure?.pressureBoost,
         reason:
           buildWorldActivityReason(worldTemplate, state) +
           (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : '') +
@@ -798,6 +819,9 @@ export function generateAmbientCases(
             : '') +
           (neighborhoodPressure && neighborhoodPressure.pressureBoost > 0
             ? ` Neighborhood: ${neighborhoodPressure.reasonFragment}.`
+            : '') +
+          (rumorPressure && rumorPressure.pressureBoost !== 0
+            ? ` Rumor: ${rumorPressure.reasonFragment}.`
             : '') +
           (crossSiteAuthorityModifier && crossSiteAuthorityModifier.totalDelta !== 0
             ? ` Authority exchange: ${crossSiteAuthorityModifier.reasonFragment}.`
@@ -831,6 +855,9 @@ export function generateAmbientCases(
               ...((plan.appliedScheduleEvents ?? []).map((eventId) => `schedule-event:${eventId}`)),
               ...(plan.neighborhoodPressureDistrictId
                 ? [`neighborhood-pressure:${plan.neighborhoodPressureDistrictId}`]
+                : []),
+              ...(plan.rumorPressureSiteId
+                ? [`rumor-pressure:${plan.rumorPressureSiteId}`]
                 : []),
             ],
           }

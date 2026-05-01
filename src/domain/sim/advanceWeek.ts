@@ -217,6 +217,10 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
+import {
+  decayRumorPackets,
+  type CivicRumorPacket,
+} from '../civicRumorChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -248,6 +252,7 @@ type AdvanceWeekState = GameState & {
   neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
   civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
   civicAuthoritySources?: readonly AuthoredCivicAuthoritySourceInput[]
+  rumorPackets?: readonly CivicRumorPacket[]
   authorityQueuedEvents?: readonly Pick<
     RuntimeQueuedEvent,
     'id' | 'type' | 'targetId' | 'week' | 'payload'
@@ -332,12 +337,14 @@ export function deriveWeeklyCivicConsequencePackets(
 export function getWeeklyCaseGenerationSeamInput(state: GameState): {
   neighborhoodPackets: readonly NeighborhoodIncidentPacket[]
   civicConsequencePackets: readonly CompactCivicAuthorityConsequencePacket[]
+  rumorPackets: readonly CivicRumorPacket[]
 } {
   const weeklyState = state as AdvanceWeekState
 
   return {
     neighborhoodPackets: weeklyState.neighborhoodPackets ?? [],
     civicConsequencePackets: deriveWeeklyCivicConsequencePackets(state),
+    rumorPackets: weeklyState.rumorPackets ?? [],
   }
 }
 
@@ -3927,6 +3934,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.civicAuthoritySources = mergedAuthoritySources
   } else if ('civicAuthoritySources' in outputWeeklyState) {
     delete (outputWeeklyState as Record<string, unknown>).civicAuthoritySources
+  }
+
+  // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.
+  const decayedRumorPackets = decayRumorPackets(
+    inputWeeklyState.rumorPackets ?? [],
+    result.week
+  )
+  if (decayedRumorPackets.length > 0) {
+    outputWeeklyState.rumorPackets = decayedRumorPackets
+  } else if ('rumorPackets' in outputWeeklyState) {
+    delete (outputWeeklyState as Record<string, unknown>).rumorPackets
   }
 
   // SPE-95: Patch output state for test assertions

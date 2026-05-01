@@ -16,6 +16,7 @@ import { generateAmbientCases } from '../domain/caseGeneration'
 import {
   createCompactCivicAuthorityConsequencePacket,
   deriveCrossSiteAuthorityModifierForTargetSite,
+  extractPersistentAuthoritySourceInputsFromEvents,
   resolveAuthoritySameSourceConflicts,
 } from '../domain/civicConsequenceNetwork'
 import { SIM_NOTES } from '../data/copy'
@@ -873,6 +874,221 @@ describe('advanceWeek', () => {
       expect(modifier.weightModifier).toBeLessThanOrEqual(1.25)
       expect(modifier.reasonFragment).toContain('cross-site-authority')
       expect(modifier.reasonFragment).toContain('target:site-b')
+    })
+  })
+
+  describe('SPE-540 slice 5: week+1 authority packet persistence', () => {
+    it('persistent queued-event source survives in civicAuthoritySources after advanceWeek', () => {
+      const week1State = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-s5-persist',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              sourceId: 'spe-540-s5-persistent',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 's5-persist-seed',
+              authoritySignal: 0.7,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+        ],
+      })
+
+      const week2State = advanceWeek(structuredClone(week1State)) as typeof week1State
+
+      // The persistent source must be present in civicAuthoritySources on the output state
+      const storedSources = week2State.civicAuthoritySources ?? []
+      const persistedIds = storedSources.map((s) => s.sourceId)
+
+      expect(persistedIds).toContain('spe-540-s5-persistent')
+    })
+
+    it('persistent packet remains available at week+1 even after the source event is consumed', () => {
+      const week1State = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-s5-consumed',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              sourceId: 'spe-540-s5-consumed',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 's5-consumed-seed',
+              authoritySignal: 0.75,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+        ],
+      })
+
+      const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
+      // Simulate event consumption: clear the queued events
+      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+
+      const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
+
+      expect(week2Packets.map((p) => p.packetId)).toContain('spe-540-s5-consumed')
+      expect(week2Packets.every((p) => p.link.scope === 'two_site')).toBe(true)
+    })
+
+    it('non-persistent (recurring) queued source is not stored in civicAuthoritySources after advanceWeek', () => {
+      const week1State = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-s5-recurring',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              sourceId: 'spe-540-s5-recurring',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 's5-recurring-seed',
+              authoritySignal: 0.6,
+              startWeek: 1,
+              availability: 'recurring',
+              cadenceWeeks: 2,
+            },
+          },
+        ],
+      })
+
+      const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
+      // Simulate event consumption
+      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+
+      const storedSources = week2State.civicAuthoritySources ?? []
+      const storedIds = storedSources.map((s) => s.sourceId)
+
+      // Recurring source must NOT be in civicAuthoritySources
+      expect(storedIds).not.toContain('spe-540-s5-recurring')
+
+      // And since the event is consumed and source not stored, week+1 produces no packet
+      const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
+      expect(week2Packets.map((p) => p.packetId)).not.toContain('spe-540-s5-recurring')
+    })
+
+    it('same-week consumption rules from slice-3 are unchanged', () => {
+      // Week-1 packet derivation still works exactly as before slice 5
+      const state = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-s5-unchanged',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              sourceId: 'spe-540-s5-unchanged',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 's5-unchanged-seed',
+              authoritySignal: 0.65,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+        ],
+      })
+
+      const packetsA = deriveWeeklyCivicConsequencePackets(state)
+      const packetsB = deriveWeeklyCivicConsequencePackets(state)
+
+      expect(packetsA).toEqual(packetsB)
+      expect(packetsA.map((p) => p.packetId)).toContain('spe-540-s5-unchanged')
+      expect(packetsA.every((p) => p.link.scope === 'two_site')).toBe(true)
+    })
+
+    it('extractPersistentAuthoritySourceInputsFromEvents is a pure function producing stable output', () => {
+      const events: TestAuthorityQueuedEvent[] = [
+        {
+          id: 'qevt-pure-a',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.exchange',
+          week: 1,
+          payload: {
+            civicAuthoritySource: true,
+            sourceId: 'spe-540-pure-persistent',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'pure-persist-seed',
+            authoritySignal: 0.8,
+            startWeek: 1,
+            availability: 'persistent',
+          },
+        },
+        {
+          id: 'qevt-pure-b',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.exchange',
+          week: 1,
+          payload: {
+            civicAuthoritySource: true,
+            sourceId: 'spe-540-pure-recurring',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'pure-recur-seed',
+            authoritySignal: 0.5,
+            startWeek: 1,
+            availability: 'recurring',
+            cadenceWeeks: 3,
+          },
+        },
+      ]
+
+      const resultX = extractPersistentAuthoritySourceInputsFromEvents(events)
+      const resultY = extractPersistentAuthoritySourceInputsFromEvents(events)
+
+      expect(resultX).toEqual(resultY)
+      expect(resultX.map((s) => s.sourceId)).toEqual(['spe-540-pure-persistent'])
+      expect(resultX[0]!.availability).toBe('persistent')
+    })
+
+    it('persisted source for site-b does not affect site-c packets', () => {
+      const week1State = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-c'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-s5-nontarget',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              sourceId: 'spe-540-s5-nontarget',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 's5-nontarget-seed',
+              authoritySignal: 0.9,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+        ],
+      })
+
+      const week2Raw = advanceWeek(structuredClone(week1State)) as typeof week1State
+      const week2State = { ...week2Raw, authorityQueuedEvents: [] as typeof week1State['authorityQueuedEvents'] }
+      const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
+
+      // site-b targeted packet is present in the output (source persisted correctly)
+      const persistedPacket = week2Packets.find((p) => p.packetId === 'spe-540-s5-nontarget')
+      expect(persistedPacket).toBeDefined()
+      expect(persistedPacket?.link.targetSiteId).toBe('site-b')
+
+      // site-c is not affected
+      const affectsC = week2Packets.some((p) => p.link.targetSiteId === 'site-c')
+      expect(affectsC).toBe(false)
     })
   })
 

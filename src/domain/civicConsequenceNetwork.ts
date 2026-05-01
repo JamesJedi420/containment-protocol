@@ -217,6 +217,39 @@ export function deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(
 }
 
 /**
+ * SPE-540 slice 5: Extract only persistent authority sources from ingested events.
+ * Non-persistent (recurring) sources are intentionally excluded — they are not carried
+ * forward across ticks. Only sources with availability === 'persistent' are returned
+ * as AuthoredCivicAuthoritySourceInput so they can be stored in state.civicAuthoritySources
+ * and survive even if the originating event is later consumed from the queue.
+ */
+export function extractPersistentAuthoritySourceInputsFromEvents(
+  events: readonly Pick<RuntimeQueuedEvent, 'id' | 'type' | 'targetId' | 'week' | 'payload'>[],
+  options?: RuntimeEventAuthorityPacketIngestOptions
+): AuthoredCivicAuthoritySourceInput[] {
+  const result: AuthoredCivicAuthoritySourceInput[] = []
+
+  for (const event of events) {
+    const source = extractAuthoredCivicAuthoritySourceFromRuntimeEvent(event, options)
+
+    if (source !== null && source.availability === 'persistent') {
+      result.push({
+        sourceId: source.sourceId,
+        sourceSiteId: source.sourceSiteId,
+        targetSiteId: source.targetSiteId,
+        seedKey: source.seedKey,
+        authoritySignal: source.authoritySignal,
+        firstWeek: source.firstWeek,
+        availability: source.availability,
+        cadenceWeeks: source.cadenceWeeks,
+      })
+    }
+  }
+
+  return result
+}
+
+/**
  * Build a compact, strictly two-site authority consequence packet.
  * Bounded scope only: source-site -> target-site (no citywide graph fanout).
  */

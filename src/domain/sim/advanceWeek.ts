@@ -213,6 +213,7 @@ import {
   createAuthoredCivicAuthoritySource,
   deriveCivicAuthorityConsequencePacketsFromRuntimeEvents,
   deriveCivicAuthorityConsequencePacketsFromSources,
+  extractPersistentAuthoritySourceInputsFromEvents,
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
@@ -280,6 +281,29 @@ function getRuntimeAuthorityIngestEvents(state: AdvanceWeekState): readonly Runt
   }
 
   return listQueuedRuntimeEvents(state)
+}
+
+/**
+ * SPE-540 slice 5: Merge authority source inputs, deduplicating by sourceId.
+ * Existing sources take precedence over incoming on collision.
+ */
+function mergeAuthoritySourceInputs(
+  existing: readonly AuthoredCivicAuthoritySourceInput[],
+  incoming: readonly AuthoredCivicAuthoritySourceInput[]
+): AuthoredCivicAuthoritySourceInput[] {
+  const bySourceId = new Map<string, AuthoredCivicAuthoritySourceInput>()
+
+  for (const source of existing) {
+    bySourceId.set(source.sourceId, source)
+  }
+
+  for (const source of incoming) {
+    if (!bySourceId.has(source.sourceId)) {
+      bySourceId.set(source.sourceId, source)
+    }
+  }
+
+  return [...bySourceId.values()]
 }
 
 export function deriveWeeklyCivicConsequencePackets(
@@ -3884,6 +3908,25 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]
   } else {
     delete outputWeeklyState.civicConsequencePackets
+  }
+
+  // SPE-540 slice 5: Persist authority sources across ticks.
+  // Persistent sources from queued events are extracted and merged into civicAuthoritySources
+  // so they survive even if the originating events are later consumed from the queue.
+  // Non-persistent (recurring) sources are intentionally not extracted here.
+  const persistedFromEvents = extractPersistentAuthoritySourceInputsFromEvents(
+    getRuntimeAuthorityIngestEvents(inputWeeklyState),
+    { acceptedEventTypes: ['encounter.follow_up'] }
+  )
+  const mergedAuthoritySources = mergeAuthoritySourceInputs(
+    inputWeeklyState.civicAuthoritySources ?? [],
+    persistedFromEvents
+  )
+
+  if (mergedAuthoritySources.length > 0) {
+    outputWeeklyState.civicAuthoritySources = mergedAuthoritySources
+  } else if ('civicAuthoritySources' in outputWeeklyState) {
+    delete (outputWeeklyState as Record<string, unknown>).civicAuthoritySources
   }
 
   // SPE-95: Patch output state for test assertions

@@ -1,14 +1,20 @@
 // cspell:words cand greentape medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState, startingState } from '../data/startingState'
-import { advanceWeek } from '../domain/sim/advanceWeek'
+import {
+  advanceWeek,
+  deriveWeeklyCivicConsequencePackets,
+  getWeeklyCaseGenerationSeamInput,
+} from '../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
+import { createSeededRng } from '../domain/math'
+import { generateAmbientCases } from '../domain/caseGeneration'
 import { SIM_NOTES } from '../data/copy'
-import type { Agent, DomainStats, OperationEvent } from '../domain/models'
+import type { Agent, DomainStats, OperationEvent, RuntimeQueuedEvent } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
   return {
@@ -430,7 +436,333 @@ function withNeighborhoodPackets(
   return nextState
 }
 
+type TestAuthoritySourceInput = {
+  sourceId: string
+  sourceSiteId: string
+  targetSiteId: string
+  seedKey: string
+  authoritySignal?: number
+  firstWeek: number
+  availability?: 'persistent' | 'recurring'
+  cadenceWeeks?: number
+}
+
+type TestAuthorityQueuedEvent = Pick<
+  RuntimeQueuedEvent,
+  'id' | 'type' | 'targetId' | 'week' | 'payload'
+>
+
+function withCivicAuthorityWeeklySources(
+  state: ReturnType<typeof createStartingState>,
+  input: {
+    civicAuthoritySources?: readonly TestAuthoritySourceInput[]
+    authorityQueuedEvents?: readonly TestAuthorityQueuedEvent[]
+  }
+) {
+  const nextState = state as ReturnType<typeof createStartingState> & {
+    civicAuthoritySources?: readonly TestAuthoritySourceInput[]
+    authorityQueuedEvents?: readonly TestAuthorityQueuedEvent[]
+  }
+
+  if (input.civicAuthoritySources) {
+    nextState.civicAuthoritySources = input.civicAuthoritySources
+  }
+
+  if (input.authorityQueuedEvents) {
+    nextState.authorityQueuedEvents = input.authorityQueuedEvents
+  }
+
+  return nextState
+}
+
+function makeAuthorityExchangeState(targetDistrictId = 'site-b') {
+  const templateBase = Object.values(createStartingState().templates)[0]!
+  const state = createStartingState()
+
+  state.config = { ...state.config, maxActiveCases: 2 }
+  state.containmentRating = 40
+  state.agency = {
+    containmentRating: 40,
+    clearanceLevel: state.clearanceLevel,
+    funding: state.funding,
+  }
+  state.cases = {
+    'case-seed': {
+      ...state.cases['case-001'],
+      id: 'case-seed',
+      status: 'open',
+      assignedTeamIds: [],
+      tags: ['tier-1'],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      deadlineRemaining: 4,
+    },
+  }
+  state.templates = {
+    'authority-check': {
+      ...templateBase,
+      templateId: 'authority-check',
+      title: 'Authority Checkpoint Escalation',
+      kind: 'case',
+      tags: ['authority', 'inspection', 'public'],
+      requiredTags: [],
+      preferredTags: [],
+    },
+    'smuggling-shadow': {
+      ...templateBase,
+      templateId: 'smuggling-shadow',
+      title: 'Smuggling Shadow Route',
+      kind: 'case',
+      tags: ['criminal', 'smuggling', 'night'],
+      requiredTags: [],
+      preferredTags: [],
+    },
+  }
+  state.districtScheduleState = {
+    settlementId: 'spe-540-slice-3-weekly-seam',
+    districts: {
+      [targetDistrictId]: {
+        id: targetDistrictId,
+        label: targetDistrictId,
+        encounterFamilyTags: [],
+        escalationModifiers: { stage_delta: 0.1 },
+        authorityResponseProfile: 'slow_reaction',
+      },
+    },
+    timeBands: {
+      day: {
+        id: 'day',
+        label: 'Day',
+        baselinePopulation: 400,
+        witnessModifier: 0.6,
+        visibilityModifier: 0.8,
+        covertAdvantage: false,
+      },
+    },
+    events: [],
+  }
+
+  return state
+}
+
 describe('advanceWeek', () => {
+  describe('SPE-540 slice-3: bounded weekly authority packet ingestion seam', () => {
+    it('derives stable authority-channel packets from authored + queued weekly sources', () => {
+      const state = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        civicAuthoritySources: [
+          {
+            sourceId: 'spe-540-authored-weekly',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'authored-weekly-seed',
+            authoritySignal: 0.7,
+            firstWeek: 1,
+            availability: 'persistent',
+          },
+        ],
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-spe-540-authority',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.exchange',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              civicPacketChannel: 'authority',
+              sourceId: 'spe-540-queued-weekly',
+              sourceSiteId: 'site-x',
+              targetSiteId: 'site-b',
+              seedKey: 'queued-weekly-seed',
+              authoritySignal: 0.85,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+          {
+            id: 'qevt-spe-540-non-authority',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.rumor.exchange',
+            week: 1,
+            payload: {
+              civicPacketChannel: 'rumor',
+              sourceId: 'spe-540-rumor-ignored',
+              sourceSiteId: 'site-x',
+              targetSiteId: 'site-b',
+              seedKey: 'ignored-seed',
+              authoritySignal: 0.99,
+              startWeek: 1,
+            },
+          },
+        ],
+      })
+
+      const packetsA = deriveWeeklyCivicConsequencePackets(state)
+      const packetsB = deriveWeeklyCivicConsequencePackets(state)
+
+      expect(packetsA).toEqual(packetsB)
+      expect(packetsA.map((packet) => packet.packetId)).toEqual([
+        'spe-540-authored-weekly',
+        'spe-540-queued-weekly',
+      ])
+      expect(packetsA.every((packet) => packet.link.scope === 'two_site')).toBe(true)
+      expect(packetsA.every((packet) => packet.link.sourceSiteId !== packet.link.targetSiteId)).toBe(
+        true
+      )
+    })
+
+    it('feeds derived weekly packets into the existing bounded world-activity path in the same week', () => {
+      let baselineAuthoritySelections = 0
+      let seamAuthoritySelections = 0
+
+      for (let seed = 54210; seed <= 54240; seed += 1) {
+        const baselineState = makeAuthorityExchangeState('site-b')
+        const seamState = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+          authorityQueuedEvents: [
+            {
+              id: `qevt-spe-540-ingest-${seed}`,
+              type: 'encounter.follow_up',
+              targetId: 'frontdesk.notice.authority.exchange',
+              week: 1,
+              payload: {
+                civicAuthoritySource: true,
+                civicPacketChannel: 'authority',
+                sourceId: `spe-540-ingest-${seed}`,
+                sourceSiteId: 'site-a',
+                targetSiteId: 'site-b',
+                seedKey: `ingest-line-${seed}`,
+                authoritySignal: 0.95,
+                startWeek: 1,
+                availability: 'persistent',
+              },
+            },
+          ],
+        })
+
+        const baseline = generateAmbientCases(
+          baselineState,
+          createSeededRng(seed).next,
+          getWeeklyCaseGenerationSeamInput(baselineState)
+        )
+        const seamApplied = generateAmbientCases(
+          seamState,
+          createSeededRng(seed).next,
+          getWeeklyCaseGenerationSeamInput(seamState)
+        )
+
+        const baselineCase = baseline.state.cases[baseline.spawnedCaseIds[0]!]
+        const seamCase = seamApplied.state.cases[seamApplied.spawnedCaseIds[0]!]
+
+        if (baselineCase?.templateId === 'authority-check') {
+          baselineAuthoritySelections += 1
+        }
+
+        if (seamCase?.templateId === 'authority-check') {
+          seamAuthoritySelections += 1
+        }
+      }
+
+      expect(seamAuthoritySelections).toBeGreaterThan(baselineAuthoritySelections)
+    })
+
+    it('applies recurring/persistent authority packet availability deterministically across weeks', () => {
+      const week1State = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-b'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-spe-540-recurring',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.recurring',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              civicPacketChannel: 'authority',
+              sourceId: 'spe-540-recurring',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 'spe-540-recurring-seed',
+              authoritySignal: 0.6,
+              startWeek: 1,
+              availability: 'recurring',
+              cadenceWeeks: 2,
+            },
+          },
+        ],
+        civicAuthoritySources: [
+          {
+            sourceId: 'spe-540-persistent',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'spe-540-persistent-seed',
+            authoritySignal: 0.55,
+            firstWeek: 2,
+            availability: 'persistent',
+          },
+        ],
+      })
+
+      const week2State = advanceWeek(structuredClone(week1State))
+      const week3State = advanceWeek(structuredClone(week2State))
+
+      const week1Packets = deriveWeeklyCivicConsequencePackets(week1State)
+      const week2Packets = deriveWeeklyCivicConsequencePackets(week2State)
+      const week3Packets = deriveWeeklyCivicConsequencePackets(week3State)
+      const week3PacketsRepeat = deriveWeeklyCivicConsequencePackets(week3State)
+
+      expect(week1Packets.map((packet) => packet.packetId)).toEqual(['spe-540-recurring'])
+      expect(week2Packets.map((packet) => packet.packetId)).toEqual(['spe-540-persistent'])
+      expect(week3Packets.map((packet) => packet.packetId)).toEqual([
+        'spe-540-persistent',
+        'spe-540-recurring',
+      ])
+      expect(week3PacketsRepeat).toEqual(week3Packets)
+    })
+
+    it('keeps non-target districts unaffected by authority exchange packets', () => {
+      const baselineState = makeAuthorityExchangeState('site-c')
+      const seamState = withCivicAuthorityWeeklySources(makeAuthorityExchangeState('site-c'), {
+        authorityQueuedEvents: [
+          {
+            id: 'qevt-spe-540-non-target',
+            type: 'encounter.follow_up',
+            targetId: 'frontdesk.notice.authority.non-target',
+            week: 1,
+            payload: {
+              civicAuthoritySource: true,
+              civicPacketChannel: 'authority',
+              sourceId: 'spe-540-non-target',
+              sourceSiteId: 'site-a',
+              targetSiteId: 'site-b',
+              seedKey: 'spe-540-non-target-seed',
+              authoritySignal: 0.9,
+              startWeek: 1,
+              availability: 'persistent',
+            },
+          },
+        ],
+      })
+
+      const baseline = generateAmbientCases(
+        baselineState,
+        createSeededRng(54261).next,
+        getWeeklyCaseGenerationSeamInput(baselineState)
+      )
+      const seamApplied = generateAmbientCases(
+        seamState,
+        createSeededRng(54261).next,
+        getWeeklyCaseGenerationSeamInput(seamState)
+      )
+
+      const baselineCase = baseline.state.cases[baseline.spawnedCaseIds[0]!]
+      const seamCase = seamApplied.state.cases[seamApplied.spawnedCaseIds[0]!]
+      const seamReason =
+        seamApplied.spawnedCases.find((spawned) => spawned.trigger === 'world_activity')
+          ?.sourceReason ?? ''
+
+      expect(seamReason).not.toContain('cross-site-authority')
+      expect(seamCase?.templateId).toBe(baselineCase?.templateId)
+    })
+  })
+
   it('increments the week counter', () => {
     const next = advanceWeek(startingState)
 

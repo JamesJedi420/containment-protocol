@@ -133,6 +133,7 @@ import {
   type WeeklyReport,
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
+  type RuntimeQueuedEvent,
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
@@ -208,6 +209,14 @@ import {
   aggregateDistrictLocalPressure,
   type NeighborhoodIncidentPacket,
 } from '../urbanNeighborhoodIncidents'
+import {
+  createAuthoredCivicAuthoritySource,
+  deriveCivicAuthorityConsequencePacketsFromRuntimeEvents,
+  deriveCivicAuthorityConsequencePacketsFromSources,
+  type AuthoredCivicAuthoritySourceInput,
+  type CompactCivicAuthorityConsequencePacket,
+} from '../civicConsequenceNetwork'
+import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
@@ -236,6 +245,76 @@ type AdvanceWeekState = GameState & {
   damagedEquipmentQueue?: string[]
   id?: string
   neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
+  civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
+  civicAuthoritySources?: readonly AuthoredCivicAuthoritySourceInput[]
+  authorityQueuedEvents?: readonly Pick<
+    RuntimeQueuedEvent,
+    'id' | 'type' | 'targetId' | 'week' | 'payload'
+  >[]
+}
+
+type RuntimeAuthorityIngestEvent = Pick<
+  RuntimeQueuedEvent,
+  'id' | 'type' | 'targetId' | 'week' | 'payload'
+>
+
+function dedupeAuthorityPackets(
+  packets: readonly CompactCivicAuthorityConsequencePacket[]
+): CompactCivicAuthorityConsequencePacket[] {
+  const dedupedByPacketId = new Map<string, CompactCivicAuthorityConsequencePacket>()
+
+  for (const packet of packets) {
+    if (!dedupedByPacketId.has(packet.packetId)) {
+      dedupedByPacketId.set(packet.packetId, packet)
+    }
+  }
+
+  return [...dedupedByPacketId.values()].sort((left, right) =>
+    left.packetId.localeCompare(right.packetId)
+  )
+}
+
+function getRuntimeAuthorityIngestEvents(state: AdvanceWeekState): readonly RuntimeAuthorityIngestEvent[] {
+  if (Array.isArray(state.authorityQueuedEvents)) {
+    return state.authorityQueuedEvents
+  }
+
+  return listQueuedRuntimeEvents(state)
+}
+
+export function deriveWeeklyCivicConsequencePackets(
+  state: GameState
+): CompactCivicAuthorityConsequencePacket[] {
+  const weeklyState = state as AdvanceWeekState
+  const explicitPackets = weeklyState.civicConsequencePackets ?? []
+  const authoredSources = (weeklyState.civicAuthoritySources ?? []).map(
+    createAuthoredCivicAuthoritySource
+  )
+  const authoredPackets = deriveCivicAuthorityConsequencePacketsFromSources(
+    authoredSources,
+    state.week
+  )
+  const queuedAuthorityPackets = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(
+    getRuntimeAuthorityIngestEvents(weeklyState),
+    state.week,
+    {
+      acceptedEventTypes: ['encounter.follow_up'],
+    }
+  )
+
+  return dedupeAuthorityPackets([...explicitPackets, ...authoredPackets, ...queuedAuthorityPackets])
+}
+
+export function getWeeklyCaseGenerationSeamInput(state: GameState): {
+  neighborhoodPackets: readonly NeighborhoodIncidentPacket[]
+  civicConsequencePackets: readonly CompactCivicAuthorityConsequencePacket[]
+} {
+  const weeklyState = state as AdvanceWeekState
+
+  return {
+    neighborhoodPackets: weeklyState.neighborhoodPackets ?? [],
+    civicConsequencePackets: deriveWeeklyCivicConsequencePackets(state),
+  }
 }
 
 const DISTRICT_TAG_PREFIX = 'district:'
@@ -3686,6 +3765,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const sourceReports = getSimulationSourceReports(state.reports)
   const sourceStateBase =
     sourceReports === state.reports ? state : { ...state, reports: sourceReports }
+  const weeklyCivicConsequencePackets = deriveWeeklyCivicConsequencePackets(sourceStateBase)
   const sourceState = {
     ...sourceStateBase,
     cases: degradeMissionIntelRecord(
@@ -3693,6 +3773,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       sourceStateBase.week,
       getResearchIntelModifiers(sourceStateBase)
     ),
+    civicConsequencePackets: weeklyCivicConsequencePackets,
   }
 
   // Create a single timingCheckState for the week
@@ -3795,6 +3876,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       resultWithUnknownFields[key] = stateWithUnknownFields[key]
     }
   }
+
+  const inputWeeklyState = state as AdvanceWeekState
+  const outputWeeklyState = resultWithUnknownFields as AdvanceWeekState
+
+  if (inputWeeklyState.civicConsequencePackets !== undefined) {
+    outputWeeklyState.civicConsequencePackets = [...inputWeeklyState.civicConsequencePackets]
+  } else {
+    delete outputWeeklyState.civicConsequencePackets
+  }
+
   // SPE-95: Patch output state for test assertions
   if (coordinationFrictionActive) {
     if (result.agency) {

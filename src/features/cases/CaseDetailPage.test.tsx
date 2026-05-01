@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { equipAgentItem } from '../../domain/sim/equipment'
+import { applyPreparedSupportProcedure } from '../../domain/supportLoadout'
 import CaseDetailPage from './CaseDetailPage'
 
 function renderCaseDetail(route = '/cases/case-001') {
@@ -164,4 +166,29 @@ it('shows pre-commit injury, death, and downtime warnings for available teams', 
   expect(
     within(oddsPanel).getAllByText(/survivability|balanced formation|Fatigue is driving/i).length
   ).toBeGreaterThan(0)
+})
+
+it('renders the compact support incident reference from assigned runtime support state', () => {
+  let game = createStartingState()
+
+  game.cases['case-001'] = {
+    ...game.cases['case-001']!,
+    tags: ['medical', 'triage'],
+    requiredTags: [],
+    preferredTags: ['medical', 'support'],
+    assignedTeamIds: ['t_greentape'],
+  }
+  game.inventory.medkits = 2
+  game = equipAgentItem(game, 'a_casey', 'utility1', 'medkits')
+  game = applyPreparedSupportProcedure(game, 'case-001', 'a_casey').state
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-001')
+
+  const panel = screen.getByRole('region', { name: /support incident reference/i })
+
+  expect(within(panel).getByText(/assigned team package/i)).toBeInTheDocument()
+  expect(within(panel).getByText(/Casey Holt/)).toBeInTheDocument()
+  expect(within(panel).getByText(/Prepared: Medical \/ Expended/i)).toBeInTheDocument()
+  expect(within(panel).getByText(/Refresh: available/i)).toBeInTheDocument()
 })

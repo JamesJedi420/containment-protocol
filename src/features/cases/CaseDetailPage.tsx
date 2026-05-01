@@ -22,6 +22,8 @@ import { type CaseInstance, type GameState, type Team } from '../../domain/model
 import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
+import { SupportIncidentReferencePanel } from '../incidents/SupportIncidentReferencePanel'
+import { selectSupportIncidentReferenceView } from '../incidents/supportIncidentReferenceView'
 
 export default function CaseDetailPage() {
   const { caseId } = useParams()
@@ -44,6 +46,19 @@ export default function CaseDetailPage() {
   const view = getCaseListItemView(currentCase, game)
   const templateIntel = getCaseTemplateIntelView(currentCase, game)
   const assignmentInsights = getCaseAssignmentInsights(currentCase, game)
+  const supportReferenceTeamIds =
+    view.assignedTeams.length > 0
+      ? view.assignedTeams.map((team) => team.id)
+      : view.availableTeams.slice(0, 1).map(({ team }) => team.id)
+  const supportReference = selectSupportIncidentReferenceView(game, currentCase.id, {
+    teamIds: supportReferenceTeamIds,
+    scopeLabel:
+      view.assignedTeams.length > 0
+        ? 'Assigned team package'
+        : supportReferenceTeamIds.length > 0
+          ? 'Top candidate package'
+          : 'No team package',
+  })
   const generationProfile = buildCaseGenerationProfile(currentCase, game)
   const rewardPreview = generationProfile.rewardProfile
 
@@ -514,6 +529,8 @@ export default function CaseDetailPage() {
               <p className="text-sm opacity-50">{CARD_UI_TEXT.noHand}</p>
             )}
           </article>
+
+          <SupportIncidentReferencePanel view={supportReference} />
 
           <article
             className="panel panel-primary space-y-3"

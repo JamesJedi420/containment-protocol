@@ -174,7 +174,9 @@ const PREPARED_SUPPORT_PROCEDURE_ITEMS = {
 >
 
 function getPreparedSupportProcedureDefinition(itemId: string | undefined) {
-  return itemId ? PREPARED_SUPPORT_PROCEDURE_ITEMS[itemId] : undefined
+  return itemId && itemId in PREPARED_SUPPORT_PROCEDURE_ITEMS
+    ? PREPARED_SUPPORT_PROCEDURE_ITEMS[itemId as keyof typeof PREPARED_SUPPORT_PROCEDURE_ITEMS]
+    : undefined
 }
 
 function getEncounterFlags(state: GameState, encounterId: string) {
@@ -213,11 +215,19 @@ function isPreparedSupportProcedureHelpful(
     (definition) => definition.family === family
   )?.helpfulTags
 
-  if (!helpfulTags || helpfulTags.length === 0) {
+  if (!helpfulTags) {
     return false
   }
 
   return helpfulTags.some((tag) => encounterTags.has(tag))
+}
+
+export function isPreparedSupportProcedureFamilyHelpful(
+  state: GameState,
+  encounterId: string,
+  family: PreparedSupportProcedureFamily
+) {
+  return isPreparedSupportProcedureHelpful(state, encounterId, family)
 }
 
 export function buildPreparedSupportProcedureExpendedFlagKey(

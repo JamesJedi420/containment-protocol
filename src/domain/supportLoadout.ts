@@ -53,6 +53,15 @@ export interface ApplyWardSealsToAnchorResult {
   supportState: PreparedSupportProcedureState
 }
 
+interface WardSealNestedCarryPathState {
+  resolved: boolean
+  parentSlot: 'utility2'
+  childSlot: 'utility1'
+  parentItemId?: string
+  childItemId?: string
+  reasons: string[]
+}
+
 export type SignalJammerStatus = 'functional' | 'jammed' | 'unavailable'
 export type SignalJammerJamOutcome = 'jammed' | 'already-jammed' | 'unavailable'
 export type SignalJammerRepairReason =
@@ -95,6 +104,9 @@ const SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT = 'utility2' as const
 const SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES = new Set(['tech', 'investigator', 'field_recon'])
 const SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS = new Set(['emf_sensors'])
 const SIGNAL_JAMMER_ITEM_ID = 'signal_jammers'
+const WARD_SEALS_ITEM_ID = 'ward_seals'
+const WARD_SEAL_PARENT_CONTAINER_ITEM_ID = 'ritual_components'
+const WARD_SEAL_NESTED_CARRY_CAPACITY = 1
 const SEALED_KEYED_ANCHOR_TARGET_TAGS = new Set([
   'encounter-anchor:sealed-keyed',
   'encounter-anchor:sealed',
@@ -254,6 +266,68 @@ function hasSignalJammerRepairSupportItem(state: GameState, agentId: Id) {
 
   const repairItemId = getEquipmentSlotItemId(agent.equipmentSlots, SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT)
   return Boolean(repairItemId && SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS.has(repairItemId))
+}
+
+function getWardSealNestedCarryPathState(state: GameState, agentId: Id): WardSealNestedCarryPathState {
+  const agent = state.agents[agentId]
+  const parentItemId = agent
+    ? getEquipmentSlotItemId(agent.equipmentSlots, SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT)
+    : undefined
+  const childItemId = agent ? getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT) : undefined
+
+  if (!agent) {
+    return {
+      resolved: false,
+      parentSlot: SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT,
+      childSlot: PREPARED_SUPPORT_SLOT,
+      parentItemId,
+      childItemId,
+      reasons: ['missing-agent'],
+    }
+  }
+
+  if (childItemId !== WARD_SEALS_ITEM_ID) {
+    return {
+      resolved: false,
+      parentSlot: SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT,
+      childSlot: PREPARED_SUPPORT_SLOT,
+      parentItemId,
+      childItemId,
+      reasons: ['missing-child-container'],
+    }
+  }
+
+  if (parentItemId !== WARD_SEAL_PARENT_CONTAINER_ITEM_ID) {
+    return {
+      resolved: false,
+      parentSlot: SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT,
+      childSlot: PREPARED_SUPPORT_SLOT,
+      parentItemId,
+      childItemId,
+      reasons: ['missing-parent-container'],
+    }
+  }
+
+  return {
+    resolved: true,
+    parentSlot: SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT,
+    childSlot: PREPARED_SUPPORT_SLOT,
+    parentItemId,
+    childItemId,
+    reasons: ['resolved-parent-child-container-path'],
+  }
+}
+
+function isWardSealNestedCarryWithinCapacity(state: GameState, agentId: Id) {
+  const path = getWardSealNestedCarryPathState(state, agentId)
+  if (!path.resolved) {
+    return false
+  }
+
+  const childUnits = path.childItemId === WARD_SEALS_ITEM_ID ? 1 : 0
+  const reserveUnits = getReserveStock(state, WARD_SEALS_ITEM_ID)
+  const requestedUnits = childUnits + reserveUnits
+  return requestedUnits <= WARD_SEAL_NESTED_CARRY_CAPACITY
 }
 
 export function getSignalJammerState(
@@ -446,9 +520,14 @@ export function resolveSupportLoadoutAffordanceIds(
     return []
   }
 
-  if (utilityItemId === 'ward_seals') {
+  if (utilityItemId === WARD_SEALS_ITEM_ID) {
     const supportState = getPreparedSupportProcedureState(state, encounterId, agentId)
     if (supportState.status !== 'prepared' || supportState.family !== 'containment') {
+      return []
+    }
+
+    const nestedPath = getWardSealNestedCarryPathState(state, agentId)
+    if (!nestedPath.resolved || !isWardSealNestedCarryWithinCapacity(state, agentId)) {
       return []
     }
 
@@ -493,6 +572,23 @@ export function applyWardSealsToSealedAnchor(
   encounterFlags[mismatchFlagKey] = false
 
   if (supportState.status === 'unavailable' || supportState.family !== 'containment') {
+    encounterFlags[failureFlagKey] = true
+    const nextState = setEncounterRuntimeState(state, encounterId, {
+      phase: 'support-loadout:ward-seals:anchor:failure',
+      flags: encounterFlags,
+      lastUpdatedWeek: state.week,
+    })
+
+    return {
+      state: nextState,
+      applied: false,
+      outcome: 'failure',
+      supportState: getPreparedSupportProcedureState(nextState, encounterId, agentId),
+    }
+  }
+
+  const nestedPath = getWardSealNestedCarryPathState(state, agentId)
+  if (!nestedPath.resolved || !isWardSealNestedCarryWithinCapacity(state, agentId)) {
     encounterFlags[failureFlagKey] = true
     const nextState = setEncounterRuntimeState(state, encounterId, {
       phase: 'support-loadout:ward-seals:anchor:failure',

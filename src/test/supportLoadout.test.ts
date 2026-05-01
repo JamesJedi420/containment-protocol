@@ -221,7 +221,9 @@ describe('supportLoadout', () => {
   it('applies ward_seals to a sealed/keyed encounter anchor target with deterministic success', () => {
     let state = createStartingState()
     state.inventory.ward_seals = 1
+    state.inventory.ritual_components = 1
     state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       tags: ['encounter-anchor:sealed-keyed'],
@@ -272,7 +274,9 @@ describe('supportLoadout', () => {
   it('emits mismatch when ward_seals are carried but target family is incompatible', () => {
     let state = createStartingState()
     state.inventory.ward_seals = 1
+    state.inventory.ritual_components = 1
     state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       tags: ['medical', 'triage'],
@@ -298,7 +302,9 @@ describe('supportLoadout', () => {
   it('keeps deterministic no-op guard path when already applied', () => {
     let state = createStartingState()
     state.inventory.ward_seals = 1
+    state.inventory.ritual_components = 1
     state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       tags: ['encounter-anchor:keyed'],
@@ -333,7 +339,9 @@ describe('supportLoadout', () => {
   it('resolves ward_seals anchor-apply affordance only when containment target and not already applied', () => {
     let state = createStartingState()
     state.inventory.ward_seals = 1
+    state.inventory.ritual_components = 1
     state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
     state.cases['case-001'] = {
       ...state.cases['case-001'],
       tags: ['encounter-anchor:sealed'],
@@ -388,5 +396,68 @@ describe('supportLoadout', () => {
     expect(noOpA).toEqual([])
     expect(noOpA).toEqual(noOpB)
     expect(baseline).toEqual(snapshot)
+  })
+
+  it('resolves the explicit parent->child nested carry path for ward_seals affordance', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state.inventory.ritual_components = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed-keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    expect(resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_kellan')).toEqual([
+      'support-loadout:ward-seals:anchor-apply',
+    ])
+  })
+
+  it('capacity-blocks nested ward_seals carry path when requested units exceed one', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 2
+    state.inventory.ritual_components = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state = equipAgentItem(state, 'a_kellan', 'utility2', 'ritual_components')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed-keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    expect(resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_kellan')).toEqual([])
+
+    const applied = applyWardSealsToSealedAnchor(state, 'case-001', 'a_kellan')
+    expect(applied.applied).toBe(false)
+    expect(applied.outcome).toBe('failure')
+    expect(
+      applied.state.runtimeState?.encounterState['case-001']?.flags?.[
+        buildWardSealAnchorFailureFlagKey('a_kellan')
+      ]
+    ).toBe(true)
+  })
+
+  it('keeps nested carry no-op guards deterministic when parent container path is missing', () => {
+    let state = createStartingState()
+    state.inventory.ward_seals = 1
+    state = equipAgentItem(state, 'a_kellan', 'utility1', 'ward_seals')
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      tags: ['encounter-anchor:sealed-keyed'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const snapshot = JSON.parse(JSON.stringify(state)) as ReturnType<typeof createStartingState>
+    const noOpA = resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_kellan')
+    const noOpB = resolveSupportLoadoutAffordanceIds(state, 'case-001', 'a_kellan')
+
+    expect(noOpA).toEqual([])
+    expect(noOpA).toEqual(noOpB)
+    expect(state).toEqual(snapshot)
   })
 })

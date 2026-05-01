@@ -3,11 +3,19 @@ import {
   setEncounterRuntimeState,
   type EncounterRuntimePatch,
 } from './gameStateManager'
+import {
+  buildPreparedSupportProcedureAppliedFlagKey,
+  buildPreparedSupportProcedureMismatchFlagKey,
+  getPreparedSupportProcedureState,
+  type PreparedSupportProcedureFamily,
+  type PreparedSupportProcedureStatus,
+} from './supportLoadout'
 import type {
   EncounterResolutionOutcome,
   EncounterRuntimeState,
   EncounterRuntimeStatus,
   GameState,
+  Id,
 } from './models'
 
 export interface EncounterTrackingInitInput {
@@ -27,6 +35,15 @@ export interface EncounterResolutionAttachment {
   updatedWeek?: number
   resolvedWeek?: number
   followUpIds?: string[]
+}
+
+export interface PreparedSupportProcedureEncounterSummary {
+  encounterId: string
+  agentId: Id
+  family?: PreparedSupportProcedureFamily
+  status: PreparedSupportProcedureStatus
+  lastOutcome?: 'supported' | 'mismatch'
+  refreshAvailable: boolean
 }
 
 function normalizeString(value: string | undefined | null) {
@@ -218,5 +235,34 @@ export function selectEncounterTrackingSummary(
     ...(encounter.latestOutcome ? { latestOutcome: encounter.latestOutcome } : {}),
     ...(encounter.lastResolutionId ? { lastResolutionId: encounter.lastResolutionId } : {}),
     followUpIds: [...(encounter.followUpIds ?? [])],
+  }
+}
+
+export function selectPreparedSupportProcedureEncounterSummary(
+  state: GameState,
+  encounterId: string,
+  agentId: Id
+): PreparedSupportProcedureEncounterSummary {
+  const supportState = getPreparedSupportProcedureState(state, encounterId, agentId)
+  const flags = readGameStateManager(state).encounterState[encounterId]?.flags ?? {}
+
+  const lastOutcome = supportState.family
+    ? flags[buildPreparedSupportProcedureMismatchFlagKey(agentId, supportState.family)] === true
+      ? 'mismatch'
+      : flags[buildPreparedSupportProcedureAppliedFlagKey(agentId, supportState.family)] === true
+        ? 'supported'
+        : undefined
+    : undefined
+
+  return {
+    encounterId,
+    agentId,
+    ...(supportState.family ? { family: supportState.family } : {}),
+    status: supportState.status,
+    ...(lastOutcome ? { lastOutcome } : {}),
+    refreshAvailable:
+      supportState.status === 'expended' &&
+      typeof supportState.itemId === 'string' &&
+      supportState.reserveStock > 0,
   }
 }

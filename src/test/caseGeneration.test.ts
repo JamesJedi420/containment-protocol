@@ -14,6 +14,7 @@ import { createSeededRng } from '../domain/math'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 import { createCivicRumorPacket } from '../domain/civicRumorChannel'
 import { createCivicCreditPacket } from '../domain/civicCreditChannel'
+import { createCivicAccessPacket } from '../domain/civicAccessChannel'
 
 describe('caseGeneration', () => {
   it('builds a readable encounter profile for seeded starter cases', () => {
@@ -1660,4 +1661,92 @@ describe('caseGeneration', () => {
       expect(hasCreditTag ?? false).toBe(false)
     })
   })
+
+    describe('SPE-1267: civic access pressure channel integration', () => {
+      const templateBase = Object.values(createStartingState().templates)[0]!
+
+      function makeAccessState() {
+        const state = createStartingState()
+        state.config = { ...state.config, maxActiveCases: 4 }
+        state.containmentRating = 40
+        state.agency = {
+          containmentRating: 40,
+          clearanceLevel: state.clearanceLevel,
+          funding: state.funding,
+        }
+        state.cases = {
+          'case-seed': {
+            ...state.cases['case-001'],
+            id: 'case-seed',
+            stage: 1,
+            deadlineRemaining: 4,
+            assignedTeamIds: [],
+            status: 'open',
+          },
+        }
+        state.templates = {
+          'ambient-generic': {
+            ...templateBase,
+            templateId: 'ambient-generic',
+            title: 'Ambient Generic Incident',
+            kind: 'case',
+            tags: ['anomalous_hazard', 'public'],
+            requiredTags: [],
+            preferredTags: [],
+          },
+        }
+        state.districtScheduleState = {
+          settlementId: 'spe-1267-test-settlement',
+          districts: {
+            'sector-9': {
+              id: 'sector-9',
+              label: 'Sector 9',
+              encounterFamilyTags: ['anomalous_hazard'],
+              escalationModifiers: { stage_delta: 0.1 },
+              authorityResponseProfile: 'standard',
+            },
+          },
+          timeBands: {
+            evening: {
+              id: 'evening',
+              label: 'Evening',
+              baselinePopulation: 300,
+              witnessModifier: 0.5,
+              visibilityModifier: 0.7,
+              covertAdvantage: false,
+            },
+          },
+          events: [],
+        }
+        return state
+      }
+
+      it('stamps access-pressure tag on world-activity case when blocked accessPackets match the selected district', () => {
+        const packet = createCivicAccessPacket({
+          packetId: 'access-sector9-a',
+          siteId: 'sector-9',
+          week: 1,
+          accessSignal: 1.0,
+          blocked: true,
+        })
+
+        const result = generateAmbientCases(makeAccessState(), createSeededRng(12670).next, {
+          accessPackets: [packet],
+        })
+
+        const worldCase = result.spawnedCases.find((c) => c.trigger === 'world_activity')
+        expect(worldCase).toBeDefined()
+        const spawnedCase = result.state.cases[result.spawnedCaseIds[0]!]
+        expect(spawnedCase?.tags).toContain('access-pressure:sector-9')
+        expect(worldCase?.sourceReason).toContain('Access:')
+      })
+
+      it('does not stamp access-pressure tag when no accessPackets are provided (backwards compat)', () => {
+        const result = generateAmbientCases(makeAccessState(), createSeededRng(12671).next)
+
+        const spawnedCase = result.state.cases[result.spawnedCaseIds[0]!]
+        const hasAccessTag = spawnedCase?.tags.some((t) => t.startsWith('access-pressure:'))
+        expect(hasAccessTag ?? false).toBe(false)
+      })
+    })
 })

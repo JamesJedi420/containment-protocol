@@ -42,6 +42,10 @@ import {
   aggregateSiteRumorPressureModifier,
   type CivicRumorPacket,
 } from './civicRumorChannel'
+import {
+  aggregateSiteCreditPressureModifier,
+  type CivicCreditPacket,
+} from './civicCreditChannel'
 
 export type EncounterType =
   | 'haunting'
@@ -480,6 +484,7 @@ export function generateAmbientCases(
     neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
     civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
     rumorPackets?: readonly CivicRumorPacket[]
+    creditPackets?: readonly CivicCreditPacket[]
   }
 ): {
   state: GameState
@@ -545,6 +550,8 @@ export function generateAmbientCases(
     neighborhoodPressureBoost?: number
     rumorPressureSiteId?: string
     rumorPressureBoost?: number
+    creditPressureSiteId?: string
+    creditPressureBoost?: number
   }> = []
 
   if (topSupportiveFaction) {
@@ -786,8 +793,17 @@ export function generateAmbientCases(
         ? Math.round(rumorPressure.pressureBoost * 10)
         : 0
 
+      // SPE-1266: aggregate credit pressure for the selected district
+      const creditPressure =
+        selectedDistrictId && context?.creditPackets && context.creditPackets.length > 0
+          ? aggregateSiteCreditPressureModifier(context.creditPackets, selectedDistrictId)
+          : undefined
+      const creditPriorityBonus = creditPressure
+        ? Math.round(creditPressure.pressureBoost * 10)
+        : 0
+
       spawnPlans.push({
-        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4 + neighborhoodPriorityBonus + rumorPriorityBonus,
+        priority: 25 + Math.max(0, 50 - agency.containmentRating) + unresolvedMomentum * 4 + neighborhoodPriorityBonus + rumorPriorityBonus + creditPriorityBonus,
         trigger: 'world_activity',
         template: worldTemplate,
         districtId: selectedDistrictId,
@@ -805,6 +821,11 @@ export function generateAmbientCases(
             ? selectedDistrictId
             : undefined,
         rumorPressureBoost: rumorPressure?.pressureBoost,
+        creditPressureSiteId:
+          creditPressure && creditPressure.pressureBoost !== 0
+            ? selectedDistrictId
+            : undefined,
+        creditPressureBoost: creditPressure?.pressureBoost,
         reason:
           buildWorldActivityReason(worldTemplate, state) +
           (scheduleContext ? ` Schedule: ${buildScheduleReasonFragment(scheduleContext, state)}.` : '') +
@@ -822,6 +843,9 @@ export function generateAmbientCases(
             : '') +
           (rumorPressure && rumorPressure.pressureBoost !== 0
             ? ` Rumor: ${rumorPressure.reasonFragment}.`
+            : '') +
+          (creditPressure && creditPressure.pressureBoost !== 0
+            ? ` Credit: ${creditPressure.reasonFragment}.`
             : '') +
           (crossSiteAuthorityModifier && crossSiteAuthorityModifier.totalDelta !== 0
             ? ` Authority exchange: ${crossSiteAuthorityModifier.reasonFragment}.`
@@ -858,6 +882,9 @@ export function generateAmbientCases(
                 : []),
               ...(plan.rumorPressureSiteId
                 ? [`rumor-pressure:${plan.rumorPressureSiteId}`]
+                : []),
+              ...(plan.creditPressureSiteId
+                ? [`credit-pressure:${plan.creditPressureSiteId}`]
                 : []),
             ],
           }

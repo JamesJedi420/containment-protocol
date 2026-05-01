@@ -130,6 +130,10 @@ import {
   type PersistedStore,
 } from './runTransfer'
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave, serializeGameSave } from './saveSystem'
+import {
+  applyPreparedSupportProcedure as applyPreparedSupportProcedureState,
+  refreshPreparedSupportProcedure as refreshPreparedSupportProcedureState,
+} from '../../domain/supportLoadout'
 
 interface GameStore {
   game: GameState
@@ -175,6 +179,14 @@ interface GameStore {
   setDebugFlag: (flagId: string, enabled: boolean) => void
   setInventoryQuantity: (itemId: string, quantity: number) => void
   adjustInventoryQuantity: (itemId: string, delta: number) => void
+  applyPreparedSupportProcedure: (
+    encounterId: string,
+    agentId: Id
+  ) => ReturnType<typeof applyPreparedSupportProcedureState>
+  refreshPreparedSupportProcedure: (
+    encounterId: string,
+    agentId: Id
+  ) => ReturnType<typeof refreshPreparedSupportProcedureState>
   launchContract: (contractId: Id, teamId: Id) => void
   launchMajorIncident: (
     caseId: Id,
@@ -1006,6 +1018,22 @@ export const useGameStore = create<GameStore>()(
 
       adjustInventoryQuantity: (itemId, delta) =>
         set((s) => ({ game: adjustInventoryQuantity(s.game, itemId, delta) })),
+
+      applyPreparedSupportProcedure: (encounterId, agentId) => {
+        let result = applyPreparedSupportProcedureState(get().game, encounterId, agentId)
+
+        set(() => ({ game: result.state }))
+
+        return result
+      },
+
+      refreshPreparedSupportProcedure: (encounterId, agentId) => {
+        let result = refreshPreparedSupportProcedureState(get().game, encounterId, agentId)
+
+        set(() => ({ game: result.state }))
+
+        return result
+      },
 
       launchContract: (contractId, teamId) =>
         set((s) => ({ game: launchContractDomain(s.game, contractId, teamId) })),

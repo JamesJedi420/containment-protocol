@@ -31,6 +31,11 @@ import {
 import { GAME_SAVE_KIND, GAME_SAVE_VERSION, loadGameSave } from './saveSystem'
 import { RUN_EXPORT_KIND } from './runTransfer'
 import * as supportActions from '../../domain/hub/supportActions'
+import {
+  applyPreparedSupportProcedure as applyPreparedSupportProcedureDomain,
+  buildPreparedSupportProcedureExpendedFlagKey,
+  refreshPreparedSupportProcedure as refreshPreparedSupportProcedureDomain,
+} from '../../domain/supportLoadout'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -646,6 +651,51 @@ describe('gameStore', () => {
     expect(useGameStore.getState().game.inventory.signal_jammers).toBe(1)
     expect(useGameStore.getState().game.agents.a_mina.equipmentSlots?.utility1).toBeUndefined()
     expectCanonicalTeams(useGameStore.getState().game)
+  })
+
+  it('prepared support procedure actions: domain helpers equal store actions and persist encounter-local state', () => {
+    const initial = createStartingState()
+    initial.inventory.medkits = 2
+    initial.cases['case-001'] = {
+      ...initial.cases['case-001'],
+      tags: ['medical', 'triage'],
+      requiredTags: [],
+      preferredTags: [],
+    }
+
+    const equipped = equipAgentItemDomain(initial, 'a_casey', 'utility1', 'medkits')
+    const applied = applyPreparedSupportProcedureDomain(equipped, 'case-001', 'a_casey')
+    const direct = refreshPreparedSupportProcedureDomain(applied.state, 'case-001', 'a_casey')
+
+    useGameStore.setState({ game: equipped })
+
+    const storeApplied = useGameStore.getState().applyPreparedSupportProcedure('case-001', 'a_casey')
+    const storeRefreshed = useGameStore.getState().refreshPreparedSupportProcedure('case-001', 'a_casey')
+
+    expect(storeApplied).toMatchObject({
+      applied: true,
+      outcome: 'supported',
+    })
+    expect(storeRefreshed).toMatchObject({
+      refreshed: true,
+      reason: 'refreshed',
+    })
+    expect(useGameStore.getState().game).toEqual(direct.state)
+
+    const stored = getPersistedState()
+    expect(stored?.state.game.runtimeState).toMatchObject({
+      encounterState: {
+        'case-001': {
+          phase: 'support-procedure:medical:refreshed',
+          flags: expect.objectContaining({
+            [buildPreparedSupportProcedureExpendedFlagKey('a_casey', 'medical')]: false,
+          }),
+        },
+      },
+    })
+    expect(stored?.state.game.inventory).toMatchObject({
+      medkits: 0,
+    })
   })
 
   it('deleteEmptyTeam: domain mutator result equals store action result', () => {

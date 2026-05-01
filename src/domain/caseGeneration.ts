@@ -33,6 +33,11 @@ import {
   aggregateDistrictLocalPressure,
   type NeighborhoodIncidentPacket,
 } from './urbanNeighborhoodIncidents'
+import {
+  deriveAuthorityTemplateWeightModifier,
+  deriveCrossSiteAuthorityModifierForTargetSite,
+  type CompactCivicAuthorityConsequencePacket,
+} from './civicConsequenceNetwork'
 
 export type EncounterType =
   | 'haunting'
@@ -469,6 +474,7 @@ export function generateAmbientCases(
   rng: () => number,
   context?: {
     neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
+    civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
   }
 ): {
   state: GameState
@@ -722,6 +728,14 @@ export function generateAmbientCases(
           },
         })
       : undefined
+    const crossSiteAuthorityModifier =
+      selectedDistrictId && context?.civicConsequencePackets && context.civicConsequencePackets.length > 0
+        ? deriveCrossSiteAuthorityModifierForTargetSite(
+            context.civicConsequencePackets,
+            selectedDistrictId,
+            state.week
+          )
+        : undefined
 
     const worldTemplate = pickWeightedTemplate(
       eligibleTemplates,
@@ -730,7 +744,10 @@ export function generateAmbientCases(
         const districtBonus = scheduleContext
           ? getDistrictScheduleWeightBonus(template, scheduleContext, urbanSignal)
           : 1
-        return baseWeight * districtBonus
+        const crossSiteAuthorityTemplateModifier = crossSiteAuthorityModifier
+          ? deriveAuthorityTemplateWeightModifier(template.tags, crossSiteAuthorityModifier.totalDelta)
+          : 1
+        return baseWeight * districtBonus * crossSiteAuthorityTemplateModifier
       },
       rng
     )
@@ -781,6 +798,9 @@ export function generateAmbientCases(
             : '') +
           (neighborhoodPressure && neighborhoodPressure.pressureBoost > 0
             ? ` Neighborhood: ${neighborhoodPressure.reasonFragment}.`
+            : '') +
+          (crossSiteAuthorityModifier && crossSiteAuthorityModifier.totalDelta !== 0
+            ? ` Authority exchange: ${crossSiteAuthorityModifier.reasonFragment}.`
             : ''),
       })
     }

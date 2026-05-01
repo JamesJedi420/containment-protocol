@@ -6,6 +6,7 @@ import {
   classifyEncounterType,
   generateAmbientCases,
 } from '../domain/caseGeneration'
+import { createCompactCivicAuthorityConsequencePacket } from '../domain/civicConsequenceNetwork'
 import { createSeededRng } from '../domain/math'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 
@@ -1019,6 +1020,208 @@ describe('caseGeneration', () => {
     expect(socialReason).toContain('escalating_activity')
   })
 
+
+  describe('SPE-540: two-site civic consequence authority exchange', () => {
+    const templateBase = Object.values(createStartingState().templates)[0]!
+
+    function makeAuthorityExchangeState(targetDistrictId = 'site-b') {
+      const state = createStartingState()
+      state.config = { ...state.config, maxActiveCases: 2 }
+      state.containmentRating = 40
+      state.agency = {
+        containmentRating: 40,
+        clearanceLevel: state.clearanceLevel,
+        funding: state.funding,
+      }
+      state.cases = {
+        'case-seed': {
+          ...state.cases['case-001'],
+          id: 'case-seed',
+          status: 'open',
+          assignedTeamIds: [],
+          tags: ['tier-1'],
+          requiredTags: [],
+          preferredTags: [],
+          stage: 1,
+          deadlineRemaining: 4,
+        },
+      }
+      state.templates = {
+        'authority-check': {
+          ...templateBase,
+          templateId: 'authority-check',
+          title: 'Authority Checkpoint Escalation',
+          kind: 'case',
+          tags: ['authority', 'inspection', 'public'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+        'smuggling-shadow': {
+          ...templateBase,
+          templateId: 'smuggling-shadow',
+          title: 'Smuggling Shadow Route',
+          kind: 'case',
+          tags: ['criminal', 'smuggling', 'night'],
+          requiredTags: [],
+          preferredTags: [],
+        },
+      }
+      state.districtScheduleState = {
+        settlementId: 'spe-540-authority-exchange',
+        districts: {
+          [targetDistrictId]: {
+            id: targetDistrictId,
+            label: targetDistrictId,
+            encounterFamilyTags: [],
+            escalationModifiers: { stage_delta: 0.1 },
+            authorityResponseProfile: 'slow_reaction',
+          },
+        },
+        timeBands: {
+          day: {
+            id: 'day',
+            label: 'Day',
+            baselinePopulation: 400,
+            witnessModifier: 0.6,
+            visibilityModifier: 0.8,
+            covertAdvantage: false,
+          },
+        },
+        events: [],
+      }
+
+      return state
+    }
+
+    it('applies a bounded two-site authority exchange audit fragment to target-site world activity only', () => {
+      const state = makeAuthorityExchangeState('site-b')
+      const packet = createCompactCivicAuthorityConsequencePacket({
+        packetId: 'spe-540-a-to-b',
+        sourceSiteId: 'site-a',
+        targetSiteId: 'site-b',
+        seedKey: 'exchange-line-a',
+        week: state.week,
+        authoritySignal: 0.8,
+      })
+
+      const result = generateAmbientCases(state, createSeededRng(54001).next, {
+        civicConsequencePackets: [packet],
+      })
+
+      const worldSpawn = result.spawnedCases.find((entry) => entry.trigger === 'world_activity')
+      expect(worldSpawn).toBeDefined()
+      const reason = worldSpawn?.sourceReason ?? ''
+      expect(reason).toContain('Authority exchange:')
+      expect(reason).toContain('cross-site-authority target:site-b')
+      expect(reason).toContain('source:site-a target:site-b')
+      expect(reason).toMatch(/weight:1\.[0-2][0-9]{2}/)
+    })
+
+    it('source event at site A deterministically changes target-site B handling bias', () => {
+      let baselineAuthoritySelections = 0
+      let exchangedAuthoritySelections = 0
+
+      for (let seed = 54010; seed <= 54040; seed += 1) {
+        const baselineState = makeAuthorityExchangeState('site-b')
+        const exchangedState = makeAuthorityExchangeState('site-b')
+        const packet = createCompactCivicAuthorityConsequencePacket({
+          packetId: `spe-540-a-to-b-${seed}`,
+          sourceSiteId: 'site-a',
+          targetSiteId: 'site-b',
+          seedKey: `exchange-line-a-${seed}`,
+          week: exchangedState.week,
+          authoritySignal: 0.95,
+        })
+
+        const baseline = generateAmbientCases(baselineState, createSeededRng(seed).next)
+        const exchanged = generateAmbientCases(exchangedState, createSeededRng(seed).next, {
+          civicConsequencePackets: [packet],
+        })
+
+        const baselineCase = baseline.state.cases[baseline.spawnedCaseIds[0]!]
+        const exchangedCase = exchanged.state.cases[exchanged.spawnedCaseIds[0]!]
+
+        if (baselineCase?.templateId === 'authority-check') {
+          baselineAuthoritySelections += 1
+        }
+
+        if (exchangedCase?.templateId === 'authority-check') {
+          exchangedAuthoritySelections += 1
+        }
+      }
+
+      expect(exchangedAuthoritySelections).toBeGreaterThan(baselineAuthoritySelections)
+    })
+
+    it('keeps recurring operatorId and institutionId stable across packets sharing a seed lineage', () => {
+      const stateA = makeAuthorityExchangeState('site-b')
+      const stateB = makeAuthorityExchangeState('site-b')
+      const packetA = createCompactCivicAuthorityConsequencePacket({
+        packetId: 'spe-540-recur-1',
+        sourceSiteId: 'site-a',
+        targetSiteId: 'site-b',
+        seedKey: 'shared-operator-seed',
+        week: stateA.week,
+        authoritySignal: 0.6,
+      })
+      const packetB = createCompactCivicAuthorityConsequencePacket({
+        packetId: 'spe-540-recur-2',
+        sourceSiteId: 'site-a',
+        targetSiteId: 'site-b',
+        seedKey: 'shared-operator-seed',
+        week: stateB.week,
+        authoritySignal: 0.55,
+      })
+
+      const resultA = generateAmbientCases(stateA, createSeededRng(54051).next, {
+        civicConsequencePackets: [packetA],
+      })
+      const resultB = generateAmbientCases(stateB, createSeededRng(54051).next, {
+        civicConsequencePackets: [packetB],
+      })
+
+      const reasonA = resultA.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+      const reasonB = resultB.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+
+      const operatorA = reasonA.match(/op:([a-z0-9-]+)/)?.[1]
+      const operatorB = reasonB.match(/op:([a-z0-9-]+)/)?.[1]
+      const institutionA = reasonA.match(/inst:([a-z0-9-]+)/)?.[1]
+      const institutionB = reasonB.match(/inst:([a-z0-9-]+)/)?.[1]
+
+      expect(operatorA).toBeDefined()
+      expect(operatorB).toBeDefined()
+      expect(operatorA).toBe(operatorB)
+      expect(institutionA).toBeDefined()
+      expect(institutionB).toBeDefined()
+      expect(institutionA).toBe(institutionB)
+    })
+
+    it('does not apply citywide authority behavior to non-target districts', () => {
+      const packet = createCompactCivicAuthorityConsequencePacket({
+        packetId: 'spe-540-non-target',
+        sourceSiteId: 'site-a',
+        targetSiteId: 'site-b',
+        seedKey: 'nontarget-check',
+        week: 1,
+        authoritySignal: 0.9,
+      })
+
+      const noPacketState = makeAuthorityExchangeState('site-c')
+      const withPacketState = makeAuthorityExchangeState('site-c')
+      const baseline = generateAmbientCases(noPacketState, createSeededRng(54061).next)
+      const withPacket = generateAmbientCases(withPacketState, createSeededRng(54061).next, {
+        civicConsequencePackets: [packet],
+      })
+
+      const baselineCase = baseline.state.cases[baseline.spawnedCaseIds[0]!]
+      const withPacketCase = withPacket.state.cases[withPacket.spawnedCaseIds[0]!]
+      const withPacketReason =
+        withPacket.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+
+      expect(withPacketReason).not.toContain('cross-site-authority')
+      expect(withPacketCase?.templateId).toBe(baselineCase?.templateId)
+    })
+  })
 
   describe('SPE-539: neighborhood pressure integration', () => {
     const templateBase = Object.values(createStartingState().templates)[0]!

@@ -13,6 +13,11 @@ import { buildAgencyProtocolState } from '../domain/protocols'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 import { createSeededRng } from '../domain/math'
 import { generateAmbientCases } from '../domain/caseGeneration'
+import {
+  createCompactCivicAuthorityConsequencePacket,
+  deriveCrossSiteAuthorityModifierForTargetSite,
+  resolveAuthoritySameSourceConflicts,
+} from '../domain/civicConsequenceNetwork'
 import { SIM_NOTES } from '../data/copy'
 import type { Agent, DomainStats, OperationEvent, RuntimeQueuedEvent } from '../domain/models'
 
@@ -760,6 +765,114 @@ describe('advanceWeek', () => {
 
       expect(seamReason).not.toContain('cross-site-authority')
       expect(seamCase?.templateId).toBe(baselineCase?.templateId)
+    })
+  })
+
+  describe('SPE-540 slice 4: same-target multi-packet conflict resolution', () => {
+    function makePacket(
+      packetId: string,
+      sourceSiteId: string,
+      targetSiteId: string,
+      authoritySignal: number,
+      seedKey = 'test-seed'
+    ) {
+      return createCompactCivicAuthorityConsequencePacket({
+        packetId,
+        sourceSiteId,
+        targetSiteId,
+        seedKey,
+        week: 1,
+        authoritySignal,
+      })
+    }
+
+    it('produces identical modifier for identical inputs (determinism)', () => {
+      const packets = [
+        makePacket('pkt-a1', 'site-a', 'site-b', 0.8, 'seed-a1'),
+        makePacket('pkt-a2', 'site-a', 'site-b', 0.3, 'seed-a2'),
+        makePacket('pkt-c1', 'site-c', 'site-b', 0.5, 'seed-c1'),
+      ]
+
+      const resultX = deriveCrossSiteAuthorityModifierForTargetSite(packets, 'site-b', 1)
+      const resultY = deriveCrossSiteAuthorityModifierForTargetSite(packets, 'site-b', 1)
+
+      expect(resultX).toEqual(resultY)
+      expect(resultX.targetSiteId).toBe('site-b')
+    })
+
+    it('resolveAuthoritySameSourceConflicts keeps strongest packet per (source, target) pair', () => {
+      const packets = [
+        makePacket('pkt-a-weak', 'site-a', 'site-b', 0.3, 'seed-weak'),
+        makePacket('pkt-a-strong', 'site-a', 'site-b', 0.8, 'seed-strong'),
+        makePacket('pkt-a-mid', 'site-a', 'site-b', 0.6, 'seed-mid'),
+        makePacket('pkt-c-only', 'site-c', 'site-b', 0.5, 'seed-c'),
+      ].sort((a, b) => a.packetId.localeCompare(b.packetId))
+
+      const resolved = resolveAuthoritySameSourceConflicts(packets)
+
+      // Only the strongest site-a packet survives; site-c is unaffected
+      expect(resolved.map((p) => p.packetId)).toEqual(['pkt-a-strong', 'pkt-c-only'])
+    })
+
+    it('multiple same-week packets from one source resolve to one stable effective authority outcome', () => {
+      const multiPackets = [
+        makePacket('pkt-flood-1', 'site-a', 'site-b', 0.4, 'flood-1'),
+        makePacket('pkt-flood-2', 'site-a', 'site-b', 0.8, 'flood-2'),
+        makePacket('pkt-flood-3', 'site-a', 'site-b', 0.6, 'flood-3'),
+      ]
+      const singlePacket = [makePacket('pkt-flood-2', 'site-a', 'site-b', 0.8, 'flood-2')]
+
+      const multiModifier = deriveCrossSiteAuthorityModifierForTargetSite(multiPackets, 'site-b', 1)
+      const singleModifier = deriveCrossSiteAuthorityModifierForTargetSite(singlePacket, 'site-b', 1)
+
+      // Multi-packet same-source produces the same outcome as the single strongest packet
+      expect(multiModifier.totalDelta).toBe(singleModifier.totalDelta)
+      expect(multiModifier.weightModifier).toBe(singleModifier.weightModifier)
+      expect(multiModifier.appliedPacketIds).toEqual(['pkt-flood-2'])
+    })
+
+    it('packets from different source sites each contribute independently', () => {
+      const singleSource = [makePacket('pkt-solo-a', 'site-a', 'site-b', 0.6, 'solo-a')]
+      const twoSources = [
+        makePacket('pkt-solo-a', 'site-a', 'site-b', 0.6, 'solo-a'),
+        makePacket('pkt-solo-c', 'site-c', 'site-b', 0.5, 'solo-c'),
+      ]
+
+      const single = deriveCrossSiteAuthorityModifierForTargetSite(singleSource, 'site-b', 1)
+      const combined = deriveCrossSiteAuthorityModifierForTargetSite(twoSources, 'site-b', 1)
+
+      expect(combined.appliedPacketIds).toEqual(['pkt-solo-a', 'pkt-solo-c'])
+      expect(Math.abs(combined.totalDelta)).toBeGreaterThan(Math.abs(single.totalDelta))
+    })
+
+    it('non-target sites produce zero modifier delta and are unaffected', () => {
+      const packets = [
+        makePacket('pkt-a-to-b', 'site-a', 'site-b', 0.9, 'seed-atob'),
+        makePacket('pkt-c-to-b', 'site-c', 'site-b', 0.7, 'seed-ctob'),
+      ]
+
+      const forTargetSite = deriveCrossSiteAuthorityModifierForTargetSite(packets, 'site-b', 1)
+      const forNonTarget = deriveCrossSiteAuthorityModifierForTargetSite(packets, 'site-x', 1)
+
+      expect(forTargetSite.totalDelta).not.toBe(0)
+      expect(forNonTarget.totalDelta).toBe(0)
+      expect(forNonTarget.weightModifier).toBe(1)
+      expect(forNonTarget.appliedPacketIds).toEqual([])
+    })
+
+    it('no citywide propagation: modifier is strictly bounded to two_site scope packets', () => {
+      const twoSitePackets = [
+        makePacket('pkt-bounded', 'site-a', 'site-b', 0.9, 'bounded-seed'),
+      ]
+      const modifier = deriveCrossSiteAuthorityModifierForTargetSite(twoSitePackets, 'site-b', 1)
+
+      // totalDelta bounded to [-0.3, 0.3], weightModifier bounded to [0.75, 1.25]
+      expect(modifier.totalDelta).toBeGreaterThanOrEqual(-0.3)
+      expect(modifier.totalDelta).toBeLessThanOrEqual(0.3)
+      expect(modifier.weightModifier).toBeGreaterThanOrEqual(0.75)
+      expect(modifier.weightModifier).toBeLessThanOrEqual(1.25)
+      expect(modifier.reasonFragment).toContain('cross-site-authority')
+      expect(modifier.reasonFragment).toContain('target:site-b')
     })
   })
 

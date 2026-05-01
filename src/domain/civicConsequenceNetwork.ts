@@ -272,6 +272,40 @@ export function deriveAuthorityDeltaForTargetSite(
   return clamp(baseDelta + temporalJitter, -0.25, 0.25)
 }
 
+/**
+ * SPE-540 slice 4: Per-source-site conflict resolution.
+ * When multiple packets share the same (sourceSiteId, targetSiteId) pair,
+ * keep only the packet with the highest absolute authoritySignal.
+ * Lexicographic packetId is the tiebreaker for equal absolute signals.
+ * Input must be sorted by packetId; output is returned sorted by packetId.
+ */
+export function resolveAuthoritySameSourceConflicts(
+  packets: readonly CompactCivicAuthorityConsequencePacket[]
+): CompactCivicAuthorityConsequencePacket[] {
+  const best = new Map<string, CompactCivicAuthorityConsequencePacket>()
+
+  for (const packet of packets) {
+    const key = `${packet.link.sourceSiteId}::${packet.link.targetSiteId}`
+    const existing = best.get(key)
+
+    if (!existing) {
+      best.set(key, packet)
+    } else {
+      const existingAbs = Math.abs(existing.link.authoritySignal)
+      const incomingAbs = Math.abs(packet.link.authoritySignal)
+
+      if (
+        incomingAbs > existingAbs ||
+        (incomingAbs === existingAbs && packet.packetId < existing.packetId)
+      ) {
+        best.set(key, packet)
+      }
+    }
+  }
+
+  return [...best.values()].sort((left, right) => left.packetId.localeCompare(right.packetId))
+}
+
 export function deriveCrossSiteAuthorityModifierForTargetSite(
   packets: readonly CompactCivicAuthorityConsequencePacket[],
   targetSiteId: string,
@@ -279,13 +313,15 @@ export function deriveCrossSiteAuthorityModifierForTargetSite(
 ): CrossSiteAuthorityModifier {
   const normalizedTargetSiteId = normalizeToken(targetSiteId)
   const normalizedWeek = Math.max(1, Math.trunc(week))
-  const applicablePackets = packets
+  const rawApplicable = packets
     .filter((packet) =>
       packet.link.scope === 'two_site' &&
       packet.link.targetSiteId === normalizedTargetSiteId &&
       packet.link.sourceSiteId !== normalizedTargetSiteId
     )
     .sort((left, right) => left.packetId.localeCompare(right.packetId))
+  // SPE-540 slice 4: resolve per-source conflicts before accumulating deltas.
+  const applicablePackets = resolveAuthoritySameSourceConflicts(rawApplicable)
 
   if (applicablePackets.length === 0) {
     return {

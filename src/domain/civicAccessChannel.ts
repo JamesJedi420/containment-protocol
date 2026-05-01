@@ -108,3 +108,27 @@ export function aggregateSiteAccessPressureModifier(
     reasonFragment: parts.join('; '),
   }
 }
+
+  const ACCESS_DECAY_THRESHOLD = 0.05
+
+  /**
+   * SPE-1267 slice 3: Decay access packets by one week.
+   * Each packet's accessSignal is reduced by its decayRate (rounded to 3dp).
+   * Packets whose resulting signal falls below 0.05 are dropped.
+   * Survivors have their week updated to currentWeek.
+   * Input is not mutated — returns a new array.
+   */
+  export function decayAccessPackets(
+    packets: readonly CivicAccessPacket[],
+    currentWeek: number
+  ): CivicAccessPacket[] {
+    const results: CivicAccessPacket[] = []
+
+    for (const packet of packets) {
+      const decayed = Math.round((packet.accessSignal - packet.decayRate) * 1000) / 1000
+      if (decayed < ACCESS_DECAY_THRESHOLD) continue
+      results.push({ ...packet, accessSignal: decayed, week: currentWeek })
+    }
+
+    return results
+  }

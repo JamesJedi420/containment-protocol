@@ -148,3 +148,46 @@ describe('SPE-1267: createCivicAccessPacket', () => {
       expect(result.appliedPacketIds).toContain('p1')
     })
   })
+
+    describe('SPE-1267: decayAccessPackets', () => {
+      function makeDecayPacket(accessSignal: number, decayRate = 0.1): ReturnType<typeof createCivicAccessPacket> {
+        return createCivicAccessPacket({ packetId: 'p1', siteId: 'site-a', week: 1, accessSignal, decayRate })
+      }
+
+      it('reduces accessSignal by decayRate', () => {
+        const result = decayAccessPackets([makeDecayPacket(0.5, 0.1)], 2)
+        expect(result[0].accessSignal).toBeCloseTo(0.4, 5)
+      })
+
+      it('rounds to 3 decimal places', () => {
+        const result = decayAccessPackets([makeDecayPacket(0.333, 0.1)], 2)
+        expect(result[0].accessSignal).toBe(0.233)
+      })
+
+      it('drops packet when signal falls below 0.05', () => {
+        const result = decayAccessPackets([makeDecayPacket(0.1, 0.1)], 2)
+        expect(result).toHaveLength(0)
+      })
+
+      it('survives when signal equals exactly 0.05 after decay', () => {
+        const result = decayAccessPackets([makeDecayPacket(0.15, 0.1)], 2)
+        expect(result).toHaveLength(1)
+        expect(result[0].accessSignal).toBe(0.05)
+      })
+
+      it('stores currentWeek on survivors', () => {
+        const result = decayAccessPackets([makeDecayPacket(0.5, 0.1)], 7)
+        expect(result[0].week).toBe(7)
+      })
+
+      it('does not mutate the input array', () => {
+        const original = makeDecayPacket(0.5, 0.1)
+        const input = [original]
+        decayAccessPackets(input, 2)
+        expect(input[0].accessSignal).toBe(0.5)
+      })
+
+      it('returns empty array for empty input', () => {
+        expect(decayAccessPackets([], 1)).toEqual([])
+      })
+    })

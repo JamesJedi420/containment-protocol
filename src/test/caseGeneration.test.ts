@@ -6,7 +6,10 @@ import {
   classifyEncounterType,
   generateAmbientCases,
 } from '../domain/caseGeneration'
-import { createCompactCivicAuthorityConsequencePacket } from '../domain/civicConsequenceNetwork'
+import {
+  createCompactCivicAuthorityConsequencePacket,
+  deriveCivicAuthorityConsequencePacketsFromRuntimeEvents,
+} from '../domain/civicConsequenceNetwork'
 import { createSeededRng } from '../domain/math'
 import { createNeighborhoodIncidentPacket } from '../domain/urbanNeighborhoodIncidents'
 
@@ -1220,6 +1223,164 @@ describe('caseGeneration', () => {
 
       expect(withPacketReason).not.toContain('cross-site-authority')
       expect(withPacketCase?.templateId).toBe(baselineCase?.templateId)
+    })
+
+    it('creates stable authority packets from authored/runtime event sources through a narrow seam', () => {
+      const queueEvents = [
+        {
+          id: 'qevt-7001',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.exchange',
+          week: 2,
+          payload: {
+            civicAuthoritySource: true,
+            civicPacketChannel: 'authority',
+            sourceId: 'spe-540-authored-alpha',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'exchange-line-alpha',
+            authoritySignal: 0.85,
+            startWeek: 2,
+            availability: 'persistent',
+          },
+        },
+      ] as const
+
+      const packetsA = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 2)
+      const packetsB = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 2)
+
+      expect(packetsA).toEqual(packetsB)
+      expect(packetsA).toHaveLength(1)
+      expect(packetsA[0]).toMatchObject({
+        packetId: 'spe-540-authored-alpha',
+        link: {
+          scope: 'two_site',
+          sourceSiteId: 'site-a',
+          targetSiteId: 'site-b',
+          authoritySignal: 0.85,
+        },
+      })
+    })
+
+    it('deterministically supports recurring and persistent packet availability across weeks', () => {
+      const queueEvents = [
+        {
+          id: 'qevt-7101',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.recurring',
+          week: 2,
+          payload: {
+            civicAuthoritySource: true,
+            sourceId: 'spe-540-recurring',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'shared-recurring',
+            authoritySignal: 0.6,
+            startWeek: 2,
+            availability: 'recurring',
+            cadenceWeeks: 2,
+          },
+        },
+        {
+          id: 'qevt-7102',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.persistent',
+          week: 3,
+          payload: {
+            civicAuthoritySource: true,
+            sourceId: 'spe-540-persistent',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'shared-persistent',
+            authoritySignal: 0.5,
+            startWeek: 3,
+            availability: 'persistent',
+          },
+        },
+      ] as const
+
+      const week1 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 1)
+      const week2 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 2)
+      const week3 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 3)
+      const week4 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 4)
+      const week5 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 5)
+      const week6 = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 6)
+      const week6Repeat = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(queueEvents, 6)
+
+      const packetIds = (packets: ReturnType<typeof deriveCivicAuthorityConsequencePacketsFromRuntimeEvents>) =>
+        packets.map((packet) => packet.packetId)
+
+      expect(packetIds(week1)).toEqual([])
+      expect(packetIds(week2)).toEqual(['spe-540-recurring'])
+      expect(packetIds(week3)).toEqual(['spe-540-persistent'])
+      expect(packetIds(week4)).toEqual(['spe-540-persistent', 'spe-540-recurring'])
+      expect(packetIds(week5)).toEqual(['spe-540-persistent'])
+      expect(packetIds(week6)).toEqual(['spe-540-persistent', 'spe-540-recurring'])
+      expect(week6Repeat).toEqual(week6)
+    })
+
+    it('ingested authority packets still drive bounded target-site handling through existing world-activity path', () => {
+      const queueEvents = [
+        {
+          id: 'qevt-7201',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.exchange',
+          week: 1,
+          payload: {
+            civicAuthoritySource: true,
+            sourceId: 'spe-540-ingested-bias',
+            sourceSiteId: 'site-a',
+            targetSiteId: 'site-b',
+            seedKey: 'ingested-bias',
+            authoritySignal: 0.95,
+            startWeek: 1,
+            availability: 'persistent',
+          },
+        },
+      ] as const
+
+      let baselineAuthoritySelections = 0
+      let ingestedAuthoritySelections = 0
+
+      for (let seed = 54110; seed <= 54140; seed += 1) {
+        const baselineState = makeAuthorityExchangeState('site-b')
+        const ingestedState = makeAuthorityExchangeState('site-b')
+        const ingestedPackets = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(
+          queueEvents,
+          ingestedState.week
+        )
+
+        const baseline = generateAmbientCases(baselineState, createSeededRng(seed).next)
+        const ingested = generateAmbientCases(ingestedState, createSeededRng(seed).next, {
+          civicConsequencePackets: ingestedPackets,
+        })
+
+        const baselineCase = baseline.state.cases[baseline.spawnedCaseIds[0]!]
+        const ingestedCase = ingested.state.cases[ingested.spawnedCaseIds[0]!]
+
+        if (baselineCase?.templateId === 'authority-check') {
+          baselineAuthoritySelections += 1
+        }
+
+        if (ingestedCase?.templateId === 'authority-check') {
+          ingestedAuthoritySelections += 1
+        }
+      }
+
+      expect(ingestedAuthoritySelections).toBeGreaterThan(baselineAuthoritySelections)
+
+      const nonTargetState = makeAuthorityExchangeState('site-c')
+      const nonTargetPackets = deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(
+        queueEvents,
+        nonTargetState.week
+      )
+      const nonTarget = generateAmbientCases(nonTargetState, createSeededRng(54150).next, {
+        civicConsequencePackets: nonTargetPackets,
+      })
+      const nonTargetReason =
+        nonTarget.spawnedCases.find((entry) => entry.trigger === 'world_activity')?.sourceReason ?? ''
+
+      expect(nonTargetReason).not.toContain('cross-site-authority')
     })
   })
 

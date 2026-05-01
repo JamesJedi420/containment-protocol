@@ -1,3 +1,5 @@
+import type { RuntimeQueuedEvent } from './models'
+
 export interface CompactCivicAuthorityConsequenceInput {
   packetId: string
   sourceSiteId: string
@@ -32,12 +34,65 @@ export interface CrossSiteAuthorityModifier {
   reasonFragment: string
 }
 
+export type CivicAuthorityPacketAvailability = 'persistent' | 'recurring'
+
+export interface AuthoredCivicAuthoritySourceInput {
+  sourceId: string
+  sourceSiteId: string
+  targetSiteId: string
+  seedKey: string
+  authoritySignal?: number
+  firstWeek: number
+  availability?: CivicAuthorityPacketAvailability
+  cadenceWeeks?: number
+}
+
+export interface AuthoredCivicAuthoritySource {
+  sourceId: string
+  sourceSiteId: string
+  targetSiteId: string
+  seedKey: string
+  authoritySignal: number
+  firstWeek: number
+  availability: CivicAuthorityPacketAvailability
+  cadenceWeeks: number
+}
+
+export interface RuntimeEventAuthorityPacketIngestOptions {
+  acceptedEventTypes?: readonly string[]
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Number(value.toFixed(3))))
 }
 
 function normalizeToken(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '-') || 'unknown'
+}
+
+function normalizeWeek(value: number) {
+  return Math.max(1, Math.trunc(value))
+}
+
+function normalizeAvailability(
+  value: CivicAuthorityPacketAvailability | string | undefined
+): CivicAuthorityPacketAvailability {
+  return value === 'recurring' ? 'recurring' : 'persistent'
+}
+
+function readPayloadString(payload: RuntimeQueuedEvent['payload'], key: string) {
+  const raw = payload?.[key]
+  return typeof raw === 'string' ? raw : undefined
+}
+
+function readPayloadNumber(payload: RuntimeQueuedEvent['payload'], key: string) {
+  const raw = payload?.[key]
+  return typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined
+}
+
+function readPayloadBoolean(payload: RuntimeQueuedEvent['payload'], key: string) {
+  const raw = payload?.[key]
+  return typeof raw === 'boolean' ? raw : undefined
 }
 
 function hashSeed(seedKey: string) {
@@ -54,6 +109,111 @@ function hashSeed(seedKey: string) {
 function stableEntityId(prefix: 'operator' | 'institution', seedKey: string) {
   const hash = hashSeed(`${prefix}:${seedKey}`).toString(16).padStart(8, '0')
   return `${prefix}-${hash.slice(0, 6)}`
+}
+
+function isSourceActiveForWeek(source: AuthoredCivicAuthoritySource, week: number) {
+  if (week < source.firstWeek) {
+    return false
+  }
+
+  if (source.availability === 'persistent') {
+    return true
+  }
+
+  return (week - source.firstWeek) % source.cadenceWeeks === 0
+}
+
+export function createAuthoredCivicAuthoritySource(
+  input: AuthoredCivicAuthoritySourceInput
+): AuthoredCivicAuthoritySource {
+  return {
+    sourceId: normalizeToken(input.sourceId),
+    sourceSiteId: normalizeToken(input.sourceSiteId),
+    targetSiteId: normalizeToken(input.targetSiteId),
+    seedKey: normalizeToken(input.seedKey),
+    authoritySignal: clamp(input.authoritySignal ?? 0, -1, 1),
+    firstWeek: normalizeWeek(input.firstWeek),
+    availability: normalizeAvailability(input.availability),
+    cadenceWeeks: Math.max(1, Math.round(input.cadenceWeeks ?? 1)),
+  }
+}
+
+export function deriveCivicAuthorityConsequencePacketsFromSources(
+  sources: readonly AuthoredCivicAuthoritySource[],
+  week: number
+) {
+  const normalizedWeek = normalizeWeek(week)
+
+  return [...sources]
+    .filter((source) => isSourceActiveForWeek(source, normalizedWeek))
+    .sort((left, right) => left.sourceId.localeCompare(right.sourceId))
+    .map((source) =>
+      createCompactCivicAuthorityConsequencePacket({
+        packetId: source.sourceId,
+        sourceSiteId: source.sourceSiteId,
+        targetSiteId: source.targetSiteId,
+        seedKey: source.seedKey,
+        week: source.firstWeek,
+        authoritySignal: source.authoritySignal,
+      })
+    )
+}
+
+export function extractAuthoredCivicAuthoritySourceFromRuntimeEvent(
+  event: Pick<RuntimeQueuedEvent, 'id' | 'type' | 'targetId' | 'week' | 'payload'>,
+  options?: RuntimeEventAuthorityPacketIngestOptions
+) {
+  const acceptedEventTypes = options?.acceptedEventTypes ?? ['encounter.follow_up']
+
+  if (!acceptedEventTypes.includes(event.type)) {
+    return null
+  }
+
+  const payload = event.payload
+  const hasAuthorityChannelMarker =
+    readPayloadBoolean(payload, 'civicAuthoritySource') === true ||
+    readPayloadString(payload, 'civicPacketChannel') === 'authority'
+
+  if (!hasAuthorityChannelMarker) {
+    return null
+  }
+
+  const sourceSiteId = readPayloadString(payload, 'sourceSiteId')
+  const targetSiteId = readPayloadString(payload, 'targetSiteId')
+  const seedKey = readPayloadString(payload, 'seedKey')
+
+  if (!sourceSiteId || !targetSiteId || !seedKey) {
+    return null
+  }
+
+  const sourceId = readPayloadString(payload, 'sourceId') ?? event.id ?? event.targetId
+  const authoritySignal = readPayloadNumber(payload, 'authoritySignal') ?? 0
+  const firstWeek = readPayloadNumber(payload, 'startWeek') ?? event.week ?? 1
+  const availability = normalizeAvailability(readPayloadString(payload, 'availability'))
+  const cadenceWeeks = readPayloadNumber(payload, 'cadenceWeeks')
+
+  return createAuthoredCivicAuthoritySource({
+    sourceId,
+    sourceSiteId,
+    targetSiteId,
+    seedKey,
+    authoritySignal,
+    firstWeek,
+    availability,
+    cadenceWeeks,
+  })
+}
+
+export function deriveCivicAuthorityConsequencePacketsFromRuntimeEvents(
+  events: readonly Pick<RuntimeQueuedEvent, 'id' | 'type' | 'targetId' | 'week' | 'payload'>[],
+  week: number,
+  options?: RuntimeEventAuthorityPacketIngestOptions
+) {
+  const sources = events
+    .map((event) => extractAuthoredCivicAuthoritySourceFromRuntimeEvent(event, options))
+    .filter((entry): entry is AuthoredCivicAuthoritySource => entry !== null)
+
+  return deriveCivicAuthorityConsequencePacketsFromSources(sources, week)
 }
 
 /**

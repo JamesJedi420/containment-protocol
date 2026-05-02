@@ -134,6 +134,9 @@ import {
   applyPreparedSupportProcedure as applyPreparedSupportProcedureState,
   refreshPreparedSupportProcedure as refreshPreparedSupportProcedureState,
 } from '../../domain/supportLoadout'
+import type { SquadMetadata } from '../../domain/squadMetadata'
+import type { SquadKitTemplate } from '../../domain/squadKitTemplate'
+import type { SquadKitAssignment } from '../../domain/squadKitAssignment'
 
 interface GameStore {
   game: GameState
@@ -246,6 +249,9 @@ interface GameStore {
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   advanceWeek: () => void
   setSeed: (seed: number) => void
+    setSquadMetadata: (metadata: SquadMetadata) => void
+    setSquadKitTemplate: (template: SquadKitTemplate) => void
+    setSquadKitAssignment: (assignment: SquadKitAssignment) => void
   updateConfig: (patch: Partial<GameConfig>) => void
   exportSave: () => string
   importSave: (raw: string) => void
@@ -1341,6 +1347,34 @@ export const useGameStore = create<GameStore>()(
       },
 
       advanceWeek: () => set((s) => ({ game: advanceWeek(s.game) })),
+
+      reset: () => set({ game: createStartingState() }),
+      setSquadMetadata: (metadata) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadMetadata: { ...(s.game.squadMetadata ?? {}), [metadata.squadId]: metadata },
+          },
+        })),
+
+      setSquadKitTemplate: (template) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadKitTemplates: { ...(s.game.squadKitTemplates ?? {}), [template.id]: template },
+          },
+        })),
+
+      setSquadKitAssignment: (assignment) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadKitAssignments: {
+              ...(s.game.squadKitAssignments ?? {}),
+              [assignment.squadId]: assignment,
+            },
+          },
+        })),
 
       reset: () => set({ game: createStartingState() }),
 

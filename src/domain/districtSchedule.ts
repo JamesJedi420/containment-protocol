@@ -53,7 +53,10 @@ export function applyRareEventOverlays(
   week: number,
   districtId: string
 ): TrafficSnapshot {
-  let result: TrafficSnapshot = { ...baseline }
+  const result: TrafficSnapshot = {
+    ...baseline,
+    appliedEvents: [...baseline.appliedEvents],
+  }
 
   for (const event of overlays) {
     // Check if event is active this week
@@ -98,6 +101,9 @@ export function getDistrictEncounterContext(
   timeBand: TimeBandProfile,
   traffic: TrafficSnapshot
 ): EncounterContext {
+  void timeBand
+  void traffic
+
   return {
     districtId,
     timeBandId,

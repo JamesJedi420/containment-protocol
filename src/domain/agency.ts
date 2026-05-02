@@ -1,7 +1,7 @@
 import { clamp } from './math'
 import type { CaseInstance, GameState, SupportStaffSummary } from './models'
 import {
-  isAggregateBattleCampaignSummary,
+  normalizeAggregateBattleCampaignSummary,
   rollupAggregateBattleCampaignSummaries,
 } from './aggregateBattle'
 import { buildFactionStates } from './factions'
@@ -272,9 +272,10 @@ function buildAgencyReportSummary(game: GameState): AgencyReportSummary {
     }
   }
 
-  const aggregateBattles = Object.values(latestReport.caseSnapshots ?? {}).flatMap((snapshot) =>
-    isAggregateBattleCampaignSummary(snapshot.aggregateBattle) ? [snapshot.aggregateBattle] : []
-  )
+  const aggregateBattles = Object.values(latestReport.caseSnapshots ?? {}).flatMap((snapshot) => {
+    const summary = normalizeAggregateBattleCampaignSummary(snapshot.aggregateBattle)
+    return summary ? [summary] : []
+  })
   const battleRollup = rollupAggregateBattleCampaignSummaries(aggregateBattles)
 
   return {

@@ -28,7 +28,6 @@ import {
   PHYSICAL_READINESS_THRESHOLD,
   MENTAL_CONCENTRATION_THRESHOLD,
   COMBAT_STRESS_PENALTY_THRESHOLD,
-  CAPABILITY_OVERTESTING_THRESHOLD,
 } from '../domain/agentFatigueChannels'
 import { applyWeeklyAgentFatigue } from '../domain/sim/fatiguePipeline'
 import { applyMissionResolutionAgentMutations } from '../domain/sim/missionResolutionAgents'

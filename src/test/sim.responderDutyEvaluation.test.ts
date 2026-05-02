@@ -5,7 +5,6 @@ import {
   evaluateResponderDutyState,
   evaluateResponderForDeployment,
   evaluatePerceivedDangerRisk,
-  evaluateSpecializationFit,
 } from '../domain/responderDutyEvaluation'
 
 function makeAgent(input: {

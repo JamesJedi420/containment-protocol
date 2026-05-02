@@ -74,6 +74,7 @@ describe('SPE-109: District time-cadence encounter scheduling', () => {
     // Event should ADD population, not replace
     expect(withEvent.baselinePopulation).toBeGreaterThan(baseline.baselinePopulation)
     expect(withEvent.appliedEvents).toContain('docks_unloading')
+    expect(baseline.appliedEvents).toEqual([])
   })
 
   test('Multiple overlays stack their modifiers', () => {

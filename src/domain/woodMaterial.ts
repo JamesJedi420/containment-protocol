@@ -116,6 +116,8 @@ export function evaluateWoodBuildCostDelta(
   materialFamily: string,
   _roomCategory: WoodRoomCategory,
 ): WoodBuildCostResult {
+  void _roomCategory
+
   if (materialFamily !== 'wood') {
     return {
       costDelta: 0,

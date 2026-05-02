@@ -6,6 +6,8 @@ import {
   buildAggregateBattleSideState,
   createAggregateBattleCommandOverlayFromLeaderBonus,
   formatAggregateBattleCampaignSummary,
+  isAggregateBattleCampaignSummary,
+  normalizeAggregateBattleCampaignSummary,
   resolveAggregateBattle,
   summarizeAggregateBattle,
   type AggregateBattleArea,
@@ -140,6 +142,45 @@ function createBattleInput(input: {
 }
 
 describe('aggregate battle layer', () => {
+  it('keeps the strict summary guard honest while normalizing legacy persisted summaries', () => {
+    const result = resolveAggregateBattle(
+      createBattleInput({
+        battleId: 'legacy-summary-normalization',
+        units: [
+          {
+            id: 'alpha-company',
+            label: 'Alpha Company',
+            sideId: 'attackers',
+            family: 'line_company',
+            strengthSteps: 2,
+            areaId: 'att-reserve',
+            meleeFactor: 5,
+            defenseFactor: 4,
+            morale: 70,
+            readiness: 70,
+          },
+        ],
+      })
+    )
+    const summary = buildAggregateBattleCampaignSummary({
+      context: createContext(),
+      result,
+      friendlySideId: 'attackers',
+      friendlyLabel: 'Attackers',
+      hostileSideId: 'defenders',
+      hostileLabel: 'Defenders',
+    })
+    const { supernaturalPressureApplied: _legacyField, ...legacySummary } = summary
+    void _legacyField
+
+    expect(isAggregateBattleCampaignSummary(summary)).toBe(true)
+    expect(isAggregateBattleCampaignSummary(legacySummary)).toBe(false)
+    expect(normalizeAggregateBattleCampaignSummary(legacySummary)).toEqual({
+      ...summary,
+      supernaturalPressureApplied: false,
+    })
+  })
+
   it('stays deterministic and preserves different family aggregation scales in one battle flow', () => {
     const input = createBattleInput({
       battleId: 'aggregation-scale-check',

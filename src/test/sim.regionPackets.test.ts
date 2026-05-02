@@ -275,6 +275,9 @@ describe('regionPackets', () => {
   it('returns empty ecology outputs when no ecology zones are provided', () => {
     const input = makeRegionInput()
     const { ecologyZones: _zones, districtEcologyTokens: _tokens, ...inputWithoutEcology } = input
+    void _zones
+    void _tokens
+
     const packet = createCompactRegionPacket(inputWithoutEcology as Parameters<typeof createCompactRegionPacket>[0])
 
     expect(packet.ecologyZones).toEqual([])

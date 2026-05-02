@@ -337,7 +337,7 @@ export function askInvestigationQuestion(
 
   const askedFlagId = buildInvestigationAskedFlagId(normalizedCaseId, question.id)
 
-  if (Boolean(readPersistentFlag(state, askedFlagId))) {
+  if (readPersistentFlag(state, askedFlagId)) {
     return {
       state,
       applied: false,

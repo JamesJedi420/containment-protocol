@@ -1,4 +1,8 @@
 import type { SquadConfigurationSummary } from '../../domain/squadConfigurationSummary'
+import {
+  type SquadCommandAction,
+  evaluateSquadCommandActionGate,
+} from '../../domain/squadActionGating'
 
 interface SquadConfigurationSummaryPanelProps {
   summary: SquadConfigurationSummary | null
@@ -20,6 +24,8 @@ export function SquadConfigurationSummaryPanel({
       ) : (
         <SquadConfigurationContent summary={summary} />
       )}
+
+      <SquadActionAvailability summary={summary} />
     </article>
   )
 }
@@ -85,6 +91,55 @@ function SquadConfigurationContent({ summary }: { summary: SquadConfigurationSum
         )}
       </div>
     </>
+  )
+}
+
+const ACTIONS: readonly SquadCommandAction[] = ['deploy', 'reassign_kit', 'view_configuration']
+
+const ACTION_LABELS: Readonly<Record<SquadCommandAction, string>> = {
+  deploy: 'Deploy',
+  reassign_kit: 'Reassign kit',
+  view_configuration: 'View configuration',
+}
+
+function SquadActionAvailability({ summary }: { summary: SquadConfigurationSummary | null }) {
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] opacity-50">
+        Action availability
+      </p>
+
+      <ul className="space-y-2">
+        {ACTIONS.map((action) => {
+          const result = evaluateSquadCommandActionGate(action, summary)
+
+          return (
+            <li key={action} className="rounded border border-white/10 px-3 py-2 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{ACTION_LABELS[action]}</span>
+                <span
+                  className={
+                    result.allowed
+                      ? 'font-semibold text-green-300/80'
+                      : 'font-semibold text-amber-300/80'
+                  }
+                >
+                  {result.allowed ? 'Allowed' : 'Blocked'}
+                </span>
+              </div>
+
+              {!result.allowed ? (
+                <ul className="mt-1 space-y-1 text-xs opacity-80">
+                  {result.blockers.map((blocker) => (
+                    <li key={blocker.code}>- {blocker.message}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
   )
 }
 

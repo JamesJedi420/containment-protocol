@@ -28,12 +28,30 @@ function makeOccupancy() {
   }
 }
 
+function makeFullOccupancy() {
+  return {
+    slots: [
+      { slotId: 'slot-1', role: 'lead', occupantId: 'a_mina', occupied: true, order: 1 },
+      { slotId: 'slot-2', role: 'support', occupantId: 'a_juno', occupied: true, order: 2 },
+    ],
+    totalSlots: 2,
+    occupiedSlots: 2,
+    vacantSlots: 0,
+  }
+}
+
 describe('SquadConfigurationSummaryPanel', () => {
   it('renders a placeholder when summary is null', () => {
     render(<SquadConfigurationSummaryPanel summary={null} />)
 
     expect(screen.getByRole('region', { name: /squad configuration/i })).toBeInTheDocument()
-    expect(screen.getByText(/no squad configuration available/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/no squad configuration available/i).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/action availability/i)).toBeInTheDocument()
+    expect(screen.getByText('Deploy')).toBeInTheDocument()
+    expect(screen.getByText('Reassign kit')).toBeInTheDocument()
+    expect(screen.getByText('View configuration')).toBeInTheDocument()
+    expect(screen.getAllByText('Blocked').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('No squad configuration available.').length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders metadata and slot occupancy', () => {
@@ -64,7 +82,7 @@ describe('SquadConfigurationSummaryPanel', () => {
 
     render(<SquadConfigurationSummaryPanel summary={summary} />)
 
-    expect(screen.getByText(/no kit assigned/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/no kit assigned/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders assigned-valid kit state with covered tags', () => {
@@ -113,5 +131,51 @@ describe('SquadConfigurationSummaryPanel', () => {
     expect(screen.getByText(/breaching/i)).toBeInTheDocument()
     expect(screen.getByText(/medical/i)).toBeInTheDocument()
     expect(screen.getByText(/shortfall:?\s*2/i)).toBeInTheDocument()
+  })
+
+  it('renders deterministic action availability states for all three actions', () => {
+    const summary: SquadConfigurationSummary = {
+      metadata: makeMetadata(),
+      occupancy: makeFullOccupancy(),
+      kit: {
+        state: 'assigned-valid',
+        assignment: { kitTemplateId: 'kt-01', kitTemplateLabel: 'Urban Response Kit' },
+        validation: {
+          status: 'valid',
+          coveredTags: ['breaching', 'medical'],
+          coverage: 2,
+        },
+      },
+    }
+
+    render(<SquadConfigurationSummaryPanel summary={summary} />)
+
+    expect(screen.getByText('Deploy')).toBeInTheDocument()
+    expect(screen.getByText('Reassign kit')).toBeInTheDocument()
+    expect(screen.getByText('View configuration')).toBeInTheDocument()
+    expect(screen.getAllByText('Allowed').length).toBe(3)
+    expect(screen.queryByText('Blocked')).not.toBeInTheDocument()
+  })
+
+  it('renders blocked action with exact blocker text from the gating seam', () => {
+    const summary: SquadConfigurationSummary = {
+      metadata: makeMetadata(),
+      occupancy: makeOccupancy(),
+      kit: {
+        state: 'assigned-mismatch',
+        assignment: { kitTemplateId: 'kt-02', kitTemplateLabel: 'Recon Kit' },
+        validation: {
+          status: 'mismatch',
+          coveredTags: ['surveillance'],
+          missingTags: ['breaching', 'medical'],
+          shortfall: 2,
+        },
+      },
+    }
+
+    render(<SquadConfigurationSummaryPanel summary={summary} />)
+
+    expect(screen.getAllByText('Blocked').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(/Assigned kit does not satisfy squad requirements\./i)).toBeInTheDocument()
   })
 })

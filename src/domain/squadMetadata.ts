@@ -146,47 +146,51 @@ export function updateSquadMetadata(
   metadata: SquadMetadata,
   patch: UpdateSquadMetadataInput
 ): UpdateSquadMetadataResult {
-  const current = cloneMetadata(metadata)
-  const next: SquadMetadata = cloneMetadata(metadata)
+  let nameValue = metadata.name
+  let roleValue = metadata.role
+  let doctrineValue = metadata.doctrine
+  let shiftValue = metadata.shift
+  let assignedZoneValue = metadata.assignedZone
+  let designatedLeaderIdValue = metadata.designatedLeaderId
 
   if (Object.prototype.hasOwnProperty.call(patch, 'name')) {
     const name = validateCanonicalValue('invalid_name', patch.name)
     if (!name.ok) {
-      return { ok: false, code: name.code, metadata: current }
+      return { ok: false, code: name.code, metadata }
     }
-    next.name = name.value
+    nameValue = name.value
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'role')) {
     const role = validateCanonicalValue('invalid_role', patch.role)
     if (!role.ok) {
-      return { ok: false, code: role.code, metadata: current }
+      return { ok: false, code: role.code, metadata }
     }
-    next.role = role.value
+    roleValue = role.value
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'doctrine')) {
     const doctrine = validateCanonicalValue('invalid_doctrine', patch.doctrine)
     if (!doctrine.ok) {
-      return { ok: false, code: doctrine.code, metadata: current }
+      return { ok: false, code: doctrine.code, metadata }
     }
-    next.doctrine = doctrine.value
+    doctrineValue = doctrine.value
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'shift')) {
     const shift = validateCanonicalValue('invalid_shift', patch.shift)
     if (!shift.ok) {
-      return { ok: false, code: shift.code, metadata: current }
+      return { ok: false, code: shift.code, metadata }
     }
-    next.shift = shift.value
+    shiftValue = shift.value
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'assignedZone')) {
     const assignedZone = validateCanonicalValue('invalid_assigned_zone', patch.assignedZone)
     if (!assignedZone.ok) {
-      return { ok: false, code: assignedZone.code, metadata: current }
+      return { ok: false, code: assignedZone.code, metadata }
     }
-    next.assignedZone = assignedZone.value
+    assignedZoneValue = assignedZone.value
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'designatedLeaderId')) {
@@ -195,22 +199,38 @@ export function updateSquadMetadata(
       patch.designatedLeaderId
     )
     if (!designatedLeaderId.ok) {
-      return { ok: false, code: designatedLeaderId.code, metadata: current }
+      return { ok: false, code: designatedLeaderId.code, metadata }
     }
-    next.designatedLeaderId = designatedLeaderId.value
+    designatedLeaderIdValue = designatedLeaderId.value
   }
 
   const changed =
-    current.name !== next.name ||
-    current.role !== next.role ||
-    current.doctrine !== next.doctrine ||
-    current.shift !== next.shift ||
-    current.assignedZone !== next.assignedZone ||
-    current.designatedLeaderId !== next.designatedLeaderId
+    metadata.name !== nameValue ||
+    metadata.role !== roleValue ||
+    metadata.doctrine !== doctrineValue ||
+    metadata.shift !== shiftValue ||
+    metadata.assignedZone !== assignedZoneValue ||
+    metadata.designatedLeaderId !== designatedLeaderIdValue
+
+  if (!changed) {
+    return {
+      ok: true,
+      metadata,
+      changed,
+    }
+  }
 
   return {
     ok: true,
-    metadata: next,
+    metadata: {
+      squadId: metadata.squadId,
+      name: nameValue,
+      role: roleValue,
+      doctrine: doctrineValue,
+      shift: shiftValue,
+      assignedZone: assignedZoneValue,
+      designatedLeaderId: designatedLeaderIdValue,
+    },
     changed,
   }
 }

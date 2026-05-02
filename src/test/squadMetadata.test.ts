@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  createSquadMetadata,
-  getSquadMetadata,
-  updateSquadMetadata,
-} from '../domain/squadMetadata'
+import { createSquadMetadata, getSquadMetadata, updateSquadMetadata } from '../domain/squadMetadata'
 
 function createFixture() {
   const created = createSquadMetadata({
@@ -98,6 +94,7 @@ describe('squadMetadata', () => {
       code: 'invalid_assigned_zone',
       metadata,
     })
+    expect(invalidUpdate.metadata).toBe(metadata)
   })
 
   it('returns canonical readback payload without mutating source metadata', () => {
@@ -118,6 +115,7 @@ describe('squadMetadata', () => {
       changed: false,
       metadata,
     })
+    expect(emptyPatch.metadata).toBe(metadata)
 
     const equivalentPatch = updateSquadMetadata(metadata, {
       name: ' Alpha Squad ',
@@ -133,5 +131,24 @@ describe('squadMetadata', () => {
       changed: false,
       metadata,
     })
+    expect(equivalentPatch.metadata).toBe(metadata)
+  })
+
+  it('allocates a new metadata object only when a canonical value changes', () => {
+    const metadata = createFixture()
+
+    const updated = updateSquadMetadata(metadata, {
+      role: 'field_command',
+    })
+
+    expect(updated).toEqual({
+      ok: true,
+      changed: true,
+      metadata: {
+        ...metadata,
+        role: 'field_command',
+      },
+    })
+    expect(updated.metadata).not.toBe(metadata)
   })
 })

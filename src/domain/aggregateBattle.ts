@@ -933,7 +933,8 @@ export function isAggregateBattleCampaignSummary(
   return (
     typeof candidate.battleId === 'string' &&
     typeof candidate.regionTag === 'string' &&
-    typeof candidate.supernaturalPressureApplied === 'boolean' &&
+    (candidate.supernaturalPressureApplied === undefined ||
+      typeof candidate.supernaturalPressureApplied === 'boolean') &&
     Array.isArray(candidate.summaryTable) &&
     Array.isArray(candidate.friendlyRoutedUnits) &&
     Array.isArray(candidate.hostileRoutedUnits) &&

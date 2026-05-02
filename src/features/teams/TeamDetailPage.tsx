@@ -7,6 +7,7 @@ import { type Agent, type AgentRole, type PerformanceMetricSummary } from '../..
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 import { getTeamDeploymentHistory } from '../deployment/deploymentEventSelectors'
 import { getCoverageRolesForAgents } from '../../domain/validateTeam'
+import { SquadConfigurationSummaryPanel } from './SquadConfigurationSummaryPanel'
 import {
   AGENCY_LABELS,
   CASE_UI_LABELS,
@@ -185,6 +186,8 @@ export default function TeamDetailPage() {
               />
             </div>
           </article>
+
+          <SquadConfigurationSummaryPanel summary={null} />
 
           <article
             className="panel panel-support space-y-3"

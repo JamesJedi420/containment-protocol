@@ -930,15 +930,59 @@ export function isAggregateBattleCampaignSummary(
 
   const candidate = value as Partial<AggregateBattleCampaignSummary>
 
+  return hasAggregateBattleCampaignSummaryShape(candidate, 'strict')
+}
+
+export function normalizeAggregateBattleCampaignSummary(
+  value: unknown
+): AggregateBattleCampaignSummary | null {
+  if (isAggregateBattleCampaignSummary(value)) {
+    return value
+  }
+
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const candidate = value as Partial<AggregateBattleCampaignSummary>
+
+  if (!hasAggregateBattleCampaignSummaryShape(candidate, 'legacy')) {
+    return null
+  }
+
+  return {
+    ...candidate,
+    supernaturalPressureApplied: false,
+  } as AggregateBattleCampaignSummary
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === 'string'
+}
+
+function hasAggregateBattleCampaignSummaryShape(
+  candidate: Partial<AggregateBattleCampaignSummary>,
+  supernaturalPressureMode: 'strict' | 'legacy'
+) {
   return (
     typeof candidate.battleId === 'string' &&
     typeof candidate.regionTag === 'string' &&
-    (candidate.supernaturalPressureApplied === undefined ||
-      typeof candidate.supernaturalPressureApplied === 'boolean') &&
+    typeof candidate.roundsResolved === 'number' &&
+    isNullableString(candidate.winnerSideId) &&
+    isNullableString(candidate.winnerLabel) &&
+    typeof candidate.friendlySideId === 'string' &&
+    typeof candidate.friendlyLabel === 'string' &&
+    typeof candidate.hostileSideId === 'string' &&
+    typeof candidate.hostileLabel === 'string' &&
+    typeof candidate.movementDeniedCount === 'number' &&
+    Array.isArray(candidate.movementDeniedUnits) &&
     Array.isArray(candidate.summaryTable) &&
     Array.isArray(candidate.friendlyRoutedUnits) &&
     Array.isArray(candidate.hostileRoutedUnits) &&
-    Array.isArray(candidate.specialDamage)
+    Array.isArray(candidate.specialDamage) &&
+    (supernaturalPressureMode === 'strict'
+      ? typeof candidate.supernaturalPressureApplied === 'boolean'
+      : candidate.supernaturalPressureApplied === undefined)
   )
 }
 

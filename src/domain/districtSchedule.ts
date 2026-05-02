@@ -53,7 +53,10 @@ export function applyRareEventOverlays(
   week: number,
   districtId: string
 ): TrafficSnapshot {
-  const result: TrafficSnapshot = { ...baseline }
+  const result: TrafficSnapshot = {
+    ...baseline,
+    appliedEvents: [...baseline.appliedEvents],
+  }
 
   for (const event of overlays) {
     // Check if event is active this week

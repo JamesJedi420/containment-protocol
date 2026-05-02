@@ -1020,7 +1020,7 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({ game: adjustInventoryQuantity(s.game, itemId, delta) })),
 
       applyPreparedSupportProcedure: (encounterId, agentId) => {
-        let result = applyPreparedSupportProcedureState(get().game, encounterId, agentId)
+        const result = applyPreparedSupportProcedureState(get().game, encounterId, agentId)
 
         set(() => ({ game: result.state }))
 
@@ -1028,7 +1028,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       refreshPreparedSupportProcedure: (encounterId, agentId) => {
-        let result = refreshPreparedSupportProcedureState(get().game, encounterId, agentId)
+        const result = refreshPreparedSupportProcedureState(get().game, encounterId, agentId)
 
         set(() => ({ game: result.state }))
 

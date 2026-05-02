@@ -65,8 +65,6 @@ describe('SPE-109: District schedule substrate integration', () => {
   })
 
   test('Covert operations are materially different at Night vs Afternoon', () => {
-    const hubDistrict = havenSchedule.districts.hub
-
     const nightSnapshot = getScheduleSnapshot(havenSchedule, 'hub', 'night', 0, 12345)
     const afternoonSnapshot = getScheduleSnapshot(havenSchedule, 'hub', 'afternoon', 0, 12345)
 

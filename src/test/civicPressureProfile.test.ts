@@ -1,9 +1,6 @@
 // SPE-1271: Civic pressure composite profile — unit tests
 import { describe, it, expect } from 'vitest'
-import {
-  computeSiteCivicPressureProfile,
-  type SiteCivicPressureProfileOptions,
-} from '../domain/civicPressureProfile'
+import { computeSiteCivicPressureProfile } from '../domain/civicPressureProfile'
 import { createCompactCivicAuthorityConsequencePacket } from '../domain/civicConsequenceNetwork'
 import { createCivicRumorPacket } from '../domain/civicRumorChannel'
 import { createCivicCreditPacket } from '../domain/civicCreditChannel'

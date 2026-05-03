@@ -172,4 +172,51 @@ describe('squadConfigurationSummary', () => {
       error: 'assigned_kit_template_not_found',
     })
   })
+
+  it('returns typed failure when assignment belongs to a different squad', () => {
+    const metadata = createMetadataFixture()
+    const template = createTemplateFixture()
+
+    const summary = buildSquadConfigurationSummary({
+      metadata,
+      slots: createOrderedSlotsFixture(),
+      assignment: {
+        squadId: 'squad-other',
+        kitTemplateId: template.id,
+      },
+      kitTemplatesById: { [template.id]: template },
+      squadItemTags: ['breach', 'combat'],
+    })
+
+    expect(summary).toEqual({
+      ok: false,
+      error: 'invalid_squad_id',
+    })
+  })
+
+  it('treats cleared assignment (kitTemplateId=null) as unassigned', () => {
+    const metadata = createMetadataFixture()
+
+    const summary = buildSquadConfigurationSummary({
+      metadata,
+      slots: createOrderedSlotsFixture(),
+      assignment: {
+        squadId: metadata.squadId,
+        kitTemplateId: null,
+      },
+      kitTemplatesById: {},
+      squadItemTags: [],
+    })
+
+    expect(summary.ok).toBe(true)
+    if (!summary.ok) {
+      throw new Error('Expected summary ok=true')
+    }
+
+    expect(summary.summary.kit).toEqual({
+      state: 'unassigned',
+      assignment: null,
+      validation: null,
+    })
+  })
 })

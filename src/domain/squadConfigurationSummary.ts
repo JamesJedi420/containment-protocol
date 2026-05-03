@@ -123,6 +123,10 @@ export function buildSquadConfigurationSummary(
 
   const occupancy = buildOccupancySummary(input.slots)
 
+  if (input.assignment && input.assignment.squadId !== input.metadata.squadId) {
+    return { ok: false, error: 'invalid_squad_id' }
+  }
+
   if (!input.assignment?.kitTemplateId) {
     return {
       ok: true,

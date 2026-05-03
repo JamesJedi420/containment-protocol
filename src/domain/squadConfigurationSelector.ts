@@ -2,6 +2,7 @@
 // Pure derivation from GameState — no side effects, no RNG.
 import type { GameState } from './models'
 import { buildSquadConfigurationSummary, type SquadConfigurationSummary } from './squadConfigurationSummary'
+import { getTeamMemberIds } from './teamSimulation'
 
 /**
  * Derives a SquadConfigurationSummary for a given team from GameState.
@@ -18,7 +19,9 @@ export function selectSquadConfigurationSummary(
   if (!metadata) return null
 
   const team = game.teams[teamId]
-  const memberIds: readonly string[] = team?.memberIds ?? team?.agentIds ?? []
+  if (!team) return null
+
+  const memberIds = getTeamMemberIds(team)
   const slots = memberIds.map((agentId, index) => ({
     slotId: agentId,
     role: game.agents[agentId]?.role ?? 'operative',
@@ -39,5 +42,17 @@ export function selectSquadConfigurationSummary(
     squadItemTags,
   })
 
-  return result.ok ? result.summary : null
+  if (result.ok) {
+    return result.summary
+  }
+
+  const fallbackResult = buildSquadConfigurationSummary({
+    metadata,
+    slots,
+    assignment: null,
+    kitTemplatesById,
+    squadItemTags,
+  })
+
+  return fallbackResult.ok ? fallbackResult.summary : null
 }

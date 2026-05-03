@@ -128,4 +128,40 @@ describe('selectSquadConfigurationSummary', () => {
     expect(summary!.occupancy.occupiedSlots).toBe(2)
     expect(summary!.occupancy.vacantSlots).toBe(0)
   })
+
+  it('uses canonical team member resolution when memberIds and agentIds diverge', () => {
+    const game = baseGame()
+    const metadata = makeMetadata('team-1')
+    game.squadMetadata = { 'team-1': metadata }
+    game.teams['team-1'].memberIds = ['agent-1', 'agent-1']
+    game.teams['team-1'].agentIds = ['agent-2', 'agent-3']
+    game.agents['agent-2'] = { ...game.agents['agent-2'], id: 'agent-2', role: 'tech' } as never
+    game.agents['agent-3'] = { ...game.agents['agent-3'], id: 'agent-3', role: 'medic' } as never
+
+    const summary = selectSquadConfigurationSummary(game, 'team-1')
+    expect(summary).not.toBeNull()
+    expect(summary!.occupancy.slots.map((slot) => slot.slotId)).toEqual(['agent-2', 'agent-3'])
+  })
+
+  it('preserves metadata/occupancy by degrading to unassigned when assignment template is missing', () => {
+    const game = baseGame()
+    const metadata = makeMetadata('team-1')
+    game.squadMetadata = { 'team-1': metadata }
+    game.squadKitAssignments = {
+      'team-1': {
+        squadId: 'team-1',
+        kitTemplateId: 'missing-template',
+      },
+    }
+
+    const summary = selectSquadConfigurationSummary(game, 'team-1')
+    expect(summary).not.toBeNull()
+    expect(summary!.metadata.squadId).toBe('team-1')
+    expect(summary!.occupancy.totalSlots).toBe(0)
+    expect(summary!.kit).toEqual({
+      state: 'unassigned',
+      assignment: null,
+      validation: null,
+    })
+  })
 })

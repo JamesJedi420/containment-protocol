@@ -36,6 +36,9 @@ import {
   buildPreparedSupportProcedureExpendedFlagKey,
   refreshPreparedSupportProcedure as refreshPreparedSupportProcedureDomain,
 } from '../../domain/supportLoadout'
+import { createSquadMetadata } from '../../domain/squadMetadata'
+import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
+import { assignSquadKit } from '../../domain/squadKitAssignment'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -772,6 +775,60 @@ describe('gameStore', () => {
 
     useGameStore.getState().deleteEmptyTeam(createdTeam!.id)
     expect(useGameStore.getState().game.teams[createdTeam!.id]).toBeUndefined()
+  })
+
+  it('cleans squad metadata + assignment when deleting empty teams to prevent ID reuse leaks', () => {
+    useGameStore.getState().createTeam('Scoped Cleanup', 'a_casey')
+    const createdTeam = Object.values(useGameStore.getState().game.teams).find(
+      (team) => team.name === 'Scoped Cleanup'
+    )
+    expect(createdTeam).toBeDefined()
+
+    const metadataResult = createSquadMetadata({
+      squadId: createdTeam!.id,
+      name: 'Scoped Cleanup',
+      role: 'rapid_response',
+      doctrine: 'containment',
+      shift: 'night',
+      assignedZone: 'zone-north',
+      designatedLeaderId: 'a_casey',
+    })
+    const templateResult = createSquadKitTemplate({
+      id: 'cleanup-kit',
+      label: 'Cleanup Kit',
+      requiredItemTags: ['breach'],
+      minCoveredCount: 1,
+    })
+    expect(metadataResult.ok).toBe(true)
+    expect(templateResult.ok).toBe(true)
+    if (!metadataResult.ok || !templateResult.ok) {
+      throw new Error('Failed setup fixture for squad cleanup test')
+    }
+    const assignmentResult = assignSquadKit(metadataResult.metadata, templateResult.template)
+    expect(assignmentResult.ok).toBe(true)
+    if (!assignmentResult.ok) {
+      throw new Error('Failed assignment setup fixture for squad cleanup test')
+    }
+
+    useGameStore.getState().setSquadMetadata(metadataResult.metadata)
+    useGameStore.getState().setSquadKitTemplate(templateResult.template)
+    useGameStore.getState().setSquadKitAssignment(assignmentResult.assignment)
+
+    useGameStore.getState().moveAgentBetweenTeams('a_casey', null)
+    useGameStore.getState().deleteEmptyTeam(createdTeam!.id)
+
+    const afterDelete = useGameStore.getState().game
+    expect(afterDelete.teams[createdTeam!.id]).toBeUndefined()
+    expect(afterDelete.squadMetadata?.[createdTeam!.id]).toBeUndefined()
+    expect(afterDelete.squadKitAssignments?.[createdTeam!.id]).toBeUndefined()
+
+    useGameStore.getState().createTeam('Reused Team ID', 'a_ava')
+    const reusedTeam = Object.values(useGameStore.getState().game.teams).find(
+      (team) => team.name === 'Reused Team ID'
+    )
+    expect(reusedTeam?.id).toBe(createdTeam!.id)
+    expect(useGameStore.getState().game.squadMetadata?.[reusedTeam!.id]).toBeUndefined()
+    expect(useGameStore.getState().game.squadKitAssignments?.[reusedTeam!.id]).toBeUndefined()
   })
 
   it('queues training through the store and writes the started queue entry to storage', () => {

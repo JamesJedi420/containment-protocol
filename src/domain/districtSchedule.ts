@@ -12,7 +12,7 @@
  * - buildScheduleExplanation: Human-readable audit trail
  */
 
-import {
+import type {
   DistrictScheduleState,
   DistrictProfile,
   TimeBandProfile,
@@ -33,6 +33,8 @@ export function buildBaselineTrafficSnapshot(
   week: number,
   rngState: number
 ): TrafficSnapshot {
+  void district
+
   return {
     baselinePopulation: timeBand.baselinePopulation,
     witnessModifier: timeBand.witnessModifier,

@@ -69,7 +69,7 @@ export function resolveCompromisedAuthorityResponse(
     custodyMarker: custodyActive
       ? {
           effect: 'compromised_authority_release',
-          triggeredAt: 0,
+          triggeredAt: 'processing',
           targetInstitutionId: authority.officialRole,
         }
       : undefined,

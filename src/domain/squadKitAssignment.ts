@@ -20,6 +20,7 @@ export type SquadKitAssignmentResult =
 export type SquadKitAssignmentFailure =
   | 'invalid_squad_id'
   | 'invalid_kit_template_id'
+  | 'assignment_squad_mismatch'
   | 'no_assignment_to_clear'
 
 // Assign a kit template to a squad
@@ -45,6 +46,12 @@ export function clearSquadKitAssignment(
   opts?: ClearOptions
 ): SquadKitAssignmentResult {
   if (!squad?.squadId) return { ok: false, error: 'invalid_squad_id' }
+  if (
+    opts?.currentAssignment &&
+    opts.currentAssignment.squadId !== squad.squadId
+  ) {
+    return { ok: false, error: 'assignment_squad_mismatch' }
+  }
   if (opts?.currentAssignment && opts.currentAssignment.kitTemplateId == null)
     return { ok: false, error: 'no_assignment_to_clear' }
   return {
@@ -60,15 +67,19 @@ export function clearSquadKitAssignment(
 export type SquadKitAssignmentValidation =
   | { status: 'valid'; result: KitMatchResult }
   | { status: 'mismatch'; result: KitMismatchResult }
+  | { status: 'error'; error: 'invalid_input' }
 
 export function validateSquadKitAssignment(
-  kitTemplate: SquadKitTemplate,
-  squadItemTags: readonly string[]
+  kitTemplate: SquadKitTemplate | null | undefined,
+  squadItemTags: readonly string[] | null | undefined
 ): SquadKitAssignmentValidation {
-  const evalResult = kitTemplate ? evaluateSquadKitMatch(kitTemplate, squadItemTags) : null
-  if (!evalResult) throw new Error('Invalid kit template or squad item tags')
+  if (!kitTemplate?.id || !Array.isArray(squadItemTags)) {
+    return { status: 'error', error: 'invalid_input' }
+  }
+
+  const evalResult = evaluateSquadKitMatch(kitTemplate, squadItemTags)
   if (evalResult.status === 'match') {
     return { status: 'valid', result: evalResult }
   }
-  return { status: 'mismatch', result: evalResult as KitMismatchResult }
+  return { status: 'mismatch', result: evalResult }
 }

@@ -5,8 +5,6 @@ import { SquadMetadata } from './squadMetadata'
 import {
   SquadKitTemplate,
   createSquadKitTemplate,
-  KitMatchResult,
-  KitMismatchResult,
 } from './squadKitTemplate'
 import {
   assignSquadKit,
@@ -60,10 +58,10 @@ describe('Squad kit assignment seam', () => {
   })
 
   it('returns error for invalid squad or kit', () => {
-    // @ts-expect-error
-    expect(assignSquadKit(undefined, validKitTemplate).ok).toBe(false)
-    // @ts-expect-error
-    expect(assignSquadKit(validSquad, undefined).ok).toBe(false)
+    const invalidSquad = undefined as unknown as Parameters<typeof assignSquadKit>[0]
+    const invalidKit = undefined as unknown as Parameters<typeof assignSquadKit>[1]
+    expect(assignSquadKit(invalidSquad, validKitTemplate).ok).toBe(false)
+    expect(assignSquadKit(validSquad, invalidKit).ok).toBe(false)
   })
 
   it('returns error for clearing with no assignment', () => {
@@ -72,18 +70,75 @@ describe('Squad kit assignment seam', () => {
     expect(result.error).toBe('no_assignment_to_clear')
   })
 
+  it('returns explicit mismatch error when clearing with a different squad assignment', () => {
+    const result = clearSquadKitAssignment(validSquad, {
+      currentAssignment: { squadId: 'S2', kitTemplateId: 'kit1' },
+    })
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('assignment_squad_mismatch')
+  })
+
+  it('returns deterministic clear payload when currentAssignment is missing', () => {
+    const result = clearSquadKitAssignment(validSquad)
+    expect(result.ok).toBe(true)
+    expect(result.assignment).toEqual({ squadId: 'S1', kitTemplateId: null })
+  })
+
   it('validates a squad + kit assignment as valid', () => {
     const squadItemTags = ['rifle', 'medkit']
     const validation = validateSquadKitAssignment(validKitTemplate, squadItemTags)
     expect(validation.status).toBe('valid')
-    expect((validation.result as KitMatchResult).coveredTags).toEqual(['rifle', 'medkit'])
+    if (validation.status !== 'valid') {
+      throw new Error('Expected valid validation result')
+    }
+    expect(validation.result.coveredTags).toEqual(['rifle', 'medkit'])
   })
 
   it('validates a mismatch with exact reasons', () => {
     const squadItemTags = ['rifle']
     const validation = validateSquadKitAssignment(validKitTemplate, squadItemTags)
     expect(validation.status).toBe('mismatch')
-    expect((validation.result as KitMismatchResult).missingTags).toContain('medkit')
-    expect((validation.result as KitMismatchResult).shortfall).toBeGreaterThan(0)
+    if (validation.status !== 'mismatch') {
+      throw new Error('Expected mismatch validation result')
+    }
+    expect(validation.result.missingTags).toContain('medkit')
+    expect(validation.result.shortfall).toBeGreaterThan(0)
+  })
+
+  it('returns typed invalid_input error for invalid validation inputs', () => {
+    const invalidTemplate =
+      null as unknown as Parameters<typeof validateSquadKitAssignment>[0]
+    const invalidTags =
+      null as unknown as Parameters<typeof validateSquadKitAssignment>[1]
+    const validation = validateSquadKitAssignment(invalidTemplate, invalidTags)
+    expect(validation).toEqual({ status: 'error', error: 'invalid_input' })
+  })
+
+  it('normalizes required tags in template creation: trim/drop-empty/dedupe/copy', () => {
+    const sourceTags = [' rifle ', 'rifle', 'medkit', ' ', 'medkit']
+    const created = createSquadKitTemplate({
+      id: 'k-normalized',
+      label: 'Normalized Kit',
+      requiredItemTags: sourceTags,
+      minCoveredCount: 2,
+    })
+    expect(created.ok).toBe(true)
+    if (!created.ok) {
+      throw new Error('Expected successful template creation')
+    }
+    expect(created.template.requiredItemTags).toEqual(['rifle', 'medkit'])
+
+    sourceTags.push('late-mutation')
+    expect(created.template.requiredItemTags).toEqual(['rifle', 'medkit'])
+  })
+
+  it('fails template creation when minCoveredCount exceeds normalized unique tags', () => {
+    const created = createSquadKitTemplate({
+      id: 'k-invalid-min',
+      label: 'Invalid Min',
+      requiredItemTags: [' rifle ', 'rifle', ' ', 'medkit'],
+      minCoveredCount: 3,
+    })
+    expect(created).toEqual({ ok: false, error: 'invalid_min_count' })
   })
 })

@@ -37,19 +37,27 @@ export function createSquadKitTemplate(fields: {
   requiredItemTags: readonly string[]
   minCoveredCount: number
 }): SquadKitTemplateCreateResult {
+  const normalizedRequiredItemTags = Array.from(
+    new Set(
+      (fields.requiredItemTags ?? [])
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0)
+    )
+  )
+
   if (!fields.id || fields.id.trim() === '') {
     return { ok: false, error: 'invalid_id' }
   }
   if (!fields.label || fields.label.trim() === '') {
     return { ok: false, error: 'empty_label' }
   }
-  if (!fields.requiredItemTags || fields.requiredItemTags.length === 0) {
+  if (normalizedRequiredItemTags.length === 0) {
     return { ok: false, error: 'empty_required_tags' }
   }
   if (
     !Number.isInteger(fields.minCoveredCount) ||
     fields.minCoveredCount < 1 ||
-    fields.minCoveredCount > fields.requiredItemTags.length
+    fields.minCoveredCount > normalizedRequiredItemTags.length
   ) {
     return { ok: false, error: 'invalid_min_count' }
   }
@@ -58,7 +66,7 @@ export function createSquadKitTemplate(fields: {
     template: {
       id: fields.id.trim(),
       label: fields.label.trim(),
-      requiredItemTags: fields.requiredItemTags,
+      requiredItemTags: [...normalizedRequiredItemTags],
       minCoveredCount: fields.minCoveredCount,
     },
   }

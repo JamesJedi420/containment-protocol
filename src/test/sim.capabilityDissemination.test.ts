@@ -1,7 +1,8 @@
 /**
  * Focused tests for SPE-27 Capability Dissemination Domain Seam
  */
-import { evaluateCapabilityDissemination, CapabilityDisseminationInput, CapabilityDisseminationResultKind } from '../domain/capabilityDissemination'
+import { evaluateCapabilityDissemination } from '../domain/capabilityDissemination'
+import type { CapabilityDisseminationInput } from '../domain/capabilityDissemination'
 
 describe('Capability Dissemination Domain Seam', () => {
   it('allows direct transfer when transferable and recipient eligible', () => {

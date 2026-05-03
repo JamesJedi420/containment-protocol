@@ -1,7 +1,8 @@
 /**
  * Focused tests for SPE-1339 Learned-vs-Operationally-Ready Separation Domain Seam
  */
-import { evaluateCapabilityReadiness, CapabilityReadinessInput, CapabilityReadinessResultKind } from '../domain/capabilityReadiness'
+import { evaluateCapabilityReadiness } from '../domain/capabilityReadiness'
+import type { CapabilityReadinessInput } from '../domain/capabilityReadiness'
 
 describe('Capability Readiness Domain Seam', () => {
   it('marks as operationally ready when learned and conditions met', () => {

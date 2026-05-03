@@ -1,11 +1,10 @@
 // SPE-1339: Learned-vs-operationally-ready separation seam
 // Focused deterministic tests for capability gating
 import { describe, it, expect } from 'vitest';
-import {
-  CapabilityRecord,
-  getCapabilityGating,
-  CapabilityPreparationState,
+import { getCapabilityGating } from '../domain/capabilityGating';
+import type {
   CapabilityAcquisitionEdge,
+  CapabilityRecord,
 } from '../domain/capabilityGating';
 
 describe('SPE-1339 capability gating', () => {

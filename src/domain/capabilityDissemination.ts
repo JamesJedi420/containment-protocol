@@ -62,7 +62,7 @@ export function evaluateCapabilityDissemination(input: CapabilityDisseminationIn
       reason: 'Capability is non-transferable (locked, secret, or restricted).',
     }
   }
-  if (input.recipientEligible === true && input.transferable !== false) {
+  if (input.recipientEligible === true) {
     return {
       kind: 'transferable',
       reason: 'Recipient is eligible and capability is transferable.',

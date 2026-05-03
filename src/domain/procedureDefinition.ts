@@ -189,9 +189,15 @@ export interface EntityPayload {
   readonly boundToOperator: boolean
 }
 
+// ─── Schema version ─────────────────────────────────────────────────────────
+
+export const PROCEDURE_DEFINITION_SCHEMA_VERSION = 'spe-1274.v1' as const
+export type ProcedureDefinitionSchemaVersion = typeof PROCEDURE_DEFINITION_SCHEMA_VERSION
+
 // ─── Procedure definition ─────────────────────────────────────────────────────
 
 export interface ProcedureDefinition {
+  readonly schemaVersion: ProcedureDefinitionSchemaVersion
   readonly procedureId: string
   readonly canonicalName: string
   readonly aliases: readonly string[]
@@ -275,6 +281,7 @@ export function validateProcedureDefinition(
     ok: true,
     definition: {
       ...input,
+      schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
       procedureId: normalizedProcedureId,
       canonicalName: normalizedCanonicalName,
     },
@@ -328,6 +335,7 @@ export function deriveProcedureActivationSummary(
 // metadata (uncommon, 3 known sources, requires research completion).
 
 export const BINDING_SIGIL: ProcedureDefinition = {
+  schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
   procedureId: 'binding_sigil',
   canonicalName: 'Binding Sigil',
   aliases: ['iron_ward', 'containment_glyph'],
@@ -384,6 +392,7 @@ export const BINDING_SIGIL: ProcedureDefinition = {
 // faction access. Demonstrates both entityPayload and restricted availability.
 
 export const RESONANCE_CONSTRUCT: ProcedureDefinition = {
+  schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
   procedureId: 'resonance_construct',
   canonicalName: 'Resonance Construct',
   aliases: ['field_golem'],

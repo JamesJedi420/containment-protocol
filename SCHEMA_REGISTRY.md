@@ -101,3 +101,45 @@ Documents the versioned envelope wrapping persisted save files.
 - Save files with `version > GAME_SAVE_VERSION` are rejected (written by a newer build)
 - Save files with `version < GAME_SAVE_VERSION` may still be loaded if the inner store migration handles them
 - No explicit migration function at the envelope level; version guard is rejection-only
+
+---
+
+## ProcedureDefinition Schema (spe-1274.v1)
+
+Documents the canonical schema for procedure definitions covering anomalous actions, countermeasures, rituals, devices, and learned effects (SPE-1274).
+
+**Current version**: `spe-1274.v1` — discriminant on `ProcedureDefinition.schemaVersion`
+
+**Location**: `src/domain/procedureDefinition.ts`
+
+**Exported constant**: `PROCEDURE_DEFINITION_SCHEMA_VERSION = 'spe-1274.v1'`
+
+### Top-level fields
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `schemaVersion` | `'spe-1274.v1'` | Discriminant; always stamped by `validateProcedureDefinition` |
+| `procedureId` | `string` | Trimmed and validated; must be non-empty |
+| `canonicalName` | `string` | Trimmed and validated; must be non-empty |
+| `aliases` | `string[]` | Zero or more alternate identifiers |
+| `taxonomy` | `ProcedureTaxonomy` | Intent × effectDomain × executionMethod × originTradition |
+| `tier` | `1–5` | Capability tier; values outside range are rejected |
+| `requirements` | `RequirementPacket` | Speech, gesture, tool tags, reagents, diagram, device tags, environment |
+| `activationTiming` | `ActivationTiming` | `instant` → `ritual_days` |
+| `targeting` | `TargetingPacket` | Geometry, range, resistance handling, cover sensitivity |
+| `persistence` | `PersistencePacket` | Duration, dismissibility, expiry state |
+| `restrictions` | `ProcedureRestrictions` | Forbidden roles, certifications, specialist access, usage cap |
+| `provenance` | `ProcedureProvenance` | Source system, research gate, faction restriction |
+| `availability` | `BoundedAvailability` | Rating, source count, access friction |
+| `entityPayload` | `EntityPayload?` | Required when `taxonomy.intent === 'summoning'` |
+
+### Validation invariants
+
+- `martial` execution with `speech: 'required'` → `invalid_taxonomy_combination`
+- `summoning` intent without `entityPayload` → `missing_entity_payload`
+- Reagent quantities must be ≥ 0; range meters must be ≥ 0 or `null`; `sourceCount` must be ≥ 0
+
+### Versioning
+
+- No migration path defined yet (single version)
+- If a breaking field change is needed, bump the discriminant string (e.g. `spe-1274.v2`) and add a migration alongside `eventMigration.ts`

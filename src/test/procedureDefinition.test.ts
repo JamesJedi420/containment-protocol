@@ -4,6 +4,7 @@ import {
   deriveProcedureActivationSummary,
   BINDING_SIGIL,
   RESONANCE_CONSTRUCT,
+  PROCEDURE_DEFINITION_SCHEMA_VERSION,
 } from '../domain/procedureDefinition'
 import type { ProcedureDefinition } from '../domain/procedureDefinition'
 
@@ -57,6 +58,7 @@ function makeMinimalProcedure(overrides: Partial<ProcedureDefinition> = {}): Pro
       restrictedFaction: null,
     },
     availability: { rating: 'common' },
+    schemaVersion: PROCEDURE_DEFINITION_SCHEMA_VERSION,
     ...overrides,
   }
 }
@@ -378,5 +380,33 @@ describe('deriveProcedureActivationSummary — downstream field consumption', ()
     const a = deriveProcedureActivationSummary(BINDING_SIGIL)
     const b = deriveProcedureActivationSummary(BINDING_SIGIL)
     expect(a).toEqual(b)
+  })
+})
+
+// ─── Schema version ─────────────────────────────────────────────────────
+
+describe('ProcedureDefinition — schemaVersion discriminant', () => {
+  it('validator stamps schemaVersion on the validated output', () => {
+    const result = validateProcedureDefinition(makeMinimalProcedure())
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected ok')
+    expect(result.definition.schemaVersion).toBe('spe-1274.v1')
+    expect(result.definition.schemaVersion).toBe(PROCEDURE_DEFINITION_SCHEMA_VERSION)
+  })
+
+  it('validator overwrites any incoming schemaVersion with the canonical value', () => {
+    const input = makeMinimalProcedure({ schemaVersion: 'spe-1274.v1' })
+    const result = validateProcedureDefinition(input)
+    expect(result.ok).toBe(true)
+    if (!result.ok) throw new Error('Expected ok')
+    expect(result.definition.schemaVersion).toBe(PROCEDURE_DEFINITION_SCHEMA_VERSION)
+  })
+
+  it('BINDING_SIGIL exemplar carries the canonical schemaVersion', () => {
+    expect(BINDING_SIGIL.schemaVersion).toBe(PROCEDURE_DEFINITION_SCHEMA_VERSION)
+  })
+
+  it('RESONANCE_CONSTRUCT exemplar carries the canonical schemaVersion', () => {
+    expect(RESONANCE_CONSTRUCT.schemaVersion).toBe(PROCEDURE_DEFINITION_SCHEMA_VERSION)
   })
 })

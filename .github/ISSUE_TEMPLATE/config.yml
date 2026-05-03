@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or design discussion
+    url: https://github.com/JamesJedi420/containment-protocol/discussions
+    about: For open-ended questions, playtest reports, and design proposals (when Discussions is enabled).
+  - name: Security report
+    url: https://github.com/JamesJedi420/containment-protocol/blob/main/SECURITY.md
+    about: Do not file security issues publicly. Follow SECURITY.md.

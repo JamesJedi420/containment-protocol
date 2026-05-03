@@ -555,3 +555,81 @@ Use:
 - canonical state
 
 Avoid casual substitutes in formal docs when precision matters.
+
+---
+
+## Reference: Operative role names
+
+Canonical role identifiers used by team coverage, mission requirements, certifications, and loadouts. Use exact spelling in code and content.
+
+- `hunter` — tactical containment and threat handling
+- `occultist` — occult interpretation and ritual containment
+- `tech` — technical anomaly handling and equipment operation
+- `medic` — medical support and trauma response
+- `investigator` — evidence analysis and case progression
+- `field_recon` — pre-deployment scouting and intel collection
+- `medium` — perception of non-physical/anomalous signals
+- `negotiator` — social control, liaison, and de-escalation
+
+Source: [team-composition-cohesion-audit.md](team-composition-cohesion-audit.md).
+
+## Reference: Mission categories
+
+Canonical mission category values. Each open mission carries exactly one.
+
+- `Containment Breach` — immediate stabilization and containment priority; typically high threat and short deadline.
+- `Investigation Lead` — evidence-chain progression and anomaly source validation; can convert to breach if unresolved.
+- `Civilian/Infrastructure Incident` — social, public-facing, or facility-risk scenarios; often liaison- and support-heavy.
+- `Faction/Hostile Activity` — adversarial action requiring tactical/information response; may include raid escalation.
+- `Strategic Opportunity / Optional Contract` — reward-oriented, lower urgency; routed by fit and capacity rather than urgency.
+
+Source: [mission-intake-triage-routing-audit.md](mission-intake-triage-routing-audit.md).
+
+## Reference: Readiness states
+
+Canonical team readiness category values. Reported by the deployment readiness surface.
+
+- `mission_ready` — deployable immediately with no hard blockers.
+- `conditional` — deployable, but with explicit degradation (fatigue, cohesion strain, suboptimal loadout).
+- `temporarily_blocked` — non-terminal blocker expected to clear (training lock, short recovery, cooldown).
+- `hard_blocked` — cannot deploy due to hard requirements (missing coverage/cert/loadout gate, invalid team state).
+- `recovery_required` — operationally unavailable until recovery thresholds clear.
+
+Source: [deployment-readiness-time-cost-audit.md](deployment-readiness-time-cost-audit.md).
+
+## Reference: Common blocker codes
+
+Reason codes surfaced by readiness, routing, and loadout validation. Codes are stable identifiers; player-facing copy is derived. This list is illustrative, not exhaustive — the audit notes are the source of truth.
+
+Routing blockers (mission side):
+
+- `no_eligible_team` — no team currently passes the mission's coverage and gate requirements.
+- `deferred_by_player` — player chose to defer this week.
+- `priority_starvation` — higher-priority missions consumed available teams.
+
+Composition blockers (team side):
+
+- `missing_role_coverage` — required coverage bucket has no covered role.
+- `leader_gap` — no valid leader assigned.
+- `invalid_team_state` — team is mid-deployment or otherwise non-routable.
+
+Readiness blockers (team side):
+
+- `training_lock` — required certification not yet completed.
+- `loadout_gate_failed` — required equipment or countermeasure tag not present.
+- `recovery_lock` — operative or team has not cleared recovery threshold.
+- `support_capacity_exceeded` — required support specialist unavailable this week.
+
+Sources: [mission-intake-triage-routing-audit.md](mission-intake-triage-routing-audit.md), [team-composition-cohesion-audit.md](team-composition-cohesion-audit.md), [deployment-readiness-time-cost-audit.md](deployment-readiness-time-cost-audit.md), [gear-loadouts-audit.md](gear-loadouts-audit.md), [training-certification-audit.md](training-certification-audit.md).
+
+## Reference: Outcome categories
+
+Canonical mission outcome values emitted by resolution.
+
+- `success` — mission objectives met; no major fallout attributable to the team.
+- `partial` — primary objective met with significant cost or unmet secondary objectives.
+- `fail` — primary objective not met; standard fallout applies.
+- `escalated` — failure produced spawned follow-up cases or stage advancement on related cases.
+- `delayed` — mission did not resolve this week and carries into a future week with adjusted state.
+
+Source: [outcome-branching-audit.md](outcome-branching-audit.md), [weakest-link-mission-resolution-audit.md](weakest-link-mission-resolution-audit.md).

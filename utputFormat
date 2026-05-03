@@ -1,0 +1,15 @@
+HTTP/1.1 400 Bad Request
+Date: Sun, 03 May 2026 04:33:30 GMT
+Content-Type: application/json; charset=utf-8
+Content-Length: 105
+Connection: keep-alive
+Server: cloudflare
+CF-Ray: 9f5c8c433b505f62-OMA
+CF-Cache-Status: DYNAMIC
+Cache-Control: private, no-cache, no-store, must-revalidate
+ETag: W/"69-52uY7V/Kx1HK89xkLM5jTs5PRG8"
+Via: 1.1 google
+alt-svc: h3=":443"; ma=86400
+x-request-id: 9f5c8c43b2c25f62-DFW
+
+{"error":"Expected property name or '}' in JSON at position 1 (line 1 column 2)","details":{},"code":400}

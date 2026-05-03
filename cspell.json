@@ -6,7 +6,8 @@
     ".git",
     "coverage",
     "dist",
-    "node_modules"
+    "node_modules",
+    "cspell.json"
   ],
   "words": [
     "biocontainment",
@@ -81,14 +82,24 @@
     "recert",
     "substats",
     "unassignment",
-    "unassigns",
-    "unequip",
-    "unequips",
-    "unslotted",
-    "voss",
-    "watchlist",
-    "Unlockable",
-    "chokepoint",
-    "chokepoints"
+    "scoutable",
+    "lockdown",
+    "queueable",
+    "callsign",
+    "affordance",
+    "affordances",
+    "misroute",
+    "misrouted",
+    "misroutes",
+    "deprioritise",
+    "prioritise",
+    "Scoutable",
+    "Lockdown",
+    "Queueable",
+    "Callsign",
+    "Affordances",
+    "Misroute",
+    "Deprioritise",
+    "Prioritise"
   ]
 }

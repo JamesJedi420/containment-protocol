@@ -238,6 +238,9 @@ import type {
 } from './agent/models'
 import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
+import type { SquadMetadata } from './squadMetadata'
+import type { SquadKitTemplate } from './squadKitTemplate'
+import type { SquadKitAssignment } from './squadKitAssignment'
 // SPE-59: Export KnowledgeState for projection/report typing
 export type { KnowledgeState }
 
@@ -2226,6 +2229,10 @@ export interface GameState {
   factions?: Record<string, FactionRuntimeState>
   hubState?: unknown
   prevHubState?: unknown
+  /** Squad configuration data (SPE-1304). All optional; missing = no config persisted. */
+  squadMetadata?: Record<string, SquadMetadata>
+  squadKitTemplates?: Record<string, SquadKitTemplate>
+  squadKitAssignments?: Record<string, SquadKitAssignment>
 }
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,8 @@ import { type Agent, type AgentRole, type PerformanceMetricSummary } from '../..
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../../domain/teamSimulation'
 import { getTeamDeploymentHistory } from '../deployment/deploymentEventSelectors'
 import { getCoverageRolesForAgents } from '../../domain/validateTeam'
+import { SquadConfigurationSummaryPanel } from './SquadConfigurationSummaryPanel'
+import { selectSquadConfigurationSummary } from '../../domain/squadConfigurationSelector'
 import {
   AGENCY_LABELS,
   CASE_UI_LABELS,
@@ -54,6 +56,10 @@ export default function TeamDetailPage() {
   const deploymentHistory = useMemo(
     () => (team ? getTeamDeploymentHistory(team.id, game.events).slice(0, 8) : []),
     [game.events, team]
+  )
+  const squadConfigSummary = useMemo(
+    () => (teamId ? selectSquadConfigurationSummary(game, teamId) : null),
+    [game, teamId]
   )
 
   if (!team) {
@@ -185,6 +191,8 @@ export default function TeamDetailPage() {
               />
             </div>
           </article>
+
+          <SquadConfigurationSummaryPanel summary={squadConfigSummary} />
 
           <article
             className="panel panel-support space-y-3"

@@ -134,6 +134,9 @@ import {
   applyPreparedSupportProcedure as applyPreparedSupportProcedureState,
   refreshPreparedSupportProcedure as refreshPreparedSupportProcedureState,
 } from '../../domain/supportLoadout'
+import type { SquadMetadata } from '../../domain/squadMetadata'
+import type { SquadKitTemplate } from '../../domain/squadKitTemplate'
+import type { SquadKitAssignment } from '../../domain/squadKitAssignment'
 
 interface GameStore {
   game: GameState
@@ -246,6 +249,9 @@ interface GameStore {
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   advanceWeek: () => void
   setSeed: (seed: number) => void
+    setSquadMetadata: (metadata: SquadMetadata) => void
+    setSquadKitTemplate: (template: SquadKitTemplate) => void
+    setSquadKitAssignment: (assignment: SquadKitAssignment) => void
   updateConfig: (patch: Partial<GameConfig>) => void
   exportSave: () => string
   importSave: (raw: string) => void
@@ -1098,7 +1104,43 @@ export const useGameStore = create<GameStore>()(
         }),
 
       createTeam: (name, seedAgentId) =>
-        set((s) => ({ game: createTeam(s.game, name, seedAgentId) })),
+        set((s) => {
+          const nextGame = createTeam(s.game, name, seedAgentId)
+          const createdTeamId = Object.keys(nextGame.teams).find(
+            (teamId) => !(teamId in s.game.teams)
+          )
+
+          if (!createdTeamId) {
+            return { game: nextGame }
+          }
+
+          const hasMetadataKey = Boolean(nextGame.squadMetadata?.[createdTeamId])
+          const hasAssignmentKey = Boolean(nextGame.squadKitAssignments?.[createdTeamId])
+          if (!hasMetadataKey && !hasAssignmentKey) {
+            return { game: nextGame }
+          }
+
+          const nextMetadata = nextGame.squadMetadata
+            ? { ...nextGame.squadMetadata }
+            : undefined
+          const nextAssignments = nextGame.squadKitAssignments
+            ? { ...nextGame.squadKitAssignments }
+            : undefined
+          if (nextMetadata) {
+            delete nextMetadata[createdTeamId]
+          }
+          if (nextAssignments) {
+            delete nextAssignments[createdTeamId]
+          }
+
+          return {
+            game: {
+              ...nextGame,
+              squadMetadata: nextMetadata,
+              squadKitAssignments: nextAssignments,
+            },
+          }
+        }),
 
       renameTeam: (teamId, name) => set((s) => ({ game: renameTeam(s.game, teamId, name) })),
 
@@ -1108,7 +1150,40 @@ export const useGameStore = create<GameStore>()(
       moveAgentBetweenTeams: (agentId, targetTeamId) =>
         set((s) => ({ game: moveAgentBetweenTeams(s.game, agentId, targetTeamId) })),
 
-      deleteEmptyTeam: (teamId) => set((s) => ({ game: deleteEmptyTeam(s.game, teamId) })),
+      deleteEmptyTeam: (teamId) =>
+        set((s) => {
+          const nextGame = deleteEmptyTeam(s.game, teamId)
+          if (nextGame.teams[teamId]) {
+            return { game: nextGame }
+          }
+
+          const hasMetadataKey = Boolean(nextGame.squadMetadata?.[teamId])
+          const hasAssignmentKey = Boolean(nextGame.squadKitAssignments?.[teamId])
+          if (!hasMetadataKey && !hasAssignmentKey) {
+            return { game: nextGame }
+          }
+
+          const nextMetadata = nextGame.squadMetadata
+            ? { ...nextGame.squadMetadata }
+            : undefined
+          const nextAssignments = nextGame.squadKitAssignments
+            ? { ...nextGame.squadKitAssignments }
+            : undefined
+          if (nextMetadata) {
+            delete nextMetadata[teamId]
+          }
+          if (nextAssignments) {
+            delete nextAssignments[teamId]
+          }
+
+          return {
+            game: {
+              ...nextGame,
+              squadMetadata: nextMetadata,
+              squadKitAssignments: nextAssignments,
+            },
+          }
+        }),
 
       queueTraining: (agentId, trainingId) =>
         set((s) => ({ game: queueTraining(s.game, agentId, trainingId) })),
@@ -1341,6 +1416,33 @@ export const useGameStore = create<GameStore>()(
       },
 
       advanceWeek: () => set((s) => ({ game: advanceWeek(s.game) })),
+
+      setSquadMetadata: (metadata) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadMetadata: { ...(s.game.squadMetadata ?? {}), [metadata.squadId]: metadata },
+          },
+        })),
+
+      setSquadKitTemplate: (template) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadKitTemplates: { ...(s.game.squadKitTemplates ?? {}), [template.id]: template },
+          },
+        })),
+
+      setSquadKitAssignment: (assignment) =>
+        set((s) => ({
+          game: {
+            ...s.game,
+            squadKitAssignments: {
+              ...(s.game.squadKitAssignments ?? {}),
+              [assignment.squadId]: assignment,
+            },
+          },
+        })),
 
       reset: () => set({ game: createStartingState() }),
 

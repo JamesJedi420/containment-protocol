@@ -41,6 +41,8 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'directive.applied': 'covered',
   'support.shortfall': 'covered',
   'system.academy_upgraded': 'covered',
+  'staff.coping.applied': 'covered',
+  'staff.coping.misconduct': 'covered',
   'case.aggregate_battle': 'covered',
 }
 

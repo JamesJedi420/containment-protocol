@@ -220,6 +220,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'directive.applied': 'Directive Applied',
   'support.shortfall': 'Support Shortfall',
   'system.academy_upgraded': 'Academy Upgraded',
+  'staff.coping.applied': 'Coping Applied',
+  'staff.coping.misconduct': 'Coping Misconduct',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -263,6 +265,8 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'directive.applied': 'agency_posture',
   'support.shortfall': 'operations_logistics',
   'system.academy_upgraded': 'operations_logistics',
+  'staff.coping.applied': 'personnel',
+  'staff.coping.misconduct': 'personnel',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
@@ -918,6 +922,36 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.trainingDivision,
         searchText:
           `academy upgraded ${event.payload.tierBefore} ${event.payload.tierAfter} ${event.payload.cost}`.toLowerCase(),
+      }
+
+    case 'staff.coping.applied':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Coping intervention applied',
+        detail: `Week ${event.payload.week} / Agent ${event.payload.agentId} / Policy ${event.payload.policy} / Streak ${event.payload.streak}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agents,
+        searchText:
+          `coping applied ${event.payload.agentId} ${event.payload.policy} ${event.payload.streak}`.toLowerCase(),
+      }
+
+    case 'staff.coping.misconduct':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Coping misconduct flagged',
+        detail: `Week ${event.payload.week} / Agent ${event.payload.agentId} / Policy ${event.payload.policy}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'danger',
+        href: APP_ROUTES.agents,
+        searchText:
+          `coping misconduct ${event.payload.agentId} ${event.payload.policy}`.toLowerCase(),
       }
   }
 

@@ -26,7 +26,10 @@ import {
   useTemporaryConjuredSupport,
 } from '../domain/supportLoadout'
 
-function withCaseTags(state: ReturnType<typeof createStartingState>, tags: string[]) {
+function withCaseTags(
+  state: ReturnType<typeof createStartingState>,
+  tags: string[]
+): ReturnType<typeof createStartingState> {
   return {
     ...state,
     cases: {

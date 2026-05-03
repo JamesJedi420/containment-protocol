@@ -1376,8 +1376,6 @@ export const useGameStore = create<GameStore>()(
           },
         })),
 
-      reset: () => set({ game: createStartingState() }),
-
       setSeed: (seed) =>
         set((s) => {
           const normalizedSeed = normalizeSeed(seed)

@@ -836,7 +836,7 @@ describe('caseGeneration', () => {
     }
 
     const baselineInput = {
-      marketPressure: 'normal' as const,
+      marketPressure: 'stable' as const,
       containment: 44,
       districtId: 'hub',
       authorityProfile: 'rapid_response',

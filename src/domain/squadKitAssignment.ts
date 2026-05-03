@@ -2,11 +2,9 @@
 // Domain-only, deterministic, no model widening unless unavoidable
 import type { SquadMetadata } from './squadMetadata'
 import {
-  SquadKitTemplate,
-  KitMatchResult,
-  KitMismatchResult,
   evaluateSquadKitMatch,
 } from './squadKitTemplate'
+import type { SquadKitTemplate, KitMatchResult, KitMismatchResult } from './squadKitTemplate'
 
 export interface SquadKitAssignment {
   squadId: string

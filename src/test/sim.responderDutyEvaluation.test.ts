@@ -5,6 +5,7 @@ import {
   evaluateResponderDutyState,
   evaluateResponderForDeployment,
   evaluatePerceivedDangerRisk,
+  type ResponderContextTag,
 } from '../domain/responderDutyEvaluation'
 
 function makeAgent(input: {
@@ -191,7 +192,7 @@ describe('responderDutyEvaluation slice 1', () => {
     const input = {
       agent,
       missionRequiredTags: ['cert:screening_ops'],
-      contextTags: ['indirect_visual_threat'] as const,
+      contextTags: ['indirect_visual_threat'] as ResponderContextTag[],
       visibleThreat: true,
       threatReachable: false,
     }

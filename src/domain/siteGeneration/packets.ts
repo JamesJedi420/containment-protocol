@@ -93,6 +93,10 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'feral_pack', weight: 8 },
       { id: 'collapsed_infrastructure', weight: 2 },
     ],
+    detention_complex: [
+      { id: 'collapsed_infrastructure', weight: 7 },
+      { id: 'cult_engineers', weight: 3 },
+    ],
   },
   locationsByPurpose: {
     ritual_complex: [
@@ -102,6 +106,10 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
     predator_nest: [
       { id: 'stockyard_labyrinth', weight: 7 },
       { id: 'riverfront_substrate', weight: 3 },
+    ],
+    detention_complex: [
+      { id: 'stockyard_labyrinth', weight: 6 },
+      { id: 'riverfront_substrate', weight: 4 },
     ],
   },
   ingressByPurposeAndLocation: {
@@ -120,6 +128,14 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
     'predator_nest|stockyard_labyrinth': [
       { id: 'maintenance_shaft', weight: 6 },
       { id: 'storm_drain', weight: 4 },
+    ],
+    'detention_complex|riverfront_substrate': [
+      { id: 'service_door', weight: 6 },
+      { id: 'floodgate', weight: 4 },
+    ],
+    'detention_complex|stockyard_labyrinth': [
+      { id: 'maintenance_shaft', weight: 7 },
+      { id: 'service_door', weight: 3 },
     ],
   },
   topologyByIngressAndBuilder: {
@@ -203,6 +219,21 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'predator_ambush', weight: 5 },
       { id: 'blood_traps', weight: 4 },
     ],
+    'detention_complex|concentric_sanctum': [
+      { id: 'ward_feedback', weight: 4 },
+      { id: 'structural_fall', weight: 4 },
+      { id: 'blood_traps', weight: 2 },
+    ],
+    'detention_complex|lure_corridors': [
+      { id: 'blood_traps', weight: 5 },
+      { id: 'structural_fall', weight: 4 },
+      { id: 'predator_ambush', weight: 2 },
+    ],
+    'detention_complex|collapsed_cells': [
+      { id: 'structural_fall', weight: 7 },
+      { id: 'blood_traps', weight: 3 },
+      { id: 'ward_feedback', weight: 2 },
+    ],
   },
   treasureByPurposeAndLocation: {
     'ritual_complex|riverfront_substrate': [
@@ -224,6 +255,16 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'feeding_cache', weight: 8 },
       { id: 'smuggled_cache', weight: 6 },
       { id: 'rite_ledger', weight: 1 },
+    ],
+    'detention_complex|riverfront_substrate': [
+      { id: 'smuggled_cache', weight: 7 },
+      { id: 'rite_ledger', weight: 4 },
+      { id: 'sealed_reliquary', weight: 2 },
+    ],
+    'detention_complex|stockyard_labyrinth': [
+      { id: 'smuggled_cache', weight: 8 },
+      { id: 'feeding_cache', weight: 3 },
+      { id: 'rite_ledger', weight: 2 },
     ],
   },
   inhabitantsByPurposeAndBuilder: {
@@ -258,6 +299,21 @@ const RITUAL_PACKET: PilotSiteGenerationPacket = {
       { id: 'captured_witnesses', weight: 7 },
       { id: 'feral_packmates', weight: 6 },
       { id: 'bound_sentinels', weight: 2 },
+    ],
+    'detention_complex|cult_engineers': [
+      { id: 'captured_witnesses', weight: 7 },
+      { id: 'bound_sentinels', weight: 5 },
+      { id: 'ritual_adepts', weight: 2 },
+    ],
+    'detention_complex|feral_pack': [
+      { id: 'captured_witnesses', weight: 6 },
+      { id: 'feral_packmates', weight: 4 },
+      { id: 'bound_sentinels', weight: 3 },
+    ],
+    'detention_complex|collapsed_infrastructure': [
+      { id: 'captured_witnesses', weight: 8 },
+      { id: 'bound_sentinels', weight: 4 },
+      { id: 'harvested_minds', weight: 2 },
     ],
   },
   topologySpatialProfiles: {

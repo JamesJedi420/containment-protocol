@@ -156,6 +156,7 @@ export function applyChannelDifferentiatedRecovery(
         physicalExhaustion: clamp(pe - 12, 0, 100),
         mentalExhaustion: clamp(me - 4, 0, 100),
         combatStress: clamp(cs - 3, 0, 100),
+        capabilityUsesThisPhase: channels.capabilityUsesThisPhase,
       }
 
     case 'therapy':
@@ -164,6 +165,7 @@ export function applyChannelDifferentiatedRecovery(
         physicalExhaustion: clamp(pe - 2, 0, 100),
         mentalExhaustion: clamp(me - 10, 0, 100),
         combatStress: clamp(cs - 15, 0, 100),
+        capabilityUsesThisPhase: channels.capabilityUsesThisPhase,
       }
 
     case 'medical':
@@ -172,6 +174,7 @@ export function applyChannelDifferentiatedRecovery(
         physicalExhaustion: clamp(pe - 10, 0, 100),
         mentalExhaustion: me,
         combatStress: clamp(cs - 5, 0, 100),
+        capabilityUsesThisPhase: channels.capabilityUsesThisPhase,
       }
   }
 }

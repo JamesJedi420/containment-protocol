@@ -1,18 +1,12 @@
 // Squad kit assignment and validation seam tests (SPE-1025 child)
 // Covers assign, reassign, clear, valid, mismatch paths deterministically
 import { describe, it, expect } from 'vitest'
-import { SquadMetadata } from './squadMetadata'
-import {
-  SquadKitTemplate,
-  createSquadKitTemplate,
-  KitMatchResult,
-  KitMismatchResult,
-} from './squadKitTemplate'
+import type { SquadMetadata } from './squadMetadata'
+import type { SquadKitTemplate, KitMatchResult, KitMismatchResult } from './squadKitTemplate'
 import {
   assignSquadKit,
   clearSquadKitAssignment,
   validateSquadKitAssignment,
-  SquadKitAssignment,
 } from './squadKitAssignment'
 
 const validSquad: SquadMetadata = {
@@ -43,19 +37,28 @@ describe('Squad kit assignment seam', () => {
   it('assigns a valid kit template to a squad', () => {
     const result = assignSquadKit(validSquad, validKitTemplate)
     expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error(`expected assignment success, got ${result.error}`)
+    }
     expect(result.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
   })
 
   it('reassigns a different kit template deterministically', () => {
-    const first = assignSquadKit(validSquad, validKitTemplate)
+    assignSquadKit(validSquad, validKitTemplate)
     const second = assignSquadKit(validSquad, partialKitTemplate)
     expect(second.ok).toBe(true)
+    if (!second.ok) {
+      throw new Error(`expected assignment success, got ${second.error}`)
+    }
     expect(second.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit2' })
   })
 
   it('clears an assigned kit template', () => {
     const cleared = clearSquadKitAssignment(validSquad, { currentAssignment: { squadId: 'S1', kitTemplateId: 'kit1' } })
     expect(cleared.ok).toBe(true)
+    if (!cleared.ok) {
+      throw new Error(`expected clear success, got ${cleared.error}`)
+    }
     expect(cleared.assignment).toEqual({ squadId: 'S1', kitTemplateId: null })
   })
 
@@ -69,6 +72,9 @@ describe('Squad kit assignment seam', () => {
   it('returns error for clearing with no assignment', () => {
     const result = clearSquadKitAssignment(validSquad, { currentAssignment: { squadId: 'S1', kitTemplateId: null } })
     expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('expected clear failure')
+    }
     expect(result.error).toBe('no_assignment_to_clear')
   })
 

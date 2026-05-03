@@ -5,7 +5,7 @@
  * 5 time bands, and rare event overlays.
  */
 
-import { DistrictScheduleState, DistrictProfile, TimeBandProfile, RareEventOverlay } from '../models'
+import type { DistrictScheduleState, DistrictProfile, TimeBandProfile, RareEventOverlay } from '../models'
 
 /**
  * Haven time bands: 5 day-parts with distinct baseline traffic and properties.

@@ -208,21 +208,15 @@ describe('deriveFatigueChannelPenalties — channel-differentiated effects', () 
 
 describe('applyWeeklyAgentFatigue — channel wiring', () => {
   const baseConfig: GameState['config'] = {
-    durationModel: 'standard',
+    ...createStartingState().config,
+    durationModel: 'capacity',
     attritionPerWeek: 10,
-    difficulty: 'normal',
-    startingFunds: 1000,
-    startingAgentCount: 3,
-    researchSlots: 2,
-    supportBudget: 0,
-    missionSuccessRate: 0.7,
-    maxActiveTeams: 2,
   }
 
   const makeAgent = (id: string, fatigueChannels?: AgentFatigueChannels) => ({
     id,
     name: `Agent ${id}`,
-    role: 'field' as const,
+    role: 'field_recon' as const,
     baseStats: { combat: 5, investigation: 5, utility: 5, social: 5 },
     tags: [],
     relationships: {},
@@ -233,7 +227,7 @@ describe('applyWeeklyAgentFatigue — channel wiring', () => {
 
   it('active agent accumulates channels after a weekly tick', () => {
     const agent = makeAgent('a1')
-    const team = { id: 't1', memberIds: ['a1'], agentIds: ['a1'] }
+    const team = { id: 't1', name: 'Team 1', tags: [], memberIds: ['a1'], agentIds: ['a1'] }
 
     const result = applyWeeklyAgentFatigue({
       agents: { a1: agent },
@@ -277,7 +271,7 @@ describe('applyWeeklyAgentFatigue — channel wiring', () => {
 
   it('existing flat fatigue field is still updated alongside channels', () => {
     const agent = makeAgent('a4')
-    const team = { id: 't1', memberIds: ['a4'], agentIds: ['a4'] }
+    const team = { id: 't1', name: 'Team 1', tags: [], memberIds: ['a4'], agentIds: ['a4'] }
 
     const result = applyWeeklyAgentFatigue({
       agents: { a4: agent },
@@ -313,7 +307,7 @@ describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path
       ...state.agents[agentId]!,
       fatigue: 10, // well below INJURY_RISK_FATIGUE_MIN = 45
       status: 'active' as const,
-      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 60 }, // >= 55 threshold
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 60, capabilityUsesThisPhase: 0 }, // >= 55 threshold
     }))
 
     const result = applyMissionResolutionAgentMutations({
@@ -337,7 +331,7 @@ describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path
       ...state.agents[agentId]!,
       fatigue: 10,
       status: 'active' as const,
-      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 10 }, // below 55
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 10, capabilityUsesThisPhase: 0 }, // below 55
     }))
 
     const result = applyMissionResolutionAgentMutations({
@@ -362,7 +356,7 @@ describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path
       ...state.agents[agentId]!,
       fatigue: 50, // above INJURY_RISK_FATIGUE_MIN, below 70
       status: 'active' as const,
-      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 75 }, // >= 70 threshold
+      fatigueChannels: { physicalExhaustion: 0, mentalExhaustion: 0, combatStress: 75, capabilityUsesThisPhase: 0 }, // >= 70 threshold
     }))
 
     const result = applyMissionResolutionAgentMutations({
@@ -389,7 +383,7 @@ describe('SPE-130 Phase 2 — combatStress drives mission-resolution injury path
       ...state.agents[agentId]!,
       fatigue: 10,
       status: 'active' as const,
-      fatigueChannels: { physicalExhaustion: 80, mentalExhaustion: 0, combatStress: 0 }, // high physical, zero combat
+      fatigueChannels: { physicalExhaustion: 80, mentalExhaustion: 0, combatStress: 0, capabilityUsesThisPhase: 0 }, // high physical, zero combat
     }))
 
     const result = applyMissionResolutionAgentMutations({

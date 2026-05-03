@@ -8,7 +8,7 @@ import {
 } from '../domain/squadKitAssignment'
 
 describe('squadKitAssignment', () => {
-  const squad = createSquadMetadata({
+  const squadCreate = createSquadMetadata({
     squadId: 'squad-1',
     name: 'Alpha',
     role: 'rapid_response',
@@ -16,18 +16,29 @@ describe('squadKitAssignment', () => {
     shift: 'night',
     assignedZone: 'zone-1',
     designatedLeaderId: 'a_mina',
-  }).metadata
+  })
+  if (!squadCreate.ok) {
+    throw new Error(`fixture setup failed: ${squadCreate.code}`)
+  }
+  const squad = squadCreate.metadata
 
-  const kitTemplate = createSquadKitTemplate({
+  const templateCreate = createSquadKitTemplate({
     id: 'kit-1',
     label: 'Breach Kit',
     requiredItemTags: ['breach', 'combat', 'protection'],
     minCoveredCount: 2,
-  }).template!
+  })
+  if (!templateCreate.ok) {
+    throw new Error(`fixture setup failed: ${templateCreate.error}`)
+  }
+  const kitTemplate = templateCreate.template
 
   it('assigns a kit template to a squad', () => {
     const result = assignSquadKit(squad, kitTemplate)
     expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error(`expected assignment success, got ${result.error}`)
+    }
     expect(result.assignment).toEqual({ squadId: 'squad-1', kitTemplateId: 'kit-1' })
   })
 
@@ -36,6 +47,9 @@ describe('squadKitAssignment', () => {
       currentAssignment: { squadId: 'squad-1', kitTemplateId: 'kit-1' },
     })
     expect(result.ok).toBe(true)
+    if (!result.ok) {
+      throw new Error(`expected clear success, got ${result.error}`)
+    }
     expect(result.assignment).toEqual({ squadId: 'squad-1', kitTemplateId: null })
   })
 
@@ -44,6 +58,9 @@ describe('squadKitAssignment', () => {
       currentAssignment: { squadId: 'squad-1', kitTemplateId: null },
     })
     expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('expected clear failure')
+    }
     expect(result.error).toBe('no_assignment_to_clear')
   })
 
@@ -59,6 +76,9 @@ describe('squadKitAssignment', () => {
     const tags = ['breach', 'combat', 'medkit']
     const result = validateSquadKitAssignment(kitTemplate, tags)
     expect(result.status).toBe('valid')
+    if (result.status !== 'valid') {
+      throw new Error('expected valid result')
+    }
     expect(result.result.coveredTags).toEqual(['breach', 'combat'])
     expect(result.result.coverage).toBe(2)
   })
@@ -67,6 +87,9 @@ describe('squadKitAssignment', () => {
     const tags = ['breach']
     const result = validateSquadKitAssignment(kitTemplate, tags)
     expect(result.status).toBe('mismatch')
+    if (result.status !== 'mismatch') {
+      throw new Error('expected mismatch result')
+    }
     expect(result.result.missingTags).toEqual(expect.arrayContaining(['combat', 'protection']))
     expect(result.result.shortfall).toBe(1)
   })

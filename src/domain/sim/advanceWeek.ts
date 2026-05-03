@@ -3914,8 +3914,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
   const result = finalizeEvents(context, builtReport, agencyMetrics)
   // Patch: preserve unknown fields from input state for testability (e.g., damagedEquipmentQueue)
-  const stateWithUnknownFields = state as GameState & Record<string, unknown>
-  const resultWithUnknownFields = result as GameState & Record<string, unknown>
+  const stateWithUnknownFields = state as unknown as GameState & Record<string, unknown>
+  const resultWithUnknownFields = result as unknown as GameState & Record<string, unknown>
   for (const key of Object.keys(stateWithUnknownFields)) {
     if (!(key in resultWithUnknownFields)) {
       resultWithUnknownFields[key] = stateWithUnknownFields[key]
@@ -3947,7 +3947,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (mergedAuthoritySources.length > 0) {
     outputWeeklyState.civicAuthoritySources = mergedAuthoritySources
   } else if ('civicAuthoritySources' in outputWeeklyState) {
-    delete (outputWeeklyState as Record<string, unknown>).civicAuthoritySources
+    delete (outputWeeklyState as unknown as Record<string, unknown>).civicAuthoritySources
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.
@@ -3958,7 +3958,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (decayedRumorPackets.length > 0) {
     outputWeeklyState.rumorPackets = decayedRumorPackets
   } else if ('rumorPackets' in outputWeeklyState) {
-    delete (outputWeeklyState as Record<string, unknown>).rumorPackets
+    delete (outputWeeklyState as unknown as Record<string, unknown>).rumorPackets
   }
 
   // SPE-1266: Decay credit packets each week; drop packets below the 0.05 signal threshold.
@@ -3969,7 +3969,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (decayedCreditPackets.length > 0) {
     outputWeeklyState.creditPackets = decayedCreditPackets
   } else if ('creditPackets' in outputWeeklyState) {
-    delete (outputWeeklyState as Record<string, unknown>).creditPackets
+    delete (outputWeeklyState as unknown as Record<string, unknown>).creditPackets
   }
 
     // SPE-1267: Decay access packets each week; drop packets below the 0.05 signal threshold.
@@ -3980,7 +3980,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     if (decayedAccessPackets.length > 0) {
       outputWeeklyState.accessPackets = decayedAccessPackets
     } else if ('accessPackets' in outputWeeklyState) {
-      delete (outputWeeklyState as Record<string, unknown>).accessPackets
+      delete (outputWeeklyState as unknown as Record<string, unknown>).accessPackets
     }
 
   // SPE-95: Patch output state for test assertions

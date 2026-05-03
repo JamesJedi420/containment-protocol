@@ -42,7 +42,7 @@ const concentricStages: SiteGenerationStageSnapshot = {
 }
 
 const lureStages: SiteGenerationStageSnapshot = {
-  purpose: 'lure_site',
+  purpose: 'predator_nest',
   builder: 'cult_engineers',
   location: 'riverfront_substrate',
   ingress: 'floodgate',

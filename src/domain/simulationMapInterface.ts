@@ -786,7 +786,6 @@ function buildUncertaintySummary(
   const triage = buildOperationalTriageSummary(
     contradictionHotspots,
     falseReadingHotspots,
-    lowConfidenceClusters,
     recentlyContradictedHotspots,
     operationalPriority,
     recommendations,
@@ -1069,7 +1068,6 @@ function pickTopLabel<TLabel extends string>(
 function buildOperationalTriageSummary(
   contradictionHotspots: readonly UncertaintyHotspot[],
   falseReadingHotspots: readonly UncertaintyHotspot[],
-  lowConfidenceClusters: readonly LowConfidenceCluster[],
   recentlyContradictedHotspots: readonly UncertaintyHotspot[],
   operationalPriority: readonly OperationalUncertaintyPriority[],
   recommendations: UncertaintyRecommendationQueue,

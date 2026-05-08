@@ -10,7 +10,6 @@ import {
   assignSquadKit,
   clearSquadKitAssignment,
   validateSquadKitAssignment,
-  SquadKitAssignment,
 } from './squadKitAssignment'
 
 const validSquad: SquadMetadata = {
@@ -46,6 +45,8 @@ describe('Squad kit assignment seam', () => {
 
   it('reassigns a different kit template deterministically', () => {
     const first = assignSquadKit(validSquad, validKitTemplate)
+    expect(first.ok).toBe(true)
+    expect(first.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
     const second = assignSquadKit(validSquad, partialKitTemplate)
     expect(second.ok).toBe(true)
     expect(second.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit2' })

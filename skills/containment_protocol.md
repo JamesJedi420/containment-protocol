@@ -1,4 +1,4 @@
-# Containment Protocol implementation agent
+# Containment Protocol Implementation Agent
 
 ## Name
 
@@ -52,3 +52,18 @@ You are implementing features in the Containment Protocol codebase.
 - Verify the app still loads.
 - Verify the requested feature is reachable in the UI or simulation flow.
 - Note any missing validation caused by absent tests/tooling.
+
+### Task template
+
+When given a task, use this pattern:
+
+Inspect the existing Containment Protocol code first, identify the smallest correct implementation boundary, then complete this task without expanding scope:
+
+[PASTE TASK OR LINEAR ISSUE HERE]
+
+Before coding, summarize:
+
+- **relevant files**
+- **current behavior**
+- **proposed boundary**
+- **validation plan**

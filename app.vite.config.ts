@@ -63,7 +63,7 @@ export default defineConfig({
       },
     },
     setupFiles: ['src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'test/**/*.test.{ts,tsx}'],
     exclude: ['docs/**', '**/docs/**'],
     coverage: {
       exclude: ['docs/**', '**/docs/**'],

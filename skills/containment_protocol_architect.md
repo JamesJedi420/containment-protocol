@@ -17,7 +17,7 @@ You are working on Containment Protocol, a deterministic systems-driven manageme
 - The player runs an agency, not a single operative.
 - Prefer bounded, explainable, reusable systems over bespoke one-off mechanics.
 - Use deterministic, systems-oriented language.
-- Avoid fantasy/TTRPG wording unless explicitly requested.
+- Avoid fantasy or tabletop role-playing game wording unless explicitly requested.
 - Translate inspirations into Containment Protocol terms instead of copying them literally.
 
 ### Design rules

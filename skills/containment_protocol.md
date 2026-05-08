@@ -1,108 +1,54 @@
-# Containment Protocol implementation skill
+# Containment Protocol implementation agent
 
-You are implementing work in the **Containment Protocol** codebase.
+## Name
 
-## Project framing
+Containment Protocol implementation agent
 
-Containment Protocol is a deterministic systems-driven management sim.
+## When to use
 
-Core rules:
+Use for actually building features in the repo.
 
-- The player runs an agency, not a single operative.
-- Prefer bounded, explainable, reusable systems over sprawling bespoke mechanics.
-- Use deterministic, systems-oriented language.
-- Avoid fantasy/TTRPG wording unless explicitly requested.
-- Translate outside inspiration into Containment Protocol terms instead of copying it literally.
-- Reuse existing systems instead of creating parallel mechanics.
+## Instructions
 
-## Architecture orientation
+You are implementing features in the Containment Protocol codebase.
 
-Inspect existing code before changing anything.
+### Primary objective
 
-Look first at:
+- Complete the requested feature with the smallest correct change set that fits existing architecture.
 
-- `README.md` for project structure, architectural rules, and testing guidance
-- `src/domain/**` for simulation rules, entities, and system logic
-- `src/app/store/**` for state containers, orchestration, and app-level state flow
-- `src/features/**` for player-facing feature surfaces and UI workflows
-- `src/test/**` and related test files for validation patterns
-- any nearby types, projections, selectors, fixtures, or helpers directly used by the target feature
+### Project standards
 
-## Required workflow
+- Deterministic systems only.
+- Reusable systems over bespoke scripting.
+- Keep implementation boundaries tight.
+- Match the project’s existing naming and code style.
+- Avoid unnecessary abstractions unless the existing codebase already uses them.
+- Prefer explicit state transitions and inspectable logic.
 
-Before coding:
+### Required workflow
 
-1. Inspect the relevant files first.
-2. Identify the smallest correct implementation boundary.
-3. Reuse existing structures where possible.
-4. Avoid silent scope expansion.
+1. Read the relevant files first.
+2. Summarize the current implementation in 3-6 bullets before making major changes.
+3. Identify the smallest viable implementation boundary.
+4. Implement incrementally.
+5. After each substantial change, explain:
+   - what changed
+   - why it belongs in this boundary
+   - any risks or follow-up work
+6. Run relevant checks/tests if available.
+7. Report exactly what remains incomplete.
 
-You must produce this pre-coding summary before major changes:
+### Coding rules
 
-- **Relevant files**
-- **Current behavior**
-- **Proposed boundary**
-- **Validation plan**
+- Do not rewrite large unrelated areas.
+- Do not silently change semantics outside the requested scope.
+- Keep names concrete and system-facing.
+- Prefer extending existing types/models/components rather than duplicating them.
+- If imports/types are wrong, fix them cleanly and minimally.
+- If the app is broken, restore working behavior first, then continue.
 
-## Boundary rules
+### Validation rules
 
-- Prefer the smallest coherent implementation slice that satisfies the request.
-- Do not create a new subsystem if an existing one can be extended.
-- Do not rewrite unrelated areas.
-- Keep logic explicit, inspectable, and debuggable.
-- Preserve deterministic behavior and clear state transitions.
-- Match existing naming, architecture, and style in the repo.
-
-## Validation rules
-
-Before finishing:
-
-- validate with the most relevant available checks
-- prefer targeted tests over broad speculative rewrites
-- verify the affected flow still works in the app
-- state clearly what was validated and what remains unverified
-
-Validation may include:
-
-- unit/integration tests
-- type checking
-- linting
-- targeted runtime verification
-- UI flow verification
-- fixture/projection/state validation where appropriate
-
-## Output format
-
-Before coding, respond with:
-
-### Pre-coding summary
-
-- **Relevant files**
-- **Current behavior**
-- **Proposed boundary**
-- **Validation plan**
-
-After coding, respond with:
-
-### Implementation summary
-
-- **Changes made**
-- **Why this belongs in the boundary**
-- **Validation performed**
-- **Remaining follow-up**
-
-## Task template
-
-When given a task, use this pattern:
-
-Inspect the existing Containment Protocol code first, identify the smallest correct implementation boundary, then complete this task without expanding scope:
-
-[PASTE FEATURE, BUG, OR LINEAR ISSUE HERE]
-
-Before coding, summarize:
-
-- relevant files
-- current behavior
-- proposed boundary
-- validation plan
-
+- Verify the app still loads.
+- Verify the requested feature is reachable in the UI or simulation flow.
+- Note any missing validation caused by absent tests/tooling.

@@ -1,20 +1,3 @@
-function canAgentRepairSignalJammer(state: GameState, agentId: Id): boolean {
-  const agent = state.agents[agentId]
-  if (!agent) return false
-  // Capability is determined by role or tags
-  if (SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
-    return true
-  }
-  const tags = new Set(agent.tags ?? [])
-  return tags.has('tech') || tags.has('investigator') || tags.has('signal')
-}
-function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'> | undefined) {
-  return new Set([
-    ...(caseData?.tags ?? []),
-    ...(caseData?.requiredTags ?? []),
-    ...(caseData?.preferredTags ?? []),
-  ])
-}
 import { getEquipmentSlotItemId } from './equipment'
 import {
   readGameStateManager,
@@ -190,15 +173,32 @@ const PREPARED_SUPPORT_PROCEDURE_ITEMS = {
   }
 >
 
+function canAgentRepairSignalJammer(state: GameState, agentId: Id): boolean {
+  const agent = state.agents[agentId]
+  if (!agent) return false
+  if (SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
+    return true
+  }
+  const tags = new Set(agent.tags ?? [])
+  return tags.has('tech') || tags.has('investigator') || tags.has('signal')
+}
+
+function getEncounterSupportTags(
+  caseData: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'> | undefined
+) {
+  return new Set([
+    ...(caseData?.tags ?? []),
+    ...(caseData?.requiredTags ?? []),
+    ...(caseData?.preferredTags ?? []),
+  ])
+}
 
 function getPreparedSupportProcedureDefinition(itemId: string | undefined) {
   if (!itemId) {
     return undefined
   }
   return Object.prototype.hasOwnProperty.call(PREPARED_SUPPORT_PROCEDURE_ITEMS, itemId)
-    ? PREPARED_SUPPORT_PROCEDURE_ITEMS[
-        itemId as keyof typeof PREPARED_SUPPORT_PROCEDURE_ITEMS
-      ]
+    ? PREPARED_SUPPORT_PROCEDURE_ITEMS[itemId as keyof typeof PREPARED_SUPPORT_PROCEDURE_ITEMS]
     : undefined
 }
 
@@ -208,14 +208,12 @@ function getEncounterFlags(state: GameState, encounterId: string) {
   }
 }
 
-
 function getReserveStock(state: GameState, itemId: string | undefined) {
   if (!itemId) {
     return 0
   }
   return Math.max(0, Math.trunc(state.inventory[itemId] ?? 0))
 }
-// Removed stray duplicate getEncounterSupportTags
 
 function isPreparedSupportProcedureHelpful(
   state: GameState,
@@ -320,16 +318,24 @@ function hasSignalJammerRepairSupportItem(state: GameState, agentId: Id) {
     return false
   }
 
-  const repairItemId = getEquipmentSlotItemId(agent.equipmentSlots, SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT)
+  const repairItemId = getEquipmentSlotItemId(
+    agent.equipmentSlots,
+    SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT
+  )
   return Boolean(repairItemId && SIGNAL_JAMMER_REPAIR_SUPPORT_ITEMS.has(repairItemId))
 }
 
-function getWardSealNestedCarryPathState(state: GameState, agentId: Id): WardSealNestedCarryPathState {
+function getWardSealNestedCarryPathState(
+  state: GameState,
+  agentId: Id
+): WardSealNestedCarryPathState {
   const agent = state.agents[agentId]
   const parentItemId = agent
     ? getEquipmentSlotItemId(agent.equipmentSlots, SIGNAL_JAMMER_REPAIR_SUPPORT_SLOT)
     : undefined
-  const childItemId = agent ? getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT) : undefined
+  const childItemId = agent
+    ? getEquipmentSlotItemId(agent.equipmentSlots, PREPARED_SUPPORT_SLOT)
+    : undefined
 
   if (!agent) {
     return {
@@ -576,7 +582,6 @@ export function resolveSupportLoadoutAffordanceIds(
     return []
   }
 
-
   if (utilityItemId === WARD_SEALS_ITEM_ID) {
     const supportState = getPreparedSupportProcedureState(state, encounterId, agentId)
     if (supportState.status !== 'prepared' || supportState.family !== 'containment') {
@@ -694,7 +699,10 @@ export function spawnTemporaryConjuredSupport(
     }
   }
 
-  if (!conjuredState.itemId || conjuredState.reasons.includes('unsupported-temporary-conjured-item')) {
+  if (
+    !conjuredState.itemId ||
+    conjuredState.reasons.includes('unsupported-temporary-conjured-item')
+  ) {
     return {
       state,
       spawned: false,
@@ -703,7 +711,8 @@ export function spawnTemporaryConjuredSupport(
     }
   }
 
-  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const runtimeId =
+    conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
   const encounterFlags = getEncounterFlags(state, encounterId)
   encounterFlags[buildTemporaryConjuredSupportActiveFlagKey(agentId)] = true
   encounterFlags[buildTemporaryConjuredSupportExpiredFlagKey(agentId)] = false
@@ -743,12 +752,15 @@ export function useTemporaryConjuredSupport(
     return {
       state,
       used: false,
-      reason: conjuredState.reasons.includes('unsupported-temporary-conjured-item') ? 'unavailable' : 'not-active',
+      reason: conjuredState.reasons.includes('unsupported-temporary-conjured-item')
+        ? 'unavailable'
+        : 'not-active',
       conjuredState,
     }
   }
 
-  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const runtimeId =
+    conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
   const encounterFlags = getEncounterFlags(state, encounterId)
   encounterFlags[buildTemporaryConjuredSupportUsedFlagKey(runtimeId)] = true
 
@@ -791,7 +803,8 @@ export function expireTemporaryConjuredSupport(
     }
   }
 
-  const runtimeId = conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
+  const runtimeId =
+    conjuredState.runtimeId ?? buildTemporaryConjuredSupportRuntimeId(encounterId, agentId)
   const encounterFlags = getEncounterFlags(state, encounterId)
   encounterFlags[buildTemporaryConjuredSupportActiveFlagKey(agentId)] = false
   encounterFlags[buildTemporaryConjuredSupportExpiredFlagKey(agentId)] = true
@@ -952,7 +965,8 @@ export function getPreparedSupportProcedureState(
 
   const encounterFlags = getEncounterFlags(state, encounterId)
   const expended =
-    encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, definition.family)] === true
+    encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, definition.family)] ===
+    true
 
   return {
     encounterId,
@@ -995,8 +1009,10 @@ export function applyPreparedSupportProcedure(
   const helpful = isPreparedSupportProcedureHelpful(state, encounterId, supportState.family)
 
   encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, supportState.family)] = true
-  encounterFlags[buildPreparedSupportProcedureAppliedFlagKey(agentId, supportState.family)] = helpful
-  encounterFlags[buildPreparedSupportProcedureMismatchFlagKey(agentId, supportState.family)] = !helpful
+  encounterFlags[buildPreparedSupportProcedureAppliedFlagKey(agentId, supportState.family)] =
+    helpful
+  encounterFlags[buildPreparedSupportProcedureMismatchFlagKey(agentId, supportState.family)] =
+    !helpful
 
   const nextState = setEncounterRuntimeState(state, encounterId, {
     phase: `support-procedure:${supportState.family}:${helpful ? 'supported' : 'mismatch'}`,
@@ -1046,7 +1062,11 @@ export function refreshPreparedSupportProcedure(
     }
   }
 
-  const withReducedReserve = setInventoryQuantity(state, supportState.itemId, supportState.reserveStock - 1)
+  const withReducedReserve = setInventoryQuantity(
+    state,
+    supportState.itemId,
+    supportState.reserveStock - 1
+  )
   const encounterFlags = getEncounterFlags(withReducedReserve, encounterId)
 
   encounterFlags[buildPreparedSupportProcedureExpendedFlagKey(agentId, supportState.family)] = false

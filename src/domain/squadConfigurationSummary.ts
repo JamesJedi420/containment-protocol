@@ -193,5 +193,6 @@ export function buildSquadConfigurationSummary(
       },
     }
   }
+
   return { ok: false, error: 'assigned_kit_validation_error' }
 }

@@ -2,12 +2,7 @@ import { buildFactionStates, type FactionState } from './factions'
 import type { GameState, RelationshipSnapshot } from './models'
 import type { MapErrorState } from './mapAwareness'
 
-export type SocialFactKind =
-  | 'alliance'
-  | 'grievance'
-  | 'rumor_path'
-  | 'leverage'
-  | 'pressure_link'
+export type SocialFactKind = 'alliance' | 'grievance' | 'rumor_path' | 'leverage' | 'pressure_link'
 
 export type SocialFactVisibility =
   | 'known'
@@ -92,12 +87,7 @@ export interface MapUncertaintySummary {
   warningTags: readonly string[]
 }
 
-export type WatchlistCategory =
-  | 'contradiction'
-  | 'false_reading'
-  | 'route'
-  | 'remap'
-  | 'social'
+export type WatchlistCategory = 'contradiction' | 'false_reading' | 'route' | 'remap' | 'social'
 
 export interface WatchlistSnapshotItem {
   id: string
@@ -113,7 +103,9 @@ export interface WatchlistSnapshot {
   newlyEnteringUrgent: readonly WatchlistSnapshotItem[]
   remainingUrgent: readonly WatchlistSnapshotItem[]
   improvingOutOfUrgent: readonly WatchlistSnapshotItem[]
-  topPersistentTargetsByCategory: Readonly<Record<WatchlistCategory, readonly WatchlistSnapshotItem[]>>
+  topPersistentTargetsByCategory: Readonly<
+    Record<WatchlistCategory, readonly WatchlistSnapshotItem[]>
+  >
 }
 
 export interface StabilityOutlookSummary {
@@ -136,11 +128,7 @@ export interface OperationalTriageSummary {
     | 'low_confidence'
     | 'route_uncertainty'
     | 'remap_instability'
-  topActionType:
-    | 'investigate_contradiction'
-    | 'verify_route'
-    | 'verify_social'
-    | 'monitor_remap'
+  topActionType: 'investigate_contradiction' | 'verify_route' | 'verify_social' | 'monitor_remap'
   urgentItemCount: number
   monitorOnlyItemCount: number
   priorityPostureTags: readonly string[]
@@ -271,14 +259,17 @@ function buildRelationshipFact(
   const negativeSignal = Math.min(leftValue, rightValue)
 
   if (positiveSignal >= 1 && negativeSignal >= 0) {
-    const visibility: SocialFactVisibility = leftValue >= 1 && rightValue >= 1 ? 'known' : 'reported'
+    const visibility: SocialFactVisibility =
+      leftValue >= 1 && rightValue >= 1 ? 'known' : 'reported'
     return {
       id,
       fromSubjectId,
       toSubjectId,
       kind: 'alliance',
       visibility,
-      confidence: clamp01(visibility === 'known' ? 0.72 + strongestSignal * 0.09 : 0.58 + strongestSignal * 0.08),
+      confidence: clamp01(
+        visibility === 'known' ? 0.72 + strongestSignal * 0.09 : 0.58 + strongestSignal * 0.08
+      ),
       errorState: getRelationshipFactErrorState(visibility),
       sourceTags: visibility === 'known' ? ['roster'] : ['roster', 'partial-report'],
       detail:
@@ -289,14 +280,17 @@ function buildRelationshipFact(
   }
 
   if (negativeSignal <= -1 && positiveSignal <= 0) {
-    const visibility: SocialFactVisibility = leftValue <= -1 && rightValue <= -1 ? 'known' : 'reported'
+    const visibility: SocialFactVisibility =
+      leftValue <= -1 && rightValue <= -1 ? 'known' : 'reported'
     return {
       id,
       fromSubjectId,
       toSubjectId,
       kind: 'grievance',
       visibility,
-      confidence: clamp01(visibility === 'known' ? 0.7 + strongestSignal * 0.09 : 0.55 + strongestSignal * 0.08),
+      confidence: clamp01(
+        visibility === 'known' ? 0.7 + strongestSignal * 0.09 : 0.55 + strongestSignal * 0.08
+      ),
       errorState: getRelationshipFactErrorState(visibility),
       sourceTags: visibility === 'known' ? ['roster'] : ['roster', 'partial-report'],
       detail:
@@ -350,7 +344,8 @@ function buildRumorFact(state: GameState, snapshot: RelationshipSnapshot): Socia
 }
 
 function buildFactionPressureFact(faction: FactionState): SocialMapFact | null {
-  const visiblePressure = faction.pressureScore >= 90 || faction.stance === 'hostile' || faction.standing <= -4
+  const visiblePressure =
+    faction.pressureScore >= 90 || faction.stance === 'hostile' || faction.standing <= -4
   if (!visiblePressure) {
     return null
   }
@@ -406,13 +401,20 @@ function buildSocialFacts(state: GameState, factionStates: readonly FactionState
   }
 
   const rumorFacts = [...(state.relationshipHistory ?? [])]
-    .filter((snapshot) => snapshot.reason === 'external_event' || snapshot.reason === 'spontaneous_event' || snapshot.reason === 'betrayal')
+    .filter(
+      (snapshot) =>
+        snapshot.reason === 'external_event' ||
+        snapshot.reason === 'spontaneous_event' ||
+        snapshot.reason === 'betrayal'
+    )
     .sort((left, right) => {
       if (left.week !== right.week) {
         return right.week - left.week
       }
 
-      return toPairKey(left.agentAId, left.agentBId).localeCompare(toPairKey(right.agentAId, right.agentBId))
+      return toPairKey(left.agentAId, left.agentBId).localeCompare(
+        toPairKey(right.agentAId, right.agentBId)
+      )
     })
     .slice(0, 6)
     .map((snapshot) => buildRumorFact(state, snapshot))
@@ -440,7 +442,9 @@ function buildSubjects(
     },
   ]
 
-  for (const agentId of Object.keys(state.agents).sort((left, right) => left.localeCompare(right))) {
+  for (const agentId of Object.keys(state.agents).sort((left, right) =>
+    left.localeCompare(right)
+  )) {
     const subjectId = `agent:${agentId}`
     if (!referencedSubjectIds.has(subjectId)) {
       continue
@@ -505,12 +509,14 @@ function buildWorldZones(
   const institutions = factionStates.find((faction) => faction.id === 'institutions')
   const zones: WorldRemapZone[] = [buildAgencyHubZone(responderScarcity, severeOpenCases)]
 
-  const curfewPressure = (oversight?.pressureScore ?? 0) >= 110 || (oversight?.standing ?? 0) <= -6 || openCaseCount >= 5
+  const curfewPressure =
+    (oversight?.pressureScore ?? 0) >= 110 || (oversight?.standing ?? 0) <= -6 || openCaseCount >= 5
   zones.push({
     id: 'zone:civic-corridors',
     label: 'Civic Corridors',
     status: curfewPressure ? 'curfew_zone' : 'safe_hub',
-    routeAccess: curfewPressure && responderScarcity >= 0.68 ? 'severed' : curfewPressure ? 'reduced' : 'open',
+    routeAccess:
+      curfewPressure && responderScarcity >= 0.68 ? 'severed' : curfewPressure ? 'reduced' : 'open',
     continuity: curfewPressure ? 'fragile' : 'stable',
     confidence: curfewPressure ? 0.79 : 0.83,
     pressureSources: curfewPressure ? ['oversight_pressure', 'public_lockdown'] : ['civil_routine'],
@@ -524,10 +530,17 @@ function buildWorldZones(
     id: 'zone:industrial-perimeter',
     label: 'Industrial Perimeter',
     status: industrialKillSite ? 'industrial_kill_site' : 'safe_hub',
-    routeAccess: industrialKillSite && responderScarcity >= 0.6 ? 'severed' : industrialKillSite ? 'reduced' : 'open',
+    routeAccess:
+      industrialKillSite && responderScarcity >= 0.6
+        ? 'severed'
+        : industrialKillSite
+          ? 'reduced'
+          : 'open',
     continuity: industrialKillSite ? 'broken' : 'stable',
     confidence: industrialKillSite ? 0.81 : 0.77,
-    pressureSources: industrialKillSite ? ['supply_hostility', 'killzone_pressure'] : ['industrial_access'],
+    pressureSources: industrialKillSite
+      ? ['supply_hostility', 'killzone_pressure']
+      : ['industrial_access'],
   })
 
   const hostileShadow =
@@ -541,7 +554,9 @@ function buildWorldZones(
     routeAccess: hostileShadow ? 'severed' : responderScarcity >= 0.52 ? 'reduced' : 'open',
     continuity: hostileShadow ? 'broken' : responderScarcity >= 0.52 ? 'fragile' : 'stable',
     confidence: hostileShadow ? 0.84 : 0.63,
-    pressureSources: hostileShadow ? ['occult_hostility', 'hidden_route_capture'] : ['counter-networking'],
+    pressureSources: hostileShadow
+      ? ['occult_hostility', 'hidden_route_capture']
+      : ['counter-networking'],
   })
 
   const resistancePocket = responderScarcity >= 0.45 || (institutions?.standing ?? 0) >= 4
@@ -552,7 +567,9 @@ function buildWorldZones(
     routeAccess: responderScarcity >= 0.7 ? 'reduced' : 'open',
     continuity: responderScarcity >= 0.7 ? 'fragile' : 'stable',
     confidence: resistancePocket ? 0.69 : 0.76,
-    pressureSources: resistancePocket ? ['civilian_adaptation', 'institutional_backchannels'] : ['routine_support'],
+    pressureSources: resistancePocket
+      ? ['civilian_adaptation', 'institutional_backchannels']
+      : ['routine_support'],
   })
 
   return sortById(zones)
@@ -592,7 +609,8 @@ function buildRouteState(worldZones: readonly WorldRemapZone[]): RouteRemapState
         )
   const dominantWorldState =
     [...worldZones].sort((left, right) => {
-      const severityDelta = getWorldStatusSeverity(right.status) - getWorldStatusSeverity(left.status)
+      const severityDelta =
+        getWorldStatusSeverity(right.status) - getWorldStatusSeverity(left.status)
       if (severityDelta !== 0) {
         return severityDelta
       }
@@ -609,7 +627,10 @@ function buildRouteState(worldZones: readonly WorldRemapZone[]): RouteRemapState
   }
 }
 
-function buildActionableSignals(worldZones: readonly WorldRemapZone[], routeState: RouteRemapState) {
+function buildActionableSignals(
+  worldZones: readonly WorldRemapZone[],
+  routeState: RouteRemapState
+) {
   const signals: string[] = []
 
   if (routeState.safeHubContinuity === 'broken') {
@@ -674,7 +695,11 @@ function buildUncertaintySummary(
   }))
 
   const lowConfidenceSocialFacts = socialFacts.filter((fact) => {
-    return fact.confidence <= 0.58 || fact.errorState === 'incomplete' || fact.errorState === 'sensor_limited'
+    return (
+      fact.confidence <= 0.58 ||
+      fact.errorState === 'incomplete' ||
+      fact.errorState === 'sensor_limited'
+    )
   })
   const lowConfidenceRouteZones = worldZones.filter((zone) => zone.confidence <= 0.74)
   const lowConfidenceClusters: LowConfidenceCluster[] = []
@@ -687,7 +712,9 @@ function buildUncertaintySummary(
         lowConfidenceSocialFacts.reduce((sum, fact) => sum + fact.confidence, 0) /
           lowConfidenceSocialFacts.length
       ),
-      memberIds: lowConfidenceSocialFacts.map((fact) => fact.id).sort((left, right) => left.localeCompare(right)),
+      memberIds: lowConfidenceSocialFacts
+        .map((fact) => fact.id)
+        .sort((left, right) => left.localeCompare(right)),
       detail: `${lowConfidenceSocialFacts.length} social links are low-confidence or partially observed.`,
     })
   }
@@ -697,9 +724,12 @@ function buildUncertaintySummary(
       id: 'uncertainty:cluster:route-zones',
       scope: 'route',
       averageConfidence: clamp01(
-        lowConfidenceRouteZones.reduce((sum, zone) => sum + zone.confidence, 0) / lowConfidenceRouteZones.length
+        lowConfidenceRouteZones.reduce((sum, zone) => sum + zone.confidence, 0) /
+          lowConfidenceRouteZones.length
       ),
-      memberIds: lowConfidenceRouteZones.map((zone) => zone.id).sort((left, right) => left.localeCompare(right)),
+      memberIds: lowConfidenceRouteZones
+        .map((zone) => zone.id)
+        .sort((left, right) => left.localeCompare(right)),
       detail: `${lowConfidenceRouteZones.length} route-adjacent zones are being interpreted below high-confidence threshold.`,
     })
   }
@@ -942,7 +972,9 @@ function buildWatchlistSnapshot(
     return persistentCandidates.filter((item) => item.category === category).slice(0, 2)
   }
 
-  const topPersistentTargetsByCategory: Readonly<Record<WatchlistCategory, readonly WatchlistSnapshotItem[]>> = {
+  const topPersistentTargetsByCategory: Readonly<
+    Record<WatchlistCategory, readonly WatchlistSnapshotItem[]>
+  > = {
     contradiction: topByCategory('contradiction'),
     false_reading: topByCategory('false_reading'),
     route: topByCategory('route'),
@@ -960,7 +992,10 @@ function buildWatchlistSnapshot(
       ...fallback,
       id: `watchlist:new_urgent:fallback:${fallback.id}`,
       status: 'new_urgent',
-      rationaleTags: uniqueStrings([...fallback.rationaleTags, 'watchlist:fallback:degrading-trend']),
+      rationaleTags: uniqueStrings([
+        ...fallback.rationaleTags,
+        'watchlist:fallback:degrading-trend',
+      ]),
     })
   }
 
@@ -980,8 +1015,7 @@ function buildStabilityOutlookSummary(
   triage: OperationalTriageSummary,
   routeState: RouteRemapState
 ): StabilityOutlookSummary {
-  const freshInstabilitySignals =
-    recentlyContradictedHotspots.length + newlyDegradedClusters.length
+  const freshInstabilitySignals = recentlyContradictedHotspots.length + newlyDegradedClusters.length
   const totalSignals = groupedCounts.byScope.social + groupedCounts.byScope.route
   const severeRoutePressure =
     routeState.safeHubContinuity === 'broken' && groupedCounts.bySignalCategory.routePriority > 0
@@ -1069,15 +1103,13 @@ function pickTopLabel<TLabel extends string>(
 function buildOperationalTriageSummary(
   contradictionHotspots: readonly UncertaintyHotspot[],
   falseReadingHotspots: readonly UncertaintyHotspot[],
-  lowConfidenceClusters: readonly LowConfidenceCluster[],
+  _lowConfidenceClusters: readonly LowConfidenceCluster[],
   recentlyContradictedHotspots: readonly UncertaintyHotspot[],
   operationalPriority: readonly OperationalUncertaintyPriority[],
   recommendations: UncertaintyRecommendationQueue,
   groupedCounts: UncertaintyGroupedCounts,
   routeState: RouteRemapState
 ): OperationalTriageSummary {
-  void lowConfidenceClusters
-
   const contradictionScore =
     contradictionHotspots.length * 1.2 + recentlyContradictedHotspots.length * 0.8
   const falseReadingScore = falseReadingHotspots.length * 0.95
@@ -1184,37 +1216,39 @@ function buildUncertaintyRecommendationQueue(
   worldZones: readonly WorldRemapZone[],
   routeState: RouteRemapState
 ): UncertaintyRecommendationQueue {
-  const topVerificationTargets = sortRecommendations(
-    [
-      ...contradictionHotspots.map((hotspot) => ({
-        id: `recommend:verify:${hotspot.id}`,
-        targetId: hotspot.id,
-        score: toRecommendationScore(0.6 + hotspot.confidence * 0.5),
-        rationaleTags: uniqueStrings([
-          'action:verify',
-          'signal:contradiction',
-          recentlyContradictedHotspots.some((candidate) => candidate.id === hotspot.id)
-            ? 'transition:recent'
-            : 'transition:persistent',
-        ]),
-        detail: `Verify contradiction signal tied to ${hotspot.sourceFactIds.join(', ')}.`,
-      })),
-      ...falseReadingHotspots.map((hotspot) => ({
-        id: `recommend:verify:${hotspot.id}`,
-        targetId: hotspot.id,
-        score: toRecommendationScore(0.45 + hotspot.confidence * 0.45),
-        rationaleTags: uniqueStrings(['action:verify', 'signal:false-reading']),
-        detail: `Re-verify false-reading risk around ${hotspot.sourceFactIds.join(', ')}.`,
-      })),
-      ...newlyDegradedClusters.map((cluster) => ({
-        id: `recommend:verify:${cluster.id}`,
-        targetId: cluster.id,
-        score: toRecommendationScore(0.5 + (1 - cluster.averageConfidence) * 0.45),
-        rationaleTags: uniqueStrings(['action:verify', 'signal:degradation', `scope:${cluster.scope}`]),
-        detail: `Validate newly degraded ${cluster.scope} uncertainty cluster members.`,
-      })),
-    ]
-  ).slice(0, 4)
+  const topVerificationTargets = sortRecommendations([
+    ...contradictionHotspots.map((hotspot) => ({
+      id: `recommend:verify:${hotspot.id}`,
+      targetId: hotspot.id,
+      score: toRecommendationScore(0.6 + hotspot.confidence * 0.5),
+      rationaleTags: uniqueStrings([
+        'action:verify',
+        'signal:contradiction',
+        recentlyContradictedHotspots.some((candidate) => candidate.id === hotspot.id)
+          ? 'transition:recent'
+          : 'transition:persistent',
+      ]),
+      detail: `Verify contradiction signal tied to ${hotspot.sourceFactIds.join(', ')}.`,
+    })),
+    ...falseReadingHotspots.map((hotspot) => ({
+      id: `recommend:verify:${hotspot.id}`,
+      targetId: hotspot.id,
+      score: toRecommendationScore(0.45 + hotspot.confidence * 0.45),
+      rationaleTags: uniqueStrings(['action:verify', 'signal:false-reading']),
+      detail: `Re-verify false-reading risk around ${hotspot.sourceFactIds.join(', ')}.`,
+    })),
+    ...newlyDegradedClusters.map((cluster) => ({
+      id: `recommend:verify:${cluster.id}`,
+      targetId: cluster.id,
+      score: toRecommendationScore(0.5 + (1 - cluster.averageConfidence) * 0.45),
+      rationaleTags: uniqueStrings([
+        'action:verify',
+        'signal:degradation',
+        `scope:${cluster.scope}`,
+      ]),
+      detail: `Validate newly degraded ${cluster.scope} uncertainty cluster members.`,
+    })),
+  ]).slice(0, 4)
 
   const topRouteRecheckTargets = sortRecommendations(
     operationalPriority.map((priority) => ({
@@ -1226,33 +1260,31 @@ function buildUncertaintyRecommendationQueue(
     }))
   ).slice(0, 3)
 
-  const topSocialRecheckTargets = sortRecommendations(
-    [
-      ...contradictionHotspots.map((hotspot) => ({
-        id: `recommend:social-recheck:${hotspot.id}`,
-        targetId: hotspot.id,
-        score: toRecommendationScore(0.62 + hotspot.confidence * 0.44),
-        rationaleTags: uniqueStrings(['action:social-recheck', 'signal:contradiction']),
-        detail: hotspot.detail,
+  const topSocialRecheckTargets = sortRecommendations([
+    ...contradictionHotspots.map((hotspot) => ({
+      id: `recommend:social-recheck:${hotspot.id}`,
+      targetId: hotspot.id,
+      score: toRecommendationScore(0.62 + hotspot.confidence * 0.44),
+      rationaleTags: uniqueStrings(['action:social-recheck', 'signal:contradiction']),
+      detail: hotspot.detail,
+    })),
+    ...falseReadingHotspots.map((hotspot) => ({
+      id: `recommend:social-recheck:${hotspot.id}`,
+      targetId: hotspot.id,
+      score: toRecommendationScore(0.48 + hotspot.confidence * 0.4),
+      rationaleTags: uniqueStrings(['action:social-recheck', 'signal:false-reading']),
+      detail: hotspot.detail,
+    })),
+    ...lowConfidenceClusters
+      .filter((cluster) => cluster.scope === 'social')
+      .map((cluster) => ({
+        id: `recommend:social-recheck:${cluster.id}`,
+        targetId: cluster.id,
+        score: toRecommendationScore(0.4 + (1 - cluster.averageConfidence) * 0.5),
+        rationaleTags: uniqueStrings(['action:social-recheck', 'signal:low-confidence']),
+        detail: cluster.detail,
       })),
-      ...falseReadingHotspots.map((hotspot) => ({
-        id: `recommend:social-recheck:${hotspot.id}`,
-        targetId: hotspot.id,
-        score: toRecommendationScore(0.48 + hotspot.confidence * 0.4),
-        rationaleTags: uniqueStrings(['action:social-recheck', 'signal:false-reading']),
-        detail: hotspot.detail,
-      })),
-      ...lowConfidenceClusters
-        .filter((cluster) => cluster.scope === 'social')
-        .map((cluster) => ({
-          id: `recommend:social-recheck:${cluster.id}`,
-          targetId: cluster.id,
-          score: toRecommendationScore(0.4 + (1 - cluster.averageConfidence) * 0.5),
-          rationaleTags: uniqueStrings(['action:social-recheck', 'signal:low-confidence']),
-          detail: cluster.detail,
-        })),
-    ]
-  ).slice(0, 3)
+  ]).slice(0, 3)
 
   const topRemapWatchZones = sortRecommendations(
     worldZones
@@ -1304,10 +1336,14 @@ function getRumorWeekFromFactId(factId: string): number | null {
 
 function getRoutePriorityScore(zone: WorldRemapZone): number {
   const confidencePenalty = (1 - zone.confidence) * 0.5
-  const routePenalty = zone.routeAccess === 'severed' ? 0.35 : zone.routeAccess === 'reduced' ? 0.18 : 0
-  const continuityPenalty = zone.continuity === 'broken' ? 0.24 : zone.continuity === 'fragile' ? 0.11 : 0
+  const routePenalty =
+    zone.routeAccess === 'severed' ? 0.35 : zone.routeAccess === 'reduced' ? 0.18 : 0
+  const continuityPenalty =
+    zone.continuity === 'broken' ? 0.24 : zone.continuity === 'fragile' ? 0.11 : 0
   const worldPressure =
-    zone.status === 'abandoned_hub' || zone.status === 'industrial_kill_site' || zone.status === 'hostile_territory'
+    zone.status === 'abandoned_hub' ||
+    zone.status === 'industrial_kill_site' ||
+    zone.status === 'hostile_territory'
       ? 0.2
       : zone.status === 'curfew_zone'
         ? 0.1
@@ -1340,7 +1376,9 @@ function buildOperationalUncertaintyPriority(
 
 export function buildSimulationMapInterface(game: GameState): SimulationMapInterface {
   const factionStates = buildFactionStates(game)
-  const openCases = Object.values(game.cases).filter((currentCase) => currentCase.status !== 'resolved')
+  const openCases = Object.values(game.cases).filter(
+    (currentCase) => currentCase.status !== 'resolved'
+  )
   const severeOpenCases = openCases.filter(
     (currentCase) => currentCase.stage >= 4 || currentCase.deadlineRemaining <= 1
   ).length

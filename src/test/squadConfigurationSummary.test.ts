@@ -173,6 +173,29 @@ describe('squadConfigurationSummary', () => {
     })
   })
 
+  it('returns typed failure when assigned kit validation errors', () => {
+    const metadata = createMetadataFixture()
+    const template = createTemplateFixture()
+    const assignmentResult = assignSquadKit(metadata, template)
+    expect(assignmentResult.ok).toBe(true)
+    if (!assignmentResult.ok) {
+      throw new Error('Expected assignment ok=true')
+    }
+
+    const summary = buildSquadConfigurationSummary({
+      metadata,
+      slots: createOrderedSlotsFixture(),
+      assignment: assignmentResult.assignment,
+      kitTemplatesById: { [template.id]: template },
+      squadItemTags: null as unknown as readonly string[],
+    })
+
+    expect(summary).toEqual({
+      ok: false,
+      error: 'assigned_kit_validation_error',
+    })
+  })
+
   it('returns typed failure when assignment belongs to a different squad', () => {
     const metadata = createMetadataFixture()
     const template = createTemplateFixture()

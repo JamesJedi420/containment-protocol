@@ -7,6 +7,11 @@ import { FilterSelect } from '../../components/FilterSelect'
 import { MARKET_SOURCE_LABELS, MARKET_UI_TEXT } from '../../data/copy'
 import { buildEconomyLoopOverview } from '../../domain/economy'
 import {
+  getLicensedHandlingAttestationWeekBaselined,
+  isLicensedHandlingAttestationStale,
+  LICENSED_HANDLING_ATTESTATION_TTL_WEEKS,
+} from '../../domain/market'
+import {
   DEFAULT_MARKET_FILTERS,
   MARKET_CATEGORY_FILTERS,
   MARKET_SORTS,
@@ -35,7 +40,12 @@ const MARKET_CATEGORY_LABELS: Record<(typeof MARKET_CATEGORY_FILTERS)[number], s
 }
 
 export default function MarketPage() {
-  const { game, purchaseMarketInventory, sellMarketInventory } = useGameStore()
+  const {
+    game,
+    purchaseMarketInventory,
+    sellMarketInventory,
+    acknowledgeLicensedHandlingDoctrine,
+  } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = readMarketFilters(searchParams)
   const normalizedSearchParams = writeMarketFilters(filters)
@@ -164,6 +174,37 @@ export default function MarketPage() {
           </div>
         </div>
       </article>
+
+      {isLicensedHandlingAttestationStale(game) ? (
+        <article
+          className="panel space-y-3 border-amber-500/35 bg-amber-950/25"
+          role="region"
+          aria-label="Licensed handling doctrine attestation"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold text-amber-100">
+                Licensed handling doctrine attestation stale
+              </h3>
+              <p className="mt-1 text-sm opacity-80">
+                Last acknowledged campaign week {getLicensedHandlingAttestationWeekBaselined(game)}.
+                Controlled procurement that uses the licensed handling desk is blocked until
+                doctrine is re-attested (required after more than{' '}
+                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS} campaign week
+                {LICENSED_HANDLING_ATTESTATION_TTL_WEEKS === 1 ? '' : 's'} since that
+                acknowledgement).
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary shrink-0"
+              onClick={() => acknowledgeLicensedHandlingDoctrine()}
+            >
+              Acknowledge doctrine
+            </button>
+          </div>
+        </article>
+      ) : null}
 
       <article className="panel panel-primary space-y-4" role="region" aria-label="Market filters">
         <div className="grid gap-3 md:grid-cols-3">

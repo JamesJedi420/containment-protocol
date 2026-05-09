@@ -351,7 +351,9 @@ export function buildReportCaseSnapshot(
           .map(([teamId, ks]) => {
             const parts: string[] = []
             if (ks.provisionalClassification && ks.confirmationState === 'provisional') {
-              parts.push(`Team ${teamId}: Provisional classification: ${ks.provisionalClassification}`)
+              parts.push(
+                `Team ${teamId}: Provisional classification: ${ks.provisionalClassification}`
+              )
             }
             if (ks.trueClassification && ks.confirmationState === 'confirmed') {
               parts.push(`Team ${teamId}: Confirmed as: ${ks.trueClassification}`)
@@ -901,6 +903,11 @@ function sanitizeMarket(value: unknown, fallback: MarketState): MarketState {
       fallback.costMultiplier,
       0.5,
       2
+    ),
+    licensedHandlingAttestationWeek: sanitizeInteger(
+      value.licensedHandlingAttestationWeek as number | undefined,
+      fallback.licensedHandlingAttestationWeek ?? fallback.week,
+      1
     ),
   }
 }
@@ -1508,7 +1515,10 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                   ? payload.candidateName
                   : `Candidate ${index + 1}`,
               fundingCost: sanitizeInteger(payload.fundingCost as number | undefined, 0, 0),
-              stage: clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as 1 | 2 | 3,
+              stage: clamp(sanitizeInteger(payload.stage as number | undefined, 1, 1), 1, 3) as
+                | 1
+                | 2
+                | 3,
               projectedTier: isOneOf(payload.projectedTier, EXACT_POTENTIAL_TIERS)
                 ? payload.projectedTier
                 : 'C',
@@ -1700,9 +1710,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               caseId: typeof payload.caseId === 'string' ? payload.caseId : undefined,
               caseTitle: typeof payload.caseTitle === 'string' ? payload.caseTitle : undefined,
               interactionLabel:
-                typeof payload.interactionLabel === 'string'
-                  ? payload.interactionLabel
-                  : undefined,
+                typeof payload.interactionLabel === 'string' ? payload.interactionLabel : undefined,
               contactId: typeof payload.contactId === 'string' ? payload.contactId : undefined,
               contactName:
                 typeof payload.contactName === 'string' ? payload.contactName : undefined,
@@ -1815,9 +1823,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               week,
               caseId: typeof payload.caseId === 'string' ? payload.caseId : `case-${index + 1}`,
               caseTitle:
-                typeof payload.caseTitle === 'string'
-                  ? payload.caseTitle
-                  : `Case ${index + 1}`,
+                typeof payload.caseTitle === 'string' ? payload.caseTitle : `Case ${index + 1}`,
               remainingSupport: sanitizeInteger(
                 payload.remainingSupport as number | undefined,
                 0,

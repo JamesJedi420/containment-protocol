@@ -1,5 +1,13 @@
 // cspell:words biocontainment medkits pathfinding psionic stims
-import type { Agent, CaseInstance, DomainStats, EquipmentSlots, GameState, Id, StatKey } from './models'
+import type {
+  Agent,
+  CaseInstance,
+  DomainStats,
+  EquipmentSlots,
+  GameState,
+  Id,
+  StatKey,
+} from './models'
 import { assessResearchRequirements } from './research'
 import { cloneDomainStats } from './statDomains'
 
@@ -1498,12 +1506,15 @@ export function validateAgentLoadoutAssignment(
   }
 
   try {
-    projectedReadiness = buildAgentLoadoutReadinessSummary({
-      ...agent,
-      equipmentSlots: projectedSlots,
-    }, {
-      state: options?.state,
-    })
+    projectedReadiness = buildAgentLoadoutReadinessSummary(
+      {
+        ...agent,
+        equipmentSlots: projectedSlots,
+      },
+      {
+        state: options?.state,
+      }
+    )
   } catch {
     projectedReadiness = buildEmptyReadinessSummary(agent)
   }
@@ -1525,7 +1536,9 @@ export function validateAgentLoadoutAssignment(
         (assignment) => !(assignment.agentId === agent.id && assignment.slot === slot)
       )
       const transferCandidate = assignments
-        .filter((assignment) => canTransferAssignmentOwner(options.state?.agents[assignment.agentId]))
+        .filter((assignment) =>
+          canTransferAssignmentOwner(options.state?.agents[assignment.agentId])
+        )
         .sort((left, right) => left.agentId.localeCompare(right.agentId))[0]
 
       if (availableStock > 0) {
@@ -1573,7 +1586,10 @@ export function validateAgentLoadoutAssignment(
   }
 }
 
-export function getRoleCompatibleEquipmentDefinitions(slot: EquipmentSlotKind, role: Agent['role']) {
+export function getRoleCompatibleEquipmentDefinitions(
+  slot: EquipmentSlotKind,
+  role: Agent['role']
+) {
   return getCompatibleEquipmentDefinitions(slot).filter((definition) =>
     isEquipmentRoleCompatible(role, definition)
   )
@@ -1922,6 +1938,7 @@ function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Part
 
 /**
  * Equipment definitions with this tag consume licensed-handling desk capacity for field procurement.
+ * Market listings derive desk usage from `itemId` via {@link getLicensedHandlingRequirement}.
  * Prefer tagging catalog entries over hardcoding `gear:…` market listing IDs.
  */
 export const LICENSED_PROCUREMENT_TAG = 'licensed-procurement'
@@ -2024,15 +2041,16 @@ export function buildAgentLoadoutReadinessSummary(
   context: EquipmentEvaluationContext = {}
 ): AgentLoadoutReadinessSummary {
   const equippedItems = resolveEquippedItems(agent, context)
-  const compatibleItemCount = equippedItems.filter((item) =>
-    isEquipmentRoleCompatible(agent.role, item.id) &&
-    isEquipmentPrerequisiteSatisfied(agent, item.id, context.state)
+  const compatibleItemCount = equippedItems.filter(
+    (item) =>
+      isEquipmentRoleCompatible(agent.role, item.id) &&
+      isEquipmentPrerequisiteSatisfied(agent, item.id, context.state)
   ).length
   const incompatibleItemCount = Math.max(0, equippedItems.length - compatibleItemCount)
   const emptySlotCount = Math.max(0, EQUIPMENT_SLOT_KINDS.length - equippedItems.length)
   const issues: string[] = []
-  const roleIncompatibleItems = equippedItems.filter((item) =>
-    !isEquipmentRoleCompatible(agent.role, item.id)
+  const roleIncompatibleItems = equippedItems.filter(
+    (item) => !isEquipmentRoleCompatible(agent.role, item.id)
   )
 
   if (roleIncompatibleItems.length > 0) {
@@ -2063,11 +2081,7 @@ export function buildAgentLoadoutReadinessSummary(
   }
 
   const readiness =
-    incompatibleItemCount > 0
-      ? 'blocked'
-      : emptySlotCount >= 4
-        ? 'partial'
-        : 'ready'
+    incompatibleItemCount > 0 ? 'blocked' : emptySlotCount >= 4 ? 'partial' : 'ready'
 
   return {
     agentId: agent.id,

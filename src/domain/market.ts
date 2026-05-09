@@ -10,7 +10,11 @@ import {
   type MarketListingCategory,
 } from '../data/production'
 import { createSeededRng, normalizeSeed, randInt } from './math'
-import { getEquipmentCatalogEntries, type EquipmentSlotKind } from './equipment'
+import {
+  getEquipmentCatalogEntries,
+  getLicensedHandlingRequirement as catalogItemRequiresLicensedHandling,
+  type EquipmentSlotKind,
+} from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, OperationEvent } from './models'
 
@@ -29,6 +33,9 @@ export type ProcurementResourceClass =
   | 'licensed_handling_capacity'
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
+
+/** Weeks after acknowledgement before licensed-handling doctrine must be re-attested (procurement permit slice). */
+export const LICENSED_HANDLING_ATTESTATION_TTL_WEEKS = 2
 
 export interface ProcurementAllocationPacket {
   allocationId: string
@@ -65,7 +72,7 @@ export interface ProcurementAllocationStatus {
   available: number
   required: number
   purchaseAvailable: boolean
-  state: 'available' | 'committed_elsewhere' | 'substituted'
+  state: 'available' | 'committed_elsewhere' | 'substituted' | 'attestation_stale'
   allocations: ProcurementAllocationPacket[]
   displacedAlternativeUse?: string
   blockerReason?: string
@@ -169,7 +176,20 @@ const DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS = 1
 const LICENSED_HANDLING_SOURCE_ID = 'licensed_handling_desk'
 const LICENSED_HANDLING_SOURCE_LABEL = 'Licensed handling desk'
 const LICENSED_HANDLING_CAPACITY = 1
-const LICENSED_HANDLING_LISTING_IDS = new Set(['gear:combat_stims', 'gear:hazmat_suit'])
+
+/** Missing save field: assume week 1 attestation so long-running saves surface stale doctrine once migrated. */
+export function getLicensedHandlingAttestationWeekBaselined(
+  game: Pick<GameState, 'week' | 'market'>
+) {
+  return game.market.licensedHandlingAttestationWeek ?? 1
+}
+
+export function isLicensedHandlingAttestationStale(game: Pick<GameState, 'week' | 'market'>) {
+  return (
+    game.week >
+    getLicensedHandlingAttestationWeekBaselined(game) + LICENSED_HANDLING_ATTESTATION_TTL_WEEKS
+  )
+}
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -689,15 +709,16 @@ function getCurrentLicensedHandlingAllocations(
     .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
 }
 
-function getLicensedHandlingRequirement(definition: ProcurementListingDefinition) {
-  return LICENSED_HANDLING_LISTING_IDS.has(definition.id) ? 1 : 0
+/** Units of licensed-handling desk capacity required (0 or 1), from equipment catalog tags. */
+function getLicensedHandlingUnits(definition: ProcurementListingDefinition) {
+  return catalogItemRequiresLicensedHandling(definition.itemId) ? 1 : 0
 }
 
 function createLicensedHandlingAllocationStatus(
   definition: ProcurementListingDefinition,
   game: GameState
 ): ProcurementAllocationStatus | undefined {
-  const required = getLicensedHandlingRequirement(definition)
+  const required = getLicensedHandlingUnits(definition)
 
   if (required <= 0) {
     return undefined
@@ -705,6 +726,23 @@ function createLicensedHandlingAllocationStatus(
 
   const allocations = getCurrentLicensedHandlingAllocations(game)
   const available = Math.max(0, LICENSED_HANDLING_CAPACITY - allocations.length)
+  const attestationWeek = getLicensedHandlingAttestationWeekBaselined(game)
+
+  if (isLicensedHandlingAttestationStale(game)) {
+    return {
+      resourceClass: 'licensed_handling_capacity',
+      source: LICENSED_HANDLING_SOURCE_ID,
+      sourceLabel: LICENSED_HANDLING_SOURCE_LABEL,
+      capacity: LICENSED_HANDLING_CAPACITY,
+      committed: allocations.length,
+      available,
+      required,
+      purchaseAvailable: false,
+      state: 'attestation_stale',
+      allocations,
+      blockerReason: `${LICENSED_HANDLING_SOURCE_LABEL} doctrine attestation is stale (last acknowledged week ${attestationWeek}). Acknowledge current doctrine on the procurement screen before controlled procurement.`,
+    }
+  }
 
   return {
     resourceClass: 'licensed_handling_capacity',
@@ -956,7 +994,9 @@ function buildProcurementAllocationPacketForStatus(
 
 export function getProcurementListings(game: GameState) {
   const transactionTotals = getListingTransactionTotalsForWeek(game.events, game.market.week)
-  return getListingDefinitions().map((definition) => buildListing(definition, game, transactionTotals))
+  return getListingDefinitions().map((definition) =>
+    buildListing(definition, game, transactionTotals)
+  )
 }
 
 export function getProcurementListing(game: GameState, listingId: string) {

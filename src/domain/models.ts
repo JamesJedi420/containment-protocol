@@ -133,12 +133,7 @@ export interface TeamDeploymentReadinessState {
   computedWeek: number
 }
 
-export type AgentAvailabilityState =
-  | 'idle'
-  | 'assigned'
-  | 'training'
-  | 'recovering'
-  | 'unavailable'
+export type AgentAvailabilityState = 'idle' | 'assigned' | 'training' | 'recovering' | 'unavailable'
 
 export interface AgentDeploymentReadinessSnapshot {
   agentId: string
@@ -1487,6 +1482,11 @@ export interface MarketState {
   pressure: MarketPressure
   costMultiplier: number
   listings?: unknown[]
+  /**
+   * Campaign week when licensed-handling doctrine was last acknowledged (SPE-874 permit freshness).
+   * When stale vs current `GameState.week`, controlled procurement that requires the desk is blocked.
+   */
+  licensedHandlingAttestationWeek?: number
 }
 
 export type CasePriority = 'critical' | 'high' | 'normal' | 'low'
@@ -1527,7 +1527,13 @@ export interface OneShotEventState {
   source?: string
 }
 
-export type EncounterRuntimeStatus = 'available' | 'active' | 'resolved' | 'locked' | 'hidden' | 'archived'
+export type EncounterRuntimeStatus =
+  | 'available'
+  | 'active'
+  | 'resolved'
+  | 'locked'
+  | 'hidden'
+  | 'archived'
 export type EncounterResolutionOutcome = 'success' | 'partial' | 'failed' | 'failure' | 'dismissed'
 
 export interface EncounterRuntimeState {
@@ -1554,11 +1560,7 @@ export interface ProgressClockState {
   completedAtWeek?: number
 }
 
-export type RuntimeEventQueuePayloadValue =
-  | string
-  | number
-  | boolean
-  | readonly string[]
+export type RuntimeEventQueuePayloadValue = string | number | boolean | readonly string[]
 
 export interface RuntimeQueuedEvent {
   id: string
@@ -1591,11 +1593,7 @@ export type DeveloperLogEventType =
   | 'save.imported'
   | 'authoring.context_changed'
 
-export type DeveloperLogDetailValue =
-  | string
-  | number
-  | boolean
-  | readonly string[]
+export type DeveloperLogDetailValue = string | number | boolean | readonly string[]
 
 export interface DeveloperLogEvent {
   id: string
@@ -1736,7 +1734,13 @@ export interface ResearchUnlock {
   description?: string
 }
 
-export type ResearchProjectStatus = 'locked' | 'available' | 'queued' | 'active' | 'completed' | 'blocked'
+export type ResearchProjectStatus =
+  | 'locked'
+  | 'available'
+  | 'queued'
+  | 'active'
+  | 'completed'
+  | 'blocked'
 
 export interface ResearchProject {
   projectId: string
@@ -1878,10 +1882,10 @@ export interface MissionFatalityRecord {
 
 /** Identifies the type of harvested victim that produced a capability set. */
 export type HarvestSourceId =
-  | 'academic'   // scholar, researcher — grants perception, cognitive reach
-  | 'mystic'     // occult practitioner — grants ward manipulation, remote sense
-  | 'engineer'   // technical expert — grants structural exploitation, trap bypass
-  | 'soldier'    // combat-trained — grants melee and formation awareness bonuses
+  | 'academic' // scholar, researcher — grants perception, cognitive reach
+  | 'mystic' // occult practitioner — grants ward manipulation, remote sense
+  | 'engineer' // technical expert — grants structural exploitation, trap bypass
+  | 'soldier' // combat-trained — grants melee and formation awareness bonuses
   | 'administrator' // bureaucratic/institutional — grants social infiltration, cover depth
 
 /** One slot in a hostile's reserve organ store. */
@@ -2124,7 +2128,11 @@ export interface RareEventOverlay {
   startWeek: number
   endWeek: number
   /** Traffic modifiers (additive or override). */
-  trafficModifier: { populationDelta?: number; witnessModifier?: number; visibilityModifier?: number }
+  trafficModifier: {
+    populationDelta?: number
+    witnessModifier?: number
+    visibilityModifier?: number
+  }
   /** Encounter family bias (combines with district baseline). */
   encounterFamilyBias?: string[]
   /** Seed key for deterministic application. */
@@ -2318,10 +2326,10 @@ export interface CustodyDiscoveryEvent {
 
 /** Operational category of weirdness a room exhibits once entered. */
 export type WeirdRoomStateKind =
-  | 'false_environment_shell'  // room presents false visual/spatial profile
-  | 'shifted_affordances'      // interaction grammar altered: exits, items, doors resolve differently
-  | 'passive_influence'        // actors affected continuously without discrete trigger events
-  | 'stateful_hazard_room'     // room has internal state that escalates through dwell/disturbance
+  | 'false_environment_shell' // room presents false visual/spatial profile
+  | 'shifted_affordances' // interaction grammar altered: exits, items, doors resolve differently
+  | 'passive_influence' // actors affected continuously without discrete trigger events
+  | 'stateful_hazard_room' // room has internal state that escalates through dwell/disturbance
 
 /** Which dimension of local operation a rule override modifies. */
 export type LocalRuleOverrideDomain = 'traversal' | 'perception' | 'interaction' | 'timing'
@@ -2396,18 +2404,10 @@ export interface WeirdRoomPacket {
 // ---------------------------------------------------------------------------
 
 /** The institutional role whose holder is secretly compromised. */
-export type CompromisedOfficialRole =
-  | 'sheriff'
-  | 'magistrate'
-  | 'watchCommander'
-  | 'inquisitor'
+export type CompromisedOfficialRole = 'sheriff' | 'magistrate' | 'watchCommander' | 'inquisitor'
 
 /** Response categories a compromised official can distort. */
-export type CompromisedResponseCategory =
-  | 'patrol'
-  | 'interrogation'
-  | 'custody'
-  | 'evidence'
+export type CompromisedResponseCategory = 'patrol' | 'interrogation' | 'custody' | 'evidence'
 
 /** How deeply the official is embedded in the hostile network. */
 export type CorruptionDepth = 'shallow_cover' | 'embedded_control'

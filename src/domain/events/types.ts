@@ -424,7 +424,10 @@ export interface OperationEventPayloadMap {
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string
-      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
+      resourceClass:
+        | 'supplier_attention_slot'
+        | 'reagent_stock'
+        | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string
@@ -439,7 +442,10 @@ export interface OperationEventPayloadMap {
     }
     allocations?: Array<{
       allocationId: string
-      resourceClass: 'supplier_attention_slot' | 'reagent_stock' | 'licensed_handling_capacity'
+      resourceClass:
+        | 'supplier_attention_slot'
+        | 'reagent_stock'
+        | 'licensed_handling_capacity'
       source: string
       sourceLabel: string
       destinationUse: string

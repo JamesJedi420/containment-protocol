@@ -63,7 +63,10 @@ export interface SquadConfigurationSummary {
   readonly kit: SquadConfigurationKitSummary
 }
 
-export type SquadConfigurationSummaryFailure = 'invalid_squad_id' | 'assigned_kit_template_not_found'
+export type SquadConfigurationSummaryFailure =
+  | 'invalid_squad_id'
+  | 'assigned_kit_template_not_found'
+  | 'assigned_kit_validation_error'
 
 export type SquadConfigurationSummaryResult =
   | { readonly ok: true; readonly summary: SquadConfigurationSummary }
@@ -190,17 +193,6 @@ export function buildSquadConfigurationSummary(
       },
     }
   }
-  // fallback for error status
-  return {
-    ok: true,
-    summary: {
-      metadata: input.metadata,
-      occupancy,
-      kit: {
-        state: 'unassigned',
-        assignment: null,
-        validation: null,
-      },
-    },
-  }
+
+  return { ok: false, error: 'assigned_kit_validation_error' }
 }

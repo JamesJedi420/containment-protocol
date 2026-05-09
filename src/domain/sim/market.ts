@@ -16,6 +16,17 @@ function nextTransactionId(state: GameState) {
   return `market-${state.week}-${state.market.week}-${getNextMarketTransactionSequence(state)}`
 }
 
+/** Sets licensed-handling doctrine attestation to the current campaign week (procurement permit slice). */
+export function acknowledgeLicensedHandlingDoctrine(state: GameState): GameState {
+  return normalizeGameState({
+    ...state,
+    market: {
+      ...state.market,
+      licensedHandlingAttestationWeek: state.week,
+    },
+  })
+}
+
 export function purchaseMarketInventory(
   state: GameState,
   listingId: string,

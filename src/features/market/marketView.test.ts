@@ -224,6 +224,34 @@ describe('marketView', () => {
     expect(hazmatSuit!.buyBlockedReason).toMatch(/Licensed handling desk capacity committed/i)
   })
 
+  it('surfaces stale licensed handling doctrine attestation before capacity checks', () => {
+    const base = createDiscountedMarketState()
+    const game = {
+      ...base,
+      week: 6,
+      market: {
+        ...base.market,
+        licensedHandlingAttestationWeek: 1,
+      },
+    }
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+    expect(combatStims!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'licensed_handling_capacity',
+          state: 'attestation_stale',
+          purchaseAvailable: false,
+        }),
+      ])
+    )
+    expect(combatStims!.canBuyOne).toBe(false)
+    expect(combatStims!.buyBlockedReason).toMatch(/doctrine attestation is stale/i)
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

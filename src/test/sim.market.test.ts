@@ -7,7 +7,11 @@ import {
   getProcurementMarketPackets,
 } from '../domain/market'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/market'
+import {
+  acknowledgeLicensedHandlingDoctrine,
+  purchaseMarketInventory,
+  sellMarketInventory,
+} from '../domain/sim/market'
 import { queueFabrication } from '../domain/sim/production'
 
 describe('market procurement simulation', () => {
@@ -472,6 +476,79 @@ describe('market procurement simulation', () => {
     const blocked = purchaseMarketInventory(afterCombatStims, hazmatSuit!.id, 1)
 
     expect(blocked).toBe(afterCombatStims)
+  })
+
+  it('blocks controlled procurement when licensed handling doctrine attestation is stale', () => {
+    const base = createDiscountedMarketState()
+    const staleDoctrineState = {
+      ...base,
+      week: 5,
+      market: {
+        ...base.market,
+        licensedHandlingAttestationWeek: 1,
+      },
+    }
+    const combatStims = getProcurementListings(staleDoctrineState).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const handlingStatus = combatStims!.resourceStatuses.find(
+      (status) => status.resourceClass === 'licensed_handling_capacity'
+    )
+
+    expect(handlingStatus).toMatchObject({
+      state: 'attestation_stale',
+      purchaseAvailable: false,
+    })
+    expect(purchaseMarketInventory(staleDoctrineState, combatStims!.id, 1)).toBe(staleDoctrineState)
+  })
+
+  it('restores controlled procurement after doctrine acknowledgement clears stale attestation', () => {
+    const base = createDiscountedMarketState()
+    const staleDoctrineState = {
+      ...base,
+      week: 5,
+      market: {
+        ...base.market,
+        licensedHandlingAttestationWeek: 1,
+      },
+    }
+    const renewed = acknowledgeLicensedHandlingDoctrine(staleDoctrineState)
+
+    expect(renewed.market.licensedHandlingAttestationWeek).toBe(5)
+
+    const combatStims = getProcurementListings(renewed).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const handlingStatus = combatStims!.resourceStatuses.find(
+      (status) => status.resourceClass === 'licensed_handling_capacity'
+    )
+
+    expect(handlingStatus?.purchaseAvailable).toBe(true)
+    expect(handlingStatus?.state).toBe('available')
+
+    const afterBuy = purchaseMarketInventory(renewed, combatStims!.id, 1)
+
+    expect(afterBuy).not.toBe(renewed)
+  })
+
+  it('preserves licensed handling attestation week across weekly market shifts', () => {
+    const base = createStartingState()
+    const state = {
+      ...base,
+      market: { ...base.market, licensedHandlingAttestationWeek: 12 },
+    }
+    const advanced = advanceWeek({
+      ...state,
+      cases: {},
+    })
+
+    expect(advanced.market.licensedHandlingAttestationWeek).toBe(12)
   })
 
   it('weekly market refresh resets availability tracking to the new market week', () => {

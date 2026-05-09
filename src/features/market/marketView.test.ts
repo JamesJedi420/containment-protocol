@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
+import { queueFabrication } from '../../domain/sim/production'
 import {
   getCurrentWeekMarketTransactions,
   getFilteredMarketListings,
@@ -145,6 +146,43 @@ describe('marketView', () => {
     expect(wardSeals!.allocationStatus.state).toBe('committed_elsewhere')
     expect(wardSeals!.canBuyOne).toBe(false)
     expect(wardSeals!.buyBlockedReason).toMatch(/attention committed/i)
+  })
+
+  it('surfaces reagent stock blocking and substitution from fabrication commitments', () => {
+    const game = createStartingState()
+    const afterWardFabrication = queueFabrication(game, 'ward-seals')
+    const ritualComponents = getMarketListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'ritual-components'
+    )
+    const emfSensors = getMarketListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'emf-sensors'
+    )
+
+    expect(ritualComponents).toBeDefined()
+    expect(ritualComponents!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'reagent_stock',
+          state: 'committed_elsewhere',
+          displacedAlternativeUse: 'Ward Seal Batch',
+        }),
+      ])
+    )
+    expect(ritualComponents!.canBuyOne).toBe(false)
+    expect(ritualComponents!.buyBlockedReason).toMatch(/Occult Reagents stock committed/i)
+
+    expect(emfSensors).toBeDefined()
+    expect(emfSensors!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'reagent_stock',
+          state: 'substituted',
+          displacedAlternativeUse: 'Ward Seal Batch',
+        }),
+      ])
+    )
+    expect(emfSensors!.canBuyOne).toBe(true)
+    expect(emfSensors!.canBuyThree).toBe(false)
   })
 
   it('normalizes invalid market query params to defaults', () => {

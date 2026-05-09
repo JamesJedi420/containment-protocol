@@ -1,6 +1,6 @@
 import { appendOperationEventDrafts } from '../events'
 import type { GameState } from '../models'
-import { buildProcurementAllocationPacket, getProcurementListing } from '../market'
+import { buildProcurementAllocationPackets, getProcurementListing } from '../market'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 
 function getNextMarketTransactionSequence(state: GameState) {
@@ -33,8 +33,8 @@ export function purchaseMarketInventory(
 
   if (
     !listing.accessAvailable ||
-    !listing.allocationStatus.purchaseAvailable ||
-    (listing.allocationStatus.substitution && normalizedBundles > 1) ||
+    !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
+    (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
     normalizedBundles > listing.availableBundles ||
     state.funding < totalPrice
   ) {
@@ -46,6 +46,11 @@ export function purchaseMarketInventory(
     [listing.itemId]: (state.inventory[listing.itemId] ?? 0) + quantity,
   }
   const transactionId = nextTransactionId(state)
+  const allocations = buildProcurementAllocationPackets({
+    listing,
+    transactionId,
+    quantity,
+  })
 
   return normalizeGameState(
     appendOperationEventDrafts(
@@ -72,11 +77,8 @@ export function purchaseMarketInventory(
             unitPrice: Math.round((listing.buyPrice / listing.bundleQuantity) * 100) / 100,
             totalPrice,
             remainingAvailability: Math.max(0, listing.remainingAvailability - quantity),
-            allocation: buildProcurementAllocationPacket({
-              listing,
-              transactionId,
-              quantity,
-            }),
+            allocation: allocations[0]!,
+            allocations,
           },
         },
       ]

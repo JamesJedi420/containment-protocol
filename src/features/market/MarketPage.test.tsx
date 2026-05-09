@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
+import { queueFabrication } from '../../domain/sim/production'
 import { useGameStore } from '../../app/store/gameStore'
 import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings, getMarketListings } from './marketView'
 import MarketPage from './MarketPage'
@@ -306,6 +307,37 @@ describe('MarketPage', () => {
     )
     expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
     expect(within(hazmatRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
+  })
+
+  it('shows reagent stock blocking and degraded reagent substitution', () => {
+    const game = queueFabrication(createStartingState(), 'ward-seals')
+    useGameStore.setState({ game })
+
+    const firstRender = renderMarketPage(['/markets-suppliers?q=ritual%20components'])
+
+    const ritualRow = screen.getAllByText(/^ritual components$/i)[0]?.closest('li')
+
+    expect(ritualRow).toBeTruthy()
+    expect(within(ritualRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByText(/reagent stock: committed elsewhere/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByText(/displaced use: ward seal batch/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+
+    firstRender.unmount()
+
+    renderMarketPage(['/markets-suppliers?q=emf%20sensors'])
+
+    const emfRow = screen.getAllByText(/^emf sensors$/i)[0]?.closest('li')
+
+    expect(emfRow).toBeTruthy()
+    expect(within(emfRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/reagent stock: substituted/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/displaced use: ward seal batch/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/degraded substitute:/i)).toHaveTextContent(
+      /synthetic reagent substitute/i
+    )
+    expect(within(emfRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
+    expect(within(emfRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
   })
 
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {

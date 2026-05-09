@@ -8,6 +8,7 @@ import {
 } from '../domain/market'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/market'
+import { queueFabrication } from '../domain/sim/production'
 
 describe('market procurement simulation', () => {
   it('builds deterministic listings from the same state', () => {
@@ -303,6 +304,82 @@ describe('market procurement simulation', () => {
           substitutionStatus: 'degraded_substitute',
           delayWeeks: 1,
         },
+      },
+    })
+  })
+
+  it('makes reagent-backed procurement unavailable when reagent stock is committed elsewhere', () => {
+    const state = createStartingState()
+    const afterWardFabrication = queueFabrication(state, 'ward-seals')
+    const ritualComponents = getProcurementListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'ritual-components'
+    )
+
+    expect(ritualComponents).toBeDefined()
+
+    const reagentStatus = ritualComponents!.resourceStatuses.find(
+      (status) => status.resourceClass === 'reagent_stock'
+    )
+
+    expect(reagentStatus).toMatchObject({
+      source: 'occult_reagents',
+      sourceLabel: 'Occult Reagents',
+      state: 'committed_elsewhere',
+      purchaseAvailable: false,
+      displacedAlternativeUse: 'Ward Seal Batch',
+    })
+
+    const blocked = purchaseMarketInventory(afterWardFabrication, ritualComponents!.id, 1)
+
+    expect(blocked).toBe(afterWardFabrication)
+  })
+
+  it('uses a degraded reagent substitute for equipment when reagent stock is committed', () => {
+    const state = createStartingState()
+    const afterWardFabrication = queueFabrication(state, 'ward-seals')
+    const emfSensors = getProcurementListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'emf-sensors'
+    )
+
+    expect(emfSensors).toBeDefined()
+
+    const reagentStatus = emfSensors!.resourceStatuses.find(
+      (status) => status.resourceClass === 'reagent_stock'
+    )
+
+    expect(reagentStatus).toMatchObject({
+      source: 'occult_reagents',
+      state: 'substituted',
+      displacedAlternativeUse: 'Ward Seal Batch',
+      substitution: {
+        source: 'gray_market_broker',
+        sourceLabel: 'Synthetic reagent substitute',
+        delayWeeks: 1,
+        priceMultiplier: 1.25,
+      },
+    })
+    expect(emfSensors!.buyPrice).toBe(reagentStatus!.substitution!.unitPrice)
+
+    const purchased = purchaseMarketInventory(afterWardFabrication, emfSensors!.id, 1)
+    const event = purchased.events.at(-1)
+
+    expect(purchased.inventory.emf_sensors).toBe(
+      (afterWardFabrication.inventory.emf_sensors ?? 0) + emfSensors!.bundleQuantity
+    )
+    expect(event).toMatchObject({
+      type: 'market.transaction_recorded',
+      payload: {
+        listingId: emfSensors!.id,
+        allocations: expect.arrayContaining([
+          expect.objectContaining({
+            resourceClass: 'reagent_stock',
+            source: 'gray_market_broker',
+            sourceLabel: 'Synthetic reagent substitute',
+            displacedAlternativeUse: 'Ward Seal Batch',
+            substitutionStatus: 'degraded_substitute',
+            delayWeeks: 1,
+          }),
+        ]),
       },
     })
   })

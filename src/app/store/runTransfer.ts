@@ -42,6 +42,11 @@ import {
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
 } from '../../domain/models'
+import {
+  AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
+  LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
+} from '../../domain/procurementEmergencyAuthority'
+import { normalizeInstitutionKeyForAudit } from '../../domain/procurementEmergencyInstitution'
 import { propagateDistortion } from '../../domain/shared/distortion'
 
 export const GAME_STORE_VERSION = 6
@@ -1693,6 +1698,17 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               sanctionLevel: 'sanctioned',
               packetId: 'gray_market_broker',
               falloutRiskApplied: 'risk',
+              institutionKey: normalizeInstitutionKeyForAudit(
+                typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
+              ),
+              authorityRoute:
+                typeof payload.authorityRoute === 'string' && payload.authorityRoute.trim().length > 0
+                  ? payload.authorityRoute.trim()
+                  : AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
+              authorityBasis:
+                typeof payload.authorityBasis === 'string' && payload.authorityBasis.trim().length > 0
+                  ? payload.authorityBasis.trim()
+                  : LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
             },
           })
         )

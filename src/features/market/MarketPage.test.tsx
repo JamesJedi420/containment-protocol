@@ -89,6 +89,20 @@ function crisisSanctionedMarketGame(): ReturnType<typeof createStartingState> {
   return game
 }
 
+/** Same crisis posture as {@link crisisSanctionedMarketGame} but Joint Oversight Concordat (SPE-849 routing). */
+function jointOversightCrisisMarketGame(): ReturnType<typeof createStartingState> {
+  const game = crisisSanctionedMarketGame()
+  const runtime = game.runtimeState
+  if (!runtime) {
+    throw new Error('expected runtimeState')
+  }
+  game.runtimeState = {
+    ...runtime,
+    player: { ...runtime.player, organization: 'Joint Oversight Concordat' },
+  }
+  return game
+}
+
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
@@ -501,6 +515,25 @@ describe('MarketPage', () => {
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /record emergency waiver/i })).toBeInTheDocument()
     expect(screen.getByText(/crisis pressure band \+ sanctioned posture/i)).toBeInTheDocument()
+  })
+
+  it('does not show crisis gray-market waiver for Joint Oversight at default clearance (SPE-849)', () => {
+    useGameStore.setState({ game: jointOversightCrisisMarketGame() })
+    renderMarketPage()
+
+    expect(screen.queryByRole('region', { name: /emergency gray-market waiver/i })).not.toBeInTheDocument()
+  })
+
+  it('shows crisis gray-market waiver for Joint Oversight when clearance threshold is met (SPE-849)', () => {
+    const game = jointOversightCrisisMarketGame()
+    game.clearanceLevel = 3
+    useGameStore.setState({ game })
+    renderMarketPage()
+
+    expect(
+      screen.getByRole('region', { name: /emergency gray-market waiver/i })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /record emergency waiver/i })).toBeInTheDocument()
   })
 
   it('records emergency waiver from the market panel', async () => {

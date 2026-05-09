@@ -1,6 +1,10 @@
 // cspell:words cand medkits sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import {
+  AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
+  LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
+} from '../../domain/procurementEmergencyAuthority'
 import { refreshContractBoard } from '../../domain/contracts'
 import type { CaseInstance } from '../../domain/models'
 import type { DistortionState } from '../../domain/shared/distortion'
@@ -46,6 +50,42 @@ describe('runTransfer helpers', () => {
 
     expect(hydrated.week).toBe(12)
     expect(hydrated.emergencyGrayMarketWaiverWeek).toBeUndefined()
+  })
+
+  it('migrates legacy emergency waiver events missing institutionKey and authority routing (SPE-1511 / SPE-849)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 5,
+        events: [
+          {
+            id: 'evt-legacy-waiver',
+            schemaVersion: 2,
+            type: 'market.emergency_gray_market_waiver_granted',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            payload: {
+              week: 5,
+              marketWeek: 5,
+              crisisPressureScore: 130,
+              sanctionLevel: 'sanctioned',
+              packetId: 'gray_market_broker',
+              falloutRiskApplied: 'risk',
+            },
+          },
+        ],
+      },
+      fallback
+    )
+
+    expect(hydrated.events).toHaveLength(1)
+    const ev = hydrated.events[0]
+    expect(ev?.type).toBe('market.emergency_gray_market_waiver_granted')
+    if (ev?.type === 'market.emergency_gray_market_waiver_granted') {
+      expect(ev.payload.institutionKey).toBe('containment_protocol')
+      expect(ev.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
+      expect(ev.payload.authorityBasis).toBe(LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION)
+    }
   })
 
   it('propagates canonical distortion state into report snapshots', () => {

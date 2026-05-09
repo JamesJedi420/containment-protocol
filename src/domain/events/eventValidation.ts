@@ -467,6 +467,9 @@ const marketEmergencyGrayMarketWaiverGrantedSchema = z
     sanctionLevel: z.literal('sanctioned'),
     packetId: z.literal('gray_market_broker'),
     falloutRiskApplied: z.literal('risk'),
+    institutionKey: z.string().min(1),
+    authorityRoute: z.string().min(1),
+    authorityBasis: z.string().min(1),
   })
   .strict()
 

@@ -79,11 +79,27 @@ describe('marketView', () => {
       funding: 0,
     }
 
-    const listing = getMarketListings(game).find((candidate) => candidate.buyPrice > 0)
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.accessAvailable && candidate.buyPrice > 0
+    )
 
     expect(listing).toBeDefined()
     expect(listing!.canBuyOne).toBe(false)
     expect(listing!.buyBlockedReason).toMatch(/need \+\$\d+/i)
+  })
+
+  it('surfaces access blockers when budget can cover a restricted listing', () => {
+    const game = createStartingState()
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(listing).toBeDefined()
+    expect(listing!.canAffordOne).toBe(true)
+    expect(listing!.accessAvailable).toBe(false)
+    expect(listing!.canBuyOne).toBe(false)
+    expect(listing!.budgetBlockedReason).toBeUndefined()
+    expect(listing!.buyBlockedReason).toMatch(/directorate special channel locked/i)
   })
 
   it('normalizes invalid market query params to defaults', () => {

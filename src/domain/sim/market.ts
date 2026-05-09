@@ -31,7 +31,11 @@ export function purchaseMarketInventory(
   const quantity = normalizedBundles * listing.bundleQuantity
   const totalPrice = normalizedBundles * listing.buyPrice
 
-  if (normalizedBundles > listing.availableBundles || state.funding < totalPrice) {
+  if (
+    !listing.accessAvailable ||
+    normalizedBundles > listing.availableBundles ||
+    state.funding < totalPrice
+  ) {
     return ensureNormalizedGameState(state)
   }
 

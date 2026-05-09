@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '../../test/setup'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -222,6 +222,25 @@ describe('MarketPage', () => {
     expect(buyButtons.length).toBeGreaterThan(0)
     expect(buyButtons[0]).toBeDisabled()
     expect(screen.getAllByText(/need \+\$\d+/i).length).toBeGreaterThan(0)
+  })
+
+  it('shows access-class blockers separately from affordable funding', () => {
+    const game = createStartingState()
+    useGameStore.setState({ game })
+
+    renderMarketPage()
+
+    const restrictedRow = screen.getByText(/advanced recon suite/i).closest('li')
+
+    expect(restrictedRow).toBeTruthy()
+    expect(
+      within(restrictedRow!).getByText(/access: directorate special channel/i)
+    ).toBeInTheDocument()
+    expect(within(restrictedRow!).getByText(/funding: affordable/i)).toBeInTheDocument()
+    expect(
+      within(restrictedRow!).getByText(/directorate special channel locked/i)
+    ).toBeInTheDocument()
+    expect(within(restrictedRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {

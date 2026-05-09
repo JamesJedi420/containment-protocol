@@ -103,9 +103,9 @@ export default function MarketPage() {
         <h3 className="text-base font-semibold">Procurement model</h3>
         <p className="text-sm opacity-60">
           Listings are derived deterministically from the current market week, supply pressure,
-          featured fabrication output, and seeded availability. Procurement reduces weekly channel
-          availability. Selling returns stock to the exchange at a lower recovery price for the same
-          week.
+          featured fabrication output, seeded availability, and explicit access classes. Procurement
+          reduces weekly channel availability. Selling returns stock to the exchange at a lower
+          recovery price for the same week.
         </p>
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="Market week" value={String(game.market.week)} />
@@ -244,11 +244,30 @@ export default function MarketPage() {
                 </div>
               </div>
 
-              <div className="grid gap-2 text-sm opacity-75 md:grid-cols-4">
+              <div className="grid gap-2 text-sm opacity-75 md:grid-cols-5">
                 <p>Bundle qty: {listing.bundleQuantity}</p>
                 <p>Buy: ${listing.buyPrice}</p>
                 <p>Sell: ${listing.sellPrice}</p>
                 <p>Pressure: {listing.pressureLabel}</p>
+                <p>Access: {listing.accessLabel}</p>
+              </div>
+
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-3">
+                <p>Acquisition: {listing.acquisitionClass}</p>
+                <p>
+                  Funding:{' '}
+                  {listing.canAffordOne
+                    ? `Affordable with $${game.funding} on hand`
+                    : (listing.budgetBlockedReason ?? 'Budget blocked')}
+                </p>
+                <p>
+                  Availability:{' '}
+                  {listing.accessAvailable
+                    ? listing.availableBundles > 0
+                      ? `${listing.availableBundles} bundle(s) open`
+                      : (listing.availabilityBlockedReason ?? 'Channel exhausted')
+                    : (listing.accessBlockedReason ?? 'Access blocked')}
+                </p>
               </div>
 
               {listing.tags.length > 0 ? (

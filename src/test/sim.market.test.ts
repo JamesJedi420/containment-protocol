@@ -78,6 +78,44 @@ describe('market procurement simulation', () => {
     expect(result).toBe(state)
   })
 
+  it('blocks restricted acquisition classes separately from budget', () => {
+    const state = createStartingState()
+    const restrictedListing = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(restrictedListing).toBeDefined()
+    expect(state.funding).toBeGreaterThanOrEqual(restrictedListing!.buyPrice)
+    expect(restrictedListing!.accessAvailable).toBe(false)
+    expect(restrictedListing!.accessBlockedReason).toMatch(/directorate special channel locked/i)
+
+    const result = purchaseMarketInventory(state, restrictedListing!.id, 1)
+
+    expect(result).toBe(state)
+  })
+
+  it('allows a restricted acquisition class after clearance unlocks its channel', () => {
+    const state = createStartingState()
+    const clearedState = {
+      ...state,
+      clearanceLevel: 2,
+      agency: state.agency ? { ...state.agency, clearanceLevel: 2 } : state.agency,
+    }
+    const restrictedListing = getProcurementListings(clearedState).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(restrictedListing).toBeDefined()
+    expect(restrictedListing!.accessAvailable).toBe(true)
+
+    const result = purchaseMarketInventory(clearedState, restrictedListing!.id, 1)
+
+    expect(result.funding).toBe(clearedState.funding - restrictedListing!.buyPrice)
+    expect(result.inventory.advanced_recon_suite).toBe(
+      (clearedState.inventory.advanced_recon_suite ?? 0) + restrictedListing!.bundleQuantity
+    )
+  })
+
   it('weekly market refresh resets availability tracking to the new market week', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state)[0]

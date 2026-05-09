@@ -14,6 +14,8 @@ import type { GameState, OperationEvent } from './models'
 
 export type ProcurementTransactionAction = 'buy' | 'sell'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
+export type ProcurementAcquisitionClass = 'standard' | 'restricted'
+export type ProcurementAccessChannel = 'open_exchange' | 'directorate_special_channel'
 
 export interface ProcurementListing {
   id: string
@@ -31,6 +33,12 @@ export interface ProcurementListing {
   buyPrice: number
   sellPrice: number
   pressureLabel: string
+  acquisitionClass: ProcurementAcquisitionClass
+  accessChannel: ProcurementAccessChannel
+  accessLabel: string
+  accessDetails: string[]
+  accessAvailable: boolean
+  accessBlockedReason?: string
   totalAvailability: number
   remainingAvailability: number
   availableBundles: number
@@ -69,6 +77,34 @@ interface ProcurementListingDefinition {
 }
 
 type MarketTransactionEvent = Extract<OperationEvent, { type: 'market.transaction_recorded' }>
+
+interface ProcurementAccessRule {
+  acquisitionClass: ProcurementAcquisitionClass
+  accessChannel: ProcurementAccessChannel
+  accessLabel: string
+  details: string[]
+  requiredClearanceLevel?: number
+}
+
+const DEFAULT_PROCUREMENT_ACCESS = {
+  acquisitionClass: 'standard',
+  accessChannel: 'open_exchange',
+  accessLabel: 'Open exchange',
+  details: ['Standard supplier access.'],
+} as const satisfies Omit<ProcurementAccessRule, 'requiredClearanceLevel'>
+
+const PROCUREMENT_ACCESS_RULES: Record<string, ProcurementAccessRule> = {
+  'gear:advanced_recon_suite': {
+    acquisitionClass: 'restricted',
+    accessChannel: 'directorate_special_channel',
+    accessLabel: 'Directorate special channel',
+    details: [
+      'Restricted acquisition class.',
+      'Requires directorate clearance before supplier release.',
+    ],
+    requiredClearanceLevel: 2,
+  },
+}
 
 const MATERIAL_BASE_UNIT_PRICES: Record<string, number> = {
   electronic_parts: 7,
@@ -146,6 +182,34 @@ function getDirectEquipmentBasePrice(
   const premiumCount = definition.tags.filter((tag) => premiumTags.includes(tag)).length
 
   return EQUIPMENT_SLOT_BASE_PRICES[definition.slot] + definition.quality * 4 + premiumCount * 2
+}
+
+function getClearanceLevel(game: Pick<GameState, 'agency' | 'clearanceLevel'>) {
+  return Math.max(1, Math.trunc(game.agency?.clearanceLevel ?? game.clearanceLevel ?? 1))
+}
+
+function assessProcurementAccess(definition: ProcurementListingDefinition, game: GameState) {
+  const rule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
+  const clearanceLevel = getClearanceLevel(game)
+  const accessDetails = [...rule.details]
+
+  if (typeof rule.requiredClearanceLevel === 'number') {
+    accessDetails.push(`Clearance ${rule.requiredClearanceLevel}+ required.`)
+  }
+
+  const accessBlockedReason =
+    typeof rule.requiredClearanceLevel === 'number' && clearanceLevel < rule.requiredClearanceLevel
+      ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
+      : undefined
+
+  return {
+    acquisitionClass: rule.acquisitionClass,
+    accessChannel: rule.accessChannel,
+    accessLabel: rule.accessLabel,
+    accessDetails,
+    accessAvailable: accessBlockedReason === undefined,
+    ...(accessBlockedReason ? { accessBlockedReason } : {}),
+  }
 }
 
 function getListingDefinitions() {
@@ -299,6 +363,7 @@ function buildListing(
       getSoldQuantityForListing(game, definition.id)
   )
   const sellPrice = Math.max(1, Math.round(buyPrice * getSellRatio(game.market.pressure, featured)))
+  const access = assessProcurementAccess(definition, game)
 
   return {
     ...definition,
@@ -307,6 +372,7 @@ function buildListing(
     buyPrice,
     sellPrice,
     pressureLabel: getMarketPressureLabel(game.market.pressure),
+    ...access,
     totalAvailability,
     remainingAvailability,
     availableBundles: Math.floor(remainingAvailability / definition.bundleQuantity),

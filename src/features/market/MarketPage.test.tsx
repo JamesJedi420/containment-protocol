@@ -61,6 +61,18 @@ function renderMarketPage(initialEntries = ['/markets-suppliers'], initialIndex?
   )
 }
 
+function createDiscountedMarketState() {
+  const game = createStartingState()
+
+  return {
+    ...game,
+    market: {
+      ...game.market,
+      pressure: 'discounted' as const,
+    },
+  }
+}
+
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
@@ -344,6 +356,32 @@ describe('MarketPage', () => {
     )
     expect(within(emfRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
     expect(within(emfRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
+  })
+
+  it('shows licensed handling capacity blocking after a controlled purchase', () => {
+    const game = createDiscountedMarketState()
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    useGameStore.setState({ game: purchaseMarketInventory(game, combatStims!.id, 1) })
+
+    renderMarketPage(['/markets-suppliers?q=hazmat%20suit'])
+
+    const hazmatListings = screen.getByRole('list', { name: /market listings/i })
+    const hazmatRow = within(hazmatListings)
+      .getAllByText(/^hazmat suit$/i)[0]
+      ?.closest('li')
+
+    expect(hazmatRow).toBeTruthy()
+    expect(within(hazmatRow!).getByText(/licensed handling desk: 0\/1 open/i)).toBeInTheDocument()
+    expect(
+      within(hazmatRow!).getByText(/licensed handling capacity: committed elsewhere/i)
+    ).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/displaced use: combat stims/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {

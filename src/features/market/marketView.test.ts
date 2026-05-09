@@ -11,6 +11,18 @@ import {
 } from './marketView'
 
 describe('marketView', () => {
+  function createDiscountedMarketState() {
+    const game = createStartingState()
+
+    return {
+      ...game,
+      market: {
+        ...game.market,
+        pressure: 'discounted' as const,
+      },
+    }
+  }
+
   it('builds deterministic procurement listings with weekly availability and pricing', () => {
     const game = createStartingState()
     const listings = getMarketListings(game)
@@ -183,6 +195,33 @@ describe('marketView', () => {
     )
     expect(emfSensors!.canBuyOne).toBe(true)
     expect(emfSensors!.canBuyThree).toBe(false)
+  })
+
+  it('surfaces licensed handling blocking after a controlled purchase commits capacity', () => {
+    const game = createDiscountedMarketState()
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const afterCombatStims = purchaseMarketInventory(game, combatStims!.id, 1)
+    const hazmatSuit = getMarketListings(afterCombatStims).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+    expect(hazmatSuit!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'licensed_handling_capacity',
+          state: 'committed_elsewhere',
+          displacedAlternativeUse: combatStims!.itemName,
+        }),
+      ])
+    )
+    expect(hazmatSuit!.canBuyOne).toBe(false)
+    expect(hazmatSuit!.buyBlockedReason).toMatch(/Licensed handling desk capacity committed/i)
   })
 
   it('normalizes invalid market query params to defaults', () => {

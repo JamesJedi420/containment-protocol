@@ -22,7 +22,10 @@ export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-g
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
 export type ProcurementParticipantChannelType = 'quartermaster' | 'broker'
 export type ProcurementLiquidityProfile = 'stable' | 'thin'
-export type ProcurementResourceClass = 'supplier_attention_slot' | 'reagent_stock'
+export type ProcurementResourceClass =
+  | 'supplier_attention_slot'
+  | 'reagent_stock'
+  | 'licensed_handling_capacity'
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
 
@@ -161,6 +164,10 @@ const REAGENT_STOCK_MATERIAL_ID = 'occult_reagents'
 const REAGENT_STOCK_CAPACITY = 1
 const DEGRADED_REAGENT_SUBSTITUTE_PRICE_MULTIPLIER = 1.25
 const DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS = 1
+const LICENSED_HANDLING_SOURCE_ID = 'licensed_handling_desk'
+const LICENSED_HANDLING_SOURCE_LABEL = 'Licensed handling desk'
+const LICENSED_HANDLING_CAPACITY = 1
+const LICENSED_HANDLING_LISTING_IDS = new Set(['gear:combat_stims', 'gear:hazmat_suit'])
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -506,6 +513,7 @@ export function getProcurementAllocations(game: GameState, marketWeek = game.mar
   return [
     ...getCurrentSupplierAttentionAllocations(game, marketWeek),
     ...getCurrentReagentStockAllocations(game, REAGENT_STOCK_MATERIAL_ID, marketWeek),
+    ...getCurrentLicensedHandlingAllocations(game, marketWeek),
   ].sort((left, right) => left.allocationId.localeCompare(right.allocationId))
 }
 
@@ -656,6 +664,60 @@ function createReagentAllocationStatus(
   }
 }
 
+function getCurrentLicensedHandlingAllocations(
+  game: GameState,
+  marketWeek = game.market.week
+): ProcurementAllocationPacket[] {
+  return game.events
+    .filter((event) => isMarketTransactionEvent(event))
+    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .flatMap((event) => getMarketTransactionAllocationPackets(event))
+    .filter(
+      (allocation) =>
+        allocation.resourceClass === 'licensed_handling_capacity' &&
+        allocation.source === LICENSED_HANDLING_SOURCE_ID
+    )
+    .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
+}
+
+function getLicensedHandlingRequirement(definition: ProcurementListingDefinition) {
+  return LICENSED_HANDLING_LISTING_IDS.has(definition.id) ? 1 : 0
+}
+
+function createLicensedHandlingAllocationStatus(
+  definition: ProcurementListingDefinition,
+  game: GameState
+): ProcurementAllocationStatus | undefined {
+  const required = getLicensedHandlingRequirement(definition)
+
+  if (required <= 0) {
+    return undefined
+  }
+
+  const allocations = getCurrentLicensedHandlingAllocations(game)
+  const available = Math.max(0, LICENSED_HANDLING_CAPACITY - allocations.length)
+
+  return {
+    resourceClass: 'licensed_handling_capacity',
+    source: LICENSED_HANDLING_SOURCE_ID,
+    sourceLabel: LICENSED_HANDLING_SOURCE_LABEL,
+    capacity: LICENSED_HANDLING_CAPACITY,
+    committed: allocations.length,
+    available,
+    required,
+    purchaseAvailable: available >= required,
+    state: available >= required ? 'available' : 'committed_elsewhere',
+    allocations,
+    ...(available < required
+      ? {
+          displacedAlternativeUse:
+            allocations[0]?.destinationLabel ?? LICENSED_HANDLING_SOURCE_LABEL,
+          blockerReason: `${LICENSED_HANDLING_SOURCE_LABEL} capacity committed to ${allocations[0]?.destinationLabel ?? 'another controlled procurement'} this market week.`,
+        }
+      : {}),
+  }
+}
+
 function getDegradedSubstitutionOption(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -792,9 +854,11 @@ function buildListing(
     game,
     allocationStatus.substitution?.unitPrice ?? baseBuyPrice
   )
+  const licensedHandlingStatus = createLicensedHandlingAllocationStatus(definition, game)
   const resourceStatuses = [
     allocationStatus,
     ...(reagentAllocationStatus ? [reagentAllocationStatus] : []),
+    ...(licensedHandlingStatus ? [licensedHandlingStatus] : []),
   ]
   const buyPrice =
     reagentAllocationStatus?.substitution?.unitPrice ??

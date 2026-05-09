@@ -58,7 +58,9 @@ describe('marketView', () => {
 
   it('reflects current-week transaction history from domain events', () => {
     const game = createStartingState()
-    const listing = getMarketListings(game)[0]
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 

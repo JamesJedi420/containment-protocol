@@ -13,7 +13,9 @@ describe('market procurement simulation', () => {
 
   it('purchase deducts funding, increases inventory, records a transaction event, and reduces availability', () => {
     const state = createStartingState()
-    const listing = getProcurementListings(state)[0]
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 
@@ -136,7 +138,9 @@ describe('market procurement simulation', () => {
 
   it('generates unique market transaction IDs within the same week', () => {
     const state = createStartingState()
-    const listing = getProcurementListings(state)[0]
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 

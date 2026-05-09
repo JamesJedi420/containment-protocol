@@ -230,7 +230,7 @@ describe('MarketPage', () => {
 
     renderMarketPage()
 
-    const restrictedRow = screen.getByText(/advanced recon suite/i).closest('li')
+    const restrictedRow = screen.getAllByText(/^advanced recon suite$/i)[0]?.closest('li')
 
     expect(restrictedRow).toBeTruthy()
     expect(

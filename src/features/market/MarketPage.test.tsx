@@ -276,8 +276,9 @@ describe('MarketPage', () => {
 
     expect(grayMarketRow).toBeTruthy()
     expect(
-      within(grayMarketRow!).getByText(/gray-market broker blocked: sanctioned audit posture/i)
-    ).toBeInTheDocument()
+      within(grayMarketRow!).getAllByText(/gray-market broker blocked: sanctioned audit posture/i)
+        .length
+    ).toBeGreaterThan(0)
     expect(within(grayMarketRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 

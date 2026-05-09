@@ -419,7 +419,7 @@ const marketTransactionListingResourceStatusSchema = z
 const procurementAllocationSchema = z
   .object({
     allocationId: z.string(),
-    resourceClass: z.enum(['supplier_attention_slot', 'reagent_stock']),
+    resourceClass: z.enum(['supplier_attention_slot', 'reagent_stock', 'licensed_handling_capacity']),
     source: z.string(),
     sourceLabel: z.string(),
     destinationUse: z.string(),

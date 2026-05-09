@@ -197,13 +197,13 @@ export default function MarketPage() {
                 acknowledgement).
               </p>
             </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-primary shrink-0"
-                onClick={acknowledgeLicensedHandlingDoctrine}
-              >
-                Acknowledge doctrine
-              </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary shrink-0"
+              onClick={acknowledgeLicensedHandlingDoctrine}
+            >
+              Acknowledge doctrine
+            </button>
           </div>
         </article>
       ) : null}

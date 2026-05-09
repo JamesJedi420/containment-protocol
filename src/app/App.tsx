@@ -58,13 +58,7 @@ const ContainmentSiteRoute = createRouteComponent(() =>
     },
   }))
 )
-const MarketsSuppliersRoute = createRouteComponent(() =>
-  import('../features/divisions/SystemBoundaryPage').then((module) => ({
-    default: function MarketsSuppliersRoute() {
-      return <module.SystemBoundaryPage boundary="marketsSuppliers" />
-    },
-  }))
-)
+const MarketsSuppliersRoute = createRouteComponent(() => import('../features/market/MarketPage'))
 const FactionsPage = createRouteComponent(() => import('../features/factions/FactionsPage'))
 const RankingsRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({

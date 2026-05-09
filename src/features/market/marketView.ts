@@ -443,7 +443,7 @@ function buildProcurementDetailView(
               .join('; ')}.`
           : 'No current-week transaction has hit this line yet.',
       ],
-      4
+      8
     ),
     blockerDetails: uniqueBounded(
       [

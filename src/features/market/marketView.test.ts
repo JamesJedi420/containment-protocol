@@ -11,6 +11,18 @@ import {
 } from './marketView'
 
 describe('marketView', () => {
+  function createDiscountedMarketState() {
+    const game = createStartingState()
+
+    return {
+      ...game,
+      market: {
+        ...game.market,
+        pressure: 'discounted' as const,
+      },
+    }
+  }
+
   it('builds deterministic procurement listings with weekly availability and pricing', () => {
     const game = createStartingState()
     const listings = getMarketListings(game)
@@ -186,7 +198,7 @@ describe('marketView', () => {
   })
 
   it('surfaces licensed handling blocking after a controlled purchase commits capacity', () => {
-    const game = createStartingState()
+    const game = createDiscountedMarketState()
     const combatStims = getMarketListings(game).find(
       (candidate) => candidate.itemId === 'combat_stims'
     )

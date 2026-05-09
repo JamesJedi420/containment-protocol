@@ -61,6 +61,18 @@ function renderMarketPage(initialEntries = ['/markets-suppliers'], initialIndex?
   )
 }
 
+function createDiscountedMarketState() {
+  const game = createStartingState()
+
+  return {
+    ...game,
+    market: {
+      ...game.market,
+      pressure: 'discounted' as const,
+    },
+  }
+}
+
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
@@ -347,7 +359,7 @@ describe('MarketPage', () => {
   })
 
   it('shows licensed handling capacity blocking after a controlled purchase', () => {
-    const game = createStartingState()
+    const game = createDiscountedMarketState()
     const combatStims = getMarketListings(game).find(
       (candidate) => candidate.itemId === 'combat_stims'
     )

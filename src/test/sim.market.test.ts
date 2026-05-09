@@ -11,6 +11,18 @@ import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/mark
 import { queueFabrication } from '../domain/sim/production'
 
 describe('market procurement simulation', () => {
+  function createDiscountedMarketState() {
+    const state = createStartingState()
+
+    return {
+      ...state,
+      market: {
+        ...state.market,
+        pressure: 'discounted' as const,
+      },
+    }
+  }
+
   it('builds deterministic listings from the same state', () => {
     const state = createStartingState()
 
@@ -104,7 +116,7 @@ describe('market procurement simulation', () => {
   })
 
   it('records licensed handling allocation packets for controlled purchases', () => {
-    const state = createStartingState()
+    const state = createDiscountedMarketState()
     const listing = getProcurementListings(state).find(
       (candidate) =>
         candidate.itemId === 'combat_stims' &&
@@ -431,7 +443,7 @@ describe('market procurement simulation', () => {
   })
 
   it('makes controlled procurement unavailable when licensed handling is committed elsewhere', () => {
-    const state = createStartingState()
+    const state = createDiscountedMarketState()
     const combatStims = getProcurementListings(state).find(
       (candidate) => candidate.itemId === 'combat_stims'
     )

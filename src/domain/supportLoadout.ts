@@ -2,12 +2,13 @@ function canAgentRepairSignalJammer(state: GameState, agentId: Id): boolean {
   const agent = state.agents[agentId]
   if (!agent) return false
   // Capability is determined by role or tags
-  if (typeof SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES !== 'undefined' && SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
+  if (SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
     return true
   }
   const tags = new Set(agent.tags ?? [])
   return tags.has('tech') || tags.has('investigator') || tags.has('signal')
 }
+
 function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'> | undefined) {
   return new Set([
     ...(caseData?.tags ?? []),
@@ -15,7 +16,6 @@ function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'required
     ...(caseData?.preferredTags ?? []),
   ])
 }
-// (file ends abruptly)
 import { getEquipmentSlotItemId } from './equipment'
 import {
   readGameStateManager,
@@ -824,14 +824,14 @@ export function applyWardSealsToSealedAnchor(
   const failureFlagKey = buildWardSealAnchorFailureFlagKey(agentId)
   const mismatchFlagKey = buildWardSealAnchorMismatchFlagKey(agentId)
 
-    // If already applied, return already-applied (idempotent)
-    if (encounterFlags[successFlagKey] === true) {
-      return {
-        state,
-        applied: false,
-        outcome: 'already-applied',
-        supportState: getPreparedSupportProcedureState(state, encounterId, agentId),
-      }
+  // If already applied, return already-applied (idempotent)
+  if (encounterFlags[successFlagKey] === true) {
+    return {
+      state,
+      applied: false,
+      outcome: 'already-applied',
+      supportState,
+    }
   }
 
   // Reset flags
@@ -840,7 +840,7 @@ export function applyWardSealsToSealedAnchor(
   encounterFlags[mismatchFlagKey] = false
 
   // Guard: must be available and correct family
-  if (supportState.status === 'unavailable' || supportState.family !== 'containment') {
+  if (supportState.status !== 'prepared' || supportState.family !== 'containment') {
     encounterFlags[failureFlagKey] = true
     const nextState = setEncounterRuntimeState(state, encounterId, {
       phase: 'support-loadout:ward-seals:anchor:failure',

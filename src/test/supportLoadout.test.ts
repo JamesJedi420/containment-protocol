@@ -32,7 +32,7 @@ function withCaseTags(
 ): ReturnType<typeof createStartingState> {
   const case001 = state.cases['case-001']
   if (!case001) {
-    return state
+    throw new Error("withCaseTags expected state.cases['case-001'] to be defined")
   }
 
   return {

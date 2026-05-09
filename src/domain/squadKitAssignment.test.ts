@@ -46,6 +46,7 @@ describe('Squad kit assignment seam', () => {
 
   it('reassigns a different kit template deterministically', () => {
     const first = assignSquadKit(validSquad, validKitTemplate)
+    expect(first.ok).toBe(true)
     if (!first.ok) {
       throw new Error('Expected initial kit assignment')
     }

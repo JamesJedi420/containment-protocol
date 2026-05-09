@@ -421,6 +421,7 @@ export interface OperationEventPayloadMap {
     unitPrice: number
     totalPrice: number
     remainingAvailability: number
+    listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string
       resourceClass:
@@ -457,7 +458,6 @@ export interface OperationEventPayloadMap {
       substitutionStatus: 'none' | 'degraded_substitute'
       substitutionSummary?: string
     }>
-    listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
   }
   'faction.standing_changed': {
     week: number

@@ -401,6 +401,21 @@ const marketShiftedSchema = z
   })
   .strict()
 
+const marketTransactionListingResourceStatusSchema = z
+  .object({
+    resourceClass: z.enum([
+      'supplier_attention_slot',
+      'reagent_stock',
+      'licensed_handling_capacity',
+    ]),
+    sourceId: z.string().optional(),
+    label: z.string().optional(),
+    available: z.number().optional(),
+    capacity: z.number().optional(),
+    allocations: z.array(z.string()).optional(),
+  })
+  .passthrough()
+
 const procurementAllocationSchema = z
   .object({
     allocationId: z.string(),
@@ -423,21 +438,6 @@ const procurementAllocationSchema = z
   })
   .strict()
 
-const marketTransactionListingResourceStatusSchema = z
-  .object({
-    resourceClass: z.enum([
-      'supplier_attention_slot',
-      'reagent_stock',
-      'licensed_handling_capacity',
-    ]),
-    sourceId: z.string().optional(),
-    label: z.string().optional(),
-    available: z.number().optional(),
-    capacity: z.number().optional(),
-    allocations: z.array(z.string()).optional(),
-  })
-  .passthrough()
-
 const marketTransactionRecordedSchema = z
   .object({
     week: weekSchema,
@@ -453,9 +453,9 @@ const marketTransactionRecordedSchema = z
     unitPrice: z.number(),
     totalPrice: z.number(),
     remainingAvailability: z.number(),
+    listingResourceStatuses: z.array(marketTransactionListingResourceStatusSchema).optional(),
     allocation: procurementAllocationSchema.optional(),
     allocations: z.array(procurementAllocationSchema).optional(),
-    listingResourceStatuses: z.array(marketTransactionListingResourceStatusSchema).optional(),
   })
   .strict()
 

@@ -1939,6 +1939,7 @@ function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Part
 /**
  * Equipment definitions with this tag consume licensed-handling desk capacity for field procurement.
  * Market listings derive desk usage from `itemId` via {@link getLicensedHandlingRequirement}.
+ * Prefer tagging catalog entries over hardcoding `gear:…` market listing IDs.
  */
 export const LICENSED_PROCUREMENT_TAG = 'licensed-procurement'
 

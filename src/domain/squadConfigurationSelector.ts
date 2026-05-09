@@ -46,7 +46,7 @@ export function selectSquadConfigurationSummary(
     return result.summary
   }
 
-  if (result.error !== 'assigned_kit_template_not_found') {
+  if (result.error === 'invalid_squad_id') {
     return null
   }
 

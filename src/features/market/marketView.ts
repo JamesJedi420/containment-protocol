@@ -406,7 +406,7 @@ function buildProcurementDetailView(
     description: listing.description,
     sourceLabel: listing.source.replace(/_/g, ' '),
     availabilityLabel: !listing.accessAvailable
-      ? listing.accessBlockedReason
+      ? (listing.accessBlockedReason ?? 'Access blocked')
       : listing.availableBundles > 0
         ? `${pluralize(listing.availableBundles, 'bundle')} open this week`
         : 'Supplier channel exhausted this week',

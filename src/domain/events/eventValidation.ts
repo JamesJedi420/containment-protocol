@@ -473,6 +473,14 @@ const marketEmergencyGrayMarketWaiverGrantedSchema = z
   })
   .strict()
 
+const marketEmergencyGrayMarketWaiverAccountabilityClosedSchema = z
+  .object({
+    week: weekSchema,
+    waiverGrantWeek: weekSchema,
+    institutionKey: z.string().min(1),
+  })
+  .strict()
+
 const factionStandingChangedSchema = z
   .object({
     week: weekSchema,
@@ -590,6 +598,8 @@ export const operationEventPayloadSchemas = {
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,
+  'market.emergency_gray_market_waiver_accountability_closed':
+    marketEmergencyGrayMarketWaiverAccountabilityClosedSchema,
   'faction.standing_changed': factionStandingChangedSchema,
   'faction.unlock_available': factionUnlockAvailableSchema,
   'agency.containment_updated': agencyContainmentUpdatedSchema,

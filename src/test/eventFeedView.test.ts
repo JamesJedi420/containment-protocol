@@ -666,6 +666,21 @@ describe('buildEventFeedView', () => {
     expect(view.searchText).toContain('crisis_director_self')
   })
 
+  it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {
+    const event = makeEvent('market.emergency_gray_market_waiver_accountability_closed', {
+      week: 9,
+      waiverGrantWeek: 8,
+      institutionKey: 'containment_protocol',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('neutral')
+    expect(view.title).toContain('accountability posted')
+    expect(view.detail).toContain('Posted campaign week 9')
+    expect(view.detail).toContain('Waiver grant week 8')
+    expect(view.searchText).toContain('containment_protocol')
+  })
+
   it('faction.standing_changed — posture tone and standing range in detail', () => {
     const event = makeEvent('faction.standing_changed', {
       week: 6,

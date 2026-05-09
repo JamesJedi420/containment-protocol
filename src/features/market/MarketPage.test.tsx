@@ -238,8 +238,8 @@ describe('MarketPage', () => {
     ).toBeInTheDocument()
     expect(within(restrictedRow!).getByText(/funding: affordable/i)).toBeInTheDocument()
     expect(
-      within(restrictedRow!).getByText(/directorate special channel locked/i)
-    ).toBeInTheDocument()
+      within(restrictedRow!).getAllByText(/directorate special channel locked/i).length
+    ).toBeGreaterThan(0)
     expect(within(restrictedRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 

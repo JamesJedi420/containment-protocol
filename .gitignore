@@ -1,4 +1,5 @@
 # Logs
+# cspell:ignore vitest gamestore ntvs njsproj
 logs
 *.log
 npm-debug.log*

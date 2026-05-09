@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   getEquipmentCatalogEntries,
+  getLicensedHandlingRequirement,
+  LICENSED_PROCUREMENT_TAG,
   resolveEquippedItems,
   validateEquipmentCatalogDefinitions,
   type EquipmentDefinition,
@@ -12,6 +14,16 @@ function buildCatalogRecord() {
     getEquipmentCatalogEntries().map((definition) => [definition.id, definition])
   ) as Record<string, EquipmentDefinition>
 }
+
+describe('licensed procurement (data-driven handling rules)', () => {
+  it('flags controlled items via catalog tag instead of listing id sets', () => {
+    expect(LICENSED_PROCUREMENT_TAG).toBe('licensed-procurement')
+    expect(getLicensedHandlingRequirement('combat_stims')).toBe(true)
+    expect(getLicensedHandlingRequirement('hazmat_suit')).toBe(true)
+    expect(getLicensedHandlingRequirement('tactical_radio')).toBe(false)
+    expect(getLicensedHandlingRequirement('nonexistent_item')).toBe(false)
+  })
+})
 
 describe('equipment catalog validation', () => {
   it('accepts the live catalog and keeps repeated reads deterministic', () => {

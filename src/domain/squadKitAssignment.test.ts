@@ -49,11 +49,6 @@ describe('Squad kit assignment seam', () => {
     expect(first.ok).toBe(true)
     expect(first.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
     const second = assignSquadKit(validSquad, partialKitTemplate)
-    expect(first.ok).toBe(true)
-    if (!first.ok) {
-      throw new Error('Expected initial kit assignment')
-    }
-    expect(first.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
     expect(second.ok).toBe(true)
     if (!second.ok) {
       throw new Error('Expected replacement kit assignment')

@@ -3,6 +3,7 @@
   "language": "en-US",
   "useGitignore": true,
   "ignorePaths": [
+    "cspell.json",
     ".git",
     "coverage",
     "dist",
@@ -51,13 +52,17 @@
     "reassignable",
     "replayability",
     "reprioritize",
+    "prioritise",
+    "deprioritise",
     "sato",
+    "Scoutable",
     "scoutable",
     "spookhaus",
     "stabilised",
     "stims",
     "stormfront",
     "substat",
+    "affordances",
     "inspectable",
     "substate",
     "desync",
@@ -70,6 +75,7 @@
     "Softlock",
     "softlock",
     "buildcraft",
+    "misroute",
     "thresholded",
     "oneshot",
     "unroutable",
@@ -89,6 +95,10 @@
     "watchlist",
     "Unlockable",
     "chokepoint",
-    "chokepoints"
+    "chokepoints",
+    "vitest",
+    "gamestore",
+    "ntvs",
+    "njsproj"
   ]
 }

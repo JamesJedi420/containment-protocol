@@ -974,7 +974,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Hazmat Suit',
     slot: 'armor',
     quality: 1,
-    tags: ['armor', 'hazmat', 'protection', 'biocontainment', 'support'],
+    tags: ['armor', 'hazmat', 'protection', 'biocontainment', 'support', 'licensed-procurement'],
     allowedSlots: ['armor'],
     rarity: 'uncommon',
     enchantmentIds: ['fortitude'],
@@ -1046,7 +1046,7 @@ const EQUIPMENT_CATALOG: Record<string, EquipmentDefinition> = {
     name: 'Combat Stims',
     slot: 'utility1',
     quality: 1,
-    tags: ['combat', 'stimulant', 'physical', 'support', 'medical'],
+    tags: ['combat', 'stimulant', 'physical', 'support', 'medical', 'licensed-procurement'],
     allowedSlots: ['utility1', 'utility2'],
     rarity: 'uncommon',
     enchantmentIds: ['sharpness'],
@@ -1918,6 +1918,17 @@ function calculateSetBonuses(sets: EquipmentSet[], items: EquipmentItem[]): Part
 
     return merged
   }, {})
+}
+
+/**
+ * Equipment definitions with this tag consume licensed-handling desk capacity for field procurement.
+ * Prefer tagging catalog entries over hardcoding `gear:…` market listing IDs.
+ */
+export const LICENSED_PROCUREMENT_TAG = 'licensed-procurement'
+
+export function getLicensedHandlingRequirement(itemId: string): boolean {
+  const definition = EQUIPMENT_CATALOG[itemId]
+  return definition !== undefined && definition.tags.includes(LICENSED_PROCUREMENT_TAG)
 }
 
 export function getEquipmentDefinition(itemId: string) {

@@ -11,6 +11,7 @@ import {
 } from '../data/production'
 import { createSeededRng, normalizeSeed, randInt } from './math'
 import { getEquipmentCatalogEntries, type EquipmentSlotKind } from './equipment'
+import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, OperationEvent } from './models'
 
 export type ProcurementTransactionAction = 'buy' | 'sell'
@@ -134,6 +135,7 @@ export interface ProcurementTransactionView {
   allocation?: ProcurementAllocationPacket
   allocations?: ProcurementAllocationPacket[]
   timestamp: string
+  listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
 }
 
 interface ProcurementListingDefinition {
@@ -465,36 +467,43 @@ function isMarketTransactionEvent(event: OperationEvent): event is MarketTransac
   return event.type === 'market.transaction_recorded'
 }
 
-function getBoughtQuantityForListing(
-  game: GameState,
-  listingId: string,
-  marketWeek = game.market.week
-) {
-  return game.events
-    .filter((event) => isMarketTransactionEvent(event))
-    .filter(
-      (event) =>
-        event.payload.marketWeek === marketWeek &&
-        event.payload.listingId === listingId &&
-        event.payload.action === 'buy'
-    )
-    .reduce((sum, event) => sum + event.payload.quantity, 0)
+/** Buy/sell quantities per listing for one market week, from a single event-log pass. */
+interface ListingTransactionTotals {
+  boughtByListingId: Record<string, number>
+  soldByListingId: Record<string, number>
 }
 
-function getSoldQuantityForListing(
-  game: GameState,
-  listingId: string,
-  marketWeek = game.market.week
-) {
-  return game.events
-    .filter((event) => isMarketTransactionEvent(event))
-    .filter(
-      (event) =>
-        event.payload.marketWeek === marketWeek &&
-        event.payload.listingId === listingId &&
-        event.payload.action === 'sell'
-    )
-    .reduce((sum, event) => sum + event.payload.quantity, 0)
+function getListingTransactionTotalsForWeek(
+  events: GameState['events'],
+  marketWeek: number
+): ListingTransactionTotals {
+  const boughtByListingId: Record<string, number> = {}
+  const soldByListingId: Record<string, number> = {}
+
+  for (const event of events) {
+    if (!isMarketTransactionEvent(event) || event.payload.marketWeek !== marketWeek) {
+      continue
+    }
+
+    const listingId = event.payload.listingId
+    const quantity = event.payload.quantity
+
+    switch (event.payload.action) {
+      case 'buy':
+        boughtByListingId[listingId] = (boughtByListingId[listingId] ?? 0) + quantity
+        break
+      case 'sell':
+        soldByListingId[listingId] = (soldByListingId[listingId] ?? 0) + quantity
+        break
+      default: {
+        const _exhaustive: never = event.payload.action
+        void _exhaustive
+        break
+      }
+    }
+  }
+
+  return { boughtByListingId, soldByListingId }
 }
 
 function getCurrentSupplierAttentionAllocations(
@@ -844,7 +853,8 @@ function getBuyPrice(
 
 function buildListing(
   definition: ProcurementListingDefinition,
-  game: GameState
+  game: GameState,
+  transactionTotals: ListingTransactionTotals
 ): ProcurementListing {
   const marketPacket = buildMarketPacket(getMarketPacketIdForDefinition(definition), game)
   const baseBuyPrice = getBuyPrice(definition, game, marketPacket)
@@ -872,16 +882,10 @@ function buildListing(
       : undefined
   const featured = definition.recipeId === game.market.featuredRecipeId
   const totalAvailability = getBaseAvailability(definition, game, marketPacket)
-  const remainingAvailability = Math.max(
-    0,
-    totalAvailability -
-      getBoughtQuantityForListing(game, definition.id) +
-      getSoldQuantityForListing(game, definition.id)
-  )
-  const sellPrice = Math.max(
-    1,
-    Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured))
-  )
+  const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
+  const sold = transactionTotals.soldByListingId[definition.id] ?? 0
+  const remainingAvailability = Math.max(0, totalAvailability - bought + sold)
+  const sellPrice = Math.max(1, Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured)))
   const access = assessProcurementAccess(definition, game, marketPacket)
 
   return {
@@ -951,7 +955,8 @@ function buildProcurementAllocationPacketForStatus(
 }
 
 export function getProcurementListings(game: GameState) {
-  return getListingDefinitions().map((definition) => buildListing(definition, game))
+  const transactionTotals = getListingTransactionTotalsForWeek(game.events, game.market.week)
+  return getListingDefinitions().map((definition) => buildListing(definition, game, transactionTotals))
 }
 
 export function getProcurementListing(game: GameState, listingId: string) {
@@ -983,6 +988,7 @@ export function getCurrentMarketTransactions(
       ...(event.payload.allocation ? { allocation: event.payload.allocation } : {}),
       ...(event.payload.allocations ? { allocations: event.payload.allocations } : {}),
       timestamp: event.timestamp,
+      listingResourceStatuses: event.payload.listingResourceStatuses,
     }))
     .sort(
       (left, right) =>

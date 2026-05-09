@@ -1,7 +1,6 @@
 import type { CaseInstance, CaseTemplate, WeirdRoomPacket } from '../models'
 import {
   getPilotSitePacketForTemplate,
-  type PilotSiteGenerationPacket,
   type SiteGenerationStageSnapshot,
   type SiteHazardId,
   type SiteInhabitantId,
@@ -117,7 +116,6 @@ function mergeUniquePreserveOrder(...lists: readonly string[][]) {
 }
 
 function resolveByKey<T extends string>(
-  packet: PilotSiteGenerationPacket,
   collection: Readonly<Record<string, readonly WeightedStageOption<T>[]>>,
   key: string,
   fallback: readonly WeightedStageOption<T>[]
@@ -161,7 +159,6 @@ export function resolveSiteGenerationStages(
 
   const ingress = pickWeightedOption(
     resolveByKey(
-      packet,
       packet.ingressByPurposeAndLocation,
       `${purpose}|${location}`,
       packet.ingressByPurposeAndLocation[`${packet.purposes[0]!.id}|${location}`] ??
@@ -174,7 +171,6 @@ export function resolveSiteGenerationStages(
 
   const topology = pickWeightedOption(
     resolveByKey(
-      packet,
       packet.topologyByIngressAndBuilder,
       `${ingress}|${builder}`,
       packet.topologyByIngressAndBuilder[
@@ -189,7 +185,6 @@ export function resolveSiteGenerationStages(
 
   const hazards = pickWeightedDistinct(
     resolveByKey(
-      packet,
       packet.hazardsByPurposeAndTopology,
       `${purpose}|${topology}`,
       packet.hazardsByPurposeAndTopology[`${packet.purposes[0]!.id}|${topology}`] ??
@@ -203,7 +198,6 @@ export function resolveSiteGenerationStages(
 
   const treasure = pickWeightedDistinct(
     resolveByKey(
-      packet,
       packet.treasureByPurposeAndLocation,
       `${purpose}|${location}`,
       packet.treasureByPurposeAndLocation[`${packet.purposes[0]!.id}|${location}`] ??
@@ -217,7 +211,6 @@ export function resolveSiteGenerationStages(
 
   const inhabitants = pickWeightedDistinct(
     resolveByKey(
-      packet,
       packet.inhabitantsByPurposeAndBuilder,
       `${purpose}|${builder}`,
       packet.inhabitantsByPurposeAndBuilder[

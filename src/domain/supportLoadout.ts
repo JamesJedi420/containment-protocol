@@ -2,12 +2,13 @@ function canAgentRepairSignalJammer(state: GameState, agentId: Id): boolean {
   const agent = state.agents[agentId]
   if (!agent) return false
   // Capability is determined by role or tags
-  if (typeof SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES !== 'undefined' && SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
+  if (SIGNAL_JAMMER_REPAIR_CAPABLE_ROLES.has(agent.role)) {
     return true
   }
   const tags = new Set(agent.tags ?? [])
   return tags.has('tech') || tags.has('investigator') || tags.has('signal')
 }
+
 function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'requiredTags' | 'preferredTags'> | undefined) {
   return new Set([
     ...(caseData?.tags ?? []),
@@ -15,7 +16,6 @@ function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'required
     ...(caseData?.preferredTags ?? []),
   ])
 }
-// (file ends abruptly)
 import { getEquipmentSlotItemId } from './equipment'
 import {
   readGameStateManager,

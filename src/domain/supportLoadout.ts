@@ -195,7 +195,7 @@ function getPreparedSupportProcedureDefinition(itemId: string | undefined) {
   if (!itemId) {
     return undefined
   }
-  return itemId in PREPARED_SUPPORT_PROCEDURE_ITEMS
+  return Object.prototype.hasOwnProperty.call(PREPARED_SUPPORT_PROCEDURE_ITEMS, itemId)
     ? PREPARED_SUPPORT_PROCEDURE_ITEMS[
         itemId as keyof typeof PREPARED_SUPPORT_PROCEDURE_ITEMS
       ]

@@ -164,4 +164,20 @@ describe('selectSquadConfigurationSummary', () => {
       validation: null,
     })
   })
+
+  it('returns null when assigned kit validation fails unexpectedly', () => {
+    const game = baseGame()
+    const metadata = makeMetadata('team-1')
+    const template = makeTemplate('kit-breach')
+    const assignmentResult = assignSquadKit(metadata, template)
+    if (!assignmentResult.ok) throw new Error('assignment failed')
+
+    game.squadMetadata = { 'team-1': metadata }
+    game.squadKitTemplates = {
+      'kit-breach': { ...template, id: '' } as typeof template,
+    }
+    game.squadKitAssignments = { 'team-1': assignmentResult.assignment }
+
+    expect(selectSquadConfigurationSummary(game, 'team-1')).toBeNull()
+  })
 })

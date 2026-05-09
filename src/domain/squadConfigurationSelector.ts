@@ -46,6 +46,10 @@ export function selectSquadConfigurationSummary(
     return result.summary
   }
 
+  if (result.error !== 'assigned_kit_template_not_found') {
+    return null
+  }
+
   const fallbackResult = buildSquadConfigurationSummary({
     metadata,
     slots,

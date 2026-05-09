@@ -315,7 +315,10 @@ describe('MarketPage', () => {
 
     const firstRender = renderMarketPage(['/markets-suppliers?q=ritual%20components'])
 
-    const ritualRow = screen.getAllByText(/^ritual components$/i)[0]?.closest('li')
+    const ritualListings = screen.getByRole('list', { name: /market listings/i })
+    const ritualRow = within(ritualListings)
+      .getAllByText(/^ritual components$/i)[0]
+      ?.closest('li')
 
     expect(ritualRow).toBeTruthy()
     expect(within(ritualRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()
@@ -327,7 +330,10 @@ describe('MarketPage', () => {
 
     renderMarketPage(['/markets-suppliers?q=emf%20sensors'])
 
-    const emfRow = screen.getAllByText(/^emf sensors$/i)[0]?.closest('li')
+    const emfListings = screen.getByRole('list', { name: /market listings/i })
+    const emfRow = within(emfListings)
+      .getAllByText(/^emf sensors$/i)[0]
+      ?.closest('li')
 
     expect(emfRow).toBeTruthy()
     expect(within(emfRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()

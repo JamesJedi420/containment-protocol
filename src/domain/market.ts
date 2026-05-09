@@ -923,7 +923,7 @@ function buildListing(
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
   const remainingAvailability = Math.max(0, totalAvailability - bought + sold)
-  const sellPrice = Math.max(1, Math.round(buyPrice * getSellRatio(game.market.pressure, featured)))
+  const sellPrice = Math.max(1, Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured)))
   const access = assessProcurementAccess(definition, game, marketPacket)
 
   return {

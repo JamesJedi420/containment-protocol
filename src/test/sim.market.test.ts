@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { getProcurementListing, getProcurementListings } from '../domain/market'
+import {
+  getProcurementAllocations,
+  getProcurementListing,
+  getProcurementListings,
+  getProcurementMarketPackets,
+} from '../domain/market'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/market'
 
@@ -11,9 +16,34 @@ describe('market procurement simulation', () => {
     expect(getProcurementListings(state)).toEqual(getProcurementListings(state))
   })
 
+  it('builds deterministic market packets for exchange boundaries', () => {
+    const state = createStartingState()
+    const packets = getProcurementMarketPackets(state)
+
+    expect(packets).toEqual(getProcurementMarketPackets(state))
+    expect(packets.map((packet) => packet.id)).toEqual([
+      'agency_supplier_roster',
+      'gray_market_broker',
+    ])
+    expect(packets.find((packet) => packet.id === 'agency_supplier_roster')).toMatchObject({
+      marketBoundary: 'agency-supplier-roster',
+      legalityAccessMode: 'licensed',
+      liquidityProfile: 'stable',
+      available: true,
+    })
+    expect(packets.find((packet) => packet.id === 'gray_market_broker')).toMatchObject({
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+      liquidityProfile: 'thin',
+      available: true,
+    })
+  })
+
   it('purchase deducts funding, increases inventory, records a transaction event, and reduces availability', () => {
     const state = createStartingState()
-    const listing = getProcurementListings(state)[0]
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 
@@ -30,11 +60,46 @@ describe('market procurement simulation', () => {
         action: 'buy',
         listingId: listing!.id,
         quantity: listing!.bundleQuantity,
+        allocation: {
+          resourceClass: 'supplier_attention_slot',
+          source: listing!.marketPacket.id,
+          destinationUse: listing!.id,
+          substitutionStatus: 'none',
+        },
       },
     })
     expect(nextListing?.remainingAvailability).toBe(
       Math.max(0, listing!.remainingAvailability - listing!.bundleQuantity)
     )
+  })
+
+  it('records supplier attention allocation packets deterministically', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find(
+      (candidate) =>
+        candidate.itemId === 'field_plate' &&
+        candidate.allocationStatus.purchaseAvailable &&
+        candidate.availableBundles > 0
+    )
+
+    expect(listing).toBeDefined()
+
+    const result = purchaseMarketInventory(state, listing!.id, 1)
+    const allocations = getProcurementAllocations(result)
+
+    expect(allocations).toEqual(getProcurementAllocations(result))
+    expect(allocations).toHaveLength(1)
+    expect(allocations[0]).toMatchObject({
+      resourceClass: 'supplier_attention_slot',
+      source: 'agency_supplier_roster',
+      sourceLabel: 'Agency supplier roster',
+      destinationUse: listing!.id,
+      destinationLabel: listing!.itemName,
+      urgency: 'standard',
+      expectedBenefit: `${listing!.bundleQuantity}x ${listing!.itemName}`,
+      delayWeeks: 0,
+      substitutionStatus: 'none',
+    })
   })
 
   it('sell adds funding, removes inventory, records a transaction event, and increases availability', () => {
@@ -78,6 +143,170 @@ describe('market procurement simulation', () => {
     expect(result).toBe(state)
   })
 
+  it('blocks restricted acquisition classes separately from budget', () => {
+    const state = createStartingState()
+    const restrictedListing = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(restrictedListing).toBeDefined()
+    expect(state.funding).toBeGreaterThanOrEqual(restrictedListing!.buyPrice)
+    expect(restrictedListing!.accessAvailable).toBe(false)
+    expect(restrictedListing!.accessBlockedReason).toMatch(/directorate special channel locked/i)
+
+    const result = purchaseMarketInventory(state, restrictedListing!.id, 1)
+
+    expect(result).toBe(state)
+  })
+
+  it('allows a restricted acquisition class after clearance unlocks its channel', () => {
+    const state = createStartingState()
+    const clearedState = {
+      ...state,
+      clearanceLevel: 2,
+      agency: state.agency ? { ...state.agency, clearanceLevel: 2 } : state.agency,
+    }
+    const restrictedListing = getProcurementListings(clearedState).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(restrictedListing).toBeDefined()
+    expect(restrictedListing!.accessAvailable).toBe(true)
+
+    const result = purchaseMarketInventory(clearedState, restrictedListing!.id, 1)
+
+    expect(result.funding).toBe(clearedState.funding - restrictedListing!.buyPrice)
+    expect(result.inventory.advanced_recon_suite).toBe(
+      (clearedState.inventory.advanced_recon_suite ?? 0) + restrictedListing!.bundleQuantity
+    )
+  })
+
+  it('applies market packet boundary effects to equipment listings', () => {
+    const state = createStartingState()
+    const grayMarketEquipment = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+    const rosterEquipment = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(grayMarketEquipment).toBeDefined()
+    expect(rosterEquipment).toBeDefined()
+    expect(grayMarketEquipment!.category).toBe('equipment')
+    expect(rosterEquipment!.category).toBe('equipment')
+    expect(grayMarketEquipment!.marketPacket).toMatchObject({
+      id: 'gray_market_broker',
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+    })
+    expect(rosterEquipment!.marketPacket).toMatchObject({
+      id: 'agency_supplier_roster',
+      marketBoundary: 'agency-supplier-roster',
+      legalityAccessMode: 'licensed',
+    })
+    expect(grayMarketEquipment!.marketPacket.priceMultiplier).toBeGreaterThan(
+      rosterEquipment!.marketPacket.priceMultiplier
+    )
+    expect(grayMarketEquipment!.marketPacket.availabilityMultiplier).toBeLessThan(
+      rosterEquipment!.marketPacket.availabilityMultiplier
+    )
+  })
+
+  it('uses packet access rules to block covert exchange under sanctioned posture', () => {
+    const state = createStartingState()
+    const sanctionedState = {
+      ...state,
+      legitimacy: {
+        sanctionLevel: 'sanctioned' as const,
+        accessReason: 'audit posture',
+        falloutRisk: 'none' as const,
+      },
+    }
+    const grayMarketEquipment = getProcurementListings(sanctionedState).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(grayMarketEquipment).toBeDefined()
+    expect(state.funding).toBeGreaterThanOrEqual(grayMarketEquipment!.buyPrice)
+    expect(grayMarketEquipment!.marketPacket.available).toBe(false)
+    expect(grayMarketEquipment!.totalAvailability).toBe(0)
+    expect(grayMarketEquipment!.accessAvailable).toBe(false)
+    expect(grayMarketEquipment!.accessBlockedReason).toMatch(/sanctioned audit posture/i)
+
+    const result = purchaseMarketInventory(sanctionedState, grayMarketEquipment!.id, 1)
+
+    expect(result).toBe(sanctionedState)
+  })
+
+  it('makes one procurement use unavailable when supplier attention is committed elsewhere', () => {
+    const state = createStartingState()
+    const fieldPlate = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
+    const wardSealBatch = getProcurementListings(afterFieldPlate).find(
+      (candidate) => candidate.id === 'ward-seals'
+    )
+
+    expect(wardSealBatch).toBeDefined()
+    expect(wardSealBatch!.allocationStatus.state).toBe('committed_elsewhere')
+    expect(wardSealBatch!.allocationStatus.purchaseAvailable).toBe(false)
+    expect(wardSealBatch!.allocationStatus.displacedAlternativeUse).toBe(fieldPlate!.itemName)
+
+    const blocked = purchaseMarketInventory(afterFieldPlate, wardSealBatch!.id, 1)
+
+    expect(blocked).toBe(afterFieldPlate)
+  })
+
+  it('uses a degraded substitute when agency supplier attention is displaced', () => {
+    const state = createStartingState()
+    const fieldPlate = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
+    const substitutedHazmat = getProcurementListings(afterFieldPlate).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(substitutedHazmat).toBeDefined()
+    expect(substitutedHazmat!.allocationStatus.state).toBe('substituted')
+    expect(substitutedHazmat!.allocationStatus.substitution).toMatchObject({
+      source: 'gray_market_broker',
+      sourceLabel: 'Gray-market broker',
+      delayWeeks: 1,
+      priceMultiplier: 1.35,
+    })
+    expect(substitutedHazmat!.buyPrice).toBe(
+      substitutedHazmat!.allocationStatus.substitution!.unitPrice
+    )
+
+    const afterSubstitution = purchaseMarketInventory(afterFieldPlate, substitutedHazmat!.id, 1)
+    const substitutionEvent = afterSubstitution.events.at(-1)
+
+    expect(afterSubstitution.inventory.hazmat_suit).toBe(
+      (afterFieldPlate.inventory.hazmat_suit ?? 0) + substitutedHazmat!.bundleQuantity
+    )
+    expect(substitutionEvent).toMatchObject({
+      type: 'market.transaction_recorded',
+      payload: {
+        listingId: substitutedHazmat!.id,
+        totalPrice: substitutedHazmat!.buyPrice,
+        allocation: {
+          source: 'gray_market_broker',
+          displacedAlternativeUse: fieldPlate!.itemName,
+          substitutionStatus: 'degraded_substitute',
+          delayWeeks: 1,
+        },
+      },
+    })
+  })
+
   it('weekly market refresh resets availability tracking to the new market week', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state)[0]
@@ -98,7 +327,9 @@ describe('market procurement simulation', () => {
 
   it('generates unique market transaction IDs within the same week', () => {
     const state = createStartingState()
-    const listing = getProcurementListings(state)[0]
+    const listing = getProcurementListings(state).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 

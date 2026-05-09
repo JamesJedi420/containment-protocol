@@ -480,6 +480,7 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           unitPrice: draft.payload.unitPrice,
           totalPrice: draft.payload.totalPrice,
           remainingAvailability: draft.payload.remainingAvailability,
+          allocation: draft.payload.allocation,
         },
       }
 

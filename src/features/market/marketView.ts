@@ -40,8 +40,12 @@ export interface MarketFilters {
 export interface MarketListingView extends ProcurementListing {
   canBuyOne: boolean
   canBuyThree: boolean
+  canAffordOne: boolean
+  canAffordThree: boolean
   canSellOne: boolean
   canSellThree: boolean
+  budgetBlockedReason?: string
+  availabilityBlockedReason?: string
   buyBlockedReason?: string
   sellBlockedReason?: string
 }
@@ -172,8 +176,11 @@ export function getProcurementScreenView(
   const listings = getFilteredMarketListings(game, filters)
   const fundingState = getCanonicalFundingState(game)
   const fundingPressure = assessFundingPressure(game)
-  const selectedListing = listings.find((listing) => listing.id === selectedListingId) ?? listings[0] ?? null
-  const pendingBacklog = fundingState.procurementBacklog.filter((entry) => entry.status === 'pending')
+  const selectedListing =
+    listings.find((listing) => listing.id === selectedListingId) ?? listings[0] ?? null
+  const pendingBacklog = fundingState.procurementBacklog.filter(
+    (entry) => entry.status === 'pending'
+  )
   const staleRequestIds = new Set(fundingPressure.staleProcurementRequestIds)
   const transactions = getCurrentWeekMarketTransactions(game).slice(0, 5)
 
@@ -185,7 +192,12 @@ export function getProcurementScreenView(
     listings: listings.map((listing) => buildProcurementOptionListItem(listing, game)),
     selectedListingId: selectedListing?.id ?? null,
     selectedDetail: selectedListing ? buildProcurementDetailView(selectedListing, game) : null,
-    budgetSummary: buildProcurementBudgetSummary(game, fundingState, fundingPressure, pendingBacklog.length),
+    budgetSummary: buildProcurementBudgetSummary(
+      game,
+      fundingState,
+      fundingPressure,
+      pendingBacklog.length
+    ),
     backlogRows: pendingBacklog.slice(0, 5).map((entry, index) => {
       const listingLabel =
         listings.find((listing) => listing.itemId === entry.itemId)?.itemName ??
@@ -206,17 +218,39 @@ export function getProcurementScreenView(
 }
 
 function buildListingView(listing: ProcurementListing, game: GameState): MarketListingView {
-  const canBuyOne = listing.availableBundles >= 1 && game.funding >= listing.buyPrice
-  const canBuyThree = listing.availableBundles >= 3 && game.funding >= listing.buyPrice * 3
+  const canAffordOne = game.funding >= listing.buyPrice
+  const canAffordThree = game.funding >= listing.buyPrice * 3
+  const canBuyOne =
+    listing.accessAvailable &&
+    listing.allocationStatus.purchaseAvailable &&
+    listing.availableBundles >= 1 &&
+    canAffordOne
+  const canBuyThree =
+    listing.accessAvailable &&
+    listing.allocationStatus.purchaseAvailable &&
+    !listing.allocationStatus.substitution &&
+    listing.availableBundles >= 3 &&
+    canAffordThree
   const canSellOne = listing.inventoryStock >= listing.bundleQuantity
   const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
 
+  const budgetBlockedReason = canAffordOne
+    ? undefined
+    : MARKET_UI_TEXT.insufficientFundingBy.replace(
+        '{amount}',
+        formatCurrency(Math.max(0, listing.buyPrice - game.funding))
+      )
+  const availabilityBlockedReason =
+    listing.availableBundles < 1 ? MARKET_UI_TEXT.exhaustedListing : undefined
   let buyBlockedReason: string | undefined
-  if (listing.availableBundles < 1) {
-    buyBlockedReason = MARKET_UI_TEXT.exhaustedListing
-  } else if (game.funding < listing.buyPrice) {
-    const shortfall = Math.max(0, listing.buyPrice - game.funding)
-    buyBlockedReason = MARKET_UI_TEXT.insufficientFundingBy.replace('{amount}', `$${shortfall}`)
+  if (!listing.accessAvailable) {
+    buyBlockedReason = listing.accessBlockedReason
+  } else if (!listing.allocationStatus.purchaseAvailable) {
+    buyBlockedReason = listing.allocationStatus.blockerReason
+  } else if (availabilityBlockedReason) {
+    buyBlockedReason = availabilityBlockedReason
+  } else if (budgetBlockedReason) {
+    buyBlockedReason = budgetBlockedReason
   }
 
   let sellBlockedReason: string | undefined
@@ -228,8 +262,12 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     ...listing,
     canBuyOne,
     canBuyThree,
+    canAffordOne,
+    canAffordThree,
     canSellOne,
     canSellThree,
+    ...(budgetBlockedReason ? { budgetBlockedReason } : {}),
+    ...(availabilityBlockedReason ? { availabilityBlockedReason } : {}),
     buyBlockedReason,
     sellBlockedReason,
   }
@@ -252,7 +290,11 @@ function getListingTone(listing: MarketListingView): ProcurementOptionListItemVi
     return 'danger'
   }
 
-  if (!listing.canBuyOne) {
+  if (
+    !listing.accessAvailable ||
+    !listing.allocationStatus.purchaseAvailable ||
+    !listing.canBuyOne
+  ) {
     return 'warning'
   }
 
@@ -279,13 +321,13 @@ function buildProcurementOptionListItem(
       listing.availableBundles > 0
         ? `${pluralize(listing.availableBundles, 'bundle')} open`
         : 'Channel exhausted',
-    affordabilityLabel:
-      game.funding >= listing.buyPrice
-        ? `Affordable now (${formatCurrency(game.funding)} on hand)`
-        : MARKET_UI_TEXT.insufficientFundingBy.replace(
-            '{amount}',
-            formatCurrency(Math.max(0, listing.buyPrice - game.funding))
-          ),
+    affordabilityLabel: listing.canAffordOne
+      ? `Affordable now (${formatCurrency(game.funding)} on hand)`
+      : (listing.budgetBlockedReason ??
+        MARKET_UI_TEXT.insufficientFundingBy.replace(
+          '{amount}',
+          formatCurrency(Math.max(0, listing.buyPrice - game.funding))
+        )),
     tone,
     ...(listing.buyBlockedReason || listing.sellBlockedReason
       ? { blockerSummary: listing.buyBlockedReason ?? listing.sellBlockedReason }
@@ -299,6 +341,35 @@ function buildBudgetPreview(
   bundles: number
 ): ProcurementBudgetPreviewView {
   const totalCost = listing.buyPrice * bundles
+
+  if (!listing.accessAvailable) {
+    return {
+      label: `Buy ${bundles}`,
+      totalCostLabel: formatCurrency(totalCost),
+      fundingAfterLabel: formatCurrency(game.funding),
+      pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
+      consequenceSummary:
+        game.funding >= totalCost
+          ? 'Budget can cover this request, but the acquisition class is not available through the current channel.'
+          : 'Access is blocked before budget can authorize this procurement action.',
+      affordable: false,
+      blockedReason: listing.accessBlockedReason,
+    }
+  }
+
+  if (!listing.allocationStatus.purchaseAvailable) {
+    return {
+      label: `Buy ${bundles}`,
+      totalCostLabel: formatCurrency(totalCost),
+      fundingAfterLabel: formatCurrency(game.funding),
+      pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
+      consequenceSummary:
+        listing.allocationStatus.blockerReason ??
+        'Supplier attention is already committed to another procurement use.',
+      affordable: false,
+      blockedReason: listing.allocationStatus.blockerReason,
+    }
+  }
 
   if (listing.availableBundles < bundles) {
     return {
@@ -351,7 +422,10 @@ function buildBudgetPreview(
   }
 }
 
-function buildProcurementDetailView(listing: MarketListingView, game: GameState): ProcurementDetailView {
+function buildProcurementDetailView(
+  listing: MarketListingView,
+  game: GameState
+): ProcurementDetailView {
   const selectedTransactions = getCurrentWeekMarketTransactions(game)
     .filter((entry) => entry.listingId === listing.id)
     .slice(0, 2)
@@ -361,14 +435,14 @@ function buildProcurementDetailView(listing: MarketListingView, game: GameState)
     title: listing.itemName,
     description: listing.description,
     sourceLabel: listing.source.replace(/_/g, ' '),
-    availabilityLabel:
-      listing.availableBundles > 0
+    availabilityLabel: !listing.accessAvailable
+      ? (listing.accessBlockedReason ?? 'Access blocked')
+      : listing.availableBundles > 0
         ? `${pluralize(listing.availableBundles, 'bundle')} open this week`
         : 'Supplier channel exhausted this week',
-    affordabilityLabel:
-      listing.canBuyOne
-        ? `Affordable now at ${formatCurrency(listing.buyPrice)} per bundle`
-        : listing.buyBlockedReason ?? 'Current funding does not cover this procurement action.',
+    affordabilityLabel: listing.canAffordOne
+      ? `Affordable now at ${formatCurrency(listing.buyPrice)} per bundle`
+      : (listing.budgetBlockedReason ?? 'Current funding does not cover this procurement action.'),
     costDetails: uniqueBounded(
       [
         `Buy 1 bundle: ${formatCurrency(listing.buyPrice)} for ${listing.bundleQuantity} unit${listing.bundleQuantity === 1 ? '' : 's'}.`,
@@ -378,11 +452,19 @@ function buildProcurementDetailView(listing: MarketListingView, game: GameState)
           ? `Fabrication alternative: ${formatCurrency(listing.fabricationCost)}.`
           : 'No fabrication alternative is exposed for this line.',
       ],
-      4
+      6
     ),
     acquisitionDetails: uniqueBounded(
       [
         `Source: ${listing.featured ? 'featured ' : ''}${listing.source.replace(/_/g, ' ')} / ${listing.category}.`,
+        `Exchange: ${listing.marketPacket.label} / ${listing.marketPacket.marketBoundary}.`,
+        `Legality: ${listing.marketPacket.legalityAccessMode} / ${listing.marketPacket.participantChannelType}.`,
+        `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
+        `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
+        `Allocation: ${listing.allocationStatus.sourceLabel} supplier attention ${listing.allocationStatus.available}/${listing.allocationStatus.capacity} open.`,
+        listing.allocationStatus.substitution
+          ? `Substitution: ${listing.allocationStatus.substitution.summary}`
+          : '',
         `Current stock on hand: ${listing.inventoryStock}.`,
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
@@ -394,10 +476,14 @@ function buildProcurementDetailView(listing: MarketListingView, game: GameState)
               .join('; ')}.`
           : 'No current-week transaction has hit this line yet.',
       ],
-      4
+      8
     ),
     blockerDetails: uniqueBounded(
       [
+        listing.accessBlockedReason ?? '',
+        listing.marketPacket.blockedReason ?? '',
+        listing.allocationStatus.blockerReason ?? '',
+        listing.allocationStatus.substitution?.summary ?? '',
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
@@ -407,7 +493,7 @@ function buildProcurementDetailView(listing: MarketListingView, game: GameState)
           ? 'Fabrication remains the slower but stable fallback if supplier stock collapses.'
           : '',
       ],
-      4
+      6
     ),
     budgetPreviews: [buildBudgetPreview(game, listing, 1), buildBudgetPreview(game, listing, 3)],
     backlogImpactSummary:
@@ -480,6 +566,12 @@ function matchesFilters(listing: MarketListingView, filters: MarketFilters) {
     listing.description,
     listing.category,
     listing.source,
+    listing.marketPacket.label,
+    listing.marketPacket.marketBoundary,
+    listing.marketPacket.legalityAccessMode,
+    listing.marketPacket.participantChannelType,
+    listing.marketPacket.liquidityProfile,
+    ...listing.marketPacket.knownDistortions,
     ...listing.tags,
     listing.featured ? 'featured' : '',
   ]

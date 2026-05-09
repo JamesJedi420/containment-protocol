@@ -406,6 +406,21 @@ export interface OperationEventPayloadMap {
     unitPrice: number
     totalPrice: number
     remainingAvailability: number
+    allocation?: {
+      allocationId: string
+      resourceClass: 'supplier_attention_slot'
+      source: 'agency_supplier_roster' | 'gray_market_broker'
+      sourceLabel: string
+      destinationUse: string
+      destinationLabel: string
+      urgency: 'standard' | 'contingency'
+      expectedBenefit: string
+      priority: number
+      delayWeeks: number
+      displacedAlternativeUse?: string
+      substitutionStatus: 'none' | 'degraded_substitute'
+      substitutionSummary?: string
+    }
   }
   'faction.standing_changed': {
     week: number

@@ -1,6 +1,6 @@
 import { appendOperationEventDrafts } from '../events'
 import type { GameState } from '../models'
-import { getProcurementListing } from '../market'
+import { buildProcurementAllocationPacket, getProcurementListing } from '../market'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 
 function getNextMarketTransactionSequence(state: GameState) {
@@ -31,7 +31,13 @@ export function purchaseMarketInventory(
   const quantity = normalizedBundles * listing.bundleQuantity
   const totalPrice = normalizedBundles * listing.buyPrice
 
-  if (normalizedBundles > listing.availableBundles || state.funding < totalPrice) {
+  if (
+    !listing.accessAvailable ||
+    !listing.allocationStatus.purchaseAvailable ||
+    (listing.allocationStatus.substitution && normalizedBundles > 1) ||
+    normalizedBundles > listing.availableBundles ||
+    state.funding < totalPrice
+  ) {
     return ensureNormalizedGameState(state)
   }
 
@@ -39,6 +45,7 @@ export function purchaseMarketInventory(
     ...state.inventory,
     [listing.itemId]: (state.inventory[listing.itemId] ?? 0) + quantity,
   }
+  const transactionId = nextTransactionId(state)
 
   return normalizeGameState(
     appendOperationEventDrafts(
@@ -54,7 +61,7 @@ export function purchaseMarketInventory(
           payload: {
             week: state.week,
             marketWeek: state.market.week,
-            transactionId: nextTransactionId(state),
+            transactionId,
             action: 'buy',
             listingId: listing.id,
             itemId: listing.itemId,
@@ -65,6 +72,11 @@ export function purchaseMarketInventory(
             unitPrice: Math.round((listing.buyPrice / listing.bundleQuantity) * 100) / 100,
             totalPrice,
             remainingAvailability: Math.max(0, listing.remainingAvailability - quantity),
+            allocation: buildProcurementAllocationPacket({
+              listing,
+              transactionId,
+              quantity,
+            }),
           },
         },
       ]

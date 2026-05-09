@@ -220,6 +220,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'directive.applied': 'Directive Applied',
   'support.shortfall': 'Support Shortfall',
   'system.academy_upgraded': 'Academy Upgraded',
+  'staff.coping.applied': 'Coping Applied',
+  'staff.coping.misconduct': 'Coping Misconduct',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -263,6 +265,8 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'directive.applied': 'agency_posture',
   'support.shortfall': 'operations_logistics',
   'system.academy_upgraded': 'operations_logistics',
+  'staff.coping.applied': 'personnel',
+  'staff.coping.misconduct': 'personnel',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]

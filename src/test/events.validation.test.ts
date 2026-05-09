@@ -60,4 +60,36 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(true)
   })
+
+  it('accepts market.transaction_recorded payloads with licensed handling listing resource statuses', () => {
+    const validation = validateOperationEventPayload('market.transaction_recorded', {
+      week: 2,
+      marketWeek: 2,
+      transactionId: 'market-2-2-1',
+      action: 'buy',
+      listingId: 'gear:combat_stims',
+      itemId: 'combat_stims',
+      itemName: 'Combat Stims',
+      category: 'equipment',
+      quantity: 1,
+      bundleCount: 1,
+      unitPrice: 12,
+      totalPrice: 12,
+      remainingAvailability: 4,
+      listingResourceStatuses: [
+        {
+          resourceClass: 'licensed_handling_capacity',
+          sourceId: 'licensed_handling_desk',
+          label: 'Licensed handling desk',
+          capacity: 1,
+          available: 0,
+          allocations: ['market-2-2-1'],
+        },
+        { resourceClass: 'supplier_attention_slot', available: 2 },
+        { resourceClass: 'reagent_stock', available: 10 },
+      ],
+    })
+
+    expect(validation.success).toBe(true)
+  })
 })

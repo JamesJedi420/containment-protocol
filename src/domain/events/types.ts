@@ -34,6 +34,21 @@ export type CaseSpawnTrigger =
   | 'faction_pressure'
   | 'pressure_threshold'
 
+export type MarketTransactionListingResourceClass =
+  | 'supplier_attention_slot'
+  | 'reagent_stock'
+  | 'licensed_handling_capacity'
+
+/** Listing-scoped procurement capacity recorded on a market transaction when allocations apply. */
+export interface MarketTransactionListingResourceStatus {
+  readonly resourceClass: MarketTransactionListingResourceClass
+  readonly sourceId?: string
+  readonly label?: string
+  readonly available?: number
+  readonly capacity?: number
+  readonly allocations?: readonly string[]
+}
+
 export interface OperationEventPayloadMap {
   'system.equipment_recovered': {
     week: number
@@ -406,6 +421,7 @@ export interface OperationEventPayloadMap {
     unitPrice: number
     totalPrice: number
     remainingAvailability: number
+    listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
   }
   'faction.standing_changed': {
     week: number

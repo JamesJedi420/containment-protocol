@@ -168,25 +168,38 @@ export function buildSquadConfigurationSummary(
         },
       },
     }
+  } else if (validation.status === 'mismatch') {
+    return {
+      ok: true,
+      summary: {
+        metadata: input.metadata,
+        occupancy,
+        kit: {
+          state: 'assigned-mismatch',
+          assignment: {
+            kitTemplateId: assignedTemplate.id,
+            kitTemplateLabel: assignedTemplate.label,
+          },
+          validation: {
+            status: 'mismatch',
+            coveredTags: validation.result.coveredTags,
+            missingTags: validation.result.missingTags,
+            shortfall: validation.result.shortfall,
+          },
+        },
+      },
+    }
   }
-
+  // fallback for error status
   return {
     ok: true,
     summary: {
       metadata: input.metadata,
       occupancy,
       kit: {
-        state: 'assigned-mismatch',
-        assignment: {
-          kitTemplateId: assignedTemplate.id,
-          kitTemplateLabel: assignedTemplate.label,
-        },
-        validation: {
-          status: 'mismatch',
-          coveredTags: validation.result.coveredTags,
-          missingTags: validation.result.missingTags,
-          shortfall: validation.result.shortfall,
-        },
+        state: 'unassigned',
+        assignment: null,
+        validation: null,
       },
     },
   }

@@ -42,6 +42,8 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'support.shortfall': 'covered',
   'system.academy_upgraded': 'covered',
   'case.aggregate_battle': 'covered',
+  'staff.coping.applied': 'covered',
+  'staff.coping.misconduct': 'covered',
 }
 
 describe('event type coverage contract', () => {

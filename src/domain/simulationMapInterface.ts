@@ -1076,6 +1076,8 @@ function buildOperationalTriageSummary(
   groupedCounts: UncertaintyGroupedCounts,
   routeState: RouteRemapState
 ): OperationalTriageSummary {
+  void lowConfidenceClusters
+
   const contradictionScore =
     contradictionHotspots.length * 1.2 + recentlyContradictedHotspots.length * 0.8
   const falseReadingScore = falseReadingHotspots.length * 0.95

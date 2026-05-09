@@ -26,13 +26,21 @@ import {
   useTemporaryConjuredSupport,
 } from '../domain/supportLoadout'
 
-function withCaseTags(state: ReturnType<typeof createStartingState>, tags: string[]) {
+function withCaseTags(
+  state: ReturnType<typeof createStartingState>,
+  tags: string[]
+): ReturnType<typeof createStartingState> {
+  const case001 = state.cases['case-001']
+  if (!case001) {
+    return state
+  }
+
   return {
     ...state,
     cases: {
       ...state.cases,
       'case-001': {
-        ...state.cases['case-001'],
+        ...case001,
         tags: [...tags],
         requiredTags: [],
         preferredTags: [],

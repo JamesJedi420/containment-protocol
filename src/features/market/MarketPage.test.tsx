@@ -5,8 +5,9 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { purchaseMarketInventory } from '../../domain/sim/market'
 import { useGameStore } from '../../app/store/gameStore'
-import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings } from './marketView'
+import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings, getMarketListings } from './marketView'
 import MarketPage from './MarketPage'
 
 function LocationProbe() {
@@ -280,6 +281,31 @@ describe('MarketPage', () => {
         .length
     ).toBeGreaterThan(0)
     expect(within(grayMarketRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+  })
+
+  it('shows degraded substitution when supplier attention is committed elsewhere', () => {
+    const game = createStartingState()
+    const fieldPlate = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    useGameStore.setState({ game: purchaseMarketInventory(game, fieldPlate!.id, 1) })
+
+    renderMarketPage(['/markets-suppliers?q=hazmat%20suit'])
+
+    const hazmatRow = screen.getAllByText(/^hazmat suit$/i)[0]?.closest('li')
+
+    expect(hazmatRow).toBeTruthy()
+    expect(within(hazmatRow!).getByText(/supplier attention: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/allocation state: substituted/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/displaced use: field plate/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/degraded substitute:/i)).toHaveTextContent(
+      /gray-market broker/i
+    )
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
   })
 
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {

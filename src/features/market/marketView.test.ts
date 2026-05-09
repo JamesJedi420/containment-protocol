@@ -119,6 +119,34 @@ describe('marketView', () => {
     expect(listing!.marketPacket.knownDistortions).toContain('Thin covert inventory.')
   })
 
+  it('surfaces supplier attention substitution after a competing use commits the slot', () => {
+    const game = createStartingState()
+    const fieldPlate = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(game, fieldPlate!.id, 1)
+    const hazmatSuit = getMarketListings(afterFieldPlate).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+    const wardSeals = getMarketListings(afterFieldPlate).find(
+      (candidate) => candidate.id === 'ward-seals'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+    expect(hazmatSuit!.allocationStatus.state).toBe('substituted')
+    expect(hazmatSuit!.allocationStatus.substitution?.summary).toMatch(/gray-market broker/i)
+    expect(hazmatSuit!.canBuyOne).toBe(true)
+    expect(hazmatSuit!.canBuyThree).toBe(false)
+
+    expect(wardSeals).toBeDefined()
+    expect(wardSeals!.allocationStatus.state).toBe('committed_elsewhere')
+    expect(wardSeals!.canBuyOne).toBe(false)
+    expect(wardSeals!.buyBlockedReason).toMatch(/attention committed/i)
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

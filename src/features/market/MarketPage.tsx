@@ -277,6 +277,24 @@ export default function MarketPage() {
                 <p>Liquidity: {listing.marketPacket.liquidityProfile}</p>
               </div>
 
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-3">
+                <p>
+                  Supplier attention: {listing.allocationStatus.available}/
+                  {listing.allocationStatus.capacity} open
+                </p>
+                <p>Allocation state: {listing.allocationStatus.state.replace(/_/g, ' ')}</p>
+                <p>
+                  Displaced use:{' '}
+                  {listing.allocationStatus.displacedAlternativeUse ?? 'None this market week'}
+                </p>
+              </div>
+
+              {listing.allocationStatus.substitution ? (
+                <p className="text-xs text-amber-200">
+                  Degraded substitute: {listing.allocationStatus.substitution.summary}
+                </p>
+              ) : null}
+
               {listing.marketPacket.knownDistortions.length > 0 ? (
                 <div className="flex flex-wrap gap-2 text-xs opacity-65">
                   {listing.marketPacket.knownDistortions.map((distortion) => (
@@ -380,6 +398,15 @@ export default function MarketPage() {
                     <p className="text-sm opacity-60">
                       Week {transaction.week} / Market week {transaction.marketWeek}
                     </p>
+                    {transaction.allocation ? (
+                      <p className="text-xs opacity-60">
+                        Allocation: {transaction.allocation.sourceLabel} /{' '}
+                        {transaction.allocation.substitutionStatus.replace(/_/g, ' ')}
+                        {transaction.allocation.delayWeeks > 0
+                          ? ` / ${transaction.allocation.delayWeeks}w delay`
+                          : ''}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-right text-sm opacity-70">
                     <p>

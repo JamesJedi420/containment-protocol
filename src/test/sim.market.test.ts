@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  getProcurementAllocations,
   getProcurementListing,
   getProcurementListings,
   getProcurementMarketPackets,
@@ -59,11 +60,46 @@ describe('market procurement simulation', () => {
         action: 'buy',
         listingId: listing!.id,
         quantity: listing!.bundleQuantity,
+        allocation: {
+          resourceClass: 'supplier_attention_slot',
+          source: listing!.marketPacket.id,
+          destinationUse: listing!.id,
+          substitutionStatus: 'none',
+        },
       },
     })
     expect(nextListing?.remainingAvailability).toBe(
       Math.max(0, listing!.remainingAvailability - listing!.bundleQuantity)
     )
+  })
+
+  it('records supplier attention allocation packets deterministically', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find(
+      (candidate) =>
+        candidate.itemId === 'field_plate' &&
+        candidate.allocationStatus.purchaseAvailable &&
+        candidate.availableBundles > 0
+    )
+
+    expect(listing).toBeDefined()
+
+    const result = purchaseMarketInventory(state, listing!.id, 1)
+    const allocations = getProcurementAllocations(result)
+
+    expect(allocations).toEqual(getProcurementAllocations(result))
+    expect(allocations).toHaveLength(1)
+    expect(allocations[0]).toMatchObject({
+      resourceClass: 'supplier_attention_slot',
+      source: 'agency_supplier_roster',
+      sourceLabel: 'Agency supplier roster',
+      destinationUse: listing!.id,
+      destinationLabel: listing!.itemName,
+      urgency: 'standard',
+      expectedBenefit: `${listing!.bundleQuantity}x ${listing!.itemName}`,
+      delayWeeks: 0,
+      substitutionStatus: 'none',
+    })
   })
 
   it('sell adds funding, removes inventory, records a transaction event, and increases availability', () => {
@@ -200,6 +236,75 @@ describe('market procurement simulation', () => {
     const result = purchaseMarketInventory(sanctionedState, grayMarketEquipment!.id, 1)
 
     expect(result).toBe(sanctionedState)
+  })
+
+  it('makes one procurement use unavailable when supplier attention is committed elsewhere', () => {
+    const state = createStartingState()
+    const fieldPlate = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
+    const wardSealBatch = getProcurementListings(afterFieldPlate).find(
+      (candidate) => candidate.id === 'ward-seals'
+    )
+
+    expect(wardSealBatch).toBeDefined()
+    expect(wardSealBatch!.allocationStatus.state).toBe('committed_elsewhere')
+    expect(wardSealBatch!.allocationStatus.purchaseAvailable).toBe(false)
+    expect(wardSealBatch!.allocationStatus.displacedAlternativeUse).toBe(fieldPlate!.itemName)
+
+    const blocked = purchaseMarketInventory(afterFieldPlate, wardSealBatch!.id, 1)
+
+    expect(blocked).toBe(afterFieldPlate)
+  })
+
+  it('uses a degraded substitute when agency supplier attention is displaced', () => {
+    const state = createStartingState()
+    const fieldPlate = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
+    const substitutedHazmat = getProcurementListings(afterFieldPlate).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(substitutedHazmat).toBeDefined()
+    expect(substitutedHazmat!.allocationStatus.state).toBe('substituted')
+    expect(substitutedHazmat!.allocationStatus.substitution).toMatchObject({
+      source: 'gray_market_broker',
+      sourceLabel: 'Gray-market broker',
+      delayWeeks: 1,
+      priceMultiplier: 1.35,
+    })
+    expect(substitutedHazmat!.buyPrice).toBe(
+      substitutedHazmat!.allocationStatus.substitution!.unitPrice
+    )
+
+    const afterSubstitution = purchaseMarketInventory(afterFieldPlate, substitutedHazmat!.id, 1)
+    const substitutionEvent = afterSubstitution.events.at(-1)
+
+    expect(afterSubstitution.inventory.hazmat_suit).toBe(
+      (afterFieldPlate.inventory.hazmat_suit ?? 0) + substitutedHazmat!.bundleQuantity
+    )
+    expect(substitutionEvent).toMatchObject({
+      type: 'market.transaction_recorded',
+      payload: {
+        listingId: substitutedHazmat!.id,
+        totalPrice: substitutedHazmat!.buyPrice,
+        allocation: {
+          source: 'gray_market_broker',
+          displacedAlternativeUse: fieldPlate!.itemName,
+          substitutionStatus: 'degraded_substitute',
+          delayWeeks: 1,
+        },
+      },
+    })
   })
 
   it('weekly market refresh resets availability tracking to the new market week', () => {

@@ -21,6 +21,51 @@ export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-g
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
 export type ProcurementParticipantChannelType = 'quartermaster' | 'broker'
 export type ProcurementLiquidityProfile = 'stable' | 'thin'
+export type ProcurementResourceClass = 'supplier_attention_slot'
+export type ProcurementAllocationUrgency = 'standard' | 'contingency'
+export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
+
+export interface ProcurementAllocationPacket {
+  allocationId: string
+  resourceClass: ProcurementResourceClass
+  source: ProcurementMarketPacketId
+  sourceLabel: string
+  destinationUse: string
+  destinationLabel: string
+  urgency: ProcurementAllocationUrgency
+  expectedBenefit: string
+  priority: number
+  delayWeeks: number
+  displacedAlternativeUse?: string
+  substitutionStatus: ProcurementSubstitutionStatus
+  substitutionSummary?: string
+}
+
+export interface ProcurementSubstitutionOption {
+  status: 'available'
+  source: ProcurementMarketPacketId
+  sourceLabel: string
+  delayWeeks: number
+  priceMultiplier: number
+  unitPrice: number
+  summary: string
+}
+
+export interface ProcurementAllocationStatus {
+  resourceClass: ProcurementResourceClass
+  source: ProcurementMarketPacketId
+  sourceLabel: string
+  capacity: number
+  committed: number
+  available: number
+  required: number
+  purchaseAvailable: boolean
+  state: 'available' | 'committed_elsewhere' | 'substituted'
+  allocations: ProcurementAllocationPacket[]
+  displacedAlternativeUse?: string
+  blockerReason?: string
+  substitution?: ProcurementSubstitutionOption
+}
 
 export interface ProcurementMarketPacket {
   id: ProcurementMarketPacketId
@@ -53,6 +98,7 @@ export interface ProcurementListing {
   sellPrice: number
   pressureLabel: string
   marketPacket: ProcurementMarketPacket
+  allocationStatus: ProcurementAllocationStatus
   acquisitionClass: ProcurementAcquisitionClass
   accessChannel: ProcurementAccessChannel
   accessLabel: string
@@ -80,6 +126,7 @@ export interface ProcurementTransactionView {
   unitPrice: number
   totalPrice: number
   remainingAvailability: number
+  allocation?: ProcurementAllocationPacket
   timestamp: string
 }
 
@@ -98,6 +145,14 @@ interface ProcurementListingDefinition {
 
 type MarketTransactionEvent = Extract<OperationEvent, { type: 'market.transaction_recorded' }>
 type SanctionLevel = NonNullable<GameState['legitimacy']>['sanctionLevel']
+
+const SUPPLIER_ATTENTION_CAPACITY: Record<ProcurementMarketPacketId, number> = {
+  agency_supplier_roster: 1,
+  gray_market_broker: 1,
+}
+
+const DEGRADED_SUBSTITUTE_PRICE_MULTIPLIER = 1.35
+const DEGRADED_SUBSTITUTE_DELAY_WEEKS = 1
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -426,6 +481,121 @@ function getSoldQuantityForListing(
     .reduce((sum, event) => sum + event.payload.quantity, 0)
 }
 
+function getCurrentSupplierAttentionAllocations(
+  game: GameState,
+  marketWeek = game.market.week
+): ProcurementAllocationPacket[] {
+  return game.events
+    .filter((event) => isMarketTransactionEvent(event))
+    .filter(
+      (event) =>
+        event.payload.action === 'buy' &&
+        event.payload.marketWeek === marketWeek &&
+        event.payload.allocation?.resourceClass === 'supplier_attention_slot'
+    )
+    .map((event) => event.payload.allocation!)
+    .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
+}
+
+export function getProcurementAllocations(game: GameState, marketWeek = game.market.week) {
+  return getCurrentSupplierAttentionAllocations(game, marketWeek)
+}
+
+function getSupplierAttentionCapacity(packetId: ProcurementMarketPacketId) {
+  return SUPPLIER_ATTENTION_CAPACITY[packetId] ?? 0
+}
+
+function createOpenAllocationStatus(
+  packet: ProcurementMarketPacket,
+  allocations: ProcurementAllocationPacket[]
+): ProcurementAllocationStatus {
+  const packetAllocations = allocations.filter((allocation) => allocation.source === packet.id)
+  const capacity = getSupplierAttentionCapacity(packet.id)
+  const available = Math.max(0, capacity - packetAllocations.length)
+
+  return {
+    resourceClass: 'supplier_attention_slot',
+    source: packet.id,
+    sourceLabel: packet.label,
+    capacity,
+    committed: packetAllocations.length,
+    available,
+    required: 1,
+    purchaseAvailable: packet.available && available >= 1,
+    state: packet.available && available >= 1 ? 'available' : 'committed_elsewhere',
+    allocations: packetAllocations,
+    ...(available < 1
+      ? {
+          displacedAlternativeUse: packetAllocations[0]?.destinationLabel ?? packet.label,
+          blockerReason: `${packet.label} attention committed to ${packetAllocations[0]?.destinationLabel ?? 'another request'} this market week.`,
+        }
+      : {}),
+  }
+}
+
+function getDegradedSubstitutionOption(
+  definition: ProcurementListingDefinition,
+  game: GameState,
+  baseBuyPrice: number,
+  displacedAlternativeUse: string | undefined,
+  allocations: ProcurementAllocationPacket[]
+): ProcurementSubstitutionOption | undefined {
+  if (definition.source !== 'direct_equipment') {
+    return undefined
+  }
+
+  const substitutePacket = buildMarketPacket('gray_market_broker', game)
+  const substituteStatus = createOpenAllocationStatus(substitutePacket, allocations)
+
+  if (!substitutePacket.available || substituteStatus.available < 1) {
+    return undefined
+  }
+
+  return {
+    status: 'available',
+    source: substitutePacket.id,
+    sourceLabel: substitutePacket.label,
+    delayWeeks: DEGRADED_SUBSTITUTE_DELAY_WEEKS,
+    priceMultiplier: DEGRADED_SUBSTITUTE_PRICE_MULTIPLIER,
+    unitPrice: Math.max(1, Math.round(baseBuyPrice * DEGRADED_SUBSTITUTE_PRICE_MULTIPLIER)),
+    summary: `${substitutePacket.label} can cover ${definition.itemName} after ${displacedAlternativeUse ?? 'the roster slot'} displaced the roster request; +${Math.round((DEGRADED_SUBSTITUTE_PRICE_MULTIPLIER - 1) * 100)}% cost and ${DEGRADED_SUBSTITUTE_DELAY_WEEKS}w handling delay.`,
+  }
+}
+
+function buildAllocationStatus(
+  definition: ProcurementListingDefinition,
+  game: GameState,
+  packet: ProcurementMarketPacket,
+  baseBuyPrice: number
+): ProcurementAllocationStatus {
+  const allocations = getCurrentSupplierAttentionAllocations(game)
+  const status = createOpenAllocationStatus(packet, allocations)
+
+  if (status.purchaseAvailable || !packet.available || packet.id !== 'agency_supplier_roster') {
+    return status
+  }
+
+  const substitution = getDegradedSubstitutionOption(
+    definition,
+    game,
+    baseBuyPrice,
+    status.displacedAlternativeUse,
+    allocations
+  )
+
+  if (!substitution) {
+    return status
+  }
+
+  return {
+    ...status,
+    purchaseAvailable: true,
+    state: 'substituted',
+    blockerReason: undefined,
+    substitution,
+  }
+}
+
 function getBaseAvailability(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -492,7 +662,9 @@ function buildListing(
   game: GameState
 ): ProcurementListing {
   const marketPacket = buildMarketPacket(getMarketPacketIdForDefinition(definition), game)
-  const buyPrice = getBuyPrice(definition, game, marketPacket)
+  const baseBuyPrice = getBuyPrice(definition, game, marketPacket)
+  const allocationStatus = buildAllocationStatus(definition, game, marketPacket, baseBuyPrice)
+  const buyPrice = allocationStatus.substitution?.unitPrice ?? baseBuyPrice
   const fabricationCost =
     definition.recipeId !== undefined
       ? getProductionRecipe(definition.recipeId)
@@ -518,11 +690,39 @@ function buildListing(
     sellPrice,
     pressureLabel: getMarketPressureLabel(game.market.pressure),
     marketPacket,
+    allocationStatus,
     ...access,
     totalAvailability,
     remainingAvailability,
     availableBundles: Math.floor(remainingAvailability / definition.bundleQuantity),
     inventoryStock: game.inventory[definition.itemId] ?? 0,
+  }
+}
+
+export function buildProcurementAllocationPacket(input: {
+  listing: ProcurementListing
+  transactionId: string
+  quantity: number
+}): ProcurementAllocationPacket {
+  const substitution = input.listing.allocationStatus.substitution
+  const source = substitution?.source ?? input.listing.marketPacket.id
+  const sourceLabel = substitution?.sourceLabel ?? input.listing.marketPacket.label
+  const displacedAlternativeUse = input.listing.allocationStatus.displacedAlternativeUse
+
+  return {
+    allocationId: `${input.transactionId}:supplier-attention`,
+    resourceClass: 'supplier_attention_slot',
+    source,
+    sourceLabel,
+    destinationUse: input.listing.id,
+    destinationLabel: input.listing.itemName,
+    urgency: substitution ? 'contingency' : 'standard',
+    expectedBenefit: `${input.quantity}x ${input.listing.itemName}`,
+    priority: input.listing.featured ? 2 : 1,
+    delayWeeks: substitution?.delayWeeks ?? 0,
+    ...(displacedAlternativeUse ? { displacedAlternativeUse } : {}),
+    substitutionStatus: substitution ? 'degraded_substitute' : 'none',
+    ...(substitution ? { substitutionSummary: substitution.summary } : {}),
   }
 }
 
@@ -556,6 +756,7 @@ export function getCurrentMarketTransactions(
       unitPrice: event.payload.unitPrice,
       totalPrice: event.payload.totalPrice,
       remainingAvailability: event.payload.remainingAvailability,
+      ...(event.payload.allocation ? { allocation: event.payload.allocation } : {}),
       timestamp: event.timestamp,
     }))
     .sort(

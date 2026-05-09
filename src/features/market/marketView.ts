@@ -220,8 +220,17 @@ export function getProcurementScreenView(
 function buildListingView(listing: ProcurementListing, game: GameState): MarketListingView {
   const canAffordOne = game.funding >= listing.buyPrice
   const canAffordThree = game.funding >= listing.buyPrice * 3
-  const canBuyOne = listing.accessAvailable && listing.availableBundles >= 1 && canAffordOne
-  const canBuyThree = listing.accessAvailable && listing.availableBundles >= 3 && canAffordThree
+  const canBuyOne =
+    listing.accessAvailable &&
+    listing.allocationStatus.purchaseAvailable &&
+    listing.availableBundles >= 1 &&
+    canAffordOne
+  const canBuyThree =
+    listing.accessAvailable &&
+    listing.allocationStatus.purchaseAvailable &&
+    !listing.allocationStatus.substitution &&
+    listing.availableBundles >= 3 &&
+    canAffordThree
   const canSellOne = listing.inventoryStock >= listing.bundleQuantity
   const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
 
@@ -236,6 +245,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   let buyBlockedReason: string | undefined
   if (!listing.accessAvailable) {
     buyBlockedReason = listing.accessBlockedReason
+  } else if (!listing.allocationStatus.purchaseAvailable) {
+    buyBlockedReason = listing.allocationStatus.blockerReason
   } else if (availabilityBlockedReason) {
     buyBlockedReason = availabilityBlockedReason
   } else if (budgetBlockedReason) {
@@ -279,7 +290,11 @@ function getListingTone(listing: MarketListingView): ProcurementOptionListItemVi
     return 'danger'
   }
 
-  if (!listing.accessAvailable || !listing.canBuyOne) {
+  if (
+    !listing.accessAvailable ||
+    !listing.allocationStatus.purchaseAvailable ||
+    !listing.canBuyOne
+  ) {
     return 'warning'
   }
 
@@ -339,6 +354,20 @@ function buildBudgetPreview(
           : 'Access is blocked before budget can authorize this procurement action.',
       affordable: false,
       blockedReason: listing.accessBlockedReason,
+    }
+  }
+
+  if (!listing.allocationStatus.purchaseAvailable) {
+    return {
+      label: `Buy ${bundles}`,
+      totalCostLabel: formatCurrency(totalCost),
+      fundingAfterLabel: formatCurrency(game.funding),
+      pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
+      consequenceSummary:
+        listing.allocationStatus.blockerReason ??
+        'Supplier attention is already committed to another procurement use.',
+      affordable: false,
+      blockedReason: listing.allocationStatus.blockerReason,
     }
   }
 
@@ -432,6 +461,10 @@ function buildProcurementDetailView(
         `Legality: ${listing.marketPacket.legalityAccessMode} / ${listing.marketPacket.participantChannelType}.`,
         `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
         `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
+        `Allocation: ${listing.allocationStatus.sourceLabel} supplier attention ${listing.allocationStatus.available}/${listing.allocationStatus.capacity} open.`,
+        listing.allocationStatus.substitution
+          ? `Substitution: ${listing.allocationStatus.substitution.summary}`
+          : '',
         `Current stock on hand: ${listing.inventoryStock}.`,
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
@@ -443,12 +476,14 @@ function buildProcurementDetailView(
               .join('; ')}.`
           : 'No current-week transaction has hit this line yet.',
       ],
-      4
+      8
     ),
     blockerDetails: uniqueBounded(
       [
         listing.accessBlockedReason ?? '',
         listing.marketPacket.blockedReason ?? '',
+        listing.allocationStatus.blockerReason ?? '',
+        listing.allocationStatus.substitution?.summary ?? '',
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
@@ -458,7 +493,7 @@ function buildProcurementDetailView(
           ? 'Fabrication remains the slower but stable fallback if supplier stock collapses.'
           : '',
       ],
-      4
+      6
     ),
     budgetPreviews: [buildBudgetPreview(game, listing, 1), buildBudgetPreview(game, listing, 3)],
     backlogImpactSummary:

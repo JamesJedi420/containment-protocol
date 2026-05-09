@@ -174,7 +174,7 @@ describe('selectSquadConfigurationSummary', () => {
 
     game.squadMetadata = { 'team-1': metadata }
     game.squadKitTemplates = {
-      'kit-breach': { ...template, id: '' } as typeof template,
+      'kit-breach': { ...template, id: '' },
     }
     game.squadKitAssignments = { 'team-1': assignmentResult.assignment }
 

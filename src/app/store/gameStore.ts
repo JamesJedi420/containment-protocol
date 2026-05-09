@@ -1345,7 +1345,6 @@ export const useGameStore = create<GameStore>()(
 
       invokeEmergencyGrayMarketWaiver: () =>
         set((s) => ({ game: invokeEmergencyGrayMarketWaiver(s.game) })),
-
       sellMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: sellMarketInventory(s.game, listingId, bundles) })),
 

@@ -232,7 +232,6 @@ export default function MarketPage() {
           </div>
         </article>
       ) : null}
-
       <article className="panel panel-primary space-y-4" role="region" aria-label="Market filters">
         <div className="grid gap-3 md:grid-cols-3">
           <FilterInput

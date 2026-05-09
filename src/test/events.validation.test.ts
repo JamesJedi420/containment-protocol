@@ -101,6 +101,9 @@ describe('event payload validation coverage', () => {
       sanctionLevel: 'sanctioned',
       packetId: 'gray_market_broker',
       falloutRiskApplied: 'risk',
+      institutionKey: 'containment_protocol',
+      authorityRoute: 'crisis_director_self',
+      authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
     })
 
     expect(validation.success).toBe(true)

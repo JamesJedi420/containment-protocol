@@ -1,6 +1,10 @@
 // SPE-1524: Crisis gray-market waiver (sanctioned posture) + audit event + legitimacy fallout trace.
+// SPE-1511: Institution key on audit payload.
+// SPE-849: Explicit authority routing (baseline self-authorization vs oversight clearance ratification).
 import { appendOperationEventDrafts } from './events'
 import type { GameState } from './models'
+import { resolveEmergencyGrayMarketWaiverAuthority } from './procurementEmergencyAuthority'
+import { getEmergencyProcurementInstitutionAuditKey } from './procurementEmergencyInstitution'
 import { buildMajorIncidentState } from './strategicState'
 import { normalizeGameState } from './teamSimulation'
 
@@ -10,6 +14,10 @@ function isSanctionedPosture(game: Pick<GameState, 'legitimacy'>): boolean {
 
 /** True when crisis pressure qualifies and posture is sanctioned; waiver not yet granted this week. */
 export function canInvokeEmergencyGrayMarketWaiver(game: GameState): boolean {
+  const authority = resolveEmergencyGrayMarketWaiverAuthority(game)
+  if (!authority.eligible) {
+    return false
+  }
   if (buildMajorIncidentState(game).severity !== 'crisis') {
     return false
   }
@@ -32,6 +40,7 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
   }
 
   const incidentState = buildMajorIncidentState(game)
+  const authority = resolveEmergencyGrayMarketWaiverAuthority(game)
 
   return normalizeGameState(
     appendOperationEventDrafts(
@@ -54,6 +63,9 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
             sanctionLevel: 'sanctioned',
             packetId: 'gray_market_broker',
             falloutRiskApplied: 'risk',
+            institutionKey: getEmergencyProcurementInstitutionAuditKey(game),
+            authorityRoute: authority.authorityRoute,
+            authorityBasis: authority.authorityBasis,
           },
         },
       ]

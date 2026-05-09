@@ -467,6 +467,12 @@ export interface OperationEventPayloadMap {
     sanctionLevel: 'sanctioned'
     packetId: 'gray_market_broker'
     falloutRiskApplied: 'risk'
+    /** SPE-1511: normalized director institution key for audit legibility. */
+    institutionKey: string
+    /** SPE-849: which authorization path was used (path-sensitive authority). */
+    authorityRoute: string
+    /** SPE-849: human-legible basis string for audit review. */
+    authorityBasis: string
   }
   'faction.standing_changed': {
     week: number

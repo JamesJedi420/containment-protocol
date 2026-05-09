@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import '../../test/setup'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { purchaseMarketInventory } from '../../domain/sim/market'
+import { queueFabrication } from '../../domain/sim/production'
 import { useGameStore } from '../../app/store/gameStore'
-import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings } from './marketView'
+import { DEFAULT_MARKET_FILTERS, getFilteredMarketListings, getMarketListings } from './marketView'
 import MarketPage from './MarketPage'
 
 function LocationProbe() {
@@ -57,6 +59,18 @@ function renderMarketPage(initialEntries = ['/markets-suppliers'], initialIndex?
       </Routes>
     </MemoryRouter>
   )
+}
+
+function createDiscountedMarketState() {
+  const game = createStartingState()
+
+  return {
+    ...game,
+    market: {
+      ...game.market,
+      pressure: 'discounted' as const,
+    },
+  }
 }
 
 beforeEach(() => {
@@ -222,6 +236,152 @@ describe('MarketPage', () => {
     expect(buyButtons.length).toBeGreaterThan(0)
     expect(buyButtons[0]).toBeDisabled()
     expect(screen.getAllByText(/need \+\$\d+/i).length).toBeGreaterThan(0)
+  })
+
+  it('shows access-class blockers separately from affordable funding', () => {
+    const game = createStartingState()
+    useGameStore.setState({ game })
+
+    renderMarketPage()
+
+    const restrictedRow = screen.getAllByText(/^advanced recon suite$/i)[0]?.closest('li')
+
+    expect(restrictedRow).toBeTruthy()
+    expect(
+      within(restrictedRow!).getByText(/access: directorate special channel/i)
+    ).toBeInTheDocument()
+    expect(within(restrictedRow!).getByText(/funding: affordable/i)).toBeInTheDocument()
+    expect(
+      within(restrictedRow!).getAllByText(/directorate special channel locked/i).length
+    ).toBeGreaterThan(0)
+    expect(within(restrictedRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+  })
+
+  it('shows market packet boundaries on procurement listings', () => {
+    const game = createStartingState()
+    useGameStore.setState({ game })
+
+    renderMarketPage(['/markets-suppliers?q=combat%20stims'])
+
+    const grayMarketRow = screen.getAllByText(/^combat stims$/i)[0]?.closest('li')
+
+    expect(grayMarketRow).toBeTruthy()
+    expect(within(grayMarketRow!).getByText(/exchange: gray-market broker/i)).toBeInTheDocument()
+    expect(
+      within(grayMarketRow!).getByText(/boundary: settlement-gray-market/i)
+    ).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/legality: covert/i)).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/liquidity: thin/i)).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/thin covert inventory/i)).toBeInTheDocument()
+  })
+
+  it('shows packet access blockers when a boundary forbids trade', () => {
+    const game = createStartingState()
+    game.legitimacy = {
+      sanctionLevel: 'sanctioned',
+      accessReason: 'audit posture',
+      falloutRisk: 'none',
+    }
+    useGameStore.setState({ game })
+
+    renderMarketPage(['/markets-suppliers?q=combat%20stims'])
+
+    const grayMarketRow = screen.getAllByText(/^combat stims$/i)[0]?.closest('li')
+
+    expect(grayMarketRow).toBeTruthy()
+    expect(
+      within(grayMarketRow!).getAllByText(/gray-market broker blocked: sanctioned audit posture/i)
+        .length
+    ).toBeGreaterThan(0)
+    expect(within(grayMarketRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+  })
+
+  it('shows degraded substitution when supplier attention is committed elsewhere', () => {
+    const game = createStartingState()
+    const fieldPlate = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    useGameStore.setState({ game: purchaseMarketInventory(game, fieldPlate!.id, 1) })
+
+    renderMarketPage(['/markets-suppliers?q=hazmat%20suit'])
+
+    const hazmatRow = screen.getAllByText(/^hazmat suit$/i)[0]?.closest('li')
+
+    expect(hazmatRow).toBeTruthy()
+    expect(within(hazmatRow!).getByText(/supplier attention: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/allocation state: substituted/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/displaced use: field plate/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/degraded substitute:/i)).toHaveTextContent(
+      /gray-market broker/i
+    )
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
+  })
+
+  it('shows reagent stock blocking and degraded reagent substitution', () => {
+    const game = queueFabrication(createStartingState(), 'ward-seals')
+    useGameStore.setState({ game })
+
+    const firstRender = renderMarketPage(['/markets-suppliers?q=ritual%20components'])
+
+    const ritualListings = screen.getByRole('list', { name: /market listings/i })
+    const ritualRow = within(ritualListings)
+      .getAllByText(/^ritual components$/i)[0]
+      ?.closest('li')
+
+    expect(ritualRow).toBeTruthy()
+    expect(within(ritualRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByText(/reagent stock: committed elsewhere/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByText(/displaced use: ward seal batch/i)).toBeInTheDocument()
+    expect(within(ritualRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+
+    firstRender.unmount()
+
+    renderMarketPage(['/markets-suppliers?q=emf%20sensors'])
+
+    const emfListings = screen.getByRole('list', { name: /market listings/i })
+    const emfRow = within(emfListings)
+      .getAllByText(/^emf sensors$/i)[0]
+      ?.closest('li')
+
+    expect(emfRow).toBeTruthy()
+    expect(within(emfRow!).getByText(/occult reagents: 0\/1 open/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/reagent stock: substituted/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/displaced use: ward seal batch/i)).toBeInTheDocument()
+    expect(within(emfRow!).getByText(/degraded substitute:/i)).toHaveTextContent(
+      /synthetic reagent substitute/i
+    )
+    expect(within(emfRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
+    expect(within(emfRow!).getByRole('button', { name: /buy 3 bundles/i })).toBeDisabled()
+  })
+
+  it('shows licensed handling capacity blocking after a controlled purchase', () => {
+    const game = createDiscountedMarketState()
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    useGameStore.setState({ game: purchaseMarketInventory(game, combatStims!.id, 1) })
+
+    renderMarketPage(['/markets-suppliers?q=hazmat%20suit'])
+
+    const hazmatListings = screen.getByRole('list', { name: /market listings/i })
+    const hazmatRow = within(hazmatListings)
+      .getAllByText(/^hazmat suit$/i)[0]
+      ?.closest('li')
+
+    expect(hazmatRow).toBeTruthy()
+    expect(within(hazmatRow!).getByText(/licensed handling desk: 0\/1 open/i)).toBeInTheDocument()
+    expect(
+      within(hazmatRow!).getByText(/licensed handling capacity: committed elsewhere/i)
+    ).toBeInTheDocument()
+    expect(within(hazmatRow!).getByText(/displaced use: combat stims/i)).toBeInTheDocument()
+    expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {

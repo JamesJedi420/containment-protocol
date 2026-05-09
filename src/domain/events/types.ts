@@ -422,6 +422,36 @@ export interface OperationEventPayloadMap {
     totalPrice: number
     remainingAvailability: number
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
+    allocation?: {
+      allocationId: string
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock'
+      source: string
+      sourceLabel: string
+      destinationUse: string
+      destinationLabel: string
+      urgency: 'standard' | 'contingency'
+      expectedBenefit: string
+      priority: number
+      delayWeeks: number
+      displacedAlternativeUse?: string
+      substitutionStatus: 'none' | 'degraded_substitute'
+      substitutionSummary?: string
+    }
+    allocations?: Array<{
+      allocationId: string
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock'
+      source: string
+      sourceLabel: string
+      destinationUse: string
+      destinationLabel: string
+      urgency: 'standard' | 'contingency'
+      expectedBenefit: string
+      priority: number
+      delayWeeks: number
+      displacedAlternativeUse?: string
+      substitutionStatus: 'none' | 'degraded_substitute'
+      substitutionSummary?: string
+    }>
   }
   'faction.standing_changed': {
     week: number

@@ -679,7 +679,7 @@ function buildListing(
       getBoughtQuantityForListing(game, definition.id) +
       getSoldQuantityForListing(game, definition.id)
   )
-  const sellPrice = Math.max(1, Math.round(buyPrice * getSellRatio(game.market.pressure, featured)))
+  const sellPrice = Math.max(1, Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured)))
   const access = assessProcurementAccess(definition, game, marketPacket)
 
   return {

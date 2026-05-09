@@ -104,6 +104,21 @@ describe('marketView', () => {
     expect(listing!.buyBlockedReason).toMatch(/directorate special channel locked/i)
   })
 
+  it('surfaces market packet boundary data on listings', () => {
+    const game = createStartingState()
+    const listing = getMarketListings(game).find((candidate) => candidate.itemId === 'combat_stims')
+
+    expect(listing).toBeDefined()
+    expect(listing!.marketPacket).toMatchObject({
+      id: 'gray_market_broker',
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+      participantChannelType: 'broker',
+      liquidityProfile: 'thin',
+    })
+    expect(listing!.marketPacket.knownDistortions).toContain('Thin covert inventory.')
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

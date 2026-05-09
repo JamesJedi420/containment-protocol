@@ -422,11 +422,14 @@ function buildProcurementDetailView(
           ? `Fabrication alternative: ${formatCurrency(listing.fabricationCost)}.`
           : 'No fabrication alternative is exposed for this line.',
       ],
-      4
+      6
     ),
     acquisitionDetails: uniqueBounded(
       [
         `Source: ${listing.featured ? 'featured ' : ''}${listing.source.replace(/_/g, ' ')} / ${listing.category}.`,
+        `Exchange: ${listing.marketPacket.label} / ${listing.marketPacket.marketBoundary}.`,
+        `Legality: ${listing.marketPacket.legalityAccessMode} / ${listing.marketPacket.participantChannelType}.`,
+        `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
         `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
         `Current stock on hand: ${listing.inventoryStock}.`,
         `Market pressure: ${listing.pressureLabel}.`,
@@ -444,6 +447,7 @@ function buildProcurementDetailView(
     blockerDetails: uniqueBounded(
       [
         listing.accessBlockedReason ?? '',
+        listing.marketPacket.blockedReason ?? '',
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
@@ -526,6 +530,12 @@ function matchesFilters(listing: MarketListingView, filters: MarketFilters) {
     listing.description,
     listing.category,
     listing.source,
+    listing.marketPacket.label,
+    listing.marketPacket.marketBoundary,
+    listing.marketPacket.legalityAccessMode,
+    listing.marketPacket.participantChannelType,
+    listing.marketPacket.liquidityProfile,
+    ...listing.marketPacket.knownDistortions,
     ...listing.tags,
     listing.featured ? 'featured' : '',
   ]

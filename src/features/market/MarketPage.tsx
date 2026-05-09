@@ -103,9 +103,9 @@ export default function MarketPage() {
         <h3 className="text-base font-semibold">Procurement model</h3>
         <p className="text-sm opacity-60">
           Listings are derived deterministically from the current market week, supply pressure,
-          featured fabrication output, seeded availability, and explicit access classes. Procurement
-          reduces weekly channel availability. Selling returns stock to the exchange at a lower
-          recovery price for the same week.
+          featured fabrication output, market packets, seeded availability, and explicit access
+          classes. Procurement reduces weekly channel availability. Selling returns stock to the
+          exchange at a lower recovery price for the same week.
         </p>
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="Market week" value={String(game.market.week)} />
@@ -269,6 +269,26 @@ export default function MarketPage() {
                     : (listing.accessBlockedReason ?? 'Access blocked')}
                 </p>
               </div>
+
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-4">
+                <p>Exchange: {listing.marketPacket.label}</p>
+                <p>Boundary: {listing.marketPacket.marketBoundary}</p>
+                <p>Legality: {listing.marketPacket.legalityAccessMode}</p>
+                <p>Liquidity: {listing.marketPacket.liquidityProfile}</p>
+              </div>
+
+              {listing.marketPacket.knownDistortions.length > 0 ? (
+                <div className="flex flex-wrap gap-2 text-xs opacity-65">
+                  {listing.marketPacket.knownDistortions.map((distortion) => (
+                    <span
+                      key={`${listing.id}-${distortion}`}
+                      className="rounded border border-white/10 px-2 py-1"
+                    >
+                      {distortion}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
 
               {listing.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-2 text-xs opacity-65">

@@ -243,6 +243,44 @@ describe('MarketPage', () => {
     expect(within(restrictedRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 
+  it('shows market packet boundaries on procurement listings', () => {
+    const game = createStartingState()
+    useGameStore.setState({ game })
+
+    renderMarketPage(['/markets-suppliers?q=combat%20stims'])
+
+    const grayMarketRow = screen.getAllByText(/^combat stims$/i)[0]?.closest('li')
+
+    expect(grayMarketRow).toBeTruthy()
+    expect(within(grayMarketRow!).getByText(/exchange: gray-market broker/i)).toBeInTheDocument()
+    expect(
+      within(grayMarketRow!).getByText(/boundary: settlement-gray-market/i)
+    ).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/legality: covert/i)).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/liquidity: thin/i)).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByText(/thin covert inventory/i)).toBeInTheDocument()
+  })
+
+  it('shows packet access blockers when a boundary forbids trade', () => {
+    const game = createStartingState()
+    game.legitimacy = {
+      sanctionLevel: 'sanctioned',
+      accessReason: 'audit posture',
+      falloutRisk: 'none',
+    }
+    useGameStore.setState({ game })
+
+    renderMarketPage(['/markets-suppliers?q=combat%20stims'])
+
+    const grayMarketRow = screen.getAllByText(/^combat stims$/i)[0]?.closest('li')
+
+    expect(grayMarketRow).toBeTruthy()
+    expect(
+      within(grayMarketRow!).getByText(/gray-market broker blocked: sanctioned audit posture/i)
+    ).toBeInTheDocument()
+    expect(within(grayMarketRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+  })
+
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {
     const game = createStartingState()
     game.inventory = Object.fromEntries(Object.keys(game.inventory).map((itemId) => [itemId, 0]))

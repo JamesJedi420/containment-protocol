@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { getProcurementListing, getProcurementListings } from '../domain/market'
+import {
+  getProcurementListing,
+  getProcurementListings,
+  getProcurementMarketPackets,
+} from '../domain/market'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/market'
 
@@ -9,6 +13,29 @@ describe('market procurement simulation', () => {
     const state = createStartingState()
 
     expect(getProcurementListings(state)).toEqual(getProcurementListings(state))
+  })
+
+  it('builds deterministic market packets for exchange boundaries', () => {
+    const state = createStartingState()
+    const packets = getProcurementMarketPackets(state)
+
+    expect(packets).toEqual(getProcurementMarketPackets(state))
+    expect(packets.map((packet) => packet.id)).toEqual([
+      'agency_supplier_roster',
+      'gray_market_broker',
+    ])
+    expect(packets.find((packet) => packet.id === 'agency_supplier_roster')).toMatchObject({
+      marketBoundary: 'agency-supplier-roster',
+      legalityAccessMode: 'licensed',
+      liquidityProfile: 'stable',
+      available: true,
+    })
+    expect(packets.find((packet) => packet.id === 'gray_market_broker')).toMatchObject({
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+      liquidityProfile: 'thin',
+      available: true,
+    })
   })
 
   it('purchase deducts funding, increases inventory, records a transaction event, and reduces availability', () => {
@@ -116,6 +143,63 @@ describe('market procurement simulation', () => {
     expect(result.inventory.advanced_recon_suite).toBe(
       (clearedState.inventory.advanced_recon_suite ?? 0) + restrictedListing!.bundleQuantity
     )
+  })
+
+  it('applies market packet boundary effects to equipment listings', () => {
+    const state = createStartingState()
+    const grayMarketEquipment = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+    const rosterEquipment = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(grayMarketEquipment).toBeDefined()
+    expect(rosterEquipment).toBeDefined()
+    expect(grayMarketEquipment!.category).toBe('equipment')
+    expect(rosterEquipment!.category).toBe('equipment')
+    expect(grayMarketEquipment!.marketPacket).toMatchObject({
+      id: 'gray_market_broker',
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+    })
+    expect(rosterEquipment!.marketPacket).toMatchObject({
+      id: 'agency_supplier_roster',
+      marketBoundary: 'agency-supplier-roster',
+      legalityAccessMode: 'licensed',
+    })
+    expect(grayMarketEquipment!.marketPacket.priceMultiplier).toBeGreaterThan(
+      rosterEquipment!.marketPacket.priceMultiplier
+    )
+    expect(grayMarketEquipment!.marketPacket.availabilityMultiplier).toBeLessThan(
+      rosterEquipment!.marketPacket.availabilityMultiplier
+    )
+  })
+
+  it('uses packet access rules to block covert exchange under sanctioned posture', () => {
+    const state = createStartingState()
+    const sanctionedState = {
+      ...state,
+      legitimacy: {
+        sanctionLevel: 'sanctioned' as const,
+        accessReason: 'audit posture',
+        falloutRisk: 'none' as const,
+      },
+    }
+    const grayMarketEquipment = getProcurementListings(sanctionedState).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(grayMarketEquipment).toBeDefined()
+    expect(state.funding).toBeGreaterThanOrEqual(grayMarketEquipment!.buyPrice)
+    expect(grayMarketEquipment!.marketPacket.available).toBe(false)
+    expect(grayMarketEquipment!.totalAvailability).toBe(0)
+    expect(grayMarketEquipment!.accessAvailable).toBe(false)
+    expect(grayMarketEquipment!.accessBlockedReason).toMatch(/sanctioned audit posture/i)
+
+    const result = purchaseMarketInventory(sanctionedState, grayMarketEquipment!.id, 1)
+
+    expect(result).toBe(sanctionedState)
   })
 
   it('weekly market refresh resets availability tracking to the new market week', () => {

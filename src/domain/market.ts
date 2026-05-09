@@ -301,7 +301,7 @@ function getMarketPacketIdForDefinition(
 export function getProcurementMarketPackets(game: Pick<GameState, 'legitimacy'>) {
   return (Object.keys(PROCUREMENT_MARKET_PACKET_DEFINITIONS) as ProcurementMarketPacketId[])
     .map((packetId) => buildMarketPacket(packetId, game))
-    .sort((left, right) => left.label.localeCompare(right.label))
+    .sort((left, right) => left.id.localeCompare(right.id))
 }
 
 export function getProcurementMarketPacket(

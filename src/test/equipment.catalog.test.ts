@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { getProcurementListings } from '../domain/market'
 import {
   getEquipmentCatalogEntries,
   getLicensedHandlingRequirement,
@@ -22,6 +23,20 @@ describe('licensed procurement (data-driven handling rules)', () => {
     expect(getLicensedHandlingRequirement('hazmat_suit')).toBe(true)
     expect(getLicensedHandlingRequirement('tactical_radio')).toBe(false)
     expect(getLicensedHandlingRequirement('nonexistent_item')).toBe(false)
+  })
+
+  it('matches procurement listings: only tagged equipment item ids attach licensed-handling status', () => {
+    const game = createStartingState()
+    const licensedListings = getProcurementListings(game).filter((listing) =>
+      listing.resourceStatuses.some(
+        (status) => status.resourceClass === 'licensed_handling_capacity'
+      )
+    )
+
+    expect(licensedListings.map((listing) => listing.itemId).sort()).toEqual([
+      'combat_stims',
+      'hazmat_suit',
+    ])
   })
 })
 

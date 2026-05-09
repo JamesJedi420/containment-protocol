@@ -10,7 +10,11 @@ import {
   type MarketListingCategory,
 } from '../data/production'
 import { createSeededRng, normalizeSeed, randInt } from './math'
-import { getEquipmentCatalogEntries, type EquipmentSlotKind } from './equipment'
+import {
+  getEquipmentCatalogEntries,
+  getLicensedHandlingRequirement as catalogItemRequiresLicensedHandling,
+  type EquipmentSlotKind,
+} from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, OperationEvent } from './models'
 
@@ -169,7 +173,6 @@ const DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS = 1
 const LICENSED_HANDLING_SOURCE_ID = 'licensed_handling_desk'
 const LICENSED_HANDLING_SOURCE_LABEL = 'Licensed handling desk'
 const LICENSED_HANDLING_CAPACITY = 1
-const LICENSED_HANDLING_LISTING_IDS = new Set(['gear:combat_stims', 'gear:hazmat_suit'])
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -689,15 +692,16 @@ function getCurrentLicensedHandlingAllocations(
     .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
 }
 
-function getLicensedHandlingRequirement(definition: ProcurementListingDefinition) {
-  return LICENSED_HANDLING_LISTING_IDS.has(definition.id) ? 1 : 0
+/** Units of licensed-handling desk capacity required (0 or 1), from equipment catalog tags. */
+function getLicensedHandlingUnits(definition: ProcurementListingDefinition) {
+  return catalogItemRequiresLicensedHandling(definition.itemId) ? 1 : 0
 }
 
 function createLicensedHandlingAllocationStatus(
   definition: ProcurementListingDefinition,
   game: GameState
 ): ProcurementAllocationStatus | undefined {
-  const required = getLicensedHandlingRequirement(definition)
+  const required = getLicensedHandlingUnits(definition)
 
   if (required <= 0) {
     return undefined
@@ -956,7 +960,9 @@ function buildProcurementAllocationPacketForStatus(
 
 export function getProcurementListings(game: GameState) {
   const transactionTotals = getListingTransactionTotalsForWeek(game.events, game.market.week)
-  return getListingDefinitions().map((definition) => buildListing(definition, game, transactionTotals))
+  return getListingDefinitions().map((definition) =>
+    buildListing(definition, game, transactionTotals)
+  )
 }
 
 export function getProcurementListing(game: GameState, listingId: string) {

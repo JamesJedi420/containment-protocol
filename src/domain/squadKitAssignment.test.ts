@@ -2,9 +2,13 @@
 // Covers assign, reassign, clear, valid, mismatch paths deterministically
 import { describe, it, expect } from 'vitest'
 import type { SquadMetadata } from './squadMetadata'
-import type { SquadKitTemplate } from './squadKitTemplate'
 import { createSquadKitTemplate } from './squadKitTemplate'
-import { assignSquadKit, clearSquadKitAssignment, validateSquadKitAssignment } from './squadKitAssignment'
+import type { SquadKitTemplate } from './squadKitTemplate'
+import {
+  assignSquadKit,
+  clearSquadKitAssignment,
+  validateSquadKitAssignment,
+} from './squadKitAssignment'
 
 const validSquad: SquadMetadata = {
   squadId: 'S1',
@@ -35,26 +39,32 @@ describe('Squad kit assignment seam', () => {
     const result = assignSquadKit(validSquad, validKitTemplate)
     expect(result.ok).toBe(true)
     if (!result.ok) {
-      throw new Error('Expected successful assignment')
+      throw new Error('Expected successful kit assignment')
     }
     expect(result.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
   })
 
   it('reassigns a different kit template deterministically', () => {
-    assignSquadKit(validSquad, validKitTemplate)
+    const first = assignSquadKit(validSquad, validKitTemplate)
+    if (!first.ok) {
+      throw new Error('Expected initial kit assignment')
+    }
+    expect(first.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit1' })
     const second = assignSquadKit(validSquad, partialKitTemplate)
     expect(second.ok).toBe(true)
     if (!second.ok) {
-      throw new Error('Expected successful reassignment')
+      throw new Error('Expected replacement kit assignment')
     }
     expect(second.assignment).toEqual({ squadId: 'S1', kitTemplateId: 'kit2' })
   })
 
   it('clears an assigned kit template', () => {
-    const cleared = clearSquadKitAssignment(validSquad, { currentAssignment: { squadId: 'S1', kitTemplateId: 'kit1' } })
+    const cleared = clearSquadKitAssignment(validSquad, {
+      currentAssignment: { squadId: 'S1', kitTemplateId: 'kit1' },
+    })
     expect(cleared.ok).toBe(true)
     if (!cleared.ok) {
-      throw new Error('Expected successful clear')
+      throw new Error('Expected successful kit assignment clear')
     }
     expect(cleared.assignment).toEqual({ squadId: 'S1', kitTemplateId: null })
   })
@@ -67,10 +77,12 @@ describe('Squad kit assignment seam', () => {
   })
 
   it('returns error for clearing with no assignment', () => {
-    const result = clearSquadKitAssignment(validSquad, { currentAssignment: { squadId: 'S1', kitTemplateId: null } })
+    const result = clearSquadKitAssignment(validSquad, {
+      currentAssignment: { squadId: 'S1', kitTemplateId: null },
+    })
     expect(result.ok).toBe(false)
     if (result.ok) {
-      throw new Error('Expected no_assignment_to_clear error')
+      throw new Error('Expected no-assignment clear failure')
     }
     expect(result.error).toBe('no_assignment_to_clear')
   })
@@ -81,7 +93,7 @@ describe('Squad kit assignment seam', () => {
     })
     expect(result.ok).toBe(false)
     if (result.ok) {
-      throw new Error('Expected assignment_squad_mismatch error')
+      throw new Error('Expected assignment squad mismatch failure')
     }
     expect(result.error).toBe('assignment_squad_mismatch')
   })
@@ -90,7 +102,7 @@ describe('Squad kit assignment seam', () => {
     const result = clearSquadKitAssignment(validSquad)
     expect(result.ok).toBe(true)
     if (!result.ok) {
-      throw new Error('Expected successful clear when assignment missing')
+      throw new Error('Expected deterministic clear payload')
     }
     expect(result.assignment).toEqual({ squadId: 'S1', kitTemplateId: null })
   })
@@ -117,10 +129,8 @@ describe('Squad kit assignment seam', () => {
   })
 
   it('returns typed invalid_input error for invalid validation inputs', () => {
-    const invalidTemplate =
-      null as unknown as Parameters<typeof validateSquadKitAssignment>[0]
-    const invalidTags =
-      null as unknown as Parameters<typeof validateSquadKitAssignment>[1]
+    const invalidTemplate = null as unknown as Parameters<typeof validateSquadKitAssignment>[0]
+    const invalidTags = null as unknown as Parameters<typeof validateSquadKitAssignment>[1]
     const validation = validateSquadKitAssignment(invalidTemplate, invalidTags)
     expect(validation).toEqual({ status: 'error', error: 'invalid_input' })
   })

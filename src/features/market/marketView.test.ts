@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
+import { queueFabrication } from '../../domain/sim/production'
 import {
   getCurrentWeekMarketTransactions,
   getFilteredMarketListings,
@@ -10,6 +11,18 @@ import {
 } from './marketView'
 
 describe('marketView', () => {
+  function createDiscountedMarketState() {
+    const game = createStartingState()
+
+    return {
+      ...game,
+      market: {
+        ...game.market,
+        pressure: 'discounted' as const,
+      },
+    }
+  }
+
   it('builds deterministic procurement listings with weekly availability and pricing', () => {
     const game = createStartingState()
     const listings = getMarketListings(game)
@@ -58,7 +71,9 @@ describe('marketView', () => {
 
   it('reflects current-week transaction history from domain events', () => {
     const game = createStartingState()
-    const listing = getMarketListings(game)[0]
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.accessAvailable && candidate.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 
@@ -79,11 +94,134 @@ describe('marketView', () => {
       funding: 0,
     }
 
-    const listing = getMarketListings(game).find((candidate) => candidate.buyPrice > 0)
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.accessAvailable && candidate.buyPrice > 0
+    )
 
     expect(listing).toBeDefined()
     expect(listing!.canBuyOne).toBe(false)
     expect(listing!.buyBlockedReason).toMatch(/need \+\$\d+/i)
+  })
+
+  it('surfaces access blockers when budget can cover a restricted listing', () => {
+    const game = createStartingState()
+    const listing = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(listing).toBeDefined()
+    expect(listing!.canAffordOne).toBe(true)
+    expect(listing!.accessAvailable).toBe(false)
+    expect(listing!.canBuyOne).toBe(false)
+    expect(listing!.budgetBlockedReason).toBeUndefined()
+    expect(listing!.buyBlockedReason).toMatch(/directorate special channel locked/i)
+  })
+
+  it('surfaces market packet boundary data on listings', () => {
+    const game = createStartingState()
+    const listing = getMarketListings(game).find((candidate) => candidate.itemId === 'combat_stims')
+
+    expect(listing).toBeDefined()
+    expect(listing!.marketPacket).toMatchObject({
+      id: 'gray_market_broker',
+      marketBoundary: 'settlement-gray-market',
+      legalityAccessMode: 'covert',
+      participantChannelType: 'broker',
+      liquidityProfile: 'thin',
+    })
+    expect(listing!.marketPacket.knownDistortions).toContain('Thin covert inventory.')
+  })
+
+  it('surfaces supplier attention substitution after a competing use commits the slot', () => {
+    const game = createStartingState()
+    const fieldPlate = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'field_plate'
+    )
+
+    expect(fieldPlate).toBeDefined()
+
+    const afterFieldPlate = purchaseMarketInventory(game, fieldPlate!.id, 1)
+    const hazmatSuit = getMarketListings(afterFieldPlate).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+    const wardSeals = getMarketListings(afterFieldPlate).find(
+      (candidate) => candidate.id === 'ward-seals'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+    expect(hazmatSuit!.allocationStatus.state).toBe('substituted')
+    expect(hazmatSuit!.allocationStatus.substitution?.summary).toMatch(/gray-market broker/i)
+    expect(hazmatSuit!.canBuyOne).toBe(true)
+    expect(hazmatSuit!.canBuyThree).toBe(false)
+
+    expect(wardSeals).toBeDefined()
+    expect(wardSeals!.allocationStatus.state).toBe('committed_elsewhere')
+    expect(wardSeals!.canBuyOne).toBe(false)
+    expect(wardSeals!.buyBlockedReason).toMatch(/attention committed/i)
+  })
+
+  it('surfaces reagent stock blocking and substitution from fabrication commitments', () => {
+    const game = createStartingState()
+    const afterWardFabrication = queueFabrication(game, 'ward-seals')
+    const ritualComponents = getMarketListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'ritual-components'
+    )
+    const emfSensors = getMarketListings(afterWardFabrication).find(
+      (candidate) => candidate.id === 'emf-sensors'
+    )
+
+    expect(ritualComponents).toBeDefined()
+    expect(ritualComponents!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'reagent_stock',
+          state: 'committed_elsewhere',
+          displacedAlternativeUse: 'Ward Seal Batch',
+        }),
+      ])
+    )
+    expect(ritualComponents!.canBuyOne).toBe(false)
+    expect(ritualComponents!.buyBlockedReason).toMatch(/Occult Reagents stock committed/i)
+
+    expect(emfSensors).toBeDefined()
+    expect(emfSensors!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'reagent_stock',
+          state: 'substituted',
+          displacedAlternativeUse: 'Ward Seal Batch',
+        }),
+      ])
+    )
+    expect(emfSensors!.canBuyOne).toBe(true)
+    expect(emfSensors!.canBuyThree).toBe(false)
+  })
+
+  it('surfaces licensed handling blocking after a controlled purchase commits capacity', () => {
+    const game = createDiscountedMarketState()
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const afterCombatStims = purchaseMarketInventory(game, combatStims!.id, 1)
+    const hazmatSuit = getMarketListings(afterCombatStims).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+    expect(hazmatSuit!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'licensed_handling_capacity',
+          state: 'committed_elsewhere',
+          displacedAlternativeUse: combatStims!.itemName,
+        }),
+      ])
+    )
+    expect(hazmatSuit!.canBuyOne).toBe(false)
+    expect(hazmatSuit!.buyBlockedReason).toMatch(/Licensed handling desk capacity committed/i)
   })
 
   it('normalizes invalid market query params to defaults', () => {

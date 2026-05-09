@@ -8,7 +8,9 @@ import { purchaseMarketInventory, sellMarketInventory } from '../domain/sim/mark
 describe('economy', () => {
   it('summarizes deterministic procurement, fabrication edge, and reward flow in one loop view', () => {
     const initial = createStartingState()
-    const listing = getProcurementListings(initial).find((entry) => entry.availableBundles > 0)
+    const listing = getProcurementListings(initial).find(
+      (entry) => entry.accessAvailable && entry.availableBundles > 0
+    )
 
     expect(listing).toBeDefined()
 

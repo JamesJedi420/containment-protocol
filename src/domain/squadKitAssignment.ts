@@ -1,11 +1,7 @@
 // Squad kit assignment and validation seam (SPE-1025 child)
 // Domain-only, deterministic, no model widening unless unavoidable
 import type { SquadMetadata } from './squadMetadata'
-import type {
-  SquadKitTemplate,
-  KitMatchResult,
-  KitMismatchResult,
-} from './squadKitTemplate'
+import type { KitMatchResult, KitMismatchResult, SquadKitTemplate } from './squadKitTemplate'
 import { evaluateSquadKitMatch } from './squadKitTemplate'
 
 export interface SquadKitAssignment {

@@ -480,6 +480,12 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           unitPrice: draft.payload.unitPrice,
           totalPrice: draft.payload.totalPrice,
           remainingAvailability: draft.payload.remainingAvailability,
+          ...(draft.payload.allocation !== undefined
+            ? { allocation: JSON.stringify(draft.payload.allocation) }
+            : {}),
+          ...(draft.payload.allocations !== undefined
+            ? { allocations: JSON.stringify(draft.payload.allocations) }
+            : {}),
         },
       }
 

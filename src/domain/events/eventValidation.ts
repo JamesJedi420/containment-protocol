@@ -401,6 +401,28 @@ const marketShiftedSchema = z
   })
   .strict()
 
+const procurementAllocationSchema = z
+  .object({
+    allocationId: z.string(),
+    resourceClass: z.enum([
+      'supplier_attention_slot',
+      'reagent_stock',
+      'licensed_handling_capacity',
+    ]),
+    source: z.string(),
+    sourceLabel: z.string(),
+    destinationUse: z.string(),
+    destinationLabel: z.string(),
+    urgency: z.enum(['standard', 'contingency']),
+    expectedBenefit: z.string(),
+    priority: z.number(),
+    delayWeeks: z.number(),
+    displacedAlternativeUse: z.string().optional(),
+    substitutionStatus: z.enum(['none', 'degraded_substitute']),
+    substitutionSummary: z.string().optional(),
+  })
+  .strict()
+
 const marketTransactionListingResourceStatusSchema = z
   .object({
     resourceClass: z.enum([
@@ -431,6 +453,8 @@ const marketTransactionRecordedSchema = z
     unitPrice: z.number(),
     totalPrice: z.number(),
     remainingAvailability: z.number(),
+    allocation: procurementAllocationSchema.optional(),
+    allocations: z.array(procurementAllocationSchema).optional(),
     listingResourceStatuses: z.array(marketTransactionListingResourceStatusSchema).optional(),
   })
   .strict()

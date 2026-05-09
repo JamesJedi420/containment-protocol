@@ -103,9 +103,9 @@ export default function MarketPage() {
         <h3 className="text-base font-semibold">Procurement model</h3>
         <p className="text-sm opacity-60">
           Listings are derived deterministically from the current market week, supply pressure,
-          featured fabrication output, and seeded availability. Procurement reduces weekly channel
-          availability. Selling returns stock to the exchange at a lower recovery price for the same
-          week.
+          featured fabrication output, market packets, seeded availability, and explicit access
+          classes. Procurement reduces weekly channel availability. Selling returns stock to the
+          exchange at a lower recovery price for the same week.
         </p>
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="Market week" value={String(game.market.week)} />
@@ -244,12 +244,99 @@ export default function MarketPage() {
                 </div>
               </div>
 
-              <div className="grid gap-2 text-sm opacity-75 md:grid-cols-4">
+              <div className="grid gap-2 text-sm opacity-75 md:grid-cols-5">
                 <p>Bundle qty: {listing.bundleQuantity}</p>
                 <p>Buy: ${listing.buyPrice}</p>
                 <p>Sell: ${listing.sellPrice}</p>
                 <p>Pressure: {listing.pressureLabel}</p>
+                <p>Access: {listing.accessLabel}</p>
               </div>
+
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-3">
+                <p>Acquisition: {listing.acquisitionClass}</p>
+                <p>
+                  Funding:{' '}
+                  {listing.canAffordOne
+                    ? `Affordable with $${game.funding} on hand`
+                    : (listing.budgetBlockedReason ?? 'Budget blocked')}
+                </p>
+                <p>
+                  Availability:{' '}
+                  {listing.accessAvailable
+                    ? listing.availableBundles > 0
+                      ? `${listing.availableBundles} bundle(s) open`
+                      : (listing.availabilityBlockedReason ?? 'Channel exhausted')
+                    : (listing.accessBlockedReason ?? 'Access blocked')}
+                </p>
+              </div>
+
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-4">
+                <p>Exchange: {listing.marketPacket.label}</p>
+                <p>Boundary: {listing.marketPacket.marketBoundary}</p>
+                <p>Legality: {listing.marketPacket.legalityAccessMode}</p>
+                <p>Liquidity: {listing.marketPacket.liquidityProfile}</p>
+              </div>
+
+              <div className="grid gap-2 text-xs opacity-70 md:grid-cols-3">
+                <p>
+                  Supplier attention: {listing.allocationStatus.available}/
+                  {listing.allocationStatus.capacity} open
+                </p>
+                <p>Allocation state: {listing.allocationStatus.state.replace(/_/g, ' ')}</p>
+                <p>
+                  Displaced use:{' '}
+                  {listing.allocationStatus.displacedAlternativeUse ?? 'None this market week'}
+                </p>
+              </div>
+
+              {listing.allocationStatus.substitution ? (
+                <p className="text-xs text-amber-200">
+                  Degraded substitute: {listing.allocationStatus.substitution.summary}
+                </p>
+              ) : null}
+
+              {listing.resourceStatuses
+                .filter((status) => status !== listing.allocationStatus)
+                .map((status) => (
+                  <div
+                    key={`${listing.id}-${status.resourceClass}-${status.source}`}
+                    className="grid gap-2 text-xs opacity-70 md:grid-cols-3"
+                  >
+                    <p>
+                      {status.sourceLabel}: {status.available}/{status.capacity} open
+                    </p>
+                    <p>
+                      {status.resourceClass.replace(/_/g, ' ')}: {status.state.replace(/_/g, ' ')}
+                    </p>
+                    <p>
+                      Displaced use: {status.displacedAlternativeUse ?? 'None this market week'}
+                    </p>
+                  </div>
+                ))}
+
+              {listing.resourceStatuses
+                .filter((status) => status !== listing.allocationStatus && status.substitution)
+                .map((status) => (
+                  <p
+                    key={`${listing.id}-${status.resourceClass}-${status.source}-substitution`}
+                    className="text-xs text-amber-200"
+                  >
+                    Degraded substitute: {status.substitution!.summary}
+                  </p>
+                ))}
+
+              {listing.marketPacket.knownDistortions.length > 0 ? (
+                <div className="flex flex-wrap gap-2 text-xs opacity-65">
+                  {listing.marketPacket.knownDistortions.map((distortion) => (
+                    <span
+                      key={`${listing.id}-${distortion}`}
+                      className="rounded border border-white/10 px-2 py-1"
+                    >
+                      {distortion}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
 
               {listing.tags.length > 0 ? (
                 <div className="flex flex-wrap gap-2 text-xs opacity-65">
@@ -341,6 +428,15 @@ export default function MarketPage() {
                     <p className="text-sm opacity-60">
                       Week {transaction.week} / Market week {transaction.marketWeek}
                     </p>
+                    {transaction.allocation ? (
+                      <p className="text-xs opacity-60">
+                        Allocation: {transaction.allocation.sourceLabel} /{' '}
+                        {transaction.allocation.substitutionStatus.replace(/_/g, ' ')}
+                        {transaction.allocation.delayWeeks > 0
+                          ? ` / ${transaction.allocation.delayWeeks}w delay`
+                          : ''}
+                      </p>
+                    ) : null}
                   </div>
                   <div className="text-right text-sm opacity-70">
                     <p>

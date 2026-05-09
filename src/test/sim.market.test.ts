@@ -103,6 +103,52 @@ describe('market procurement simulation', () => {
     })
   })
 
+  it('records licensed handling allocation packets for controlled purchases', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find(
+      (candidate) =>
+        candidate.itemId === 'combat_stims' &&
+        candidate.resourceStatuses.some(
+          (status) =>
+            status.resourceClass === 'licensed_handling_capacity' && status.purchaseAvailable
+        ) &&
+        candidate.availableBundles > 0
+    )
+
+    expect(listing).toBeDefined()
+
+    const result = purchaseMarketInventory(state, listing!.id, 1)
+    const allocations = getProcurementAllocations(result)
+
+    expect(allocations).toEqual(getProcurementAllocations(result))
+    expect(allocations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'licensed_handling_capacity',
+          source: 'licensed_handling_desk',
+          sourceLabel: 'Licensed handling desk',
+          destinationUse: listing!.id,
+          destinationLabel: listing!.itemName,
+          urgency: 'standard',
+          expectedBenefit: `${listing!.bundleQuantity}x ${listing!.itemName}`,
+          delayWeeks: 0,
+          substitutionStatus: 'none',
+        }),
+      ])
+    )
+    expect(result.events.at(-1)).toMatchObject({
+      type: 'market.transaction_recorded',
+      payload: {
+        allocations: expect.arrayContaining([
+          expect.objectContaining({
+            resourceClass: 'licensed_handling_capacity',
+            source: 'licensed_handling_desk',
+          }),
+        ]),
+      },
+    })
+  })
+
   it('sell adds funding, removes inventory, records a transaction event, and increases availability', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state).find(
@@ -382,6 +428,38 @@ describe('market procurement simulation', () => {
         ]),
       },
     })
+  })
+
+  it('makes controlled procurement unavailable when licensed handling is committed elsewhere', () => {
+    const state = createStartingState()
+    const combatStims = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const afterCombatStims = purchaseMarketInventory(state, combatStims!.id, 1)
+    const hazmatSuit = getProcurementListings(afterCombatStims).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+
+    const handlingStatus = hazmatSuit!.resourceStatuses.find(
+      (status) => status.resourceClass === 'licensed_handling_capacity'
+    )
+
+    expect(handlingStatus).toMatchObject({
+      source: 'licensed_handling_desk',
+      sourceLabel: 'Licensed handling desk',
+      state: 'committed_elsewhere',
+      purchaseAvailable: false,
+      displacedAlternativeUse: combatStims!.itemName,
+    })
+
+    const blocked = purchaseMarketInventory(afterCombatStims, hazmatSuit!.id, 1)
+
+    expect(blocked).toBe(afterCombatStims)
   })
 
   it('weekly market refresh resets availability tracking to the new market week', () => {

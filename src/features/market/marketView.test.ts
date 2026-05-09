@@ -185,6 +185,33 @@ describe('marketView', () => {
     expect(emfSensors!.canBuyThree).toBe(false)
   })
 
+  it('surfaces licensed handling blocking after a controlled purchase commits capacity', () => {
+    const game = createStartingState()
+    const combatStims = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'combat_stims'
+    )
+
+    expect(combatStims).toBeDefined()
+
+    const afterCombatStims = purchaseMarketInventory(game, combatStims!.id, 1)
+    const hazmatSuit = getMarketListings(afterCombatStims).find(
+      (candidate) => candidate.itemId === 'hazmat_suit'
+    )
+
+    expect(hazmatSuit).toBeDefined()
+    expect(hazmatSuit!.resourceStatuses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          resourceClass: 'licensed_handling_capacity',
+          state: 'committed_elsewhere',
+          displacedAlternativeUse: combatStims!.itemName,
+        }),
+      ])
+    )
+    expect(hazmatSuit!.canBuyOne).toBe(false)
+    expect(hazmatSuit!.buyBlockedReason).toMatch(/Licensed handling desk capacity committed/i)
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

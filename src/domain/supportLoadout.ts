@@ -15,7 +15,6 @@ function getEncounterSupportTags(caseData: Pick<CaseInstance, 'tags' | 'required
     ...(caseData?.preferredTags ?? []),
   ])
 }
-// (file ends abruptly)
 import { getEquipmentSlotItemId } from './equipment'
 import {
   readGameStateManager,

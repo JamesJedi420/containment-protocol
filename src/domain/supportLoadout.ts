@@ -840,7 +840,7 @@ export function applyWardSealsToSealedAnchor(
   encounterFlags[mismatchFlagKey] = false
 
   // Guard: must be available and correct family
-  if (supportState.status === 'unavailable' || supportState.family !== 'containment') {
+  if (supportState.status !== 'prepared' || supportState.family !== 'containment') {
     encounterFlags[failureFlagKey] = true
     const nextState = setEncounterRuntimeState(state, encounterId, {
       phase: 'support-loadout:ward-seals:anchor:failure',

@@ -824,14 +824,14 @@ export function applyWardSealsToSealedAnchor(
   const failureFlagKey = buildWardSealAnchorFailureFlagKey(agentId)
   const mismatchFlagKey = buildWardSealAnchorMismatchFlagKey(agentId)
 
-    // If already applied, return already-applied (idempotent)
-    if (encounterFlags[successFlagKey] === true) {
-      return {
-        state,
-        applied: false,
-        outcome: 'already-applied',
-        supportState: getPreparedSupportProcedureState(state, encounterId, agentId),
-      }
+  // If already applied, return already-applied (idempotent)
+  if (encounterFlags[successFlagKey] === true) {
+    return {
+      state,
+      applied: false,
+      outcome: 'already-applied',
+      supportState,
+    }
   }
 
   // Reset flags

@@ -44,10 +44,7 @@ import {
   applyQueueAndLogReset,
   type DebugResetRequest,
 } from '../../domain/debugResetTools'
-import {
-  advanceDefinedProgressClock,
-  setDefinedProgressClock,
-} from '../../domain/progressClocks'
+import { advanceDefinedProgressClock, setDefinedProgressClock } from '../../domain/progressClocks'
 import {
   clearRuntimeEventQueue as clearRuntimeEventQueueState,
   dequeueRuntimeEvent as dequeueRuntimeEventState,
@@ -86,7 +83,11 @@ import { createStartingState } from '../../data/startingState'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import { queueFabrication } from '../../domain/sim/production'
-import { purchaseMarketInventory, sellMarketInventory } from '../../domain/sim/market'
+import {
+  acknowledgeLicensedHandlingDoctrine,
+  purchaseMarketInventory,
+  sellMarketInventory,
+} from '../../domain/sim/market'
 import { hireCandidate } from '../../domain/sim/hire'
 import { scoutCandidate } from '../../domain/sim/recruitmentScouting'
 import { transitionRecruitmentCandidate } from '../../domain/recruitment'
@@ -116,7 +117,10 @@ import { applyRallySupportStaffAction } from '../../domain/hub/supportActions'
 import { recomputeMissionRouting, routeMissionToTeam } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
-import { launchContract as launchContractDomain, refreshContractBoard } from '../../domain/contracts'
+import {
+  launchContract as launchContractDomain,
+  refreshContractBoard,
+} from '../../domain/contracts'
 import {
   createRunFromCurrentConfig,
   GAME_STORE_VERSION,
@@ -143,7 +147,9 @@ interface GameStore {
   appendDeveloperLogEvent: (event: DeveloperLogEventInput) => void
   clearDeveloperLog: () => void
   debugReset: (request: DebugResetRequest) => ReturnType<typeof applyDebugReset>['summary']
-  debugResetFrontDeskBaseline: () => ReturnType<typeof applyFrontDeskRuntimeBaselineReset>['summary']
+  debugResetFrontDeskBaseline: () => ReturnType<
+    typeof applyFrontDeskRuntimeBaselineReset
+  >['summary']
   debugResetQueueAndLog: () => ReturnType<typeof applyQueueAndLogReset>['summary']
   debugResetEncounterState: () => ReturnType<typeof applyEncounterDebugReset>['summary']
   setPersistentFlag: (flagId: string, value?: GameFlagValue) => void
@@ -238,20 +244,25 @@ interface GameStore {
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
+  /** Renew licensed-handling doctrine attestation for the current campaign week (SPE-874). */
+  acknowledgeLicensedHandlingDoctrine: () => void
   sellMarketInventory: (listingId: string, bundles?: number) => void
   drawPartyCards: (count?: number) => void
   playPartyCard: (cardId: Id, targetCaseId?: Id, targetTeamId?: Id) => void
   discardPartyCard: (cardId: Id) => void
   setWeeklyDirective: (directiveId: WeeklyDirectiveId | null) => void
   refreshMissionRouting: () => void
-  evaluateMissionDeployment: (missionId: Id, teamId: Id) => ReturnType<typeof evaluateDeploymentEligibility> | null
+  evaluateMissionDeployment: (
+    missionId: Id,
+    teamId: Id
+  ) => ReturnType<typeof evaluateDeploymentEligibility> | null
   assignMissionTeam: (missionId: Id, teamId: Id) => boolean
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   advanceWeek: () => void
   setSeed: (seed: number) => void
-    setSquadMetadata: (metadata: SquadMetadata) => void
-    setSquadKitTemplate: (template: SquadKitTemplate) => void
-    setSquadKitAssignment: (assignment: SquadKitAssignment) => void
+  setSquadMetadata: (metadata: SquadMetadata) => void
+  setSquadKitTemplate: (template: SquadKitTemplate) => void
+  setSquadKitAssignment: (assignment: SquadKitAssignment) => void
   updateConfig: (patch: Partial<GameConfig>) => void
   exportSave: () => string
   importSave: (raw: string) => void
@@ -261,7 +272,10 @@ interface GameStore {
   reset: () => void
 }
 
-function areStringListsEqual(left: readonly string[] | undefined, right: readonly string[] | undefined) {
+function areStringListsEqual(
+  left: readonly string[] | undefined,
+  right: readonly string[] | undefined
+) {
   const normalizedLeft = left ?? []
   const normalizedRight = right ?? []
 
@@ -307,8 +321,12 @@ function areEncounterStatesEqual(
     return false
   }
 
-  const leftFlags = Object.entries(left.flags ?? {}).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
-  const rightFlags = Object.entries(right.flags ?? {}).sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
+  const leftFlags = Object.entries(left.flags ?? {}).sort(([leftId], [rightId]) =>
+    leftId.localeCompare(rightId)
+  )
+  const rightFlags = Object.entries(right.flags ?? {}).sort(([leftId], [rightId]) =>
+    leftId.localeCompare(rightId)
+  )
 
   return (
     left.encounterId === right.encounterId &&
@@ -352,7 +370,10 @@ function serializeDeveloperLogDetails(details: DeveloperLogEvent['details']) {
     Object.fromEntries(
       Object.entries(details)
         .sort(([leftId], [rightId]) => leftId.localeCompare(rightId))
-        .map(([detailId, detailValue]) => [detailId, Array.isArray(detailValue) ? [...detailValue] : detailValue])
+        .map(([detailId, detailValue]) => [
+          detailId,
+          Array.isArray(detailValue) ? [...detailValue] : detailValue,
+        ])
     )
   )
 }
@@ -382,8 +403,12 @@ function appendAuthoringContextLogIfChanged(
       activeContextId: nextAuthoring?.activeContextId ?? 'n/a',
       ...(nextAuthoring?.lastChoiceId ? { lastChoiceId: nextAuthoring.lastChoiceId } : {}),
       ...(nextAuthoring?.lastNextTargetId ? { nextTargetId: nextAuthoring.lastNextTargetId } : {}),
-      ...(nextAuthoring?.lastFollowUpIds?.length ? { followUpIds: nextAuthoring.lastFollowUpIds } : {}),
-      ...(typeof nextAuthoring?.updatedWeek === 'number' ? { updatedWeek: nextAuthoring.updatedWeek } : {}),
+      ...(nextAuthoring?.lastFollowUpIds?.length
+        ? { followUpIds: nextAuthoring.lastFollowUpIds }
+        : {}),
+      ...(typeof nextAuthoring?.updatedWeek === 'number'
+        ? { updatedWeek: nextAuthoring.updatedWeek }
+        : {}),
     },
   })
 }
@@ -433,21 +458,25 @@ export const useGameStore = create<GameStore>()(
       appendDeveloperLogEvent: (event) =>
         set((s) => {
           const lastEvent = getLastDeveloperLogEvent(s.game)
-          const contextId = event.contextId ?? readGameStateManager(s.game).ui.authoring?.activeContextId
+          const contextId =
+            event.contextId ?? readGameStateManager(s.game).ui.authoring?.activeContextId
           const isDuplicate =
             lastEvent?.type === event.type &&
             lastEvent.summary === event.summary &&
-            lastEvent.week === (typeof event.week === 'number' ? Math.max(1, Math.trunc(event.week)) : s.game.week) &&
+            lastEvent.week ===
+              (typeof event.week === 'number'
+                ? Math.max(1, Math.trunc(event.week))
+                : s.game.week) &&
             lastEvent.contextId === contextId &&
-            serializeDeveloperLogDetails(lastEvent.details) === serializeDeveloperLogDetails(event.details)
+            serializeDeveloperLogDetails(lastEvent.details) ===
+              serializeDeveloperLogDetails(event.details)
 
           return {
             game: isDuplicate ? s.game : appendDeveloperLogEventState(s.game, event),
           }
         }),
 
-      clearDeveloperLog: () =>
-        set((s) => ({ game: clearDeveloperLogState(s.game) })),
+      clearDeveloperLog: () => set((s) => ({ game: clearDeveloperLogState(s.game) })),
 
       debugReset: (request) => {
         let resetSummary: ReturnType<typeof applyDebugReset>['summary'] = {
@@ -585,7 +614,12 @@ export const useGameStore = create<GameStore>()(
             summary: `Flag set: ${flagId}`,
             details: {
               flagId,
-              value: typeof afterValue === 'boolean' || typeof afterValue === 'number' || typeof afterValue === 'string' ? afterValue : String(value),
+              value:
+                typeof afterValue === 'boolean' ||
+                typeof afterValue === 'number' ||
+                typeof afterValue === 'string'
+                  ? afterValue
+                  : String(value),
             },
           })
 
@@ -734,11 +768,11 @@ export const useGameStore = create<GameStore>()(
           touchedEncounterIds: [],
           sceneVisits: [],
           locationUpdated: false,
-        };
+        }
 
         set((s) => {
           // Pure deterministic choice-application logic is handled by domain
-          result = applyAuthoredChoiceState(s.game, choice, context);
+          result = applyAuthoredChoiceState(s.game, choice, context)
           // Context logging, debug snapshotting, and event queue wiring remain in the store
           let gameWithDebugSnapshot: GameState = setUiDebugState(result.state, {
             authoring: {
@@ -748,7 +782,7 @@ export const useGameStore = create<GameStore>()(
               lastFollowUpIds: result.followUpIds,
               updatedWeek: s.game.week,
             },
-          });
+          })
           gameWithDebugSnapshot = appendDeveloperLogEventState(gameWithDebugSnapshot, {
             type: 'choice.executed',
             summary: `Choice executed: ${result.choiceId}`,
@@ -757,7 +791,9 @@ export const useGameStore = create<GameStore>()(
               ...(result.nextTargetId ? { nextTargetId: result.nextTargetId } : {}),
               ...(result.changedFlags.length ? { changedFlags: result.changedFlags } : {}),
               ...(result.clearedFlags.length ? { clearedFlags: result.clearedFlags } : {}),
-              ...(result.consumedOneShots.length ? { consumedOneShots: result.consumedOneShots } : {}),
+              ...(result.consumedOneShots.length
+                ? { consumedOneShots: result.consumedOneShots }
+                : {}),
               ...(result.touchedProgressClocks.length
                 ? { progressClocks: result.touchedProgressClocks }
                 : {}),
@@ -766,10 +802,10 @@ export const useGameStore = create<GameStore>()(
                 : {}),
               ...(result.followUpIds.length ? { followUpIds: result.followUpIds } : {}),
             },
-          });
+          })
           const queuedEvents = listQueuedRuntimeEvents(gameWithDebugSnapshot).filter(
             (event) => event.source === result.choiceId
-          );
+          )
           gameWithDebugSnapshot = queuedEvents.length
             ? appendDeveloperLogEventState(gameWithDebugSnapshot, {
                 type: 'event_queue.enqueued',
@@ -781,22 +817,22 @@ export const useGameStore = create<GameStore>()(
                   followUpIds: queuedEvents.map((event) => event.targetId),
                 },
               })
-            : gameWithDebugSnapshot;
+            : gameWithDebugSnapshot
           gameWithDebugSnapshot = appendAuthoringContextLogIfChanged(
             s.game,
             gameWithDebugSnapshot,
             context?.activeContextId
-          );
+          )
           result = {
             ...result,
             state: gameWithDebugSnapshot,
-          };
+          }
           return {
             game: gameWithDebugSnapshot,
-          };
-        });
+          }
+        })
 
-        return result;
+        return result
       },
 
       resolveHiddenEncounter: (input, context) => {
@@ -832,13 +868,13 @@ export const useGameStore = create<GameStore>()(
             queuedEventIds: [],
             queueEvents: [],
           },
-        };
+        }
 
         set((s) => {
           // Pure deterministic hidden-encounter resolution logic is handled by domain
           result = resolveAndApplyHiddenCombat(s.game, input, {
             contextId: context?.activeContextId,
-          });
+          })
           // Event creation and queue wiring remain in the store
           let game = appendDeveloperLogEventState(result.apply.state, {
             type: 'encounter.patched',
@@ -853,7 +889,7 @@ export const useGameStore = create<GameStore>()(
                 ? { followUpIds: result.resolution.followUpIds }
                 : {}),
             },
-          });
+          })
           game = result.apply.queueEvents.length
             ? appendDeveloperLogEventState(game, {
                 type: 'event_queue.enqueued',
@@ -865,31 +901,28 @@ export const useGameStore = create<GameStore>()(
                   followUpIds: result.apply.queueEvents.map((event) => event.targetId),
                 },
               })
-            : game;
+            : game
           result = {
             ...result,
             apply: {
               ...result.apply,
               state: game,
             },
-          };
+          }
           return {
             game,
-          };
-        });
-        return result;
+          }
+        })
+        return result
       },
 
       setPlayerProfile: (patch) => set((s) => ({ game: setPlayerProfile(s.game, patch) })),
 
-      setGlobalFlag: (flagId, value) =>
-        get().setPersistentFlag(flagId, value),
+      setGlobalFlag: (flagId, value) => get().setPersistentFlag(flagId, value),
 
-      clearGlobalFlag: (flagId) =>
-        get().clearPersistentFlag(flagId),
+      clearGlobalFlag: (flagId) => get().clearPersistentFlag(flagId),
 
-      markOneShotEvent: (eventId, source) =>
-        get().consumeOneShotContent(eventId, source),
+      markOneShotEvent: (eventId, source) => get().consumeOneShotContent(eventId, source),
 
       setCurrentLocation: (nextLocation) =>
         set((s) => {
@@ -1058,7 +1091,7 @@ export const useGameStore = create<GameStore>()(
       scoutCandidate: (candidateId) => set((s) => ({ game: scoutCandidate(s.game, candidateId) })),
 
       transitionCandidateFunnel: (candidateId, toStage, options) => {
-        let transitioned = false;
+        let transitioned = false
         set((s) => {
           // Pure deterministic funnel transition logic is handled by domain
           const transition = transitionRecruitmentCandidate(s.game, candidateId, {
@@ -1066,10 +1099,10 @@ export const useGameStore = create<GameStore>()(
             week: s.game.week,
             ...(options?.note ? { note: options.note } : {}),
             ...(options?.lossReason ? { lossReason: options.lossReason } : {}),
-          });
-          transitioned = transition.transitioned;
+          })
+          transitioned = transition.transitioned
           if (!transition.transitioned) {
-            return { game: s.game };
+            return { game: s.game }
           }
           // Event/context logging remains in the store
           const game = appendDeveloperLogEventState(transition.state, {
@@ -1082,10 +1115,10 @@ export const useGameStore = create<GameStore>()(
               ...(options?.note ? { note: options.note } : {}),
               ...(options?.lossReason ? { lossReason: options.lossReason } : {}),
             },
-          });
-          return { game };
-        });
-        return transitioned;
+          })
+          return { game }
+        })
+        return transitioned
       },
 
       contactCandidate: (candidateId, note) =>
@@ -1120,9 +1153,7 @@ export const useGameStore = create<GameStore>()(
             return { game: nextGame }
           }
 
-          const nextMetadata = nextGame.squadMetadata
-            ? { ...nextGame.squadMetadata }
-            : undefined
+          const nextMetadata = nextGame.squadMetadata ? { ...nextGame.squadMetadata } : undefined
           const nextAssignments = nextGame.squadKitAssignments
             ? { ...nextGame.squadKitAssignments }
             : undefined
@@ -1163,9 +1194,7 @@ export const useGameStore = create<GameStore>()(
             return { game: nextGame }
           }
 
-          const nextMetadata = nextGame.squadMetadata
-            ? { ...nextGame.squadMetadata }
-            : undefined
+          const nextMetadata = nextGame.squadMetadata ? { ...nextGame.squadMetadata } : undefined
           const nextAssignments = nextGame.squadKitAssignments
             ? { ...nextGame.squadKitAssignments }
             : undefined
@@ -1208,10 +1237,10 @@ export const useGameStore = create<GameStore>()(
 
       upgradeAcademy: () =>
         set((s) => {
-          const beforeTier = s.game.academyTier ?? 0;
-          const beforeFunding = s.game.funding;
-          const next = upgradeAcademy(s.game);
-          const afterTier = next.academyTier ?? 0;
+          const beforeTier = s.game.academyTier ?? 0
+          const beforeFunding = s.game.funding
+          const next = upgradeAcademy(s.game)
+          const afterTier = next.academyTier ?? 0
           // Only log event if upgrade occurred
           if (afterTier > beforeTier) {
             return {
@@ -1225,17 +1254,17 @@ export const useGameStore = create<GameStore>()(
                   cost: beforeFunding - next.funding,
                 }),
               ]),
-            };
+            }
           }
           // No event if no upgrade
-          return { game: next };
+          return { game: next }
         }),
 
       assignInstructor: (staffId, agentId) =>
         set((s) => {
-          const before = s.game.staff[staffId];
-          const next = assignInstructor(s.game, staffId, agentId);
-          const after = next.staff[staffId];
+          const before = s.game.staff[staffId]
+          const next = assignInstructor(s.game, staffId, agentId)
+          const after = next.staff[staffId]
           // Only log event if assignment actually changed
           if (
             before?.role === 'instructor' &&
@@ -1243,7 +1272,7 @@ export const useGameStore = create<GameStore>()(
             after.assignedAgentId &&
             before.assignedAgentId !== after.assignedAgentId
           ) {
-            const agentName = next.agents[agentId]?.name ?? s.game.agents[agentId]?.name ?? agentId;
+            const agentName = next.agents[agentId]?.name ?? s.game.agents[agentId]?.name ?? agentId
             return {
               game: appendOperationEventDrafts(next, [
                 createAgentInstructorAssignedDraft({
@@ -1256,20 +1285,20 @@ export const useGameStore = create<GameStore>()(
                   bonus: getInstructorBonus(after.efficiency),
                 }),
               ]),
-            };
+            }
           }
-          return { game: next };
+          return { game: next }
         }),
 
       unassignInstructor: (staffId) =>
         set((s) => {
-          const before = s.game.staff[staffId];
-          const assignedAgentId = before?.role === 'instructor' ? before.assignedAgentId : undefined;
+          const before = s.game.staff[staffId]
+          const assignedAgentId = before?.role === 'instructor' ? before.assignedAgentId : undefined
           const assignedAgentName = assignedAgentId
             ? (s.game.agents[assignedAgentId]?.name ?? assignedAgentId)
-            : undefined;
-          const next = unassignInstructor(s.game, staffId);
-          const after = next.staff[staffId];
+            : undefined
+          const next = unassignInstructor(s.game, staffId)
+          const after = next.staff[staffId]
           // Only log event if unassignment actually occurred
           if (
             before?.role === 'instructor' &&
@@ -1289,9 +1318,9 @@ export const useGameStore = create<GameStore>()(
                   bonus: getInstructorBonus(before.efficiency),
                 }),
               ]),
-            };
+            }
           }
-          return { game: next };
+          return { game: next }
         }),
 
       reconcileAgents: (leftId, rightId) =>
@@ -1307,6 +1336,9 @@ export const useGameStore = create<GameStore>()(
 
       purchaseMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: purchaseMarketInventory(s.game, listingId, bundles) })),
+
+      acknowledgeLicensedHandlingDoctrine: () =>
+        set((s) => ({ game: acknowledgeLicensedHandlingDoctrine(s.game) })),
 
       sellMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: sellMarketInventory(s.game, listingId, bundles) })),

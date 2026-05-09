@@ -12,10 +12,7 @@ import {
   formatProductionOutputLabel,
 } from '../crafting'
 import { type GameState, type ProductionQueueEntry } from '../models'
-import {
-  ensureNormalizedGameState,
-  normalizeGameState,
-} from '../teamSimulation'
+import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 import { purchaseMarketInventory as purchaseMarketListingInventory } from './market'
 import {
   hasRecipeMaterialStock,
@@ -102,27 +99,27 @@ export function advanceProductionQueues(state: GameState) {
     }
   }
 
-  const completed: ProductionQueueEntry[] = [];
-  const notes: string[] = [];
-  const nextInventory = { ...state.inventory };
+  const completed: ProductionQueueEntry[] = []
+  const notes: string[] = []
+  const nextInventory = { ...state.inventory }
 
   const nextQueue: ProductionQueueEntry[] = []
   const eventDrafts: AnyOperationEventDraft[] = []
 
   for (const entry of state.productionQueue) {
-    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0);
+    const remainingWeeks = Math.max(entry.remainingWeeks - 1, 0)
     if (remainingWeeks > 0) {
       nextQueue.push({
         ...entry,
         remainingWeeks,
-      });
+      })
     } else {
-      completed.push(entry);
+      completed.push(entry)
       nextInventory[entry.outputItemId] =
-        (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity;
+        (nextInventory[entry.outputItemId] ?? 0) + entry.outputQuantity
       notes.push(
         `${entry.recipeName}: fabrication completed. Produced ${formatProductionOutputLabel(entry.outputQuantity, entry.outputItemName)} from ${formatProductionMaterialSummary(entry.inputMaterials)}.`
-      );
+      )
       eventDrafts.push(
         createProductionQueueCompletedDraft({
           week: state.week,
@@ -135,7 +132,7 @@ export function advanceProductionQueues(state: GameState) {
           fundingCost: entry.fundingCost,
           inputMaterials: entry.inputMaterials ?? [],
         })
-      );
+      )
     }
   }
 
@@ -148,17 +145,21 @@ export function advanceProductionQueues(state: GameState) {
     completed,
     notes,
     eventDrafts,
-  };
+  }
 }
 
 export function advanceMarketState(state: GameState, rng: () => number) {
   const nextMarket = rollNextMarket(state.week, rng)
   const featuredRecipe = getProductionRecipe(nextMarket.featuredRecipeId)
+  const market: typeof nextMarket = {
+    ...nextMarket,
+    licensedHandlingAttestationWeek: state.market.licensedHandlingAttestationWeek,
+  }
 
   return {
     state: normalizeGameState({
       ...state,
-      market: nextMarket,
+      market,
     }),
     eventDrafts: [
       createMarketShiftedDraft({

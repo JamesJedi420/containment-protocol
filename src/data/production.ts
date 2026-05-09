@@ -230,6 +230,7 @@ export function createStartingMarket(): MarketState {
     featuredRecipeId: productionCatalog[0]?.recipeId ?? 'ward-seals',
     pressure: 'stable',
     costMultiplier: 1,
+    licensedHandlingAttestationWeek: 1,
   }
 }
 

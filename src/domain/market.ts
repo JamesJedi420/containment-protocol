@@ -34,6 +34,9 @@ export type ProcurementResourceClass =
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
 
+/** Weeks after acknowledgement before licensed-handling doctrine must be re-attested (procurement permit slice). */
+export const LICENSED_HANDLING_ATTESTATION_TTL_WEEKS = 2
+
 export interface ProcurementAllocationPacket {
   allocationId: string
   resourceClass: ProcurementResourceClass
@@ -69,7 +72,7 @@ export interface ProcurementAllocationStatus {
   available: number
   required: number
   purchaseAvailable: boolean
-  state: 'available' | 'committed_elsewhere' | 'substituted'
+  state: 'available' | 'committed_elsewhere' | 'substituted' | 'attestation_stale'
   allocations: ProcurementAllocationPacket[]
   displacedAlternativeUse?: string
   blockerReason?: string
@@ -173,6 +176,20 @@ const DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS = 1
 const LICENSED_HANDLING_SOURCE_ID = 'licensed_handling_desk'
 const LICENSED_HANDLING_SOURCE_LABEL = 'Licensed handling desk'
 const LICENSED_HANDLING_CAPACITY = 1
+
+/** Missing save field: assume week 1 attestation so long-running saves surface stale doctrine once migrated. */
+export function getLicensedHandlingAttestationWeekBaselined(
+  game: Pick<GameState, 'week' | 'market'>
+) {
+  return game.market.licensedHandlingAttestationWeek ?? 1
+}
+
+export function isLicensedHandlingAttestationStale(game: Pick<GameState, 'week' | 'market'>) {
+  return (
+    game.week >
+    getLicensedHandlingAttestationWeekBaselined(game) + LICENSED_HANDLING_ATTESTATION_TTL_WEEKS
+  )
+}
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -709,6 +726,23 @@ function createLicensedHandlingAllocationStatus(
 
   const allocations = getCurrentLicensedHandlingAllocations(game)
   const available = Math.max(0, LICENSED_HANDLING_CAPACITY - allocations.length)
+  const attestationWeek = getLicensedHandlingAttestationWeekBaselined(game)
+
+  if (isLicensedHandlingAttestationStale(game)) {
+    return {
+      resourceClass: 'licensed_handling_capacity',
+      source: LICENSED_HANDLING_SOURCE_ID,
+      sourceLabel: LICENSED_HANDLING_SOURCE_LABEL,
+      capacity: LICENSED_HANDLING_CAPACITY,
+      committed: allocations.length,
+      available,
+      required,
+      purchaseAvailable: false,
+      state: 'attestation_stale',
+      allocations,
+      blockerReason: `${LICENSED_HANDLING_SOURCE_LABEL} doctrine attestation is stale (last acknowledged week ${attestationWeek}). Acknowledge current doctrine on the procurement screen before controlled procurement.`,
+    }
+  }
 
   return {
     resourceClass: 'licensed_handling_capacity',

@@ -384,6 +384,51 @@ describe('MarketPage', () => {
     expect(within(hazmatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
   })
 
+  it('shows stale doctrine banner and enables controlled procurement after acknowledgement', async () => {
+    const base = createDiscountedMarketState()
+    const game = {
+      ...base,
+      week: 8,
+      market: {
+        ...base.market,
+        licensedHandlingAttestationWeek: 2,
+      },
+    }
+    useGameStore.setState({ game })
+    const user = userEvent.setup()
+    renderMarketPage(['/markets-suppliers?q=combat%20stims'])
+
+    expect(
+      screen.getByRole('region', { name: /licensed handling doctrine attestation/i })
+    ).toBeInTheDocument()
+
+    const listings = screen.getByRole('list', { name: /market listings/i })
+    const combatRow = within(listings)
+      .getAllByText(/^combat stims$/i)[0]
+      ?.closest('li')
+
+    expect(combatRow).toBeTruthy()
+    expect(
+      within(combatRow!).getByText(/licensed handling capacity: attestation stale/i)
+    ).toBeInTheDocument()
+    expect(within(combatRow!).getByRole('button', { name: /buy 1 bundle/i })).toBeDisabled()
+
+    await user.click(screen.getByRole('button', { name: /acknowledge doctrine/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('region', { name: /licensed handling doctrine attestation/i })
+      ).not.toBeInTheDocument()
+    })
+
+    const listingsAfter = screen.getByRole('list', { name: /market listings/i })
+    const combatRowAfter = within(listingsAfter)
+      .getAllByText(/^combat stims$/i)[0]
+      ?.closest('li')
+
+    expect(within(combatRowAfter!).getByRole('button', { name: /buy 1 bundle/i })).toBeEnabled()
+  })
+
   it('disables sell actions and shows sell-blocked reason when stock is unavailable', () => {
     const game = createStartingState()
     game.inventory = Object.fromEntries(Object.keys(game.inventory).map((itemId) => [itemId, 0]))

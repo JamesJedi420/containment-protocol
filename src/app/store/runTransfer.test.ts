@@ -233,6 +233,7 @@ describe('runTransfer helpers', () => {
       },
     ]
     game.market = {
+      ...createStartingState().market,
       week: 4,
       featuredRecipeId: 'med-kits',
       pressure: 'tight',

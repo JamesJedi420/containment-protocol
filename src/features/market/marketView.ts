@@ -229,7 +229,7 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     ? undefined
     : MARKET_UI_TEXT.insufficientFundingBy.replace(
         '{amount}',
-        `$${Math.max(0, listing.buyPrice - game.funding)}`
+        formatCurrency(Math.max(0, listing.buyPrice - game.funding))
       )
   const availabilityBlockedReason =
     listing.availableBundles < 1 ? MARKET_UI_TEXT.exhaustedListing : undefined

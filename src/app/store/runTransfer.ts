@@ -89,6 +89,7 @@ const OPERATION_EVENT_TYPES = [
   'production.queue_started',
   'market.shifted',
   'market.transaction_recorded',
+  'market.emergency_gray_market_waiver_granted',
   'faction.standing_changed',
   'faction.unlock_available',
   'faction.activity',
@@ -886,6 +887,24 @@ function sanitizeProductionQueue(value: unknown): ProductionQueueEntry[] {
   return nextQueue
 }
 
+/** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
+function sanitizeEmergencyGrayMarketWaiverWeek(
+  raw: unknown,
+  campaignWeek: number
+): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return undefined
+  }
+
+  const waiverWeek = Math.trunc(raw)
+
+  if (waiverWeek < 1 || waiverWeek !== campaignWeek) {
+    return undefined
+  }
+
+  return waiverWeek
+}
+
 function sanitizeMarket(value: unknown, fallback: MarketState): MarketState {
   if (!isRecord(value)) {
     return fallback
@@ -1659,6 +1678,26 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
         )
         break
 
+      case 'market.emergency_gray_market_waiver_granted':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.emergency_gray_market_waiver_granted'),
+            payload: {
+              week,
+              marketWeek: sanitizeInteger(payload.marketWeek as number | undefined, week, 1),
+              crisisPressureScore: sanitizeInteger(
+                payload.crisisPressureScore as number | undefined,
+                0,
+                0
+              ),
+              sanctionLevel: 'sanctioned',
+              packetId: 'gray_market_broker',
+              falloutRiskApplied: 'risk',
+            },
+          })
+        )
+        break
+
       case 'faction.activity':
         nextEvents.push(
           migrateOperationEventToCurrentSchema({
@@ -1997,6 +2036,10 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
         1
       ),
       funding: sanitizeInteger(game.funding as number | undefined, fallback.funding, 0),
+      emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
+        game.emergencyGrayMarketWaiverWeek,
+        week
+      ),
       templates: fallback.templates,
     }) as GameState
   )

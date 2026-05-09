@@ -639,6 +639,26 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('3 units remaining')
   })
 
+  it('market.emergency_gray_market_waiver_granted — warning tone with waiver detail', () => {
+    const event = makeEvent('market.emergency_gray_market_waiver_granted', {
+      week: 8,
+      marketWeek: 7,
+      crisisPressureScore: 130,
+      sanctionLevel: 'sanctioned',
+      packetId: 'gray_market_broker',
+      falloutRiskApplied: 'risk',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.title).toContain('Emergency gray-market procurement waiver recorded')
+    expect(view.detail).toContain('Campaign week 8')
+    expect(view.detail).toContain('Crisis pressure 130')
+    expect(view.detail).toContain('Fallout risk')
+    expect(view.searchText).toContain('130')
+    expect(view.searchText).toContain('sanctioned')
+  })
+
   it('faction.standing_changed — posture tone and standing range in detail', () => {
     const event = makeEvent('faction.standing_changed', {
       week: 6,

@@ -459,6 +459,15 @@ export interface OperationEventPayloadMap {
       substitutionSummary?: string
     }>
   }
+  /** Crisis procurement audit (SPE-1524): emergency waiver for gray-market broker under sanctioned posture. */
+  'market.emergency_gray_market_waiver_granted': {
+    week: number
+    marketWeek: number
+    crisisPressureScore: number
+    sanctionLevel: 'sanctioned'
+    packetId: 'gray_market_broker'
+    falloutRiskApplied: 'risk'
+  }
   'faction.standing_changed': {
     week: number
     factionId: string
@@ -573,6 +582,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'production.queue_started': 'production'
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
+  'market.emergency_gray_market_waiver_granted': 'production'
   'faction.standing_changed': 'faction'
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
@@ -618,6 +628,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'production.queue_started': 'production',
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
+  'market.emergency_gray_market_waiver_granted': 'production',
   'faction.standing_changed': 'faction',
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',

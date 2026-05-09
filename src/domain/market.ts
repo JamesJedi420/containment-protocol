@@ -351,13 +351,34 @@ function getSanctionLevel(game: Pick<GameState, 'legitimacy'>): SanctionLevel {
   return game.legitimacy?.sanctionLevel ?? 'tolerated'
 }
 
+/** Inputs needed to evaluate sanction blocks and crisis waiver overrides on procurement packets. */
+export type ProcurementMarketPacketContext = Pick<
+  GameState,
+  'legitimacy' | 'week' | 'emergencyGrayMarketWaiverWeek'
+>
+
+export function hasActiveEmergencyGrayMarketWaiver(
+  game: Pick<GameState, 'week' | 'emergencyGrayMarketWaiverWeek'>
+): boolean {
+  return game.emergencyGrayMarketWaiverWeek === game.week
+}
+
 function buildMarketPacket(
   packetId: ProcurementMarketPacketId,
-  game: Pick<GameState, 'legitimacy'>
+  game: ProcurementMarketPacketContext
 ): ProcurementMarketPacket {
   const definition = PROCUREMENT_MARKET_PACKET_DEFINITIONS[packetId]
   const sanctionLevel = getSanctionLevel(game)
-  const blocked = definition.blockedSanctionLevels?.includes(sanctionLevel) ?? false
+  let blocked = definition.blockedSanctionLevels?.includes(sanctionLevel) ?? false
+
+  if (
+    blocked &&
+    packetId === 'gray_market_broker' &&
+    sanctionLevel === 'sanctioned' &&
+    hasActiveEmergencyGrayMarketWaiver(game)
+  ) {
+    blocked = false
+  }
 
   return {
     id: definition.id,
@@ -390,14 +411,14 @@ function getMarketPacketIdForDefinition(
   return 'agency_supplier_roster'
 }
 
-export function getProcurementMarketPackets(game: Pick<GameState, 'legitimacy'>) {
+export function getProcurementMarketPackets(game: ProcurementMarketPacketContext) {
   return (Object.keys(PROCUREMENT_MARKET_PACKET_DEFINITIONS) as ProcurementMarketPacketId[])
     .map((packetId) => buildMarketPacket(packetId, game))
     .sort((left, right) => left.id.localeCompare(right.id))
 }
 
 export function getProcurementMarketPacket(
-  game: Pick<GameState, 'legitimacy'>,
+  game: ProcurementMarketPacketContext,
   packetId: ProcurementMarketPacketId
 ) {
   return buildMarketPacket(packetId, game)
@@ -923,7 +944,10 @@ function buildListing(
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
   const remainingAvailability = Math.max(0, totalAvailability - bought + sold)
-  const sellPrice = Math.max(1, Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured)))
+  const sellPrice = Math.max(
+    1,
+    Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured))
+  )
   const access = assessProcurementAccess(definition, game, marketPacket)
 
   return {

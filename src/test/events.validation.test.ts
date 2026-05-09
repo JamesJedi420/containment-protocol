@@ -92,4 +92,17 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(true)
   })
+
+  it('accepts market.emergency_gray_market_waiver_granted payloads', () => {
+    const validation = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
+      week: 4,
+      marketWeek: 2,
+      crisisPressureScore: 130,
+      sanctionLevel: 'sanctioned',
+      packetId: 'gray_market_broker',
+      falloutRiskApplied: 'risk',
+    })
+
+    expect(validation.success).toBe(true)
+  })
 })

@@ -214,6 +214,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'production.queue_completed': 'Queue Complete',
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
+  'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
   'faction.standing_changed': 'Faction Standing',
   'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
@@ -259,6 +260,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'production.queue_completed': 'operations_logistics',
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
+  'market.emergency_gray_market_waiver_granted': 'operations_logistics',
   'faction.standing_changed': 'agency_posture',
   'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
@@ -829,6 +831,20 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: event.payload.action === 'buy' ? 'neutral' : 'success',
         searchText:
           `${event.payload.action} ${event.payload.itemName} ${event.payload.itemId} ${event.payload.listingId} ${event.payload.category}`.toLowerCase(),
+      }
+
+    case 'market.emergency_gray_market_waiver_granted':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Emergency gray-market procurement waiver recorded',
+        detail: `Campaign week ${event.payload.week} / Crisis pressure ${event.payload.crisisPressureScore} / Fallout ${event.payload.falloutRiskApplied}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        searchText:
+          `emergency gray market waiver sanctioned broker fallout crisis pressure ${event.payload.crisisPressureScore}`.toLowerCase(),
       }
 
     case 'faction.standing_changed':

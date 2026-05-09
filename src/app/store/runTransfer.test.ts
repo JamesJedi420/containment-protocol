@@ -10,6 +10,7 @@ import {
   RUN_EXPORT_KIND,
   buildReportCaseSnapshot,
   createRunExportPayload,
+  hydrateGame,
   migratePersistedStore,
   parseRunExport,
   serializeRunExport,
@@ -17,6 +18,36 @@ import {
 } from './runTransfer'
 
 describe('runTransfer helpers', () => {
+  it('hydrates emergencyGrayMarketWaiverWeek when it matches the campaign week (SPE-1524)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 12,
+        emergencyGrayMarketWaiverWeek: 12,
+      },
+      fallback
+    )
+
+    expect(hydrated.week).toBe(12)
+    expect(hydrated.emergencyGrayMarketWaiverWeek).toBe(12)
+  })
+
+  it('drops stale emergencyGrayMarketWaiverWeek during hydration when behind campaign week', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 12,
+        emergencyGrayMarketWaiverWeek: 11,
+      },
+      fallback
+    )
+
+    expect(hydrated.week).toBe(12)
+    expect(hydrated.emergencyGrayMarketWaiverWeek).toBeUndefined()
+  })
+
   it('propagates canonical distortion state into report snapshots', () => {
     const caseWithDistortion: CaseInstance = {
       id: 'case-distorted',

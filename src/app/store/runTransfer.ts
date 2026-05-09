@@ -887,6 +887,24 @@ function sanitizeProductionQueue(value: unknown): ProductionQueueEntry[] {
   return nextQueue
 }
 
+/** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
+function sanitizeEmergencyGrayMarketWaiverWeek(
+  raw: unknown,
+  campaignWeek: number
+): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return undefined
+  }
+
+  const waiverWeek = Math.trunc(raw)
+
+  if (waiverWeek < 1 || waiverWeek !== campaignWeek) {
+    return undefined
+  }
+
+  return waiverWeek
+}
+
 function sanitizeMarket(value: unknown, fallback: MarketState): MarketState {
   if (!isRecord(value)) {
     return fallback
@@ -2018,6 +2036,10 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
         1
       ),
       funding: sanitizeInteger(game.funding as number | undefined, fallback.funding, 0),
+      emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
+        game.emergencyGrayMarketWaiverWeek,
+        week
+      ),
       templates: fallback.templates,
     }) as GameState
   )

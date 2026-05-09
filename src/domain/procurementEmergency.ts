@@ -40,7 +40,6 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
         emergencyGrayMarketWaiverWeek: game.week,
         legitimacy: {
           ...game.legitimacy,
-          sanctionLevel: 'sanctioned',
           falloutRisk: 'risk',
         },
       },

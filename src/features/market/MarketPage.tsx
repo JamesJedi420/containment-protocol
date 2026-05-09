@@ -225,7 +225,7 @@ export default function MarketPage() {
             <button
               type="button"
               className="btn btn-sm btn-primary shrink-0"
-              onClick={() => invokeEmergencyGrayMarketWaiver()}
+              onClick={invokeEmergencyGrayMarketWaiver}
             >
               Record emergency waiver
             </button>

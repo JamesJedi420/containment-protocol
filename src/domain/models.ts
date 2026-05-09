@@ -2158,6 +2158,11 @@ export interface DistrictScheduleState {
 export interface GameState {
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
   legitimacy?: LegitimacyState
+  /**
+   * Crisis procurement (SPE-1524): campaign week when emergency gray-market waiver was granted.
+   * When equal to `week`, sanctioned posture may temporarily access the gray-market broker packet.
+   */
+  emergencyGrayMarketWaiverWeek?: number
   week: number
   rngSeed: number
   rngState: number

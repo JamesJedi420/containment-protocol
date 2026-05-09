@@ -89,6 +89,7 @@ const OPERATION_EVENT_TYPES = [
   'production.queue_started',
   'market.shifted',
   'market.transaction_recorded',
+  'market.emergency_gray_market_waiver_granted',
   'faction.standing_changed',
   'faction.unlock_available',
   'faction.activity',
@@ -1654,6 +1655,26 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 0,
                 0
               ),
+            },
+          })
+        )
+        break
+
+      case 'market.emergency_gray_market_waiver_granted':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.emergency_gray_market_waiver_granted'),
+            payload: {
+              week,
+              marketWeek: sanitizeInteger(payload.marketWeek as number | undefined, week, 1),
+              crisisPressureScore: sanitizeInteger(
+                payload.crisisPressureScore as number | undefined,
+                0,
+                0
+              ),
+              sanctionLevel: 'sanctioned',
+              packetId: 'gray_market_broker',
+              falloutRiskApplied: 'risk',
             },
           })
         )

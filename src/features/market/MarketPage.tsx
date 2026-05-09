@@ -11,6 +11,7 @@ import {
   isLicensedHandlingAttestationStale,
   LICENSED_HANDLING_ATTESTATION_TTL_WEEKS,
 } from '../../domain/market'
+import { canInvokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
 import {
   DEFAULT_MARKET_FILTERS,
   MARKET_CATEGORY_FILTERS,
@@ -45,6 +46,7 @@ export default function MarketPage() {
     purchaseMarketInventory,
     sellMarketInventory,
     acknowledgeLicensedHandlingDoctrine,
+    invokeEmergencyGrayMarketWaiver,
   } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = readMarketFilters(searchParams)
@@ -201,6 +203,31 @@ export default function MarketPage() {
               onClick={() => acknowledgeLicensedHandlingDoctrine()}
             >
               Acknowledge doctrine
+            </button>
+          </div>
+        </article>
+      ) : null}
+
+      {canInvokeEmergencyGrayMarketWaiver(game) ? (
+        <article
+          className="panel space-y-3 border-rose-500/35 bg-rose-950/20"
+          role="region"
+          aria-label="Emergency gray-market waiver"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-semibold text-rose-100">Crisis procurement waiver</h3>
+              <p className="mt-1 text-sm opacity-80">
+                Crisis pressure band + sanctioned posture: record a one-week waiver to reach the
+                gray-market broker despite audit lockout. Applies legitimacy fallout risk.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-sm btn-primary shrink-0"
+              onClick={() => invokeEmergencyGrayMarketWaiver()}
+            >
+              Record emergency waiver
             </button>
           </div>
         </article>

@@ -73,6 +73,22 @@ function createDiscountedMarketState() {
   }
 }
 
+/** Sanctioned + crisis-band pressure so emergency gray-market waiver UI can render (SPE-1524). */
+function crisisSanctionedMarketGame(): ReturnType<typeof createStartingState> {
+  const game = createStartingState()
+  game.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'none' }
+  game.cases['case-001'] = { ...game.cases['case-001'], status: 'resolved' }
+  game.cases['case-002'] = { ...game.cases['case-002'], status: 'resolved' }
+  game.cases['case-003'] = {
+    ...game.cases['case-003'],
+    status: 'in_progress',
+    stage: 8,
+    deadlineRemaining: 0,
+    assignedTeamIds: ['t_alpha'],
+  }
+  return game
+}
+
 beforeEach(() => {
   useGameStore.persist.clearStorage()
   useGameStore.setState({ game: createStartingState() })
@@ -474,5 +490,33 @@ describe('MarketPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('equipment-page')).toBeInTheDocument()
     })
+  })
+
+  it('shows crisis gray-market waiver region when sanctioned and crisis pressure qualifies', () => {
+    useGameStore.setState({ game: crisisSanctionedMarketGame() })
+    renderMarketPage()
+
+    expect(
+      screen.getByRole('region', { name: /emergency gray-market waiver/i })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /record emergency waiver/i })).toBeInTheDocument()
+    expect(screen.getByText(/crisis pressure band \+ sanctioned posture/i)).toBeInTheDocument()
+  })
+
+  it('records emergency waiver from the market panel', async () => {
+    const user = userEvent.setup()
+    const game = crisisSanctionedMarketGame()
+    const priorEvents = game.events.length
+    useGameStore.setState({ game })
+    renderMarketPage()
+
+    await user.click(screen.getByRole('button', { name: /record emergency waiver/i }))
+
+    const after = useGameStore.getState().game
+    expect(after.events.length).toBe(priorEvents + 1)
+    expect(after.emergencyGrayMarketWaiverWeek).toBe(game.week)
+    expect(after.events[after.events.length - 1]?.type).toBe(
+      'market.emergency_gray_market_waiver_granted'
+    )
   })
 })

@@ -459,6 +459,17 @@ const marketTransactionRecordedSchema = z
   })
   .strict()
 
+const marketEmergencyGrayMarketWaiverGrantedSchema = z
+  .object({
+    week: weekSchema,
+    marketWeek: weekSchema,
+    crisisPressureScore: z.number(),
+    sanctionLevel: z.literal('sanctioned'),
+    packetId: z.literal('gray_market_broker'),
+    falloutRiskApplied: z.literal('risk'),
+  })
+  .strict()
+
 const factionStandingChangedSchema = z
   .object({
     week: weekSchema,
@@ -575,6 +586,7 @@ export const operationEventPayloadSchemas = {
   'production.queue_completed': productionQueueCompletedSchema,
   'market.shifted': marketShiftedSchema,
   'market.transaction_recorded': marketTransactionRecordedSchema,
+  'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,
   'faction.standing_changed': factionStandingChangedSchema,
   'faction.unlock_available': factionUnlockAvailableSchema,
   'agency.containment_updated': agencyContainmentUpdatedSchema,

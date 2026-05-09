@@ -107,7 +107,12 @@ import {
   recordExclusiveOutcome,
   type ExclusiveOutcomeType,
 } from '../shared/outcomes'
-import type { KnowledgeState, KnowledgeStateMap, KnowledgeSubjectType, KnowledgeTier } from '../knowledge'
+import type {
+  KnowledgeState,
+  KnowledgeStateMap,
+  KnowledgeSubjectType,
+  KnowledgeTier,
+} from '../knowledge'
 import { getKnowledgeKey, explainSpatialState } from '../knowledge'
 import {
   explainDecay,
@@ -217,18 +222,9 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
-import {
-  decayRumorPackets,
-  type CivicRumorPacket,
-} from '../civicRumorChannel'
-import {
-  decayCreditPackets,
-  type CivicCreditPacket,
-} from '../civicCreditChannel'
-  import {
-    decayAccessPackets,
-    type CivicAccessPacket,
-  } from '../civicAccessChannel'
+import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
+import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
+import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -262,7 +258,7 @@ type AdvanceWeekState = GameState & {
   civicAuthoritySources?: readonly AuthoredCivicAuthoritySourceInput[]
   rumorPackets?: readonly CivicRumorPacket[]
   creditPackets?: readonly CivicCreditPacket[]
-    accessPackets?: readonly CivicAccessPacket[]
+  accessPackets?: readonly CivicAccessPacket[]
   authorityQueuedEvents?: readonly Pick<
     RuntimeQueuedEvent,
     'id' | 'type' | 'targetId' | 'week' | 'payload'
@@ -290,7 +286,9 @@ function dedupeAuthorityPackets(
   )
 }
 
-function getRuntimeAuthorityIngestEvents(state: AdvanceWeekState): readonly RuntimeAuthorityIngestEvent[] {
+function getRuntimeAuthorityIngestEvents(
+  state: AdvanceWeekState
+): readonly RuntimeAuthorityIngestEvent[] {
   if (Array.isArray(state.authorityQueuedEvents)) {
     return state.authorityQueuedEvents
   }
@@ -389,7 +387,10 @@ function getAttributedDistrictIds(currentCase: Pick<CaseInstance, 'tags' | 'regi
     }
   }
 
-  if (typeof currentCase.regionTag === 'string' && currentCase.regionTag.startsWith(DISTRICT_TAG_PREFIX)) {
+  if (
+    typeof currentCase.regionTag === 'string' &&
+    currentCase.regionTag.startsWith(DISTRICT_TAG_PREFIX)
+  ) {
     attributed.add(currentCase.regionTag.slice(DISTRICT_TAG_PREFIX.length))
   }
 
@@ -434,20 +435,23 @@ function getDistrictLocalEscalationPressureBoost(
 
   const strongestDistrict = sortedDistrictIds.reduce<
     Pick<DistrictLocalEscalationPressureInfluence, 'pressureBoost' | 'sourceDistrictId'>
-  >((maxPressure, districtId) => {
-    const localPressure = aggregateDistrictLocalPressure(neighborhoodPackets, districtId, week)
-    if (localPressure.pressureBoost > maxPressure.pressureBoost) {
-      return {
-        pressureBoost: localPressure.pressureBoost,
-        sourceDistrictId: districtId,
+  >(
+    (maxPressure, districtId) => {
+      const localPressure = aggregateDistrictLocalPressure(neighborhoodPackets, districtId, week)
+      if (localPressure.pressureBoost > maxPressure.pressureBoost) {
+        return {
+          pressureBoost: localPressure.pressureBoost,
+          sourceDistrictId: districtId,
+        }
       }
-    }
 
-    return maxPressure
-  }, {
-    pressureBoost: 0,
-    sourceDistrictId: undefined,
-  })
+      return maxPressure
+    },
+    {
+      pressureBoost: 0,
+      sourceDistrictId: undefined,
+    }
+  )
 
   if (strongestDistrict.pressureBoost <= 0 || !strongestDistrict.sourceDistrictId) {
     return {
@@ -2262,9 +2266,8 @@ function resolveAssignments(
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
     ]
-    const aggregateBattleCeasefireWindow = buildAggregateBattleCeasefireWindowForOperation(
-      effectiveCase
-    )
+    const aggregateBattleCeasefireWindow =
+      buildAggregateBattleCeasefireWindowForOperation(effectiveCase)
     context.performanceByCaseId[caseId] = performanceSummary
     context.powerImpactByCaseId[caseId] = powerImpact
     if (aggregateBattleSummary) {
@@ -2499,7 +2502,10 @@ function resolveAssignments(
           )
         )
       }
-      if (behaviorValidation?.shouldDegradeSuccessToPartial && behaviorValidation.degradeSuccessReason) {
+      if (
+        behaviorValidation?.shouldDegradeSuccessToPartial &&
+        behaviorValidation.degradeSuccessReason
+      ) {
         downgradeResolvedCaseToPartial(context, caseId, behaviorValidation.degradeSuccessReason)
       }
       continue
@@ -3083,11 +3089,18 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
         )
       : fatiguedAgents
 
+  const nextWeek = context.sourceState.week + 1
+  let emergencyGrayMarketWaiverWeek = context.nextState.emergencyGrayMarketWaiverWeek
+  if (emergencyGrayMarketWaiverWeek !== undefined && emergencyGrayMarketWaiverWeek < nextWeek) {
+    emergencyGrayMarketWaiverWeek = undefined
+  }
+
   context.nextState = {
     ...context.nextState,
-    week: context.sourceState.week + 1,
+    week: nextWeek,
     rngState: rng.getState(),
     agents: directiveAdjustedAgents,
+    emergencyGrayMarketWaiverWeek,
   }
 
   const stressGainByAgentId = Object.fromEntries(
@@ -3951,10 +3964,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.
-  const decayedRumorPackets = decayRumorPackets(
-    inputWeeklyState.rumorPackets ?? [],
-    result.week
-  )
+  const decayedRumorPackets = decayRumorPackets(inputWeeklyState.rumorPackets ?? [], result.week)
   if (decayedRumorPackets.length > 0) {
     outputWeeklyState.rumorPackets = decayedRumorPackets
   } else if ('rumorPackets' in outputWeeklyState) {
@@ -3962,26 +3972,20 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-1266: Decay credit packets each week; drop packets below the 0.05 signal threshold.
-  const decayedCreditPackets = decayCreditPackets(
-    inputWeeklyState.creditPackets ?? [],
-    result.week
-  )
+  const decayedCreditPackets = decayCreditPackets(inputWeeklyState.creditPackets ?? [], result.week)
   if (decayedCreditPackets.length > 0) {
     outputWeeklyState.creditPackets = decayedCreditPackets
   } else if ('creditPackets' in outputWeeklyState) {
     delete resultWithUnknownFields.creditPackets
   }
 
-    // SPE-1267: Decay access packets each week; drop packets below the 0.05 signal threshold.
-    const decayedAccessPackets = decayAccessPackets(
-      inputWeeklyState.accessPackets ?? [],
-      result.week
-    )
-    if (decayedAccessPackets.length > 0) {
-      outputWeeklyState.accessPackets = decayedAccessPackets
-    } else if ('accessPackets' in outputWeeklyState) {
-      delete resultWithUnknownFields.accessPackets
-    }
+  // SPE-1267: Decay access packets each week; drop packets below the 0.05 signal threshold.
+  const decayedAccessPackets = decayAccessPackets(inputWeeklyState.accessPackets ?? [], result.week)
+  if (decayedAccessPackets.length > 0) {
+    outputWeeklyState.accessPackets = decayedAccessPackets
+  } else if ('accessPackets' in outputWeeklyState) {
+    delete resultWithUnknownFields.accessPackets
+  }
 
   // SPE-95: Patch output state for test assertions
   if (coordinationFrictionActive) {

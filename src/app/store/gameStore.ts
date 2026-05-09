@@ -83,6 +83,7 @@ import { createStartingState } from '../../data/startingState'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import { queueFabrication } from '../../domain/sim/production'
+import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
 import {
   acknowledgeLicensedHandlingDoctrine,
   purchaseMarketInventory,
@@ -246,6 +247,8 @@ interface GameStore {
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
   /** Renew licensed-handling doctrine attestation for the current campaign week (SPE-874). */
   acknowledgeLicensedHandlingDoctrine: () => void
+  /** Crisis waiver: temporarily unlock gray-market broker for sanctioned posture (SPE-1524). */
+  invokeEmergencyGrayMarketWaiver: () => void
   sellMarketInventory: (listingId: string, bundles?: number) => void
   drawPartyCards: (count?: number) => void
   playPartyCard: (cardId: Id, targetCaseId?: Id, targetTeamId?: Id) => void
@@ -1339,6 +1342,9 @@ export const useGameStore = create<GameStore>()(
 
       acknowledgeLicensedHandlingDoctrine: () =>
         set((s) => ({ game: acknowledgeLicensedHandlingDoctrine(s.game) })),
+
+      invokeEmergencyGrayMarketWaiver: () =>
+        set((s) => ({ game: invokeEmergencyGrayMarketWaiver(s.game) })),
 
       sellMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: sellMarketInventory(s.game, listingId, bundles) })),

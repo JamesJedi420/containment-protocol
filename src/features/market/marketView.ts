@@ -333,9 +333,10 @@ function buildBudgetPreview(
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
-      consequenceSummary: listing.canAffordOne
-        ? 'Budget can cover this request, but the acquisition class is not available through the current channel.'
-        : 'Access is blocked before budget can authorize this procurement action.',
+      consequenceSummary:
+        game.funding >= totalCost
+          ? 'Budget can cover this request, but the acquisition class is not available through the current channel.'
+          : 'Access is blocked before budget can authorize this procurement action.',
       affordable: false,
       blockedReason: listing.accessBlockedReason,
     }

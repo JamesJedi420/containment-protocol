@@ -1,5 +1,6 @@
 import {
   getMarketPressureLabel,
+  getProductionMaterial,
   getProductionRecipe,
   getRecipeFundingCost,
   getRecipeMarketBuyCost,
@@ -21,14 +22,14 @@ export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-g
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
 export type ProcurementParticipantChannelType = 'quartermaster' | 'broker'
 export type ProcurementLiquidityProfile = 'stable' | 'thin'
-export type ProcurementResourceClass = 'supplier_attention_slot'
+export type ProcurementResourceClass = 'supplier_attention_slot' | 'reagent_stock'
 export type ProcurementAllocationUrgency = 'standard' | 'contingency'
 export type ProcurementSubstitutionStatus = 'none' | 'degraded_substitute'
 
 export interface ProcurementAllocationPacket {
   allocationId: string
   resourceClass: ProcurementResourceClass
-  source: ProcurementMarketPacketId
+  source: string
   sourceLabel: string
   destinationUse: string
   destinationLabel: string
@@ -53,7 +54,7 @@ export interface ProcurementSubstitutionOption {
 
 export interface ProcurementAllocationStatus {
   resourceClass: ProcurementResourceClass
-  source: ProcurementMarketPacketId
+  source: string
   sourceLabel: string
   capacity: number
   committed: number
@@ -99,6 +100,7 @@ export interface ProcurementListing {
   pressureLabel: string
   marketPacket: ProcurementMarketPacket
   allocationStatus: ProcurementAllocationStatus
+  resourceStatuses: ProcurementAllocationStatus[]
   acquisitionClass: ProcurementAcquisitionClass
   accessChannel: ProcurementAccessChannel
   accessLabel: string
@@ -127,6 +129,7 @@ export interface ProcurementTransactionView {
   totalPrice: number
   remainingAvailability: number
   allocation?: ProcurementAllocationPacket
+  allocations?: ProcurementAllocationPacket[]
   timestamp: string
 }
 
@@ -141,6 +144,7 @@ interface ProcurementListingDefinition {
   bundleQuantity: number
   recipeId?: string
   materialId?: string
+  inputMaterials?: Record<string, number>
 }
 
 type MarketTransactionEvent = Extract<OperationEvent, { type: 'market.transaction_recorded' }>
@@ -153,6 +157,10 @@ const SUPPLIER_ATTENTION_CAPACITY: Record<ProcurementMarketPacketId, number> = {
 
 const DEGRADED_SUBSTITUTE_PRICE_MULTIPLIER = 1.35
 const DEGRADED_SUBSTITUTE_DELAY_WEEKS = 1
+const REAGENT_STOCK_MATERIAL_ID = 'occult_reagents'
+const REAGENT_STOCK_CAPACITY = 1
+const DEGRADED_REAGENT_SUBSTITUTE_PRICE_MULTIPLIER = 1.25
+const DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS = 1
 
 interface ProcurementMarketPacketDefinition extends Omit<
   ProcurementMarketPacket,
@@ -410,6 +418,7 @@ function getListingDefinitions() {
       tags: definition?.tags ?? [],
       bundleQuantity: recipe.outputQuantity,
       recipeId: recipe.recipeId,
+      inputMaterials: recipe.inputMaterials,
     }
   })
 
@@ -487,18 +496,25 @@ function getCurrentSupplierAttentionAllocations(
 ): ProcurementAllocationPacket[] {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter(
-      (event) =>
-        event.payload.action === 'buy' &&
-        event.payload.marketWeek === marketWeek &&
-        event.payload.allocation?.resourceClass === 'supplier_attention_slot'
-    )
-    .map((event) => event.payload.allocation!)
+    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .flatMap((event) => getMarketTransactionAllocationPackets(event))
+    .filter((allocation) => allocation.resourceClass === 'supplier_attention_slot')
     .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
 }
 
 export function getProcurementAllocations(game: GameState, marketWeek = game.market.week) {
-  return getCurrentSupplierAttentionAllocations(game, marketWeek)
+  return [
+    ...getCurrentSupplierAttentionAllocations(game, marketWeek),
+    ...getCurrentReagentStockAllocations(game, REAGENT_STOCK_MATERIAL_ID, marketWeek),
+  ].sort((left, right) => left.allocationId.localeCompare(right.allocationId))
+}
+
+function getMarketTransactionAllocationPackets(event: MarketTransactionEvent) {
+  if (event.payload.allocations && event.payload.allocations.length > 0) {
+    return event.payload.allocations
+  }
+
+  return event.payload.allocation ? [event.payload.allocation] : []
 }
 
 function getSupplierAttentionCapacity(packetId: ProcurementMarketPacketId) {
@@ -530,6 +546,113 @@ function createOpenAllocationStatus(
           blockerReason: `${packet.label} attention committed to ${packetAllocations[0]?.destinationLabel ?? 'another request'} this market week.`,
         }
       : {}),
+  }
+}
+
+function getReagentMaterialName(materialId: string) {
+  return getProductionMaterial(materialId)?.name ?? materialId
+}
+
+function getCurrentReagentStockAllocations(
+  game: GameState,
+  materialId: string,
+  marketWeek = game.market.week
+): ProcurementAllocationPacket[] {
+  const materialName = getReagentMaterialName(materialId)
+  const fabricationAllocations = game.productionQueue.flatMap((entry) => {
+    const material = entry.inputMaterials?.find((candidate) => candidate.materialId === materialId)
+
+    if (!material) {
+      return []
+    }
+
+    return [
+      {
+        allocationId: `${entry.id}:reagent-stock:${materialId}`,
+        resourceClass: 'reagent_stock',
+        source: materialId,
+        sourceLabel: materialName,
+        destinationUse: `fabrication:${entry.recipeId}`,
+        destinationLabel: entry.recipeName,
+        urgency: 'standard',
+        expectedBenefit: `${material.quantity}x ${material.materialName} committed to fabrication`,
+        priority: 1,
+        delayWeeks: Math.max(0, Math.trunc(entry.remainingWeeks)),
+        substitutionStatus: 'none',
+      } satisfies ProcurementAllocationPacket,
+    ]
+  })
+  const marketAllocations = game.events
+    .filter((event) => isMarketTransactionEvent(event))
+    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .flatMap((event) => getMarketTransactionAllocationPackets(event))
+    .filter(
+      (allocation) =>
+        allocation.resourceClass === 'reagent_stock' && allocation.source === materialId
+    )
+
+  return [...fabricationAllocations, ...marketAllocations].sort((left, right) =>
+    left.allocationId.localeCompare(right.allocationId)
+  )
+}
+
+function getReagentRequirement(definition: ProcurementListingDefinition) {
+  return definition.inputMaterials?.[REAGENT_STOCK_MATERIAL_ID] ?? 0
+}
+
+function createReagentAllocationStatus(
+  definition: ProcurementListingDefinition,
+  game: GameState,
+  baseBuyPrice: number
+): ProcurementAllocationStatus | undefined {
+  const required = getReagentRequirement(definition)
+
+  if (required <= 0) {
+    return undefined
+  }
+
+  const sourceLabel = getReagentMaterialName(REAGENT_STOCK_MATERIAL_ID)
+  const allocations = getCurrentReagentStockAllocations(game, REAGENT_STOCK_MATERIAL_ID)
+  const available = Math.max(0, REAGENT_STOCK_CAPACITY - allocations.length)
+  const baseStatus: ProcurementAllocationStatus = {
+    resourceClass: 'reagent_stock',
+    source: REAGENT_STOCK_MATERIAL_ID,
+    sourceLabel,
+    capacity: REAGENT_STOCK_CAPACITY,
+    committed: allocations.length,
+    available,
+    required,
+    purchaseAvailable: available >= required,
+    state: available >= required ? 'available' : 'committed_elsewhere',
+    allocations,
+    ...(available < required
+      ? {
+          displacedAlternativeUse: allocations[0]?.destinationLabel ?? sourceLabel,
+          blockerReason: `${sourceLabel} stock committed to ${allocations[0]?.destinationLabel ?? 'another reagent use'} this market week.`,
+        }
+      : {}),
+  }
+
+  if (baseStatus.purchaseAvailable || definition.category !== 'equipment') {
+    return baseStatus
+  }
+
+  const substitution: ProcurementSubstitutionOption = {
+    status: 'available',
+    source: 'gray_market_broker',
+    sourceLabel: 'Synthetic reagent substitute',
+    delayWeeks: DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS,
+    priceMultiplier: DEGRADED_REAGENT_SUBSTITUTE_PRICE_MULTIPLIER,
+    unitPrice: Math.max(1, Math.round(baseBuyPrice * DEGRADED_REAGENT_SUBSTITUTE_PRICE_MULTIPLIER)),
+    summary: `Synthetic reagent substitute can cover ${definition.itemName} after ${baseStatus.displacedAlternativeUse ?? sourceLabel} displaced certified reagent stock; +${Math.round((DEGRADED_REAGENT_SUBSTITUTE_PRICE_MULTIPLIER - 1) * 100)}% cost and ${DEGRADED_REAGENT_SUBSTITUTE_DELAY_WEEKS}w handling delay.`,
+  }
+
+  return {
+    ...baseStatus,
+    purchaseAvailable: true,
+    state: 'substituted',
+    blockerReason: undefined,
+    substitution,
   }
 }
 
@@ -664,7 +787,19 @@ function buildListing(
   const marketPacket = buildMarketPacket(getMarketPacketIdForDefinition(definition), game)
   const baseBuyPrice = getBuyPrice(definition, game, marketPacket)
   const allocationStatus = buildAllocationStatus(definition, game, marketPacket, baseBuyPrice)
-  const buyPrice = allocationStatus.substitution?.unitPrice ?? baseBuyPrice
+  const reagentAllocationStatus = createReagentAllocationStatus(
+    definition,
+    game,
+    allocationStatus.substitution?.unitPrice ?? baseBuyPrice
+  )
+  const resourceStatuses = [
+    allocationStatus,
+    ...(reagentAllocationStatus ? [reagentAllocationStatus] : []),
+  ]
+  const buyPrice =
+    reagentAllocationStatus?.substitution?.unitPrice ??
+    allocationStatus.substitution?.unitPrice ??
+    baseBuyPrice
   const fabricationCost =
     definition.recipeId !== undefined
       ? getProductionRecipe(definition.recipeId)
@@ -679,7 +814,10 @@ function buildListing(
       getBoughtQuantityForListing(game, definition.id) +
       getSoldQuantityForListing(game, definition.id)
   )
-  const sellPrice = Math.max(1, Math.round(buyPrice * getSellRatio(game.market.pressure, featured)))
+  const sellPrice = Math.max(
+    1,
+    Math.round(baseBuyPrice * getSellRatio(game.market.pressure, featured))
+  )
   const access = assessProcurementAccess(definition, game, marketPacket)
 
   return {
@@ -691,6 +829,7 @@ function buildListing(
     pressureLabel: getMarketPressureLabel(game.market.pressure),
     marketPacket,
     allocationStatus,
+    resourceStatuses,
     ...access,
     totalAvailability,
     remainingAvailability,
@@ -704,25 +843,46 @@ export function buildProcurementAllocationPacket(input: {
   transactionId: string
   quantity: number
 }): ProcurementAllocationPacket {
-  const substitution = input.listing.allocationStatus.substitution
-  const source = substitution?.source ?? input.listing.marketPacket.id
-  const sourceLabel = substitution?.sourceLabel ?? input.listing.marketPacket.label
-  const displacedAlternativeUse = input.listing.allocationStatus.displacedAlternativeUse
+  return buildProcurementAllocationPackets(input)[0]!
+}
+
+export function buildProcurementAllocationPackets(input: {
+  listing: ProcurementListing
+  transactionId: string
+  quantity: number
+}): ProcurementAllocationPacket[] {
+  return input.listing.resourceStatuses.map((status) =>
+    buildProcurementAllocationPacketForStatus(status, input)
+  )
+}
+
+function buildProcurementAllocationPacketForStatus(
+  status: ProcurementAllocationStatus,
+  input: {
+    listing: ProcurementListing
+    transactionId: string
+    quantity: number
+  }
+): ProcurementAllocationPacket {
+  const statusSubstitution = status.substitution
+  const source = statusSubstitution?.source ?? status.source
+  const sourceLabel = statusSubstitution?.sourceLabel ?? status.sourceLabel
+  const displacedAlternativeUse = status.displacedAlternativeUse
 
   return {
-    allocationId: `${input.transactionId}:supplier-attention`,
-    resourceClass: 'supplier_attention_slot',
+    allocationId: `${input.transactionId}:${status.resourceClass}`,
+    resourceClass: status.resourceClass,
     source,
     sourceLabel,
     destinationUse: input.listing.id,
     destinationLabel: input.listing.itemName,
-    urgency: substitution ? 'contingency' : 'standard',
+    urgency: statusSubstitution ? 'contingency' : 'standard',
     expectedBenefit: `${input.quantity}x ${input.listing.itemName}`,
     priority: input.listing.featured ? 2 : 1,
-    delayWeeks: substitution?.delayWeeks ?? 0,
+    delayWeeks: statusSubstitution?.delayWeeks ?? 0,
     ...(displacedAlternativeUse ? { displacedAlternativeUse } : {}),
-    substitutionStatus: substitution ? 'degraded_substitute' : 'none',
-    ...(substitution ? { substitutionSummary: substitution.summary } : {}),
+    substitutionStatus: statusSubstitution ? 'degraded_substitute' : 'none',
+    ...(statusSubstitution ? { substitutionSummary: statusSubstitution.summary } : {}),
   }
 }
 
@@ -757,6 +917,7 @@ export function getCurrentMarketTransactions(
       totalPrice: event.payload.totalPrice,
       remainingAvailability: event.payload.remainingAvailability,
       ...(event.payload.allocation ? { allocation: event.payload.allocation } : {}),
+      ...(event.payload.allocations ? { allocations: event.payload.allocations } : {}),
       timestamp: event.timestamp,
     }))
     .sort(

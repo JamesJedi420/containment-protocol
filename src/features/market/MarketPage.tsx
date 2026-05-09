@@ -295,6 +295,36 @@ export default function MarketPage() {
                 </p>
               ) : null}
 
+              {listing.resourceStatuses
+                .filter((status) => status !== listing.allocationStatus)
+                .map((status) => (
+                  <div
+                    key={`${listing.id}-${status.resourceClass}-${status.source}`}
+                    className="grid gap-2 text-xs opacity-70 md:grid-cols-3"
+                  >
+                    <p>
+                      {status.sourceLabel}: {status.available}/{status.capacity} open
+                    </p>
+                    <p>
+                      {status.resourceClass.replace(/_/g, ' ')}: {status.state.replace(/_/g, ' ')}
+                    </p>
+                    <p>
+                      Displaced use: {status.displacedAlternativeUse ?? 'None this market week'}
+                    </p>
+                  </div>
+                ))}
+
+              {listing.resourceStatuses
+                .filter((status) => status !== listing.allocationStatus && status.substitution)
+                .map((status) => (
+                  <p
+                    key={`${listing.id}-${status.resourceClass}-${status.source}-substitution`}
+                    className="text-xs text-amber-200"
+                  >
+                    Degraded substitute: {status.substitution!.summary}
+                  </p>
+                ))}
+
               {listing.marketPacket.knownDistortions.length > 0 ? (
                 <div className="flex flex-wrap gap-2 text-xs opacity-65">
                   {listing.marketPacket.knownDistortions.map((distortion) => (

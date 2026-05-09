@@ -222,13 +222,13 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   const canAffordThree = game.funding >= listing.buyPrice * 3
   const canBuyOne =
     listing.accessAvailable &&
-    listing.allocationStatus.purchaseAvailable &&
+    listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     listing.availableBundles >= 1 &&
     canAffordOne
   const canBuyThree =
     listing.accessAvailable &&
-    listing.allocationStatus.purchaseAvailable &&
-    !listing.allocationStatus.substitution &&
+    listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
+    !listing.resourceStatuses.some((status) => status.substitution) &&
     listing.availableBundles >= 3 &&
     canAffordThree
   const canSellOne = listing.inventoryStock >= listing.bundleQuantity
@@ -245,8 +245,10 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   let buyBlockedReason: string | undefined
   if (!listing.accessAvailable) {
     buyBlockedReason = listing.accessBlockedReason
-  } else if (!listing.allocationStatus.purchaseAvailable) {
-    buyBlockedReason = listing.allocationStatus.blockerReason
+  } else if (listing.resourceStatuses.some((status) => !status.purchaseAvailable)) {
+    buyBlockedReason = listing.resourceStatuses.find(
+      (status) => !status.purchaseAvailable
+    )?.blockerReason
   } else if (availabilityBlockedReason) {
     buyBlockedReason = availabilityBlockedReason
   } else if (budgetBlockedReason) {
@@ -292,7 +294,7 @@ function getListingTone(listing: MarketListingView): ProcurementOptionListItemVi
 
   if (
     !listing.accessAvailable ||
-    !listing.allocationStatus.purchaseAvailable ||
+    !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
     !listing.canBuyOne
   ) {
     return 'warning'
@@ -357,17 +359,19 @@ function buildBudgetPreview(
     }
   }
 
-  if (!listing.allocationStatus.purchaseAvailable) {
+  if (!listing.resourceStatuses.every((status) => status.purchaseAvailable)) {
+    const blockedStatus = listing.resourceStatuses.find((status) => !status.purchaseAvailable)
+
     return {
       label: `Buy ${bundles}`,
       totalCostLabel: formatCurrency(totalCost),
       fundingAfterLabel: formatCurrency(game.funding),
       pressureAfterLabel: `${assessFundingPressure(game).budgetPressure}/4`,
       consequenceSummary:
-        listing.allocationStatus.blockerReason ??
-        'Supplier attention is already committed to another procurement use.',
+        blockedStatus?.blockerReason ??
+        'A required procurement resource is already committed to another use.',
       affordable: false,
-      blockedReason: listing.allocationStatus.blockerReason,
+      blockedReason: blockedStatus?.blockerReason,
     }
   }
 
@@ -462,9 +466,15 @@ function buildProcurementDetailView(
         `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
         `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
         `Allocation: ${listing.allocationStatus.sourceLabel} supplier attention ${listing.allocationStatus.available}/${listing.allocationStatus.capacity} open.`,
-        listing.allocationStatus.substitution
-          ? `Substitution: ${listing.allocationStatus.substitution.summary}`
-          : '',
+        ...listing.resourceStatuses
+          .filter((status) => status !== listing.allocationStatus)
+          .map(
+            (status) =>
+              `Allocation: ${status.sourceLabel} ${status.resourceClass.replace(/_/g, ' ')} ${status.available}/${status.capacity} open.`
+          ),
+        ...listing.resourceStatuses.map((status) =>
+          status.substitution ? `Substitution: ${status.substitution.summary}` : ''
+        ),
         `Current stock on hand: ${listing.inventoryStock}.`,
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
@@ -482,8 +492,10 @@ function buildProcurementDetailView(
       [
         listing.accessBlockedReason ?? '',
         listing.marketPacket.blockedReason ?? '',
-        listing.allocationStatus.blockerReason ?? '',
-        listing.allocationStatus.substitution?.summary ?? '',
+        ...listing.resourceStatuses.flatMap((status) => [
+          status.blockerReason ?? '',
+          status.substitution?.summary ?? '',
+        ]),
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1

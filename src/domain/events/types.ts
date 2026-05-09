@@ -408,8 +408,8 @@ export interface OperationEventPayloadMap {
     remainingAvailability: number
     allocation?: {
       allocationId: string
-      resourceClass: 'supplier_attention_slot'
-      source: 'agency_supplier_roster' | 'gray_market_broker'
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock'
+      source: string
       sourceLabel: string
       destinationUse: string
       destinationLabel: string
@@ -421,6 +421,21 @@ export interface OperationEventPayloadMap {
       substitutionStatus: 'none' | 'degraded_substitute'
       substitutionSummary?: string
     }
+    allocations?: Array<{
+      allocationId: string
+      resourceClass: 'supplier_attention_slot' | 'reagent_stock'
+      source: string
+      sourceLabel: string
+      destinationUse: string
+      destinationLabel: string
+      urgency: 'standard' | 'contingency'
+      expectedBenefit: string
+      priority: number
+      delayWeeks: number
+      displacedAlternativeUse?: string
+      substitutionStatus: 'none' | 'degraded_substitute'
+      substitutionSummary?: string
+    }>
   }
   'faction.standing_changed': {
     week: number

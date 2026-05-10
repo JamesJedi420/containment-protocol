@@ -651,6 +651,7 @@ describe('buildEventFeedView', () => {
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
       authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+      regulatoryArbitrageSignal: 'none',
     })
     const view = buildEventFeedView(event)
 
@@ -662,11 +663,32 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Waiver precedent 2')
     expect(view.detail).toContain('Institution containment_protocol')
     expect(view.detail).toContain('Authority crisis_director_self')
+    expect(view.detail).toContain('Reg. arbitrage none')
     expect(view.searchText).toContain('130')
     expect(view.searchText).toContain('sanctioned')
     expect(view.searchText).toContain('containment_protocol')
     expect(view.searchText).toContain('crisis_director_self')
     expect(view.searchText).toContain('precedent 2')
+  })
+
+  it('market.emergency_gray_market_waiver_granted — regulatory arbitrage signal when clearance ratification route', () => {
+    const event = makeEvent('market.emergency_gray_market_waiver_granted', {
+      week: 9,
+      marketWeek: 8,
+      crisisPressureScore: 125,
+      sanctionLevel: 'sanctioned',
+      packetId: 'gray_market_broker',
+      falloutRiskApplied: 'risk',
+      waiverPrecedentCount: 1,
+      institutionKey: 'joint_oversight_concordat',
+      authorityRoute: 'joint_oversight_clearance_ratification',
+      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+      regulatoryArbitrageSignal: 'cross_institution_clearance_route',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Reg. arbitrage cross_institution_clearance_route')
+    expect(view.searchText).toContain('cross_institution_clearance_route')
   })
 
   it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {

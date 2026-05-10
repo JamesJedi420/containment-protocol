@@ -1,18 +1,32 @@
 // SPE-1524: Crisis gray-market waiver (sanctioned posture) + audit event + legitimacy fallout trace.
 // SPE-1511: Institution key on audit payload.
 // SPE-849: Explicit authority routing (baseline self-authorization vs oversight clearance ratification).
-// SPE-1184: Weekly fallout tick consumes `legitimacy.falloutRisk` after waiver (deterministic).
+// SPE-1184: Weekly fallout tick + bounded regulatory-arbitrage signal on waiver audit (deterministic).
 import type { AnyOperationEventDraft } from './events/eventBus'
 import { appendOperationEventDrafts } from './events'
 import { clamp } from './math'
 import type { GameState, LegitimacyState } from './models'
-import { resolveEmergencyGrayMarketWaiverAuthority } from './procurementEmergencyAuthority'
+import {
+  AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION,
+  resolveEmergencyGrayMarketWaiverAuthority,
+} from './procurementEmergencyAuthority'
 import { getEmergencyProcurementInstitutionAuditKey } from './procurementEmergencyInstitution'
 import { buildMajorIncidentState } from './strategicState'
 import { normalizeGameState } from './teamSimulation'
 
 function isSanctionedPosture(game: Pick<GameState, 'legitimacy'>): boolean {
   return (game.legitimacy?.sanctionLevel ?? 'tolerated') === 'sanctioned'
+}
+
+/** SPE-1184: explicit bounded arbitrage detection on the emergency waiver path (institution/clearance routing, not a general engine). */
+export type EmergencyWaiverRegulatoryArbitrageSignal = 'none' | 'cross_institution_clearance_route'
+
+export function resolveEmergencyWaiverRegulatoryArbitrageSignal(
+  authorityRoute: string
+): EmergencyWaiverRegulatoryArbitrageSignal {
+  return authorityRoute === AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION
+    ? 'cross_institution_clearance_route'
+    : 'none'
 }
 
 /** True when crisis pressure qualifies and posture is sanctioned; waiver not yet granted this week. */
@@ -48,6 +62,9 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
   const incidentState = buildMajorIncidentState(game)
   const authority = resolveEmergencyGrayMarketWaiverAuthority(game)
   const waiverPrecedentCount = (game.emergencyGrayMarketWaiverPrecedentCount ?? 0) + 1
+  const regulatoryArbitrageSignal = resolveEmergencyWaiverRegulatoryArbitrageSignal(
+    authority.authorityRoute
+  )
 
   return normalizeGameState(
     appendOperationEventDrafts(
@@ -75,6 +92,7 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
             institutionKey: getEmergencyProcurementInstitutionAuditKey(game),
             authorityRoute: authority.authorityRoute,
             authorityBasis: authority.authorityBasis,
+            regulatoryArbitrageSignal,
           },
         },
       ]

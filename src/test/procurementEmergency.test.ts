@@ -16,6 +16,7 @@ import {
   applyEmergencyGrayMarketFalloutTick,
   canInvokeEmergencyGrayMarketWaiver,
   invokeEmergencyGrayMarketWaiver,
+  resolveEmergencyWaiverRegulatoryArbitrageSignal,
 } from '../domain/procurementEmergency'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { buildMajorIncidentState } from '../domain/strategicState'
@@ -84,6 +85,7 @@ describe('SPE-1511 institution-specific emergency procurement authorization', ()
       expect(audit.payload.institutionKey).toBe('containment_protocol')
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(audit.payload.authorityBasis).toContain('baseline institution')
+      expect(audit.payload.regulatoryArbitrageSignal).toBe('none')
     }
   })
 })
@@ -109,6 +111,7 @@ describe('SPE-849 explicit emergency authorization routing', () => {
     if (audit?.type === 'market.emergency_gray_market_waiver_granted') {
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
       expect(audit.payload.institutionKey).toBe(INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT)
+      expect(audit.payload.regulatoryArbitrageSignal).toBe('cross_institution_clearance_route')
     }
   })
 })
@@ -174,6 +177,7 @@ describe('SPE-1524 emergency gray-market waiver', () => {
         waiverPrecedentCount: 1,
         institutionKey: 'containment_protocol',
         authorityRoute: AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
+        regulatoryArbitrageSignal: 'none',
       })
       expect(audit.payload.authorityBasis).toContain('baseline institution')
     }
@@ -380,5 +384,15 @@ describe('SPE-1184 emergency waiver precedent counter', () => {
     if (lastGrant?.type === 'market.emergency_gray_market_waiver_granted') {
       expect(lastGrant.payload.waiverPrecedentCount).toBe(2)
     }
+  })
+})
+
+describe('SPE-1184 regulatory arbitrage signal on waiver audit', () => {
+  it('maps authority routes to bounded regulatoryArbitrageSignal values', () => {
+    expect(resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)).toBe('none')
+    expect(
+      resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
+    ).toBe('cross_institution_clearance_route')
+    expect(resolveEmergencyWaiverRegulatoryArbitrageSignal('unknown_route')).toBe('none')
   })
 })

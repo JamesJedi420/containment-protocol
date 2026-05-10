@@ -105,10 +105,30 @@ describe('event payload validation coverage', () => {
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
       authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+      regulatoryArbitrageSignal: 'none',
     })
 
     expect(validation.success).toBe(true)
   })
+
+  it('accepts market.emergency_gray_market_waiver_granted with cross_institution regulatory arbitrage signal', () => {
+    const validation = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
+      week: 4,
+      marketWeek: 2,
+      crisisPressureScore: 130,
+      sanctionLevel: 'sanctioned',
+      packetId: 'gray_market_broker',
+      falloutRiskApplied: 'risk',
+      waiverPrecedentCount: 1,
+      institutionKey: 'joint_oversight_concordat',
+      authorityRoute: 'joint_oversight_clearance_ratification',
+      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+      regulatoryArbitrageSignal: 'cross_institution_clearance_route',
+    })
+
+    expect(validation.success).toBe(true)
+  })
+
   it('accepts market.emergency_gray_market_waiver_accountability_closed payloads', () => {
     const validation = validateOperationEventPayload(
       'market.emergency_gray_market_waiver_accountability_closed',

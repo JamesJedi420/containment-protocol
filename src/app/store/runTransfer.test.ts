@@ -104,6 +104,7 @@ describe('runTransfer helpers', () => {
       expect(ev.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(ev.payload.authorityBasis).toBe(LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION)
       expect(ev.payload.waiverPrecedentCount).toBe(1)
+      expect(ev.payload.regulatoryArbitrageSignal).toBe('none')
     }
   })
 

@@ -1726,6 +1726,10 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.authorityBasis === 'string' && payload.authorityBasis.trim().length > 0
                   ? payload.authorityBasis.trim()
                   : LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
+              regulatoryArbitrageSignal:
+                payload.regulatoryArbitrageSignal === 'cross_institution_clearance_route'
+                  ? 'cross_institution_clearance_route'
+                  : 'none',
             },
           })
         )

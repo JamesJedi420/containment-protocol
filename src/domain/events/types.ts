@@ -475,6 +475,8 @@ export interface OperationEventPayloadMap {
     authorityRoute: string
     /** SPE-849: human-legible basis string for audit review. */
     authorityBasis: string
+    /** SPE-1184: bounded regulatory-arbitrage detection from authority routing (not a general detector). */
+    regulatoryArbitrageSignal: 'none' | 'cross_institution_clearance_route'
   }
   /** SPE-1511: deterministic post-window accountability marker after active crisis waiver week closes. */
   'market.emergency_gray_market_waiver_accountability_closed': {

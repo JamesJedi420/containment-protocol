@@ -23,8 +23,8 @@ import type {
 const MAX_EXPLANATION_DETAILS = 3
 const DEFAULT_TREND_WINDOW = 5
 
-/** SPE-17: one-clock legibility while archive-instability is present (summary; details cap stays at 3). */
-const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
+/** SPE-17: one-clock legibility while archive-instability is present (weakest-link summary + operations cost line). */
+export const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
   'Mixed exploration, inspection, combat, and recovery accounting stays on the shared readiness/time-cost clock; archive-instability does not add a parallel operational timer.'
 
 export type VisibilityExplanationCategory =

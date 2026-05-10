@@ -2,6 +2,7 @@ import type { GameState, Id, MissionPriorityBand, MissionRoutingStateKind } from
 import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import {
+  EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY,
   explainDeploymentReadiness,
   explainMissionRouting,
   explainWeakestLinkResolution,
@@ -176,9 +177,13 @@ function buildOutcomeCostSummary(
     recoverySurchargeWeeks > 0
       ? `Instability recovery surcharge +${recoverySurchargeWeeks} week${recoverySurchargeWeeks === 1 ? '' : 's'}`
       : ''
+  const hasInstabilityMeta = Boolean(missionResult?.weakestLink?.executionInstability)
+  /** SPE-17: keep one-clock legibility in the cost row without dropping a fourth cost fact when instability metadata is present. */
+  const costDetailLimit = hasInstabilityMeta ? MAX_DETAILS + 1 : MAX_DETAILS
 
   return takeBounded(
     [
+      hasInstabilityMeta ? EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY : '',
       injuries > 0 ? `${injuries} injury record${injuries === 1 ? '' : 's'}` : '',
       fatalities > 0 ? `${fatalities} fatalit${fatalities === 1 ? 'y' : 'ies'}` : '',
       fatigueTargets > 0 ? `Fatigue shifted across ${fatigueTargets} operative${fatigueTargets === 1 ? '' : 's'}` : '',
@@ -187,7 +192,7 @@ function buildOutcomeCostSummary(
         ? `${missionResult?.spawnedConsequences.length ?? 0} follow-up consequence${(missionResult?.spawnedConsequences.length ?? 0) === 1 ? '' : 's'}`
         : '',
     ],
-    MAX_DETAILS
+    costDetailLimit
   ).join(' / ') || 'No major staffing or recovery cost was logged.'
 }
 

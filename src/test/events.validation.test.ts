@@ -132,6 +132,8 @@ describe('event payload validation coverage', () => {
       fundingAfter: 105,
       containmentRatingBefore: 72,
       containmentRatingAfter: 69,
+      waiverPrecedentCount: 3,
+      precedentPenaltyMultiplier: 1.12,
       institutionKey: 'containment_protocol',
     })
 

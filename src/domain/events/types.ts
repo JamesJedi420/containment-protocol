@@ -494,6 +494,10 @@ export interface OperationEventPayloadMap {
     fundingAfter: number
     containmentRatingBefore: number
     containmentRatingAfter: number
+    /** Count of emergency waiver grants driving precedent pressure on this tick. */
+    waiverPrecedentCount: number
+    /** Bounded multiplier applied to base fallout penalty bands (deterministic from precedent). */
+    precedentPenaltyMultiplier: number
     institutionKey: string
   }
   'faction.standing_changed': {

@@ -1781,6 +1781,19 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),
+              waiverPrecedentCount: clamp(
+                sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
+                1,
+                50000
+              ),
+              precedentPenaltyMultiplier: clamp(
+                typeof payload.precedentPenaltyMultiplier === 'number' &&
+                  Number.isFinite(payload.precedentPenaltyMultiplier)
+                  ? payload.precedentPenaltyMultiplier
+                  : 1,
+                1,
+                2
+              ),
             },
           })
         )

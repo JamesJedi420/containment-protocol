@@ -273,10 +273,32 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
 
     expect(drafts).toHaveLength(1)
     expect(drafts[0]?.type).toBe('market.emergency_gray_market_fallout_tick')
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+    }
     expect(nextState.funding).toBe(105)
     expect(nextState.containmentRating).toBe(69)
     expect(nextState.legitimacy?.falloutRisk).toBe('costly')
     expect(nextState.legitimacy?.sanctionLevel).toBe('sanctioned')
+  })
+
+  it('scales fallout risk-phase penalties with waiver precedent count (bounded multiplier)', () => {
+    const source = createStartingState()
+    source.week = 3
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'risk' }
+    source.emergencyGrayMarketWaiverPrecedentCount = 8
+    const draftNext = { ...source, week: 4 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    expect(drafts).toHaveLength(1)
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(8)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1.36)
+    }
+    expect(nextState.funding).toBe(103)
+    expect(nextState.containmentRating).toBe(68)
+    expect(nextState.legitimacy?.falloutRisk).toBe('costly')
   })
 
   it('clears falloutRisk costly→none with stronger deterministic penalties', () => {
@@ -291,9 +313,28 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
     if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
       expect(drafts[0].payload.outcome).toBe('resolved_closed')
       expect(drafts[0].payload.falloutRiskAfter).toBe('none')
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
     }
     expect(nextState.funding).toBe(96)
     expect(nextState.containmentRating).toBe(65)
+    expect(nextState.legitimacy?.falloutRisk).toBe('none')
+  })
+
+  it('scales fallout costly-phase penalties at max precedent multiplier', () => {
+    const source = createStartingState()
+    source.week = 4
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'costly' }
+    source.emergencyGrayMarketWaiverPrecedentCount = 10
+    const draftNext = { ...source, week: 5, funding: 105, containmentRating: 69 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1.36)
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(10)
+    }
+    expect(nextState.funding).toBe(93)
+    expect(nextState.containmentRating).toBe(64)
     expect(nextState.legitimacy?.falloutRisk).toBe('none')
   })
 

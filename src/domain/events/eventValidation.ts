@@ -492,6 +492,8 @@ const marketEmergencyGrayMarketFalloutTickSchema = z
     fundingAfter: z.number(),
     containmentRatingBefore: z.number(),
     containmentRatingAfter: z.number(),
+    waiverPrecedentCount: z.number().int().min(1).max(50000),
+    precedentPenaltyMultiplier: z.number().min(1).max(2),
     institutionKey: z.string().min(1),
   })
   .strict()

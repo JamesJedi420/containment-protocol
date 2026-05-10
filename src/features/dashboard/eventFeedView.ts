@@ -874,13 +874,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           event.payload.outcome === 'resolved_closed'
             ? 'Emergency waiver oversight fallout closed'
             : 'Emergency waiver fallout escalated — oversight review pending',
-        detail: `Week ${event.payload.week} / ${event.payload.outcome.replace(/_/g, ' ')} / Funding ${event.payload.fundingBefore}→${event.payload.fundingAfter} / Containment ${event.payload.containmentRatingBefore}→${event.payload.containmentRatingAfter} / Institution ${event.payload.institutionKey}`,
+        detail: `Week ${event.payload.week} / ${event.payload.outcome.replace(/_/g, ' ')} / Funding ${event.payload.fundingBefore}→${event.payload.fundingAfter} / Containment ${event.payload.containmentRatingBefore}→${event.payload.containmentRatingAfter} / Precedent ${event.payload.waiverPrecedentCount} ×${event.payload.precedentPenaltyMultiplier} / Institution ${event.payload.institutionKey}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: event.payload.outcome === 'resolved_closed' ? 'warning' : 'danger',
         searchText:
-          `emergency waiver fallout oversight institution ${event.payload.institutionKey} funding containment`.toLowerCase(),
+          `emergency waiver fallout oversight institution ${event.payload.institutionKey} funding containment precedent ${event.payload.waiverPrecedentCount}`.toLowerCase(),
       }
 
     case 'faction.standing_changed':

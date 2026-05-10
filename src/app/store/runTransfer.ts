@@ -1723,7 +1723,7 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               week,
               waiverGrantWeek: sanitizeInteger(
                 payload.waiverGrantWeek as number | undefined,
-                week,
+                Math.max(1, week - 1),
                 1
               ),
               institutionKey: normalizeInstitutionKeyForAudit(

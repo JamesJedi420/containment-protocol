@@ -108,7 +108,6 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(true)
   })
-
   it('accepts market.emergency_gray_market_waiver_accountability_closed payloads', () => {
     const validation = validateOperationEventPayload(
       'market.emergency_gray_market_waiver_accountability_closed',

@@ -148,7 +148,6 @@ describe('runTransfer helpers', () => {
       expect(ev.payload.waiverGrantWeek).toBe(7)
     }
   })
-
   it('propagates canonical distortion state into report snapshots', () => {
     const caseWithDistortion: CaseInstance = {
       id: 'case-distorted',

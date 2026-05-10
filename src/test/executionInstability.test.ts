@@ -148,6 +148,26 @@ describe('SPE-17 execution instability overlay', () => {
     expect(overlaid.deploymentDebtSignals).toBeUndefined()
   })
 
+  it('lists dominant penalty bucket before instability cause/effect when clause is monitored', () => {
+    const partialBase = resolveWeakestLinkMission({
+      ...PERFECT_TEAM_PARAMS,
+      baseScore: 70,
+      teamReadiness: {
+        ...PERFECT_TEAM_PARAMS.teamReadiness,
+        coverageCompleteness: { required: ['containment'], covered: [], missing: ['containment'] },
+        minimumMemberReadiness: 40,
+      },
+    })
+    const overlaid = applyExecutionInstabilityOverlay(
+      { contract: { templateId: 'institutions-ritual-archive' } } as CaseInstance,
+      partialBase
+    )
+    const explanation = explainWeakestLinkResolution(overlaid)
+    expect(explanation.details[0]).not.toContain('Upstream instability cause')
+    expect(explanation.details[1]).toContain('Upstream instability cause')
+    expect(explanation.details.some((d) => d.includes('Downstream instability effect'))).toBe(true)
+  })
+
   it('surfaces shared operational clock legibility when instability clause is monitored (not applied)', () => {
     const partialBase = resolveWeakestLinkMission({
       ...PERFECT_TEAM_PARAMS,

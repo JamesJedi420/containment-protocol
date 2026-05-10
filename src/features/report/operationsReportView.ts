@@ -16,8 +16,9 @@ const MAX_READINESS_ITEMS = 4
 const MAX_OUTCOME_ITEMS = 4
 const MAX_HIGHLIGHTS = 3
 const MAX_DETAILS = 3
-/** SPE-17: +2 beyond MAX_DETAILS — one slot for the shared-clock legibility line and one for the instability
- * recovery surcharge, so neither displaces the three standard cost facts (injuries, fatalities, fatigue). */
+/** SPE-17: 5 total cost detail slots when instability is present — MAX_DETAILS (3) standard cost facts
+ * (injuries, fatalities, fatigue) plus one for the shared-clock legibility line and one for the instability
+ * recovery surcharge, so neither displaces the standard cost facts. */
 const MAX_COST_DETAILS_WITH_INSTABILITY = MAX_DETAILS + 2
 
 const PRIORITY_SORT_ORDER: Record<MissionPriorityBand, number> = {

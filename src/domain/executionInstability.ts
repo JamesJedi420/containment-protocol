@@ -32,6 +32,7 @@ export function applyExecutionInstabilityOverlay(
     ...base,
     outcomeCategory: 'partial',
     resultKind: 'partial',
+    injuryRiskDelta: Number(((base.injuryRiskDelta ?? 0) + 0.08).toFixed(2)),
     expectedRecoveryWeeksDelta: (base.expectedRecoveryWeeksDelta ?? 0) + 1,
     deploymentDebtSignals: [
       ...(base.deploymentDebtSignals ?? []),
@@ -41,7 +42,7 @@ export function applyExecutionInstabilityOverlay(
       flag: 'contract_archive_instability',
       upstreamCause,
       downstreamEffect:
-        'Unstable archive contract clause forced execution outcome one band worse (success → partial) and added +1 expected recovery week on the shared readiness/time-cost scaffold.',
+        'Unstable archive contract clause forced execution outcome one band worse (success → partial), added +1 expected recovery week, and increased injury risk by +0.08 on the shared readiness/time-cost scaffold.',
       applied: true,
     },
     weakestLinkNarrativeReasonCodes: [

@@ -3093,10 +3093,6 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
   const nextWeek = context.sourceState.week + 1
   const prevWaiverWeek = context.nextState.emergencyGrayMarketWaiverWeek
   let emergencyGrayMarketWaiverWeek = prevWaiverWeek
-  const closingActiveEmergencyWaiver =
-    prevWaiverWeek !== undefined &&
-    prevWaiverWeek === context.sourceState.week &&
-    prevWaiverWeek < nextWeek
 
   if (emergencyGrayMarketWaiverWeek !== undefined && emergencyGrayMarketWaiverWeek < nextWeek) {
     emergencyGrayMarketWaiverWeek = undefined
@@ -3110,7 +3106,7 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     emergencyGrayMarketWaiverWeek,
   }
 
-  if (closingActiveEmergencyWaiver && prevWaiverWeek !== undefined) {
+  if (prevWaiverWeek !== undefined && prevWaiverWeek === context.sourceState.week) {
     context.eventDrafts.push({
       type: 'market.emergency_gray_market_waiver_accountability_closed',
       sourceSystem: 'production',

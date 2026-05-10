@@ -103,7 +103,22 @@ describe('runTransfer helpers', () => {
       expect(ev.payload.institutionKey).toBe('containment_protocol')
       expect(ev.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(ev.payload.authorityBasis).toBe(LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION)
+      expect(ev.payload.waiverPrecedentCount).toBe(1)
     }
+  })
+
+  it('hydrates emergencyGrayMarketWaiverPrecedentCount (SPE-1184)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 8,
+        emergencyGrayMarketWaiverPrecedentCount: 6,
+      },
+      fallback
+    )
+
+    expect(hydrated.emergencyGrayMarketWaiverPrecedentCount).toBe(6)
   })
 
   it('migrates emergency waiver accountability closed events missing institutionKey (SPE-1511)', () => {

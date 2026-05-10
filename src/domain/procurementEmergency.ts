@@ -47,12 +47,14 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
 
   const incidentState = buildMajorIncidentState(game)
   const authority = resolveEmergencyGrayMarketWaiverAuthority(game)
+  const waiverPrecedentCount = (game.emergencyGrayMarketWaiverPrecedentCount ?? 0) + 1
 
   return normalizeGameState(
     appendOperationEventDrafts(
       {
         ...game,
         emergencyGrayMarketWaiverWeek: game.week,
+        emergencyGrayMarketWaiverPrecedentCount: waiverPrecedentCount,
         legitimacy: {
           ...game.legitimacy,
           falloutRisk: 'risk',
@@ -69,6 +71,7 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
             sanctionLevel: 'sanctioned',
             packetId: 'gray_market_broker',
             falloutRiskApplied: 'risk',
+            waiverPrecedentCount,
             institutionKey: getEmergencyProcurementInstitutionAuditKey(game),
             authorityRoute: authority.authorityRoute,
             authorityBasis: authority.authorityBasis,

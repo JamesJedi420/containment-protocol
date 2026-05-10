@@ -467,6 +467,8 @@ export interface OperationEventPayloadMap {
     sanctionLevel: 'sanctioned'
     packetId: 'gray_market_broker'
     falloutRiskApplied: 'risk'
+    /** SPE-1184: cumulative emergency waiver grants (precedent / abuse trail). */
+    waiverPrecedentCount: number
     /** SPE-1511: normalized director institution key for audit legibility. */
     institutionKey: string
     /** SPE-849: which authorization path was used (path-sensitive authority). */

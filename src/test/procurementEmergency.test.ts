@@ -155,6 +155,7 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     const next = invokeEmergencyGrayMarketWaiver(game)
 
     expect(next.emergencyGrayMarketWaiverWeek).toBe(next.week)
+    expect(next.emergencyGrayMarketWaiverPrecedentCount).toBe(1)
     expect(hasActiveEmergencyGrayMarketWaiver(next)).toBe(true)
     expect(next.legitimacy?.falloutRisk).toBe('risk')
     expect(next.legitimacy?.sanctionLevel).toBe('sanctioned')
@@ -170,6 +171,7 @@ describe('SPE-1524 emergency gray-market waiver', () => {
         sanctionLevel: 'sanctioned',
         packetId: 'gray_market_broker',
         falloutRiskApplied: 'risk',
+        waiverPrecedentCount: 1,
         institutionKey: 'containment_protocol',
         authorityRoute: AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
       })
@@ -311,5 +313,31 @@ describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
     expect(
       afterSecondAdvance.events.filter((e) => e.type === 'market.emergency_gray_market_fallout_tick')
     ).toHaveLength(2)
+  })
+})
+
+describe('SPE-1184 emergency waiver precedent counter', () => {
+  it('accumulates waiverPrecedentCount on each grant and echoes it on the audit event', () => {
+    const game = crisisSanctionedGame()
+    const first = invokeEmergencyGrayMarketWaiver(game)
+    expect(first.emergencyGrayMarketWaiverPrecedentCount).toBe(1)
+
+    const readyForSecond = {
+      ...first,
+      week: first.week + 1,
+      emergencyGrayMarketWaiverWeek: undefined,
+      legitimacy: { sanctionLevel: 'sanctioned', falloutRisk: 'none' },
+    }
+    expect(canInvokeEmergencyGrayMarketWaiver(readyForSecond)).toBe(true)
+
+    const second = invokeEmergencyGrayMarketWaiver(readyForSecond)
+    expect(second.emergencyGrayMarketWaiverPrecedentCount).toBe(2)
+    const lastGrant = second.events
+      .filter((e) => e.type === 'market.emergency_gray_market_waiver_granted')
+      .at(-1)
+    expect(lastGrant?.type).toBe('market.emergency_gray_market_waiver_granted')
+    if (lastGrant?.type === 'market.emergency_gray_market_waiver_granted') {
+      expect(lastGrant.payload.waiverPrecedentCount).toBe(2)
+    }
   })
 })

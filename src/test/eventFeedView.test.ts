@@ -647,6 +647,7 @@ describe('buildEventFeedView', () => {
       sanctionLevel: 'sanctioned',
       packetId: 'gray_market_broker',
       falloutRiskApplied: 'risk',
+      waiverPrecedentCount: 2,
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
       authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
@@ -658,12 +659,14 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Campaign week 8')
     expect(view.detail).toContain('Crisis pressure 130')
     expect(view.detail).toContain('Fallout risk')
+    expect(view.detail).toContain('Waiver precedent 2')
     expect(view.detail).toContain('Institution containment_protocol')
     expect(view.detail).toContain('Authority crisis_director_self')
     expect(view.searchText).toContain('130')
     expect(view.searchText).toContain('sanctioned')
     expect(view.searchText).toContain('containment_protocol')
     expect(view.searchText).toContain('crisis_director_self')
+    expect(view.searchText).toContain('precedent 2')
   })
 
   it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {

@@ -894,6 +894,15 @@ function sanitizeProductionQueue(value: unknown): ProductionQueueEntry[] {
   return nextQueue
 }
 
+/** SPE-1184: bounded precedent counter for repeated emergency waiver grants. */
+function sanitizeEmergencyGrayMarketWaiverPrecedentCount(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return 0
+  }
+
+  return clamp(Math.trunc(raw), 0, 50000)
+}
+
 /** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
 function sanitizeEmergencyGrayMarketWaiverWeek(
   raw: unknown,
@@ -1701,6 +1710,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               sanctionLevel: 'sanctioned',
               packetId: 'gray_market_broker',
               falloutRiskApplied: 'risk',
+              waiverPrecedentCount: clamp(
+                sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
+                1,
+                50000
+              ),
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),
@@ -2113,6 +2127,9 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
         game.emergencyGrayMarketWaiverWeek,
         week
+      ),
+      emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
+        game.emergencyGrayMarketWaiverPrecedentCount
       ),
       templates: fallback.templates,
     }) as GameState

@@ -2163,6 +2163,10 @@ export interface GameState {
    * When equal to `week`, sanctioned posture may temporarily access the gray-market broker packet.
    */
   emergencyGrayMarketWaiverWeek?: number
+  /**
+   * SPE-1184: running count of emergency gray-market waiver grants (precedent / selective-exception accumulation).
+   */
+  emergencyGrayMarketWaiverPrecedentCount?: number
   week: number
   rngSeed: number
   rngState: number

@@ -6,6 +6,18 @@ import { describeContractArchiveInstabilityClause } from './contracts'
 import type { CaseInstance, MissionSpawnedConsequence } from './models'
 import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
 
+export function buildExecutionInstabilityRouteShift(
+  currentRoute: string | null | undefined,
+  weakestLinkResult: WeakestLinkMissionResolutionResult | undefined
+): string | undefined {
+  if (!weakestLinkResult?.executionInstability?.applied) {
+    return undefined
+  }
+
+  const baseRoute = typeof currentRoute === 'string' && currentRoute.length > 0 ? currentRoute : 'primary'
+  return `${baseRoute}->fallback-containment`
+}
+
 export function buildExecutionInstabilityObjectiveDriftConsequence(
   currentCase: CaseInstance,
   weakestLinkResult: WeakestLinkMissionResolutionResult | undefined

@@ -59,6 +59,7 @@ describe('advanceWeek weakest-link integration', () => {
     }
 
     expect(missionResult.weakestLink?.executionInstability?.applied).toBe(true)
+    expect(missionResult.route).toContain('fallback-containment')
     expect(
       missionResult.spawnedConsequences.some(
         (consequence) =>

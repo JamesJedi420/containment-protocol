@@ -3,6 +3,7 @@ import { describeContractArchiveInstabilityClause } from '../domain/contracts'
 import {
   applyExecutionInstabilityOverlay,
   buildExecutionInstabilityObjectiveDriftConsequence,
+  buildExecutionInstabilityRouteShift,
 } from '../domain/executionInstability'
 import type { CaseInstance } from '../domain/models'
 import { resolveWeakestLinkMission } from '../domain/weakestLinkResolution'
@@ -147,5 +148,14 @@ describe('SPE-17 execution instability overlay', () => {
     expect(consequence).toBeDefined()
     expect(consequence?.type).toBe('follow_up_case')
     expect(consequence?.detail).toContain('objective realignment')
+  })
+
+  it('builds deterministic fallback route when instability is applied', () => {
+    const overlaid = applyExecutionInstabilityOverlay(
+      { contract: { templateId: 'institutions-ritual-archive' } } as CaseInstance,
+      resolveWeakestLinkMission(PERFECT_TEAM_PARAMS)
+    )
+    const shifted = buildExecutionInstabilityRouteShift('archive-east-wing', overlaid)
+    expect(shifted).toBe('archive-east-wing->fallback-containment')
   })
 })

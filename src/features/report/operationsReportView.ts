@@ -179,7 +179,7 @@ function buildOutcomeCostSummary(
       : ''
   const hasInstabilityMeta = Boolean(missionResult?.weakestLink?.executionInstability)
   /** SPE-17: keep one-clock legibility in the cost row without dropping a fourth cost fact when instability metadata is present. */
-  const costDetailLimit = hasInstabilityMeta ? MAX_DETAILS + 1 : MAX_DETAILS
+  const costDetailLimit = hasInstabilityMeta ? MAX_DETAILS + 3 : MAX_DETAILS
 
   return takeBounded(
     [

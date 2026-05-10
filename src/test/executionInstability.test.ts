@@ -91,6 +91,7 @@ describe('SPE-17 execution instability overlay', () => {
     expect(overlaid.fatalityRiskDelta).toBe(0.04)
     expect(overlaid.expectedRecoveryWeeksDelta).toBe(1)
     expect(overlaid.deploymentDebtSignals).toContain('execution-instability-recovery-surcharge')
+    expect(overlaid.deploymentDebtSignals).toContain('ally-reliability-fracture')
     expect(overlaid.weakestLinkNarrativeReasonCodes).toContain('execution-instability-overlay')
   })
 
@@ -104,6 +105,7 @@ describe('SPE-17 execution instability overlay', () => {
     expect(explanation.summary).toContain('archive-instability')
     expect(explanation.details.some((d) => d.includes('Upstream instability cause'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('Downstream instability effect'))).toBe(true)
+    expect(explanation.details.some((d) => d.includes('Ally reliability degraded'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('+1 expected recovery week'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('injury risk by +0.08'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('fatality risk by +0.04'))).toBe(true)

@@ -54,6 +54,7 @@ export function applyExecutionInstabilityOverlay(
     deploymentDebtSignals: [
       ...(base.deploymentDebtSignals ?? []),
       'execution-instability-recovery-surcharge',
+      'ally-reliability-fracture',
     ],
     executionInstability: {
       flag: 'contract_archive_instability',

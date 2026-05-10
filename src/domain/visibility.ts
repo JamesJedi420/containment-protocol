@@ -563,6 +563,9 @@ export function explainWeakestLinkResolution(
       result.executionInstability
         ? `Downstream instability effect: ${result.executionInstability.downstreamEffect}`
         : undefined,
+      result.deploymentDebtSignals?.includes('ally-reliability-fracture')
+        ? 'Ally reliability degraded: instability fractured support confidence during execution.'
+        : undefined,
       dominantBucket
         ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
         : 'No penalty bucket applied any weakest-link drag.',

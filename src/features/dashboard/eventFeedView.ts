@@ -843,13 +843,13 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         event,
         week: event.payload.week,
         title: 'Emergency gray-market procurement waiver recorded',
-        detail: `Campaign week ${event.payload.week} / Crisis pressure ${event.payload.crisisPressureScore} / Fallout ${event.payload.falloutRiskApplied} / Waiver precedent ${event.payload.waiverPrecedentCount} / Institution ${event.payload.institutionKey} / Authority ${event.payload.authorityRoute} / Reg. arbitrage ${event.payload.regulatoryArbitrageSignal}`,
+        detail: `Campaign week ${event.payload.week} / Crisis pressure ${event.payload.crisisPressureScore} / Fallout ${event.payload.falloutRiskApplied} / Waiver precedent ${event.payload.waiverPrecedentCount} / Institution ${event.payload.institutionKey} / Authority ${event.payload.authorityRoute} / Reg. arbitrage ${event.payload.regulatoryArbitrageSignal} / Rule conflict ${event.payload.ruleConflictSignal}`,
         sourceLabel,
         typeLabel,
         timestampLabel,
         tone: 'warning',
         searchText:
-          `emergency gray market waiver sanctioned broker fallout crisis pressure ${event.payload.crisisPressureScore} precedent ${event.payload.waiverPrecedentCount} institution ${event.payload.institutionKey} authority ${event.payload.authorityRoute} regulatory arbitrage ${event.payload.regulatoryArbitrageSignal}`.toLowerCase(),
+          `emergency gray market waiver sanctioned broker fallout crisis pressure ${event.payload.crisisPressureScore} precedent ${event.payload.waiverPrecedentCount} institution ${event.payload.institutionKey} authority ${event.payload.authorityRoute} regulatory arbitrage ${event.payload.regulatoryArbitrageSignal} rule conflict ${event.payload.ruleConflictSignal}`.toLowerCase(),
       }
 
     case 'market.emergency_gray_market_waiver_accountability_closed':

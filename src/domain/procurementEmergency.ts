@@ -1,7 +1,7 @@
 // SPE-1524: Crisis gray-market waiver (sanctioned posture) + audit event + legitimacy fallout trace.
 // SPE-1511: Institution key on audit payload.
 // SPE-849: Explicit authority routing (baseline self-authorization vs oversight clearance ratification).
-// SPE-1184: Weekly fallout tick + bounded regulatory-arbitrage signal on waiver audit (deterministic).
+// SPE-1184: Weekly fallout tick + bounded regulatory-arbitrage + rule-conflict signals on waiver audit (deterministic).
 import type { AnyOperationEventDraft } from './events/eventBus'
 import { appendOperationEventDrafts } from './events'
 import { clamp } from './math'
@@ -27,6 +27,21 @@ export function resolveEmergencyWaiverRegulatoryArbitrageSignal(
   return authorityRoute === AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION
     ? 'cross_institution_clearance_route'
     : 'none'
+}
+
+/** SPE-1184: bounded rule-conflict surfacing (sanctioned procurement channel vs crisis waiver — not a general engine). */
+export type EmergencyWaiverRuleConflictSignal =
+  | 'none'
+  | 'sanctioned_procurement_vs_crisis_waiver'
+
+export function resolveEmergencyWaiverRuleConflictSignal(
+  majorIncidentSeverity: 'watch' | 'danger' | 'crisis',
+  sanctionLevel: LegitimacyState['sanctionLevel'] | undefined
+): EmergencyWaiverRuleConflictSignal {
+  if (sanctionLevel === 'sanctioned' && majorIncidentSeverity === 'crisis') {
+    return 'sanctioned_procurement_vs_crisis_waiver'
+  }
+  return 'none'
 }
 
 /** True when crisis pressure qualifies and posture is sanctioned; waiver not yet granted this week. */
@@ -65,6 +80,10 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
   const regulatoryArbitrageSignal = resolveEmergencyWaiverRegulatoryArbitrageSignal(
     authority.authorityRoute
   )
+  const ruleConflictSignal = resolveEmergencyWaiverRuleConflictSignal(
+    incidentState.severity,
+    game.legitimacy?.sanctionLevel
+  )
 
   return normalizeGameState(
     appendOperationEventDrafts(
@@ -93,6 +112,7 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
             authorityRoute: authority.authorityRoute,
             authorityBasis: authority.authorityBasis,
             regulatoryArbitrageSignal,
+            ruleConflictSignal,
           },
         },
       ]

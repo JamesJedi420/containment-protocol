@@ -105,6 +105,7 @@ describe('runTransfer helpers', () => {
       expect(ev.payload.authorityBasis).toBe(LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION)
       expect(ev.payload.waiverPrecedentCount).toBe(1)
       expect(ev.payload.regulatoryArbitrageSignal).toBe('none')
+      expect(ev.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
   })
 

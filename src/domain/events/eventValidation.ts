@@ -472,6 +472,7 @@ const marketEmergencyGrayMarketWaiverGrantedSchema = z
     authorityRoute: z.string().min(1),
     authorityBasis: z.string().min(1),
     regulatoryArbitrageSignal: z.enum(['none', 'cross_institution_clearance_route']),
+    ruleConflictSignal: z.enum(['none', 'sanctioned_procurement_vs_crisis_waiver']),
   })
   .strict()
 

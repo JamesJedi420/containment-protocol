@@ -17,6 +17,7 @@ import {
   canInvokeEmergencyGrayMarketWaiver,
   invokeEmergencyGrayMarketWaiver,
   resolveEmergencyWaiverRegulatoryArbitrageSignal,
+  resolveEmergencyWaiverRuleConflictSignal,
 } from '../domain/procurementEmergency'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { buildMajorIncidentState } from '../domain/strategicState'
@@ -86,6 +87,7 @@ describe('SPE-1511 institution-specific emergency procurement authorization', ()
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(audit.payload.authorityBasis).toContain('baseline institution')
       expect(audit.payload.regulatoryArbitrageSignal).toBe('none')
+      expect(audit.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
   })
 })
@@ -112,6 +114,7 @@ describe('SPE-849 explicit emergency authorization routing', () => {
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
       expect(audit.payload.institutionKey).toBe(INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT)
       expect(audit.payload.regulatoryArbitrageSignal).toBe('cross_institution_clearance_route')
+      expect(audit.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
   })
 })
@@ -178,6 +181,7 @@ describe('SPE-1524 emergency gray-market waiver', () => {
         institutionKey: 'containment_protocol',
         authorityRoute: AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
         regulatoryArbitrageSignal: 'none',
+        ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
       })
       expect(audit.payload.authorityBasis).toContain('baseline institution')
     }
@@ -394,5 +398,15 @@ describe('SPE-1184 regulatory arbitrage signal on waiver audit', () => {
       resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
     ).toBe('cross_institution_clearance_route')
     expect(resolveEmergencyWaiverRegulatoryArbitrageSignal('unknown_route')).toBe('none')
+  })
+})
+
+describe('SPE-1184 rule conflict signal on waiver audit', () => {
+  it('surfaces sanctioned procurement vs crisis waiver when sanctioned posture meets crisis severity', () => {
+    expect(resolveEmergencyWaiverRuleConflictSignal('crisis', 'sanctioned')).toBe(
+      'sanctioned_procurement_vs_crisis_waiver'
+    )
+    expect(resolveEmergencyWaiverRuleConflictSignal('danger', 'sanctioned')).toBe('none')
+    expect(resolveEmergencyWaiverRuleConflictSignal('crisis', 'tolerated')).toBe('none')
   })
 })

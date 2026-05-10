@@ -1730,6 +1730,10 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 payload.regulatoryArbitrageSignal === 'cross_institution_clearance_route'
                   ? 'cross_institution_clearance_route'
                   : 'none',
+              ruleConflictSignal:
+                payload.ruleConflictSignal === 'none'
+                  ? 'none'
+                  : 'sanctioned_procurement_vs_crisis_waiver',
             },
           })
         )

@@ -477,6 +477,8 @@ export interface OperationEventPayloadMap {
     authorityBasis: string
     /** SPE-1184: bounded regulatory-arbitrage detection from authority routing (not a general detector). */
     regulatoryArbitrageSignal: 'none' | 'cross_institution_clearance_route'
+    /** SPE-1184: bounded rule-conflict surfacing (sanctioned procurement vs crisis waiver grant). */
+    ruleConflictSignal: 'none' | 'sanctioned_procurement_vs_crisis_waiver'
   }
   /** SPE-1511: deterministic post-window accountability marker after active crisis waiver week closes. */
   'market.emergency_gray_market_waiver_accountability_closed': {

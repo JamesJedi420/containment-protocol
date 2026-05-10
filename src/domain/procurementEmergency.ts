@@ -102,7 +102,7 @@ export function invokeEmergencyGrayMarketWaiver(game: GameState): GameState {
           sourceSystem: 'production',
           payload: {
             week: game.week,
-            marketWeek: game.market.week,
+            marketWeek: game.week,
             crisisPressureScore: incidentState.pressureScore,
             sanctionLevel: 'sanctioned',
             packetId: 'gray_market_broker',

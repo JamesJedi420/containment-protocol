@@ -215,6 +215,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'market.shifted': 'Market Shift',
   'market.transaction_recorded': 'Market Transaction',
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
+  'market.emergency_gray_market_waiver_accountability_closed':
+    'Emergency Waiver Accountability Closed',
   'faction.standing_changed': 'Faction Standing',
   'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
@@ -261,6 +263,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'market.shifted': 'operations_logistics',
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
+  'market.emergency_gray_market_waiver_accountability_closed': 'operations_logistics',
   'faction.standing_changed': 'agency_posture',
   'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
@@ -845,6 +848,20 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'warning',
         searchText:
           `emergency gray market waiver sanctioned broker fallout crisis pressure ${event.payload.crisisPressureScore} institution ${event.payload.institutionKey} authority ${event.payload.authorityRoute}`.toLowerCase(),
+      }
+
+    case 'market.emergency_gray_market_waiver_accountability_closed':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Emergency gray-market waiver window closed — accountability posted',
+        detail: `Posted campaign week ${event.payload.week} / Waiver grant week ${event.payload.waiverGrantWeek} / Institution ${event.payload.institutionKey}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `emergency waiver accountability closed grant week ${event.payload.waiverGrantWeek} institution ${event.payload.institutionKey}`.toLowerCase(),
       }
 
     case 'faction.standing_changed':

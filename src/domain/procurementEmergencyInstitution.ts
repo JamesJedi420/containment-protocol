@@ -1,12 +1,13 @@
-// SPE-1511: Bounded institution-specific rules for emergency procurement authorization (extends SPE-1524).
+// SPE-1511: Institution identity normalization for emergency procurement audit payloads (extends SPE-1524).
+// SPE-849: This key feeds authority routing (Joint Oversight uses clearance ratification in procurementEmergencyAuthority).
 import type { GameState } from './models'
 
 /** Default player's institution — maps from legacy display label `Containment Protocol`. */
 export const INSTITUTION_KEY_CONTAINMENT_PROTOCOL = 'containment_protocol'
 
 /**
- * Joint Oversight Concordat: deterministic statutory denial of the crisis gray-market emergency waiver path.
- * Player profile uses a human label; audit keys normalize to lowercase underscores.
+ * Joint Oversight Concordat institution key (normalized label). Waiver eligibility is clearance-gated
+ * in procurementEmergencyAuthority (SPE-849), not a flat deny at this layer.
  */
 export const INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT = 'joint_oversight_concordat'
 

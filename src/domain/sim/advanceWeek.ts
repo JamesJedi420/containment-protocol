@@ -122,6 +122,7 @@ import {
 } from '../explanations'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
 import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
   type AgencyState,
   type CaseInstance,
@@ -3090,7 +3091,9 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
       : fatiguedAgents
 
   const nextWeek = context.sourceState.week + 1
-  let emergencyGrayMarketWaiverWeek = context.nextState.emergencyGrayMarketWaiverWeek
+  const prevWaiverWeek = context.nextState.emergencyGrayMarketWaiverWeek
+  let emergencyGrayMarketWaiverWeek = prevWaiverWeek
+
   if (emergencyGrayMarketWaiverWeek !== undefined && emergencyGrayMarketWaiverWeek < nextWeek) {
     emergencyGrayMarketWaiverWeek = undefined
   }
@@ -3101,6 +3104,18 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     rngState: rng.getState(),
     agents: directiveAdjustedAgents,
     emergencyGrayMarketWaiverWeek,
+  }
+
+  if (prevWaiverWeek !== undefined && prevWaiverWeek === context.sourceState.week) {
+    context.eventDrafts.push({
+      type: 'market.emergency_gray_market_waiver_accountability_closed',
+      sourceSystem: 'production',
+      payload: {
+        week: nextWeek,
+        waiverGrantWeek: prevWaiverWeek,
+        institutionKey: getEmergencyProcurementInstitutionAuditKey(context.nextState),
+      },
+    })
   }
 
   const stressGainByAgentId = Object.fromEntries(

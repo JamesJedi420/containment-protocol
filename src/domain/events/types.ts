@@ -474,6 +474,14 @@ export interface OperationEventPayloadMap {
     /** SPE-849: human-legible basis string for audit review. */
     authorityBasis: string
   }
+  /** SPE-1511: deterministic post-window accountability marker after active crisis waiver week closes. */
+  'market.emergency_gray_market_waiver_accountability_closed': {
+    /** Campaign week when this closure posts (first week after the grant week). */
+    week: number
+    /** Campaign week the gray-market waiver was granted for. */
+    waiverGrantWeek: number
+    institutionKey: string
+  }
   'faction.standing_changed': {
     week: number
     factionId: string
@@ -589,6 +597,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'market.shifted': 'production'
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
+  'market.emergency_gray_market_waiver_accountability_closed': 'production'
   'faction.standing_changed': 'faction'
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
@@ -635,6 +644,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'market.shifted': 'production',
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',
+  'market.emergency_gray_market_waiver_accountability_closed': 'production',
   'faction.standing_changed': 'faction',
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',

@@ -88,6 +88,66 @@ describe('runTransfer helpers', () => {
     }
   })
 
+  it('migrates emergency waiver accountability closed events missing institutionKey (SPE-1511)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 8,
+        events: [
+          {
+            id: 'evt-accountability-closed',
+            schemaVersion: 2,
+            type: 'market.emergency_gray_market_waiver_accountability_closed',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            payload: {
+              week: 8,
+              waiverGrantWeek: 7,
+            },
+          },
+        ],
+      },
+      fallback
+    )
+
+    expect(hydrated.events).toHaveLength(1)
+    const ev = hydrated.events[0]
+    expect(ev?.type).toBe('market.emergency_gray_market_waiver_accountability_closed')
+    if (ev?.type === 'market.emergency_gray_market_waiver_accountability_closed') {
+      expect(ev.payload.week).toBe(8)
+      expect(ev.payload.waiverGrantWeek).toBe(7)
+      expect(ev.payload.institutionKey).toBe('containment_protocol')
+    }
+  })
+
+  it('migrates accountability closed events missing waiverGrantWeek to the prior campaign week (SPE-1511)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 8,
+        events: [
+          {
+            id: 'evt-accountability-no-grant-week',
+            schemaVersion: 2,
+            type: 'market.emergency_gray_market_waiver_accountability_closed',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            payload: {
+              week: 8,
+            },
+          },
+        ],
+      },
+      fallback
+    )
+
+    expect(hydrated.events).toHaveLength(1)
+    const ev = hydrated.events[0]
+    expect(ev?.type).toBe('market.emergency_gray_market_waiver_accountability_closed')
+    if (ev?.type === 'market.emergency_gray_market_waiver_accountability_closed') {
+      expect(ev.payload.waiverGrantWeek).toBe(7)
+    }
+  })
   it('propagates canonical distortion state into report snapshots', () => {
     const caseWithDistortion: CaseInstance = {
       id: 'case-distorted',

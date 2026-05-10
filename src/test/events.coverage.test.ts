@@ -36,6 +36,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'market.shifted': 'covered',
   'market.transaction_recorded': 'covered',
   'market.emergency_gray_market_waiver_granted': 'covered',
+  'market.emergency_gray_market_waiver_accountability_closed': 'covered',
   'faction.standing_changed': 'covered',
   'faction.unlock_available': 'covered',
   'agency.containment_updated': 'covered',

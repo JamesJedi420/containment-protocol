@@ -95,6 +95,7 @@ const OPERATION_EVENT_TYPES = [
   'market.shifted',
   'market.transaction_recorded',
   'market.emergency_gray_market_waiver_granted',
+  'market.emergency_gray_market_waiver_accountability_closed',
   'faction.standing_changed',
   'faction.unlock_available',
   'faction.activity',
@@ -1709,6 +1710,25 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.authorityBasis === 'string' && payload.authorityBasis.trim().length > 0
                   ? payload.authorityBasis.trim()
                   : LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
+            },
+          })
+        )
+        break
+
+      case 'market.emergency_gray_market_waiver_accountability_closed':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.emergency_gray_market_waiver_accountability_closed'),
+            payload: {
+              week,
+              waiverGrantWeek: sanitizeInteger(
+                payload.waiverGrantWeek as number | undefined,
+                Math.max(1, week - 1),
+                1
+              ),
+              institutionKey: normalizeInstitutionKeyForAudit(
+                typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
+              ),
             },
           })
         )

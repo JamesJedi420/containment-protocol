@@ -92,6 +92,9 @@ describe('SPE-849 explicit emergency authorization routing', () => {
     const game = crisisSanctionedGame()
     setPlayerOrganization(game, 'Joint Oversight Concordat')
     game.clearanceLevel = 3
+    if (game.agency) {
+      game.agency.clearanceLevel = 3
+    }
 
     const auth = resolveEmergencyGrayMarketWaiverAuthority(game)
     expect(auth.eligible).toBe(true)
@@ -211,6 +214,33 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     const next = advanceWeek(base)
     expect(next.week).toBe(base.week + 1)
     expect(next.emergencyGrayMarketWaiverWeek).toBeUndefined()
+  })
+
+  it('emits accountability closed once when advancing past the active waiver grant week (SPE-1511)', () => {
+    const base = createStartingState()
+    base.emergencyGrayMarketWaiverWeek = base.week
+    const next = advanceWeek(base)
+    const closed = next.events.filter(
+      (e) => e.type === 'market.emergency_gray_market_waiver_accountability_closed'
+    )
+    expect(closed).toHaveLength(1)
+    const ev = closed[0]
+    expect(ev?.type).toBe('market.emergency_gray_market_waiver_accountability_closed')
+    if (ev?.type === 'market.emergency_gray_market_waiver_accountability_closed') {
+      expect(ev.payload.week).toBe(base.week + 1)
+      expect(ev.payload.waiverGrantWeek).toBe(base.week)
+      expect(ev.payload.institutionKey).toBe('containment_protocol')
+    }
+  })
+
+  it('does not emit accountability closed when clearing a stale waiver week from older saves', () => {
+    const base = createStartingState()
+    base.week = 12
+    base.emergencyGrayMarketWaiverWeek = 9
+    const next = advanceWeek(base)
+    expect(next.events.filter((e) => e.type === 'market.emergency_gray_market_waiver_accountability_closed')).toHaveLength(
+      0
+    )
   })
 
   it('advanceWeek clears stale emergencyGrayMarketWaiverWeek from older saves', () => {

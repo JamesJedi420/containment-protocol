@@ -3,8 +3,24 @@
  * Distinct from intel-friction penalties inside weakest-link scoring — this applies after base resolution.
  */
 import { describeContractArchiveInstabilityClause } from './contracts'
-import type { CaseInstance } from './models'
+import type { CaseInstance, MissionSpawnedConsequence } from './models'
 import type { WeakestLinkMissionResolutionResult } from './weakestLinkResolution'
+
+export function buildExecutionInstabilityObjectiveDriftConsequence(
+  currentCase: CaseInstance,
+  weakestLinkResult: WeakestLinkMissionResolutionResult | undefined
+): MissionSpawnedConsequence | undefined {
+  if (!weakestLinkResult?.executionInstability?.applied) {
+    return undefined
+  }
+
+  return {
+    type: 'follow_up_case',
+    caseId: currentCase.id,
+    caseTitle: currentCase.title,
+    detail: 'Execution instability shifted objective integrity and queued follow-up objective realignment.',
+  }
+}
 
 export function applyExecutionInstabilityOverlay(
   currentCase: CaseInstance,

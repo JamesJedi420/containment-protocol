@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { describeContractArchiveInstabilityClause } from '../domain/contracts'
-import { applyExecutionInstabilityOverlay } from '../domain/executionInstability'
+import {
+  applyExecutionInstabilityOverlay,
+  buildExecutionInstabilityObjectiveDriftConsequence,
+} from '../domain/executionInstability'
 import type { CaseInstance } from '../domain/models'
 import { resolveWeakestLinkMission } from '../domain/weakestLinkResolution'
 import { explainWeakestLinkResolution } from '../domain/visibility'
@@ -128,5 +131,19 @@ describe('SPE-17 execution instability overlay', () => {
     expect(overlaid.fatalityRiskDelta).toBeUndefined()
     expect(overlaid.expectedRecoveryWeeksDelta).toBeUndefined()
     expect(overlaid.deploymentDebtSignals).toBeUndefined()
+  })
+
+  it('builds follow-up objective drift consequence when instability is applied', () => {
+    const overlaid = applyExecutionInstabilityOverlay(
+      { contract: { templateId: 'institutions-ritual-archive' } } as CaseInstance,
+      resolveWeakestLinkMission(PERFECT_TEAM_PARAMS)
+    )
+    const consequence = buildExecutionInstabilityObjectiveDriftConsequence(
+      { id: 'case-1', title: 'Archive Recovery' } as CaseInstance,
+      overlaid
+    )
+    expect(consequence).toBeDefined()
+    expect(consequence?.type).toBe('follow_up_case')
+    expect(consequence?.detail).toContain('objective realignment')
   })
 })

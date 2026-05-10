@@ -84,6 +84,8 @@ describe('SPE-17 execution instability overlay', () => {
     expect(overlaid.outcomeCategory).toBe('partial')
     expect(overlaid.executionInstability?.applied).toBe(true)
     expect(overlaid.executionInstability?.flag).toBe('contract_archive_instability')
+    expect(overlaid.expectedRecoveryWeeksDelta).toBe(1)
+    expect(overlaid.deploymentDebtSignals).toContain('execution-instability-recovery-surcharge')
     expect(overlaid.weakestLinkNarrativeReasonCodes).toContain('execution-instability-overlay')
   })
 
@@ -97,6 +99,7 @@ describe('SPE-17 execution instability overlay', () => {
     expect(explanation.summary).toContain('archive-instability')
     expect(explanation.details.some((d) => d.includes('Upstream instability cause'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('Downstream instability effect'))).toBe(true)
+    expect(explanation.details.some((d) => d.includes('+1 expected recovery week'))).toBe(true)
   })
 
   it('does not change outcome when base is already partial', () => {
@@ -117,5 +120,7 @@ describe('SPE-17 execution instability overlay', () => {
     )
     expect(overlaid.resultKind).toBe('partial')
     expect(overlaid.executionInstability?.applied).toBe(false)
+    expect(overlaid.expectedRecoveryWeeksDelta).toBeUndefined()
+    expect(overlaid.deploymentDebtSignals).toBeUndefined()
   })
 })

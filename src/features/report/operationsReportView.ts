@@ -170,12 +170,19 @@ function buildOutcomeCostSummary(
   const fatalities = missionResult?.fatalities?.length ?? 0
   const fatigueTargets =
     missionResult?.fatigueChanges.filter((change) => Math.abs(change.delta) > 0).length ?? 0
+  const recoverySurchargeWeeks = missionResult?.weakestLink?.expectedRecoveryWeeksDelta ?? 0
+  const instabilityRecoverySurcharge =
+    missionResult?.weakestLink?.executionInstability?.applied &&
+    recoverySurchargeWeeks > 0
+      ? `Instability recovery surcharge +${recoverySurchargeWeeks} week${recoverySurchargeWeeks === 1 ? '' : 's'}`
+      : ''
 
   return takeBounded(
     [
       injuries > 0 ? `${injuries} injury record${injuries === 1 ? '' : 's'}` : '',
       fatalities > 0 ? `${fatalities} fatalit${fatalities === 1 ? 'y' : 'ies'}` : '',
       fatigueTargets > 0 ? `Fatigue shifted across ${fatigueTargets} operative${fatigueTargets === 1 ? '' : 's'}` : '',
+      instabilityRecoverySurcharge,
       (missionResult?.spawnedConsequences.length ?? 0) > 0
         ? `${missionResult?.spawnedConsequences.length ?? 0} follow-up consequence${(missionResult?.spawnedConsequences.length ?? 0) === 1 ? '' : 's'}`
         : '',

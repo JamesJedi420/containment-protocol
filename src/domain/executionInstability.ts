@@ -32,11 +32,16 @@ export function applyExecutionInstabilityOverlay(
     ...base,
     outcomeCategory: 'partial',
     resultKind: 'partial',
+    expectedRecoveryWeeksDelta: (base.expectedRecoveryWeeksDelta ?? 0) + 1,
+    deploymentDebtSignals: [
+      ...(base.deploymentDebtSignals ?? []),
+      'execution-instability-recovery-surcharge',
+    ],
     executionInstability: {
       flag: 'contract_archive_instability',
       upstreamCause,
       downstreamEffect:
-        'Unstable archive contract clause forced execution outcome one band worse (success → partial) on the shared readiness/time-cost scaffold.',
+        'Unstable archive contract clause forced execution outcome one band worse (success → partial) and added +1 expected recovery week on the shared readiness/time-cost scaffold.',
       applied: true,
     },
     weakestLinkNarrativeReasonCodes: [

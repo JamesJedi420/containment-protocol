@@ -13,8 +13,11 @@ import {
   normalizeInstitutionKeyForAudit,
 } from '../domain/procurementEmergencyInstitution'
 import {
+  applyEmergencyGrayMarketFalloutTick,
   canInvokeEmergencyGrayMarketWaiver,
   invokeEmergencyGrayMarketWaiver,
+  resolveEmergencyWaiverRegulatoryArbitrageSignal,
+  resolveEmergencyWaiverRuleConflictSignal,
 } from '../domain/procurementEmergency'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { buildMajorIncidentState } from '../domain/strategicState'
@@ -83,6 +86,8 @@ describe('SPE-1511 institution-specific emergency procurement authorization', ()
       expect(audit.payload.institutionKey).toBe('containment_protocol')
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(audit.payload.authorityBasis).toContain('baseline institution')
+      expect(audit.payload.regulatoryArbitrageSignal).toBe('none')
+      expect(audit.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
   })
 })
@@ -108,6 +113,8 @@ describe('SPE-849 explicit emergency authorization routing', () => {
     if (audit?.type === 'market.emergency_gray_market_waiver_granted') {
       expect(audit.payload.authorityRoute).toBe(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
       expect(audit.payload.institutionKey).toBe(INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT)
+      expect(audit.payload.regulatoryArbitrageSignal).toBe('cross_institution_clearance_route')
+      expect(audit.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
   })
 })
@@ -154,6 +161,7 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     const next = invokeEmergencyGrayMarketWaiver(game)
 
     expect(next.emergencyGrayMarketWaiverWeek).toBe(next.week)
+    expect(next.emergencyGrayMarketWaiverPrecedentCount).toBe(1)
     expect(hasActiveEmergencyGrayMarketWaiver(next)).toBe(true)
     expect(next.legitimacy?.falloutRisk).toBe('risk')
     expect(next.legitimacy?.sanctionLevel).toBe('sanctioned')
@@ -169,8 +177,11 @@ describe('SPE-1524 emergency gray-market waiver', () => {
         sanctionLevel: 'sanctioned',
         packetId: 'gray_market_broker',
         falloutRiskApplied: 'risk',
+        waiverPrecedentCount: 1,
         institutionKey: 'containment_protocol',
         authorityRoute: AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
+        regulatoryArbitrageSignal: 'none',
+        ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
       })
       expect(audit.payload.authorityBasis).toContain('baseline institution')
     }
@@ -250,5 +261,152 @@ describe('SPE-1524 emergency gray-market waiver', () => {
     const next = advanceWeek(base)
     expect(next.week).toBe(13)
     expect(next.emergencyGrayMarketWaiverWeek).toBeUndefined()
+  })
+})
+
+describe('SPE-1184 emergency gray-market waiver fallout tick', () => {
+  it('blocks a new waiver invoke while costly fallout oversight is pending', () => {
+    const game = crisisSanctionedGame()
+    game.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'costly' }
+    expect(canInvokeEmergencyGrayMarketWaiver(game)).toBe(false)
+    expect(invokeEmergencyGrayMarketWaiver(game)).toBe(game)
+  })
+
+  it('escalates falloutRisk risk→costly with deterministic funding and containment pressure', () => {
+    const source = createStartingState()
+    source.week = 3
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'risk' }
+    const draftNext = { ...source, week: 4 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]?.type).toBe('market.emergency_gray_market_fallout_tick')
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+    }
+    expect(nextState.funding).toBe(105)
+    expect(nextState.containmentRating).toBe(69)
+    expect(nextState.legitimacy?.falloutRisk).toBe('costly')
+    expect(nextState.legitimacy?.sanctionLevel).toBe('sanctioned')
+  })
+
+  it('scales fallout risk-phase penalties with waiver precedent count (bounded multiplier)', () => {
+    const source = createStartingState()
+    source.week = 3
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'risk' }
+    source.emergencyGrayMarketWaiverPrecedentCount = 8
+    const draftNext = { ...source, week: 4 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    expect(drafts).toHaveLength(1)
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(8)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1.36)
+    }
+    expect(nextState.funding).toBe(103)
+    expect(nextState.containmentRating).toBe(68)
+    expect(nextState.legitimacy?.falloutRisk).toBe('costly')
+  })
+
+  it('clears falloutRisk costly→none with stronger deterministic penalties', () => {
+    const source = createStartingState()
+    source.week = 4
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'costly' }
+    const draftNext = { ...source, week: 5, funding: 105, containmentRating: 69 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]?.type).toBe('market.emergency_gray_market_fallout_tick')
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.outcome).toBe('resolved_closed')
+      expect(drafts[0].payload.falloutRiskAfter).toBe('none')
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(1)
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1)
+    }
+    expect(nextState.funding).toBe(96)
+    expect(nextState.containmentRating).toBe(65)
+    expect(nextState.legitimacy?.falloutRisk).toBe('none')
+  })
+
+  it('scales fallout costly-phase penalties at max precedent multiplier', () => {
+    const source = createStartingState()
+    source.week = 4
+    source.legitimacy = { sanctionLevel: 'sanctioned', falloutRisk: 'costly' }
+    source.emergencyGrayMarketWaiverPrecedentCount = 10
+    const draftNext = { ...source, week: 5, funding: 105, containmentRating: 69 }
+    const { nextState, drafts } = applyEmergencyGrayMarketFalloutTick(source, draftNext)
+
+    if (drafts[0]?.type === 'market.emergency_gray_market_fallout_tick') {
+      expect(drafts[0].payload.precedentPenaltyMultiplier).toBe(1.36)
+      expect(drafts[0].payload.waiverPrecedentCount).toBe(10)
+    }
+    expect(nextState.funding).toBe(93)
+    expect(nextState.containmentRating).toBe(64)
+    expect(nextState.legitimacy?.falloutRisk).toBe('none')
+  })
+
+  it('invokes waiver fallout across advanceWeek: risk then costly then cleared', () => {
+    const game = crisisSanctionedGame()
+    const waived = invokeEmergencyGrayMarketWaiver(game)
+    expect(waived.legitimacy?.falloutRisk).toBe('risk')
+
+    const afterFirstAdvance = advanceWeek(waived)
+    expect(afterFirstAdvance.legitimacy?.falloutRisk).toBe('costly')
+    expect(
+      afterFirstAdvance.events.filter((e) => e.type === 'market.emergency_gray_market_fallout_tick')
+    ).toHaveLength(1)
+
+    const afterSecondAdvance = advanceWeek(afterFirstAdvance)
+    expect(afterSecondAdvance.legitimacy?.falloutRisk).toBe('none')
+    expect(
+      afterSecondAdvance.events.filter((e) => e.type === 'market.emergency_gray_market_fallout_tick')
+    ).toHaveLength(2)
+  })
+})
+
+describe('SPE-1184 emergency waiver precedent counter', () => {
+  it('accumulates waiverPrecedentCount on each grant and echoes it on the audit event', () => {
+    const game = crisisSanctionedGame()
+    const first = invokeEmergencyGrayMarketWaiver(game)
+    expect(first.emergencyGrayMarketWaiverPrecedentCount).toBe(1)
+
+    const readyForSecond = {
+      ...first,
+      week: first.week + 1,
+      emergencyGrayMarketWaiverWeek: undefined,
+      legitimacy: { sanctionLevel: 'sanctioned', falloutRisk: 'none' },
+    }
+    expect(canInvokeEmergencyGrayMarketWaiver(readyForSecond)).toBe(true)
+
+    const second = invokeEmergencyGrayMarketWaiver(readyForSecond)
+    expect(second.emergencyGrayMarketWaiverPrecedentCount).toBe(2)
+    const lastGrant = second.events
+      .filter((e) => e.type === 'market.emergency_gray_market_waiver_granted')
+      .at(-1)
+    expect(lastGrant?.type).toBe('market.emergency_gray_market_waiver_granted')
+    if (lastGrant?.type === 'market.emergency_gray_market_waiver_granted') {
+      expect(lastGrant.payload.waiverPrecedentCount).toBe(2)
+    }
+  })
+})
+
+describe('SPE-1184 regulatory arbitrage signal on waiver audit', () => {
+  it('maps authority routes to bounded regulatoryArbitrageSignal values', () => {
+    expect(resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)).toBe('none')
+    expect(
+      resolveEmergencyWaiverRegulatoryArbitrageSignal(AUTHORITY_ROUTE_JOINT_OVERSIGHT_CLEARANCE_RATIFICATION)
+    ).toBe('cross_institution_clearance_route')
+    expect(resolveEmergencyWaiverRegulatoryArbitrageSignal('unknown_route')).toBe('none')
+  })
+})
+
+describe('SPE-1184 rule conflict signal on waiver audit', () => {
+  it('surfaces sanctioned procurement vs crisis waiver when sanctioned posture meets crisis severity', () => {
+    expect(resolveEmergencyWaiverRuleConflictSignal('crisis', 'sanctioned')).toBe(
+      'sanctioned_procurement_vs_crisis_waiver'
+    )
+    expect(resolveEmergencyWaiverRuleConflictSignal('danger', 'sanctioned')).toBe('none')
+    expect(resolveEmergencyWaiverRuleConflictSignal('crisis', 'tolerated')).toBe('none')
   })
 })

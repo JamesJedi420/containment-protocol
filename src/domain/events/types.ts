@@ -467,12 +467,18 @@ export interface OperationEventPayloadMap {
     sanctionLevel: 'sanctioned'
     packetId: 'gray_market_broker'
     falloutRiskApplied: 'risk'
+    /** SPE-1184: cumulative emergency waiver grants (precedent / abuse trail). */
+    waiverPrecedentCount: number
     /** SPE-1511: normalized director institution key for audit legibility. */
     institutionKey: string
     /** SPE-849: which authorization path was used (path-sensitive authority). */
     authorityRoute: string
     /** SPE-849: human-legible basis string for audit review. */
     authorityBasis: string
+    /** SPE-1184: bounded regulatory-arbitrage detection from authority routing (not a general detector). */
+    regulatoryArbitrageSignal: 'none' | 'cross_institution_clearance_route'
+    /** SPE-1184: bounded rule-conflict surfacing (sanctioned procurement vs crisis waiver grant). */
+    ruleConflictSignal: 'none' | 'sanctioned_procurement_vs_crisis_waiver'
   }
   /** SPE-1511: deterministic post-window accountability marker after active crisis waiver week closes. */
   'market.emergency_gray_market_waiver_accountability_closed': {
@@ -480,6 +486,22 @@ export interface OperationEventPayloadMap {
     week: number
     /** Campaign week the gray-market waiver was granted for. */
     waiverGrantWeek: number
+    institutionKey: string
+  }
+  /** SPE-1184: weekly mechanical fallout from emergency waiver legitimacy pressure (bounded two-phase tick). */
+  'market.emergency_gray_market_fallout_tick': {
+    week: number
+    outcome: 'escalated_pending_oversight' | 'resolved_closed'
+    falloutRiskBefore: 'risk' | 'costly'
+    falloutRiskAfter: 'costly' | 'none'
+    fundingBefore: number
+    fundingAfter: number
+    containmentRatingBefore: number
+    containmentRatingAfter: number
+    /** Count of emergency waiver grants driving precedent pressure on this tick. */
+    waiverPrecedentCount: number
+    /** Bounded multiplier applied to base fallout penalty bands (deterministic from precedent). */
+    precedentPenaltyMultiplier: number
     institutionKey: string
   }
   'faction.standing_changed': {
@@ -598,6 +620,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
   'market.emergency_gray_market_waiver_accountability_closed': 'production'
+  'market.emergency_gray_market_fallout_tick': 'production'
   'faction.standing_changed': 'faction'
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
@@ -645,6 +668,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',
   'market.emergency_gray_market_waiver_accountability_closed': 'production',
+  'market.emergency_gray_market_fallout_tick': 'production',
   'faction.standing_changed': 'faction',
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',

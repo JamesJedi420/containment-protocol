@@ -467,9 +467,12 @@ const marketEmergencyGrayMarketWaiverGrantedSchema = z
     sanctionLevel: z.literal('sanctioned'),
     packetId: z.literal('gray_market_broker'),
     falloutRiskApplied: z.literal('risk'),
+    waiverPrecedentCount: z.number().int().min(1).max(50000),
     institutionKey: z.string().min(1),
     authorityRoute: z.string().min(1),
     authorityBasis: z.string().min(1),
+    regulatoryArbitrageSignal: z.enum(['none', 'cross_institution_clearance_route']),
+    ruleConflictSignal: z.enum(['none', 'sanctioned_procurement_vs_crisis_waiver']),
   })
   .strict()
 
@@ -477,6 +480,22 @@ const marketEmergencyGrayMarketWaiverAccountabilityClosedSchema = z
   .object({
     week: weekSchema,
     waiverGrantWeek: weekSchema,
+    institutionKey: z.string().min(1),
+  })
+  .strict()
+
+const marketEmergencyGrayMarketFalloutTickSchema = z
+  .object({
+    week: weekSchema,
+    outcome: z.enum(['escalated_pending_oversight', 'resolved_closed']),
+    falloutRiskBefore: z.enum(['risk', 'costly']),
+    falloutRiskAfter: z.enum(['costly', 'none']),
+    fundingBefore: z.number(),
+    fundingAfter: z.number(),
+    containmentRatingBefore: z.number(),
+    containmentRatingAfter: z.number(),
+    waiverPrecedentCount: z.number().int().min(1).max(50000),
+    precedentPenaltyMultiplier: z.number().min(1).max(2),
     institutionKey: z.string().min(1),
   })
   .strict()
@@ -600,6 +619,7 @@ export const operationEventPayloadSchemas = {
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,
   'market.emergency_gray_market_waiver_accountability_closed':
     marketEmergencyGrayMarketWaiverAccountabilityClosedSchema,
+  'market.emergency_gray_market_fallout_tick': marketEmergencyGrayMarketFalloutTickSchema,
   'faction.standing_changed': factionStandingChangedSchema,
   'faction.unlock_available': factionUnlockAvailableSchema,
   'agency.containment_updated': agencyContainmentUpdatedSchema,

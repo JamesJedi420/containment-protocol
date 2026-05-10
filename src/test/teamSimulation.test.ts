@@ -8,6 +8,7 @@ import {
   getTeamMembers,
   getTeamMemberIds,
   getUniqueTeamMembers,
+  normalizeGameState,
   resolutionProfileToLegacyStats,
   syncTeamSimulationState,
 } from '../domain/teamSimulation'
@@ -58,6 +59,18 @@ describe('teamSimulation', () => {
       expect(summary.technological).toContain('data-loss')
     })
   })
+  it('aligns market.week to campaign week during normalization (SPE-1184)', () => {
+    const state = createStartingState()
+    const drifted = {
+      ...state,
+      week: 14,
+      market: { ...state.market, week: 2 },
+    }
+    const fixed = normalizeGameState(drifted)
+    expect(fixed.market.week).toBe(14)
+    expect(fixed.week).toBe(14)
+  })
+
   it('hydrates canonical team fields onto the starting state', () => {
     const state = createStartingState()
     const team = state.teams['t_nightwatch']

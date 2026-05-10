@@ -52,6 +52,24 @@ describe('runTransfer helpers', () => {
     expect(hydrated.emergencyGrayMarketWaiverWeek).toBeUndefined()
   })
 
+  it('aligns market.week to campaign week on hydrate when persisted values drift (SPE-1184 procurement clock parity)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 18,
+        market: {
+          ...fallback.market,
+          week: 3,
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.week).toBe(18)
+    expect(hydrated.market.week).toBe(18)
+  })
+
   it('migrates legacy emergency waiver events missing institutionKey and authority routing (SPE-1511 / SPE-849)', () => {
     const fallback = createStartingState()
     const hydrated = hydrateGame(
@@ -85,7 +103,24 @@ describe('runTransfer helpers', () => {
       expect(ev.payload.institutionKey).toBe('containment_protocol')
       expect(ev.payload.authorityRoute).toBe(AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF)
       expect(ev.payload.authorityBasis).toBe(LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION)
+      expect(ev.payload.waiverPrecedentCount).toBe(1)
+      expect(ev.payload.regulatoryArbitrageSignal).toBe('none')
+      expect(ev.payload.ruleConflictSignal).toBe('sanctioned_procurement_vs_crisis_waiver')
     }
+  })
+
+  it('hydrates emergencyGrayMarketWaiverPrecedentCount (SPE-1184)', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        week: 8,
+        emergencyGrayMarketWaiverPrecedentCount: 6,
+      },
+      fallback
+    )
+
+    expect(hydrated.emergencyGrayMarketWaiverPrecedentCount).toBe(6)
   })
 
   it('migrates emergency waiver accountability closed events missing institutionKey (SPE-1511)', () => {
@@ -206,7 +241,7 @@ describe('runTransfer helpers', () => {
     expect(migrated.game.events).toEqual([])
     expect(migrated.game.inventory).toEqual(fallback.inventory)
     expect(migrated.game.productionQueue).toEqual([])
-    expect(migrated.game.market).toEqual(fallback.market)
+    expect(migrated.game.market).toEqual({ ...fallback.market, week: 6 })
     expect(migrated.game).not.toHaveProperty('templates')
   })
 
@@ -344,6 +379,7 @@ describe('runTransfer helpers', () => {
 
   it('round-trips active inventory, production queue, and market state', () => {
     const game = createStartingState()
+    game.week = 4
     game.inventory = {
       ...game.inventory,
       medkits: 3,

@@ -1041,6 +1041,9 @@ export function syncTeamSimulationState(state: GameState): GameState {
   const recruitmentPool = normalizeRecruitmentPoolMirror(state)
   const caseQueue = normalizeCaseQueueMirror(state)
 
+  const market =
+    state.market.week === state.week ? state.market : { ...state.market, week: state.week }
+
   return {
     ...state,
     agents,
@@ -1053,6 +1056,7 @@ export function syncTeamSimulationState(state: GameState): GameState {
     candidates: [...state.candidates],
     recruitmentPool,
     caseQueue,
+    market,
   }
 }
 
@@ -1102,14 +1106,17 @@ function isTeamSimulationTeamNormalized(
 }
 
 export function ensureNormalizedGameState(state: GameState): GameState {
+  const aligned =
+    state.market.week === state.week ? state : { ...state, market: { ...state.market, week: state.week } }
+
   const isNormalized =
-    isAgentRecordNormalized(state.agents) &&
-    hasGameStateMirrorParity(state) &&
-    Object.values(state.teams).every((team) =>
-      isTeamSimulationTeamNormalized(team, state.agents, state.cases)
+    isAgentRecordNormalized(aligned.agents) &&
+    hasGameStateMirrorParity(aligned) &&
+    Object.values(aligned.teams).every((team) =>
+      isTeamSimulationTeamNormalized(team, aligned.agents, aligned.cases)
     )
 
-  return isNormalized ? state : syncTeamSimulationState(state)
+  return isNormalized ? aligned : syncTeamSimulationState(aligned)
 }
 
 /**

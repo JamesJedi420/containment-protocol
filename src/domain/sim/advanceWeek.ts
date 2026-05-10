@@ -122,6 +122,7 @@ import {
 } from '../explanations'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
 import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
   type AgencyState,
@@ -3117,6 +3118,10 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
       },
     })
   }
+
+  const falloutResult = applyEmergencyGrayMarketFalloutTick(context.sourceState, context.nextState)
+  context.nextState = falloutResult.nextState
+  context.eventDrafts.push(...falloutResult.drafts)
 
   const stressGainByAgentId = Object.fromEntries(
     Object.keys(context.nextState.agents).map((agentId) => [

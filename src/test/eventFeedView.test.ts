@@ -647,9 +647,12 @@ describe('buildEventFeedView', () => {
       sanctionLevel: 'sanctioned',
       packetId: 'gray_market_broker',
       falloutRiskApplied: 'risk',
+      waiverPrecedentCount: 2,
       institutionKey: 'containment_protocol',
       authorityRoute: 'crisis_director_self',
       authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+      regulatoryArbitrageSignal: 'none',
+      ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
     })
     const view = buildEventFeedView(event)
 
@@ -658,12 +661,42 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Campaign week 8')
     expect(view.detail).toContain('Crisis pressure 130')
     expect(view.detail).toContain('Fallout risk')
+    expect(view.detail).toContain('Waiver precedent 2')
     expect(view.detail).toContain('Institution containment_protocol')
     expect(view.detail).toContain('Authority crisis_director_self')
+    expect(view.detail).toContain('Reg. arbitrage none')
+    expect(view.detail).toContain(
+      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
+    )
     expect(view.searchText).toContain('130')
     expect(view.searchText).toContain('sanctioned')
     expect(view.searchText).toContain('containment_protocol')
     expect(view.searchText).toContain('crisis_director_self')
+    expect(view.searchText).toContain('precedent 2')
+  })
+
+  it('market.emergency_gray_market_waiver_granted — regulatory arbitrage signal when clearance ratification route', () => {
+    const event = makeEvent('market.emergency_gray_market_waiver_granted', {
+      week: 9,
+      marketWeek: 8,
+      crisisPressureScore: 125,
+      sanctionLevel: 'sanctioned',
+      packetId: 'gray_market_broker',
+      falloutRiskApplied: 'risk',
+      waiverPrecedentCount: 1,
+      institutionKey: 'joint_oversight_concordat',
+      authorityRoute: 'joint_oversight_clearance_ratification',
+      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+      regulatoryArbitrageSignal: 'cross_institution_clearance_route',
+      ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.detail).toContain('Reg. arbitrage cross_institution_clearance_route')
+    expect(view.searchText).toContain('cross_institution_clearance_route')
+    expect(view.detail).toContain(
+      'Rule conflict sanctioned_procurement_vs_crisis_waiver'
+    )
   })
 
   it('market.emergency_gray_market_waiver_accountability_closed — neutral accountability marker', () => {
@@ -679,6 +712,50 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Posted campaign week 9')
     expect(view.detail).toContain('Waiver grant week 8')
     expect(view.searchText).toContain('containment_protocol')
+  })
+
+  it('market.emergency_gray_market_fallout_tick — danger while pending oversight', () => {
+    const event = makeEvent('market.emergency_gray_market_fallout_tick', {
+      week: 4,
+      outcome: 'escalated_pending_oversight',
+      falloutRiskBefore: 'risk',
+      falloutRiskAfter: 'costly',
+      fundingBefore: 110,
+      fundingAfter: 105,
+      containmentRatingBefore: 72,
+      containmentRatingAfter: 69,
+      waiverPrecedentCount: 1,
+      precedentPenaltyMultiplier: 1,
+      institutionKey: 'containment_protocol',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('danger')
+    expect(view.title).toContain('escalated')
+    expect(view.detail).toContain('110→105')
+    expect(view.detail).toContain('Precedent 1 ×1')
+  })
+
+  it('market.emergency_gray_market_fallout_tick — warning when resolved closed', () => {
+    const event = makeEvent('market.emergency_gray_market_fallout_tick', {
+      week: 5,
+      outcome: 'resolved_closed',
+      falloutRiskBefore: 'costly',
+      falloutRiskAfter: 'none',
+      fundingBefore: 105,
+      fundingAfter: 96,
+      containmentRatingBefore: 69,
+      containmentRatingAfter: 65,
+      waiverPrecedentCount: 2,
+      precedentPenaltyMultiplier: 1.06,
+      institutionKey: 'containment_protocol',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.title).toContain('closed')
+    expect(view.detail).toContain('resolved closed')
+    expect(view.detail).toContain('Precedent 2 ×1.06')
   })
 
   it('faction.standing_changed — posture tone and standing range in detail', () => {

@@ -96,6 +96,7 @@ const OPERATION_EVENT_TYPES = [
   'market.transaction_recorded',
   'market.emergency_gray_market_waiver_granted',
   'market.emergency_gray_market_waiver_accountability_closed',
+  'market.emergency_gray_market_fallout_tick',
   'faction.standing_changed',
   'faction.unlock_available',
   'faction.activity',
@@ -893,6 +894,15 @@ function sanitizeProductionQueue(value: unknown): ProductionQueueEntry[] {
   return nextQueue
 }
 
+/** SPE-1184: bounded precedent counter for repeated emergency waiver grants. */
+function sanitizeEmergencyGrayMarketWaiverPrecedentCount(raw: unknown): number {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+    return 0
+  }
+
+  return clamp(Math.trunc(raw), 0, 50000)
+}
+
 /** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
 function sanitizeEmergencyGrayMarketWaiverWeek(
   raw: unknown,
@@ -911,13 +921,14 @@ function sanitizeEmergencyGrayMarketWaiverWeek(
   return waiverWeek
 }
 
-function sanitizeMarket(value: unknown, fallback: MarketState): MarketState {
+function sanitizeMarket(value: unknown, fallback: MarketState, campaignWeek: number): MarketState {
   if (!isRecord(value)) {
-    return fallback
+    return { ...fallback, week: campaignWeek }
   }
 
   return {
-    week: sanitizeInteger(value.week as number | undefined, fallback.week, 1),
+    // Procurement exchange week tracks campaign week (rollNextMarket); mismatch breaks waiver vs ledger parity (SPE-1184).
+    week: campaignWeek,
     featuredRecipeId:
       typeof value.featuredRecipeId === 'string'
         ? value.featuredRecipeId
@@ -1699,6 +1710,11 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               sanctionLevel: 'sanctioned',
               packetId: 'gray_market_broker',
               falloutRiskApplied: 'risk',
+              waiverPrecedentCount: clamp(
+                sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
+                1,
+                50000
+              ),
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),
@@ -1710,6 +1726,14 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 typeof payload.authorityBasis === 'string' && payload.authorityBasis.trim().length > 0
                   ? payload.authorityBasis.trim()
                   : LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
+              regulatoryArbitrageSignal:
+                payload.regulatoryArbitrageSignal === 'cross_institution_clearance_route'
+                  ? 'cross_institution_clearance_route'
+                  : 'none',
+              ruleConflictSignal:
+                payload.ruleConflictSignal === 'none'
+                  ? 'none'
+                  : 'sanctioned_procurement_vs_crisis_waiver',
             },
           })
         )
@@ -1728,6 +1752,55 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
               ),
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
+              ),
+            },
+          })
+        )
+        break
+
+      case 'market.emergency_gray_market_fallout_tick':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.emergency_gray_market_fallout_tick'),
+            payload: {
+              week,
+              outcome:
+                payload.outcome === 'resolved_closed'
+                  ? 'resolved_closed'
+                  : 'escalated_pending_oversight',
+              falloutRiskBefore:
+                payload.falloutRiskBefore === 'costly' ? 'costly' : 'risk',
+              falloutRiskAfter:
+                payload.falloutRiskAfter === 'none'
+                  ? 'none'
+                  : 'costly',
+              fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
+              fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
+              containmentRatingBefore: sanitizeInteger(
+                payload.containmentRatingBefore as number | undefined,
+                0,
+                0
+              ),
+              containmentRatingAfter: sanitizeInteger(
+                payload.containmentRatingAfter as number | undefined,
+                0,
+                0
+              ),
+              institutionKey: normalizeInstitutionKeyForAudit(
+                typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
+              ),
+              waiverPrecedentCount: clamp(
+                sanitizeInteger(payload.waiverPrecedentCount as number | undefined, 1, 1),
+                1,
+                50000
+              ),
+              precedentPenaltyMultiplier: clamp(
+                typeof payload.precedentPenaltyMultiplier === 'number' &&
+                  Number.isFinite(payload.precedentPenaltyMultiplier)
+                  ? payload.precedentPenaltyMultiplier
+                  : 1,
+                1,
+                2
               ),
             },
           })
@@ -2053,7 +2126,7 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       partyCards: sanitizePartyCardState(game.partyCards, fallback.partyCards),
       trainingQueue: sanitizeTrainingQueue(game.trainingQueue),
       productionQueue: sanitizeProductionQueue(game.productionQueue),
-      market: sanitizeMarket(game.market, fallback.market),
+      market: sanitizeMarket(game.market, fallback.market, week),
       config: sanitizeGameConfig(game.config, fallback.config),
       contracts: hasPersistedContracts ? game.contracts : undefined,
       academyTier: clamp(
@@ -2075,6 +2148,9 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
         game.emergencyGrayMarketWaiverWeek,
         week
+      ),
+      emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
+        game.emergencyGrayMarketWaiverPrecedentCount
       ),
       templates: fallback.templates,
     }) as GameState

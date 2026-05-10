@@ -485,6 +485,7 @@ describe('market procurement simulation', () => {
       week: 5,
       market: {
         ...base.market,
+        week: 5,
         licensedHandlingAttestationWeek: 1,
       },
     }
@@ -512,6 +513,7 @@ describe('market procurement simulation', () => {
       week: 5,
       market: {
         ...base.market,
+        week: 5,
         licensedHandlingAttestationWeek: 1,
       },
     }

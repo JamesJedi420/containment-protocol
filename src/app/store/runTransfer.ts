@@ -911,13 +911,14 @@ function sanitizeEmergencyGrayMarketWaiverWeek(
   return waiverWeek
 }
 
-function sanitizeMarket(value: unknown, fallback: MarketState): MarketState {
+function sanitizeMarket(value: unknown, fallback: MarketState, campaignWeek: number): MarketState {
   if (!isRecord(value)) {
-    return fallback
+    return { ...fallback, week: campaignWeek }
   }
 
   return {
-    week: sanitizeInteger(value.week as number | undefined, fallback.week, 1),
+    // Procurement exchange week tracks campaign week (rollNextMarket); mismatch breaks waiver vs ledger parity (SPE-1184).
+    week: campaignWeek,
     featuredRecipeId:
       typeof value.featuredRecipeId === 'string'
         ? value.featuredRecipeId
@@ -2053,7 +2054,7 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       partyCards: sanitizePartyCardState(game.partyCards, fallback.partyCards),
       trainingQueue: sanitizeTrainingQueue(game.trainingQueue),
       productionQueue: sanitizeProductionQueue(game.productionQueue),
-      market: sanitizeMarket(game.market, fallback.market),
+      market: sanitizeMarket(game.market, fallback.market, week),
       config: sanitizeGameConfig(game.config, fallback.config),
       contracts: hasPersistedContracts ? game.contracts : undefined,
       academyTier: clamp(

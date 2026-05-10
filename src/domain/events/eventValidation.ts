@@ -481,6 +481,20 @@ const marketEmergencyGrayMarketWaiverAccountabilityClosedSchema = z
   })
   .strict()
 
+const marketEmergencyGrayMarketFalloutTickSchema = z
+  .object({
+    week: weekSchema,
+    outcome: z.enum(['escalated_pending_oversight', 'resolved_closed']),
+    falloutRiskBefore: z.enum(['risk', 'costly']),
+    falloutRiskAfter: z.enum(['costly', 'none']),
+    fundingBefore: z.number(),
+    fundingAfter: z.number(),
+    containmentRatingBefore: z.number(),
+    containmentRatingAfter: z.number(),
+    institutionKey: z.string().min(1),
+  })
+  .strict()
+
 const factionStandingChangedSchema = z
   .object({
     week: weekSchema,
@@ -600,6 +614,7 @@ export const operationEventPayloadSchemas = {
   'market.emergency_gray_market_waiver_granted': marketEmergencyGrayMarketWaiverGrantedSchema,
   'market.emergency_gray_market_waiver_accountability_closed':
     marketEmergencyGrayMarketWaiverAccountabilityClosedSchema,
+  'market.emergency_gray_market_fallout_tick': marketEmergencyGrayMarketFalloutTickSchema,
   'faction.standing_changed': factionStandingChangedSchema,
   'faction.unlock_available': factionUnlockAvailableSchema,
   'agency.containment_updated': agencyContainmentUpdatedSchema,

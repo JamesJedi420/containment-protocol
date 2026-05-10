@@ -120,4 +120,20 @@ describe('event payload validation coverage', () => {
 
     expect(validation.success).toBe(true)
   })
+
+  it('accepts market.emergency_gray_market_fallout_tick payloads', () => {
+    const validation = validateOperationEventPayload('market.emergency_gray_market_fallout_tick', {
+      week: 7,
+      outcome: 'escalated_pending_oversight',
+      falloutRiskBefore: 'risk',
+      falloutRiskAfter: 'costly',
+      fundingBefore: 110,
+      fundingAfter: 105,
+      containmentRatingBefore: 72,
+      containmentRatingAfter: 69,
+      institutionKey: 'containment_protocol',
+    })
+
+    expect(validation.success).toBe(true)
+  })
 })

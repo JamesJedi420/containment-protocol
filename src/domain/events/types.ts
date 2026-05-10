@@ -482,6 +482,18 @@ export interface OperationEventPayloadMap {
     waiverGrantWeek: number
     institutionKey: string
   }
+  /** SPE-1184: weekly mechanical fallout from emergency waiver legitimacy pressure (bounded two-phase tick). */
+  'market.emergency_gray_market_fallout_tick': {
+    week: number
+    outcome: 'escalated_pending_oversight' | 'resolved_closed'
+    falloutRiskBefore: 'risk' | 'costly'
+    falloutRiskAfter: 'costly' | 'none'
+    fundingBefore: number
+    fundingAfter: number
+    containmentRatingBefore: number
+    containmentRatingAfter: number
+    institutionKey: string
+  }
   'faction.standing_changed': {
     week: number
     factionId: string
@@ -598,6 +610,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'market.transaction_recorded': 'production'
   'market.emergency_gray_market_waiver_granted': 'production'
   'market.emergency_gray_market_waiver_accountability_closed': 'production'
+  'market.emergency_gray_market_fallout_tick': 'production'
   'faction.standing_changed': 'faction'
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
@@ -645,6 +658,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'market.transaction_recorded': 'production',
   'market.emergency_gray_market_waiver_granted': 'production',
   'market.emergency_gray_market_waiver_accountability_closed': 'production',
+  'market.emergency_gray_market_fallout_tick': 'production',
   'faction.standing_changed': 'faction',
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',

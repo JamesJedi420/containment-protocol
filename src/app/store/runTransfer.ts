@@ -96,6 +96,7 @@ const OPERATION_EVENT_TYPES = [
   'market.transaction_recorded',
   'market.emergency_gray_market_waiver_granted',
   'market.emergency_gray_market_waiver_accountability_closed',
+  'market.emergency_gray_market_fallout_tick',
   'faction.standing_changed',
   'faction.unlock_available',
   'faction.activity',
@@ -1726,6 +1727,42 @@ function sanitizeOperationEvents(events: unknown, fallback: OperationEvent[]): O
                 payload.waiverGrantWeek as number | undefined,
                 Math.max(1, week - 1),
                 1
+              ),
+              institutionKey: normalizeInstitutionKeyForAudit(
+                typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
+              ),
+            },
+          })
+        )
+        break
+
+      case 'market.emergency_gray_market_fallout_tick':
+        nextEvents.push(
+          migrateOperationEventToCurrentSchema({
+            ...createBase('market.emergency_gray_market_fallout_tick'),
+            payload: {
+              week,
+              outcome:
+                payload.outcome === 'resolved_closed'
+                  ? 'resolved_closed'
+                  : 'escalated_pending_oversight',
+              falloutRiskBefore:
+                payload.falloutRiskBefore === 'costly' ? 'costly' : 'risk',
+              falloutRiskAfter:
+                payload.falloutRiskAfter === 'none'
+                  ? 'none'
+                  : 'costly',
+              fundingBefore: sanitizeInteger(payload.fundingBefore as number | undefined, 0, 0),
+              fundingAfter: sanitizeInteger(payload.fundingAfter as number | undefined, 0, 0),
+              containmentRatingBefore: sanitizeInteger(
+                payload.containmentRatingBefore as number | undefined,
+                0,
+                0
+              ),
+              containmentRatingAfter: sanitizeInteger(
+                payload.containmentRatingAfter as number | undefined,
+                0,
+                0
               ),
               institutionKey: normalizeInstitutionKeyForAudit(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined

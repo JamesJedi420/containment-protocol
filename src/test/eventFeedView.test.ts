@@ -681,6 +681,44 @@ describe('buildEventFeedView', () => {
     expect(view.searchText).toContain('containment_protocol')
   })
 
+  it('market.emergency_gray_market_fallout_tick — danger while pending oversight', () => {
+    const event = makeEvent('market.emergency_gray_market_fallout_tick', {
+      week: 4,
+      outcome: 'escalated_pending_oversight',
+      falloutRiskBefore: 'risk',
+      falloutRiskAfter: 'costly',
+      fundingBefore: 110,
+      fundingAfter: 105,
+      containmentRatingBefore: 72,
+      containmentRatingAfter: 69,
+      institutionKey: 'containment_protocol',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('danger')
+    expect(view.title).toContain('escalated')
+    expect(view.detail).toContain('110→105')
+  })
+
+  it('market.emergency_gray_market_fallout_tick — warning when resolved closed', () => {
+    const event = makeEvent('market.emergency_gray_market_fallout_tick', {
+      week: 5,
+      outcome: 'resolved_closed',
+      falloutRiskBefore: 'costly',
+      falloutRiskAfter: 'none',
+      fundingBefore: 105,
+      fundingAfter: 96,
+      containmentRatingBefore: 69,
+      containmentRatingAfter: 65,
+      institutionKey: 'containment_protocol',
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.title).toContain('closed')
+    expect(view.detail).toContain('resolved closed')
+  })
+
   it('faction.standing_changed — posture tone and standing range in detail', () => {
     const event = makeEvent('faction.standing_changed', {
       week: 6,

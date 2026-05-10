@@ -217,6 +217,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'market.emergency_gray_market_waiver_granted': 'Emergency Gray-Market Waiver',
   'market.emergency_gray_market_waiver_accountability_closed':
     'Emergency Waiver Accountability Closed',
+  'market.emergency_gray_market_fallout_tick': 'Emergency Waiver Fallout',
   'faction.standing_changed': 'Faction Standing',
   'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
@@ -264,6 +265,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'market.transaction_recorded': 'operations_logistics',
   'market.emergency_gray_market_waiver_granted': 'operations_logistics',
   'market.emergency_gray_market_waiver_accountability_closed': 'operations_logistics',
+  'market.emergency_gray_market_fallout_tick': 'operations_logistics',
   'faction.standing_changed': 'agency_posture',
   'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
@@ -862,6 +864,23 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         tone: 'neutral',
         searchText:
           `emergency waiver accountability closed grant week ${event.payload.waiverGrantWeek} institution ${event.payload.institutionKey}`.toLowerCase(),
+      }
+
+    case 'market.emergency_gray_market_fallout_tick':
+      return {
+        event,
+        week: event.payload.week,
+        title:
+          event.payload.outcome === 'resolved_closed'
+            ? 'Emergency waiver oversight fallout closed'
+            : 'Emergency waiver fallout escalated — oversight review pending',
+        detail: `Week ${event.payload.week} / ${event.payload.outcome.replace(/_/g, ' ')} / Funding ${event.payload.fundingBefore}→${event.payload.fundingAfter} / Containment ${event.payload.containmentRatingBefore}→${event.payload.containmentRatingAfter} / Institution ${event.payload.institutionKey}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.outcome === 'resolved_closed' ? 'warning' : 'danger',
+        searchText:
+          `emergency waiver fallout oversight institution ${event.payload.institutionKey} funding containment`.toLowerCase(),
       }
 
     case 'faction.standing_changed':

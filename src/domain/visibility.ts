@@ -23,6 +23,10 @@ import type {
 const MAX_EXPLANATION_DETAILS = 3
 const DEFAULT_TREND_WINDOW = 5
 
+/** SPE-17: one-clock legibility while archive-instability is present (summary; details cap stays at 3). */
+const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
+  'Mixed exploration, inspection, combat, and recovery accounting stays on the shared readiness/time-cost clock; archive-instability does not add a parallel operational timer.'
+
 export type VisibilityExplanationCategory =
   | 'routing'
   | 'deployment-readiness'
@@ -537,8 +541,8 @@ export function explainWeakestLinkResolution(
   const dominantFactor = dominantBucket?.code ?? 'clean-success'
   const summary = result.executionInstability
     ? result.executionInstability.applied
-      ? `Weakest-link resolution for ${result.missionId} is ${result.resultKind} after a bounded archive-instability downgrade on top of base scoring.`
-      : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; unstable archive contract clause monitored (${result.executionInstability.flag}).`
+      ? `Weakest-link resolution for ${result.missionId} is ${result.resultKind} after a bounded archive-instability downgrade on top of base scoring. ${EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY}`
+      : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; unstable archive contract clause monitored (${result.executionInstability.flag}). ${EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY}`
     : result.resultKind === 'success' && !dominantBucket
       ? `Weakest-link resolution stayed clean for ${result.missionId}.`
       : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; ${formatVisibilityFactorLabel(dominantFactor)} is dominant.`

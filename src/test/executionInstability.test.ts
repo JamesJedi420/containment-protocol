@@ -104,6 +104,8 @@ describe('SPE-17 execution instability overlay', () => {
     )
     const explanation = explainWeakestLinkResolution(overlaid)
     expect(explanation.summary).toContain('archive-instability')
+    expect(explanation.summary).toContain('shared readiness/time-cost clock')
+    expect(explanation.summary).toContain('parallel operational timer')
     expect(explanation.details.some((d) => d.includes('Upstream instability cause'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('Downstream instability effect'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('Ally reliability degraded'))).toBe(true)
@@ -134,6 +136,26 @@ describe('SPE-17 execution instability overlay', () => {
     expect(overlaid.fatalityRiskDelta).toBeUndefined()
     expect(overlaid.expectedRecoveryWeeksDelta).toBeUndefined()
     expect(overlaid.deploymentDebtSignals).toBeUndefined()
+  })
+
+  it('surfaces shared operational clock legibility when instability clause is monitored (not applied)', () => {
+    const partialBase = resolveWeakestLinkMission({
+      ...PERFECT_TEAM_PARAMS,
+      baseScore: 70,
+      teamReadiness: {
+        ...PERFECT_TEAM_PARAMS.teamReadiness,
+        coverageCompleteness: { required: ['containment'], covered: [], missing: ['containment'] },
+        minimumMemberReadiness: 40,
+      },
+    })
+    const overlaid = applyExecutionInstabilityOverlay(
+      { contract: { templateId: 'institutions-ritual-archive' } } as CaseInstance,
+      partialBase
+    )
+    const explanation = explainWeakestLinkResolution(overlaid)
+    expect(overlaid.executionInstability?.applied).toBe(false)
+    expect(explanation.summary).toContain('monitored')
+    expect(explanation.summary).toContain('shared readiness/time-cost clock')
   })
 
   it('builds follow-up objective drift consequence when instability is applied', () => {

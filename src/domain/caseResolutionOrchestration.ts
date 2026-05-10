@@ -11,6 +11,7 @@ import {
 } from './disguiseValidation'
 import { buildAgencyProtocolState } from './protocols'
 import { computeTeamScore, computeRequiredScore } from './sim/scoring'
+import { applyExecutionInstabilityOverlay } from './executionInstability'
 import { resolveWeakestLinkMission } from './weakestLinkResolution'
 import { resolveMajorIncidentOutcome, buildMajorIncidentEffectiveCase, isOperationalMajorIncidentCase } from './majorIncidentOperations'
 import { resolveRaid } from './sim/raid'
@@ -154,6 +155,14 @@ export function resolveAssignedCaseForWeek(
       fatigueSignals,
       missingRoles,
     })
+    weakestLinkResult = applyExecutionInstabilityOverlay(resolvedEffectiveCase, weakestLinkResult)
+    const instabilityReasons =
+      weakestLinkResult.executionInstability !== undefined
+        ? [
+            `Upstream execution instability: ${weakestLinkResult.executionInstability.upstreamCause}`,
+            `Execution instability effect: ${weakestLinkResult.executionInstability.downstreamEffect}`,
+          ]
+        : []
     // Map weakest-link result to ResolutionOutcome
     outcome = {
       caseId: currentCase.id,
@@ -168,6 +177,7 @@ export function resolveAssignedCaseForWeek(
           : []),
         `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
         ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
+        ...instabilityReasons,
       ],
     }
   } else {

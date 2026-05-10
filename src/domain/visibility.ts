@@ -535,8 +535,11 @@ export function explainWeakestLinkResolution(
   const positiveBuckets = result.weakestLinkPenaltyBuckets.filter((bucket) => bucket.appliedPenalty > 0).sort(sortBucketsByPenalty)
   const dominantBucket = positiveBuckets[0]
   const dominantFactor = dominantBucket?.code ?? 'clean-success'
-  const summary =
-    result.resultKind === 'success' && !dominantBucket
+  const summary = result.executionInstability
+    ? result.executionInstability.applied
+      ? `Weakest-link resolution for ${result.missionId} is ${result.resultKind} after a bounded archive-instability downgrade on top of base scoring.`
+      : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; unstable archive contract clause monitored (${result.executionInstability.flag}).`
+    : result.resultKind === 'success' && !dominantBucket
       ? `Weakest-link resolution stayed clean for ${result.missionId}.`
       : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; ${formatVisibilityFactorLabel(dominantFactor)} is dominant.`
   const recoveryDetail =
@@ -554,6 +557,12 @@ export function explainWeakestLinkResolution(
     summary,
     dominantFactor,
     details: takeBoundedDetails([
+      result.executionInstability
+        ? `Upstream instability cause: ${result.executionInstability.upstreamCause}`
+        : undefined,
+      result.executionInstability
+        ? `Downstream instability effect: ${result.executionInstability.downstreamEffect}`
+        : undefined,
       dominantBucket
         ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
         : 'No penalty bucket applied any weakest-link drag.',

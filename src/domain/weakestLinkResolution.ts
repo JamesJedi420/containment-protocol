@@ -37,6 +37,14 @@ export type WeakestLinkResultKind = 'success' | 'partial' | 'fail'
 
 export type RecoveryPressureBand = 'low' | 'moderate' | 'high' | 'severe'
 
+/** SPE-17: single explicit instability overlay record (contract archive clause path). */
+export interface ExecutionInstabilityOverlay {
+  flag: 'contract_archive_instability'
+  upstreamCause: string
+  downstreamEffect: string
+  applied: boolean
+}
+
 export interface WeakestLinkMissionResolutionResult {
   // Canonical envelope
   missionId: string
@@ -64,6 +72,9 @@ export interface WeakestLinkMissionResolutionResult {
   penaltyComputationVersion?: string
   orderedPenaltyApplication?: WeakestLinkPenaltyBucket[]
   cappedPenalties?: WeakestLinkPenaltyBucket[]
+
+  /** SPE-17 execution instability layered after base weakest-link resolution. */
+  executionInstability?: ExecutionInstabilityOverlay
 }
 
 // --- Core Logic ---

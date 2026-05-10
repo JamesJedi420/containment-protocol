@@ -92,6 +92,9 @@ describe('SPE-849 explicit emergency authorization routing', () => {
     const game = crisisSanctionedGame()
     setPlayerOrganization(game, 'Joint Oversight Concordat')
     game.clearanceLevel = 3
+    if (game.agency) {
+      game.agency.clearanceLevel = 3
+    }
 
     const auth = resolveEmergencyGrayMarketWaiverAuthority(game)
     expect(auth.eligible).toBe(true)

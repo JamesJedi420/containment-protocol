@@ -527,6 +527,9 @@ describe('MarketPage', () => {
   it('shows crisis gray-market waiver for Joint Oversight when clearance threshold is met (SPE-849)', () => {
     const game = jointOversightCrisisMarketGame()
     game.clearanceLevel = 3
+    if (game.agency) {
+      game.agency.clearanceLevel = 3
+    }
     useGameStore.setState({ game })
     renderMarketPage()
 

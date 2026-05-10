@@ -21,6 +21,9 @@ import type {
 } from './weakestLinkResolution'
 
 const MAX_EXPLANATION_DETAILS = 3
+/** SPE-17: +2 extra slots when instability is present — preserves the 3 instability-specific lines (upstream cause,
+ * downstream effect, ally reliability) while still surfacing the dominant penalty bucket and threshold. */
+const MAX_EXPLANATION_DETAILS_WITH_INSTABILITY = MAX_EXPLANATION_DETAILS + 2
 const DEFAULT_TREND_WINDOW = 5
 
 /** SPE-17: one-clock legibility while archive-instability is present (weakest-link summary + operations cost line). */
@@ -560,26 +563,31 @@ export function explainWeakestLinkResolution(
     category: 'weakest-link',
     summary,
     dominantFactor,
-    details: takeBoundedDetails([
+    details: takeBoundedDetails(
+      [
+        result.executionInstability
+          ? `Upstream instability cause: ${result.executionInstability.upstreamCause}`
+          : undefined,
+        result.executionInstability
+          ? `Downstream instability effect: ${result.executionInstability.downstreamEffect}`
+          : undefined,
+        result.deploymentDebtSignals?.includes('ally-reliability-fracture')
+          ? 'Ally reliability degraded: instability fractured support confidence during execution.'
+          : undefined,
+        dominantBucket
+          ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
+          : 'No penalty bucket applied any weakest-link drag.',
+        ...positiveBuckets.slice(1, 3).map(
+          (bucket) =>
+            `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
+        ),
+        buildThresholdDetail(result),
+        recoveryDetail,
+      ],
       result.executionInstability
-        ? `Upstream instability cause: ${result.executionInstability.upstreamCause}`
-        : undefined,
-      result.executionInstability
-        ? `Downstream instability effect: ${result.executionInstability.downstreamEffect}`
-        : undefined,
-      result.deploymentDebtSignals?.includes('ally-reliability-fracture')
-        ? 'Ally reliability degraded: instability fractured support confidence during execution.'
-        : undefined,
-      dominantBucket
-        ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
-        : 'No penalty bucket applied any weakest-link drag.',
-      ...positiveBuckets.slice(1, 3).map(
-        (bucket) =>
-          `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
-      ),
-      buildThresholdDetail(result),
-      recoveryDetail,
-    ]),
+        ? MAX_EXPLANATION_DETAILS_WITH_INSTABILITY
+        : MAX_EXPLANATION_DETAILS
+    ),
     relatedIds: uniqueStrings([result.missionId, ...(options?.relatedIds ?? [])]),
     severity: buildWeakestLinkSeverity(result.resultKind),
     timestamp: result.week,

@@ -774,7 +774,7 @@ export interface MissionInjuryRecord {
 }
 
 export interface MissionSpawnedConsequence {
-  type: 'stage_escalation' | 'follow_up_case'
+  type: 'stage_escalation' | 'follow_up_case' | 'queued_follow_up'
   caseId: Id
   caseTitle?: string
   stage?: number

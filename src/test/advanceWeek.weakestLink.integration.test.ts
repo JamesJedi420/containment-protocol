@@ -63,7 +63,7 @@ describe('advanceWeek weakest-link integration', () => {
     expect(
       missionResult.spawnedConsequences.some(
         (consequence) =>
-          consequence.type === 'follow_up_case' && consequence.detail.includes('objective realignment')
+          consequence.type === 'queued_follow_up' && consequence.detail.includes('objective realignment')
       )
     ).toBe(true)
   })

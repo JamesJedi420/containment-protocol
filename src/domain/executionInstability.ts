@@ -27,7 +27,7 @@ export function buildExecutionInstabilityObjectiveDriftConsequence(
   }
 
   return {
-    type: 'follow_up_case',
+    type: 'queued_follow_up',
     caseId: currentCase.id,
     caseTitle: currentCase.title,
     detail: 'Execution instability shifted objective integrity and queued follow-up objective realignment.',

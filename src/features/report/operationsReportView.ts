@@ -16,6 +16,9 @@ const MAX_READINESS_ITEMS = 4
 const MAX_OUTCOME_ITEMS = 4
 const MAX_HIGHLIGHTS = 3
 const MAX_DETAILS = 3
+/** SPE-17: +2 beyond MAX_DETAILS — one slot for the shared-clock legibility line and one for the instability
+ * recovery surcharge, so neither displaces the three standard cost facts (injuries, fatalities, fatigue). */
+const MAX_COST_DETAILS_WITH_INSTABILITY = MAX_DETAILS + 2
 
 const PRIORITY_SORT_ORDER: Record<MissionPriorityBand, number> = {
   critical: 0,
@@ -179,7 +182,7 @@ function buildOutcomeCostSummary(
       : ''
   const hasInstabilityMeta = Boolean(missionResult?.weakestLink?.executionInstability)
   /** SPE-17: keep one-clock legibility in the cost row without dropping a fourth cost fact when instability metadata is present. */
-  const costDetailLimit = hasInstabilityMeta ? MAX_DETAILS + 3 : MAX_DETAILS
+  const costDetailLimit = hasInstabilityMeta ? MAX_COST_DETAILS_WITH_INSTABILITY : MAX_DETAILS
 
   return takeBounded(
     [

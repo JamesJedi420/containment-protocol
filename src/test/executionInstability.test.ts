@@ -112,6 +112,16 @@ describe('SPE-17 execution instability overlay', () => {
     expect(explanation.details.some((d) => d.includes('+1 expected recovery week'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('injury risk by +0.08'))).toBe(true)
     expect(explanation.details.some((d) => d.includes('fatality risk by +0.04'))).toBe(true)
+    // Verify the dominant bucket / threshold details are not crowded out by the instability lines
+    expect(
+      explanation.details.some(
+        (d) =>
+          d.includes('cleared the required score') ||
+          d.includes('stayed above') ||
+          d.includes('crossed the fail threshold') ||
+          d.includes('No penalty bucket')
+      )
+    ).toBe(true)
   })
 
   it('does not change outcome when base is already partial', () => {
@@ -168,7 +178,7 @@ describe('SPE-17 execution instability overlay', () => {
       overlaid
     )
     expect(consequence).toBeDefined()
-    expect(consequence?.type).toBe('follow_up_case')
+    expect(consequence?.type).toBe('queued_follow_up')
     expect(consequence?.detail).toContain('objective realignment')
   })
 

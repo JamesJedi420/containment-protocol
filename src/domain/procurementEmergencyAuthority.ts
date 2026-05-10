@@ -39,7 +39,7 @@ export function resolveEmergencyGrayMarketWaiverAuthority(
   game: GameState
 ): EmergencyGrayMarketAuthorityResolution {
   const institutionKey = getEmergencyProcurementInstitutionAuditKey(game)
-  const clearance = sanitizeClearance(game.clearanceLevel)
+  const clearance = sanitizeClearance(game.agency?.clearanceLevel ?? game.clearanceLevel)
 
   if (institutionKey === INSTITUTION_KEY_JOINT_OVERSIGHT_CONCORDAT) {
     if (clearance < JOINT_OVERSIGHT_EMERGENCY_WAIVER_MIN_CLEARANCE) {

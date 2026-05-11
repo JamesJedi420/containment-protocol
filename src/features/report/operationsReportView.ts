@@ -9,6 +9,10 @@ import {
   formatVisibilityFactorLabel,
 } from '../../domain/visibility'
 import { buildCurrentSimulationPressureSummary } from '../../domain/sim/validation'
+import {
+  crossSessionAttritionPersistenceEnabled,
+  formatAttritionContinuitySummary,
+} from '../../domain/agent/attritionContinuity'
 
 const MAX_ROUTING_ITEMS = 4
 const MAX_READINESS_ITEMS = 4
@@ -79,6 +83,8 @@ export interface WeeklyOperationsSummaryView {
   attritionPressureSummary: string
   intelConfidenceSummary: string
   details: string[]
+  /** Present when `durationModel === 'attrition'` (SPE-281 cross-session continuity recap). */
+  crossSessionAttritionContinuitySummary?: string
 }
 
 export interface OperationsReportView {
@@ -365,6 +371,9 @@ export function getWeeklyOperationsSummaryView(game: GameState): WeeklyOperation
       pressure.intelConfidence * 100
     )}%.`,
     details: explanation.details.slice(0, MAX_DETAILS),
+    crossSessionAttritionContinuitySummary: crossSessionAttritionPersistenceEnabled(game.config)
+      ? formatAttritionContinuitySummary(game)
+      : undefined,
   }
 }
 

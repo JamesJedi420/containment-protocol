@@ -38,6 +38,9 @@ export function OperationsReportPanel() {
             <p>{view.weeklySummary.budgetPressureSummary}</p>
             <p>{view.weeklySummary.attritionPressureSummary}</p>
             <p>{view.weeklySummary.intelConfidenceSummary}</p>
+            {view.weeklySummary.crossSessionAttritionContinuitySummary ? (
+              <p className="opacity-90">{view.weeklySummary.crossSessionAttritionContinuitySummary}</p>
+            ) : null}
           </div>
 
           {view.weeklySummary.details.length > 0 ? (

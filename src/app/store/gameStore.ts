@@ -80,6 +80,7 @@ import { createSeededRng, normalizeSeed } from '../../domain/math'
 import type { EquipmentSlotKind } from '../../domain/equipment'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
+import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import { queueFabrication } from '../../domain/sim/production'
@@ -272,6 +273,8 @@ interface GameStore {
   exportRun: () => string
   importRun: (raw: string) => void
   newRunFromCurrentConfig: () => void
+  /** SPE-281: Clear persisted operative attrition state at an explicit chapter break (deterministic). */
+  applyChapterBreakAttritionContinuityReset: () => void
   reset: () => void
 }
 
@@ -1480,6 +1483,9 @@ export const useGameStore = create<GameStore>()(
             },
           },
         })),
+
+      applyChapterBreakAttritionContinuityReset: () =>
+        set((s) => ({ game: applyChapterBreakAttritionReset(s.game) })),
 
       reset: () => set({ game: createStartingState() }),
 

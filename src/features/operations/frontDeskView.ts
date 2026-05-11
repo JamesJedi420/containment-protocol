@@ -1165,6 +1165,9 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
         operationsReport.weeklySummary.budgetPressureSummary,
         operationsReport.weeklySummary.attritionPressureSummary,
         operationsReport.weeklySummary.intelConfidenceSummary,
+        ...(operationsReport.weeklySummary.crossSessionAttritionContinuitySummary
+          ? [operationsReport.weeklySummary.crossSessionAttritionContinuitySummary]
+          : []),
         ...operationsReport.weeklySummary.details,
       ],
       MAX_PRESSURE_DETAILS

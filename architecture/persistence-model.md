@@ -407,6 +407,7 @@ Do not derive:
 Persist:
 
 - yes, fully for campaign continuity
+- operative `attritionState` (SPE-281) through the same save/export path as the rest of `GameState`; recap surfaces read it directly. Cross-session continuity recap is active when `challengeModeEnabled` and `durationModel === 'attrition'` (hydration parity). Chapter-break reset clears attrition carryover via `applyChapterBreakAttritionReset` without requiring a full new-run wipe.
 
 Do not derive:
 

@@ -3,8 +3,13 @@
 import { refreshContractBoard } from '../contracts'
 import type { GameConfig, GameState } from '../models'
 import { buildTeamDeploymentReadinessState } from '../deploymentReadiness'
+import { recomputeMissionRouting } from '../missionIntakeRouting'
 import { syncTeamSimulationState } from '../teamSimulation'
-import { buildReplacementPressureState } from './attrition'
+import {
+  buildReplacementPressureState,
+  computeReplacementPressure,
+  DEFAULT_CRITICAL_REPLACEMENT_ROLES,
+} from './attrition'
 
 /**
  * Campaign formats that intentionally carry operative attrition and related pressure
@@ -23,7 +28,12 @@ export interface AttritionContinuityCounts {
   lost: number
   temporarilyUnavailable: number
   atRisk: number
+  /**
+   * Roster-only replacement pressure from lost operatives (`computeReplacementPressure`).
+   * Excludes funding-derived penalties mixed into `buildReplacementPressureState`.
+   */
   replacementPressure: number
+  /** Count of operatives in `lost` attrition status (roster staffing gap). */
   staffingGap: number
 }
 
@@ -43,14 +53,17 @@ export function countAttritionContinuity(state: GameState): AttritionContinuityC
     }
   }
 
-  const rps = buildReplacementPressureState(state)
+  const roster = computeReplacementPressure(
+    Object.values(state.agents),
+    [...DEFAULT_CRITICAL_REPLACEMENT_ROLES]
+  )
 
   return {
     lost,
     temporarilyUnavailable,
     atRisk,
-    replacementPressure: rps.replacementPressure,
-    staffingGap: rps.staffingGap,
+    replacementPressure: roster.replacementPressure,
+    staffingGap: roster.staffingGap,
   }
 }
 
@@ -62,7 +75,7 @@ export function formatAttritionContinuitySummary(state: GameState): string {
   return (
     `Cross-session attrition continuity: ${c.lost} lost, ` +
     `${c.temporarilyUnavailable} temporarily unavailable, ${c.atRisk} at risk; ` +
-    `replacement pressure ${c.replacementPressure} (staffing gap ${c.staffingGap}).`
+    `roster replacement pressure ${c.replacementPressure} (lost roster gap ${c.staffingGap}).`
   )
 }
 
@@ -77,16 +90,26 @@ export function applyChapterBreakAttritionReset(state: GameState): GameState {
       if (agent.attritionState === undefined) {
         return [agentId, agent]
       }
-      const next = { ...agent }
-      delete next.attritionState
-      return [agentId, next]
+      const nextAgent = { ...agent }
+      delete nextAgent.attritionState
+      return [agentId, nextAgent]
     })
   )
 
   let next: GameState = syncTeamSimulationState({ ...state, agents })
-  next = refreshContractBoard({
+
+  next = {
     ...next,
     replacementPressureState: buildReplacementPressureState(next),
+  }
+
+  next = {
+    ...next,
+    missionRouting: recomputeMissionRouting(next),
+  }
+
+  next = {
+    ...next,
     teams: Object.fromEntries(
       Object.entries(next.teams).map(([teamId, team]) => [
         teamId,
@@ -96,7 +119,7 @@ export function applyChapterBreakAttritionReset(state: GameState): GameState {
         },
       ])
     ),
-  })
+  }
 
-  return next
+  return refreshContractBoard(next)
 }

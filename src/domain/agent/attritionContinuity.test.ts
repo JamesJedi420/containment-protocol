@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../../data/startingState'
 import { loadGameSave, serializeGameSave } from '../../app/store/saveSystem'
+import { recomputeMissionRouting } from '../missionIntakeRouting'
 import {
   applyChapterBreakAttritionReset,
   countAttritionContinuity,
@@ -105,6 +106,37 @@ describe('attrition continuity (SPE-281)', () => {
     const line = formatAttritionContinuitySummary(state)
     expect(line).toContain('1 lost')
     expect(line).toContain('1 at risk')
-    expect(line).toMatch(/replacement pressure \d+/)
+    expect(line).toMatch(/roster replacement pressure \d+/)
+  })
+
+  it('does not fold funding penalties into continuity recap pressure', () => {
+    const state = createStartingState()
+    state.funding = 0
+    state.agency = { ...state.agency!, funding: 0 }
+
+    const c = countAttritionContinuity(state)
+    expect(c.replacementPressure).toBe(0)
+    expect(c.staffingGap).toBe(0)
+
+    const line = formatAttritionContinuitySummary(state)
+    expect(line).toContain('roster replacement pressure 0')
+  })
+
+  it('leaves mission routing canonical after chapter-break reset', () => {
+    let state = createStartingState()
+    state.agents['a_kellan'] = {
+      ...state.agents['a_kellan']!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: [],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+    state = { ...state, missionRouting: recomputeMissionRouting(state) }
+
+    const reset = applyChapterBreakAttritionReset(state)
+
+    expect(reset.missionRouting).toEqual(recomputeMissionRouting(reset))
   })
 })

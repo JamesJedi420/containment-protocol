@@ -60,6 +60,7 @@ import {
 } from '../../domain/hiddenCombatResolver'
 import type { ScreenRouteContext } from '../../domain/screenRouting'
 import {
+  type ContractNextIntent,
   type DeveloperLogEvent,
   type GameConfig,
   type GameFlagValue,
@@ -121,8 +122,10 @@ import { recomputeMissionRouting, routeMissionToTeam } from '../../domain/missio
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import {
+  clearContractNextIntent,
   launchContract as launchContractDomain,
   refreshContractBoard,
+  setContractNextIntent,
 } from '../../domain/contracts'
 import {
   createRunFromCurrentConfig,
@@ -200,6 +203,9 @@ interface GameStore {
     agentId: Id
   ) => ReturnType<typeof refreshPreparedSupportProcedureState>
   launchContract: (contractId: Id, teamId: Id) => void
+  /** SPE-1496: capture or clear the player's bounded post-contract next intent. */
+  setContractNextIntent: (intent: ContractNextIntent | null) => void
+  clearContractNextIntent: () => void
   launchMajorIncident: (
     caseId: Id,
     teamIds: Id[],
@@ -1091,6 +1097,12 @@ export const useGameStore = create<GameStore>()(
 
       launchContract: (contractId, teamId) =>
         set((s) => ({ game: launchContractDomain(s.game, contractId, teamId) })),
+
+      setContractNextIntent: (intent) =>
+        set((s) => ({ game: setContractNextIntent(s.game, intent) })),
+
+      clearContractNextIntent: () =>
+        set((s) => ({ game: clearContractNextIntent(s.game) })),
 
       launchMajorIncident: (caseId, teamIds, strategy = 'balanced', provisions = []) =>
         set((s) => ({

@@ -1,5 +1,18 @@
-import type { GameState, Id, MissionPriorityBand, MissionRoutingStateKind } from '../../domain/models'
+import type {
+  ContractDebriefRecord,
+  ContractNextIntent,
+  GameState,
+  Id,
+  MissionPriorityBand,
+  MissionRoutingStateKind,
+} from '../../domain/models'
 import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
+import {
+  getContractNextIntent,
+  getContractNextIntentLabel,
+  getContractNextIntentValues,
+  getRecentContractDebriefRecords,
+} from '../../domain/contracts'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import {
   EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY,
@@ -109,11 +122,42 @@ export interface WeeklyOperationsSummaryView {
   deploymentMomentumSummary?: string
 }
 
+export interface ContractDebriefIntentChoiceView {
+  intent: ContractNextIntent
+  label: string
+  selected: boolean
+  /** Reason text when the option appeared as a strategic option on a recent debrief. */
+  reason?: string
+}
+
+export interface ContractDebriefRecordView {
+  caseId: Id
+  caseTitle: string
+  contractTemplateId: Id
+  factionLabel?: string
+  outcomeLabel: string
+  week: number
+  summary: string
+  changedEntities: ContractDebriefRecord['changedEntities']
+  unresolvedClocks: ContractDebriefRecord['unresolvedClocks']
+}
+
+export interface ContractDebriefView {
+  records: ContractDebriefRecordView[]
+  /** Bounded list of all possible next-intent choices, ordered for stable UI. */
+  intentChoices: ContractDebriefIntentChoiceView[]
+  /** Currently captured intent, if any. */
+  selectedIntent: ContractNextIntent | null
+  /** Compact attention line for surfaces that only have room for one summary. */
+  attentionSummary: string | null
+}
+
 export interface OperationsReportView {
   missionRouting: MissionRoutingReportItemView[]
   deploymentReadiness: DeploymentReadinessReportItemView[]
   recentOutcomes: WeakestLinkOutcomeReportItemView[]
   weeklySummary: WeeklyOperationsSummaryView
+  contractDebrief: ContractDebriefView
 }
 
 function capitalizeLabel(value: string) {
@@ -424,11 +468,68 @@ function buildRotatingRosterContinuityRecapLine(game: GameState): string | undef
   return formatRotatingRosterContinuitySummary(counts)
 }
 
+export function getContractDebriefView(game: GameState): ContractDebriefView {
+  const records = getRecentContractDebriefRecords(game)
+  const selectedIntent = getContractNextIntent(game)
+
+  const reasonByIntent = new Map<ContractNextIntent, string>()
+  for (const record of records) {
+    for (const option of record.strategicOptions) {
+      if (!reasonByIntent.has(option.intent)) {
+        reasonByIntent.set(option.intent, option.reason)
+      }
+    }
+  }
+
+  const intentChoices: ContractDebriefIntentChoiceView[] = getContractNextIntentValues().map(
+    (intent) => ({
+      intent,
+      label: getContractNextIntentLabel(intent),
+      selected: selectedIntent === intent,
+      ...(reasonByIntent.get(intent) ? { reason: reasonByIntent.get(intent)! } : {}),
+    })
+  )
+
+  const recordViews: ContractDebriefRecordView[] = records.map((record) => ({
+    caseId: record.caseId,
+    caseTitle: record.caseTitle,
+    contractTemplateId: record.contractTemplateId,
+    ...(record.factionLabel ? { factionLabel: record.factionLabel } : {}),
+    outcomeLabel: formatOutcomeLabel(record.outcome),
+    week: record.week,
+    summary: record.summary,
+    changedEntities: [...record.changedEntities],
+    unresolvedClocks: [...record.unresolvedClocks],
+  }))
+
+  const attentionSummary = (() => {
+    if (recordViews.length === 0) {
+      return selectedIntent
+        ? `Next intent: ${getContractNextIntentLabel(selectedIntent)}.`
+        : null
+    }
+
+    const lead = recordViews[0]!
+    const intentSuffix = selectedIntent
+      ? ` Next intent: ${getContractNextIntentLabel(selectedIntent)}.`
+      : ' Next intent unset.'
+    return `${lead.summary}${intentSuffix}`
+  })()
+
+  return {
+    records: recordViews,
+    intentChoices,
+    selectedIntent,
+    attentionSummary,
+  }
+}
+
 export function getOperationsReportView(game: GameState): OperationsReportView {
   return {
     missionRouting: getMissionRoutingReportView(game),
     deploymentReadiness: getDeploymentReadinessReportView(game),
     recentOutcomes: getWeakestLinkOutcomeReportView(game),
     weeklySummary: getWeeklyOperationsSummaryView(game),
+    contractDebrief: getContractDebriefView(game),
   }
 }

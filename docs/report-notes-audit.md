@@ -13,6 +13,13 @@ Report notes (`ReportNote[]`) populate the weekly debrief log. Two systems produ
 
 Both are pure functions. Neither writes to `GameState` directly.
 
+A separate, narrower surface — the post-contract debrief — sits beside the report
+notes. It does **not** add new `ReportNote` types; instead it derives a compact
+record from the latest `WeeklyReport.caseSnapshots` and surfaces it through the
+operations report and front-desk attention list. See
+[`contract-debrief-next-intent-audit.md`](./contract-debrief-next-intent-audit.md)
+for shapes and pipeline details.
+
 ---
 
 ## 2. Note Identity and Timestamps

@@ -6,8 +6,9 @@ import { useGameStore } from '../../app/store/gameStore'
 import { getOperationsReportView } from '../report/operationsReportView'
 
 export function OperationsReportPanel() {
-  const { game } = useGameStore()
+  const { game, setContractNextIntent, clearContractNextIntent } = useGameStore()
   const view = useMemo(() => getOperationsReportView(game), [game])
+  const debrief = view.contractDebrief
 
   return (
     <section className="panel panel-support space-y-4" aria-label="Operations report">
@@ -189,6 +190,126 @@ export function OperationsReportPanel() {
           ) : (
             <p className="mt-3 text-sm opacity-60">No deployment readiness pairings are available.</p>
           )}
+        </article>
+
+        <article
+          className="rounded border border-white/10 px-3 py-3"
+          aria-label="Post-contract debrief"
+        >
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">Post-contract debrief</h3>
+            <p className="text-sm opacity-60">
+              Compact deterministic digest of completed contracts and the captured next-intent
+              focus.
+            </p>
+          </div>
+
+          {debrief.records.length > 0 ? (
+            <ul className="mt-3 space-y-3">
+              {debrief.records.map((record) => (
+                <li
+                  key={`${record.week}:${record.caseId}`}
+                  className="rounded border border-white/10 px-3 py-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">
+                        <Link
+                          to={APP_ROUTES.caseDetail(record.caseId)}
+                          className="hover:underline"
+                        >
+                          {record.caseTitle}
+                        </Link>
+                      </p>
+                      <p className="text-xs opacity-50">
+                        Week{' '}
+                        <Link
+                          to={APP_ROUTES.reportDetail(record.week)}
+                          className="hover:underline"
+                        >
+                          {record.week}
+                        </Link>{' '}
+                        / {record.outcomeLabel}
+                        {record.factionLabel ? ` / ${record.factionLabel}` : null}
+                      </p>
+                    </div>
+                    <Tag
+                      tone={
+                        record.outcomeLabel === 'Fail'
+                          ? 'danger'
+                          : record.outcomeLabel === 'Partial' || record.outcomeLabel === 'Unresolved'
+                            ? 'warning'
+                            : 'info'
+                      }
+                    >
+                      {record.outcomeLabel}
+                    </Tag>
+                  </div>
+                  <p className="mt-2 text-sm opacity-75">{record.summary}</p>
+
+                  {record.changedEntities.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-sm opacity-70">
+                      {record.changedEntities.map((entity) => (
+                        <li key={entity.id}>
+                          <span className="font-medium">{entity.label}:</span> {entity.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+
+                  {record.unresolvedClocks.length > 0 ? (
+                    <ul className="mt-2 space-y-1 text-sm opacity-65">
+                      {record.unresolvedClocks.map((clock) => (
+                        <li key={clock.id}>
+                          <span className="font-medium">Clock:</span> {clock.label} — {clock.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm opacity-60">
+              No completed contracts in the latest report. Captured next intent applies to the next
+              board refresh.
+            </p>
+          )}
+
+          <div className="mt-3 space-y-2" aria-label="Next-intent picker">
+            <p className="text-sm font-medium opacity-80">
+              Captured next intent:{' '}
+              {debrief.selectedIntent
+                ? debrief.intentChoices.find((choice) => choice.selected)?.label
+                : 'None'}
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {debrief.intentChoices.map((choice) => (
+                <button
+                  key={choice.intent}
+                  type="button"
+                  onClick={() => setContractNextIntent(choice.intent)}
+                  className={`rounded-full border px-2 py-1 transition ${
+                    choice.selected
+                      ? 'border-cyan-300/60 bg-cyan-500/20 text-cyan-50'
+                      : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'
+                  }`}
+                  title={choice.reason ?? 'Bias next contract suggestion ordering.'}
+                  aria-pressed={choice.selected}
+                >
+                  {choice.label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => clearContractNextIntent()}
+                className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/80 hover:bg-white/10"
+                aria-pressed={debrief.selectedIntent === null}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
         </article>
 
         <article className="rounded border border-white/10 px-3 py-3" aria-label="Recent outcome report">

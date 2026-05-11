@@ -904,6 +904,65 @@ export interface ContractHistoryRecord {
   lastCompletedWeek?: number
 }
 
+/**
+ * SPE-1496: bounded enum of post-contract player intents.
+ * Values are deliberately small and deterministic — they bias later contract
+ * suggestion/order through `getNextIntentSelectionBias` and never trigger a
+ * planner or freeform recap. Add cases sparingly.
+ */
+export type ContractNextIntent =
+  | 'chase-lead'
+  | 'stabilize-staff'
+  | 'repair-agency'
+  | 'pursue-faction'
+  | 'prepare-equipment'
+  | 'answer-emergency'
+
+export type ContractDebriefChangedEntityKind =
+  | 'staff'
+  | 'subject'
+  | 'route'
+  | 'evidence'
+  | 'faction'
+
+export interface ContractDebriefChangedEntity {
+  kind: ContractDebriefChangedEntityKind
+  id: string
+  label: string
+  detail: string
+}
+
+export interface ContractDebriefUnresolvedClock {
+  id: string
+  label: string
+  detail: string
+}
+
+export interface ContractDebriefStrategicOption {
+  intent: ContractNextIntent
+  label: string
+  reason: string
+}
+
+/**
+ * SPE-1496: compact deterministic record emitted for one completed contract operation.
+ * Surfaces the changed entities, unresolved clocks, and bounded strategic options the
+ * player needs to set a next intent — without a freeform prose recap layer.
+ */
+export interface ContractDebriefRecord {
+  caseId: Id
+  caseTitle: string
+  contractTemplateId: Id
+  factionId?: Id
+  factionLabel?: string
+  outcome: MissionResolutionKind
+  week: number
+  summary: string
+  changedEntities: ContractDebriefChangedEntity[]
+  unresolvedClocks: ContractDebriefUnresolvedClock[]
+  strategicOptions: ContractDebriefStrategicOption[]
+}
+
 export interface ActiveContractRuntime {
   contractId?: Id
   offerId?: Id
@@ -930,6 +989,14 @@ export interface ContractSystemState {
   history: Record<string, ContractHistoryRecord>
   unlockedResearchIds: string[]
   active?: Record<string, ActiveContractRuntime>
+  /**
+   * SPE-1496: bounded post-contract player intent. When set, `buildSelectionScore`
+   * applies a deterministic bias to align next contract offers with the chosen
+   * direction. `null`/absent means no bias.
+   */
+  nextIntent?: ContractNextIntent | null
+  /** SPE-1496: campaign week the next intent was captured (informational/debug). */
+  nextIntentCapturedWeek?: number
 }
 
 export interface Contact {

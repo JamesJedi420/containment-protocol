@@ -2334,7 +2334,8 @@ function resolveAssignments(
           preResolutionAgents: assignedAgentIds
             .map((agentId) => context.sourceState.agents[agentId])
             .filter((agent): agent is NonNullable<GameState['agents'][string]> => Boolean(agent)),
-          prior: context.sourceState.deploymentMomentum,
+          // SPE-282: use progressive momentum within the same week (multiple resolutions).
+          prior: context.nextState.deploymentMomentum,
           baseReward: rewardBreakdown,
         })
         rewardBreakdown = merged.reward

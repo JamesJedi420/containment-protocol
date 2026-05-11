@@ -67,7 +67,7 @@
   - `directiveState`
 - Core simulation data
   - `agents` (including nested `attritionState` when present — SPE-281 cross-session continuity), `staff`, `candidates` (+ `recruitmentPool` compatibility alias)
-  - `deploymentMomentum?` (SPE-282 stacks + recap text in challenge+attrition runs; clamped in `hydrateGame`)
+  - `deploymentMomentum?` (SPE-282 stacks + recap text in challenge+attrition runs; clamped in `hydrateGame`, including `lastChangeWeek` to the loaded campaign week)
   - `teams`, `cases`, `factions`, `contracts`
   - `reports`, `events`, `relationshipHistory?`
 - Economy/queues

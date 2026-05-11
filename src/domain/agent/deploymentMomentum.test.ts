@@ -4,6 +4,7 @@ import { loadGameSave, serializeGameSave } from '../../app/store/saveSystem'
 import { createStartingState } from '../../data/startingState'
 import type { MissionRewardBreakdown } from '../models'
 import { applyChapterBreakAttritionReset } from './attritionReset'
+import { hydrateGame } from '../../app/store/runTransfer'
 import {
   DEPLOYMENT_MOMENTUM_MAX_STACKS,
   DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA,
@@ -104,8 +105,46 @@ describe('deployment momentum (SPE-282)', () => {
 
   it('round-trips deploymentMomentum through the canonical save envelope', () => {
     const state = createStartingState()
-    state.deploymentMomentum = { stacks: 1, lastChangeWeek: 2, lastSummary: 'earn test' }
+    state.week = 5
+    state.deploymentMomentum = { stacks: 1, lastChangeWeek: 4, lastSummary: 'earn test' }
     const loaded = loadGameSave(serializeGameSave(state))
     expect(loaded.deploymentMomentum).toEqual(state.deploymentMomentum)
+  })
+
+  it('hydration clamps lastChangeWeek to the loaded campaign week', () => {
+    const base = createStartingState()
+    const loaded = hydrateGame(
+      {
+        ...base,
+        week: 8,
+        deploymentMomentum: { stacks: 1, lastChangeWeek: 99, lastSummary: 'future week' },
+      },
+      base
+    )
+    expect(loaded.week).toBe(8)
+    expect(loaded.deploymentMomentum?.lastChangeWeek).toBe(8)
+  })
+
+  it('chains two merges the same way advanceWeek does across resolutions in one week', () => {
+    const br = baseReward()
+    const first = mergeDeploymentMomentumIntoSuccessRewards({
+      momentumEnabled: true,
+      week: 3,
+      preResolutionAgents: [{ fatigue: 90 }],
+      prior: undefined,
+      baseReward: br,
+    })
+    expect(first.nextMomentum?.stacks).toBe(1)
+
+    const second = mergeDeploymentMomentumIntoSuccessRewards({
+      momentumEnabled: true,
+      week: 3,
+      preResolutionAgents: [{ fatigue: 90 }],
+      prior: first.nextMomentum,
+      baseReward: br,
+    })
+    expect(second.nextMomentum?.stacks).toBe(1)
+    expect(second.reward.containmentDelta).toBe(br.containmentDelta + DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA)
+    expect(second.reward.reasons.some((r) => r.includes('Deployment momentum: spent'))).toBe(true)
   })
 })

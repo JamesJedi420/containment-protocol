@@ -2,6 +2,7 @@ import { createStartingState } from '../../data/startingState'
 import { getProductionRecipe } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
+import { DEPLOYMENT_MOMENTUM_MAX_STACKS } from '../../domain/agent/deploymentMomentum'
 import {
   createDefaultWeeklyDirectiveState,
   getWeeklyDirectiveDefinitions,
@@ -898,6 +899,43 @@ function sanitizeEmergencyGrayMarketWaiverPrecedentCount(raw: unknown): number {
   }
 
   return clamp(Math.trunc(raw), 0, 50000)
+}
+
+/**
+ * SPE-282: hydrate optional deployment momentum from save/export payloads.
+ * Stacks are clamped to the domain cap; `lastChangeWeek` is clamped to 1..current campaign week.
+ */
+function sanitizeDeploymentMomentumState(
+  raw: unknown,
+  campaignWeek: number
+): GameState['deploymentMomentum'] {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const stacks = clamp(
+    sanitizeInteger(raw.stacks as number | undefined, 0, 0),
+    0,
+    DEPLOYMENT_MOMENTUM_MAX_STACKS
+  )
+
+  const lastChangeWeek =
+    raw.lastChangeWeek !== undefined &&
+    typeof raw.lastChangeWeek === 'number' &&
+    Number.isFinite(raw.lastChangeWeek)
+      ? clamp(Math.trunc(raw.lastChangeWeek as number), 1, Math.max(1, campaignWeek))
+      : undefined
+
+  const lastSummary =
+    typeof raw.lastSummary === 'string' && raw.lastSummary.trim().length > 0
+      ? raw.lastSummary.trim().slice(0, 600)
+      : undefined
+
+  if (stacks === 0 && lastChangeWeek === undefined && lastSummary === undefined) {
+    return undefined
+  }
+
+  return { stacks, lastChangeWeek, lastSummary }
 }
 
 /** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
@@ -2149,6 +2187,7 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
         game.emergencyGrayMarketWaiverPrecedentCount
       ),
+      deploymentMomentum: sanitizeDeploymentMomentumState(game.deploymentMomentum, week),
       templates: fallback.templates,
     }) as GameState
   )

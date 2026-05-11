@@ -10,6 +10,7 @@ import {
   triageMission,
 } from '../domain/missionIntakeRouting'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { assignTeam } from '../domain/sim/assign'
 
 describe('mission intake, triage, and routing', () => {
   it('generates deterministic weekly intake batches with stable mission ordering', () => {
@@ -174,16 +175,18 @@ describe('mission intake, triage, and routing', () => {
       missionRouting: normalizeMissionRoutingState(state),
     }
     const missionId = normalized.cases['case-001'].id
-    const routed = routeMission(normalized, missionId)
-    const teamId = routed.candidateTeamIds[0]
+    const routePreview = routeMission(normalized, missionId)
+    const teamId = routePreview.candidateTeamIds[0]
 
     expect(teamId).toBeDefined()
 
-    const assignedResult = routeMissionToTeam(normalized, missionId, teamId!)
-    expect(assignedResult.assigned).toBe(true)
-    expect(assignedResult.state.missionRouting?.missions[missionId]?.routingState).toBe('assigned')
+    const teamRouted = routeMissionToTeam(normalized, missionId, teamId!)
+    expect(teamRouted.assigned).toBe(true)
+    // Match `gameStore.assignMissionTeam`: routing overlay alone is not canonical; persist assignment via `assignTeam`.
+    const assignedState = assignTeam(teamRouted.state, missionId, teamId!)
+    expect(assignedState.missionRouting?.missions[missionId]?.routingState).toBe('assigned')
 
-    const roundTripped = loadGameSave(serializeGameSave(assignedResult.state))
+    const roundTripped = loadGameSave(serializeGameSave(assignedState))
     expect(roundTripped.missionRouting?.missions[missionId]?.routingState).toBe('assigned')
   })
 })

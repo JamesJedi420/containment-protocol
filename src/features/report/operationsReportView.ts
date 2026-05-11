@@ -14,6 +14,10 @@ import {
   crossSessionAttritionPersistenceEnabled,
   formatAttritionContinuitySummary,
 } from '../../domain/agent/attritionContinuity'
+import {
+  deploymentMomentumSurfacesEnabled,
+  formatDeploymentMomentumSummary,
+} from '../../domain/agent/deploymentMomentum'
 
 const MAX_ROUTING_ITEMS = 4
 const MAX_READINESS_ITEMS = 4
@@ -90,6 +94,8 @@ export interface WeeklyOperationsSummaryView {
   details: string[]
   /** Present when `durationModel === 'attrition'` (SPE-281 cross-session continuity recap). */
   crossSessionAttritionContinuitySummary?: string
+  /** SPE-282 deployment momentum when challenge attrition continuity is active. */
+  deploymentMomentumSummary?: string
 }
 
 export interface OperationsReportView {
@@ -389,6 +395,9 @@ export function getWeeklyOperationsSummaryView(game: GameState): WeeklyOperation
     details: explanation.details.slice(0, MAX_DETAILS),
     crossSessionAttritionContinuitySummary: crossSessionAttritionPersistenceEnabled(game.config)
       ? formatAttritionContinuitySummary(game)
+      : undefined,
+    deploymentMomentumSummary: deploymentMomentumSurfacesEnabled(game.config)
+      ? formatDeploymentMomentumSummary(game)
       : undefined,
   }
 }

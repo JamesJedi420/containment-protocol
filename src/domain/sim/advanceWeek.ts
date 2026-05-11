@@ -163,6 +163,10 @@ import {
 import { generateHubState } from '../hub/hubState'
 import { buildHubReportNotes } from '../hub/hubReportNotes'
 import { degradeMissionIntelRecord } from '../intel'
+import {
+  buildExecutionInstabilityObjectiveDriftConsequence,
+  buildExecutionInstabilityRouteShift,
+} from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import type { CampaignToIncidentPacket, IncidentToCampaignPacket } from '../models'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
@@ -2526,6 +2530,10 @@ function resolveAssignments(
       supportShortfall: supportShortfallCases.includes(caseId),
     }
     const { nextStage } = resolutionEscalation
+    const instabilityObjectiveDrift = buildExecutionInstabilityObjectiveDriftConsequence(
+      effectiveCase,
+      weakestLinkResult
+    )
     const rewardBreakdown = buildMissionRewardBreakdown(
       escalatedCase,
       outcome.result,
@@ -2533,6 +2541,11 @@ function resolveAssignments(
       context.nextState
     )
     context.rewardByCaseId[caseId] = rewardBreakdown
+    const hiddenFields = getMissionResultHiddenStateFields(escalatedCase)
+    const instabilityRoute = buildExecutionInstabilityRouteShift(
+      hiddenFields.route,
+      weakestLinkResult
+    )
     context.missionResultDraftByCaseId[caseId] = buildEscalatedCaseOutcomeDraft({
       caseId,
       caseTitle: currentCase.title,
@@ -2540,7 +2553,8 @@ function resolveAssignments(
         teamId,
         teamName: context.sourceState.teams[teamId]?.name,
       })),
-      ...getMissionResultHiddenStateFields(escalatedCase),
+      ...hiddenFields,
+      ...(instabilityRoute !== undefined ? { route: instabilityRoute } : {}),
       outcome: outcome.result,
       weakestLink: weakestLinkResult,
       rewards: rewardBreakdown,
@@ -2555,6 +2569,7 @@ function resolveAssignments(
           stage: escalatedCase.stage,
           detail: `Case escalated to stage ${escalatedCase.stage}.`,
         },
+        ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons,
     })
@@ -2692,15 +2707,25 @@ function downgradeResolvedCaseToPartial(
     nextState.config,
     nextState
   )
+  const instabilityObjectiveDrift = buildExecutionInstabilityObjectiveDriftConsequence(
+    sourceCase,
+    mission.weakestLink
+  )
 
   context.nextState = nextState
   context.rewardByCaseId[caseId] = rewardBreakdown
+  const downgradedHiddenFields = getMissionResultHiddenStateFields(downgradedCase)
+  const instabilityRoute = buildExecutionInstabilityRouteShift(
+    downgradedHiddenFields.route,
+    mission.weakestLink
+  )
   context.missionResultDraftByCaseId[caseId] = {
     ...buildEscalatedCaseOutcomeDraft({
       caseId,
       caseTitle: sourceCase.title,
       teamsUsed: mission.teamsUsed,
-      ...getMissionResultHiddenStateFields(downgradedCase),
+      ...downgradedHiddenFields,
+      ...(instabilityRoute !== undefined ? { route: instabilityRoute } : {}),
       outcome: 'partial',
       weakestLink: mission.weakestLink,
       rewards: rewardBreakdown,
@@ -2716,6 +2741,7 @@ function downgradeResolvedCaseToPartial(
           stage: downgradedCase.stage,
           detail: `Case escalated to stage ${downgradedCase.stage}.`,
         },
+        ...(instabilityObjectiveDrift ? [instabilityObjectiveDrift] : []),
       ],
       resolutionReasons: mission.resolutionReasons,
     }),

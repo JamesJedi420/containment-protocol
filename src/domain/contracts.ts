@@ -1130,6 +1130,28 @@ function getContractDefinition(templateId: string) {
   return CONTRACT_TEMPLATES.find((definition) => definition.id === templateId)
 }
 
+/** Contract modifier id that triggers SPE-17 execution-instability overlay (not intel-friction scoring). */
+export const CONTRACT_ARCHIVE_INSTABILITY_MODIFIER_ID = 'archive-instability' as const
+
+/**
+ * Returns a stable human-readable clause description when the case's contract template
+ * includes the archive-instability modifier; otherwise null.
+ */
+export function describeContractArchiveInstabilityClause(caseInstance: CaseInstance): string | null {
+  const templateId = caseInstance.contract?.templateId
+  if (!templateId || typeof templateId !== 'string') {
+    return null
+  }
+  const definition = getContractDefinition(templateId)
+  const modifier = definition?.modifiers.find(
+    (m) => m.id === CONTRACT_ARCHIVE_INSTABILITY_MODIFIER_ID
+  )
+  if (!modifier) {
+    return null
+  }
+  return `${modifier.label}: ${modifier.description}`
+}
+
 function getContractDisplayLabel(templateId: string) {
   return getContractDefinition(templateId)?.name ?? templateId
 }

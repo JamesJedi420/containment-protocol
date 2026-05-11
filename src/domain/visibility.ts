@@ -21,7 +21,14 @@ import type {
 } from './weakestLinkResolution'
 
 const MAX_EXPLANATION_DETAILS = 3
+/** SPE-17: +3 extra slots when instability is present — dominant bucket stays first; room for upstream, downstream,
+ * ally line, then secondary buckets / threshold / recovery without displacing the primary diagnostic. */
+const MAX_EXPLANATION_DETAILS_WITH_INSTABILITY = MAX_EXPLANATION_DETAILS + 3
 const DEFAULT_TREND_WINDOW = 5
+
+/** SPE-17: one-clock legibility while archive-instability is present (weakest-link summary + operations cost line). */
+export const EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY =
+  'Mixed exploration, inspection, combat, and recovery accounting stays on the shared readiness/time-cost clock; archive-instability does not add a parallel operational timer.'
 
 export type VisibilityExplanationCategory =
   | 'routing'
@@ -535,8 +542,11 @@ export function explainWeakestLinkResolution(
   const positiveBuckets = result.weakestLinkPenaltyBuckets.filter((bucket) => bucket.appliedPenalty > 0).sort(sortBucketsByPenalty)
   const dominantBucket = positiveBuckets[0]
   const dominantFactor = dominantBucket?.code ?? 'clean-success'
-  const summary =
-    result.resultKind === 'success' && !dominantBucket
+  const summary = result.executionInstability
+    ? result.executionInstability.applied
+      ? `Weakest-link resolution for ${result.missionId} is ${result.resultKind} after a bounded archive-instability downgrade on top of base scoring. ${EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY}`
+      : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; unstable archive contract clause monitored (${result.executionInstability.flag}). ${EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY}`
+    : result.resultKind === 'success' && !dominantBucket
       ? `Weakest-link resolution stayed clean for ${result.missionId}.`
       : `Weakest-link resolution for ${result.missionId} is ${result.resultKind}; ${formatVisibilityFactorLabel(dominantFactor)} is dominant.`
   const recoveryDetail =
@@ -553,17 +563,31 @@ export function explainWeakestLinkResolution(
     category: 'weakest-link',
     summary,
     dominantFactor,
-    details: takeBoundedDetails([
-      dominantBucket
-        ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
-        : 'No penalty bucket applied any weakest-link drag.',
-      ...positiveBuckets.slice(1, 3).map(
-        (bucket) =>
-          `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
-      ),
-      buildThresholdDetail(result),
-      recoveryDetail,
-    ]),
+    details: takeBoundedDetails(
+      [
+        dominantBucket
+          ? `${formatVisibilityFactorLabel(dominantBucket.code)} applied ${dominantBucket.appliedPenalty.toFixed(2)} from raw signal ${dominantBucket.rawSignal.toFixed(2)}.`
+          : 'No penalty bucket applied any weakest-link drag.',
+        result.executionInstability
+          ? `Upstream instability cause: ${result.executionInstability.upstreamCause}`
+          : undefined,
+        result.executionInstability
+          ? `Downstream instability effect: ${result.executionInstability.downstreamEffect}`
+          : undefined,
+        result.deploymentDebtSignals?.includes('ally-reliability-fracture')
+          ? 'Ally reliability degraded: instability fractured support confidence during execution.'
+          : undefined,
+        ...positiveBuckets.slice(1, 3).map(
+          (bucket) =>
+            `${formatVisibilityFactorLabel(bucket.code)} contributed ${bucket.appliedPenalty.toFixed(2)}.`
+        ),
+        buildThresholdDetail(result),
+        recoveryDetail,
+      ],
+      result.executionInstability !== undefined
+        ? MAX_EXPLANATION_DETAILS_WITH_INSTABILITY
+        : MAX_EXPLANATION_DETAILS
+    ),
     relatedIds: uniqueStrings([result.missionId, ...(options?.relatedIds ?? [])]),
     severity: buildWeakestLinkSeverity(result.resultKind),
     timestamp: result.week,

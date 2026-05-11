@@ -2,6 +2,7 @@ import type { GameState, Id, MissionPriorityBand, MissionRoutingStateKind } from
 import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import {
+  EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY,
   explainDeploymentReadiness,
   explainMissionRouting,
   explainWeakestLinkResolution,
@@ -15,6 +16,10 @@ const MAX_READINESS_ITEMS = 4
 const MAX_OUTCOME_ITEMS = 4
 const MAX_HIGHLIGHTS = 3
 const MAX_DETAILS = 3
+/** SPE-17: 5 total cost detail slots when instability is present — MAX_DETAILS (3) standard cost facts
+ * (injuries, fatalities, fatigue) plus one for the shared-clock legibility line and one for the instability
+ * recovery surcharge, so neither displaces the standard cost facts. */
+const MAX_COST_DETAILS_WITH_INSTABILITY = MAX_DETAILS + 2
 
 const PRIORITY_SORT_ORDER: Record<MissionPriorityBand, number> = {
   critical: 0,
@@ -170,17 +175,28 @@ function buildOutcomeCostSummary(
   const fatalities = missionResult?.fatalities?.length ?? 0
   const fatigueTargets =
     missionResult?.fatigueChanges.filter((change) => Math.abs(change.delta) > 0).length ?? 0
+  const recoverySurchargeWeeks = missionResult?.weakestLink?.expectedRecoveryWeeksDelta ?? 0
+  const instabilityRecoverySurcharge =
+    missionResult?.weakestLink?.executionInstability?.applied &&
+    recoverySurchargeWeeks > 0
+      ? `Instability recovery surcharge +${recoverySurchargeWeeks} week${recoverySurchargeWeeks === 1 ? '' : 's'}`
+      : ''
+  const hasInstabilityMeta = Boolean(missionResult?.weakestLink?.executionInstability)
+  /** SPE-17: keep one-clock legibility in the cost row without dropping a fourth cost fact when instability metadata is present. */
+  const costDetailLimit = hasInstabilityMeta ? MAX_COST_DETAILS_WITH_INSTABILITY : MAX_DETAILS
 
   return takeBounded(
     [
+      hasInstabilityMeta ? EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY : '',
       injuries > 0 ? `${injuries} injury record${injuries === 1 ? '' : 's'}` : '',
       fatalities > 0 ? `${fatalities} fatalit${fatalities === 1 ? 'y' : 'ies'}` : '',
       fatigueTargets > 0 ? `Fatigue shifted across ${fatigueTargets} operative${fatigueTargets === 1 ? '' : 's'}` : '',
+      instabilityRecoverySurcharge,
       (missionResult?.spawnedConsequences.length ?? 0) > 0
         ? `${missionResult?.spawnedConsequences.length ?? 0} follow-up consequence${(missionResult?.spawnedConsequences.length ?? 0) === 1 ? '' : 's'}`
         : '',
     ],
-    MAX_DETAILS
+    costDetailLimit
   ).join(' / ') || 'No major staffing or recovery cost was logged.'
 }
 

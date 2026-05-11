@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { loadGameSave, serializeGameSave } from '../../app/store/saveSystem'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
+import { EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY } from '../../domain/visibility'
 import {
   getDeploymentReadinessReportView,
   getMissionRoutingReportView,
@@ -87,6 +88,28 @@ describe('operations report view', () => {
     expect(first[0]!.gainSummary.length).toBeGreaterThan(0)
     expect(first[0]!.costSummary.length).toBeGreaterThan(0)
     expect(first[0]!.netSummary.length).toBeGreaterThan(0)
+  })
+
+  it('SPE-17: surfaces shared operational clock in outcome cost summary when instability metadata is present', () => {
+    const state = createStartingState()
+    const caseId = Object.keys(state.cases)[0]!
+    const currentCase = state.cases[caseId]!
+    currentCase.mode = 'deterministic'
+    currentCase.status = 'in_progress'
+    currentCase.contract = { templateId: 'institutions-ritual-archive' }
+    currentCase.assignedTeamIds = [Object.keys(state.teams)[0]!]
+    currentCase.difficulty = { combat: 0, investigation: 0, utility: 0, social: 0 }
+    currentCase.stage = 1
+    const team = state.teams[currentCase.assignedTeamIds[0]!]!
+    team.memberIds = team.agentIds
+    team.status = { state: 'deployed', assignedCaseId: caseId }
+    currentCase.durationWeeks = 1
+    currentCase.weeksRemaining = 1
+
+    const nextState = advanceWeek(state)
+    const outcomes = getWeakestLinkOutcomeReportView(nextState)
+    expect(outcomes.length).toBeGreaterThan(0)
+    expect(outcomes[0]!.costSummary).toContain(EXECUTION_INSTABILITY_SHARED_CLOCK_SUMMARY)
   })
 
   it('keeps weekly operations summary output deterministic', () => {

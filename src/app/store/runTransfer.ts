@@ -901,6 +901,34 @@ function sanitizeEmergencyGrayMarketWaiverPrecedentCount(raw: unknown): number {
 }
 
 /** SPE-1524: preserve waiver grant week across persistence; drop corrupted/stale values. */
+function sanitizeDeploymentMomentumState(
+  raw: unknown,
+  campaignWeek: number
+): GameState['deploymentMomentum'] {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  // Cap matches `DEPLOYMENT_MOMENTUM_MAX_STACKS` in `deploymentMomentum.ts` (avoid import cycle with domain).
+  const stacks = clamp(sanitizeInteger(raw.stacks as number | undefined, 0, 0), 0, 3)
+
+  const lastChangeWeek =
+    raw.lastChangeWeek !== undefined && typeof raw.lastChangeWeek === 'number'
+      ? sanitizeInteger(raw.lastChangeWeek as number, campaignWeek, 1)
+      : undefined
+
+  const lastSummary =
+    typeof raw.lastSummary === 'string' && raw.lastSummary.trim().length > 0
+      ? raw.lastSummary.trim().slice(0, 600)
+      : undefined
+
+  if (stacks === 0 && lastChangeWeek === undefined && lastSummary === undefined) {
+    return undefined
+  }
+
+  return { stacks, lastChangeWeek, lastSummary }
+}
+
 function sanitizeEmergencyGrayMarketWaiverWeek(
   raw: unknown,
   campaignWeek: number
@@ -2149,6 +2177,7 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
         game.emergencyGrayMarketWaiverPrecedentCount
       ),
+      deploymentMomentum: sanitizeDeploymentMomentumState(game.deploymentMomentum, week),
       templates: fallback.templates,
     }) as GameState
   )

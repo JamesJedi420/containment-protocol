@@ -126,8 +126,10 @@ import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
   type AgencyState,
+  type CampaignToIncidentPacket,
   type CaseInstance,
   type GameState,
+  type IncidentToCampaignPacket,
   type LeaderBonus,
   type MissionResult,
   type MissionResultInput,
@@ -136,11 +138,11 @@ import {
   type PowerImpactSummary,
   type ReportNote,
   type ResolutionOutcome,
+  type RuntimeQueuedEvent,
   type Team,
   type WeeklyReport,
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
-  type RuntimeQueuedEvent,
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
@@ -168,7 +170,10 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
-import type { CampaignToIncidentPacket, IncidentToCampaignPacket } from '../models'
+import {
+  deploymentMomentumSurfacesEnabled,
+  mergeDeploymentMomentumIntoSuccessRewards,
+} from '../agent/deploymentMomentum'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
 import {
   buildAnchorFactionInstabilityNote,
@@ -2311,12 +2316,31 @@ function resolveAssignments(
         }
       }
 
-      const rewardBreakdown = buildMissionRewardBreakdown(
+      const willDegrade = Boolean(
+        behaviorValidation?.shouldDegradeSuccessToPartial && behaviorValidation.degradeSuccessReason
+      )
+
+      let rewardBreakdown = buildMissionRewardBreakdown(
         effectiveCase,
         'success',
         context.nextState.config,
         context.nextState
       )
+
+      if (!willDegrade) {
+        const merged = mergeDeploymentMomentumIntoSuccessRewards({
+          momentumEnabled: deploymentMomentumSurfacesEnabled(context.sourceState.config),
+          week: context.sourceState.week,
+          preResolutionAgents: assignedAgentIds
+            .map((agentId) => context.sourceState.agents[agentId])
+            .filter((agent): agent is NonNullable<GameState['agents'][string]> => Boolean(agent)),
+          prior: context.sourceState.deploymentMomentum,
+          baseReward: rewardBreakdown,
+        })
+        rewardBreakdown = merged.reward
+        context.nextState.deploymentMomentum = merged.nextMomentum
+      }
+
       context.rewardByCaseId[caseId] = rewardBreakdown
       context.missionResultDraftByCaseId[caseId] = buildSuccessCaseOutcomeDraft({
         caseId,

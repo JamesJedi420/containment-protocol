@@ -1811,6 +1811,13 @@ export interface ReplacementPressureState {
   reasonCodes?: string[]
 }
 
+/** SPE-282: Bounded sustained-deployment momentum for attrition challenge continuity (chapter-break reset). */
+export interface DeploymentMomentumState {
+  stacks: number
+  lastChangeWeek?: number
+  lastSummary?: string
+}
+
 export interface SupportStaffSummary {
   admin: number
   logistics: number
@@ -2220,6 +2227,12 @@ export interface GameState {
   }
   partyCards?: PartyCardState
   config: GameConfig
+
+  /**
+   * SPE-282: Deployment momentum stacks (earn/spend) when `challengeModeEnabled` + attrition duration model.
+   * Earn on success while average assigned fatigue exceeds healthy-return threshold; spend stacks on later successes for containment leverage.
+   */
+  deploymentMomentum?: DeploymentMomentumState
 
   /** Canonical progression shape (preferred over legacy top-level fields). */
   agency?: AgencyState

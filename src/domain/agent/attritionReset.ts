@@ -56,5 +56,14 @@ export function applyChapterBreakAttritionReset(state: GameState): GameState {
     })
   )
 
-  return recomputeAttritionDerivedState({ ...state, agents })
+  const deploymentMomentum: GameState['deploymentMomentum'] =
+    state.deploymentMomentum !== undefined
+      ? {
+          stacks: 0,
+          lastChangeWeek: state.week,
+          lastSummary: 'Chapter break cleared deployment momentum stacks.',
+        }
+      : undefined
+
+  return recomputeAttritionDerivedState({ ...state, agents, deploymentMomentum })
 }

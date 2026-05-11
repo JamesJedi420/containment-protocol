@@ -408,6 +408,7 @@ Persist:
 
 - yes, fully for campaign continuity
 - operative `attritionState` (SPE-281) through the same save/export path as the rest of `GameState`; recap surfaces read it directly. The continuity recap line uses **roster-only** replacement pressure (`computeReplacementPressure`), not funding-inflated `buildReplacementPressureState`. Cross-session continuity recap is active when `challengeModeEnabled` and `durationModel === 'attrition'` (hydration parity). Chapter-break reset clears attrition carryover via `applyChapterBreakAttritionReset` (recomputes replacement pressure, mission routing, deployment readiness, then contract board) without requiring a full new-run wipe.
+- optional `deploymentMomentum` (SPE-282): bounded stack counter for sustained-deployment earn/spend in the same challenge+attrition configuration; same save/hydration path, clamped on load, reset to zero with an explicit chapter-break summary when `applyChapterBreakAttritionReset` runs.
 
 Do not derive:
 

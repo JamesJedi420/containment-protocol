@@ -144,6 +144,7 @@ describe('operations report view', () => {
     const summary = getWeeklyOperationsSummaryView(attritionCampaign)
     expect(summary.crossSessionAttritionContinuitySummary).toContain('Cross-session attrition continuity')
     expect(summary.crossSessionAttritionContinuitySummary).toContain('1 lost')
+    expect(summary.deploymentMomentumSummary).toContain('Deployment momentum')
   })
 
   it('leaves save/load assumptions unaffected because report surfaces stay derived', () => {

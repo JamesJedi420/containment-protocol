@@ -1,7 +1,7 @@
 // SPE-282: Bounded deployment momentum — sustained-operation leverage alongside SPE-281 attrition continuity.
 
-import type { Agent } from './models'
 import type {
+  Agent,
   DeploymentMomentumState,
   GameConfig,
   GameState,

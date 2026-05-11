@@ -923,6 +923,32 @@ function buildAttentionItems(
     ...(notice.actionTarget ? { href: getFrontDeskNoticeActionHref(notice.actionTarget) } : {}),
   }))
 
+  const debriefAttention =
+    operationsReport.contractDebrief.attentionSummary && operationsReport.contractDebrief.records.length > 0
+      ? [
+          {
+            id: 'debrief:latest',
+            title: 'Post-contract debrief',
+            summary: operationsReport.contractDebrief.attentionSummary,
+            tone: ((): FrontDeskNoticeTone => {
+              const lead = operationsReport.contractDebrief.records[0]!
+              if (lead.outcomeLabel === 'Fail' || lead.outcomeLabel === 'Unresolved') {
+                return 'danger'
+              }
+              if (
+                lead.outcomeLabel === 'Partial' ||
+                lead.unresolvedClocks.length > 0 ||
+                operationsReport.contractDebrief.selectedIntent === null
+              ) {
+                return 'warning'
+              }
+              return 'info'
+            })(),
+            href: APP_ROUTES.report,
+          } as const,
+        ]
+      : []
+
   const signalItems = shell.signals
     .filter((signal) => signal.tone !== 'neutral')
     .map((signal) => ({
@@ -953,7 +979,7 @@ function buildAttentionItems(
       href: APP_ROUTES.teamDetail(entry.teamId),
     }))
 
-  return [...noticeItems, ...signalItems, ...routingItems, ...readinessItems]
+  return [...noticeItems, ...debriefAttention, ...signalItems, ...routingItems, ...readinessItems]
     .sort((left, right) => {
       const priorityDelta = getAttentionPriority(right.tone) - getAttentionPriority(left.tone)
 

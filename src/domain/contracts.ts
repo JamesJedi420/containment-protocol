@@ -19,9 +19,14 @@ import type {
   CaseInstance,
   CaseTemplate,
   ContractChainDefinition,
+  ContractDebriefChangedEntity,
+  ContractDebriefRecord,
+  ContractDebriefStrategicOption,
+  ContractDebriefUnresolvedClock,
   ContractHistoryRecord,
   ContractMaterialDrop,
   ContractModifier,
+  ContractNextIntent,
   ContractOffer,
   ContractResearchUnlock,
   ContractRewardPackage,
@@ -29,10 +34,14 @@ import type {
   ContractStrategyTag,
   ContractSystemState,
   GameState,
+  MissionInjuryRecord,
   MissionResolutionKind,
+  MissionResult,
   ReputationTier,
   StatBlock,
   Team,
+  WeeklyReport,
+  WeeklyReportCaseSnapshot,
 } from './models'
 import { previewResolutionForTeamIds } from './sim/resolve'
 import { assignTeam } from './sim/assign'
@@ -1270,6 +1279,7 @@ function buildSelectionScore(
   })
     ? 0.85
     : 0
+  const nextIntentBias = getNextIntentSelectionBias(state, definition)
 
   return (
     rng.next() +
@@ -1277,9 +1287,88 @@ function buildSelectionScore(
     powerFactor * 0.2 +
     factionBias +
     progressionUnlockBias +
-    recentChainCompletionBias -
+    recentChainCompletionBias +
+    nextIntentBias -
     freshnessPenalty
   )
+}
+
+/**
+ * SPE-1496: deterministic bias term used by `buildSelectionScore` to align contract
+ * ordering with the player's captured next intent. Bias is bounded and additive —
+ * it never overrides unlock conditions and only nudges ordering.
+ */
+export function getNextIntentSelectionBias(
+  state: GameState,
+  definition: ContractTemplateDefinition
+): number {
+  const contracts = sanitizeContractSystemState(state.contracts)
+  const intent = contracts.nextIntent ?? null
+
+  if (!intent) {
+    return 0
+  }
+
+  const factionTier = getFactionTier(state, definition.factionId)
+  const hasChainContinuation = (definition.chain.unlockConditions ?? []).some(
+    (condition) => condition.type === 'completed_contract'
+  )
+  const strategy = definition.strategyTag
+  const riskBoost =
+    definition.modifiers
+      .filter((modifier) => modifier.effect === 'difficulty_flat' || modifier.effect === 'death_risk')
+      .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
+
+  switch (intent) {
+    case 'chase-lead':
+      // Boost contracts that continue an unlocked chain (closes the open lead the
+      // player just surfaced) and progression-tagged work that depends on prior runs.
+      return (hasChainContinuation ? 0.55 : 0) + (strategy === 'progression' ? 0.18 : 0)
+
+    case 'stabilize-staff':
+      // Prefer lower-risk income and materials work; downrank high lethality contracts.
+      return (
+        (strategy === 'income' ? 0.32 : 0) +
+        (strategy === 'materials' ? 0.18 : 0) -
+        Math.min(0.55, riskBoost * 0.04)
+      )
+
+    case 'repair-agency':
+      // Bias toward research/progression work and faction-friendly channels that lift standing.
+      return (
+        (strategy === 'research' ? 0.28 : 0) +
+        (strategy === 'progression' ? 0.2 : 0) +
+        (factionTier === 'friendly' || factionTier === 'allied' ? 0.18 : 0)
+      )
+
+    case 'pursue-faction':
+      // Boost contracts attached to the player's strongest cooperative faction.
+      if (!definition.factionId) {
+        return -0.12
+      }
+      return (
+        (factionTier === 'allied' ? 0.55 : 0) +
+        (factionTier === 'friendly' ? 0.32 : 0) +
+        (factionTier === 'hostile' ? -0.18 : 0)
+      )
+
+    case 'prepare-equipment':
+      // Bias toward materials-focused contracts that refill the supply chain.
+      return strategy === 'materials' ? 0.42 : strategy === 'income' ? 0.12 : 0
+
+    case 'answer-emergency':
+      // Bias toward income/progression work with elevated pressure (emergency posture).
+      return (
+        (strategy === 'income' ? 0.28 : 0) +
+        (strategy === 'progression' ? 0.2 : 0) +
+        Math.min(0.35, riskBoost * 0.03)
+      )
+
+    default: {
+      const _exhaustive: never = intent
+      return _exhaustive
+    }
+  }
 }
 
 function meetsUnlockCondition(
@@ -1734,6 +1823,12 @@ export function sanitizeContractSystemState(
         )
       : { ...fallback.history }
 
+  const nextIntent = normalizeContractNextIntent(raw.nextIntent ?? fallback.nextIntent)
+  const nextIntentCapturedWeek =
+    typeof raw.nextIntentCapturedWeek === 'number' && Number.isFinite(raw.nextIntentCapturedWeek)
+      ? Math.max(0, Math.round(raw.nextIntentCapturedWeek))
+      : fallback.nextIntentCapturedWeek
+
   return {
     generatedWeek:
       typeof raw.generatedWeek === 'number' && Number.isFinite(raw.generatedWeek)
@@ -1744,7 +1839,92 @@ export function sanitizeContractSystemState(
     unlockedResearchIds: Array.isArray(raw.unlockedResearchIds)
       ? raw.unlockedResearchIds.filter((entry): entry is string => typeof entry === 'string')
       : [...fallback.unlockedResearchIds],
+    ...(nextIntent ? { nextIntent } : {}),
+    ...(typeof nextIntentCapturedWeek === 'number' ? { nextIntentCapturedWeek } : {}),
   }
+}
+
+const CONTRACT_NEXT_INTENT_VALUES: readonly ContractNextIntent[] = [
+  'chase-lead',
+  'stabilize-staff',
+  'repair-agency',
+  'pursue-faction',
+  'prepare-equipment',
+  'answer-emergency',
+] as const
+
+function normalizeContractNextIntent(value: unknown): ContractNextIntent | null {
+  if (
+    typeof value === 'string' &&
+    (CONTRACT_NEXT_INTENT_VALUES as readonly string[]).includes(value)
+  ) {
+    return value as ContractNextIntent
+  }
+  return null
+}
+
+/** Bounded canonical list for UI surfaces and tests. */
+export function getContractNextIntentValues(): readonly ContractNextIntent[] {
+  return CONTRACT_NEXT_INTENT_VALUES
+}
+
+/** Player-facing label for an intent value. Pure derivation. */
+export function getContractNextIntentLabel(intent: ContractNextIntent): string {
+  switch (intent) {
+    case 'chase-lead':
+      return 'Chase the open lead'
+    case 'stabilize-staff':
+      return 'Stabilize staff'
+    case 'repair-agency':
+      return 'Repair agency standing'
+    case 'pursue-faction':
+      return 'Pursue faction channel'
+    case 'prepare-equipment':
+      return 'Prepare equipment'
+    case 'answer-emergency':
+      return 'Answer emergency pressure'
+    default: {
+      // Exhaustiveness guard; ContractNextIntent is a closed union.
+      const _exhaustive: never = intent
+      return _exhaustive
+    }
+  }
+}
+
+export function getContractNextIntent(state: GameState): ContractNextIntent | null {
+  return sanitizeContractSystemState(state.contracts).nextIntent ?? null
+}
+
+/** Capture a bounded post-contract next intent. Pass `null` to clear. */
+export function setContractNextIntent(
+  state: GameState,
+  intent: ContractNextIntent | null
+): GameState {
+  const contracts = sanitizeContractSystemState(state.contracts)
+  const normalized = intent ? normalizeContractNextIntent(intent) : null
+
+  if ((contracts.nextIntent ?? null) === normalized) {
+    return state
+  }
+
+  const nextContracts: ContractSystemState = {
+    ...contracts,
+    nextIntent: normalized,
+    ...(normalized ? { nextIntentCapturedWeek: state.week } : {}),
+  }
+
+  if (!normalized) {
+    delete (nextContracts as { nextIntentCapturedWeek?: number }).nextIntentCapturedWeek
+  }
+
+  return {
+    ...state,
+    contracts: nextContracts,
+  }
+}
+
+export function clearContractNextIntent(state: GameState): GameState {
+  return setContractNextIntent(state, null)
 }
 
 export function refreshContractBoard(state: GameState): GameState {
@@ -1767,6 +1947,13 @@ export function refreshContractBoard(state: GameState): GameState {
       }),
       history: contracts.history,
       unlockedResearchIds: [...contracts.unlockedResearchIds],
+      // SPE-1496: preserve the bounded next-intent capture across board regeneration
+      // so the bias term in `buildSelectionScore` reflects player intent until
+      // the player clears it.
+      ...(contracts.nextIntent ? { nextIntent: contracts.nextIntent } : {}),
+      ...(typeof contracts.nextIntentCapturedWeek === 'number'
+        ? { nextIntentCapturedWeek: contracts.nextIntentCapturedWeek }
+        : {}),
     },
   }
 }
@@ -2118,4 +2305,343 @@ export function getContractChainLabels(offer: Pick<ContractOffer, 'chain'>) {
 
 export function getContractMaterialLabel(material: Pick<ContractMaterialDrop, 'itemId' | 'label'>) {
   return material.label || inventoryItemLabels[material.itemId] || material.itemId
+}
+
+// ---------------------------------------------------------------------------
+// SPE-1496: post-contract debrief surface (deterministic; no prose recap)
+// ---------------------------------------------------------------------------
+
+function mapOutcomeLabel(outcome: MissionResolutionKind): string {
+  switch (outcome) {
+    case 'success':
+      return 'resolved cleanly'
+    case 'partial':
+      return 'partially contained'
+    case 'fail':
+      return 'failed in the field'
+    case 'unresolved':
+    default:
+      return 'lapsed without resolution'
+  }
+}
+
+function describeFatalities(missionResult: MissionResult): ContractDebriefChangedEntity[] {
+  return (missionResult.fatalities ?? []).map((fatality) => ({
+    kind: 'staff' as const,
+    id: `fatality:${fatality.agentId}`,
+    label: fatality.agentName ?? fatality.agentId,
+    detail: `Lost in the field${fatality.reason ? ` (${fatality.reason})` : ''}.`,
+  }))
+}
+
+function describeInjuries(injuries: readonly MissionInjuryRecord[]): ContractDebriefChangedEntity[] {
+  return injuries.map((injury) => ({
+    kind: 'staff' as const,
+    id: `injury:${injury.agentId}`,
+    label: injury.agentName,
+    detail: `${injury.severity} injury${injury.damage > 0 ? ` / ${injury.damage} damage` : ''}.`,
+  }))
+}
+
+function describeFatigueShifts(missionResult: MissionResult): ContractDebriefChangedEntity[] {
+  return missionResult.fatigueChanges
+    .filter((change) => Math.abs(change.delta) >= 3)
+    .map((change) => ({
+      kind: 'staff' as const,
+      id: `fatigue:${change.teamId}`,
+      label: change.teamName ?? change.teamId,
+      detail: `Fatigue ${change.before} -> ${change.after} (${change.delta >= 0 ? '+' : ''}${change.delta}).`,
+    }))
+}
+
+function describeFactionShifts(missionResult: MissionResult): ContractDebriefChangedEntity[] {
+  return missionResult.rewards.factionStanding
+    .filter((standing) => standing.delta !== 0)
+    .map((standing) => ({
+      kind: 'faction' as const,
+      id: `faction:${standing.factionId}`,
+      label: standing.label,
+      detail: `Standing ${standing.delta > 0 ? '+' : ''}${standing.delta}.`,
+    }))
+}
+
+function describeEvidenceGains(missionResult: MissionResult): ContractDebriefChangedEntity[] {
+  return missionResult.rewards.inventoryRewards
+    .filter((grant) => grant.quantity > 0)
+    .map((grant) => ({
+      kind: 'evidence' as const,
+      id: `inventory:${grant.itemId}`,
+      label: grant.label,
+      detail: `${grant.quantity}x recovered (${grant.kind}).`,
+    }))
+}
+
+function describeRoute(
+  missionResult: MissionResult,
+  snapshot: WeeklyReportCaseSnapshot
+): ContractDebriefChangedEntity | null {
+  const route = missionResult.route
+  if (!route) {
+    return null
+  }
+  return {
+    kind: 'route',
+    id: `route:${snapshot.caseId}`,
+    label: 'Route confirmed',
+    detail: `Operational route ${route}.`,
+  }
+}
+
+function extractContractRuntimeFromSnapshot(
+  snapshot: WeeklyReportCaseSnapshot
+): ActiveContractRuntime | undefined {
+  const raw = (snapshot as { contract?: unknown }).contract
+  if (raw && typeof raw === 'object') {
+    return raw as ActiveContractRuntime
+  }
+  return undefined
+}
+
+function describeSubject(
+  missionResult: MissionResult,
+  snapshot: WeeklyReportCaseSnapshot
+): ContractDebriefChangedEntity {
+  const hidden = missionResult.hiddenState
+  const detail = hidden
+    ? `Subject state ${hidden} after the operation.`
+    : `Operation ${mapOutcomeLabel(missionResult.outcome)}.`
+
+  return {
+    kind: 'subject',
+    id: `subject:${snapshot.caseId}`,
+    label: snapshot.title,
+    detail,
+  }
+}
+
+function describeUnresolvedClocks(missionResult: MissionResult): ContractDebriefUnresolvedClock[] {
+  const clocks: ContractDebriefUnresolvedClock[] = []
+  const weakestLink = missionResult.weakestLink
+
+  if (weakestLink?.recoveryPressureBand) {
+    clocks.push({
+      id: `recovery:${missionResult.caseId}`,
+      label: 'Recovery pressure',
+      detail: `Weakest-link recovery pressure ${weakestLink.recoveryPressureBand}.`,
+    })
+  }
+
+  for (const consequence of missionResult.spawnedConsequences) {
+    clocks.push({
+      id: `consequence:${consequence.caseId}`,
+      label:
+        consequence.type === 'stage_escalation'
+          ? 'Escalation clock'
+          : consequence.type === 'queued_follow_up'
+            ? 'Queued follow-up'
+            : 'Follow-up case',
+      detail: consequence.detail,
+    })
+  }
+
+  return clocks
+}
+
+function buildStrategicOptions(
+  record: Pick<
+    ContractDebriefRecord,
+    'outcome' | 'changedEntities' | 'unresolvedClocks' | 'factionId'
+  >
+): ContractDebriefStrategicOption[] {
+  const options: ContractDebriefStrategicOption[] = []
+  const staffChanges = record.changedEntities.filter((entity) => entity.kind === 'staff')
+  const factionChanges = record.changedEntities.filter((entity) => entity.kind === 'faction')
+  const evidenceChanges = record.changedEntities.filter((entity) => entity.kind === 'evidence')
+
+  if (record.unresolvedClocks.some((clock) => clock.id.startsWith('consequence:'))) {
+    options.push({
+      intent: 'chase-lead',
+      label: getContractNextIntentLabel('chase-lead'),
+      reason: 'A follow-up case is queued from this operation.',
+    })
+  }
+
+  if (
+    staffChanges.some((entity) => entity.id.startsWith('fatality:')) ||
+    staffChanges.filter((entity) => entity.id.startsWith('injury:')).length >= 2 ||
+    record.unresolvedClocks.some((clock) => clock.id.startsWith('recovery:'))
+  ) {
+    options.push({
+      intent: 'stabilize-staff',
+      label: getContractNextIntentLabel('stabilize-staff'),
+      reason: 'Staff impact and recovery pressure need to be cleared before redeployment.',
+    })
+  }
+
+  if (record.outcome === 'fail' || record.outcome === 'unresolved') {
+    options.push({
+      intent: 'repair-agency',
+      label: getContractNextIntentLabel('repair-agency'),
+      reason: 'Agency standing slipped from this operation.',
+    })
+  }
+
+  if (record.factionId && factionChanges.some((entity) => entity.detail.includes('+'))) {
+    options.push({
+      intent: 'pursue-faction',
+      label: getContractNextIntentLabel('pursue-faction'),
+      reason: 'Faction standing improved — keep the channel hot.',
+    })
+  }
+
+  if (evidenceChanges.length > 0) {
+    options.push({
+      intent: 'prepare-equipment',
+      label: getContractNextIntentLabel('prepare-equipment'),
+      reason: 'Recovered evidence/materials are ready for fabrication or supply.',
+    })
+  }
+
+  if (
+    record.outcome !== 'success' ||
+    record.unresolvedClocks.some((clock) => clock.id.startsWith('recovery:'))
+  ) {
+    options.push({
+      intent: 'answer-emergency',
+      label: getContractNextIntentLabel('answer-emergency'),
+      reason: 'Active pressure is still elevated; surge response is available.',
+    })
+  }
+
+  return dedupeStrategicOptions(options)
+}
+
+function dedupeStrategicOptions(
+  options: ContractDebriefStrategicOption[]
+): ContractDebriefStrategicOption[] {
+  const seen = new Set<ContractNextIntent>()
+  const deduped: ContractDebriefStrategicOption[] = []
+
+  for (const option of options) {
+    if (seen.has(option.intent)) {
+      continue
+    }
+    seen.add(option.intent)
+    deduped.push(option)
+  }
+
+  return deduped
+}
+
+/**
+ * SPE-1496: deterministic per-contract debrief record. Pure derivation from the
+ * supplied mission result and snapshot — no game-state side effects. Surfaces a
+ * compact digest of changed entities, unresolved clocks, and a bounded set of
+ * strategic options that map directly onto `ContractNextIntent` values.
+ */
+export function buildContractDebriefRecord(
+  snapshot: WeeklyReportCaseSnapshot,
+  reportWeek: number,
+  caseInstance?: CaseInstance
+): ContractDebriefRecord | null {
+  const missionResult = snapshot.missionResult
+  if (!missionResult) {
+    return null
+  }
+
+  const contractRuntime: ActiveContractRuntime | undefined =
+    (caseInstance?.contract as ActiveContractRuntime | undefined) ??
+    extractContractRuntimeFromSnapshot(snapshot)
+  const templateId =
+    contractRuntime?.templateId ??
+    contractRuntime?.contractId ??
+    contractRuntime?.offerId ??
+    null
+
+  if (!templateId) {
+    return null
+  }
+
+  const factionId = contractRuntime?.factionId ?? caseInstance?.factionId
+  const factionLabel = factionId ? getFactionDefinition(factionId)?.label ?? factionId : undefined
+
+  const changedEntities: ContractDebriefChangedEntity[] = [
+    describeSubject(missionResult, snapshot),
+    ...describeFatalities(missionResult),
+    ...describeInjuries(missionResult.injuries),
+    ...describeFatigueShifts(missionResult),
+    ...describeFactionShifts(missionResult),
+    ...describeEvidenceGains(missionResult),
+  ]
+  const routeEntity = describeRoute(missionResult, snapshot)
+  if (routeEntity) {
+    changedEntities.push(routeEntity)
+  }
+
+  const unresolvedClocks = describeUnresolvedClocks(missionResult)
+
+  const factionSummary = factionLabel ? `${factionLabel} channel` : 'Open channel'
+  const summary = `${snapshot.title} ${mapOutcomeLabel(missionResult.outcome)} via ${factionSummary}.`
+
+  const strategicOptions = buildStrategicOptions({
+    outcome: missionResult.outcome,
+    changedEntities,
+    unresolvedClocks,
+    ...(factionId ? { factionId } : {}),
+  })
+
+  return {
+    caseId: snapshot.caseId,
+    caseTitle: snapshot.title,
+    contractTemplateId: templateId,
+    ...(factionId ? { factionId } : {}),
+    ...(factionLabel ? { factionLabel } : {}),
+    outcome: missionResult.outcome,
+    week: reportWeek,
+    summary,
+    changedEntities,
+    unresolvedClocks,
+    strategicOptions,
+  }
+}
+
+/**
+ * SPE-1496: scan the most recent weekly report for completed contract operations
+ * and emit their structured debrief records. Returns most-recent-first, ordered
+ * by case id for determinism.
+ */
+export function getRecentContractDebriefRecords(
+  game: Pick<GameState, 'reports' | 'cases'>,
+  limit = 3
+): ContractDebriefRecord[] {
+  const latest: WeeklyReport | undefined = game.reports.at(-1)
+  if (!latest) {
+    return []
+  }
+
+  const snapshots = Object.values(latest.caseSnapshots ?? {})
+    .filter(
+      (snapshot): snapshot is WeeklyReportCaseSnapshot =>
+        Boolean(snapshot?.missionResult) &&
+        // A case-snapshot represents a completed contract operation when the
+        // mission result reports a terminal outcome and the snapshot's case
+        // still has contract runtime data (or carried it in the snapshot).
+        (snapshot.missionResult?.outcome === 'success' ||
+          snapshot.missionResult?.outcome === 'partial' ||
+          snapshot.missionResult?.outcome === 'fail' ||
+          snapshot.missionResult?.outcome === 'unresolved')
+    )
+    .sort((left, right) => left.caseId.localeCompare(right.caseId))
+
+  const records: ContractDebriefRecord[] = []
+
+  for (const snapshot of snapshots) {
+    const caseInstance = game.cases[snapshot.caseId]
+    const record = buildContractDebriefRecord(snapshot, latest.week, caseInstance)
+    if (record) {
+      records.push(record)
+    }
+  }
+
+  return records.slice(0, Math.max(0, limit))
 }

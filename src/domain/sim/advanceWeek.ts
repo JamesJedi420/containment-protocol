@@ -124,6 +124,10 @@ import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../party
 import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
 import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
+import {
+  deploymentMomentumSurfacesEnabled,
+  mergeDeploymentMomentumIntoSuccessRewards,
+} from '../agent/deploymentMomentum'
 import type {
   AgencyState,
   CampaignToIncidentPacket,
@@ -170,10 +174,6 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
-import {
-  deploymentMomentumSurfacesEnabled,
-  mergeDeploymentMomentumIntoSuccessRewards,
-} from '../agent/deploymentMomentum'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
 import {
   buildAnchorFactionInstabilityNote,

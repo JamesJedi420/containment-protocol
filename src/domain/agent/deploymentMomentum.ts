@@ -65,7 +65,7 @@ export function mergeDeploymentMomentumIntoSuccessRewards(input: {
   const narrativeParts: string[] = []
   if (spendApplied) {
     narrativeParts.push(
-      `Spent 1 stack for +${DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA} containment leverage (remaining ${stacks}).`
+      `Spent 1 stack for +${DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA} containment (remaining ${stacks}).`
     )
   }
   if (earned) {

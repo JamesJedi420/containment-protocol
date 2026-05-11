@@ -182,7 +182,7 @@ describe('mission intake, triage, and routing', () => {
 
     const teamRouted = routeMissionToTeam(normalized, missionId, teamId!)
     expect(teamRouted.assigned).toBe(true)
-    // Match `gameStore.assignMissionTeam`: routing overlay alone is not canonical; persist assignment via `assignTeam`.
+    // Match the canonical assignment flow: routing overlay alone is not canonical; persist assignment via `assignTeam`.
     const assignedState = assignTeam(teamRouted.state, missionId, teamId!)
     expect(assignedState.missionRouting?.missions[missionId]?.routingState).toBe('assigned')
 

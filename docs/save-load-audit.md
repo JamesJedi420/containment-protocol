@@ -69,6 +69,7 @@
   - `agents` (including nested `attritionState` when present — SPE-281 cross-session continuity), `staff`, `candidates` (+ `recruitmentPool` compatibility alias)
   - `deploymentMomentum?` (SPE-282 stacks + recap text in challenge+attrition runs; clamped in `hydrateGame`, including `lastChangeWeek` to the loaded campaign week)
   - `teams`, `cases`, `factions`, `contracts`
+    - SPE-283 rotating-roster reconciliation reuses the SPE-281 persistence envelope without adding new persisted fields: it mutates already-round-tripping `CaseInstance` fields (`hiddenState`, `detectionConfidence`, `route`, `displacementTarget`, `counterDetection`) through `applyRotatingRosterContinuityReconciliation`, and re-derives routing / pressure / readiness / contracts through the canonical `recomputeAttritionDerivedState` sequence.
   - `reports`, `events`, `relationshipHistory?`
 - Economy/queues
   - `inventory`, `trainingQueue`, `productionQueue`, `market`, `partyCards?`

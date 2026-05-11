@@ -122,6 +122,45 @@ describe('operations report view', () => {
     expect(first.details.length).toBeLessThanOrEqual(3)
     expect(first.unresolvedTrend.length).toBeLessThanOrEqual(5)
     expect(first.crossSessionAttritionContinuitySummary).toBeUndefined()
+    expect(first.rotatingRosterContinuitySummary).toBeUndefined()
+  })
+
+  it('adds rotating-roster continuity recap only for attrition duration campaigns with absent assigned operatives (SPE-283)', () => {
+    const baseline = createStartingState()
+    baseline.config = {
+      ...baseline.config,
+      challengeModeEnabled: true,
+      durationModel: 'attrition',
+    }
+    expect(getWeeklyOperationsSummaryView(baseline).rotatingRosterContinuitySummary).toBeUndefined()
+
+    const rotatingCampaign = createStartingState()
+    rotatingCampaign.config = {
+      ...rotatingCampaign.config,
+      challengeModeEnabled: true,
+      durationModel: 'attrition',
+    }
+    const caseId = Object.keys(rotatingCampaign.cases)[0]!
+    rotatingCampaign.cases[caseId] = {
+      ...rotatingCampaign.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: ['t_nightwatch'],
+      hiddenState: 'hidden',
+      detectionConfidence: 0.25,
+    }
+    rotatingCampaign.agents['a_kellan'] = {
+      ...rotatingCampaign.agents['a_kellan']!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: ['rotating-roster-panel-test'],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+
+    const rotatingSummary = getWeeklyOperationsSummaryView(rotatingCampaign)
+    expect(rotatingSummary.rotatingRosterContinuitySummary).toContain('Rotating-roster continuity')
+    expect(rotatingSummary.rotatingRosterContinuitySummary).toContain('in-flight case(s)')
   })
 
   it('adds cross-session attrition continuity recap only for attrition duration campaigns', () => {

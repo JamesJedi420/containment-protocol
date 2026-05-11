@@ -1,7 +1,7 @@
 // SPE-282: Bounded deployment momentum — sustained-operation leverage alongside SPE-281 attrition continuity.
 
-import type { Agent } from './models'
 import type {
+  Agent,
   DeploymentMomentumState,
   GameConfig,
   GameState,
@@ -65,7 +65,7 @@ export function mergeDeploymentMomentumIntoSuccessRewards(input: {
   const narrativeParts: string[] = []
   if (spendApplied) {
     narrativeParts.push(
-      `Spent 1 stack for +${DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA} containment leverage (remaining ${stacks}).`
+      `Spent 1 stack for +${DEPLOYMENT_MOMENTUM_SPEND_CONTAINMENT_DELTA} containment (remaining ${stacks}).`
     )
   }
   if (earned) {

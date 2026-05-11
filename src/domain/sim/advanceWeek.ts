@@ -125,24 +125,28 @@ import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../even
 import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
-  type AgencyState,
-  type CampaignToIncidentPacket,
-  type CaseInstance,
-  type GameState,
-  type IncidentToCampaignPacket,
-  type LeaderBonus,
-  type MissionResult,
-  type MissionResultInput,
-  type MissionRewardBreakdown,
-  type PerformanceMetricSummary,
-  type PowerImpactSummary,
-  type ReportNote,
-  type ResolutionOutcome,
-  type RuntimeQueuedEvent,
-  type Team,
-  type WeeklyReport,
-  type WeeklyReportCaseSnapshot,
-  type WeeklyReportTeamStatus,
+  deploymentMomentumSurfacesEnabled,
+  mergeDeploymentMomentumIntoSuccessRewards,
+} from '../agent/deploymentMomentum'
+import type {
+  AgencyState,
+  CampaignToIncidentPacket,
+  CaseInstance,
+  GameState,
+  IncidentToCampaignPacket,
+  LeaderBonus,
+  MissionResult,
+  MissionResultInput,
+  MissionRewardBreakdown,
+  PerformanceMetricSummary,
+  PowerImpactSummary,
+  ReportNote,
+  ResolutionOutcome,
+  RuntimeQueuedEvent,
+  Team,
+  WeeklyReport,
+  WeeklyReportCaseSnapshot,
+  WeeklyReportTeamStatus,
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
@@ -170,10 +174,6 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
-import {
-  deploymentMomentumSurfacesEnabled,
-  mergeDeploymentMomentumIntoSuccessRewards,
-} from '../agent/deploymentMomentum'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
 import {
   buildAnchorFactionInstabilityNote,

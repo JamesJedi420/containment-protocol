@@ -1168,6 +1168,9 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
         ...(operationsReport.weeklySummary.crossSessionAttritionContinuitySummary
           ? [operationsReport.weeklySummary.crossSessionAttritionContinuitySummary]
           : []),
+        ...(operationsReport.weeklySummary.rotatingRosterContinuitySummary
+          ? [operationsReport.weeklySummary.rotatingRosterContinuitySummary]
+          : []),
         ...(operationsReport.weeklySummary.deploymentMomentumSummary
           ? [operationsReport.weeklySummary.deploymentMomentumSummary]
           : []),

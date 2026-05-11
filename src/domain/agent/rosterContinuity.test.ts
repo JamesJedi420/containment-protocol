@@ -151,6 +151,21 @@ describe('rotating-roster continuity (SPE-283)', () => {
     expect(nextCase.detectionConfidence).toBe(0.5)
   })
 
+  it('does not count an unassigned hidden case as a reconciled exposure', () => {
+    const state = createStartingState()
+    const caseId = Object.keys(state.cases)[0]!
+    state.cases[caseId] = {
+      ...state.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: [],
+      hiddenState: 'hidden',
+      detectionConfidence: 0.2,
+    }
+
+    const counts = countRotatingRosterContinuity(state)
+    expect(counts.reconciledExposures).toBe(0)
+  })
+
   it('does not reconcile an unassigned hidden case (no infiltrator was ever in role)', () => {
     const state = createStartingState()
     const caseId = Object.keys(state.cases)[0]!

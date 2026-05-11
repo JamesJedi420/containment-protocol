@@ -4,6 +4,7 @@ import { refreshContractBoard } from '../contracts'
 import type { GameConfig, GameState } from '../models'
 import { buildTeamDeploymentReadinessState } from '../deploymentReadiness'
 import { recomputeMissionRouting } from '../missionIntakeRouting'
+import { recomputeMissionRouting } from '../missionIntakeRouting'
 import { syncTeamSimulationState } from '../teamSimulation'
 import {
   buildReplacementPressureState,

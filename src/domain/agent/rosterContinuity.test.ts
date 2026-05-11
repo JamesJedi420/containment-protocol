@@ -187,6 +187,61 @@ describe('rotating-roster continuity (SPE-283)', () => {
     expect(nextCase.detectionConfidence).toBe(0.2)
   })
 
+  it('does not reconcile a hidden case whose assigned team is missing from state.teams', () => {
+    const state = createStartingState()
+    const caseId = Object.keys(state.cases)[0]!
+    state.cases[caseId] = {
+      ...state.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: ['t_does_not_exist'],
+      hiddenState: 'hidden',
+      detectionConfidence: 0.2,
+    }
+
+    const { nextCase, hiddenReplacementExposureReconciled } = reconcileRosterChangeOnCase(
+      state.cases[caseId]!,
+      state.teams,
+      state.agents
+    )
+    expect(hiddenReplacementExposureReconciled).toBe(false)
+    expect(nextCase.hiddenState).toBe('hidden')
+    expect(nextCase.detectionConfidence).toBe(0.2)
+
+    const counts = countRotatingRosterContinuity(state)
+    expect(counts.affectedCases).toBe(0)
+    expect(counts.reconciledExposures).toBe(0)
+  })
+
+  it('does not reconcile a hidden case whose assigned team has no resolvable members', () => {
+    const state = createStartingState()
+    const caseId = Object.keys(state.cases)[0]!
+    state.cases[caseId] = {
+      ...state.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: [NIGHTWATCH_TEAM_ID],
+      hiddenState: 'hidden',
+      detectionConfidence: 0.2,
+    }
+    state.teams[NIGHTWATCH_TEAM_ID] = {
+      ...state.teams[NIGHTWATCH_TEAM_ID]!,
+      memberIds: [],
+      agentIds: [],
+    }
+
+    const { nextCase, hiddenReplacementExposureReconciled } = reconcileRosterChangeOnCase(
+      state.cases[caseId]!,
+      state.teams,
+      state.agents
+    )
+    expect(hiddenReplacementExposureReconciled).toBe(false)
+    expect(nextCase.hiddenState).toBe('hidden')
+    expect(nextCase.detectionConfidence).toBe(0.2)
+
+    const counts = countRotatingRosterContinuity(state)
+    expect(counts.affectedCases).toBe(0)
+    expect(counts.reconciledExposures).toBe(0)
+  })
+
   it('does not reconcile resolved cases', () => {
     const state = createStartingState()
     const caseId = assignTeamToFirstCase(state)

@@ -110,10 +110,13 @@ export function reconcileRosterChangeOnCase(
     return { nextCase: caseData, hiddenReplacementExposureReconciled: false }
   }
 
-  // Unassigned hidden cases have no assigned infiltrator to lose; the
-  // bounded fallback only fires when a prior assignment has been emptied
-  // of every active operative.
-  if (caseData.assignedTeamIds.length === 0) {
+  // The bounded fallback only fires when the case has an actual assigned-team
+  // member who has gone absent (i.e., there was an operative to lose). This
+  // rejects unassigned hidden cases, hidden cases whose assigned teams are
+  // missing from `state.teams`, and hidden cases whose assigned teams have no
+  // resolvable members in `state.agents` — none of which represent an
+  // infiltrator being exposed, destroyed, or forced out.
+  if (!isCaseAffectedByRosterChange(caseData, teams, agentsById)) {
     return { nextCase: caseData, hiddenReplacementExposureReconciled: false }
   }
 

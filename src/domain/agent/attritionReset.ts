@@ -5,6 +5,11 @@ import { recomputeMissionRouting } from '../missionIntakeRouting'
 import { syncTeamSimulationState } from '../teamSimulation'
 import { buildReplacementPressureState } from './attrition'
 
+/**
+ * Rebuilds agent/team-dependent derived state after any availability mutation
+ * (hydration, chapter-break resets) so routing, readiness, pressure, and contracts
+ * stay aligned from a single canonical sequence.
+ */
 export function recomputeAttritionDerivedState(state: GameState): GameState {
   let next: GameState = syncTeamSimulationState(state)
 

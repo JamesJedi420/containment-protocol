@@ -412,7 +412,7 @@ function buildRotatingRosterContinuityRecapLine(game: GameState): string | undef
   if (counts.affectedCases === 0 && counts.absentRoster === 0) {
     return undefined
   }
-  return formatRotatingRosterContinuitySummary(game)
+  return formatRotatingRosterContinuitySummary(counts)
 }
 
 export function getOperationsReportView(game: GameState): OperationsReportView {

@@ -1951,7 +1951,11 @@ export interface GameConfig {
   /** Unlocks higher-pressure configuration options like attrition mode. */
   challengeModeEnabled: boolean
 
-  /** Duration model toggles (defaults unspecified). */
+  /**
+   * Duration model: `attrition` opts into cross-session operative attrition continuity
+   * (SPE-281) for the same persistence path as the rest of `GameState`; `capacity` does not.
+   * Hydration coerces `attrition` back to `capacity` when `challengeModeEnabled` is false.
+   */
   durationModel: 'capacity' | 'attrition'
   attritionPerWeek: number
 

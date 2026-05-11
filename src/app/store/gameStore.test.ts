@@ -39,6 +39,8 @@ import {
 import { createSquadMetadata } from '../../domain/squadMetadata'
 import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
 import { assignSquadKit } from '../../domain/squadKitAssignment'
+import { buildReplacementPressureState } from '../../domain/agent/attrition'
+import { recomputeMissionRouting } from '../../domain/missionIntakeRouting'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -1185,6 +1187,30 @@ describe('gameStore persistence', () => {
     const stored = getPersistedState()
 
     expect(stored).toMatchObject({ state: { game: { week: 1 } } })
+  })
+
+  it('applyChapterBreakAttritionContinuityReset clears attrition and re-derives routing, pressure, and readiness', () => {
+    let game = createStartingState()
+    game.agents['a_kellan'] = {
+      ...game.agents['a_kellan']!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: ['chapter-break-store-test'],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+    game = { ...game, missionRouting: recomputeMissionRouting(game) }
+
+    useGameStore.setState({ game })
+    useGameStore.getState().applyChapterBreakAttritionContinuityReset()
+
+    const next = useGameStore.getState().game
+
+    expect(next.agents['a_kellan']!.attritionState).toBeUndefined()
+    expect(next.replacementPressureState).toEqual(buildReplacementPressureState(next))
+    expect(next.missionRouting).toEqual(recomputeMissionRouting(next))
+    expect(next.teams.t_nightwatch?.deploymentReadinessState).toBeDefined()
   })
 
   it('rehydrated state always carries current app templates, not stale persisted ones', async () => {

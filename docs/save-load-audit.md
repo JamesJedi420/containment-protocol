@@ -66,7 +66,7 @@
   - `gameOver`, `gameOverReason`
   - `directiveState`
 - Core simulation data
-  - `agents`, `staff`, `candidates` (+ `recruitmentPool` compatibility alias)
+  - `agents` (including nested `attritionState` when present — SPE-281 cross-session continuity), `staff`, `candidates` (+ `recruitmentPool` compatibility alias)
   - `teams`, `cases`, `factions`, `contracts`
   - `reports`, `events`, `relationshipHistory?`
 - Economy/queues
@@ -77,7 +77,7 @@
   - Canonical: `agency`
   - Transitional mirrors still present: `containmentRating`, `clearanceLevel`, `funding`
 - Config/system
-  - `config`, `academyTier`, `globalPressure?`, `responseGrid?`, `caseQueue?`
+  - `config` (note: `durationModel: 'attrition'` is only retained when `challengeModeEnabled` is true — see `sanitizeGameConfig`), `academyTier`, `globalPressure?`, `responseGrid?`, `caseQueue?`
 
 ### Nested `runtimeState` (must round-trip)
 

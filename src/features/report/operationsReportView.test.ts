@@ -121,6 +121,29 @@ describe('operations report view', () => {
     expect(second).toEqual(first)
     expect(first.details.length).toBeLessThanOrEqual(3)
     expect(first.unresolvedTrend.length).toBeLessThanOrEqual(5)
+    expect(first.crossSessionAttritionContinuitySummary).toBeUndefined()
+  })
+
+  it('adds cross-session attrition continuity recap only for attrition duration campaigns', () => {
+    const attritionCampaign = createStartingState()
+    attritionCampaign.config = {
+      ...attritionCampaign.config,
+      challengeModeEnabled: true,
+      durationModel: 'attrition',
+    }
+    attritionCampaign.agents['a_kellan'] = {
+      ...attritionCampaign.agents['a_kellan']!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: ['panel-test'],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+
+    const summary = getWeeklyOperationsSummaryView(attritionCampaign)
+    expect(summary.crossSessionAttritionContinuitySummary).toContain('Cross-session attrition continuity')
+    expect(summary.crossSessionAttritionContinuitySummary).toContain('1 lost')
   })
 
   it('leaves save/load assumptions unaffected because report surfaces stay derived', () => {

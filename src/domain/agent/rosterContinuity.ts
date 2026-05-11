@@ -49,10 +49,9 @@ export function isCaseAffectedByRosterChange(
 }
 
 /**
- * Returns true when all members across the case's assigned teams are absent —
- * i.e., there is no active operative left to carry a hidden-replacement cover.
- * If the case is unassigned, this returns false (there is no infiltrator to
- * lose in the first place).
+ * Returns true when the case has at least one assigned-team member who is still
+ * active (that is, not attrition-unavailable). If the case is unassigned, this
+ * returns false because there is no assigned operative to evaluate.
  */
 function hasAnyActiveAssignedOperative(
   caseData: Pick<CaseInstance, 'assignedTeamIds'>,

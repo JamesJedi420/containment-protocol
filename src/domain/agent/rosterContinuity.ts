@@ -121,16 +121,10 @@ export function reconcileRosterChangeOnCase(
     return { nextCase: caseData, hiddenReplacementExposureReconciled: false }
   }
 
-  const priorDetectionConfidence =
-    typeof caseData.detectionConfidence === 'number' ? caseData.detectionConfidence : 0
-
   const nextCase: CaseInstance = {
     ...caseData,
     hiddenState: 'revealed',
-    detectionConfidence: Math.max(
-      priorDetectionConfidence,
-      HIDDEN_REPLACEMENT_EXPOSURE_DETECTION_CONFIDENCE
-    ),
+    detectionConfidence: HIDDEN_REPLACEMENT_EXPOSURE_DETECTION_CONFIDENCE,
   }
 
   return { nextCase, hiddenReplacementExposureReconciled: true }
@@ -198,8 +192,11 @@ export function countRotatingRosterContinuity(state: GameState): RotatingRosterC
  * Deterministic from canonical state; readable cold by both returning and
  * newly arriving participants without session-note context.
  */
-export function formatRotatingRosterContinuitySummary(state: GameState): string {
-  const c = countRotatingRosterContinuity(state)
+export function formatRotatingRosterContinuitySummary(
+  stateOrCounts: GameState | RotatingRosterContinuityCounts
+): string {
+  const c =
+    'affectedCases' in stateOrCounts ? stateOrCounts : countRotatingRosterContinuity(stateOrCounts)
   return (
     `Rotating-roster continuity: ${c.affectedCases} in-flight case(s) with absent ` +
     `assigned operatives, ${c.reconciledExposures} hidden-replacement packet(s) ` +

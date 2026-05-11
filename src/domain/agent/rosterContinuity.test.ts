@@ -12,8 +12,7 @@ import {
 } from './rosterContinuity'
 
 const NIGHTWATCH_TEAM_ID = 't_nightwatch'
-const NIGHTWATCH_LEADER_ID = 'a_ava'
-const NIGHTWATCH_MEMBER_IDS = [NIGHTWATCH_LEADER_ID, 'a_kellan', 'a_mina', 'a_rook'] as const
+const NIGHTWATCH_MEMBER_IDS = ['a_ava', 'a_kellan', 'a_mina', 'a_rook'] as const
 
 function markAllAgentsLost(
   state: ReturnType<typeof createStartingState>,
@@ -245,6 +244,5 @@ describe('rotating-roster continuity (SPE-283)', () => {
 
     const result = applyRotatingRosterContinuityReconciliation(state)
     expect(result).toBe(state)
-    void NIGHTWATCH_LEADER_ID
   })
 })

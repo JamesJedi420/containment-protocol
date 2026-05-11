@@ -124,6 +124,8 @@ export function reconcileRosterChangeOnCase(
   const nextCase: CaseInstance = {
     ...caseData,
     hiddenState: 'revealed',
+    // Revealed packets use the canonical maximum confidence directly so malformed
+    // persisted values cannot carry a confidence above the normal 0..1 range.
     detectionConfidence: HIDDEN_REPLACEMENT_EXPOSURE_DETECTION_CONFIDENCE,
   }
 

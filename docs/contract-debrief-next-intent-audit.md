@@ -74,14 +74,19 @@ player clears it.
 1. Reads the latest entry of `game.reports`.
 2. Filters `caseSnapshots` to those with a terminal `MissionResult`.
 3. For each snapshot, calls `buildContractDebriefRecord(snapshot, week, caseInstance?)`.
-4. Returns records ordered by `caseId` for stable UI output.
+4. Returns records ordered by **urgency** — `fail` > `unresolved` > `partial`
+   > `success`, with ties broken by unresolved-clock count (more clocks first)
+   > and finally by `caseId` ascending. `records[0]` therefore represents the
+   > most pressing signal of the week, which is what the front-desk attention
+   > tone reads.
 
 `buildContractDebriefRecord` is a pure function over a single
-`WeeklyReportCaseSnapshot` plus an optional live `CaseInstance`. It pulls the
-contract template id and faction id from the case-instance contract first,
-then falls back to a safe extraction from the snapshot via
-`extractContractRuntimeFromSnapshot`. Returns `null` if no
-`MissionResult` or no contract template id is available.
+`WeeklyReportCaseSnapshot` plus an optional live `CaseInstance`. It merges the
+contract template id and faction id from both sources per field — the
+case-instance contract takes precedence when it actually carries a value, but
+missing fields fall back to the snapshot so an empty case-instance contract
+object cannot suppress a valid snapshot contract. Returns `null` if no
+`MissionResult` or no contract template id is available from either source.
 
 Helpers used to populate `changedEntities`:
 
@@ -97,7 +102,9 @@ Helpers used to populate `unresolvedClocks`:
 Helpers used to populate `strategicOptions`:
 
 - `buildStrategicOptions` + `dedupeStrategicOptions` — bounded mapping from
-  observed deltas to `ContractNextIntent` suggestions
+  observed structured deltas to `ContractNextIntent` suggestions. The
+  faction-improved branch reads `MissionResult.rewards.factionStanding` numeric
+  deltas directly rather than parsing human-readable copy.
 
 All helpers are pure, take only mission-result and snapshot data, and emit no
 freeform prose.
@@ -109,6 +116,11 @@ freeform prose.
 `clearContractNextIntent(state)` removes both fields. `getContractNextIntent`
 reads the sanitized value. The Zustand store exposes `setContractNextIntent`
 and `clearContractNextIntent` actions in `src/app/store/gameStore.ts`.
+
+`sanitizeContractSystemState` only carries `nextIntentCapturedWeek` forward
+when a valid `nextIntent` is also present. A corrupted save with a captured
+week but no captured intent normalizes to "no intent, no captured week" rather
+than leaving a dangling timestamp.
 
 ### Contract suggestion bias
 

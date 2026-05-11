@@ -21,6 +21,7 @@ import {
   getNextIntentSelectionBias,
   getRecentContractDebriefRecords,
   refreshContractBoard,
+  sanitizeContractSystemState,
   setContractNextIntent,
 } from '../domain/contracts'
 import type {
@@ -60,7 +61,13 @@ function buildSnapshot(): WeeklyReportCaseSnapshot {
       strategicValueDelta: 0,
       reputationDelta: 0,
       inventoryRewards: [
-        { kind: 'material', itemId: 'shard-fragment', label: 'Shard Fragment', quantity: 2, tags: [] },
+        {
+          kind: 'material',
+          itemId: 'shard-fragment',
+          label: 'Shard Fragment',
+          quantity: 2,
+          tags: [],
+        },
       ],
       factionStanding: [
         { factionId: 'oversight', label: 'Oversight Bureau', delta: 2, overlapTags: [] },
@@ -183,7 +190,75 @@ describe('SPE-1496 contract debrief record', () => {
     expect(record!.factionId).toBe('institutions')
   })
 
-  it('reads the latest weekly report and emits debrief records ordered by case id', () => {
+  it('SPE-1496 (PR #1621 review fix): empty case-instance contract does not block a valid snapshot contract', () => {
+    const snapshot = buildSnapshot()
+    // The case-instance contract object exists but carries no templateId,
+    // which used to short-circuit the snapshot fallback. After the fix it
+    // should merge per-field and still resolve to the snapshot's templateId.
+    const caseInstance = {
+      id: 'case-debrief',
+      contract: {},
+    } as unknown as CaseInstance
+
+    const record = buildContractDebriefRecord(snapshot, 9, caseInstance)
+    expect(record).not.toBeNull()
+    expect(record!.contractTemplateId).toBe('oversight-lockdown-retainer')
+    expect(record!.factionId).toBe('oversight')
+  })
+
+  it('SPE-1496 (PR #1621 review fix): per-field merge prefers case-instance fields when present', () => {
+    const snapshot = buildSnapshot()
+    // Snapshot side has both templateId + factionId. The case-instance side
+    // only supplies a templateId — factionId must still fall back to snapshot.
+    const caseInstance = {
+      id: 'case-debrief',
+      contract: { templateId: 'institutions-ritual-archive' },
+    } as unknown as CaseInstance
+
+    const record = buildContractDebriefRecord(snapshot, 9, caseInstance)
+    expect(record).not.toBeNull()
+    expect(record!.contractTemplateId).toBe('institutions-ritual-archive')
+    expect(record!.factionId).toBe('oversight')
+  })
+
+  it('SPE-1496 (PR #1621 review fix): infers pursue-faction from numeric standing delta, not detail text', () => {
+    const snapshot = buildSnapshot()
+    const record = buildContractDebriefRecord(snapshot, 11)
+    expect(record).not.toBeNull()
+    // The base snapshot has a faction standing delta of +2 for the bound
+    // faction. The pursue-faction option must surface based on the structured
+    // numeric delta, not because the changed-entity detail string contains '+'.
+    const intents = record!.strategicOptions.map((option) => option.intent)
+    expect(intents).toContain('pursue-faction')
+  })
+
+  it('SPE-1496 (PR #1621 review fix): no pursue-faction when all faction-standing deltas are non-positive', () => {
+    const base = buildSnapshot()
+    const negativeStanding = {
+      ...base,
+      missionResult: {
+        ...base.missionResult!,
+        rewards: {
+          ...base.missionResult!.rewards,
+          factionStanding: [
+            {
+              factionId: 'oversight',
+              label: 'Oversight Bureau',
+              delta: -3,
+              overlapTags: [],
+            },
+          ],
+        },
+      },
+    } as unknown as WeeklyReportCaseSnapshot
+
+    const record = buildContractDebriefRecord(negativeStanding, 11)
+    expect(record).not.toBeNull()
+    const intents = record!.strategicOptions.map((option) => option.intent)
+    expect(intents).not.toContain('pursue-faction')
+  })
+
+  it('reads the latest weekly report and emits debrief records', () => {
     const baseSnapshot = buildSnapshot()
     const secondSnapshot = {
       ...baseSnapshot,
@@ -208,9 +283,111 @@ describe('SPE-1496 contract debrief record', () => {
     }
 
     const records = getRecentContractDebriefRecords(state)
+    // Both snapshots share the same `partial` outcome, so urgency-ranked
+    // ordering falls through to the caseId tiebreak.
     expect(records.length).toBe(2)
     expect(records[0]!.caseId).toBe('aaa-case')
     expect(records[1]!.caseId).toBe('case-debrief')
+  })
+
+  it('SPE-1496 (PR #1621 review fix): ranks records by urgency so fail/unresolved lead success', () => {
+    const partial = buildSnapshot()
+    const fail = {
+      ...buildSnapshot(),
+      caseId: 'zzz-fail',
+      title: 'Zeta Failure',
+      missionResult: {
+        ...buildSnapshot().missionResult!,
+        caseId: 'zzz-fail',
+        outcome: 'fail' as const,
+      },
+    } as unknown as WeeklyReportCaseSnapshot
+    Object.defineProperty(fail, 'caseId', { value: 'zzz-fail', enumerable: true })
+    const success = {
+      ...buildSnapshot(),
+      caseId: 'aaa-success',
+      title: 'Alpha Win',
+      missionResult: {
+        ...buildSnapshot().missionResult!,
+        caseId: 'aaa-success',
+        outcome: 'success' as const,
+        // No unresolved consequences for the success record so its rank stays
+        // last on the urgency axis.
+        spawnedConsequences: [],
+        weakestLink: undefined,
+      },
+    } as unknown as WeeklyReportCaseSnapshot
+    Object.defineProperty(success, 'caseId', { value: 'aaa-success', enumerable: true })
+
+    const report: WeeklyReport = {
+      week: 14,
+      summary: '',
+      events: [],
+      caseSnapshots: {
+        [partial.caseId]: partial,
+        [fail.caseId]: fail,
+        [success.caseId]: success,
+      },
+    } as unknown as WeeklyReport
+
+    const records = getRecentContractDebriefRecords({ reports: [report], cases: {} })
+    expect(records.map((record) => record.outcome)).toEqual(['fail', 'partial', 'success'])
+    // The alphabetic-first success case must not become `records[0]` and hide
+    // the failure signal from front-desk attention tone derivation.
+    expect(records[0]!.caseId).toBe('zzz-fail')
+  })
+
+  it('SPE-1496 (PR #1621 review fix): same-urgency records tiebreak on unresolved clock count then caseId', () => {
+    const heavyClocks = {
+      ...buildSnapshot(),
+      caseId: 'mmm-heavy',
+      title: 'Heavy Clocks',
+      missionResult: {
+        ...buildSnapshot().missionResult!,
+        caseId: 'mmm-heavy',
+        outcome: 'partial' as const,
+        spawnedConsequences: [
+          {
+            type: 'queued_follow_up' as const,
+            caseId: 'follow-1',
+            detail: 'First follow-up.',
+          },
+          {
+            type: 'queued_follow_up' as const,
+            caseId: 'follow-2',
+            detail: 'Second follow-up.',
+          },
+        ],
+      },
+    } as unknown as WeeklyReportCaseSnapshot
+    Object.defineProperty(heavyClocks, 'caseId', { value: 'mmm-heavy', enumerable: true })
+    const lightClocks = {
+      ...buildSnapshot(),
+      caseId: 'aaa-light',
+      title: 'Light Clocks',
+      missionResult: {
+        ...buildSnapshot().missionResult!,
+        caseId: 'aaa-light',
+        outcome: 'partial' as const,
+        spawnedConsequences: [],
+        weakestLink: undefined,
+      },
+    } as unknown as WeeklyReportCaseSnapshot
+    Object.defineProperty(lightClocks, 'caseId', { value: 'aaa-light', enumerable: true })
+
+    const report: WeeklyReport = {
+      week: 15,
+      summary: '',
+      events: [],
+      caseSnapshots: {
+        [heavyClocks.caseId]: heavyClocks,
+        [lightClocks.caseId]: lightClocks,
+      },
+    } as unknown as WeeklyReport
+
+    const records = getRecentContractDebriefRecords({ reports: [report], cases: {} })
+    expect(records[0]!.caseId).toBe('mmm-heavy')
+    expect(records[1]!.caseId).toBe('aaa-light')
   })
 })
 
@@ -237,6 +414,37 @@ describe('SPE-1496 next-intent capture', () => {
       expect(typeof label).toBe('string')
       expect(label.length).toBeGreaterThan(0)
     }
+  })
+
+  it('SPE-1496 (PR #1621 review fix): sanitize drops capturedWeek when intent is missing', () => {
+    const state = createStartingState()
+    // Simulate corrupted save data: captured week present, intent absent.
+    const captured = sanitizeContractSystemState(
+      {
+        ...state.contracts,
+        nextIntent: undefined,
+        nextIntentCapturedWeek: 4,
+      },
+      state.contracts
+    )
+
+    expect(captured.nextIntent).toBeUndefined()
+    expect(captured.nextIntentCapturedWeek).toBeUndefined()
+  })
+
+  it('SPE-1496 (PR #1621 review fix): sanitize preserves capturedWeek when intent is valid', () => {
+    const state = createStartingState()
+    const captured = sanitizeContractSystemState(
+      {
+        ...state.contracts,
+        nextIntent: 'chase-lead',
+        nextIntentCapturedWeek: 8,
+      },
+      state.contracts
+    )
+
+    expect(captured.nextIntent).toBe('chase-lead')
+    expect(captured.nextIntentCapturedWeek).toBe(8)
   })
 })
 

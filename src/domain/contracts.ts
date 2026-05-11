@@ -1,9 +1,6 @@
 import { inventoryItemLabels } from '../data/production'
 import { appendOperationEventDrafts } from './events'
-import {
-  getAgencyProgressionUnlockLabel,
-  hasAgencyProgressionUnlock,
-} from './agencyProgression'
+import { getAgencyProgressionUnlockLabel, hasAgencyProgressionUnlock } from './agencyProgression'
 import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
 import { createMissionIntelState } from './intel'
 import { clamp, createSeededRng, normalizeSeed } from './math'
@@ -155,7 +152,8 @@ const CONTRACT_RESEARCH_UNLOCKS: Record<string, ContractResearchUnlock> = {
   'liturgic-containment-index': {
     id: 'liturgic-containment-index',
     label: 'Liturgic Containment Index',
-    description: 'Recovered rite indices that open deeper occult-response catalog and containment work.',
+    description:
+      'Recovered rite indices that open deeper occult-response catalog and containment work.',
   },
 } as const
 
@@ -839,7 +837,8 @@ const CONTRACT_TEMPLATES: readonly ContractTemplateDefinition[] = [
       {
         id: 'stormgrid-relay-chaos',
         label: 'Relay instability',
-        description: 'Unstable relay cutovers make the operation harsher than normal intercept work.',
+        description:
+          'Unstable relay cutovers make the operation harsher than normal intercept work.',
         effect: 'injury_risk',
         value: 6,
       },
@@ -1038,11 +1037,7 @@ function cloneRewards(rewards: ContractRewardPackage): ContractRewardPackage {
   }
 }
 
-function scaleDifficultyProfile(
-  baseDifficulty: StatBlock,
-  scalar: number,
-  difficultyFlat: number
-) {
+function scaleDifficultyProfile(baseDifficulty: StatBlock, scalar: number, difficultyFlat: number) {
   const flatPerAxis = difficultyFlat / 4
 
   return {
@@ -1146,7 +1141,9 @@ export const CONTRACT_ARCHIVE_INSTABILITY_MODIFIER_ID = 'archive-instability' as
  * Returns a stable human-readable clause description when the case's contract template
  * includes the archive-instability modifier; otherwise null.
  */
-export function describeContractArchiveInstabilityClause(caseInstance: CaseInstance): string | null {
+export function describeContractArchiveInstabilityClause(
+  caseInstance: CaseInstance
+): string | null {
   const templateId = caseInstance.contract?.templateId
   if (!templateId || typeof templateId !== 'string') {
     return null
@@ -1165,9 +1162,7 @@ function getContractDisplayLabel(templateId: string) {
   return getContractDefinition(templateId)?.name ?? templateId
 }
 
-function formatContractResolutionLabel(
-  value: MissionResolutionKind | 'none' | undefined
-) {
+function formatContractResolutionLabel(value: MissionResolutionKind | 'none' | undefined) {
   switch (value) {
     case 'success':
       return 'success'
@@ -1216,7 +1211,8 @@ function buildContractPreviewOffer(
         social: 1,
       },
       riskLevel: 'low' as const,
-      durationWeeks: definition.durationWeeks ?? state.templates[definition.caseTemplateId]?.durationWeeks ?? 1,
+      durationWeeks:
+        definition.durationWeeks ?? state.templates[definition.caseTemplateId]?.durationWeeks ?? 1,
       rewards: buildRewardPackage(state, definition),
       requirements: {
         recommendedClasses: [...definition.requirements.recommendedClasses],
@@ -1224,10 +1220,14 @@ function buildContractPreviewOffer(
       },
       modifiers: definition.modifiers.map((modifier) => ({ ...modifier })),
       chain: {
-        ...(definition.chain.nextContracts ? { nextContracts: [...definition.chain.nextContracts] } : {}),
+        ...(definition.chain.nextContracts
+          ? { nextContracts: [...definition.chain.nextContracts] }
+          : {}),
         ...(definition.chain.unlockConditions
           ? {
-              unlockConditions: definition.chain.unlockConditions.map((condition) => ({ ...condition })),
+              unlockConditions: definition.chain.unlockConditions.map((condition) => ({
+                ...condition,
+              })),
             }
           : {}),
       },
@@ -1314,10 +1314,9 @@ export function getNextIntentSelectionBias(
     (condition) => condition.type === 'completed_contract'
   )
   const strategy = definition.strategyTag
-  const riskBoost =
-    definition.modifiers
-      .filter((modifier) => modifier.effect === 'difficulty_flat' || modifier.effect === 'death_risk')
-      .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
+  const riskBoost = definition.modifiers
+    .filter((modifier) => modifier.effect === 'difficulty_flat' || modifier.effect === 'death_risk')
+    .reduce((sum, modifier) => sum + (modifier.value ?? 0), 0)
 
   switch (intent) {
     case 'chase-lead':
@@ -1384,7 +1383,10 @@ function meetsUnlockCondition(
   switch (condition.type) {
     case 'completed_contract': {
       const record = contracts.history[condition.contractTemplateId ?? '']
-      return getOutcomeMeetsMinimum(record?.bestOutcome ?? 'none', condition.minimumOutcome ?? 'success')
+      return getOutcomeMeetsMinimum(
+        record?.bestOutcome ?? 'none',
+        condition.minimumOutcome ?? 'success'
+      )
     }
     case 'research_unlocked':
       return completedResearchUnlockIds.has(condition.researchId ?? '')
@@ -1400,10 +1402,7 @@ function meetsUnlockCondition(
   }
 }
 
-function getContractAvailabilityBlockers(
-  state: GameState,
-  definition: ContractTemplateDefinition
-) {
+function getContractAvailabilityBlockers(state: GameState, definition: ContractTemplateDefinition) {
   const contracts = sanitizeContractSystemState(state.contracts)
   const blockers: Array<{ code: string; detail: string }> = []
   const template = state.templates[definition.caseTemplateId]
@@ -1668,9 +1667,15 @@ function buildOfferFromDefinition(
     },
     modifiers: definition.modifiers.map((modifier) => ({ ...modifier })),
     chain: {
-      ...(definition.chain.nextContracts ? { nextContracts: [...definition.chain.nextContracts] } : {}),
+      ...(definition.chain.nextContracts
+        ? { nextContracts: [...definition.chain.nextContracts] }
+        : {}),
       ...(definition.chain.unlockConditions
-        ? { unlockConditions: definition.chain.unlockConditions.map((condition) => ({ ...condition })) }
+        ? {
+            unlockConditions: definition.chain.unlockConditions.map((condition) => ({
+              ...condition,
+            })),
+          }
         : {}),
     },
     strategyTag: definition.strategyTag,
@@ -1681,7 +1686,9 @@ function buildOfferFromDefinition(
 function generateContractOffers(state: GameState) {
   const progressionFactor = getCurrentProgressionFactor(state)
   const powerFactor = getAvailablePowerFactor(state)
-  const eligible = CONTRACT_TEMPLATES.filter((definition) => isDefinitionEligible(state, definition))
+  const eligible = CONTRACT_TEMPLATES.filter((definition) =>
+    isDefinitionEligible(state, definition)
+  )
   const ranked = eligible
     .map((definition) => ({
       definition,
@@ -1749,7 +1756,10 @@ export function sanitizeContractSystemState(
               1,
               Math.round(offer.caseDifficulty?.investigation ?? offer.difficulty ?? 1)
             ),
-            utility: Math.max(1, Math.round(offer.caseDifficulty?.utility ?? offer.difficulty ?? 1)),
+            utility: Math.max(
+              1,
+              Math.round(offer.caseDifficulty?.utility ?? offer.difficulty ?? 1)
+            ),
             social: Math.max(1, Math.round(offer.caseDifficulty?.social ?? offer.difficulty ?? 1)),
           },
           requirements: {
@@ -1824,10 +1834,15 @@ export function sanitizeContractSystemState(
       : { ...fallback.history }
 
   const nextIntent = normalizeContractNextIntent(raw.nextIntent ?? fallback.nextIntent)
-  const nextIntentCapturedWeek =
+  // SPE-1496 (PR #1621 review fix): only carry `nextIntentCapturedWeek` forward
+  // when a valid `nextIntent` is present. This keeps corrupted / partial save
+  // data from leaving a captured-week value without a captured intent, which is
+  // inconsistent with `clearContractNextIntent` and with the field's meaning.
+  const rawCapturedWeek =
     typeof raw.nextIntentCapturedWeek === 'number' && Number.isFinite(raw.nextIntentCapturedWeek)
       ? Math.max(0, Math.round(raw.nextIntentCapturedWeek))
       : fallback.nextIntentCapturedWeek
+  const nextIntentCapturedWeek = nextIntent ? rawCapturedWeek : undefined
 
   return {
     generatedWeek:
@@ -1978,7 +1993,8 @@ export function getContractCatalogEntries(state: GameState): ContractCatalogEntr
   return CONTRACT_TEMPLATES.map((definition, index) => {
     const offer = offersByTemplateId.get(definition.id)
     const caseTemplate = state.templates[definition.caseTemplateId]
-    const preview = offer ?? buildContractPreviewOffer(state, definition, index, progressionFactor, powerFactor)
+    const preview =
+      offer ?? buildContractPreviewOffer(state, definition, index, progressionFactor, powerFactor)
     const blockers =
       offer !== undefined
         ? []
@@ -2018,7 +2034,11 @@ export function getContractCatalogEntries(state: GameState): ContractCatalogEntr
       chain: {
         ...(preview.chain.nextContracts ? { nextContracts: [...preview.chain.nextContracts] } : {}),
         ...(preview.chain.unlockConditions
-          ? { unlockConditions: preview.chain.unlockConditions.map((condition) => ({ ...condition })) }
+          ? {
+              unlockConditions: preview.chain.unlockConditions.map((condition) => ({
+                ...condition,
+              })),
+            }
           : {}),
       },
       availabilityState,
@@ -2224,7 +2244,12 @@ export function recordContractOutcome(
     return nextContracts
   }
 
-  const templateId = activeContract.templateId ?? activeContract.contractId ?? activeContract.offerId ?? activeContract.caseId ?? ''
+  const templateId =
+    activeContract.templateId ??
+    activeContract.contractId ??
+    activeContract.offerId ??
+    activeContract.caseId ??
+    ''
   const currentRecord = nextContracts.history[templateId] ?? {
     completions: 0,
     bestOutcome: 'none',
@@ -2293,7 +2318,9 @@ export function getContractStrategyLabel(strategyTag: ContractStrategyTag) {
 }
 
 export function getContractFactionLabel(offer: Pick<ContractOffer, 'factionId'>) {
-  return offer.factionId ? getFactionDefinition(offer.factionId)?.label ?? offer.factionId : 'Open channel'
+  return offer.factionId
+    ? (getFactionDefinition(offer.factionId)?.label ?? offer.factionId)
+    : 'Open channel'
 }
 
 export function getContractChainLabels(offer: Pick<ContractOffer, 'chain'>) {
@@ -2334,7 +2361,9 @@ function describeFatalities(missionResult: MissionResult): ContractDebriefChange
   }))
 }
 
-function describeInjuries(injuries: readonly MissionInjuryRecord[]): ContractDebriefChangedEntity[] {
+function describeInjuries(
+  injuries: readonly MissionInjuryRecord[]
+): ContractDebriefChangedEntity[] {
   return injuries.map((injury) => ({
     kind: 'staff' as const,
     id: `injury:${injury.agentId}`,
@@ -2392,12 +2421,53 @@ function describeRoute(
   }
 }
 
-function extractContractRuntimeFromSnapshot(
-  snapshot: WeeklyReportCaseSnapshot
-): ActiveContractRuntime | undefined {
-  const raw = (snapshot as { contract?: unknown }).contract
-  if (raw && typeof raw === 'object') {
-    return raw as ActiveContractRuntime
+/**
+ * Loosely-typed extraction of contract runtime data from either source. Both
+ * `WeeklyReportCaseSnapshot` and `CaseInstance.contract` only formally guarantee
+ * `templateId` plus an index signature, so we read the fields we care about
+ * through optional access rather than casting the whole object to
+ * `ActiveContractRuntime`.
+ */
+type ContractRuntimeBag = {
+  templateId?: unknown
+  contractId?: unknown
+  offerId?: unknown
+  factionId?: unknown
+}
+
+function readContractRuntimeBag(value: unknown): ContractRuntimeBag | undefined {
+  if (value && typeof value === 'object') {
+    return value as ContractRuntimeBag
+  }
+  return undefined
+}
+
+function pickContractStringField(
+  ...candidates: Array<ContractRuntimeBag | undefined>
+): string | null {
+  for (const bag of candidates) {
+    if (!bag) {
+      continue
+    }
+    for (const field of ['templateId', 'contractId', 'offerId'] as const) {
+      const value = bag[field]
+      if (typeof value === 'string' && value.length > 0) {
+        return value
+      }
+    }
+  }
+  return null
+}
+
+function pickFactionId(...candidates: Array<ContractRuntimeBag | undefined>): string | undefined {
+  for (const bag of candidates) {
+    if (!bag) {
+      continue
+    }
+    const value = bag.factionId
+    if (typeof value === 'string' && value.length > 0) {
+      return value
+    }
   }
   return undefined
 }
@@ -2447,15 +2517,24 @@ function describeUnresolvedClocks(missionResult: MissionResult): ContractDebrief
   return clocks
 }
 
+/**
+ * SPE-1496 (PR #1621 review fix): `buildStrategicOptions` accepts the
+ * structured numeric `factionStanding` array from `MissionResult.rewards`
+ * directly so the "faction standing improved" inference no longer depends on
+ * parsing the human-readable `detail` string of a faction changed-entity. The
+ * `changedEntities` / `unresolvedClocks` inputs are still used for the other
+ * inferences because those already key off id prefixes, not free-form copy.
+ */
 function buildStrategicOptions(
   record: Pick<
     ContractDebriefRecord,
     'outcome' | 'changedEntities' | 'unresolvedClocks' | 'factionId'
-  >
+  > & {
+    factionStanding: MissionResult['rewards']['factionStanding']
+  }
 ): ContractDebriefStrategicOption[] {
   const options: ContractDebriefStrategicOption[] = []
   const staffChanges = record.changedEntities.filter((entity) => entity.kind === 'staff')
-  const factionChanges = record.changedEntities.filter((entity) => entity.kind === 'faction')
   const evidenceChanges = record.changedEntities.filter((entity) => entity.kind === 'evidence')
 
   if (record.unresolvedClocks.some((clock) => clock.id.startsWith('consequence:'))) {
@@ -2486,7 +2565,8 @@ function buildStrategicOptions(
     })
   }
 
-  if (record.factionId && factionChanges.some((entity) => entity.detail.includes('+'))) {
+  const factionImproved = record.factionStanding.some((standing) => standing.delta > 0)
+  if (record.factionId && factionImproved) {
     options.push({
       intent: 'pursue-faction',
       label: getContractNextIntentLabel('pursue-faction'),
@@ -2549,21 +2629,22 @@ export function buildContractDebriefRecord(
     return null
   }
 
-  const contractRuntime: ActiveContractRuntime | undefined =
-    (caseInstance?.contract as ActiveContractRuntime | undefined) ??
-    extractContractRuntimeFromSnapshot(snapshot)
-  const templateId =
-    contractRuntime?.templateId ??
-    contractRuntime?.contractId ??
-    contractRuntime?.offerId ??
-    null
+  // SPE-1496 (PR #1621 review fix): merge contract runtime fields from both the
+  // live `CaseInstance` and the `WeeklyReportCaseSnapshot` per field, instead of
+  // picking one source wholesale. The case-instance contract takes precedence
+  // when it actually carries a value for the field, but missing fields fall
+  // back to the snapshot so an empty case-instance contract object can never
+  // suppress a valid snapshot contract.
+  const caseBag = readContractRuntimeBag(caseInstance?.contract)
+  const snapshotBag = readContractRuntimeBag((snapshot as { contract?: unknown }).contract)
+  const templateId = pickContractStringField(caseBag, snapshotBag)
 
   if (!templateId) {
     return null
   }
 
-  const factionId = contractRuntime?.factionId ?? caseInstance?.factionId
-  const factionLabel = factionId ? getFactionDefinition(factionId)?.label ?? factionId : undefined
+  const factionId = pickFactionId(caseBag, snapshotBag) ?? caseInstance?.factionId
+  const factionLabel = factionId ? (getFactionDefinition(factionId)?.label ?? factionId) : undefined
 
   const changedEntities: ContractDebriefChangedEntity[] = [
     describeSubject(missionResult, snapshot),
@@ -2587,6 +2668,7 @@ export function buildContractDebriefRecord(
     outcome: missionResult.outcome,
     changedEntities,
     unresolvedClocks,
+    factionStanding: missionResult.rewards.factionStanding,
     ...(factionId ? { factionId } : {}),
   })
 
@@ -2606,9 +2688,45 @@ export function buildContractDebriefRecord(
 }
 
 /**
+ * SPE-1496 (PR #1621 review fix): bounded urgency ranking for the latest-report
+ * debrief records. Lower number = more urgent, which sorts first.
+ *
+ * The order is intentionally compact and deterministic — failure and unresolved
+ * outcomes lead so the front-desk attention tone derived from `records[0]`
+ * surfaces the most pressing signal in a week that mixes outcomes.
+ */
+const DEBRIEF_OUTCOME_URGENCY_RANK: Record<MissionResolutionKind, number> = {
+  fail: 0,
+  unresolved: 1,
+  partial: 2,
+  success: 3,
+}
+
+function compareDebriefRecordsByUrgency(
+  left: ContractDebriefRecord,
+  right: ContractDebriefRecord
+): number {
+  const outcomeDelta =
+    DEBRIEF_OUTCOME_URGENCY_RANK[left.outcome] - DEBRIEF_OUTCOME_URGENCY_RANK[right.outcome]
+  if (outcomeDelta !== 0) {
+    return outcomeDelta
+  }
+  const clockDelta = right.unresolvedClocks.length - left.unresolvedClocks.length
+  if (clockDelta !== 0) {
+    return clockDelta
+  }
+  return left.caseId.localeCompare(right.caseId)
+}
+
+/**
  * SPE-1496: scan the most recent weekly report for completed contract operations
- * and emit their structured debrief records. Returns most-recent-first, ordered
- * by case id for determinism.
+ * and emit their structured debrief records.
+ *
+ * Records are ordered by urgency (`fail` > `unresolved` > `partial` > `success`),
+ * with ties broken by unresolved-clock count (more clocks first) and finally by
+ * `caseId` ascending for full determinism. This lets downstream surfaces such
+ * as the front-desk attention item read `records[0]` and trust it represents
+ * the most pressing signal in the week, not just the alphabetic first case.
  */
 export function getRecentContractDebriefRecords(
   game: Pick<GameState, 'reports' | 'cases'>,
@@ -2619,6 +2737,8 @@ export function getRecentContractDebriefRecords(
     return []
   }
 
+  // Iterate snapshots in caseId order first so record construction itself is
+  // deterministic; the final `sort` below then re-orders by urgency.
   const snapshots = Object.values(latest.caseSnapshots ?? {})
     .filter(
       (snapshot): snapshot is WeeklyReportCaseSnapshot =>
@@ -2643,5 +2763,6 @@ export function getRecentContractDebriefRecords(
     }
   }
 
+  records.sort(compareDebriefRecordsByUrgency)
   return records.slice(0, Math.max(0, limit))
 }

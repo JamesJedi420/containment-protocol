@@ -1171,6 +1171,9 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
         ...(operationsReport.weeklySummary.rotatingRosterContinuitySummary
           ? [operationsReport.weeklySummary.rotatingRosterContinuitySummary]
           : []),
+        ...(operationsReport.weeklySummary.deploymentMomentumSummary
+          ? [operationsReport.weeklySummary.deploymentMomentumSummary]
+          : []),
         ...operationsReport.weeklySummary.details,
       ],
       MAX_PRESSURE_DETAILS

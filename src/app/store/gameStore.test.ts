@@ -1237,7 +1237,15 @@ describe('gameStore persistence', () => {
         retentionPressure: 0,
       },
     }
-    game = { ...game, missionRouting: recomputeMissionRouting(game) }
+    game = {
+      ...game,
+      missionRouting: recomputeMissionRouting(game),
+      deploymentMomentum: {
+        stacks: 2,
+        lastChangeWeek: 1,
+        lastSummary: 'chapter-break-store momentum',
+      },
+    }
 
     useGameStore.setState({ game })
     useGameStore.getState().applyChapterBreakAttritionContinuityReset()
@@ -1245,6 +1253,8 @@ describe('gameStore persistence', () => {
     const next = useGameStore.getState().game
 
     expect(next.agents['a_kellan']!.attritionState).toBeUndefined()
+    expect(next.deploymentMomentum?.stacks).toBe(0)
+    expect(next.deploymentMomentum?.lastSummary).toContain('Chapter break cleared deployment momentum')
     expect(next.replacementPressureState).toEqual(buildReplacementPressureState(next))
     expect(next.missionRouting).toEqual(recomputeMissionRouting(next))
     expect(next.teams.t_nightwatch?.deploymentReadinessState).toBeDefined()

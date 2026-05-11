@@ -41,6 +41,9 @@ export function OperationsReportPanel() {
             {view.weeklySummary.crossSessionAttritionContinuitySummary ? (
               <p className="opacity-90">{view.weeklySummary.crossSessionAttritionContinuitySummary}</p>
             ) : null}
+            {view.weeklySummary.deploymentMomentumSummary ? (
+              <p className="opacity-90">{view.weeklySummary.deploymentMomentumSummary}</p>
+            ) : null}
           </div>
 
           {view.weeklySummary.details.length > 0 ? (

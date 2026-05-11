@@ -19,6 +19,10 @@ import {
   formatRotatingRosterContinuitySummary,
   rotatingRosterContinuityRecapEnabled,
 } from '../../domain/agent/rosterContinuity'
+import {
+  deploymentMomentumSurfacesEnabled,
+  formatDeploymentMomentumSummary,
+} from '../../domain/agent/deploymentMomentum'
 
 const MAX_ROUTING_ITEMS = 4
 const MAX_READINESS_ITEMS = 4
@@ -101,6 +105,8 @@ export interface WeeklyOperationsSummaryView {
    * (SPE-283 rotating-roster continuity recap).
    */
   rotatingRosterContinuitySummary?: string
+  /** SPE-282 deployment momentum when challenge attrition continuity is active. */
+  deploymentMomentumSummary?: string
 }
 
 export interface OperationsReportView {
@@ -403,6 +409,9 @@ export function getWeeklyOperationsSummaryView(game: GameState): WeeklyOperation
       : undefined,
     rotatingRosterContinuitySummary: rotatingRosterContinuityRecapEnabled(game.config)
       ? buildRotatingRosterContinuityRecapLine(game)
+      : undefined,
+    deploymentMomentumSummary: deploymentMomentumSurfacesEnabled(game.config)
+      ? formatDeploymentMomentumSummary(game)
       : undefined,
   }
 }

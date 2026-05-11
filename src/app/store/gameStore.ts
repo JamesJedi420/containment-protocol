@@ -81,6 +81,7 @@ import type { EquipmentSlotKind } from '../../domain/equipment'
 import { discardPartyCard, drawPartyCards, playPartyCard } from '../../domain/partyCards/engine'
 import { createStartingState } from '../../data/startingState'
 import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionReset'
+import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
 import { queueFabrication } from '../../domain/sim/production'
@@ -275,6 +276,14 @@ interface GameStore {
   newRunFromCurrentConfig: () => void
   /** SPE-281: Clear persisted operative attrition state at an explicit chapter break (deterministic). */
   applyChapterBreakAttritionContinuityReset: () => void
+  /**
+   * SPE-283: Apply the rotating-roster reconciliation rule to in-flight cases —
+   * hidden-replacement packets whose assigned roster has no active operative
+   * left are promoted to `revealed`, the inherited `route` / `displacementTarget`
+   * / `detectionConfidence` decision surface is preserved, and derived routing /
+   * pressure / readiness / contracts are re-derived through the canonical sequence.
+   */
+  applyRotatingRosterContinuityReconciliation: () => void
   reset: () => void
 }
 
@@ -1486,6 +1495,9 @@ export const useGameStore = create<GameStore>()(
 
       applyChapterBreakAttritionContinuityReset: () =>
         set((s) => ({ game: applyChapterBreakAttritionReset(s.game) })),
+
+      applyRotatingRosterContinuityReconciliation: () =>
+        set((s) => ({ game: applyRotatingRosterContinuityReconciliation(s.game) })),
 
       reset: () => set({ game: createStartingState() }),
 

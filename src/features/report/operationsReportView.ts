@@ -14,6 +14,11 @@ import {
   crossSessionAttritionPersistenceEnabled,
   formatAttritionContinuitySummary,
 } from '../../domain/agent/attritionContinuity'
+import {
+  countRotatingRosterContinuity,
+  formatRotatingRosterContinuitySummary,
+  rotatingRosterContinuityRecapEnabled,
+} from '../../domain/agent/rosterContinuity'
 
 const MAX_ROUTING_ITEMS = 4
 const MAX_READINESS_ITEMS = 4
@@ -90,6 +95,12 @@ export interface WeeklyOperationsSummaryView {
   details: string[]
   /** Present when `durationModel === 'attrition'` (SPE-281 cross-session continuity recap). */
   crossSessionAttritionContinuitySummary?: string
+  /**
+   * Present when `durationModel === 'attrition'` and the rotating-roster
+   * reconciliation rule has at least one in-flight case to summarize
+   * (SPE-283 rotating-roster continuity recap).
+   */
+  rotatingRosterContinuitySummary?: string
 }
 
 export interface OperationsReportView {
@@ -390,7 +401,18 @@ export function getWeeklyOperationsSummaryView(game: GameState): WeeklyOperation
     crossSessionAttritionContinuitySummary: crossSessionAttritionPersistenceEnabled(game.config)
       ? formatAttritionContinuitySummary(game)
       : undefined,
+    rotatingRosterContinuitySummary: rotatingRosterContinuityRecapEnabled(game.config)
+      ? buildRotatingRosterContinuityRecapLine(game)
+      : undefined,
   }
+}
+
+function buildRotatingRosterContinuityRecapLine(game: GameState): string | undefined {
+  const counts = countRotatingRosterContinuity(game)
+  if (counts.affectedCases === 0 && counts.absentRoster === 0) {
+    return undefined
+  }
+  return formatRotatingRosterContinuitySummary(game)
 }
 
 export function getOperationsReportView(game: GameState): OperationsReportView {

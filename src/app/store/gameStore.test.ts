@@ -1189,6 +1189,43 @@ describe('gameStore persistence', () => {
     expect(stored).toMatchObject({ state: { game: { week: 1 } } })
   })
 
+  it('applyRotatingRosterContinuityReconciliation flips hidden-replacement packets and keeps mission routing canonical (SPE-283)', () => {
+    let game = createStartingState()
+    const caseId = Object.keys(game.cases)[0]!
+    game.cases[caseId] = {
+      ...game.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: ['t_nightwatch'],
+      hiddenState: 'hidden',
+      detectionConfidence: 0.4,
+      displacementTarget: 'site_alpha',
+      route: 'r:alpha->bravo',
+    }
+    for (const agentId of ['a_ava', 'a_kellan', 'a_mina', 'a_rook']) {
+      game.agents[agentId] = {
+        ...game.agents[agentId]!,
+        attritionState: {
+          attritionStatus: 'lost',
+          lossReasonCodes: ['rotating-roster-store-test'],
+          replacementPriority: 1,
+          retentionPressure: 0,
+        },
+      }
+    }
+    game = { ...game, missionRouting: recomputeMissionRouting(game) }
+
+    useGameStore.setState({ game })
+    useGameStore.getState().applyRotatingRosterContinuityReconciliation()
+
+    const next = useGameStore.getState().game
+    const reconciled = next.cases[caseId]!
+    expect(reconciled.hiddenState).toBe('revealed')
+    expect(reconciled.detectionConfidence).toBe(1)
+    expect(reconciled.route).toBe('r:alpha->bravo')
+    expect(reconciled.displacementTarget).toBe('site_alpha')
+    expect(next.missionRouting).toEqual(recomputeMissionRouting(next))
+  })
+
   it('applyChapterBreakAttritionContinuityReset clears attrition and re-derives routing, pressure, and readiness', () => {
     let game = createStartingState()
     game.agents['a_kellan'] = {

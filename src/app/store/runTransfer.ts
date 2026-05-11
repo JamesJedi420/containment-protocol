@@ -1,14 +1,12 @@
 import { createStartingState } from '../../data/startingState'
 import { getProductionRecipe } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
-import { refreshContractBoard } from '../../domain/contracts'
+import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
 import {
   createDefaultWeeklyDirectiveState,
   getWeeklyDirectiveDefinitions,
   isWeeklyDirectiveId,
 } from '../../domain/directives'
-import { buildReplacementPressureState } from '../../domain/agent/attrition'
-import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
 import { buildOperationEventTimestamp, inferOperationEventSourceSystem } from '../../domain/events'
 import { normalizeRuntimeState } from '../../domain/gameStateManager'
 import { normalizeMissionIntelRecord } from '../../domain/intel'
@@ -18,7 +16,6 @@ import { MAX_ACADEMY_TIER } from '../../domain/sim/academyUpgrade'
 import {
   getTeamAssignedCaseId,
   getTeamMemberIds,
-  syncTeamSimulationState,
 } from '../../domain/teamSimulation'
 import {
   type CaseEscalationTrigger,
@@ -2103,7 +2100,7 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
   const normalizedCases = normalizeMissionIntelRecord(cases, week)
   const rngSeed = normalizeSeed((game.rngSeed as number | undefined) ?? fallback.rngSeed)
 
-  const hydrated = syncTeamSimulationState(
+  return recomputeAttritionDerivedState(
     stripUndefinedFields({
       ...fallback,
       ...game,
@@ -2155,20 +2152,6 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       templates: fallback.templates,
     }) as GameState
   )
-
-  return refreshContractBoard({
-    ...hydrated,
-    replacementPressureState: buildReplacementPressureState(hydrated),
-    teams: Object.fromEntries(
-      Object.entries(hydrated.teams).map(([teamId, team]) => [
-        teamId,
-        {
-          ...team,
-          deploymentReadinessState: buildTeamDeploymentReadinessState(hydrated, teamId),
-        },
-      ])
-    ),
-  })
 }
 
 export function migratePersistedStore(

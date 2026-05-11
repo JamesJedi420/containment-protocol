@@ -1,13 +1,7 @@
-// SPE-281: Cross-session attrition continuity — compact helpers for recap, reset, and format gating.
+// SPE-281: Cross-session attrition continuity — compact helpers for recap and format gating.
 
-import { refreshContractBoard } from '../contracts'
 import type { GameConfig, GameState } from '../models'
-import { buildTeamDeploymentReadinessState } from '../deploymentReadiness'
-import { recomputeMissionRouting } from '../missionIntakeRouting'
-import { recomputeMissionRouting } from '../missionIntakeRouting'
-import { syncTeamSimulationState } from '../teamSimulation'
 import {
-  buildReplacementPressureState,
   computeReplacementPressure,
   DEFAULT_CRITICAL_REPLACEMENT_ROLES,
 } from './attrition'
@@ -78,49 +72,4 @@ export function formatAttritionContinuitySummary(state: GameState): string {
     `${c.temporarilyUnavailable} temporarily unavailable, ${c.atRisk} at risk; ` +
     `roster replacement pressure ${c.replacementPressure} (lost roster gap ${c.staffingGap}).`
   )
-}
-
-/**
- * Chapter-break reset: clears operative `attritionState` so a new arc can start clean
- * without a full new-run wipe. Does not remove agents or rewrite roster narrative fields
- * like name/role; re-derives team simulation + deployment readiness + contracts.
- */
-export function applyChapterBreakAttritionReset(state: GameState): GameState {
-  const agents = Object.fromEntries(
-    Object.entries(state.agents).map(([agentId, agent]) => {
-      if (agent.attritionState === undefined) {
-        return [agentId, agent]
-      }
-      const nextAgent = { ...agent }
-      delete nextAgent.attritionState
-      return [agentId, nextAgent]
-    })
-  )
-
-  let next: GameState = syncTeamSimulationState({ ...state, agents })
-
-  next = {
-    ...next,
-    replacementPressureState: buildReplacementPressureState(next),
-  }
-
-  next = {
-    ...next,
-    missionRouting: recomputeMissionRouting(next),
-  }
-
-  next = {
-    ...next,
-    teams: Object.fromEntries(
-      Object.entries(next.teams).map(([teamId, team]) => [
-        teamId,
-        {
-          ...team,
-          deploymentReadinessState: buildTeamDeploymentReadinessState(next, teamId),
-        },
-      ])
-    ),
-  }
-
-  return refreshContractBoard(next)
 }

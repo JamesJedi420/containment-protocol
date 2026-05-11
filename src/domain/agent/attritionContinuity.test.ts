@@ -4,11 +4,11 @@ import { createStartingState } from '../../data/startingState'
 import { loadGameSave, serializeGameSave } from '../../app/store/saveSystem'
 import { recomputeMissionRouting } from '../missionIntakeRouting'
 import {
-  applyChapterBreakAttritionReset,
   countAttritionContinuity,
   crossSessionAttritionPersistenceEnabled,
   formatAttritionContinuitySummary,
 } from './attritionContinuity'
+import { applyChapterBreakAttritionReset } from './attritionReset'
 
 describe('attrition continuity (SPE-281)', () => {
   it('gates cross-session recap on challenge + attrition duration (hydration parity)', () => {

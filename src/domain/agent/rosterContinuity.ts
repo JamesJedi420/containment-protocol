@@ -168,7 +168,7 @@ export function countRotatingRosterContinuity(state: GameState): RotatingRosterC
 
     if (
       caseData.hiddenState === 'hidden' &&
-      caseData.hiddenState === 'hidden' &&
+      caseData.assignedTeamIds.length > 0 &&
       !hasAnyActiveAssignedOperative(caseData, state.teams, state.agents)
     ) {
       reconciledExposures += 1

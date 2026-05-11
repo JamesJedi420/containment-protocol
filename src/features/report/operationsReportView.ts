@@ -409,7 +409,7 @@ export function getWeeklyOperationsSummaryView(game: GameState): WeeklyOperation
 
 function buildRotatingRosterContinuityRecapLine(game: GameState): string | undefined {
   const counts = countRotatingRosterContinuity(game)
-  if (counts.affectedCases === 0 && counts.absentRoster === 0) {
+  if (counts.affectedCases === 0) {
     return undefined
   }
   return formatRotatingRosterContinuitySummary(counts)

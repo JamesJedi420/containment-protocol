@@ -7,6 +7,7 @@ import { aggregateAbilityEffects, resolveAgentAbilityEffects } from '../abilitie
 import { clamp } from '../math'
 import type { Agent, AgentHistoryEntry, GameState } from '../models'
 import { RECOVERY_CALIBRATION } from './calibration'
+import { vitalsHasExposureResidue } from './recoveryImpairments'
 import { aggregateTraitEffects, resolveAgentTraitEffects } from '../traits'
 
 const MINOR_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.minorRecoveryDurationWeeks
@@ -92,6 +93,17 @@ export function advanceRecoveryAgentsForWeek({
     const moraleRecoveryDelta = getRecoveryMoraleDelta(agent)
 
       if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
+      if (vitalsHasExposureResidue(agent.vitals)) {
+        updatedAgents[agentId] = appendAgentHistoryEntry(
+          agent,
+          buildRecoveryHistoryEntry(
+            week,
+            `${agent.name} remains in recovery until exposure residue is cleared under medical washdown.`
+          ),
+          { recoveryWeeks: 1 }
+        )
+        continue
+      }
       updatedAgents[agentId] = appendAgentHistoryEntry(
         setAgentAssignment(
           {

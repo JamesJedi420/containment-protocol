@@ -46,6 +46,7 @@ import type {
 } from '../models'
 import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
+import { appendExposureResidueToFlags } from './recoveryImpairments'
 import { applyBetrayalConsequences } from './betrayal'
 import { createDefaultAgentProgression } from '../agentDefaults'
 import { evaluateMissionAgentFailureRisk } from './injuryForecast'
@@ -867,6 +868,27 @@ export function applyMissionResolutionAgentMutations({
           caseTitle: effectiveCase.title,
         })
       )
+    }
+
+    if (
+      !casualty.fatal &&
+      anomalyExposure >= 1 &&
+      (injurySeverity !== null || outcome.result === 'fail')
+    ) {
+      const baseVitals = nextAgent.vitals ?? {
+        health: 100,
+        stress: nextAgent.fatigue,
+        morale: Math.max(0, 100 - nextAgent.fatigue),
+        wounds: 0,
+        statusFlags: [] as string[],
+      }
+      nextAgent = {
+        ...nextAgent,
+        vitals: {
+          ...baseVitals,
+          statusFlags: appendExposureResidueToFlags(baseVitals.statusFlags),
+        },
+      }
     }
 
     nextAgents[agent.id] = nextAgent

@@ -238,6 +238,7 @@ import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChanne
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
+import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
@@ -3524,6 +3525,32 @@ function shiftMarket(context: WeeklyExecutionContext, rng: SeededRng) {
   context.eventDrafts.push(...marketResult.eventDrafts)
 }
 
+function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
+  const downtimeAssignments: Record<string, DowntimeActivity> = {}
+  for (const id of Object.keys(context.nextState.agents)) {
+    const agent = context.nextState.agents[id]
+    downtimeAssignments[id] = (agent?.downtimeActivity?.activity as DowntimeActivity) ?? 'rest'
+  }
+
+  const downtimeResult = advanceRecoveryDowntimeForWeek({
+    week: context.sourceState.week,
+    sourceAgents: context.nextState.agents,
+    sourceTeams: context.nextState.teams,
+    downtimeAssignments,
+    fundingState: context.nextState.agency?.fundingState,
+    replacementPressureState: context.nextState.replacementPressureState,
+    supportStaff: context.nextState.supportStaff,
+    substancePolicy: context.nextState.config.substancePolicy,
+  })
+
+  context.nextState = {
+    ...context.nextState,
+    agents: downtimeResult.updatedAgents,
+    teams: downtimeResult.updatedTeams,
+  }
+  context.eventDrafts.push(...downtimeResult.eventDrafts)
+}
+
 function finalizeMissionResults(context: WeeklyExecutionContext) {
   context.missionResultByCaseId = finalizeMissionResultsFromDrafts({
     sourceState: context.sourceState,
@@ -3969,6 +3996,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   applySpontaneousRelationshipEvents(context, rng)
   shiftMarket(context, rng)
   finalizeMissionResults(context)
+  applyRecoveryDowntimeAfterMissions(context)
   // SPE-53: Generate hub simulation and attach notes
   generateAndAttachHubNotes(context)
 

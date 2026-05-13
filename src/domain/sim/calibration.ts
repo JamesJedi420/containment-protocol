@@ -78,6 +78,10 @@ export const RECOVERY_CALIBRATION = {
   copingDependencyThreshold: 3,
   copingProhibitedMoralePenalty: 5,
   therapyCopingStreakDecrement: 3,
+  /** SPE-1653: weekly fatigue drift while exposure residue persists and downtime is ordinary rest only. */
+  exposureResidueRestRecurrenceFatigue: 2,
+  /** Medical staff count required for supervised washdown clearing exposure residue during therapy downtime. */
+  exposureResidueMedicalClearThreshold: 2,
 } as const
 
 // Band-gated overrides for second escalation band

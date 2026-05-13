@@ -8,6 +8,10 @@ import type {
 import { clamp } from '../math'
 import { RECOVERY_CALIBRATION } from './calibration'
 import type { AnyOperationEventDraft } from '../events'
+import {
+  stripExposureResidueFromFlags,
+  vitalsHasExposureResidue,
+} from './recoveryImpairments'
 
 export type RecoveryState = 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
 export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other' | 'coping'
@@ -81,6 +85,13 @@ export function advanceRecoveryDowntimeForWeek({
     let recoveryStatus = agent.recoveryStatus ?? inferredRecoveryStatus
     let trauma = agent.trauma || { traumaLevel: 0, traumaTags: [], lastEventWeek: week }
     let fatigue = agent.fatigue
+    const medicalStaff = supportStaff?.medical ?? 0
+    const supervisedExposureWashdown =
+      downtime === 'therapy' &&
+      medicalStaff >= RECOVERY_CALIBRATION.exposureResidueMedicalClearThreshold
+    const stripExposureResidue =
+      vitalsHasExposureResidue(agent.vitals) && supervisedExposureWashdown
+    const exposureResidueGating = vitalsHasExposureResidue(agent.vitals) && !stripExposureResidue
 
     // Progression logic
     switch (recoveryStatus.state) {
@@ -91,26 +102,33 @@ export function advanceRecoveryDowntimeForWeek({
         break
       case 'recovering':
         if (downtime === 'rest') {
-          fatigue = clamp(
-            fatigue -
-              Math.max(
-                0,
-                RECOVERY_CALIBRATION.downtimeFatigueRecovery.rest - combinedThroughputPenalty
-              ),
-            0,
-            100
-          )
+          if (exposureResidueGating) {
+            fatigue = clamp(
+              fatigue + RECOVERY_CALIBRATION.exposureResidueRestRecurrenceFatigue,
+              0,
+              100
+            )
+          } else {
+            fatigue = clamp(
+              fatigue -
+                Math.max(
+                  0,
+                  RECOVERY_CALIBRATION.downtimeFatigueRecovery.rest - combinedThroughputPenalty
+                ),
+              0,
+              100
+            )
+          }
         }
         if (downtime === 'therapy') {
-          fatigue = clamp(
-            fatigue -
-              Math.max(
-                0,
-                RECOVERY_CALIBRATION.downtimeFatigueRecovery.therapy - combinedThroughputPenalty
-              ),
+          const therapyFatigueDelta = Math.max(
             0,
-            100
+            RECOVERY_CALIBRATION.downtimeFatigueRecovery.therapy - combinedThroughputPenalty
           )
+          const effectiveTherapyFatigue = exposureResidueGating
+            ? Math.max(0, Math.floor(therapyFatigueDelta / 2))
+            : therapyFatigueDelta
+          fatigue = clamp(fatigue - effectiveTherapyFatigue, 0, 100)
         }
         if (downtime === 'therapy' && trauma.traumaLevel > 0) {
           trauma = {
@@ -130,7 +148,8 @@ export function advanceRecoveryDowntimeForWeek({
         // If fatigue and trauma are both low, agent may return to healthy
         if (
           fatigue <= RECOVERY_CALIBRATION.healthyReturnFatigueThreshold &&
-          trauma.traumaLevel === 0
+          trauma.traumaLevel === 0 &&
+          !exposureResidueGating
         ) {
           recoveryStatus = { state: 'healthy', sinceWeek: week }
         }
@@ -239,13 +258,21 @@ export function advanceRecoveryDowntimeForWeek({
       }
     }
 
+    const finalVitals =
+      agentVitals && stripExposureResidue
+        ? {
+            ...agentVitals,
+            statusFlags: stripExposureResidueFromFlags(agentVitals.statusFlags),
+          }
+        : agentVitals
+
     updatedAgents[agentId] = {
       ...agent,
       recoveryStatus,
       trauma,
       downtimeActivity: { activity: downtime, sinceWeek: week },
       fatigue,
-      vitals: agentVitals,
+      vitals: finalVitals,
       tags: agentTags,
       copingStreak,
     }

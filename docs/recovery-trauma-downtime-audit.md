@@ -36,6 +36,16 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - Recovery rates and trauma reduction must be explicit, not random.
 - Downtime cannot erase major trauma instantly; recovery is gradual and stateful.
 
+### 3b. SPE-1653 slice — exposure residue (recovery gate)
+
+- **Flag:** `exposure:residue` on `agent.vitals.statusFlags` (compact deterministic impairment).
+- **When it applies:** anomaly-tagged case context and mission **fail** without injury, **or** any **injury** on an anomaly-tagged case (`applyMissionResolutionAgentMutations`).
+- **Rest channel:** while the flag is present, ordinary **rest** does not reduce fatigue and applies a small bounded weekly fatigue recurrence until the gate clears.
+- **Therapy channel:** trauma reduction from **therapy** downtime proceeds at full rate; fatigue recovery from therapy is **partial** while the flag remains (split recovery channels).
+- **Clearance:** one week of **therapy** downtime while agency `supportStaff.medical` meets `RECOVERY_CALIBRATION.exposureResidueMedicalClearThreshold` strips the flag (supervised washdown / decontamination).
+- **Assignment recovery:** `advanceRecoveryAgentsForWeek` withholds injury discharge to active duty until the flag is cleared, even after injury-duration weeks elapse.
+- **Tick wiring:** `advanceRecoveryDowntimeForWeek` runs at end of `advanceWeek` after mission finalization; per-agent downtime selection defaults from `agent.downtimeActivity?.activity` or **rest**.
+
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.
 - High trauma reduces deployment readiness, training efficiency, and recovery speed.

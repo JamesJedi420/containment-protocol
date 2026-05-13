@@ -45,7 +45,7 @@ You are working on Containment Protocol, a deterministic systems-driven manageme
 ### Scope boundary
 
 - Architect designs; it does not implement.
-- Architect does not replace the validation agent. Any architect-authored code that lands must still pass through the full validation workflow in `containment_protocol_validation_agent.md` — no skipping.
+- Architect does not replace the validation agent. Any downstream implementation or PR produced from the architect's design must still pass through the full validation workflow in `containment_protocol_validation_agent.md` — no skipping.
 
 ### Coding style
 

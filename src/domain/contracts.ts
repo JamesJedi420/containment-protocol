@@ -1782,8 +1782,10 @@ export function sanitizeContractSystemState(
         .filter((offer): offer is ContractOffer => typeof offer?.id === 'string')
         .map((offer) => {
           const sanitizedFieldBase = sanitizePersistedFieldBasePacket(offer.fieldBase)
+          const offerWithoutFieldBase = { ...offer }
+          delete offerWithoutFieldBase.fieldBase
           return {
-          ...offer,
+          ...offerWithoutFieldBase,
           caseDifficulty: {
             combat: Math.max(1, Math.round(offer.caseDifficulty?.combat ?? offer.difficulty ?? 1)),
             investigation: Math.max(

@@ -9,6 +9,7 @@ import {
   launchContract,
   recordContractOutcome,
   refreshContractBoard,
+  sanitizeContractSystemState,
 } from '../domain/contracts'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { syncTeamSimulationState } from '../domain/teamSimulation'
@@ -199,6 +200,29 @@ describe('contract system', () => {
     )
     expect(liturgyOffer?.fieldBase?.label).toBe('vault-approach-bivouac')
     expect(liturgyOffer?.fieldBase?.quality.supply).toBe(3)
+  })
+
+  it('SPE-1654: sanitizeContractSystemState drops fieldBase when packet fails validation', () => {
+    const state = createStartingState()
+    const base = state.contracts!
+    const template = getContractOffers(state)[0]!
+    const dirtyOffer: ContractOffer = {
+      ...template,
+      id: 'offer-corrupt-field-base',
+      fieldBase: {
+        label: '   ',
+        quality: { safety: 1, medical: 0, supply: 0, extractionAccess: 0 },
+      },
+    }
+    const sanitized = sanitizeContractSystemState(
+      {
+        ...base,
+        offers: [dirtyOffer],
+      },
+      base
+    )
+
+    expect(sanitized.offers[0]?.fieldBase).toBeUndefined()
   })
 
   it('best-team suggestion selects the strongest valid team', () => {

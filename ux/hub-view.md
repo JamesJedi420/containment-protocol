@@ -51,6 +51,10 @@ The Hub view should not:
 - bury useful signals in flavor clutter
 - require aimless browsing to find core opportunities
 
+### Operations hub & live hub simulation (SPE-31 / SPE-53)
+
+Treat the Hub as the **canonical campaign home for opportunity surfacing** (contracts, leads, services, district signals) and as a **deterministic live layer**: persistent hub packets, district signatures, faction presence, **multiple simultaneous leads**, socially filtered misinformation, and bounded micro-incidents. It still is **not** a free-roam city simulator — projections should expose **actionable summaries**, not raw simulation dumps.
+
 ---
 
 ## 1. Core player questions
@@ -91,11 +95,9 @@ It should represent “what the world is surfacing” rather than “all work al
 ## 3. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Week | Legitimacy | Faction Presence | District Alerts           |
-+------------------------------------------------------------------+
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Screen-specific strip extension: optional hub tail chips (e.g. faction presence, district alert summary) from the **same** shell projection—emphasis only.
 
++------------------------------------------------------------------+
 | Hub Filters / Tabs                                               |
 | All | Rumors | Leads | Contracts | Services | Districts          |
 +-----------------------------+------------------------------------+

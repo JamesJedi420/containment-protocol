@@ -116,6 +116,8 @@ This means the player should often feel:
 - growth competes with stability
 - under strain, economic choices become sharper
 
+**Specialist lanes:** canonical `id` / displayName table — `systems/support-operations.md` §9.1.
+
 ## 3. Core economy questions
 
 The economy tuning should answer:
@@ -274,6 +276,8 @@ Upgrades are always obvious buys or never worth considering.
 
 The resource economy should usually be felt in bands.
 
+**Label hygiene:** use **Economy strained** and **Economy: Critical** in prose and UI when referring to **this section’s funding bands**—not **Support strained** (`tuning/support-and-specialist-capacity.md` §5.3) or **Pressure: Critical** / **Escalation: Critical** (`systems/pressure-mechanics.md` §14, `tuning/escalation-and-fallout.md` §7.4).
+
 ### 7.1 Comfortable
 
 #### Description — Comfortable
@@ -298,33 +302,33 @@ The agency can cover essentials, but tradeoffs are now sharp.
 - mistakes have visible opportunity cost
 - some lower-priority work will be deferred
 
-### 7.3 Strained
+### 7.3 Economy strained
 
-#### Description — Strained
+#### Description — Economy strained
 
 The agency cannot comfortably cover all current burdens.
 
-#### Expected feel — Strained
+#### Expected feel — Economy strained
 
 - replacements are delayed
 - growth choices feel risky
 - current week burdens visibly reduce future room
 
-### 7.4 Critical
+### 7.4 Economy: Critical
 
-#### Description — Critical
+#### Description — Economy: Critical
 
 The economy is actively shaping what the agency is allowed to attempt.
 
-#### Expected feel — Critical
+#### Expected feel — Economy: Critical
 
 - purchases are highly constrained
 - recovery carries over
 - long-term growth is effectively paused until stabilization occurs
 
-#### Design rule — Critical
+#### Design rule — Economy: Critical
 
-Critical economy pressure should be dangerous, but not immediately unwinnable by itself.
+Economy: Critical should be dangerous, but not immediately unwinnable by itself.
 
 ## 8. Funding inflow tuning
 
@@ -486,7 +490,7 @@ The player can:
 - resolve one or two meaningful burdens
 - still feel at least one resource tradeoff
 
-### Strained week
+### Economy-strained week
 
 The player can:
 

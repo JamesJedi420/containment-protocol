@@ -143,3 +143,17 @@ Documents the canonical schema for procedure definitions covering anomalous acti
 
 - No migration path defined yet (single version)
 - If a breaking field change is needed, bump the discriminant string (e.g. `spe-1274.v2`) and add a migration alongside `eventMigration.ts`
+
+---
+
+## Structured definition grammar governance (SPE-47)
+
+**SPE-47** is the **parent shell** for shared structured-definition work: contracts, naming discipline, extension points, and **child routing only**. It must not absorb unlimited record-detail sprawl.
+
+Route concrete schema work to bounded children:
+
+- **SPE-741** — compact actor, anomaly, and hazard record shapes.
+- **SPE-742** — reusable trigger, modifier, and backlash entry grammar.
+- **SPE-743** — structured support-asset and reward hook schema.
+
+New schema efforts should prefer **adding or tightening a child spec** over rebroadening the parent umbrella.

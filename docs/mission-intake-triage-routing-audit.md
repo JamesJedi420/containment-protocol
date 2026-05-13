@@ -4,6 +4,12 @@
 >
 > Objective: define deterministic, bounded intake-to-deployment flow suitable for the core operations loop.
 
+## 0) Canonical simulation state (SPE-16)
+
+**Mission intake, triage, and routing are canonical simulation state**, not a disposable UI wizard. Priority scores, routing blockers, deferred queues, and assignment decisions are persisted (or safely derivable) inputs to the same weekly machine as escalation, scheduling, and outcome registration.
+
+Front-end flows may *edit* that state, but they do not *own* it. Any architecture doc that still frames intake as “front-end orchestration” understates how tightly intake feeds **escalation pressure**, **scheduler cadence**, and **post-mission outcome bookkeeping**.
+
 ## 1) Mission categories
 
 Use a compact finite taxonomy so routing logic remains explicit and debuggable.

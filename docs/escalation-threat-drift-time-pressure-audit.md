@@ -17,7 +17,17 @@
 - `game.globalEscalation: number` — Aggregate campaign/global escalation score.
 
 ## 3. Threat Drift and Time-Pressure Progression Rules
-- Each unresolved week, increment `case.threatDrift` by a deterministic or random value.
+
+### Scheduler cadence and hostile-space pressure (SPE-20)
+
+- **Fixed-interval checks:** expedition and escalation logic advance on **fixed-interval** ticks (bounded scheduler passes), not only when bespoke story beats fire. Patrol contact, watcher activation, heat accumulation, and major anomaly countdowns share this **active structure** — they are **not** ad hoc scene scripts.
+- **Noise / commotion:** extra escalation pulses when teams generate **audible or observable disruption** (breaches, prolonged engagements, extraction commotion).
+- **Camp / hold / rest in hostile space:** **resting or camping inside contested ground still advances pressure** — silence is not a pause button while clocks run.
+- **Determinism:** drift increments must remain **seeded-deterministic** or purely state-driven — never uncontrolled ambient RNG.
+
+Legacy bullets:
+
+- Each unresolved week, increment `case.threatDrift` by an explicit deterministic increment derived from case policy (not hidden random walks).
 - As `case.deadline` approaches, increase `case.timePressure` (e.g., linear or exponential ramp).
 - If `case.unresolvedWeeks` exceeds threshold, escalate `case.escalationLevel` and/or trigger incident.
 - Threat drift may increase required team power, risk of negative outcomes, or unlock new threats.

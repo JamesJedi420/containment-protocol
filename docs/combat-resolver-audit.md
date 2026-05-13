@@ -4,6 +4,10 @@
 >
 > Goal: define a compact, reusable resolver contract for authored/runtime encounter outcomes without introducing a full tactical engine.
 
+## 0) Volatile encounter priority (SPE-54)
+
+Action order in volatile encounters is **state-driven**, not a fixed initiative list. Priority inputs include readiness, posture, exposure, injury, tool condition, aim commitment, precision depletion, and (where authored) **bounded side-phase** handling. Prefer explicit tradeoffs: **rapid nearest-valid** targeting versus slower, controlled shots that reduce collateral or self-risk.
+
 ## 1) Resolver categories
 
 ### A. Pure evaluation resolver
@@ -180,3 +184,18 @@ The aggregate-battle resolver currently applies ingress and anchor logic with ex
 
 - **Determinism requirement**
   - Given identical battle input/context, side-gating outcomes are stable and reproducible across runs.
+
+## 9) Operational phase-resolution pipeline (SPE-62)
+
+Volatile actions resolve through a **compact ordered phase pipeline** that is the **common timing spine** across encounter types, procedures, and tactical substates. **Variants are declared** (per operation type, encounter family, or procedure taxonomy) instead of scattering one-off exception code paths.
+
+### Pipeline requirements
+
+- **Explicit ordered phases** — each variant names its phase sequence (finite, bounded). Examples of phase *kinds* include posture/commit, environmental read, contest or clash window, effect emission, and cleanup; exact labels live with implementation.
+- **Interruption and reaction windows** — deterministic hooks where opposing readiness, tools, clocks, or external events may prepend, truncate, or redirect later phases.
+- **Held, aborted, or delayed actions** — hold-aim, abort-with-reason, and delayed-emission effects must remain keyed to the same encounter/procedure instance for save/load and replay.
+- **Multi-stage procedures** — long rituals or engineering tasks iterate **phase slices** on the shared spine rather than spawning unrelated parallel timers.
+- **Unified cross-domain grammar** — task/test and advanced-action modes share outcome bands and effect maps where possible; differences are **variant declarations**, not duplicate resolver cores.
+- **Single-roll success plus effect** — when used, one evaluation selects outcome band **and** structured follow-on deltas so inspectors see a single causal chain.
+
+Authoring rule: if a new volatile behavior cannot be expressed as **variant + phase delta**, extend the declared grammar instead of adding a hidden branch.

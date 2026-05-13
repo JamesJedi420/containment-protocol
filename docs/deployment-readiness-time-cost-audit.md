@@ -210,7 +210,27 @@ Recommended invariants:
 - **Persistence drift**
   - Restored state uses stale derived readiness not matching canonical sources.
 
-## 7) Open questions
+## 7) Execution instability overlay (SPE-17)
+
+Mission execution uses a **readiness / time-cost scaffold** (categories, blockers, weakest-link contributors, and bounded week costs). **Execution instability** is a **deterministic overlay** on that scaffold — not a second operational timer and not a freeform “twist every scene” layer.
+
+### `contract_archive_instability` (current trigger family)
+
+Treat **archive instability** as one bounded instability family layered onto the same **exploration / inspection / combat / recovery** clock the scaffold already uses. Instability **does not** start a parallel mission timer; it **mutates outcomes and pressures** riding the shared clock.
+
+### Surfaced consequences (non-exhaustive but canonical intent)
+
+Instability can:
+
+- **downgrade** terminal success to **partial** where the archive state warrants it
+- add **recovery surcharge**, **injury risk**, or **fatality risk** deltas
+- **fracture ally reliability** (cooperation bands, commitment decay, or betrayal pressure)
+- **shift mission route** toward **fallback containment** paths
+- **spawn follow-up work** from **objective drift** (new sub-objectives, re-opened evidence chains, or deferred containment tickets)
+
+Authoring and UI should always tie instability explanations back to **canonical readiness/time-cost fields** plus the instability overlay, so players and debuggers see one timeline with multiple stress channels.
+
+## 8) Open questions
 
 - Should readiness category be team-only, agent-only, or dual with explicit reconciliation rules?
 - What hard threshold should distinguish `temporarily_blocked` vs `recovery_required`?

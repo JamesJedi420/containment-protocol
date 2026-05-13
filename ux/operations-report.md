@@ -37,6 +37,10 @@ This spec is for:
 - surfacing logic design
 - QA validation
 
+### Projection contract (SPE-30)
+
+The Operations Report is a **bounded explanation surface** over canonical routing, readiness, weakest-link, and pressure outputs. It must **not** introduce parallel simulation logic or persist a large standalone “report-state” graph; it **projects** deterministic helpers and weekly deltas the domain already owns. The **ranked bottleneck list** (including index-0 headline material when used) is **emitted by domain weekly output**; this view **consumes pre-ranked data** and does not re-rank or re-derive priority on the client for that list.
+
 ---
 
 ## Design goals
@@ -65,7 +69,7 @@ The Operations Report view should not:
 
 The Operations Report view should answer:
 
-1. What resolved cleanly, partially, or badly?
+1. What resolved cleanly, with cost, partially, or badly?
 2. What were the main causes?
 3. Which bottlenecks mattered most?
 4. What fallout or pressure is still active?
@@ -124,19 +128,17 @@ The player should leave the report with a stronger mental model of how the insti
 ## 4. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Week Complete | Funding | Legitimacy | Active Pressure           |
-+------------------------------------------------------------------+
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Screen-specific strip extension: optional **Week** slot wording/scoping for report context (e.g. completed week vs planning week)—still one Week field, not a second strip or separate global store.
 
++------------------------------------------------------------------+
 | Headline Summary                                                  |
 | 1–3 sentence overview of the week                                |
 +------------------------------------------------------------------+
 
 | Major Outcomes                | Key Report Notes                |
-| - clean resolutions           | - support shortage degraded     |
+| - clean / success-with-cost   | - support shortage degraded     |
 | - partial outcomes            | - maintenance bottleneck delay  |
-| - failed or escalated items   | - visibility increased pressure |
+| - failed (contained/escalating) | - visibility increased pressure |
 +------------------------------+-----------------------------------+
 
 | Fallout / Pressure Changes    | Recovery / Bottlenecks          |
@@ -171,6 +173,8 @@ Provide an immediate week-level understanding of what changed.
 - biggest bottleneck if it mattered
 - most important persistent consequence if relevant
 
+The headline bottleneck line (when present) reflects **domain-emitted ranking**; the view does not re-order that list for display priority.
+
 #### Good example — Headline summary
 
 Two operations resolved this week, but one degraded under support strain. Recovery demand remains elevated, and district visibility increased after a partial containment.
@@ -187,15 +191,18 @@ Show the most important result categories first.
 
 #### Should display — Major outcomes
 
-- incidents resolved
-- partial outcomes
-- failed or escalated results
+- incidents resolved (**clean** / `resolutionState: clean`)
+- **Success with cost** (`resolutionState: degraded` — primary objective met; bounded fallout or degraded follow-through)
+- partial outcomes (`resolutionState: partial`)
+- failed results (`resolutionState: failed`; distinguish **contained** vs **escalating** via `escalationActive` in drilldown copy when surfaced)
 - major carryover changes
 - bounded counts or grouped results
 
 #### Example items — Major outcomes
 
 1 incident resolved cleanly
+
+1 operation succeeded with cost (support shortage degraded follow-through)
 
 1 operation ended in partial containment
 
@@ -206,6 +213,10 @@ Show the most important result categories first.
 #### Design rule — Major outcomes
 
 This should be scannable and concrete.
+
+#### Causality rule — Fallout section vs missions
+
+Any **named fallout line** in **§5.4 Fallout and pressure changes** MUST carry a **source mission id** (or equivalent link) when the fallout originated from a **resolved mission this week**—so “Success with cost” rows in §5.2 always have a traceable counterpart in §5.4. If the engine cannot attribute, surface **agency-wide pressure** wording instead of implying a silent mission cause.
 
 ### 5.3 Key report notes
 
@@ -349,6 +360,7 @@ The report should prioritize:
 - mission failures or meaningful partials
 - support/specialist bottlenecks
 - escalation or legitimacy shifts
+- **faction-driven causes** (wording and examples: `systems/factions-legitimacy.md` §13)
 - recovery and replacement carryover
 - successful relief or stabilization signals
 

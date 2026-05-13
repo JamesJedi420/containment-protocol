@@ -100,6 +100,18 @@ Level 5 — Breadth and hardening
 
 This is the main sequencing spine.
 
+## 2.1 Knowledge / intel integration footprint (SPE-23)
+
+Treat the knowledge / intel layer as **already integrated infrastructure**, not a future “middleware bolt-on.” The same canonical intel state should feed, without parallel truth:
+
+- **Routing and triage** — candidate scoring, deferral risk, and hidden-state hints consume intel confidence and distortion outputs.
+- **Deployment readiness** — recon gaps and briefing deficits surface as readiness blockers or soft risks.
+- **Research** — evidence quality, lab access, and secrecy posture gate what research can start or finish.
+- **Stability / validation overlays** — contradiction checks and dominant-pressure summaries assume intel is a first-class input.
+- **Save / load validation** — restored games must rehydrate intel tables, confidence masks, and bounded unknowns exactly enough for deterministic next-week behavior.
+
+If a feature proposal still describes intel as an isolated subsystem, update it to reflect this cross-cutting integration model.
+
 ## 3. Foundation dependencies
 
 These are the foundational documents/systems that most other work depends on.

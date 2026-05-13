@@ -391,6 +391,8 @@ Examples:
 
 This feedback makes the campaign feel alive.
 
+When legitimacy or faction reactions need institutional framing beyond the hub row, use the **Hub ↔ Agency** contextual jump in `ux/navigation-map.md` §5.
+
 ---
 
 ## 13. Hub and pacing

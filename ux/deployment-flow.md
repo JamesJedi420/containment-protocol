@@ -123,11 +123,9 @@ The flow should feel like an operations board commit step, not a cinematic launc
 ## 4. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Week | Support | Legitimacy | Active Warnings                    |
-+------------------------------------------------------------------+
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Screen-specific strip extension: optional single emphasis token during commit (e.g. mission urgency); heavy warnings stay in **Risk / Warning Panel** below—not a separate global strip read.
 
++------------------------------------------------------------------+
 | Mission Summary                                                   |
 | title | type | urgency | escalation if delayed | key objective   |
 +------------------------------------------------------------------+
@@ -357,6 +355,16 @@ Useful pre-resolution states:
 - blocked unless adjusted
 
 This supports player understanding without revealing exact downstream results.
+
+**Map to mission resolution Stage A outputs** (`systems/mission-resolution.md` — valid / invalid / deployable under degraded conditions):
+
+| Deployment posture (this section) | Stage A output |
+| --- | --- |
+| viable | valid |
+| viable with clear degradation risk | deployable under degraded conditions |
+| high-risk but deployable | deployable under degraded conditions |
+| blocked | invalid |
+| blocked unless adjusted | invalid (until routing/readiness/support fixes clear the block) |
 
 ---
 

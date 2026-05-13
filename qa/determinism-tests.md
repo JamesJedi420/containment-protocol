@@ -87,6 +87,19 @@ A deterministic test should evaluate at least these outputs:
 
 Two runs are only meaningfully identical if both domain state and player-facing consequence match.
 
+### Scenario-suite harness and dominant pressure (SPE-26)
+
+Regression validation should lean on a **scenario suite**, not only isolated unit assertions. Canonical runs include at least:
+
+- **Baseline** — nominal pressure, full intel budget.
+- **Low-intel** — degraded briefing and recon coverage.
+- **High-escalation** — clocks advanced, deadlines hot.
+- **High-budget-pressure** — procurement/funding strain dominates.
+- **High-attrition** — staffing and replacement pressure dominate.
+- **Mixed-pressure** — multiple channels active simultaneously.
+
+Each mixed run should record **dominant-pressure attribution** (which channel actually bounded outcomes) so tuning changes do not masquerade as architectural drift.
+
 ---
 
 ## 3. Test method overview

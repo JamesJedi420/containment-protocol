@@ -89,11 +89,13 @@ But these should appear only if they earn their place and do not fragment the lo
 
 ### 2. Recommended shell layout
 
+The **persistent shell** is a single layout frame shared by every top-level screen. The **Status Bar / Pressure Strip** is **one unified component** (stable core + optional contextual tail), fed by **one shell-level projection** of campaign state. Individual screens must not read or render parallel “global strips” as if each route owned independent primary telemetry.
+
 Global shell
 
 +-------------------------------------------------------------+
-| Status Bar / Pressure Strip                                 |
-| Week | Funding | Legitimacy | Support | Active Pressure     |
+| Status Bar / Pressure Strip (unified: core | extensions…)   |
+| Week | Funding | Legitimacy | Standing | Support | Pressure  |
 +-------------------------------------------------------------+
 | Left Nav      | Main Content Area            | Context Panel |
 |               |                              |               |
@@ -111,20 +113,30 @@ Persistent shell elements
 
 Status bar / pressure strip
 
-Always visible.
-Shows:
+Always visible at the top of the shell. Same component on every route: **core fields** stay fixed; **extension** slots (if any) are optional chips or a compact tail region that reuses the same subscription—presentation emphasis only, not additional authoritative global reads per screen.
 
-current week
+#### Canonical field set
 
-funding
+**Core (always shown, single shell read)**
 
-legitimacy
+- **Week** — current operational week (or equivalent bounded time index).
+- **Funding** — actionable budget / runway pressure.
+- **Legitimacy** — institutional legitimacy or trust pressure as surfaced by the campaign model.
+- **Standing** — broader institutional standing or political posture when the model exposes it distinctly from legitimacy.
+- **Support** — support capacity or strain summary (throughput available vs demand).
+- **Pressure / alerts** — compact aggregate of major overload, bottleneck, or critical-incident signals (counts, worst-case chip, or short label—implementation detail; meaning: “what is on fire institutionally”).
 
-support capacity
+**Optional contextual extensions (same strip, same subscription)**
 
-major overload/bottleneck warnings
+Extensions are **only** additional inline emphasis in the strip’s tail (or a small overflow affordance). They **must not** imply a second strip, a second global store, or per-route duplicate telemetry. Examples of allowed emphasis (pick none or few by route, still from the same projection):
 
-unresolved critical incidents count if needed
+- **Operations / triage** — queue depth, routable count, or “unassigned urgent” chip when it helps scanning the board.
+- **Hub** — faction or district presence snippet when hub context is active (still derived from shared campaign state).
+- **Procurement** — market or access-state hint when the player is on procurement (optional; main procurement body still owns detail).
+- **Reports** — week framing label (e.g. report scope vs planning week) as a **wording variant on the Week slot**, not a duplicate week control.
+- **Deployment** — optional commit-relevant token only if it stays a single-field emphasis; heavy warnings stay in the deployment flow body.
+
+Screen UX specs should reference this subsection for the strip and list **extensions only** where relevant, not a full alternate field row.
 
 Left navigation
 
@@ -362,6 +374,8 @@ mission deployment workflow
 
 long-form reports
 
+Contextual **navigation links** into Procurement when a bottleneck or note makes procurement the obvious next step are allowed; **browsing** procurement as primary Reports content is not.
+
 #### 3.5 Reports
 
 Purpose
@@ -410,7 +424,7 @@ complex editing / planning controls
 
 primary incident routing
 
-procurement browsing
+procurement browsing (embedded procurement UI or catalog-first layout)
 
 #### 3.6 Reference
 
@@ -495,10 +509,12 @@ Use when fallout from prior weeks dominates planning.
 Agency <-> Operations
 Agency <-> Procurement
 Agency <-> Reports
+Hub <-> Agency (bidirectional contextual jump when hub signals — rumor quality, legitimacy, faction — need Agency explanation; e.g. legitimacy/faction indicator → Agency legitimacy/faction panel)
 Operations <-> Hub
 Operations <-> Reports
 Hub <-> Reports
 Procurement <-> Agency
+Reports <-> Procurement (contextual, link-only; not embedded procurement UI)
 Reports <-> all major screens through contextual links
 
 Recommended jump behavior
@@ -643,9 +659,11 @@ This preserves player agency without over-warning.
 
 #### 9.1 Agency screen
 
+Nested sketch: global shell strip omitted (same as **Recommended shell layout**). Row below is **screen body**, not a second status strip.
+
 +-----------------------------------------------------------+
 | Agency Summary                                            |
-| Funding | Legitimacy | Standing | Support | Overload      |
+| Overall condition | support | recovery | overload | …     |
 +----------------------+------------------------------------+
 | Teams / Recovery     | Bottlenecks                        |
 | - Team A ready       | - Support strained                 |
@@ -670,6 +688,8 @@ This preserves player agency without over-warning.
 |                      | support/specialist warnings        |
 |                      | deploy / defer                     |
 +----------------------+------------------------------------+
+
+Deployment is **not** a separate top-level route in the MVP shell: it is a **modal, expanded detail panel, or subview** within Operations (between triage and commit), consistent with `ux/deployment-flow.md` as a bounded commit step on the Operations surface.
 
 #### 9.3 Hub screen
 

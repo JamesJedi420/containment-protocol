@@ -238,6 +238,10 @@ The category label that classifies the nature of a case threat for consequence r
 
 The deterministic change in threat state caused by time, pressure, unresolved incidents, or campaign conditions.
 
+### Anomaly compendium
+
+The **internal governed reference** for anomaly taxonomy: canonical family records, subtype linkage, shared field semantics, consistency checks, functional classification axes, and compact operational doctrine notes. It exists for **authoring integrity and simulation alignment**, not as a public lore encyclopedia. See `architecture/anomaly-compendium-governed-taxonomy.md` (SPE-88).
+
 ### Weakest-link resolution
 
 A resolution pattern where the limiting factor in team/system readiness disproportionately shapes mission outcome.

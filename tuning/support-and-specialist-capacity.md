@@ -98,6 +98,8 @@ Specialist capacity answers:
 Support is broad institutional capacity.
 Specialist capacity is narrower and more domain-specific.
 
+**Copy rule — disambiguate “strained”:** use **Support strained** for this document’s §5 bands. For funding tightness, use **Economy strained** (`systems/resource-economy-tuning.md` §7.3). Agency and Operations Report copy should carry the scoped prefix whenever both pressures could appear in the same week.
+
 ---
 
 ## 3. Capacity tuning philosophy
@@ -166,13 +168,13 @@ The agency is close to its support ceiling.
 - one more meaningful support-sensitive commitment may cause degradation
 - planning becomes tighter
 
-### 5.3 Strained
+### 5.3 Support strained
 
-#### Description — Strained
+#### Description — Support strained
 
 Support demand now exceeds or effectively exceeds safe capacity.
 
-#### Expected feel — Strained
+#### Expected feel — Support strained
 
 - degraded follow-through becomes likely
 - partial institutional failure patterns begin
@@ -238,11 +240,17 @@ Support demand should feel:
 - meaningful under concurrent commitments
 - sharp when the player tries to stretch the institution too far
 
-### Good pattern
+### Canonical support overload **warning** threshold
 
-One meaningful support-sensitive mission may be manageable.
-Two may create warning-level strain.
-Three concurrent burdens may trigger degraded follow-through.
+Let **`supportAvailable`** be the agency’s concurrent support budget (same unit as **count of concurrent support-sensitive commitments**). **Warning state** is entered when **`demand >= supportAvailable`** — i.e. the player is **at the ceiling**; the next support-sensitive commitment is expected to push into shortage unless capacity is restored. **Degraded follow-through / shortage** applies when **`demand > supportAvailable`**.
+
+**Illustration:** `supportAvailable = 2` → two concurrent support-sensitive demands → **warnings** (at ceiling); a **third** demand → **`demand > supportAvailable`** → expect degraded follow-through on the lowest-priority or weakest-link mission per routing rules.
+
+### Good pattern (qualitative)
+
+- one support-sensitive commitment below the ceiling rarely warns alone
+- hitting **`demand == supportAvailable`** produces the **canonical warning** (at-ceiling), not yet guaranteed degradation
+- crossing to **`demand > supportAvailable`** should predictably degrade the weakest routed outcome unless mitigated
 
 ## 8. Specialist demand tuning
 
@@ -317,6 +325,10 @@ Relief may come from:
 - one stable week should help
 - several disciplined weeks should visibly restore institutional function
 - restoration should be slower than reckless overload, but fast enough to feel strategic
+
+### Conceptual restoration rates (tie to §5 bands)
+
+Tune so that moving **one full band** toward **Clear capacity** (§5.1) takes on the order of **~1–2 stable weeks** when demand drops back under safe concurrency, and moving from **Overloaded** (§5.4) to **Support strained** (§5.3) may take **~2–4 disciplined weeks** depending on backlog—faster if the player runs a deliberate stabilization week (low concurrent support-sensitive demand). Exact numbers live in implementation constants; QA asserts **same inputs → same weekly band delta** (`systems/support-operations.md` §18 pattern).
 
 ## 12. Good support tuning patterns
 
@@ -440,7 +452,7 @@ The player can:
 - see warning-level support strain
 - likely carry one bounded burden forward
 
-### Strained week
+### Strained week (Support)
 
 The player can:
 

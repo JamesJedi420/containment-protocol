@@ -1,5 +1,14 @@
 # Research System Audit & Design Note
 
+## 0. Staged capability rollout & dissemination (SPE-27)
+
+Research is the **canonical unlock path**, not a flat tech tree checkbox.
+
+- **Staged rollout:** capabilities unlock in **phases** — lab access, doctrine acceptance, tooling, then field authorization.
+- **Learned vs operationally ready:** completing a project may grant *knowledge* without instantly granting *deployment clearance*; teaching, certification, or facility throughput may still gate operational use.
+- **Bounded dissemination:** evidence, lab type, source quality, secrecy tradeoffs, and **non-standard acquisition edges** all influence whether a finding can propagate to teams, manufacturing, or sponsors.
+- **Outputs route to work:** finished projects should land as **procedures, tools, treatments, engineering upgrades, or manufacturing recipes** — not as abstract “+1 tech” counters.
+
 ## 1. Research Categories
 - **Occult Research:** Anomalous phenomena, rituals, psionics, artifacts, containment protocols, and supernatural threats.
 - **Technical Research:** Equipment, weapons, vehicles, surveillance, cybernetics, medical, and operational technology.

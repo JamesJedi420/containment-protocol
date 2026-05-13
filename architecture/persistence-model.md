@@ -407,8 +407,24 @@ Do not derive:
 Persist:
 
 - yes, fully for campaign continuity
-- operative `attritionState` (SPE-281) through the same save/export path as the rest of `GameState`; recap surfaces read it directly. The continuity recap line uses **roster-only** replacement pressure (`computeReplacementPressure`), not funding-inflated `buildReplacementPressureState`. Cross-session continuity recap is active when `challengeModeEnabled` and `durationModel === 'attrition'` (hydration parity). Chapter-break reset clears attrition carryover via `applyChapterBreakAttritionReset` (recomputes replacement pressure, mission routing, deployment readiness, then contract board) without requiring a full new-run wipe.
-- rotating-roster continuity (SPE-283) reuses the SPE-281 envelope: when the assigned team for an in-flight case contains absent operatives (`lost` / `temporarily_unavailable`), `applyRotatingRosterContinuityReconciliation` applies one explicit inherited-decision rule — `route`, `displacementTarget`, `detectionConfidence`, and `counterDetection` are preserved verbatim across the rotation. The bounded fallback for hidden-replacement case packets: if no active assigned operative remains on a `hiddenState === 'hidden'` case, it is promoted to `'revealed'` with `detectionConfidence` floored at `1`, restoring player participation through the visible-roster path while keeping the prior route intact. Reconciliation re-derives routing / replacement pressure / readiness / contracts through `recomputeAttritionDerivedState` and is idempotent.
+
+#### Continuity, attrition, and rotating-roster reconciliation (SPE-281 / SPE-283)
+
+**Attrition persistence (SPE-281)** carries operative loss and replacement pressure through the same save/export path as the rest of `GameState`. Recap surfaces read it directly. The continuity recap line uses **roster-only** replacement pressure (`computeReplacementPressure`), not funding-inflated `buildReplacementPressureState`. Cross-session continuity recap is active when `challengeModeEnabled` and `durationModel === 'attrition'` (hydration parity). Chapter-break reset clears attrition carryover via `applyChapterBreakAttritionReset` (recomputes replacement pressure, mission routing, deployment readiness, then contract board) without requiring a full new-run wipe.
+
+**Rotating-roster continuity (SPE-283)** builds on that envelope; it is not a separate persistence mechanism. When an **in-flight** case’s **assigned team** includes **at least one absent operative** (`lost` / `temporarily_unavailable`), preserve the **prior mission decision surface** — the inherited slice that must not thrash because the bench changed. `applyRotatingRosterContinuityReconciliation` holds these fields stable across rotation:
+
+- `route`
+- `displacementTarget`
+- `detectionConfidence`
+- `counterDetection`
+
+**Hidden-case fallback:** if **no active assigned operative** remains on a case with `hiddenState === 'hidden'`, **promote** it to `revealed` and **floor `detectionConfidence` at `1`**, restoring player-facing participation while keeping route continuity.
+
+Reconciliation re-derives routing, replacement pressure, readiness, and contracts through `recomputeAttritionDerivedState` and remains **idempotent**.
+
+**Recap continuity** for roster rotation is surfaced through the **rotating-roster continuity summary** (alongside SPE-281 recap lines in the challenge + attrition configuration).
+
 - optional `deploymentMomentum` (SPE-282): bounded stack counter for sustained-deployment earn/spend in the same challenge+attrition configuration; same save/hydration path, clamped on load (stack cap and `lastChangeWeek` bounded to `1..loadedWeek`), reset to zero with an explicit chapter-break summary when `applyChapterBreakAttritionReset` runs.
 
 Do not derive:
@@ -654,6 +670,53 @@ Persistence tests should verify:
 - Migration safety: old-version saves load into correct canonical ownership
 - Derived recomputation: projections, warnings, and reports regenerate or reload correctly
 - No hidden state dependency: no important system breaks because a runtime-only helper was lost
+
+## Regional module conversion (design)
+
+Treat a **regional cell** as a **bounded operational module**, not a genre set-piece. Each cell packages:
+
+- **Subhex / keyed POIs** — stable anchors for sites, access points, and revisit logic.
+- **Local resources** — material, logistical, or institutional affordances with upkeep and scarcity.
+- **Hazards** — environmental, infrastructural, or anomalous risk that persists or mutates across visits.
+- **Hidden populations** — see social-system modeling below; never flatten to ambient “monsters.”
+- **Adjacent spillover hooks** — explicit, bounded links where pressure, refugees, runoff, rumor, or secondary incidents cross cell edges.
+
+**Hard split — maps:** preserve a strict boundary between **player-facing claim maps** (what the agency believes it can show, sanction, or brief) and **hidden operational truth maps** (routing, hazards, populations, and geometry the simulation must not leak through UI alone). Authoring and generation should assume both layers exist even when the player only sees one.
+
+**Hydrological anchors** (spring, river source, underground stream, sinkhole) should act as **route**, **evidence**, and **site-memory** systems: they justify movement constraints, forensic chains, revisitable traces, and long-horizon state change without becoming magical shortcuts by default.
+
+**Hidden populations** are **social systems**, not encounter tables. Model at minimum:
+
+- **Care needs** — shelter, medical, legitimacy, supply, or secrecy-dependent resources.
+- **Secrecy tiers** — who knows what, and what exposure costs.
+- **Leadership knowledge asymmetry** — planners vs scouts vs public-facing actors see different slices of truth.
+- **Negotiation pressure** — cooperation is costly; refusal escalates along institutional or social clocks.
+
+**Evidence in hostile environments** should **cost time** and **raise contact / clock pressure** whenever extraction implies sustained presence, visible commotion, or contested custody.
+
+**Remains, relics, valuables, and unusual resources** default to **custody / provenance / identification** framing (chain of evidence, legitimacy, lab routing, disposition risk), not **loot** framing.
+
+**Fantasy-to-CP vocabulary:** prefer CP-native terms such as **place-bound intelligence**, **hidden population**, **breakaway faction**, **hazardous object**, **old belief trace**, and **environmental telemetry** instead of importing tabletop monster categories as first-class simulation types.
+
+### Regional operations map stack (SPE-49)
+
+Campaign play should assume a **partially known regional layer** inside the same operational stack: **route confidence**, **zone control / stabilization** states with **upkeep burden**, **revisitable mutated zones**, **liminal hidden-domain access**, and **linked geography** across surface, shoreline, submerged, and liminal entry bands. This remains a **bounded spoke-and-corridor operational map**, not a free-roam world simulator.
+
+## Large complex generation guardrails (design)
+
+**Staging:** large sites generate in ordered phases — **macro structure** → **area / depth layout** → **inter-area links** → **room/corridor topology** → **occupancy / factions** → **evidence / hazards / clocks**. Skipping phases or collapsing them into one opaque pass invites unmaintainable geometry and untestable outcomes.
+
+**Hard split — truth vs claims:** the same player-vs-truth map boundary as regional modules applies, especially for **secret links**, **hidden exits**, **same-depth subdivisions**, and **disconnected internal levels**. Player-facing claims must never accidentally become the authoritative navmesh for hidden-state routing.
+
+**Living complexes:** treat large sites as **living systems**. Cleared zones may be **reoccupied**; routes may **reopen or collapse**; factions may **move during downtime**. **“Fully clear the whole site”** should not be the default objective — partial stabilization, evidence extraction, or bounded containment beats total clearance as the norm.
+
+**Encounter vocabulary:** convert fantasy **monster / faction tables** into CP-native categories such as **hidden population**, **altered remains**, **rival group**, **environmental hazard**, **place-bound intelligence**, and **hazardous object**.
+
+**Recoverables:** **valuables, relics, remains, and crystals** default to **custody / provenance / evidence / legitimacy** framing, not loot tables.
+
+**Depth is multidimensional:** depth influences more than threat strength — include **air quality**, **light**, **route confidence**, **extraction burden**, **evidence age**, and **rescue difficulty** in how deep bands behave.
+
+**Procedural quality bar:** large-site procedural outputs must stay **editable**, **explainable**, and **plausibly infrastructural / geological / anomalous** — not arbitrary maze noise. Every generated corridor should answer “why would this exist?” at a schematic level.
 
 ## 14. Summary
 

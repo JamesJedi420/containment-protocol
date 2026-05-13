@@ -427,6 +427,33 @@ These systems should not become:
 
 ---
 
+## 16.1 Extended relationship, legitimacy, and obligation contracts (SPE-35, SPE-50–SPE-52)
+
+### Faction contacts and relationship layer (SPE-35)
+
+Faction stance is **not** a single friendliness scalar. Canonical relationship modeling should allow:
+
+- **Known vs hidden modifiers** (public posture vs clandestine leverage).
+- **Bounded historical context** so recurring contacts remember prior deals, slights, or cover stories.
+- **Ambiguous suspicion cues** that can be misread without extra intel.
+- **Mixed states** where hostility, negotiation, and exchange coexist (frenemy logistics, sanctioned rivals).
+- **Recurring contact memory** for brokers, patrons, or fixers.
+- **Clandestine / support networks** that depend on **identity protection** — exposure collapses access paths.
+
+### Legitimacy policy shell (SPE-50)
+
+Treat **SPE-50** as the shared **legitimacy / sanction / authorization policy** parent: sanction levels, legal cover, consent, credentials, protocol correctness, and doctrine fluency. Route specialized access work to child issues instead of bloating the parent — for example credential transit (**SPE-600**), rank/quarter/audience rules (**SPE-601**), jurisdiction admission matrices (**SPE-602**), and magical access-state grammar (**SPE-406**).
+
+### Patron obligations and symbolic social debt (SPE-51)
+
+Gifts, hospitality, aid, ritual participation, favors, promises, tribute, and sponsor-routed boons should materialize as **durable obligation objects** with negotiation posture, hidden leverage, inheritance constraints, and relationship-specific fallout. This is closer to **contracted social debt** than “reputation with flavor text.”
+
+### Internal cohesion and agendas (SPE-52)
+
+Factions behave as **internally dynamic institutions**: cohesion, agenda pressure, reliability, and distortion tendency change what intel looks like, which opportunities are real, and when cooperation is performative. Model etiquette-sensitive anomaly polities, proxy conflict, and service-extraction dynamics as **internal agenda expressions**, not only external hostility sliders.
+
+---
+
 ## 17. Example faction/legitimacy chain
 
 Mission partial with visible fallout

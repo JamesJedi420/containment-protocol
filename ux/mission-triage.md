@@ -83,9 +83,8 @@ This screen should unify “things the player could act on now.”
 ## 3. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Week | Funding | Support | Major Warnings                        |
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Screen-specific strip extension: optional operations-oriented tail (e.g. routable count, unassigned urgent chip) from the **same** shell subscription.
+
 +------------------------------------------------------------------+
 | Filters / Sort / Tabs                                             |
 | All | Incidents | Contracts | Leads | Escalating | Assigned      |
@@ -100,7 +99,7 @@ This screen should unify “things the player could act on now.”
 |                             | route now / defer / ignore         |
 +-----------------------------+------------------------------------+
 | Context Footer                                                  |
-| projected support load | team availability | advance risk       |
+| projected support load | team availability | escalation carryover risk |
 +------------------------------------------------------------------+
 ```
 
@@ -243,6 +242,8 @@ Show what current routing choices imply.
 - overload risk
 - escalation carryover risk
 
+**Escalation carryover risk** summarizes how deferred or unresolved items worsen under **escalation thresholds** (`systems/resolution-thresholds-tuning.md` §10) and **incident escalation curves** (`systems/pressure-curves-tuning.md` §6), not a separate “advance” meter.
+
 #### Example — Context footer / projected load strip
 
 Projected support load: high
@@ -276,6 +277,12 @@ Player expectation:
 - clear reward
 - external source
 - possible faction/legitimacy implications
+
+#### Contract board presentation layer (SPE-33)
+
+The contract / opportunity row is a **bounded mission context** surface, not a second mission generator. It should read like an **operations control strip**: objective hooks, pressure clocks, certainty states, **blocker reasons** when the player cannot commit, and **mixed reward / mixed certainty** outcomes when canonical state allows splits.
+
+Duplicating procedural generation logic in the board is an anti-pattern — **reuse canonical contract outputs** and render them with **risk/reward framing** and legible **routing blockers**.
 
 ### 6.3 Lead
 

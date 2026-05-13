@@ -37,4 +37,8 @@
 
 ---
 
+## Projection boundary for high-coupling surfaces (SPE-46)
+
+Knowledge-heavy, exploration-heavy, and hub-facing features must route derived state through **centralized projections / view-model builders** (`src/features/*View.ts`, shared selectors) instead of recomputing ad hoc logic inside routes or leaf components. Hub projections should expose **bounded actionable summaries** — enough to decide — not raw simulation noise that couples unrelated screens.
+
 This document is enforced by lint and test guardrails. See `eslint.config.js` and `test/boundary-enforcement.test.ts`.

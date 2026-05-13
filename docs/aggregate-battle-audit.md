@@ -10,6 +10,18 @@ The aggregate battle layer resolves large-scale engagements between two sides th
 
 The resolver is fully deterministic — no random input. All outcomes derive from factor tables, spatial context flags, commander overlays, and supply/morale state.
 
+### Army-scale design contract (SPE-106)
+
+**Army-scale conflict** is **not** skirmish per-actor accounting and **not** a single flat “army strength” scalar. It resolves through **aggregate unit packets**: each unit carries `strengthSteps`, a **family-specific `aggregationScale`**, and family defaults for occupancy, frontage, movement, missile cadence, and **special durability** (see §2, §10).
+
+- **Deterministic multi-phase loop** — each round runs `movement → missile → melee → morale → rally` with a defined pre-round hook sequence (§4).
+- **Control zones** — sides project **hostile control** over areas; control **denies movement chaining** (`hostile_control_chain`) and feeds morale/rally penalties (§4.2, §9, §4.5–4.6).
+- **Persistent routed morale** — `moraleState` machine (`steady | shaken | retreating | routed`) with `routedRounds` accumulation and rally-only recovery paths from `routed` (§4.5–4.6).
+- **Commander-presence overlays** — area- or anchor-scoped bonuses derived from leader data and authority (§8).
+- **Campaign-facing summaries** — `AggregateBattleCampaignSummary` / `AggregateBattleCampaignRollup` format outcomes for **weekly reports and case notes**, not a full tactical replay (§13).
+
+This layer is an **integrated campaign subsystem** (`advanceWeek` integration in §14), **not** a standalone miniature-wargame simulation.
+
 ---
 
 ## 2. Unit Families

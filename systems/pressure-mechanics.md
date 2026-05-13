@@ -565,6 +565,8 @@ Examples:
 - pressure decay / recovery speed
 - number of simultaneous unresolved incidents tolerated safely
 
+**Scoped “Critical” labels:** when UI or reports show **Critical** without context, prefer explicit prefixes: **Pressure: Critical** for the aggregate pressure strip top band (`systems/pressure-curves-tuning.md` §4), **Escalation: Critical** for incident escalation (`tuning/escalation-and-fallout.md` §7.4), **Economy: Critical** for funding (`systems/resource-economy-tuning.md` §7.4). Agency and Operations Report copy must not merge these into one ambiguous token.
+
 These should be tuned so the player is:
 
 - usually under some pressure
@@ -594,37 +596,6 @@ This is a good pressure chain because:
 
 ## 16. Anti-patterns
 
-### Before deployment
-
-Pressure influences:
-
-- which missions feel safe
-- what bottlenecks are visible
-- whether concurrent routing is wise
-
-### During resolution
-
-Pressure may degrade:
-
-- mission quality
-- follow-through
-- fallout containment
-- clean withdrawal or recovery
-
-### After resolution
-
-Pressure updates:
-
-- agency state
-- faction state
-- hub state
-- incident escalation
-- readiness / recovery burden
-
----
-
-## 17. Anti-patterns
-
 ### Anti-pattern 1: Hidden difficulty inflation
 
 Do not make pressure just a secret scaler.
@@ -647,7 +618,7 @@ If the player sees “conditions worsened” instead of a real causal note, pres
 
 ---
 
-## 18. Testing expectations
+## 17. Testing expectations
 
 Pressure tests should verify:
 
@@ -660,7 +631,7 @@ Pressure tests should verify:
 
 ---
 
-## 19. Acceptance criteria
+## 18. Acceptance criteria
 
 Pressure mechanics are working when:
 
@@ -673,7 +644,7 @@ Pressure mechanics are working when:
 
 ---
 
-## 19. Summary
+## 20. Summary
 
 Pressure mechanics in Containment Protocol are the force that turns individual problems into campaign-level strategy.
 

@@ -14,6 +14,19 @@
 - `team.recoveryPressure`: number (aggregate of member states, for overlay/stability)
 
 ## 3. Downtime Rules & Deterministic Progression
+
+### Downtime is active state, not empty bookkeeping (SPE-19)
+
+Downtime weeks are **not** passive “skip” intervals. Canonical recovery modeling should include:
+
+- **Decompression prompts** — structured off-mission processing (briefings, counseling slots, mandatory stand-downs) that consume week bandwidth.
+- **Indirect / media trauma** — harm routed through broadcasts, leaks, casefile review, or second-hand exposure, not only direct field injury.
+- **Positive recovery growth** — trust repair, skill consolidation, or institutional wins that only advance when downtime is spent deliberately.
+- **Long-tail trust and accountability follow-through** — investigations, hearings, sponsor check-ins, or liaison obligations that extend beyond the mission tick.
+- **Lingering post-crisis burden** — grief, exile, dispossession, or organizational fracture where **success still produces unresolved recovery debt**.
+
+Victory does not automatically close the recovery ledger; model outcomes where **success coexists with exile, dispossession, or lasting fracture** as valid recovery-adjacent states.
+
 - Downtime is a weekly phase where agents not on missions may:
   - Rest (reduce fatigue, heal minor injuries)
   - Train (improve skills, but slower if fatigued/traumatized)

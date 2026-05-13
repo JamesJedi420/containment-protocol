@@ -131,11 +131,13 @@ This means:
 
 ## 4. Tuning goals by outcome quality
 
+These five **fallout-quality tiers** are the tuning vocabulary. **Mission resolution** collapses player-facing outcomes to **four states** (`clean` / `degraded` / `partial` / `failed`) plus **`escalationActive`** on `failed`; see `systems/mission-resolution.md` §3.1 (resolution mapping table) for the canonical crosswalk and deterministic `escalationActive` triggers.
+
 ### 4.1 Clean success
 
 #### Expected tuning outcome — Clean success
 
-- low or no meaningful fallout
+- **no persistent fallout**; transient, low-severity surfaced notes are allowed
 - escalation halted or reduced
 - future state improved or stabilized
 
@@ -192,6 +194,22 @@ This allows failure to create future decisions rather than immediate dead ends.
 #### Design role — Escalating failure
 
 This should feel dangerous, but not arbitrary.
+
+### 4.6 Resolution states → fallout tiers (canonical crosswalk)
+
+| Mission `resolutionState` | When `failed`: `escalationActive` | This tier (§4.x) |
+| --- | --- | --- |
+| `clean` | — | §4.1 |
+| `degraded` | — | §4.2 |
+| `partial` | — | §4.3 |
+| `failed` | `false` | §4.4 |
+| `failed` | `true` | §4.5 |
+
+**Fallout selection** uses this row, then bottleneck / domain tags (personnel, equipment, support, …) to pick **one to two** primary fallout items (see §6 Rule 2). **Determinism:** identical `resolutionState`, `escalationActive`, bottleneck vector, and incident profile → identical fallout package.
+
+### 4.7 `escalationActive` on `failed` (deterministic triggers)
+
+Authoritative rule text lives in `systems/mission-resolution.md` §2 Stage D (outcome band selection). In short: `escalationActive = true` when post-resolution checks show **authorized campaign worsening** (e.g. escalation band increases, configured spillover / visibility breach, or aggregated multi-system pressure flags); otherwise `false` for **failure with containment** (§4.4) even if fallout is moderate.
 
 ## 5. Escalation tuning principles
 
@@ -287,13 +305,13 @@ The problem has become strategically dangerous.
 - partial outcomes are more costly
 - failure is more likely to spill over
 
-### 7.4 Critical
+### 7.4 Escalation: Critical
 
-#### Description — Critical
+#### Description — Escalation: Critical
 
 The problem is now likely to create broader campaign damage if mishandled again.
 
-#### Typical tuning effect — Critical
+#### Typical tuning effect — Escalation: Critical
 
 - narrow clean-response window
 - strong fallout risk
@@ -316,33 +334,47 @@ Fallout should usually be tuned in recognizable categories.
 
 Makes team-management consequences persistent.
 
-### 8.2 Recovery fallout
+### 8.2 Equipment fallout
 
 **Examples:**
 
-- repair backlog
-- delayed equipment return
+- gear damage or loss
+- degraded loadouts for the next deployment
+- large-asset disable or unavailability
+- certification or inspection holds on damaged kit
+- spare-parts pressure feeding procurement
+
+#### Tuning role — Equipment fallout
+
+Makes capability and maintenance queues remember the mission.
+
+### 8.3 Support and institutional fallout
+
+**Examples:**
+
+- **Support strained** band entered or advanced (`tuning/support-and-specialist-capacity.md` §5)
+- reduced clean follow-through next week
+- institutional overload warnings
+- throughput degradation on non-field handling
+
+#### Tuning role — Support and institutional fallout
+
+Connects mission quality to agency-side consequence.
+
+### 8.4 Recovery fallout
+
+**Examples:**
+
+- repair backlog growth
+- delayed equipment return to service
 - recovery queue growth
-- specialist workload increase
+- specialist workload increase for stabilization lanes
 
 #### Tuning role — Recovery fallout
 
 Creates next-week operational friction.
 
-### 8.3 Support fallout
-
-**Examples:**
-
-- support strain
-- reduced clean follow-through next week
-- institutional overload warning
-- throughput degradation
-
-#### Tuning role — Support fallout
-
-Connects mission quality to agency-side consequence.
-
-### 8.4 Visibility and legitimacy fallout
+### 8.5 Visibility and legitimacy fallout
 
 **Examples:**
 
@@ -355,7 +387,7 @@ Connects mission quality to agency-side consequence.
 
 Makes visible imperfection politically meaningful.
 
-### 8.5 Faction fallout
+### 8.6 Faction fallout
 
 **Examples:**
 
@@ -368,7 +400,7 @@ Makes visible imperfection politically meaningful.
 
 Makes the wider world react.
 
-### 8.6 Incident-chain fallout
+### 8.7 Incident-chain fallout
 
 **Examples:**
 
@@ -401,7 +433,7 @@ These should punish delay more aggressively:
 - active visibility-sensitive incidents
 - unstable infrastructure with spread potential
 - faction-contested interventions
-- survivor recovery windows
+- **Survivor recovery window** — bounded **weeks-until-deployable** (or weeks-in-recovery) clock for operatives stabilizing after rescue or trauma; ties escalation to team readiness (`systems/team-management.md`, recovery specs). Tighten escalation pacing when this window is open and the incident remains active.
 
 #### Design rule — Escalation rate
 
@@ -535,8 +567,7 @@ These are good chains because each step is explainable.
 
 ### Clean success
 
-- no persistent fallout
-- maybe one low-severity note only
+- **no persistent fallout**; at most one transient low-severity surfaced note
 
 ### Success with cost
 
@@ -568,7 +599,7 @@ Escalation should feed pressure; fallout should often persist as pressure.
 
 ### Mission resolution
 
-Outcome quality should strongly affect fallout distribution.
+Outcome quality should strongly affect fallout distribution, using the **four-state + `escalationActive`** contract (`systems/mission-resolution.md` §3.1) and the §4.6 crosswalk—not ad-hoc outcome enums.
 
 ### Support operations
 
@@ -621,7 +652,7 @@ Review and testing should ask:
 **Determinism tests should verify:**
 
 - same input state -> same escalation band changes
-- same outcome quality -> same fallout selection rules
+- same `resolutionState` + `escalationActive` + bottleneck vector -> same fallout selection rules
 - surfaced explanations match canonical cause data
 
 ## 19. Acceptance criteria

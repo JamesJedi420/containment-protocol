@@ -37,6 +37,10 @@ This template is for:
 
 ## 1. Authoring goals
 
+### Template kernel discipline (SPE-48)
+
+Authoring uses **three named content-family templates** sharing one **stable kernel shape** so validation, diffing, and tooling stay predictable. Variation should flow through explicit **“usually X unless Y”** hooks rather than bespoke one-off sections. Issue briefs should separate **implementation surface**, **runtime behavior**, and **player-facing result** so engineers, sim authors, and copy stay aligned. Action-band / power-band checks belong in validation — not as informal reviewer memory.
+
 A mission should do five things:
 
 1. define what the agency is trying to do

@@ -32,6 +32,9 @@
 - Replacement pressure may impact funding, morale, or operational readiness if integrated.
 
 ## 5. Integration Points
+
+Attrition and replacement pressure are **canonical cross-system state** (SPE-29). They are not “recovery-only flavor.” Downstream systems must consume the same counters:
+
 - **Recruitment**: Attrition/loss triggers new recruitment or replacement requests; recruitment pipeline must reference staffing gap and pressure.
 - **Training**: Replacement operatives may require expedited or remedial training; training backlog may increase replacement pressure.
 - **Teams**: Team composition and readiness must reflect attrition/loss; weakest-link logic must update loss state.

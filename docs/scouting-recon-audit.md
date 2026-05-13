@@ -209,3 +209,9 @@ Recon results are not stored in `GameState`. They must be recomputed each time t
 | Treating `intelConfidence` as a percent — it is a ratio in `[0.18, 0.98]` | Showing `0.45` as "45%" is correct but `0.18` as "18%" may confuse users | Use a UI label like "Low / Medium / High" mapped from the value range |
 | Applying `scoutCandidate` without calling `assessCandidateScouting` first | State mutation proceeds even if funding is insufficient | Gate on `assessment.canScout === true` before calling `scoutCandidate` |
 | Assuming `spatialFlags` is always populated | `INGRESS_RECON_MODIFIERS` only match if the flag starts with `ingress:` | Always check flag presence before expecting ingress modifiers |
+
+---
+
+## 9. See also
+
+- `architecture/spatial-layers-exposure.md` — exterior / transition / interior model, exposure windows, and viewpoint-dependent concealment (SPE-57)

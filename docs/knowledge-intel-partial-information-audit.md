@@ -14,7 +14,32 @@
 
 - **Research/Discovery:** Unlockable knowledge, experimental findings, and emergent facts.
 
-## 2. Recommended Canonical Intel and Uncertainty State Fields
+## 2. Canonical intel vs routed subsystems (SPE-22)
+
+**SPE-22 owns the core knowledge / intel state** — distortion, confidence masking, partial truth, faction-filtered visibility, and save-load canonical fields for what the agency institutionally “knows.”
+
+**Do not collapse these into one blob.** Maintain explicit routing boundaries:
+
+| Concern | Owner issue | Responsibility |
+| --- | --- | --- |
+| Canonical intel state, confidence decay, institutional memory | SPE-22 | Ground truth for missions, routing, and reports |
+| Clue artifacts, rumor packets, physical carriers | SPE-127 | Propagation mechanics separate from baseline intel tables; see `architecture/clue-artifacts-rumor-packets.md` |
+| Pre-mission query budgets, briefing intel caps | SPE-112 | Limits on what planning UI may pull before deploy; see `architecture/pre-mission-query-budgets-briefing-intel.md` |
+| Psychometric residue, object-history scans | SPE-631 | Bounded reads that may not back-write canonical intel blindly |
+| Memory-erasure hazards, graded impairment | SPE-733 | Damage tracks that alter recall / evidence access without silently deleting SPE-22 rows |
+
+### Partial observability vocabulary
+
+- **Partial observability** — multiple hypotheses remain live; UI may show best-effort summaries while canonical state keeps explicit unknowns.
+- **Rumor truth inversion** — socially sourced intel can be **deliberately false** or mirrored; track provenance separately from fact IDs.
+- **Source-distance decay** — confidence erodes with time, chain length, or mediator count unless re-verified.
+- **Knowledge visibility states** — facts may be **recovered** (reopened after loss), **suppressed** (withheld by policy or hazard), or **inherited** (passed across operatives/factions with attenuation).
+
+### Canonical epistemic model (SPE-58)
+
+For **actual world state vs observed vs interpreted vs agency-known**, uncertainty reduction, hypothesis/test/revision, competing truth systems, folklore or denial as interpreted pressure, **risky knowledge**, and routing to **SPE-529** (sensing/masking/relay), **SPE-587** (operational views / dispatch filters), **SPE-588** (dream / inherited / preserved channels), and **SPE-589** (freshness / decay / fragmentation), see **`architecture/knowledge-state-system.md`**.
+
+## 3. Recommended Canonical Intel and Uncertainty State Fields
 
 - `intel.knownFacts: Record<string, boolean | number | string>`
 
@@ -34,7 +59,7 @@
 
 - `facility.intel: string[]`
 
-## 3. Deterministic Intel Acquisition and Degradation Rules
+## 4. Deterministic Intel Acquisition and Degradation Rules
 
 - **Acquisition:**
   - Intel is gained via explicit actions (scouting, research, interrogation, event triggers).
@@ -46,7 +71,7 @@
   - Degradation is deterministic: based on time, events, or explicit triggers.
   - Uncertainty increases as intel ages or is contradicted.
 
-## 4. Reliability, Confidence, and Uncertainty Guidance
+## 5. Reliability, Confidence, and Uncertainty Guidance
 
 - **Reliability:**
   - Track source and verification status for each intel item.
@@ -59,7 +84,7 @@
 - **Presentation:**
   - Overlay UI should surface confidence/uncertainty for all major intel.
 
-## 5. Interaction with Other Systems
+## 6. Interaction with Other Systems
 
 - **Mission Intake:**
   - Intake forms should reflect current intel and uncertainty.
@@ -91,7 +116,7 @@
 - **Stability Checks:**
   - Stability audits should flag stale, contradictory, or missing critical intel.
 
-## 6. Common Pitfalls
+## 7. Common Pitfalls
 
 - Overwriting or losing intel state on save/load or mission transitions.
 
@@ -103,7 +128,7 @@
 
 - Hard-coding intel categories or fields, limiting extensibility.
 
-## 7. Open Questions
+## 8. Open Questions
 
 - What is the canonical set of intel categories for all mission types?
 

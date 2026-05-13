@@ -156,6 +156,13 @@ Turns raw personnel into role-capable field operatives.
 
 Training should change what the agency can do, not just add passive stat increase flavor.
 
+#### Certification and refresher policy (SPE-14)
+
+- **Incumbent recognition:** proven incumbents may be **certified as already competent** for baseline requirements instead of always repeating full introductory training. The default is not “full retrain everyone.”
+- **Refresher cadence:** **refresher training recurs on a fixed schedule** (campaign-week or policy-driven), not only after incidents.
+- **Verified refreshers:** refresher completion requires **explicit comprehension verification** (checks, drills, or sign-off criteria) — **not attendance-only renewal**.
+- **Operational gate:** `trainingStatus` / certification state remains a **meaningful gate for high-risk work**; soft-skipping refreshers should surface as readiness risk, routing warnings, or legitimacy pressure rather than silently disappearing.
+
 ### 4.3 Team composition
 
 #### Purpose — Team composition
@@ -252,6 +259,12 @@ Ensures loss and sustained damage matter to the institution over time.
 #### Design rule — Attrition and replacement pressure
 
 Loss must persist, but not in a way that makes the campaign unrecoverable too quickly.
+
+### 4.8 Facility-linked equipment quality (SPE-21)
+
+Equipment and facility-backed fabrication should use **semantic quality bands** (for example: prototype, field-grade, depot-refit, purpose-built, disposable) that shift **reliability** and **performance envelopes** instead of a flat numeric item ladder.
+
+**Narrow-context amplification:** custom-built tools may be exceptional inside their authored use profile and deliberately weak outside it, so upgrades read as *capability specialization*, not uniform power creep.
 
 ---
 
@@ -451,7 +464,7 @@ interface OperativeState {
   certifications: string[];
   readiness: number;
   trauma: number;
-  status: "available" | "deployed" | "recovering" | "lost";
+  status: "available" | "assigned" | "deployed" | "recovering" | "lost";
 }
 
 interface TeamState {
@@ -462,6 +475,8 @@ interface TeamState {
   deploymentStatus: "idle" | "assigned" | "deployed" | "recovering";
 }
 ```
+
+**Routing vs deployment:** When **Route now** (`ux/mission-triage.md` §11) commits a mission into weekly planning with a team bound to that route, set the team’s `deploymentStatus` to `assigned` and member operatives’ `status` to `assigned` until deployment commits (`deployed`) or routing is cleared (`available`). UI that must distinguish “routed but not deployed” from idle readiness should read **team routing / deployment state**, not operative `available` alone, so Agency and deployment panels stay consistent.
 
 These are examples only; implementation may differ.
 

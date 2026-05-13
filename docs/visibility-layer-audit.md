@@ -1,5 +1,11 @@
 # Visibility Layer / Decision Legibility Pass — Design Note
 
+## 0. Computed explanations, not stored archives (SPE-24)
+
+**Explanations are computed**, not persisted as authoritative campaign rows. The visibility / decision-legibility layer is a **derived surface** over canonical simulation outputs (routing, readiness, weakest-link, pressure, instability overlays) plus bounded developer/debug helpers.
+
+Current work prioritizes **developer, QA, and validation surfaces** — not a blanket player-facing explanation store that would duplicate simulation truth.
+
 ## 1. Explanation Categories
 
 - **Routing Explanations:** Why a mission was (or was not) routed, including blockers, priorities, and candidate evaluations.
@@ -9,9 +15,11 @@
 - **Simulation Overlay Explanations:** Contextual overlays that explain simulation state, transitions, and outcomes.
 - **Stability/Recovery Explanations:** Why a state is flagged as unstable or requires recovery.
 
-## 2. Recommended Explanation State Fields
+## 2. Recommended explanation record shape (ephemeral / debug)
 
-- `explanationId: string` — Unique identifier for the explanation.
+When tooling materializes an explanation object for overlays or tests, treat it as a **transient DTO**, not canonical save data:
+
+- `explanationId: string` — Correlation id for the render pass or export bundle.
 - `category: 'routing' | 'readiness' | 'weakest-link' | 'pressure' | 'overlay' | 'stability'`
 - `summary: string` — One-line summary of the decision or outcome.
 - `details: string[]` — List of detailed reasons, blockers, or contributing factors.
@@ -19,6 +27,8 @@
 - `severity: 'info' | 'warning' | 'error'`
 - `timestamp: number` — Week or tick when the explanation was generated.
 - `actions: string[]` — Suggested actions or recovery steps, if any.
+
+**Do not** rely on these records surviving save/load unless a product feature explicitly snapshots debug output. Regenerate from canonical state instead.
 
 ## 3. Routing Explanation Guidance
 
@@ -51,7 +61,7 @@
 ## 7. Integration with Overlay, Save/Load, Stability, and Simulation Summaries
 
 - Explanations should be accessible via overlays, tooltips, and summary panels.
-- Explanation state should be serializable for save/load compatibility.
+- **Save/load:** canonical simulation state persists; explanation DTOs **recompute** after hydrate. Optional debug-only snapshots are fine, but they must never become parallel truth.
 - Stability checks should surface explanations for flagged issues.
 - Integrate explanations into existing simulation summaries and debug overlays.
 

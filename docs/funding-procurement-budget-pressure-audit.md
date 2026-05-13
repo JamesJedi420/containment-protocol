@@ -21,6 +21,12 @@
 - `procurementBacklog: Array<{ itemId: string, quantity: number, status: 'pending'|'fulfilled'|'cancelled', requestedWeek: number, fulfilledWeek?: number }>`
 - `budgetPressure: number` — Derived metric for overlays/stability (e.g., negative funding, missed payments).
 
+## 2.1 Procurement grammar beyond “price × qty” (SPE-28)
+
+**Affordability is not availability.** Items may be priced within reach yet blocked by **channels** (legal cover, trust, access badges, sanctions, or supplier refusal).
+
+Model **recurring operating costs** and **cashflow timing** as first-class pressure. Acquisition may be **delayed**, **capacity-blocked**, **barter-based**, **favor-based**, or **politically distorted**. Treat **non-cash assets** (credit, salvage rights, seized materials) and **holding costs** as normal inputs, not edge-case hacks.
+
 ## 3. Deterministic Income, Expense, and Budget-Pressure Rules
 
 - **Income:**

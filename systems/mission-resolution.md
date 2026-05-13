@@ -76,6 +76,8 @@ A mission is the game’s operational execution unit.
 
 Containment Protocol should use **deterministic graded resolution**.
 
+**Weakest-link resolution (SPE-18)** is the **canonical bounded mission-outcome mechanism** wired into the weekly simulation loop. Mission types share this surface instead of bespoke per-template resolution silos; differences express through inputs, tags, and consequence ladders — not alternate outcome engines.
+
 That means:
 
 - outcomes are caused by state, not primarily by random rolls
@@ -83,14 +85,7 @@ That means:
 - strong preparation produces predictable improvement
 - outcomes should be interpretable after the fact
 
-Preferred resolution pattern:
-
-- success
-- partial success
-- failure
-- success or partial success with fallout
-- failure with containment
-- failure with escalation
+**Canonical player-facing resolution** uses **four states** — `clean`, `degraded`, `partial`, `failed` — defined under **§3.1 Mission outcome** (resolution state mapping). Pipeline stages may still use `result` + `followThrough`; the four states are the stable contract for fallout selection, reports, and tuning crosswalks to `tuning/escalation-and-fallout.md` §4.
 
 The game becomes interesting because:
 
@@ -237,6 +232,8 @@ Output:
 - invalid
 - deployable under degraded conditions
 
+**UI pre-resolution posture:** The five deployment commitment postures in `ux/deployment-flow.md` §7 map onto these three outputs; use that table as the canonical crosswalk.
+
 ---
 
 ## Stage B — Operational strength evaluation
@@ -262,7 +259,7 @@ The result does not have to be shown as a raw score to the player, but the game 
 
 ## Stage C — Weakest-link / bottleneck check
 
-Containment Protocol already points toward weakest-link logic.
+Containment Protocol already points toward weakest-link logic. Treat this stage as the **primary bounded resolution surface** integrated with readiness, intel, pressure, and attrition — not an optional flavor layer.
 
 This stage identifies whether one limiting factor drags the mission down.
 
@@ -282,19 +279,17 @@ This stage should matter heavily enough that institutional neglect is felt, but 
 
 ## Stage D — Outcome band selection
 
-Based on the evaluated mission condition, assign the mission to an outcome band:
+Based on the evaluated mission condition, assign the mission to an outcome band (`result`: success / partial / fail) and derive the **canonical four-state** `resolutionState` (see **§3.1** resolution mapping).
 
-- success
-- partial
-- fail
+Also track where applicable:
 
-Optionally also track:
+- clean vs degraded follow-through (`followThrough`)
+- on **`failed`**, **`escalationActive: boolean`** — `false` = failure with containment (tuning §4.4), `true` = escalating failure (tuning §4.5); omit or ignore when not `failed`
+- low vs high fallout (density tags)
 
-- clean vs degraded follow-through
-- contained vs escalated failure
-- low vs high fallout
+This keeps **five fallout-quality profiles** in tuning mapped from **four resolution states** plus one boolean, without a fifth top-level resolution enum.
 
-This lets the game produce campaign texture without requiring tactical combat simulation.
+**Deterministic defaults for `escalationActive` when `result === 'fail'`:** set `escalationActive = true` if any of: post-resolution incident escalation band increases; unresolved spillover or chain flags set; district visibility or legitimacy crosses a configured “public breach” threshold; coordinated multi-system pressure flags from weekly aggregation. Otherwise `escalationActive = false`. Exact thresholds live with escalation and pressure tuning; the rule is **the same weekly inputs yield the same boolean**.
 
 ---
 
@@ -323,6 +318,10 @@ This is the right place for:
 
 Mission fallout should update campaign state.
 
+### Collateral, spillover, and self-failure (SPE-55)
+
+Dangerous or high-energy procedures can open **collateral channels** (bystanders, allies, structures, ecosystems) and **self-failure channels** (operator harm, tool destruction, containment breach) that are not reducible to “missed the primary target.” Model **direct-plus-collateral hazard footprints**, situational modifiers for spillover severity, **public deniability cost**, and durable **ecological or infrastructural aftermath** when outputs are large enough to matter.
+
 Possible fallout domains:
 
 - operative injury / trauma
@@ -342,7 +341,7 @@ Not every mission should create fallout, but fallout should be common enough tha
 
 ## Stage G — Surface explanation output
 
-After outcome and fallout are determined, the game should produce player-facing explanation.
+After outcome and fallout are determined, the game should produce player-facing explanation. Explanations are **computed on demand** from canonical mission + weekly state via domain helpers and projections (see `docs/visibility-layer-audit.md`, SPE-24); they are **not** a second persisted narrative ledger.
 
 Examples:
 
@@ -352,7 +351,7 @@ Examples:
 - incomplete recon caused avoidable exposure
 - maintenance bottleneck delayed post-mission recovery
 
-Reports and UI should surface these from precomputed state or domain events, not recompute them.
+Reports and UI should surface these from **domain events and deterministic helpers**, not ad hoc string generation in components.
 
 Canonical surfacing for this layer should flow through the shared rules
 substrate and report-note helpers:
@@ -379,10 +378,37 @@ Example conceptual shape:
 interface MissionOutcome {
   result: 'success' | 'partial' | 'fail'
   followThrough: 'clean' | 'degraded' | 'broken'
+  /** Canonical four-state resolution for fallout + UI (derive from result + followThrough; see §3.1 mapping). */
+  resolutionState: 'clean' | 'degraded' | 'partial' | 'failed'
+  /** Meaningful only when resolutionState === 'failed' (or result === 'fail'): escalating vs contained failure. */
+  escalationActive?: boolean
   primaryReason?: string
   falloutTags?: string[]
 }
 ```
+
+#### Canonical four-state resolution and fallout bucket mapping
+
+**Four resolution states** (no fifth enum at this layer):
+
+| `resolutionState` | Typical source (`result` / `followThrough`) |
+| --- | --- |
+| `clean` | `success` + `clean` |
+| `degraded` | `success` + `degraded` or `broken` (primary objective still met; institution paid) |
+| `partial` | `partial` (+ any follow-through) |
+| `failed` | `fail` (+ any follow-through) |
+
+**Fallout tier mapping (four states + boolean → five tuning buckets in `tuning/escalation-and-fallout.md` §4):**
+
+| `resolutionState` | `escalationActive` (when `failed`) | Fallout tier |
+| --- | --- | --- |
+| `clean` | — | §4.1 Clean success |
+| `degraded` | — | §4.2 Success with cost |
+| `partial` | — | §4.3 Partial success |
+| `failed` | `false` | §4.4 Failure with containment |
+| `failed` | `true` | §4.5 Escalating failure |
+
+Fallout selection rules read **`resolutionState` + `escalationActive`** (and bottleneck tags), not parallel ad-hoc enums.
 
 3.2 Mission-local fallout
 
@@ -458,7 +484,7 @@ Readiness weak
 
 - role gap
 - escalation high
-  = fail or fail with escalation
+  = `failed`; set `escalationActive` per §2 Stage D defaults (contained vs escalating)
 
 # 5. Bounded modifiers
 
@@ -501,21 +527,12 @@ These subdomains should plug into the same bounded mission resolution architectu
 
 Failures should be meaningful and recoverable.
 
-Preferred failure classes:
+All structural failures surface as **`resolutionState: failed`**. **`escalationActive`** (optional boolean; meaningful only here) splits tuning **§4.4 Failure with containment** vs **§4.5 Escalating failure** without adding a fifth resolution enum:
 
-- Clean failure
-  The mission fails, but the agency remains stable enough to respond again.
+- **`escalationActive: false`** — worst-case trajectory avoided or bounded; fallout and pressure may still be meaningful (recovery burden, localized containment cost).
+- **`escalationActive: true`** — campaign-facing worsening is authorized: escalation bands, spillover flags, or cross-system pressure move per the deterministic Stage D rule set.
 
-- Degraded failure
-  The mission fails and creates recovery burden, incident drift, or future weakness.
-
-- Escalating failure
-  The mission fails in a way that worsens the broader campaign state.
-
-- Contained failure
-  The mission fails but prevents the worst-case outcome.
-
-This allows loss to create interesting next states instead of only hard dead ends.
+Narrative labels such as “clean failure” vs “degraded failure” are **density variants** inside `failed` + `escalationActive: false`, carried by **`falloutTags`** and follow-through notes—not parallel top-level resolution states.
 
 # 8. Partial success design
 
@@ -525,7 +542,7 @@ Partial outcomes should be common when:
 
 - the team is plausible but imperfect
 - intel is incomplete
-- support is strained
+- support is **Support strained** (see `tuning/support-and-specialist-capacity.md` §5; use that scoped label in copy when economy bands could be confused)
 - time pressure is significant
 - follow-through is the real weak point
 

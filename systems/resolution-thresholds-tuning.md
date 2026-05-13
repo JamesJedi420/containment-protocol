@@ -1,5 +1,9 @@
 # Containment Protocol — Resolution Thresholds Tuning Spec
 
+## Simulation calibration passes (SPE-25)
+
+Passes such as **SPE-25 — simulation calibration** adjust **constants, bands, and thresholds only**. They do **not** redefine architecture, ownership, or weekly loop structure. When documenting calibration history, attribute changes to **numeric policy** rather than implying new subsystems unless an issue explicitly expands scope.
+
 ## Purpose
 
 This document defines the tuning approach for mission resolution thresholds in Containment Protocol.

@@ -85,9 +85,8 @@ The player decides whether to expand, hold, recover, or reduce concurrent commit
 ## 3. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Week | Funding | Legitimacy | Standing | Support | Major Alerts  |
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Same shell subscription on every route; no second strip. Screen-specific strip extension: none (Agency detail lives in the body and context panel).
+
 +------------------------------------------------------------------+
 | Agency Summary                                                    |
 | Overall condition | support | recovery | overload | readiness     |
@@ -110,6 +109,12 @@ The player decides whether to expand, hold, recover, or reduce concurrent commit
 | Context actions: Inspect team | View report cause | Go to ops    |
 +------------------------------------------------------------------+
 ```
+
+### Global pressure strip (SPE-32)
+
+Telemetry in the strip is the **shared shell Status Bar** (`ux/navigation-map.md`, **Recommended shell layout** / **Canonical field set**), not an Agency-only duplicate. It should summarize **budget pressure**, **staffing health**, **readiness posture**, **intel posture**, and **major blockers** through the **same** compact core + optional tail the shell already owns—scaled by **incident intensity** where the shell projection supports it.
+
+Separate **agency leverage** signals (funding runway, spare capacity) from **crisis pressure** signals (active countdowns, heat, patrol risk) in **presentation** (core vs extension vs main content), not by introducing a parallel global read for this screen.
 
 ---
 
@@ -173,6 +178,18 @@ Overloaded
 Recovering
 
 Capacity constrained
+
+**Condition labels vs canonical pressure bands:** Agency summary labels **project** institution-wide pressure onto the bands in `systems/pressure-curves-tuning.md` §4 (Low / Rising / Active / High / **Pressure: Critical** — use the scoped label in copy when **Escalation: Critical** or **Economy: Critical** could also appear that week). Optional **Recovering** is a **directional overlay** (improving week-over-week) on top of the underlying band, not a replacement for it.
+
+| Agency condition label | Canonical pressure band(s) |
+| --- | --- |
+| Stable | Low |
+| Strained | Rising → Active (depending on severity); if the bottleneck is support throughput, prefer the label **Support strained** (`tuning/support-and-specialist-capacity.md` §5.3) in detailed copy |
+| Overloaded | Active → High |
+| Recovering | Overlay: trajectory from High/**Pressure: Critical** or Active **toward** Rising / Low while recovery systems bite |
+| Capacity constrained | Rising → Active (throughput-limited without necessarily full overload) |
+
+Mission-facing **resolution threshold bands** (`systems/resolution-thresholds-tuning.md` §4 — Strong / Adequate / Strained / Critical) apply at deployment/resolution time; keep Agency wording aligned in spirit but do not conflate the two band names in UI copy without explicit bridging. Prefer **Pressure: Critical**, **Economy: Critical**, or **Escalation: Critical** when echoing other specs’ top bands.
 
 #### Example quick metrics — Agency summary header
 

@@ -28,6 +28,10 @@ This spec is for:
 - implementation planning
 - QA validation
 
+### Canonical procurement outputs on-screen (SPE-34)
+
+The procurement UI must mirror the **economy model’s outputs**, not invent a parallel market mini-game. Always surface **current options**, **budget impact**, **affordability blockers**, **access or gating blockers**, and **pending backlog state** so players can see why an order cannot complete even when cash exists.
+
 ---
 
 ## Design goals
@@ -88,11 +92,9 @@ This screen should unify “what material and support-side capacity is limiting 
 ## 3. Recommended layout
 
 ```text
-+------------------------------------------------------------------+
-| Status Bar / Pressure Strip                                      |
-| Funding | Support | Major Bottlenecks | Market State             |
-+------------------------------------------------------------------+
+Shell: unified global Status Bar only — see `ux/navigation-map.md` (**Recommended shell layout**; **Canonical field set**). Screen-specific strip extension: optional procurement tail (e.g. market or access hint) when it aids scanning; detailed blockers remain in **Procurement Summary** and list panels.
 
++------------------------------------------------------------------+
 | Procurement Summary                                               |
 | blocked gear | recovery backlog | support-sensitive constraints  |
 +------------------------------------------------------------------+

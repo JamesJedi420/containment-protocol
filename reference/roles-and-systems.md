@@ -240,12 +240,14 @@ Bad role coverage design:
 
 Support specialists are agency-side bounded capability roles, not deployable squad members.
 
-Examples may include:
+**Canonical specialist lanes** use stable `lane.*` IDs enumerated in **`systems/support-operations.md` §9.1**; that section is the **source of truth** for lane enumeration. This reference summarizes the same set:
 
-- maintenance specialist
-- engineer
-- handler
-- doctrine expert
+- **`lane.maintenance`** — Maintenance (equipment repair, return-to-service, depot throughput)
+- **`lane.medical`** — Medical stabilization (injury/trauma stabilization, recovery-adjacent clinical throughput)
+- **`lane.engineering`** — Engineering (structural, technical, or asset-enabling fixes beyond routine maintenance)
+- **`lane.doctrine`** — Doctrine / handling-sensitive (procedures requiring certified handling, anomaly-specific protocols)
+- **`lane.logistics`** — Logistics / movement (heavy movement, staging, or supply throughput when distinct from generic support)
+- **`lane.analysis`** — Analysis / intel processing (bounded interpretive throughput when it gates follow-through)
 
 ### Support specialist — Purpose
 
@@ -341,8 +343,19 @@ Converts mission inputs into bounded outcomes, follow-through quality, and fallo
 
 ### Mission resolution — Produces
 
-- success / partial / failure
-- follow-through state
+- **`clean` / `degraded` / `partial` / `failed`** — canonical **`resolutionState`** from `systems/mission-resolution.md`: **`clean`** and **`degraded`** mean the primary objective was met (**`degraded`** = met with reduced institutional follow-through); **`partial`** = objective only partly met; **`failed`** = objective missed.
+
+Fallout tier selection maps these four states plus optional **`escalationActive`** on **`failed`** to the **five fallout-quality tiers** in **`tuning/escalation-and-fallout.md` §4**; authoritative definitions and selection rules live there (especially **§4.6**). Compact crosswalk:
+
+| `resolutionState` | When `failed`: `escalationActive` | Fallout tier |
+| --- | --- | --- |
+| `clean` | — | §4.1 |
+| `degraded` | — | §4.2 |
+| `partial` | — | §4.3 |
+| `failed` | `false` | §4.4 |
+| `failed` | `true` | §4.5 |
+
+- follow-through pipeline detail (`followThrough`, support integration)
 - fallout
 - incident updates
 - domain events
@@ -355,6 +368,8 @@ Converts mission inputs into bounded outcomes, follow-through quality, and fallo
 - pressure
 - reports
 - future campaign state
+- factions and legitimacy
+- incident generation
 
 ---
 
@@ -397,7 +412,9 @@ Tracks broad agency-side capacity for clean follow-through and throughput.
 - mission resolution
 - recovery
 - reports
-- procurement/support view
+- procurement and support-facing logistics (§6.11)
+- team management
+- pressure mechanics
 
 ---
 
@@ -443,6 +460,7 @@ Turns unresolved problems, overload, and weak handling into strategic strain acr
 - legitimacy
 - factions
 - hub state
+- reports
 
 ---
 
@@ -465,6 +483,8 @@ Represent the contested external environment the agency operates inside.
 - incident generation
 - reports
 - mission consequences
+- pressure mechanics
+- deployment (legitimacy- and access-sensitive deployment checks)
 
 ---
 
@@ -487,6 +507,7 @@ Surfaces socially mediated opportunities, rumors, leads, contracts, and services
 - legitimacy
 - prior outcomes
 - mission triage
+- incident generation
 
 ---
 
@@ -508,6 +529,8 @@ Handles material readiness, blocked replacements, repairs, and support-linked re
 - support operations
 - specialist throughput
 - deployment
+- resource economy (§6.14)
+- recovery (recovery-linked procurement, repair backlog, and readiness-restoration pressure)
 
 ---
 
@@ -530,6 +553,9 @@ Explain outcomes, causes, fallout, and bottlenecks.
 - pressure
 - Agency review
 - next planning decisions
+- factions and legitimacy
+- hub simulation
+- procurement and support-facing logistics (§6.11)
 
 ---
 
@@ -550,6 +576,28 @@ Preserves canonical campaign continuity across save/load.
 - every canonical system
 - reports/history
 - QA determinism validation
+
+---
+
+## 6.14 Resource economy
+
+### Resource economy — Function
+
+Governs bounded agency material and institutional money flow: funding inflow, upkeep scaling, procurement and replacement cost, and replacement burden versus runway — not a full economy simulation.
+
+### Resource economy — Produces
+
+- funding runway signals
+- upkeep pressure
+- replacement cost burden and procurement-facing scarcity cues (aligned with `systems/resource-economy-tuning.md` vocabulary)
+
+### Resource economy — Connects to
+
+- support operations
+- procurement and support-facing logistics (§6.11)
+- team management
+- factions and legitimacy (contract quality, market access friction)
+- pressure mechanics
 
 ---
 
@@ -576,7 +624,9 @@ specialist throughput
 
 factions and legitimacy
 
-economy / procurement
+resource economy (§6.14)
+
+procurement and support-facing logistics (§6.11)
 
 persistence
 

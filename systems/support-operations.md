@@ -307,6 +307,21 @@ This separation is important.
 Support should stay broad enough to matter institutionally.
 Specialists should stay narrow enough to create meaningful bottlenecks.
 
+### 9.1 Canonical specialist lanes (stable IDs)
+
+Single source for lane enumeration; `systems/resource-economy-tuning.md` §2 points here.
+
+| `id` | displayName | notes |
+| --- | --- | --- |
+| `lane.maintenance` | Maintenance | Equipment repair, return-to-service, depot throughput |
+| `lane.medical` | Medical stabilization | Injury/trauma stabilization, recovery-adjacent clinical throughput |
+| `lane.engineering` | Engineering | Structural, technical, or asset-enabling fixes beyond routine maintenance |
+| `lane.doctrine` | Doctrine / handling-sensitive | Procedures that need certified handling, anomaly-specific protocols |
+| `lane.logistics` | Logistics / movement | Heavy movement, staging, or supply throughput when distinct from generic support |
+| `lane.analysis` | Analysis / intel processing | Bounded interpretive throughput (labs, fusion cells) when it gates follow-through |
+
+Add new lanes only with a new stable `id` and a tuning owner; do not alias two domains into one lane in UI.
+
 ---
 
 ## 10. Support state model
@@ -418,7 +433,7 @@ Useful bounded tuning levers include:
 - support demand per mission
 - support shortage penalty intensity
 - support restoration rate
-- support overload warning threshold
+- support overload warning threshold (canonical: **`demand >= supportAvailable`** warns; **`demand > supportAvailable`** degrades — see `tuning/support-and-specialist-capacity.md` §7)
 - number of concurrent operations safely handled
 - support-to-recovery interaction intensity
 
@@ -454,13 +469,12 @@ Support operations should not become:
 
 ## 18. Example support flow
 
-Week begins with supportAvailable = 2
+Week begins with **`supportAvailable = 2`** (two concurrent support-sensitive slots).
 
--> three support-sensitive demands appear
--> two resolve cleanly
--> one mission follow-through degrades due to shortage
--> report surfaces support shortage note
--> support restoration path returns some capacity next week
+- Two support-sensitive demands resolve in the same week → **`demand == supportAvailable`** → **overload warning** (at ceiling; see `tuning/support-and-specialist-capacity.md` §7 canonical threshold).
+- A **third** support-sensitive demand is routed → **`demand > supportAvailable`** → **one** mission’s follow-through degrades by weakest-link / priority rules.
+- Report surfaces a **support shortage** causal note on the degraded mission.
+- **Restoration:** next week’s **`supportAvailable`** increases by a bounded increment toward the prior baseline when demand drops—typical band deltas on the order of **~1 band per 1–2 stable weeks** under reduced load (`tuning/support-and-specialist-capacity.md` §11).
 
 This is the desired pattern:
 bounded, causal, visible.

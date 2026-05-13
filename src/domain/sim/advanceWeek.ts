@@ -2089,7 +2089,7 @@ function resolveAssignments(
     }
     const currentCase = context.sourceState.cases[caseId]
     const existingAssignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
-      Boolean(context.sourceState.teams[teamId])
+      Boolean(context.nextState.teams[teamId])
     )
 
     if (currentCase.status !== 'in_progress' || existingAssignedTeamIds.length === 0) {
@@ -2142,8 +2142,8 @@ function resolveAssignments(
         applyActiveTriggerCooldowns(context, {
           agentIds: getUniqueTeamMembers(
             existingAssignedTeamIds,
-            context.sourceState.teams,
-            context.sourceState.agents
+            context.nextState.teams,
+            context.nextState.agents
           ).map((agent) => agent.id),
           triggerEvent: 'OnLongCaseDurationCheck',
           caseData: {
@@ -2196,13 +2196,15 @@ function resolveAssignments(
 
     // Pass supportShortfall flag to resolution
     const isSupportShortfall = supportShortfallCases.includes(caseId)
+    // Week-open prep (`prepareAgentsForWeek`) mutates `nextState` (recovery, field-base rotation,
+    // …). Mission odds/scoring must use that same snapshot as roster-derived mutations (SPE-1654).
     const tacticalReadPreview = previewResolutionForTeamIds(
       {
         ...currentCase,
         assignedTeamIds: existingAssignedTeamIds,
         supportShortfall: isSupportShortfall,
       },
-      context.sourceState,
+      context.nextState,
       existingAssignedTeamIds
     )
 
@@ -2212,7 +2214,7 @@ function resolveAssignments(
         assignedTeamIds: existingAssignedTeamIds,
         supportShortfall: isSupportShortfall,
       },
-      context.sourceState,
+      context.nextState,
       rng.next,
       cardBonus
     )
@@ -2250,9 +2252,11 @@ function resolveAssignments(
       })
     }
 
-    const missionAssignedAgents = assignedAgentIds
+    const preMissionResolutionAgentsForMomentum = assignedAgentIds
       .map((agentId) => context.nextState.agents[agentId])
       .filter((agent): agent is NonNullable<GameState['agents'][string]> => Boolean(agent))
+
+    const missionAssignedAgents = preMissionResolutionAgentsForMomentum
 
     const missionAgentMutations = applyMissionResolutionAgentMutations({
       agents: context.nextState.agents,
@@ -2333,9 +2337,7 @@ function resolveAssignments(
         const merged = mergeDeploymentMomentumIntoSuccessRewards({
           momentumEnabled: deploymentMomentumSurfacesEnabled(context.sourceState.config),
           week: context.sourceState.week,
-          preResolutionAgents: assignedAgentIds
-            .map((agentId) => context.sourceState.agents[agentId])
-            .filter((agent): agent is NonNullable<GameState['agents'][string]> => Boolean(agent)),
+          preResolutionAgents: preMissionResolutionAgentsForMomentum,
           // SPE-282: use progressive momentum within the same week (multiple resolutions).
           prior: context.nextState.deploymentMomentum,
           baseReward: rewardBreakdown,
@@ -2350,7 +2352,7 @@ function resolveAssignments(
         caseTitle: currentCase.title,
         teamsUsed: existingAssignedTeamIds.map((teamId) => ({
           teamId,
-          teamName: context.sourceState.teams[teamId]?.name,
+          teamName: context.nextState.teams[teamId]?.name,
         })),
         ...getMissionResultHiddenStateFields(effectiveCase),
         weakestLink: weakestLinkResult,
@@ -2578,7 +2580,7 @@ function resolveAssignments(
       caseTitle: currentCase.title,
       teamsUsed: existingAssignedTeamIds.map((teamId) => ({
         teamId,
-        teamName: context.sourceState.teams[teamId]?.name,
+        teamName: context.nextState.teams[teamId]?.name,
       })),
       ...hiddenFields,
       ...(instabilityRoute !== undefined ? { route: instabilityRoute } : {}),

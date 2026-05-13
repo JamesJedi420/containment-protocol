@@ -222,4 +222,44 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     expect(deltaStripped).toBe(10)
     expect(deltaSanctuary).toBe(Math.max(1, Math.round(10 * SANCTUARY_RECOVERY_DEPLOYED_SCALE)))
   })
+
+  it('fieldBase sanctuary scaling still applies on the final deployed week before case resolution', () => {
+    const base = createStartingState()
+    const unlocked = refreshContractBoard({
+      ...base,
+      factions: {
+        ...base.factions!,
+        institutions: {
+          ...base.factions!.institutions,
+          reputation: 52,
+          reputationTier: 'friendly',
+        },
+      },
+      agency: {
+        ...base.agency!,
+        progressionUnlockIds: ['containment-liturgy'],
+      },
+      contracts: undefined,
+    })
+    const offer = getContractOffers(unlocked).find((o) => o.templateId === 'institutions-liturgy-expedition')!
+    let state = launchContract(unlocked, offer.id, 't_nightwatch')
+    state = {
+      ...state,
+      config: { ...state.config, durationModel: 'attrition', attritionPerWeek: 10 },
+    }
+    const caseEntry = Object.values(state.cases).find((c) => c.contract?.offerId === offer.id)!
+    const agentId = state.teams.t_nightwatch.agentIds[0]!
+
+    state = {
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseEntry.id]: { ...caseEntry, weeksRemaining: 1 },
+      },
+    }
+    const fatigueBefore = state.agents[agentId]!.fatigue
+    const after = advanceWeek(state)
+    const delta = after.agents[agentId]!.fatigue - fatigueBefore
+    expect(delta).toBe(Math.max(1, Math.round(10 * SANCTUARY_RECOVERY_DEPLOYED_SCALE)))
+  })
 })

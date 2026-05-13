@@ -680,7 +680,9 @@ function applyAgentFatigue(
   config: GameState['config'],
   activeTeamIds: string[],
   cases: GameState['cases'],
-  activeTeamStressModifiers: Record<string, number> = {}
+  activeTeamStressModifiers: Record<string, number> = {},
+  /** SPE-99: week-close fatigue runs after assignment release; use pre-resolution snapshot for fieldBase modes. */
+  deployedRecoveryLookup?: { teams: GameState['teams']; cases: GameState['cases'] }
 ) {
   const activeAgentStressById = new Map<string, number>()
   const activeAgentIds = new Set(
@@ -703,7 +705,13 @@ function applyAgentFatigue(
   )
   const missionFatigue = getMissionFatigue(config)
   const recoveryFatigue = getRecoveryFatigue(config)
-  const recoveryModeByAgent = buildDeployedRecoveryModeByAgentId(teams, cases, activeTeamIds)
+  const recoveryTeams = deployedRecoveryLookup?.teams ?? teams
+  const recoveryCases = deployedRecoveryLookup?.cases ?? cases
+  const recoveryModeByAgent = buildDeployedRecoveryModeByAgentId(
+    recoveryTeams,
+    recoveryCases,
+    activeTeamIds
+  )
 
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
@@ -3160,7 +3168,8 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     context.sourceState.config,
     [...context.activeTeamIds],
     context.nextState.cases,
-    context.activeTeamStressModifiers
+    context.activeTeamStressModifiers,
+    { teams: context.sourceState.teams, cases: context.sourceState.cases }
   )
   const directiveAdjustedAgents =
     context.selectedDirectiveId === 'recovery-rotation'

@@ -18,6 +18,10 @@ You are building player-facing UI for Containment Protocol.
 - UI should expose state clearly, not dramatize it.
 - The player is reviewing capacity, constraints, readiness, missions, outcomes, and recovery.
 
+### Source authority
+
+- Before implementing a screen, read the relevant `ux/` screen specs (`navigation-map.md`, `agency-view.md`, `mission-triage.md`, `hub-view.md`, `operations-report.md`, `procurement-support.md`, `deployment-flow.md`) for layout, shell structure, adjacency, and SPE-30 projection rules. Treat them as authoritative for surface design.
+
 ### UI rules
 
 - Prefer legibility over spectacle.

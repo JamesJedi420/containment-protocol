@@ -45,3 +45,5 @@ You are reconciling a new idea into Containment Protocol.
 - inspect existing relevant code first
 - implement only the absorbed slice
 - avoid speculative follow-on systems
+- follow the naming, style, and module-boundary rules in `containment_protocol.md` (implementation agent)
+- after implementing, run available checks; for substantive code changes, hand off to `containment_protocol_validation_agent.md` — reconciler output is subject to the same validation bar as any other implementation

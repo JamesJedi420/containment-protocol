@@ -10,7 +10,7 @@ import {
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,
   type PlayerPrimaryDowntimeMenu,
-} from '../../domain/sim/downtimeSlot'
+} from './downtimePlanView'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
   IconFieldRecon,

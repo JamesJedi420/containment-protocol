@@ -47,7 +47,7 @@ When validation **fails** (not merely incomplete), route the work explicitly:
 | Boot/load failure, runtime crash, broken import         | `containment_protocol_bug_fixer.md`                                      |
 | State or logic inconsistency, deterministic break       | `containment_protocol_bug_fixer.md`                                      |
 | Design gap, missing canonical model, ownership conflict | `containment_protocol_architect.md`                                      |
-| Scope creep or boundary drift in the change set         | `containment_protocol.md` (implementation agent) with a revised boundary |
+| Scope creep or boundary drift in the change set         | `containment_protocol.md` (implementation agent) to correct the boundary  |
 
 State the route in the report and stop — do not patch the failure yourself.
 

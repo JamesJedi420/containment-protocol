@@ -181,7 +181,7 @@ export function applyResponderEnergyExertion(
 ): ResponderEnergyExertionResult {
   const previousBudget = normalizeEnergyBudget(agent.energyBudget ?? createDefaultResponderEnergyBudget())
   const currentReserve = clamp(previousBudget.currentReserve, 0, 100)
-  const exertionCost = resolveResponderExertionCost(agent, dutyClass)
+  const exertionCost = resolveResponderExertionCost(agent, dutyClass, previousBudget)
   const rawReserve = currentReserve - exertionCost
   const exertionDebt = previousBudget.exertionDebt + Math.max(0, -rawReserve)
   const nextReserve = clamp(rawReserve, 0, 100)

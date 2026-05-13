@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { appendAgentHistoryEntry } from '../domain/agent/lifecycle'
 import { advanceRecoveryAgentsForWeek } from '../domain/sim/recoveryPipeline'
 import { advanceRecoveryDowntimeForWeek } from '../domain/sim/recoveryDowntime'
 import { EXPOSURE_RESIDUE_STATUS_FLAG } from '../domain/sim/recoveryImpairments'
@@ -174,5 +175,45 @@ describe('SPE-1653 exposure residue', () => {
       nextAgents: { a1: clearedAgent },
     })
     expect(out2.a1.assignment?.state).toBe('idle')
+  })
+
+  it('preserves week-open nextAgents mutations when residue blocks discharge', () => {
+    const startedWeek = 0
+    const week = 3
+    const sourceAgent = baseAgent({
+      status: 'recovering',
+      assignment: { state: 'recovery', startedWeek, teamId: 't1' },
+      vitals: {
+        health: 95,
+        stress: 5,
+        morale: 70,
+        wounds: 5,
+        statusFlags: ['injury:minor', EXPOSURE_RESIDUE_STATUS_FLAG],
+      },
+    })
+    const nextAgent = appendAgentHistoryEntry(
+      sourceAgent,
+      {
+        week: week - 1,
+        eventType: 'simulation.weekly_tick',
+        note: 'Week-open bookkeeping retained.',
+      },
+      {}
+    )
+
+    const out = advanceRecoveryAgentsForWeek({
+      week,
+      sourceAgents: { a1: sourceAgent },
+      nextAgents: { a1: nextAgent },
+    })
+
+    expect(out.a1.history?.timeline).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ note: 'Week-open bookkeeping retained.' }),
+        expect.objectContaining({
+          note: expect.stringContaining('remains in recovery until exposure residue'),
+        }),
+      ])
+    )
   })
 })

@@ -49,7 +49,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Rest channel:** while the flag is present, ordinary **rest** does not reduce fatigue and applies a small bounded weekly fatigue recurrence until the gate clears.
 - **Therapy channel:** trauma reduction from **therapy** downtime proceeds at full rate; fatigue recovery from therapy is **partial** while the flag remains (split recovery channels).
 - **Clearance:** one week of **therapy** downtime while agency `supportStaff.medical` meets `RECOVERY_CALIBRATION.exposureResidueMedicalClearThreshold` strips the flag (supervised washdown / decontamination).
-- **Assignment recovery:** `advanceRecoveryAgentsForWeek` withholds injury discharge to active duty until the flag is cleared, even after injury-duration weeks elapse.
+- **Assignment recovery:** `advanceRecoveryAgentsForWeek` withholds injury discharge to active duty until the flag is cleared, even after injury-duration weeks elapse. Writes merge from `nextAgents[agentId]` (then `updatedAgents`) when present so earlier week-open mutations are not dropped when appending the blocked-discharge history entry.
 - **Tick wiring:** `advanceRecoveryDowntimeForWeek` runs at end of `advanceWeek` after mission finalization; per-agent downtime selection defaults from `agent.downtimeActivity?.activity` or **rest**.
 
 ## 4. Trauma & Readiness-Impact Rules

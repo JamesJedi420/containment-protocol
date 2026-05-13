@@ -80,25 +80,27 @@ export function advanceRecoveryAgentsForWeek({
   const updatedAgents = { ...nextAgents }
 
   for (const [agentId, agent] of Object.entries(sourceAgents)) {
+    const priorAgent = updatedAgents[agentId] ?? nextAgents[agentId] ?? agent
+
     if (
-      (agent.status !== 'injured' && agent.status !== 'recovering') ||
-      agent.assignment?.state !== 'recovery'
+      (priorAgent.status !== 'injured' && priorAgent.status !== 'recovering') ||
+      priorAgent.assignment?.state !== 'recovery'
     ) {
       continue
     }
 
-    const severity = getInjurySeverityFlag(agent.vitals?.statusFlags) ?? 'minor'
-    const startedWeek = agent.assignment.startedWeek ?? Math.max(0, week - 1)
-      const elapsedWeeks = Math.max(0, week - startedWeek)
-    const moraleRecoveryDelta = getRecoveryMoraleDelta(agent)
+    const severity = getInjurySeverityFlag(priorAgent.vitals?.statusFlags) ?? 'minor'
+    const startedWeek = priorAgent.assignment.startedWeek ?? Math.max(0, week - 1)
+    const elapsedWeeks = Math.max(0, week - startedWeek)
+    const moraleRecoveryDelta = getRecoveryMoraleDelta(priorAgent)
 
-      if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
-      if (vitalsHasExposureResidue(agent.vitals)) {
+    if (elapsedWeeks >= getRecoveryDurationWeeks(severity)) {
+      if (vitalsHasExposureResidue(priorAgent.vitals)) {
         updatedAgents[agentId] = appendAgentHistoryEntry(
-          agent,
+          priorAgent,
           buildRecoveryHistoryEntry(
             week,
-            `${agent.name} remains in recovery until exposure residue is cleared under medical washdown.`
+            `${priorAgent.name} remains in recovery until exposure residue is cleared under medical washdown.`
           ),
           { recoveryWeeks: 1 }
         )
@@ -107,73 +109,73 @@ export function advanceRecoveryAgentsForWeek({
       updatedAgents[agentId] = appendAgentHistoryEntry(
         setAgentAssignment(
           {
-            ...agent,
+            ...priorAgent,
             status: 'active',
             vitals: {
-              ...(agent.vitals ?? {
+              ...(priorAgent.vitals ?? {
                 health: 100,
-                stress: agent.fatigue,
-                morale: Math.max(0, 100 - agent.fatigue),
+                stress: priorAgent.fatigue,
+                morale: Math.max(0, 100 - priorAgent.fatigue),
                 wounds: 0,
                 statusFlags: [],
               }),
               health: 100,
               morale: clamp(
                 Math.max(
-                  agent.vitals?.morale ?? 100,
+                  priorAgent.vitals?.morale ?? 100,
                   RECOVERY_CALIBRATION.returningMoraleFloor + moraleRecoveryDelta
                 ),
                 0,
                 100
               ),
               wounds: 0,
-              statusFlags: withInjuryFlags(agent.vitals?.statusFlags),
+              statusFlags: withInjuryFlags(priorAgent.vitals?.statusFlags),
             },
           },
           { state: 'idle' }
         ),
-        buildRecoveryHistoryEntry(week, `${agent.name} returned to active duty.`),
+        buildRecoveryHistoryEntry(week, `${priorAgent.name} returned to active duty.`),
         { recoveryWeeks: 1 }
       )
       continue
     }
 
-      if (elapsedWeeks >= 1 && agent.status === 'injured') {
+    if (elapsedWeeks >= 1 && priorAgent.status === 'injured') {
       updatedAgents[agentId] = appendAgentHistoryEntry(
         {
-          ...agent,
+          ...priorAgent,
           status: 'recovering',
           vitals: {
-            ...(agent.vitals ?? {
+            ...(priorAgent.vitals ?? {
               health: 100,
-              stress: agent.fatigue,
-              morale: Math.max(0, 100 - agent.fatigue),
+              stress: priorAgent.fatigue,
+              morale: Math.max(0, 100 - priorAgent.fatigue),
               wounds: severity === 'moderate' ? 25 : 10,
               statusFlags: [],
             }),
             morale: clamp(
-              (agent.vitals?.morale ?? Math.max(0, 100 - agent.fatigue)) -
+              (priorAgent.vitals?.morale ?? Math.max(0, 100 - priorAgent.fatigue)) -
                 RECOVERY_CALIBRATION.recoveringMoralePenalty +
                 moraleRecoveryDelta,
               0,
               100
             ),
             wounds: severity === 'moderate' ? 25 : 10,
-            statusFlags: withInjuryFlags(agent.vitals?.statusFlags, severity),
+            statusFlags: withInjuryFlags(priorAgent.vitals?.statusFlags, severity),
           },
         },
-        buildRecoveryHistoryEntry(week, `${agent.name} is recovering from a ${severity} injury.`),
+        buildRecoveryHistoryEntry(week, `${priorAgent.name} is recovering from a ${severity} injury.`),
         { recoveryWeeks: 1 }
       )
       continue
     }
 
-    if (agent.status === 'injured') {
-      updatedAgents[agentId] = agent
+    if (priorAgent.status === 'injured') {
+      updatedAgents[agentId] = priorAgent
       continue
     }
 
-    updatedAgents[agentId] = appendAgentHistoryEntries(agent, [], { recoveryWeeks: 1 })
+    updatedAgents[agentId] = appendAgentHistoryEntries(priorAgent, [], { recoveryWeeks: 1 })
   }
 
   return updatedAgents

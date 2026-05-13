@@ -2,6 +2,7 @@ import { inventoryItemLabels } from '../data/production'
 import { appendOperationEventDrafts } from './events'
 import { getAgencyProgressionUnlockLabel, hasAgencyProgressionUnlock } from './agencyProgression'
 import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
+import { sanitizePersistedFieldBasePacket } from './fieldBaseStaging'
 import { createMissionIntelState } from './intel'
 import { clamp, createSeededRng, normalizeSeed } from './math'
 import { getCompletedResearchUnlockIds } from './research'
@@ -21,7 +22,6 @@ import type {
   ContractDebriefStrategicOption,
   ContractDebriefUnresolvedClock,
   ContractHistoryRecord,
-  FieldBaseQualityBands,
   ContractMaterialDrop,
   ContractModifier,
   ContractNextIntent,
@@ -128,8 +128,8 @@ interface ContractTemplateDefinition {
   requirements: ContractOffer['requirements']
   modifiers: ContractModifier[]
   chain: ContractChainDefinition
-  /** SPE-99 / SPE-1654: optional expedition staging packet carried onto offers and cases. */
-  fieldBase?: FieldBaseQualityBands
+  /** SPE-1654: optional expedition staging packet (deterministic hooks only). */
+  fieldBase?: ContractOffer['fieldBase']
   availability?: {
     minFactionTier?: ReputationTier
     maxFactionTier?: ReputationTier
@@ -704,6 +704,10 @@ const CONTRACT_TEMPLATES: readonly ContractTemplateDefinition[] = [
     name: 'Liturgy Expedition',
     description:
       'Recovered containment liturgy has opened a narrow expedition window into an institutional archive vault before rival custodians can erase the trail.',
+    fieldBase: {
+      label: 'vault-approach-bivouac',
+      quality: { safety: 2, medical: 2, supply: 3, extractionAccess: 1 },
+    },
     caseTemplateId: 'occult-005',
     factionId: 'institutions',
     strategyTag: 'research',
@@ -730,7 +734,6 @@ const CONTRACT_TEMPLATES: readonly ContractTemplateDefinition[] = [
         value: 2.2,
       },
     ],
-    fieldBase: { medical: 2, safety: 2, sustenance: 1 },
     chain: {
       unlockConditions: [{ type: 'progression_unlock', unlockId: 'containment-liturgy' }],
     },
@@ -1105,7 +1108,14 @@ function buildContractCaseSkeleton(
             }
           : {}),
       },
-      ...(offer.fieldBase ? { fieldBase: { ...offer.fieldBase } } : {}),
+      ...(offer.fieldBase
+        ? {
+            fieldBase: {
+              label: offer.fieldBase.label,
+              quality: { ...offer.fieldBase.quality },
+            },
+          }
+        : {}),
     } satisfies ActiveContractRuntime,
     // Contracts always use probabilistic resolution so preview bands and live results
     // share the same continuous success model regardless of the source template mode.
@@ -1647,7 +1657,14 @@ function buildOfferFromDefinition(
       requirements: definition.requirements,
       modifiers: definition.modifiers.map((modifier) => ({ ...modifier })),
       chain: definition.chain,
-      ...(definition.fieldBase ? { fieldBase: definition.fieldBase } : {}),
+      ...(definition.fieldBase
+        ? {
+            fieldBase: {
+              label: definition.fieldBase.label,
+              quality: { ...definition.fieldBase.quality },
+            },
+          }
+        : {}),
     },
     template,
     `contract-preview-${definition.id}`,
@@ -1685,9 +1702,16 @@ function buildOfferFromDefinition(
           }
         : {}),
     },
+    ...(definition.fieldBase
+      ? {
+          fieldBase: {
+            label: definition.fieldBase.label,
+            quality: { ...definition.fieldBase.quality },
+          },
+        }
+      : {}),
     strategyTag: definition.strategyTag,
     generatedWeek: state.week,
-    ...(definition.fieldBase ? { fieldBase: { ...definition.fieldBase } } : {}),
   }
 }
 
@@ -1756,8 +1780,12 @@ export function sanitizeContractSystemState(
   const offers = Array.isArray(raw.offers)
     ? raw.offers
         .filter((offer): offer is ContractOffer => typeof offer?.id === 'string')
-        .map((offer) => ({
-          ...offer,
+        .map((offer) => {
+          const sanitizedFieldBase = sanitizePersistedFieldBasePacket(offer.fieldBase)
+          const offerWithoutFieldBase = { ...offer }
+          delete offerWithoutFieldBase.fieldBase
+          return {
+          ...offerWithoutFieldBase,
           caseDifficulty: {
             combat: Math.max(1, Math.round(offer.caseDifficulty?.combat ?? offer.difficulty ?? 1)),
             investigation: Math.max(
@@ -1802,7 +1830,9 @@ export function sanitizeContractSystemState(
                 }
               : {}),
           },
-        }))
+          ...(sanitizedFieldBase ? { fieldBase: sanitizedFieldBase } : {}),
+          }
+        })
     : [...fallback.offers]
 
   const history =

@@ -877,13 +877,22 @@ export interface ContractChainDefinition {
 }
 
 /**
- * SPE-99 / SPE-1654: compact field-staging quality for expedition recovery validity
- * (0 harsh .. 2 secured). Used only where a contract authors an explicit staging packet.
+ * SPE-1654: compact field-staging quality (0 = absent, 3 = strong). Integer ladder only.
  */
-export interface FieldBaseQualityBands {
-  medical: 0 | 1 | 2
-  safety: 0 | 1 | 2
-  sustenance: 0 | 1 | 2
+export interface FieldBaseStagingQuality {
+  safety: number
+  medical: number
+  supply: number
+  extractionAccess: number
+}
+
+/**
+ * SPE-1654: bounded staging packet attached to expedition-style contracts / active cases.
+ * SPE-99: consumed by `expeditionRecoveryNode` for deployed recovery-mode validity.
+ */
+export interface FieldBaseStagingPacket {
+  label: string
+  quality: FieldBaseStagingQuality
 }
 
 export interface ContractOffer {
@@ -905,8 +914,8 @@ export interface ContractOffer {
   chain: ContractChainDefinition
   lootTableId?: string
   generatedWeek?: number
-  /** Optional expedition staging packet; see `expeditionRecoveryNode`. */
-  fieldBase?: FieldBaseQualityBands
+  /** SPE-1654: optional field staging — rotation, supply scaling, and SPE-99 recovery validity. */
+  fieldBase?: FieldBaseStagingPacket
 }
 
 export interface ContractHistoryRecord {
@@ -993,7 +1002,8 @@ export interface ActiveContractRuntime {
   requirements?: ContractRequirements
   modifiers?: ContractModifier[]
   chain?: ContractChainDefinition
-  fieldBase?: FieldBaseQualityBands
+  /** SPE-1654: copied from offer at launch for deterministic staging hooks. */
+  fieldBase?: FieldBaseStagingPacket
 }
 
 export interface ContractSystemState {

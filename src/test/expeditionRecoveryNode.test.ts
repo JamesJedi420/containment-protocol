@@ -1,43 +1,79 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
+import { readFieldBaseFromCase } from '../domain/fieldBaseStaging'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   ACTIVE_RECOVERY_DEPLOYED_SCALE,
   SANCTUARY_RECOVERY_DEPLOYED_SCALE,
   UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
   buildDeployedRecoveryModeByAgentId,
-  parseFieldBaseQualityBands,
   resolveDeployedRecoveryModeForCase,
-  resolveExpeditionRecoveryModeFromBands,
+  resolveExpeditionRecoveryModeFromStagingQuality,
   scaleDeployedMissionFatigueDelta,
 } from '../domain/sim/expeditionRecoveryNode'
 import type { CaseInstance, GameState } from '../domain/models'
 
 describe('expeditionRecoveryNode (SPE-99)', () => {
-  it('parses only well-formed field base bands', () => {
-    expect(parseFieldBaseQualityBands(null)).toBeNull()
-    expect(parseFieldBaseQualityBands({ medical: 2, safety: 1 })).toBeNull()
-    expect(parseFieldBaseQualityBands({ medical: 2, safety: 1, sustenance: 3 })).toBeNull()
-    expect(parseFieldBaseQualityBands({ medical: 2, safety: 1, sustenance: 0 })).toEqual({
-      medical: 2,
-      safety: 1,
-      sustenance: 0,
-    })
+  it('readFieldBaseFromCase rejects malformed staging blobs', () => {
+    const missingLabel: CaseInstance = {
+      id: 'c1',
+      templateId: 't1',
+      title: '',
+      description: '',
+      mode: 'probability',
+      kind: 'investigation',
+      status: 'in_progress',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      deadlineWeeks: 4,
+      deadlineRemaining: 4,
+      assignedTeamIds: [],
+      contract: { fieldBase: { quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 } } },
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+    }
+    expect(readFieldBaseFromCase(missingLabel)).toBeNull()
+    expect(resolveDeployedRecoveryModeForCase(missingLabel)).toBe('ordinary_rest')
   })
 
-  it('classifies recovery modes from staging bands', () => {
+  it('classifies recovery modes from normalized staging quality', () => {
     expect(
-      resolveExpeditionRecoveryModeFromBands({ medical: 1, safety: 0, sustenance: 2 })
+      resolveExpeditionRecoveryModeFromStagingQuality({
+        safety: 0,
+        medical: 2,
+        supply: 2,
+        extractionAccess: 1,
+      })
     ).toBe('unsafe_pause')
     expect(
-      resolveExpeditionRecoveryModeFromBands({ medical: 2, safety: 1, sustenance: 2 })
+      resolveExpeditionRecoveryModeFromStagingQuality({
+        safety: 1,
+        medical: 3,
+        supply: 3,
+        extractionAccess: 2,
+      })
     ).toBe('ordinary_rest')
     expect(
-      resolveExpeditionRecoveryModeFromBands({ medical: 1, safety: 2, sustenance: 0 })
+      resolveExpeditionRecoveryModeFromStagingQuality({
+        safety: 2,
+        medical: 1,
+        supply: 0,
+        extractionAccess: 0,
+      })
     ).toBe('active_recovery')
     expect(
-      resolveExpeditionRecoveryModeFromBands({ medical: 2, safety: 2, sustenance: 1 })
+      resolveExpeditionRecoveryModeFromStagingQuality({
+        safety: 2,
+        medical: 2,
+        supply: 1,
+        extractionAccess: 0,
+      })
     ).toBe('sanctuary_recovery')
   })
 
@@ -60,7 +96,12 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       deadlineWeeks: 4,
       deadlineRemaining: 4,
       assignedTeamIds: [],
-      contract: { fieldBase: { medical: 2, safety: 2, sustenance: 1 } },
+      contract: {
+        fieldBase: {
+          label: 'test-staging',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
       onFail: { type: 'none' },
       onUnresolved: { type: 'none' },
     }
@@ -102,7 +143,12 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
       deadlineWeeks: 4,
       deadlineRemaining: 4,
       assignedTeamIds: ['tm'],
-      contract: { fieldBase: { medical: 2, safety: 2, sustenance: 1 } },
+      contract: {
+        fieldBase: {
+          label: 'sanctuary-test',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
       onFail: { type: 'none' },
       onUnresolved: { type: 'none' },
     }
@@ -142,11 +188,14 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     const offer =
       getContractOffers(unlocked).find((o) => o.templateId === 'institutions-liturgy-expedition') ??
       null
-    expect(offer?.fieldBase).toEqual({ medical: 2, safety: 2, sustenance: 1 })
+    expect(offer?.fieldBase).toEqual({
+      label: 'vault-approach-bivouac',
+      quality: { safety: 2, medical: 2, supply: 3, extractionAccess: 1 },
+    })
 
     const launched = launchContract(unlocked, offer!.id, 't_nightwatch')
     const caseEntry = Object.values(launched.cases).find((c) => c.contract?.offerId === offer!.id)!
-    expect(caseEntry.contract?.fieldBase).toEqual({ medical: 2, safety: 2, sustenance: 1 })
+    expect(caseEntry.contract?.fieldBase).toEqual(offer!.fieldBase)
 
     const agentId = launched.teams.t_nightwatch.agentIds[0]!
     const fatigueBefore = launched.agents[agentId]!.fatigue

@@ -8,9 +8,9 @@
 
 ## 1b. Expedition field staging & recovery validity (SPE-99 / SPE-1654)
 
-- Contracts may attach an optional `fieldBase` packet on `contract.fieldBase` with compact bands `medical`, `safety`, and `sustenance` (each 0..2) for an **in-progress** expedition case.
-- `expeditionRecoveryNode` deterministically maps those bands to recovery modes (`unsafe_pause`, `ordinary_rest`, `active_recovery`, `sanctuary_recovery`) and scales **deployed** scalar mission fatigue accumulation in the main `advanceWeek` weekly pass: protected staging lowers weekly strain versus unsecured operations; exposed staging (`safety` 0) applies a bounded surcharge instead of a universal off-map reset.
-- Broader human energy budgeting and appetite-linked demand stay on **SPE-1107**; impairment gates that block recovery stay on **SPE-1653**.
+- Contracts may attach an optional SPE-1654 `fieldBase` **staging packet** on `contract.fieldBase`: a `label` plus `quality` integer ladder (`safety`, `medical`, `supply`, `extractionAccess`, each 0..3) for an **in-progress** expedition case.
+- `expeditionRecoveryNode` reads that packet (via `readFieldBaseFromCase`), maps `quality` to recovery modes (`unsafe_pause`, `ordinary_rest`, `active_recovery`, `sanctuary_recovery`), and scales **deployed** scalar mission fatigue accumulation in the main `advanceWeek` weekly pass. `supply` acts as the sustenance proxy for sanctuary thresholds alongside `medical` / `safety`. Exposed staging (`safety` 0) applies a bounded surcharge instead of a universal off-map reset.
+- Rotation, supply scaling on mission rewards, and other SPE-1654 staging hooks live in `fieldBaseStaging.ts`; broader human energy budgeting stays on **SPE-1107**; impairment gates that block recovery stay on **SPE-1653**.
 
 ## 2. Recommended Canonical State Fields
 - `agent.recoveryStatus`: { state: 'healthy' | 'recovering' | 'traumatized' | 'incapacitated', detail?: string, sinceWeek: number }

@@ -1,12 +1,14 @@
 /**
  * SPE-99 slice: deterministic expedition recovery-node validity for deployed operatives.
- * Maps optional `fieldBase` staging bands on an in-progress contract to a compact recovery-mode
- * taxonomy, then scales weekly mission fatigue accumulation (scalar `fatigue` only in this slice).
+ * Reads SPE-1654 `fieldBase` staging packets on in-progress cases, maps canonical quality
+ * bands to a compact recovery-mode taxonomy, then scales weekly mission fatigue accumulation
+ * (scalar `fatigue` only in this slice).
  *
  * Out of scope here: full sustenance simulation, injury gates (SPE-1653), human energy budget (SPE-1107).
  */
 
-import type { CaseInstance, FieldBaseQualityBands, GameState } from '../models'
+import type { CaseInstance, FieldBaseStagingQuality, GameState } from '../models'
+import { normalizeFieldBaseQuality, readFieldBaseFromCase } from '../fieldBaseStaging'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../teamSimulation'
 
 export type ExpeditionRecoveryMode =
@@ -24,39 +26,29 @@ export const ACTIVE_RECOVERY_DEPLOYED_SCALE = 0.72
 /** Multiplier when staging meets sanctuary thresholds (protected deep recovery). */
 export const SANCTUARY_RECOVERY_DEPLOYED_SCALE = 0.55
 
-function isBand(value: unknown): value is 0 | 1 | 2 {
-  return value === 0 || value === 1 || value === 2
-}
-
-export function parseFieldBaseQualityBands(raw: unknown): FieldBaseQualityBands | null {
-  if (!raw || typeof raw !== 'object') {
-    return null
-  }
-  const record = raw as Record<string, unknown>
-  if (!isBand(record.medical) || !isBand(record.safety) || !isBand(record.sustenance)) {
-    return null
-  }
-  return { medical: record.medical, safety: record.safety, sustenance: record.sustenance }
-}
-
 /**
- * Deterministic ladder from authored staging bands to recovery mode.
- * - safety 0: exposed halt (unsafe_pause)
+ * Deterministic ladder from normalized staging quality to recovery mode.
+ * Uses the same 0..3 integer ladder as SPE-1654 (`fieldBaseStaging`).
+ *
+ * - safety 0: exposed halt (`unsafe_pause`)
  * - safety 1: harsh camp / ordinary operational rest surface
- * - safety 2 + strong medical + sustenance: sanctuary-grade protected recovery
- * - safety 2 + medical support: active recovery surface
+ * - safety ≥2 + medical ≥2 + supply ≥1: sanctuary-grade protected recovery (`supply` proxies sustenance pressure)
+ * - safety ≥2 + medical ≥1: active recovery surface
  */
-export function resolveExpeditionRecoveryModeFromBands(bands: FieldBaseQualityBands): ExpeditionRecoveryMode {
-  if (bands.safety <= 0) {
+export function resolveExpeditionRecoveryModeFromStagingQuality(
+  quality: FieldBaseStagingQuality
+): ExpeditionRecoveryMode {
+  const q = normalizeFieldBaseQuality(quality)
+  if (q.safety <= 0) {
     return 'unsafe_pause'
   }
-  if (bands.safety === 1) {
+  if (q.safety === 1) {
     return 'ordinary_rest'
   }
-  if (bands.medical >= 2 && bands.sustenance >= 1) {
+  if (q.medical >= 2 && q.supply >= 1) {
     return 'sanctuary_recovery'
   }
-  if (bands.medical >= 1) {
+  if (q.medical >= 1) {
     return 'active_recovery'
   }
   return 'ordinary_rest'
@@ -68,11 +60,11 @@ export function resolveDeployedRecoveryModeForCase(
   if (!currentCase || currentCase.status !== 'in_progress') {
     return 'ordinary_rest'
   }
-  const bands = parseFieldBaseQualityBands(currentCase.contract?.fieldBase)
-  if (!bands) {
+  const packet = readFieldBaseFromCase(currentCase)
+  if (!packet) {
     return 'ordinary_rest'
   }
-  return resolveExpeditionRecoveryModeFromBands(bands)
+  return resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
 }
 
 export function buildDeployedRecoveryModeByAgentId(

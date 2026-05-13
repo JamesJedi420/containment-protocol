@@ -140,6 +140,21 @@ describe('injury and recovery lifecycle', () => {
     const recoveryBase = {
       ...injured,
       gameOver: false,
+      supportStaff: {
+        admin: 0,
+        logistics: 0,
+        medical: 4,
+        intel: 0,
+        total: 4,
+        pressure: 0,
+      },
+      agents: {
+        ...injured.agents,
+        a_ava: {
+          ...injured.agents.a_ava,
+          downtimeActivity: { activity: 'therapy' as const, sinceWeek: injured.week },
+        },
+      },
       cases: Object.fromEntries(
         Object.entries(injured.cases).map(([id, currentCase]) => [
           id,

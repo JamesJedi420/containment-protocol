@@ -242,6 +242,7 @@ import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChanne
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
+import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
@@ -3567,7 +3568,7 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
   const downtimeAssignments: Record<string, DowntimeActivity> = {}
   for (const id of Object.keys(context.nextState.agents)) {
     const agent = context.nextState.agents[id]
-    downtimeAssignments[id] = (agent?.downtimeActivity?.activity as DowntimeActivity) ?? 'rest'
+    downtimeAssignments[id] = resolveDowntimeSlotForAgent(agent).effective
   }
 
   const downtimeResult = advanceRecoveryDowntimeForWeek({

@@ -15,7 +15,7 @@
 ## 2. Recommended Canonical State Fields
 - `agent.recoveryStatus`: { state: 'healthy' | 'recovering' | 'traumatized' | 'incapacitated', detail?: string, sinceWeek: number }
 - `agent.trauma`: { traumaLevel: number, traumaTags: string[], lastEventWeek: number }
-- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other', sinceWeek: number }
+- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping', sinceWeek: number, foregoneThisInterval?: … }
 - `agent.fatigue`: number (existing, but recovery/downtime should update this deterministically)
 - `team.recoveryPressure`: number (aggregate of member states, for overlay/stability)
 
@@ -39,6 +39,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
   - Undergo therapy (reduce trauma, but not fatigue)
   - Other (custom activities, e.g., research, support)
 - Progression is deterministic: same state + same downtime plan = same outcome.
+- **SPE-1699 — one primary slot per operative per week:** player menu picks (`rest`, `therapy`, `coping`, `other`) are mutually exclusive for a given week. Formal **academy training** (`assignment.state === 'training'`) consumes the same slot; week-close writes `foregoneThisInterval` listing other menu actions not taken (full menu when training overrides). `other` is a compact logistics / prep placeholder (not SPE-1700 side-work risks). Selection UI: Teams roster; tick wiring unchanged (`advanceRecoveryDowntimeForWeek` after mission finalization).
 - Recovery rates and trauma reduction must be explicit, not random.
 - Downtime cannot erase major trauma instantly; recovery is gradual and stateful.
 
@@ -50,7 +51,12 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Therapy channel:** trauma reduction from **therapy** downtime proceeds at full rate; fatigue recovery from therapy is **partial** while the flag remains (split recovery channels).
 - **Clearance:** one week of **therapy** downtime while agency `supportStaff.medical` meets `RECOVERY_CALIBRATION.exposureResidueMedicalClearThreshold` strips the flag (supervised washdown / decontamination).
 - **Assignment recovery:** `advanceRecoveryAgentsForWeek` withholds injury discharge to active duty until the flag is cleared, even after injury-duration weeks elapse. Writes merge from `nextAgents[agentId]` (then `updatedAgents`) when present so earlier week-open mutations are not dropped when appending the blocked-discharge history entry.
-- **Tick wiring:** `advanceRecoveryDowntimeForWeek` runs at end of `advanceWeek` after mission finalization; per-agent downtime selection defaults from `agent.downtimeActivity?.activity` or **rest**.
+- **Tick wiring:** `advanceRecoveryDowntimeForWeek` runs at end of `advanceWeek` after mission finalization; per-agent **effective** downtime is resolved per §3c (`resolveDowntimeSlotForAgent`), with the weekly map defaulting from the resolver (menu default **rest** when unset).
+
+### 3c. SPE-1699 slice — one-slot downtime (recovery menu vs academy training)
+
+- **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
+- **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`; `advanceWeek` pre-computes effective assignments from the resolver. Tests: `src/test/downtimeSlot.test.ts`.
 
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.
@@ -89,7 +95,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 ## 7. Open Questions
 - What are the canonical trauma tags and their gameplay effects?
 - Should trauma be capped, or can it accumulate indefinitely?
-- How do therapy and rest interact if both are assigned as downtime?
+- How do therapy and rest interact if both are assigned as downtime? **(SPE-1699: only one primary menu action per week; see §3c.)**
 - What are the thresholds for blocking deployment or training due to trauma?
 - How should recovery interact with agent relationships and team chemistry?
 - Should trauma have narrative consequences (e.g., unique events, dialogue)?

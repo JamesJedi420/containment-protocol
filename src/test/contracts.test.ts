@@ -193,6 +193,12 @@ describe('contract system', () => {
         (offer) => offer.templateId === 'institutions-liturgy-expedition'
       )
     ).toBe(true)
+
+    const liturgyOffer = getContractOffers(unlockedState).find(
+      (offer) => offer.templateId === 'institutions-liturgy-expedition'
+    )
+    expect(liturgyOffer?.fieldBase?.label).toBe('vault-approach-bivouac')
+    expect(liturgyOffer?.fieldBase?.quality.supply).toBe(3)
   })
 
   it('best-team suggestion selects the strongest valid team', () => {

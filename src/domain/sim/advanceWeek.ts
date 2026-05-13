@@ -243,6 +243,8 @@ import { advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
 import { applySpontaneousChemistryEvent } from './spontaneousChemistry'
 import { expireBetrayalConsequences, recoverTrustDamagePassively } from './betrayal'
+import { applyFieldBaseStagingRotationAtWeekOpen } from '../fieldBaseStaging'
+import { recomputeMissionRouting } from '../missionIntakeRouting'
 import {
   advanceCaseConstructionClock,
   CONSTRUCTION_INCOMPLETE_FLAG,
@@ -2926,6 +2928,12 @@ function prepareAgentsForWeek(context: WeeklyExecutionContext) {
       sourceAgents: context.sourceState.agents,
       nextAgents: withExpiredTrustConsequences,
     }),
+  }
+
+  const afterFieldBase = applyFieldBaseStagingRotationAtWeekOpen(context.nextState)
+  context.nextState = {
+    ...afterFieldBase,
+    missionRouting: recomputeMissionRouting(afterFieldBase, context.sourceState.week),
   }
 }
 

@@ -127,6 +127,8 @@ interface ContractTemplateDefinition {
   requirements: ContractOffer['requirements']
   modifiers: ContractModifier[]
   chain: ContractChainDefinition
+  /** SPE-1654: optional expedition staging packet (deterministic hooks only). */
+  fieldBase?: ContractOffer['fieldBase']
   availability?: {
     minFactionTier?: ReputationTier
     maxFactionTier?: ReputationTier
@@ -701,6 +703,10 @@ const CONTRACT_TEMPLATES: readonly ContractTemplateDefinition[] = [
     name: 'Liturgy Expedition',
     description:
       'Recovered containment liturgy has opened a narrow expedition window into an institutional archive vault before rival custodians can erase the trail.',
+    fieldBase: {
+      label: 'vault-approach-bivouac',
+      quality: { safety: 2, medical: 2, supply: 3, extractionAccess: 1 },
+    },
     caseTemplateId: 'occult-005',
     factionId: 'institutions',
     strategyTag: 'research',
@@ -1066,6 +1072,7 @@ function buildContractCaseSkeleton(
     | 'requirements'
     | 'modifiers'
     | 'chain'
+    | 'fieldBase'
   >,
   template: CaseTemplate,
   caseId: string,
@@ -1100,6 +1107,14 @@ function buildContractCaseSkeleton(
             }
           : {}),
       },
+      ...(offer.fieldBase
+        ? {
+            fieldBase: {
+              label: offer.fieldBase.label,
+              quality: { ...offer.fieldBase.quality },
+            },
+          }
+        : {}),
     } satisfies ActiveContractRuntime,
     // Contracts always use probabilistic resolution so preview bands and live results
     // share the same continuous success model regardless of the source template mode.
@@ -1641,6 +1656,14 @@ function buildOfferFromDefinition(
       requirements: definition.requirements,
       modifiers: definition.modifiers.map((modifier) => ({ ...modifier })),
       chain: definition.chain,
+      ...(definition.fieldBase
+        ? {
+            fieldBase: {
+              label: definition.fieldBase.label,
+              quality: { ...definition.fieldBase.quality },
+            },
+          }
+        : {}),
     },
     template,
     `contract-preview-${definition.id}`,
@@ -1678,6 +1701,14 @@ function buildOfferFromDefinition(
           }
         : {}),
     },
+    ...(definition.fieldBase
+      ? {
+          fieldBase: {
+            label: definition.fieldBase.label,
+            quality: { ...definition.fieldBase.quality },
+          },
+        }
+      : {}),
     strategyTag: definition.strategyTag,
     generatedWeek: state.week,
   }
@@ -1794,6 +1825,54 @@ export function sanitizeContractSystemState(
                 }
               : {}),
           },
+          ...(offer.fieldBase && typeof offer.fieldBase === 'object'
+            ? {
+                fieldBase: {
+                  label: String((offer.fieldBase as { label?: string }).label ?? ''),
+                  quality: {
+                    safety: Math.max(
+                      0,
+                      Math.min(
+                        3,
+                        Math.round(
+                          Number((offer.fieldBase as { quality?: { safety?: number } }).quality?.safety ?? 0)
+                        )
+                      )
+                    ),
+                    medical: Math.max(
+                      0,
+                      Math.min(
+                        3,
+                        Math.round(
+                          Number((offer.fieldBase as { quality?: { medical?: number } }).quality?.medical ?? 0)
+                        )
+                      )
+                    ),
+                    supply: Math.max(
+                      0,
+                      Math.min(
+                        3,
+                        Math.round(
+                          Number((offer.fieldBase as { quality?: { supply?: number } }).quality?.supply ?? 0)
+                        )
+                      )
+                    ),
+                    extractionAccess: Math.max(
+                      0,
+                      Math.min(
+                        3,
+                        Math.round(
+                          Number(
+                            (offer.fieldBase as { quality?: { extractionAccess?: number } }).quality
+                              ?.extractionAccess ?? 0
+                          )
+                        )
+                      )
+                    ),
+                  },
+                },
+              }
+            : {}),
         }))
     : [...fallback.offers]
 

@@ -876,6 +876,24 @@ export interface ContractChainDefinition {
   }>
 }
 
+/**
+ * SPE-1654: compact field-staging quality (0 = absent, 3 = strong). Integer ladder only.
+ */
+export interface FieldBaseStagingQuality {
+  safety: number
+  medical: number
+  supply: number
+  extractionAccess: number
+}
+
+/**
+ * SPE-1654: bounded staging packet attached to expedition-style contracts / active cases.
+ */
+export interface FieldBaseStagingPacket {
+  label: string
+  quality: FieldBaseStagingQuality
+}
+
 export interface ContractOffer {
   id: Id
   templateId: Id
@@ -895,6 +913,8 @@ export interface ContractOffer {
   chain: ContractChainDefinition
   lootTableId?: string
   generatedWeek?: number
+  /** SPE-1654: optional field staging — recovery rotation + supply/recovery modifiers. */
+  fieldBase?: FieldBaseStagingPacket
 }
 
 export interface ContractHistoryRecord {
@@ -981,6 +1001,8 @@ export interface ActiveContractRuntime {
   requirements?: ContractRequirements
   modifiers?: ContractModifier[]
   chain?: ContractChainDefinition
+  /** SPE-1654: copied from offer at launch for deterministic staging hooks. */
+  fieldBase?: FieldBaseStagingPacket
 }
 
 export interface ContractSystemState {

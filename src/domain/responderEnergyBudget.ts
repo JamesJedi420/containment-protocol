@@ -107,14 +107,14 @@ function normalizeEnergyBudget(energyBudget: AgentEnergyBudgetState): AgentEnerg
 
 export function resolveResponderExertionCost(
   agent: Agent,
-  dutyClass: ResponderDutyCostClass
+  dutyClass: ResponderDutyCostClass,
+  energyBudget: AgentEnergyBudgetState = normalizeEnergyBudget(agent.energyBudget ?? createDefaultResponderEnergyBudget())
 ): number {
   const baseCost = getResponderDutyCost(dutyClass)
   if (dutyClass === 'idle_upkeep') {
     return baseCost
   }
 
-  const energyBudget = normalizeEnergyBudget(agent.energyBudget ?? createDefaultResponderEnergyBudget())
   const reserveBandMultiplier =
     RESPONDER_ENERGY_CALIBRATION.reserveBandMultipliers[energyBudget.reserveBand]
 

@@ -19,6 +19,7 @@ import {
   explainMissionRouting,
   explainWeakestLinkResolution,
   explainWeeklyPressureState,
+  formatForegoneDowntimeSummary,
   type DeploymentReadinessExplanation,
   type RoutingExplanation,
   type WeakestLinkExplanation,
@@ -321,12 +322,23 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     )
 
   // Add agent recovery/trauma/downtime debug summary
-  const agentRecoveryDebug = Object.values(game.agents).map(agent => ({
+  const agentRecoveryDebug = Object.values(game.agents).map((agent) => ({
     agentId: agent.id,
     name: agent.name,
     recoveryStatus: agent.recoveryStatus ?? null,
     trauma: agent.trauma ?? null,
-    downtimeActivity: agent.downtimeActivity ?? null,
+    downtimeActivity: agent.downtimeActivity
+      ? {
+          ...agent.downtimeActivity,
+          ...(agent.downtimeActivity.foregoneThisInterval?.length
+            ? {
+                foregoneSummary: formatForegoneDowntimeSummary(
+                  agent.downtimeActivity.foregoneThisInterval
+                ),
+              }
+            : {}),
+        }
+      : null,
     fatigue: agent.fatigue,
     status: agent.status,
   }))

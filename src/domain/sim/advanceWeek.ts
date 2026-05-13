@@ -242,6 +242,7 @@ import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChanne
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
 import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
+import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
@@ -1616,6 +1617,13 @@ interface WeeklyExecutionContext {
   generatedRecruitmentCandidates: GameState['candidates']
   hubNotes?: ReportNote[]
   noteBaseTimestamp?: number
+  /**
+   * SPE-1699: per-agent effective downtime slot resolved at the start of `advanceQueues`,
+   * before `advanceTrainingQueues` clears completed training assignments. Used by
+   * `applyRecoveryDowntimeAfterMissions` so the closing week of academy training still
+   * resolves as `training`.
+   */
+  downtimeSlotEffectiveByAgentId?: Record<string, DowntimeActivity>
 }
 
 interface BuiltWeeklyReport {
@@ -3510,6 +3518,14 @@ function advanceWeirdRoomDwell(context: WeeklyExecutionContext) {
 }
 
 function advanceQueues(context: WeeklyExecutionContext) {
+  const downtimeSlotEffectiveByAgentId: Record<string, DowntimeActivity> = {}
+  for (const id of Object.keys(context.nextState.agents)) {
+    const agent = context.nextState.agents[id]
+    if (!agent) continue
+    downtimeSlotEffectiveByAgentId[id] = resolveDowntimeSlotForAgent(agent).effective
+  }
+  context.downtimeSlotEffectiveByAgentId = downtimeSlotEffectiveByAgentId
+
   const trainingResult = advanceTrainingQueues(context.nextState)
   context.nextState = trainingResult.state
   context.eventDrafts.push(...trainingResult.eventDrafts)
@@ -3565,9 +3581,11 @@ function shiftMarket(context: WeeklyExecutionContext, rng: SeededRng) {
 
 function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
   const downtimeAssignments: Record<string, DowntimeActivity> = {}
+  const snapshot = context.downtimeSlotEffectiveByAgentId
   for (const id of Object.keys(context.nextState.agents)) {
     const agent = context.nextState.agents[id]
-    downtimeAssignments[id] = (agent?.downtimeActivity?.activity as DowntimeActivity) ?? 'rest'
+    if (!agent) continue
+    downtimeAssignments[id] = snapshot?.[id] ?? resolveDowntimeSlotForAgent(agent).effective
   }
 
   const downtimeResult = advanceRecoveryDowntimeForWeek({

@@ -111,6 +111,10 @@ import {
   spendSkillPoint,
   transitionCertification,
 } from '../../domain/sim/training'
+import {
+  setAgentPrimaryDowntimePlan as applyPrimaryDowntimePlanToGame,
+  type PlayerPrimaryDowntimeMenu,
+} from '../../domain/sim/downtimeSlot'
 import { upgradeAcademy } from '../../domain/sim/academyUpgrade'
 import {
   assignInstructor,
@@ -229,6 +233,8 @@ interface GameStore {
   setTeamLeader: (teamId: Id, leaderId: Id | null) => void
   moveAgentBetweenTeams: (agentId: Id, targetTeamId?: Id | null) => void
   deleteEmptyTeam: (teamId: Id) => void
+  /** SPE-1699: set the single weekly primary downtime menu action for an eligible operative. */
+  setAgentPrimaryDowntimePlan: (agentId: Id, activity: PlayerPrimaryDowntimeMenu) => void
   queueTraining: (agentId: Id, trainingId: string) => void
   queueTeamTraining: (teamId: Id, trainingId: string) => void
   cancelTraining: (agentId: Id) => void
@@ -1240,6 +1246,9 @@ export const useGameStore = create<GameStore>()(
             },
           }
         }),
+
+      setAgentPrimaryDowntimePlan: (agentId, activity) =>
+        set((s) => ({ game: applyPrimaryDowntimePlanToGame(s.game, agentId, activity) })),
 
       queueTraining: (agentId, trainingId) =>
         set((s) => ({ game: queueTraining(s.game, agentId, trainingId) })),

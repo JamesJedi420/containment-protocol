@@ -236,7 +236,7 @@ Models the fact that teams cannot deploy at full capacity indefinitely.
 
 - operative recovery
 - trauma burden
-- team downtime
+- team downtime (**SPE-1699:** one primary weekly downtime action per operative on the recovery menu; academy training consumes the same slot)
 - equipment recovery interactions
 - replacement pressure after loss
 

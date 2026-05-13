@@ -721,6 +721,8 @@ export interface AgentTraumaState {
 export interface AgentDowntimeActivity {
   activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping'
   sinceWeek: number
+  /** SPE-1699: deterministic list of other primary actions not taken this weekly tick. */
+  foregoneThisInterval?: Array<'rest' | 'training' | 'therapy' | 'other' | 'coping'>
 }
 
 /**

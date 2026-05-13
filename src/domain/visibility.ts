@@ -723,3 +723,6 @@ export function explainWeeklyPressureState(
     intelConfidenceTrend,
   }
 }
+
+/** SPE-1699: foregone-downtime line for developer overlay — re-export so feature code avoids direct `sim/` imports. */
+export { formatForegoneDowntimeSummary } from './sim/downtimeSlot'

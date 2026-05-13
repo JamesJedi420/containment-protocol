@@ -4,6 +4,13 @@ import { APP_ROUTES } from '../../app/routes'
 import { toSearchString } from '../../app/searchParams'
 import { useGameStore } from '../../app/store/gameStore'
 import { type AgentRole, type GameState } from '../../domain/models'
+import {
+  PLAYER_PRIMARY_DOWNTIME_MENU,
+  canSelectPrimaryDowntimePlan,
+  formatForegoneDowntimeSummary,
+  getPrimaryDowntimeLabel,
+  type PlayerPrimaryDowntimeMenu,
+} from './downtimePlanView'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
   IconFieldRecon,
@@ -49,7 +56,7 @@ import {
 import { getTeamAssignableCaseViews } from './teamInsights'
 
 export default function TeamsPage() {
-  const { game, assign, unassign, createTeam } = useGameStore()
+  const { game, assign, unassign, createTeam, setAgentPrimaryDowntimePlan } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [newTeamName, setNewTeamName] = useState('')
   const [seedAgentId, setSeedAgentId] = useState('')
@@ -270,6 +277,7 @@ export default function TeamsPage() {
               querySuffix={querySuffix}
               assign={assign}
               unassign={unassign}
+              setAgentPrimaryDowntimePlan={setAgentPrimaryDowntimePlan}
             />
           ))}
         </ul>
@@ -312,12 +320,14 @@ function TeamCard({
   querySuffix,
   assign,
   unassign,
+  setAgentPrimaryDowntimePlan,
 }: {
   view: TeamListItemView
   game: GameState
   querySuffix: string
   assign: (caseId: string, teamId: string) => void
   unassign: (caseId: string, teamId?: string) => void
+  setAgentPrimaryDowntimePlan: (agentId: string, activity: PlayerPrimaryDowntimeMenu) => void
 }) {
   const assignedCase = view.assignedCase
   const assignedCaseId = getTeamAssignedCaseId(view.team)
@@ -495,19 +505,61 @@ function TeamCard({
       </div>
 
       <ul className="space-y-1 border-t border-white/10 pt-3">
-        {view.capabilitySummary.agents.map((agent) => (
-          <li key={agent.id} className="flex flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="font-medium">{agent.name}</span>
-            <span
-              className="inline-flex flex-wrap items-center gap-1 opacity-60"
-              title={TOOLTIPS['agent.role']}
-            >
-              <RoleIcon role={agent.role} className="h-3.5 w-3.5" />
-              {ROLE_LABELS[agent.role]} / Fatigue {agent.fatigue} / Tags{' '}
-              {agent.tags.join(', ') || 'None'}
-            </span>
-          </li>
-        ))}
+        {view.capabilitySummary.agents.map((agent) => {
+          const canPlan = canSelectPrimaryDowntimePlan(agent)
+          const rawActivity = agent.downtimeActivity?.activity
+          const planned: PlayerPrimaryDowntimeMenu =
+            PLAYER_PRIMARY_DOWNTIME_MENU.find((act) => act === rawActivity) ?? 'rest'
+          const foregoneLine = agent.downtimeActivity?.foregoneThisInterval?.length
+            ? `Foregone this week: ${formatForegoneDowntimeSummary(agent.downtimeActivity.foregoneThisInterval)}`
+            : null
+
+          return (
+            <li key={agent.id} className="space-y-1 border-b border-white/5 pb-2 text-sm last:border-0">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="font-medium">{agent.name}</span>
+                <span
+                  className="inline-flex flex-wrap items-center gap-1 opacity-60"
+                  title={TOOLTIPS['agent.role']}
+                >
+                  <RoleIcon role={agent.role} className="h-3.5 w-3.5" />
+                  {ROLE_LABELS[agent.role]} / Fatigue {agent.fatigue} / Tags{' '}
+                  {agent.tags.join(', ') || 'None'}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs opacity-80">
+                <label htmlFor={`downtime-${agent.id}`} className="sr-only">
+                  Primary downtime for {agent.name}
+                </label>
+                {canPlan ? (
+                  <select
+                    id={`downtime-${agent.id}`}
+                    className="form-select max-w-xs text-xs"
+                    value={planned}
+                    onChange={(event) =>
+                      setAgentPrimaryDowntimePlan(agent.id, event.target.value as PlayerPrimaryDowntimeMenu)
+                    }
+                  >
+                    {PLAYER_PRIMARY_DOWNTIME_MENU.map((act) => (
+                      <option key={act} value={act}>
+                        {getPrimaryDowntimeLabel(act)}
+                      </option>
+                    ))}
+                  </select>
+                ) : agent.assignment?.state === 'training' ? (
+                  <span className="rounded border border-white/10 px-2 py-1 text-[11px] uppercase tracking-wide">
+                    Slot: {getPrimaryDowntimeLabel('training')} — recovery menu foregone
+                  </span>
+                ) : (
+                  <span className="text-[11px] uppercase tracking-wide opacity-60">
+                    Downtime plan locked while deployed or resolving
+                  </span>
+                )}
+              </div>
+              {foregoneLine ? <p className="text-[11px] opacity-55">{foregoneLine}</p> : null}
+            </li>
+          )
+        })}
       </ul>
     </li>
   )

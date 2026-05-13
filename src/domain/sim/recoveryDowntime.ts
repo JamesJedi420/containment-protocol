@@ -12,6 +12,7 @@ import {
   stripExposureResidueFromFlags,
   vitalsHasExposureResidue,
 } from './recoveryImpairments'
+import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 
 export type RecoveryState = 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
 export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other' | 'coping'
@@ -69,7 +70,11 @@ export function advanceRecoveryDowntimeForWeek({
 
   // 1. Apply downtime activity assignments and progress recovery/trauma deterministically
   for (const [agentId, agent] of Object.entries(sourceAgents)) {
-    const downtime = downtimeAssignments[agentId] || 'rest'
+    const mapActivity = downtimeAssignments[agentId]
+    const { effective: downtime, foregone } = resolveDowntimeSlotForAgent(
+      agent,
+      mapActivity !== undefined ? { explicitEffective: mapActivity } : undefined
+    )
     const inferredRecoveryStatus =
       agent.status === 'injured' ||
       agent.status === 'recovering' ||
@@ -270,7 +275,11 @@ export function advanceRecoveryDowntimeForWeek({
       ...agent,
       recoveryStatus,
       trauma,
-      downtimeActivity: { activity: downtime, sinceWeek: week },
+      downtimeActivity: {
+        activity: downtime,
+        sinceWeek: week,
+        ...(foregone.length > 0 ? { foregoneThisInterval: [...foregone] } : {}),
+      },
       fatigue,
       vitals: finalVitals,
       tags: agentTags,

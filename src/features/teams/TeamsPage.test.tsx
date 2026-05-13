@@ -2,9 +2,11 @@ import '../../test/setup'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
+import { trainingCatalog } from '../../data/training'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { queueTraining } from '../../domain/sim/training'
 import TeamsPage from './TeamsPage'
 import { beforeEach, it, expect } from 'vitest'
 
@@ -234,4 +236,40 @@ it('shows actionable CTAs when no teams match current filters', async () => {
   await waitFor(() => {
     expect(screen.getByTestId('location-search')).toHaveTextContent('')
   })
+})
+
+it('updates primary downtime in the store when the roster select changes', async () => {
+  const user = userEvent.setup()
+  renderTeamsPage()
+
+  const select = screen.getByLabelText(/Primary downtime for Ava Brooks/i)
+  await user.selectOptions(select, 'therapy')
+
+  expect(useGameStore.getState().game.agents.a_ava.downtimeActivity?.activity).toBe('therapy')
+})
+
+it('locks downtime controls for agents in academy training', async () => {
+  const combatDrills = trainingCatalog.find((p) => p.trainingId === 'combat-drills')
+  expect(combatDrills).toBeDefined()
+  const game = queueTraining(createStartingState(), 'a_ava', combatDrills!.trainingId)
+  useGameStore.setState({ game })
+  renderTeamsPage()
+
+  const trainingLock = screen.getByText(/Academy training \(slot\)/)
+  const avaRow = trainingLock.closest('li')
+  expect(avaRow).toBeTruthy()
+  expect(within(avaRow!).getByText('Ava Brooks')).toBeInTheDocument()
+  expect(within(avaRow!).queryByRole('combobox')).not.toBeInTheDocument()
+})
+
+it('locks downtime controls for agents assigned to an active case', async () => {
+  const game = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
+  useGameStore.setState({ game })
+  renderTeamsPage()
+
+  const avaDowntimeLabel = screen.getByText('Primary downtime for Ava Brooks')
+  const avaRow = avaDowntimeLabel.closest('li')
+  expect(avaRow).toBeTruthy()
+  expect(within(avaRow!).getByText(/Downtime plan locked while deployed or resolving/)).toBeInTheDocument()
+  expect(within(avaRow!).queryByRole('combobox')).not.toBeInTheDocument()
 })

@@ -156,7 +156,12 @@ describe('canSelectPrimaryDowntimePlan', () => {
     expect(
       canSelectPrimaryDowntimePlan({
         ...baseAgent,
-        assignment: { state: 'assigned', startedWeek: 1, teamId: 't1' },
+        assignment: {
+          state: 'assigned',
+          startedWeek: 1,
+          teamId: 't1',
+          caseId: 'case-fixture-001',
+        },
       })
     ).toBe(false)
     expect(

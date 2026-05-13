@@ -19,6 +19,13 @@ Treat the issue text as the source of truth for:
 - Constraints
 - Acceptance criteria
 
+### Source authority
+
+- Referenced spec docs (`architecture/`, `systems/`, `docs/`, `ux/`, `SCHEMA_REGISTRY.md`, etc.) outrank Linear issue text for structural, state, and interface decisions.
+- If an acceptance criterion conflicts with a cited spec, flag the conflict and pause for clarification before coding — do not silently pick a side.
+- Referenced spec docs also win over current code when they disagree, unless the spec has an open correctness issue — then flag and pause.
+- If a codebase mapper summary exists for this area, review it first before deep code inspection.
+
 ### Execution rules
 
 - Implement only what is inside the issue boundary.

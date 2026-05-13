@@ -16,6 +16,11 @@ You are implementing features in the Containment Protocol codebase.
 
 - Complete the requested feature with the smallest correct change set that fits existing architecture.
 
+### Source authority
+
+- Referenced spec docs (`architecture/`, `systems/`, `docs/`, `ux/`, `SCHEMA_REGISTRY.md`, etc.) win over current code when they disagree, unless the spec has an open correctness issue — then flag and pause.
+- If a codebase mapper summary exists for this area, review it first before deep code inspection.
+
 ### Project standards
 
 - Deterministic systems only.

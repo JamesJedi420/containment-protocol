@@ -18,6 +18,7 @@ When you add a new top-level `docs/*audit*.md` file (integration checklist; not 
 - [`combat-resolver-audit.md`](./combat-resolver-audit.md)
 - [`conditions-modifiers-audit.md`](./conditions-modifiers-audit.md)
 - [`content-branching-audit.md`](./content-branching-audit.md)
+- [`contract-debrief-next-intent-audit.md`](./contract-debrief-next-intent-audit.md)
 - [`debug-reset-audit.md`](./debug-reset-audit.md)
 - [`deployment-readiness-time-cost-audit.md`](./deployment-readiness-time-cost-audit.md)
 - [`encounter-tracking-audit.md`](./encounter-tracking-audit.md)

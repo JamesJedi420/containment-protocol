@@ -21,6 +21,11 @@ import type {
   PowerImpactSummary,
 } from './models'
 import { computeRequiredScore } from './sim/scoring'
+import {
+  applyFieldBaseSupplyToInventoryRewards,
+  formatFieldBaseStagingLegibilityLine,
+  readFieldBaseFromCase,
+} from './fieldBaseStaging'
 
 interface RewardCaseProfile {
   id: string
@@ -824,12 +829,16 @@ export function buildMissionRewardBreakdown(
     operationValue.operationValue,
     game
   )
-  const inventoryRewards = buildInventoryRewards(
+  const inventoryRewardsRaw = buildInventoryRewards(
     currentCase,
     outcome,
     operationValue.operationValue,
     profile
   )
+  const fieldBase = readFieldBaseFromCase(currentCase)
+  const inventoryRewards = fieldBase
+    ? applyFieldBaseSupplyToInventoryRewards(fieldBase, inventoryRewardsRaw)
+    : inventoryRewardsRaw
   const factionStanding = buildFactionStandingRewards(
     currentCase,
     outcome,
@@ -877,9 +886,27 @@ export function buildMissionRewardBreakdown(
     reasons: [],
   }
 
+  const fieldBaseReasons: string[] = []
+  if (fieldBase) {
+    fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
+    const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
+      const raw = inventoryRewardsRaw[index]
+      return (
+        grant.kind === 'material' &&
+        raw?.kind === 'material' &&
+        grant.quantity > raw.quantity
+      )
+    })
+    if (fieldBase.quality.supply > 0 && materialQuantityIncreased) {
+      fieldBaseReasons.push(
+        'Supply staging tier increased recoverable material quantities versus an unsecured baseline.'
+      )
+    }
+  }
+
   return {
     ...breakdown,
-    reasons: buildRewardReasons(breakdown),
+    reasons: [...buildRewardReasons(breakdown), ...fieldBaseReasons],
   }
 }
 

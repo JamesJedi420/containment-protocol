@@ -260,7 +260,13 @@ Ensures loss and sustained damage matter to the institution over time.
 
 Loss must persist, but not in a way that makes the campaign unrecoverable too quickly.
 
-### 4.8 Facility-linked equipment quality (SPE-21)
+### 4.8 Field-base staging rotation (SPE-1654)
+
+Some expedition contracts carry a compact **field-base staging packet** (`fieldBase` on the active contract runtime). For those cases only, week-open processing may **swap one exhausted or field-injured assigned operative** for the **lowest-fatigue eligible** operative drawn from the reserve pool (agents not on any team) or from teams that are **not** locked to a deployment. This is an explicit exception to the normal rule that deployed rosters are immutable: it exists so multi-week field operations can model relief without a general roster editor.
+
+Rotated-out operatives receive a **bounded, deterministic fatigue shave** derived from staging `medical` and `safety` bands. **Supply** band scales recoverable **material** quantities in the mission reward breakdown. Legibility lines are appended to mission reward reasons. **Agent assignment** (`assignment.team_assigned` / `assignment.team_unassigned` history) is updated for the incoming and outgoing operatives so roster membership and deployment records stay aligned.
+
+### 4.9 Facility-linked equipment quality (SPE-21)
 
 Equipment and facility-backed fabrication should use **semantic quality bands** (for example: prototype, field-grade, depot-refit, purpose-built, disposable) that shift **reliability** and **performance envelopes** instead of a flat numeric item ladder.
 

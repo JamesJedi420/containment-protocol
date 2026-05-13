@@ -46,3 +46,13 @@ You are fixing bugs in Containment Protocol.
 - distinguish type-only imports from value imports correctly
 - remove invalid exports/imports rather than working around them
 - keep module boundaries explicit
+
+### Escalate, do not patch
+
+If the root cause is one of:
+
+- ownership conflict between systems
+- interface mismatch across a module boundary
+- a missing canonical model the bug exposes
+
+stop, document the gap, and hand off to `containment_protocol_architect.md`. Do not apply a local symptom patch around a structural problem.

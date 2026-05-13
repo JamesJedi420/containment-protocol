@@ -89,9 +89,9 @@ export function advanceRecoveryDowntimeForWeek({
     const supervisedExposureWashdown =
       downtime === 'therapy' &&
       medicalStaff >= RECOVERY_CALIBRATION.exposureResidueMedicalClearThreshold
-    const stripExposureResidue =
-      vitalsHasExposureResidue(agent.vitals) && supervisedExposureWashdown
-    const exposureResidueGating = vitalsHasExposureResidue(agent.vitals) && !stripExposureResidue
+    const hasResidue = vitalsHasExposureResidue(agent.vitals)
+    const stripExposureResidue = hasResidue && supervisedExposureWashdown
+    const exposureResidueGating = hasResidue && !stripExposureResidue
 
     // Progression logic
     switch (recoveryStatus.state) {

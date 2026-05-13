@@ -17,6 +17,7 @@
 - `agent.trauma`: { traumaLevel: number, traumaTags: string[], lastEventWeek: number }
 - `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other', sinceWeek: number }
 - `agent.fatigue`: number (existing, but recovery/downtime should update this deterministically)
+- `agent.energyBudget`: { currentReserve: number, reserveBand: 'stable' | 'taxed' | 'depleted' | 'overdrawn', exertionDebt: number, estimateConfidence: 'low' | 'medium' | 'high', lastDutyCost?: number } (SPE-1107 human energy accounting; converts overdrawn exertion into fatigue channels)
 - `team.recoveryPressure`: number (aggregate of member states, for overlay/stability)
 
 ## 3. Downtime Rules & Deterministic Progression
@@ -41,6 +42,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - Progression is deterministic: same state + same downtime plan = same outcome.
 - Recovery rates and trauma reduction must be explicit, not random.
 - Downtime cannot erase major trauma instantly; recovery is gradual and stateful.
+- SPE-1107 energy reserve is charged by deterministic duty/upkeep costs before it becomes fatigue; idle rest can restore taxed/depleted reserve after upkeep, while overdrawn reserve becomes explicit exertion debt and physical fatigue burden rather than a hidden recovery reset.
 
 ### 3b. SPE-1653 slice — exposure residue (recovery gate)
 
@@ -65,6 +67,8 @@ Victory does not automatically close the recovery ledger; model outcomes where *
   - Recovery pressure from weakest-link is aggregated at team/agency level for overlays.
 - **Deployment Readiness:**
   - Readiness checks must consider trauma and recovery state, not just fatigue.
+- **Responder Energy Budget:**
+  - Idle upkeep, duty activity, and post-mission exertion debt are accounted for before they feed existing fatigue/readiness consumers.
 - **Training:**
   - Training is less effective or blocked for agents with high trauma or in recovery.
 - **Teams:**

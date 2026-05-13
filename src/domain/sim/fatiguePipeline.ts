@@ -8,6 +8,11 @@ import {
   createDefaultFatigueChannels,
   resetCapabilityUsesPhaseCounter,
 } from '../agentFatigueChannels'
+import {
+  applyResponderEnergyExertion,
+  applyResponderEnergyRecovery,
+  type ResponderDutyCostClass,
+} from '../responderEnergyBudget'
 import { getTeamMemberIds } from '../teamSimulation'
 
 function getMissionFatigue(config: GameState['config']) {
@@ -94,14 +99,25 @@ export function applyWeeklyAgentFatigue({
         channels: resetChannels,
         overdrive: agent.overdrive ?? createDefaultOverdriveState(),
       })
+      const dutyClass: ResponderDutyCostClass = isActive
+        ? 'prolonged_field_operation'
+        : isTraining
+          ? 'patrol'
+          : 'idle_upkeep'
+      const exertionTick = applyResponderEnergyExertion(agent, dutyClass, debtTick.channels)
+      const energyBudget =
+        isActive || isTraining
+          ? exertionTick.energyBudget
+          : applyResponderEnergyRecovery(exertionTick.energyBudget)
 
       return [
         id,
         {
           ...agent,
           fatigue: clamp(agent.fatigue + delta, 0, 100),
-          fatigueChannels: debtTick.channels,
+          fatigueChannels: exertionTick.fatigueChannels,
           overdrive: debtTick.overdrive,
+          energyBudget,
         },
       ]
     })

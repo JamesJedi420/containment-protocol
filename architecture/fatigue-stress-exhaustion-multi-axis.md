@@ -21,6 +21,12 @@ Author only the subset the campaign needs; unused channels stay inert.
 
 Surface **visible bands** (e.g., fresh / strained / depleted / critical) per channel or as a composite summary — reports should cite **which channel** bound an outcome.
 
+## Responder Energy Budget (SPE-1107)
+
+Responder energy is a sibling accounting layer that sits before fatigue accumulation. It tracks compact operational reserve bands (`stable`, `taxed`, `depleted`, `overdrawn`), deterministic duty-cost classes, and bounded estimate confidence. Baseline upkeep is charged even when a responder is idle; idle upkeep stays a flat floor while heavier duties resolve through relative exertion so conditioning, injury, and current reserve state can make the same task cheaper or more expensive for different responders.
+
+This layer does not replace the SPE-130 channels. When reserve is overdrawn, the budget converts explicit exertion debt into `physicalExhaustion` so downstream readiness and recovery systems consume the burden through the existing fatigue surfaces.
+
 ## Recovery
 
 - **Rest**, **medical ladder** (SPE-68), **downtime activities**, **doctrine rotations** — each channel may prefer different recovery vectors.

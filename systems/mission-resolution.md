@@ -126,6 +126,7 @@ Mission resolution reads team-side state such as:
 - role coverage
 - certifications
 - injuries / trauma / fatigue
+- responder energy reserve and exertion debt
 - current deployment burden if relevant
 
 These define whether the field unit can execute the mission reliably.
@@ -142,6 +143,7 @@ Examples:
 - missing certification coverage
 - critical loadout gap
 - injury penalty on a required role
+- overdrawn responder energy converting into physical fatigue burden
 
 The system should avoid broad per-person action scripting.
 

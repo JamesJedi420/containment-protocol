@@ -15,6 +15,7 @@ It includes:
 - cohesion
 - readiness
 - injuries, trauma, downtime, and recovery
+- responder energy reserve, upkeep, and exertion debt
 - replacement pressure
 - bounded assignment consequences across weeks
 
@@ -85,6 +86,7 @@ That means team management should emphasize:
 - bottlenecks
 - role coverage
 - recovery burden
+- energy reserve and exertion debt
 
 The goal is not “build your favorite party.”
 The goal is:

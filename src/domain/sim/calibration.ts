@@ -84,6 +84,47 @@ export const RECOVERY_CALIBRATION = {
   exposureResidueMedicalClearThreshold: 2,
 } as const
 
+export const RESPONDER_ENERGY_CALIBRATION = {
+  defaultReserve: 100,
+  reserveBands: {
+    stable: 70,
+    taxed: 35,
+  },
+  dutyCosts: {
+    idle_upkeep: 2,
+    patrol: 8,
+    carry: 13,
+    sprint_response: 18,
+    prolonged_field_operation: 24,
+  },
+  conditioningThresholds: {
+    strong: 75,
+    capable: 55,
+    strained: 40,
+  },
+  conditioningMultipliers: {
+    strong: 0.75,
+    capable: 0.9,
+    baseline: 1,
+    strained: 1.25,
+  },
+  statusMultipliers: {
+    injured: 1.35,
+    recovering: 1.25,
+  },
+  reserveBandMultipliers: {
+    stable: 1,
+    taxed: 1.1,
+    depleted: 1.25,
+    overdrawn: 1.4,
+  },
+  overdrawnPhysicalDebtDivisor: 2,
+  overdrawnPhysicalCostShare: 0.25,
+  maxOverdrawnPhysicalDelta: 12,
+  idleReserveRecovery: 6,
+  idleDebtRecovery: 4,
+} as const
+
 // Band-gated overrides for second escalation band
 export function getHealthyReturnFatigueThreshold(week: number) {
   return isSecondEscalationBandWeek(week) ? 18 : RECOVERY_CALIBRATION.healthyReturnFatigueThreshold;

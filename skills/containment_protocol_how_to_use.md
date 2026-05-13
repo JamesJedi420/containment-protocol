@@ -11,6 +11,13 @@ Make these your core skill set:
 - validation agent (`containment_protocol_validation_agent.md`)
 - system reconciler (`containment_protocol_system_reconciler.md`)
 
+## When to one-shot vs mapper-first
+
+Decision heuristic:
+
+- **One-shot** the implementation agent / issue executor when the change is narrow, in a familiar area, and the boundary is obvious from the request.
+- **Mapper-first** (run `containment_protocol_codebase_mapper.md` before anything else) when the work touches a new system, spans multiple files, or has unclear boundaries.
+
 ## One-shot task prompt
 
 Use this as the actual task prompt in Cursor after selecting a skill:
@@ -25,6 +32,8 @@ Before coding, summarize:
 - current behavior
 - proposed boundary
 - validation plan
+
+If the scope is still unclear after that summary, **stop and ask for confirmation before implementing** — do not guess the boundary.
 
 ## Optional specialized skills
 

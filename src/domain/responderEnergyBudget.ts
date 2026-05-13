@@ -1,9 +1,9 @@
+import type { Agent } from './models'
 import type {
-  Agent,
   AgentEnergyBudgetState,
   AgentEnergyReserveBand,
   AgentFatigueChannels,
-} from './models'
+} from './agent/models'
 import { createDefaultFatigueChannels } from './agentFatigueChannels'
 import { clamp } from './math'
 import { RESPONDER_ENERGY_CALIBRATION } from './sim/calibration'

@@ -889,7 +889,15 @@ export function buildMissionRewardBreakdown(
   const fieldBaseReasons: string[] = []
   if (fieldBase) {
     fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
-    if (fieldBase.quality.supply > 0 && inventoryRewardsRaw.length > 0) {
+    const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
+      const raw = inventoryRewardsRaw[index]
+      return (
+        grant.kind === 'material' &&
+        raw?.kind === 'material' &&
+        grant.quantity > raw.quantity
+      )
+    })
+    if (fieldBase.quality.supply > 0 && materialQuantityIncreased) {
       fieldBaseReasons.push(
         'Supply staging tier increased recoverable material quantities versus an unsecured baseline.'
       )

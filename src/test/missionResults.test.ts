@@ -30,6 +30,24 @@ describe('missionResults', () => {
     expect(fail.inventoryRewards).toEqual([])
   })
 
+  it('SPE-1654: omits supply staging quantity reason when no material rewards are emitted', () => {
+    const state = createStartingState()
+    const base = state.cases['case-001']!
+    const withFieldBase = {
+      ...base,
+      contract: {
+        templateId: 'test',
+        fieldBase: {
+          label: 'site',
+          quality: { safety: 0, medical: 0, supply: 3, extractionAccess: 0 },
+        },
+      },
+    }
+    const failReasons = buildMissionRewardBreakdown(withFieldBase, 'fail', state.config).reasons
+    expect(failReasons.some((r) => r.includes('Supply staging tier'))).toBe(false)
+    expect(failReasons.some((r) => r.startsWith('Field staging'))).toBe(true)
+  })
+
   it('returns a complete preview set for all mission outcomes', () => {
     const state = createStartingState()
     const previews = buildMissionRewardPreviewSet(state.cases['case-001'], state.config)

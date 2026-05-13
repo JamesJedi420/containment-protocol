@@ -7,6 +7,8 @@ import {
   fieldBaseRotationFatigueRelief,
   formatFieldBaseStagingLegibilityLine,
   readFieldBaseFromCase,
+  sanitizeFieldBaseQualityBands,
+  sanitizePersistedFieldBasePacket,
 } from '../domain/fieldBaseStaging'
 import type { CaseInstance, GameState } from '../domain/models'
 import { getTeamMoveEligibility } from '../domain/sim/teamManagement'
@@ -37,6 +39,26 @@ describe('field base staging (SPE-1654)', () => {
 
   it('computes bounded rotation fatigue relief from medical and safety', () => {
     expect(fieldBaseRotationFatigueRelief(SAMPLE_PACKET)).toBe(24)
+  })
+
+  it('coerces invalid persisted quality bands to finite ladder values (never NaN)', () => {
+    expect(
+      sanitizeFieldBaseQualityBands({
+        safety: Number.NaN,
+        medical: undefined as unknown as number,
+        supply: '2' as unknown as number,
+        extractionAccess: Number.POSITIVE_INFINITY,
+      })
+    ).toEqual({ safety: 0, medical: 0, supply: 2, extractionAccess: 0 })
+  })
+
+  it('rejects blank field-base labels after trim', () => {
+    expect(
+      sanitizePersistedFieldBasePacket({
+        label: '   ',
+        quality: { safety: 1, medical: 0, supply: 0, extractionAccess: 0 },
+      })
+    ).toBeNull()
   })
 
   it('reads field base from case contract runtime', () => {

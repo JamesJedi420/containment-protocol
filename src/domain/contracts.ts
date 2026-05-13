@@ -2,6 +2,7 @@ import { inventoryItemLabels } from '../data/production'
 import { appendOperationEventDrafts } from './events'
 import { getAgencyProgressionUnlockLabel, hasAgencyProgressionUnlock } from './agencyProgression'
 import { getFactionDefinition, inferFactionIdFromCaseTags } from './factions'
+import { sanitizePersistedFieldBasePacket } from './fieldBaseStaging'
 import { createMissionIntelState } from './intel'
 import { clamp, createSeededRng, normalizeSeed } from './math'
 import { getCompletedResearchUnlockIds } from './research'
@@ -1779,7 +1780,9 @@ export function sanitizeContractSystemState(
   const offers = Array.isArray(raw.offers)
     ? raw.offers
         .filter((offer): offer is ContractOffer => typeof offer?.id === 'string')
-        .map((offer) => ({
+        .map((offer) => {
+          const sanitizedFieldBase = sanitizePersistedFieldBasePacket(offer.fieldBase)
+          return {
           ...offer,
           caseDifficulty: {
             combat: Math.max(1, Math.round(offer.caseDifficulty?.combat ?? offer.difficulty ?? 1)),
@@ -1825,55 +1828,9 @@ export function sanitizeContractSystemState(
                 }
               : {}),
           },
-          ...(offer.fieldBase && typeof offer.fieldBase === 'object'
-            ? {
-                fieldBase: {
-                  label: String((offer.fieldBase as { label?: string }).label ?? ''),
-                  quality: {
-                    safety: Math.max(
-                      0,
-                      Math.min(
-                        3,
-                        Math.round(
-                          Number((offer.fieldBase as { quality?: { safety?: number } }).quality?.safety ?? 0)
-                        )
-                      )
-                    ),
-                    medical: Math.max(
-                      0,
-                      Math.min(
-                        3,
-                        Math.round(
-                          Number((offer.fieldBase as { quality?: { medical?: number } }).quality?.medical ?? 0)
-                        )
-                      )
-                    ),
-                    supply: Math.max(
-                      0,
-                      Math.min(
-                        3,
-                        Math.round(
-                          Number((offer.fieldBase as { quality?: { supply?: number } }).quality?.supply ?? 0)
-                        )
-                      )
-                    ),
-                    extractionAccess: Math.max(
-                      0,
-                      Math.min(
-                        3,
-                        Math.round(
-                          Number(
-                            (offer.fieldBase as { quality?: { extractionAccess?: number } }).quality
-                              ?.extractionAccess ?? 0
-                          )
-                        )
-                      )
-                    ),
-                  },
-                },
-              }
-            : {}),
-        }))
+          ...(sanitizedFieldBase ? { fieldBase: sanitizedFieldBase } : {}),
+          }
+        })
     : [...fallback.offers]
 
   const history =

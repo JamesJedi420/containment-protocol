@@ -10,7 +10,6 @@ import {
 } from './agent/lifecycle'
 import { clamp } from './math'
 import type {
-  ActiveContractRuntime,
   Agent,
   CaseInstance,
   FieldBaseStagingPacket,
@@ -25,26 +24,53 @@ import { getTeamAssignedCaseId, getTeamMemberIds, normalizeGameState } from './t
 const QUALITY_MAX = 3
 const ROTATION_FATIGUE_THRESHOLD = 70
 
-function clampQuality(n: number): number {
+/** Coerce one persisted quality band onto 0..QUALITY_MAX; non-finite inputs become 0 (never NaN). */
+function coerceQualityBand(raw: unknown): number {
+  const n = Number(raw)
+  if (!Number.isFinite(n)) {
+    return 0
+  }
   return clamp(Math.round(n), 0, QUALITY_MAX)
 }
 
-export function normalizeFieldBaseQuality(q: FieldBaseStagingQuality): FieldBaseStagingQuality {
+/**
+ * Normalize unknown persisted `quality` objects onto the canonical ladder.
+ * Shared with `sanitizeContractSystemState` so clamp rules stay single-sourced.
+ */
+export function sanitizeFieldBaseQualityBands(quality: unknown): FieldBaseStagingQuality {
+  const q = quality && typeof quality === 'object' ? (quality as Record<string, unknown>) : {}
   return {
-    safety: clampQuality(q.safety),
-    medical: clampQuality(q.medical),
-    supply: clampQuality(q.supply),
-    extractionAccess: clampQuality(q.extractionAccess),
+    safety: coerceQualityBand(q.safety),
+    medical: coerceQualityBand(q.medical),
+    supply: coerceQualityBand(q.supply),
+    extractionAccess: coerceQualityBand(q.extractionAccess),
   }
+}
+
+/**
+ * Returns a canonical packet or `null` when the persisted blob is unusable (missing quality object,
+ * blank label after trim, etc.).
+ */
+export function sanitizePersistedFieldBasePacket(fieldBase: unknown): FieldBaseStagingPacket | null {
+  if (!fieldBase || typeof fieldBase !== 'object') {
+    return null
+  }
+  const fb = fieldBase as { label?: unknown; quality?: unknown }
+  const label = typeof fb.label === 'string' ? fb.label.trim() : ''
+  if (!label || !fb.quality || typeof fb.quality !== 'object') {
+    return null
+  }
+  return { label, quality: sanitizeFieldBaseQualityBands(fb.quality) }
+}
+
+export function normalizeFieldBaseQuality(q: FieldBaseStagingQuality): FieldBaseStagingQuality {
+  return sanitizeFieldBaseQualityBands(q)
 }
 
 export function readFieldBaseFromCase(caseData: CaseInstance): FieldBaseStagingPacket | null {
   const raw = caseData.contract as ActiveContractRuntime | undefined
   const fb = raw?.fieldBase
-  if (!fb || typeof fb.label !== 'string' || !fb.quality) {
-    return null
-  }
-  return { label: fb.label, quality: normalizeFieldBaseQuality(fb.quality) }
+  return sanitizePersistedFieldBasePacket(fb)
 }
 
 /** Deterministic fatigue relief for an operative rotated back through the staging point. */

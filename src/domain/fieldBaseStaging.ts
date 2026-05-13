@@ -3,6 +3,11 @@
 // downstream supply scaling on mission rewards. Does not relax generic roster editing;
 // only this module mutates deployed team membership mid-contract.
 
+import {
+  appendAgentHistoryEntry,
+  createAgentHistoryEntry,
+  setAgentAssignment,
+} from './agent/lifecycle'
 import { clamp } from './math'
 import type {
   ActiveContractRuntime,
@@ -236,14 +241,50 @@ export function applyFieldBaseStagingRotationAtWeekOpen(state: GameState): GameS
 
     const relief = fieldBaseRotationFatigueRelief(packet)
     const outAgent = next.agents[outgoingId]
-    const nextAgents = {
+    let rotatedOut = outAgent
+    if (
+      rotatedOut &&
+      rotatedOut.assignment?.state === 'assigned' &&
+      rotatedOut.assignment.caseId === caseData.id
+    ) {
+      rotatedOut = appendAgentHistoryEntry(
+        setAgentAssignment(rotatedOut, { state: 'idle' }),
+        createAgentHistoryEntry(
+          state.week,
+          'assignment.team_unassigned',
+          `Field staging rotation released from ${caseData.title}.`
+        )
+      )
+    }
+    if (rotatedOut) {
+      rotatedOut = {
+        ...rotatedOut,
+        fatigue: clamp(rotatedOut.fatigue - relief, 0, 100),
+      }
+    }
+
+    const inAgent = next.agents[incomingId]
+    const rotatedIn =
+      inAgent && inAgent.status === 'active' && inAgent.assignment?.state !== 'training'
+        ? appendAgentHistoryEntry(
+            setAgentAssignment(inAgent, {
+              state: 'assigned',
+              caseId: caseData.id,
+              teamId,
+              startedWeek: state.week,
+            }),
+            createAgentHistoryEntry(
+              state.week,
+              'assignment.team_assigned',
+              `Field staging rotation forward assigned to ${caseData.title}.`
+            )
+          )
+        : inAgent
+
+    const nextAgents: GameState['agents'] = {
       ...next.agents,
-      [outgoingId]: outAgent
-        ? {
-            ...outAgent,
-            fatigue: clamp(outAgent.fatigue - relief, 0, 100),
-          }
-        : outAgent,
+      ...(rotatedOut ? { [outgoingId]: rotatedOut } : {}),
+      ...(rotatedIn ? { [incomingId]: rotatedIn } : {}),
     }
 
     next = { ...next, teams: nextTeams, agents: nextAgents }

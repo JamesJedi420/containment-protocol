@@ -2930,11 +2930,15 @@ function prepareAgentsForWeek(context: WeeklyExecutionContext) {
     }),
   }
 
+  const beforeFieldBase = context.nextState
   const afterFieldBase = applyFieldBaseStagingRotationAtWeekOpen(context.nextState)
-  context.nextState = {
-    ...afterFieldBase,
-    missionRouting: recomputeMissionRouting(afterFieldBase, context.sourceState.week),
-  }
+  const fieldBaseRotationMutated = afterFieldBase !== beforeFieldBase
+  context.nextState = fieldBaseRotationMutated
+    ? {
+        ...afterFieldBase,
+        missionRouting: recomputeMissionRouting(afterFieldBase, context.sourceState.week),
+      }
+    : afterFieldBase
 }
 
 function applyPassiveRelationshipDrift(context: WeeklyExecutionContext) {

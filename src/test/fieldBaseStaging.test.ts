@@ -9,6 +9,7 @@ import {
   readFieldBaseFromCase,
 } from '../domain/fieldBaseStaging'
 import type { CaseInstance, GameState } from '../domain/models'
+import { getTeamMoveEligibility } from '../domain/sim/teamManagement'
 
 const SAMPLE_PACKET = {
   label: 'test-bivouac',
@@ -98,6 +99,13 @@ describe('field base staging (SPE-1654)', () => {
       },
     }
 
+    const assignedToExp = {
+      state: 'assigned' as const,
+      caseId: 'case_exp',
+      teamId: deployedTeamId,
+      startedWeek: 1,
+    }
+
     const game: GameState = {
       ...shell,
       cases: {
@@ -121,7 +129,12 @@ describe('field base staging (SPE-1654)', () => {
         a_ava: {
           ...shell.agents.a_ava!,
           fatigue: 85,
+          assignment: assignedToExp,
         },
+        a_kellan: { ...shell.agents.a_kellan!, assignment: assignedToExp },
+        a_mina: { ...shell.agents.a_mina!, assignment: assignedToExp },
+        a_rook: { ...shell.agents.a_rook!, assignment: assignedToExp },
+        a_casey: { ...shell.agents.a_casey!, assignment: { state: 'idle' } },
       },
     }
 
@@ -130,6 +143,12 @@ describe('field base staging (SPE-1654)', () => {
     expect(members).toContain('a_casey')
     expect(members).not.toContain('a_ava')
     expect(next.agents.a_ava!.fatigue).toBeLessThan(85)
+    expect(next.agents.a_ava!.assignment?.state).toBe('idle')
+    expect(next.agents.a_casey!.assignment?.state).toBe('assigned')
+    expect(next.agents.a_casey!.assignment?.caseId).toBe('case_exp')
+    expect(next.agents.a_casey!.assignment?.teamId).toBe(deployedTeamId)
+    expect(getTeamMoveEligibility(next, 'a_ava', null).allowed).toBe(true)
+    expect(getTeamMoveEligibility(next, 'a_casey', null).allowed).toBe(false)
     expect(formatFieldBaseStagingLegibilityLine(SAMPLE_PACKET)).toContain('test-bivouac')
   })
 })

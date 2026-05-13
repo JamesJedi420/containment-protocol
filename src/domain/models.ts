@@ -888,6 +888,7 @@ export interface FieldBaseStagingQuality {
 
 /**
  * SPE-1654: bounded staging packet attached to expedition-style contracts / active cases.
+ * SPE-99: consumed by `expeditionRecoveryNode` for deployed recovery-mode validity.
  */
 export interface FieldBaseStagingPacket {
   label: string
@@ -913,7 +914,7 @@ export interface ContractOffer {
   chain: ContractChainDefinition
   lootTableId?: string
   generatedWeek?: number
-  /** SPE-1654: optional field staging — recovery rotation + supply/recovery modifiers. */
+  /** SPE-1654: optional field staging — rotation, supply scaling, and SPE-99 recovery validity. */
   fieldBase?: FieldBaseStagingPacket
 }
 

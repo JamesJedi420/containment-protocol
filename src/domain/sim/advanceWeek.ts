@@ -201,6 +201,10 @@ import {
   decrementOpenDeadline,
 } from './escalation'
 import {
+  buildDeployedRecoveryModeByAgentId,
+  scaleDeployedMissionFatigueDelta,
+} from './expeditionRecoveryNode'
+import {
   buildRecruitmentGenerationState,
   generateCandidates,
   removeExpiredCandidates,
@@ -675,7 +679,10 @@ function applyAgentFatigue(
   teams: GameState['teams'],
   config: GameState['config'],
   activeTeamIds: string[],
-  activeTeamStressModifiers: Record<string, number> = {}
+  cases: GameState['cases'],
+  activeTeamStressModifiers: Record<string, number> = {},
+  /** SPE-99: week-close fatigue runs after assignment release; use pre-resolution snapshot for fieldBase modes. */
+  deployedRecoveryLookup?: { teams: GameState['teams']; cases: GameState['cases'] }
 ) {
   const activeAgentStressById = new Map<string, number>()
   const activeAgentIds = new Set(
@@ -698,14 +705,29 @@ function applyAgentFatigue(
   )
   const missionFatigue = getMissionFatigue(config)
   const recoveryFatigue = getRecoveryFatigue(config)
+  const recoveryTeams = deployedRecoveryLookup?.teams ?? teams
+  const recoveryCases = deployedRecoveryLookup?.cases ?? cases
+  const recoveryModeByAgent = buildDeployedRecoveryModeByAgentId(
+    recoveryTeams,
+    recoveryCases,
+    activeTeamIds
+  )
 
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
-      const delta = activeAgentIds.has(id)
-        ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
-        : trainingAgentIds.has(id)
-          ? -(agent.recoveryRateBonus ?? 0)
-          : -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
+      let delta: number
+      if (activeAgentIds.has(id)) {
+        const rawDelta = Math.max(
+          1,
+          Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0)))
+        )
+        const mode = recoveryModeByAgent.get(id) ?? 'ordinary_rest'
+        delta = scaleDeployedMissionFatigueDelta(rawDelta, mode)
+      } else if (trainingAgentIds.has(id)) {
+        delta = -(agent.recoveryRateBonus ?? 0)
+      } else {
+        delta = -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
+      }
 
       return [
         id,
@@ -3145,7 +3167,9 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     context.nextState.teams,
     context.sourceState.config,
     [...context.activeTeamIds],
-    context.activeTeamStressModifiers
+    context.nextState.cases,
+    context.activeTeamStressModifiers,
+    { teams: context.sourceState.teams, cases: context.sourceState.cases }
   )
   const directiveAdjustedAgents =
     context.selectedDirectiveId === 'recovery-rotation'

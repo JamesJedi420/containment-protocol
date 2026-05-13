@@ -10,6 +10,7 @@ import {
 } from './agent/lifecycle'
 import { clamp } from './math'
 import type {
+  ActiveContractRuntime,
   Agent,
   CaseInstance,
   FieldBaseStagingPacket,

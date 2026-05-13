@@ -56,7 +56,8 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 ### 3c. SPE-1699 slice — one-slot downtime (recovery menu vs academy training)
 
 - **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
-- **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`; `advanceWeek` pre-computes effective assignments from the resolver. Tests: `src/test/downtimeSlot.test.ts`.
+- **Ordering:** `advanceWeek` captures each agent’s resolved effective slot at the **start** of `advanceQueues` (before `advanceTrainingQueues` removes completed programs from the queue and clears `assignment.state`), then `applyRecoveryDowntimeAfterMissions` consumes that snapshot. This keeps the **final week** of a training program on the `training` slot instead of incorrectly falling through to menu/`rest` after completion processing.
+- **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceWeek` snapshot on `WeeklyExecutionContext.downtimeSlotEffectiveByAgentId`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`. Tests: `src/test/downtimeSlot.test.ts`.
 
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.

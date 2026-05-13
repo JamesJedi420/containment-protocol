@@ -8,8 +8,11 @@ import {
   resolveDowntimeSlotForAgent,
   setAgentPrimaryDowntimePlan,
 } from '../domain/sim/downtimeSlot'
+import { trainingCatalog } from '../data/training'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import { advanceRecoveryDowntimeForWeek } from '../domain/sim/recoveryDowntime'
 import type { DowntimeActivity } from '../domain/sim/recoveryDowntime'
+import { queueTraining } from '../domain/sim/training'
 import { createStartingState } from '../data/startingState'
 
 const baseAgent: Agent = {
@@ -57,14 +60,26 @@ describe('resolveDowntimeSlotForAgent (SPE-1699)', () => {
     expect(foregone).toEqual(['rest', 'therapy', 'other'])
   })
 
-  it('coerces invalid training request to rest when not in academy training', () => {
+  it('accepts explicit training from pre-queue snapshot after assignment returns to idle', () => {
     const agent: Agent = {
       ...baseAgent,
+      assignment: { state: 'idle' },
       downtimeActivity: { activity: 'therapy', sinceWeek: 1 },
     }
-    const { effective } = resolveDowntimeSlotForAgent(agent, {
+    const { effective, foregone } = resolveDowntimeSlotForAgent(agent, {
       explicitEffective: 'training' as DowntimeActivity,
     })
+    expect(effective).toBe('training')
+    expect(foregone).toEqual([...PLAYER_PRIMARY_DOWNTIME_MENU])
+  })
+
+  it('coerces stale persisted downtimeActivity.training to rest when not in training', () => {
+    const agent: Agent = {
+      ...baseAgent,
+      assignment: { state: 'idle' },
+      downtimeActivity: { activity: 'training', sinceWeek: 1 },
+    }
+    const { effective } = resolveDowntimeSlotForAgent(agent)
     expect(effective).toBe('rest')
   })
 })
@@ -113,6 +128,25 @@ describe('advanceRecoveryDowntimeForWeek foregone metadata', () => {
     expect(formatForegoneDowntimeSummary(updated.downtimeActivity?.foregoneThisInterval ?? [])).toContain(
       'Therapy'
     )
+  })
+})
+
+describe('advanceWeek + training completion (SPE-1699)', () => {
+  it('keeps the training slot for downtime on the week academy training completes', () => {
+    const state = createStartingState()
+    const combatDrills = trainingCatalog.find((p) => p.trainingId === 'combat-drills')
+    expect(combatDrills).toBeDefined()
+    const queued = queueTraining(state, 'a_ava', combatDrills!.trainingId)
+    expect(queued.agents.a_ava.assignment?.state).toBe('training')
+    const prepared = {
+      ...queued,
+      trainingQueue: queued.trainingQueue.map((e) =>
+        e.agentId === 'a_ava' ? { ...e, remainingWeeks: 1 } : e
+      ),
+    }
+    const next = advanceWeek(prepared)
+    expect(next.agents.a_ava.assignment?.state).toBe('idle')
+    expect(next.agents.a_ava.downtimeActivity?.activity).toBe('training')
   })
 })
 

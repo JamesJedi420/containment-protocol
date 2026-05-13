@@ -509,10 +509,7 @@ function TeamCard({
           const canPlan = canSelectPrimaryDowntimePlan(agent)
           const rawActivity = agent.downtimeActivity?.activity
           const planned: PlayerPrimaryDowntimeMenu =
-            rawActivity &&
-            (PLAYER_PRIMARY_DOWNTIME_MENU as readonly string[]).includes(rawActivity)
-              ? (rawActivity as PlayerPrimaryDowntimeMenu)
-              : ('rest' as PlayerPrimaryDowntimeMenu)
+            PLAYER_PRIMARY_DOWNTIME_MENU.find((act) => act === rawActivity) ?? 'rest'
           const foregoneLine = agent.downtimeActivity?.foregoneThisInterval?.length
             ? `Foregone this week: ${formatForegoneDowntimeSummary(agent.downtimeActivity.foregoneThisInterval)}`
             : null

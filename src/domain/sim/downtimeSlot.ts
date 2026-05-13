@@ -51,6 +51,13 @@ export function resolveDowntimeSlotForAgent(
     }
   }
 
+  if (opts?.explicitEffective === 'training') {
+    return {
+      effective: 'training',
+      foregone: [...PLAYER_PRIMARY_DOWNTIME_MENU],
+    }
+  }
+
   const raw = opts?.explicitEffective ?? agent.downtimeActivity?.activity
   const effective = normalizeRequestedDowntime(raw)
   const foregone = PLAYER_PRIMARY_DOWNTIME_MENU.filter((a) => a !== effective)

@@ -766,6 +766,30 @@ export interface AgentOverdriveState {
   recoveryDebt: number
 }
 
+/**
+ * SPE-1107 slice 1 compact human energy accounting.
+ *
+ * This is a bounded operational budget, not a literal body battery. It tracks
+ * current reserve and debt clearly enough for planning/debugging, then converts
+ * overdrawn work into the existing fatigue channel surfaces.
+ */
+export type AgentEnergyReserveBand = 'stable' | 'taxed' | 'depleted' | 'overdrawn'
+
+export type AgentEnergyEstimateConfidence = 'low' | 'medium' | 'high'
+
+export interface AgentEnergyBudgetState {
+  /** Current usable operational reserve, expressed as a compact 0..100 planning value. */
+  currentReserve: number
+  /** Readable reserve summary derived from currentReserve + exertionDebt. */
+  reserveBand: AgentEnergyReserveBand
+  /** Explicit later burden from work that exceeded available reserve. */
+  exertionDebt: number
+  /** Bounded confidence in the current reserve estimate; not a claim of exact body truth. */
+  estimateConfidence: AgentEnergyEstimateConfidence
+  /** Most recent deterministic duty cost after relative-exertion modifiers. */
+  lastDutyCost?: number
+}
+
 export interface Agent {
   id: Id
   name: string
@@ -857,6 +881,13 @@ export interface Agent {
    * Optional and backward-compatible; absent means no overdrive state/history.
    */
   overdrive?: AgentOverdriveState
+
+  /**
+   * SPE-1107 slice 1 responder energy budget.
+   * Optional for persistence compatibility; absent agents receive the default
+   * stable state when energy accounting first touches them.
+   */
+  energyBudget?: AgentEnergyBudgetState
 
   /**
    * SPE-1070 slice 1: consecutive off-duty coping weeks.

@@ -51,6 +51,7 @@ Keep readiness state compact, canonical, and deterministic.
 - `deployable` (boolean)
 - `availabilityState` (`idle | assigned | training | recovering | unavailable`)
 - `fatigue`
+- `energyBudget` (`currentReserve`, `reserveBand`, `exertionDebt`, `estimateConfidence`)
 - `loadoutReadiness`
 - `certificationReadiness`
 - `trainingLockReason?`
@@ -80,6 +81,8 @@ Time cost should be additive, bounded, and source-attributable.
   - Mission duration model (`durationWeeks`, stage pressure, kind).
 - **Recovery tail**
   - Fatigue/stress after action and current attrition policy.
+- **Responder energy tail**
+  - Baseline upkeep and duty exertion may leave reserve debt that converts into existing fatigue channels when overdrawn.
 
 ### Deterministic total model
 
@@ -115,6 +118,7 @@ Deployment eligibility should return structured outputs, not a boolean only.
 
 - Low cohesion band (`unstable`/`fragile`).
 - High fatigue burden.
+- Depleted or overdrawn responder energy reserve when it has converted into fatigue/readiness burden.
 - Weakest-link risks (minimum member readiness below threshold).
 - Optional strategic mismatch (e.g., suboptimal category fit).
 

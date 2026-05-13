@@ -69,7 +69,7 @@ export function canSelectPrimaryDowntimePlan(agent: Agent): boolean {
     return false
   }
   const st = agent.assignment?.state
-  return st !== 'assigned' && st !== 'training' && st !== 'resolving'
+  return st !== 'assigned' && st !== 'training'
 }
 
 const PRIMARY_DOWNTIME_LABEL: Record<DowntimeActivity, string> = {

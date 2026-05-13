@@ -46,6 +46,20 @@ export function createDefaultAgentVitals(
   }
 }
 
+/**
+ * Fallback vitals when spreading mission/recovery mutations onto agents without persisted vitals.
+ * Preserves long-standing sim behavior: `stress` mirrors raw fatigue (not `clampPercent` bands).
+ */
+export function createSimulationAgentVitalsBaseline(fatigue: number, wounds = 0): AgentVitals {
+  return {
+    health: 100,
+    stress: fatigue,
+    morale: Math.max(0, 100 - fatigue),
+    wounds,
+    statusFlags: [],
+  }
+}
+
 export function createDefaultAgentProgression(
   level: number = 1,
   potentialTier: PotentialTier = 'C',

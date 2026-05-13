@@ -9,6 +9,7 @@ import type { Agent, AgentHistoryEntry, GameState } from '../models'
 import { RECOVERY_CALIBRATION } from './calibration'
 import { vitalsHasExposureResidue } from './recoveryImpairments'
 import { aggregateTraitEffects, resolveAgentTraitEffects } from '../traits'
+import { createSimulationAgentVitalsBaseline } from '../agentDefaults'
 
 const MINOR_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.minorRecoveryDurationWeeks
 const MODERATE_RECOVERY_DURATION_WEEKS = RECOVERY_CALIBRATION.moderateRecoveryDurationWeeks
@@ -112,13 +113,7 @@ export function advanceRecoveryAgentsForWeek({
             ...priorAgent,
             status: 'active',
             vitals: {
-              ...(priorAgent.vitals ?? {
-                health: 100,
-                stress: priorAgent.fatigue,
-                morale: Math.max(0, 100 - priorAgent.fatigue),
-                wounds: 0,
-                statusFlags: [],
-              }),
+              ...(priorAgent.vitals ?? createSimulationAgentVitalsBaseline(priorAgent.fatigue)),
               health: 100,
               morale: clamp(
                 Math.max(
@@ -146,13 +141,11 @@ export function advanceRecoveryAgentsForWeek({
           ...priorAgent,
           status: 'recovering',
           vitals: {
-            ...(priorAgent.vitals ?? {
-              health: 100,
-              stress: priorAgent.fatigue,
-              morale: Math.max(0, 100 - priorAgent.fatigue),
-              wounds: severity === 'moderate' ? 25 : 10,
-              statusFlags: [],
-            }),
+            ...(priorAgent.vitals ??
+              createSimulationAgentVitalsBaseline(
+                priorAgent.fatigue,
+                severity === 'moderate' ? 25 : 10
+              )),
             morale: clamp(
               (priorAgent.vitals?.morale ?? Math.max(0, 100 - priorAgent.fatigue)) -
                 RECOVERY_CALIBRATION.recoveringMoralePenalty +

@@ -48,7 +48,7 @@ import { applyAgentXp } from '../progression'
 import { type InjurySeverity, withInjuryFlags } from './recoveryPipeline'
 import { appendExposureResidueToFlags } from './recoveryImpairments'
 import { applyBetrayalConsequences } from './betrayal'
-import { createDefaultAgentProgression } from '../agentDefaults'
+import { createDefaultAgentProgression, createSimulationAgentVitalsBaseline } from '../agentDefaults'
 import { evaluateMissionAgentFailureRisk } from './injuryForecast'
 
 const XP_GAIN_SUCCESS = 150
@@ -684,13 +684,7 @@ export function applyMissionResolutionAgentMutations({
       : ({ state: 'idle' } as const)
     const nextVitals = casualty.fatal
       ? {
-          ...(agent.vitals ?? {
-            health: 100,
-            stress: agent.fatigue,
-            morale: Math.max(0, 100 - agent.fatigue),
-            wounds: 0,
-            statusFlags: [],
-          }),
+          ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
           health: 0,
           morale: 0,
           wounds: 100,
@@ -698,13 +692,7 @@ export function applyMissionResolutionAgentMutations({
         }
       : injurySeverity
       ? {
-          ...(agent.vitals ?? {
-            health: 100,
-            stress: agent.fatigue,
-            morale: Math.max(0, 100 - agent.fatigue),
-            wounds: 0,
-            statusFlags: [],
-          }),
+          ...(agent.vitals ?? createSimulationAgentVitalsBaseline(agent.fatigue)),
           health: clamp(
             (agent.vitals?.health ?? 100) - (injurySeverity === 'moderate' ? 25 : 10),
             0,
@@ -875,13 +863,7 @@ export function applyMissionResolutionAgentMutations({
       anomalyExposure >= 1 &&
       (injurySeverity !== null || outcome.result === 'fail')
     ) {
-      const baseVitals = nextAgent.vitals ?? {
-        health: 100,
-        stress: nextAgent.fatigue,
-        morale: Math.max(0, 100 - nextAgent.fatigue),
-        wounds: 0,
-        statusFlags: [] as string[],
-      }
+      const baseVitals = nextAgent.vitals ?? createSimulationAgentVitalsBaseline(nextAgent.fatigue)
       nextAgent = {
         ...nextAgent,
         vitals: {

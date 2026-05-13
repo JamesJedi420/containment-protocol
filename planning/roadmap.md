@@ -366,7 +366,7 @@ These questions help keep the roadmap systems-oriented.
 
 ## 15. Suggested near-term roadmap focus
 
-Based on the current dependency structure, near-term focus should usually remain:
+Concrete ordered tasks live in **`planning/backlog.md`** so this roadmap stays strategic. Ongoing doc hygiene (when to touch backlog vs mirrors vs maps) lives in **`planning/documentation-curation.md`**. Based on the current dependency structure, near-term focus should usually remain:
 
 - finish core UX specs
 - complete tuning references

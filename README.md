@@ -66,6 +66,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
   - counter-detection behavior
   - downstream route impact from displacement
   - player-facing ambiguous / partial reveal output
+- Design reference: `architecture/hidden-state-displacement-counter-detection.md`
 
 ### Behavior-weighted disguise validation completed as a bounded pass ([SPE-285](Issue:8b614f9d-f6f2-40dc-8e33-236639ee52d1))
 
@@ -112,7 +113,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 ### Repo-wide stabilization completed
 
-- Full TypeScript build is green
+- `npm run test:run` and `npm run lint` are green in CI; treat `npm run build` as a separate type-contract gate (see `AGENTS.md` for known baseline TypeScript drift and Vite 8 type-import caveats)
 - Full Vitest suite is green
 - Compatibility drift across older runtime/test surfaces was resolved without undoing current canonical behavior
 - Hidden-state and disguise-validation bounded slices remain green after stabilization
@@ -137,6 +138,10 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - `npm run test:run` — execute the test suite in the repo’s standard non-watch mode
 - `npm run test:ui` — open the Vitest UI
 - `npm run coverage` — run tests with coverage output
+- `npm run verify:audits-index` — assert `docs/design-audits-index.md` matches every top-level `docs/*audit*.md` (excludes the index file itself)
+- `npm run verify:theme-contracts` — assert mirrored **SPE-** follow-ups match `architecture/external-design-theme-contracts.md` coverage lines
+
+**Planning and doc curation:** `planning/documentation-curation.md` — when to update backlog, roadmap, mirrors, and the systems map.
 
 ## Structure
 
@@ -171,9 +176,6 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - The project prefers compact reusable rules vocabularies over bespoke subsystem logic
 - Optional modules should integrate through explicit contracts, not shared mutable state
 
-## Next Useful Steps
+## Next useful steps
 
-- add an authored/runtime activation path for hidden or disguised cases beyond manual hidden-state entry
-- expand follow-on infiltration/access issues that consume the new hidden-state and behavior-validation surfaces
-- extend route-level drill-down and multi-week navigation coverage
-- continue keeping archived prototype code out of active runtime paths unless intentionally revived
+Canonical near-term queue (merged with roadmap focus): **`planning/backlog.md`**. Deferred deep design without in-repo bodies yet (SPE-186+, knowledge children): **`planning/deferred-design-documents.md`**.

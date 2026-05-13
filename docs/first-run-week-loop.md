@@ -4,6 +4,32 @@
 
 This note clarifies how the first playable weekly loop should be framed so onboarding does not imply an omniscient agency manager. It also should not imply that the campaign is **forever confined** to a single local geography: **later offsite operations** (SPE-280) can **inherit the same actors, obligations, and canonical world state** without a tacit reset.
 
+## Compact week loop (managerial cadence)
+
+Linear onboarding copy (mirrored here so git stays canonical):
+
+1. **Review the week** — inspect the event feed, candidate pool, current team or company state, available knowledge, and emerging blockers.
+2. **Recruit or defer** — expand capacity now or preserve resources for immediate operations.
+3. **Equip and validate** — ensure teams meet loadout, certification, readiness, and access requirements before commitments lock in.
+4. **Train, recover, and prepare** — restore operators, rebuild shared support where possible, and use rest or prep actions that may also generate bounded next-cycle leverage.
+5. **Form teams** — decide who works together; inspect cohesion, coverage, weakest-link risk, and persistent company-level state affecting travel, recovery, access, or logistics.
+6. **Triage missions** — choose which incidents or contracts matter now, which can wait, and which risks are acceptable.
+7. **Deploy** — commit teams to the work the agency can support this week.
+8. **Resolve outcomes** — absorb injuries, costs, fallout, trust movement, escalation, and follow-up consequences.
+9. **Recover and progress** — handle downtime, treatment, support, upgrades, and longer-horizon improvements before the next week begins.
+
+## Success cues (stabilizing vs degraded)
+
+**A stabilizing week** leaves the agency more ready for the next one: key teams remain viable, major pressures are contained, recovery or progression is still possible, and the agency preserves enough support, knowledge, and operational continuity to keep acting.
+
+**A degraded week** leaves the agency narrower and more brittle: readiness drops, injuries or blockers accumulate, support erodes, pressure escalates faster than capacity, and the next week starts from a weaker position.
+
+## Framing rule (player role)
+
+This is a managerial, deterministic, team-first loop. The player is evaluating capacity, preparing teams, choosing commitments, and absorbing consequences rather than directly piloting tactical encounters.
+
+The campaign can later transition into offsite operations without resetting actor, obligation, or world state; the same continuity rules still matter when operational scale changes.
+
 ## Core framing rule — command knowledge is partial (SPE-189)
 
 Even when the player “is the agency,” command knowledge is **partial and constrained**:

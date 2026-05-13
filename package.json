@@ -13,7 +13,9 @@
     "test": "vitest --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads",
     "test:run": "vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads",
     "test:ui": "vitest --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads --ui",
-    "coverage": "vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads --coverage"
+    "coverage": "vitest run --config app.vite.config.ts --configLoader native --environment jsdom --globals --pool vmThreads --coverage",
+    "verify:audits-index": "node scripts/verify-design-audits-index.mjs",
+    "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.6.0",

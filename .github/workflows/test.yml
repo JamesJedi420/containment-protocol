@@ -30,6 +30,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Verify design audits index
+        run: npm run verify:audits-index
+
+      - name: Verify external theme contracts
+        run: npm run verify:theme-contracts
+
       - name: Run tests (non-watch)
         run: npm run test:run
 

@@ -6,7 +6,9 @@ This document defines the major entities in Containment Protocol and how they re
 
 It is intended to:
 
-
+- provide a **one-page map** of major entities before diving into code or the detailed ER document
+- anchor **institution-first** boundaries (agency vs missions vs world) for design discussions
+- point readers to `architecture/entity-relationship-model-detailed.md` for full relationship notes
 
 This is a conceptual ER model, not a database schema.
 

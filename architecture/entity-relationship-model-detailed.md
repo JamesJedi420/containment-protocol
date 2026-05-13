@@ -6,16 +6,22 @@ This document defines the major entities in Containment Protocol and how they re
 
 It is intended to:
 
+- give **designers and engineers** a shared vocabulary for ownership, cardinality, and cross-system dependencies before reading `src/domain/models.ts`
+- **complement** the shorter `architecture/entity-relationship-model.md` with relationship detail and narrative that would clutter the summary map
+- support **reviews and handoffs** (new features, audits, refactoring) where “who owns this state?” must stay aligned with the institution-first rule below
 
 This is a conceptual ER model, not a database schema.
 
 ---
+
 ## Core design rule
 
 Containment Protocol is an institution-first game.
 
 The entity model should reflect that:
+
 - reports and surfaced output are downstream of canonical domain state
+
 ---
 
 
@@ -348,11 +354,12 @@ erDiagram
 
 This ER model should eventually be paired with:
 
-- architecture/game-state-schema.md
-- architecture/event-schema.md
-- systems/core-loop-flows.md
-- systems/incident-generation.md
-- systems/mission-resolution.md
+- `architecture/game-state-and-core-loop.md`
+- `architecture/game-state-schema-expanded.md`
+- `architecture/event-schema.md`
+- `systems/incident-generation.md`
+- `systems/mission-resolution.md`
+- `systems/team-management.md`
 
 ---
 

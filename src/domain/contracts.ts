@@ -21,6 +21,7 @@ import type {
   ContractDebriefStrategicOption,
   ContractDebriefUnresolvedClock,
   ContractHistoryRecord,
+  FieldBaseQualityBands,
   ContractMaterialDrop,
   ContractModifier,
   ContractNextIntent,
@@ -127,6 +128,8 @@ interface ContractTemplateDefinition {
   requirements: ContractOffer['requirements']
   modifiers: ContractModifier[]
   chain: ContractChainDefinition
+  /** SPE-99 / SPE-1654: optional expedition staging packet carried onto offers and cases. */
+  fieldBase?: FieldBaseQualityBands
   availability?: {
     minFactionTier?: ReputationTier
     maxFactionTier?: ReputationTier
@@ -727,6 +730,7 @@ const CONTRACT_TEMPLATES: readonly ContractTemplateDefinition[] = [
         value: 2.2,
       },
     ],
+    fieldBase: { medical: 2, safety: 2, sustenance: 1 },
     chain: {
       unlockConditions: [{ type: 'progression_unlock', unlockId: 'containment-liturgy' }],
     },
@@ -1066,6 +1070,7 @@ function buildContractCaseSkeleton(
     | 'requirements'
     | 'modifiers'
     | 'chain'
+    | 'fieldBase'
   >,
   template: CaseTemplate,
   caseId: string,
@@ -1100,6 +1105,7 @@ function buildContractCaseSkeleton(
             }
           : {}),
       },
+      ...(offer.fieldBase ? { fieldBase: { ...offer.fieldBase } } : {}),
     } satisfies ActiveContractRuntime,
     // Contracts always use probabilistic resolution so preview bands and live results
     // share the same continuous success model regardless of the source template mode.
@@ -1641,6 +1647,7 @@ function buildOfferFromDefinition(
       requirements: definition.requirements,
       modifiers: definition.modifiers.map((modifier) => ({ ...modifier })),
       chain: definition.chain,
+      ...(definition.fieldBase ? { fieldBase: definition.fieldBase } : {}),
     },
     template,
     `contract-preview-${definition.id}`,
@@ -1680,6 +1687,7 @@ function buildOfferFromDefinition(
     },
     strategyTag: definition.strategyTag,
     generatedWeek: state.week,
+    ...(definition.fieldBase ? { fieldBase: { ...definition.fieldBase } } : {}),
   }
 }
 

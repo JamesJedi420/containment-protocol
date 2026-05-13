@@ -201,6 +201,10 @@ import {
   decrementOpenDeadline,
 } from './escalation'
 import {
+  buildDeployedRecoveryModeByAgentId,
+  scaleDeployedMissionFatigueDelta,
+} from './expeditionRecoveryNode'
+import {
   buildRecruitmentGenerationState,
   generateCandidates,
   removeExpiredCandidates,
@@ -673,6 +677,7 @@ function applyAgentFatigue(
   teams: GameState['teams'],
   config: GameState['config'],
   activeTeamIds: string[],
+  cases: GameState['cases'],
   activeTeamStressModifiers: Record<string, number> = {}
 ) {
   const activeAgentStressById = new Map<string, number>()
@@ -696,14 +701,23 @@ function applyAgentFatigue(
   )
   const missionFatigue = getMissionFatigue(config)
   const recoveryFatigue = getRecoveryFatigue(config)
+  const recoveryModeByAgent = buildDeployedRecoveryModeByAgentId(teams, cases, activeTeamIds)
 
   return Object.fromEntries(
     Object.entries(agents).map(([id, agent]) => {
-      const delta = activeAgentIds.has(id)
-        ? Math.max(1, Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0))))
-        : trainingAgentIds.has(id)
-          ? -(agent.recoveryRateBonus ?? 0)
-          : -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
+      let delta: number
+      if (activeAgentIds.has(id)) {
+        const rawDelta = Math.max(
+          1,
+          Math.round(missionFatigue * (1 + (activeAgentStressById.get(id) ?? 0)))
+        )
+        const mode = recoveryModeByAgent.get(id) ?? 'ordinary_rest'
+        delta = scaleDeployedMissionFatigueDelta(rawDelta, mode)
+      } else if (trainingAgentIds.has(id)) {
+        delta = -(agent.recoveryRateBonus ?? 0)
+      } else {
+        delta = -(recoveryFatigue + (agent.recoveryRateBonus ?? 0))
+      }
 
       return [
         id,
@@ -3131,6 +3145,7 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     context.nextState.teams,
     context.sourceState.config,
     [...context.activeTeamIds],
+    context.nextState.cases,
     context.activeTeamStressModifiers
   )
   const directiveAdjustedAgents =

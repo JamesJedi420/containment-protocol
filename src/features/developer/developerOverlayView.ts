@@ -7,7 +7,6 @@ import { buildAgentLoadoutReadinessSummary, listEquippedItemAssignments } from '
 import { listProgressClocks } from '../../domain/progressClocks'
 import { buildRecruitmentFunnelSummary } from '../../domain/recruitment'
 import { buildTrainingCertificationSummary } from '../../domain/sim/training'
-import { formatForegoneDowntimeSummary } from '../../domain/sim/downtimeSlot'
 import {
   buildTeamCompositionState,
   buildTeamWeakestLinkSummary,
@@ -20,6 +19,7 @@ import {
   explainMissionRouting,
   explainWeakestLinkResolution,
   explainWeeklyPressureState,
+  formatForegoneDowntimeSummary,
   type DeploymentReadinessExplanation,
   type RoutingExplanation,
   type WeakestLinkExplanation,

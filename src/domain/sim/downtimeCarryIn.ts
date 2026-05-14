@@ -50,7 +50,9 @@ export function computeDowntimeCarryInForAgent(
 
 /**
  * Rebuild carry-in stamps for every operative on every team currently assigned to the case.
- * Call after assignment mutations so the map matches roster reality.
+ * Call after assignment mutations so the map matches roster reality. Also run after **field-base
+ * staging rotation** (`applyFieldBaseStagingRotationAtWeekOpen`) so mid-contract swaps do not leave
+ * stale stamps for rotated-out operatives or omit rotated-in operatives during first-week readiness.
  */
 export function rebuildDeploymentCarryInForCase(
   state: GameState,

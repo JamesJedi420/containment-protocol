@@ -11,6 +11,7 @@ import {
   sanitizePersistedFieldBasePacket,
 } from '../domain/fieldBaseStaging'
 import type { CaseInstance, GameState } from '../domain/models'
+import { computeDowntimeCarryInForAgent } from '../domain/sim/downtimeCarryIn'
 import { getTeamMoveEligibility } from '../domain/sim/teamManagement'
 
 const SAMPLE_PACKET = {
@@ -172,5 +173,95 @@ describe('field base staging (SPE-1654)', () => {
     expect(getTeamMoveEligibility(next, 'a_ava', null).allowed).toBe(true)
     expect(getTeamMoveEligibility(next, 'a_casey', null).allowed).toBe(false)
     expect(formatFieldBaseStagingLegibilityLine(SAMPLE_PACKET)).toContain('test-bivouac')
+  })
+
+  it('SPE-1701: rebuilds deployment carry-in after field-base rotation so stamps match roster', () => {
+    const shell = createStartingState()
+    const deployedTeamId = 't_nightwatch'
+    const sansSato = shell.teams.t_greentape!.agentIds.filter((id) => id !== 'a_sato')
+
+    const baseCase: CaseInstance = {
+      id: 'case_exp',
+      templateId: 'occult-005',
+      title: 'Expedition',
+      description: 'd',
+      mode: 'probability',
+      kind: 'case',
+      status: 'in_progress',
+      difficulty: { combat: 10, investigation: 10, utility: 10, social: 10 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 3,
+      deadlineWeeks: 4,
+      deadlineRemaining: 3,
+      assignedTeamIds: [deployedTeamId],
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+      contract: {
+        templateId: 'institutions-liturgy-expedition',
+        fieldBase: { ...SAMPLE_PACKET },
+      },
+      deploymentCarryInByAgentId: {
+        a_ava: { readinessDelta: -5, code: 'residue-therapy-foregone', stampedWeek: 1 },
+      },
+    }
+
+    const assignedToExp = {
+      state: 'assigned' as const,
+      caseId: 'case_exp',
+      teamId: deployedTeamId,
+      startedWeek: 1,
+    }
+
+    const game: GameState = {
+      ...shell,
+      cases: {
+        ...shell.cases,
+        case_exp: baseCase,
+      },
+      teams: {
+        ...shell.teams,
+        t_greentape: {
+          ...shell.teams.t_greentape!,
+          agentIds: sansSato,
+          memberIds: sansSato,
+        },
+        [deployedTeamId]: {
+          ...shell.teams[deployedTeamId]!,
+          assignedCaseId: 'case_exp',
+        },
+      },
+      agents: {
+        ...shell.agents,
+        a_ava: {
+          ...shell.agents.a_ava!,
+          fatigue: 85,
+          assignment: assignedToExp,
+        },
+        a_kellan: { ...shell.agents.a_kellan!, assignment: assignedToExp },
+        a_mina: { ...shell.agents.a_mina!, assignment: assignedToExp },
+        a_rook: { ...shell.agents.a_rook!, assignment: assignedToExp },
+        a_casey: { ...shell.agents.a_casey!, assignment: { state: 'idle' } },
+      },
+    }
+
+    const next = applyFieldBaseStagingRotationAtWeekOpen(game)
+    const map = next.cases.case_exp?.deploymentCarryInByAgentId
+    expect(map?.a_ava).toBeUndefined()
+
+    const membersAfter = next.teams[deployedTeamId]!.memberIds ?? next.teams[deployedTeamId]!.agentIds
+    for (const agentId of membersAfter) {
+      const agent = next.agents[agentId]
+      expect(agent).toBeDefined()
+      const expected = computeDowntimeCarryInForAgent(agent!, next.week)
+      if (expected) {
+        expect(map?.[agentId]).toEqual(expected)
+      } else {
+        expect(map?.[agentId]).toBeUndefined()
+      }
+    }
   })
 })

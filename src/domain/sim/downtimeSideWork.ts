@@ -4,6 +4,10 @@ import { SIDE_WORK_CALIBRATION } from './calibration'
 /** Single bounded risky downtime job for SPE-1700 slice 1. */
 export type DowntimeSideWorkOptionId = 'offBooksCourier'
 
+/**
+ * Courier lockout marker. First SPE-1700 slice: no automatic decay or redemption here; clearing
+ * is explicit follow-up work outside this slice.
+ */
 export const OFF_BOOKS_COURIER_LOCKOUT_TAG = 'side-work-lockout:off-books-courier' as const
 
 export interface OffBooksCourierResolution {

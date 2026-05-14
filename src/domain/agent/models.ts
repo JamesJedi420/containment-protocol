@@ -729,7 +729,7 @@ export interface AgentDowntimeActivity {
 export interface AgentDowntimeSideWorkLast {
   week: number
   optionId: 'offBooksCourier'
-  outcome: 'paid' | 'lockout'
+  outcome: 'paid' | 'lockout' | 'denied'
   fundingDelta: number
   fatigueDelta: number
 }

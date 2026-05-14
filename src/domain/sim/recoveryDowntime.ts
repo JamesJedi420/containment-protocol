@@ -1,3 +1,4 @@
+import type { AgentDowntimeSideWorkLast } from '../agent/models'
 import type {
   FundingState,
   GameState,
@@ -13,7 +14,11 @@ import {
   stripExposureResidueFromFlags,
   vitalsHasExposureResidue,
 } from './recoveryImpairments'
-import { resolveDowntimeSlotForAgent } from './downtimeSlot'
+import {
+  canSelectOffBooksCourierSideWork,
+  foregonePrimaryMenuExcept,
+  resolveDowntimeSlotForAgent,
+} from './downtimeSlot'
 import {
   OFF_BOOKS_COURIER_LOCKOUT_TAG,
   resolveOffBooksCourierSideWork,
@@ -79,10 +84,31 @@ export function advanceRecoveryDowntimeForWeek({
   // 1. Apply downtime activity assignments and progress recovery/trauma deterministically
   for (const [agentId, agent] of Object.entries(sourceAgents)) {
     const mapActivity = downtimeAssignments[agentId]
-    const { effective: downtime, foregone } = resolveDowntimeSlotForAgent(
+    let { effective: downtime, foregone } = resolveDowntimeSlotForAgent(
       agent,
       mapActivity !== undefined ? { explicitEffective: mapActivity } : undefined
     )
+    let sideWorkDeniedLast: AgentDowntimeSideWorkLast | undefined
+    if (downtime === 'sideWork') {
+      const courierPreview = resolveOffBooksCourierSideWork(agent)
+      const ineligibleCourier =
+        !canSelectOffBooksCourierSideWork(agent) ||
+        (courierPreview.fundingDelta === 0 &&
+          courierPreview.fatigueDelta === 0 &&
+          !courierPreview.applyExposureResidue &&
+          !courierPreview.applyLockoutTag)
+      if (ineligibleCourier) {
+        downtime = 'rest'
+        foregone = foregonePrimaryMenuExcept('rest')
+        sideWorkDeniedLast = {
+          week,
+          optionId: 'offBooksCourier',
+          outcome: 'denied',
+          fundingDelta: 0,
+          fatigueDelta: 0,
+        }
+      }
+    }
     const inferredRecoveryStatus =
       agent.status === 'injured' ||
       agent.status === 'recovering' ||
@@ -271,7 +297,7 @@ export function advanceRecoveryDowntimeForWeek({
       }
     }
 
-    let downtimeSideWorkLast = agent.downtimeSideWorkLast
+    let courierRunLast = agent.downtimeSideWorkLast
     if (downtime === 'sideWork') {
       const r = resolveOffBooksCourierSideWork(agent)
       if (r.fundingDelta !== 0 || r.fatigueDelta !== 0 || r.applyExposureResidue || r.applyLockoutTag) {
@@ -295,7 +321,7 @@ export function advanceRecoveryDowntimeForWeek({
             ? appendExposureResidueToFlags(baseVitals.statusFlags)
             : (baseVitals.statusFlags ?? []),
         }
-        downtimeSideWorkLast = {
+        courierRunLast = {
           week,
           optionId: 'offBooksCourier',
           outcome: r.applyLockoutTag ? 'lockout' : 'paid',
@@ -338,7 +364,8 @@ export function advanceRecoveryDowntimeForWeek({
       vitals: finalVitals,
       tags: agentTags,
       copingStreak,
-      downtimeSideWorkLast: downtime === 'sideWork' ? downtimeSideWorkLast : agent.downtimeSideWorkLast,
+      downtimeSideWorkLast:
+        sideWorkDeniedLast ?? (downtime === 'sideWork' ? courierRunLast : agent.downtimeSideWorkLast),
     }
   }
 

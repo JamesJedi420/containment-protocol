@@ -3600,17 +3600,31 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
   })
 
   const fundingDelta = downtimeResult.agencyFundingDelta ?? 0
-  const agencyBefore = context.nextState.agency
-  const mergedAgency =
-    agencyBefore && fundingDelta !== 0
-      ? { ...agencyBefore, funding: (agencyBefore.funding ?? 0) + fundingDelta }
-      : agencyBefore
-
-  context.nextState = {
-    ...context.nextState,
-    agents: downtimeResult.updatedAgents,
-    teams: downtimeResult.updatedTeams,
-    ...(mergedAgency ? { agency: mergedAgency } : {}),
+  if (fundingDelta !== 0) {
+    const prevTopFunding =
+      context.nextState.funding ?? context.nextState.agency?.funding ?? 0
+    const nextTopFunding = prevTopFunding + fundingDelta
+    const agencyBefore = context.nextState.agency
+    context.nextState = {
+      ...context.nextState,
+      agents: downtimeResult.updatedAgents,
+      teams: downtimeResult.updatedTeams,
+      funding: nextTopFunding,
+      ...(agencyBefore
+        ? {
+            agency: {
+              ...agencyBefore,
+              funding: (agencyBefore.funding ?? prevTopFunding) + fundingDelta,
+            },
+          }
+        : {}),
+    }
+  } else {
+    context.nextState = {
+      ...context.nextState,
+      agents: downtimeResult.updatedAgents,
+      teams: downtimeResult.updatedTeams,
+    }
   }
   context.eventDrafts.push(...downtimeResult.eventDrafts)
 }

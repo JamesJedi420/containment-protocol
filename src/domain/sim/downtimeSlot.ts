@@ -3,10 +3,18 @@ import type { GameState, Id } from '../models'
 import type { DowntimeActivity } from './recoveryDowntime'
 import { canSelectOffBooksCourierSideWork } from './downtimeSideWork'
 
+/** Re-export for feature modules that must not import `downtimeSideWork` directly. */
+export { canSelectOffBooksCourierSideWork }
+
 /** Menu actions the player can assign as a single weekly primary (SPE-1699 + SPE-1700 side-work). */
 export const PLAYER_PRIMARY_DOWNTIME_MENU = ['rest', 'therapy', 'coping', 'other', 'sideWork'] as const
 
 export type PlayerPrimaryDowntimeMenu = (typeof PLAYER_PRIMARY_DOWNTIME_MENU)[number]
+
+/** Foregone primary-menu actions when `excluded` is the effective weekly pick (SPE-1699 menu). */
+export function foregonePrimaryMenuExcept(excluded: PlayerPrimaryDowntimeMenu): DowntimeActivity[] {
+  return PLAYER_PRIMARY_DOWNTIME_MENU.filter((a) => a !== excluded) as DowntimeActivity[]
+}
 
 const DOWNTIME_ACTIVITY_VALUES: readonly DowntimeActivity[] = [
   'rest',

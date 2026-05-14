@@ -4,10 +4,9 @@ import { createStartingState } from '../data/startingState'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { DOWNTIME_CARRY_IN_CALIBRATION, SIDE_WORK_CALIBRATION } from '../domain/sim/calibration'
 import { computeDowntimeCarryInForAgent } from '../domain/sim/downtimeCarryIn'
-import { setAgentPrimaryDowntimePlan } from '../domain/sim/downtimeSlot'
+import { setAgentPrimaryDowntimePlan, canSelectOffBooksCourierSideWork } from '../domain/sim/downtimeSlot'
 import {
   OFF_BOOKS_COURIER_LOCKOUT_TAG,
-  canSelectOffBooksCourierSideWork,
   resolveOffBooksCourierSideWork,
 } from '../domain/sim/downtimeSideWork'
 import { advanceRecoveryDowntimeForWeek } from '../domain/sim/recoveryDowntime'
@@ -130,5 +129,50 @@ describe('SPE-1700 off-books courier side-work', () => {
       SIDE_WORK_CALIBRATION.offBooksCourierSuccessFundingDelta
     )
     expect(next.agents[agentId]?.vitals?.statusFlags).toContain(EXPOSURE_RESIDUE_STATUS_FLAG)
+  })
+
+  it('isolates courier funding delta in paired advanceWeek runs (rest vs sideWork)', () => {
+    const base = createStartingState()
+    const withRest = setAgentPrimaryDowntimePlan(base, 'a_ava', 'rest')
+    const withCourier = setAgentPrimaryDowntimePlan(base, 'a_ava', 'sideWork')
+    const nextRest = advanceWeek(withRest)
+    const nextCourier = advanceWeek(withCourier)
+    const delta = SIDE_WORK_CALIBRATION.offBooksCourierSuccessFundingDelta
+    expect(nextCourier.funding - nextRest.funding).toBe(delta)
+    expect((nextCourier.agency?.funding ?? 0) - (nextRest.agency?.funding ?? 0)).toBe(delta)
+  })
+
+  it('coerces persisted sideWork to rest when locked out and records denied outcome', () => {
+    const agents = {
+      a1: {
+        id: 'a1',
+        name: 'A',
+        role: 'tech' as const,
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: [OFF_BOOKS_COURIER_LOCKOUT_TAG],
+        relationships: {},
+        fatigue: 30,
+        status: 'active' as const,
+        vitals: {
+          health: 100,
+          stress: 0,
+          morale: 50,
+          wounds: 0,
+          statusFlags: [] as string[],
+        },
+        downtimeActivity: { activity: 'sideWork' as const, sinceWeek: 1 },
+      },
+    }
+    const result = advanceRecoveryDowntimeForWeek({
+      week: 2,
+      sourceAgents: agents,
+      sourceTeams: {},
+      downtimeAssignments: { a1: 'sideWork' as DowntimeActivity },
+    })
+    const updated = result.updatedAgents.a1!
+    expect(updated.downtimeActivity?.activity).toBe('rest')
+    expect(updated.downtimeSideWorkLast?.outcome).toBe('denied')
+    expect(result.agencyFundingDelta).toBeUndefined()
+    expect(result.eventDrafts.some((e) => e.type === 'staff.side_work.resolved')).toBe(false)
   })
 })

@@ -8,6 +8,8 @@ import { vitalsHasExposureResidue } from './recoveryImpairments'
 /**
  * SPE-1701: deterministic per-agent carry-in from post-downtime posture.
  * Negative path takes precedence over positive when both could apply.
+ * SPE-1700 hardening: courier lockout is evaluated before residue/therapy so side-work access
+ * consequences are not masked by overlapping exposure residue.
  */
 export function computeDowntimeCarryInForAgent(
   agent: Agent,
@@ -17,18 +19,18 @@ export function computeDowntimeCarryInForAgent(
   const hasResidue = vitalsHasExposureResidue(agent.vitals)
   const forewentTherapy = foregone?.includes('therapy')
 
-  if (hasResidue && forewentTherapy) {
-    return {
-      readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.residueTherapyForegoneReadinessPenalty,
-      code: 'residue-therapy-foregone',
-      stampedWeek: week,
-    }
-  }
-
   if (agent.tags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)) {
     return {
       readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.offBooksCourierLockoutReadinessPenalty,
       code: 'off-books-courier-lockout',
+      stampedWeek: week,
+    }
+  }
+
+  if (hasResidue && forewentTherapy) {
+    return {
+      readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.residueTherapyForegoneReadinessPenalty,
+      code: 'residue-therapy-foregone',
       stampedWeek: week,
     }
   }

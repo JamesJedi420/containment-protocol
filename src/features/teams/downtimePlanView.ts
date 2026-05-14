@@ -4,9 +4,9 @@
  */
 export {
   PLAYER_PRIMARY_DOWNTIME_MENU,
+  canSelectOffBooksCourierSideWork,
   canSelectPrimaryDowntimePlan,
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,
   type PlayerPrimaryDowntimeMenu,
 } from '../../domain/sim/downtimeSlot'
-export { canSelectOffBooksCourierSideWork } from '../../domain/sim/downtimeSideWork'

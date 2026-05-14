@@ -400,3 +400,15 @@ export const LIVE_REGISTRY_ALERT_CENTER_CALIBRATION = {
    */
   escalationOverloadThreshold: 3,
 } as const
+
+/** SPE-1701 slice 1: deployment readiness deltas from post-downtime posture (first contract week only). */
+export const DOWNTIME_CARRY_IN_CALIBRATION = {
+  /** Extra readiness penalty when residue is present but supervised therapy was foregone. */
+  residueTherapyForegoneReadinessPenalty: 5,
+  /** Readiness lift for a genuinely rested week with stable energy (does not duplicate raw fatigue term). */
+  wellRestedStableEnergyReadinessBonus: 4,
+  /** Fatigue ceiling for the well-rested bonus (higher fatigue already depresses readiness via averageFatigue). */
+  wellRestedFatigueCeiling: 28,
+  /** Cap on summed per-agent carry-in applied to team readiness (prevents runaway stacking). */
+  teamReadinessDeltaCap: 12,
+} as const

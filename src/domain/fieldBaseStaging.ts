@@ -20,6 +20,7 @@ import type {
   MissionRewardInventoryGrant,
   Team,
 } from './models'
+import { rebuildDeploymentCarryInForCase } from './sim/downtimeCarryIn'
 import { getTeamAssignedCaseId, getTeamMemberIds, normalizeGameState } from './teamSimulation'
 
 const QUALITY_MAX = 3
@@ -314,7 +315,18 @@ export function applyFieldBaseStagingRotationAtWeekOpen(state: GameState): GameS
       ...(rotatedIn ? { [incomingId]: rotatedIn } : {}),
     }
 
-    next = { ...next, teams: nextTeams, agents: nextAgents }
+    const interim: GameState = { ...next, teams: nextTeams, agents: nextAgents }
+    const carryIn = rebuildDeploymentCarryInForCase(interim, caseData.id)
+    next = {
+      ...interim,
+      cases: {
+        ...interim.cases,
+        [caseData.id]: {
+          ...interim.cases[caseData.id]!,
+          deploymentCarryInByAgentId: carryIn,
+        },
+      },
+    }
     teams = nextTeams
     mutated = true
   }

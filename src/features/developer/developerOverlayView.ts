@@ -2,7 +2,7 @@ import { buildDeveloperLogSnapshot } from '../../domain/developerLog'
 import { listQueuedRuntimeEvents } from '../../domain/eventQueue'
 import { buildFlagSystemSnapshot } from '../../domain/flagSystem'
 import { readGameStateManager } from '../../domain/gameStateManager'
-import type { GameFlagValue, GameState } from '../../domain/models'
+import type { AgentDeploymentCarryInStamp, GameFlagValue, GameState } from '../../domain/models'
 import { buildAgentLoadoutReadinessSummary, listEquippedItemAssignments } from '../../domain/equipment'
 import { listProgressClocks } from '../../domain/progressClocks'
 import { buildRecruitmentFunnelSummary } from '../../domain/recruitment'
@@ -119,6 +119,8 @@ export interface DeveloperOverlaySnapshot {
       estimatedDeployWeeks: number
       estimatedRecoveryWeeks: number
       explanation: DeploymentReadinessExplanation
+      /** SPE-1701: stamped carry-in map for assigned case (developer/debug). */
+      caseDeploymentCarryInByAgentId?: Record<string, AgentDeploymentCarryInStamp> | null
     }>
   }
   missions: {
@@ -295,10 +297,18 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     })
     .sort((left, right) => left.teamId.localeCompare(right.teamId))
   const deploymentSummaries = Object.values(game.teams)
-    .map((team) => ({
-      teamId: team.id,
-      readiness: team.deploymentReadinessState,
-    }))
+    .map((team) => {
+      const assignedCaseId = team.status?.assignedCaseId ?? team.assignedCaseId
+      const caseDeploymentCarryInByAgentId =
+        assignedCaseId && game.cases[assignedCaseId]
+          ? (game.cases[assignedCaseId].deploymentCarryInByAgentId ?? null)
+          : null
+      return {
+        teamId: team.id,
+        readiness: team.deploymentReadinessState,
+        caseDeploymentCarryInByAgentId,
+      }
+    })
     .sort((left, right) => left.teamId.localeCompare(right.teamId))
   const bestTeams = rankBestAvailableTeams(
     Object.values(game.teams),
@@ -462,6 +472,9 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
         estimatedDeployWeeks: summary.readiness?.estimatedDeployWeeks ?? 0,
         estimatedRecoveryWeeks: summary.readiness?.estimatedRecoveryWeeks ?? 0,
         explanation: explainDeploymentReadiness(game, summary.teamId),
+        ...(summary.caseDeploymentCarryInByAgentId != null
+          ? { caseDeploymentCarryInByAgentId: summary.caseDeploymentCarryInByAgentId }
+          : {}),
       })),
     },
     missions: {

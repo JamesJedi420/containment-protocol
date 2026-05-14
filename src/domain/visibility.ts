@@ -509,6 +509,10 @@ export function explainDeploymentReadiness(
       readiness.intelPenalty && readiness.intelPenalty > 0
         ? `Intel penalty is ${readiness.intelPenalty} at confidence ${intel.confidence.toFixed(2)}, uncertainty ${intel.uncertainty.toFixed(2)}, age ${intel.age}.`
         : undefined,
+      readiness.deploymentCarryInReadinessDelta !== undefined &&
+      readiness.deploymentCarryInReadinessDelta !== 0
+        ? `Downtime carry-in (first contract week): ${readiness.deploymentCarryInReadinessDelta > 0 ? '+' : ''}${readiness.deploymentCarryInReadinessDelta} readiness (${(readiness.deploymentCarryInCodes ?? []).join(', ') || 'codes'}).`
+        : undefined,
       `Readiness ${readiness.readinessScore} comes from fatigue ${readiness.averageFatigue}, minimum member readiness ${readiness.minimumMemberReadiness}, and coverage ${readiness.coverageCompleteness.covered.length}/${readiness.coverageCompleteness.required.length}.`,
       eligibility.explanationNotes[0],
     ]),

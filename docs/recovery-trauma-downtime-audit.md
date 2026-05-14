@@ -61,6 +61,13 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Ordering:** `advanceWeek` captures each agent’s resolved effective slot at the **start** of `advanceQueues` (before `advanceTrainingQueues` removes completed programs from the queue and clears `assignment.state`), then `applyRecoveryDowntimeAfterMissions` consumes that snapshot. This keeps the **final week** of a training program on the `training` slot instead of incorrectly falling through to menu/`rest` after completion processing.
 - **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceWeek` snapshot on `WeeklyExecutionContext.downtimeSlotEffectiveByAgentId`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`. Tests: `src/test/downtimeSlot.test.ts`.
 
+### 3d. SPE-1701 slice — deployment carry-in (readiness, first contract week)
+
+- **Stamp:** when teams are committed to an `in_progress` case (`assignTeam`, `launchMajorIncident`, and `unassignTeam` rebuilds), `rebuildDeploymentCarryInForCase` writes `case.deploymentCarryInByAgentId` from each assigned operative’s post-downtime fields (`downtimeActivity` incl. `foregoneThisInterval`, `recoveryStatus`, `trauma`, `vitals` / `exposure:residue`, `energyBudget`, scalar `fatigue`). **SPE-1654 field-base staging rotation** (`applyFieldBaseStagingRotationAtWeekOpen`) also rebuilds carry-in after a successful swap so mid-contract roster changes cannot leave stale or missing stamps during the first contract week.
+- **Consume:** `buildTeamDeploymentReadinessState` adds a **bounded** summed readiness adjustment **only** while `weeksRemaining === durationWeeks` (first in-contract week), so carry-in does not stack with later-week readiness passes.
+- **Paths (slice 1):** `residue-therapy-foregone` (negative) when residue is present and therapy was listed as foregone; `well-rested-stable-energy` (positive) for a `rest` week with `energyBudget.reserveBand === 'stable'`, low fatigue, healthy recovery, no trauma, and no residue. Constants: `DOWNTIME_CARRY_IN_CALIBRATION` in `calibration.ts`. Logic: `computeDowntimeCarryInForAgent` in `downtimeCarryIn.ts`.
+- **Evidence:** tests `src/test/downtimeCarryIn.test.ts`, `src/test/fieldBaseStaging.test.ts` (rotation + carry-in sync); developer overlay surfaces `caseDeploymentCarryInByAgentId` on deployment summaries.
+
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.
 - High trauma reduces deployment readiness, training efficiency, and recovery speed.

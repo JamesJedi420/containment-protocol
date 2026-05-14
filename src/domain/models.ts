@@ -120,6 +120,10 @@ export interface TeamDeploymentReadinessState {
   softRisks: DeploymentSoftRiskCode[]
   nicheSummary?: TeamNicheSummary
   intelPenalty?: number
+  /** SPE-1701: summed bounded carry-in readiness adjustment (first in-contract week only). */
+  deploymentCarryInReadinessDelta?: number
+  /** SPE-1701: carry-in reason codes contributing to the team delta. */
+  deploymentCarryInCodes?: string[]
   coverageCompleteness: {
     required: string[]
     covered: string[]
@@ -1226,6 +1230,15 @@ export interface CaseTemplate {
   raid?: { minTeams: number; maxTeams: number }
 }
 
+/** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
+export type DeploymentCarryInCode = 'residue-therapy-foregone' | 'well-rested-stable-energy'
+
+export interface AgentDeploymentCarryInStamp {
+  readinessDelta: number
+  code: DeploymentCarryInCode
+  stampedWeek: number
+}
+
 export interface CaseInstance {
   /**
    * SPE-38: True if this operation suffered a support shortfall this week (deterministic, for fallout/penalty).
@@ -1293,6 +1306,12 @@ export interface CaseInstance {
   regionTag?: string
 
   raid?: { minTeams: number; maxTeams: number }
+
+  /**
+   * SPE-1701: per-agent deployment carry-in stamped when teams are assigned; consumed in
+   * `buildTeamDeploymentReadinessState` only while `weeksRemaining === durationWeeks` (first in-contract week).
+   */
+  deploymentCarryInByAgentId?: Record<Id, AgentDeploymentCarryInStamp>
 
   // Added for spatial/visibility/transition support (SPE-57, SPE-XX)
   siteLayer?: 'exterior' | 'transition' | 'interior'

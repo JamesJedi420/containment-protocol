@@ -268,6 +268,10 @@ Some expedition contracts carry a compact **field-base staging packet** (`fieldB
 
 Rotated-out operatives receive a **bounded, deterministic fatigue shave** derived from staging `medical` and `safety` bands. **Supply** band scales recoverable **material** quantities in the mission reward breakdown. Legibility lines are appended to mission reward reasons. **Agent assignment** (`assignment.team_assigned` / `assignment.team_unassigned` history) is updated for the incoming and outgoing operatives so roster membership and deployment records stay aligned.
 
+### 4.8a Downtime deployment carry-in (SPE-1701)
+
+When a team is committed to an active case, the sim stamps compact **per-operative carry-in** on the case from the operative’s last downtime posture (`deploymentCarryInByAgentId`). **Deployment readiness** may apply a small bounded adjustment from that stamp **only during the first in-contract week** (`weeksRemaining === durationWeeks`), so post-downtime choices have an explicit mission-facing hook without duplicating raw fatigue or residue recovery math. Unassigning the last team clears the stamp map.
+
 ### 4.9 Facility-linked equipment quality (SPE-21)
 
 Equipment and facility-backed fabrication should use **semantic quality bands** (for example: prototype, field-grade, depot-refit, purpose-built, disposable) that shift **reliability** and **performance envelopes** instead of a flat numeric item ladder.

@@ -101,7 +101,7 @@ describe('SPE-1701 downtime deployment carry-in', () => {
         downtimeActivity: {
           activity: 'rest',
           sinceWeek: 2,
-          foregoneThisInterval: ['therapy', 'coping', 'other', 'sideWork'],
+          foregoneThisInterval: ['therapy', 'coping', 'other', 'sideWork', 'sideWorkTrusted'],
         },
         vitals: { statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG] },
       },

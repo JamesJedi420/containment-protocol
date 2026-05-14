@@ -6,7 +6,10 @@ export {
   PLAYER_PRIMARY_DOWNTIME_MENU,
   canSelectOffBooksCourierSideWork,
   canSelectPrimaryDowntimePlan,
+  canSelectTrustedCourierSideWork,
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,
+  getTrustedCourierPrimaryBlocker,
+  trustedCourierPrimaryBlockerLabel,
   type PlayerPrimaryDowntimeMenu,
 } from '../../domain/sim/downtimeSlot'

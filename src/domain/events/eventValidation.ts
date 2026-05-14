@@ -642,7 +642,7 @@ export const operationEventPayloadSchemas = {
   'staff.side_work.resolved': z.object({
     week: z.number(),
     agentId: z.string(),
-    optionId: z.literal('offBooksCourier'),
+    optionId: z.enum(['offBooksCourier', 'trustedCourier']),
     outcome: z.enum(['paid', 'lockout']),
     fundingDelta: z.number(),
     fatigueDelta: z.number(),

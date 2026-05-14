@@ -719,16 +719,18 @@ export interface AgentTraumaState {
 }
 
 export interface AgentDowntimeActivity {
-  activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork'
+  activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork' | 'sideWorkTrusted'
   sinceWeek: number
   /** SPE-1699: deterministic list of other primary actions not taken this weekly tick. */
-  foregoneThisInterval?: Array<'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork'>
+  foregoneThisInterval?: Array<
+    'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork' | 'sideWorkTrusted'
+  >
 }
 
-/** SPE-1700: last resolved risky downtime outcome for inspection / debug. */
+/** SPE-1700 / SPE-1702: last resolved risky downtime outcome for inspection / debug. */
 export interface AgentDowntimeSideWorkLast {
   week: number
-  optionId: 'offBooksCourier'
+  optionId: 'offBooksCourier' | 'trustedCourier'
   outcome: 'paid' | 'lockout' | 'denied'
   fundingDelta: number
   fatigueDelta: number
@@ -881,7 +883,7 @@ export interface Agent {
   trauma?: AgentTraumaState
   downtimeActivity?: AgentDowntimeActivity
 
-  /** SPE-1700: most recent risky side-work resolution (bounded; optional). */
+  /** SPE-1700 / SPE-1702: most recent risky side-work resolution (bounded; optional). */
   downtimeSideWorkLast?: AgentDowntimeSideWorkLast
 
   /**

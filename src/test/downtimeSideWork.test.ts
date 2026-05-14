@@ -7,7 +7,12 @@ import { computeDowntimeCarryInForAgent } from '../domain/sim/downtimeCarryIn'
 import { setAgentPrimaryDowntimePlan, canSelectOffBooksCourierSideWork } from '../domain/sim/downtimeSlot'
 import {
   OFF_BOOKS_COURIER_LOCKOUT_TAG,
+  OFF_BOOKS_COURIER_PAID_PREREQ_TAG,
+  canSelectTrustedCourierSideWork,
+  getTrustedCourierPrimaryBlocker,
+  isInactiveSideWorkResolution,
   resolveOffBooksCourierSideWork,
+  resolveTrustedCourierSideWork,
 } from '../domain/sim/downtimeSideWork'
 import { advanceRecoveryDowntimeForWeek } from '../domain/sim/recoveryDowntime'
 import type { DowntimeActivity } from '../domain/sim/recoveryDowntime'
@@ -81,6 +86,7 @@ describe('SPE-1700 off-books courier side-work', () => {
     expect(updated.fatigue).toBe(30 + SIDE_WORK_CALIBRATION.offBooksCourierSuccessFatigueDelta)
     expect(updated.vitals?.statusFlags).toContain(EXPOSURE_RESIDUE_STATUS_FLAG)
     expect(updated.downtimeSideWorkLast?.outcome).toBe('paid')
+    expect(updated.tags).toContain(OFF_BOOKS_COURIER_PAID_PREREQ_TAG)
     expect(result.eventDrafts.some((e) => e.type === 'staff.side_work.resolved')).toBe(true)
   })
 
@@ -125,6 +131,7 @@ describe('SPE-1700 off-books courier side-work', () => {
     expect(state.agents[agentId]?.downtimeActivity?.activity).toBe('sideWork')
     const next = advanceWeek(state)
     expect(next.agents[agentId]?.downtimeSideWorkLast?.outcome).toBe('paid')
+    expect(next.agents[agentId]?.tags).toContain(OFF_BOOKS_COURIER_PAID_PREREQ_TAG)
     expect(next.agents[agentId]?.downtimeSideWorkLast?.fundingDelta).toBe(
       SIDE_WORK_CALIBRATION.offBooksCourierSuccessFundingDelta
     )
@@ -174,5 +181,148 @@ describe('SPE-1700 off-books courier side-work', () => {
     expect(updated.downtimeSideWorkLast?.outcome).toBe('denied')
     expect(result.agencyFundingDelta).toBeUndefined()
     expect(result.eventDrafts.some((e) => e.type === 'staff.side_work.resolved')).toBe(false)
+  })
+})
+
+describe('SPE-1702 trusted courier prerequisite gate', () => {
+  it('resolveTrustedCourierSideWork is inactive without paid-courier prerequisite tag', () => {
+    const agent = {
+      id: 'a1',
+      name: 'A',
+      role: 'tech' as const,
+      baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      relationships: {},
+      fatigue: 30,
+      status: 'active' as const,
+    }
+    expect(isInactiveSideWorkResolution(resolveTrustedCourierSideWork(agent))).toBe(true)
+  })
+
+  it('paid courier week stamps prerequisite tag and unlocks trusted selection', () => {
+    const agents = {
+      a1: {
+        id: 'a1',
+        name: 'A',
+        role: 'tech' as const,
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: [],
+        relationships: {},
+        fatigue: 30,
+        status: 'active' as const,
+        vitals: {
+          health: 100,
+          stress: 0,
+          morale: 50,
+          wounds: 0,
+          statusFlags: [] as string[],
+        },
+        assignment: { state: 'idle' as const },
+      },
+    }
+    const afterCourier = advanceRecoveryDowntimeForWeek({
+      week: 2,
+      sourceAgents: agents,
+      sourceTeams: {},
+      downtimeAssignments: { a1: 'sideWork' as DowntimeActivity },
+    })
+    const u = afterCourier.updatedAgents.a1!
+    expect(u.tags).toContain(OFF_BOOKS_COURIER_PAID_PREREQ_TAG)
+    expect(canSelectTrustedCourierSideWork(u)).toBe(true)
+    expect(getTrustedCourierPrimaryBlocker(u)).toBeNull()
+  })
+
+  it('trusted courier pays higher bounded funding than base courier when eligible', () => {
+    const agent = {
+      id: 'a1',
+      name: 'A',
+      role: 'tech' as const,
+      baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
+      relationships: {},
+      fatigue: 40,
+      status: 'active' as const,
+    }
+    const r = resolveTrustedCourierSideWork(agent)
+    expect(r.fundingDelta).toBe(SIDE_WORK_CALIBRATION.trustedCourierSuccessFundingDelta)
+    expect(r.fundingDelta).toBeGreaterThan(SIDE_WORK_CALIBRATION.offBooksCourierSuccessFundingDelta)
+    expect(r.fatigueDelta).toBe(SIDE_WORK_CALIBRATION.trustedCourierSuccessFatigueDelta)
+    expect(r.applyExposureResidue).toBe(true)
+  })
+
+  it('setAgentPrimaryDowntimePlan refuses sideWorkTrusted without prerequisite tag', () => {
+    const game = createStartingState()
+    const agentId = Object.keys(game.agents)[0]!
+    const agent = game.agents[agentId]!
+    const idle: typeof agent = { ...agent, assignment: { state: 'idle' as const } }
+    const g2 = { ...game, agents: { ...game.agents, [agentId]: idle } }
+    expect(canSelectTrustedCourierSideWork(idle)).toBe(false)
+    expect(getTrustedCourierPrimaryBlocker(idle)).toBe('missing_paid_courier')
+    const next = setAgentPrimaryDowntimePlan(g2, agentId, 'sideWorkTrusted')
+    expect(next.agents[agentId]?.downtimeActivity?.activity).not.toBe('sideWorkTrusted')
+  })
+
+  it('setAgentPrimaryDowntimePlan refuses sideWorkTrusted when courier lockout is present', () => {
+    const game = createStartingState()
+    const agentId = Object.keys(game.agents)[0]!
+    const agent = game.agents[agentId]!
+    const locked: typeof agent = {
+      ...agent,
+      tags: [...agent.tags, OFF_BOOKS_COURIER_LOCKOUT_TAG, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
+      assignment: { state: 'idle' as const },
+    }
+    const g2 = { ...game, agents: { ...game.agents, [agentId]: locked } }
+    expect(getTrustedCourierPrimaryBlocker(locked)).toBe('courier_lockout')
+    const next = setAgentPrimaryDowntimePlan(g2, agentId, 'sideWorkTrusted')
+    expect(next.agents[agentId]?.downtimeActivity?.activity).not.toBe('sideWorkTrusted')
+  })
+
+  it('coerces persisted sideWorkTrusted to rest when ineligible and records denied outcome', () => {
+    const agents = {
+      a1: {
+        id: 'a1',
+        name: 'A',
+        role: 'tech' as const,
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: [],
+        relationships: {},
+        fatigue: 30,
+        status: 'active' as const,
+        vitals: {
+          health: 100,
+          stress: 0,
+          morale: 50,
+          wounds: 0,
+          statusFlags: [] as string[],
+        },
+        downtimeActivity: { activity: 'sideWorkTrusted' as const, sinceWeek: 1 },
+      },
+    }
+    const result = advanceRecoveryDowntimeForWeek({
+      week: 2,
+      sourceAgents: agents,
+      sourceTeams: {},
+      downtimeAssignments: { a1: 'sideWorkTrusted' as DowntimeActivity },
+    })
+    const updated = result.updatedAgents.a1!
+    expect(updated.downtimeActivity?.activity).toBe('rest')
+    expect(updated.downtimeSideWorkLast?.outcome).toBe('denied')
+    expect(updated.downtimeSideWorkLast?.optionId).toBe('trustedCourier')
+  })
+
+  it('trusted courier lockout uses shared courier lockout tag at stricter fatigue threshold', () => {
+    const agent = {
+      id: 'a1',
+      name: 'A',
+      role: 'tech' as const,
+      baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
+      relationships: {},
+      fatigue: SIDE_WORK_CALIBRATION.trustedCourierHighFatigueThreshold,
+      status: 'active' as const,
+    }
+    const r = resolveTrustedCourierSideWork(agent)
+    expect(r.applyLockoutTag).toBe(true)
+    expect(r.fundingDelta).toBe(0)
   })
 })

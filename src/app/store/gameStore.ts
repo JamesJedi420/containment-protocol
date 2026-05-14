@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist, type StateStorage } from 'zustand/middleware'
 import {
   appendOperationEventDrafts,
+  createAgencyFrontBusinessOpenedDraft,
   createAgentInstructorAssignedDraft,
   createAgentInstructorUnassignedDraft,
   createSystemAcademyUpgradedDraft,
@@ -116,6 +117,7 @@ import {
   type PlayerPrimaryDowntimeMenu,
 } from '../../domain/sim/downtimeSlot'
 import { upgradeAcademy } from '../../domain/sim/academyUpgrade'
+import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import {
   assignInstructor,
   getInstructorBonus,
@@ -252,6 +254,8 @@ interface GameStore {
   ) => void
   spendSkillPoint: (agentId: Id, stat: StatKey) => void
   upgradeAcademy: () => void
+  /** SPE-1703a: open the courier shell front when prerequisites and funding allow. */
+  openCourierShellFront: () => void
   assignInstructor: (staffId: Id, agentId: Id) => void
   unassignInstructor: (staffId: Id) => void
   reconcileAgents: (leftId: Id, rightId: Id) => void
@@ -1294,6 +1298,29 @@ export const useGameStore = create<GameStore>()(
           }
           // No event if no upgrade
           return { game: next }
+        }),
+
+      openCourierShellFront: () =>
+        set((s) => {
+          const before = s.game
+          const hadCourierShell = before.agency?.courierShellFront?.type === 'courierShell'
+          const next = openCourierShellFront(before)
+          const hasCourierShell = next.agency?.courierShellFront?.type === 'courierShell'
+          if (!hasCourierShell || hadCourierShell) {
+            return { game: next }
+          }
+          const cost = next.agency?.courierShellFront?.startupCostPaid ?? 0
+          return {
+            game: appendOperationEventDrafts(next, [
+              createAgencyFrontBusinessOpenedDraft({
+                week: next.week,
+                kind: 'courierShell',
+                startupCost: cost,
+                fundingBefore: before.funding,
+                fundingAfter: next.funding,
+              }),
+            ]),
+          }
         }),
 
       assignInstructor: (staffId, agentId) =>

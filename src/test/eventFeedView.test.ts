@@ -37,6 +37,7 @@ function inferSource(type: string): string {
   if (type.startsWith('intel.')) return 'intel'
   if (type.startsWith('recruitment.')) return 'intel'
   if (type.startsWith('agent.')) return 'agent'
+  if (type.startsWith('staff.')) return 'agent'
   if (type.startsWith('production.') || type.startsWith('market.')) return 'production'
   if (type.startsWith('faction.')) return 'faction'
   return 'system'
@@ -848,6 +849,75 @@ describe('buildEventFeedView', () => {
     expect(view.detail).toContain('Tier 1 -> 2')
     expect(view.detail).toContain('Cost $500')
     expect(view.href).toBe('/training-division')
+  })
+
+  it('agency.front_business.opened — neutral tone, startup and funding in detail', () => {
+    const event = makeEvent('agency.front_business.opened', {
+      week: 3,
+      kind: 'courierShell',
+      startupCost: 750,
+      fundingBefore: 9000,
+      fundingAfter: 8250,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.week).toBe(3)
+    expect(view.tone).toBe('neutral')
+    expect(view.title).toContain('Courier shell')
+    expect(view.detail).toContain('$750')
+    expect(view.sourceLabel).toBe('System')
+  })
+
+  it('agency.front_business.resolved — tone follows shell status', () => {
+    const event = makeEvent('agency.front_business.resolved', {
+      week: 4,
+      kind: 'courierShell',
+      statusBefore: 'active',
+      statusAfter: 'strained',
+      fundingDelta: -50,
+      riskScore: 5,
+      lockoutCount: 1,
+      residueCount: 0,
+      budgetPressure: 3,
+    })
+    const view = buildEventFeedView(event)
+
+    expect(view.tone).toBe('warning')
+    expect(view.detail).toContain('strained')
+  })
+
+  it('includes courier shell front-business events in getFilteredEventFeedViews', () => {
+    const opened = makeEvent(
+      'agency.front_business.opened',
+      {
+        week: 2,
+        kind: 'courierShell',
+        startupCost: 750,
+        fundingBefore: 9000,
+        fundingAfter: 8250,
+      },
+      { timestamp: '2042-01-08T00:00:00.001Z' }
+    )
+    const resolved = makeEvent(
+      'agency.front_business.resolved',
+      {
+        week: 3,
+        kind: 'courierShell',
+        statusBefore: 'active',
+        statusAfter: 'active',
+        fundingDelta: 150,
+        riskScore: 2,
+        lockoutCount: 0,
+        residueCount: 0,
+        budgetPressure: 1,
+      },
+      { timestamp: '2042-01-08T00:00:01.000Z' }
+    )
+    const game = gameWithEvents([resolved, opened])
+    const views = getFilteredEventFeedViews(game)
+    expect(views).toHaveLength(2)
+    expect(views.some((v) => v.event.type === 'agency.front_business.opened')).toBe(true)
+    expect(views.some((v) => v.event.type === 'agency.front_business.resolved')).toBe(true)
   })
 
   it('every event exposes a non-empty timestampLabel derived from timestamp', () => {

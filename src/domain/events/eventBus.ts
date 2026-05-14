@@ -618,6 +618,26 @@ export function createFactionUnlockAvailableDraft(
   }
 }
 
+export function createAgencyFrontBusinessOpenedDraft(
+  payload: OperationEventPayloadMap['agency.front_business.opened']
+): OperationEventDraft<'agency.front_business.opened'> {
+  return {
+    type: 'agency.front_business.opened',
+    sourceSystem: 'system',
+    payload,
+  }
+}
+
+export function createAgencyFrontBusinessResolvedDraft(
+  payload: OperationEventPayloadMap['agency.front_business.resolved']
+): OperationEventDraft<'agency.front_business.resolved'> {
+  return {
+    type: 'agency.front_business.resolved',
+    sourceSystem: 'system',
+    payload,
+  }
+}
+
 export function createSystemAcademyUpgradedDraft(
   payload: OperationEventPayloadMap['system.academy_upgraded']
 ): OperationEventDraft<'system.academy_upgraded'> {

@@ -121,7 +121,11 @@ import {
   explainRelayChain,
 } from '../explanations'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
-import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  createAgencyFrontBusinessResolvedDraft,
+  type AnyOperationEventDraft,
+} from '../events'
 import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
@@ -132,6 +136,7 @@ import type {
   AgencyState,
   CampaignToIncidentPacket,
   CaseInstance,
+  FundingState,
   GameState,
   IncidentToCampaignPacket,
   LeaderBonus,
@@ -244,6 +249,12 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
+import {
+  createInitialFundingState,
+  normalizeFundingState,
+} from '../funding'
+import { FRONT_BUSINESS_CALIBRATION } from './calibration'
+import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
@@ -528,6 +539,14 @@ function safeNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && !Number.isNaN(value) ? value : fallback
 }
 
+function cloneFundingStateForCanonicalize(fs: NonNullable<AgencyState['fundingState']>): FundingState {
+  return {
+    ...fs,
+    fundingHistory: fs.fundingHistory.map((entry) => ({ ...entry })),
+    procurementBacklog: fs.procurementBacklog.map((entry) => ({ ...entry })),
+  }
+}
+
 function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined): AgencyState {
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
@@ -549,6 +568,11 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     ...(typeof base?.coordinationFrictionReason === 'string'
       ? { coordinationFrictionReason: base.coordinationFrictionReason }
       : {}),
+    ...(Array.isArray(base?.progressionUnlockIds)
+      ? { progressionUnlockIds: [...base.progressionUnlockIds] }
+      : {}),
+    ...(base?.fundingState ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) } : {}),
+    ...(base?.courierShellFront ? { courierShellFront: { ...base.courierShellFront } } : {}),
   }
 }
 
@@ -3629,6 +3653,68 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
   context.eventDrafts.push(...downtimeResult.eventDrafts)
 }
 
+function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext) {
+  const closedWeek = context.sourceState.week
+  const pre = context.nextState
+  const res = resolveCourierShellFrontWeekly(pre, closedWeek)
+  if (!res) return
+
+  const agencyBefore = pre.agency
+  if (!agencyBefore) return
+
+  const prevTop = pre.funding ?? 0
+  const nextTop = prevTop + res.fundingDelta
+  const riskBreakdown = getCourierShellRiskBreakdown(pre, closedWeek)
+  const frontBefore = agencyBefore.courierShellFront
+
+  let nextAgency: AgencyState = {
+    ...agencyBefore,
+    funding: nextTop,
+    courierShellFront: res.nextFront,
+  }
+
+  if (res.applyCollapseBudgetPressureDebt) {
+    const baseFs =
+      agencyBefore.fundingState ??
+      createInitialFundingState(
+        pre.config.fundingBasePerWeek,
+        pre.config.fundingPerResolution,
+        pre.config.fundingPenaltyPerFail,
+        pre.config.fundingPenaltyPerUnresolved,
+        nextTop
+      )
+    const existingWithDebt: FundingState = {
+      ...baseFs,
+      courierShellBudgetPressureDebt:
+        FRONT_BUSINESS_CALIBRATION.courierShellCollapseBudgetPressureDebt,
+    }
+    nextAgency = {
+      ...nextAgency,
+      fundingState: normalizeFundingState(nextTop, pre.config, existingWithDebt, closedWeek),
+    }
+  }
+
+  context.nextState = {
+    ...context.nextState,
+    funding: nextTop,
+    agency: nextAgency,
+  }
+
+  context.eventDrafts.push(
+    createAgencyFrontBusinessResolvedDraft({
+      week: closedWeek,
+      kind: 'courierShell',
+      statusBefore: frontBefore?.status ?? 'active',
+      statusAfter: res.nextFront.status,
+      fundingDelta: res.fundingDelta,
+      riskScore: riskBreakdown.riskScore,
+      lockoutCount: riskBreakdown.lockoutCount,
+      residueCount: riskBreakdown.residueCount,
+      budgetPressure: riskBreakdown.budgetPressure,
+    })
+  )
+}
+
 function finalizeMissionResults(context: WeeklyExecutionContext) {
   context.missionResultByCaseId = finalizeMissionResultsFromDrafts({
     sourceState: context.sourceState,
@@ -4075,6 +4161,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   shiftMarket(context, rng)
   finalizeMissionResults(context)
   applyRecoveryDowntimeAfterMissions(context)
+  applyCourierShellFrontWeeklyResolution(context)
   // SPE-53: Generate hub simulation and attach notes
   generateAndAttachHubNotes(context)
 

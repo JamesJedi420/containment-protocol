@@ -1829,6 +1829,11 @@ export interface FundingState {
   severeConstraint?: boolean
   fundingHistory: FundingHistoryRecord[]
   procurementBacklog: ProcurementBacklogEntry[]
+  /**
+   * SPE-1703a: bounded additive strain on `budgetPressure` recompute when the courier shell
+   * front collapses (one-shot agency consequence; not a debt simulator).
+   */
+  courierShellBudgetPressureDebt?: number
 }
 
 export type ResearchUnlockCategory =
@@ -2139,6 +2144,24 @@ export interface AgencyState {
   coordinationFrictionReason?: string
   progressionUnlockIds?: string[]
   fundingState?: FundingState
+  /**
+   * SPE-1703a: single courier-service shell front (no catalog). Undefined when never opened.
+   */
+  courierShellFront?: CourierShellFrontState
+}
+
+/** SPE-1703a: agency-level courier desk shell (bounded, deterministic weekly P&L). */
+export type CourierShellFrontExposureBand = 'low' | 'elevated'
+
+export interface CourierShellFrontState {
+  type: 'courierShell'
+  status: 'active' | 'strained' | 'collapsed'
+  startedWeek: number
+  startupCostPaid: number
+  lastResolvedWeek?: number
+  lastNet?: number
+  exposureBand: CourierShellFrontExposureBand
+  collapseReason?: 'overstretched'
 }
 
 // ── SPE-93: External support reliability and trust state ──────────────────────

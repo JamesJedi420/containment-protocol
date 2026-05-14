@@ -31,6 +31,10 @@ import {
   type WeeklyPressureExplanation,
 } from '../../domain/visibility'
 import { getFrontDeskBriefingView } from '../operations/frontDeskView'
+import {
+  buildCourierNetworkCapacityGapReport,
+  type CapabilityGapReport,
+} from '../../domain/capabilityGap'
 
 export const DEVELOPER_OVERLAY_FLAG = 'developerOverlay'
 
@@ -249,6 +253,8 @@ export interface DeveloperOverlaySnapshot {
   courierShellFront: CourierShellFrontState | null
   /** SPE-1703a: additive budget-pressure debt after shell collapse (when present). */
   courierShellBudgetPressureDebt: number | null
+  /** SPE-823a: read-only courier network capacity gap (derived; not persisted). */
+  courierNetworkCapacityGap: CapabilityGapReport
 }
 
 /**
@@ -615,5 +621,6 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     agentRecoveryDebug,
     courierShellFront: game.agency?.courierShellFront ?? null,
     courierShellBudgetPressureDebt: game.agency?.fundingState?.courierShellBudgetPressureDebt ?? null,
+    courierNetworkCapacityGap: buildCourierNetworkCapacityGapReport(game),
   }
 }

@@ -91,6 +91,14 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Collapse:** when risk ≥ `courierShellCollapseRiskThreshold`, status becomes `collapsed`, `collapseReason: 'overstretched'`, and `FundingState.courierShellBudgetPressureDebt` is set to `courierShellCollapseBudgetPressureDebt` so `recomputeBudgetPressure` adds a **bounded** persistent pressure offset (not a loan simulator). `canonicalizeAgencyState` in `advanceWeek.ts` **preserves** `courierShellFront`, `fundingState`, and `progressionUnlockIds` through the weekly agency normalization seam.
 - **Evidence:** `src/test/frontBusiness.test.ts`; developer overlay **Courier shell front (SPE-1703a)** section.
 
+### 3h. SPE-823a — courier network capacity gap (read-only derived report)
+
+- **Report:** `buildCourierNetworkCapacityGapReport` in `capabilityGap.ts` — single family `courierNetworkCapacity`, static scenario id `spe-823a-logistics-baseline` with calibration thresholds `requiredCapacity` vs `desiredFutureCapacity` in `COURIER_NETWORK_CAPACITY_GAP_CALIBRATION`.
+- **Current score:** derived from courier shell status (when present), informal baseline + paid courier prerequisite, compact risk breakdown (`getCourierShellRiskBreakdown`), and optional pending procurement order count — **not** written back to `GameState`.
+- **Gap kinds:** `below_required` (immediate shortfall), `below_desired_only` (meets immediate threshold but under structural target), `none`. `unresolved` stays true while current is below **desired**; listing mitigation hooks does **not** clear it.
+- **Mitigation hooks:** compact data records only (`front_business_investment`, `procurement`, `mutual_aid`); include delayed-payoff metadata on investment/procurement hooks; **no** automatic gap resolution.
+- **Evidence:** `src/test/capabilityGap.test.ts`; developer overlay **Capability gap — courier network (SPE-823a)** section.
+
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.
 - High trauma reduces deployment readiness, training efficiency, and recovery speed.

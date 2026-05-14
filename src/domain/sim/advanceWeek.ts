@@ -121,7 +121,11 @@ import {
   explainRelayChain,
 } from '../explanations'
 import { consumeResolutionPartyCards, drawPartyCardsToHandLimit } from '../partyCards/engine'
-import { appendOperationEventDrafts, type AnyOperationEventDraft } from '../events'
+import {
+  appendOperationEventDrafts,
+  createAgencyFrontBusinessResolvedDraft,
+  type AnyOperationEventDraft,
+} from '../events'
 import { applyEmergencyGrayMarketFalloutTick } from '../procurementEmergency'
 import { getEmergencyProcurementInstitutionAuditKey } from '../procurementEmergencyInstitution'
 import {
@@ -132,6 +136,7 @@ import type {
   AgencyState,
   CampaignToIncidentPacket,
   CaseInstance,
+  FundingState,
   GameState,
   IncidentToCampaignPacket,
   LeaderBonus,
@@ -247,7 +252,6 @@ import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recover
 import {
   createInitialFundingState,
   normalizeFundingState,
-  recomputeBudgetPressure,
 } from '../funding'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
@@ -535,6 +539,14 @@ function safeNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && !Number.isNaN(value) ? value : fallback
 }
 
+function cloneFundingStateForCanonicalize(fs: NonNullable<AgencyState['fundingState']>): FundingState {
+  return {
+    ...fs,
+    fundingHistory: fs.fundingHistory.map((entry) => ({ ...entry })),
+    procurementBacklog: fs.procurementBacklog.map((entry) => ({ ...entry })),
+  }
+}
+
 function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined): AgencyState {
   return {
     containmentRating: safeNumber(base?.containmentRating, 0),
@@ -559,8 +571,8 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     ...(Array.isArray(base?.progressionUnlockIds)
       ? { progressionUnlockIds: [...base.progressionUnlockIds] }
       : {}),
-    ...(base?.fundingState ? { fundingState: base.fundingState } : {}),
-    ...(base?.courierShellFront ? { courierShellFront: base.courierShellFront } : {}),
+    ...(base?.fundingState ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) } : {}),
+    ...(base?.courierShellFront ? { courierShellFront: { ...base.courierShellFront } } : {}),
   }
 }
 
@@ -3652,12 +3664,12 @@ function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext)
 
   const prevTop = pre.funding ?? 0
   const nextTop = prevTop + res.fundingDelta
-  const riskBreakdown = getCourierShellRiskBreakdown(pre)
+  const riskBreakdown = getCourierShellRiskBreakdown(pre, closedWeek)
   const frontBefore = agencyBefore.courierShellFront
 
-  let nextAgency = {
+  let nextAgency: AgencyState = {
     ...agencyBefore,
-    funding: (agencyBefore.funding ?? prevTop) + res.fundingDelta,
+    funding: nextTop,
     courierShellFront: res.nextFront,
   }
 
@@ -3671,17 +3683,14 @@ function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext)
         pre.config.fundingPenaltyPerUnresolved,
         nextTop
       )
-    const normalized = normalizeFundingState(nextTop, pre.config, baseFs, closedWeek)
+    const existingWithDebt: FundingState = {
+      ...baseFs,
+      courierShellBudgetPressureDebt:
+        FRONT_BUSINESS_CALIBRATION.courierShellCollapseBudgetPressureDebt,
+    }
     nextAgency = {
       ...nextAgency,
-      fundingState: recomputeBudgetPressure(
-        {
-          ...normalized,
-          courierShellBudgetPressureDebt:
-            FRONT_BUSINESS_CALIBRATION.courierShellCollapseBudgetPressureDebt,
-        },
-        closedWeek
-      ),
+      fundingState: normalizeFundingState(nextTop, pre.config, existingWithDebt, closedWeek),
     }
   }
 
@@ -3691,10 +3700,8 @@ function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext)
     agency: nextAgency,
   }
 
-  context.eventDrafts.push({
-    type: 'agency.front_business.resolved',
-    sourceSystem: 'system',
-    payload: {
+  context.eventDrafts.push(
+    createAgencyFrontBusinessResolvedDraft({
       week: closedWeek,
       kind: 'courierShell',
       statusBefore: frontBefore?.status ?? 'active',
@@ -3704,8 +3711,8 @@ function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext)
       lockoutCount: riskBreakdown.lockoutCount,
       residueCount: riskBreakdown.residueCount,
       budgetPressure: riskBreakdown.budgetPressure,
-    },
-  })
+    })
+  )
 }
 
 function finalizeMissionResults(context: WeeklyExecutionContext) {

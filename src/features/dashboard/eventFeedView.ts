@@ -221,11 +221,14 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'faction.standing_changed': 'Faction Standing',
   'faction.unlock_available': 'Faction Unlock',
   'agency.containment_updated': 'Agency Update',
+  'agency.front_business.opened': 'Courier Shell Opened',
+  'agency.front_business.resolved': 'Courier Shell Week',
   'directive.applied': 'Directive Applied',
   'support.shortfall': 'Support Shortfall',
   'system.academy_upgraded': 'Academy Upgraded',
   'staff.coping.applied': 'Coping Applied',
   'staff.coping.misconduct': 'Coping Misconduct',
+  'staff.side_work.resolved': 'Side Work Resolved',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -269,11 +272,14 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'faction.standing_changed': 'agency_posture',
   'faction.unlock_available': 'agency_posture',
   'agency.containment_updated': 'agency_posture',
+  'agency.front_business.opened': 'agency_posture',
+  'agency.front_business.resolved': 'agency_posture',
   'directive.applied': 'agency_posture',
   'support.shortfall': 'operations_logistics',
   'system.academy_upgraded': 'operations_logistics',
   'staff.coping.applied': 'personnel',
   'staff.coping.misconduct': 'personnel',
+  'staff.side_work.resolved': 'personnel',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
@@ -931,6 +937,39 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
           `agency containment ${event.payload.containmentRatingBefore} ${event.payload.containmentRatingAfter} funding ${event.payload.fundingBefore} ${event.payload.fundingAfter}`.toLowerCase(),
       }
 
+    case 'agency.front_business.opened':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Courier shell front opened',
+        detail: `Week ${event.payload.week} / Startup $${event.payload.startupCost} / Funding $${event.payload.fundingBefore} -> $${event.payload.fundingAfter}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        searchText:
+          `courier shell front startup ${event.payload.startupCost} funding ${event.payload.fundingBefore} ${event.payload.fundingAfter}`.toLowerCase(),
+      }
+
+    case 'agency.front_business.resolved':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Courier shell week — ${event.payload.statusAfter}`,
+        detail: `Week ${event.payload.week} / ${event.payload.statusBefore} -> ${event.payload.statusAfter} / Net $${event.payload.fundingDelta} / Risk ${event.payload.riskScore} (lockouts ${event.payload.lockoutCount}, residue ${event.payload.residueCount}, pressure ${event.payload.budgetPressure})`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone:
+          event.payload.statusAfter === 'collapsed'
+            ? 'danger'
+            : event.payload.statusAfter === 'strained'
+              ? 'warning'
+              : 'success',
+        searchText:
+          `courier shell ${event.payload.statusBefore} ${event.payload.statusAfter} funding delta ${event.payload.fundingDelta} risk ${event.payload.riskScore}`.toLowerCase(),
+      }
+
     case 'directive.applied':
       return {
         event,
@@ -974,6 +1013,51 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         href: APP_ROUTES.trainingDivision,
         searchText:
           `academy upgraded ${event.payload.tierBefore} ${event.payload.tierAfter} ${event.payload.cost}`.toLowerCase(),
+      }
+
+    case 'staff.coping.applied':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Coping support applied',
+        detail: `Week ${event.payload.week} / Streak ${event.payload.streak} / Policy ${event.payload.policy}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `coping applied agent ${event.payload.agentId} streak ${event.payload.streak} ${event.payload.policy}`.toLowerCase(),
+      }
+
+    case 'staff.coping.misconduct':
+      return {
+        event,
+        week: event.payload.week,
+        title: 'Coping misconduct logged',
+        detail: `Week ${event.payload.week} / Policy ${event.payload.policy}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `coping misconduct agent ${event.payload.agentId} ${event.payload.policy}`.toLowerCase(),
+      }
+
+    case 'staff.side_work.resolved':
+      return {
+        event,
+        week: event.payload.week,
+        title: `Side work resolved (${event.payload.optionId})`,
+        detail: `Week ${event.payload.week} / Outcome ${event.payload.outcome} / Funding delta ${event.payload.fundingDelta} / Fatigue delta ${event.payload.fatigueDelta}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: event.payload.outcome === 'paid' ? 'neutral' : 'warning',
+        href: APP_ROUTES.agentDetail(event.payload.agentId),
+        searchText:
+          `side work ${event.payload.optionId} ${event.payload.outcome} agent ${event.payload.agentId}`.toLowerCase(),
       }
   }
 

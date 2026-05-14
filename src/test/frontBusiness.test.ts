@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../data/startingState'
+import { createInitialFundingState, normalizeFundingState } from '../domain/funding'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { FRONT_BUSINESS_CALIBRATION } from '../domain/sim/calibration'
 import { OFF_BOOKS_COURIER_LOCKOUT_TAG, OFF_BOOKS_COURIER_PAID_PREREQ_TAG } from '../domain/sim/downtimeSideWork'
@@ -38,6 +39,74 @@ describe('SPE-1703a courier shell front business', () => {
     const base = createStartingState()
     expect(agencyHasPaidCourierPrerequisite(base)).toBe(false)
     expect(openCourierShellFront(base).agency?.courierShellFront).toBeUndefined()
+  })
+
+  it('scores courier shell risk using closed week for budget pressure when game.week is ahead', () => {
+    const base = withPaidCourierAndFunding(createStartingState(), 9000)
+    const opened = openCourierShellFront(base)
+    const baseFundingState =
+      opened.agency?.fundingState ??
+      createInitialFundingState(
+        opened.config.fundingBasePerWeek,
+        opened.config.fundingPerResolution,
+        opened.config.fundingPenaltyPerFail,
+        opened.config.fundingPenaltyPerUnresolved,
+        opened.funding
+      )
+    const fundingStateWithBacklog = normalizeFundingState(
+      opened.funding,
+      opened.config,
+      {
+        ...baseFundingState,
+        procurementBacklog: [
+          {
+            requestId: 'req-courier-shell-test',
+            itemId: 'stabilizer-kit',
+            quantity: 1,
+            requestedWeek: 1,
+            cost: 1,
+            status: 'pending',
+          },
+        ],
+      },
+      6
+    )
+    const skewed: GameState = normalizeGameState({
+      ...opened,
+      week: 6,
+      agency: {
+        ...opened.agency!,
+        fundingState: fundingStateWithBacklog,
+      },
+    })
+
+    const atPostIncrementWeek = getCourierShellRiskBreakdown(skewed)
+    const atClosedWeek = getCourierShellRiskBreakdown(skewed, 5)
+    expect(atClosedWeek.budgetPressure).toBeLessThan(atPostIncrementWeek.budgetPressure)
+
+    const res = resolveCourierShellFrontWeekly(skewed, 5)!
+    const expectedNet =
+      FRONT_BUSINESS_CALIBRATION.courierShellWeeklyBase -
+      atClosedWeek.riskScore * FRONT_BUSINESS_CALIBRATION.courierShellRiskMultiplier
+    expect(res.fundingDelta).toBe(expectedNet)
+  })
+
+  it('restores funding mirror after weekly courier shell resolution when top-level and agency funding diverge', () => {
+    const base = withPaidCourierAndFunding(createStartingState(), 12000)
+    const opened = openCourierShellFront(base)
+    const divergent: GameState = {
+      ...opened,
+      funding: opened.funding + 300,
+      agency: opened.agency
+        ? {
+            ...opened.agency,
+            funding: opened.agency.funding,
+          }
+        : undefined,
+    }
+    expect(divergent.funding).not.toBe(divergent.agency?.funding)
+    const after = advanceWeek(divergent)
+    expect(after.funding).toBe(after.agency?.funding)
   })
 
   it('opens once, debits funding mirror, and refuses duplicate open', () => {

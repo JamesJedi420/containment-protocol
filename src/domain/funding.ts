@@ -355,13 +355,18 @@ export function normalizeFundingState(
 }
 
 export function getCanonicalFundingState(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week'>
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week'>,
+  currentWeekOverride?: number
 ) {
+  const week =
+    typeof currentWeekOverride === 'number' && Number.isFinite(currentWeekOverride)
+      ? Math.max(0, Math.trunc(currentWeekOverride))
+      : game.week
   return normalizeFundingState(
     sanitizeInteger(game.funding, 0),
     game.config,
     game.agency?.fundingState,
-    game.week
+    week
   )
 }
 

@@ -1303,8 +1303,10 @@ export const useGameStore = create<GameStore>()(
       openCourierShellFront: () =>
         set((s) => {
           const before = s.game
+          const hadCourierShell = before.agency?.courierShellFront?.type === 'courierShell'
           const next = openCourierShellFront(before)
-          if (next.funding >= before.funding) {
+          const hasCourierShell = next.agency?.courierShellFront?.type === 'courierShell'
+          if (!hasCourierShell || hadCourierShell) {
             return { game: next }
           }
           const cost = next.agency?.courierShellFront?.startupCostPaid ?? 0

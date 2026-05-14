@@ -38,11 +38,19 @@ export interface CourierShellRiskBreakdown {
 }
 
 export function getCourierShellRiskBreakdown(
-  game: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>
+  game: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>,
+  budgetPressureWeek?: number
 ): CourierShellRiskBreakdown {
   const lockoutCount = countCourierLockouts(game.agents)
   const residueCount = countExposureResidueAgents(game.agents)
-  const budgetPressure = getCanonicalFundingState(game).budgetPressure
+  const referenceWeek =
+    typeof budgetPressureWeek === 'number' && Number.isFinite(budgetPressureWeek)
+      ? Math.max(0, Math.trunc(budgetPressureWeek))
+      : undefined
+  const budgetPressure = getCanonicalFundingState(
+    game,
+    referenceWeek
+  ).budgetPressure
   return {
     riskScore: lockoutCount * 2 + residueCount + budgetPressure,
     lockoutCount,
@@ -51,32 +59,43 @@ export function getCourierShellRiskBreakdown(
   }
 }
 
-function courierShellRiskScore(game: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>): number {
-  return getCourierShellRiskBreakdown(game).riskScore
+function courierShellRiskScore(
+  game: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>,
+  closedWeek: number
+): number {
+  return getCourierShellRiskBreakdown(game, closedWeek).riskScore
 }
 
 /**
  * SPE-1703a: open the single courier shell front (paid prerequisite, one copy per campaign slice).
  * No-op when already present, prerequisites missing, funding too low, or agency missing.
+ * Each exit path runs through `normalizeGameState` so partially denormalized snapshots still round-trip safely.
  */
 export function openCourierShellFront(state: GameState): GameState {
-  const base = normalizeGameState(state)
-  if (!base.agency) return base
-  if (base.agency.courierShellFront?.type === 'courierShell') return base
-  if (!agencyHasPaidCourierPrerequisite(base)) return base
+  if (!state.agency) {
+    return normalizeGameState(state)
+  }
+  if (state.agency.courierShellFront?.type === 'courierShell') {
+    return normalizeGameState(state)
+  }
+  if (!agencyHasPaidCourierPrerequisite(state)) {
+    return normalizeGameState(state)
+  }
 
   const cost = FRONT_BUSINESS_CALIBRATION.courierShellStartupCost
-  if (base.funding < cost) return base
+  if (state.funding < cost) {
+    return normalizeGameState(state)
+  }
 
   return normalizeGameState({
-    ...base,
-    funding: base.funding - cost,
+    ...state,
+    funding: state.funding - cost,
     agency: {
-      ...base.agency,
+      ...state.agency,
       courierShellFront: {
         type: 'courierShell',
         status: 'active',
-        startedWeek: base.week,
+        startedWeek: state.week,
         startupCostPaid: cost,
         exposureBand: 'low',
       },
@@ -102,7 +121,7 @@ export function resolveCourierShellFrontWeekly(
   if (!front || front.type !== 'courierShell' || front.status === 'collapsed') return null
   if (front.lastResolvedWeek === closedWeek) return null
 
-  const risk = courierShellRiskScore(game)
+  const risk = courierShellRiskScore(game, closedWeek)
   const net =
     FRONT_BUSINESS_CALIBRATION.courierShellWeeklyBase -
     risk * FRONT_BUSINESS_CALIBRATION.courierShellRiskMultiplier

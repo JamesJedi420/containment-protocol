@@ -66,6 +66,27 @@ describe('SPE-1701 downtime deployment carry-in', () => {
     )
   })
 
+  it('computes lockout carry-in when courier contact is burned', () => {
+    const stamp = computeDowntimeCarryInForAgent(
+      {
+        id: 'x',
+        name: 'X',
+        role: 'tech',
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: ['side-work-lockout:off-books-courier'],
+        relationships: {},
+        fatigue: 50,
+        status: 'active',
+        downtimeActivity: { activity: 'rest', sinceWeek: 2 },
+      },
+      3
+    )
+    expect(stamp?.code).toBe('off-books-courier-lockout')
+    expect(stamp?.readinessDelta).toBe(
+      -DOWNTIME_CARRY_IN_CALIBRATION.offBooksCourierLockoutReadinessPenalty
+    )
+  })
+
   it('prefers negative carry-in when residue and foregone therapy would also satisfy rest bonus', () => {
     const stamp = computeDowntimeCarryInForAgent(
       {

@@ -236,7 +236,7 @@ Models the fact that teams cannot deploy at full capacity indefinitely.
 
 - operative recovery
 - trauma burden
-- team downtime (**SPE-1699:** one primary weekly downtime action per operative on the recovery menu; academy training consumes the same slot)
+- team downtime (**SPE-1699:** one primary weekly downtime action per operative on the recovery menu, including **SPE-1700** `sideWork` / off-books courier; academy training consumes the same slot)
 - equipment recovery interactions
 - replacement pressure after loss
 
@@ -270,7 +270,7 @@ Rotated-out operatives receive a **bounded, deterministic fatigue shave** derive
 
 ### 4.8a Downtime deployment carry-in (SPE-1701)
 
-When a team is committed to an active case, the sim stamps compact **per-operative carry-in** on the case from the operative’s last downtime posture (`deploymentCarryInByAgentId`). **Deployment readiness** may apply a small bounded adjustment from that stamp **only during the first in-contract week** (`weeksRemaining === durationWeeks`), so post-downtime choices have an explicit mission-facing hook without duplicating raw fatigue or residue recovery math. Unassigning the last team clears the stamp map.
+When a team is committed to an active case, the sim stamps compact **per-operative carry-in** on the case from the operative’s last downtime posture (`deploymentCarryInByAgentId`). **Deployment readiness** may apply a small bounded adjustment from that stamp **only during the first in-contract week** (`weeksRemaining === durationWeeks`), so post-downtime choices have an explicit mission-facing hook without duplicating raw fatigue or residue recovery math. Unassigning the last team clears the stamp map. **SPE-1700** adds courier lockout as an additional carry-in code path; successful courier runs surface exposure residue and reuse the existing residue-vs-therapy foregone penalty when therapy was skipped that week.
 
 ### 4.9 Facility-linked equipment quality (SPE-21)
 

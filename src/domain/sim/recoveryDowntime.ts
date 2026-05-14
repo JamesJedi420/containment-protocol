@@ -9,13 +9,18 @@ import { clamp } from '../math'
 import { RECOVERY_CALIBRATION } from './calibration'
 import type { AnyOperationEventDraft } from '../events'
 import {
+  appendExposureResidueToFlags,
   stripExposureResidueFromFlags,
   vitalsHasExposureResidue,
 } from './recoveryImpairments'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
+import {
+  OFF_BOOKS_COURIER_LOCKOUT_TAG,
+  resolveOffBooksCourierSideWork,
+} from './downtimeSideWork'
 
 export type RecoveryState = 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
-export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other' | 'coping'
+export type DowntimeActivity = 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork'
 
 export interface RecoveryProgressionResult {
   updatedAgents: GameState['agents']
@@ -25,6 +30,8 @@ export interface RecoveryProgressionResult {
   throughputPenaltyApplied: number
   attritionThroughputPenaltyApplied: number
   eventDrafts: AnyOperationEventDraft[]
+  /** SPE-1700: agency funding granted by risky downtime (bounded; may be 0). */
+  agencyFundingDelta?: number
 }
 
 
@@ -52,6 +59,7 @@ export function advanceRecoveryDowntimeForWeek({
   const updatedAgents: GameState['agents'] = { ...sourceAgents }
   const updatedTeams: GameState['teams'] = { ...sourceTeams }
   const eventDrafts: AnyOperationEventDraft[] = []
+  let agencyFundingDelta = 0
   const budgetPressureApplied = Math.max(0, Math.trunc(fundingState?.budgetPressure ?? 0))
   const attritionPressureApplied = Math.max(
     0,
@@ -263,6 +271,52 @@ export function advanceRecoveryDowntimeForWeek({
       }
     }
 
+    let downtimeSideWorkLast = agent.downtimeSideWorkLast
+    if (downtime === 'sideWork') {
+      const r = resolveOffBooksCourierSideWork(agent)
+      if (r.fundingDelta !== 0 || r.fatigueDelta !== 0 || r.applyExposureResidue || r.applyLockoutTag) {
+        fatigue = clamp(fatigue + r.fatigueDelta, 0, 100)
+        agencyFundingDelta += r.fundingDelta
+        if (r.applyLockoutTag) {
+          agentTags = agentTags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)
+            ? agentTags
+            : [...agentTags, OFF_BOOKS_COURIER_LOCKOUT_TAG]
+        }
+        const baseVitals = agentVitals ?? {
+          health: 100,
+          stress: 0,
+          wounds: 0,
+          morale: 50,
+          statusFlags: [] as string[],
+        }
+        agentVitals = {
+          ...baseVitals,
+          statusFlags: r.applyExposureResidue
+            ? appendExposureResidueToFlags(baseVitals.statusFlags)
+            : (baseVitals.statusFlags ?? []),
+        }
+        downtimeSideWorkLast = {
+          week,
+          optionId: 'offBooksCourier',
+          outcome: r.applyLockoutTag ? 'lockout' : 'paid',
+          fundingDelta: r.fundingDelta,
+          fatigueDelta: r.fatigueDelta,
+        }
+        eventDrafts.push({
+          type: 'staff.side_work.resolved',
+          sourceSystem: 'agent',
+          payload: {
+            week,
+            agentId,
+            optionId: 'offBooksCourier',
+            outcome: r.applyLockoutTag ? 'lockout' : 'paid',
+            fundingDelta: r.fundingDelta,
+            fatigueDelta: r.fatigueDelta,
+          },
+        })
+      }
+    }
+
     const finalVitals =
       agentVitals && stripExposureResidue
         ? {
@@ -284,6 +338,7 @@ export function advanceRecoveryDowntimeForWeek({
       vitals: finalVitals,
       tags: agentTags,
       copingStreak,
+      downtimeSideWorkLast: downtime === 'sideWork' ? downtimeSideWorkLast : agent.downtimeSideWorkLast,
     }
   }
 
@@ -327,5 +382,6 @@ export function advanceRecoveryDowntimeForWeek({
     throughputPenaltyApplied,
     attritionThroughputPenaltyApplied,
     eventDrafts,
+    ...(agencyFundingDelta !== 0 ? { agencyFundingDelta } : {}),
   }
 }

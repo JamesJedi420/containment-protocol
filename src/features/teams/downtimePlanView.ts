@@ -9,3 +9,4 @@ export {
   getPrimaryDowntimeLabel,
   type PlayerPrimaryDowntimeMenu,
 } from '../../domain/sim/downtimeSlot'
+export { canSelectOffBooksCourierSideWork } from '../../domain/sim/downtimeSideWork'

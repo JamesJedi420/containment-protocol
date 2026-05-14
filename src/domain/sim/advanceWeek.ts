@@ -3599,10 +3599,18 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
     substancePolicy: context.nextState.config.substancePolicy,
   })
 
+  const fundingDelta = downtimeResult.agencyFundingDelta ?? 0
+  const agencyBefore = context.nextState.agency
+  const mergedAgency =
+    agencyBefore && fundingDelta !== 0
+      ? { ...agencyBefore, funding: (agencyBefore.funding ?? 0) + fundingDelta }
+      : agencyBefore
+
   context.nextState = {
     ...context.nextState,
     agents: downtimeResult.updatedAgents,
     teams: downtimeResult.updatedTeams,
+    ...(mergedAgency ? { agency: mergedAgency } : {}),
   }
   context.eventDrafts.push(...downtimeResult.eventDrafts)
 }

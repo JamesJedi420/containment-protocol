@@ -719,10 +719,19 @@ export interface AgentTraumaState {
 }
 
 export interface AgentDowntimeActivity {
-  activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping'
+  activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork'
   sinceWeek: number
   /** SPE-1699: deterministic list of other primary actions not taken this weekly tick. */
-  foregoneThisInterval?: Array<'rest' | 'training' | 'therapy' | 'other' | 'coping'>
+  foregoneThisInterval?: Array<'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork'>
+}
+
+/** SPE-1700: last resolved risky downtime outcome for inspection / debug. */
+export interface AgentDowntimeSideWorkLast {
+  week: number
+  optionId: 'offBooksCourier'
+  outcome: 'paid' | 'lockout'
+  fundingDelta: number
+  fatigueDelta: number
 }
 
 /**
@@ -871,6 +880,9 @@ export interface Agent {
   recoveryStatus?: AgentRecoveryStatus
   trauma?: AgentTraumaState
   downtimeActivity?: AgentDowntimeActivity
+
+  /** SPE-1700: most recent risky side-work resolution (bounded; optional). */
+  downtimeSideWorkLast?: AgentDowntimeSideWorkLast
 
   /**
    * Three-axis fatigue channel state (SPE-130 Phase 1).

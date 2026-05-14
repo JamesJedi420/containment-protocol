@@ -100,6 +100,8 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
       return [event.payload.betrayerId, event.payload.betrayedId]
     case 'agent.resigned':
       return [event.payload.agentId]
+    case 'staff.side_work.resolved':
+      return [event.payload.agentId]
     default:
       return []
   }

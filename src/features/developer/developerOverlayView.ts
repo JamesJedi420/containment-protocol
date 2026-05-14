@@ -349,6 +349,7 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
             : {}),
         }
       : null,
+    downtimeSideWorkLast: agent.downtimeSideWorkLast ?? null,
     fatigue: agent.fatigue,
     status: agent.status,
   }))

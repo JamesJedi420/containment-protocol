@@ -2,6 +2,7 @@ import type { Agent } from '../agent/models'
 import type { AgentDeploymentCarryInStamp, GameState, Id } from '../models'
 import { getTeamMemberIds } from '../teamSimulation'
 import { DOWNTIME_CARRY_IN_CALIBRATION } from './calibration'
+import { OFF_BOOKS_COURIER_LOCKOUT_TAG } from './downtimeSideWork'
 import { vitalsHasExposureResidue } from './recoveryImpairments'
 
 /**
@@ -20,6 +21,14 @@ export function computeDowntimeCarryInForAgent(
     return {
       readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.residueTherapyForegoneReadinessPenalty,
       code: 'residue-therapy-foregone',
+      stampedWeek: week,
+    }
+  }
+
+  if (agent.tags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)) {
+    return {
+      readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.offBooksCourierLockoutReadinessPenalty,
+      code: 'off-books-courier-lockout',
       stampedWeek: week,
     }
   }

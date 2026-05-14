@@ -6,6 +6,7 @@ import { useGameStore } from '../../app/store/gameStore'
 import { type AgentRole, type GameState } from '../../domain/models'
 import {
   PLAYER_PRIMARY_DOWNTIME_MENU,
+  canSelectOffBooksCourierSideWork,
   canSelectPrimaryDowntimePlan,
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,
@@ -541,7 +542,11 @@ function TeamCard({
                     }
                   >
                     {PLAYER_PRIMARY_DOWNTIME_MENU.map((act) => (
-                      <option key={act} value={act}>
+                      <option
+                        key={act}
+                        value={act}
+                        disabled={act === 'sideWork' && !canSelectOffBooksCourierSideWork(agent)}
+                      >
                         {getPrimaryDowntimeLabel(act)}
                       </option>
                     ))}

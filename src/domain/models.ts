@@ -1231,7 +1231,10 @@ export interface CaseTemplate {
 }
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
-export type DeploymentCarryInCode = 'residue-therapy-foregone' | 'well-rested-stable-energy'
+export type DeploymentCarryInCode =
+  | 'residue-therapy-foregone'
+  | 'well-rested-stable-energy'
+  | 'off-books-courier-lockout'
 
 export interface AgentDeploymentCarryInStamp {
   readinessDelta: number

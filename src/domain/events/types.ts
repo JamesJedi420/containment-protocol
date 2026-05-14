@@ -579,6 +579,14 @@ export interface OperationEventPayloadMap {
     agentId: Id
     policy: 'restricted' | 'prohibited'
   }
+  'staff.side_work.resolved': {
+    week: number
+    agentId: Id
+    optionId: 'offBooksCourier'
+    outcome: 'paid' | 'lockout'
+    fundingDelta: number
+    fatigueDelta: number
+  }
 }
 
 export type OperationEventType = keyof OperationEventPayloadMap
@@ -629,6 +637,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'system.academy_upgraded': 'system'
   'staff.coping.applied': 'agent'
   'staff.coping.misconduct': 'agent'
+  'staff.side_work.resolved': 'agent'
 }
 
 export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSystemMap> = {
@@ -677,6 +686,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',
   'staff.coping.misconduct': 'agent',
+  'staff.side_work.resolved': 'agent',
 }
 
 export type OperationEventSourceSystemFor<TType extends OperationEventType> =

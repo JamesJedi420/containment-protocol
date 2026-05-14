@@ -15,7 +15,8 @@
 ## 2. Recommended Canonical State Fields
 - `agent.recoveryStatus`: { state: 'healthy' | 'recovering' | 'traumatized' | 'incapacitated', detail?: string, sinceWeek: number }
 - `agent.trauma`: { traumaLevel: number, traumaTags: string[], lastEventWeek: number }
-- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping', sinceWeek: number, foregoneThisInterval?: … }
+- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork', sinceWeek: number, foregoneThisInterval?: … }
+- `agent.downtimeSideWorkLast`: optional bounded summary of the last risky side-work resolution (SPE-1700)
 - `agent.fatigue`: number (existing, but recovery/downtime should update this deterministically)
 - `agent.energyBudget`: { currentReserve: number, reserveBand: 'stable' | 'taxed' | 'depleted' | 'overdrawn', exertionDebt: number, estimateConfidence: 'low' | 'medium' | 'high', lastDutyCost?: number } (SPE-1107 human energy accounting; converts overdrawn exertion into fatigue channels)
 - `team.recoveryPressure`: number (aggregate of member states, for overlay/stability)
@@ -40,7 +41,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
   - Undergo therapy (reduce trauma, but not fatigue)
   - Other (custom activities, e.g., research, support)
 - Progression is deterministic: same state + same downtime plan = same outcome.
-- **SPE-1699 — one primary slot per operative per week:** player menu picks (`rest`, `therapy`, `coping`, `other`) are mutually exclusive for a given week. Formal **academy training** (`assignment.state === 'training'`) consumes the same slot; week-close writes `foregoneThisInterval` listing other menu actions not taken (full menu when training overrides). `other` is a compact logistics / prep placeholder (not SPE-1700 side-work risks). Selection UI: Teams roster; tick wiring unchanged (`advanceRecoveryDowntimeForWeek` after mission finalization).
+- **SPE-1699 — one primary slot per operative per week:** player menu picks (`rest`, `therapy`, `coping`, `other`, `sideWork`) are mutually exclusive for a given week. Formal **academy training** (`assignment.state === 'training'`) consumes the same slot; week-close writes `foregoneThisInterval` listing other menu actions not taken (full menu when training overrides). `other` is a compact logistics / prep placeholder. **`sideWork`** is the SPE-1700 risky off-books courier slice (distinct from `other`). Selection UI: Teams roster; tick wiring unchanged (`advanceRecoveryDowntimeForWeek` after mission finalization).
 - Recovery rates and trauma reduction must be explicit, not random.
 - Downtime cannot erase major trauma instantly; recovery is gradual and stateful.
 - SPE-1107 energy reserve is charged by deterministic duty/upkeep costs before it becomes fatigue; idle rest can restore taxed/depleted reserve after upkeep, while overdrawn reserve becomes explicit exertion debt and physical fatigue burden rather than a hidden recovery reset.
@@ -57,7 +58,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 
 ### 3c. SPE-1699 slice — one-slot downtime (recovery menu vs academy training)
 
-- **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
+- **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other`, `sideWork` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
 - **Ordering:** `advanceWeek` captures each agent’s resolved effective slot at the **start** of `advanceQueues` (before `advanceTrainingQueues` removes completed programs from the queue and clears `assignment.state`), then `applyRecoveryDowntimeAfterMissions` consumes that snapshot. This keeps the **final week** of a training program on the `training` slot instead of incorrectly falling through to menu/`rest` after completion processing.
 - **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceWeek` snapshot on `WeeklyExecutionContext.downtimeSlotEffectiveByAgentId`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`. Tests: `src/test/downtimeSlot.test.ts`.
 
@@ -65,8 +66,15 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 
 - **Stamp:** when teams are committed to an `in_progress` case (`assignTeam`, `launchMajorIncident`, and `unassignTeam` rebuilds), `rebuildDeploymentCarryInForCase` writes `case.deploymentCarryInByAgentId` from each assigned operative’s post-downtime fields (`downtimeActivity` incl. `foregoneThisInterval`, `recoveryStatus`, `trauma`, `vitals` / `exposure:residue`, `energyBudget`, scalar `fatigue`). **SPE-1654 field-base staging rotation** (`applyFieldBaseStagingRotationAtWeekOpen`) also rebuilds carry-in after a successful swap so mid-contract roster changes cannot leave stale or missing stamps during the first contract week.
 - **Consume:** `buildTeamDeploymentReadinessState` adds a **bounded** summed readiness adjustment **only** while `weeksRemaining === durationWeeks` (first in-contract week), so carry-in does not stack with later-week readiness passes.
-- **Paths (slice 1):** `residue-therapy-foregone` (negative) when residue is present and therapy was listed as foregone; `well-rested-stable-energy` (positive) for a `rest` week with `energyBudget.reserveBand === 'stable'`, low fatigue, healthy recovery, no trauma, and no residue. Constants: `DOWNTIME_CARRY_IN_CALIBRATION` in `calibration.ts`. Logic: `computeDowntimeCarryInForAgent` in `downtimeCarryIn.ts`.
+- **Paths (slice 1):** `residue-therapy-foregone` (negative) when residue is present and therapy was listed as foregone; `well-rested-stable-energy` (positive) for a `rest` week with `energyBudget.reserveBand === 'stable'`, low fatigue, healthy recovery, no trauma, and no residue; **`off-books-courier-lockout`** (negative) when the operative carries the SPE-1700 courier lockout tag from a botched high-fatigue run. Constants: `DOWNTIME_CARRY_IN_CALIBRATION` in `calibration.ts`. Logic: `computeDowntimeCarryInForAgent` in `downtimeCarryIn.ts`.
 - **Evidence:** tests `src/test/downtimeCarryIn.test.ts`, `src/test/fieldBaseStaging.test.ts` (rotation + carry-in sync); developer overlay surfaces `caseDeploymentCarryInByAgentId` on deployment summaries.
+
+### 3e. SPE-1700 slice — risky side-work (off-books courier)
+
+- **Menu:** `sideWork` uses the same weekly primary slot as SPE-1699; it cannot stack with training, therapy, rest, coping, or `other` in the same tick.
+- **Resolution:** `resolveOffBooksCourierSideWork` in `downtimeSideWork.ts` (calibration `SIDE_WORK_CALIBRATION`). Success grants bounded `agency.funding`, adds fatigue, and appends **`exposure:residue`** so SPE-1653 / SPE-1701 residue-therapy carry-in can apply on the next assignment. A **high pre-week fatigue** branch skips payout, spikes fatigue, and stamps tag `side-work-lockout:off-books-courier` (Teams select disabled afterward).
+- **Wiring:** `advanceRecoveryDowntimeForWeek` applies mutations and emits `staff.side_work.resolved`; `advanceWeek` merges optional `agencyFundingDelta` onto `agency.funding`.
+- **Evidence:** `src/test/downtimeSideWork.test.ts`; developer overlay includes `downtimeSideWorkLast`.
 
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.

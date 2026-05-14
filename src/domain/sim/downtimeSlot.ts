@@ -1,9 +1,10 @@
 import type { Agent } from '../agent/models'
 import type { GameState, Id } from '../models'
 import type { DowntimeActivity } from './recoveryDowntime'
+import { canSelectOffBooksCourierSideWork } from './downtimeSideWork'
 
-/** Menu actions the player can assign as a single weekly primary (SPE-1699). */
-export const PLAYER_PRIMARY_DOWNTIME_MENU = ['rest', 'therapy', 'coping', 'other'] as const
+/** Menu actions the player can assign as a single weekly primary (SPE-1699 + SPE-1700 side-work). */
+export const PLAYER_PRIMARY_DOWNTIME_MENU = ['rest', 'therapy', 'coping', 'other', 'sideWork'] as const
 
 export type PlayerPrimaryDowntimeMenu = (typeof PLAYER_PRIMARY_DOWNTIME_MENU)[number]
 
@@ -13,6 +14,7 @@ const DOWNTIME_ACTIVITY_VALUES: readonly DowntimeActivity[] = [
   'therapy',
   'other',
   'coping',
+  'sideWork',
 ]
 
 function isDowntimeActivity(value: string | undefined): value is DowntimeActivity {
@@ -77,6 +79,7 @@ const PRIMARY_DOWNTIME_LABEL: Record<DowntimeActivity, string> = {
   therapy: 'Therapy / supervised washdown',
   coping: 'Off-duty coping',
   other: 'Logistics / side prep',
+  sideWork: 'Risky off-books courier',
   training: 'Academy training (slot)',
 }
 
@@ -96,6 +99,9 @@ export function setAgentPrimaryDowntimePlan(
 ): GameState {
   const agent = state.agents[agentId]
   if (!agent || !canSelectPrimaryDowntimePlan(agent)) {
+    return state
+  }
+  if (activity === 'sideWork' && !canSelectOffBooksCourierSideWork(agent)) {
     return state
   }
 

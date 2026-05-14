@@ -244,6 +244,13 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
+import {
+  createInitialFundingState,
+  normalizeFundingState,
+  recomputeBudgetPressure,
+} from '../funding'
+import { FRONT_BUSINESS_CALIBRATION } from './calibration'
+import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
 import { advanceTrainingQueues } from './training'
 import { recordRelationshipSnapshot } from './chemistryPolish'
@@ -549,6 +556,11 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     ...(typeof base?.coordinationFrictionReason === 'string'
       ? { coordinationFrictionReason: base.coordinationFrictionReason }
       : {}),
+    ...(Array.isArray(base?.progressionUnlockIds)
+      ? { progressionUnlockIds: [...base.progressionUnlockIds] }
+      : {}),
+    ...(base?.fundingState ? { fundingState: base.fundingState } : {}),
+    ...(base?.courierShellFront ? { courierShellFront: base.courierShellFront } : {}),
   }
 }
 
@@ -3629,6 +3641,73 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
   context.eventDrafts.push(...downtimeResult.eventDrafts)
 }
 
+function applyCourierShellFrontWeeklyResolution(context: WeeklyExecutionContext) {
+  const closedWeek = context.sourceState.week
+  const pre = context.nextState
+  const res = resolveCourierShellFrontWeekly(pre, closedWeek)
+  if (!res) return
+
+  const agencyBefore = pre.agency
+  if (!agencyBefore) return
+
+  const prevTop = pre.funding ?? 0
+  const nextTop = prevTop + res.fundingDelta
+  const riskBreakdown = getCourierShellRiskBreakdown(pre)
+  const frontBefore = agencyBefore.courierShellFront
+
+  let nextAgency = {
+    ...agencyBefore,
+    funding: (agencyBefore.funding ?? prevTop) + res.fundingDelta,
+    courierShellFront: res.nextFront,
+  }
+
+  if (res.applyCollapseBudgetPressureDebt) {
+    const baseFs =
+      agencyBefore.fundingState ??
+      createInitialFundingState(
+        pre.config.fundingBasePerWeek,
+        pre.config.fundingPerResolution,
+        pre.config.fundingPenaltyPerFail,
+        pre.config.fundingPenaltyPerUnresolved,
+        nextTop
+      )
+    const normalized = normalizeFundingState(nextTop, pre.config, baseFs, closedWeek)
+    nextAgency = {
+      ...nextAgency,
+      fundingState: recomputeBudgetPressure(
+        {
+          ...normalized,
+          courierShellBudgetPressureDebt:
+            FRONT_BUSINESS_CALIBRATION.courierShellCollapseBudgetPressureDebt,
+        },
+        closedWeek
+      ),
+    }
+  }
+
+  context.nextState = {
+    ...context.nextState,
+    funding: nextTop,
+    agency: nextAgency,
+  }
+
+  context.eventDrafts.push({
+    type: 'agency.front_business.resolved',
+    sourceSystem: 'system',
+    payload: {
+      week: closedWeek,
+      kind: 'courierShell',
+      statusBefore: frontBefore?.status ?? 'active',
+      statusAfter: res.nextFront.status,
+      fundingDelta: res.fundingDelta,
+      riskScore: riskBreakdown.riskScore,
+      lockoutCount: riskBreakdown.lockoutCount,
+      residueCount: riskBreakdown.residueCount,
+      budgetPressure: riskBreakdown.budgetPressure,
+    },
+  })
+}
+
 function finalizeMissionResults(context: WeeklyExecutionContext) {
   context.missionResultByCaseId = finalizeMissionResultsFromDrafts({
     sourceState: context.sourceState,
@@ -4075,6 +4154,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   shiftMarket(context, rng)
   finalizeMissionResults(context)
   applyRecoveryDowntimeAfterMissions(context)
+  applyCourierShellFrontWeeklyResolution(context)
   // SPE-53: Generate hub simulation and attach notes
   generateAndAttachHubNotes(context)
 

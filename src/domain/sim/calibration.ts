@@ -428,3 +428,18 @@ export const SIDE_WORK_CALIBRATION = {
   trustedCourierSuccessFatigueDelta: 24,
   trustedCourierLockoutFatigueDelta: 26,
 } as const
+
+/** SPE-1703a: single agency courier shell front (weekly resolve + collapse). */
+export const FRONT_BUSINESS_CALIBRATION = {
+  courierShellStartupCost: 750,
+  /** Weekly gross margin before roster/agency risk drains (integer). */
+  courierShellWeeklyBase: 150,
+  /** Multiplier applied to the compact weekly risk score (lockouts, residue, pressure). */
+  courierShellRiskMultiplier: 28,
+  /** At or above: front is strained (or worse) even if net stays positive. */
+  courierShellStrainRiskThreshold: 4,
+  /** At or above: front collapses for the week (one-shot budget-pressure debt applies). */
+  courierShellCollapseRiskThreshold: 8,
+  /** Added to recomputed `budgetPressure` when the shell collapses (bounded, persistent debt field). */
+  courierShellCollapseBudgetPressureDebt: 2,
+} as const

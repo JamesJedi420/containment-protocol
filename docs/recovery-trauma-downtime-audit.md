@@ -83,6 +83,14 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Resolution:** `resolveTrustedCourierSideWork` — bounded **higher** `agency.funding` and fatigue deltas than base courier, **stricter** high-fatigue lockout threshold (`trustedCourierHighFatigueThreshold`), same exposure residue on success, and the **same** `side-work-lockout:off-books-courier` tag on lockout so SPE-1701 carry-in and Teams gating stay unified. Persisted `sideWorkTrusted` while ineligible is coerced to `rest` with `downtimeSideWorkLast.outcome === 'denied'` / `optionId: 'trustedCourier'` (mirrors SPE-1700 denied path).
 - **Evidence:** `src/test/downtimeSideWork.test.ts` (SPE-1702 section); helper `isInactiveSideWorkResolution` for deterministic inactive previews.
 
+### 3g. SPE-1703a — courier shell front (agency investment loop, first slice)
+
+- **State:** optional `agency.courierShellFront` with `type: 'courierShell'`, `status` (`active` \| `strained` \| `collapsed`), `startedWeek`, `startupCostPaid`, optional `lastResolvedWeek` / `lastNet`, `exposureBand`, optional `collapseReason`.
+- **Open:** `openCourierShellFront` in `frontBusiness.ts` — requires **≥1** operative with prerequisite tag `side-work-prereq:off-books-courier-paid` (SPE-1702 path), sufficient top-level `funding`, and **no** existing shell record; debits `FRONT_BUSINESS_CALIBRATION.courierShellStartupCost` from **`funding`** (normalized mirror updates `agency.funding`). Store action `openCourierShellFront` appends `agency.front_business.opened` when spend succeeds.
+- **Weekly resolve:** `applyCourierShellFrontWeeklyResolution` in `advanceWeek.ts` runs **after** `applyRecoveryDowntimeAfterMissions` so roster tags / residue / funding pressure reflect the closing week. Pure resolver `resolveCourierShellFrontWeekly` — deterministic **net** from compact risk score (`lockout` count ×2 + `exposure:residue` agent count + canonical `budgetPressure`). **Idempotent** via `lastResolvedWeek === closedWeek`. Emits `agency.front_business.resolved`.
+- **Collapse:** when risk ≥ `courierShellCollapseRiskThreshold`, status becomes `collapsed`, `collapseReason: 'overstretched'`, and `FundingState.courierShellBudgetPressureDebt` is set to `courierShellCollapseBudgetPressureDebt` so `recomputeBudgetPressure` adds a **bounded** persistent pressure offset (not a loan simulator). `canonicalizeAgencyState` in `advanceWeek.ts` **preserves** `courierShellFront`, `fundingState`, and `progressionUnlockIds` through the weekly agency normalization seam.
+- **Evidence:** `src/test/frontBusiness.test.ts`; developer overlay **Courier shell front (SPE-1703a)** section.
+
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.
 - High trauma reduces deployment readiness, training efficiency, and recovery speed.

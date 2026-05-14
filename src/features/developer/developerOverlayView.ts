@@ -2,7 +2,12 @@ import { buildDeveloperLogSnapshot } from '../../domain/developerLog'
 import { listQueuedRuntimeEvents } from '../../domain/eventQueue'
 import { buildFlagSystemSnapshot } from '../../domain/flagSystem'
 import { readGameStateManager } from '../../domain/gameStateManager'
-import type { AgentDeploymentCarryInStamp, GameFlagValue, GameState } from '../../domain/models'
+import type {
+  AgentDeploymentCarryInStamp,
+  CourierShellFrontState,
+  GameFlagValue,
+  GameState,
+} from '../../domain/models'
 import { buildAgentLoadoutReadinessSummary, listEquippedItemAssignments } from '../../domain/equipment'
 import { listProgressClocks } from '../../domain/progressClocks'
 import { buildRecruitmentFunnelSummary } from '../../domain/recruitment'
@@ -240,6 +245,10 @@ export interface DeveloperOverlaySnapshot {
     fatigue: number
     status: string
   }>
+  /** SPE-1703a: courier shell front (null when absent). */
+  courierShellFront: CourierShellFrontState | null
+  /** SPE-1703a: additive budget-pressure debt after shell collapse (when present). */
+  courierShellBudgetPressureDebt: number | null
 }
 
 /**
@@ -604,5 +613,7 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
       })),
     },
     agentRecoveryDebug,
+    courierShellFront: game.agency?.courierShellFront ?? null,
+    courierShellBudgetPressureDebt: game.agency?.fundingState?.courierShellBudgetPressureDebt ?? null,
   }
 }

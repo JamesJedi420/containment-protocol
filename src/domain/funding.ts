@@ -298,9 +298,13 @@ export function recomputeBudgetPressure(state: FundingState, currentWeek?: numbe
       ).length >= FUNDING_CALIBRATION.budgetPressure.recentPenaltyCountThreshold
   )
     pressure += 1
+  const shellDebt = Math.max(0, Math.trunc(state.courierShellBudgetPressureDebt ?? 0))
   return {
     ...state,
-    budgetPressure: Math.min(FUNDING_CALIBRATION.budgetPressure.maxPressure, pressure),
+    budgetPressure: Math.min(
+      FUNDING_CALIBRATION.budgetPressure.maxPressure,
+      pressure + shellDebt
+    ),
   }
 }
 
@@ -344,6 +348,7 @@ export function normalizeFundingState(
       ),
       fundingHistory: sanitizeFundingHistory(existing?.fundingHistory),
       procurementBacklog: sanitizeProcurementBacklog(existing?.procurementBacklog),
+      courierShellBudgetPressureDebt: existing?.courierShellBudgetPressureDebt,
     },
     currentWeek
   )

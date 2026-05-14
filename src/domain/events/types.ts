@@ -549,6 +549,24 @@ export interface OperationEventPayloadMap {
     fundingAfter: number
     fundingDelta: number
   }
+  'agency.front_business.opened': {
+    week: number
+    kind: 'courierShell'
+    startupCost: number
+    fundingBefore: number
+    fundingAfter: number
+  }
+  'agency.front_business.resolved': {
+    week: number
+    kind: 'courierShell'
+    statusBefore: 'active' | 'strained' | 'collapsed'
+    statusAfter: 'active' | 'strained' | 'collapsed'
+    fundingDelta: number
+    riskScore: number
+    lockoutCount: number
+    residueCount: number
+    budgetPressure: number
+  }
   'directive.applied': {
     week: number
     directiveId: WeeklyDirectiveId
@@ -632,6 +650,8 @@ export interface OperationEventTypeToSourceSystemMap {
   'faction.standing_changed': 'faction'
   'faction.unlock_available': 'faction'
   'agency.containment_updated': 'system'
+  'agency.front_business.opened': 'system'
+  'agency.front_business.resolved': 'system'
   'directive.applied': 'system'
   'support.shortfall': 'system'
   'system.academy_upgraded': 'system'
@@ -681,6 +701,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'faction.standing_changed': 'faction',
   'faction.unlock_available': 'faction',
   'agency.containment_updated': 'system',
+  'agency.front_business.opened': 'system',
+  'agency.front_business.resolved': 'system',
   'directive.applied': 'system',
   'support.shortfall': 'system',
   'system.academy_upgraded': 'system',

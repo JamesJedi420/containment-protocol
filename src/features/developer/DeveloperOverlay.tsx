@@ -136,6 +136,25 @@ export function DeveloperOverlay() {
               ]}
             />
 
+            <OverlaySection
+              title="Courier shell front (SPE-1703a)"
+              rows={
+                snapshot.courierShellFront
+                  ? [
+                      `Status: ${snapshot.courierShellFront.status}`,
+                      `Type: ${snapshot.courierShellFront.type}`,
+                      `Started week: ${snapshot.courierShellFront.startedWeek}`,
+                      `Startup paid: ${snapshot.courierShellFront.startupCostPaid}`,
+                      `Last resolved week: ${snapshot.courierShellFront.lastResolvedWeek ?? 'n/a'}`,
+                      `Last net: ${snapshot.courierShellFront.lastNet ?? 'n/a'}`,
+                      `Exposure: ${snapshot.courierShellFront.exposureBand}`,
+                      `Collapse: ${snapshot.courierShellFront.collapseReason ?? 'n/a'}`,
+                      `Budget pressure debt: ${snapshot.courierShellBudgetPressureDebt ?? 'n/a'}`,
+                    ]
+                  : ['No courier shell front opened.']
+              }
+            />
+
             <OverlayListSection
               title={`Stability Recovery Actions (${snapshot.stability.recoveryActions.length})`}
               rows={snapshot.stability.recoveryActions.map(

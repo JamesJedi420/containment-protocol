@@ -1,13 +1,28 @@
 import type { Agent } from '../agent/models'
 import type { GameState, Id } from '../models'
 import type { DowntimeActivity } from './recoveryDowntime'
-import { canSelectOffBooksCourierSideWork } from './downtimeSideWork'
+import {
+  canSelectOffBooksCourierSideWork,
+  canSelectTrustedCourierSideWork,
+} from './downtimeSideWork'
 
 /** Re-export for feature modules that must not import `downtimeSideWork` directly. */
-export { canSelectOffBooksCourierSideWork }
+export {
+  canSelectOffBooksCourierSideWork,
+  canSelectTrustedCourierSideWork,
+  getTrustedCourierPrimaryBlocker,
+  trustedCourierPrimaryBlockerLabel,
+} from './downtimeSideWork'
 
-/** Menu actions the player can assign as a single weekly primary (SPE-1699 + SPE-1700 side-work). */
-export const PLAYER_PRIMARY_DOWNTIME_MENU = ['rest', 'therapy', 'coping', 'other', 'sideWork'] as const
+/** Menu actions the player can assign as a single weekly primary (SPE-1699 + SPE-1700/1702 side-work). */
+export const PLAYER_PRIMARY_DOWNTIME_MENU = [
+  'rest',
+  'therapy',
+  'coping',
+  'other',
+  'sideWork',
+  'sideWorkTrusted',
+] as const
 
 export type PlayerPrimaryDowntimeMenu = (typeof PLAYER_PRIMARY_DOWNTIME_MENU)[number]
 
@@ -23,6 +38,7 @@ const DOWNTIME_ACTIVITY_VALUES: readonly DowntimeActivity[] = [
   'other',
   'coping',
   'sideWork',
+  'sideWorkTrusted',
 ]
 
 function isDowntimeActivity(value: string | undefined): value is DowntimeActivity {
@@ -88,6 +104,7 @@ const PRIMARY_DOWNTIME_LABEL: Record<DowntimeActivity, string> = {
   coping: 'Off-duty coping',
   other: 'Logistics / side prep',
   sideWork: 'Risky off-books courier',
+  sideWorkTrusted: 'Trusted courier relay (gated)',
   training: 'Academy training (slot)',
 }
 
@@ -110,6 +127,9 @@ export function setAgentPrimaryDowntimePlan(
     return state
   }
   if (activity === 'sideWork' && !canSelectOffBooksCourierSideWork(agent)) {
+    return state
+  }
+  if (activity === 'sideWorkTrusted' && !canSelectTrustedCourierSideWork(agent)) {
     return state
   }
 

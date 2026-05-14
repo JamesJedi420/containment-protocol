@@ -582,7 +582,7 @@ export interface OperationEventPayloadMap {
   'staff.side_work.resolved': {
     week: number
     agentId: Id
-    optionId: 'offBooksCourier'
+    optionId: 'offBooksCourier' | 'trustedCourier'
     outcome: 'paid' | 'lockout'
     fundingDelta: number
     fatigueDelta: number

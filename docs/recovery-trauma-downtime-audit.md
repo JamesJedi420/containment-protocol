@@ -15,8 +15,8 @@
 ## 2. Recommended Canonical State Fields
 - `agent.recoveryStatus`: { state: 'healthy' | 'recovering' | 'traumatized' | 'incapacitated', detail?: string, sinceWeek: number }
 - `agent.trauma`: { traumaLevel: number, traumaTags: string[], lastEventWeek: number }
-- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork', sinceWeek: number, foregoneThisInterval?: … }
-- `agent.downtimeSideWorkLast`: optional bounded summary of the last risky side-work resolution (SPE-1700)
+- `agent.downtimeActivity`: { activity: 'rest' | 'training' | 'therapy' | 'other' | 'coping' | 'sideWork' | 'sideWorkTrusted', sinceWeek: number, foregoneThisInterval?: … }
+- `agent.downtimeSideWorkLast`: optional bounded summary of the last risky side-work resolution (SPE-1700 / SPE-1702)
 - `agent.fatigue`: number (existing, but recovery/downtime should update this deterministically)
 - `agent.energyBudget`: { currentReserve: number, reserveBand: 'stable' | 'taxed' | 'depleted' | 'overdrawn', exertionDebt: number, estimateConfidence: 'low' | 'medium' | 'high', lastDutyCost?: number } (SPE-1107 human energy accounting; converts overdrawn exertion into fatigue channels)
 - `team.recoveryPressure`: number (aggregate of member states, for overlay/stability)
@@ -41,7 +41,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
   - Undergo therapy (reduce trauma, but not fatigue)
   - Other (custom activities, e.g., research, support)
 - Progression is deterministic: same state + same downtime plan = same outcome.
-- **SPE-1699 — one primary slot per operative per week:** player menu picks (`rest`, `therapy`, `coping`, `other`, `sideWork`) are mutually exclusive for a given week. Formal **academy training** (`assignment.state === 'training'`) consumes the same slot; week-close writes `foregoneThisInterval` listing other menu actions not taken (full menu when training overrides). `other` is a compact logistics / prep placeholder. **`sideWork`** is the SPE-1700 risky off-books courier slice (distinct from `other`). Selection UI: Teams roster; tick wiring unchanged (`advanceRecoveryDowntimeForWeek` after mission finalization).
+- **SPE-1699 — one primary slot per operative per week:** player menu picks (`rest`, `therapy`, `coping`, `other`, `sideWork`, `sideWorkTrusted`) are mutually exclusive for a given week. Formal **academy training** (`assignment.state === 'training'`) consumes the same slot; week-close writes `foregoneThisInterval` listing other menu actions not taken (full menu when training overrides). `other` is a compact logistics / prep placeholder. **`sideWork`** is the SPE-1700 risky off-books courier slice; **`sideWorkTrusted`** is the SPE-1702 higher-tier relay (prerequisite-gated). Selection UI: Teams roster; tick wiring unchanged (`advanceRecoveryDowntimeForWeek` after mission finalization).
 - Recovery rates and trauma reduction must be explicit, not random.
 - Downtime cannot erase major trauma instantly; recovery is gradual and stateful.
 - SPE-1107 energy reserve is charged by deterministic duty/upkeep costs before it becomes fatigue; idle rest can restore taxed/depleted reserve after upkeep, while overdrawn reserve becomes explicit exertion debt and physical fatigue burden rather than a hidden recovery reset.
@@ -58,7 +58,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 
 ### 3c. SPE-1699 slice — one-slot downtime (recovery menu vs academy training)
 
-- **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other`, `sideWork` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
+- **Rule:** at most one **primary** downtime action applies per agent per weekly tick. Player-selectable recovery-phase actions are `rest`, `therapy`, `coping`, `other`, `sideWork`, `sideWorkTrusted` (see Teams UI). **Academy training queue** activity (`assignment.state === 'training'`) **wins** over any stored menu pick and clears competing recovery uses for that tick.
 - **Ordering:** `advanceWeek` captures each agent’s resolved effective slot at the **start** of `advanceQueues` (before `advanceTrainingQueues` removes completed programs from the queue and clears `assignment.state`), then `applyRecoveryDowntimeAfterMissions` consumes that snapshot. This keeps the **final week** of a training program on the `training` slot instead of incorrectly falling through to menu/`rest` after completion processing.
 - **Evidence:** `resolveDowntimeSlotForAgent` in `downtimeSlot.ts`; `advanceWeek` snapshot on `WeeklyExecutionContext.downtimeSlotEffectiveByAgentId`; `advanceRecoveryDowntimeForWeek` persists `foregoneThisInterval` on `agent.downtimeActivity`. Tests: `src/test/downtimeSlot.test.ts`.
 
@@ -71,10 +71,17 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 
 ### 3e. SPE-1700 slice — risky side-work (off-books courier)
 
-- **Menu:** `sideWork` uses the same weekly primary slot as SPE-1699; it cannot stack with training, therapy, rest, coping, or `other` in the same tick.
-- **Resolution:** `resolveOffBooksCourierSideWork` in `downtimeSideWork.ts` (calibration `SIDE_WORK_CALIBRATION`). Success grants bounded `agency.funding`, adds fatigue, and appends **`exposure:residue`** so SPE-1653 / SPE-1701 residue-therapy carry-in can apply on the next assignment. A **high pre-week fatigue** branch skips payout, spikes fatigue, and stamps tag `side-work-lockout:off-books-courier` (Teams select disabled afterward). If `sideWork` is still stored while locked out, week-close recovery **coerces** the effective slot to `rest`, stamps `downtimeSideWorkLast.outcome === 'denied'`, and skips courier events.
+- **Menu:** `sideWork` uses the same weekly primary slot as SPE-1699; it cannot stack with training, therapy, rest, coping, `other`, or `sideWorkTrusted` in the same tick.
+- **Resolution:** `resolveOffBooksCourierSideWork` in `downtimeSideWork.ts` (calibration `SIDE_WORK_CALIBRATION`). Success grants bounded `agency.funding`, adds fatigue, and appends **`exposure:residue`** so SPE-1653 / SPE-1701 residue-therapy carry-in can apply on the next assignment. A **high pre-week fatigue** branch skips payout, spikes fatigue, and stamps tag `side-work-lockout:off-books-courier` (Teams select disabled afterward for **both** courier menu picks). Successful **paid** runs also stamp compact prerequisite tag `side-work-prereq:off-books-courier-paid` (SPE-1702 unlock). If `sideWork` is still stored while locked out, week-close recovery **coerces** the effective slot to `rest`, stamps `downtimeSideWorkLast.outcome === 'denied'`, and skips courier events.
 - **Wiring:** `advanceRecoveryDowntimeForWeek` applies mutations and emits `staff.side_work.resolved`; `advanceWeek` merges optional `agencyFundingDelta` onto **both** top-level `funding` and `agency.funding` so weekly agency metrics do not drop the payout.
 - **Evidence:** `src/test/downtimeSideWork.test.ts`; developer overlay includes `downtimeSideWorkLast`.
+
+### 3f. SPE-1702 slice — prerequisite-gated trusted courier relay
+
+- **Menu:** `sideWorkTrusted` shares the SPE-1699 primary slot; mutually exclusive with `sideWork` and the rest of the recovery menu.
+- **Prerequisite:** tag `side-work-prereq:off-books-courier-paid` (stamped automatically on any **paid** off-books courier resolution). Teams disables the option with an explicit **title** string when the tag is missing or when courier **lockout** applies (lockout takes precedence in copy order).
+- **Resolution:** `resolveTrustedCourierSideWork` — bounded **higher** `agency.funding` and fatigue deltas than base courier, **stricter** high-fatigue lockout threshold (`trustedCourierHighFatigueThreshold`), same exposure residue on success, and the **same** `side-work-lockout:off-books-courier` tag on lockout so SPE-1701 carry-in and Teams gating stay unified. Persisted `sideWorkTrusted` while ineligible is coerced to `rest` with `downtimeSideWorkLast.outcome === 'denied'` / `optionId: 'trustedCourier'` (mirrors SPE-1700 denied path).
+- **Evidence:** `src/test/downtimeSideWork.test.ts` (SPE-1702 section); helper `isInactiveSideWorkResolution` for deterministic inactive previews.
 
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.

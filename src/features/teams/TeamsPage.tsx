@@ -10,6 +10,8 @@ import {
   canSelectPrimaryDowntimePlan,
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,
+  getTrustedCourierPrimaryBlocker,
+  trustedCourierPrimaryBlockerLabel,
   type PlayerPrimaryDowntimeMenu,
 } from './downtimePlanView'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
@@ -541,15 +543,27 @@ function TeamCard({
                       setAgentPrimaryDowntimePlan(agent.id, event.target.value as PlayerPrimaryDowntimeMenu)
                     }
                   >
-                    {PLAYER_PRIMARY_DOWNTIME_MENU.map((act) => (
-                      <option
-                        key={act}
-                        value={act}
-                        disabled={act === 'sideWork' && !canSelectOffBooksCourierSideWork(agent)}
-                      >
-                        {getPrimaryDowntimeLabel(act)}
-                      </option>
-                    ))}
+                    {PLAYER_PRIMARY_DOWNTIME_MENU.map((act) => {
+                      const trustedBlocker =
+                        act === 'sideWorkTrusted' ? getTrustedCourierPrimaryBlocker(agent) : null
+                      return (
+                        <option
+                          key={act}
+                          value={act}
+                          disabled={
+                            (act === 'sideWork' && !canSelectOffBooksCourierSideWork(agent)) ||
+                            (act === 'sideWorkTrusted' && trustedBlocker !== null)
+                          }
+                          title={
+                            act === 'sideWorkTrusted' && trustedBlocker
+                              ? trustedCourierPrimaryBlockerLabel(trustedBlocker)
+                              : undefined
+                          }
+                        >
+                          {getPrimaryDowntimeLabel(act)}
+                        </option>
+                      )
+                    })}
                   </select>
                 ) : agent.assignment?.state === 'training' ? (
                   <span className="rounded border border-white/10 px-2 py-1 text-[11px] uppercase tracking-wide">

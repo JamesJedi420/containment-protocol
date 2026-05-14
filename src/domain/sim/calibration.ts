@@ -415,11 +415,16 @@ export const DOWNTIME_CARRY_IN_CALIBRATION = {
   offBooksCourierLockoutReadinessPenalty: 8,
 } as const
 
-/** SPE-1700 slice 1: single risky downtime path (off-books courier). */
+/** SPE-1700 slice 1: single risky downtime path (off-books courier). SPE-1702: trusted relay tier. */
 export const SIDE_WORK_CALIBRATION = {
   /** Pre-week fatigue at or above this threshold triggers the lockout branch (no payout). */
   offBooksCourierHighFatigueThreshold: 68,
   offBooksCourierSuccessFundingDelta: 220,
   offBooksCourierSuccessFatigueDelta: 14,
   offBooksCourierLockoutFatigueDelta: 22,
+  /** SPE-1702: stricter gate than base courier — relay fails into shared lockout sooner when tired. */
+  trustedCourierHighFatigueThreshold: 62,
+  trustedCourierSuccessFundingDelta: 360,
+  trustedCourierSuccessFatigueDelta: 24,
+  trustedCourierLockoutFatigueDelta: 26,
 } as const

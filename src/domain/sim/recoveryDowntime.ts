@@ -1,4 +1,4 @@
-import type { AgentDowntimeSideWorkLast } from '../agent/models'
+import type { Agent, AgentDowntimeSideWorkLast } from '../agent/models'
 import type {
   FundingState,
   GameState,
@@ -26,6 +26,8 @@ import {
   OFF_BOOKS_COURIER_PAID_PREREQ_TAG,
   resolveOffBooksCourierSideWork,
   resolveTrustedCourierSideWork,
+  type DowntimeSideWorkOptionId,
+  type OffBooksCourierResolution,
 } from './downtimeSideWork'
 
 export type RecoveryState = 'healthy' | 'recovering' | 'traumatized' | 'incapacitated'
@@ -60,6 +62,81 @@ export interface AdvanceRecoveryDowntimeInput {
   replacementPressureState?: ReplacementPressureState
   supportStaff?: SupportStaffSummary
   substancePolicy?: 'permitted' | 'restricted' | 'prohibited'
+}
+
+/** SPE-1700 / SPE-1702: single mutation path for risky side-work tiers (review-hardening dedupe). */
+function applyStaffSideWorkResolutionMutations(input: {
+  week: number
+  agentId: Id
+  optionId: DowntimeSideWorkOptionId
+  r: OffBooksCourierResolution
+  fatigue: number
+  agencyFundingDelta: number
+  agentTags: string[]
+  agentVitals: Agent['vitals']
+}): {
+  fatigue: number
+  agencyFundingDelta: number
+  agentTags: string[]
+  agentVitals: Agent['vitals']
+  sideWorkRunLast: AgentDowntimeSideWorkLast
+  sideWorkEvent: AnyOperationEventDraft
+} {
+  const { week, agentId, optionId, r } = input
+  let { fatigue, agencyFundingDelta, agentTags, agentVitals } = input
+  fatigue = clamp(fatigue + r.fatigueDelta, 0, 100)
+  agencyFundingDelta += r.fundingDelta
+  if (r.applyLockoutTag) {
+    agentTags = agentTags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)
+      ? agentTags
+      : [...agentTags, OFF_BOOKS_COURIER_LOCKOUT_TAG]
+  }
+  if (optionId === 'offBooksCourier' && !r.applyLockoutTag && r.fundingDelta > 0) {
+    agentTags = agentTags.includes(OFF_BOOKS_COURIER_PAID_PREREQ_TAG)
+      ? agentTags
+      : [...agentTags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG]
+  }
+  const baseVitals = agentVitals ?? {
+    health: 100,
+    stress: 0,
+    wounds: 0,
+    morale: 50,
+    statusFlags: [] as string[],
+  }
+  agentVitals = {
+    ...baseVitals,
+    statusFlags: r.applyExposureResidue
+      ? appendExposureResidueToFlags(baseVitals.statusFlags)
+      : (baseVitals.statusFlags ?? []),
+  }
+  const outcome = r.applyLockoutTag ? 'lockout' : 'paid'
+  const sideWorkRunLast: AgentDowntimeSideWorkLast = {
+    week,
+    optionId,
+    outcome,
+    fundingDelta: r.fundingDelta,
+    fatigueDelta: r.fatigueDelta,
+  }
+  const sideWorkEvent: AnyOperationEventDraft = {
+    type: 'staff.side_work.resolved',
+    sourceSystem: 'agent',
+    payload: {
+      week,
+      agentId,
+      optionId,
+      outcome,
+      fundingDelta: r.fundingDelta,
+      fatigueDelta: r.fatigueDelta,
+    },
+  }
+  return {
+    fatigue,
+    agencyFundingDelta,
+    agentTags,
+    agentVitals,
+    sideWorkRunLast,
+    sideWorkEvent,
+  }
 }
 
 export function advanceRecoveryDowntimeForWeek({
@@ -100,32 +177,21 @@ export function advanceRecoveryDowntimeForWeek({
       mapActivity !== undefined ? { explicitEffective: mapActivity } : undefined
     )
     let sideWorkDeniedLast: AgentDowntimeSideWorkLast | undefined
-    if (downtime === 'sideWork') {
-      const courierPreview = resolveOffBooksCourierSideWork(agent)
-      const ineligibleCourier =
-        !canSelectOffBooksCourierSideWork(agent) || isInactiveSideWorkResolution(courierPreview)
-      if (ineligibleCourier) {
+    if (downtime === 'sideWork' || downtime === 'sideWorkTrusted') {
+      const optionId: DowntimeSideWorkOptionId =
+        downtime === 'sideWorkTrusted' ? 'trustedCourier' : 'offBooksCourier'
+      const preview =
+        downtime === 'sideWorkTrusted' ? resolveTrustedCourierSideWork(agent) : resolveOffBooksCourierSideWork(agent)
+      const eligible =
+        downtime === 'sideWorkTrusted'
+          ? canSelectTrustedCourierSideWork(agent)
+          : canSelectOffBooksCourierSideWork(agent)
+      if (!eligible || isInactiveSideWorkResolution(preview)) {
         downtime = 'rest'
         foregone = foregonePrimaryMenuExcept('rest')
         sideWorkDeniedLast = {
           week,
-          optionId: 'offBooksCourier',
-          outcome: 'denied',
-          fundingDelta: 0,
-          fatigueDelta: 0,
-        }
-      }
-    }
-    if (downtime === 'sideWorkTrusted') {
-      const trustedPreview = resolveTrustedCourierSideWork(agent)
-      const ineligibleTrusted =
-        !canSelectTrustedCourierSideWork(agent) || isInactiveSideWorkResolution(trustedPreview)
-      if (ineligibleTrusted) {
-        downtime = 'rest'
-        foregone = foregonePrimaryMenuExcept('rest')
-        sideWorkDeniedLast = {
-          week,
-          optionId: 'trustedCourier',
+          optionId,
           outcome: 'denied',
           fundingDelta: 0,
           fatigueDelta: 0,
@@ -321,97 +387,28 @@ export function advanceRecoveryDowntimeForWeek({
     }
 
     let sideWorkRunLast = agent.downtimeSideWorkLast
-    if (downtime === 'sideWork') {
-      const r = resolveOffBooksCourierSideWork(agent)
-      if (r.fundingDelta !== 0 || r.fatigueDelta !== 0 || r.applyExposureResidue || r.applyLockoutTag) {
-        fatigue = clamp(fatigue + r.fatigueDelta, 0, 100)
-        agencyFundingDelta += r.fundingDelta
-        if (r.applyLockoutTag) {
-          agentTags = agentTags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)
-            ? agentTags
-            : [...agentTags, OFF_BOOKS_COURIER_LOCKOUT_TAG]
-        }
-        if (!r.applyLockoutTag && r.fundingDelta > 0) {
-          agentTags = agentTags.includes(OFF_BOOKS_COURIER_PAID_PREREQ_TAG)
-            ? agentTags
-            : [...agentTags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG]
-        }
-        const baseVitals = agentVitals ?? {
-          health: 100,
-          stress: 0,
-          wounds: 0,
-          morale: 50,
-          statusFlags: [] as string[],
-        }
-        agentVitals = {
-          ...baseVitals,
-          statusFlags: r.applyExposureResidue
-            ? appendExposureResidueToFlags(baseVitals.statusFlags)
-            : (baseVitals.statusFlags ?? []),
-        }
-        sideWorkRunLast = {
+    if (downtime === 'sideWork' || downtime === 'sideWorkTrusted') {
+      const optionId: DowntimeSideWorkOptionId =
+        downtime === 'sideWorkTrusted' ? 'trustedCourier' : 'offBooksCourier'
+      const r =
+        downtime === 'sideWorkTrusted' ? resolveTrustedCourierSideWork(agent) : resolveOffBooksCourierSideWork(agent)
+      if (!isInactiveSideWorkResolution(r)) {
+        const applied = applyStaffSideWorkResolutionMutations({
           week,
-          optionId: 'offBooksCourier',
-          outcome: r.applyLockoutTag ? 'lockout' : 'paid',
-          fundingDelta: r.fundingDelta,
-          fatigueDelta: r.fatigueDelta,
-        }
-        eventDrafts.push({
-          type: 'staff.side_work.resolved',
-          sourceSystem: 'agent',
-          payload: {
-            week,
-            agentId,
-            optionId: 'offBooksCourier',
-            outcome: r.applyLockoutTag ? 'lockout' : 'paid',
-            fundingDelta: r.fundingDelta,
-            fatigueDelta: r.fatigueDelta,
-          },
+          agentId: agent.id,
+          optionId,
+          r,
+          fatigue,
+          agencyFundingDelta,
+          agentTags,
+          agentVitals,
         })
-      }
-    }
-    if (downtime === 'sideWorkTrusted') {
-      const r = resolveTrustedCourierSideWork(agent)
-      if (r.fundingDelta !== 0 || r.fatigueDelta !== 0 || r.applyExposureResidue || r.applyLockoutTag) {
-        fatigue = clamp(fatigue + r.fatigueDelta, 0, 100)
-        agencyFundingDelta += r.fundingDelta
-        if (r.applyLockoutTag) {
-          agentTags = agentTags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)
-            ? agentTags
-            : [...agentTags, OFF_BOOKS_COURIER_LOCKOUT_TAG]
-        }
-        const baseVitals = agentVitals ?? {
-          health: 100,
-          stress: 0,
-          wounds: 0,
-          morale: 50,
-          statusFlags: [] as string[],
-        }
-        agentVitals = {
-          ...baseVitals,
-          statusFlags: r.applyExposureResidue
-            ? appendExposureResidueToFlags(baseVitals.statusFlags)
-            : (baseVitals.statusFlags ?? []),
-        }
-        sideWorkRunLast = {
-          week,
-          optionId: 'trustedCourier',
-          outcome: r.applyLockoutTag ? 'lockout' : 'paid',
-          fundingDelta: r.fundingDelta,
-          fatigueDelta: r.fatigueDelta,
-        }
-        eventDrafts.push({
-          type: 'staff.side_work.resolved',
-          sourceSystem: 'agent',
-          payload: {
-            week,
-            agentId,
-            optionId: 'trustedCourier',
-            outcome: r.applyLockoutTag ? 'lockout' : 'paid',
-            fundingDelta: r.fundingDelta,
-            fatigueDelta: r.fatigueDelta,
-          },
-        })
+        fatigue = applied.fatigue
+        agencyFundingDelta = applied.agencyFundingDelta
+        agentTags = applied.agentTags
+        agentVitals = applied.agentVitals
+        sideWorkRunLast = applied.sideWorkRunLast
+        eventDrafts.push(applied.sideWorkEvent)
       }
     }
 

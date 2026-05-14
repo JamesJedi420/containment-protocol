@@ -45,7 +45,7 @@ describe('resolveDowntimeSlotForAgent (SPE-1699)', () => {
     }
     const { effective, foregone } = resolveDowntimeSlotForAgent(agent)
     expect(effective).toBe('therapy')
-    expect(foregone).toEqual(['rest', 'coping', 'other'])
+    expect(foregone).toEqual(['rest', 'coping', 'other', 'sideWork'])
   })
 
   it('honors explicit downtime map entries over stale agent.downtimeActivity', () => {
@@ -57,7 +57,7 @@ describe('resolveDowntimeSlotForAgent (SPE-1699)', () => {
       explicitEffective: 'coping' as DowntimeActivity,
     })
     expect(effective).toBe('coping')
-    expect(foregone).toEqual(['rest', 'therapy', 'other'])
+    expect(foregone).toEqual(['rest', 'therapy', 'other', 'sideWork'])
   })
 
   it('accepts explicit training from pre-queue snapshot after assignment returns to idle', () => {
@@ -124,7 +124,7 @@ describe('advanceRecoveryDowntimeForWeek foregone metadata', () => {
     })
     const updated = result.updatedAgents.a1
     expect(updated.downtimeActivity?.activity).toBe('coping')
-    expect(updated.downtimeActivity?.foregoneThisInterval).toEqual(['rest', 'therapy', 'other'])
+    expect(updated.downtimeActivity?.foregoneThisInterval).toEqual(['rest', 'therapy', 'other', 'sideWork'])
     expect(formatForegoneDowntimeSummary(updated.downtimeActivity?.foregoneThisInterval ?? [])).toContain(
       'Therapy'
     )

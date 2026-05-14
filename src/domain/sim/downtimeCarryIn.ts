@@ -2,11 +2,14 @@ import type { Agent } from '../agent/models'
 import type { AgentDeploymentCarryInStamp, GameState, Id } from '../models'
 import { getTeamMemberIds } from '../teamSimulation'
 import { DOWNTIME_CARRY_IN_CALIBRATION } from './calibration'
+import { OFF_BOOKS_COURIER_LOCKOUT_TAG } from './downtimeSideWork'
 import { vitalsHasExposureResidue } from './recoveryImpairments'
 
 /**
  * SPE-1701: deterministic per-agent carry-in from post-downtime posture.
  * Negative path takes precedence over positive when both could apply.
+ * SPE-1700 hardening: courier lockout is evaluated before residue/therapy so side-work access
+ * consequences are not masked by overlapping exposure residue.
  */
 export function computeDowntimeCarryInForAgent(
   agent: Agent,
@@ -15,6 +18,14 @@ export function computeDowntimeCarryInForAgent(
   const foregone = agent.downtimeActivity?.foregoneThisInterval
   const hasResidue = vitalsHasExposureResidue(agent.vitals)
   const forewentTherapy = foregone?.includes('therapy')
+
+  if (agent.tags.includes(OFF_BOOKS_COURIER_LOCKOUT_TAG)) {
+    return {
+      readinessDelta: -DOWNTIME_CARRY_IN_CALIBRATION.offBooksCourierLockoutReadinessPenalty,
+      code: 'off-books-courier-lockout',
+      stampedWeek: week,
+    }
+  }
 
   if (hasResidue && forewentTherapy) {
     return {

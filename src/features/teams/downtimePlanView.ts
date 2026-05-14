@@ -4,6 +4,7 @@
  */
 export {
   PLAYER_PRIMARY_DOWNTIME_MENU,
+  canSelectOffBooksCourierSideWork,
   canSelectPrimaryDowntimePlan,
   formatForegoneDowntimeSummary,
   getPrimaryDowntimeLabel,

@@ -411,4 +411,15 @@ export const DOWNTIME_CARRY_IN_CALIBRATION = {
   wellRestedFatigueCeiling: 28,
   /** Cap on summed per-agent carry-in applied to team readiness (prevents runaway stacking). */
   teamReadinessDeltaCap: 12,
+  /** SPE-1700: readiness drag when a botched off-books courier locks future runs. */
+  offBooksCourierLockoutReadinessPenalty: 8,
+} as const
+
+/** SPE-1700 slice 1: single risky downtime path (off-books courier). */
+export const SIDE_WORK_CALIBRATION = {
+  /** Pre-week fatigue at or above this threshold triggers the lockout branch (no payout). */
+  offBooksCourierHighFatigueThreshold: 68,
+  offBooksCourierSuccessFundingDelta: 220,
+  offBooksCourierSuccessFatigueDelta: 14,
+  offBooksCourierLockoutFatigueDelta: 22,
 } as const

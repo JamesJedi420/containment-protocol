@@ -66,6 +66,76 @@ describe('SPE-1701 downtime deployment carry-in', () => {
     )
   })
 
+  it('computes lockout carry-in when courier contact is burned', () => {
+    const stamp = computeDowntimeCarryInForAgent(
+      {
+        id: 'x',
+        name: 'X',
+        role: 'tech',
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: ['side-work-lockout:off-books-courier'],
+        relationships: {},
+        fatigue: 50,
+        status: 'active',
+        downtimeActivity: { activity: 'rest', sinceWeek: 2 },
+      },
+      3
+    )
+    expect(stamp?.code).toBe('off-books-courier-lockout')
+    expect(stamp?.readinessDelta).toBe(
+      -DOWNTIME_CARRY_IN_CALIBRATION.offBooksCourierLockoutReadinessPenalty
+    )
+  })
+
+  it('prefers courier lockout carry-in over residue-therapy when both signals apply', () => {
+    const stamp = computeDowntimeCarryInForAgent(
+      {
+        id: 'x',
+        name: 'X',
+        role: 'tech',
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: ['side-work-lockout:off-books-courier'],
+        relationships: {},
+        fatigue: 40,
+        status: 'active',
+        downtimeActivity: {
+          activity: 'rest',
+          sinceWeek: 2,
+          foregoneThisInterval: ['therapy', 'coping', 'other', 'sideWork'],
+        },
+        vitals: { statusFlags: [EXPOSURE_RESIDUE_STATUS_FLAG] },
+      },
+      3
+    )
+    expect(stamp?.code).toBe('off-books-courier-lockout')
+  })
+
+  it('courier lockout suppresses well-rested stable-energy carry-in', () => {
+    const stamp = computeDowntimeCarryInForAgent(
+      {
+        id: 'x',
+        name: 'X',
+        role: 'tech',
+        baseStats: { combat: 1, investigation: 1, utility: 1, social: 1 },
+        tags: ['side-work-lockout:off-books-courier'],
+        relationships: {},
+        fatigue: 10,
+        status: 'active',
+        downtimeActivity: { activity: 'rest', sinceWeek: 2 },
+        recoveryStatus: { state: 'healthy', sinceWeek: 1 },
+        trauma: { traumaLevel: 0, traumaTags: [], lastEventWeek: 1 },
+        energyBudget: {
+          currentReserve: 90,
+          reserveBand: 'stable',
+          exertionDebt: 0,
+          estimateConfidence: 'high',
+        },
+      },
+      3
+    )
+    expect(stamp?.code).toBe('off-books-courier-lockout')
+  })
+
   it('prefers negative carry-in when residue and foregone therapy would also satisfy rest bonus', () => {
     const stamp = computeDowntimeCarryInForAgent(
       {

@@ -3599,10 +3599,32 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
     substancePolicy: context.nextState.config.substancePolicy,
   })
 
-  context.nextState = {
-    ...context.nextState,
-    agents: downtimeResult.updatedAgents,
-    teams: downtimeResult.updatedTeams,
+  const fundingDelta = downtimeResult.agencyFundingDelta ?? 0
+  if (fundingDelta !== 0) {
+    const prevTopFunding =
+      context.nextState.funding ?? context.nextState.agency?.funding ?? 0
+    const nextTopFunding = prevTopFunding + fundingDelta
+    const agencyBefore = context.nextState.agency
+    context.nextState = {
+      ...context.nextState,
+      agents: downtimeResult.updatedAgents,
+      teams: downtimeResult.updatedTeams,
+      funding: nextTopFunding,
+      ...(agencyBefore
+        ? {
+            agency: {
+              ...agencyBefore,
+              funding: (agencyBefore.funding ?? prevTopFunding) + fundingDelta,
+            },
+          }
+        : {}),
+    }
+  } else {
+    context.nextState = {
+      ...context.nextState,
+      agents: downtimeResult.updatedAgents,
+      teams: downtimeResult.updatedTeams,
+    }
   }
   context.eventDrafts.push(...downtimeResult.eventDrafts)
 }

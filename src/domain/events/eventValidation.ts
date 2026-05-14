@@ -639,6 +639,14 @@ export const operationEventPayloadSchemas = {
     agentId: z.string(),
     policy: z.enum(['restricted', 'prohibited']),
   }),
+  'staff.side_work.resolved': z.object({
+    week: z.number(),
+    agentId: z.string(),
+    optionId: z.literal('offBooksCourier'),
+    outcome: z.enum(['paid', 'lockout']),
+    fundingDelta: z.number(),
+    fatigueDelta: z.number(),
+  }),
 } satisfies Record<OperationEventType, z.ZodTypeAny>
 
 export function validateOperationEventPayload<TType extends OperationEventType>(

@@ -1,22 +1,8 @@
 import type { Agent } from '../agent/models'
-import type { AgentDeploymentCarryInStamp, GameState, Id, Team } from '../models'
+import type { AgentDeploymentCarryInStamp, GameState, Id } from '../models'
+import { getTeamMemberIds } from '../teamSimulation'
 import { DOWNTIME_CARRY_IN_CALIBRATION } from './calibration'
 import { vitalsHasExposureResidue } from './recoveryImpairments'
-
-function getTeamMemberIds(team: Pick<Team, 'memberIds' | 'agentIds'>): Id[] {
-  const memberIds = Array.isArray(team.memberIds) ? team.memberIds : undefined
-  const agentIds = Array.isArray(team.agentIds) ? team.agentIds : undefined
-
-  if (memberIds && agentIds) {
-    const sameMembers =
-      memberIds.length === agentIds.length &&
-      memberIds.every((memberId) => agentIds.includes(memberId))
-
-    return [...new Set(sameMembers ? memberIds : agentIds)]
-  }
-
-  return [...new Set(memberIds ?? agentIds ?? [])]
-}
 
 /**
  * SPE-1701: deterministic per-agent carry-in from post-downtime posture.

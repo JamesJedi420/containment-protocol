@@ -15,6 +15,7 @@ import {
   buildTeamWeakestLinkSummary,
   validateTeamComposition,
 } from './teamComposition'
+import { getTeamMemberIds } from './teamSimulation'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -40,21 +41,6 @@ function shouldApplyDeploymentCarryInReadiness(mission: CaseInstance | undefined
   const duration = mission.durationWeeks
   const remaining = mission.weeksRemaining ?? duration
   return remaining === duration
-}
-
-function getTeamMemberIds(team: Pick<Team, 'memberIds' | 'agentIds'>): Id[] {
-  const memberIds = Array.isArray(team.memberIds) ? team.memberIds : undefined
-  const agentIds = Array.isArray(team.agentIds) ? team.agentIds : undefined
-
-  if (memberIds && agentIds) {
-    const sameMembers =
-      memberIds.length === agentIds.length &&
-      memberIds.every((memberId) => agentIds.includes(memberId))
-
-    return [...new Set(sameMembers ? memberIds : agentIds)]
-  }
-
-  return [...new Set(memberIds ?? agentIds ?? [])]
 }
 
 function getTeamMembers(team: Pick<Team, 'memberIds' | 'agentIds'>, agentsById: GameState['agents']) {

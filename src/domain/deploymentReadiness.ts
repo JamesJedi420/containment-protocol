@@ -4,7 +4,7 @@ import { assessFundingPressure } from './funding'
 import { getMissionIntelRisk, getMissionIntelSummary } from './intel'
 import { clamp } from './math'
 import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity'
-import { INTEL_CALIBRATION } from './sim/calibration'
+import { INTEL_CALIBRATION, DOWNTIME_CARRY_IN_CALIBRATION } from './sim/calibration'
 import { evaluateConstructionReadinessBurden } from './constructionProgress'
 import {
   createDefaultFatigueChannels,
@@ -19,6 +19,7 @@ import type {
   Agent,
   AgentAvailabilityState,
   AgentDeploymentReadinessSnapshot,
+  CaseInstance,
   DeploymentEligibilityResult,
   DeploymentHardBlockerCode,
   DeploymentReadinessCategory,
@@ -31,6 +32,15 @@ import type {
   TeamCoverageRole,
   TeamDeploymentReadinessState,
 } from './models'
+
+function shouldApplyDeploymentCarryInReadiness(mission: CaseInstance | undefined): boolean {
+  if (!mission || mission.status !== 'in_progress') {
+    return false
+  }
+  const duration = mission.durationWeeks
+  const remaining = mission.weeksRemaining ?? duration
+  return remaining === duration
+}
 
 function getTeamMemberIds(team: Pick<Team, 'memberIds' | 'agentIds'>): Id[] {
   const memberIds = Array.isArray(team.memberIds) ? team.memberIds : undefined
@@ -432,6 +442,28 @@ export function buildTeamDeploymentReadinessState(
       : 100
   const missionIntelEffect = getMissionIntelEffect(state, effectiveMissionId)
 
+  let deploymentCarryInReadinessDelta = 0
+  const deploymentCarryInCodes: string[] = []
+  if (
+    effectiveMission &&
+    shouldApplyDeploymentCarryInReadiness(effectiveMission) &&
+    effectiveMission.deploymentCarryInByAgentId
+  ) {
+    const carryInMap = effectiveMission.deploymentCarryInByAgentId
+    for (const member of members) {
+      const stamp = carryInMap[member.id]
+      if (stamp) {
+        deploymentCarryInReadinessDelta += stamp.readinessDelta
+        deploymentCarryInCodes.push(stamp.code)
+      }
+    }
+    deploymentCarryInReadinessDelta = clamp(
+      deploymentCarryInReadinessDelta,
+      -DOWNTIME_CARRY_IN_CALIBRATION.teamReadinessDeltaCap,
+      DOWNTIME_CARRY_IN_CALIBRATION.teamReadinessDeltaCap
+    )
+  }
+
   const nonIntelSoftRiskCount = eligibility.softRisks.filter(
     (riskCode) => riskCode !== 'intel-uncertainty'
   ).length
@@ -460,7 +492,8 @@ export function buildTeamDeploymentReadinessState(
       nonIntelSoftRiskCount * 6 +
       ((composition?.requiredCoverageRoles.length ?? 0) - (composition?.missingRoles.length ?? 0)) * 8 -
       missionIntelEffect.penalty -
-      constructionBurden,
+      constructionBurden +
+      deploymentCarryInReadinessDelta,
     0,
     100
   )
@@ -473,6 +506,12 @@ export function buildTeamDeploymentReadinessState(
     softRisks: [...eligibility.softRisks],
     nicheSummary,
     intelPenalty: missionIntelEffect.penalty,
+    deploymentCarryInReadinessDelta:
+      deploymentCarryInReadinessDelta !== 0 ? deploymentCarryInReadinessDelta : undefined,
+    deploymentCarryInCodes:
+      deploymentCarryInCodes.length > 0
+        ? [...new Set(deploymentCarryInCodes)].sort((a, b) => a.localeCompare(b))
+        : undefined,
     coverageCompleteness: {
       required: [...(missionValidation?.requiredRoles ?? composition?.requiredCoverageRoles ?? [])],
       covered: [...(missionValidation?.coveredRoles ?? composition?.coveredRoles ?? [])],

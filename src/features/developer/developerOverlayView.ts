@@ -295,10 +295,18 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     })
     .sort((left, right) => left.teamId.localeCompare(right.teamId))
   const deploymentSummaries = Object.values(game.teams)
-    .map((team) => ({
-      teamId: team.id,
-      readiness: team.deploymentReadinessState,
-    }))
+    .map((team) => {
+      const assignedCaseId = team.status?.assignedCaseId ?? team.assignedCaseId
+      const caseDeploymentCarryInByAgentId =
+        assignedCaseId && game.cases[assignedCaseId]
+          ? (game.cases[assignedCaseId].deploymentCarryInByAgentId ?? null)
+          : null
+      return {
+        teamId: team.id,
+        readiness: team.deploymentReadinessState,
+        caseDeploymentCarryInByAgentId,
+      }
+    })
     .sort((left, right) => left.teamId.localeCompare(right.teamId))
   const bestTeams = rankBestAvailableTeams(
     Object.values(game.teams),

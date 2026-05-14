@@ -23,6 +23,7 @@ import {
 } from '../teamSimulation'
 import { validateTeam, validateTeamIds } from '../validateTeam'
 import { assignActiveAgentsToTeam, releaseAssignedAgentsFromTeams } from './agentAssignments'
+import { rebuildDeploymentCarryInForCase } from './downtimeCarryIn'
 import { releaseTeamsFromCases } from './teamRelease'
 
 function filterExistingTeamIds(teamIds: Id[], teams: GameState['teams']) {
@@ -139,26 +140,41 @@ export function assignTeam(state: GameState, caseId: Id, teamId: Id): GameState 
     })
   }
 
-  const nextState: GameState = {
+  const baseCasePayload = {
+    ...normalizedCase,
+    assignedTeamIds: nextAssignedTeamIds,
+    weeksRemaining: normalizedCase.weeksRemaining ?? normalizedCase.durationWeeks,
+    status: 'in_progress' as const,
+  }
+
+  const teamsPayload = {
+    ...teams,
+    [teamId]: {
+      ...teams[teamId],
+      assignedCaseId: caseId,
+      status: teams[teamId]?.status
+        ? { ...teams[teamId].status, assignedCaseId: caseId }
+        : teams[teamId]?.status,
+    },
+  }
+
+  const interimForCarryIn: GameState = {
     ...normalizedState,
     agents: nextAgents,
     cases: {
       ...normalizedState.cases,
-      [caseId]: {
-        ...normalizedCase,
-        assignedTeamIds: nextAssignedTeamIds,
-        weeksRemaining: normalizedCase.weeksRemaining ?? normalizedCase.durationWeeks,
-        status: 'in_progress',
-      },
+      [caseId]: baseCasePayload,
     },
-    teams: {
-      ...teams,
-      [teamId]: {
-        ...teams[teamId],
-        assignedCaseId: caseId,
-        status: teams[teamId]?.status
-          ? { ...teams[teamId].status, assignedCaseId: caseId }
-          : teams[teamId]?.status,
+    teams: teamsPayload,
+  }
+
+  const nextState: GameState = {
+    ...interimForCarryIn,
+    cases: {
+      ...interimForCarryIn.cases,
+      [caseId]: {
+        ...baseCasePayload,
+        deploymentCarryInByAgentId: rebuildDeploymentCarryInForCase(interimForCarryIn, caseId),
       },
     },
   }
@@ -284,6 +300,18 @@ export function launchMajorIncident(
     teams: nextTeams,
   }
 
+  const carryIn = rebuildDeploymentCarryInForCase(nextState, caseId)
+  const nextStateWithCarryIn: GameState = {
+    ...nextState,
+    cases: {
+      ...nextState.cases,
+      [caseId]: {
+        ...nextState.cases[caseId]!,
+        deploymentCarryInByAgentId: carryIn,
+      },
+    },
+  }
+
   const drafts: AnyOperationEventDraft[] = replacedTeamIds.map((replacedTeamId) =>
     createAssignmentTeamUnassignedDraft({
       week: normalizedState.week,
@@ -310,7 +338,7 @@ export function launchMajorIncident(
     )
   }
 
-  return normalizeGameState(appendOperationEventDrafts(nextState, drafts))
+  return normalizeGameState(appendOperationEventDrafts(nextStateWithCarryIn, drafts))
 }
 
 /**
@@ -351,19 +379,37 @@ export function unassignTeam(state: GameState, caseId: Id, teamId?: Id): GameSta
     week: normalizedState.week,
   })
 
-  const nextState: GameState = {
+  const baseCaseAfterUnassign = {
+    ...normalizedCase,
+    assignedTeamIds: remainingTeamIds,
+    status: remainingTeamIds.length > 0 ? ('in_progress' as const) : ('open' as const),
+    weeksRemaining: remainingTeamIds.length > 0 ? normalizedCase.weeksRemaining : undefined,
+  }
+
+  const interimState: GameState = {
     ...normalizedState,
     agents: nextAgents,
     cases: {
       ...normalizedState.cases,
-      [caseId]: {
-        ...normalizedCase,
-        assignedTeamIds: remainingTeamIds,
-        status: remainingTeamIds.length > 0 ? 'in_progress' : 'open',
-        weeksRemaining: remainingTeamIds.length > 0 ? normalizedCase.weeksRemaining : undefined,
-      },
+      [caseId]: baseCaseAfterUnassign,
     },
     teams,
+  }
+
+  const finalCasePayload = {
+    ...baseCaseAfterUnassign,
+    deploymentCarryInByAgentId:
+      remainingTeamIds.length > 0
+        ? rebuildDeploymentCarryInForCase(interimState, caseId)
+        : undefined,
+  }
+
+  const nextState: GameState = {
+    ...interimState,
+    cases: {
+      ...interimState.cases,
+      [caseId]: finalCasePayload,
+    },
   }
 
   return normalizeGameState(

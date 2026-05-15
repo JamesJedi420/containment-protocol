@@ -5,31 +5,11 @@ import { buildCourierNetworkCapacityGapReport } from '../domain/capabilityGap'
 import { COURIER_NETWORK_CAPACITY_GAP_CALIBRATION } from '../domain/sim/calibration'
 import {
   OFF_BOOKS_COURIER_LOCKOUT_TAG,
-  OFF_BOOKS_COURIER_PAID_PREREQ_TAG,
 } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
 import type { CourierShellFrontState, FundingState, GameState } from '../domain/models'
-
-function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
-  const agentId = Object.keys(base.agents)[0]!
-  const agent = base.agents[agentId]!
-  return normalizeGameState({
-    ...base,
-    funding,
-    agency: {
-      ...base.agency!,
-      funding,
-    },
-    agents: {
-      ...base.agents,
-      [agentId]: {
-        ...agent,
-        tags: [...agent.tags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
-      },
-    },
-  })
-}
+import { withPaidCourierAndFunding } from './fixtures/withPaidCourierAndFunding'
 
 describe('SPE-823a courier network capacity gap report', () => {
   it('computes deterministic inventory (same state → same report)', () => {

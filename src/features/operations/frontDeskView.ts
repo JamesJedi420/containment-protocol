@@ -1187,41 +1187,37 @@ export function buildCourierNetworkCapacityOpportunityCard(
     return null
   }
 
+  const sharedFields = {
+    id: 'courier-network-capacity-gap' as const,
+    capacityLine: `Current ${report.current} · Immediate floor ${report.required} · Structural target ${report.desiredFuture}`,
+    mitigationLabels: report.mitigationHooks.map((hook) => hook.label),
+    primaryHref: APP_ROUTES.marketsSuppliers,
+    primaryLinkLabel: 'Review procurement backlog',
+    secondaryHref: APP_ROUTES.agency,
+    secondaryLinkLabel: 'Review agency funding',
+    guidanceNote:
+      'These mitigations are planning labels only. Use existing procurement, agency funding, and weekly progression flows already in the sim.',
+  }
+
   if (report.gapKind === 'below_required') {
     return {
-      id: 'courier-network-capacity-gap',
+      ...sharedFields,
       title: 'Courier network below immediate floor',
       summary:
         'Logistics support is under the baseline immediate floor. Reduce lockouts, exposure residue drag, budget strain, and pending procurement pressure where you can.',
-      capacityLine: `Current ${report.current} · Immediate floor ${report.required} · Structural target ${report.desiredFuture}`,
       gapKindLabel: 'Below immediate floor',
       tone: 'danger',
-      mitigationLabels: report.mitigationHooks.map((hook) => hook.label),
-      primaryHref: APP_ROUTES.marketsSuppliers,
-      primaryLinkLabel: 'Review procurement backlog',
-      secondaryHref: APP_ROUTES.agency,
-      secondaryLinkLabel: 'Review agency funding',
-      guidanceNote:
-        'These mitigations are planning labels only. Use existing procurement, agency funding, and weekly progression flows already in the sim.',
     }
   }
 
   if (report.gapKind === 'below_desired_only') {
     return {
-      id: 'courier-network-capacity-gap',
+      ...sharedFields,
       title: 'Courier network below structural target',
       summary:
         'The immediate logistics floor is met, but overall courier network support remains under the structural baseline for this scenario.',
-      capacityLine: `Current ${report.current} · Immediate floor ${report.required} · Structural target ${report.desiredFuture}`,
       gapKindLabel: 'Below structural target',
       tone: 'warning',
-      mitigationLabels: report.mitigationHooks.map((hook) => hook.label),
-      primaryHref: APP_ROUTES.marketsSuppliers,
-      primaryLinkLabel: 'Review procurement backlog',
-      secondaryHref: APP_ROUTES.agency,
-      secondaryLinkLabel: 'Review agency funding',
-      guidanceNote:
-        'These mitigations are planning labels only. Use existing procurement, agency funding, and weekly progression flows already in the sim.',
     }
   }
 

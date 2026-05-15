@@ -7,7 +7,6 @@ import type { Candidate } from '../domain/recruitment/types'
 import type { CourierShellFrontState, GameState } from '../domain/models'
 import {
   OFF_BOOKS_COURIER_LOCKOUT_TAG,
-  OFF_BOOKS_COURIER_PAID_PREREQ_TAG,
 } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
@@ -20,26 +19,7 @@ import {
   FRONT_DESK_TRIGGER_IDS,
   getEligibleFrontDeskSceneTriggerIds,
 } from '../features/operations/frontDeskTriggers'
-
-function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
-  const agentId = Object.keys(base.agents)[0]!
-  const agent = base.agents[agentId]!
-  return normalizeGameState({
-    ...base,
-    funding,
-    agency: {
-      ...base.agency!,
-      funding,
-    },
-    agents: {
-      ...base.agents,
-      [agentId]: {
-        ...agent,
-        tags: [...agent.tags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
-      },
-    },
-  })
-}
+import { withPaidCourierAndFunding } from './fixtures/withPaidCourierAndFunding'
 
 function createSponsoredCandidate(): Candidate {
   return {

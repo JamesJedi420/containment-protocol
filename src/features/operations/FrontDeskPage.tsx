@@ -353,9 +353,9 @@ export default function FrontDeskPage() {
                 <p className="text-sm opacity-80">{view.courierCapacityOpportunity.summary}</p>
                 <p className="text-sm font-semibold text-amber-100/90">{view.courierCapacityOpportunity.capacityLine}</p>
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {view.courierCapacityOpportunity.mitigationLabels.map((label) => (
+                  {view.courierCapacityOpportunity.mitigationLabels.map((label, index) => (
                     <span
-                      key={label}
+                      key={`${label}-${index}`}
                       className="rounded-full border border-white/12 bg-white/5 px-2 py-0.5 text-[11px] opacity-85"
                     >
                       {label}

@@ -5,31 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
-import type { GameState } from '../../domain/models'
-import { OFF_BOOKS_COURIER_PAID_PREREQ_TAG } from '../../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
-import { normalizeGameState } from '../../domain/teamSimulation'
 import FrontDeskPage from './FrontDeskPage'
-
-function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
-  const agentId = Object.keys(base.agents)[0]!
-  const agent = base.agents[agentId]!
-  return normalizeGameState({
-    ...base,
-    funding,
-    agency: {
-      ...base.agency!,
-      funding,
-    },
-    agents: {
-      ...base.agents,
-      [agentId]: {
-        ...agent,
-        tags: [...agent.tags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
-      },
-    },
-  })
-}
+import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
 
 function renderFrontDesk() {
   return render(

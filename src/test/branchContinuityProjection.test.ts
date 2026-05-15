@@ -136,6 +136,34 @@ describe('branchContinuityProjection', () => {
     expect(healedFacts.injuryStatusBySubjectId[`agent:${agentId}`]).toBe('healed')
   })
 
+  it('projects only event-shaped consumed one-shots into witnessedEventIds', () => {
+    let game = createStartingState()
+    game = markOneShotEvent(game, 'event:hall-ambush', 'intro_scene')
+    game = markOneShotEvent(game, 'event.opening-brief', 'intro_scene')
+    game = markOneShotEvent(game, 'frontdesk.welcome', 'frontdesk')
+    game = markOneShotEvent(game, 'recruit.firstContact', 'recruitment')
+    game = markOneShotEvent(game, 'containment.notice', 'ops')
+
+    const pathFacts = projectBranchPathFactsFromGameState(game)
+
+    expect(pathFacts.witnessedEventIds).toEqual(
+      expect.arrayContaining(['event:hall-ambush', 'event.opening-brief'])
+    )
+    expect(pathFacts.witnessedEventIds).not.toEqual(
+      expect.arrayContaining(['frontdesk.welcome', 'recruit.firstContact', 'containment.notice'])
+    )
+    expect(pathFacts.witnessedEventIds).toHaveLength(2)
+  })
+
+  it('projects event-shaped global flags into witnessedEventIds', () => {
+    let game = createStartingState()
+    game = setGlobalFlag(game, 'event:hall-ambush', true)
+    game = setGlobalFlag(game, 'frontdesk.notice.seen', true)
+
+    const pathFacts = projectBranchPathFactsFromGameState(game)
+    expect(pathFacts.witnessedEventIds).toEqual(['event:hall-ambush'])
+  })
+
   it('projects player-known ids from flags, one-shots, knowledge, and choices', () => {
     let game = createStartingState()
 

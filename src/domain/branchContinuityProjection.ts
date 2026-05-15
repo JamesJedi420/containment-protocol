@@ -3,6 +3,15 @@
  *
  * Prepares validator input only — does not run branch continuity validation,
  * persist path state, or hook runtime story/encounter flows.
+ *
+ * Prefix conventions (read-only projection):
+ * - Witnessed events: `event:*` / `event.*` flags and event-shaped consumed one-shots only
+ *   (generic one-shots such as `frontdesk.*` are gating keys, not witnessed events).
+ * - Learned clues: player-known knowledge tiers plus `clue:*` / `clue.*` flags.
+ * - Prior choices: dev-log `choice.executed`, authoring `lastChoiceId`, `choice:*` / `choice.*` flags.
+ * - Companions: `companion.<id>` or `npc.<id>.companion` with union status values.
+ * - Hidden truth (opt-in): encounter `hiddenModifierIds`, `sim.hidden.event.*`, `sim.hidden.clue.*`.
+ * - Room of origin: first `sceneHistory` entry (oldest visit; history is append-ordered in gameStateManager).
  */
 
 import type {
@@ -76,8 +85,9 @@ function isHiddenSimulationFlagKey(flagId: string) {
   return flagId.startsWith('sim.hidden.')
 }
 
-function isEventFlagKey(flagId: string) {
-  return flagId.startsWith('event:') || flagId.startsWith('event.')
+/** Event-shaped ids for witnessed-event projection (flags and consumed one-shots). */
+function isEventShapedKey(id: string) {
+  return id.startsWith('event:') || id.startsWith('event.')
 }
 
 function isClueFlagKey(flagId: string) {
@@ -284,7 +294,7 @@ function projectWitnessedEventIds(
       continue
     }
 
-    if (record?.seen !== false) {
+    if (record?.seen !== false && isEventShapedKey(normalizedId)) {
       witnessed.push(normalizedId)
     }
   }
@@ -295,7 +305,7 @@ function projectWitnessedEventIds(
       continue
     }
 
-    if (isEventFlagKey(normalizedId) && isTruthyFlag(value)) {
+    if (isEventShapedKey(normalizedId) && isTruthyFlag(value)) {
       witnessed.push(normalizedId)
     }
   }

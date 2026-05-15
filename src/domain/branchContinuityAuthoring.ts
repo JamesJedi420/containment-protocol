@@ -13,6 +13,8 @@
  * Those are treated like omissions; empty arrays and empty record fields are omitted from output.
  * Entries whose `id` is not a non-empty string after trim are omitted (no fallback ids) so `nodeId` is
  * always a valid string for SPE-1760 validation and reporting.
+ * Array elements that are not non-null plain objects (e.g. `null`, primitives) are skipped so `.id` is
+ * never read on invalid rows.
  */
 
 import type {
@@ -31,6 +33,11 @@ export interface AuthoredBranchContinuityAssumptions {
   requires?: BranchNodeRequirements
   assumesPlayerKnows?: BranchPlayerKnowledgeAssumption
   citesOfficialClaimIds?: readonly string[]
+}
+
+/** Each authored row must be a non-null, non-array object before reading fields (JSON arrays may contain nulls). */
+function isAuthoredContinuityRecord(value: unknown): value is Partial<AuthoredBranchContinuityNode> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** Trims and validates `id` from runtime payloads; returns undefined for non-strings and whitespace-only. */
@@ -178,7 +185,12 @@ export function buildBranchContinuityNodesFromAuthoredGraph(
 ): BranchContinuityNode[] {
   const result: BranchContinuityNode[] = []
 
-  for (const authored of authoredNodes) {
+  for (const entry of authoredNodes) {
+    if (!isAuthoredContinuityRecord(entry)) {
+      continue
+    }
+
+    const authored = entry
     const nodeId = normalizeAuthoredNodeId((authored as { id: unknown }).id)
     if (nodeId === undefined) {
       continue

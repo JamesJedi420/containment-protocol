@@ -131,6 +131,77 @@ describe('branchContinuityAuthoring', () => {
     })
   })
 
+  describe('malformed authored array elements', () => {
+    it('skips null element without throwing', () => {
+      const graph = [null] as unknown as readonly AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(graph)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(graph)).toEqual([])
+    })
+
+    it('skips undefined element without throwing', () => {
+      const graph = [undefined] as unknown as readonly AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(graph)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(graph)).toEqual([])
+    })
+
+    it('skips primitive string element without throwing', () => {
+      const graph = ['literal-string'] as unknown as readonly AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(graph)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(graph)).toEqual([])
+    })
+
+    it('skips number and boolean elements without throwing', () => {
+      const graph = [0, 42, true, false] as unknown as readonly AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(graph)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(graph)).toEqual([])
+    })
+
+    it('preserves order for valid objects while dropping non-objects', () => {
+      const graph = [
+        null,
+        { id: 'node:keep-a' },
+        'skip-me',
+        99,
+        false,
+        { id: 'node:keep-b' },
+        undefined,
+      ] as unknown as readonly AuthoredBranchContinuityNode[]
+
+      expect(buildBranchContinuityNodesFromAuthoredGraph(graph)).toEqual([
+        { nodeId: 'node:keep-a' },
+        { nodeId: 'node:keep-b' },
+      ])
+    })
+
+    it('does not crash audit when array mixes null, primitives, and valid nodes', () => {
+      const graph = [
+        null,
+        { id: 'node:audit-safe', continuity: { requires: { allItemIds: ['item:holy-symbol'] } } },
+        'bad',
+        undefined,
+      ] as unknown as readonly AuthoredBranchContinuityNode[]
+
+      const game = createStartingState()
+      expect(() =>
+        buildBranchContinuityAuditReport({
+          game,
+          nodes: buildBranchContinuityNodesFromAuthoredGraph(graph),
+        })
+      ).not.toThrow()
+
+      const report = buildBranchContinuityAuditReport({
+        game,
+        nodes: buildBranchContinuityNodesFromAuthoredGraph(graph),
+      })
+      expect(report.summary.nodeCount).toBe(1)
+      expect(
+        report.validation.warnings.some(
+          (w) => w.nodeId === 'node:audit-safe' && w.warningClass === 'missing_item'
+        )
+      ).toBe(true)
+    })
+  })
+
   it('maps a full continuity payload to match a hand-built BranchContinuityNode', () => {
     const requires: BranchNodeRequirements = {
       allItemIds: ['item:alpha'],

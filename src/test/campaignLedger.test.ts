@@ -48,6 +48,35 @@ describe('SPE-1734 campaign ledger', () => {
     expect(sanitized.settingHistory.every((row) => row.id.length > 0)).toBe(true)
   })
 
+  it('keeps the chronologically latest setting history rows when capping past 200 entries', () => {
+    const base = createSeedCampaignLedger()
+    const many = Array.from({ length: 250 }, (_, index) => {
+      const week = index + 1
+      return {
+        id: `hist_tone_${week}`,
+        settingId: 'toneScopeLabel',
+        value: `VALUE_${week}`,
+        effectiveFromWeek: week,
+        changedAtWeek: week - 1,
+        source: 'seed' as const,
+      }
+    })
+    // Newest-first order would lose late weeks if we capped before sorting.
+    many.reverse()
+
+    const game = createStartingState()
+    game.campaignLedger = { ...base, settingHistory: many }
+
+    expect(getCurrentCampaignRulesLedger(game).settingHistory).toHaveLength(200)
+    expect(getCampaignSettingEffectiveAt(game, 'toneScopeLabel', 250)).toBe('VALUE_250')
+  })
+
+  it('preserves intentionally empty persisted setting history', () => {
+    const base = createSeedCampaignLedger()
+    const sanitized = sanitizeCampaignLedger({ ...base, settingHistory: [] }, base)
+    expect(sanitized.settingHistory).toEqual([])
+  })
+
   it('builds a compatibility report from enabled modules', () => {
     const game = createStartingState()
     const report = buildCampaignModuleCompatibilityReport(game)

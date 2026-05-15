@@ -120,12 +120,18 @@ function sanitizeModuleToggles(raw: unknown, fallback: CampaignModuleToggle[]): 
   return next.length > 0 ? next.slice(0, 24) : [...fallback]
 }
 
+const SETTING_HISTORY_CAP = 200
+
 function sanitizeSettingHistory(
   raw: unknown,
   fallback: CampaignSettingHistoryEntry[]
 ): CampaignSettingHistoryEntry[] {
   if (!Array.isArray(raw)) {
     return [...fallback]
+  }
+
+  if (raw.length === 0) {
+    return []
   }
 
   const next: CampaignSettingHistoryEntry[] = []
@@ -160,9 +166,11 @@ function sanitizeSettingHistory(
     })
   }
 
-  const bounded = next.length > 0 ? next.slice(0, 200) : [...fallback]
+  if (next.length === 0) {
+    return [...fallback]
+  }
 
-  return [...bounded].sort((left, right) => {
+  const sorted = [...next].sort((left, right) => {
     if (left.effectiveFromWeek !== right.effectiveFromWeek) {
       return left.effectiveFromWeek - right.effectiveFromWeek
     }
@@ -173,6 +181,8 @@ function sanitizeSettingHistory(
 
     return left.id.localeCompare(right.id)
   })
+
+  return sorted.length > SETTING_HISTORY_CAP ? sorted.slice(-SETTING_HISTORY_CAP) : sorted
 }
 
 function sanitizeCompatibility(

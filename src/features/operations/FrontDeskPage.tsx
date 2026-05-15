@@ -294,16 +294,16 @@ export default function FrontDeskPage() {
               <h3 className="font-medium">{view.campaignRulesSummary.title}</h3>
               <p className="text-sm font-semibold text-cyan-100/85">{view.campaignRulesSummary.headline}</p>
               <ul className="space-y-1.5 text-sm opacity-80">
-                {view.campaignRulesSummary.lines.map((line) => (
-                  <li key={line}>{line}</li>
+                {view.campaignRulesSummary.lines.map((line, index) => (
+                  <li key={`campaign-rules-line-${index}`}>{line}</li>
                 ))}
               </ul>
               <p className="text-xs opacity-70">{view.campaignRulesSummary.compatibilitySummary}</p>
               {view.campaignRulesSummary.activeModuleLabels.length > 0 ? (
                 <div className="flex flex-wrap gap-1.5 pt-1">
-                  {view.campaignRulesSummary.activeModuleLabels.map((label) => (
+                  {view.campaignRulesSummary.activeModuleLabels.map((label, index) => (
                     <span
-                      key={label}
+                      key={`campaign-rules-module-${index}`}
                       className="rounded-full border border-white/12 bg-white/5 px-2 py-0.5 text-[11px] opacity-85"
                     >
                       {label}

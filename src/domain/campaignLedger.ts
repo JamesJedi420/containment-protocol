@@ -360,6 +360,36 @@ export interface CampaignRulesSummary {
   activeModuleLabels: readonly string[]
 }
 
+/** Presentation-only: aligns Front Desk summary with live `game.config` for mirrored modifiers. */
+function formatChallengePostureSummaryLine(game: GameState): string {
+  const elevated = game.config.challengeModeEnabled
+  return `Challenge posture · ${
+    elevated ? 'Elevated (challenge mode on)' : 'Standard (challenge mode off)'
+  }`
+}
+
+/** Presentation-only: mirrors hydrate coercion — attrition only when challenge mode is on. */
+function formatDurationModelSummaryLine(game: GameState): string {
+  const model = game.config.challengeModeEnabled ? game.config.durationModel : 'capacity'
+  const detail =
+    model === 'attrition'
+      ? 'Attrition model (cross-session operative attrition continuity)'
+      : 'Capacity model (no cross-session operative attrition)'
+  return `Duration / attrition integrity · ${detail}`
+}
+
+function formatRunStateModifierSummaryLine(game: GameState, modifier: CampaignRunStateModifier): string {
+  if (modifier.id === 'challenge_posture') {
+    return formatChallengePostureSummaryLine(game)
+  }
+
+  if (modifier.id === 'duration_model') {
+    return formatDurationModelSummaryLine(game)
+  }
+
+  return `${modifier.label} · ${modifier.value}`
+}
+
 export function buildCampaignRulesSummary(game: GameState): CampaignRulesSummary {
   const ledger = getCurrentCampaignRulesLedger(game)
   const week = game.week
@@ -377,7 +407,7 @@ export function buildCampaignRulesSummary(game: GameState): CampaignRulesSummary
       ? `Effective tone / scope (week ${week}) · ${effectiveTone}`
       : `Tone / scope anchor · ${ledger.profile.toneScopeLabel}`,
     `Active rules profile · ${ledger.activeRulesProfileLabel} (${ledger.activeRulesProfileId})`,
-    ...ledger.runStateModifiers.map((modifier) => `${modifier.label} · ${modifier.value}`),
+    ...ledger.runStateModifiers.map((modifier) => formatRunStateModifierSummaryLine(game, modifier)),
     `Modules on · ${enabledModules.map((toggle) => toggle.label).join(' · ') || '—'}`,
   ]
 

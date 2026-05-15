@@ -64,4 +64,13 @@ describe('SPE-1734 campaign ledger', () => {
     expect(summary.lines.some((l) => l.includes('Mid-Atlantic'))).toBe(true)
     expect(summary.compatibilitySummary).toMatch(/Compatibility/)
   })
+
+  it('reflects live game.config for mirrored challenge and duration lines (Front Desk presets)', () => {
+    const game = createStartingState()
+    game.config.challengeModeEnabled = true
+    game.config.durationModel = 'attrition'
+    const summary = buildCampaignRulesSummary(game)
+    expect(summary.lines.some((l) => /Challenge posture · .*challenge mode on/i.test(l))).toBe(true)
+    expect(summary.lines.some((l) => /Attrition model/i.test(l))).toBe(true)
+  })
 })

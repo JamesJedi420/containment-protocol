@@ -11,6 +11,8 @@
  *
  * Runtime hardening: authored payloads (for example from JSON) may use `null` for optional fields.
  * Those are treated like omissions; empty arrays and empty record fields are omitted from output.
+ * Entries whose `id` is not a non-empty string after trim are omitted (no fallback ids) so `nodeId` is
+ * always a valid string for SPE-1760 validation and reporting.
  */
 
 import type {
@@ -29,6 +31,16 @@ export interface AuthoredBranchContinuityAssumptions {
   requires?: BranchNodeRequirements
   assumesPlayerKnows?: BranchPlayerKnowledgeAssumption
   citesOfficialClaimIds?: readonly string[]
+}
+
+/** Trims and validates `id` from runtime payloads; returns undefined for non-strings and whitespace-only. */
+function normalizeAuthoredNodeId(id: unknown): string | undefined {
+  if (typeof id !== 'string') {
+    return undefined
+  }
+
+  const trimmed = id.trim()
+  return trimmed.length > 0 ? trimmed : undefined
 }
 
 /** Non-empty copy of string list entries; rejects null, non-arrays, empty arrays, and all-non-string elements. */
@@ -164,9 +176,16 @@ function slimAuthoredContinuity(
 export function buildBranchContinuityNodesFromAuthoredGraph(
   authoredNodes: readonly AuthoredBranchContinuityNode[]
 ): BranchContinuityNode[] {
-  return authoredNodes.map((authored) => {
+  const result: BranchContinuityNode[] = []
+
+  for (const authored of authoredNodes) {
+    const nodeId = normalizeAuthoredNodeId((authored as { id: unknown }).id)
+    if (nodeId === undefined) {
+      continue
+    }
+
     const node: BranchContinuityNode = {
-      nodeId: authored.id,
+      nodeId,
     }
 
     if (typeof authored.label === 'string') {
@@ -186,6 +205,8 @@ export function buildBranchContinuityNodesFromAuthoredGraph(
       }
     }
 
-    return node
-  })
+    result.push(node)
+  }
+
+  return result
 }

@@ -65,6 +65,72 @@ describe('branchContinuityAuthoring', () => {
     ])
   })
 
+  describe('malformed authored node ids', () => {
+    it('skips id: null without throwing', () => {
+      const authored = [{ id: null }] as unknown as AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(authored)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([])
+    })
+
+    it('skips non-string id without throwing', () => {
+      const authored = [{ id: 123 }] as unknown as AuthoredBranchContinuityNode[]
+      expect(() => buildBranchContinuityNodesFromAuthoredGraph(authored)).not.toThrow()
+      expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([])
+    })
+
+    it('skips empty or whitespace-only id without throwing', () => {
+      for (const id of ['', '   ', '\t\n']) {
+        const authored = [{ id }] as unknown as AuthoredBranchContinuityNode[]
+        expect(() => buildBranchContinuityNodesFromAuthoredGraph(authored)).not.toThrow()
+        expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([])
+      }
+    })
+
+    it('keeps valid nodes in order and drops malformed entries', () => {
+      const authored = [
+        { id: null },
+        { id: '  node:first  ' },
+        { id: 123 },
+        { id: 'node:second' },
+        { id: '' },
+      ] as unknown as AuthoredBranchContinuityNode[]
+
+      expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([
+        { nodeId: 'node:first' },
+        { nodeId: 'node:second' },
+      ])
+    })
+
+    it('does not crash buildBranchContinuityAuditReport when malformed ids are mixed with valid', () => {
+      const mixed = [
+        { id: null },
+        { id: 123 },
+        { id: '' },
+        { id: 'node:warn', continuity: { requires: { allItemIds: ['item:holy-symbol'] } } },
+      ] as unknown as AuthoredBranchContinuityNode[]
+
+      const game = createStartingState()
+      expect(() =>
+        buildBranchContinuityAuditReport({
+          game,
+          nodes: buildBranchContinuityNodesFromAuthoredGraph(mixed),
+        })
+      ).not.toThrow()
+
+      const report = buildBranchContinuityAuditReport({
+        game,
+        nodes: buildBranchContinuityNodesFromAuthoredGraph(mixed),
+      })
+
+      expect(report.summary.nodeCount).toBe(1)
+      expect(
+        report.validation.warnings.some(
+          (w) => w.nodeId === 'node:warn' && w.warningClass === 'missing_item'
+        )
+      ).toBe(true)
+    })
+  })
+
   it('maps a full continuity payload to match a hand-built BranchContinuityNode', () => {
     const requires: BranchNodeRequirements = {
       allItemIds: ['item:alpha'],

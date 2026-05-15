@@ -11,7 +11,6 @@ export type BranchInjuryStatus = 'none' | 'wounded' | 'healed'
 export interface BranchSimulationTruth {
   hiddenEventIds?: readonly string[]
   hiddenLearnedClueIds?: readonly string[]
-  trueCompanionStatusById?: Readonly<Record<string, BranchCompanionStatus>>
 }
 
 export interface BranchPathFacts {
@@ -67,6 +66,8 @@ export interface BranchCorrectedRecord {
 
 export type BranchContinuityWarningClass =
   | 'missing_item'
+  | 'companion_status_mismatch'
+  | 'missing_prior_choice'
   | 'injury_contradiction'
   | 'unlearned_clue'
   | 'unwitnessed_event'
@@ -109,6 +110,8 @@ export interface BranchContinuityValidationInput {
 
 const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
   'missing_item',
+  'companion_status_mismatch',
+  'missing_prior_choice',
   'injury_contradiction',
   'impossible_origin',
   'missing_record_revision',
@@ -116,6 +119,8 @@ const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
 
 const WARNING_CLASS_ORDER: readonly BranchContinuityWarningClass[] = [
   'missing_item',
+  'companion_status_mismatch',
+  'missing_prior_choice',
   'injury_contradiction',
   'unlearned_clue',
   'unwitnessed_event',
@@ -201,6 +206,42 @@ function isHiddenSimulationClue(pathFacts: BranchPathFacts, clueId: string) {
   return pathFacts.simulationTruth?.hiddenLearnedClueIds?.includes(clueId) ?? false
 }
 
+function getCompanionStatus(pathFacts: BranchPathFacts, companionId: string): BranchCompanionStatus {
+  return pathFacts.companionStatusById[companionId] ?? 'absent'
+}
+
+function isCorrectedRecordActive(pathFacts: BranchPathFacts, record: BranchCorrectedRecord) {
+  const effectiveFromChoiceId = normalizeString(record.effectiveFromChoiceId)
+  if (effectiveFromChoiceId.length === 0) {
+    return true
+  }
+
+  return hasPriorChoice(pathFacts, effectiveFromChoiceId)
+}
+
+function getActiveCorrectedRecords(
+  pathFacts: BranchPathFacts,
+  correctedRecords: readonly BranchCorrectedRecord[]
+) {
+  return correctedRecords.filter((record) => isCorrectedRecordActive(pathFacts, record))
+}
+
+function buildCorrectedRecordIndexes(
+  pathFacts: BranchPathFacts,
+  correctedRecords: readonly BranchCorrectedRecord[]
+) {
+  const activeRecords = getActiveCorrectedRecords(pathFacts, correctedRecords)
+
+  return {
+    supersededClaimIds: new Set(
+      activeRecords.map((record) => normalizeString(record.supersededClaimId)).filter(Boolean)
+    ),
+    revisionIds: new Set(
+      activeRecords.map((record) => normalizeString(record.revisionId)).filter(Boolean)
+    ),
+  }
+}
+
 function validateRequires(
   pathFacts: BranchPathFacts,
   node: BranchContinuityNode,
@@ -258,15 +299,15 @@ function validateRequires(
       continue
     }
 
-    if (requiredStatus === 'wounded' && actualStatus === 'none') {
+    if (requiredStatus === 'wounded' && actualStatus !== 'wounded') {
       pushWarning(warnings, {
         pathId,
         nodeId,
         warningClass: 'injury_contradiction',
         audience: 'simulation',
-        summary: `Node requires ${subjectId} to be wounded, but the path has no wound recorded.`,
+        summary: `Node requires ${subjectId} to be wounded, but the path records ${actualStatus}.`,
         relatedIds: [subjectId],
-        detailKey: `missing-wound:${subjectId}`,
+        detailKey: `wounded-mismatch:${subjectId}`,
       })
       continue
     }
@@ -298,14 +339,14 @@ function validateRequires(
   }
 
   for (const [companionId, requiredStatus] of Object.entries(requires.companionStatusById ?? {})) {
-    const actualStatus = pathFacts.companionStatusById[companionId]
+    const actualStatus = getCompanionStatus(pathFacts, companionId)
     if (actualStatus !== requiredStatus) {
       pushWarning(warnings, {
         pathId,
         nodeId,
-        warningClass: 'missing_item',
+        warningClass: 'companion_status_mismatch',
         audience: 'simulation',
-        summary: `Node requires companion ${companionId} to be ${requiredStatus}, but the path has ${actualStatus ?? 'absent'}.`,
+        summary: `Node requires companion ${companionId} to be ${requiredStatus}, but the path has ${actualStatus}.`,
         relatedIds: [companionId],
         detailKey: `companion:${companionId}`,
       })
@@ -361,8 +402,8 @@ function validateRequires(
       pushWarning(warnings, {
         pathId,
         nodeId,
-        warningClass: 'unwitnessed_event',
-        audience: 'player',
+        warningClass: 'missing_prior_choice',
+        audience: 'simulation',
         summary: `Node requires prior choice ${choiceId}, but the path never took it.`,
         relatedIds: [choiceId],
         detailKey: `requires-choice:${choiceId}`,
@@ -519,12 +560,7 @@ export function validateBranchContinuity(
 ): BranchContinuityValidationReport {
   const pathFacts = input.pathFacts
   const correctedRecords = input.correctedRecords ?? []
-  const supersededClaimIds = new Set(
-    correctedRecords.map((record) => normalizeString(record.supersededClaimId)).filter(Boolean)
-  )
-  const revisionIds = new Set(
-    correctedRecords.map((record) => normalizeString(record.revisionId)).filter(Boolean)
-  )
+  const { supersededClaimIds, revisionIds } = buildCorrectedRecordIndexes(pathFacts, correctedRecords)
 
   const warnings: BranchContinuityWarning[] = []
 

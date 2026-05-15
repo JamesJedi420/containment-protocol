@@ -84,6 +84,28 @@ describe('branchContinuity', () => {
     expect(report.summary.byClass.missing_item).toBe(1)
   })
 
+  it('flags wounded requirement when the path records healed instead of wounded', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:needs-active-wound',
+          requires: { injuryBySubjectId: { 'agent:player': 'wounded' } },
+        },
+      ],
+      createRavenloftPathFacts({
+        injuryStatusBySubjectId: { 'agent:player': 'healed' },
+      })
+    )
+
+    const warning = findWarning(report, 'node:needs-active-wound', 'injury_contradiction')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+      relatedIds: ['agent:player'],
+    })
+    expect(warning?.id).toContain('wounded-mismatch:agent:player')
+  })
+
   it('flags healed-never-inflicted injury contradiction', () => {
     const report = validateNodes([
       {
@@ -148,13 +170,18 @@ describe('branchContinuity', () => {
     })
   })
 
-  it('flags stale official claims superseded on the path', () => {
-    const report = validateNodes([
-      {
-        nodeId: 'node:old-map-briefing',
-        citesOfficialClaimIds: ['claim:map-wing-east'],
-      },
-    ])
+  it('flags stale official claims only when the correction is active on the path', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:old-map-briefing',
+          citesOfficialClaimIds: ['claim:map-wing-east'],
+        },
+      ],
+      createRavenloftPathFacts({
+        priorChoiceIds: ['choice:barricade-door', 'choice:archive-review'],
+      })
+    )
 
     const warning = findWarning(report, 'node:old-map-briefing', 'stale_official_claim')
     expect(warning).toMatchObject({
@@ -162,6 +189,99 @@ describe('branchContinuity', () => {
       audience: 'institutional',
       relatedIds: ['claim:map-wing-east'],
     })
+  })
+
+  it('does not flag stale official claims when the correction is inactive on the path', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:old-map-briefing',
+        citesOfficialClaimIds: ['claim:map-wing-east'],
+      },
+    ])
+
+    expect(findWarning(report, 'node:old-map-briefing', 'stale_official_claim')).toBeUndefined()
+  })
+
+  it('does not satisfy required revisions from inactive corrections', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:needs-map-revision',
+        requires: { requiredRecordRevisionIds: ['revision:map-wing-west'] },
+      },
+    ])
+
+    expect(findWarning(report, 'node:needs-map-revision', 'missing_record_revision')).toMatchObject({
+      severity: 'error',
+      relatedIds: ['revision:map-wing-west'],
+    })
+  })
+
+  it('satisfies required revisions from active corrections on the path', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:needs-map-revision',
+          requires: { requiredRecordRevisionIds: ['revision:map-wing-west'] },
+        },
+      ],
+      createRavenloftPathFacts({
+        priorChoiceIds: ['choice:barricade-door', 'choice:archive-review'],
+      })
+    )
+
+    expect(findWarning(report, 'node:needs-map-revision', 'missing_record_revision')).toBeUndefined()
+    expect(report.warnings).toHaveLength(0)
+  })
+
+  it('flags companion status mismatch with a dedicated warning class', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:companion-lost',
+        requires: { companionStatusById: { 'npc:irena': 'lost' } },
+      },
+    ])
+
+    const warning = findWarning(report, 'node:companion-lost', 'companion_status_mismatch')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+      relatedIds: ['npc:irena'],
+    })
+    expect(findWarning(report, 'node:companion-lost', 'missing_item')).toBeUndefined()
+  })
+
+  it('treats omitted companions as absent when absent is required', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:companion-absent',
+          requires: { companionStatusById: { 'npc:missing': 'absent' } },
+        },
+      ],
+      createRavenloftPathFacts({
+        companionStatusById: { 'npc:irena': 'present' },
+      })
+    )
+
+    expect(findWarning(report, 'node:companion-absent', 'companion_status_mismatch')).toBeUndefined()
+    expect(report.warnings).toHaveLength(0)
+  })
+
+  it('flags missing prior choices with a dedicated warning class', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:needs-archive-choice',
+        requires: { priorChoiceIds: ['choice:archive-review'] },
+      },
+    ])
+
+    const warning = findWarning(report, 'node:needs-archive-choice', 'missing_prior_choice')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+      relatedIds: ['choice:archive-review'],
+    })
+    expect(findWarning(report, 'node:needs-archive-choice', 'unwitnessed_event')).toBeUndefined()
   })
 
   it('flags missing corrected-record revision prerequisites', () => {

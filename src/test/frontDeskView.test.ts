@@ -1,13 +1,45 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { applyAuthoredChoice } from '../domain/choiceSystem'
+import { buildCourierNetworkCapacityGapReport } from '../domain/capabilityGap'
 import { consumeOneShotContent, setPersistentFlag } from '../domain/flagSystem'
 import type { Candidate } from '../domain/recruitment/types'
-import { getFrontDeskBriefingView, getFrontDeskHubView } from '../features/operations/frontDeskView'
+import type { CourierShellFrontState, GameState } from '../domain/models'
+import {
+  OFF_BOOKS_COURIER_LOCKOUT_TAG,
+  OFF_BOOKS_COURIER_PAID_PREREQ_TAG,
+} from '../domain/sim/downtimeSideWork'
+import { openCourierShellFront } from '../domain/sim/frontBusiness'
+import { normalizeGameState } from '../domain/teamSimulation'
+import {
+  buildCourierNetworkCapacityOpportunityCard,
+  getFrontDeskBriefingView,
+  getFrontDeskHubView,
+} from '../features/operations/frontDeskView'
 import {
   FRONT_DESK_TRIGGER_IDS,
   getEligibleFrontDeskSceneTriggerIds,
 } from '../features/operations/frontDeskTriggers'
+
+function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
+  const agentId = Object.keys(base.agents)[0]!
+  const agent = base.agents[agentId]!
+  return normalizeGameState({
+    ...base,
+    funding,
+    agency: {
+      ...base.agency!,
+      funding,
+    },
+    agents: {
+      ...base.agents,
+      [agentId]: {
+        ...agent,
+        tags: [...agent.tags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
+      },
+    },
+  })
+}
 
 function createSponsoredCandidate(): Candidate {
   return {
@@ -186,5 +218,58 @@ describe('frontDeskView', () => {
     expect(getEligibleFrontDeskSceneTriggerIds(state)).not.toContain(
       FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity
     )
+  })
+})
+
+describe('SPE-31a hub courier capacity opportunity card', () => {
+  it('returns null when the courier gap report has no unresolved gap', () => {
+    const opened = openCourierShellFront(withPaidCourierAndFunding(createStartingState(), 12000))
+    const report = buildCourierNetworkCapacityGapReport(opened)
+    expect(buildCourierNetworkCapacityOpportunityCard(report)).toBeNull()
+  })
+
+  it('returns a danger card for below-required gaps with mitigation labels', () => {
+    const game = withPaidCourierAndFunding(createStartingState(), 9000)
+    const card = buildCourierNetworkCapacityOpportunityCard(buildCourierNetworkCapacityGapReport(game))
+    expect(card).not.toBeNull()
+    expect(card!.tone).toBe('danger')
+    expect(card!.gapKindLabel).toBe('Below immediate floor')
+    expect(card!.mitigationLabels.length).toBeGreaterThanOrEqual(2)
+    expect(card!.capacityLine).toMatch(/Current \d+ · Immediate floor \d+ · Structural target \d+/)
+  })
+
+  it('returns a warning card for below-desired-only structural gaps', () => {
+    const opened = openCourierShellFront(withPaidCourierAndFunding(createStartingState(), 12000))
+    const agentId = Object.keys(opened.agents)[0]!
+    const strainedWithLockout: GameState = normalizeGameState({
+      ...opened,
+      agency: {
+        ...opened.agency!,
+        courierShellFront: {
+          ...(opened.agency!.courierShellFront as CourierShellFrontState),
+          status: 'strained',
+        },
+      },
+      agents: {
+        ...opened.agents,
+        [agentId]: {
+          ...opened.agents[agentId]!,
+          tags: [...opened.agents[agentId]!.tags, OFF_BOOKS_COURIER_LOCKOUT_TAG],
+        },
+      },
+    })
+    const card = buildCourierNetworkCapacityOpportunityCard(
+      buildCourierNetworkCapacityGapReport(strainedWithLockout),
+    )
+    expect(card).not.toBeNull()
+    expect(card!.tone).toBe('warning')
+    expect(card!.gapKindLabel).toBe('Below structural target')
+  })
+
+  it('does not mutate game state when building the hub view', () => {
+    const game = withPaidCourierAndFunding(createStartingState(), 9000)
+    const frozen = structuredClone(game)
+    getFrontDeskHubView(game)
+    expect(game).toEqual(frozen)
   })
 })

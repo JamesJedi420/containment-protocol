@@ -5,7 +5,31 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
+import type { GameState } from '../../domain/models'
+import { OFF_BOOKS_COURIER_PAID_PREREQ_TAG } from '../../domain/sim/downtimeSideWork'
+import { openCourierShellFront } from '../../domain/sim/frontBusiness'
+import { normalizeGameState } from '../../domain/teamSimulation'
 import FrontDeskPage from './FrontDeskPage'
+
+function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
+  const agentId = Object.keys(base.agents)[0]!
+  const agent = base.agents[agentId]!
+  return normalizeGameState({
+    ...base,
+    funding,
+    agency: {
+      ...base.agency!,
+      funding,
+    },
+    agents: {
+      ...base.agents,
+      [agentId]: {
+        ...agent,
+        tags: [...agent.tags, OFF_BOOKS_COURIER_PAID_PREREQ_TAG],
+      },
+    },
+  })
+}
 
 function renderFrontDesk() {
   return render(
@@ -15,6 +39,8 @@ function renderFrontDesk() {
         <Route path="/report" element={<p>Reports home</p>} />
         <Route path="/recruitment" element={<p>Recruitment home</p>} />
         <Route path="/teams" element={<p>Teams home</p>} />
+        <Route path="/markets-suppliers" element={<p>Markets home</p>} />
+        <Route path="/agency" element={<p>Agency home</p>} />
       </Routes>
     </MemoryRouter>
   )
@@ -40,6 +66,7 @@ describe('FrontDeskPage', () => {
     expect(screen.getByRole('heading', { name: /procurement snapshot/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /agency standing/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /latest report/i })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /courier network capacity opportunity/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /weekly reports/i }))
     expect(screen.getByText(/reports home/i)).toBeInTheDocument()
@@ -90,6 +117,23 @@ describe('FrontDeskPage', () => {
       expect(screen.getByRole('link', { name: /^week 1$/i })).toBeInTheDocument()
       expect(screen.getByText(/1 resolved, 0 unresolved triggers, 0 spawned cases/i)).toBeInTheDocument()
     })
+  })
+
+  it('hides the courier logistics opportunity card when the capacity gap is resolved', () => {
+    renderFrontDesk()
+    const cleared = openCourierShellFront(withPaidCourierAndFunding(createStartingState(), 12000))
+    act(() => {
+      useGameStore.setState({ game: cleared })
+    })
+    expect(screen.queryByRole('region', { name: /courier network capacity opportunity/i })).not.toBeInTheDocument()
+  })
+
+  it('links logistics opportunity drill-ins to markets and agency routes', async () => {
+    const user = userEvent.setup()
+    renderFrontDesk()
+
+    await user.click(screen.getByRole('link', { name: /review procurement backlog/i }))
+    expect(screen.getByText(/markets home/i)).toBeInTheDocument()
   })
 
   it('logs the selected front-desk routes once per route signature', async () => {

@@ -97,7 +97,7 @@ Victory does not automatically close the recovery ledger; model outcomes where *
 - **Current score:** derived from courier shell status (when present), informal baseline + paid courier prerequisite, compact risk breakdown (`getCourierShellRiskBreakdown`), and optional pending procurement order count — **not** written back to `GameState`.
 - **Gap kinds:** `below_required` (immediate shortfall), `below_desired_only` (meets immediate threshold but under structural target), `none`. `unresolved` stays true while current is below **desired**; listing mitigation hooks does **not** clear it.
 - **Mitigation hooks:** compact data records only (`front_business_investment`, `procurement`, `mutual_aid`); include delayed-payoff metadata on investment/procurement hooks; **no** automatic gap resolution.
-- **Evidence:** `src/test/capabilityGap.test.ts`; developer overlay **Capability gap — courier network (SPE-823a)** section.
+- **Evidence:** `src/test/capabilityGap.test.ts`; developer overlay **Capability gap — courier network (SPE-823a)** section; Front Desk hub **Logistics opportunity** card (`frontDeskView.ts` / `FrontDeskPage.tsx`) projects the same read-only report for players when a gap is unresolved.
 
 ## 4. Trauma & Readiness-Impact Rules
 - Trauma increases from mission failures, fatalities, or critical weakest-link outcomes.

@@ -333,6 +333,54 @@ export default function FrontDeskPage() {
             </div>
           </section>
 
+          {view.courierCapacityOpportunity ? (
+            <section className="panel space-y-3" aria-label="Courier network capacity opportunity">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Logistics opportunity</h2>
+                  <p className="text-xs opacity-60">Courier and channel logistics summary.</p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.courierCapacityOpportunity.tone)}`}
+                >
+                  {view.courierCapacityOpportunity.gapKindLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.courierCapacityOpportunity.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.courierCapacityOpportunity.title}</p>
+                <p className="text-sm opacity-80">{view.courierCapacityOpportunity.summary}</p>
+                <p className="text-sm font-semibold text-amber-100/90">{view.courierCapacityOpportunity.capacityLine}</p>
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {view.courierCapacityOpportunity.mitigationLabels.map((label) => (
+                    <span
+                      key={label}
+                      className="rounded-full border border-white/12 bg-white/5 px-2 py-0.5 text-[11px] opacity-85"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs opacity-65 pt-1">{view.courierCapacityOpportunity.guidanceNote}</p>
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.courierCapacityOpportunity.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.courierCapacityOpportunity.primaryLinkLabel}
+                  </Link>
+                  <Link
+                    to={view.courierCapacityOpportunity.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.courierCapacityOpportunity.secondaryLinkLabel}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel space-y-3" aria-label="Active pressures">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">

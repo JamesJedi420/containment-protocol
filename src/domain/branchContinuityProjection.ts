@@ -21,6 +21,7 @@ import type {
   BranchSimulationTruth,
 } from './branchContinuity'
 import { readGameStateManager } from './gameStateManager'
+import type { KnowledgeTier } from './knowledge'
 import type { Agent, GameFlagValue, GameState, KnowledgeState } from './models'
 
 export interface BranchPathProjectionOptions {
@@ -38,7 +39,12 @@ const COMPANION_STATUSES = new Set<BranchCompanionStatus>([
   'absent',
 ])
 
-const PLAYER_KNOWN_KNOWLEDGE_TIERS = new Set<KnowledgeState['tier']>([
+/**
+ * Player-known band from canonical `knowledge.ts` `KnowledgeTier` (used by `KnowledgeState.tier`).
+ * Not the legacy `KnowledgeTier` alias in `models.ts` (`unknown` | `fragmented` | `partial` | `confirmed`)
+ * used for older campaign-handoff typing.
+ */
+const PLAYER_KNOWN_KNOWLEDGE_TIERS = new Set<KnowledgeTier>([
   'observed',
   'confirmed',
   'operationalized',

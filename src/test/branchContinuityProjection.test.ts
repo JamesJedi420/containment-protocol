@@ -217,6 +217,35 @@ describe('branchContinuityProjection', () => {
     expect(pathFacts.seedValues['branch.seed.doorCode']).toBe(417)
   })
 
+  it('projects learned clues only for player-known canonical knowledge tiers', () => {
+    const game = ensureManagedGameState({
+      ...createStartingState(),
+      knowledge: {
+        'team-a::clue-known': {
+          tier: 'confirmed',
+          entityId: 'team-a',
+          subjectId: 'clue:known',
+          subjectType: 'procedure',
+        },
+        'team-a::clue-partial': {
+          tier: 'partial',
+          entityId: 'team-a',
+          subjectId: 'clue:partial-only',
+          subjectType: 'procedure',
+        },
+        'team-a::clue-relayed': {
+          tier: 'relayed',
+          entityId: 'team-a',
+          subjectId: 'clue:relayed-only',
+          subjectType: 'procedure',
+        },
+      },
+    })
+
+    const pathFacts = projectBranchPathFactsFromGameState(game)
+    expect(pathFacts.learnedClueIds).toEqual(['clue:known'])
+  })
+
   it('filters knowledge by options.knowledgeEntityId', () => {
     const game = ensureManagedGameState({
       ...createStartingState(),

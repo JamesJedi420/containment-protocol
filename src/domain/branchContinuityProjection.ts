@@ -98,24 +98,57 @@ function isEventShapedKey(id: string) {
   return id.startsWith('event:') || id.startsWith('event.')
 }
 
-/** Align hidden simulation event ids with witnessed-event namespace for validator matching. */
+const HIDDEN_EVENT_FLAG_PREFIXES = ['sim.hidden.event.', 'sim.hidden.event:'] as const
+const HIDDEN_CLUE_FLAG_PREFIXES = ['sim.hidden.clue.', 'sim.hidden.clue:'] as const
+
+function extractHiddenFlagSuffix(flagId: string, prefixes: readonly string[]) {
+  const normalizedId = normalizeString(flagId)
+  for (const prefix of prefixes) {
+    if (normalizedId.startsWith(prefix)) {
+      return normalizeString(normalizedId.slice(prefix.length))
+    }
+  }
+  return ''
+}
+
+/**
+ * Canonical event id for validator exact matching (`event:` preferred over `event.`).
+ */
 function normalizeHiddenEventId(rawId: string) {
   const normalized = normalizeString(rawId)
   if (normalized.length === 0) {
     return ''
   }
 
-  return isEventShapedKey(normalized) ? normalized : `event:${normalized}`
+  if (normalized.startsWith('event.')) {
+    return `event:${normalized.slice('event.'.length)}`
+  }
+
+  if (normalized.startsWith('event:')) {
+    return normalized
+  }
+
+  return `event:${normalized}`
 }
 
-/** Align hidden simulation clue ids with learned-clue namespace for validator matching. */
+/**
+ * Canonical clue id for validator exact matching (`clue:` preferred over `clue.`).
+ */
 function normalizeHiddenClueId(rawId: string) {
   const normalized = normalizeString(rawId)
   if (normalized.length === 0) {
     return ''
   }
 
-  return isClueFlagKey(normalized) ? normalized : `clue:${normalized}`
+  if (normalized.startsWith('clue.')) {
+    return `clue:${normalized.slice('clue.'.length)}`
+  }
+
+  if (normalized.startsWith('clue:')) {
+    return normalized
+  }
+
+  return `clue:${normalized}`
 }
 
 function isClueFlagKey(flagId: string) {
@@ -440,12 +473,12 @@ function collectHiddenEventIds(
   }
 
   for (const [flagId, value] of Object.entries(globalFlags)) {
-    const normalizedId = normalizeString(flagId)
-    if (!normalizedId.startsWith('sim.hidden.event.') || !isTruthyFlag(value)) {
+    if (!isTruthyFlag(value)) {
       continue
     }
 
-    const eventId = normalizeHiddenEventId(normalizedId.slice('sim.hidden.event.'.length))
+    const suffix = extractHiddenFlagSuffix(flagId, HIDDEN_EVENT_FLAG_PREFIXES)
+    const eventId = normalizeHiddenEventId(suffix)
     if (eventId.length > 0) {
       hiddenEvents.push(eventId)
     }
@@ -458,12 +491,12 @@ function collectHiddenLearnedClueIds(globalFlags: Record<string, GameFlagValue>)
   const hiddenClues: string[] = []
 
   for (const [flagId, value] of Object.entries(globalFlags)) {
-    const normalizedId = normalizeString(flagId)
-    if (!normalizedId.startsWith('sim.hidden.clue.') || !isTruthyFlag(value)) {
+    if (!isTruthyFlag(value)) {
       continue
     }
 
-    const clueId = normalizeHiddenClueId(normalizedId.slice('sim.hidden.clue.'.length))
+    const suffix = extractHiddenFlagSuffix(flagId, HIDDEN_CLUE_FLAG_PREFIXES)
+    const clueId = normalizeHiddenClueId(suffix)
     if (clueId.length > 0) {
       hiddenClues.push(clueId)
     }

@@ -356,6 +356,31 @@ describe('branchContinuityProjection', () => {
     expect(pathFacts.learnedClueIds).not.toContain('clue:strahd-motive')
   })
 
+  it('canonicalizes unqualified and dotted hidden flag suffixes', () => {
+    let game = createStartingState()
+    game = setGlobalFlag(game, 'sim.hidden.event.strahd-betrayal-reveal', true)
+    game = setGlobalFlag(game, 'sim.hidden.event:balcony-fall', true)
+    game = setGlobalFlag(game, 'sim.hidden.event.event.hall-ambush', true)
+    game = setGlobalFlag(game, 'sim.hidden.clue.strahd-motive', true)
+    game = setGlobalFlag(game, 'sim.hidden.clue:rival-secret', true)
+    game = setGlobalFlag(game, 'sim.hidden.clue.clue.archive-leak', true)
+
+    const pathFacts = projectBranchPathFactsFromGameState(game, {
+      includeSimulationTruth: true,
+    })
+
+    expect(pathFacts.simulationTruth?.hiddenEventIds).toEqual([
+      'event:balcony-fall',
+      'event:hall-ambush',
+      'event:strahd-betrayal-reveal',
+    ])
+    expect(pathFacts.simulationTruth?.hiddenLearnedClueIds).toEqual([
+      'clue:archive-leak',
+      'clue:rival-secret',
+      'clue:strahd-motive',
+    ])
+  })
+
   it('normalizes hidden simulation ids for player_awareness_leak validator matching', () => {
     let game = createStartingState()
     game = setGlobalFlag(game, 'sim.hidden.event.strahd-betrayal-reveal', true)

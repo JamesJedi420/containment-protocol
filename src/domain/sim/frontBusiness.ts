@@ -39,7 +39,9 @@ export interface CourierShellRiskBreakdown {
 
 export function getCourierShellRiskBreakdown(
   game: Pick<GameState, 'agents' | 'agency' | 'config' | 'funding' | 'week'>,
-  budgetPressureWeek?: number
+  budgetPressureWeek?: number,
+  /** When set, skips a second `getCanonicalFundingState` read (SPE-823a / Copilot dedupe). */
+  precomputedBudgetPressure?: number
 ): CourierShellRiskBreakdown {
   const lockoutCount = countCourierLockouts(game.agents)
   const residueCount = countExposureResidueAgents(game.agents)
@@ -47,10 +49,10 @@ export function getCourierShellRiskBreakdown(
     typeof budgetPressureWeek === 'number' && Number.isFinite(budgetPressureWeek)
       ? Math.max(0, Math.trunc(budgetPressureWeek))
       : undefined
-  const budgetPressure = getCanonicalFundingState(
-    game,
-    referenceWeek
-  ).budgetPressure
+  const budgetPressure =
+    typeof precomputedBudgetPressure === 'number' && Number.isFinite(precomputedBudgetPressure)
+      ? precomputedBudgetPressure
+      : getCanonicalFundingState(game, referenceWeek).budgetPressure
   return {
     riskScore: lockoutCount * 2 + residueCount + budgetPressure,
     lockoutCount,

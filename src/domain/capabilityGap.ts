@@ -82,7 +82,8 @@ function computeCourierNetworkCurrent(
 
   notes.push({ key: 'shellTier', value: `${tierLabel} (base ${tier})` })
 
-  const breakdown = getCourierShellRiskBreakdown(game, game.week)
+  const fundingState = getCanonicalFundingState(game, game.week)
+  const breakdown = getCourierShellRiskBreakdown(game, game.week, fundingState.budgetPressure)
   const lockPen = Math.min(
     cal.lockoutPenaltyCap,
     breakdown.lockoutCount * cal.lockoutPenaltyPerLockout
@@ -105,8 +106,9 @@ function computeCourierNetworkCurrent(
     value: `lock=${lockPen} residue=${resPen} budget=${bpPen}`,
   })
 
-  const fundingState = getCanonicalFundingState(game, game.week)
-  const pendingProcurement = fundingState.procurementBacklog.filter((e) => e.status === 'pending').length
+  const pendingProcurement = (fundingState.procurementBacklog ?? []).filter(
+    (entry) => entry && entry.status === 'pending'
+  ).length
   const procPen = Math.min(
     cal.pendingProcurementPenaltyCap,
     pendingProcurement * cal.pendingProcurementPenaltyPerOrder

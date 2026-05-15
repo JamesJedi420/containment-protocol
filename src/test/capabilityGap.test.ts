@@ -9,7 +9,7 @@ import {
 } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
-import type { CourierShellFrontState, GameState } from '../domain/models'
+import type { CourierShellFrontState, FundingState, GameState } from '../domain/models'
 
 function withPaidCourierAndFunding(base: GameState, funding: number): GameState {
   const agentId = Object.keys(base.agents)[0]!
@@ -112,5 +112,21 @@ describe('SPE-823a courier network capacity gap report', () => {
     const frozen = structuredClone(game)
     buildCourierNetworkCapacityGapReport(game)
     expect(game).toEqual(frozen)
+  })
+
+  it('builds when agency fundingState omits procurementBacklog (defensive backlog read)', () => {
+    const base = withPaidCourierAndFunding(createStartingState(), 9000)
+    const fs = { ...base.agency!.fundingState! } as Record<string, unknown>
+    delete fs.procurementBacklog
+    const game: GameState = normalizeGameState({
+      ...base,
+      agency: {
+        ...base.agency!,
+        fundingState: fs as FundingState,
+      },
+    })
+    expect(() => buildCourierNetworkCapacityGapReport(game)).not.toThrow()
+    const report = buildCourierNetworkCapacityGapReport(game)
+    expect(report.componentNotes.some((n) => n.key === 'pendingProcurementOrders')).toBe(true)
   })
 })

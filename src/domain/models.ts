@@ -2301,6 +2301,64 @@ export interface DistrictScheduleState {
 }
 // ── end SPE-109 types ────────────────────────────────────────────────────────
 
+/** SPE-1734: Auditable source for a ledger history row (single-player coarse grain). */
+export type CampaignSettingHistorySource = 'seed' | 'migration' | 'player' | 'system'
+
+/** SPE-1734: Compact operational header shared across contracts and summaries. */
+export interface CampaignOperationalProfile {
+  organizationName: string
+  homeBaseId: string
+  homeBaseLabel: string
+  operationalRegionId: string
+  operationalRegionLabel: string
+  majorHookSummary: string
+  doctrineLabel: string
+  toneScopeLabel: string
+}
+
+/** SPE-1734: Bounded display of an active run-state modifier. */
+export interface CampaignRunStateModifier {
+  id: string
+  label: string
+  value: string
+}
+
+/** SPE-1734: Toggle for a named deterministic module slice. */
+export interface CampaignModuleToggle {
+  moduleId: string
+  label: string
+  enabled: boolean
+}
+
+/** SPE-1734: Effective-period history row for a setting id. */
+export interface CampaignSettingHistoryEntry {
+  id: string
+  settingId: string
+  value: string
+  effectiveFromWeek: number
+  changedAtWeek: number
+  source: CampaignSettingHistorySource
+  note?: string
+}
+
+/** SPE-1734: Stored compatibility expectations for enabled module sets. */
+export interface CampaignLedgerCompatibilitySnapshot {
+  compatible: boolean
+  notes: readonly string[]
+  warnings: readonly string[]
+}
+
+/** SPE-1734: Canonical campaign rules / profile ledger (read-only in first slice). */
+export interface CampaignLedgerState {
+  profile: CampaignOperationalProfile
+  activeRulesProfileId: string
+  activeRulesProfileLabel: string
+  runStateModifiers: CampaignRunStateModifier[]
+  moduleToggles: CampaignModuleToggle[]
+  settingHistory: CampaignSettingHistoryEntry[]
+  compatibility: CampaignLedgerCompatibilitySnapshot
+}
+
 export interface GameState {
   /** Canonical legitimacy/access state for bounded gating (SPE-53 legitimacy pass) */
   legitimacy?: LegitimacyState
@@ -2362,6 +2420,12 @@ export interface GameState {
   }
   partyCards?: PartyCardState
   config: GameConfig
+
+  /**
+   * SPE-1734: Canonical campaign profile, run-state modifiers, module toggles, and setting history.
+   * Hydration always normalizes via `sanitizeCampaignLedger` so older saves receive a safe default.
+   */
+  campaignLedger?: CampaignLedgerState
 
   /**
    * SPE-282: Deployment momentum stacks (earn/spend) when `challengeModeEnabled` + attrition duration model.

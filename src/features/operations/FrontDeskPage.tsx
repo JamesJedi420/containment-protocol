@@ -287,6 +287,31 @@ export default function FrontDeskPage() {
                 <li key={line}>{line}</li>
               ))}
             </ul>
+            <section
+              className="space-y-2 border-t border-white/10 pt-3"
+              aria-label="Campaign profile and rules ledger"
+            >
+              <h3 className="font-medium">{view.campaignRulesSummary.title}</h3>
+              <p className="text-sm font-semibold text-cyan-100/85">{view.campaignRulesSummary.headline}</p>
+              <ul className="space-y-1.5 text-sm opacity-80">
+                {view.campaignRulesSummary.lines.map((line, index) => (
+                  <li key={`campaign-rules-line-${index}`}>{line}</li>
+                ))}
+              </ul>
+              <p className="text-xs opacity-70">{view.campaignRulesSummary.compatibilitySummary}</p>
+              {view.campaignRulesSummary.activeModuleLabels.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {view.campaignRulesSummary.activeModuleLabels.map((label, index) => (
+                    <span
+                      key={`campaign-rules-module-${index}`}
+                      className="rounded-full border border-white/12 bg-white/5 px-2 py-0.5 text-[11px] opacity-85"
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </section>
             <div className="space-y-2 border-t border-white/10 pt-3">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-medium">Front Desk Notices</h3>

@@ -37,6 +37,7 @@ describe('FrontDeskPage', () => {
     expect(screen.getByRole('region', { name: /operations hub overview/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /operations \/ assignments \/ queues/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /current campaign state/i })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /campaign profile and rules ledger/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /active pressures/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /recent reports \/ events/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /immediate attention/i })).toBeInTheDocument()

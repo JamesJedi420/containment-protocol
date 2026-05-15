@@ -62,7 +62,6 @@ export interface BranchCorrectedRecord {
   recordId: string
   supersededClaimId: string
   revisionId: string
-  effectiveFromChoiceId?: string
   summary?: string
 }
 

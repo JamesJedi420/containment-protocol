@@ -155,6 +155,36 @@ export function DeveloperOverlay() {
               }
             />
 
+            <OverlaySection
+              title="Capability gap — courier network (SPE-823a)"
+              rows={[
+                `Family: ${snapshot.courierNetworkCapacityGap.family}`,
+                `Scenario: ${snapshot.courierNetworkCapacityGap.scenarioId}`,
+                `Current / required / desired: ${snapshot.courierNetworkCapacityGap.current} / ${snapshot.courierNetworkCapacityGap.required} / ${snapshot.courierNetworkCapacityGap.desiredFuture}`,
+                `Gap kind: ${snapshot.courierNetworkCapacityGap.gapKind}`,
+                `Unresolved (structural visibility): ${snapshot.courierNetworkCapacityGap.unresolved ? 'yes' : 'no'}`,
+                ...snapshot.courierNetworkCapacityGap.componentNotes.map(
+                  (n) => `Component ${n.key}: ${n.value}`
+                ),
+                ...(snapshot.courierNetworkCapacityGap.mitigationHooks.length > 0
+                  ? [
+                      'Mitigation hooks (data only — do not auto-resolve):',
+                      ...snapshot.courierNetworkCapacityGap.mitigationHooks.map((h) => {
+                        const delayed =
+                          typeof h.delayedPayoffWeeks === 'number'
+                            ? `delayed ${h.delayedPayoffWeeks}w`
+                            : 'no delayed weeks'
+                        const delta =
+                          h.immediateCapacityDelta === undefined
+                            ? ''
+                            : ` / immediateΔ=${h.immediateCapacityDelta}`
+                        return `${h.kind}: ${h.label} (${h.payoffTiming ?? 'n/a'}, ${delayed}${delta})`
+                      }),
+                    ]
+                  : ['Mitigation hooks: none (no unresolved structural gap).']),
+              ]}
+            />
+
             <OverlayListSection
               title={`Stability Recovery Actions (${snapshot.stability.recoveryActions.length})`}
               rows={snapshot.stability.recoveryActions.map(

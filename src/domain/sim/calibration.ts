@@ -443,3 +443,34 @@ export const FRONT_BUSINESS_CALIBRATION = {
   /** Added to recomputed `budgetPressure` when the shell collapses (bounded, persistent debt field). */
   courierShellCollapseBudgetPressureDebt: 2,
 } as const
+
+/**
+ * SPE-823a: read-only courier network capacity gap slice (derived report; not persisted on `GameState`).
+ * Targets are authored thresholds for the static scenario id — not a procedural scenario generator.
+ */
+export const COURIER_NETWORK_CAPACITY_GAP_CALIBRATION = {
+  scenarioId: 'spe-823a-logistics-baseline' as const,
+  /** Immediate minimum courier/logistics support score for the baseline slice. */
+  requiredCapacity: 20,
+  /** Higher structural target: branch can meet immediate need yet remain undercapitalized. */
+  desiredFutureCapacity: 36,
+  /** Score floor when no licensed shell exists (informal agency logistics only). */
+  informalNetworkBaseScore: 4,
+  /** Added when at least one operative has `side-work-prereq:off-books-courier-paid`. */
+  paidInformalPrereqBoost: 10,
+  shellActiveScore: 42,
+  shellStrainedScore: 32,
+  shellCollapsedScore: 12,
+  lockoutPenaltyPerLockout: 8,
+  lockoutPenaltyCap: 16,
+  residuePenaltyPerResidue: 4,
+  residuePenaltyCap: 12,
+  budgetPressurePenaltyPerPoint: 2,
+  budgetPressurePenaltyCap: 12,
+  pendingProcurementPenaltyPerOrder: 2,
+  pendingProcurementPenaltyCap: 8,
+  /** Weeks until notional desk reinforcement improves usable network capacity (hook only). */
+  frontBusinessHookDelayedPayoffWeeks: 3,
+  /** Weeks until procurement backlog fulfillment eases logistics friction (hook only). */
+  procurementHookDelayedPayoffWeeks: 1,
+} as const

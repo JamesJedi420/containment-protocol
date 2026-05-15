@@ -8,6 +8,9 @@
  *
  * Runtime branch selection (`contentBranching` / `AuthoredBranch`) remains separate from these
  * continuity-audit assumptions until a future integration explicitly connects them.
+ *
+ * Runtime hardening: authored payloads (for example from JSON) may use `null` for optional fields.
+ * Those are treated like omissions; empty arrays and empty record fields are omitted from output.
  */
 
 import type {
@@ -28,62 +31,109 @@ export interface AuthoredBranchContinuityAssumptions {
   citesOfficialClaimIds?: readonly string[]
 }
 
-function copyStringList(values: readonly string[]) {
-  return [...values]
+/** Non-empty copy of string list entries; rejects null, non-arrays, empty arrays, and all-non-string elements. */
+function copyNonEmptyStringList(values: unknown): string[] | undefined {
+  if (!Array.isArray(values) || values.length === 0) {
+    return undefined
+  }
+
+  const strings = values.filter((entry): entry is string => typeof entry === 'string')
+  if (strings.length === 0) {
+    return undefined
+  }
+
+  return [...strings]
 }
 
-function slimRequires(requires: BranchNodeRequirements | undefined): BranchNodeRequirements | undefined {
-  if (requires === undefined) {
+function copyRecordIfNonEmpty(value: unknown): Record<string, unknown> | undefined {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const record = value as Record<string, unknown>
+  if (Object.keys(record).length === 0) {
+    return undefined
+  }
+
+  return { ...record }
+}
+
+function slimRequires(requires: BranchNodeRequirements | null | undefined): BranchNodeRequirements | undefined {
+  if (requires == null) {
     return undefined
   }
 
   const out: BranchNodeRequirements = {}
 
-  if (requires.anyItemIds !== undefined) {
-    out.anyItemIds = copyStringList(requires.anyItemIds)
+  const anyItemIds = copyNonEmptyStringList(requires.anyItemIds)
+  if (anyItemIds !== undefined) {
+    out.anyItemIds = anyItemIds
   }
-  if (requires.allItemIds !== undefined) {
-    out.allItemIds = copyStringList(requires.allItemIds)
+
+  const allItemIds = copyNonEmptyStringList(requires.allItemIds)
+  if (allItemIds !== undefined) {
+    out.allItemIds = allItemIds
   }
-  if (requires.injuryBySubjectId !== undefined) {
-    out.injuryBySubjectId = { ...requires.injuryBySubjectId }
+
+  const injuryBySubjectId = copyRecordIfNonEmpty(requires.injuryBySubjectId) as
+    | BranchNodeRequirements['injuryBySubjectId']
+    | undefined
+  if (injuryBySubjectId !== undefined) {
+    out.injuryBySubjectId = injuryBySubjectId
   }
-  if (requires.companionStatusById !== undefined) {
-    out.companionStatusById = { ...requires.companionStatusById }
+
+  const companionStatusById = copyRecordIfNonEmpty(requires.companionStatusById) as
+    | BranchNodeRequirements['companionStatusById']
+    | undefined
+  if (companionStatusById !== undefined) {
+    out.companionStatusById = companionStatusById
   }
-  if (requires.roomOfOriginId !== undefined) {
-    out.roomOfOriginId = requires.roomOfOriginId
+
+  const room = requires.roomOfOriginId
+  if (typeof room === 'string' && room.trim().length > 0) {
+    out.roomOfOriginId = room.trim()
   }
-  if (requires.witnessedEventIds !== undefined) {
-    out.witnessedEventIds = copyStringList(requires.witnessedEventIds)
+
+  const witnessedEventIds = copyNonEmptyStringList(requires.witnessedEventIds)
+  if (witnessedEventIds !== undefined) {
+    out.witnessedEventIds = witnessedEventIds
   }
-  if (requires.learnedClueIds !== undefined) {
-    out.learnedClueIds = copyStringList(requires.learnedClueIds)
+
+  const learnedClueIds = copyNonEmptyStringList(requires.learnedClueIds)
+  if (learnedClueIds !== undefined) {
+    out.learnedClueIds = learnedClueIds
   }
-  if (requires.priorChoiceIds !== undefined) {
-    out.priorChoiceIds = copyStringList(requires.priorChoiceIds)
+
+  const priorChoiceIds = copyNonEmptyStringList(requires.priorChoiceIds)
+  if (priorChoiceIds !== undefined) {
+    out.priorChoiceIds = priorChoiceIds
   }
-  if (requires.requiredRecordRevisionIds !== undefined) {
-    out.requiredRecordRevisionIds = copyStringList(requires.requiredRecordRevisionIds)
+
+  const requiredRecordRevisionIds = copyNonEmptyStringList(requires.requiredRecordRevisionIds)
+  if (requiredRecordRevisionIds !== undefined) {
+    out.requiredRecordRevisionIds = requiredRecordRevisionIds
   }
 
   return Object.keys(out).length > 0 ? out : undefined
 }
 
 function slimAssumesPlayerKnows(
-  assumption: BranchPlayerKnowledgeAssumption | undefined
+  assumption: BranchPlayerKnowledgeAssumption | null | undefined
 ): BranchPlayerKnowledgeAssumption | undefined {
-  if (assumption === undefined) {
+  if (assumption == null) {
     return undefined
   }
 
   const out: BranchPlayerKnowledgeAssumption = {}
 
-  if (assumption.witnessedEventIds !== undefined) {
-    out.witnessedEventIds = copyStringList(assumption.witnessedEventIds)
+  const witnessedEventIds = copyNonEmptyStringList(assumption.witnessedEventIds)
+  if (witnessedEventIds !== undefined) {
+    out.witnessedEventIds = witnessedEventIds
   }
-  if (assumption.learnedClueIds !== undefined) {
-    out.learnedClueIds = copyStringList(assumption.learnedClueIds)
+
+  const learnedClueIds = copyNonEmptyStringList(assumption.learnedClueIds)
+  if (learnedClueIds !== undefined) {
+    out.learnedClueIds = learnedClueIds
   }
 
   return Object.keys(out).length > 0 ? out : undefined
@@ -94,13 +144,9 @@ function slimAuthoredContinuity(
 ): Pick<BranchContinuityNode, 'requires' | 'assumesPlayerKnows' | 'citesOfficialClaimIds'> {
   const requires = slimRequires(continuity.requires)
   const assumesPlayerKnows = slimAssumesPlayerKnows(continuity.assumesPlayerKnows)
-  const citesOfficialClaimIds =
-    continuity.citesOfficialClaimIds !== undefined
-      ? copyStringList(continuity.citesOfficialClaimIds)
-      : undefined
+  const citesOfficialClaimIds = copyNonEmptyStringList(continuity.citesOfficialClaimIds)
 
-  const out: Pick<BranchContinuityNode, 'requires' | 'assumesPlayerKnows' | 'citesOfficialClaimIds'> =
-    {}
+  const out: Pick<BranchContinuityNode, 'requires' | 'assumesPlayerKnows' | 'citesOfficialClaimIds'> = {}
 
   if (requires !== undefined) {
     out.requires = requires
@@ -123,11 +169,11 @@ export function buildBranchContinuityNodesFromAuthoredGraph(
       nodeId: authored.id,
     }
 
-    if (authored.label !== undefined) {
+    if (typeof authored.label === 'string') {
       node.label = authored.label
     }
 
-    if (authored.continuity !== undefined) {
+    if (authored.continuity != null) {
       const slimmed = slimAuthoredContinuity(authored.continuity)
       if (slimmed.requires !== undefined) {
         node.requires = slimmed.requires

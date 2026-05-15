@@ -107,11 +107,63 @@ describe('branchContinuityAuthoring', () => {
   it('does not throw when continuity is missing or empty', () => {
     const withMissingContinuity: AuthoredBranchContinuityNode[] = [{ id: 'a' }]
     const withEmptyContinuity: AuthoredBranchContinuityNode[] = [{ id: 'b', continuity: {} }]
+    const withNullContinuity = [{ id: 'node:null-continuity', continuity: null }] as unknown as
+      AuthoredBranchContinuityNode[]
 
     expect(() => buildBranchContinuityNodesFromAuthoredGraph(withMissingContinuity)).not.toThrow()
     expect(() => buildBranchContinuityNodesFromAuthoredGraph(withEmptyContinuity)).not.toThrow()
+    expect(() => buildBranchContinuityNodesFromAuthoredGraph(withNullContinuity)).not.toThrow()
     expect(buildBranchContinuityNodesFromAuthoredGraph(withEmptyContinuity)).toEqual([
       { nodeId: 'b' },
+    ])
+    expect(buildBranchContinuityNodesFromAuthoredGraph(withNullContinuity)).toEqual([
+      { nodeId: 'node:null-continuity' },
+    ])
+  })
+
+  it('treats JSON null nested continuity fields as omissions without throwing', () => {
+    const jsonLike = [
+      {
+        id: 'node:null-nested',
+        continuity: {
+          requires: null,
+          assumesPlayerKnows: null,
+          citesOfficialClaimIds: null,
+        },
+      },
+    ] as unknown as readonly AuthoredBranchContinuityNode[]
+
+    expect(() => buildBranchContinuityNodesFromAuthoredGraph(jsonLike)).not.toThrow()
+    expect(buildBranchContinuityNodesFromAuthoredGraph(jsonLike)).toEqual([
+      { nodeId: 'node:null-nested' },
+    ])
+  })
+
+  it('omits label when JSON sets label to null', () => {
+    const authored = [{ id: 'node:no-label', label: null }] as unknown as AuthoredBranchContinuityNode[]
+    expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([{ nodeId: 'node:no-label' }])
+  })
+
+  it('omits empty string lists and empty records from requires output', () => {
+    const authored = [
+      {
+        id: 'node:empty-trim',
+        continuity: {
+          requires: {
+            allItemIds: [],
+            anyItemIds: ['item:a'],
+            injuryBySubjectId: {},
+            companionStatusById: {},
+          },
+        },
+      },
+    ] as unknown as AuthoredBranchContinuityNode[]
+
+    expect(buildBranchContinuityNodesFromAuthoredGraph(authored)).toEqual([
+      {
+        nodeId: 'node:empty-trim',
+        requires: { anyItemIds: ['item:a'] },
+      },
     ])
   })
 

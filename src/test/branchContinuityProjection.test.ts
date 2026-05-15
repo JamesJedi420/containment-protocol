@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import type { BranchPathFacts } from '../domain/branchContinuity'
+import { validateBranchContinuity, type BranchPathFacts } from '../domain/branchContinuity'
 import { projectBranchPathFactsFromGameState } from '../domain/branchContinuityProjection'
 import { appendDeveloperLogEvent } from '../domain/developerLog'
 import {
@@ -348,12 +348,62 @@ describe('branchContinuityProjection', () => {
     })
 
     expect(pathFacts.simulationTruth?.hiddenEventIds).toEqual(
-      expect.arrayContaining(['latent-surge', 'strahd-betrayal-reveal'])
+      expect.arrayContaining(['event:latent-surge', 'event:strahd-betrayal-reveal'])
     )
-    expect(pathFacts.simulationTruth?.hiddenLearnedClueIds).toEqual(['strahd-motive'])
-    expect(pathFacts.witnessedEventIds).not.toContain('latent-surge')
-    expect(pathFacts.witnessedEventIds).not.toContain('strahd-betrayal-reveal')
-    expect(pathFacts.learnedClueIds).not.toContain('strahd-motive')
+    expect(pathFacts.simulationTruth?.hiddenLearnedClueIds).toEqual(['clue:strahd-motive'])
+    expect(pathFacts.witnessedEventIds).not.toContain('event:latent-surge')
+    expect(pathFacts.witnessedEventIds).not.toContain('event:strahd-betrayal-reveal')
+    expect(pathFacts.learnedClueIds).not.toContain('clue:strahd-motive')
+  })
+
+  it('normalizes hidden simulation ids for player_awareness_leak validator matching', () => {
+    let game = createStartingState()
+    game = setGlobalFlag(game, 'sim.hidden.event.strahd-betrayal-reveal', true)
+    game = setGlobalFlag(game, 'sim.hidden.clue.strahd-motive', true)
+
+    const pathFacts = projectBranchPathFactsFromGameState(game, {
+      includeSimulationTruth: true,
+    })
+
+    const eventReport = validateBranchContinuity({
+      pathFacts,
+      nodes: [
+        {
+          nodeId: 'node:betrayal-dialogue',
+          assumesPlayerKnows: { witnessedEventIds: ['event:strahd-betrayal-reveal'] },
+        },
+      ],
+    })
+    expect(
+      eventReport.warnings.find(
+        (warning) =>
+          warning.nodeId === 'node:betrayal-dialogue' &&
+          warning.warningClass === 'player_awareness_leak'
+      )
+    ).toBeDefined()
+    expect(
+      eventReport.warnings.find(
+        (warning) =>
+          warning.nodeId === 'node:betrayal-dialogue' &&
+          warning.warningClass === 'unwitnessed_event'
+      )
+    ).toBeUndefined()
+
+    const clueReport = validateBranchContinuity({
+      pathFacts,
+      nodes: [
+        {
+          nodeId: 'node:rival-motive',
+          assumesPlayerKnows: { learnedClueIds: ['clue:strahd-motive'] },
+        },
+      ],
+    })
+    expect(
+      clueReport.warnings.find(
+        (warning) =>
+          warning.nodeId === 'node:rival-motive' && warning.warningClass === 'player_awareness_leak'
+      )
+    ).toBeDefined()
   })
 
   it('produces deterministic sorted output', () => {

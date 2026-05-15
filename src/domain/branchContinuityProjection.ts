@@ -10,7 +10,8 @@
  * - Learned clues: player-known knowledge tiers plus `clue:*` / `clue.*` flags.
  * - Prior choices: dev-log `choice.executed`, authoring `lastChoiceId`, `choice:*` / `choice.*` flags.
  * - Companions: `companion.<id>` or `npc.<id>.companion` with union status values.
- * - Hidden truth (opt-in): encounter `hiddenModifierIds`, `sim.hidden.event.*`, `sim.hidden.clue.*`.
+ * - Hidden truth (opt-in): encounter `hiddenModifierIds`, `sim.hidden.event.*`, `sim.hidden.clue.*`
+ *   (unqualified suffixes normalized to `event:` / `clue:` for validator ID matching).
  * - Room of origin: first `sceneHistory` entry (oldest visit; history is append-ordered in gameStateManager).
  * - Injuries: `wounds > 0` → `wounded`; `wounds === 0` with recovering/healed signal → `healed`; else `none`.
  */
@@ -95,6 +96,26 @@ function isHiddenSimulationFlagKey(flagId: string) {
 /** Event-shaped ids for witnessed-event projection (flags and consumed one-shots). */
 function isEventShapedKey(id: string) {
   return id.startsWith('event:') || id.startsWith('event.')
+}
+
+/** Align hidden simulation event ids with witnessed-event namespace for validator matching. */
+function normalizeHiddenEventId(rawId: string) {
+  const normalized = normalizeString(rawId)
+  if (normalized.length === 0) {
+    return ''
+  }
+
+  return isEventShapedKey(normalized) ? normalized : `event:${normalized}`
+}
+
+/** Align hidden simulation clue ids with learned-clue namespace for validator matching. */
+function normalizeHiddenClueId(rawId: string) {
+  const normalized = normalizeString(rawId)
+  if (normalized.length === 0) {
+    return ''
+  }
+
+  return isClueFlagKey(normalized) ? normalized : `clue:${normalized}`
 }
 
 function isClueFlagKey(flagId: string) {
@@ -411,9 +432,9 @@ function collectHiddenEventIds(
 
   for (const encounter of Object.values(encounterState)) {
     for (const modifierId of encounter.hiddenModifierIds ?? []) {
-      const normalized = normalizeString(modifierId)
-      if (normalized.length > 0) {
-        hiddenEvents.push(normalized)
+      const eventId = normalizeHiddenEventId(modifierId)
+      if (eventId.length > 0) {
+        hiddenEvents.push(eventId)
       }
     }
   }
@@ -424,7 +445,7 @@ function collectHiddenEventIds(
       continue
     }
 
-    const eventId = normalizeString(normalizedId.slice('sim.hidden.event.'.length))
+    const eventId = normalizeHiddenEventId(normalizedId.slice('sim.hidden.event.'.length))
     if (eventId.length > 0) {
       hiddenEvents.push(eventId)
     }
@@ -442,7 +463,7 @@ function collectHiddenLearnedClueIds(globalFlags: Record<string, GameFlagValue>)
       continue
     }
 
-    const clueId = normalizeString(normalizedId.slice('sim.hidden.clue.'.length))
+    const clueId = normalizeHiddenClueId(normalizedId.slice('sim.hidden.clue.'.length))
     if (clueId.length > 0) {
       hiddenClues.push(clueId)
     }

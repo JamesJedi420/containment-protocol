@@ -116,7 +116,7 @@ describe('branchContinuityProjection', () => {
     const woundedFacts = projectBranchPathFactsFromGameState(wounded)
     expect(woundedFacts.injuryStatusBySubjectId[`agent:${agentId}`]).toBe('wounded')
 
-    const healed = ensureManagedGameState({
+    const recoveringWithWounds = ensureManagedGameState({
       ...wounded,
       agents: {
         ...wounded.agents,
@@ -126,6 +126,25 @@ describe('branchContinuityProjection', () => {
           vitals: {
             ...wounded.agents[agentId].vitals,
             wounds: 12,
+            statusFlags: ['recovering'],
+          },
+        },
+      },
+    })
+
+    const recoveringFacts = projectBranchPathFactsFromGameState(recoveringWithWounds)
+    expect(recoveringFacts.injuryStatusBySubjectId[`agent:${agentId}`]).toBe('wounded')
+
+    const healed = ensureManagedGameState({
+      ...wounded,
+      agents: {
+        ...wounded.agents,
+        [agentId]: {
+          ...wounded.agents[agentId],
+          status: 'recovering',
+          vitals: {
+            ...wounded.agents[agentId].vitals,
+            wounds: 0,
             statusFlags: ['recovering'],
           },
         },

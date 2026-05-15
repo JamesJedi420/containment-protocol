@@ -12,6 +12,7 @@
  * - Companions: `companion.<id>` or `npc.<id>.companion` with union status values.
  * - Hidden truth (opt-in): encounter `hiddenModifierIds`, `sim.hidden.event.*`, `sim.hidden.clue.*`.
  * - Room of origin: first `sceneHistory` entry (oldest visit; history is append-ordered in gameStateManager).
+ * - Injuries: `wounds > 0` → `wounded`; `wounds === 0` with recovering/healed signal → `healed`; else `none`.
  */
 
 import type {
@@ -252,6 +253,10 @@ function projectInjuryStatus(agent: Agent): BranchInjuryStatus {
 
   const wounds = Math.max(0, vitals.wounds)
   const statusFlags = vitals.statusFlags ?? []
+  if (wounds > 0) {
+    return 'wounded'
+  }
+
   const hasRecoveringSignal =
     agent.status === 'recovering' ||
     statusFlags.some((flag) => {
@@ -259,12 +264,8 @@ function projectInjuryStatus(agent: Agent): BranchInjuryStatus {
       return normalized === 'recovering' || normalized === 'healed'
     })
 
-  if (hasRecoveringSignal && wounds > 0) {
+  if (hasRecoveringSignal) {
     return 'healed'
-  }
-
-  if (wounds > 0) {
-    return 'wounded'
   }
 
   return 'none'

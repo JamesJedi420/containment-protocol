@@ -77,6 +77,27 @@ describe('SPE-1734 campaign ledger', () => {
     expect(sanitized.settingHistory).toEqual([])
   })
 
+  it('preserves intentionally empty compatibility notes through sanitize, hydrate, and summary', () => {
+    const base = createSeedCampaignLedger()
+    const clearedNotes = {
+      ...base,
+      compatibility: { ...base.compatibility, notes: [] },
+    }
+    expect(sanitizeCampaignLedger(clearedNotes, base).compatibility.notes).toEqual([])
+
+    const game = createStartingState()
+    game.campaignLedger = clearedNotes
+    expect(getCurrentCampaignRulesLedger(game).compatibility.notes).toEqual([])
+
+    const summary = buildCampaignRulesSummary(game)
+    expect(summary.compatibilitySummary).toBe('Compatibility · OK (No additional notes.)')
+    expect(summary.compatibilitySummary).not.toContain('Courier logistics')
+
+    const seed = createStartingState()
+    const hydrated = hydrateGame({ ...seed, campaignLedger: clearedNotes }, seed)
+    expect(hydrated.campaignLedger?.compatibility.notes).toEqual([])
+  })
+
   it('builds a compatibility report from enabled modules', () => {
     const game = createStartingState()
     const report = buildCampaignModuleCompatibilityReport(game)

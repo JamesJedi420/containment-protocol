@@ -194,13 +194,17 @@ function sanitizeCompatibility(
   }
 
   const compatible = typeof raw.compatible === 'boolean' ? raw.compatible : fallback.compatible
-  const notes = Array.isArray(raw.notes)
+
+  const rawNotesPresent = Object.prototype.hasOwnProperty.call(raw, 'notes')
+  const notes = rawNotesPresent && Array.isArray(raw.notes)
     ? raw.notes
         .filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
         .map((note) => clampString(note.trim(), MAX_STRING))
         .slice(0, 12)
     : [...fallback.notes]
-  const warnings = Array.isArray(raw.warnings)
+
+  const rawWarningsPresent = Object.prototype.hasOwnProperty.call(raw, 'warnings')
+  const warnings = rawWarningsPresent && Array.isArray(raw.warnings)
     ? raw.warnings
         .filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
         .map((note) => clampString(note.trim(), MAX_STRING))
@@ -209,8 +213,8 @@ function sanitizeCompatibility(
 
   return {
     compatible,
-    notes: notes.length > 0 ? notes : [...fallback.notes],
-    warnings,
+    notes: rawNotesPresent && Array.isArray(raw.notes) ? notes : [...fallback.notes],
+    warnings: rawWarningsPresent && Array.isArray(raw.warnings) ? warnings : [...fallback.warnings],
   }
 }
 
@@ -295,6 +299,7 @@ export function sanitizeCampaignLedger(raw: unknown, fallback: CampaignLedgerSta
   }
 }
 
+/** Defensive sanitize: tests and partial fixtures may bypass `hydrateGame`; re-entry is cheap vs sim work. */
 export function getCurrentCampaignRulesLedger(game: GameState): CampaignLedgerState {
   const fallback = createSeedCampaignLedger()
   return sanitizeCampaignLedger(game.campaignLedger, fallback)

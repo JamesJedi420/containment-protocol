@@ -115,9 +115,9 @@ function resolvePathId(game: GameState, options?: BranchPathProjectionOptions) {
 
   const profile = game.campaignLedger?.profile
   const homeBaseId = sanitizePathSegment(profile?.homeBaseId ?? '')
-  const week = typeof game.week === 'number' && Number.isFinite(game.week) ? Math.max(0, Math.trunc(game.week)) : 0
+  const week = typeof game.week === 'number' && Number.isFinite(game.week) && !Number.isNaN(game.week) ? Math.max(0, Math.trunc(game.week)) : 0
   const rngSeed =
-    typeof game.rngSeed === 'number' && Number.isFinite(game.rngSeed) ? Math.trunc(game.rngSeed) : 0
+    typeof game.rngSeed === 'number' && Number.isFinite(game.rngSeed) && !Number.isNaN(game.rngSeed) ? Math.trunc(game.rngSeed) : 0
 
   if (homeBaseId.length > 0) {
     return `run:${homeBaseId}:w${week}:s${rngSeed}`

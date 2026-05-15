@@ -104,6 +104,7 @@ Minimum expectation:
 - reports
 - pressure-relevant state
 - persistence-ready structure
+- SPE-1734 campaign ledger (bounded profile, run-state modifiers, module toggles, compatibility notes, and auditable setting history) as the canonical rules reference; the Front Desk reads it for player-facing summaries without treating scratch notes or hidden encounter truth as canonical
 
 ## 3.2 Weekly progression
 

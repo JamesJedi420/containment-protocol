@@ -1,4 +1,5 @@
 import { type GameState } from '../domain/models'
+import { createSeedCampaignLedger } from '../domain/campaignLedger'
 import { createDefaultWeeklyDirectiveState } from '../domain/directives'
 import { createInitialFactionState } from '../domain/factions'
 import { refreshContractBoard } from '../domain/contracts'
@@ -73,6 +74,8 @@ const startingStateTemplate: GameState = {
     containmentDeltaPerUnresolved: -6,
     clearanceThresholds: [0, 180, 420, 760, 1200],
   },
+
+  campaignLedger: createSeedCampaignLedger(),
 
   academyTier: 0,
 }

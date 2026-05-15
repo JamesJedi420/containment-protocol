@@ -19,6 +19,7 @@ import {
   assessFundingPressure,
   getCanonicalFundingState,
 } from '../../domain/funding'
+import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
 import type { GameState } from '../../domain/models'
 import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
@@ -162,6 +163,15 @@ export interface FrontDeskCourierCapacityOpportunityView {
   guidanceNote: string
 }
 
+/** SPE-1734: Bounded player-facing readout of the canonical campaign ledger. */
+export interface FrontDeskCampaignRulesSummaryView {
+  title: string
+  headline: string
+  lines: readonly string[]
+  compatibilitySummary: string
+  activeModuleLabels: readonly string[]
+}
+
 export interface FrontDeskHubView {
   weekLabel: string
   cycleLabel: string
@@ -183,6 +193,7 @@ export interface FrontDeskHubView {
   standingSummary: FrontDeskStandingSummaryView
   latestReport: FrontDeskLatestReportView | null
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
+  campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
 function buildDirectorMessage(
@@ -1231,6 +1242,7 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const briefing = getFrontDeskBriefingView(game)
   const operationsReport = getOperationsReportView(game)
   const attritionPressure = assessAttritionPressure(game)
+  const rulesSummary = buildCampaignRulesSummary(game)
 
   return {
     weekLabel: `Week ${game.week} / Active cap ${game.config.maxActiveCases}`,
@@ -1279,5 +1291,12 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     courierCapacityOpportunity: buildCourierNetworkCapacityOpportunityCard(
       buildCourierNetworkCapacityGapReport(game),
     ),
+    campaignRulesSummary: {
+      title: 'Campaign profile & rules ledger',
+      headline: rulesSummary.headline,
+      lines: rulesSummary.lines,
+      compatibilitySummary: rulesSummary.compatibilitySummary,
+      activeModuleLabels: rulesSummary.activeModuleLabels,
+    },
   }
 }

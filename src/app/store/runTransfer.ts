@@ -1,4 +1,5 @@
 import { createStartingState } from '../../data/startingState'
+import { createSeedCampaignLedger, sanitizeCampaignLedger } from '../../domain/campaignLedger'
 import { getProductionRecipe } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
@@ -2163,6 +2164,10 @@ export function hydrateGame(game: unknown, fallback = createStartingState()): Ga
       productionQueue: sanitizeProductionQueue(game.productionQueue),
       market: sanitizeMarket(game.market, fallback.market, week),
       config: sanitizeGameConfig(game.config, fallback.config),
+      campaignLedger: sanitizeCampaignLedger(
+        game.campaignLedger,
+        fallback.campaignLedger ?? createSeedCampaignLedger()
+      ),
       contracts: hasPersistedContracts ? game.contracts : undefined,
       academyTier: clamp(
         sanitizeInteger(game.academyTier as number | undefined, fallback.academyTier ?? 0, 0),

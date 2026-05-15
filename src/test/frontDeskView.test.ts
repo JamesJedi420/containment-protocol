@@ -166,6 +166,14 @@ describe('frontDeskView', () => {
     expect(hub.standingSummary.links.some((link) => link.href === '/factions')).toBe(true)
   })
 
+  it('surfaces SPE-1734 campaign ledger lines on the hub view for the Front Desk consumer', () => {
+    const hub = getFrontDeskHubView(createStartingState())
+    expect(hub.campaignRulesSummary.title).toMatch(/rules ledger/i)
+    expect(hub.campaignRulesSummary.lines.some((line) => line.includes('Mid-Atlantic'))).toBe(true)
+    expect(hub.campaignRulesSummary.compatibilitySummary).toMatch(/Compatibility/i)
+    expect(hub.campaignRulesSummary.activeModuleLabels.length).toBeGreaterThanOrEqual(2)
+  })
+
   it('shows a special recruit notice for supportive sourced candidates', () => {
     const state = createStartingState()
     state.candidates = [createSponsoredCandidate()]

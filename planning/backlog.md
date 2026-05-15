@@ -24,6 +24,38 @@ From `README.md` **Current design notes**:
 7. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 8. **Archived prototype hygiene** — Keep archived prototype code out of active runtime paths unless intentionally revived (`README.md` former “next steps”).
 
+## SCP-9995 harvest — May 2026 reconciliation
+
+**Status:** design harvest only — not canon, not player-facing copy, not an implementation commitment. This section maps external design extraction themes to existing Linear owners or explicit gaps. It is **non-authoritative** for sequencing; reorder the queue above when priorities change.
+
+**Content policy:** Do not use SCP wiki URLs or SCP numbers in player-facing copy without licensing/content review. Translate harvest ideas into bounded institutional-sim mechanics (deterministic weekly SPA), not a live 3D engine, hardware/camera stack, or wiki implementation.
+
+| Theme | Candidate bundle (Containment Protocol reading) | Existing Linear owner / likely fold-in | Status / action |
+| --- | --- | --- | --- |
+| Layered operational truth / map | Separate visible operational picture from collision/inferred geometry, internal telemetry, and unresolved layers; capacity or state outside modeled zones | [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317) (uncertain / map certainty), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (layered truth, supersession), [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (path-fact vs node-assumption validation) | **Fold** into planning; no new issue |
+| Access via edge cases | Procedures gated by non-ordinary inputs (precision, exploit-shaped prerequisites) without a real cheat engine | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (structured node prerequisites); authored-branch patterns in-repo | **Defer** dedicated “exploit access” slice until branch validator exists |
+| Observation & proxies | Live vs mediated viewing; sensor/proxy targets vs body targets; observation as risk and tool | [SPE-941](https://linear.app/spectranoir/issue/SPE-941), [SPE-428](https://linear.app/spectranoir/issue/SPE-428), [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285), [SPE-1519](https://linear.app/spectranoir/issue/SPE-1519) | **Fold** into existing visibility/sensing backlog |
+| Civilian / OSINT pipeline | Civilian optimization communities, crawler blind spots, black-box inference, triage false negatives | [SPE-1043](https://linear.app/spectranoir/issue/SPE-1043); weekly report / operations surfaces in-repo | **Fold** where possible; **gap** for formal OSINT/crawler coverage model |
+| Persistence & volatility | Non-persistent hidden state, cross-site channels with delay, volatile anomalous storage | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085), [SPE-1327](https://linear.app/spectranoir/issue/SPE-1327), [SPE-925](https://linear.app/spectranoir/issue/SPE-925), [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | **Fold** into archive/containment policy issues |
+| Post-failure normalcy & politics | Exposure-management posture after containment failure; suppression vs strategic value; institutional tradeoffs | [SPE-1011](https://linear.app/spectranoir/issue/SPE-1011); [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085); faction/legitimacy routing in `planning/milestones.md` | **Checklist** in planning; **fold** before new tickets |
+| Digital ↔ physical bridge | Cumulative exposure and specific cognitive deficits from repeated mediated contact | In-repo injury/stress/attrition paths; [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285) (exposure states) | **Fold** or **defer** until injury model owns cumulative deficits |
+| Contradiction checks | Policy tensions (suppression vs exploitation, safe recording vs dangerous procedure spread, observation as hazard and tool) | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) first (branch/path contradictions); [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) later (canon-layer contradictions) | **Checklist only** — not implementation tickets |
+
+### Do not create yet
+
+- Do not open dozens of new Linear issues from this harvest.
+- Do not implement literal camera blink, memory corruption timers, download-count thresholds, or live hardware/sensor assumptions.
+- Do not treat the harvest as a mandate for virtual-world simulation, public tool distribution, or source-code decompilation mechanics in this repo slice.
+- Do not start implementation until a slice owner and testable boundary exist (fixtures + pure helpers preferred).
+
+### Next actionable owners (planning hint)
+
+- **[SPE-1464](https://linear.app/spectranoir/issue/SPE-1464)** — near-term implementation candidate for branch/path continuity validation and contradiction-style warnings on authored graphs.
+- **[SPE-1085](https://linear.app/spectranoir/issue/SPE-1085)** — broader canon, layered truth, supersession, and campaign-memory owner (defer broad lore engine).
+- **[SPE-1317](https://linear.app/spectranoir/issue/SPE-1317)** — uncertain-state / evidence-collapse owner for inferred or unseen operational facts.
+- **Observation/proxy candidates** — fold into [SPE-941](https://linear.app/spectranoir/issue/SPE-941), [SPE-428](https://linear.app/spectranoir/issue/SPE-428), [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285) before any new visibility issue.
+- **[SPE-1734](https://linear.app/spectranoir/issue/SPE-1734)** (Done) — campaign rules/ledger is available for profile anchoring; not a substitute for branch continuity validation.
+
 ## See also
 
 - `planning/roadmap.md` — phases, dependencies, deferrals, review questions

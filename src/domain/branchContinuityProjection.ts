@@ -12,7 +12,8 @@
  * - Companions: `companion.<id>` or `npc.<id>.companion` with union status values.
  * - Hidden truth (opt-in): encounter `hiddenModifierIds`, `sim.hidden.event.*`, `sim.hidden.clue.*`
  *   (unqualified suffixes normalized to `event:` / `clue:` for validator ID matching).
- * - Room of origin: first `sceneHistory` entry (oldest visit; history is append-ordered in gameStateManager).
+ * - Room of origin: earliest `sceneHistory` visit by `week` when present, else index 0
+ *   (canonical `recordSceneVisit` appends oldest→newest; index 0 is the fallback for legacy entries).
  * - Injuries: `wounds > 0` → `wounded`; `wounds === 0` with recovering/healed signal → `healed`; else `none`.
  */
 
@@ -232,13 +233,35 @@ function projectSeedValues(
   return Object.fromEntries(sortedEntries) as Readonly<Record<string, string | number | boolean>>
 }
 
+function resolveSceneHistoryWeek(entry: { week?: number }) {
+  if (typeof entry.week !== 'number' || !Number.isFinite(entry.week)) {
+    return undefined
+  }
+
+  return Math.max(0, Math.trunc(entry.week))
+}
+
 function projectRoomOfOriginId(
-  sceneHistory: readonly { locationId: string }[],
+  sceneHistory: readonly { locationId: string; week?: number }[],
   currentLocation: { locationId?: string; hubId?: string }
 ) {
-  const firstSceneLocation = normalizeString(sceneHistory[0]?.locationId)
-  if (firstSceneLocation.length > 0) {
-    return firstSceneLocation
+  if (sceneHistory.length > 0) {
+    const weeks = sceneHistory
+      .map(resolveSceneHistoryWeek)
+      .filter((week): week is number => week !== undefined)
+
+    let originEntry = sceneHistory[0]
+
+    if (weeks.length > 0) {
+      const earliestWeek = Math.min(...weeks)
+      originEntry =
+        sceneHistory.find((entry) => resolveSceneHistoryWeek(entry) === earliestWeek) ?? originEntry
+    }
+
+    const firstSceneLocation = normalizeString(originEntry.locationId)
+    if (firstSceneLocation.length > 0) {
+      return firstSceneLocation
+    }
   }
 
   const currentLocationId = normalizeString(currentLocation.locationId)

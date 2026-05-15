@@ -52,6 +52,29 @@ describe('branchContinuityProjection', () => {
     expect(pathFacts.pathId).toBe('fixture:custom-path')
   })
 
+  it('derives roomOfOriginId from earliest scene history week when weeks are present', () => {
+    const game = ensureManagedGameState({
+      ...createStartingState(),
+      runtimeState: {
+        ...readGameStateManager(createStartingState()),
+        sceneHistory: [
+          { sceneId: 'recent', locationId: 'room:recent-wing', week: 5 },
+          { sceneId: 'mid', locationId: 'room:mid-wing', week: 3 },
+          { sceneId: 'origin', locationId: 'room:origin-hall', week: 1 },
+        ],
+        currentLocation: {
+          hubId: 'operations-desk',
+          locationId: 'room:recent-wing',
+          sceneId: 'dashboard',
+          updatedWeek: 5,
+        },
+      },
+    })
+
+    const pathFacts = projectBranchPathFactsFromGameState(game)
+    expect(pathFacts.roomOfOriginId).toBe('room:origin-hall')
+  })
+
   it('derives roomOfOriginId from first scene history, then current location', () => {
     let game = createStartingState()
     game = setCurrentLocation(game, {

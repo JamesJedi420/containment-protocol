@@ -857,7 +857,7 @@ function formatFindingLine(finding: MedicalAccountabilityScorecardFinding): stri
   const parts = [
     finding.severity,
     finding.kind,
-    `row:${finding.rowId}`,
+    finding.rowId,
   ]
   if (finding.siteId !== undefined) {
     parts.push(`site:${finding.siteId}`)

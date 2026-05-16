@@ -114,6 +114,10 @@ const OUTCOME_DEVIATION_KINDS = new Set<MedicalOutcomeDeviationFinding['kind']>(
   'escalation_above_expected',
 ])
 
+/** Coarse row scores when upstream findings omit numeric fields (not threshold overrides). */
+const INFERRED_HIGH_DOCTRINE_ALIGNMENT_SCORE = 85
+const INFERRED_LOW_TREATMENT_EFFICACY_SCORE = 30
+
 const DEFAULT_OPTIONS: Required<MedicalAccountabilityScorecardOptions> = {
   highAlignmentThreshold: 70,
   poorOutcomeThreshold: 40,
@@ -394,8 +398,7 @@ function meanRounded(values: readonly number[]): number | undefined {
 }
 
 function deriveDoctrineAlignmentScore(
-  staffFindings: readonly StaffTreatmentTelemetryFinding[],
-  options: Required<MedicalAccountabilityScorecardOptions>
+  staffFindings: readonly StaffTreatmentTelemetryFinding[]
 ): number | undefined {
   const scores = staffFindings
     .map((finding) => finding.alignmentScore)
@@ -404,14 +407,8 @@ function deriveDoctrineAlignmentScore(
     return meanRounded(scores.map(clampScore))
   }
 
-  if (
-    staffFindings.some(
-      (finding) =>
-        finding.kind === 'high_alignment_low_efficacy' ||
-        finding.kind === 'outcome_below_expected'
-    )
-  ) {
-    return options.highAlignmentThreshold
+  if (staffFindings.some((finding) => finding.kind === 'high_alignment_low_efficacy')) {
+    return INFERRED_HIGH_DOCTRINE_ALIGNMENT_SCORE
   }
 
   return undefined
@@ -419,8 +416,7 @@ function deriveDoctrineAlignmentScore(
 
 function deriveTreatmentEfficacyScore(
   staffFindings: readonly StaffTreatmentTelemetryFinding[],
-  deviationFindings: readonly MedicalOutcomeDeviationFinding[],
-  options: Required<MedicalAccountabilityScorecardOptions>
+  deviationFindings: readonly MedicalOutcomeDeviationFinding[]
 ): number | undefined {
   const efficacyScores = staffFindings
     .map((finding) => finding.efficacyScore)
@@ -430,14 +426,33 @@ function deriveTreatmentEfficacyScore(
   }
 
   if (staffFindings.some((finding) => finding.kind === 'high_alignment_low_efficacy')) {
-    return options.poorOutcomeThreshold
+    return INFERRED_LOW_TREATMENT_EFFICACY_SCORE
   }
 
   const outcomeDeviationCount = deviationFindings.filter((finding) =>
     OUTCOME_DEVIATION_KINDS.has(finding.kind)
   ).length
   if (outcomeDeviationCount > 0) {
-    return Math.max(0, options.poorOutcomeThreshold - 5 * (outcomeDeviationCount - 1))
+    return Math.max(
+      0,
+      INFERRED_LOW_TREATMENT_EFFICACY_SCORE - 5 * (outcomeDeviationCount - 1)
+    )
+  }
+
+  return undefined
+}
+
+function resolveBucketStaffId(
+  staffFindings: readonly StaffTreatmentTelemetryFinding[]
+): string | undefined {
+  const staffIds = [
+    ...new Set(
+      staffFindings.map((finding) => finding.staffId.trim()).filter((staffId) => staffId.length > 0)
+    ),
+  ].sort((left, right) => left.localeCompare(right))
+
+  if (staffIds.length === 1) {
+    return staffIds[0]
   }
 
   return undefined
@@ -586,10 +601,7 @@ function upstreamEvidenceCount(bucket: RowBucket): number {
   )
 }
 
-function buildRow(
-  bucket: RowBucket,
-  options: Required<MedicalAccountabilityScorecardOptions>
-): MedicalAccountabilityScorecardRow {
+function buildRow(bucket: RowBucket): MedicalAccountabilityScorecardRow {
   const siteScores = deriveSiteScores(bucket.siteSignals)
   const outcomeDeviationCount = countOutcomeDeviations(bucket.deviationFindings)
   const subjectDeflectionCount = countSubjectDeflections(bucket.blameFindings)
@@ -597,15 +609,14 @@ function buildRow(
   return {
     rowId: bucket.rowId,
     siteId: bucket.siteId,
-    staffId: bucket.staffId,
     subjectId: bucket.subjectId,
     protocolId: bucket.protocolId,
     week: bucket.week,
-    doctrineAlignmentScore: deriveDoctrineAlignmentScore(bucket.staffFindings, options),
+    staffId: resolveBucketStaffId(bucket.staffFindings) ?? bucket.staffId,
+    doctrineAlignmentScore: deriveDoctrineAlignmentScore(bucket.staffFindings),
     treatmentEfficacyScore: deriveTreatmentEfficacyScore(
       bucket.staffFindings,
-      bucket.deviationFindings,
-      options
+      bucket.deviationFindings
     ),
     outcomeDeviationCount,
     subjectDeflectionCount,
@@ -645,11 +656,10 @@ function buildRowFindings(
   }
 
   const highAlignmentPoorOutcome =
-    (row.doctrineAlignmentScore !== undefined &&
-      row.treatmentEfficacyScore !== undefined &&
-      row.doctrineAlignmentScore >= options.highAlignmentThreshold &&
-      row.treatmentEfficacyScore <= options.poorOutcomeThreshold) ||
-    bucket.staffFindings.some((finding) => finding.kind === 'high_alignment_low_efficacy')
+    row.doctrineAlignmentScore !== undefined &&
+    row.treatmentEfficacyScore !== undefined &&
+    row.doctrineAlignmentScore >= options.highAlignmentThreshold &&
+    row.treatmentEfficacyScore <= options.poorOutcomeThreshold
 
   if (highAlignmentPoorOutcome) {
     findings.push({
@@ -951,11 +961,7 @@ export function buildMedicalAccountabilityScorecard(input: {
   const buckets = new Map<string, RowBucket>()
 
   for (const finding of staffFindings) {
-    const bucket = getOrCreateBucket(buckets, resolveStaffFindingKey(finding))
-    if (bucket.staffId === undefined && finding.staffId.trim().length > 0) {
-      bucket.staffId = finding.staffId.trim()
-    }
-    bucket.staffFindings.push(finding)
+    getOrCreateBucket(buckets, resolveStaffFindingKey(finding)).staffFindings.push(finding)
   }
 
   for (const finding of deviationFindings) {
@@ -974,7 +980,7 @@ export function buildMedicalAccountabilityScorecard(input: {
   const findings: MedicalAccountabilityScorecardFinding[] = []
 
   for (const bucket of buckets.values()) {
-    const row = buildRow(bucket, options)
+    const row = buildRow(bucket)
     rows.push(row)
     findings.push(...buildRowFindings(row, bucket, options))
   }

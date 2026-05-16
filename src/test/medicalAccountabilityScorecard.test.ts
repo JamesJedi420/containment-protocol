@@ -417,7 +417,7 @@ describe('medicalAccountabilityScorecard (SPE-2008)', () => {
     expect(report.findings.some((f) => f.kind === 'high_alignment_poor_outcome')).toBe(true)
   })
 
-  it('uses resolved options for inferred alignment and efficacy fallback scores', () => {
+  it('uses coarse inferred row scores when upstream findings omit numeric fields', () => {
     const report = buildMedicalAccountabilityScorecard({
       staffTelemetryFindings: [
         staffFinding({
@@ -428,13 +428,68 @@ describe('medicalAccountabilityScorecard (SPE-2008)', () => {
           detail: 'Kind-only telemetry without numeric scores.',
         }),
       ],
-      options: {
-        highAlignmentThreshold: 88,
-        poorOutcomeThreshold: 22,
-      },
     })
-    expect(report.rows[0]?.doctrineAlignmentScore).toBe(88)
-    expect(report.rows[0]?.treatmentEfficacyScore).toBe(22)
+    expect(report.rows[0]?.doctrineAlignmentScore).toBe(85)
+    expect(report.rows[0]?.treatmentEfficacyScore).toBe(30)
+  })
+
+  it('applies configured thresholds to kind-only rows without bypassing options', () => {
+    const sharedInput = {
+      staffTelemetryFindings: [
+        staffFinding({
+          kind: 'high_alignment_low_efficacy',
+          staffId: 'staff:opts',
+          subjectId: 'agent:opts',
+          protocolId: 'protocol:opts',
+          detail: 'Kind-only telemetry.',
+        }),
+      ],
+    }
+
+    const strict = buildMedicalAccountabilityScorecard({
+      ...sharedInput,
+      options: { highAlignmentThreshold: 90, poorOutcomeThreshold: 25 },
+    })
+    const lenient = buildMedicalAccountabilityScorecard({
+      ...sharedInput,
+      options: { highAlignmentThreshold: 70, poorOutcomeThreshold: 40 },
+    })
+
+    expect(strict.findings.some((f) => f.kind === 'high_alignment_poor_outcome')).toBe(false)
+    expect(lenient.findings.some((f) => f.kind === 'high_alignment_poor_outcome')).toBe(true)
+  })
+
+  it('resolves staffId deterministically and omits it for mixed-staff subject rows', () => {
+    const findingA = staffFinding({
+      kind: 'outcome_below_expected',
+      staffId: 'staff:alpha',
+      subjectId: 'agent:shared',
+      protocolId: 'protocol:shared',
+      week: 2,
+      alignmentScore: 80,
+      efficacyScore: 35,
+      detail: 'Alpha staff row.',
+    })
+    const findingB = staffFinding({
+      kind: 'outcome_below_expected',
+      staffId: 'staff:beta',
+      subjectId: 'agent:shared',
+      protocolId: 'protocol:shared',
+      week: 2,
+      alignmentScore: 75,
+      efficacyScore: 30,
+      detail: 'Beta staff row.',
+    })
+
+    const forward = buildMedicalAccountabilityScorecard({
+      staffTelemetryFindings: [findingA, findingB],
+    })
+    const reverse = buildMedicalAccountabilityScorecard({
+      staffTelemetryFindings: [findingB, findingA],
+    })
+
+    expect(forward).toEqual(reverse)
+    expect(forward.rows[0]?.staffId).toBeUndefined()
   })
 
   it('summary counts match findings', () => {

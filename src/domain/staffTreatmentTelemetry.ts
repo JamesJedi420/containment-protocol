@@ -5,6 +5,9 @@
  * patient/subject outcome signals to detect decoupling (high alignment + poor outcomes,
  * low alignment + good outcomes, material expected-vs-actual gaps).
  *
+ * Alignment buckets are keyed by staff, doctrine, and optional week so findings
+ * attribute doctrine adherence per policy, not the first doctrine in a merged bucket.
+ *
  * Does not enforce doctrine, route blame, render scorecards, persist GameState,
  * import uncertainWorldState, or model real-world medical diagnoses.
  */
@@ -110,9 +113,9 @@ type ScoreBand = 'high' | 'mid' | 'low'
 
 interface AlignmentBucket {
   staffId: string
+  doctrineId: string
   week?: number
   alignmentScores: number[]
-  doctrineIds: string[]
 }
 
 interface OutcomeBucket {
@@ -133,6 +136,13 @@ function normalizeWeek(value: number | undefined): number | undefined {
     return undefined
   }
   return Math.max(0, Math.trunc(value))
+}
+
+function normalizeMinimumEvidenceCount(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return DEFAULT_OPTIONS.minimumEvidenceCount
+  }
+  return Math.max(1, Math.trunc(value))
 }
 
 function resolveAlignmentSignalId(signal: StaffDoctrineAlignmentSignal): string {
@@ -173,7 +183,7 @@ function dedupeBySignalId<T extends { signalId?: string }>(
   return deduped
 }
 
-function bucketKey(staffId: string, week: number | undefined): string {
+function staffOutcomeBucketKey(staffId: string, week: number | undefined): string {
   const normalizedStaff = staffId.trim()
   if (week !== undefined) {
     return `${normalizedStaff}\0${week}`
@@ -181,14 +191,28 @@ function bucketKey(staffId: string, week: number | undefined): string {
   return `${normalizedStaff}\0`
 }
 
-function parseBucketKey(key: string): { staffId: string; week?: number } {
+function alignmentBucketKey(
+  staffId: string,
+  doctrineId: string,
+  week: number | undefined
+): string {
+  const weekPart = week !== undefined ? String(week) : ''
+  return `${staffId.trim()}\0${doctrineId.trim()}\0${weekPart}`
+}
+
+function parseAlignmentBucketKey(key: string): {
+  staffId: string
+  doctrineId: string
+  week?: number
+} {
   const parts = key.split('\0')
   const staffId = parts[0] ?? ''
-  const weekPart = parts[1]
+  const doctrineId = parts[1] ?? ''
+  const weekPart = parts[2]
   if (weekPart === undefined || weekPart.length === 0) {
-    return { staffId }
+    return { staffId, doctrineId }
   }
-  return { staffId, week: Number(weekPart) }
+  return { staffId, doctrineId, week: Number(weekPart) }
 }
 
 function meanRounded(values: readonly number[]): number {
@@ -223,6 +247,21 @@ function bandsDiverge(alignmentBand: ScoreBand, efficacyBand: ScoreBand): boolea
   return alignmentBand !== efficacyBand
 }
 
+function decoupledDetail(decoupledByBands: boolean, decoupledByMidGap: boolean): string {
+  if (decoupledByBands && decoupledByMidGap) {
+    return (
+      'Doctrine alignment band and treatment efficacy band diverge without an extreme high/low pairing, ' +
+      'and the expected-vs-actual outcome gap exceeds the threshold while scores remain in overlapping mid bands.'
+    )
+  }
+  if (decoupledByBands) {
+    return 'Doctrine alignment band and treatment efficacy band diverge without an extreme high/low pairing.'
+  }
+  return (
+    'Doctrine alignment and treatment efficacy remain in the same band, but the expected-vs-actual outcome gap exceeds the threshold.'
+  )
+}
+
 function compareFindings(
   left: StaffTreatmentTelemetryFinding,
   right: StaffTreatmentTelemetryFinding
@@ -235,6 +274,10 @@ function compareFindings(
   const staffDelta = left.staffId.localeCompare(right.staffId)
   if (staffDelta !== 0) {
     return staffDelta
+  }
+  const doctrineDelta = (left.doctrineId ?? '').localeCompare(right.doctrineId ?? '')
+  if (doctrineDelta !== 0) {
+    return doctrineDelta
   }
   const subjectDelta = (left.subjectId ?? '').localeCompare(right.subjectId ?? '')
   if (subjectDelta !== 0) {
@@ -260,8 +303,7 @@ function resolveOptions(
     highEfficacyThreshold:
       options?.highEfficacyThreshold ?? DEFAULT_OPTIONS.highEfficacyThreshold,
     outcomeGapThreshold: options?.outcomeGapThreshold ?? DEFAULT_OPTIONS.outcomeGapThreshold,
-    minimumEvidenceCount:
-      options?.minimumEvidenceCount ?? DEFAULT_OPTIONS.minimumEvidenceCount,
+    minimumEvidenceCount: normalizeMinimumEvidenceCount(options?.minimumEvidenceCount),
   }
 }
 
@@ -298,7 +340,7 @@ function buildOutcomeBuckets(
       continue
     }
     const week = outcome.week
-    const key = bucketKey(outcome.staffId, week)
+    const key = staffOutcomeBucketKey(outcome.staffId, week)
     const existing = buckets.get(key)
     if (existing) {
       existing.outcomes.push(outcome)
@@ -315,29 +357,27 @@ function resolvePairedOutcomes(
 ): TreatmentEfficacySignal[] {
   const staffId = alignmentBucket.staffId
   if (alignmentBucket.week !== undefined) {
-    const exact = outcomeBuckets.get(bucketKey(staffId, alignmentBucket.week))
+    const exact = outcomeBuckets.get(staffOutcomeBucketKey(staffId, alignmentBucket.week))
     if (exact && exact.outcomes.length > 0) {
       return exact.outcomes
     }
   }
-  const fallback = outcomeBuckets.get(bucketKey(staffId, undefined))
+  const fallback = outcomeBuckets.get(staffOutcomeBucketKey(staffId, undefined))
   return fallback?.outcomes ?? []
 }
 
 function summarizeOutcomes(outcomes: readonly TreatmentEfficacySignal[]): {
   efficacyScore: number
   worstGap: number
-  worstOutcome?: TreatmentEfficacySignal
+  worstOutcome: TreatmentEfficacySignal
 } {
-  if (outcomes.length === 0) {
-    return { efficacyScore: 0, worstGap: 0 }
-  }
+  const first = outcomes[0]!
+  let worstOutcome = first
+  let worstGap = clampScore(first.expectedOutcomeScore) - clampScore(first.actualOutcomeScore)
+  let efficacyTotal = clampScore(first.actualOutcomeScore)
 
-  let efficacyTotal = 0
-  let worstGap = 0
-  let worstOutcome: TreatmentEfficacySignal | undefined
-
-  for (const outcome of outcomes) {
+  for (let index = 1; index < outcomes.length; index += 1) {
+    const outcome = outcomes[index]!
     efficacyTotal += clampScore(outcome.actualOutcomeScore)
     const gap = clampScore(outcome.expectedOutcomeScore) - clampScore(outcome.actualOutcomeScore)
     if (gap > worstGap) {
@@ -362,6 +402,7 @@ function formatReportLines(findings: readonly StaffTreatmentTelemetryFinding[]):
     ...findings.map(
       (finding) =>
         `[${finding.kind}] staff=${finding.staffId}` +
+        (finding.doctrineId ? ` doctrine=${finding.doctrineId}` : '') +
         (finding.week !== undefined ? ` week=${finding.week}` : '') +
         (finding.subjectId ? ` subject=${finding.subjectId}` : '') +
         `: ${finding.detail}`
@@ -384,38 +425,34 @@ export function buildStaffTreatmentTelemetryReport(
   )
 
   const outcomeBuckets = buildOutcomeBuckets(treatmentOutcomes)
-  const unpairedOutcomeSignalCount = treatmentOutcomes.filter(
-    (outcome) => !outcome.staffId || outcome.staffId.length === 0
-  ).length
+  const allOutcomeSignalIds = treatmentOutcomes.map((outcome) => resolveOutcomeSignalId(outcome))
+  const pairedOutcomeSignalIds = new Set<string>()
 
   const alignmentBuckets = new Map<string, AlignmentBucket>()
   for (const signal of staffSignals) {
-    if (signal.staffId.length === 0) {
+    if (signal.staffId.length === 0 || signal.doctrineId.length === 0) {
       continue
     }
-    const key = bucketKey(signal.staffId, signal.week)
+    const key = alignmentBucketKey(signal.staffId, signal.doctrineId, signal.week)
     const existing = alignmentBuckets.get(key)
     if (existing) {
       existing.alignmentScores.push(signal.alignmentScore)
-      existing.doctrineIds.push(signal.doctrineId)
     } else {
       alignmentBuckets.set(key, {
         staffId: signal.staffId,
+        doctrineId: signal.doctrineId,
         week: signal.week,
         alignmentScores: [signal.alignmentScore],
-        doctrineIds: [signal.doctrineId],
       })
     }
   }
 
   const findings: StaffTreatmentTelemetryFinding[] = []
-  let pairedObservationCount = 0
 
   for (const [key, alignmentBucket] of alignmentBuckets) {
     const pairedOutcomes = resolvePairedOutcomes(alignmentBucket, outcomeBuckets)
     const meanAlignment = meanRounded(alignmentBucket.alignmentScores)
-    const doctrineId = alignmentBucket.doctrineIds[0]
-    const { staffId, week } = parseBucketKey(key)
+    const { staffId, doctrineId, week } = parseAlignmentBucketKey(key)
 
     if (pairedOutcomes.length < options.minimumEvidenceCount) {
       findings.push({
@@ -432,7 +469,10 @@ export function buildStaffTreatmentTelemetryReport(
       continue
     }
 
-    pairedObservationCount += pairedOutcomes.length
+    for (const outcome of pairedOutcomes) {
+      pairedOutcomeSignalIds.add(resolveOutcomeSignalId(outcome))
+    }
+
     const { efficacyScore, worstGap, worstOutcome } = summarizeOutcomes(pairedOutcomes)
     const alignmentBand = classifyBand(
       meanAlignment,
@@ -445,8 +485,8 @@ export function buildStaffTreatmentTelemetryReport(
       options.lowEfficacyThreshold
     )
 
-    const subjectId = worstOutcome?.subjectId
-    const protocolId = worstOutcome?.protocolId
+    const subjectId = worstOutcome.subjectId
+    const protocolId = worstOutcome.protocolId
     const sharedWeek =
       alignmentBucket.week !== undefined &&
       pairedOutcomes.some((outcome) => outcome.week === alignmentBucket.week)
@@ -466,8 +506,8 @@ export function buildStaffTreatmentTelemetryReport(
         week: sharedWeek,
         alignmentScore: meanAlignment,
         efficacyScore,
-        expectedOutcomeScore: worstOutcome?.expectedOutcomeScore,
-        actualOutcomeScore: worstOutcome?.actualOutcomeScore,
+        expectedOutcomeScore: worstOutcome.expectedOutcomeScore,
+        actualOutcomeScore: worstOutcome.actualOutcomeScore,
         outcomeGap: worstGap,
         detail:
           'High institutional doctrine alignment coexists with low treatment efficacy for linked outcomes.',
@@ -485,8 +525,8 @@ export function buildStaffTreatmentTelemetryReport(
         week: sharedWeek,
         alignmentScore: meanAlignment,
         efficacyScore,
-        expectedOutcomeScore: worstOutcome?.expectedOutcomeScore,
-        actualOutcomeScore: worstOutcome?.actualOutcomeScore,
+        expectedOutcomeScore: worstOutcome.expectedOutcomeScore,
+        actualOutcomeScore: worstOutcome.actualOutcomeScore,
         outcomeGap: worstGap,
         detail:
           'Low doctrine alignment coexists with high treatment efficacy for linked outcomes.',
@@ -503,8 +543,8 @@ export function buildStaffTreatmentTelemetryReport(
         week: sharedWeek,
         alignmentScore: meanAlignment,
         efficacyScore,
-        expectedOutcomeScore: worstOutcome?.expectedOutcomeScore,
-        actualOutcomeScore: worstOutcome?.actualOutcomeScore,
+        expectedOutcomeScore: worstOutcome.expectedOutcomeScore,
+        actualOutcomeScore: worstOutcome.actualOutcomeScore,
         outcomeGap: worstGap,
         detail: `Observed outcome trails expectation by ${worstGap} points in this staff bucket.`,
       })
@@ -513,7 +553,9 @@ export function buildStaffTreatmentTelemetryReport(
     const decoupledByBands =
       !primaryMismatchEmitted && bandsDiverge(alignmentBand, efficacyBand)
     const decoupledByMidGap =
-      alignmentBand === 'mid' && worstGap >= options.outcomeGapThreshold
+      alignmentBand === 'mid' &&
+      efficacyBand === 'mid' &&
+      worstGap >= options.outcomeGapThreshold
     if (decoupledByBands || decoupledByMidGap) {
       findings.push({
         kind: 'alignment_outcome_decoupled',
@@ -524,11 +566,10 @@ export function buildStaffTreatmentTelemetryReport(
         week: sharedWeek,
         alignmentScore: meanAlignment,
         efficacyScore,
-        expectedOutcomeScore: worstOutcome?.expectedOutcomeScore,
-        actualOutcomeScore: worstOutcome?.actualOutcomeScore,
+        expectedOutcomeScore: worstOutcome.expectedOutcomeScore,
+        actualOutcomeScore: worstOutcome.actualOutcomeScore,
         outcomeGap: worstGap,
-        detail:
-          'Doctrine alignment band and treatment efficacy band diverge without an extreme high/low pairing.',
+        detail: decoupledDetail(decoupledByBands, decoupledByMidGap),
       })
     }
   }
@@ -538,17 +579,22 @@ export function buildStaffTreatmentTelemetryReport(
   const countByKind = (kind: StaffTreatmentTelemetryFindingKind) =>
     findings.filter((finding) => finding.kind === kind).length
 
+  const unpairedOutcomeSignalCount = allOutcomeSignalIds.filter(
+    (signalId) => !pairedOutcomeSignalIds.has(signalId)
+  ).length
+
   const report: StaffTreatmentTelemetryReport = {
     findings,
     summary: {
-      pairedObservationCount,
+      pairedObservationCount: pairedOutcomeSignalIds.size,
       insufficientEvidenceCount: countByKind('insufficient_evidence'),
       highAlignmentLowEfficacyCount: countByKind('high_alignment_low_efficacy'),
       lowAlignmentHighEfficacyCount: countByKind('low_alignment_high_efficacy'),
       outcomeBelowExpectedCount: countByKind('outcome_below_expected'),
       alignmentOutcomeDecoupledCount: countByKind('alignment_outcome_decoupled'),
-      unpairedAlignmentSignalCount: staffSignals.filter((signal) => signal.staffId.length === 0)
-        .length,
+      unpairedAlignmentSignalCount: staffSignals.filter(
+        (signal) => signal.staffId.length === 0 || signal.doctrineId.length === 0
+      ).length,
       unpairedOutcomeSignalCount,
     },
     lines: formatReportLines(findings),

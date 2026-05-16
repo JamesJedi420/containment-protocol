@@ -480,6 +480,185 @@ describe('staffTreatmentTelemetry (SPE-2010)', () => {
     expect(report.lines[0]).toBe('Staff treatment telemetry report')
   })
 
+  it('normalizes minimumEvidenceCount to at least 1', () => {
+    const mismatchKinds = [
+      'high_alignment_low_efficacy',
+      'low_alignment_high_efficacy',
+      'outcome_below_expected',
+      'alignment_outcome_decoupled',
+    ] as const
+
+    for (const minimumEvidenceCount of [0, -3, Number.NaN, 2.9]) {
+      const report = buildStaffTreatmentTelemetryReport({
+        staffSignals: [
+          align({ staffId: 'staff:min', doctrineId: 'doctrine:ward', alignmentScore: 90 }),
+        ],
+        treatmentOutcomes: [],
+        options: { minimumEvidenceCount },
+      })
+      expect(report.findings.map((finding) => finding.kind)).toEqual(['insufficient_evidence'])
+      expect(
+        report.findings.some((finding) => mismatchKinds.includes(finding.kind as (typeof mismatchKinds)[number]))
+      ).toBe(false)
+    }
+
+    const withOutcome = buildStaffTreatmentTelemetryReport({
+      staffSignals: [
+        align({ staffId: 'staff:min-2', doctrineId: 'doctrine:ward', alignmentScore: 90 }),
+      ],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:min-2',
+          protocolId: 'protocol:stabilize',
+          staffId: 'staff:min-2',
+          expectedOutcomeScore: 90,
+          actualOutcomeScore: 20,
+        }),
+      ],
+      options: { minimumEvidenceCount: 0 },
+    })
+    expect(withOutcome.findings.map((finding) => finding.kind)).toContain(
+      'high_alignment_low_efficacy'
+    )
+  })
+
+  it('attributes findings per doctrine for the same staff and week', () => {
+    const report = buildStaffTreatmentTelemetryReport({
+      staffSignals: [
+        align({
+          staffId: 'staff:multi',
+          doctrineId: 'doctrine:strict',
+          alignmentScore: 90,
+          week: 3,
+        }),
+        align({
+          staffId: 'staff:multi',
+          doctrineId: 'doctrine:pragmatic',
+          alignmentScore: 20,
+          week: 3,
+        }),
+      ],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:multi',
+          protocolId: 'protocol:stabilize',
+          staffId: 'staff:multi',
+          expectedOutcomeScore: 80,
+          actualOutcomeScore: 25,
+          week: 3,
+        }),
+      ],
+    })
+
+    const strictFinding = report.findings.find(
+      (finding) => finding.doctrineId === 'doctrine:strict'
+    )
+    const pragmaticFinding = report.findings.find(
+      (finding) => finding.doctrineId === 'doctrine:pragmatic'
+    )
+
+    expect(strictFinding?.kind).toBe('high_alignment_low_efficacy')
+    expect(pragmaticFinding?.kind).not.toBe('high_alignment_low_efficacy')
+    expect(pragmaticFinding?.kind).not.toBe('low_alignment_high_efficacy')
+  })
+
+  it('retains subject and protocol context when outcomes meet or exceed expectations', () => {
+    const report = buildStaffTreatmentTelemetryReport({
+      staffSignals: [
+        align({ staffId: 'staff:context', doctrineId: 'doctrine:ward', alignmentScore: 90 }),
+      ],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:context',
+          protocolId: 'protocol:observe',
+          staffId: 'staff:context',
+          expectedOutcomeScore: 55,
+          actualOutcomeScore: 60,
+        }),
+      ],
+    })
+
+    const decoupled = report.findings.find(
+      (finding) => finding.kind === 'alignment_outcome_decoupled'
+    )
+    expect(decoupled?.subjectId).toBe('agent:context')
+    expect(decoupled?.protocolId).toBe('protocol:observe')
+    expect(decoupled?.outcomeGap).toBeLessThanOrEqual(0)
+  })
+
+  it('uses same-band gap detail for mid/mid decoupled findings', () => {
+    const report = buildStaffTreatmentTelemetryReport({
+      staffSignals: [
+        align({ staffId: 'staff:midgap', doctrineId: 'doctrine:ward', alignmentScore: 55 }),
+      ],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:midgap',
+          protocolId: 'protocol:observe',
+          staffId: 'staff:midgap',
+          expectedOutcomeScore: 90,
+          actualOutcomeScore: 55,
+        }),
+      ],
+    })
+
+    const decoupled = report.findings.find(
+      (finding) => finding.kind === 'alignment_outcome_decoupled'
+    )
+    expect(decoupled?.detail).toBe(
+      'Doctrine alignment and treatment efficacy remain in the same band, but the expected-vs-actual outcome gap exceeds the threshold.'
+    )
+  })
+
+  it('counts paired outcomes uniquely across doctrine buckets sharing staff-only fallback', () => {
+    const report = buildStaffTreatmentTelemetryReport({
+      staffSignals: [
+        align({
+          staffId: 'staff:pair',
+          doctrineId: 'doctrine:a',
+          alignmentScore: 90,
+        }),
+        align({
+          staffId: 'staff:pair',
+          doctrineId: 'doctrine:b',
+          alignmentScore: 85,
+        }),
+      ],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:pair',
+          protocolId: 'protocol:stabilize',
+          staffId: 'staff:pair',
+          expectedOutcomeScore: 90,
+          actualOutcomeScore: 20,
+          signalId: 'outcome:shared',
+        }),
+      ],
+    })
+
+    expect(report.summary.pairedObservationCount).toBe(1)
+    expect(report.summary.unpairedOutcomeSignalCount).toBe(0)
+  })
+
+  it('counts staff-linked outcomes with no alignment bucket as unpaired', () => {
+    const report = buildStaffTreatmentTelemetryReport({
+      staffSignals: [],
+      treatmentOutcomes: [
+        outcome({
+          subjectId: 'agent:lonely',
+          protocolId: 'protocol:observe',
+          staffId: 'staff:lonely',
+          expectedOutcomeScore: 80,
+          actualOutcomeScore: 20,
+        }),
+      ],
+    })
+
+    expect(report.summary.pairedObservationCount).toBe(0)
+    expect(report.summary.unpairedOutcomeSignalCount).toBe(1)
+    expect(report.findings).toHaveLength(0)
+  })
+
   it('produces identical reports for the same state', () => {
     const input = {
       staffSignals: [

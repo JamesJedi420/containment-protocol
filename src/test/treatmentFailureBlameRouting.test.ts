@@ -656,4 +656,123 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
     expect(source.includes('gameStore')).toBe(false)
     expect(source.includes('/features/')).toBe(false)
   })
+
+  it('emits insufficient_failure_evidence when attribution week has no matching context week', () => {
+    const report = buildTreatmentFailureBlameRoutingReport({
+      failureContexts: [
+        failureContext({
+          contextId: 'ctx:week-1',
+          subjectId: 'agent:week-mismatch',
+          protocolId: 'protocol:stabilize',
+          week: 1,
+          failureSignals: ['outcome_below_prediction'],
+        }),
+      ],
+      proposedAttributions: [
+        attribution({
+          attributionId: 'attr:week-5',
+          subjectId: 'agent:week-mismatch',
+          protocolId: 'protocol:stabilize',
+          week: 5,
+          target: 'subject_language_noncompliance',
+        }),
+      ],
+    })
+
+    expect(report.findings).toEqual([
+      expect.objectContaining({
+        kind: 'insufficient_failure_evidence',
+        subjectId: 'agent:week-mismatch',
+        protocolId: 'protocol:stabilize',
+        week: 5,
+      }),
+    ])
+    expect(
+      report.findings.some(
+        (finding) =>
+          finding.kind === 'prohibited_subject_deflection' ||
+          finding.kind === 'approved_accountability_route'
+      )
+    ).toBe(false)
+    expect(report.summary.insufficientEvidenceCount).toBe(1)
+    expect(report.summary.failureContextCount).toBe(1)
+  })
+
+  it('does not approve weekless attribution using acknowledgment from another week', () => {
+    const report = buildTreatmentFailureBlameRoutingReport({
+      failureContexts: [
+        failureContext({
+          contextId: 'ctx:week-4',
+          subjectId: 'agent:ack-week',
+          protocolId: 'protocol:stabilize',
+          week: 4,
+          failureSignals: ['outcome_below_prediction'],
+        }),
+      ],
+      proposedAttributions: [
+        attribution({
+          attributionId: 'attr:weekless',
+          subjectId: 'agent:ack-week',
+          protocolId: 'protocol:stabilize',
+          target: 'subject_language_noncompliance',
+        }),
+      ],
+      limitationAcknowledgments: [
+        acknowledgment({
+          acknowledgmentId: 'ack:week-1',
+          subjectId: 'agent:ack-week',
+          protocolId: 'protocol:stabilize',
+          week: 1,
+          limitationKind: 'protocol_ceiling',
+          acknowledgedBy: 'staff:lead',
+        }),
+      ],
+    })
+
+    expect(
+      report.findings.some((finding) => finding.kind === 'approved_accountability_route')
+    ).toBe(false)
+    expect(
+      report.findings.some(
+        (finding) =>
+          finding.kind === 'prohibited_subject_deflection' &&
+          finding.contextId === 'ctx:week-4'
+      )
+    ).toBe(true)
+    expect(
+      report.findings.some(
+        (finding) =>
+          finding.kind === 'missing_treatment_limitation_acknowledgment' &&
+          finding.contextId === 'ctx:week-4'
+      )
+    ).toBe(false)
+  })
+
+  it('excludes invalid failure contexts with blank subject or protocol from summary count', () => {
+    const report = buildTreatmentFailureBlameRoutingReport({
+      failureContexts: [
+        failureContext({
+          contextId: 'ctx:valid',
+          subjectId: 'agent:valid',
+          protocolId: 'protocol:stabilize',
+          failureSignals: ['outcome_below_prediction'],
+        }),
+        failureContext({
+          contextId: 'ctx:blank-subject',
+          subjectId: '   ',
+          protocolId: 'protocol:stabilize',
+          failureSignals: ['outcome_below_prediction'],
+        }),
+        failureContext({
+          contextId: 'ctx:blank-protocol',
+          subjectId: 'agent:valid',
+          protocolId: '',
+          failureSignals: ['outcome_below_prediction'],
+        }),
+      ],
+      proposedAttributions: [],
+    })
+
+    expect(report.summary.failureContextCount).toBe(1)
+  })
 })

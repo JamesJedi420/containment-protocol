@@ -261,20 +261,26 @@ function normalizeAcknowledgment(
   }
 }
 
-function resolveOptions(
-  options: TreatmentFailureBlameRoutingOptions | undefined
-): Required<
+type ResolvedBlameRoutingOptions = Required<
   Pick<
     TreatmentFailureBlameRoutingOptions,
     'requireAcknowledgmentForInstitutionalRoutes' | 'blockAutomaticSubjectDeflection'
   >
-> & { materialFailureSignals: readonly TreatmentFailureSignalKind[] } {
+> & {
+  materialFailureSignals: readonly TreatmentFailureSignalKind[]
+  materialFailureSignalSet: ReadonlySet<TreatmentFailureSignalKind>
+}
+
+function resolveOptions(
+  options: TreatmentFailureBlameRoutingOptions | undefined
+): ResolvedBlameRoutingOptions {
   const materialSignals =
     options?.materialFailureSignals !== undefined && options.materialFailureSignals.length > 0
       ? [...options.materialFailureSignals]
       : DEFAULT_OPTIONS.materialFailureSignals
   return {
     materialFailureSignals: materialSignals,
+    materialFailureSignalSet: new Set(materialSignals),
     requireAcknowledgmentForInstitutionalRoutes:
       options?.requireAcknowledgmentForInstitutionalRoutes ??
       DEFAULT_OPTIONS.requireAcknowledgmentForInstitutionalRoutes,
@@ -302,24 +308,22 @@ function isStaffTarget(target: ProposedBlameAttributionTarget): boolean {
 
 function hasMaterialFailure(
   context: TreatmentFailureContext,
-  materialSignals: readonly TreatmentFailureSignalKind[]
+  materialSignalSet: ReadonlySet<TreatmentFailureSignalKind>
 ): boolean {
-  const materialSet = new Set(materialSignals)
-  return context.failureSignals.some((signal) => materialSet.has(signal))
+  return context.failureSignals.some((signal) => materialSignalSet.has(signal))
 }
 
 function countMaterialSignals(
   context: TreatmentFailureContext,
-  materialSignals: readonly TreatmentFailureSignalKind[]
+  materialSignalSet: ReadonlySet<TreatmentFailureSignalKind>
 ): number {
-  const materialSet = new Set(materialSignals)
-  return context.failureSignals.filter((signal) => materialSet.has(signal)).length
+  return context.failureSignals.filter((signal) => materialSignalSet.has(signal)).length
 }
 
 function compareContextsStrongest(
   left: TreatmentFailureContext,
   right: TreatmentFailureContext,
-  materialSignals: readonly TreatmentFailureSignalKind[]
+  materialSignalSet: ReadonlySet<TreatmentFailureSignalKind>
 ): number {
   const severityDelta =
     SEVERITY_RANK[normalizeSeverity(left.severity)] -
@@ -329,7 +333,7 @@ function compareContextsStrongest(
   }
 
   const materialDelta =
-    countMaterialSignals(right, materialSignals) - countMaterialSignals(left, materialSignals)
+    countMaterialSignals(right, materialSignalSet) - countMaterialSignals(left, materialSignalSet)
   if (materialDelta !== 0) {
     return materialDelta
   }
@@ -376,7 +380,7 @@ function resolveContextCandidates(
 
 function selectStrongestContext(
   candidates: readonly TreatmentFailureContext[],
-  materialSignals: readonly TreatmentFailureSignalKind[]
+  materialSignalSet: ReadonlySet<TreatmentFailureSignalKind>
 ): TreatmentFailureContext | undefined {
   if (candidates.length === 0) {
     return undefined
@@ -384,16 +388,17 @@ function selectStrongestContext(
   let strongest = candidates[0]!
   for (let index = 1; index < candidates.length; index += 1) {
     const candidate = candidates[index]!
-    if (compareContextsStrongest(strongest, candidate, materialSignals) > 0) {
+    if (compareContextsStrongest(strongest, candidate, materialSignalSet) > 0) {
       strongest = candidate
     }
   }
   return strongest
 }
 
-function acknowledgmentMatchesAttribution(
+function acknowledgmentMatchesPairing(
   acknowledgment: TreatmentLimitationAcknowledgment,
-  attribution: ProposedBlameAttribution
+  attribution: ProposedBlameAttribution,
+  contextWeek: number | undefined
 ): boolean {
   if (
     !matchesSubjectProtocol(
@@ -405,33 +410,54 @@ function acknowledgmentMatchesAttribution(
   ) {
     return false
   }
-  if (attribution.week === undefined) {
+
+  if (attribution.week !== undefined) {
+    if (acknowledgment.week !== undefined && acknowledgment.week !== attribution.week) {
+      return false
+    }
     return true
   }
-  if (acknowledgment.week === undefined) {
+
+  if (contextWeek !== undefined) {
+    if (acknowledgment.week !== undefined && acknowledgment.week !== contextWeek) {
+      return false
+    }
     return true
   }
-  return acknowledgment.week === attribution.week
+
+  return true
 }
 
 function resolveAcknowledgment(
   attribution: ProposedBlameAttribution,
-  acknowledgments: readonly TreatmentLimitationAcknowledgment[]
+  acknowledgments: readonly TreatmentLimitationAcknowledgment[],
+  context: TreatmentFailureContext | undefined
 ): TreatmentLimitationAcknowledgment | undefined {
+  const contextWeek = context?.week
   const candidates = acknowledgments.filter((acknowledgment) =>
-    acknowledgmentMatchesAttribution(acknowledgment, attribution)
+    acknowledgmentMatchesPairing(acknowledgment, attribution, contextWeek)
   )
   if (candidates.length === 0) {
     return undefined
   }
 
-  if (attribution.week !== undefined) {
-    const exactWeek = candidates.filter((acknowledgment) => acknowledgment.week === attribution.week)
+  const effectiveWeek = attribution.week ?? contextWeek
+  if (effectiveWeek !== undefined) {
+    const exactWeek = candidates.filter((acknowledgment) => acknowledgment.week === effectiveWeek)
     if (exactWeek.length > 0) {
       return [...exactWeek].sort((left, right) =>
         left.acknowledgmentId.localeCompare(right.acknowledgmentId)
       )[0]
     }
+
+    const weekAgnostic = candidates.filter((acknowledgment) => acknowledgment.week === undefined)
+    if (weekAgnostic.length > 0) {
+      return [...weekAgnostic].sort((left, right) =>
+        left.acknowledgmentId.localeCompare(right.acknowledgmentId)
+      )[0]
+    }
+
+    return undefined
   }
 
   return [...candidates].sort((left, right) =>
@@ -523,7 +549,7 @@ function buildAttributionFindings(input: {
   attribution: ProposedBlameAttribution
   context: TreatmentFailureContext | undefined
   acknowledgment: TreatmentLimitationAcknowledgment | undefined
-  options: ReturnType<typeof resolveOptions>
+  options: ResolvedBlameRoutingOptions
 }): TreatmentFailureBlameRoutingFinding[] {
   const { attribution, context, acknowledgment, options } = input
   const week = attribution.week ?? context?.week
@@ -544,7 +570,7 @@ function buildAttributionFindings(input: {
     return findings
   }
 
-  const material = hasMaterialFailure(context, options.materialFailureSignals)
+  const material = hasMaterialFailure(context, options.materialFailureSignalSet)
   const contextSeverity = normalizeSeverity(context.severity)
 
   if (!material) {
@@ -713,12 +739,12 @@ export function buildTreatmentFailureBlameRoutingReport(
     }
 
     const candidates = resolveContextCandidates(attribution, failureContexts)
-    const context = selectStrongestContext(candidates, options.materialFailureSignals)
+    const context = selectStrongestContext(candidates, options.materialFailureSignalSet)
     if (context) {
       pairedAttributionIds.add(attribution.attributionId)
     }
 
-    const acknowledgment = resolveAcknowledgment(attribution, limitationAcknowledgments)
+    const acknowledgment = resolveAcknowledgment(attribution, limitationAcknowledgments, context)
     findings.push(
       ...buildAttributionFindings({
         attribution,
@@ -743,15 +769,15 @@ export function buildTreatmentFailureBlameRoutingReport(
     }
   }
 
-  for (const [pairKey, attributions] of attributionsByPair) {
+  for (const [, attributions] of attributionsByPair) {
     if (attributions.length === 0) {
       continue
     }
 
     const sample = attributions[0]!
     const candidates = resolveContextCandidates(sample, failureContexts)
-    const context = selectStrongestContext(candidates, options.materialFailureSignals)
-    if (!context || !hasMaterialFailure(context, options.materialFailureSignals)) {
+    const context = selectStrongestContext(candidates, options.materialFailureSignalSet)
+    if (!context || !hasMaterialFailure(context, options.materialFailureSignalSet)) {
       continue
     }
 
@@ -762,19 +788,17 @@ export function buildTreatmentFailureBlameRoutingReport(
       continue
     }
 
-    const acknowledgment = resolveAcknowledgment(sample, limitationAcknowledgments)
+    const acknowledgment = resolveAcknowledgment(sample, limitationAcknowledgments, context)
     if (acknowledgment !== undefined) {
       continue
     }
 
-    const { week } = sample
+    const week = sample.week ?? context.week
 
     const alreadyRequired = findings.some(
       (finding) =>
         finding.kind === 'institutional_accountability_required' &&
-        finding.subjectId === sample.subjectId &&
-        finding.protocolId === sample.protocolId &&
-        finding.week === week
+        finding.contextId === context.contextId
     )
     if (alreadyRequired) {
       continue

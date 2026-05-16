@@ -302,7 +302,7 @@ function evaluateOneFact(input: {
     ...fact,
     status: statusAfter,
     possibleStates: [...fact.possibleStates],
-    currentBestState,
+    currentBestState: statusAfter === 'resolved' ? resolvedState : currentBestState,
     resolvedState,
     resolvedAtWeek,
     appliedEvidenceIds: appliedEvidenceIdsSorted,

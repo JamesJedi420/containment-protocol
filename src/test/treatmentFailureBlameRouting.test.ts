@@ -775,4 +775,21 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
 
     expect(report.summary.failureContextCount).toBe(1)
   })
+
+  it('excludes invalid proposed attributions with blank subject or protocol from unpaired count', () => {
+    const report = buildTreatmentFailureBlameRoutingReport({
+      failureContexts: [],
+      proposedAttributions: [
+        attribution({
+          attributionId: 'attr:blank-subject',
+          subjectId: '  ',
+          protocolId: 'protocol:stabilize',
+          target: 'staff_execution_gap',
+        }),
+      ],
+    })
+
+    expect(report.summary.unpairedAttributionCount).toBe(0)
+    expect(report.findings).toEqual([])
+  })
 })

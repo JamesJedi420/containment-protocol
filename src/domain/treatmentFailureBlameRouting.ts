@@ -720,7 +720,10 @@ export function buildTreatmentFailureBlameRoutingReport(
   const proposedAttributions = dedupeById(
     input.proposedAttributions
       .map(normalizeAttribution)
-      .filter((row) => row.attributionId.length > 0),
+      .filter(
+        (row) =>
+          row.attributionId.length > 0 && row.subjectId.length > 0 && row.protocolId.length > 0
+      ),
     (row) => row.attributionId
   )
   const limitationAcknowledgments = dedupeById(
@@ -734,10 +737,6 @@ export function buildTreatmentFailureBlameRoutingReport(
   const pairedAttributionIds = new Set<string>()
 
   for (const attribution of proposedAttributions) {
-    if (attribution.subjectId.length === 0 || attribution.protocolId.length === 0) {
-      continue
-    }
-
     const candidates = resolveContextCandidates(attribution, failureContexts)
     const context = selectStrongestContext(candidates, options.materialFailureSignalSet)
     if (context) {
@@ -757,9 +756,6 @@ export function buildTreatmentFailureBlameRoutingReport(
 
   const attributionsByPair = new Map<string, ProposedBlameAttribution[]>()
   for (const attribution of proposedAttributions) {
-    if (attribution.subjectId.length === 0 || attribution.protocolId.length === 0) {
-      continue
-    }
     const key = pairGroupKey(attribution.subjectId, attribution.protocolId, attribution.week)
     const existing = attributionsByPair.get(key)
     if (existing) {

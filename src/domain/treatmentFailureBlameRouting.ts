@@ -371,12 +371,7 @@ function resolveContextCandidates(
     return exactWeek
   }
 
-  const weekAgnostic = forSubjectProtocol.filter((context) => context.week === undefined)
-  if (weekAgnostic.length > 0) {
-    return weekAgnostic
-  }
-
-  return forSubjectProtocol
+  return forSubjectProtocol.filter((context) => context.week === undefined)
 }
 
 function selectStrongestContext(

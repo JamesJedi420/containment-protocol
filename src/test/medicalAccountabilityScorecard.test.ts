@@ -579,6 +579,7 @@ describe('medicalAccountabilityScorecard (SPE-2008)', () => {
     expect(joined).not.toContain('scp-')
     expect(joined).not.toContain('scp ')
     expect(joined).not.toContain('9977')
+    expect(report.lines.join('\n')).not.toContain('row:row:')
   })
 
   it('does not import GameState or UI modules', () => {

@@ -85,6 +85,22 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
     })
   })
 
+  it('skips malformed nullish string fields without throwing', () => {
+    const malformed = [
+      { signalId: null, subjectId: 'agent:a', protocolId: 'protocol:p' },
+      { signalId: 'sig:b', subjectId: undefined, protocolId: 'protocol:p' },
+      { signalId: 'sig:c', subjectId: 'agent:c', protocolId: null },
+    ] as unknown as AccommodationAccessSignal[]
+
+    expect(() =>
+      buildAccommodationAccessAuditReport({ accommodationSignals: malformed })
+    ).not.toThrow()
+
+    const report = buildAccommodationAccessAuditReport({ accommodationSignals: malformed })
+    expect(report.rows).toEqual([])
+    expect(report.findings).toEqual([])
+  })
+
   it('skips invalid blank signalId, subjectId, and protocolId', () => {
     const report = buildAccommodationAccessAuditReport({
       accommodationSignals: [
@@ -103,7 +119,7 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
     expect(report.rows[0]?.signalId).toBe('sig:valid')
   })
 
-  it('deduplicates duplicate signalId deterministically', () => {
+  it('deduplicates duplicate signalId deterministically keeping first input order', () => {
     const report = buildAccommodationAccessAuditReport({
       accommodationSignals: [
         signal({
@@ -123,6 +139,24 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
     expect(report.rows).toHaveLength(1)
     expect(report.rows[0]?.subjectId).toBe('agent:first')
     expect(report.rows[0]?.accommodationAccessScore).toBe(10)
+
+    const reversed = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:dup',
+          subjectId: 'agent:second',
+          protocolId: 'protocol:b',
+          accommodationAccessScore: 90,
+        }),
+        signal({
+          signalId: 'sig:dup',
+          subjectId: 'agent:first',
+          protocolId: 'protocol:a',
+          accommodationAccessScore: 10,
+        }),
+      ],
+    })
+    expect(reversed.rows[0]?.subjectId).toBe('agent:second')
   })
 
   it('emits accommodation_access_gap for low accommodation access', () => {
@@ -399,6 +433,133 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
       (row) => row.kind === 'accountability_route_conflicts_with_limitation'
     )
     expect(finding?.severity).toBe('critical')
+  })
+
+  it('matches upstream findings only when week presence and values align', () => {
+    const sharedDeviation = deviationFinding({
+      kind: 'symptom_burden_worsened',
+      subjectId: 'agent:week',
+      protocolId: 'protocol:care',
+      detail: 'Symptom burden worsened.',
+    })
+    const sharedBlame = blameFinding({
+      kind: 'prohibited_subject_deflection',
+      subjectId: 'agent:week',
+      protocolId: 'protocol:care',
+      detail: 'Subject deflection blocked.',
+    })
+
+    const rowNoWeekUpstreamWeek = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:row-no-week',
+          subjectId: 'agent:week',
+          protocolId: 'protocol:care',
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      medicalDeviationFindings: [{ ...sharedDeviation, week: 4 }],
+      blameRoutingFindings: [{ ...sharedBlame, week: 4 }],
+    })
+    expect(
+      rowNoWeekUpstreamWeek.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(false)
+    expect(
+      rowNoWeekUpstreamWeek.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(false)
+
+    const rowWeekUpstreamNoWeek = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:row-week',
+          subjectId: 'agent:week',
+          protocolId: 'protocol:care',
+          week: 4,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+          denialRationale: 'doctrine_pressure',
+          treatmentLimitationAcknowledged: false,
+        }),
+      ],
+      medicalDeviationFindings: [sharedDeviation],
+      blameRoutingFindings: [sharedBlame],
+    })
+    expect(
+      rowWeekUpstreamNoWeek.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(false)
+    expect(
+      rowWeekUpstreamNoWeek.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(false)
+
+    const bothWeekMatch = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:both-week',
+          subjectId: 'agent:week',
+          protocolId: 'protocol:care',
+          week: 4,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+          denialRationale: 'doctrine_pressure',
+          treatmentLimitationAcknowledged: false,
+        }),
+      ],
+      medicalDeviationFindings: [{ ...sharedDeviation, week: 4, severity: 'critical' }],
+      blameRoutingFindings: [{ ...sharedBlame, week: 4, severity: 'critical' }],
+    })
+    expect(
+      bothWeekMatch.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(true)
+    expect(
+      bothWeekMatch.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
+
+    const neitherWeekMatch = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:neither-week',
+          subjectId: 'agent:week',
+          protocolId: 'protocol:care',
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+          denialRationale: 'doctrine_pressure',
+          treatmentLimitationAcknowledged: false,
+        }),
+      ],
+      medicalDeviationFindings: [sharedDeviation],
+      blameRoutingFindings: [sharedBlame],
+    })
+    expect(
+      neitherWeekMatch.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(true)
+    expect(
+      neitherWeekMatch.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
   })
 
   it('does not match upstream findings for unrelated subject, protocol, or week', () => {

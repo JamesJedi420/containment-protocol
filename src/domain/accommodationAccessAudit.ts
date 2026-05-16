@@ -53,7 +53,7 @@ export type AccommodationAccessAuditSeverity = 'info' | 'warning' | 'critical'
 
 export interface AccommodationAccessAuditRow {
   rowId: string
-  signalId?: string
+  signalId: string
   subjectId: string
   protocolId: string
   siteId?: string
@@ -228,6 +228,10 @@ function normalizeCareMode(value: string | undefined): AccommodationCareMode | u
   return CARE_MODE_SET.has(trimmed) ? trimmed : undefined
 }
 
+function normalizeTrimmedString(value: unknown): string {
+  return String(value ?? '').trim()
+}
+
 function normalizeDenialRationale(
   value: string | undefined
 ): AccommodationDenialRationale | undefined {
@@ -255,12 +259,9 @@ function normalizeOfferedCareModes(
 }
 
 function dedupeById<T>(rows: readonly T[], resolveId: (row: T) => string): T[] {
-  const sorted = [...rows].sort((left, right) =>
-    resolveId(left).localeCompare(resolveId(right))
-  )
   const seen = new Set<string>()
   const deduped: T[] = []
-  for (const row of sorted) {
+  for (const row of rows) {
     const id = resolveId(row)
     if (seen.has(id)) {
       continue
@@ -274,9 +275,9 @@ function dedupeById<T>(rows: readonly T[], resolveId: (row: T) => string): T[] {
 function normalizeSignal(signal: AccommodationAccessSignal): AccommodationAccessSignal {
   return {
     ...signal,
-    signalId: signal.signalId.trim(),
-    subjectId: signal.subjectId.trim(),
-    protocolId: signal.protocolId.trim(),
+    signalId: normalizeTrimmedString(signal.signalId),
+    subjectId: normalizeTrimmedString(signal.subjectId),
+    protocolId: normalizeTrimmedString(signal.protocolId),
     siteId: typeof signal.siteId === 'string' ? signal.siteId.trim() || undefined : undefined,
     week: normalizeWeek(signal.week),
     requestedCareMode: normalizeCareMode(signal.requestedCareMode),
@@ -337,9 +338,7 @@ function compareRows(
     return weekLeft - weekRight
   }
 
-  const signalLeft = left.signalId ?? '\uffff'
-  const signalRight = right.signalId ?? '\uffff'
-  return signalLeft.localeCompare(signalRight)
+  return left.signalId.localeCompare(right.signalId)
 }
 
 function compareFindings(
@@ -390,17 +389,49 @@ function compareFindings(
   return signalLeft.localeCompare(signalRight)
 }
 
-function matchesUpstream(
+function upstreamPairKey(subjectId: string, protocolId: string): string {
+  return `${subjectId}\0${protocolId}`
+}
+
+type UpstreamFindingBucket<T> = {
+  byWeek: Map<number, T[]>
+  noWeek: T[]
+}
+
+function buildUpstreamFindingIndex<T extends { subjectId: string; protocolId: string; week?: number }>(
+  findings: readonly T[]
+): Map<string, UpstreamFindingBucket<T>> {
+  const index = new Map<string, UpstreamFindingBucket<T>>()
+  for (const finding of findings) {
+    const key = upstreamPairKey(finding.subjectId, finding.protocolId)
+    let bucket = index.get(key)
+    if (bucket === undefined) {
+      bucket = { byWeek: new Map(), noWeek: [] }
+      index.set(key, bucket)
+    }
+    if (finding.week !== undefined) {
+      const weekFindings = bucket.byWeek.get(finding.week) ?? []
+      weekFindings.push(finding)
+      bucket.byWeek.set(finding.week, weekFindings)
+    } else {
+      bucket.noWeek.push(finding)
+    }
+  }
+  return index
+}
+
+function getUpstreamCandidates<T extends { subjectId: string; protocolId: string; week?: number }>(
   row: AccommodationAccessAuditRow,
-  finding: { subjectId: string; protocolId: string; week?: number }
-): boolean {
-  if (row.subjectId !== finding.subjectId || row.protocolId !== finding.protocolId) {
-    return false
+  index: Map<string, UpstreamFindingBucket<T>>
+): readonly T[] {
+  const bucket = index.get(upstreamPairKey(row.subjectId, row.protocolId))
+  if (bucket === undefined) {
+    return []
   }
-  if (row.week !== undefined && finding.week !== undefined && row.week !== finding.week) {
-    return false
+  if (row.week !== undefined) {
+    return bucket.byWeek.get(row.week) ?? []
   }
-  return true
+  return bucket.noWeek
 }
 
 function sharedFindingFields(row: AccommodationAccessAuditRow): Pick<
@@ -470,11 +501,13 @@ function hasLocalTreatmentLimitationUnacknowledged(row: AccommodationAccessAudit
 function buildRowFindings(
   row: AccommodationAccessAuditRow,
   options: ResolvedOptions,
-  medicalDeviationFindings: readonly MedicalOutcomeDeviationFinding[],
-  blameRoutingFindings: readonly TreatmentFailureBlameRoutingFinding[]
+  medicalDeviationIndex: Map<string, UpstreamFindingBucket<MedicalOutcomeDeviationFinding>>,
+  blameRoutingIndex: Map<string, UpstreamFindingBucket<TreatmentFailureBlameRoutingFinding>>
 ): AccommodationAccessAuditFinding[] {
   const findings: AccommodationAccessAuditFinding[] = []
   const shared = sharedFindingFields(row)
+  const medicalDeviationFindings = getUpstreamCandidates(row, medicalDeviationIndex)
+  const blameRoutingFindings = getUpstreamCandidates(row, blameRoutingIndex)
 
   if (
     row.accommodationAccessScore !== undefined &&
@@ -551,8 +584,7 @@ function buildRowFindings(
 
   if (!treatmentLimitationEmitted) {
     const upstreamMissingAck = blameRoutingFindings.find(
-      (finding) =>
-        finding.kind === 'missing_treatment_limitation_acknowledgment' && matchesUpstream(row, finding)
+      (finding) => finding.kind === 'missing_treatment_limitation_acknowledgment'
     )
     if (upstreamMissingAck) {
       treatmentLimitationEmitted = true
@@ -566,8 +598,8 @@ function buildRowFindings(
     }
   }
 
-  const upstreamOutcome = medicalDeviationFindings.find(
-    (finding) => OUTCOME_WORSENED_KINDS.has(finding.kind) && matchesUpstream(row, finding)
+  const upstreamOutcome = medicalDeviationFindings.find((finding) =>
+    OUTCOME_WORSENED_KINDS.has(finding.kind)
   )
   if (upstreamOutcome && lacksAccommodationReview(row)) {
     findings.push({
@@ -581,9 +613,7 @@ function buildRowFindings(
 
   const upstreamAccountability = blameRoutingFindings.find(
     (finding) =>
-      ACCOUNTABILITY_CONFLICT_KINDS.has(finding.kind) &&
-      matchesUpstream(row, finding) &&
-      hasLimitationConflictContext(row)
+      ACCOUNTABILITY_CONFLICT_KINDS.has(finding.kind) && hasLimitationConflictContext(row)
   )
   if (upstreamAccountability) {
     findings.push({
@@ -662,35 +692,59 @@ export function buildAccommodationAccessAuditReport(
   const dedupedSignals = dedupeById(validSignals, (signal) => signal.signalId)
   const rows = dedupedSignals.map(buildRow).sort(compareRows)
 
-  const medicalDeviationFindings = input.medicalDeviationFindings ?? []
-  const blameRoutingFindings = input.blameRoutingFindings ?? []
+  const medicalDeviationIndex = buildUpstreamFindingIndex(input.medicalDeviationFindings ?? [])
+  const blameRoutingIndex = buildUpstreamFindingIndex(input.blameRoutingFindings ?? [])
 
   const findings: AccommodationAccessAuditFinding[] = []
   for (const row of rows) {
-    findings.push(
-      ...buildRowFindings(row, options, medicalDeviationFindings, blameRoutingFindings)
-    )
+    findings.push(...buildRowFindings(row, options, medicalDeviationIndex, blameRoutingIndex))
   }
 
   findings.sort(compareFindings)
 
-  const countByKind = (kind: AccommodationAccessAuditFindingKind) =>
-    findings.filter((finding) => finding.kind === kind).length
-
   const summary = {
     rowCount: rows.length,
-    accommodationAccessGapCount: countByKind('accommodation_access_gap'),
-    cureOnlyPressureHighCount: countByKind('cure_only_pressure_high'),
-    careModeUnavailableCount: countByKind('care_mode_unavailable'),
-    maintenanceFramedAsFailureCount: countByKind('maintenance_framed_as_failure'),
-    treatmentLimitationUnacknowledgedCount: countByKind('treatment_limitation_unacknowledged'),
-    outcomeWorsenedWithoutAccommodationReviewCount: countByKind(
-      'outcome_worsened_without_accommodation_review'
-    ),
-    accountabilityRouteConflictCount: countByKind(
-      'accountability_route_conflicts_with_limitation'
-    ),
-    insufficientEvidenceCount: countByKind('insufficient_accommodation_evidence'),
+    accommodationAccessGapCount: 0,
+    cureOnlyPressureHighCount: 0,
+    careModeUnavailableCount: 0,
+    maintenanceFramedAsFailureCount: 0,
+    treatmentLimitationUnacknowledgedCount: 0,
+    outcomeWorsenedWithoutAccommodationReviewCount: 0,
+    accountabilityRouteConflictCount: 0,
+    insufficientEvidenceCount: 0,
+  }
+
+  for (const finding of findings) {
+    switch (finding.kind) {
+      case 'accommodation_access_gap':
+        summary.accommodationAccessGapCount += 1
+        break
+      case 'cure_only_pressure_high':
+        summary.cureOnlyPressureHighCount += 1
+        break
+      case 'care_mode_unavailable':
+        summary.careModeUnavailableCount += 1
+        break
+      case 'maintenance_framed_as_failure':
+        summary.maintenanceFramedAsFailureCount += 1
+        break
+      case 'treatment_limitation_unacknowledged':
+        summary.treatmentLimitationUnacknowledgedCount += 1
+        break
+      case 'outcome_worsened_without_accommodation_review':
+        summary.outcomeWorsenedWithoutAccommodationReviewCount += 1
+        break
+      case 'accountability_route_conflicts_with_limitation':
+        summary.accountabilityRouteConflictCount += 1
+        break
+      case 'insufficient_accommodation_evidence':
+        summary.insufficientEvidenceCount += 1
+        break
+      default: {
+        const _exhaustive: never = finding.kind
+        void _exhaustive
+      }
+    }
   }
 
   return {

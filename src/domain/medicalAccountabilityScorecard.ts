@@ -394,7 +394,8 @@ function meanRounded(values: readonly number[]): number | undefined {
 }
 
 function deriveDoctrineAlignmentScore(
-  staffFindings: readonly StaffTreatmentTelemetryFinding[]
+  staffFindings: readonly StaffTreatmentTelemetryFinding[],
+  options: Required<MedicalAccountabilityScorecardOptions>
 ): number | undefined {
   const scores = staffFindings
     .map((finding) => finding.alignmentScore)
@@ -410,7 +411,7 @@ function deriveDoctrineAlignmentScore(
         finding.kind === 'outcome_below_expected'
     )
   ) {
-    return DEFAULT_OPTIONS.highAlignmentThreshold
+    return options.highAlignmentThreshold
   }
 
   return undefined
@@ -418,7 +419,8 @@ function deriveDoctrineAlignmentScore(
 
 function deriveTreatmentEfficacyScore(
   staffFindings: readonly StaffTreatmentTelemetryFinding[],
-  deviationFindings: readonly MedicalOutcomeDeviationFinding[]
+  deviationFindings: readonly MedicalOutcomeDeviationFinding[],
+  options: Required<MedicalAccountabilityScorecardOptions>
 ): number | undefined {
   const efficacyScores = staffFindings
     .map((finding) => finding.efficacyScore)
@@ -428,14 +430,14 @@ function deriveTreatmentEfficacyScore(
   }
 
   if (staffFindings.some((finding) => finding.kind === 'high_alignment_low_efficacy')) {
-    return DEFAULT_OPTIONS.poorOutcomeThreshold
+    return options.poorOutcomeThreshold
   }
 
   const outcomeDeviationCount = deviationFindings.filter((finding) =>
     OUTCOME_DEVIATION_KINDS.has(finding.kind)
   ).length
   if (outcomeDeviationCount > 0) {
-    return Math.max(0, DEFAULT_OPTIONS.poorOutcomeThreshold - 5 * (outcomeDeviationCount - 1))
+    return Math.max(0, options.poorOutcomeThreshold - 5 * (outcomeDeviationCount - 1))
   }
 
   return undefined
@@ -584,7 +586,10 @@ function upstreamEvidenceCount(bucket: RowBucket): number {
   )
 }
 
-function buildRow(bucket: RowBucket): MedicalAccountabilityScorecardRow {
+function buildRow(
+  bucket: RowBucket,
+  options: Required<MedicalAccountabilityScorecardOptions>
+): MedicalAccountabilityScorecardRow {
   const siteScores = deriveSiteScores(bucket.siteSignals)
   const outcomeDeviationCount = countOutcomeDeviations(bucket.deviationFindings)
   const subjectDeflectionCount = countSubjectDeflections(bucket.blameFindings)
@@ -596,10 +601,11 @@ function buildRow(bucket: RowBucket): MedicalAccountabilityScorecardRow {
     subjectId: bucket.subjectId,
     protocolId: bucket.protocolId,
     week: bucket.week,
-    doctrineAlignmentScore: deriveDoctrineAlignmentScore(bucket.staffFindings),
+    doctrineAlignmentScore: deriveDoctrineAlignmentScore(bucket.staffFindings, options),
     treatmentEfficacyScore: deriveTreatmentEfficacyScore(
       bucket.staffFindings,
-      bucket.deviationFindings
+      bucket.deviationFindings,
+      options
     ),
     outcomeDeviationCount,
     subjectDeflectionCount,

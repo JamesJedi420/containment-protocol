@@ -417,6 +417,26 @@ describe('medicalAccountabilityScorecard (SPE-2008)', () => {
     expect(report.findings.some((f) => f.kind === 'high_alignment_poor_outcome')).toBe(true)
   })
 
+  it('uses resolved options for inferred alignment and efficacy fallback scores', () => {
+    const report = buildMedicalAccountabilityScorecard({
+      staffTelemetryFindings: [
+        staffFinding({
+          kind: 'high_alignment_low_efficacy',
+          staffId: 'staff:fallback',
+          subjectId: 'agent:fallback',
+          protocolId: 'protocol:fallback',
+          detail: 'Kind-only telemetry without numeric scores.',
+        }),
+      ],
+      options: {
+        highAlignmentThreshold: 88,
+        poorOutcomeThreshold: 22,
+      },
+    })
+    expect(report.rows[0]?.doctrineAlignmentScore).toBe(88)
+    expect(report.rows[0]?.treatmentEfficacyScore).toBe(22)
+  })
+
   it('summary counts match findings', () => {
     const report = buildMedicalAccountabilityScorecard({
       staffTelemetryFindings: [

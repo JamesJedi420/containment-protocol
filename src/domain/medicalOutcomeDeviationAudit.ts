@@ -7,6 +7,9 @@
  *
  * Pure helper only. No GameState persistence, runtime notifications, UI, staff-alignment
  * scoring, blame routing, doctrine enforcement, or real-world medical modeling.
+ *
+ * Threshold and margin options are normalized to finite non-negative integers for
+ * deterministic audit behavior. Symptom burden deltas remain signed integers on inputs.
  */
 
 export type MedicalOutcomeExpectationSource =
@@ -92,10 +95,13 @@ export interface MedicalOutcomeDeviationFinding {
   detail: string
 }
 
+/** Numeric thresholds are normalized to finite non-negative integers. */
 export interface MedicalOutcomeDeviationAuditOptions {
   outcomeGapThreshold?: number
   criticalOutcomeGapThreshold?: number
+  /** Compared against signed symptomBurdenDelta values after normalization. */
   symptomImprovementEpsilon?: number
+  /** Compared against signed symptom burden deltas after normalization. */
   symptomWorseningMargin?: number
   criticalSymptomBurdenDelta?: number
   criticalEscalationExcess?: number
@@ -151,6 +157,10 @@ const DEFAULT_OPTIONS: Required<MedicalOutcomeDeviationAuditOptions> = {
   governanceEscalationExcessThreshold: 1,
   treatMissingExpectedEscalationAsZero: true,
 }
+
+type ExpectedEscalationResolution =
+  | { compareEscalation: true; expectedEscalationCount: number }
+  | { compareEscalation: false }
 
 function clampScore(value: number): number {
   if (!Number.isFinite(value)) {
@@ -218,10 +228,7 @@ function resolveOptions(
   }
 }
 
-function dedupeById<T>(
-  rows: readonly T[],
-  resolveId: (row: T) => string
-): T[] {
+function dedupeById<T>(rows: readonly T[], resolveId: (row: T) => string): T[] {
   const sorted = [...rows].sort((left, right) =>
     resolveId(left).localeCompare(resolveId(right))
   )
@@ -250,9 +257,9 @@ function normalizeExpectedOutcome(row: MedicalExpectedOutcome): MedicalExpectedO
         ? undefined
         : clampDelta(row.expectedSymptomBurdenDelta),
     expectedEscalationCount:
-      row.expectedEscalationCount === undefined
-        ? undefined
-        : Math.max(0, Math.trunc(row.expectedEscalationCount)),
+      row.expectedEscalationCount !== undefined && Number.isFinite(row.expectedEscalationCount)
+        ? Math.max(0, Math.trunc(row.expectedEscalationCount))
+        : undefined,
     expectedByWeek: normalizeWeek(row.expectedByWeek),
   }
 }
@@ -284,14 +291,27 @@ function normalizeEscalationEvent(row: MedicalOutcomeEscalationEvent): MedicalOu
   }
 }
 
-function matchesSubjectProtocol(
-  observation: MedicalObservedOutcome,
-  expectation: MedicalExpectedOutcome
-): boolean {
-  return (
-    observation.subjectId === expectation.subjectId &&
-    observation.protocolId === expectation.protocolId
-  )
+function subjectProtocolKey(subjectId: string, protocolId: string): string {
+  return `${subjectId}\0${protocolId}`
+}
+
+function buildObservationsBySubjectProtocol(
+  observations: readonly MedicalObservedOutcome[]
+): Map<string, MedicalObservedOutcome[]> {
+  const grouped = new Map<string, MedicalObservedOutcome[]>()
+  for (const observation of observations) {
+    if (observation.subjectId.length === 0 || observation.protocolId.length === 0) {
+      continue
+    }
+    const key = subjectProtocolKey(observation.subjectId, observation.protocolId)
+    const existing = grouped.get(key)
+    if (existing) {
+      existing.push(observation)
+    } else {
+      grouped.set(key, [observation])
+    }
+  }
+  return grouped
 }
 
 function matchesWeek(
@@ -321,14 +341,12 @@ function compareObservationsWorst(
     return gapDelta
   }
 
-  const escalationDelta =
-    (right.escalationCount ?? 0) - (left.escalationCount ?? 0)
+  const escalationDelta = (right.escalationCount ?? 0) - (left.escalationCount ?? 0)
   if (escalationDelta !== 0) {
     return escalationDelta
   }
 
-  const burdenDelta =
-    (right.symptomBurdenDelta ?? 0) - (left.symptomBurdenDelta ?? 0)
+  const burdenDelta = (right.symptomBurdenDelta ?? 0) - (left.symptomBurdenDelta ?? 0)
   if (burdenDelta !== 0) {
     return burdenDelta
   }
@@ -355,11 +373,12 @@ function selectWorstObservation(
 
 function resolvePairedObservation(
   expectation: MedicalExpectedOutcome,
-  observations: readonly MedicalObservedOutcome[]
+  observationsBySubjectProtocol: Map<string, MedicalObservedOutcome[]>
 ): MedicalObservedOutcome | undefined {
-  const forSubjectProtocol = observations.filter((observation) =>
-    matchesSubjectProtocol(observation, expectation)
-  )
+  const forSubjectProtocol =
+    observationsBySubjectProtocol.get(
+      subjectProtocolKey(expectation.subjectId, expectation.protocolId)
+    ) ?? []
   if (forSubjectProtocol.length === 0) {
     return undefined
   }
@@ -377,14 +396,30 @@ function resolvePairedObservation(
   return selectWorstObservation(forSubjectProtocol, expectation)
 }
 
-function resolveExpectedEscalationCount(
+function resolveExpectedEscalation(
   expectation: MedicalExpectedOutcome,
   options: Required<MedicalOutcomeDeviationAuditOptions>
-): number {
+): ExpectedEscalationResolution {
   if (expectation.expectedEscalationCount !== undefined) {
-    return expectation.expectedEscalationCount
+    return {
+      compareEscalation: true,
+      expectedEscalationCount: expectation.expectedEscalationCount,
+    }
   }
-  return options.treatMissingExpectedEscalationAsZero ? 0 : 0
+  if (options.treatMissingExpectedEscalationAsZero) {
+    return { compareEscalation: true, expectedEscalationCount: 0 }
+  }
+  return { compareEscalation: false }
+}
+
+function resolveEventMatchWeek(input: {
+  expectation: MedicalExpectedOutcome
+  observation: MedicalObservedOutcome | undefined
+}): number | undefined {
+  if (input.observation !== undefined) {
+    return input.observation.observedWeek ?? input.expectation.expectedByWeek
+  }
+  return input.expectation.expectedByWeek
 }
 
 function matchEscalationEvents(input: {
@@ -393,7 +428,7 @@ function matchEscalationEvents(input: {
   events: readonly MedicalOutcomeEscalationEvent[]
 }): MedicalOutcomeEscalationEvent[] {
   const { expectation, observation, events } = input
-  const week = expectation.expectedByWeek ?? observation?.observedWeek
+  const week = resolveEventMatchWeek({ expectation, observation })
 
   return events.filter((event) => {
     if (event.subjectId !== expectation.subjectId) {
@@ -420,14 +455,14 @@ function uniqueTriggerKinds(
 
 function resolveGovernanceNotificationLevel(input: {
   outcomeGap: number
-  hasOutcomeDeviation: boolean
   hasSymptomWorsened: boolean
   escalationExcess: number
-  hasCriticalSibling: boolean
+  compareEscalation: boolean
   options: Required<MedicalOutcomeDeviationAuditOptions>
 }): MedicalOutcomeGovernanceNotificationLevel {
-  const { outcomeGap, hasOutcomeDeviation, hasSymptomWorsened, escalationExcess, options } = input
-  const hasEscalationExcess = escalationExcess >= options.governanceEscalationExcessThreshold
+  const { outcomeGap, hasSymptomWorsened, escalationExcess, compareEscalation, options } = input
+  const hasEscalationExcess =
+    compareEscalation && escalationExcess >= options.governanceEscalationExcessThreshold
   const hasMaterialGap = outcomeGap >= options.outcomeGapThreshold
 
   if (hasMaterialGap && hasSymptomWorsened && hasEscalationExcess) {
@@ -436,13 +471,6 @@ function resolveGovernanceNotificationLevel(input: {
   if (hasEscalationExcess || (hasMaterialGap && hasSymptomWorsened)) {
     return 'governance'
   }
-  if (
-    input.hasCriticalSibling ||
-    outcomeGap >= options.criticalOutcomeGapThreshold ||
-    hasOutcomeDeviation
-  ) {
-    return 'site_lead'
-  }
   return 'site_lead'
 }
 
@@ -450,12 +478,14 @@ function shouldEmitGovernanceCandidate(input: {
   findings: readonly MedicalOutcomeDeviationFinding[]
   outcomeGap: number
   escalationExcess: number
+  compareEscalation: boolean
   hasSymptomWorsened: boolean
   options: Required<MedicalOutcomeDeviationAuditOptions>
 }): boolean {
   const hasCriticalSibling = input.findings.some((finding) => finding.severity === 'critical')
   const hasMaterialGap = input.outcomeGap >= input.options.outcomeGapThreshold
   const hasEscalationExcess =
+    input.compareEscalation &&
     input.escalationExcess >= input.options.governanceEscalationExcessThreshold
 
   return (
@@ -549,8 +579,9 @@ function buildPairFindings(input: {
   observation: MedicalObservedOutcome | undefined
   escalationEvents: readonly MedicalOutcomeEscalationEvent[]
   options: Required<MedicalOutcomeDeviationAuditOptions>
+  usedEscalationEventIds: Set<string>
 }): MedicalOutcomeDeviationFinding[] {
-  const { expectation, observation, escalationEvents, options } = input
+  const { expectation, observation, escalationEvents, options, usedEscalationEventIds } = input
   const week = expectation.expectedByWeek ?? observation?.observedWeek
   const findings: MedicalOutcomeDeviationFinding[] = []
 
@@ -562,7 +593,8 @@ function buildPairFindings(input: {
       protocolId: expectation.protocolId,
       expectationId: expectation.expectationId,
       week,
-      detail: 'Expected medical outcome recorded without a matchable observation for this subject and protocol.',
+      detail:
+        'Expected medical outcome recorded without a matchable observation for this subject and protocol.',
     })
     return findings
   }
@@ -572,21 +604,25 @@ function buildPairFindings(input: {
     observation,
     events: escalationEvents,
   })
+  for (const event of matchedEvents) {
+    usedEscalationEventIds.add(event.eventId)
+  }
   const triggerKinds =
     matchedEvents.length > 0 ? uniqueTriggerKinds(matchedEvents) : undefined
 
   const outcomeGap = outcomeGapForPair(expectation, observation)
-  const expectedEscalation = resolveExpectedEscalationCount(expectation, options)
+  const escalationResolution = resolveExpectedEscalation(expectation, options)
   const observedEscalation = observation.escalationCount ?? 0
-  const escalationExcess = Math.max(0, observedEscalation - expectedEscalation)
+  const escalationExcess = escalationResolution.compareEscalation
+    ? Math.max(0, observedEscalation - escalationResolution.expectedEscalationCount)
+    : 0
 
   let hasSymptomWorsened = false
 
   if (outcomeGap >= options.outcomeGapThreshold) {
     findings.push({
       kind: 'outcome_below_prediction',
-      severity:
-        outcomeGap >= options.criticalOutcomeGapThreshold ? 'critical' : 'warning',
+      severity: outcomeGap >= options.criticalOutcomeGapThreshold ? 'critical' : 'warning',
       subjectId: expectation.subjectId,
       protocolId: expectation.protocolId,
       expectationId: expectation.expectationId,
@@ -648,7 +684,7 @@ function buildPairFindings(input: {
     }
   }
 
-  if (escalationExcess > 0) {
+  if (escalationResolution.compareEscalation && escalationExcess > 0) {
     findings.push({
       kind: 'escalation_above_expected',
       severity:
@@ -664,25 +700,21 @@ function buildPairFindings(input: {
     })
   }
 
-  const hasOutcomeDeviation = findings.some(
-    (finding) => finding.kind === 'outcome_below_prediction'
-  )
-
   if (
     shouldEmitGovernanceCandidate({
       findings,
       outcomeGap,
       escalationExcess,
+      compareEscalation: escalationResolution.compareEscalation,
       hasSymptomWorsened,
       options,
     })
   ) {
     const recommendedNotificationLevel = resolveGovernanceNotificationLevel({
       outcomeGap,
-      hasOutcomeDeviation,
       hasSymptomWorsened,
       escalationExcess,
-      hasCriticalSibling: findings.some((finding) => finding.severity === 'critical'),
+      compareEscalation: escalationResolution.compareEscalation,
       options,
     })
     findings.push({
@@ -694,7 +726,7 @@ function buildPairFindings(input: {
       observationId: observation.observationId,
       week,
       outcomeGap,
-      escalationExcess,
+      escalationExcess: escalationResolution.compareEscalation ? escalationExcess : undefined,
       triggerKinds,
       recommendedNotificationLevel,
       detail:
@@ -711,26 +743,34 @@ export function buildMedicalOutcomeDeviationAuditReport(
   const options = resolveOptions(input.options)
 
   const expectedOutcomes = dedupeById(
-    input.expectedOutcomes.map(normalizeExpectedOutcome).filter((row) => row.expectationId.length > 0),
+    input.expectedOutcomes
+      .map(normalizeExpectedOutcome)
+      .filter((row) => row.expectationId.length > 0),
     (row) => row.expectationId
   )
   const observedOutcomes = dedupeById(
-    input.observedOutcomes.map(normalizeObservedOutcome).filter((row) => row.observationId.length > 0),
+    input.observedOutcomes
+      .map(normalizeObservedOutcome)
+      .filter((row) => row.observationId.length > 0),
     (row) => row.observationId
   )
   const escalationEvents = dedupeById(
-    (input.escalationEvents ?? []).map(normalizeEscalationEvent).filter((row) => row.eventId.length > 0),
+    (input.escalationEvents ?? [])
+      .map(normalizeEscalationEvent)
+      .filter((row) => row.eventId.length > 0),
     (row) => row.eventId
   )
 
+  const observationsBySubjectProtocol = buildObservationsBySubjectProtocol(observedOutcomes)
   const pairedObservationIds = new Set<string>()
+  const usedEscalationEventIds = new Set<string>()
   const findings: MedicalOutcomeDeviationFinding[] = []
 
   for (const expectation of expectedOutcomes) {
     if (expectation.subjectId.length === 0 || expectation.protocolId.length === 0) {
       continue
     }
-    const observation = resolvePairedObservation(expectation, observedOutcomes)
+    const observation = resolvePairedObservation(expectation, observationsBySubjectProtocol)
     if (observation) {
       pairedObservationIds.add(observation.observationId)
     }
@@ -740,6 +780,7 @@ export function buildMedicalOutcomeDeviationAuditReport(
         observation,
         escalationEvents,
         options,
+        usedEscalationEventIds,
       })
     )
   }
@@ -747,14 +788,6 @@ export function buildMedicalOutcomeDeviationAuditReport(
   const unpairedObservationCount = observedOutcomes.filter(
     (observation) => !pairedObservationIds.has(observation.observationId)
   ).length
-
-  const usedEscalationEventIds = new Set<string>()
-  for (const expectation of expectedOutcomes) {
-    const observation = resolvePairedObservation(expectation, observedOutcomes)
-    for (const event of matchEscalationEvents({ expectation, observation, events: escalationEvents })) {
-      usedEscalationEventIds.add(event.eventId)
-    }
-  }
   const unpairedEscalationEventCount = escalationEvents.filter(
     (event) => !usedEscalationEventIds.has(event.eventId)
   ).length

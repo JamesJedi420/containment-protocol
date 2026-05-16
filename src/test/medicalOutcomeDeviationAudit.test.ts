@@ -597,6 +597,153 @@ describe('medicalOutcomeDeviationAudit (SPE-2003)', () => {
     expect(report.summary.pairedObservationCount).toBe(1)
   })
 
+  it('matches escalation events to fallback observation week, not expectation week', () => {
+    const report = buildMedicalOutcomeDeviationAuditReport({
+      expectedOutcomes: [
+        expected({
+          expectationId: 'exp:week-esc',
+          subjectId: 'agent:week-esc',
+          protocolId: 'protocol:contain',
+          expectedOutcomeScore: 90,
+          expectedByWeek: 3,
+          expectedEscalationCount: 0,
+        }),
+      ],
+      observedOutcomes: [
+        observed({
+          observationId: 'obs:week-esc',
+          subjectId: 'agent:week-esc',
+          protocolId: 'protocol:contain',
+          actualOutcomeScore: 88,
+          observedWeek: 4,
+          escalationCount: 1,
+        }),
+      ],
+      escalationEvents: [
+        escalation({
+          eventId: 'evt:week-4',
+          subjectId: 'agent:week-esc',
+          protocolId: 'protocol:contain',
+          week: 4,
+          triggerKind: 'symptom_persistence',
+        }),
+        escalation({
+          eventId: 'evt:week-3',
+          subjectId: 'agent:week-esc',
+          protocolId: 'protocol:contain',
+          week: 3,
+          triggerKind: 'operator_review',
+        }),
+      ],
+    })
+    const escalationFinding = report.findings.find(
+      (finding) => finding.kind === 'escalation_above_expected'
+    )
+    expect(escalationFinding?.triggerKinds).toEqual(['symptom_persistence'])
+    expect(report.summary.unpairedEscalationEventCount).toBe(1)
+  })
+
+  describe('treatMissingExpectedEscalationAsZero', () => {
+    it('emits escalation finding when omitted expected count defaults to zero', () => {
+      const report = buildMedicalOutcomeDeviationAuditReport({
+        expectedOutcomes: [
+          expected({
+            expectationId: 'exp:esc-default',
+            subjectId: 'agent:esc-default',
+            protocolId: 'protocol:contain',
+            expectedOutcomeScore: 88,
+          }),
+        ],
+        observedOutcomes: [
+          observed({
+            observationId: 'obs:esc-default',
+            subjectId: 'agent:esc-default',
+            protocolId: 'protocol:contain',
+            actualOutcomeScore: 87,
+            escalationCount: 1,
+          }),
+        ],
+        options: { treatMissingExpectedEscalationAsZero: true },
+      })
+      expect(report.findings.map((finding) => finding.kind)).toContain('escalation_above_expected')
+    })
+
+    it('suppresses escalation finding when zero-defaulting is disabled', () => {
+      const report = buildMedicalOutcomeDeviationAuditReport({
+        expectedOutcomes: [
+          expected({
+            expectationId: 'exp:esc-skip',
+            subjectId: 'agent:esc-skip',
+            protocolId: 'protocol:contain',
+            expectedOutcomeScore: 88,
+          }),
+        ],
+        observedOutcomes: [
+          observed({
+            observationId: 'obs:esc-skip',
+            subjectId: 'agent:esc-skip',
+            protocolId: 'protocol:contain',
+            actualOutcomeScore: 87,
+            escalationCount: 1,
+          }),
+        ],
+        options: { treatMissingExpectedEscalationAsZero: false },
+      })
+      expect(report.findings.map((finding) => finding.kind)).not.toContain('escalation_above_expected')
+    })
+
+    it('suppresses governance candidate caused only by skipped escalation excess', () => {
+      const report = buildMedicalOutcomeDeviationAuditReport({
+        expectedOutcomes: [
+          expected({
+            expectationId: 'exp:gov-skip',
+            subjectId: 'agent:gov-skip',
+            protocolId: 'protocol:contain',
+            expectedOutcomeScore: 88,
+          }),
+        ],
+        observedOutcomes: [
+          observed({
+            observationId: 'obs:gov-skip',
+            subjectId: 'agent:gov-skip',
+            protocolId: 'protocol:contain',
+            actualOutcomeScore: 87,
+            escalationCount: 1,
+          }),
+        ],
+        options: { treatMissingExpectedEscalationAsZero: false },
+      })
+      expect(report.findings.map((finding) => finding.kind)).not.toContain(
+        'governance_notification_candidate'
+      )
+    })
+
+    it('still compares finite expectedEscalationCount when zero-defaulting is disabled', () => {
+      const report = buildMedicalOutcomeDeviationAuditReport({
+        expectedOutcomes: [
+          expected({
+            expectationId: 'exp:esc-explicit',
+            subjectId: 'agent:esc-explicit',
+            protocolId: 'protocol:contain',
+            expectedOutcomeScore: 88,
+            expectedEscalationCount: 0,
+          }),
+        ],
+        observedOutcomes: [
+          observed({
+            observationId: 'obs:esc-explicit',
+            subjectId: 'agent:esc-explicit',
+            protocolId: 'protocol:contain',
+            actualOutcomeScore: 87,
+            escalationCount: 1,
+          }),
+        ],
+        options: { treatMissingExpectedEscalationAsZero: false },
+      })
+      expect(report.findings.map((finding) => finding.kind)).toContain('escalation_above_expected')
+    })
+  })
+
   it('annotates findings with matching escalation triggerKinds', () => {
     const report = buildMedicalOutcomeDeviationAuditReport({
       expectedOutcomes: [

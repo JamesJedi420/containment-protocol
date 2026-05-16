@@ -454,17 +454,52 @@ function mapUpstreamSeverity(
   return severity === 'critical' ? 'critical' : 'warning'
 }
 
-function lacksAccommodationReview(row: AccommodationAccessAuditRow): boolean {
-  if (row.requestedCareMode === 'accommodation') {
-    return false
-  }
-  return !row.offeredCareModes.includes('accommodation')
+function hasExplicitCareModeEvidence(row: AccommodationAccessAuditRow): boolean {
+  return row.requestedCareMode !== undefined || row.offeredCareModes.length > 0
 }
 
-function hasLimitationConflictContext(row: AccommodationAccessAuditRow): boolean {
-  return (
-    row.treatmentLimitationAcknowledged !== true || row.denialRationale === 'doctrine_pressure'
-  )
+function lacksAccommodationReview(row: AccommodationAccessAuditRow): boolean {
+  if (
+    row.requestedCareMode === 'accommodation' ||
+    row.requestedCareMode === 'maintenance'
+  ) {
+    return false
+  }
+  if (
+    row.offeredCareModes.includes('accommodation') ||
+    row.offeredCareModes.includes('maintenance')
+  ) {
+    return false
+  }
+  return true
+}
+
+function hasExplicitLimitationConflictContext(
+  row: AccommodationAccessAuditRow,
+  options: ResolvedOptions
+): boolean {
+  if (row.treatmentLimitationAcknowledged === true) {
+    return false
+  }
+  if (row.treatmentLimitationAcknowledged === false) {
+    return true
+  }
+  if (row.denialRationale === 'doctrine_pressure') {
+    return true
+  }
+  if (
+    row.denialRationale !== undefined &&
+    LIMITATION_DENIAL_RATIONALES.has(row.denialRationale)
+  ) {
+    return true
+  }
+  if (
+    row.cureOnlyPressureScore !== undefined &&
+    row.cureOnlyPressureScore >= options.highCureOnlyPressureThreshold
+  ) {
+    return true
+  }
+  return false
 }
 
 function countMeaningfulEvidence(row: AccommodationAccessAuditRow): number {
@@ -601,7 +636,11 @@ function buildRowFindings(
   const upstreamOutcome = medicalDeviationFindings.find((finding) =>
     OUTCOME_WORSENED_KINDS.has(finding.kind)
   )
-  if (upstreamOutcome && lacksAccommodationReview(row)) {
+  if (
+    upstreamOutcome &&
+    hasExplicitCareModeEvidence(row) &&
+    lacksAccommodationReview(row)
+  ) {
     findings.push({
       kind: 'outcome_worsened_without_accommodation_review',
       severity: mapUpstreamSeverity(upstreamOutcome.severity),
@@ -613,7 +652,8 @@ function buildRowFindings(
 
   const upstreamAccountability = blameRoutingFindings.find(
     (finding) =>
-      ACCOUNTABILITY_CONFLICT_KINDS.has(finding.kind) && hasLimitationConflictContext(row)
+      ACCOUNTABILITY_CONFLICT_KINDS.has(finding.kind) &&
+      hasExplicitLimitationConflictContext(row, options)
   )
   if (upstreamAccountability) {
     findings.push({

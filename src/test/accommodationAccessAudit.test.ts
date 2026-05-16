@@ -435,6 +435,237 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
     expect(finding?.severity).toBe('critical')
   })
 
+  it('does not emit outcome_worsened_without_accommodation_review for sparse rows without care-mode evidence', () => {
+    const worsening = deviationFinding({
+      kind: 'symptom_burden_worsened',
+      subjectId: 'agent:sparse-outcome',
+      protocolId: 'protocol:care',
+      detail: 'Symptom burden worsened.',
+    })
+    const report = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:sparse-outcome',
+          subjectId: 'agent:sparse-outcome',
+          protocolId: 'protocol:care',
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      medicalDeviationFindings: [worsening],
+    })
+    expect(
+      report.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(false)
+  })
+
+  it('emits outcome_worsened_without_accommodation_review only with explicit care-mode evidence', () => {
+    const worsening = deviationFinding({
+      kind: 'outcome_below_prediction',
+      subjectId: 'agent:care-mode',
+      protocolId: 'protocol:care',
+      detail: 'Outcome below prediction.',
+    })
+
+    const requestedOnly = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:requested',
+          subjectId: 'agent:care-mode',
+          protocolId: 'protocol:care',
+          requestedCareMode: 'stabilization',
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      medicalDeviationFindings: [worsening],
+    })
+    expect(
+      requestedOnly.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(true)
+
+    const offeredOnly = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:offered',
+          subjectId: 'agent:care-mode',
+          protocolId: 'protocol:care',
+          offeredCareModes: ['cure_attempt', 'stabilization'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      medicalDeviationFindings: [worsening],
+    })
+    expect(
+      offeredOnly.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(true)
+
+    const maintenanceOffered = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:maintenance-offered',
+          subjectId: 'agent:care-mode',
+          protocolId: 'protocol:care',
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['maintenance', 'cure_attempt'],
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      medicalDeviationFindings: [worsening],
+    })
+    expect(
+      maintenanceOffered.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(false)
+  })
+
+  it('does not emit accountability_route_conflicts_with_limitation without explicit limitation context', () => {
+    const deflection = blameFinding({
+      kind: 'prohibited_subject_deflection',
+      subjectId: 'agent:sparse-blame',
+      protocolId: 'protocol:care',
+      detail: 'Subject deflection blocked.',
+    })
+
+    const sparse = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:sparse-blame',
+          subjectId: 'agent:sparse-blame',
+          protocolId: 'protocol:care',
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      sparse.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(false)
+  })
+
+  it('emits accountability_route_conflicts_with_limitation only with explicit limitation or doctrine context', () => {
+    const deflection = blameFinding({
+      kind: 'prohibited_subject_deflection',
+      subjectId: 'agent:limit-context',
+      protocolId: 'protocol:care',
+      severity: 'critical',
+      detail: 'Subject deflection blocked.',
+    })
+
+    const protocolCeiling = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:protocol-ceiling',
+          subjectId: 'agent:limit-context',
+          protocolId: 'protocol:care',
+          denialRationale: 'protocol_ceiling',
+          accommodationAccessScore: 50,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      protocolCeiling.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
+
+    const doctrinePressure = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:doctrine',
+          subjectId: 'agent:limit-context',
+          protocolId: 'protocol:care',
+          denialRationale: 'doctrine_pressure',
+          accommodationAccessScore: 50,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      doctrinePressure.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
+
+    const highCurePressure = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:high-cure',
+          subjectId: 'agent:limit-context',
+          protocolId: 'protocol:care',
+          cureOnlyPressureScore: 85,
+          accommodationAccessScore: 50,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      highCurePressure.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
+
+    const explicitFalseAck = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:false-ack',
+          subjectId: 'agent:limit-context',
+          protocolId: 'protocol:care',
+          treatmentLimitationAcknowledged: false,
+          accommodationAccessScore: 50,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      explicitFalseAck.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(true)
+
+    const acknowledged = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:ack-true',
+          subjectId: 'agent:limit-context',
+          protocolId: 'protocol:care',
+          denialRationale: 'resource_limit',
+          treatmentLimitationAcknowledged: true,
+          accommodationAccessScore: 50,
+          requestedCareMode: 'stabilization',
+          offeredCareModes: ['stabilization'],
+        }),
+      ],
+      blameRoutingFindings: [deflection],
+    })
+    expect(
+      acknowledged.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(false)
+  })
+
   it('matches upstream findings only when week presence and values align', () => {
     const sharedDeviation = deviationFinding({
       kind: 'symptom_burden_worsened',

@@ -101,6 +101,95 @@ describe('accommodationAccessAudit (SPE-2011)', () => {
     expect(report.findings).toEqual([])
   })
 
+  it('normalizes nullish enum-like fields without throwing', () => {
+    const malformed = {
+      signalId: 'sig:enum-null',
+      subjectId: 'agent:enum',
+      protocolId: 'protocol:care',
+      requestedCareMode: null,
+      offeredCareModes: null,
+      denialRationale: null,
+      accommodationAccessScore: 50,
+      cureOnlyPressureScore: 40,
+    } as unknown as AccommodationAccessSignal
+
+    expect(() =>
+      buildAccommodationAccessAuditReport({ accommodationSignals: [malformed] })
+    ).not.toThrow()
+
+    const report = buildAccommodationAccessAuditReport({ accommodationSignals: [malformed] })
+    expect(report.rows[0]?.requestedCareMode).toBeUndefined()
+    expect(report.rows[0]?.offeredCareModes).toEqual([])
+    expect(report.rows[0]?.denialRationale).toBeUndefined()
+    expect(
+      report.findings.some(
+        (finding) => finding.kind === 'outcome_worsened_without_accommodation_review'
+      )
+    ).toBe(false)
+    expect(
+      report.findings.some(
+        (finding) => finding.kind === 'accountability_route_conflicts_with_limitation'
+      )
+    ).toBe(false)
+    expect(
+      report.findings.some((finding) => finding.kind === 'care_mode_unavailable')
+    ).toBe(false)
+  })
+
+  it('filters invalid offeredCareModes entries and preserves valid care modes', () => {
+    const report = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        {
+          signalId: 'sig:enum-mixed',
+          subjectId: 'agent:enum-mixed',
+          protocolId: 'protocol:care',
+          offeredCareModes: [
+            null,
+            'stabilization',
+            'not_a_mode',
+            'accommodation',
+            42,
+            'stabilization',
+          ],
+          requestedCareMode: 'symptom_management',
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        } as unknown as AccommodationAccessSignal,
+      ],
+    })
+    expect(report.rows[0]?.offeredCareModes).toEqual(['accommodation', 'stabilization'])
+    expect(
+      report.findings.some((finding) => finding.kind === 'care_mode_unavailable')
+    ).toBe(true)
+  })
+
+  it('preserves valid enum-like fields after null-safe normalization', () => {
+    const report = buildAccommodationAccessAuditReport({
+      accommodationSignals: [
+        signal({
+          signalId: 'sig:enum-valid',
+          subjectId: 'agent:enum-valid',
+          protocolId: 'protocol:care',
+          requestedCareMode: 'accommodation',
+          offeredCareModes: ['cure_attempt'],
+          denialRationale: 'protocol_ceiling',
+          treatmentLimitationAcknowledged: false,
+          accommodationAccessScore: 50,
+          cureOnlyPressureScore: 40,
+        }),
+      ],
+    })
+    expect(report.rows[0]?.requestedCareMode).toBe('accommodation')
+    expect(report.rows[0]?.offeredCareModes).toEqual(['cure_attempt'])
+    expect(report.rows[0]?.denialRationale).toBe('protocol_ceiling')
+    expect(
+      report.findings.some((finding) => finding.kind === 'care_mode_unavailable')
+    ).toBe(true)
+    expect(
+      report.findings.some((finding) => finding.kind === 'treatment_limitation_unacknowledged')
+    ).toBe(true)
+  })
+
   it('skips invalid blank signalId, subjectId, and protocolId', () => {
     const report = buildAccommodationAccessAuditReport({
       accommodationSignals: [

@@ -220,32 +220,38 @@ function normalizeOptionalScore(value: number | undefined): number | undefined {
   return Math.max(0, Math.min(100, Math.round(value)))
 }
 
-function normalizeCareMode(value: string | undefined): AccommodationCareMode | undefined {
-  if (value === undefined) {
+function normalizeCareMode(value: unknown): AccommodationCareMode | undefined {
+  if (typeof value !== 'string') {
     return undefined
   }
-  const trimmed = value.trim() as AccommodationCareMode
-  return CARE_MODE_SET.has(trimmed) ? trimmed : undefined
+  const trimmed = value.trim()
+  if (trimmed.length === 0) {
+    return undefined
+  }
+  return CARE_MODE_SET.has(trimmed as AccommodationCareMode)
+    ? (trimmed as AccommodationCareMode)
+    : undefined
 }
 
 function normalizeTrimmedString(value: unknown): string {
   return String(value ?? '').trim()
 }
 
-function normalizeDenialRationale(
-  value: string | undefined
-): AccommodationDenialRationale | undefined {
-  if (value === undefined) {
+function normalizeDenialRationale(value: unknown): AccommodationDenialRationale | undefined {
+  if (typeof value !== 'string') {
     return undefined
   }
-  const trimmed = value.trim() as AccommodationDenialRationale
-  return DENIAL_RATIONALE_SET.has(trimmed) ? trimmed : undefined
+  const trimmed = value.trim()
+  if (trimmed.length === 0) {
+    return undefined
+  }
+  return DENIAL_RATIONALE_SET.has(trimmed as AccommodationDenialRationale)
+    ? (trimmed as AccommodationDenialRationale)
+    : undefined
 }
 
-function normalizeOfferedCareModes(
-  modes: readonly AccommodationCareMode[] | undefined
-): readonly AccommodationCareMode[] {
-  if (modes === undefined || modes.length === 0) {
+function normalizeOfferedCareModes(modes: unknown): readonly AccommodationCareMode[] {
+  if (!Array.isArray(modes) || modes.length === 0) {
     return []
   }
   const unique = new Set<AccommodationCareMode>()

@@ -762,9 +762,7 @@ export function buildTreatmentFailureBlameRoutingReport(
       continue
     }
 
-    const parts = pairKey.split('\0')
-    const weekPart = parts[2]
-    const week = weekPart.length > 0 ? Number(weekPart) : undefined
+    const { week } = sample
 
     const alreadyRequired = findings.some(
       (finding) =>

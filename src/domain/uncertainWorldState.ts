@@ -313,7 +313,7 @@ function evaluateOneFact(input: {
     statusBefore,
     statusAfter,
     appliedEvidenceIds: appliedEvidenceIdsSorted,
-    ignoredEvidenceIds: sortUniqueStrings(ignored),
+    ignoredEvidenceIds: sortUniqueStrings([...ignoredSet]),
     resolvedState,
     currentBestState: statusAfter === 'resolved' ? resolvedState : currentBestState,
     note: noteBody.trim().replace(/\s+/g, ' '),

@@ -683,7 +683,12 @@ export function buildTreatmentFailureBlameRoutingReport(
   const failureContexts = dedupeById(
     input.failureContexts
       .map(normalizeContext)
-      .filter((row) => row.contextId.length > 0),
+      .filter(
+        (row) =>
+          row.contextId.length > 0 &&
+          row.subjectId.length > 0 &&
+          row.protocolId.length > 0
+      ),
     (row) => row.contextId
   )
   const proposedAttributions = dedupeById(

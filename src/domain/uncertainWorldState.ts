@@ -4,6 +4,9 @@
  * Models bounded operational questions that are not yet fully knowable from current evidence.
  * This module is pure and does not persist playable simulation aggregates, run actions, replace containment logic,
  * perform random/probabilistic resolution, or implement SPE-1085 canon/lore systems.
+ *
+ * For facts in `resolved` status, non-decisive evidence does not update `currentBestState`; when `resolvedState` is known,
+ * outputs keep `currentBestState` aligned with it.
  */
 
 export type UncertainWorldStateFactStatus = 'unresolved' | 'resolved' | 'superseded'
@@ -102,21 +105,16 @@ function strengthMeetsMinimum(
   return STRENGTH_RANK[strength] >= STRENGTH_RANK[minimum]
 }
 
-/** Strictest check gate when multiple checks target the same fact (highest minimum rank). */
-function effectiveMinimumStrengthForFact(
-  checks: readonly UncertainWorldStateCheck[] | undefined,
-  factId: string
+/** Strictest gate when multiple checks target the same fact (highest minimum rank). */
+function effectiveMinimumStrengthForChecks(
+  checksForFact: readonly UncertainWorldStateCheck[]
 ): UncertainWorldStateEvidenceStrength | undefined {
-  if (checks === undefined || checks.length === 0) {
-    return undefined
-  }
-  const relevant = checks.filter((c) => c.factId === factId)
-  if (relevant.length === 0) {
+  if (checksForFact.length === 0) {
     return undefined
   }
   let best: UncertainWorldStateEvidenceStrength = 'weak'
   let bestRank = STRENGTH_RANK.weak
-  for (const c of relevant) {
+  for (const c of checksForFact) {
     const min = c.minimumStrength ?? 'weak'
     const rank = STRENGTH_RANK[min]
     if (rank > bestRank) {
@@ -143,25 +141,38 @@ function sortUniqueStrings(ids: readonly string[]): string[] {
   return [...new Set(ids)].sort((a, b) => a.localeCompare(b))
 }
 
-function formatChecksFragment(checks: readonly UncertainWorldStateCheck[] | undefined, factId: string): string {
-  if (checks === undefined || checks.length === 0) {
+function formatChecksFragment(checksForFact: readonly UncertainWorldStateCheck[]): string {
+  if (checksForFact.length === 0) {
     return ''
   }
-  const rel = checks.filter((c) => c.factId === factId)
-  if (rel.length === 0) {
-    return ''
-  }
-  const parts = rel.map((c) => `${c.checkId} (${c.trigger})`)
+  const parts = checksForFact.map((c) => `${c.checkId} (${c.trigger})`).sort((a, b) => a.localeCompare(b))
   return `Checks: ${parts.join('; ')}. `
+}
+
+/** Once resolved, mirror resolvedState onto currentBestState whenever resolvedState is defined. */
+function finalizeCanonicalStates(
+  statusAfter: UncertainWorldStateFactStatus,
+  resolvedState: string | undefined,
+  currentBestAfterLoop: string | undefined,
+  fact: UncertainWorldStateFact
+): { resolvedState: string | undefined; currentBestState: string | undefined } {
+  if (statusAfter !== 'resolved') {
+    return { resolvedState, currentBestState: currentBestAfterLoop }
+  }
+  const canonicalResolved = resolvedState ?? fact.resolvedState
+  if (canonicalResolved !== undefined) {
+    return { resolvedState: canonicalResolved, currentBestState: canonicalResolved }
+  }
+  return { resolvedState: undefined, currentBestState: currentBestAfterLoop }
 }
 
 function evaluateOneFact(input: {
   fact: UncertainWorldStateFact
-  allEvidence: readonly UncertainWorldStateEvidence[]
-  checks: readonly UncertainWorldStateCheck[] | undefined
+  candidates: readonly UncertainWorldStateEvidence[]
+  checksForFact: readonly UncertainWorldStateCheck[]
   context: { week?: number } | undefined
 }): { fact: UncertainWorldStateFact; resolution: UncertainWorldStateResolution } {
-  const { fact, allEvidence, checks, context } = input
+  const { fact, candidates, checksForFact, context } = input
   const statusBefore = fact.status
 
   const baseApplied = [...fact.appliedEvidenceIds]
@@ -174,15 +185,13 @@ function evaluateOneFact(input: {
     }
   }
 
-  const ignored: string[] = []
+  const ignoredIds = new Set<string>()
   const pushIgnored = (id: string) => {
-    if (!ignored.includes(id)) {
-      ignored.push(id)
-    }
+    ignoredIds.add(id)
   }
 
-  const minStrength = effectiveMinimumStrengthForFact(checks, fact.factId)
-  const checkPrefix = formatChecksFragment(checks, fact.factId)
+  const minStrength = effectiveMinimumStrengthForChecks(checksForFact)
+  const checkPrefix = formatChecksFragment(checksForFact)
 
   if (fact.status === 'superseded') {
     const clone: UncertainWorldStateFact = {
@@ -203,7 +212,6 @@ function evaluateOneFact(input: {
     return { fact: clone, resolution }
   }
 
-  const candidates = allEvidence.filter((e) => e.factId === fact.factId)
   const applicable: UncertainWorldStateEvidence[] = []
 
   for (const ev of candidates) {
@@ -232,9 +240,15 @@ function evaluateOneFact(input: {
   const supersessionFragments: string[] = []
   let appliedNonDecisive = false
   let didSupersedeResolution = false
+  let ignoredWeakWhileResolved = false
 
   for (const ev of applicable) {
     if (ev.strength !== 'decisive') {
+      if (statusAfter === 'resolved') {
+        ignoredWeakWhileResolved = true
+        pushIgnored(ev.evidenceId)
+        continue
+      }
       currentBestState = ev.supportsState
       pushApplied(ev.evidenceId)
       appliedNonDecisive = true
@@ -275,7 +289,12 @@ function evaluateOneFact(input: {
     pushIgnored(ev.evidenceId)
   }
 
+  const sync = finalizeCanonicalStates(statusAfter, resolvedState, currentBestState, fact)
+  resolvedState = sync.resolvedState
+  currentBestState = sync.currentBestState
+
   const appliedEvidenceIdsSorted = sortUniqueStrings([...baseApplied, ...newAppliedIds])
+  const ignoredEvidenceSorted = sortUniqueStrings([...ignoredIds])
 
   const hadApplicable = applicable.length > 0
 
@@ -290,10 +309,12 @@ function evaluateOneFact(input: {
     noteBody = `${checkPrefix}Fact resolved via decisive evidence.`
   } else if (appliedNonDecisive && statusAfter !== 'resolved') {
     noteBody = `${checkPrefix}Updated currentBestState from non-decisive evidence.`
-  } else if (statusBefore === 'resolved' && statusAfter === 'resolved' && newAppliedIds.length === 0) {
-    noteBody = `${checkPrefix}No new applicable evidence changed this fact.`
   } else if (statusBefore === 'resolved' && statusAfter === 'resolved' && newAppliedIds.length > 0) {
     noteBody = `${checkPrefix}Reinforced or adjusted resolved fact with additional decisive evidence.`
+  } else if (statusBefore === 'resolved' && statusAfter === 'resolved' && ignoredWeakWhileResolved) {
+    noteBody = `${checkPrefix}Non-decisive evidence ignored while fact remains resolved; decisive handling unchanged.`
+  } else if (statusBefore === 'resolved' && statusAfter === 'resolved' && newAppliedIds.length === 0) {
+    noteBody = `${checkPrefix}No new applicable evidence changed this fact.`
   } else {
     noteBody = `${checkPrefix}No material change from applicable evidence.`
   }
@@ -302,7 +323,7 @@ function evaluateOneFact(input: {
     ...fact,
     status: statusAfter,
     possibleStates: [...fact.possibleStates],
-    currentBestState: statusAfter === 'resolved' ? resolvedState : currentBestState,
+    currentBestState,
     resolvedState,
     resolvedAtWeek,
     appliedEvidenceIds: appliedEvidenceIdsSorted,
@@ -313,13 +334,41 @@ function evaluateOneFact(input: {
     statusBefore,
     statusAfter,
     appliedEvidenceIds: appliedEvidenceIdsSorted,
-    ignoredEvidenceIds: sortUniqueStrings([...ignoredSet]),
+    ignoredEvidenceIds: ignoredEvidenceSorted,
     resolvedState,
-    currentBestState: statusAfter === 'resolved' ? resolvedState : currentBestState,
+    currentBestState,
     note: noteBody.trim().replace(/\s+/g, ' '),
   }
 
   return { fact: outFact, resolution }
+}
+
+/** Deterministic buckets: preserves global evidence order within each factId group. */
+function evidenceByFactId(evidence: readonly UncertainWorldStateEvidence[]): Map<string, UncertainWorldStateEvidence[]> {
+  const buckets = new Map<string, UncertainWorldStateEvidence[]>()
+  for (const ev of evidence) {
+    const cur = buckets.get(ev.factId)
+    if (cur === undefined) {
+      buckets.set(ev.factId, [ev])
+    } else {
+      cur.push(ev)
+    }
+  }
+  return buckets
+}
+
+/** Group checks once for deterministic lookup without rescanning the full checklist each fact. */
+function checksByFactId(checks: readonly UncertainWorldStateCheck[]): Map<string, UncertainWorldStateCheck[]> {
+  const buckets = new Map<string, UncertainWorldStateCheck[]>()
+  for (const c of checks) {
+    const cur = buckets.get(c.factId)
+    if (cur === undefined) {
+      buckets.set(c.factId, [c])
+    } else {
+      cur.push(c)
+    }
+  }
+  return buckets
 }
 
 export function evaluateUncertainWorldStateFacts(input: {
@@ -329,14 +378,20 @@ export function evaluateUncertainWorldStateFacts(input: {
   context?: { week?: number }
 }): UncertainWorldStateReport {
   const sortedFacts = [...input.facts].sort((a, b) => a.factId.localeCompare(b.factId))
+  const buckets = evidenceByFactId(input.evidence)
+  const checks = input.checks ?? []
+  const checkBuckets = checksByFactId(checks)
+
   const outFacts: UncertainWorldStateFact[] = []
   const resolutions: UncertainWorldStateResolution[] = []
 
   for (const fact of sortedFacts) {
+    const checksForFact = checkBuckets.get(fact.factId) ?? []
+    const candidates = buckets.get(fact.factId) ?? []
     const { fact: next, resolution } = evaluateOneFact({
       fact,
-      allEvidence: input.evidence,
-      checks: input.checks,
+      candidates,
+      checksForFact,
       context: input.context,
     })
     outFacts.push(next)
@@ -384,14 +439,20 @@ export function resolveUncertainWorldStateCheck(input: {
   if (first !== undefined) {
     return first
   }
+  const sync = finalizeCanonicalStates(
+    input.fact.status,
+    input.fact.resolvedState,
+    input.fact.currentBestState,
+    input.fact
+  )
   return {
     factId: input.fact.factId,
     statusBefore: input.fact.status,
     statusAfter: input.fact.status,
     appliedEvidenceIds: sortUniqueStrings(input.fact.appliedEvidenceIds),
     ignoredEvidenceIds: [],
-    resolvedState: input.fact.resolvedState,
-    currentBestState: input.fact.currentBestState,
+    resolvedState: sync.resolvedState,
+    currentBestState: sync.currentBestState,
     note: 'No fact supplied.',
   }
 }

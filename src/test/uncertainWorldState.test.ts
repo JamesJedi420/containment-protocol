@@ -109,6 +109,58 @@ describe('uncertainWorldState (SPE-1317)', () => {
     expect(report.facts[0]?.currentBestState).toBe('sealed')
   })
 
+  it('resolves unresolved facts so report currentBestState matches resolvedState', () => {
+    const fact = baseFact({})
+    const evidence = [ev({ evidenceId: 'ev:d', supportsState: 'sealed', strength: 'decisive' })]
+    const report = evaluateUncertainWorldStateFacts({ facts: [fact], evidence })
+    const f = report.facts[0]
+    const r = report.resolutions[0]
+    expect(f?.resolvedState).toBe('sealed')
+    expect(f?.currentBestState).toBe('sealed')
+    expect(r?.resolvedState).toBe('sealed')
+    expect(r?.currentBestState).toBe('sealed')
+  })
+
+  it('already resolved fact ignores weak evidence for another state (no currentBest drift)', () => {
+    const fact = baseFact({
+      status: 'resolved',
+      resolvedState: 'clear',
+      currentBestState: 'clear',
+    })
+    const evidence = [ev({ evidenceId: 'ev:nudge', supportsState: 'occupied', strength: 'weak' })]
+    const report = evaluateUncertainWorldStateFacts({ facts: [fact], evidence })
+    expect(report.facts[0]?.resolvedState).toBe('clear')
+    expect(report.facts[0]?.currentBestState).toBe('clear')
+    expect(report.resolutions[0]?.currentBestState).toBe('clear')
+    expect(report.resolutions[0]?.ignoredEvidenceIds).toContain('ev:nudge')
+  })
+
+  it('already resolved fact ignores moderate evidence for another state', () => {
+    const fact = baseFact({
+      status: 'resolved',
+      resolvedState: 'clear',
+      currentBestState: 'clear',
+    })
+    const evidence = [ev({ evidenceId: 'ev:m2', supportsState: 'sealed', strength: 'moderate' })]
+    const report = evaluateUncertainWorldStateFacts({ facts: [fact], evidence })
+    expect(report.facts[0]?.resolvedState).toBe('clear')
+    expect(report.facts[0]?.currentBestState).toBe('clear')
+    expect(report.resolutions[0]?.ignoredEvidenceIds).toContain('ev:m2')
+  })
+
+  it('already resolved fact ignores strong evidence for another state', () => {
+    const fact = baseFact({
+      status: 'resolved',
+      resolvedState: 'clear',
+      currentBestState: 'clear',
+    })
+    const evidence = [ev({ evidenceId: 'ev:s2', supportsState: 'occupied', strength: 'strong' })]
+    const report = evaluateUncertainWorldStateFacts({ facts: [fact], evidence })
+    expect(report.facts[0]?.resolvedState).toBe('clear')
+    expect(report.facts[0]?.currentBestState).toBe('clear')
+    expect(report.resolutions[0]?.ignoredEvidenceIds).toContain('ev:s2')
+  })
+
   it('context.week sets resolvedAtWeek when resolving', () => {
     const fact = baseFact({})
     const evidence = [ev({ evidenceId: 'ev:d', supportsState: 'clear', strength: 'decisive' })]

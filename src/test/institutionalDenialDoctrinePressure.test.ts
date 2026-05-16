@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import {
   buildInstitutionalDenialDoctrinePressureReport,
+  type InstitutionalDenialDoctrinePressureInput,
   type InstitutionalDenialDoctrinePressureSignal,
 } from '../domain/institutionalDenialDoctrinePressure'
 import type { AccommodationAccessAuditFinding } from '../domain/accommodationAccessAudit'
@@ -102,14 +103,20 @@ describe('institutionalDenialDoctrinePressure (SPE-2001)', () => {
       ],
     })
     expect(report.rows).toHaveLength(1)
-    expect(report.rows[0]?.rowId).toBe('row:staff-doctrine:staff:alpha:doctrine:denial:2')
+    expect(report.rows[0]?.rowId).toBe(
+      'row:staff-doctrine/staff%3Aalpha/doctrine%3Adenial/2'
+    )
     expect(report.rows[0]?.signalCount).toBe(1)
   })
 
-  it('skips invalid blank signalId/kind signals', () => {
+  it('skips invalid blank signalId and invalid kind signals', () => {
     const report = buildInstitutionalDenialDoctrinePressureReport({
       doctrinePressureSignals: [
         doctrineSignal({ signalId: '  ', kind: 'approved_language_requirement' }),
+        doctrineSignal({
+          signalId: 'invalid-kind',
+          kind: 'not_a_real_kind' as InstitutionalDenialDoctrinePressureSignal['kind'],
+        }),
         doctrineSignal({ signalId: 'valid', kind: 'support_access_restricted', siteId: 'site:1' }),
       ],
     })
@@ -397,7 +404,7 @@ describe('institutionalDenialDoctrinePressure (SPE-2001)', () => {
     expect(report.findings.some((f) => f.kind === 'treatment_limitation_suppression')).toBe(true)
   })
 
-  it('sparse upstream findings go to deterministic aggregate rows without throwing', () => {
+  it('sparse upstream findings go to deterministic staff rows without throwing', () => {
     const report = buildInstitutionalDenialDoctrinePressureReport({
       staffTelemetryFindings: [
         staffFinding({
@@ -408,7 +415,8 @@ describe('institutionalDenialDoctrinePressure (SPE-2001)', () => {
       ],
     })
     expect(report.rows).toHaveLength(1)
-    expect(report.rows[0]?.rowId).toBe('row:aggregate')
+    expect(report.rows[0]?.rowId).toBe('row:staff/staff%3Asparse/')
+    expect(report.rows[0]?.staffId).toBe('staff:sparse')
   })
 
   it('threshold overrides affect severity', () => {
@@ -569,11 +577,272 @@ describe('institutionalDenialDoctrinePressure (SPE-2001)', () => {
     expect(source).toMatch(/import type \{ TreatmentFailureBlameRoutingFinding \}/)
     expect(source).toMatch(/import type \{ MedicalAccountabilityScorecardFinding \}/)
     expect(source).toMatch(/import type \{ AccommodationAccessAuditFinding \}/)
+    expect(source).toMatch(/export interface InstitutionalDenialDoctrinePressureInput/)
     expect(source.includes('buildStaffTreatmentTelemetryReport')).toBe(false)
     expect(source.includes('buildMedicalOutcomeDeviationAuditReport')).toBe(false)
     expect(source.includes('buildTreatmentFailureBlameRoutingReport')).toBe(false)
     expect(source.includes('buildMedicalAccountabilityScorecard')).toBe(false)
     expect(source.includes('buildAccommodationAccessAuditReport')).toBe(false)
+  })
+
+  it('distinct colon-containing buckets produce distinct rows and findings', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-a',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:a:b',
+          protocolId: 'protocol:c',
+          detail: 'Bucket A.',
+        }),
+        doctrineSignal({
+          signalId: 'sig-b',
+          kind: 'overclassification_pressure',
+          subjectId: 'agent:a',
+          protocolId: 'protocol:b:c',
+          detail: 'Bucket B.',
+        }),
+      ],
+    })
+    expect(report.rows).toHaveLength(2)
+    expect(report.rows[0]?.rowId).not.toBe(report.rows[1]?.rowId)
+    const rowA = report.rows.find((row) => row.subjectId === 'agent:a:b')
+    const rowB = report.rows.find((row) => row.protocolId === 'protocol:b:c')
+    expect(rowA).toBeDefined()
+    expect(rowB).toBeDefined()
+    expect(
+      report.findings.find(
+        (finding) => finding.rowId === rowA?.rowId && finding.kind === 'patient_report_dismissal'
+      )?.detail
+    ).toBe('Bucket A.')
+    expect(
+      report.findings.find(
+        (finding) =>
+          finding.rowId === rowB?.rowId && finding.kind === 'overclassification_pressure'
+      )?.detail
+    ).toBe('Bucket B.')
+  })
+
+  it('keeps distinct staff telemetry rows for same subject/protocol/week', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      staffTelemetryFindings: [
+        staffFinding({
+          kind: 'high_alignment_low_efficacy',
+          staffId: 'staff:one',
+          subjectId: 'agent:shared',
+          protocolId: 'protocol:shared',
+          week: 2,
+          detail: 'Staff one pressure.',
+        }),
+        staffFinding({
+          kind: 'high_alignment_low_efficacy',
+          staffId: 'staff:two',
+          subjectId: 'agent:shared',
+          protocolId: 'protocol:shared',
+          week: 2,
+          detail: 'Staff two pressure.',
+        }),
+      ],
+    })
+    expect(report.rows).toHaveLength(2)
+    expect(report.rows.map((row) => row.staffId).sort()).toEqual(['staff:one', 'staff:two'])
+    expect(
+      report.findings.filter((finding) => finding.kind === 'high_alignment_poor_outcome_pressure')
+    ).toHaveLength(2)
+  })
+
+  it('skips malformed runtime signals without throwing', () => {
+    expect(() =>
+      buildInstitutionalDenialDoctrinePressureReport({
+        doctrinePressureSignals: [
+          { signalId: null, kind: 'approved_language_requirement' } as never,
+          { signalId: 'null-kind', kind: null } as never,
+          {
+            signalId: 'bad-ids',
+            kind: 'approved_language_requirement',
+            staffId: 42,
+            subjectId: false,
+          } as never,
+          doctrineSignal({
+            signalId: 'good',
+            kind: 'support_access_restricted',
+            siteId: 'site:safe',
+          }),
+        ],
+      })
+    ).not.toThrow()
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        { signalId: null, kind: 'approved_language_requirement' } as never,
+        { signalId: 'null-kind', kind: null } as never,
+        {
+          signalId: 'bad-ids',
+          kind: 'approved_language_requirement',
+          staffId: 42,
+          subjectId: false,
+        } as never,
+        doctrineSignal({
+          signalId: 'good',
+          kind: 'support_access_restricted',
+          siteId: 'site:safe',
+        }),
+      ],
+    })
+    const siteRow = report.rows.find((row) => row.siteId === 'site:safe')
+    expect(siteRow).toBeDefined()
+    expect(siteRow?.staffId).toBeUndefined()
+    expect(siteRow?.subjectId).toBeUndefined()
+    const aggregateRow = report.rows.find((row) => row.rowId === 'row:aggregate')
+    expect(aggregateRow?.siteId).toBeUndefined()
+    expect(aggregateRow?.staffId).toBeUndefined()
+  })
+
+  it('skips prototype-like signal kinds such as toString', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        { signalId: 'proto', kind: 'toString' } as never,
+        doctrineSignal({
+          signalId: 'valid',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:proto',
+          protocolId: 'protocol:proto',
+        }),
+      ],
+    })
+    expect(report.rows).toHaveLength(1)
+    expect(report.findings.some((finding) => finding.kind === 'patient_report_dismissal')).toBe(
+      true
+    )
+  })
+
+  it('emits insufficient evidence for gated-only upstream rows', () => {
+    const institutionalOnly = buildInstitutionalDenialDoctrinePressureReport({
+      blameRoutingFindings: [
+        blameFinding({
+          kind: 'institutional_accountability_required',
+          severity: 'warning',
+          subjectId: 'agent:gate',
+          protocolId: 'protocol:gate',
+          detail: 'Institutional accountability only.',
+        }),
+      ],
+    })
+    expect(
+      institutionalOnly.findings.some((finding) => finding.kind === 'insufficient_pressure_evidence')
+    ).toBe(true)
+    expect(
+      institutionalOnly.findings.some((finding) => finding.kind === 'material_outcome_suppression')
+    ).toBe(false)
+
+    const cureOnly = buildInstitutionalDenialDoctrinePressureReport({
+      accommodationFindings: [
+        accommodationFinding({
+          kind: 'cure_only_pressure_high',
+          severity: 'warning',
+          rowId: 'row:acc-gate',
+          subjectId: 'agent:gate',
+          protocolId: 'protocol:gate',
+          detail: 'Cure-only pressure only.',
+        }),
+      ],
+    })
+    expect(cureOnly.findings.some((finding) => finding.kind === 'insufficient_pressure_evidence')).toBe(
+      true
+    )
+    expect(
+      cureOnly.findings.some((finding) => finding.kind === 'care_mode_discussion_restriction')
+    ).toBe(false)
+
+    const withContext = buildInstitutionalDenialDoctrinePressureReport({
+      accommodationFindings: [
+        accommodationFinding({
+          kind: 'cure_only_pressure_high',
+          severity: 'warning',
+          rowId: 'row:acc-gate',
+          subjectId: 'agent:gate',
+          protocolId: 'protocol:gate',
+          detail: 'Cure-only pressure only.',
+        }),
+      ],
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'doctrine',
+          kind: 'care_mode_discussion_restricted',
+          subjectId: 'agent:gate',
+          protocolId: 'protocol:gate',
+        }),
+      ],
+    })
+    expect(
+      withContext.findings.some((finding) => finding.kind === 'care_mode_discussion_restriction')
+    ).toBe(true)
+  })
+
+  it('does not misattribute conflicting optional IDs on aggregate buckets', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'site-only',
+          kind: 'support_access_restricted',
+          siteId: 'site:aggregate',
+        }),
+        doctrineSignal({
+          signalId: 'staff-only',
+          kind: 'dissenting_staff_exclusion_pressure',
+          staffId: 'staff:other',
+          doctrineId: 'doctrine:other',
+        }),
+      ],
+    })
+    expect(report.rows).toHaveLength(2)
+    const siteRow = report.rows.find((row) => row.siteId === 'site:aggregate')
+    const staffRow = report.rows.find((row) => row.staffId === 'staff:other')
+    expect(siteRow?.subjectId).toBeUndefined()
+    expect(siteRow?.staffId).toBeUndefined()
+    expect(staffRow?.siteId).toBeUndefined()
+    expect(staffRow?.subjectId).toBeUndefined()
+  })
+
+  it('preserves unambiguous scorecard and accommodation metadata on subject rows', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport({
+      medicalScorecardFindings: [
+        scorecardFinding({
+          kind: 'high_alignment_poor_outcome',
+          severity: 'warning',
+          rowId: 'row:score-meta',
+          subjectId: 'agent:meta',
+          protocolId: 'protocol:meta',
+          staffId: 'staff:meta',
+          siteId: 'site:meta',
+          detail: 'Scorecard metadata.',
+        }),
+      ],
+      accommodationFindings: [
+        accommodationFinding({
+          kind: 'care_mode_unavailable',
+          severity: 'warning',
+          rowId: 'row:acc-meta',
+          subjectId: 'agent:meta',
+          protocolId: 'protocol:meta',
+          siteId: 'site:meta',
+          detail: 'Accommodation metadata.',
+        }),
+      ],
+    })
+    expect(report.rows).toHaveLength(1)
+    expect(report.rows[0]?.staffId).toBe('staff:meta')
+    expect(report.rows[0]?.siteId).toBe('site:meta')
+  })
+
+  it('returns empty deterministic report for nullish runtime input', () => {
+    const report = buildInstitutionalDenialDoctrinePressureReport(
+      null as unknown as InstitutionalDenialDoctrinePressureInput
+    )
+    expect(report.rows).toEqual([])
+    expect(report.findings).toEqual([])
+    expect(report.lines[0]).toBe(
+      'Institutional denial doctrine pressure: rows=0, findings=0, critical=0'
+    )
   })
 
   it('has no reverse imports from upstream modules', () => {

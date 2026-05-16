@@ -110,6 +110,16 @@ export interface InstitutionalDenialDoctrinePressureOptions {
   minimumEvidenceCount?: number
 }
 
+export interface InstitutionalDenialDoctrinePressureInput {
+  doctrinePressureSignals?: readonly InstitutionalDenialDoctrinePressureSignal[]
+  staffTelemetryFindings?: readonly StaffTreatmentTelemetryFinding[]
+  medicalDeviationFindings?: readonly MedicalOutcomeDeviationFinding[]
+  blameRoutingFindings?: readonly TreatmentFailureBlameRoutingFinding[]
+  medicalScorecardFindings?: readonly MedicalAccountabilityScorecardFinding[]
+  accommodationFindings?: readonly AccommodationAccessAuditFinding[]
+  options?: InstitutionalDenialDoctrinePressureOptions
+}
+
 const DEFAULT_OPTIONS: Required<InstitutionalDenialDoctrinePressureOptions> = {
   highPressureThreshold: 70,
   criticalPressureThreshold: 90,
@@ -207,6 +217,29 @@ function normalizeWeek(value: number | undefined): number | undefined {
   return Math.max(0, Math.trunc(value))
 }
 
+function normalizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+function isValidSignalKind(value: unknown): value is InstitutionalDenialDoctrinePressureSignalKind {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(SIGNAL_TO_FINDING, value)
+  )
+}
+
+function encodeRowSegment(value: string): string {
+  return encodeURIComponent(value)
+}
+
+function uniqueSorted(values: readonly string[]): string[] {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+}
+
 function normalizeMinimumEvidenceCount(value: number | undefined): number {
   if (value === undefined || !Number.isFinite(value)) {
     return DEFAULT_OPTIONS.minimumEvidenceCount
@@ -251,6 +284,16 @@ function staffWeekKey(staffId: string, week: number | undefined): string {
   return `staff\0${staffId}\0${weekPart}`
 }
 
+function staffSubjectProtocolWeekKey(
+  staffId: string,
+  subjectId: string,
+  protocolId: string,
+  week: number | undefined
+): string {
+  const weekPart = week !== undefined ? String(week) : ''
+  return `staff-subject\0${staffId}\0${subjectId}\0${protocolId}\0${weekPart}`
+}
+
 function siteWeekKey(siteId: string, week: number | undefined): string {
   const weekPart = week !== undefined ? String(week) : ''
   return `site\0${siteId}\0${weekPart}`
@@ -260,23 +303,10 @@ function rowIdForKey(key: string): string {
   if (key === AGGREGATE_KEY) {
     return 'row:aggregate'
   }
-  if (key.startsWith('subject\0')) {
-    const parts = key.split('\0')
-    return `row:subject:${parts[1] ?? ''}:${parts[2] ?? ''}:${parts[3] ?? ''}`
-  }
-  if (key.startsWith('staff-doctrine\0')) {
-    const parts = key.split('\0')
-    return `row:staff-doctrine:${parts[1] ?? ''}:${parts[2] ?? ''}:${parts[3] ?? ''}`
-  }
-  if (key.startsWith('staff\0')) {
-    const parts = key.split('\0')
-    return `row:staff:${parts[1] ?? ''}:${parts[2] ?? ''}`
-  }
-  if (key.startsWith('site\0')) {
-    const parts = key.split('\0')
-    return `row:site:${parts[1] ?? ''}:${parts[2] ?? ''}`
-  }
-  return `row:unknown:${key}`
+  const parts = key.split('\0')
+  const type = parts[0] ?? 'unknown'
+  const segments = parts.slice(1).map(encodeRowSegment)
+  return `row:${type}/${segments.join('/')}`
 }
 
 function parseSubjectProtocolWeekKey(key: string): {
@@ -323,8 +353,33 @@ function parseStaffDoctrineWeekKey(key: string): {
   }
 }
 
+function parseStaffSubjectProtocolWeekKey(key: string): {
+  staffId?: string
+  subjectId?: string
+  protocolId?: string
+  week?: number
+} {
+  if (!key.startsWith('staff-subject\0')) {
+    return {}
+  }
+  const parts = key.split('\0')
+  const staffId = parts[1]
+  const subjectId = parts[2]
+  const protocolId = parts[3]
+  const weekPart = parts[4]
+  if (!staffId || !subjectId || !protocolId) {
+    return {}
+  }
+  return {
+    staffId,
+    subjectId,
+    protocolId,
+    week: weekPart && weekPart.length > 0 ? Number(weekPart) : undefined,
+  }
+}
+
 function parseStaffWeekKey(key: string): { staffId?: string; week?: number } {
-  if (!key.startsWith('staff\0') || key.startsWith('staff-doctrine\0')) {
+  if (!key.startsWith('staff\0') || key.startsWith('staff-doctrine\0') || key.startsWith('staff-subject\0')) {
     return {}
   }
   const parts = key.split('\0')
@@ -363,6 +418,7 @@ function getOrCreateBucket(buckets: Map<string, RowBucket>, key: string): RowBuc
 
   const subjectFields = parseSubjectProtocolWeekKey(key)
   const staffDoctrineFields = parseStaffDoctrineWeekKey(key)
+  const staffSubjectFields = parseStaffSubjectProtocolWeekKey(key)
   const staffFields = parseStaffWeekKey(key)
   const siteFields = parseSiteWeekKey(key)
 
@@ -370,12 +426,14 @@ function getOrCreateBucket(buckets: Map<string, RowBucket>, key: string): RowBuc
     key,
     rowId: rowIdForKey(key),
     siteId: siteFields.siteId,
-    staffId: staffDoctrineFields.staffId ?? staffFields.staffId,
-    subjectId: subjectFields.subjectId,
-    protocolId: subjectFields.protocolId,
+    staffId:
+      staffSubjectFields.staffId ?? staffDoctrineFields.staffId ?? staffFields.staffId,
+    subjectId: staffSubjectFields.subjectId ?? subjectFields.subjectId,
+    protocolId: staffSubjectFields.protocolId ?? subjectFields.protocolId,
     doctrineId: staffDoctrineFields.doctrineId,
     week:
       subjectFields.week ??
+      staffSubjectFields.week ??
       staffDoctrineFields.week ??
       staffFields.week ??
       siteFields.week,
@@ -391,20 +449,20 @@ function getOrCreateBucket(buckets: Map<string, RowBucket>, key: string): RowBuc
 }
 
 function resolveSignalKey(signal: InstitutionalDenialDoctrinePressureSignal): string {
-  const subjectId = signal.subjectId?.trim()
-  const protocolId = signal.protocolId?.trim()
-  const week = normalizeWeek(signal.week)
+  const subjectId = signal.subjectId
+  const protocolId = signal.protocolId
+  const week = signal.week
   if (subjectId && protocolId) {
     return subjectProtocolWeekKey(subjectId, protocolId, week)
   }
 
-  const staffId = signal.staffId?.trim()
-  const doctrineId = signal.doctrineId?.trim()
+  const staffId = signal.staffId
+  const doctrineId = signal.doctrineId
   if (staffId && doctrineId) {
     return staffDoctrineWeekKey(staffId, doctrineId, week)
   }
 
-  const siteId = signal.siteId?.trim()
+  const siteId = signal.siteId
   if (siteId) {
     return siteWeekKey(siteId, week)
   }
@@ -421,8 +479,8 @@ function resolveSubjectProtocolFindingKey(input: {
   protocolId?: string
   week?: number
 }): string {
-  const subjectId = input.subjectId?.trim()
-  const protocolId = input.protocolId?.trim()
+  const subjectId = normalizeOptionalString(input.subjectId)
+  const protocolId = normalizeOptionalString(input.protocolId)
   const week = normalizeWeek(input.week)
   if (subjectId && protocolId) {
     return subjectProtocolWeekKey(subjectId, protocolId, week)
@@ -431,9 +489,16 @@ function resolveSubjectProtocolFindingKey(input: {
 }
 
 function resolveStaffFindingKey(finding: StaffTreatmentTelemetryFinding): string {
-  const subjectId = finding.subjectId?.trim()
-  const protocolId = finding.protocolId?.trim()
+  const staffId = normalizeOptionalString(finding.staffId)
+  const subjectId = normalizeOptionalString(finding.subjectId)
+  const protocolId = normalizeOptionalString(finding.protocolId)
   const week = normalizeWeek(finding.week)
+  if (staffId && subjectId && protocolId) {
+    return staffSubjectProtocolWeekKey(staffId, subjectId, protocolId, week)
+  }
+  if (staffId) {
+    return staffWeekKey(staffId, week)
+  }
   if (subjectId && protocolId) {
     return subjectProtocolWeekKey(subjectId, protocolId, week)
   }
@@ -445,11 +510,11 @@ function resolveScorecardFindingKey(finding: MedicalAccountabilityScorecardFindi
   if (subjectKey !== AGGREGATE_KEY) {
     return subjectKey
   }
-  const staffId = finding.staffId?.trim()
+  const staffId = normalizeOptionalString(finding.staffId)
   if (staffId) {
     return staffWeekKey(staffId, normalizeWeek(finding.week))
   }
-  const siteId = finding.siteId?.trim()
+  const siteId = normalizeOptionalString(finding.siteId)
   if (siteId) {
     return siteWeekKey(siteId, normalizeWeek(finding.week))
   }
@@ -462,9 +527,9 @@ function dedupeSignals(
   const seen = new Set<string>()
   const deduped: InstitutionalDenialDoctrinePressureSignal[] = []
   for (const signal of signals) {
-    const signalId = signal.signalId.trim()
-    const kind = signal.kind
-    if (signalId.length === 0 || !(kind in SIGNAL_TO_FINDING)) {
+    const signalId = normalizeOptionalString(signal.signalId)
+    const kind = isValidSignalKind(signal.kind) ? signal.kind : undefined
+    if (signalId === undefined || kind === undefined) {
       continue
     }
     if (seen.has(signalId)) {
@@ -474,15 +539,16 @@ function dedupeSignals(
     deduped.push({
       ...signal,
       signalId,
-      siteId: signal.siteId?.trim() || undefined,
-      staffId: signal.staffId?.trim() || undefined,
-      subjectId: signal.subjectId?.trim() || undefined,
-      protocolId: signal.protocolId?.trim() || undefined,
-      doctrineId: signal.doctrineId?.trim() || undefined,
+      kind,
+      siteId: normalizeOptionalString(signal.siteId),
+      staffId: normalizeOptionalString(signal.staffId),
+      subjectId: normalizeOptionalString(signal.subjectId),
+      protocolId: normalizeOptionalString(signal.protocolId),
+      doctrineId: normalizeOptionalString(signal.doctrineId),
       week: normalizeWeek(signal.week),
       pressureScore:
         signal.pressureScore === undefined ? undefined : clampScore(signal.pressureScore),
-      detail: signal.detail?.trim() || undefined,
+      detail: normalizeOptionalString(signal.detail),
     })
   }
   return deduped
@@ -598,6 +664,51 @@ function upstreamEvidenceCount(bucket: RowBucket): number {
   )
 }
 
+function contributesDeviationEvidence(
+  finding: MedicalOutcomeDeviationFinding,
+  bucket: RowBucket
+): boolean {
+  if (finding.kind === 'governance_notification_candidate') {
+    return true
+  }
+  return (
+    finding.severity === 'critical' &&
+    CRITICAL_DEVIATION_KINDS.has(finding.kind) &&
+    hasExplicitDoctrineSignal(bucket)
+  )
+}
+
+function contributesBlameEvidence(
+  finding: TreatmentFailureBlameRoutingFinding,
+  bucket: RowBucket
+): boolean {
+  if (finding.kind === 'prohibited_subject_deflection') {
+    return true
+  }
+  if (finding.kind === 'missing_treatment_limitation_acknowledgment') {
+    return true
+  }
+  if (finding.kind === 'institutional_accountability_required') {
+    return hasMedicalAccountabilityContext(bucket)
+  }
+  return false
+}
+
+function contributesAccommodationEvidence(
+  finding: AccommodationAccessAuditFinding,
+  bucket: RowBucket
+): boolean {
+  if (finding.kind === 'cure_only_pressure_high') {
+    return hasExplicitDoctrineSignal(bucket)
+  }
+  return (
+    finding.kind === 'care_mode_unavailable' ||
+    finding.kind === 'treatment_limitation_unacknowledged' ||
+    finding.kind === 'outcome_worsened_without_accommodation_review' ||
+    finding.kind === 'accountability_route_conflicts_with_limitation'
+  )
+}
+
 function contributingEvidenceCount(bucket: RowBucket): number {
   let count = bucket.signals.length
   for (const finding of bucket.staffFindings) {
@@ -606,16 +717,12 @@ function contributingEvidenceCount(bucket: RowBucket): number {
     }
   }
   for (const finding of bucket.deviationFindings) {
-    if (finding.kind !== 'missing_observation') {
+    if (contributesDeviationEvidence(finding, bucket)) {
       count += 1
     }
   }
   for (const finding of bucket.blameFindings) {
-    if (
-      finding.kind === 'prohibited_subject_deflection' ||
-      finding.kind === 'missing_treatment_limitation_acknowledgment' ||
-      finding.kind === 'institutional_accountability_required'
-    ) {
+    if (contributesBlameEvidence(finding, bucket)) {
       count += 1
     }
   }
@@ -625,17 +732,57 @@ function contributingEvidenceCount(bucket: RowBucket): number {
     }
   }
   for (const finding of bucket.accommodationFindings) {
-    if (
-      finding.kind === 'care_mode_unavailable' ||
-      finding.kind === 'treatment_limitation_unacknowledged' ||
-      finding.kind === 'outcome_worsened_without_accommodation_review' ||
-      finding.kind === 'accountability_route_conflicts_with_limitation' ||
-      finding.kind === 'cure_only_pressure_high'
-    ) {
+    if (contributesAccommodationEvidence(finding, bucket)) {
       count += 1
     }
   }
   return count
+}
+
+function resolveEnrichedRowMetadata(
+  bucket: RowBucket
+): Pick<
+  InstitutionalDenialDoctrinePressureRow,
+  'siteId' | 'staffId' | 'subjectId' | 'protocolId' | 'doctrineId' | 'week'
+> {
+  if (bucket.key === AGGREGATE_KEY) {
+    return { week: bucket.week }
+  }
+
+  const metadata = {
+    siteId: bucket.siteId,
+    staffId: bucket.staffId,
+    subjectId: bucket.subjectId,
+    protocolId: bucket.protocolId,
+    doctrineId: bucket.doctrineId,
+    week: bucket.week,
+  }
+
+  if (metadata.staffId === undefined) {
+    const staffIds = uniqueSorted(
+      [
+        ...bucket.staffFindings.map((finding) => normalizeOptionalString(finding.staffId)),
+        ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.staffId)),
+      ].filter((staffId): staffId is string => staffId !== undefined)
+    )
+    if (staffIds.length === 1) {
+      metadata.staffId = staffIds[0]
+    }
+  }
+
+  if (metadata.siteId === undefined) {
+    const siteIds = uniqueSorted(
+      [
+        ...bucket.accommodationFindings.map((finding) => normalizeOptionalString(finding.siteId)),
+        ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.siteId)),
+      ].filter((siteId): siteId is string => siteId !== undefined)
+    )
+    if (siteIds.length === 1) {
+      metadata.siteId = siteIds[0]
+    }
+  }
+
+  return metadata
 }
 
 function buildRow(bucket: RowBucket): InstitutionalDenialDoctrinePressureRow {
@@ -650,12 +797,7 @@ function buildRow(bucket: RowBucket): InstitutionalDenialDoctrinePressureRow {
 
   return {
     rowId: bucket.rowId,
-    siteId: bucket.siteId,
-    staffId: bucket.staffId,
-    subjectId: bucket.subjectId,
-    protocolId: bucket.protocolId,
-    doctrineId: bucket.doctrineId,
-    week: bucket.week,
+    ...resolveEnrichedRowMetadata(bucket),
     pressureScore,
     signalCount: bucket.signals.length,
     upstreamFindingCount: upstreamEvidenceCount(bucket),
@@ -910,14 +1052,31 @@ function buildRowFindings(
     }
   }
 
+  const pressureFindings = findings.filter(
+    (finding) => finding.kind !== 'insufficient_pressure_evidence'
+  )
   const evidenceCount = contributingEvidenceCount(bucket)
-  if (evidenceCount < options.minimumEvidenceCount) {
+  const hasRowEvidence =
+    bucket.signals.length > 0 ||
+    bucket.staffFindings.length > 0 ||
+    bucket.deviationFindings.length > 0 ||
+    bucket.blameFindings.length > 0 ||
+    bucket.scorecardFindings.length > 0 ||
+    bucket.accommodationFindings.length > 0
+
+  if (
+    evidenceCount < options.minimumEvidenceCount ||
+    (hasRowEvidence && pressureFindings.length === 0)
+  ) {
     pushFinding(findings, {
       kind: 'insufficient_pressure_evidence',
       row,
       bucket,
       options,
-      detail: `Fewer than ${options.minimumEvidenceCount} evidence item(s) support this doctrine-pressure row.`,
+      detail:
+        pressureFindings.length === 0 && hasRowEvidence
+          ? 'Upstream evidence is present but none is eligible for doctrine-pressure findings on this row.'
+          : `Fewer than ${options.minimumEvidenceCount} evidence item(s) support this doctrine-pressure row.`,
     })
   }
 
@@ -1145,15 +1304,22 @@ function buildSummary(
   return summary
 }
 
-export function buildInstitutionalDenialDoctrinePressureReport(input: {
-  doctrinePressureSignals?: readonly InstitutionalDenialDoctrinePressureSignal[]
-  staffTelemetryFindings?: readonly StaffTreatmentTelemetryFinding[]
-  medicalDeviationFindings?: readonly MedicalOutcomeDeviationFinding[]
-  blameRoutingFindings?: readonly TreatmentFailureBlameRoutingFinding[]
-  medicalScorecardFindings?: readonly MedicalAccountabilityScorecardFinding[]
-  accommodationFindings?: readonly AccommodationAccessAuditFinding[]
-  options?: InstitutionalDenialDoctrinePressureOptions
-}): InstitutionalDenialDoctrinePressureReport {
+function emptyReport(): InstitutionalDenialDoctrinePressureReport {
+  return {
+    rows: [],
+    findings: [],
+    summary: emptySummary(),
+    lines: formatReportLines([], []),
+  }
+}
+
+export function buildInstitutionalDenialDoctrinePressureReport(
+  input?: InstitutionalDenialDoctrinePressureInput | null
+): InstitutionalDenialDoctrinePressureReport {
+  if (input == null) {
+    return emptyReport()
+  }
+
   const options = resolveOptions(input.options)
   const signals = dedupeSignals(input.doctrinePressureSignals ?? [])
   const staffFindings = input.staffTelemetryFindings ?? []
@@ -1170,34 +1336,13 @@ export function buildInstitutionalDenialDoctrinePressureReport(input: {
     scorecardFindings.length === 0 &&
     accommodationFindings.length === 0
   ) {
-    return {
-      rows: [],
-      findings: [],
-      summary: emptySummary(),
-      lines: formatReportLines([], []),
-    }
+    return emptyReport()
   }
 
   const buckets = new Map<string, RowBucket>()
 
   for (const signal of signals) {
-    const bucket = getOrCreateBucket(buckets, resolveSignalKey(signal))
-    bucket.signals.push(signal)
-    if (signal.siteId && bucket.siteId === undefined) {
-      bucket.siteId = signal.siteId
-    }
-    if (signal.staffId && bucket.staffId === undefined) {
-      bucket.staffId = signal.staffId
-    }
-    if (signal.subjectId && bucket.subjectId === undefined) {
-      bucket.subjectId = signal.subjectId
-    }
-    if (signal.protocolId && bucket.protocolId === undefined) {
-      bucket.protocolId = signal.protocolId
-    }
-    if (signal.doctrineId && bucket.doctrineId === undefined) {
-      bucket.doctrineId = signal.doctrineId
-    }
+    getOrCreateBucket(buckets, resolveSignalKey(signal)).signals.push(signal)
   }
 
   for (const finding of staffFindings) {
@@ -1231,22 +1376,22 @@ export function buildInstitutionalDenialDoctrinePressureReport(input: {
     ).accommodationFindings.push(finding)
   }
 
-  const bucketByRowId = new Map(
-    [...buckets.values()].map((bucket) => [bucket.rowId, bucket] as const)
+  const sortedBuckets = [...buckets.values()].sort((left, right) =>
+    compareRows(buildRow(left), buildRow(right))
   )
-  const rows = [...buckets.values()].map(buildRow).sort(compareRows)
-  const findings = rows
-    .flatMap((row) => {
-      const bucket = bucketByRowId.get(row.rowId)
-      if (bucket === undefined) {
-        return []
-      }
-      return buildRowFindings(row, bucket, options)
-    })
-    .sort(compareFindings)
 
-  const summary = buildSummary(rows, findings)
-  const lines = formatReportLines(rows, findings)
+  const rows: InstitutionalDenialDoctrinePressureRow[] = []
+  const findings: InstitutionalDenialDoctrinePressureFinding[] = []
 
-  return { rows, findings, summary, lines }
+  for (const bucket of sortedBuckets) {
+    const row = buildRow(bucket)
+    rows.push(row)
+    findings.push(...buildRowFindings(row, bucket, options))
+  }
+
+  const sortedFindings = findings.sort(compareFindings)
+  const summary = buildSummary(rows, sortedFindings)
+  const lines = formatReportLines(rows, sortedFindings)
+
+  return { rows, findings: sortedFindings, summary, lines }
 }

@@ -964,16 +964,17 @@ export function buildMedicalAccountabilityScorecard(input: {
     getOrCreateBucket(buckets, siteWeekKey(signal.siteId, signal.week)).siteSignals.push(signal)
   }
 
-  const rows = [...buckets.values()]
-    .map((bucket) => buildRow(bucket))
-    .sort(compareRows)
+  const rows: MedicalAccountabilityScorecardRow[] = []
+  const findings: MedicalAccountabilityScorecardFinding[] = []
 
-  const findings = [...buckets.values()]
-    .flatMap((bucket) => {
-      const row = rows.find((candidate) => candidate.rowId === bucket.rowId)
-      return row ? buildRowFindings(row, bucket, options) : []
-    })
-    .sort(compareFindings)
+  for (const bucket of buckets.values()) {
+    const row = buildRow(bucket, options)
+    rows.push(row)
+    findings.push(...buildRowFindings(row, bucket, options))
+  }
+
+  rows.sort(compareRows)
+  findings.sort(compareFindings)
 
   const countByKind = (kind: MedicalAccountabilityScorecardFindingKind) =>
     findings.filter((finding) => finding.kind === kind).length

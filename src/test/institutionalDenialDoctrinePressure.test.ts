@@ -778,6 +778,100 @@ describe('institutionalDenialDoctrinePressure (SPE-2001)', () => {
     ).toBe(true)
   })
 
+  it('preserves unambiguous staffId from signal-only subject/protocol rows', () => {
+    const singleStaff = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-staff',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:signal-staff',
+          protocolId: 'protocol:signal-staff',
+          staffId: 'staff:signal-only',
+          detail: 'Signal-only staff attribution.',
+        }),
+      ],
+    })
+    expect(singleStaff.rows[0]?.staffId).toBe('staff:signal-only')
+    expect(singleStaff.findings[0]?.staffId).toBe('staff:signal-only')
+
+    const matchingStaff = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-a',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:shared-signal',
+          protocolId: 'protocol:shared-signal',
+          staffId: 'staff:same',
+        }),
+        doctrineSignal({
+          signalId: 'sig-b',
+          kind: 'overclassification_pressure',
+          subjectId: 'agent:shared-signal',
+          protocolId: 'protocol:shared-signal',
+          staffId: 'staff:same',
+        }),
+      ],
+    })
+    expect(matchingStaff.rows).toHaveLength(1)
+    expect(matchingStaff.rows[0]?.staffId).toBe('staff:same')
+
+    const conflictingStaff = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-conflict-a',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:conflict-signal',
+          protocolId: 'protocol:conflict-signal',
+          staffId: 'staff:alpha',
+        }),
+        doctrineSignal({
+          signalId: 'sig-conflict-b',
+          kind: 'material_outcome_suppressed',
+          subjectId: 'agent:conflict-signal',
+          protocolId: 'protocol:conflict-signal',
+          staffId: 'staff:beta',
+        }),
+      ],
+    })
+    expect(conflictingStaff.rows[0]?.staffId).toBeUndefined()
+    expect(conflictingStaff.findings.every((finding) => finding.staffId === undefined)).toBe(true)
+  })
+
+  it('preserves unambiguous siteId from signal-only subject/protocol rows', () => {
+    const singleSite = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-site',
+          kind: 'material_outcome_suppressed',
+          subjectId: 'agent:signal-site',
+          protocolId: 'protocol:signal-site',
+          siteId: 'site:signal-only',
+        }),
+      ],
+    })
+    expect(singleSite.rows[0]?.siteId).toBe('site:signal-only')
+
+    const conflictingSite = buildInstitutionalDenialDoctrinePressureReport({
+      doctrinePressureSignals: [
+        doctrineSignal({
+          signalId: 'sig-site-a',
+          kind: 'patient_report_dismissed',
+          subjectId: 'agent:conflict-site',
+          protocolId: 'protocol:conflict-site',
+          siteId: 'site:alpha',
+        }),
+        doctrineSignal({
+          signalId: 'sig-site-b',
+          kind: 'support_access_restricted',
+          subjectId: 'agent:conflict-site',
+          protocolId: 'protocol:conflict-site',
+          siteId: 'site:beta',
+        }),
+      ],
+    })
+    expect(conflictingSite.rows[0]?.siteId).toBeUndefined()
+  })
+
   it('does not misattribute conflicting optional IDs on aggregate buckets', () => {
     const report = buildInstitutionalDenialDoctrinePressureReport({
       doctrinePressureSignals: [

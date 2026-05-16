@@ -739,6 +739,35 @@ function contributingEvidenceCount(bucket: RowBucket): number {
   return count
 }
 
+function resolveUnambiguousOptionalId(
+  keyDefined: string | undefined,
+  explicitValues: readonly (string | undefined)[],
+  upstreamValues: readonly (string | undefined)[]
+): string | undefined {
+  if (keyDefined !== undefined) {
+    return keyDefined
+  }
+
+  const explicit = uniqueSorted(
+    explicitValues.filter((value): value is string => value !== undefined)
+  )
+  if (explicit.length > 1) {
+    return undefined
+  }
+  if (explicit.length === 1) {
+    return explicit[0]
+  }
+
+  const upstream = uniqueSorted(
+    upstreamValues.filter((value): value is string => value !== undefined)
+  )
+  if (upstream.length === 1) {
+    return upstream[0]
+  }
+
+  return undefined
+}
+
 function resolveEnrichedRowMetadata(
   bucket: RowBucket
 ): Pick<
@@ -749,40 +778,25 @@ function resolveEnrichedRowMetadata(
     return { week: bucket.week }
   }
 
-  const metadata = {
-    siteId: bucket.siteId,
-    staffId: bucket.staffId,
+  const signalStaffIds = bucket.signals.map((signal) => signal.staffId)
+  const signalSiteIds = bucket.signals.map((signal) => signal.siteId)
+  const upstreamStaffIds = [
+    ...bucket.staffFindings.map((finding) => normalizeOptionalString(finding.staffId)),
+    ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.staffId)),
+  ]
+  const upstreamSiteIds = [
+    ...bucket.accommodationFindings.map((finding) => normalizeOptionalString(finding.siteId)),
+    ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.siteId)),
+  ]
+
+  return {
+    siteId: resolveUnambiguousOptionalId(bucket.siteId, signalSiteIds, upstreamSiteIds),
+    staffId: resolveUnambiguousOptionalId(bucket.staffId, signalStaffIds, upstreamStaffIds),
     subjectId: bucket.subjectId,
     protocolId: bucket.protocolId,
     doctrineId: bucket.doctrineId,
     week: bucket.week,
   }
-
-  if (metadata.staffId === undefined) {
-    const staffIds = uniqueSorted(
-      [
-        ...bucket.staffFindings.map((finding) => normalizeOptionalString(finding.staffId)),
-        ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.staffId)),
-      ].filter((staffId): staffId is string => staffId !== undefined)
-    )
-    if (staffIds.length === 1) {
-      metadata.staffId = staffIds[0]
-    }
-  }
-
-  if (metadata.siteId === undefined) {
-    const siteIds = uniqueSorted(
-      [
-        ...bucket.accommodationFindings.map((finding) => normalizeOptionalString(finding.siteId)),
-        ...bucket.scorecardFindings.map((finding) => normalizeOptionalString(finding.siteId)),
-      ].filter((siteId): siteId is string => siteId !== undefined)
-    )
-    if (siteIds.length === 1) {
-      metadata.siteId = siteIds[0]
-    }
-  }
-
-  return metadata
 }
 
 function buildRow(bucket: RowBucket): InstitutionalDenialDoctrinePressureRow {

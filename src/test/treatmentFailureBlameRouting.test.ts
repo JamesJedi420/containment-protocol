@@ -472,6 +472,49 @@ describe('treatmentFailureBlameRouting (SPE-2006)', () => {
     ).toBeDefined()
   })
 
+  it('drops malformed limitation acknowledgments before dedupe so valid rows are not displaced', () => {
+    const report = buildTreatmentFailureBlameRoutingReport({
+      failureContexts: [
+        failureContext({
+          contextId: 'ctx:ack-malformed',
+          subjectId: 'agent:ack-malformed',
+          protocolId: 'protocol:contain',
+          failureSignals: ['outcome_below_prediction'],
+        }),
+      ],
+      proposedAttributions: [
+        attribution({
+          attributionId: 'attr:ack-malformed',
+          subjectId: 'agent:ack-malformed',
+          protocolId: 'protocol:contain',
+          target: 'protocol_limitation',
+        }),
+      ],
+      limitationAcknowledgments: [
+        acknowledgment({
+          acknowledgmentId: 'ack:dup',
+          subjectId: '   ',
+          protocolId: 'protocol:contain',
+          limitationKind: 'protocol_ceiling',
+          acknowledgedBy: 'clinician',
+        }),
+        acknowledgment({
+          acknowledgmentId: 'ack:dup',
+          subjectId: 'agent:ack-malformed',
+          protocolId: 'protocol:contain',
+          limitationKind: 'protocol_ceiling',
+          acknowledgedBy: 'clinician',
+        }),
+      ],
+    })
+
+    expect(report.findings.map((row) => row.kind)).toContain('approved_accountability_route')
+    expect(report.findings.map((row) => row.kind)).not.toContain(
+      'missing_treatment_limitation_acknowledgment'
+    )
+    expect(report.findings.map((row) => row.kind)).not.toContain('prohibited_subject_deflection')
+  })
+
   it('deduplicates duplicate acknowledgmentId deterministically', () => {
     const report = buildTreatmentFailureBlameRoutingReport({
       failureContexts: [

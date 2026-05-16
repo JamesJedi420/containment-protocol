@@ -729,7 +729,12 @@ export function buildTreatmentFailureBlameRoutingReport(
   const limitationAcknowledgments = dedupeById(
     (input.limitationAcknowledgments ?? [])
       .map(normalizeAcknowledgment)
-      .filter((row) => row.acknowledgmentId.length > 0),
+      .filter(
+        (row) =>
+          row.acknowledgmentId.length > 0 &&
+          row.subjectId.length > 0 &&
+          row.protocolId.length > 0
+      ),
     (row) => row.acknowledgmentId
   )
 

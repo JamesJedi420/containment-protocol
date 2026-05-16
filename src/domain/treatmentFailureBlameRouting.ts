@@ -669,7 +669,7 @@ function buildInstitutionalAccountabilityRequiredFinding(input: {
     contextId: input.context.contextId,
     detail:
       input.attributionIds.length === 1
-        ? 'Only subject-side accountability routes were proposed despite material treatment failure; institutional accountability review is required.'
+        ? 'Only a subject-side accountability route was proposed despite material treatment failure; institutional accountability review is required.'
         : 'Only subject-side accountability routes were proposed for this failure pair; institutional accountability review is required.',
     recommendedAccountabilityFocus: 'institutional',
   }

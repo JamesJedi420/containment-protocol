@@ -315,7 +315,7 @@ function evaluateOneFact(input: {
     appliedEvidenceIds: appliedEvidenceIdsSorted,
     ignoredEvidenceIds: sortUniqueStrings(ignored),
     resolvedState,
-    currentBestState,
+    currentBestState: statusAfter === 'resolved' ? resolvedState : currentBestState,
     note: noteBody.trim().replace(/\s+/g, ' '),
   }
 

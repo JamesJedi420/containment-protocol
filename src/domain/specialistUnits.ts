@@ -276,9 +276,9 @@ function profileHasResearchFit(profile: UnitProfile, requiredSuitabilityTags: re
 
 function profileIsArmedMobileOnly(profile: UnitProfile) {
   const types = new Set(profile.unitTypes)
-  const hasArmedOrMobile = types.has('armed') || types.has('mobile')
+  const hasArmedAndMobile = types.has('armed') && types.has('mobile')
   const hasResearchType = types.has('research') || types.has('intelligence')
-  return hasArmedOrMobile && !hasResearchType && !profileHasResearchFit(profile, ['research_forward'])
+  return hasArmedAndMobile && !hasResearchType && !profileHasResearchFit(profile, ['research_forward'])
 }
 
 function addBlocker(

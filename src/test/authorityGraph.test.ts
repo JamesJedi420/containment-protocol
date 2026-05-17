@@ -596,4 +596,43 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(validation.issues.some((issue) => issue.code === 'missing_proxy_represents_node')).toBe(true)
     expect(validation.issues.some((issue) => issue.code === 'unmapped_relationship_kind')).toBe(true)
   })
+
+  it('14b. proxy cycle detection follows all branches, not only the first outgoing edge', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'proxy-root', nodeType: 'proxy', label: 'Root Liaison' }),
+        node({ id: 'constituency-a', nodeType: 'constituency', label: 'Ward Bloc A' }),
+        node({ id: 'constituency-b', nodeType: 'constituency', label: 'Ward Bloc B' }),
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+      ],
+      edges: [
+        edge({
+          id: 'proxy-a',
+          kind: 'proxy_representation',
+          fromNodeId: 'proxy-root',
+          toNodeId: 'agency-core',
+          representsNodeId: 'constituency-a',
+        }),
+        edge({
+          id: 'proxy-b',
+          kind: 'proxy_representation',
+          fromNodeId: 'proxy-root',
+          toNodeId: 'agency-core',
+          representsNodeId: 'constituency-b',
+        }),
+        edge({
+          id: 'proxy-cycle',
+          kind: 'proxy_representation',
+          fromNodeId: 'constituency-b',
+          toNodeId: 'agency-core',
+          representsNodeId: 'proxy-root',
+        }),
+      ],
+    }
+
+    const validation = validateAuthorityGraph(graph)
+    expect(validation.valid).toBe(false)
+    expect(validation.issues.some((issue) => issue.code === 'proxy_representation_cycle')).toBe(true)
+    expect(validation.issues.some((issue) => issue.relatedIds?.includes('proxy-b'))).toBe(true)
+  })
 })

@@ -576,6 +576,10 @@ export function validateAuthorityGraph(graph: AuthorityGraph): AuthorityGraphVal
     }
   }
 
+  for (const nextNodeIds of proxyRepresentationAdjacency.values()) {
+    nextNodeIds.sort((left, right) => left.localeCompare(right))
+  }
+
   const proxyCycles = new Set<string>()
   for (const edge of graph.edges) {
     if (edge.kind !== 'proxy_representation' || !edge.representsNodeId) {
@@ -603,8 +607,7 @@ export function validateAuthorityGraph(graph: AuthorityGraph): AuthorityGraphVal
       const nextVisited = new Set(current.visited)
       nextVisited.add(current.nodeId)
 
-      const nextNodeIds =
-        proxyRepresentationAdjacency.get(current.nodeId) ?? []
+      const nextNodeIds = proxyRepresentationAdjacency.get(current.nodeId) ?? []
       for (const nextNodeId of nextNodeIds) {
         stack.push({
           nodeId: nextNodeId,

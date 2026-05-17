@@ -331,24 +331,32 @@ export function validateSpecialistUnitRegistry(
       })
     }
 
-    if (unit.deploymentDelayWeeks < 0) {
+    if (!Number.isFinite(unit.deploymentDelayWeeks) || unit.deploymentDelayWeeks < 0) {
       issues.push({
         code: 'invalid_deployment_delay',
-        detail: `Unit ${unit.id} has negative deploymentDelayWeeks.`,
+        detail: `Unit ${unit.id} deploymentDelayWeeks must be a finite number greater than or equal to 0.`,
       })
     }
 
-    if (unit.fatigueReadiness < 0 || unit.fatigueReadiness > 100) {
+    if (
+      !Number.isFinite(unit.fatigueReadiness) ||
+      unit.fatigueReadiness < 0 ||
+      unit.fatigueReadiness > 100
+    ) {
       issues.push({
         code: 'invalid_fatigue_readiness',
-        detail: `Unit ${unit.id} fatigueReadiness must be between 0 and 100.`,
+        detail: `Unit ${unit.id} fatigueReadiness must be a finite number between 0 and 100.`,
       })
     }
 
-    if (unit.fatigueCeiling < 0 || unit.fatigueCeiling > 100) {
+    if (
+      !Number.isFinite(unit.fatigueCeiling) ||
+      unit.fatigueCeiling < 0 ||
+      unit.fatigueCeiling > 100
+    ) {
       issues.push({
         code: 'invalid_fatigue_ceiling',
-        detail: `Unit ${unit.id} fatigueCeiling must be between 0 and 100.`,
+        detail: `Unit ${unit.id} fatigueCeiling must be a finite number between 0 and 100.`,
       })
     }
   }

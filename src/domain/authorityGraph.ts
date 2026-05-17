@@ -250,10 +250,15 @@ function confidenceRank(confidence: AuthoritySourceConfidence) {
 
 function meetsConfidenceFloor(
   edgeConfidence: AuthoritySourceConfidence,
-  floor: AuthoritySourceConfidence | undefined
+  floor: AuthoritySourceConfidence | undefined,
+  includeContradictedClaims: boolean
 ) {
+  if (edgeConfidence === 'contradicted') {
+    return includeContradictedClaims
+  }
+
   if (!floor) {
-    return edgeConfidence !== 'contradicted'
+    return true
   }
 
   return confidenceRank(edgeConfidence) >= confidenceRank(floor)
@@ -263,8 +268,16 @@ function scaleMagnitude(base: number, confidence: AuthoritySourceConfidence) {
   return Math.trunc((base * CONFIDENCE_WEIGHT[confidence]) / 100)
 }
 
-function edgeIsActive(edge: AuthorityGraphEdge, asOfWeek: number) {
-  if (edge.status === 'severed' || edge.status === 'outdated' || edge.status === 'contradicted') {
+function edgeIsActive(
+  edge: AuthorityGraphEdge,
+  asOfWeek: number,
+  includeContradictedClaims = false
+) {
+  if (edge.status === 'contradicted') {
+    return includeContradictedClaims
+  }
+
+  if (edge.status === 'severed' || edge.status === 'outdated') {
     return false
   }
 
@@ -738,7 +751,7 @@ function addConsequence(
   )
 
   if (existing) {
-    existing.magnitude = Math.trunc(existing.magnitude + input.magnitude)
+    existing.magnitude = clampMagnitude(existing.magnitude + input.magnitude)
     existing.edgeIds = uniqueSorted([...existing.edgeIds, ...input.edgeIds])
     existing.contradicted = existing.contradicted || input.contradicted
     existing.delayed = existing.delayed || input.delayed
@@ -748,7 +761,7 @@ function addConsequence(
   consequences.push({
     channel: input.channel,
     effect: input.effect,
-    magnitude: input.magnitude,
+    magnitude: clampMagnitude(input.magnitude),
     reasonCode: input.reasonCode,
     edgeIds: [...input.edgeIds],
     confidenceApplied: input.confidenceApplied,
@@ -774,27 +787,58 @@ function resolveProxyTargetNodeId(
   return edge.toNodeId
 }
 
+function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
+  if (edge.fromNodeId === nodeId || edge.toNodeId === nodeId) {
+    return true
+  }
+
+  return edge.kind === 'proxy_representation' && edge.representsNodeId === nodeId
+}
+
+function edgeInvolvesPair(
+  edge: AuthorityGraphEdge,
+  actorId: string,
+  counterpartyId: string | undefined
+) {
+  if (!edgeInvolvesNode(edge, actorId)) {
+    return false
+  }
+
+  if (!counterpartyId) {
+    return true
+  }
+
+  return edgeInvolvesNode(edge, counterpartyId)
+}
+
+function resolvePeerNodeId(
+  edge: AuthorityGraphEdge,
+  actorId: string,
+  effectiveTargetId: string
+) {
+  if (edge.fromNodeId === actorId) {
+    return edge.kind === 'proxy_representation' ? effectiveTargetId : edge.toNodeId
+  }
+
+  if (edge.toNodeId === actorId) {
+    return edge.fromNodeId
+  }
+
+  if (edge.representsNodeId === actorId) {
+    return edge.toNodeId
+  }
+
+  return edge.toNodeId
+}
+
 function edgeAppliesToQuery(
   edge: AuthorityGraphEdge,
   query: AuthorityGraphQuery,
   actorId: string,
   counterpartyId: string | undefined
 ) {
-  const involvesActor = edge.fromNodeId === actorId || edge.toNodeId === actorId
-  if (!involvesActor) {
+  if (!edgeInvolvesPair(edge, actorId, counterpartyId)) {
     return false
-  }
-
-  if (counterpartyId) {
-    const involvesCounterparty =
-      edge.fromNodeId === counterpartyId || edge.toNodeId === counterpartyId
-
-    if (!involvesCounterparty) {
-      const proxyTarget = edge.representsNodeId
-      if (proxyTarget !== counterpartyId) {
-        return false
-      }
-    }
   }
 
   if (edge.pressureChannels && edge.pressureChannels.length > 0) {
@@ -819,29 +863,28 @@ function mapEdgeToConsequences(
     return
   }
 
-  const delayed = edgeIsDelayed(edge, query.asOfWeek)
-  if (!edgeIsActive(edge, query.asOfWeek) && !delayed) {
-    return
-  }
-
   const includeContradicted = query.includeContradictedClaims === true
-  if (edge.sourceConfidence === 'contradicted' && !includeContradicted) {
+  const delayed = edgeIsDelayed(edge, query.asOfWeek)
+  if (!edgeIsActive(edge, query.asOfWeek, includeContradicted) && !delayed) {
     return
   }
 
-  if (!meetsConfidenceFloor(edge.sourceConfidence, query.viewerConfidenceFloor)) {
+  if (
+    !meetsConfidenceFloor(
+      edge.sourceConfidence,
+      query.viewerConfidenceFloor,
+      includeContradicted
+    )
+  ) {
     return
   }
 
   const contradicted =
-    contradictionEdgeIds.has(edge.id) || edge.sourceConfidence === 'contradicted'
+    contradictionEdgeIds.has(edge.id) ||
+    edge.sourceConfidence === 'contradicted' ||
+    edge.status === 'contradicted'
   const effectiveTargetId = resolveProxyTargetNodeId(graph, edge, nodeById)
-  const peerId =
-    edge.fromNodeId === actorId
-      ? effectiveTargetId
-      : edge.fromNodeId === effectiveTargetId
-        ? actorId
-        : edge.toNodeId
+  const peerId = resolvePeerNodeId(edge, actorId, effectiveTargetId)
 
   const baseStrength = clampStrength(edge.strength ?? 50)
   const weighted = scaleMagnitude(baseStrength, edge.sourceConfidence)
@@ -1019,13 +1062,33 @@ function clampStrength(value: number) {
   return Math.max(0, Math.min(100, Math.trunc(value)))
 }
 
-function collectContradictionEdgeIds(graph: AuthorityGraph) {
+function clampMagnitude(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.max(-100, Math.min(100, Math.trunc(value)))
+}
+
+function collectContradictionEdgeIdsForPair(
+  graph: AuthorityGraph,
+  actorId: string,
+  counterpartyId: string | undefined
+) {
+  const edgeById = new Map(graph.edges.map((edge) => [edge.id, edge]))
   const ids = new Set<string>()
+
   for (const contradiction of detectContradictoryCurrentClaims(graph.edges)) {
-    for (const edgeId of contradiction.edgeIds) {
+    const scopedIds = contradiction.edgeIds.filter((edgeId) => {
+      const edge = edgeById.get(edgeId)
+      return edge ? edgeInvolvesPair(edge, actorId, counterpartyId) : false
+    })
+
+    for (const edgeId of scopedIds) {
       ids.add(edgeId)
     }
   }
+
   return ids
 }
 
@@ -1054,7 +1117,11 @@ export function resolveAuthorityGraphConsequences(
 
   const nodeById = indices.nodeById
   const consequences: AuthorityConsequence[] = []
-  const contradictionEdgeIds = collectContradictionEdgeIds(graph)
+  const contradictionEdgeIds = collectContradictionEdgeIdsForPair(
+    graph,
+    actorId,
+    counterpartyId
+  )
 
   if (query.channel === 'contradiction_flag' && contradictionEdgeIds.size > 0) {
     for (const edgeId of uniqueSorted([...contradictionEdgeIds])) {
@@ -1087,23 +1154,6 @@ export function resolveAuthorityGraphConsequences(
     )
   }
 
-  if (
-    query.channel !== 'contradiction_flag' &&
-    contradictionEdgeIds.size > 0 &&
-    consequences.every((consequence) => consequence.channel !== 'contradiction_flag')
-  ) {
-    addConsequence(consequences, {
-      channel: 'contradiction_flag',
-      effect: 'flag',
-      magnitude: 25,
-      reasonCode: 'conflicting_current_claims',
-      edgeIds: uniqueSorted([...contradictionEdgeIds]),
-      confidenceApplied: 'probable',
-      delayed: false,
-      contradicted: true,
-    })
-  }
-
   sortConsequences(consequences)
 
   return Object.freeze(
@@ -1129,6 +1179,22 @@ export function collectAuthorityGraphTokens(graph: AuthorityGraph): readonly str
       tokens.push(alias.aliasId, alias.label)
     }
 
+    for (const linkedId of node.linkedFactionIds ?? []) {
+      tokens.push(linkedId)
+    }
+
+    for (const linkedId of node.linkedPopulationIds ?? []) {
+      tokens.push(linkedId)
+    }
+
+    for (const linkedId of node.linkedDepartmentIds ?? []) {
+      tokens.push(linkedId)
+    }
+
+    for (const linkedId of node.linkedSiteIds ?? []) {
+      tokens.push(linkedId)
+    }
+
     for (const value of Object.values(node.metadata ?? {})) {
       if (typeof value === 'string') {
         tokens.push(value)
@@ -1138,6 +1204,12 @@ export function collectAuthorityGraphTokens(graph: AuthorityGraph): readonly str
 
   for (const edge of graph.edges) {
     tokens.push(edge.id, edge.kind, edge.fromNodeId, edge.toNodeId, edge.provenance.sourceTag)
+    if (edge.representsNodeId) {
+      tokens.push(edge.representsNodeId)
+    }
+    if (edge.provenance.recorderId) {
+      tokens.push(edge.provenance.recorderId)
+    }
     if (edge.notes) {
       tokens.push(edge.notes)
     }

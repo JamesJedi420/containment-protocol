@@ -1,14 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type {
-  AuthorityBargainingOutcome,
-  AuthorityGraph,
-  AuthorityGraphEdge,
-  AuthorityGraphNode,
-  AuthorityNegotiationRequest,
-} from '../domain/authorityNegotiation'
+import type { AuthorityBargainingOutcome, AuthorityNegotiationRequest } from '../domain/authorityNegotiation'
 import { resolveAuthorityNegotiation } from '../domain/authorityNegotiation'
+import type { AuthorityGraph, AuthorityGraphEdge, AuthorityGraphNode } from '../domain/authorityGraph'
 import {
   authorityGraphTokensContainFranchiseReferences,
   collectAuthorityGraphTokens,
@@ -621,9 +616,8 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
       },
     ]
 
-    const covered = new Set(scenarios.map((scenario) => scenario.run()))
     for (const scenario of scenarios) {
-      expect(covered.has(scenario.outcome), scenario.label).toBe(true)
+      expect(scenario.run(), scenario.label).toBe(scenario.outcome)
     }
   })
 
@@ -737,5 +731,143 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
 
     expect(contradicted.contradicted).toBe(true)
     expect(contradicted.baselineConsequences.some((item) => item.contradicted)).toBe(true)
+  })
+
+  it('15. pair hints respect pressureChannels for the requested channel', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'regime-host', nodeType: 'external_regime', label: 'Host Perimeter Authority' }),
+      ],
+      edges: [
+        edge({
+          id: 'shared-1',
+          kind: 'shared_authority',
+          fromNodeId: 'agency-core',
+          toNodeId: 'regime-host',
+          pressureChannels: ['secrecy'],
+        }),
+      ],
+    }
+
+    const result = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'permission',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    expect(result.outcome).not.toBe('grudging_alignment')
+  })
+
+  it('16. agenda dilution without aid grant does not emit negative grant consequences', () => {
+    const result = resolveAuthorityNegotiation(
+      {
+        nodes: [
+          node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+          node({ id: 'faction-a', nodeType: 'faction', label: 'Archive Bloc' }),
+        ],
+        edges: [],
+      },
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'faction-a',
+        channel: 'permission',
+        stance: 'stall',
+      })
+    )
+
+    expect(result.outcome).toBe('agenda_dilution')
+    expect(
+      result.effectiveConsequences.some(
+        (item) => item.channel === 'aid' && item.effect === 'grant' && item.magnitude < 0
+      )
+    ).toBe(false)
+  })
+
+  it('17. stall agenda dilution sets top-level delayed when effective consequences delay', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'net-veil', nodeType: 'hidden_network', label: 'Veil Network' }),
+      ],
+      edges: [
+        edge({
+          id: 'hid-1',
+          kind: 'hidden_agenda',
+          fromNodeId: 'agency-core',
+          toNodeId: 'net-veil',
+          status: 'hidden',
+          hiddenUntilWeek: 12,
+          pressureChannels: ['information_flow'],
+        }),
+      ],
+    }
+
+    const result = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'net-veil',
+        channel: 'permission',
+        stance: 'stall',
+        asOfWeek: 8,
+      })
+    )
+
+    expect(result.outcome).toBe('agenda_dilution')
+    expect(result.delayed).toBe(true)
+    expect(result.effectiveConsequences.some((item) => item.effect === 'delay')).toBe(true)
+  })
+
+  it('18. unrelated graph contradictions do not force grudging alignment', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'faction-a', nodeType: 'faction', label: 'Archive Bloc' }),
+        node({ id: 'faction-b', nodeType: 'faction', label: 'Security Bloc' }),
+        node({ id: 'faction-c', nodeType: 'faction', label: 'Logistics Bloc' }),
+      ],
+      edges: [
+        edge({
+          id: 'front-ab',
+          kind: 'front',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+          sourceConfidence: 'verified',
+        }),
+        edge({
+          id: 'all-ab',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+          sourceConfidence: 'rumor',
+        }),
+        edge({
+          id: 'dep-ac',
+          kind: 'dependency',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-c',
+          strength: 70,
+        }),
+      ],
+    }
+
+    const result = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-c',
+        channel: 'permission',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    expect(result.outcome).toBe('partial_cooperation')
+    expect(result.contradicted).toBe(false)
   })
 })

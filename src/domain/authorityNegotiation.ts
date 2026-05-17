@@ -111,13 +111,24 @@ function edgeIsActive(edge: AuthorityGraphEdge, asOfWeek: number) {
   return ACTIVE_STATUSES.has(edge.status)
 }
 
-function edgeInvolvesPair(edge: AuthorityGraphEdge, actorId: string, counterpartyId: string) {
-  const endpoints = new Set([edge.fromNodeId, edge.toNodeId])
-  if (edge.representsNodeId) {
-    endpoints.add(edge.representsNodeId)
+function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
+  if (edge.fromNodeId === nodeId || edge.toNodeId === nodeId) {
+    return true
   }
 
-  return endpoints.has(actorId) && endpoints.has(counterpartyId)
+  return edge.kind === 'proxy_representation' && edge.representsNodeId === nodeId
+}
+
+function edgeInvolvesPair(edge: AuthorityGraphEdge, actorId: string, counterpartyId: string) {
+  return edgeInvolvesNode(edge, actorId) && edgeInvolvesNode(edge, counterpartyId)
+}
+
+function edgeAppliesToChannel(edge: AuthorityGraphEdge, channel: AuthorityPressureChannel) {
+  if (!edge.pressureChannels || edge.pressureChannels.length === 0) {
+    return true
+  }
+
+  return edge.pressureChannels.includes(channel)
 }
 
 interface PairGraphHints {
@@ -129,13 +140,18 @@ function collectPairGraphHints(
   graph: AuthorityGraph,
   actorId: string,
   counterpartyId: string,
-  asOfWeek: number
+  asOfWeek: number,
+  channel: AuthorityPressureChannel
 ): PairGraphHints {
   const activeKinds = new Set<AuthorityRelationshipKind>()
   let maxVolatility = 0
 
   for (const edge of graph.edges) {
-    if (!edgeInvolvesPair(edge, actorId, counterpartyId) || !edgeIsActive(edge, asOfWeek)) {
+    if (
+      !edgeInvolvesPair(edge, actorId, counterpartyId) ||
+      !edgeIsActive(edge, asOfWeek) ||
+      !edgeAppliesToChannel(edge, channel)
+    ) {
       continue
     }
 
@@ -369,7 +385,8 @@ function cloneConsequence(consequence: AuthorityConsequence): AuthorityConsequen
 
 function buildAdjustments(
   outcome: AuthorityBargainingOutcome,
-  request: AuthorityNegotiationRequest
+  request: AuthorityNegotiationRequest,
+  baseline: readonly AuthorityConsequence[]
 ): AuthorityNegotiationAdjustment[] {
   const channel = request.channel
   const adjustments: AuthorityNegotiationAdjustment[] = []
@@ -427,12 +444,26 @@ function buildAdjustments(
         magnitudeDelta: 25,
         reasonCode: 'negotiation_agenda_dilution',
       })
-      adjustments.push({
-        channel: 'aid',
-        effect: 'grant',
-        magnitudeDelta: -15,
-        reasonCode: 'negotiation_agenda_aid_trim',
-      })
+      if (
+        baseline.some(
+          (consequence) =>
+            consequence.channel === 'aid' && consequence.effect === 'grant' && consequence.magnitude > 0
+        )
+      ) {
+        adjustments.push({
+          channel: 'aid',
+          effect: 'grant',
+          magnitudeDelta: -15,
+          reasonCode: 'negotiation_agenda_aid_trim',
+        })
+      } else if (channel === 'aid') {
+        adjustments.push({
+          channel: 'aid',
+          effect: 'modify',
+          magnitudeDelta: -15,
+          reasonCode: 'negotiation_agenda_aid_trim',
+        })
+      }
       break
 
     default:
@@ -554,7 +585,13 @@ export function resolveAuthorityNegotiation(
   const concessionCost = clampInteger(request.concessionCost ?? 40, 0, 100)
 
   const baseline = resolveAuthorityGraphConsequences(graph, buildGraphQuery(request))
-  const hints = collectPairGraphHints(graph, actorId, counterpartyId, request.asOfWeek)
+  const hints = collectPairGraphHints(
+    graph,
+    actorId,
+    counterpartyId,
+    request.asOfWeek,
+    request.channel
+  )
   const signature = buildPressureSignature(baseline, request.channel)
 
   const classification = classifyOutcome(
@@ -566,8 +603,12 @@ export function resolveAuthorityNegotiation(
     concessionCost
   )
 
-  const adjustments = buildAdjustments(classification.outcome, request)
+  const adjustments = buildAdjustments(classification.outcome, request, baseline)
   const effective = applyAdjustments(baseline, adjustments, signature)
+  const effectiveDelayed = effective.some(
+    (consequence) => consequence.delayed || consequence.effect === 'delay'
+  )
+  const adjustmentDelayed = adjustments.some((adjustment) => adjustment.effect === 'delay')
 
   const resultReasonCodes = uniqueSorted([
     ...classification.reasonCodes,
@@ -582,6 +623,10 @@ export function resolveAuthorityNegotiation(
     retaliationDueWeek: classification.retaliationDueWeek,
     reasonCodes: Object.freeze(resultReasonCodes),
     contradicted: signature.contradicted,
-    delayed: signature.delayed || classification.outcome === 'delayed_retaliation',
+    delayed:
+      signature.delayed ||
+      classification.outcome === 'delayed_retaliation' ||
+      effectiveDelayed ||
+      adjustmentDelayed,
   })
 }

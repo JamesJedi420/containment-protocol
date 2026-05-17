@@ -297,11 +297,7 @@ function buildAliasIndex(graph: AuthorityGraph) {
   const aliasToNodeId = new Map<string, string>()
 
   for (const node of graph.nodes) {
-    const aliases = [...(node.aliases ?? [])].sort((left, right) =>
-      left.aliasId.localeCompare(right.aliasId)
-    )
-
-    for (const alias of aliases) {
+    for (const alias of node.aliases ?? []) {
       const keys = uniqueSorted([alias.aliasId, alias.label])
       for (const key of keys) {
         if (!aliasToNodeId.has(key)) {

@@ -435,6 +435,57 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(first).toEqual(second)
   })
 
+  it('11a. unresolved counterparty id returns no consequences instead of all actor edges', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'faction-a', nodeType: 'faction', label: 'Archive Bloc' }),
+        node({ id: 'faction-b', nodeType: 'faction', label: 'Security Bloc' }),
+        node({ id: 'faction-c', nodeType: 'faction', label: 'Logistics Bloc' }),
+      ],
+      edges: [
+        edge({
+          id: 'riv-ab',
+          kind: 'rivalry',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+        }),
+        edge({
+          id: 'all-ac',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-c',
+        }),
+      ],
+    }
+
+    const pairwise = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-b',
+        channel: 'hostility',
+      })
+    )
+
+    const unresolvedCounterparty = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'stale-alias-typo',
+        channel: 'hostility',
+      })
+    )
+
+    const allActorEdges = resolveAuthorityGraphConsequences(
+      graph,
+      query({ actorNodeId: 'faction-a', channel: 'hostility' })
+    )
+
+    expect(pairwise.length).toBeGreaterThan(0)
+    expect(unresolvedCounterparty).toEqual([])
+    expect(allActorEdges.length).toBeGreaterThan(pairwise.length)
+  })
+
   it('11. inputs are not mutated', () => {
     const graph: AuthorityGraph = structuredClone({
       nodes: [node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' })],

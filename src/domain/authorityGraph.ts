@@ -954,9 +954,18 @@ export function resolveAuthorityGraphConsequences(
     return Object.freeze([])
   }
 
-  const counterpartyId = query.counterpartyNodeId
-    ? normalizeAuthorityNodeId(graph, query.counterpartyNodeId)
-    : undefined
+  let counterpartyId: string | undefined
+  if (query.counterpartyNodeId !== undefined) {
+    const counterpartyRef = normalizeToken(query.counterpartyNodeId)
+    if (!counterpartyRef) {
+      return Object.freeze([])
+    }
+
+    counterpartyId = normalizeAuthorityNodeId(graph, counterpartyRef)
+    if (!counterpartyId) {
+      return Object.freeze([])
+    }
+  }
 
   const nodeById = buildNodeIndex(graph)
   const consequences: AuthorityConsequence[] = []

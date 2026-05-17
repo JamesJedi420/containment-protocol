@@ -674,7 +674,7 @@ function addConsequence(
 }
 
 function resolveProxyTargetNodeId(
-  graph: AuthorityGraph,
+  _graph: AuthorityGraph,
   edge: AuthorityGraphEdge,
   nodeById: Map<string, AuthorityGraphNode>
 ) {

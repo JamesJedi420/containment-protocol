@@ -689,7 +689,13 @@ export function resolveUnitForMission(
     return left.unitId.localeCompare(right.unitId)
   })
 
-  const maxResults = options.maxResults ?? ranked.length
+  const requestedMaxResults = options.maxResults
+  const maxResults =
+    requestedMaxResults === undefined
+      ? ranked.length
+      : Number.isFinite(requestedMaxResults) && requestedMaxResults > 0
+        ? Math.floor(requestedMaxResults)
+        : 0
 
   return {
     ranked: ranked.slice(0, maxResults),

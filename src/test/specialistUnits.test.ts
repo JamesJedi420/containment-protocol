@@ -199,11 +199,12 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     )
   })
 
-  it('6. disbanded / archived unit cannot deploy', () => {
+  it('6. disbanded / archived / forming unit cannot deploy', () => {
     const registry: SpecialistUnitRegistry = {
       units: [
         baseProfile({ id: 'disbanded-unit', lifecycleState: 'disbanded' }),
         baseProfile({ id: 'archived-unit', lifecycleState: 'archived' }),
+        baseProfile({ id: 'forming-unit', lifecycleState: 'forming' }),
       ],
     }
 

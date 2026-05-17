@@ -208,6 +208,7 @@ const AUTHORITY_TIER_ORDER: readonly UnitAuthorityTier[] = [
 
 const NON_DEPLOYABLE_LIFECYCLE: ReadonlySet<UnitLifecycleState> = new Set([
   'proposed',
+  'forming',
   'disbanded',
   'replaced',
   'absorbed',

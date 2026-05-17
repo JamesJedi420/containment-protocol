@@ -250,6 +250,26 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     })
     expect(archived.lifecycleState).toBe('archived')
     expect(archived.permanence).toBe('archived_record')
+
+    const persistent = baseProfile({
+      id: 'persistent-provisional',
+      lifecycleState: 'provisional',
+      permanence: 'provisional',
+      provisionalExpiresAfterIncident: false,
+    })
+    const stillProvisional = transitionProvisionalUnitLifecycle({
+      profile: persistent,
+      incidentClosed: true,
+    })
+    expect(stillProvisional.lifecycleState).toBe('provisional')
+    expect(stillProvisional.permanence).toBe('provisional')
+
+    const explicitArchive = transitionProvisionalUnitLifecycle({
+      profile: persistent,
+      incidentClosed: true,
+      retainDecision: 'archive',
+    })
+    expect(explicitArchive.lifecycleState).toBe('archived')
   })
 
   it('8. duplicate designation resolver separates same code across branches/eras', () => {

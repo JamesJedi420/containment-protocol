@@ -257,10 +257,7 @@ function countTagOverlap(required: readonly string[], available: readonly string
 }
 
 function hasTagOverlap(required: readonly string[], available: readonly string[]) {
-  if (
-    requiredSuitabilityTags.length > 0 &&
-    hasTagOverlap(requiredSuitabilityTags, profile.suitabilityTags)
-  ) {
+  if (required.length === 0) {
     return true
   }
 
@@ -735,6 +732,19 @@ export function transitionProvisionalUnitLifecycle(
       recordConfidence: 'disbanded',
       provisionalExpiresAfterIncident: false,
     }
+  }
+
+  if (input.retainDecision === 'archive') {
+    return {
+      ...profile,
+      lifecycleState: 'archived',
+      permanence: 'archived_record',
+      provisionalExpiresAfterIncident: false,
+    }
+  }
+
+  if (profile.provisionalExpiresAfterIncident !== true) {
+    return profile
   }
 
   return {

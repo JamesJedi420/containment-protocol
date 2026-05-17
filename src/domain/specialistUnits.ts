@@ -255,7 +255,10 @@ function countTagOverlap(required: readonly string[], available: readonly string
 }
 
 function hasTagOverlap(required: readonly string[], available: readonly string[]) {
-  if (required.length === 0) {
+  if (
+    requiredSuitabilityTags.length > 0 &&
+    hasTagOverlap(requiredSuitabilityTags, profile.suitabilityTags)
+  ) {
     return true
   }
 

@@ -264,6 +264,14 @@ function hasTagOverlap(required: readonly string[], available: readonly string[]
   return countTagOverlap(required, available) > 0
 }
 
+function hasAllRequiredTags(required: readonly string[], available: readonly string[]) {
+  if (required.length === 0) {
+    return true
+  }
+
+  return countTagOverlap(required, available) === required.length
+}
+
 function profileHasResearchFit(profile: UnitProfile, requiredSuitabilityTags: readonly string[]) {
   if (hasTagOverlap(requiredSuitabilityTags, profile.suitabilityTags)) {
     return true
@@ -554,6 +562,10 @@ function evaluateUnitMissionFit(
     if (suitabilityOverlapCount === 0) {
       addBlocker(blockers, 'wrong_mission_posture', 'soft')
       fitScore -= 20
+    } else if (!hasAllRequiredTags(packet.requiredSuitabilityTags, profile.suitabilityTags)) {
+      addBlocker(blockers, 'wrong_mission_posture', 'soft')
+      fitScore -= 10
+      rankingNotes.push('penalty:partial_suitability')
     } else {
       fitScore += suitabilityOverlapCount * 10
       rankingNotes.push('bonus:suitability_overlap')

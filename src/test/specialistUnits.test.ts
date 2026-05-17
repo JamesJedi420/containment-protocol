@@ -116,6 +116,35 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     ).toBe('soft')
   })
 
+  it('1c. partial suitability match is penalized versus full match', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({
+          id: 'partial-suitability',
+          designationCode: 'R-110',
+          suitabilityTags: ['research_forward'],
+        }),
+        baseProfile({
+          id: 'full-suitability',
+          designationCode: 'R-111',
+          suitabilityTags: ['research_forward', 'analysis'],
+        }),
+      ],
+    }
+
+    const output = resolveUnitForMission({
+      packet: basePacket({
+        requiredSuitabilityTags: ['research_forward', 'analysis'],
+      }),
+      registry,
+    })
+
+    expect(output.ranked[0]?.unitId).toBe('full-suitability')
+    const partial = output.ranked.find((result) => result.unitId === 'partial-suitability')
+    expect(partial?.rankingNotes).toContain('penalty:partial_suitability')
+    expect(partial?.fitScore ?? 0).toBeLessThan(output.ranked[0]?.fitScore ?? 0)
+  })
+
   it('2. hazard mismatch blocks or strongly penalizes a unit', () => {
     const registry: SpecialistUnitRegistry = {
       units: [

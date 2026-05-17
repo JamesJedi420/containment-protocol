@@ -290,19 +290,19 @@ function addBlocker(
 }
 
 function freezeProfile(profile: UnitProfile): UnitProfile {
-  return {
+  return Object.freeze({
     ...profile,
-    unitTypes: [...profile.unitTypes],
-    doctrine: [...profile.doctrine],
-    jurisdiction: [...profile.jurisdiction],
-    equipment: [...profile.equipment],
-    suitabilityTags: [...profile.suitabilityTags],
-    hazardProfileTags: [...profile.hazardProfileTags],
-    environmentClasses: [...profile.environmentClasses],
+    unitTypes: Object.freeze([...profile.unitTypes]),
+    doctrine: Object.freeze([...profile.doctrine]),
+    jurisdiction: Object.freeze([...profile.jurisdiction]),
+    equipment: Object.freeze([...profile.equipment]),
+    suitabilityTags: Object.freeze([...profile.suitabilityTags]),
+    hazardProfileTags: Object.freeze([...profile.hazardProfileTags]),
+    environmentClasses: Object.freeze([...profile.environmentClasses]),
     coverHostConstraints: profile.coverHostConstraints
-      ? [...profile.coverHostConstraints]
+      ? Object.freeze([...profile.coverHostConstraints])
       : undefined,
-  }
+  })
 }
 
 export function validateSpecialistUnitRegistry(

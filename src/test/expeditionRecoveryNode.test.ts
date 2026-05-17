@@ -3,13 +3,14 @@ import { createStartingState } from '../data/startingState'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { readFieldBaseFromCase } from '../domain/fieldBaseStaging'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { isExpeditionRecoveryMode } from '../domain/models'
 import {
   ACTIVE_RECOVERY_DEPLOYED_SCALE,
   SANCTUARY_RECOVERY_DEPLOYED_SCALE,
   UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
   buildDeployedRecoveryLegibilityForCase,
   buildDeployedRecoveryModeByAgentId,
-  formatExpeditionRecoveryLegibilityLine,
+  formatExpeditionRecoveryLegibilityFromMode,
   resolveDeployedRecoveryModeForCase,
   resolveExpeditionRecoveryModeFromStagingQuality,
   scaleDeployedMissionFatigueDelta,
@@ -17,6 +18,12 @@ import {
 import type { CaseInstance, GameState } from '../domain/models'
 
 describe('expeditionRecoveryNode (SPE-99)', () => {
+  it('isExpeditionRecoveryMode narrows persisted report values', () => {
+    expect(isExpeditionRecoveryMode('sanctuary_recovery')).toBe(true)
+    expect(isExpeditionRecoveryMode('invalid_mode')).toBe(false)
+    expect(isExpeditionRecoveryMode(42)).toBe(false)
+  })
+
   it('readFieldBaseFromCase rejects malformed staging blobs', () => {
     const missingLabel: CaseInstance = {
       id: 'c1',
@@ -46,19 +53,13 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
 
   it('formats recovery legibility lines for sanctuary and unsafe pause', () => {
     expect(
-      formatExpeditionRecoveryLegibilityLine('sanctuary_recovery', {
-        label: 'vault-approach-bivouac',
-        quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
-      })
+      formatExpeditionRecoveryLegibilityFromMode('sanctuary_recovery', 'vault-approach-bivouac')
     ).toContain('vault-approach-bivouac')
     expect(
-      formatExpeditionRecoveryLegibilityLine('sanctuary_recovery', {
-        label: 'vault-approach-bivouac',
-        quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
-      })
+      formatExpeditionRecoveryLegibilityFromMode('sanctuary_recovery', 'vault-approach-bivouac')
     ).toContain('55%')
-    expect(formatExpeditionRecoveryLegibilityLine('unsafe_pause')).toContain('Unsafe pause')
-    expect(formatExpeditionRecoveryLegibilityLine('unsafe_pause')).toContain('+2')
+    expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('Unsafe pause')
+    expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('+2')
   })
 
   it('buildDeployedRecoveryLegibilityForCase returns null without in-progress fieldBase', () => {

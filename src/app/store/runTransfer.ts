@@ -24,6 +24,7 @@ import {
   type CaseInstance,
   type CaseSpawnTrigger,
   type FatigueBand,
+  isExpeditionRecoveryMode,
   type GameConfig,
   type GameState,
   type Id,
@@ -669,14 +670,6 @@ function sanitizeTeamStatus(
 
     const avgFatigue = sanitizeInteger(entry.avgFatigue as number | undefined, 0, 0)
 
-    const deployedRecoveryMode =
-      entry.deployedRecoveryMode === 'unsafe_pause' ||
-      entry.deployedRecoveryMode === 'ordinary_rest' ||
-      entry.deployedRecoveryMode === 'active_recovery' ||
-      entry.deployedRecoveryMode === 'sanctuary_recovery'
-        ? entry.deployedRecoveryMode
-        : undefined
-
     nextTeamStatus.push(
       stripUndefinedFields({
         teamId: entry.teamId,
@@ -685,13 +678,12 @@ function sanitizeTeamStatus(
         assignedCaseTitle:
           typeof entry.assignedCaseTitle === 'string' ? entry.assignedCaseTitle : undefined,
         avgFatigue,
-        fatigueBand:
-          entry.fatigueBand === 'steady' ||
-          entry.fatigueBand === 'strained' ||
-          entry.fatigueBand === 'critical'
-            ? entry.fatigueBand
-            : getFatigueBand(avgFatigue),
-        deployedRecoveryMode,
+        fatigueBand: isOneOf(entry.fatigueBand, ['steady', 'strained', 'critical'] as const)
+          ? entry.fatigueBand
+          : getFatigueBand(avgFatigue),
+        deployedRecoveryMode: isExpeditionRecoveryMode(entry.deployedRecoveryMode)
+          ? entry.deployedRecoveryMode
+          : undefined,
         recoveryLegibility:
           typeof entry.recoveryLegibility === 'string' ? entry.recoveryLegibility : undefined,
       }) as WeeklyReportTeamStatus

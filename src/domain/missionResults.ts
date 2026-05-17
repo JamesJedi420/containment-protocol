@@ -27,7 +27,7 @@ import {
   readFieldBaseFromCase,
 } from './fieldBaseStaging'
 import {
-  formatExpeditionRecoveryLegibilityLine,
+  formatExpeditionRecoveryLegibilityFromMode,
   resolveExpeditionRecoveryModeFromStagingQuality,
 } from './sim/expeditionRecoveryNode'
 
@@ -894,7 +894,7 @@ export function buildMissionRewardBreakdown(
   if (fieldBase) {
     fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
     const recoveryMode = resolveExpeditionRecoveryModeFromStagingQuality(fieldBase.quality)
-    fieldBaseReasons.push(formatExpeditionRecoveryLegibilityLine(recoveryMode, fieldBase))
+    fieldBaseReasons.push(formatExpeditionRecoveryLegibilityFromMode(recoveryMode, fieldBase.label))
     const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
       const raw = inventoryRewardsRaw[index]
       return (

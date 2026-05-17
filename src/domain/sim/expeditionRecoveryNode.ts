@@ -7,9 +7,13 @@
  * Out of scope here: full sustenance simulation, injury gates (SPE-1653), human energy budget (SPE-1107).
  */
 
+import {
+  expeditionRecoveryFatigueEffectClause,
+  formatExpeditionRecoveryLegibilityLine,
+} from '../../data/expeditionRecoveryCopy'
 import type {
   CaseInstance,
-  FieldBaseStagingPacket,
+  ExpeditionRecoveryMode,
   FieldBaseStagingQuality,
   GameState,
   WeeklyReportTeamStatus,
@@ -17,11 +21,8 @@ import type {
 import { normalizeFieldBaseQuality, readFieldBaseFromCase } from '../fieldBaseStaging'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../teamSimulation'
 
-export type ExpeditionRecoveryMode =
-  | 'unsafe_pause'
-  | 'ordinary_rest'
-  | 'active_recovery'
-  | 'sanctuary_recovery'
+export type { ExpeditionRecoveryMode } from '../models'
+export { EXPEDITION_RECOVERY_MODES, isExpeditionRecoveryMode } from '../models'
 
 /** Extra scalar fatigue applied on top of baseline mission strain when staging is exposed. */
 export const UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE = 2
@@ -32,38 +33,19 @@ export const ACTIVE_RECOVERY_DEPLOYED_SCALE = 0.72
 /** Multiplier when staging meets sanctuary thresholds (protected deep recovery). */
 export const SANCTUARY_RECOVERY_DEPLOYED_SCALE = 0.55
 
-export const EXPEDITION_RECOVERY_MODE_LABELS: Record<ExpeditionRecoveryMode, string> = {
-  unsafe_pause: 'Unsafe pause',
-  ordinary_rest: 'Ordinary rest',
-  active_recovery: 'Active recovery',
-  sanctuary_recovery: 'Sanctuary recovery',
-}
-
-function deployedFatigueEffectClause(mode: ExpeditionRecoveryMode): string {
-  switch (mode) {
-    case 'unsafe_pause':
-      return `adds +${UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE} deployed mission fatigue on top of baseline strain`
-    case 'ordinary_rest':
-      return 'applies baseline deployed mission fatigue without staging relief'
-    case 'active_recovery':
-      return `scales deployed mission fatigue to ${Math.round(ACTIVE_RECOVERY_DEPLOYED_SCALE * 100)}% of baseline strain`
-    case 'sanctuary_recovery':
-      return `scales deployed mission fatigue to ${Math.round(SANCTUARY_RECOVERY_DEPLOYED_SCALE * 100)}% of baseline strain`
-    default: {
-      const exhaustive: never = mode
-      return exhaustive
-    }
-  }
-}
+const RECOVERY_FATIGUE_COPY_OPTIONS = {
+  unsafePauseSurcharge: UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
+  activeRecoveryPercent: Math.round(ACTIVE_RECOVERY_DEPLOYED_SCALE * 100),
+  sanctuaryRecoveryPercent: Math.round(SANCTUARY_RECOVERY_DEPLOYED_SCALE * 100),
+} as const
 
 /** Player-facing line for mission rewards and weekly reports (SPE-99 Slice B). */
-export function formatExpeditionRecoveryLegibilityLine(
+export function formatExpeditionRecoveryLegibilityFromMode(
   mode: ExpeditionRecoveryMode,
-  packet?: FieldBaseStagingPacket
+  stagingLabel?: string
 ): string {
-  const label = EXPEDITION_RECOVERY_MODE_LABELS[mode]
-  const site = packet?.label ? ` (${packet.label})` : ''
-  return `Expedition recovery${site}: ${label} — ${deployedFatigueEffectClause(mode)}.`
+  const fatigueEffectClause = expeditionRecoveryFatigueEffectClause(mode, RECOVERY_FATIGUE_COPY_OPTIONS)
+  return formatExpeditionRecoveryLegibilityLine(mode, fatigueEffectClause, stagingLabel)
 }
 
 /**
@@ -107,7 +89,7 @@ export function buildDeployedRecoveryLegibilityForCase(
   const mode = resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
   return {
     deployedRecoveryMode: mode,
-    recoveryLegibility: formatExpeditionRecoveryLegibilityLine(mode, packet),
+    recoveryLegibility: formatExpeditionRecoveryLegibilityFromMode(mode, packet.label),
   }
 }
 

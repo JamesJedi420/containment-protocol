@@ -686,6 +686,9 @@ function addConsequence(
 
   if (existing) {
     existing.magnitude = Math.trunc(existing.magnitude + input.magnitude)
+    existing.edgeIds = uniqueSorted([...existing.edgeIds, ...input.edgeIds])
+    existing.contradicted = existing.contradicted || input.contradicted
+    existing.delayed = existing.delayed || input.delayed
     return
   }
 

@@ -597,6 +597,44 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(validation.issues.some((issue) => issue.code === 'unmapped_relationship_kind')).toBe(true)
   })
 
+  it('10b. merged consequences retain all contributing edge ids and merged flags', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'faction-a', nodeType: 'faction', label: 'Archive Bloc' }),
+        node({ id: 'faction-b', nodeType: 'faction', label: 'Security Bloc' }),
+        node({ id: 'faction-c', nodeType: 'faction', label: 'Logistics Bloc' }),
+      ],
+      edges: [
+        edge({
+          id: 'all-ab',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+          sourceConfidence: 'verified',
+        }),
+        edge({
+          id: 'all-ac',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-c',
+          sourceConfidence: 'rumor',
+          status: 'hidden',
+          hiddenUntilWeek: 20,
+        }),
+      ],
+    }
+
+    const consequences = resolveAuthorityGraphConsequences(
+      graph,
+      query({ actorNodeId: 'faction-a', channel: 'hostility', asOfWeek: 10 })
+    )
+
+    const merged = consequences.find((item) => item.reasonCode === 'alliance_reduces_hostility')
+    expect(merged).toBeDefined()
+    expect(merged?.edgeIds).toEqual(['all-ab', 'all-ac'])
+    expect(merged?.delayed).toBe(true)
+  })
+
   it('14b. proxy cycle detection follows all branches, not only the first outgoing edge', () => {
     const graph: AuthorityGraph = {
       nodes: [

@@ -136,6 +136,7 @@ interface PairGraphHints {
   maxVolatility: number
 }
 
+/** Pair hints mirror resolver channel filtering: empty/missing pressureChannels = channel-general. */
 function collectPairGraphHints(
   graph: AuthorityGraph,
   actorId: string,

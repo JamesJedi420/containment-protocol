@@ -734,11 +734,55 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
   })
 
   it('15. pair hints respect pressureChannels for the requested channel', () => {
-    const graph: AuthorityGraph = {
-      nodes: [
-        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
-        node({ id: 'regime-host', nodeType: 'external_regime', label: 'Host Perimeter Authority' }),
+    const nodes = [
+      node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+      node({ id: 'regime-host', nodeType: 'external_regime', label: 'Host Perimeter Authority' }),
+      node({ id: 'net-veil', nodeType: 'hidden_network', label: 'Veil Network' }),
+    ]
+
+    const hiddenAgendaGraph: AuthorityGraph = {
+      nodes,
+      edges: [
+        edge({
+          id: 'hid-1',
+          kind: 'hidden_agenda',
+          fromNodeId: 'agency-core',
+          toNodeId: 'net-veil',
+          pressureChannels: ['information_flow'],
+        }),
       ],
+    }
+
+    const hiddenWrongChannel = resolveAuthorityNegotiation(
+      hiddenAgendaGraph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'net-veil',
+        channel: 'permission',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    expect(hiddenWrongChannel.outcome).not.toBe('agenda_dilution')
+    expect(hiddenWrongChannel.reasonCodes).not.toContain('negotiation_agenda_pressure')
+
+    const hiddenMatchingChannel = resolveAuthorityNegotiation(
+      hiddenAgendaGraph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'net-veil',
+        channel: 'information_flow',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    expect(hiddenMatchingChannel.outcome).toBe('agenda_dilution')
+    expect(hiddenMatchingChannel.reasonCodes).toContain('negotiation_agenda_pressure')
+
+    const sharedAuthorityGraph: AuthorityGraph = {
+      nodes,
       edges: [
         edge({
           id: 'shared-1',
@@ -750,18 +794,33 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
       ],
     }
 
-    const result = resolveAuthorityNegotiation(
-      graph,
+    const sharedWrongChannel = resolveAuthorityNegotiation(
+      sharedAuthorityGraph,
       negotiation({
         actorNodeId: 'agency-core',
         counterpartyNodeId: 'regime-host',
-        channel: 'permission',
+        channel: 'aid',
         stance: 'cooperate',
         offerStrength: 55,
       })
     )
 
-    expect(result.outcome).not.toBe('grudging_alignment')
+    expect(sharedWrongChannel.outcome).not.toBe('grudging_alignment')
+    expect(sharedWrongChannel.reasonCodes).not.toContain('negotiation_shared_authority')
+
+    const sharedMatchingChannel = resolveAuthorityNegotiation(
+      sharedAuthorityGraph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'secrecy',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    expect(sharedMatchingChannel.outcome).toBe('grudging_alignment')
+    expect(sharedMatchingChannel.reasonCodes).toContain('negotiation_shared_authority')
   })
 
   it('16. agenda dilution without aid grant does not emit negative grant consequences', () => {

@@ -60,6 +60,9 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     ).toContain('55%')
     expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('Unsafe pause')
     expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('+2')
+    expect(
+      formatExpeditionRecoveryLegibilityFromMode('active_recovery', 'camp', 'staging')
+    ).toContain('if committed')
   })
 
   it('buildDeployedRecoveryLegibilityForCase returns null without in-progress fieldBase', () => {

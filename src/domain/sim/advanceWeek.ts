@@ -151,7 +151,6 @@ import type {
   Team,
   WeeklyReport,
   WeeklyReportCaseSnapshot,
-  WeeklyReportTeamStatus,
 } from '../models'
 import { getCampaignDate, resolveCalendarConfig } from '../campaignCalendar'
 import { GAME_OVER_REASONS } from '../../data/copy'
@@ -189,7 +188,6 @@ import { getRecruitmentPool, syncRecruitmentPoolState } from '../recruitment'
 import {
   buildTeamCompositionProfile,
   ensureNormalizedGameState,
-  getTeamAssignedCaseId,
   getTeamMemberIds,
   getUniqueTeamMembers,
   normalizeGameState,
@@ -206,10 +204,10 @@ import {
   decrementOpenDeadline,
 } from './escalation'
 import {
-  buildDeployedRecoveryLegibilityForCase,
   buildDeployedRecoveryModeByAgentId,
   scaleDeployedMissionFatigueDelta,
 } from './expeditionRecoveryNode'
+import { buildReportTeamStatus } from './reportTeamStatus'
 import {
   buildRecruitmentGenerationState,
   generateCandidates,
@@ -776,30 +774,6 @@ function getAverageRosterFatigue(agents: GameState['agents']) {
   return Math.round(values.reduce((sum, agent) => sum + agent.fatigue, 0) / values.length)
 }
 
-function getAverageFatigue(team: Team, agents: GameState['agents']) {
-  const memberIds = getTeamMemberIds(team)
-
-  if (memberIds.length === 0) {
-    return 0
-  }
-
-  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
-
-  return Math.round(totalFatigue / memberIds.length)
-}
-
-function getFatigueBand(value: number): WeeklyReportTeamStatus['fatigueBand'] {
-  if (value >= 45) {
-    return 'critical'
-  }
-
-  if (value >= 20) {
-    return 'strained'
-  }
-
-  return 'steady'
-}
-
 function buildReportCaseSnapshot(
   currentCase: CaseInstance,
   knowledge?: KnowledgeStateMap
@@ -922,35 +896,6 @@ function buildReportCaseSnapshots(
       ]
     })
   )
-}
-
-function buildReportTeamStatusEntry(
-  team: Team,
-  agents: GameState['agents'],
-  cases: GameState['cases']
-): WeeklyReportTeamStatus {
-  const avgFatigue = getAverageFatigue(team, agents)
-  const assignedCaseId = getTeamAssignedCaseId(team)
-  const assignedCase = assignedCaseId ? cases[assignedCaseId] : undefined
-  const recoveryLegibility = buildDeployedRecoveryLegibilityForCase(assignedCase)
-
-  return {
-    teamId: team.id,
-    teamName: team.name,
-    assignedCaseId: assignedCaseId ?? undefined,
-    assignedCaseTitle: assignedCase?.title,
-    avgFatigue,
-    fatigueBand: getFatigueBand(avgFatigue),
-    ...(recoveryLegibility ?? {}),
-  }
-}
-
-function buildReportTeamStatus(
-  teams: GameState['teams'],
-  agents: GameState['agents'],
-  cases: GameState['cases']
-) {
-  return Object.values(teams).map((team) => buildReportTeamStatusEntry(team, agents, cases))
 }
 
 function inferAggregateBattleSiteLayer(
@@ -3893,7 +3838,13 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
     teamStatus: buildReportTeamStatus(
       context.nextState.teams,
       context.nextState.agents,
-      context.nextState.cases
+      context.nextState.cases,
+      {
+        recoveryLookup: {
+          teams: context.sourceState.teams,
+          cases: context.sourceState.cases,
+        },
+      }
     ),
     caseSnapshots: buildReportCaseSnapshots(
       context.nextState,

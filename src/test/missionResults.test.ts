@@ -50,6 +50,26 @@ describe('missionResults', () => {
     expect(failReasons.some((r) => r.includes('Unsafe pause'))).toBe(true)
   })
 
+  it('SPE-99: uses staging copy for open contract preview cases', () => {
+    const state = createStartingState()
+    const base = state.cases['case-001']!
+    const openPreview = {
+      ...base,
+      status: 'open' as const,
+      contract: {
+        templateId: 'test',
+        fieldBase: {
+          label: 'preview-bivouac',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
+    }
+    const reasons = buildMissionRewardBreakdown(openPreview, 'success', state.config).reasons
+    const recoveryLine = reasons.find((r) => r.startsWith('Expedition recovery')) ?? ''
+    expect(recoveryLine).toContain('would scale')
+    expect(recoveryLine).toContain('if committed')
+  })
+
   it('SPE-99: includes sanctuary recovery legibility when fieldBase meets sanctuary thresholds', () => {
     const state = createStartingState()
     const base = state.cases['case-001']!
@@ -63,10 +83,13 @@ describe('missionResults', () => {
         },
       },
     }
-    const reasons = buildMissionRewardBreakdown(withSanctuaryBase, 'success', state.config).reasons
-    expect(reasons.some((r) => r.includes('vault-approach-bivouac'))).toBe(true)
-    expect(reasons.some((r) => r.includes('Sanctuary recovery'))).toBe(true)
-    expect(reasons.some((r) => r.includes('55%'))).toBe(true)
+    const inProgress = { ...withSanctuaryBase, status: 'in_progress' as const }
+    const reasons = buildMissionRewardBreakdown(inProgress, 'success', state.config).reasons
+    const recoveryLine = reasons.find((r) => r.startsWith('Expedition recovery')) ?? ''
+    expect(recoveryLine).toContain('vault-approach-bivouac')
+    expect(recoveryLine).toContain('Sanctuary recovery')
+    expect(recoveryLine).toContain('55%')
+    expect(recoveryLine).not.toContain('if committed')
   })
 
   it('returns a complete preview set for all mission outcomes', () => {

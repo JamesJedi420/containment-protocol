@@ -8,6 +8,7 @@
  */
 
 import {
+  type ExpeditionRecoveryLegibilityContext,
   expeditionRecoveryFatigueEffectClause,
   formatExpeditionRecoveryLegibilityLine,
 } from '../../data/expeditionRecoveryCopy'
@@ -42,9 +43,14 @@ const RECOVERY_FATIGUE_COPY_OPTIONS = {
 /** Player-facing line for mission rewards and weekly reports (SPE-99 Slice B). */
 export function formatExpeditionRecoveryLegibilityFromMode(
   mode: ExpeditionRecoveryMode,
-  stagingLabel?: string
+  stagingLabel?: string,
+  context: ExpeditionRecoveryLegibilityContext = 'deployed'
 ): string {
-  const fatigueEffectClause = expeditionRecoveryFatigueEffectClause(mode, RECOVERY_FATIGUE_COPY_OPTIONS)
+  const fatigueEffectClause = expeditionRecoveryFatigueEffectClause(
+    mode,
+    RECOVERY_FATIGUE_COPY_OPTIONS,
+    context
+  )
   return formatExpeditionRecoveryLegibilityLine(mode, fatigueEffectClause, stagingLabel)
 }
 

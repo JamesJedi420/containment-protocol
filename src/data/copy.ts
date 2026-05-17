@@ -686,6 +686,7 @@ export const REPORT_UI_TEXT: Record<string, string> = {
   noFailedCases: 'No failed cases were recorded.',
   noUnresolvedCases: 'No unresolved cases were recorded.',
   noTeamStatus: 'No team status was recorded for this week.',
+  deployedRecoveryLabel: 'Deployed recovery',
   staleSnapshotSuffix: 'archived snapshot',
 }
 

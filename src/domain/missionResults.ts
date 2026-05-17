@@ -894,7 +894,10 @@ export function buildMissionRewardBreakdown(
   if (fieldBase) {
     fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
     const recoveryMode = resolveExpeditionRecoveryModeFromStagingQuality(fieldBase.quality)
-    fieldBaseReasons.push(formatExpeditionRecoveryLegibilityFromMode(recoveryMode, fieldBase.label))
+    const recoveryContext = currentCase.status === 'in_progress' ? 'deployed' : 'staging'
+    fieldBaseReasons.push(
+      formatExpeditionRecoveryLegibilityFromMode(recoveryMode, fieldBase.label, recoveryContext)
+    )
     const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
       const raw = inventoryRewardsRaw[index]
       return (

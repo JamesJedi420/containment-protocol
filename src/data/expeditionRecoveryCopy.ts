@@ -10,14 +10,34 @@ export const EXPEDITION_RECOVERY_MODE_LABELS: Record<ExpeditionRecoveryMode, str
 
 export const EXPEDITION_RECOVERY_LEGIBILITY_PREFIX = 'Expedition recovery'
 
+export type ExpeditionRecoveryLegibilityContext = 'deployed' | 'staging'
+
 export function expeditionRecoveryFatigueEffectClause(
   mode: ExpeditionRecoveryMode,
   options: {
     unsafePauseSurcharge: number
     activeRecoveryPercent: number
     sanctuaryRecoveryPercent: number
-  }
+  },
+  context: ExpeditionRecoveryLegibilityContext = 'deployed'
 ): string {
+  if (context === 'staging') {
+    switch (mode) {
+      case 'unsafe_pause':
+        return `would add +${options.unsafePauseSurcharge} deployed mission fatigue on top of baseline strain if committed`
+      case 'ordinary_rest':
+        return 'would apply baseline deployed mission fatigue without staging relief if committed'
+      case 'active_recovery':
+        return `would scale deployed mission fatigue to ${options.activeRecoveryPercent}% of baseline strain if committed`
+      case 'sanctuary_recovery':
+        return `would scale deployed mission fatigue to ${options.sanctuaryRecoveryPercent}% of baseline strain if committed`
+      default: {
+        const exhaustive: never = mode
+        return exhaustive
+      }
+    }
+  }
+
   switch (mode) {
     case 'unsafe_pause':
       return `adds +${options.unsafePauseSurcharge} deployed mission fatigue on top of baseline strain`

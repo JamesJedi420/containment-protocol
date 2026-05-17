@@ -15,10 +15,7 @@ import { normalizeMissionIntelRecord } from '../../domain/intel'
 import { clamp, normalizeSeed } from '../../domain/math'
 import { createDeterministicReportNote } from '../../domain/reportNotes'
 import { MAX_ACADEMY_TIER } from '../../domain/sim/academyUpgrade'
-import {
-  getTeamAssignedCaseId,
-  getTeamMemberIds,
-} from '../../domain/teamSimulation'
+import { buildReportTeamStatus } from '../../domain/sim/reportTeamStatus'
 import {
   type CaseEscalationTrigger,
   type CaseInstance,
@@ -37,7 +34,6 @@ import {
   type ReportNote,
   type ReportNoteMetadata,
   type TrainingQueueEntry,
-  type Team,
   type WeeklyReport,
   type WeeklyReportCaseSnapshot,
   type WeeklyReportTeamStatus,
@@ -388,44 +384,7 @@ export function buildReportCaseSnapshots(cases: GameState['cases']) {
   )
 }
 
-function getAverageFatigue(team: Team, agents: GameState['agents']) {
-  const memberIds = getTeamMemberIds(team)
-
-  if (memberIds.length === 0) {
-    return 0
-  }
-
-  const totalFatigue = memberIds.reduce((sum, agentId) => sum + (agents[agentId]?.fatigue ?? 0), 0)
-
-  return Math.round(totalFatigue / memberIds.length)
-}
-
-export function buildReportTeamStatusEntry(
-  team: Team,
-  agents: GameState['agents'],
-  cases: GameState['cases']
-): WeeklyReportTeamStatus {
-  const avgFatigue = getAverageFatigue(team, agents)
-  const assignedCaseId = getTeamAssignedCaseId(team)
-  const assignedCase = assignedCaseId ? cases[assignedCaseId] : undefined
-
-  return {
-    teamId: team.id,
-    teamName: team.name,
-    assignedCaseId: assignedCaseId ?? undefined,
-    assignedCaseTitle: assignedCase?.title,
-    avgFatigue,
-    fatigueBand: getFatigueBand(avgFatigue),
-  }
-}
-
-export function buildReportTeamStatus(
-  teams: GameState['teams'],
-  agents: GameState['agents'],
-  cases: GameState['cases']
-) {
-  return Object.values(teams).map((team) => buildReportTeamStatusEntry(team, agents, cases))
-}
+export { buildReportTeamStatus, buildReportTeamStatusEntry } from '../../domain/sim/reportTeamStatus'
 
 export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
   const nextConfig = { ...fallback }
@@ -681,11 +640,19 @@ function sanitizeTeamStatus(
         fatigueBand: isOneOf(entry.fatigueBand, ['steady', 'strained', 'critical'] as const)
           ? entry.fatigueBand
           : getFatigueBand(avgFatigue),
-        deployedRecoveryMode: isExpeditionRecoveryMode(entry.deployedRecoveryMode)
-          ? entry.deployedRecoveryMode
-          : undefined,
-        recoveryLegibility:
-          typeof entry.recoveryLegibility === 'string' ? entry.recoveryLegibility : undefined,
+        ...((): Pick<WeeklyReportTeamStatus, 'deployedRecoveryMode' | 'recoveryLegibility'> => {
+          const deployedRecoveryMode = isExpeditionRecoveryMode(entry.deployedRecoveryMode)
+            ? entry.deployedRecoveryMode
+            : undefined
+          if (!deployedRecoveryMode) {
+            return {}
+          }
+          return {
+            deployedRecoveryMode,
+            recoveryLegibility:
+              typeof entry.recoveryLegibility === 'string' ? entry.recoveryLegibility : undefined,
+          }
+        })(),
       }) as WeeklyReportTeamStatus
     )
   }

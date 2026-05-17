@@ -127,7 +127,8 @@ export interface IncidentMissionFitPacket {
   jurisdictionId: string
   commandMode: IncidentCommandMode
   minimumAuthorityTier?: UnitAuthorityTier
-  clearanceCeiling: number
+  // Optional until mission-fit resolution actively enforces a clearance cap.
+  clearanceCeiling?: number
   coverHostForbiddenTags?: readonly string[]
   requiredEquipmentTags?: readonly string[]
   estimatedSecrecyCost?: number

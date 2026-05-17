@@ -21,11 +21,9 @@ import type {
   PowerImpactSummary,
 } from './models'
 import { computeRequiredScore } from './sim/scoring'
-import {
-  applyFieldBaseSupplyToInventoryRewards,
-  formatFieldBaseStagingLegibilityLine,
-  readFieldBaseFromCase,
-} from './fieldBaseStaging'
+import { FIELD_BASE_SUPPLY_TIER_MATERIAL_REASON } from '../data/fieldBaseStagingCopy'
+import { applyFieldBaseSupplyToInventoryRewards, readFieldBaseFromCase } from './fieldBaseStaging'
+import { buildFieldBaseMissionRewardReasons } from './sim/expeditionRecoveryNode'
 
 interface RewardCaseProfile {
   id: string
@@ -886,9 +884,8 @@ export function buildMissionRewardBreakdown(
     reasons: [],
   }
 
-  const fieldBaseReasons: string[] = []
+  const fieldBaseReasons = buildFieldBaseMissionRewardReasons(currentCase)
   if (fieldBase) {
-    fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
     const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
       const raw = inventoryRewardsRaw[index]
       return (
@@ -898,9 +895,7 @@ export function buildMissionRewardBreakdown(
       )
     })
     if (fieldBase.quality.supply > 0 && materialQuantityIncreased) {
-      fieldBaseReasons.push(
-        'Supply staging tier increased recoverable material quantities versus an unsecured baseline.'
-      )
+      fieldBaseReasons.push(FIELD_BASE_SUPPLY_TIER_MATERIAL_REASON)
     }
   }
 

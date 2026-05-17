@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
+import { assignTeam } from '../domain/sim/assign'
 import { applyAuthoredChoice } from '../domain/choiceSystem'
 import { buildCourierNetworkCapacityGapReport } from '../domain/capabilityGap'
 import { consumeOneShotContent, setPersistentFlag } from '../domain/flagSystem'
@@ -252,6 +254,46 @@ describe('SPE-31a hub courier capacity opportunity card', () => {
     expect(card).not.toBeNull()
     expect(card!.tone).toBe('warning')
     expect(card!.gapKindLabel).toBe('Below structural target')
+  })
+
+  it('SPE-99: hub team status includes recovery summary and mode tag for fieldBase expeditions', () => {
+    const base = createStartingState()
+    const unlocked = refreshContractBoard({
+      ...base,
+      factions: {
+        ...base.factions!,
+        institutions: {
+          ...base.factions!.institutions,
+          reputation: 52,
+          reputationTier: 'friendly',
+        },
+      },
+      agency: {
+        ...base.agency!,
+        progressionUnlockIds: ['containment-liturgy'],
+      },
+      contracts: undefined,
+    })
+    const offer = getContractOffers(unlocked).find(
+      (o) => o.templateId === 'institutions-liturgy-expedition'
+    )!
+    const launched = launchContract(unlocked, offer.id, 't_nightwatch')
+    const view = getFrontDeskHubView(launched)
+    const team = view.teamStatus.find((entry) => entry.teamId === 't_nightwatch')
+
+    expect(team?.recoverySummary).toContain('vault-approach-bivouac')
+    expect(team?.recoverySummary).toContain('Sanctuary recovery')
+    expect(team?.tags).toContain('Sanctuary recovery')
+  })
+
+  it('SPE-99: hub team status surfaces missing staging when deployed without fieldBase', () => {
+    const assigned = assignTeam(createStartingState(), 'case-001', 't_nightwatch')
+    const view = getFrontDeskHubView(assigned)
+    const team = view.teamStatus.find((entry) => entry.teamId === 't_nightwatch')
+
+    expect(assigned.cases['case-001']?.status).toBe('in_progress')
+    expect(team?.recoverySummary).toContain('No valid field staging packet')
+    expect(team?.tags).toContain('Ordinary rest')
   })
 
   it('does not mutate game state when building the hub view', () => {

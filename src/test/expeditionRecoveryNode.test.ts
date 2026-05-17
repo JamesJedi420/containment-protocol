@@ -3,11 +3,14 @@ import { createStartingState } from '../data/startingState'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { readFieldBaseFromCase } from '../domain/fieldBaseStaging'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { isExpeditionRecoveryMode } from '../domain/models'
 import {
   ACTIVE_RECOVERY_DEPLOYED_SCALE,
   SANCTUARY_RECOVERY_DEPLOYED_SCALE,
   UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
+  buildDeployedRecoveryLegibilityForCase,
   buildDeployedRecoveryModeByAgentId,
+  formatExpeditionRecoveryLegibilityFromMode,
   resolveDeployedRecoveryModeForCase,
   resolveExpeditionRecoveryModeFromStagingQuality,
   scaleDeployedMissionFatigueDelta,
@@ -15,6 +18,12 @@ import {
 import type { CaseInstance, GameState } from '../domain/models'
 
 describe('expeditionRecoveryNode (SPE-99)', () => {
+  it('isExpeditionRecoveryMode narrows persisted report values', () => {
+    expect(isExpeditionRecoveryMode('sanctuary_recovery')).toBe(true)
+    expect(isExpeditionRecoveryMode('invalid_mode')).toBe(false)
+    expect(isExpeditionRecoveryMode(42)).toBe(false)
+  })
+
   it('readFieldBaseFromCase rejects malformed staging blobs', () => {
     const missingLabel: CaseInstance = {
       id: 'c1',
@@ -40,6 +49,84 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     }
     expect(readFieldBaseFromCase(missingLabel)).toBeNull()
     expect(resolveDeployedRecoveryModeForCase(missingLabel)).toBe('ordinary_rest')
+  })
+
+  it('formats recovery legibility lines for sanctuary and unsafe pause', () => {
+    expect(
+      formatExpeditionRecoveryLegibilityFromMode('sanctuary_recovery', 'vault-approach-bivouac')
+    ).toContain('vault-approach-bivouac')
+    expect(
+      formatExpeditionRecoveryLegibilityFromMode('sanctuary_recovery', 'vault-approach-bivouac')
+    ).toContain('55%')
+    expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('Unsafe pause')
+    expect(formatExpeditionRecoveryLegibilityFromMode('unsafe_pause')).toContain('+2')
+    expect(
+      formatExpeditionRecoveryLegibilityFromMode('active_recovery', 'camp', 'staging')
+    ).toContain('if committed')
+  })
+
+  it('buildDeployedRecoveryLegibilityForCase surfaces missing staging on in-progress deployments', () => {
+    const inProgressNoBase: CaseInstance = {
+      id: 'c1',
+      templateId: 't1',
+      title: '',
+      description: '',
+      mode: 'probability',
+      kind: 'investigation',
+      status: 'in_progress',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      deadlineWeeks: 4,
+      deadlineRemaining: 4,
+      assignedTeamIds: ['tm'],
+      contract: { templateId: 'test' },
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+    }
+    const legibility = buildDeployedRecoveryLegibilityForCase(inProgressNoBase)
+    expect(legibility?.deployedRecoveryMode).toBe('ordinary_rest')
+    expect(legibility?.recoveryLegibility).toContain('No valid field staging packet')
+  })
+
+  it('buildDeployedRecoveryLegibilityForCase returns null without in-progress fieldBase', () => {
+    const open: CaseInstance = {
+      id: 'c1',
+      templateId: 't1',
+      title: '',
+      description: '',
+      mode: 'probability',
+      kind: 'investigation',
+      status: 'open',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      deadlineWeeks: 4,
+      deadlineRemaining: 4,
+      assignedTeamIds: [],
+      contract: {
+        fieldBase: {
+          label: 'test-staging',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+    }
+    expect(buildDeployedRecoveryLegibilityForCase(open)).toBeNull()
+
+    const inProgress: CaseInstance = { ...open, status: 'in_progress' }
+    const legibility = buildDeployedRecoveryLegibilityForCase(inProgress)
+    expect(legibility?.deployedRecoveryMode).toBe('sanctuary_recovery')
+    expect(legibility?.recoveryLegibility).toContain('test-staging')
   })
 
   it('classifies recovery modes from normalized staging quality', () => {

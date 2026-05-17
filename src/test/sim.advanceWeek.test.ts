@@ -6,6 +6,7 @@ import {
   deriveWeeklyCivicConsequencePackets,
   getWeeklyCaseGenerationSeamInput,
 } from '../domain/sim/advanceWeek'
+import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
@@ -1299,6 +1300,76 @@ describe('advanceWeek', () => {
     })
     expect(teamStatus?.avgFatigue).toBeGreaterThanOrEqual(0)
     expect(['steady', 'strained', 'critical']).toContain(teamStatus?.fatigueBand)
+  })
+
+  it('SPE-99: weekly team status includes deployed recovery legibility for fieldBase expeditions', () => {
+    const base = createStartingState()
+    const unlocked = refreshContractBoard({
+      ...base,
+      factions: {
+        ...base.factions!,
+        institutions: {
+          ...base.factions!.institutions,
+          reputation: 52,
+          reputationTier: 'friendly',
+        },
+      },
+      agency: {
+        ...base.agency!,
+        progressionUnlockIds: ['containment-liturgy'],
+      },
+      contracts: undefined,
+    })
+    const offer = getContractOffers(unlocked).find(
+      (o) => o.templateId === 'institutions-liturgy-expedition'
+    )
+    expect(offer?.fieldBase?.label).toBe('vault-approach-bivouac')
+
+    const launched = launchContract(unlocked, offer!.id, 't_nightwatch')
+    const next = advanceWeek(launched)
+    const teamStatus = next.reports[0]?.teamStatus.find((entry) => entry.teamId === 't_nightwatch')
+
+    expect(teamStatus?.deployedRecoveryMode).toBe('sanctuary_recovery')
+    expect(teamStatus?.recoveryLegibility).toContain('vault-approach-bivouac')
+    expect(teamStatus?.recoveryLegibility).toContain('Sanctuary recovery')
+  })
+
+  it('SPE-99: preserves deployed recovery legibility on final resolution week', () => {
+    const base = createStartingState()
+    const unlocked = refreshContractBoard({
+      ...base,
+      factions: {
+        ...base.factions!,
+        institutions: {
+          ...base.factions!.institutions,
+          reputation: 52,
+          reputationTier: 'friendly',
+        },
+      },
+      agency: {
+        ...base.agency!,
+        progressionUnlockIds: ['containment-liturgy'],
+      },
+      contracts: undefined,
+    })
+    const offer = getContractOffers(unlocked).find(
+      (o) => o.templateId === 'institutions-liturgy-expedition'
+    )!
+    let state = launchContract(unlocked, offer.id, 't_nightwatch')
+    const caseEntry = Object.values(state.cases).find((c) => c.contract?.offerId === offer.id)!
+    state = {
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseEntry.id]: { ...caseEntry, weeksRemaining: 1 },
+      },
+    }
+
+    const next = advanceWeek(state)
+    const teamStatus = next.reports[0]?.teamStatus.find((entry) => entry.teamId === 't_nightwatch')
+
+    expect(teamStatus?.deployedRecoveryMode).toBe('sanctuary_recovery')
+    expect(teamStatus?.recoveryLegibility).toContain('vault-approach-bivouac')
   })
 
   it('does nothing when the simulation is already over', () => {

@@ -299,6 +299,14 @@ export function ReportTeamStatusList({
             </div>
 
             <div className="mt-2 space-y-1">
+              {entry.recoveryLegibility ? (
+                <p className="mb-2 text-sm opacity-80">
+                  <span className="text-xs uppercase tracking-wide opacity-50">
+                    {REPORT_UI_TEXT.deployedRecoveryLabel}:{' '}
+                  </span>
+                  {entry.recoveryLegibility}
+                </p>
+              ) : null}
               <p className="text-xs uppercase tracking-wide opacity-50">Assigned case</p>
               {entry.assignedCaseId ? (
                 <>

@@ -103,13 +103,7 @@ export function applyFieldBaseSupplyToInventoryRewards(
   })
 }
 
-export function formatFieldBaseStagingLegibilityLine(packet: FieldBaseStagingPacket): string {
-  const q = packet.quality
-  return (
-    `Field staging (${packet.label}): safety ${q.safety}, medical ${q.medical}, ` +
-    `supply ${q.supply}, extraction ${q.extractionAccess}.`
-  )
-}
+export { formatFieldBaseStagingLegibilityLine } from '../data/fieldBaseStagingCopy'
 
 function withTeamMembers(team: Team, memberIds: Id[]): Team {
   const uniqueMemberIds = [...new Set(memberIds)]

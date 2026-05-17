@@ -7,15 +7,25 @@
  * Out of scope here: full sustenance simulation, injury gates (SPE-1653), human energy budget (SPE-1107).
  */
 
-import type { CaseInstance, FieldBaseStagingQuality, GameState } from '../models'
+import { formatFieldBaseStagingLegibilityLine } from '../../data/fieldBaseStagingCopy'
+import {
+  type ExpeditionRecoveryLegibilityContext,
+  EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE,
+  expeditionRecoveryFatigueEffectClause,
+  formatExpeditionRecoveryLegibilityLine,
+} from '../../data/expeditionRecoveryCopy'
+import type {
+  CaseInstance,
+  ExpeditionRecoveryMode,
+  FieldBaseStagingQuality,
+  GameState,
+  WeeklyReportTeamStatus,
+} from '../models'
 import { normalizeFieldBaseQuality, readFieldBaseFromCase } from '../fieldBaseStaging'
 import { getTeamAssignedCaseId, getTeamMemberIds } from '../teamSimulation'
 
-export type ExpeditionRecoveryMode =
-  | 'unsafe_pause'
-  | 'ordinary_rest'
-  | 'active_recovery'
-  | 'sanctuary_recovery'
+export type { ExpeditionRecoveryMode } from '../models'
+export { EXPEDITION_RECOVERY_MODES, isExpeditionRecoveryMode } from '../models'
 
 /** Extra scalar fatigue applied on top of baseline mission strain when staging is exposed. */
 export const UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE = 2
@@ -25,6 +35,26 @@ export const ACTIVE_RECOVERY_DEPLOYED_SCALE = 0.72
 
 /** Multiplier when staging meets sanctuary thresholds (protected deep recovery). */
 export const SANCTUARY_RECOVERY_DEPLOYED_SCALE = 0.55
+
+const RECOVERY_FATIGUE_COPY_OPTIONS = {
+  unsafePauseSurcharge: UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
+  activeRecoveryPercent: Math.round(ACTIVE_RECOVERY_DEPLOYED_SCALE * 100),
+  sanctuaryRecoveryPercent: Math.round(SANCTUARY_RECOVERY_DEPLOYED_SCALE * 100),
+} as const
+
+/** Player-facing line for mission rewards and weekly reports (SPE-99 Slice B). */
+export function formatExpeditionRecoveryLegibilityFromMode(
+  mode: ExpeditionRecoveryMode,
+  stagingLabel?: string,
+  context: ExpeditionRecoveryLegibilityContext = 'deployed'
+): string {
+  const fatigueEffectClause = expeditionRecoveryFatigueEffectClause(
+    mode,
+    RECOVERY_FATIGUE_COPY_OPTIONS,
+    context
+  )
+  return formatExpeditionRecoveryLegibilityLine(mode, fatigueEffectClause, stagingLabel)
+}
 
 /**
  * Deterministic ladder from normalized staging quality to recovery mode.
@@ -52,6 +82,45 @@ export function resolveExpeditionRecoveryModeFromStagingQuality(
     return 'active_recovery'
   }
   return 'ordinary_rest'
+}
+
+export function buildDeployedRecoveryLegibilityForCase(
+  currentCase: CaseInstance | undefined
+): Pick<WeeklyReportTeamStatus, 'deployedRecoveryMode' | 'recoveryLegibility'> | null {
+  if (!currentCase || currentCase.status !== 'in_progress') {
+    return null
+  }
+  const packet = readFieldBaseFromCase(currentCase)
+  if (!packet) {
+    return {
+      deployedRecoveryMode: 'ordinary_rest',
+      recoveryLegibility: EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE,
+    }
+  }
+  const mode = resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
+  return {
+    deployedRecoveryMode: mode,
+    recoveryLegibility: formatExpeditionRecoveryLegibilityFromMode(mode, packet.label),
+  }
+}
+
+/** Mission reward reasons: field staging bands plus recovery legibility when applicable. */
+export function buildFieldBaseMissionRewardReasons(
+  currentCase: CaseInstance
+): string[] {
+  const packet = readFieldBaseFromCase(currentCase)
+  if (packet) {
+    const mode = resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
+    const context = currentCase.status === 'in_progress' ? 'deployed' : 'staging'
+    return [
+      formatFieldBaseStagingLegibilityLine(packet),
+      formatExpeditionRecoveryLegibilityFromMode(mode, packet.label, context),
+    ]
+  }
+  if (currentCase.status === 'in_progress' && currentCase.contract) {
+    return [EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE]
+  }
+  return []
 }
 
 export function resolveDeployedRecoveryModeForCase(

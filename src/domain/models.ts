@@ -899,6 +899,27 @@ export interface FieldBaseStagingPacket {
   quality: FieldBaseStagingQuality
 }
 
+/** SPE-99: deployed recovery-mode taxonomy derived from fieldBase staging quality. */
+export type ExpeditionRecoveryMode =
+  | 'unsafe_pause'
+  | 'ordinary_rest'
+  | 'active_recovery'
+  | 'sanctuary_recovery'
+
+export const EXPEDITION_RECOVERY_MODES: readonly ExpeditionRecoveryMode[] = [
+  'unsafe_pause',
+  'ordinary_rest',
+  'active_recovery',
+  'sanctuary_recovery',
+]
+
+export function isExpeditionRecoveryMode(value: unknown): value is ExpeditionRecoveryMode {
+  return (
+    typeof value === 'string' &&
+    (EXPEDITION_RECOVERY_MODES as readonly string[]).includes(value)
+  )
+}
+
 export interface ContractOffer {
   id: Id
   templateId: Id
@@ -1382,6 +1403,10 @@ export interface WeeklyReportTeamStatus {
   assignedCaseTitle?: string
   avgFatigue: number
   fatigueBand?: FatigueBand
+  /** SPE-99: deployed recovery mode when assigned to an in-progress case with fieldBase staging. */
+  deployedRecoveryMode?: ExpeditionRecoveryMode
+  /** SPE-99: human-readable recovery-mode line for weekly report legibility. */
+  recoveryLegibility?: string
 }
 
 /** Structured report log entry emitted by the weekly simulation step. */

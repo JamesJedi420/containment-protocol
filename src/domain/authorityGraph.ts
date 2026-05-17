@@ -346,6 +346,65 @@ interface FrontAlliancePairClaims {
   alliance: AuthorityGraphEdge[]
 }
 
+function detectProxyRepresentationCycles(
+  proxyOutgoingByFromNode: ReadonlyMap<string, ReadonlyArray<{ targetNodeId: string; edgeId: string }>>
+): Set<string> {
+  const cycles = new Set<string>()
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+
+  function markCyclePath(path: ReadonlyArray<{ targetNodeId: string; edgeId: string }>, cycleNodeId: string) {
+    const cycleStart = path.findIndex((hop) => hop.targetNodeId === cycleNodeId)
+    const cycleHops = cycleStart >= 0 ? path.slice(cycleStart) : path
+
+    for (const hop of cycleHops) {
+      cycles.add(hop.edgeId)
+    }
+  }
+
+  function visitNode(nodeId: string, path: Array<{ targetNodeId: string; edgeId: string }>) {
+    if (visiting.has(nodeId)) {
+      markCyclePath(path, nodeId)
+      return
+    }
+
+    if (visited.has(nodeId)) {
+      return
+    }
+
+    visiting.add(nodeId)
+
+    for (const hop of proxyOutgoingByFromNode.get(nodeId) ?? []) {
+      if (visiting.has(hop.targetNodeId)) {
+        cycles.add(hop.edgeId)
+        markCyclePath(path, hop.targetNodeId)
+        continue
+      }
+
+      visitNode(hop.targetNodeId, [...path, hop])
+    }
+
+    visiting.delete(nodeId)
+    visited.add(nodeId)
+  }
+
+  const proxyNodeIds = new Set<string>()
+  for (const [fromNodeId, hops] of proxyOutgoingByFromNode) {
+    proxyNodeIds.add(fromNodeId)
+    for (const hop of hops) {
+      proxyNodeIds.add(hop.targetNodeId)
+    }
+  }
+
+  for (const nodeId of uniqueSorted([...proxyNodeIds])) {
+    if (!visited.has(nodeId)) {
+      visitNode(nodeId, [])
+    }
+  }
+
+  return cycles
+}
+
 function detectContradictoryCurrentClaims(
   edges: readonly AuthorityGraphEdge[]
 ): Array<{ edgeIds: string[]; detail: string }> {
@@ -569,60 +628,29 @@ export function validateAuthorityGraph(graph: AuthorityGraph): AuthorityGraphVal
     }
   }
 
-  const proxyRepresentationAdjacency = new Map<string, string[]>()
+  const proxyOutgoingByFromNode = new Map<
+    string,
+    Array<{ targetNodeId: string; edgeId: string }>
+  >()
+
   for (const edge of graph.edges) {
     if (edge.kind !== 'proxy_representation' || !edge.representsNodeId) {
       continue
     }
 
-    const nextNodeIds = proxyRepresentationAdjacency.get(edge.fromNodeId)
-    if (nextNodeIds) {
-      nextNodeIds.push(edge.representsNodeId)
-    } else {
-      proxyRepresentationAdjacency.set(edge.fromNodeId, [edge.representsNodeId])
-    }
+    const hops = proxyOutgoingByFromNode.get(edge.fromNodeId) ?? []
+    hops.push({ targetNodeId: edge.representsNodeId, edgeId: edge.id })
+    proxyOutgoingByFromNode.set(edge.fromNodeId, hops)
   }
 
-  for (const nextNodeIds of proxyRepresentationAdjacency.values()) {
-    nextNodeIds.sort((left, right) => left.localeCompare(right))
+  for (const hops of proxyOutgoingByFromNode.values()) {
+    hops.sort((left, right) => {
+      const targetCompare = left.targetNodeId.localeCompare(right.targetNodeId)
+      return targetCompare !== 0 ? targetCompare : left.edgeId.localeCompare(right.edgeId)
+    })
   }
 
-  const proxyCycles = new Set<string>()
-  for (const edge of graph.edges) {
-    if (edge.kind !== 'proxy_representation' || !edge.representsNodeId) {
-      continue
-    }
-
-    const stack: Array<{ nodeId: string; visited: Set<string> }> = [
-      {
-        nodeId: edge.representsNodeId,
-        visited: new Set<string>([edge.fromNodeId]),
-      },
-    ]
-
-    while (stack.length > 0) {
-      const current = stack.pop()
-      if (!current) {
-        continue
-      }
-
-      if (current.visited.has(current.nodeId)) {
-        proxyCycles.add(edge.id)
-        break
-      }
-
-      const nextVisited = new Set(current.visited)
-      nextVisited.add(current.nodeId)
-
-      const nextNodeIds = proxyRepresentationAdjacency.get(current.nodeId) ?? []
-      for (const nextNodeId of nextNodeIds) {
-        stack.push({
-          nodeId: nextNodeId,
-          visited: nextVisited,
-        })
-      }
-    }
-  }
+  const proxyCycles = detectProxyRepresentationCycles(proxyOutgoingByFromNode)
 
   for (const edgeId of proxyCycles) {
     pushIssue(issues, {

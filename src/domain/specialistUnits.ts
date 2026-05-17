@@ -638,7 +638,7 @@ export function resolveUnitForMission(
 
   const filtered = options.includeBlocked
     ? results
-    : results.filter((result) => !result.hardBlocked || result.fitScore > 0)
+    : results.filter((result) => !result.hardBlocked)
 
   const ranked = [...filtered].sort((left, right) => {
     if (left.hardBlocked !== right.hardBlocked) {

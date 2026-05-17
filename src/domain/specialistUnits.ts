@@ -245,13 +245,21 @@ function getAuthorityTierRank(tier: UnitAuthorityTier) {
   return AUTHORITY_TIER_ORDER.indexOf(tier)
 }
 
+function countTagOverlap(required: readonly string[], available: readonly string[]) {
+  if (required.length === 0) {
+    return 0
+  }
+
+  const availableSet = new Set(available.map((tag) => tag.toLowerCase()))
+  return required.filter((tag) => availableSet.has(tag.toLowerCase())).length
+}
+
 function hasTagOverlap(required: readonly string[], available: readonly string[]) {
   if (required.length === 0) {
     return true
   }
 
-  const availableSet = new Set(available.map((tag) => tag.toLowerCase()))
-  return required.some((tag) => availableSet.has(tag.toLowerCase()))
+  return countTagOverlap(required, available) > 0
 }
 
 function profileHasResearchFit(profile: UnitProfile, requiredSuitabilityTags: readonly string[]) {
@@ -492,25 +500,27 @@ function evaluateUnitMissionFit(
   }
 
   if (packet.requiredHazardProfiles.length > 0) {
-    if (!hasTagOverlap(packet.requiredHazardProfiles, profile.hazardProfileTags)) {
+    const hazardOverlapCount = countTagOverlap(
+      packet.requiredHazardProfiles,
+      profile.hazardProfileTags
+    )
+    if (hazardOverlapCount === 0) {
       addBlocker(blockers, 'wrong_hazard_profile', 'hard')
     } else {
-      const overlapCount = packet.requiredHazardProfiles.filter((tag) =>
-        profile.hazardProfileTags.map((value) => value.toLowerCase()).includes(tag.toLowerCase())
-      ).length
-      fitScore += overlapCount * 15
+      fitScore += hazardOverlapCount * 15
       rankingNotes.push('bonus:hazard_overlap')
     }
   }
 
   if (packet.requiredEnvironmentClasses.length > 0) {
-    if (!hasTagOverlap(packet.requiredEnvironmentClasses, profile.environmentClasses)) {
+    const environmentOverlapCount = countTagOverlap(
+      packet.requiredEnvironmentClasses,
+      profile.environmentClasses
+    )
+    if (environmentOverlapCount === 0) {
       addBlocker(blockers, 'wrong_environment_class', 'hard')
     } else {
-      const overlapCount = packet.requiredEnvironmentClasses.filter((tag) =>
-        profile.environmentClasses.map((value) => value.toLowerCase()).includes(tag.toLowerCase())
-      ).length
-      fitScore += overlapCount * 10
+      fitScore += environmentOverlapCount * 10
       rankingNotes.push('bonus:environment_overlap')
     }
   }
@@ -527,15 +537,16 @@ function evaluateUnitMissionFit(
   }
 
   if (packet.requiredSuitabilityTags.length > 0) {
-    if (hasTagOverlap(packet.requiredSuitabilityTags, profile.suitabilityTags)) {
-      const overlapCount = packet.requiredSuitabilityTags.filter((tag) =>
-        profile.suitabilityTags.map((value) => value.toLowerCase()).includes(tag.toLowerCase())
-      ).length
-      fitScore += overlapCount * 10
-      rankingNotes.push('bonus:suitability_overlap')
-    } else {
+    const suitabilityOverlapCount = countTagOverlap(
+      packet.requiredSuitabilityTags,
+      profile.suitabilityTags
+    )
+    if (suitabilityOverlapCount === 0) {
       addBlocker(blockers, 'wrong_mission_posture', 'soft')
       fitScore -= 20
+    } else {
+      fitScore += suitabilityOverlapCount * 10
+      rankingNotes.push('bonus:suitability_overlap')
     }
   }
 
@@ -612,6 +623,7 @@ export function resolveUnitForMission(
   const registry = input.registry
   const options = input.options ?? {}
   const designationResolution = resolveDesignationCollisions(registry)
+  const unitsById = new Map(registry.units.map((unit) => [unit.id, unit]))
 
   const ambiguousUnitIds = new Set<string>()
   for (const collision of designationResolution.collisions) {
@@ -649,8 +661,8 @@ export function resolveUnitForMission(
       return right.fitScore - left.fitScore
     }
 
-    const leftProfile = registry.units.find((unit) => unit.id === left.unitId)
-    const rightProfile = registry.units.find((unit) => unit.id === right.unitId)
+    const leftProfile = unitsById.get(left.unitId)
+    const rightProfile = unitsById.get(right.unitId)
     const leftDelay = leftProfile?.deploymentDelayWeeks ?? 0
     const rightDelay = rightProfile?.deploymentDelayWeeks ?? 0
     if (leftDelay !== rightDelay) {

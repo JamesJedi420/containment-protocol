@@ -482,7 +482,7 @@ function evaluateUnitMissionFit(
 
   if (packet.missionPosture === 'research_forward') {
     if (!profileHasResearchFit(profile, packet.requiredSuitabilityTags)) {
-      if (profileIsArmedMobileOnly(profile) || profile.unitTypes.includes('armed')) {
+      if (profileIsArmedMobileOnly(profile)) {
         addBlocker(blockers, 'wrong_mission_posture', 'hard')
       } else {
         addBlocker(blockers, 'wrong_mission_posture', 'soft')

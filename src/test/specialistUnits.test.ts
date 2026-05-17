@@ -92,6 +92,30 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     expect(output.ranked.find((result) => result.unitId === 'armed-mobile')?.hardBlocked).toBe(true)
   })
 
+  it('1b. armed research unit without tag overlap gets soft posture penalty, not hard block', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({
+          id: 'armed-research-mixed',
+          unitTypes: ['armed', 'research', 'mobile'],
+          suitabilityTags: ['containment_response'],
+        }),
+      ],
+    }
+
+    const result = resolveUnitForMission({
+      packet: basePacket({ missionPosture: 'research_forward' }),
+      registry,
+      options: { includeBlocked: true },
+    }).ranked[0]
+
+    expect(result?.hardBlocked).toBe(false)
+    expect(result?.blockers.some((blocker) => blocker.code === 'wrong_mission_posture')).toBe(true)
+    expect(
+      result?.blockers.find((blocker) => blocker.code === 'wrong_mission_posture')?.severity
+    ).toBe('soft')
+  })
+
   it('2. hazard mismatch blocks or strongly penalizes a unit', () => {
     const registry: SpecialistUnitRegistry = {
       units: [

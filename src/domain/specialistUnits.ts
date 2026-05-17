@@ -273,8 +273,8 @@ function hasAllRequiredTags(required: readonly string[], available: readonly str
 }
 
 function profileHasResearchFit(profile: UnitProfile, requiredSuitabilityTags: readonly string[]) {
-  if (hasTagOverlap(requiredSuitabilityTags, profile.suitabilityTags)) {
-    return true
+  if (requiredSuitabilityTags.length > 0) {
+    return hasAllRequiredTags(requiredSuitabilityTags, profile.suitabilityTags)
   }
 
   return profile.suitabilityTags.some((tag) => RESEARCH_SUITABILITY_TAGS.has(tag.toLowerCase()))

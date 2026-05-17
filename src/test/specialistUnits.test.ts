@@ -116,6 +116,31 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     ).toBe('soft')
   })
 
+  it('1d. research_forward with empty required suitability tags still blocks armed-mobile-only', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({
+          id: 'armed-mobile-only',
+          designationCode: 'A-11',
+          unitTypes: ['armed', 'mobile'],
+          suitabilityTags: ['containment_response'],
+        }),
+      ],
+    }
+
+    const result = resolveUnitForMission({
+      packet: basePacket({
+        missionPosture: 'research_forward',
+        requiredSuitabilityTags: [],
+      }),
+      registry,
+      options: { includeBlocked: true },
+    }).ranked[0]
+
+    expect(result?.hardBlocked).toBe(true)
+    expect(result?.blockers.some((blocker) => blocker.code === 'wrong_mission_posture')).toBe(true)
+  })
+
   it('1c. partial suitability match is penalized versus full match', () => {
     const registry: SpecialistUnitRegistry = {
       units: [

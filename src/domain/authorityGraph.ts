@@ -562,30 +562,55 @@ export function validateAuthorityGraph(graph: AuthorityGraph): AuthorityGraphVal
     }
   }
 
+  const proxyRepresentationAdjacency = new Map<string, string[]>()
+  for (const edge of graph.edges) {
+    if (edge.kind !== 'proxy_representation' || !edge.representsNodeId) {
+      continue
+    }
+
+    const nextNodeIds = proxyRepresentationAdjacency.get(edge.fromNodeId)
+    if (nextNodeIds) {
+      nextNodeIds.push(edge.representsNodeId)
+    } else {
+      proxyRepresentationAdjacency.set(edge.fromNodeId, [edge.representsNodeId])
+    }
+  }
+
   const proxyCycles = new Set<string>()
   for (const edge of graph.edges) {
     if (edge.kind !== 'proxy_representation' || !edge.representsNodeId) {
       continue
     }
 
-    const visited = new Set<string>([edge.fromNodeId])
-    let cursor: string | undefined = edge.representsNodeId
+    const stack: Array<{ nodeId: string; visited: Set<string> }> = [
+      {
+        nodeId: edge.representsNodeId,
+        visited: new Set<string>([edge.fromNodeId]),
+      },
+    ]
 
-    while (cursor) {
-      if (visited.has(cursor)) {
+    while (stack.length > 0) {
+      const current = stack.pop()
+      if (!current) {
+        continue
+      }
+
+      if (current.visited.has(current.nodeId)) {
         proxyCycles.add(edge.id)
         break
       }
 
-      visited.add(cursor)
-      const next = graph.edges.find(
-        (candidate) =>
-          candidate.kind === 'proxy_representation' &&
-          candidate.fromNodeId === cursor &&
-          candidate.representsNodeId
-      )
+      const nextVisited = new Set(current.visited)
+      nextVisited.add(current.nodeId)
 
-      cursor = next?.representsNodeId
+      const nextNodeIds =
+        proxyRepresentationAdjacency.get(current.nodeId) ?? []
+      for (const nextNodeId of nextNodeIds) {
+        stack.push({
+          nodeId: nextNodeId,
+          visited: nextVisited,
+        })
+      }
     }
   }
 

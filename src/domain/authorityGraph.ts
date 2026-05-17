@@ -310,18 +310,36 @@ function buildAliasIndex(graph: AuthorityGraph) {
   return aliasToNodeId
 }
 
-export function normalizeAuthorityNodeId(graph: AuthorityGraph, ref: string): string | undefined {
+interface AuthorityGraphIndices {
+  nodeById: Map<string, AuthorityGraphNode>
+  aliasToNodeId: Map<string, string>
+}
+
+function buildAuthorityGraphIndices(graph: AuthorityGraph): AuthorityGraphIndices {
+  return {
+    nodeById: buildNodeIndex(graph),
+    aliasToNodeId: buildAliasIndex(graph),
+  }
+}
+
+function normalizeAuthorityNodeIdWithIndices(
+  ref: string,
+  indices: AuthorityGraphIndices
+): string | undefined {
   const token = normalizeToken(ref)
   if (!token) {
     return undefined
   }
 
-  const byId = buildNodeIndex(graph)
-  if (byId.has(token)) {
+  if (indices.nodeById.has(token)) {
     return token
   }
 
-  return buildAliasIndex(graph).get(token)
+  return indices.aliasToNodeId.get(token)
+}
+
+export function normalizeAuthorityNodeId(graph: AuthorityGraph, ref: string): string | undefined {
+  return normalizeAuthorityNodeIdWithIndices(ref, buildAuthorityGraphIndices(graph))
 }
 
 function pushIssue(
@@ -1015,7 +1033,8 @@ export function resolveAuthorityGraphConsequences(
   graph: AuthorityGraph,
   query: AuthorityGraphQuery
 ): readonly AuthorityConsequence[] {
-  const actorId = normalizeAuthorityNodeId(graph, query.actorNodeId)
+  const indices = buildAuthorityGraphIndices(graph)
+  const actorId = normalizeAuthorityNodeIdWithIndices(query.actorNodeId, indices)
   if (!actorId) {
     return Object.freeze([])
   }
@@ -1027,13 +1046,13 @@ export function resolveAuthorityGraphConsequences(
       return Object.freeze([])
     }
 
-    counterpartyId = normalizeAuthorityNodeId(graph, counterpartyRef)
+    counterpartyId = normalizeAuthorityNodeIdWithIndices(counterpartyRef, indices)
     if (!counterpartyId) {
       return Object.freeze([])
     }
   }
 
-  const nodeById = buildNodeIndex(graph)
+  const nodeById = indices.nodeById
   const consequences: AuthorityConsequence[] = []
   const contradictionEdgeIds = collectContradictionEdgeIds(graph)
 

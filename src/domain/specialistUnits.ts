@@ -59,6 +59,7 @@ export type UnitMissionFitBlockerCode =
   | 'unavailable_lifecycle_state'
   | 'unverified_registry_entry'
   | 'outdated_registry_entry'
+  | 'incomplete_registry_entry'
   | 'deployment_delay'
   | 'fatigue_exceeded'
   | 'missing_equipment'

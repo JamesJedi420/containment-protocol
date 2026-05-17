@@ -10,6 +10,10 @@ export const EXPEDITION_RECOVERY_MODE_LABELS: Record<ExpeditionRecoveryMode, str
 
 export const EXPEDITION_RECOVERY_LEGIBILITY_PREFIX = 'Expedition recovery'
 
+/** In-progress deployment without a valid SPE-1654 fieldBase packet on the contract. */
+export const EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE =
+  'Expedition recovery: No valid field staging packet — ordinary rest applies baseline deployed mission fatigue without staging relief.'
+
 export type ExpeditionRecoveryLegibilityContext = 'deployed' | 'staging'
 
 export function expeditionRecoveryFatigueEffectClause(

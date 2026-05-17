@@ -7,8 +7,10 @@
  * Out of scope here: full sustenance simulation, injury gates (SPE-1653), human energy budget (SPE-1107).
  */
 
+import { formatFieldBaseStagingLegibilityLine } from '../../data/fieldBaseStagingCopy'
 import {
   type ExpeditionRecoveryLegibilityContext,
+  EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE,
   expeditionRecoveryFatigueEffectClause,
   formatExpeditionRecoveryLegibilityLine,
 } from '../../data/expeditionRecoveryCopy'
@@ -90,13 +92,35 @@ export function buildDeployedRecoveryLegibilityForCase(
   }
   const packet = readFieldBaseFromCase(currentCase)
   if (!packet) {
-    return null
+    return {
+      deployedRecoveryMode: 'ordinary_rest',
+      recoveryLegibility: EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE,
+    }
   }
   const mode = resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
   return {
     deployedRecoveryMode: mode,
     recoveryLegibility: formatExpeditionRecoveryLegibilityFromMode(mode, packet.label),
   }
+}
+
+/** Mission reward reasons: field staging bands plus recovery legibility when applicable. */
+export function buildFieldBaseMissionRewardReasons(
+  currentCase: CaseInstance
+): string[] {
+  const packet = readFieldBaseFromCase(currentCase)
+  if (packet) {
+    const mode = resolveExpeditionRecoveryModeFromStagingQuality(packet.quality)
+    const context = currentCase.status === 'in_progress' ? 'deployed' : 'staging'
+    return [
+      formatFieldBaseStagingLegibilityLine(packet),
+      formatExpeditionRecoveryLegibilityFromMode(mode, packet.label, context),
+    ]
+  }
+  if (currentCase.status === 'in_progress' && currentCase.contract) {
+    return [EXPEDITION_RECOVERY_NO_FIELD_STAGING_LINE]
+  }
+  return []
 }
 
 export function resolveDeployedRecoveryModeForCase(

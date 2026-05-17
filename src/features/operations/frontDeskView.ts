@@ -20,7 +20,9 @@ import {
   getCanonicalFundingState,
 } from '../../domain/funding'
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
+import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
 import type { GameState } from '../../domain/models'
+import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
 import {
@@ -124,6 +126,8 @@ export interface FrontDeskTeamStatusView {
   members: string[]
   tags: string[]
   assignedCaseHref?: string
+  /** SPE-99: deployed recovery-mode legibility for in-progress field deployments. */
+  recoverySummary?: string
 }
 
 export interface FrontDeskProcurementSnapshotView {
@@ -1025,35 +1029,49 @@ function buildAttentionItems(
 function buildTeamStatusViews(game: GameState): FrontDeskTeamStatusView[] {
   return getFieldStatusViews(game)
     .slice(0, MAX_TEAM_STATUS)
-    .map((entry) => ({
-      teamId: entry.team.id,
-      teamName: entry.team.name,
-      href: APP_ROUTES.teamDetail(entry.team.id),
-      statusLabel:
-        entry.status === 'deploying'
-          ? 'Deploying'
-          : entry.status === 'recovering'
-            ? 'Recovering'
-            : entry.status === 'overstretched'
-              ? 'Overstretched'
-              : 'Ready',
-      summary: entry.assignedCase
-        ? `${entry.assignedCase.title} / ${entry.remainingWeeks ?? 0}w remaining / ${entry.progressPercent}% complete`
-        : 'Awaiting tasking from the contract board.',
-      members: getTeamMemberIds(entry.team)
-        .map((agentId) => game.agents[agentId]?.name)
-        .filter((name): name is string => Boolean(name))
-        .slice(0, 4),
-      tags: uniqueBounded(
-        [
-          entry.signals.deadlineRisk ? 'Deadline risk' : '',
-          entry.signals.criticalStage ? 'Critical stage' : '',
-          entry.signals.raidUnderstaffed ? 'Raid understaffed' : '',
-        ],
-        3
-      ),
-      ...(entry.assignedCase ? { assignedCaseHref: APP_ROUTES.caseDetail(entry.assignedCase.id) } : {}),
-    }))
+    .map((entry) => {
+      const recovery =
+        entry.assignedCase?.status === 'in_progress'
+          ? buildDeployedRecoveryLegibilityForCase(entry.assignedCase)
+          : null
+      const recoveryModeLabel = recovery?.deployedRecoveryMode
+        ? EXPEDITION_RECOVERY_MODE_LABELS[recovery.deployedRecoveryMode]
+        : ''
+
+      return {
+        teamId: entry.team.id,
+        teamName: entry.team.name,
+        href: APP_ROUTES.teamDetail(entry.team.id),
+        statusLabel:
+          entry.status === 'deploying'
+            ? 'Deploying'
+            : entry.status === 'recovering'
+              ? 'Recovering'
+              : entry.status === 'overstretched'
+                ? 'Overstretched'
+                : 'Ready',
+        summary: entry.assignedCase
+          ? `${entry.assignedCase.title} / ${entry.remainingWeeks ?? 0}w remaining / ${entry.progressPercent}% complete`
+          : 'Awaiting tasking from the contract board.',
+        members: getTeamMemberIds(entry.team)
+          .map((agentId) => game.agents[agentId]?.name)
+          .filter((name): name is string => Boolean(name))
+          .slice(0, 4),
+        tags: uniqueBounded(
+          [
+            recoveryModeLabel,
+            entry.signals.deadlineRisk ? 'Deadline risk' : '',
+            entry.signals.criticalStage ? 'Critical stage' : '',
+            entry.signals.raidUnderstaffed ? 'Raid understaffed' : '',
+          ],
+          4
+        ),
+        ...(recovery?.recoveryLegibility ? { recoverySummary: recovery.recoveryLegibility } : {}),
+        ...(entry.assignedCase
+          ? { assignedCaseHref: APP_ROUTES.caseDetail(entry.assignedCase.id) }
+          : {}),
+      }
+    })
 }
 
 function buildProcurementSnapshot(game: GameState): FrontDeskProcurementSnapshotView {

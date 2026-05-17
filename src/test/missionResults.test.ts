@@ -50,6 +50,18 @@ describe('missionResults', () => {
     expect(failReasons.some((r) => r.includes('Unsafe pause'))).toBe(true)
   })
 
+  it('SPE-99: surfaces missing field staging on in-progress contract missions', () => {
+    const state = createStartingState()
+    const base = state.cases['case-001']!
+    const inProgressContract = {
+      ...base,
+      status: 'in_progress' as const,
+      contract: { templateId: 'test' },
+    }
+    const reasons = buildMissionRewardBreakdown(inProgressContract, 'success', state.config).reasons
+    expect(reasons.some((r) => r.includes('No valid field staging packet'))).toBe(true)
+  })
+
   it('SPE-99: uses staging copy for open contract preview cases', () => {
     const state = createStartingState()
     const base = state.cases['case-001']!

@@ -665,6 +665,9 @@ export default function FrontDeskPage() {
                           <Link to={team.href} className="hover:underline">{team.teamName}</Link>
                         </p>
                         <p className="text-xs opacity-55">{team.summary}</p>
+                        {team.recoverySummary ? (
+                          <p className="text-xs opacity-70">{team.recoverySummary}</p>
+                        ) : null}
                       </div>
                       <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(mapTeamStatusTone(team.statusLabel))}`}>
                         {team.statusLabel}

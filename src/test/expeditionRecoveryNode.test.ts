@@ -65,6 +65,34 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     ).toContain('if committed')
   })
 
+  it('buildDeployedRecoveryLegibilityForCase surfaces missing staging on in-progress deployments', () => {
+    const inProgressNoBase: CaseInstance = {
+      id: 'c1',
+      templateId: 't1',
+      title: '',
+      description: '',
+      mode: 'probability',
+      kind: 'investigation',
+      status: 'in_progress',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      deadlineWeeks: 4,
+      deadlineRemaining: 4,
+      assignedTeamIds: ['tm'],
+      contract: { templateId: 'test' },
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+    }
+    const legibility = buildDeployedRecoveryLegibilityForCase(inProgressNoBase)
+    expect(legibility?.deployedRecoveryMode).toBe('ordinary_rest')
+    expect(legibility?.recoveryLegibility).toContain('No valid field staging packet')
+  })
+
   it('buildDeployedRecoveryLegibilityForCase returns null without in-progress fieldBase', () => {
     const open: CaseInstance = {
       id: 'c1',

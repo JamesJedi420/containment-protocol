@@ -447,7 +447,7 @@ function evaluateUnitMissionFit(
     fitScore -= 25
     rankingNotes.push('penalty:outdated_registry')
   } else if (profile.recordConfidence === 'incomplete') {
-    addBlocker(blockers, 'outdated_registry_entry', 'soft')
+    addBlocker(blockers, 'incomplete_registry_entry', 'soft')
     fitScore -= 20
     rankingNotes.push('flag:incomplete_registry')
   } else if (profile.recordConfidence === 'disbanded') {

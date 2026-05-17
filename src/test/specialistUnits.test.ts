@@ -377,6 +377,35 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     )
   })
 
+  it('8b. resolveUnitForMission handles designation collisions without throwing', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({
+          id: 'unit-branch-a',
+          designationCode: 'DX-9',
+          branchId: 'branch-a',
+          eraBand: 'era-1',
+        }),
+        baseProfile({
+          id: 'unit-branch-b',
+          designationCode: 'DX-9',
+          branchId: 'branch-b',
+          eraBand: 'era-2',
+        }),
+      ],
+    }
+
+    const output = resolveUnitForMission({
+      packet: basePacket(),
+      registry,
+      options: { includeBlocked: true },
+    })
+
+    expect(output.designationCollisions).toHaveLength(1)
+    expect(output.ranked).toHaveLength(2)
+    expect(output.ranked[0]?.designationResolved).toMatch(/^DX-9@branch-/)
+  })
+
   it('9. council/executive units are not default best fit for routine incidents', () => {
     const registry: SpecialistUnitRegistry = {
       units: [

@@ -116,6 +116,30 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     ).toBe('soft')
   })
 
+  it('1e. mobile-only unit is not hard-blocked on research_forward', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({
+          id: 'mobile-only',
+          designationCode: 'M-10',
+          unitTypes: ['mobile'],
+          suitabilityTags: ['containment_response'],
+        }),
+      ],
+    }
+
+    const result = resolveUnitForMission({
+      packet: basePacket({ missionPosture: 'research_forward' }),
+      registry,
+      options: { includeBlocked: true },
+    }).ranked[0]
+
+    expect(result?.hardBlocked).toBe(false)
+    expect(
+      result?.blockers.find((blocker) => blocker.code === 'wrong_mission_posture')?.severity
+    ).toBe('soft')
+  })
+
   it('1d. research_forward with empty required suitability tags still blocks armed-mobile-only', () => {
     const registry: SpecialistUnitRegistry = {
       units: [
@@ -467,6 +491,64 @@ describe('specialistUnits slice 1 (SPE-2086)', () => {
     expect(source).not.toMatch(/advanceWeek/)
     expect(source).not.toMatch(/from ['"]react/)
     expect(source).not.toMatch(/specialist-unit-registry-harvest/)
+  })
+
+  it('emitted blocker codes stay within UnitMissionFitBlockerCode union', () => {
+    const registry: SpecialistUnitRegistry = {
+      units: [
+        baseProfile({ id: 'all-signals', recordConfidence: 'incomplete' }),
+        baseProfile({
+          id: 'collision-a',
+          designationCode: 'DX',
+          branchId: 'b1',
+          recordConfidence: 'unverified',
+          lifecycleState: 'forming',
+        }),
+        baseProfile({
+          id: 'collision-b',
+          designationCode: 'DX',
+          branchId: 'b2',
+          recordConfidence: 'outdated',
+        }),
+      ],
+    }
+
+    const declaredCodes = new Set<string>([
+      'wrong_hazard_profile',
+      'wrong_environment_class',
+      'wrong_jurisdiction',
+      'unavailable_lifecycle_state',
+      'unverified_registry_entry',
+      'outdated_registry_entry',
+      'incomplete_registry_entry',
+      'deployment_delay',
+      'fatigue_exceeded',
+      'missing_equipment',
+      'cover_host_forbidden',
+      'authority_tier_insufficient',
+      'designation_collision',
+      'provisional_expired',
+      'branch_handoff_required',
+      'secrecy_cost_too_high',
+      'council_tier_routine_penalty',
+      'wrong_mission_posture',
+    ])
+
+    const output = resolveUnitForMission({
+      packet: basePacket({
+        requiredSuitabilityTags: ['research_forward', 'analysis'],
+        handoffRequired: true,
+        allowProvisionalUnits: false,
+      }),
+      registry,
+      options: { includeBlocked: true },
+    })
+
+    for (const result of output.ranked) {
+      for (const blocker of result.blockers) {
+        expect(declaredCodes.has(blocker.code)).toBe(true)
+      }
+    }
   })
 
   it('validates registry invariants', () => {

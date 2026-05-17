@@ -281,11 +281,21 @@ function profileHasResearchFit(profile: UnitProfile, requiredSuitabilityTags: re
   return profile.suitabilityTags.some((tag) => RESEARCH_SUITABILITY_TAGS.has(tag.toLowerCase()))
 }
 
+/**
+ * Armed+mobile tactical detachment without research mission types/tags.
+ * Requires both armed and mobile (excludes mobile-only logistics units).
+ */
 function profileIsArmedMobileOnly(profile: UnitProfile) {
   const types = new Set(profile.unitTypes)
-  const hasArmedAndMobile = types.has('armed') && types.has('mobile')
-  const hasResearchType = types.has('research') || types.has('intelligence')
-  return hasArmedAndMobile && !hasResearchType && !profileHasResearchFit(profile, ['research_forward'])
+  if (!types.has('armed') || !types.has('mobile')) {
+    return false
+  }
+
+  if (types.has('research') || types.has('intelligence')) {
+    return false
+  }
+
+  return !profileHasResearchFit(profile, ['research_forward'])
 }
 
 function addBlocker(

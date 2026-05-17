@@ -616,7 +616,7 @@ export function resolveUnitForMission(
   const ambiguousUnitIds = new Set<string>()
   for (const collision of designationResolution.collisions) {
     const keys = collision.unitIds.map((unitId) => {
-      const profile = registry.units.find((unit) => unit.id === unitId)
+      const profile = unitsById.get(unitId)
       return profile ? `${profile.branchId}::${profile.eraBand ?? 'era_unknown'}` : unitId
     })
     const uniqueKeys = new Set(keys)

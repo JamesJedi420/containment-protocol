@@ -46,6 +46,27 @@ describe('missionResults', () => {
     const failReasons = buildMissionRewardBreakdown(withFieldBase, 'fail', state.config).reasons
     expect(failReasons.some((r) => r.includes('Supply staging tier'))).toBe(false)
     expect(failReasons.some((r) => r.startsWith('Field staging'))).toBe(true)
+    expect(failReasons.some((r) => r.startsWith('Expedition recovery'))).toBe(true)
+    expect(failReasons.some((r) => r.includes('Unsafe pause'))).toBe(true)
+  })
+
+  it('SPE-99: includes sanctuary recovery legibility when fieldBase meets sanctuary thresholds', () => {
+    const state = createStartingState()
+    const base = state.cases['case-001']!
+    const withSanctuaryBase = {
+      ...base,
+      contract: {
+        templateId: 'test',
+        fieldBase: {
+          label: 'vault-approach-bivouac',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
+    }
+    const reasons = buildMissionRewardBreakdown(withSanctuaryBase, 'success', state.config).reasons
+    expect(reasons.some((r) => r.includes('vault-approach-bivouac'))).toBe(true)
+    expect(reasons.some((r) => r.includes('Sanctuary recovery'))).toBe(true)
+    expect(reasons.some((r) => r.includes('55%'))).toBe(true)
   })
 
   it('returns a complete preview set for all mission outcomes', () => {

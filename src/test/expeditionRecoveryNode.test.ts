@@ -7,7 +7,9 @@ import {
   ACTIVE_RECOVERY_DEPLOYED_SCALE,
   SANCTUARY_RECOVERY_DEPLOYED_SCALE,
   UNSAFE_PAUSE_DEPLOYED_FATIGUE_SURCHARGE,
+  buildDeployedRecoveryLegibilityForCase,
   buildDeployedRecoveryModeByAgentId,
+  formatExpeditionRecoveryLegibilityLine,
   resolveDeployedRecoveryModeForCase,
   resolveExpeditionRecoveryModeFromStagingQuality,
   scaleDeployedMissionFatigueDelta,
@@ -40,6 +42,59 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
     }
     expect(readFieldBaseFromCase(missingLabel)).toBeNull()
     expect(resolveDeployedRecoveryModeForCase(missingLabel)).toBe('ordinary_rest')
+  })
+
+  it('formats recovery legibility lines for sanctuary and unsafe pause', () => {
+    expect(
+      formatExpeditionRecoveryLegibilityLine('sanctuary_recovery', {
+        label: 'vault-approach-bivouac',
+        quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+      })
+    ).toContain('vault-approach-bivouac')
+    expect(
+      formatExpeditionRecoveryLegibilityLine('sanctuary_recovery', {
+        label: 'vault-approach-bivouac',
+        quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+      })
+    ).toContain('55%')
+    expect(formatExpeditionRecoveryLegibilityLine('unsafe_pause')).toContain('Unsafe pause')
+    expect(formatExpeditionRecoveryLegibilityLine('unsafe_pause')).toContain('+2')
+  })
+
+  it('buildDeployedRecoveryLegibilityForCase returns null without in-progress fieldBase', () => {
+    const open: CaseInstance = {
+      id: 'c1',
+      templateId: 't1',
+      title: '',
+      description: '',
+      mode: 'probability',
+      kind: 'investigation',
+      status: 'open',
+      difficulty: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      weights: { combat: 1, investigation: 1, utility: 1, social: 1 },
+      tags: [],
+      requiredTags: [],
+      preferredTags: [],
+      stage: 1,
+      durationWeeks: 2,
+      deadlineWeeks: 4,
+      deadlineRemaining: 4,
+      assignedTeamIds: [],
+      contract: {
+        fieldBase: {
+          label: 'test-staging',
+          quality: { safety: 2, medical: 2, supply: 1, extractionAccess: 0 },
+        },
+      },
+      onFail: { type: 'none' },
+      onUnresolved: { type: 'none' },
+    }
+    expect(buildDeployedRecoveryLegibilityForCase(open)).toBeNull()
+
+    const inProgress: CaseInstance = { ...open, status: 'in_progress' }
+    const legibility = buildDeployedRecoveryLegibilityForCase(inProgress)
+    expect(legibility?.deployedRecoveryMode).toBe('sanctuary_recovery')
+    expect(legibility?.recoveryLegibility).toContain('test-staging')
   })
 
   it('classifies recovery modes from normalized staging quality', () => {

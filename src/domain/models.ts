@@ -1382,6 +1382,14 @@ export interface WeeklyReportTeamStatus {
   assignedCaseTitle?: string
   avgFatigue: number
   fatigueBand?: FatigueBand
+  /** SPE-99: deployed recovery mode when assigned to an in-progress case with fieldBase staging. */
+  deployedRecoveryMode?:
+    | 'unsafe_pause'
+    | 'ordinary_rest'
+    | 'active_recovery'
+    | 'sanctuary_recovery'
+  /** SPE-99: human-readable recovery-mode line for weekly report legibility. */
+  recoveryLegibility?: string
 }
 
 /** Structured report log entry emitted by the weekly simulation step. */

@@ -20,6 +20,7 @@ import {
   getTeamAssignedCaseId,
   getTeamMemberIds,
 } from '../teamSimulation'
+import { buildDeployedRecoveryLegibilityForCase } from './expeditionRecoveryNode'
 import { calcWeekScore } from './scoring'
 
 interface WeeklyReportBuildInput {
@@ -222,6 +223,7 @@ function buildReportTeamStatusEntry(
   const avgFatigue = getAverageFatigue(team, agents)
   const assignedCaseId = getTeamAssignedCaseId(team)
   const assignedCase = assignedCaseId ? cases[assignedCaseId] : undefined
+  const recoveryLegibility = buildDeployedRecoveryLegibilityForCase(assignedCase)
 
   return {
     teamId: team.id,
@@ -230,6 +232,7 @@ function buildReportTeamStatusEntry(
     assignedCaseTitle: assignedCase?.title,
     avgFatigue,
     fatigueBand: getFatigueBand(avgFatigue),
+    ...(recoveryLegibility ?? {}),
   }
 }
 

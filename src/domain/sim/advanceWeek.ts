@@ -206,6 +206,7 @@ import {
   decrementOpenDeadline,
 } from './escalation'
 import {
+  buildDeployedRecoveryLegibilityForCase,
   buildDeployedRecoveryModeByAgentId,
   scaleDeployedMissionFatigueDelta,
 } from './expeditionRecoveryNode'
@@ -931,6 +932,7 @@ function buildReportTeamStatusEntry(
   const avgFatigue = getAverageFatigue(team, agents)
   const assignedCaseId = getTeamAssignedCaseId(team)
   const assignedCase = assignedCaseId ? cases[assignedCaseId] : undefined
+  const recoveryLegibility = buildDeployedRecoveryLegibilityForCase(assignedCase)
 
   return {
     teamId: team.id,
@@ -939,6 +941,7 @@ function buildReportTeamStatusEntry(
     assignedCaseTitle: assignedCase?.title,
     avgFatigue,
     fatigueBand: getFatigueBand(avgFatigue),
+    ...(recoveryLegibility ?? {}),
   }
 }
 

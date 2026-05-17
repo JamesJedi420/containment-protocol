@@ -26,6 +26,10 @@ import {
   formatFieldBaseStagingLegibilityLine,
   readFieldBaseFromCase,
 } from './fieldBaseStaging'
+import {
+  formatExpeditionRecoveryLegibilityLine,
+  resolveExpeditionRecoveryModeFromStagingQuality,
+} from './sim/expeditionRecoveryNode'
 
 interface RewardCaseProfile {
   id: string
@@ -889,6 +893,8 @@ export function buildMissionRewardBreakdown(
   const fieldBaseReasons: string[] = []
   if (fieldBase) {
     fieldBaseReasons.push(formatFieldBaseStagingLegibilityLine(fieldBase))
+    const recoveryMode = resolveExpeditionRecoveryModeFromStagingQuality(fieldBase.quality)
+    fieldBaseReasons.push(formatExpeditionRecoveryLegibilityLine(recoveryMode, fieldBase))
     const materialQuantityIncreased = inventoryRewards.some((grant, index) => {
       const raw = inventoryRewardsRaw[index]
       return (

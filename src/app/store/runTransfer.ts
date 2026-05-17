@@ -669,6 +669,14 @@ function sanitizeTeamStatus(
 
     const avgFatigue = sanitizeInteger(entry.avgFatigue as number | undefined, 0, 0)
 
+    const deployedRecoveryMode =
+      entry.deployedRecoveryMode === 'unsafe_pause' ||
+      entry.deployedRecoveryMode === 'ordinary_rest' ||
+      entry.deployedRecoveryMode === 'active_recovery' ||
+      entry.deployedRecoveryMode === 'sanctuary_recovery'
+        ? entry.deployedRecoveryMode
+        : undefined
+
     nextTeamStatus.push(
       stripUndefinedFields({
         teamId: entry.teamId,
@@ -683,6 +691,9 @@ function sanitizeTeamStatus(
           entry.fatigueBand === 'critical'
             ? entry.fatigueBand
             : getFatigueBand(avgFatigue),
+        deployedRecoveryMode,
+        recoveryLegibility:
+          typeof entry.recoveryLegibility === 'string' ? entry.recoveryLegibility : undefined,
       }) as WeeklyReportTeamStatus
     )
   }

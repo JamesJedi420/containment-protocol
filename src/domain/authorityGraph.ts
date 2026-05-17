@@ -335,12 +335,24 @@ function edgeTripleKey(edge: Pick<AuthorityGraphEdge, 'fromNodeId' | 'toNodeId' 
   return `${edge.fromNodeId}::${edge.toNodeId}::${edge.kind}`
 }
 
+function edgePairKey(edge: Pick<AuthorityGraphEdge, 'fromNodeId' | 'toNodeId'>) {
+  return `${edge.fromNodeId}::${edge.toNodeId}`
+}
+
+interface FrontAlliancePairClaims {
+  fromNodeId: string
+  toNodeId: string
+  front: AuthorityGraphEdge[]
+  alliance: AuthorityGraphEdge[]
+}
+
 function detectContradictoryCurrentClaims(
   edges: readonly AuthorityGraphEdge[]
 ): Array<{ edgeIds: string[]; detail: string }> {
   const contradictions: Array<{ edgeIds: string[]; detail: string }> = []
   const currentByTriple = new Map<string, AuthorityGraphEdge[]>()
   const subordinationByChild = new Map<string, AuthorityGraphEdge[]>()
+  const frontAllianceByPair = new Map<string, FrontAlliancePairClaims>()
 
   for (const edge of edges) {
     if (edge.status !== 'current') {
@@ -356,6 +368,24 @@ function detectContradictoryCurrentClaims(
       const childGroup = subordinationByChild.get(edge.fromNodeId) ?? []
       childGroup.push(edge)
       subordinationByChild.set(edge.fromNodeId, childGroup)
+    }
+
+    if (edge.kind === 'front' || edge.kind === 'alliance') {
+      const pairKey = edgePairKey(edge)
+      const pairClaims = frontAllianceByPair.get(pairKey) ?? {
+        fromNodeId: edge.fromNodeId,
+        toNodeId: edge.toNodeId,
+        front: [],
+        alliance: [],
+      }
+
+      if (edge.kind === 'front') {
+        pairClaims.front.push(edge)
+      } else {
+        pairClaims.alliance.push(edge)
+      }
+
+      frontAllianceByPair.set(pairKey, pairClaims)
     }
   }
 
@@ -383,36 +413,17 @@ function detectContradictoryCurrentClaims(
     }
   }
 
-  for (const edge of edges) {
-    if (edge.status !== 'current') {
+  for (const pairClaims of frontAllianceByPair.values()) {
+    if (pairClaims.front.length === 0 || pairClaims.alliance.length === 0) {
       continue
     }
 
-    if (edge.kind === 'front' || edge.kind === 'alliance') {
-      const counterpart =
-        edge.kind === 'front'
-          ? edges.find(
-              (candidate) =>
-                candidate.status === 'current' &&
-                candidate.kind === 'alliance' &&
-                candidate.fromNodeId === edge.fromNodeId &&
-                candidate.toNodeId === edge.toNodeId
-            )
-          : edges.find(
-              (candidate) =>
-                candidate.status === 'current' &&
-                candidate.kind === 'front' &&
-                candidate.fromNodeId === edge.fromNodeId &&
-                candidate.toNodeId === edge.toNodeId
-            )
-
-      if (counterpart) {
-        contradictions.push({
-          edgeIds: uniqueSorted([edge.id, counterpart.id]),
-          detail: `Front and alliance both current between ${edge.fromNodeId} and ${edge.toNodeId}.`,
-        })
-      }
-    }
+    contradictions.push({
+      edgeIds: uniqueSorted(
+        [...pairClaims.front, ...pairClaims.alliance].map((edge) => edge.id)
+      ),
+      detail: `Front and alliance both current between ${pairClaims.fromNodeId} and ${pairClaims.toNodeId}.`,
+    })
   }
 
   return contradictions

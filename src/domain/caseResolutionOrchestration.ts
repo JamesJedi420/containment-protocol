@@ -13,6 +13,10 @@ import {
   evaluateInfiltrationStageMissionPressure,
   type InfiltrationStageMissionPressureResult,
 } from './infiltrationProbe'
+import {
+  evaluateStealthLeaveBehindMissionPressure,
+  type StealthLeaveBehindMissionPressureResult,
+} from './stealthLeaveBehindRegistry'
 import { buildAgencyProtocolState } from './protocols'
 import { computeTeamScore, computeRequiredScore } from './sim/scoring'
 import { applyExecutionInstabilityOverlay } from './executionInstability'
@@ -29,12 +33,14 @@ export interface WeeklyCaseResolutionStrategy {
   outcome: ResolutionOutcome
   behaviorValidation?: BehaviorWeightedDisguiseValidationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
+  stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
 export function resolveMissionSuccessDegradeHint(input: {
   behaviorValidation?: BehaviorWeightedDisguiseValidationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
+  stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
 }): { shouldDegrade: boolean; reason?: string } {
   if (
     input.behaviorValidation?.shouldDegradeSuccessToPartial &&
@@ -53,6 +59,16 @@ export function resolveMissionSuccessDegradeHint(input: {
     return {
       shouldDegrade: true,
       reason: input.infiltrationStageMission.degradeSuccessReason,
+    }
+  }
+
+  if (
+    input.stealthLeaveBehindMission?.shouldDegradeSuccessToPartial &&
+    input.stealthLeaveBehindMission.degradeSuccessReason
+  ) {
+    return {
+      shouldDegrade: true,
+      reason: input.stealthLeaveBehindMission.degradeSuccessReason,
     }
   }
 
@@ -129,14 +145,17 @@ export function resolveAssignedCaseForWeek(
     behaviorValidation
   )
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
+  const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =
     factionContext.scoreAdjustment +
     behaviorValidation.scoreAdjustment +
-    infiltrationStageMission.scoreAdjustment
+    infiltrationStageMission.scoreAdjustment +
+    stealthLeaveBehindMission.scoreAdjustment
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
     infiltrationStageMission.scoreAdjustmentReason,
+    stealthLeaveBehindMission.scoreAdjustmentReason,
   ]
     .filter(Boolean)
     .join(' / ')
@@ -216,6 +235,9 @@ export function resolveAssignedCaseForWeek(
         ...(infiltrationStageMission.scoreAdjustmentReason
           ? [infiltrationStageMission.scoreAdjustmentReason]
           : []),
+        ...(stealthLeaveBehindMission.scoreAdjustmentReason
+          ? [stealthLeaveBehindMission.scoreAdjustmentReason]
+          : []),
         `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
         ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
         ...instabilityReasons,
@@ -259,6 +281,7 @@ export function resolveAssignedCaseForWeek(
     outcome,
     behaviorValidation,
     infiltrationStageMission,
+    stealthLeaveBehindMission,
     weakestLinkResult,
   }
 }

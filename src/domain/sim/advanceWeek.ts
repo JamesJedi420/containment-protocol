@@ -1562,6 +1562,9 @@ interface WeeklyCaseResolutionStrategy {
   infiltrationStageMission?: ReturnType<
     typeof resolveCanonicalAssignedCaseForWeek
   >['infiltrationStageMission']
+  stealthLeaveBehindMission?: ReturnType<
+    typeof resolveCanonicalAssignedCaseForWeek
+  >['stealthLeaveBehindMission']
   weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
@@ -1699,6 +1702,7 @@ function resolveAssignedCaseForWeek(
     aggregateBattleSummary,
     behaviorValidation: canonicalResolution.behaviorValidation,
     infiltrationStageMission: canonicalResolution.infiltrationStageMission,
+    stealthLeaveBehindMission: canonicalResolution.stealthLeaveBehindMission,
     weakestLinkResult: canonicalResolution.weakestLinkResult,
     campaignToIncident,
     incidentToCampaign,
@@ -2298,12 +2302,14 @@ function resolveAssignments(
       aggregateBattleSummary,
       behaviorValidation,
       infiltrationStageMission,
+      stealthLeaveBehindMission,
       weakestLinkResult,
     } = weeklyResolution
 
     const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
       behaviorValidation,
       infiltrationStageMission,
+      stealthLeaveBehindMission,
     })
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)

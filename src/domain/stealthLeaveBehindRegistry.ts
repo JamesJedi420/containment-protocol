@@ -5,7 +5,10 @@
  * with bounded discovery risk and custody-loss references. No weekly hook or UI yet.
  */
 
+import { CONCEALMENT_ACTIVATION_TAGS } from './hiddenStateActivation'
+import { INFILTRATION_AUTHORITY_SCRUTINY_TAGS } from './infiltrationCover'
 import { clamp } from './math'
+import type { CaseInstance } from './models'
 
 export type StealthLeaveBehindKind =
   | 'abandon_evidence'
@@ -192,6 +195,85 @@ function defineLeaveBehind(
     discoveryRisk: clamp(input.discoveryRisk, 0, 1),
     custodyLossRefs: Object.freeze([...input.custodyLossRefs]),
   })
+}
+
+const DISCOVERY_RISK_MISSION_SCORE_SCALE = 5
+const HIGH_LEAVE_BEHIND_DISCOVERY_THRESHOLD = 0.55
+
+export interface StealthLeaveBehindMissionPressureResult {
+  active: boolean
+  leaveBehindId?: string
+  kind?: StealthLeaveBehindKind
+  scoreAdjustment: number
+  scoreAdjustmentReason?: string
+  shouldDegradeSuccessToPartial: boolean
+  degradeSuccessReason?: string
+}
+
+const INACTIVE_LEAVE_BEHIND_MISSION_PRESSURE: StealthLeaveBehindMissionPressureResult = {
+  active: false,
+  scoreAdjustment: 0,
+  shouldDegradeSuccessToPartial: false,
+}
+
+function collectCaseTags(caseData: CaseInstance) {
+  return [...new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])]
+}
+
+function hasAuthorityScrutiny(caseTags: readonly string[]) {
+  const tagSet = new Set(caseTags)
+  return INFILTRATION_AUTHORITY_SCRUTINY_TAGS.some((tag) => tagSet.has(tag))
+}
+
+export function isStealthLeaveBehindMissionEligible(caseData: CaseInstance) {
+  if (caseData.hiddenState !== 'hidden') {
+    return false
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  return CONCEALMENT_ACTIVATION_TAGS.some((tag) => caseTags.includes(tag))
+}
+
+/**
+ * Bounded mission-resolution malus from an authored stealth leave-behind tradeoff.
+ */
+export function evaluateStealthLeaveBehindMissionPressure(
+  caseData: CaseInstance,
+  registry: StealthLeaveBehindRegistry = DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY
+): StealthLeaveBehindMissionPressureResult {
+  if (!isStealthLeaveBehindMissionEligible(caseData)) {
+    return INACTIVE_LEAVE_BEHIND_MISSION_PRESSURE
+  }
+
+  const leaveBehindId = normalizeToken(caseData.stealthLeaveBehindId ?? '')
+  if (!leaveBehindId) {
+    return INACTIVE_LEAVE_BEHIND_MISSION_PRESSURE
+  }
+
+  const definition = getStealthLeaveBehindById(registry, leaveBehindId)
+  if (!definition) {
+    return INACTIVE_LEAVE_BEHIND_MISSION_PRESSURE
+  }
+
+  const scoreAdjustment =
+    Math.round(definition.discoveryRisk * DISCOVERY_RISK_MISSION_SCORE_SCALE * 10) / 10
+  const caseTags = collectCaseTags(caseData)
+  const authorityScrutiny = hasAuthorityScrutiny(caseTags)
+  const highDiscoveryRisk = definition.discoveryRisk >= HIGH_LEAVE_BEHIND_DISCOVERY_THRESHOLD
+  const scoreAdjustmentReason = `Stealth leave-behind: +${scoreAdjustment.toFixed(1)} (${definition.label})`
+
+  return {
+    active: true,
+    leaveBehindId: definition.id,
+    kind: definition.kind,
+    scoreAdjustment,
+    scoreAdjustmentReason,
+    shouldDegradeSuccessToPartial: highDiscoveryRisk && authorityScrutiny,
+    degradeSuccessReason:
+      highDiscoveryRisk && authorityScrutiny
+        ? 'Stealth extraction tradeoff under authority scrutiny prevented a clean resolution.'
+        : undefined,
+  }
 }
 
 /** Baseline catalog: one authored tradeoff row per canonical kind. */

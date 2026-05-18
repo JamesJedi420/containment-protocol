@@ -17,6 +17,7 @@ import { buildFactionMissionContext } from '../factions'
 import { evaluateContractRoleFit } from '../contractsRuntime'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../disguiseValidation'
 import { evaluateInfiltrationStageMissionPressure } from '../infiltrationProbe'
+import { evaluateStealthLeaveBehindMissionPressure } from '../stealthLeaveBehindRegistry'
 import {
   buildAggregatedLeaderBonus,
   createDefaultPerformanceMetricSummary,
@@ -112,18 +113,21 @@ function buildTeamScoreContextForTeamIds(
         : null,
   })
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(c)
+  const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(c)
   const baseScoreAdjustment =
     (coordination?.scoreAdjustment ?? 0) +
     factionContext.scoreAdjustment +
     (contractFit?.scoreAdjustment ?? 0) +
     behaviorValidation.scoreAdjustment +
-    infiltrationStageMission.scoreAdjustment
+    infiltrationStageMission.scoreAdjustment +
+    stealthLeaveBehindMission.scoreAdjustment
   const scoreAdjustmentReason = [
     coordination?.reason,
     ...factionContext.reasons,
     ...(contractFit?.reasons ?? []),
     behaviorValidation.scoreAdjustmentReason,
     infiltrationStageMission.scoreAdjustmentReason,
+    stealthLeaveBehindMission.scoreAdjustmentReason,
   ]
     .filter(Boolean)
     .join(' / ')

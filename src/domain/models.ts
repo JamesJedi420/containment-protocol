@@ -1261,6 +1261,9 @@ export interface CaseTemplate {
 
   /** SPE-521 slice 3: authored cover identity profile (normalized in catalog build). */
   infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
+
+  /** SPE-2163 slice 2: registry id for mission-resolution stealth tradeoff fallout. */
+  stealthLeaveBehindId?: string
 }
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
@@ -1342,6 +1345,8 @@ export interface CaseInstance {
   infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
   /** SPE-521 slice 3: cover identity profile copied from template at spawn. */
   infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
+  /** SPE-2163 slice 2: stealth tradeoff row copied from template at spawn. */
+  stealthLeaveBehindId?: string
 
   onFail: SpawnRule
   onUnresolved: SpawnRule

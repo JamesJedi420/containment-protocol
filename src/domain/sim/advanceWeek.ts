@@ -2102,9 +2102,7 @@ function applyWeeklyInfiltrationProbe(
     return caseData
   }
 
-  if (probeResult.changed || probeResult.events.length > 0) {
-    context.nextState.cases[caseId] = probeResult.case
-  }
+  context.nextState.cases[caseId] = probeResult.case
 
   for (const event of probeResult.events) {
     context.eventDrafts.push({
@@ -2122,7 +2120,7 @@ function applyWeeklyInfiltrationProbe(
     })
   }
 
-  return probeResult.changed || probeResult.events.length > 0 ? probeResult.case : caseData
+  return probeResult.case
 }
 
 // Accept timingCheckState as parameter for shared cadence

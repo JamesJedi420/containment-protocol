@@ -1,5 +1,6 @@
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
+import type { InfiltrationCoverRole } from './infiltrationCover'
 import {
   getInfiltrationAwarenessPressure,
   getInfiltrationStagePressure,
@@ -30,6 +31,9 @@ export interface BehaviorWeightedDisguiseValidationContext {
   leaderId?: Id | null
   /** SPE-521: optional override; defaults to case infiltration awareness when present. */
   infiltrationAwareness?: number
+  /** SPE-521 slice 3: optional override; defaults to case cover profile when present. */
+  coverRole?: InfiltrationCoverRole
+  documentTier?: number
 }
 
 export interface BehaviorWeightedDisguiseValidationResult {
@@ -64,6 +68,21 @@ function roundTo(value: number, digits = 1) {
 
 function collectCaseTags(caseData: CaseInstance) {
   return [...new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])]
+}
+
+export function resolveDisguiseValidationContextFromCase(
+  caseData: CaseInstance,
+  context: BehaviorWeightedDisguiseValidationContext = {}
+): BehaviorWeightedDisguiseValidationContext {
+  const profile = caseData.infiltrationCoverProfile
+
+  return {
+    ...context,
+    infiltrationAwareness:
+      context.infiltrationAwareness ?? getInfiltrationAwarenessPressure(caseData),
+    coverRole: context.coverRole ?? profile?.claimedRole,
+    documentTier: context.documentTier ?? profile?.documentTier,
+  }
 }
 
 function collectObserverTags(
@@ -101,6 +120,7 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     return INACTIVE_BEHAVIOR_VALIDATION
   }
 
+  const resolvedContext = resolveDisguiseValidationContextFromCase(caseData, context)
   const caseTags = collectCaseTags(caseData)
   const authorityScrutiny = hasAnyTag(caseTags, AUTHORITY_SCRUTINY_TAGS)
   const proceduralScrutiny = hasAnyTag(caseTags, PROCEDURAL_SCRUTINY_TAGS)
@@ -111,7 +131,7 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     return INACTIVE_BEHAVIOR_VALIDATION
   }
 
-  const observerTags = collectObserverTags(agents, context)
+  const observerTags = collectObserverTags(agents, resolvedContext)
   const averageSocial = averageStat(agents, 'social')
   const averageInvestigation = averageStat(agents, 'investigation')
   const evidenceSignals: string[] = []
@@ -153,19 +173,23 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     typeof caseData.detectionConfidence === 'number'
       ? clamp(caseData.detectionConfidence, 0, 1)
       : 0
-  const infiltrationAwareness = clamp(
-    context.infiltrationAwareness ?? getInfiltrationAwarenessPressure(caseData),
-    0,
-    1
-  )
+  const infiltrationAwareness = clamp(resolvedContext.infiltrationAwareness ?? 0, 0, 1)
   const infiltrationStagePressure = getInfiltrationStagePressure(
     caseData,
     infiltrationAwareness
   )
+  const documentTier = resolvedContext.documentTier ?? 2
+  const documentScrutinyPressure =
+    authorityScrutiny && documentTier <= 0
+      ? 0.35
+      : authorityScrutiny && documentTier === 1
+        ? 0.15
+        : 0
   const counterDetectionPressure =
     (caseData.counterDetection ? 1 : 0) +
     (priorDetectionConfidence >= DETECTION_CONFIDENCE_PRESSURE_THRESHOLD ? 1 : 0) +
     infiltrationStagePressure +
+    documentScrutinyPressure +
     (hasEffectiveCountermeasure({ family: 'deception', presentTags: observerTags }) ? 0.5 : 0)
 
   if (validationScore < ESCALATION_VALIDATION_SCORE_THRESHOLD) {

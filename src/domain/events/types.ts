@@ -605,6 +605,15 @@ export interface OperationEventPayloadMap {
     infiltrationProbeProgress?: number
     infiltrationStage?: 'probing' | 'exposed' | 'violent'
   }
+  'infiltration.cover_strain': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+  }
   'system.academy_upgraded': {
     week: number
     tierBefore: number
@@ -684,6 +693,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'infiltration.awareness_complication': 'system'
   'infiltration.escalation_exposed': 'system'
   'infiltration.escalation_violent': 'system'
+  'infiltration.cover_strain': 'system'
   'system.academy_upgraded': 'system'
   'staff.coping.applied': 'agent'
   'staff.coping.misconduct': 'agent'
@@ -738,6 +748,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'infiltration.awareness_complication': 'system',
   'infiltration.escalation_exposed': 'system',
   'infiltration.escalation_violent': 'system',
+  'infiltration.cover_strain': 'system',
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',
   'staff.coping.misconduct': 'agent',

@@ -2098,7 +2098,7 @@ function applyWeeklyInfiltrationProbe(
 ): CaseInstance {
   const probeResult = applyWeeklyInfiltrationProbeTick(caseData, context.sourceState.week)
 
-  if (!probeResult.changed) {
+  if (!probeResult.changed && probeResult.events.length === 0) {
     return caseData
   }
 

@@ -27,6 +27,11 @@ export const operationsCaseTemplates: CaseTemplate[] = [
       defaultAction: 'probe_route',
       actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.5, action: 'probe_access' }],
     },
+    infiltrationCoverProfile: {
+      claimedRole: 'courier',
+      documentTier: 2,
+      doctrineBand: 0.65,
+    },
     requiredTags: ['tech'],
     preferredTags: ['analyst', 'field-kit'],
     onFail: {
@@ -135,6 +140,11 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     infiltrationProbePlan: {
       defaultAction: 'probe_access',
       cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'uniform_guard',
+      documentTier: 1,
+      doctrineBand: 0.4,
     },
     requiredTags: ['medium'],
     preferredTags: ['negotiator', 'liaison', 'infiltration'],

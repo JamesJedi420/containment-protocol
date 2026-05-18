@@ -658,6 +658,7 @@ export const operationEventPayloadSchemas = {
   'infiltration.awareness_complication': infiltrationProbeEventSchema,
   'infiltration.escalation_exposed': infiltrationProbeEventSchema,
   'infiltration.escalation_violent': infiltrationProbeEventSchema,
+  'infiltration.cover_strain': infiltrationProbeEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
   'case.aggregate_battle': z.object({}).passthrough(),

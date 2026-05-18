@@ -384,6 +384,32 @@ function cloneConsequence(consequence: AuthorityConsequence): AuthorityConsequen
   }
 }
 
+function baselineEdgeIdsForChannel(
+  baseline: readonly AuthorityConsequence[],
+  channel: AuthorityPressureChannel
+) {
+  const edgeIds: string[] = []
+  for (const consequence of baseline) {
+    if (consequence.channel !== channel) {
+      continue
+    }
+
+    edgeIds.push(...consequence.edgeIds)
+  }
+
+  return uniqueSorted(edgeIds)
+}
+
+function baselineConfidenceForChannel(
+  baseline: readonly AuthorityConsequence[],
+  channel: AuthorityPressureChannel
+): AuthoritySourceConfidence {
+  return (
+    baseline.find((consequence) => consequence.channel === channel)?.confidenceApplied ??
+    'probable'
+  )
+}
+
 function buildAdjustments(
   outcome: AuthorityBargainingOutcome,
   request: AuthorityNegotiationRequest,
@@ -495,14 +521,13 @@ function applyAdjustments(
       continue
     }
 
-    const template = baseline[0]
     effective.push({
       channel: adjustment.channel,
       effect: adjustment.effect,
       magnitude: clampInteger(adjustment.magnitudeDelta, -100, 100),
       reasonCode: adjustment.reasonCode,
-      edgeIds: template ? [...template.edgeIds] : [],
-      confidenceApplied: template?.confidenceApplied ?? 'probable',
+      edgeIds: baselineEdgeIdsForChannel(baseline, adjustment.channel),
+      confidenceApplied: baselineConfidenceForChannel(baseline, adjustment.channel),
       delayed: signature.delayed || adjustment.effect === 'delay',
       contradicted: signature.contradicted,
     })

@@ -144,7 +144,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     coverRoleLabel:
       profile !== undefined ? COVER_ROLE_LABELS[profile.claimedRole] : undefined,
     documentTier: profile?.documentTier,
-    doctrineBand: profile?.doctrineBand,
+    doctrineBandPercent: profile?.doctrineBand !== undefined ? formatPercent(profile.doctrineBand) : undefined,
     coverStrainNotes: buildCoverStrainNotes(caseData),
     plannedAction,
     plannedActionLabel: INFILTRATION_PROBE_ACTION_LABELS[plannedAction],

@@ -30,6 +30,10 @@ function normalizeDocumentTier(value: unknown): number | undefined {
     return undefined
   }
 
+  if (value < 0) {
+    return undefined
+  }
+
   const tier = Math.trunc(value)
   return tier >= 0 && tier <= 2 ? tier : undefined
 }

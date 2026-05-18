@@ -193,6 +193,36 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(consequences.some((item) => item.reasonCode === 'proxy_routes_constituency')).toBe(true)
   })
 
+  it('4b. represented actor resolves proxy consequences against counterparty', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'proxy-liaison', nodeType: 'proxy', label: 'District Liaison Proxy' }),
+        node({ id: 'constituency-ward', nodeType: 'constituency', label: 'Industrial Ward Bloc' }),
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+      ],
+      edges: [
+        edge({
+          id: 'proxy-1',
+          kind: 'proxy_representation',
+          fromNodeId: 'proxy-liaison',
+          toNodeId: 'agency-core',
+          representsNodeId: 'constituency-ward',
+        }),
+      ],
+    }
+
+    const consequences = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'constituency-ward',
+        counterpartyNodeId: 'agency-core',
+        channel: 'permission',
+      })
+    )
+
+    expect(consequences.some((item) => item.reasonCode === 'proxy_routes_constituency')).toBe(true)
+  })
+
   it('5. shared-authority edge changes permission, secrecy, or local compliance', () => {
     const graph: AuthorityGraph = {
       nodes: [
@@ -672,5 +702,241 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(validation.valid).toBe(false)
     expect(validation.issues.some((issue) => issue.code === 'proxy_representation_cycle')).toBe(true)
     expect(validation.issues.some((issue) => issue.relatedIds?.includes('proxy-b'))).toBe(true)
+  })
+
+  it('15. subordination consequences preserve directionality by actor endpoint', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'subordinate-unit', nodeType: 'department', label: 'Field Operations Unit' }),
+        node({ id: 'superior-office', nodeType: 'public_office', label: 'Regional Command Office' }),
+      ],
+      edges: [
+        edge({
+          id: 'sub-1',
+          kind: 'subordination',
+          fromNodeId: 'subordinate-unit',
+          toNodeId: 'superior-office',
+          strength: 90,
+        }),
+      ],
+    }
+
+    const fromSubordinate = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'subordinate-unit',
+        counterpartyNodeId: 'superior-office',
+        channel: 'permission',
+      })
+    )
+    const fromSuperior = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'superior-office',
+        counterpartyNodeId: 'subordinate-unit',
+        channel: 'permission',
+      })
+    )
+
+    const subordinateGrant = fromSubordinate.find((item) => item.reasonCode === 'subordination_permission')
+    const superiorGrant = fromSuperior.find((item) => item.reasonCode === 'subordination_permission')
+
+    expect(subordinateGrant?.effect).toBe('grant')
+    expect(superiorGrant?.effect).toBe('modify')
+    expect((subordinateGrant?.magnitude ?? 0)).toBeGreaterThan(superiorGrant?.magnitude ?? 0)
+  })
+
+  it('16. contradiction flags stay scoped to the queried actor/counterparty pair', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'faction-a', nodeType: 'faction', label: 'Archive Bloc' }),
+        node({ id: 'faction-b', nodeType: 'faction', label: 'Security Bloc' }),
+        node({ id: 'faction-c', nodeType: 'faction', label: 'Logistics Bloc' }),
+      ],
+      edges: [
+        edge({
+          id: 'front-ab',
+          kind: 'front',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+          sourceConfidence: 'verified',
+        }),
+        edge({
+          id: 'all-ab',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-b',
+          sourceConfidence: 'rumor',
+        }),
+        edge({
+          id: 'all-ac',
+          kind: 'alliance',
+          fromNodeId: 'faction-a',
+          toNodeId: 'faction-c',
+          sourceConfidence: 'verified',
+        }),
+      ],
+    }
+
+    const unrelatedPermission = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-c',
+        channel: 'permission',
+      })
+    )
+
+    expect(unrelatedPermission.every((item) => item.channel !== 'contradiction_flag')).toBe(true)
+    expect(unrelatedPermission.every((item) => !item.contradicted)).toBe(true)
+
+    const pairPermission = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-b',
+        channel: 'permission',
+      })
+    )
+
+    expect(pairPermission.every((item) => item.channel !== 'contradiction_flag')).toBe(true)
+    expect(pairPermission.some((item) => item.contradicted)).toBe(true)
+
+    const unrelatedContradiction = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-c',
+        channel: 'contradiction_flag',
+      })
+    )
+
+    expect(unrelatedContradiction).toEqual([])
+
+    const contradictionQuery = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-b',
+        channel: 'contradiction_flag',
+      })
+    )
+
+    expect(contradictionQuery.every((item) => item.channel === 'contradiction_flag')).toBe(true)
+    expect(contradictionQuery.length).toBeGreaterThan(0)
+
+    const flaggedEdgeIds = [...new Set(contradictionQuery.flatMap((item) => [...item.edgeIds]))].sort(
+      (left, right) => left.localeCompare(right)
+    )
+
+    expect(flaggedEdgeIds).toEqual(['all-ab', 'front-ab'])
+  })
+
+  it('17. includeContradictedClaims gates contradicted edges deterministically', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'inst-partner', nodeType: 'institution', label: 'Regional Oversight Institute' }),
+      ],
+      edges: [
+        edge({
+          id: 'dep-contradicted',
+          kind: 'dependency',
+          fromNodeId: 'agency-core',
+          toNodeId: 'inst-partner',
+          status: 'contradicted',
+          sourceConfidence: 'contradicted',
+        }),
+      ],
+    }
+
+    const excluded = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'inst-partner',
+        channel: 'permission',
+      })
+    )
+    const included = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'inst-partner',
+        channel: 'permission',
+        includeContradictedClaims: true,
+      })
+    )
+
+    expect(excluded).toEqual([])
+    expect(included.some((item) => item.reasonCode === 'dependency_permission')).toBe(true)
+    expect(included.every((item) => item.contradicted)).toBe(true)
+  })
+
+  it('18. merged magnitudes stay within -100..100', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'patron-a', nodeType: 'patron', label: 'Patron Bloc A' }),
+        node({ id: 'patron-b', nodeType: 'patron', label: 'Patron Bloc B' }),
+      ],
+      edges: [
+        edge({
+          id: 'patronage-a',
+          kind: 'patronage',
+          fromNodeId: 'patron-a',
+          toNodeId: 'agency-core',
+          strength: 100,
+        }),
+        edge({
+          id: 'patronage-b',
+          kind: 'patronage',
+          fromNodeId: 'patron-b',
+          toNodeId: 'agency-core',
+          strength: 100,
+        }),
+      ],
+    }
+
+    const consequences = resolveAuthorityGraphConsequences(
+      graph,
+      query({ actorNodeId: 'agency-core', channel: 'aid' })
+    )
+
+    const merged = consequences.find((item) => item.reasonCode === 'patronage_aid')
+    expect(merged).toBeDefined()
+    expect(merged?.magnitude).toBeLessThanOrEqual(100)
+    expect(merged?.magnitude).toBeGreaterThan(0)
+  })
+
+  it('19. token collector scans linked ids, representsNodeId, and recorderId', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'proxy-liaison', nodeType: 'proxy', label: 'District Liaison Proxy' }),
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({
+          id: 'population-x',
+          nodeType: 'population_group_reference',
+          label: 'Assimilated Cohort',
+          linkedFactionIds: ['scp-foundation-cover'],
+          linkedPopulationIds: ['cohort-alpha'],
+          linkedDepartmentIds: ['dept-records'],
+          linkedSiteIds: ['site-omega'],
+        }),
+      ],
+      edges: [
+        edge({
+          id: 'proxy-1',
+          kind: 'proxy_representation',
+          fromNodeId: 'proxy-liaison',
+          toNodeId: 'agency-core',
+          representsNodeId: 'population-x',
+          provenance: { sourceTag: 'field_report', recorderId: 'mobile task force liaison' },
+        }),
+      ],
+    }
+
+    const tokens = collectAuthorityGraphTokens(graph)
+    expect(authorityGraphTokensContainFranchiseReferences(tokens)).toBe(true)
   })
 })

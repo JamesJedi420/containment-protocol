@@ -55,8 +55,15 @@ export interface WeeklyInfiltrationCoverPostureResult {
   changed: boolean
 }
 
-const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court'] as const
-const PROCEDURAL_SCRUTINY_TAGS = ['witness', 'interview', 'civilian', 'court'] as const
+/** Shared with behavior-weighted disguise validation (SPE-2242). */
+export const INFILTRATION_AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court'] as const
+/** Shared with behavior-weighted disguise validation (SPE-2242). */
+export const INFILTRATION_PROCEDURAL_SCRUTINY_TAGS = [
+  'witness',
+  'interview',
+  'civilian',
+  'court',
+] as const
 
 const ROLE_INCOMPATIBLE_CASE_TAGS: Record<InfiltrationCoverRole, readonly string[]> = {
   uniform_guard: ['media', 'public', 'interview'],
@@ -97,6 +104,61 @@ export function copyInfiltrationCoverProfile(
   }
 }
 
+export interface CoverRoleMismatchEvaluation {
+  /** Bounded pressure for disguise counter-detection (0–1). */
+  pressure: number
+  hasRoleMismatch: boolean
+  hasExtraRouteViolation: boolean
+}
+
+const COVER_ROLE_MISMATCH_DISGUISE_PRESSURE = 0.5
+const COVER_ROUTE_VIOLATION_DISGUISE_PRESSURE = 0.25
+
+/**
+ * Deterministic cover-role vs case-tag mismatch pressure (shared by weekly posture and disguise validation).
+ */
+export function evaluateCoverRoleMismatchPressure(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): CoverRoleMismatchEvaluation {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+
+  if (role === undefined) {
+    return { pressure: 0, hasRoleMismatch: false, hasExtraRouteViolation: false }
+  }
+
+  const profile = caseData.infiltrationCoverProfile
+  const caseTags = collectCaseTags(caseData)
+  const incompatibleTags = ROLE_INCOMPATIBLE_CASE_TAGS[role]
+  const hasRoleMismatch = hasAnyTag(caseTags, incompatibleTags)
+  const incompatibleTagSet = new Set(incompatibleTags)
+  const routeViolationTags =
+    profile && (coverRole === undefined || coverRole === profile.claimedRole)
+      ? profile.routeViolationTags
+      : undefined
+  const extraRouteViolations =
+    routeViolationTags?.filter(
+      (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
+    ) ?? []
+  const hasExtraRouteViolation = extraRouteViolations.length > 0
+
+  let pressure = 0
+
+  if (hasRoleMismatch) {
+    pressure += COVER_ROLE_MISMATCH_DISGUISE_PRESSURE
+  }
+
+  if (hasExtraRouteViolation) {
+    pressure += COVER_ROUTE_VIOLATION_DISGUISE_PRESSURE
+  }
+
+  return {
+    pressure: roundBand(clamp(pressure, 0, 1)),
+    hasRoleMismatch,
+    hasExtraRouteViolation,
+  }
+}
+
 /**
  * Deterministic weekly cover posture pressure from authored profile vs case context.
  */
@@ -113,26 +175,20 @@ export function evaluateWeeklyInfiltrationCoverPosture(
   const priorAwareness = clamp(caseData.infiltrationAwareness ?? 0, 0, 1)
   let awarenessDelta = 0
   const strainReasons: string[] = []
+  const roleMismatch = evaluateCoverRoleMismatchPressure(caseData, profile.claimedRole)
 
-  const incompatibleTags = ROLE_INCOMPATIBLE_CASE_TAGS[profile.claimedRole]
-  if (hasAnyTag(caseTags, incompatibleTags)) {
+  if (roleMismatch.hasRoleMismatch) {
     awarenessDelta += ROLE_MISMATCH_AWARENESS
     strainReasons.push(`claimed ${profile.claimedRole} clashes with site context`)
   }
 
-  const incompatibleTagSet = new Set(incompatibleTags)
-  const extraRouteViolations =
-    profile.routeViolationTags?.filter(
-      (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
-    ) ?? []
-
-  if (extraRouteViolations.length > 0) {
+  if (roleMismatch.hasExtraRouteViolation) {
     awarenessDelta += ROUTE_VIOLATION_AWARENESS
     strainReasons.push('movement or venue tags contradict the cover story')
   }
 
-  const authorityScrutiny = hasAnyTag(caseTags, AUTHORITY_SCRUTINY_TAGS)
-  const proceduralScrutiny = hasAnyTag(caseTags, PROCEDURAL_SCRUTINY_TAGS)
+  const authorityScrutiny = hasAnyTag(caseTags, INFILTRATION_AUTHORITY_SCRUTINY_TAGS)
+  const proceduralScrutiny = hasAnyTag(caseTags, INFILTRATION_PROCEDURAL_SCRUTINY_TAGS)
   const documentTier = profile.documentTier ?? 2
 
   if (authorityScrutiny && documentTier <= 0) {

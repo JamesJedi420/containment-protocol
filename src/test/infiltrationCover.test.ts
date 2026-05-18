@@ -3,6 +3,7 @@ import { createStarterCase } from '../domain/templates/startingCases'
 import {
   applyWeeklyInfiltrationCoverPostureToCase,
   copyInfiltrationCoverProfile,
+  evaluateCoverRoleMismatchPressure,
   evaluateWeeklyInfiltrationCoverPosture,
 } from '../domain/infiltrationCover'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
@@ -68,6 +69,88 @@ describe('infiltrationCover', () => {
     expect(weekly.events.some((event) => event.kind === 'cover_strain')).toBe(true)
   })
 
+  it('scores uniform_guard against media/public as role mismatch pressure', () => {
+    const mismatch = evaluateCoverRoleMismatchPressure(
+      createCoverCase(),
+      'uniform_guard'
+    )
+
+    expect(mismatch.hasRoleMismatch).toBe(true)
+    expect(mismatch.pressure).toBe(0.5)
+  })
+
+  it('does not double-count route violations already implied by role mismatch', () => {
+    const mismatch = evaluateCoverRoleMismatchPressure(
+      createCoverCase({
+        infiltrationCoverProfile: {
+          claimedRole: 'uniform_guard',
+          routeViolationTags: ['media', 'public'],
+        },
+      }),
+      'uniform_guard'
+    )
+
+    expect(mismatch.hasRoleMismatch).toBe(true)
+    expect(mismatch.hasExtraRouteViolation).toBe(false)
+    expect(mismatch.pressure).toBe(0.5)
+  })
+
+  it('adds route-violation pressure only for tags outside role incompatibility', () => {
+    const mismatch = evaluateCoverRoleMismatchPressure(
+      createCoverCase({
+        tags: ['infiltration', 'covert', 'media', 'public', 'witness'],
+        infiltrationCoverProfile: {
+          claimedRole: 'uniform_guard',
+          routeViolationTags: ['witness'],
+        },
+      }),
+      'uniform_guard'
+    )
+
+    expect(mismatch.hasRoleMismatch).toBe(true)
+    expect(mismatch.hasExtraRouteViolation).toBe(true)
+    expect(mismatch.pressure).toBe(0.75)
+  })
+
+  it('ignores profile route violations when coverRole override disagrees with profile', () => {
+    const caseData = createCoverCase({
+      tags: ['infiltration', 'covert', 'witness'],
+      requiredTags: [],
+      preferredTags: [],
+      infiltrationCoverProfile: {
+        claimedRole: 'maintenance',
+        routeViolationTags: ['witness'],
+      },
+    })
+
+    expect(evaluateCoverRoleMismatchPressure(caseData, 'maintenance').hasExtraRouteViolation).toBe(
+      true
+    )
+    expect(evaluateCoverRoleMismatchPressure(caseData, 'courier').hasExtraRouteViolation).toBe(
+      false
+    )
+  })
+
+  it('returns zero pressure when cover role fits site tags', () => {
+    const mismatch = evaluateCoverRoleMismatchPressure(
+      createCoverCase({
+        tags: ['infiltration', 'covert', 'containment'],
+        requiredTags: [],
+        preferredTags: [],
+        infiltrationCoverProfile: {
+          claimedRole: 'civilian_staff',
+        },
+      }),
+      'civilian_staff'
+    )
+
+    expect(mismatch).toEqual({
+      pressure: 0,
+      hasRoleMismatch: false,
+      hasExtraRouteViolation: false,
+    })
+  })
+
   it('raises disguise pressure when authority scrutiny meets weak documents', () => {
     const observer: Agent = {
       id: 'a_cover_reader',
@@ -84,6 +167,7 @@ describe('infiltrationCover', () => {
 
     expect(validation.active).toBe(true)
     expect(validation.level).toBe('strong')
+    expect(validation.evidenceSignals).toContain('cover role mismatch')
   })
 
   it('skips posture when case is not infiltration-eligible', () => {

@@ -111,6 +111,217 @@ describe('behavior-weighted disguise validation', () => {
     expect(result.level).not.toBe('none')
   })
 
+  it('applies cover-role scrutiny through live case resolution orchestration', () => {
+    const state = createStartingState()
+    const observer = createBehaviorObserver('a_ops004_orchestration', ['liaison'], 30)
+    const team = createObserverTeam('t_ops004_orchestration', observer.id)
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+
+    const baseCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'media', 'public'],
+      infiltrationAwareness: 0.6,
+      infiltrationStage: 'probing',
+      assignedTeamIds: [team.id],
+      infiltrationCoverProfile: {
+        claimedRole: 'uniform_guard',
+        documentTier: 2,
+        doctrineBand: 0.4,
+      },
+    })
+
+    const mismatched = resolveAssignedCaseForWeek(baseCase, state, () => 0.5)
+    const compatible = resolveAssignedCaseForWeek(
+      {
+        ...baseCase,
+        infiltrationCoverProfile: {
+          claimedRole: 'official_inspector',
+          documentTier: 2,
+          doctrineBand: 0.4,
+        },
+      },
+      state,
+      () => 0.5
+    )
+
+    expect(mismatched.behaviorValidation?.level).toBe('strong')
+    expect(mismatched.behaviorValidation?.evidenceSignals).toContain('cover role mismatch')
+    expect(
+      mismatched.outcome.reasons.some((reason) => reason.includes('cover role mismatch'))
+    ).toBe(true)
+    expect(compatible.behaviorValidation?.level).toBe('meaningful')
+    expect(compatible.behaviorValidation?.evidenceSignals).not.toContain('cover role mismatch')
+  })
+
+  it('applies cover-role pressure under silence-only scrutiny when tags clash', () => {
+    const observer = createBehaviorObserver('a_silence_cover', ['liaison'], 55)
+    const hiddenCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'military'],
+      requiredTags: [],
+      preferredTags: [],
+      weights: {
+        combat: 0,
+        investigation: 0,
+        utility: 0,
+        social: 1,
+      },
+      infiltrationAwareness: 0.6,
+      infiltrationCoverProfile: {
+        claimedRole: 'civilian_staff',
+        documentTier: 2,
+      },
+    })
+
+    const mismatched = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer])
+    const compatible = evaluateBehaviorWeightedDisguiseValidation(
+      {
+        ...hiddenCase,
+        infiltrationCoverProfile: {
+          claimedRole: 'official_inspector',
+          documentTier: 2,
+        },
+      },
+      [observer]
+    )
+
+    expect(mismatched.active).toBe(true)
+    expect(mismatched.level).toBe('strong')
+    expect(mismatched.evidenceSignals).toContain('cover role mismatch')
+    expect(compatible.level).toBe('meaningful')
+    expect(compatible.evidenceSignals).not.toContain('cover role mismatch')
+  })
+
+  it('surfaces cover route mismatch evidence for extra route violations', () => {
+    const observer = createBehaviorObserver('a_route_cover', ['investigator'], 40)
+    const result = evaluateBehaviorWeightedDisguiseValidation(
+      createHiddenBriefingCase({
+        tags: ['infiltration', 'witness'],
+        requiredTags: [],
+        preferredTags: [],
+        infiltrationAwareness: 0.6,
+        infiltrationCoverProfile: {
+          claimedRole: 'maintenance',
+          documentTier: 2,
+          routeViolationTags: ['witness'],
+        },
+      }),
+      [observer]
+    )
+
+    expect(result.active).toBe(true)
+    expect(result.evidenceSignals).toContain('cover route mismatch')
+    expect(result.evidenceSignals).not.toContain('cover role mismatch')
+  })
+
+  it('keeps documentTier contribution independent of cover role pressure', () => {
+    const observer = createBehaviorObserver('a_doc_tier', ['liaison'], 30)
+    const baseCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'media', 'public'],
+      infiltrationAwareness: 0.6,
+      infiltrationCoverProfile: {
+        claimedRole: 'official_inspector',
+        documentTier: 2,
+      },
+    })
+
+    const weakDocuments = evaluateBehaviorWeightedDisguiseValidation(
+      {
+        ...baseCase,
+        infiltrationCoverProfile: {
+          claimedRole: 'official_inspector',
+          documentTier: 0,
+        },
+      },
+      [observer]
+    )
+    const strongDocuments = evaluateBehaviorWeightedDisguiseValidation(baseCase, [observer])
+
+    expect(weakDocuments.evidenceSignals).not.toContain('cover role mismatch')
+    expect(strongDocuments.evidenceSignals).not.toContain('cover role mismatch')
+    expect(weakDocuments.level).toBe('meaningful')
+    expect(strongDocuments.level).toBe('meaningful')
+  })
+
+  it('matches preview odds and live resolution for cover-role scrutiny', () => {
+    const state = createStartingState()
+    const observer = createBehaviorObserver('a_preview_cover', ['liaison'], 30)
+    const team = createObserverTeam('t_preview_cover', observer.id)
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+
+    const compatibleCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'media', 'public'],
+      infiltrationAwareness: 0.6,
+      infiltrationStage: 'probing',
+      assignedTeamIds: [team.id],
+      infiltrationCoverProfile: {
+        claimedRole: 'official_inspector',
+        documentTier: 2,
+      },
+    })
+    const mismatchedCase = {
+      ...compatibleCase,
+      infiltrationCoverProfile: {
+        claimedRole: 'uniform_guard' as const,
+        documentTier: 2,
+      },
+    }
+
+    const liveMismatched = resolveAssignedCaseForWeek(mismatchedCase, state, () => 0.5)
+    const liveCompatible = resolveAssignedCaseForWeek(compatibleCase, state, () => 0.5)
+    const directMismatched = evaluateBehaviorWeightedDisguiseValidation(mismatchedCase, [observer], {
+      supportTags: [],
+      teamTags: [],
+      leaderId: null,
+    })
+    const previewMismatched = previewResolutionForTeamIds(mismatchedCase, state, [team.id])
+    const previewCompatible = previewResolutionForTeamIds(compatibleCase, state, [team.id])
+
+    expect(liveMismatched.behaviorValidation?.level).toBe('strong')
+    expect(directMismatched.level).toBe('strong')
+    expect(liveMismatched.behaviorValidation?.evidenceSignals).toContain('cover role mismatch')
+    expect(liveMismatched.behaviorValidation?.scoreAdjustment).toBeGreaterThan(
+      liveCompatible.behaviorValidation?.scoreAdjustment ?? 0
+    )
+    expect(previewMismatched.odds.success).toBeLessThanOrEqual(previewCompatible.odds.success)
+    expect(
+      previewMismatched.odds.success < previewCompatible.odds.success ||
+        liveMismatched.behaviorValidation!.scoreAdjustment >
+          (liveCompatible.behaviorValidation?.scoreAdjustment ?? 0)
+    ).toBe(true)
+  })
+
+  it('escalates validation when claimed cover role clashes with authority scrutiny', () => {
+    const observer = createBehaviorObserver('a_role_scrutiny', ['liaison'], 30)
+    const hiddenCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'media', 'public'],
+      infiltrationAwareness: 0.6,
+      infiltrationCoverProfile: {
+        claimedRole: 'uniform_guard',
+        documentTier: 2,
+      },
+    })
+
+    const mismatched = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer])
+    const compatible = evaluateBehaviorWeightedDisguiseValidation(
+      {
+        ...hiddenCase,
+        infiltrationCoverProfile: {
+          claimedRole: 'official_inspector',
+          documentTier: 2,
+        },
+      },
+      [observer]
+    )
+
+    expect(mismatched.active).toBe(true)
+    expect(mismatched.level).toBe('strong')
+    expect(mismatched.evidenceSignals).toContain('cover role mismatch')
+    expect(compatible.active).toBe(true)
+    expect(compatible.level).toBe('meaningful')
+    expect(compatible.evidenceSignals).not.toContain('cover role mismatch')
+  })
+
   it('stays inactive on hidden cases without behavior-scrutiny context', () => {
     const state = createStartingState()
     const observer = state.agents.a_mina

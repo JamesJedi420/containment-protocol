@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { createStarterCase } from '../domain/templates/startingCases'
 import {
+  AWARENESS_COMPLICATION_THRESHOLD,
   applyWeeklyInfiltrationProbeTick,
   evaluateInfiltrationProbe,
+  getInfiltrationStagePressure,
   isInfiltrationProbeEligible,
   readInfiltrationProbeState,
 } from '../domain/infiltrationProbe'
@@ -79,6 +81,23 @@ describe('infiltrationProbe', () => {
 
     expect(evaluation.nextState.stage).toBe('violent')
     expect(evaluation.events.some((event) => event.kind === 'escalation_violent')).toBe(true)
+  })
+
+  it('maps probing-stage awareness to disguise pressure only above complication threshold', () => {
+    const probingCase = createInfiltrationCase({ infiltrationStage: 'probing' })
+
+    expect(getInfiltrationStagePressure(probingCase, AWARENESS_COMPLICATION_THRESHOLD - 0.1)).toBe(
+      0
+    )
+    expect(getInfiltrationStagePressure(probingCase, AWARENESS_COMPLICATION_THRESHOLD + 0.05)).toBe(
+      0.5
+    )
+    expect(
+      getInfiltrationStagePressure(
+        { ...probingCase, infiltrationStage: 'exposed' },
+        AWARENESS_COMPLICATION_THRESHOLD - 0.2
+      )
+    ).toBe(0.5)
   })
 
   it('merges violent escalation into case counter-detection fields', () => {

@@ -1,6 +1,9 @@
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
-import { getInfiltrationAwarenessPressure } from './infiltrationProbe'
+import {
+  getInfiltrationAwarenessPressure,
+  getInfiltrationStagePressure,
+} from './infiltrationProbe'
 import { hasEffectiveCountermeasure } from './resistances'
 
 const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court']
@@ -155,14 +158,10 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     0,
     1
   )
-  const infiltrationStagePressure =
-    caseData.infiltrationStage === 'violent'
-      ? 1
-      : caseData.infiltrationStage === 'exposed'
-        ? 0.5
-        : infiltrationAwareness >= 0.55
-          ? 0.5
-          : 0
+  const infiltrationStagePressure = getInfiltrationStagePressure(
+    caseData,
+    infiltrationAwareness
+  )
   const counterDetectionPressure =
     (caseData.counterDetection ? 1 : 0) +
     (priorDetectionConfidence >= DETECTION_CONFIDENCE_PRESSURE_THRESHOLD ? 1 : 0) +

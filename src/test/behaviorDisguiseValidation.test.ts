@@ -93,34 +93,6 @@ function tuneBehaviorGateCase(
 }
 
 describe('behavior-weighted disguise validation', () => {
-  it('increases disguise pressure when infiltration awareness is exposed', () => {
-    const observer = createBehaviorObserver('a_behavior_reader', ['liaison'], 45)
-    const hiddenCase = createHiddenBriefingCase({
-      hiddenState: 'hidden',
-      detectionConfidence: 0.25,
-      counterDetection: false,
-      tags: ['infiltration', 'public'],
-      infiltrationAwareness: 0.6,
-      infiltrationStage: 'exposed',
-    })
-
-    const lowPressure = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer], {
-      infiltrationAwareness: 0.1,
-    })
-    const highPressure = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer], {
-      infiltrationAwareness: 0.6,
-    })
-
-    expect(lowPressure.active).toBe(true)
-    expect(highPressure.active).toBe(true)
-    expect(highPressure.level).not.toBe('none')
-    if (lowPressure.level === 'meaningful' && highPressure.level === 'meaningful') {
-      expect(highPressure.scoreAdjustment).toBeGreaterThanOrEqual(lowPressure.scoreAdjustment)
-    } else {
-      expect(['meaningful', 'strong']).toContain(highPressure.level)
-    }
-  })
-
   it('activates behavior validation after tag-driven concealment activation', () => {
     const observer = createBehaviorObserver('a_behavior_reader', ['liaison'], 55)
     const hiddenCase = applyConcealmentActivationToCase(

@@ -40,8 +40,8 @@ export interface WeeklyInfiltrationProbeResult {
 /** Case tags that participate in uniform-style infiltration probing. */
 export const INFILTRATION_PROBE_TAGS = ['infiltration', 'disguise', 'covert'] as const
 
-const AWARENESS_COMPLICATION_THRESHOLD = 0.55
-const VIOLENT_ESCALATION_THRESHOLD = 0.8
+export const AWARENESS_COMPLICATION_THRESHOLD = 0.55
+export const VIOLENT_ESCALATION_THRESHOLD = 0.8
 const EXPOSED_DETECTION_CONFIDENCE = 0.55
 const VIOLENT_DETECTION_CONFIDENCE = 0.75
 
@@ -54,13 +54,29 @@ const ACTION_DELTAS: Record<
   cleanup: { probeProgress: 0.02, awareness: -0.15 },
 }
 
-function collectCaseTags(caseData: CaseInstance) {
-  return [...new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])]
+export function hasInfiltrationProbeTag(caseData: CaseInstance) {
+  return INFILTRATION_PROBE_TAGS.some(
+    (tag) =>
+      caseData.tags.includes(tag) ||
+      caseData.requiredTags.includes(tag) ||
+      caseData.preferredTags.includes(tag)
+  )
 }
 
-export function hasInfiltrationProbeTag(caseData: CaseInstance) {
-  const caseTags = collectCaseTags(caseData)
-  return INFILTRATION_PROBE_TAGS.some((tag) => caseTags.includes(tag))
+/** Counter-detection pressure contribution from infiltration tracks for disguise validation. */
+export function getInfiltrationStagePressure(
+  caseData: CaseInstance,
+  infiltrationAwareness: number
+) {
+  if (caseData.infiltrationStage === 'violent') {
+    return 1
+  }
+
+  if (caseData.infiltrationStage === 'exposed') {
+    return 0.5
+  }
+
+  return infiltrationAwareness >= AWARENESS_COMPLICATION_THRESHOLD ? 0.5 : 0
 }
 
 export function isInfiltrationProbeEligible(caseData: CaseInstance) {

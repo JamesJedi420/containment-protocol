@@ -122,6 +122,15 @@ describe('hiddenStateActivation', () => {
     expect(resolveConcealmentActivation(displaced, { globalFlags: {} }).applied).toBe(false)
   })
 
+  it('does not treat per-case conceal flags as global activation for other cases', () => {
+    const caseAlpha = createActivationCase({ id: 'case-alpha' })
+    const caseBeta = createActivationCase({ id: 'case-beta' })
+    const globalFlags = { 'conceal.case.case-alpha': true }
+
+    expect(resolveConcealmentActivation(caseAlpha, { globalFlags }).applied).toBe(true)
+    expect(resolveConcealmentActivation(caseBeta, { globalFlags }).applied).toBe(false)
+  })
+
   it('ignores falsy global flag values', () => {
     const caseData = createActivationCase({ id: 'case-flag' })
     const result = resolveConcealmentActivation(caseData, {

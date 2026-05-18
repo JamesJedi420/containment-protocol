@@ -63,12 +63,17 @@ function hasConcealmentActivationTag(caseData: CaseInstance) {
   return CONCEALMENT_ACTIVATION_TAGS.some((tag) => caseTags.includes(tag))
 }
 
-function hasTruthyGlobalFlagWithPrefix(
-  globalFlags: Readonly<Record<string, GameFlagValue>>,
-  prefix: string
-) {
+function isSharedConcealGlobalFlag(flagId: string) {
+  return (
+    flagId.startsWith(GLOBAL_CONCEAL_PREFIX) &&
+    !flagId.startsWith(GLOBAL_CONCEAL_CASE_PREFIX) &&
+    !flagId.startsWith(GLOBAL_CONCEAL_DISPLACE_PREFIX)
+  )
+}
+
+function hasSharedConcealGlobalFlag(globalFlags: Readonly<Record<string, GameFlagValue>>) {
   return Object.entries(globalFlags).some(
-    ([flagId, value]) => flagId.startsWith(prefix) && isTruthyGameFlag(value)
+    ([flagId, value]) => isSharedConcealGlobalFlag(flagId) && isTruthyGameFlag(value)
   )
 }
 
@@ -142,7 +147,7 @@ export function resolveConcealmentActivation(
     }
   }
 
-  if (hasTruthyGlobalFlagWithPrefix(globalFlags, GLOBAL_CONCEAL_PREFIX)) {
+  if (hasSharedConcealGlobalFlag(globalFlags)) {
     return {
       applied: true,
       mode: 'hidden',

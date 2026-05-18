@@ -438,7 +438,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       claimedRole: 'civilian_staff',
       documentTier: 0,
       doctrineBand: 0.4,
-      routeViolationTags: ['cult'],
+      routeViolationTags: ['cult', 'ritual'],
     },
     requiredTags: ['occultist'],
     requiredRoles: ['containment', 'technical'],

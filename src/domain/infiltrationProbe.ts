@@ -10,6 +10,43 @@ export type InfiltrationStage = 'probing' | 'exposed' | 'violent'
 
 export type InfiltrationProbeAction = 'probe_access' | 'probe_route' | 'cleanup'
 
+const INFILTRATION_PROBE_ACTIONS: readonly InfiltrationProbeAction[] = [
+  'probe_access',
+  'probe_route',
+  'cleanup',
+]
+
+export function isInfiltrationProbeAction(value: string): value is InfiltrationProbeAction {
+  return (INFILTRATION_PROBE_ACTIONS as readonly string[]).includes(value)
+}
+
+export interface InfiltrationProbeProgressActionRule {
+  readonly belowProbeProgress: number
+  readonly action: InfiltrationProbeAction
+}
+
+export interface InfiltrationProbePlan {
+  readonly defaultAction?: InfiltrationProbeAction
+  /** First rule where current probe progress is strictly below `belowProbeProgress` (rules sorted ascending). */
+  readonly actionWhenProbeProgressBelow?: readonly InfiltrationProbeProgressActionRule[]
+  readonly cleanupWhenAwarenessAtLeast?: number
+}
+
+export function copyInfiltrationProbePlan(
+  plan: InfiltrationProbePlan | undefined
+): InfiltrationProbePlan | undefined {
+  if (plan === undefined) {
+    return undefined
+  }
+
+  return {
+    ...plan,
+    actionWhenProbeProgressBelow: plan.actionWhenProbeProgressBelow
+      ? [...plan.actionWhenProbeProgressBelow]
+      : undefined,
+  }
+}
+
 export interface InfiltrationProbeState {
   probeProgress: number
   awareness: number
@@ -54,13 +91,72 @@ const ACTION_DELTAS: Record<
   cleanup: { probeProgress: 0.02, awareness: -0.15 },
 }
 
+function collectCaseTags(caseData: CaseInstance) {
+  return [...new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])]
+}
+
 export function hasInfiltrationProbeTag(caseData: CaseInstance) {
-  return INFILTRATION_PROBE_TAGS.some(
-    (tag) =>
-      caseData.tags.includes(tag) ||
-      caseData.requiredTags.includes(tag) ||
-      caseData.preferredTags.includes(tag)
-  )
+  return INFILTRATION_PROBE_TAGS.some((tag) => collectCaseTags(caseData).includes(tag))
+}
+
+const ROUTE_PROBE_TAGS = ['logistics', 'relay', 'supply-chain', 'cyber', 'parade', 'market'] as const
+const CLEANUP_PROBE_TAGS = ['media', 'court', 'public', 'interview', 'civilian'] as const
+const TAG_HEURISTIC_CLEANUP_AWARENESS = AWARENESS_COMPLICATION_THRESHOLD
+
+function matchesAnyTag(caseTags: readonly string[], candidates: readonly string[]) {
+  return candidates.some((tag) => caseTags.includes(tag))
+}
+
+function resolveProgressRuleAction(
+  probeProgress: number,
+  rules: readonly InfiltrationProbeProgressActionRule[]
+): InfiltrationProbeAction | undefined {
+  for (const rule of rules) {
+    if (probeProgress < rule.belowProbeProgress) {
+      return rule.action
+    }
+  }
+
+  return undefined
+}
+
+/**
+ * Deterministic weekly probe action: authored plan → progress rules → tag heuristics → default.
+ */
+export function resolveWeeklyInfiltrationProbeAction(caseData: CaseInstance): InfiltrationProbeAction {
+  const state = readInfiltrationProbeState(caseData)
+  const plan = caseData.infiltrationProbePlan
+  const caseTags = collectCaseTags(caseData)
+
+  if (plan?.cleanupWhenAwarenessAtLeast !== undefined) {
+    if (state.awareness >= plan.cleanupWhenAwarenessAtLeast) {
+      return 'cleanup'
+    }
+  }
+
+  if (plan?.actionWhenProbeProgressBelow !== undefined) {
+    const ruled = resolveProgressRuleAction(state.probeProgress, plan.actionWhenProbeProgressBelow)
+    if (ruled !== undefined) {
+      return ruled
+    }
+  }
+
+  if (plan?.defaultAction !== undefined) {
+    return plan.defaultAction
+  }
+
+  if (
+    matchesAnyTag(caseTags, CLEANUP_PROBE_TAGS) &&
+    state.awareness >= TAG_HEURISTIC_CLEANUP_AWARENESS
+  ) {
+    return 'cleanup'
+  }
+
+  if (matchesAnyTag(caseTags, ROUTE_PROBE_TAGS)) {
+    return 'probe_route'
+  }
+
+  return 'probe_access'
 }
 
 /** Counter-detection pressure contribution from infiltration tracks for disguise validation. */
@@ -171,13 +267,10 @@ export function mergeInfiltrationProbeStateIntoCase(
   }
 }
 
-/**
- * One weekly probe tick for assigned in-progress covert cases (defaults to access probing).
- */
-export function applyWeeklyInfiltrationProbeTick(
+/** Applies a single probe action and merges track state onto the case. */
+export function applyInfiltrationProbeActionToCase(
   caseData: CaseInstance,
-  _week: number,
-  action: InfiltrationProbeAction = 'probe_access'
+  action: InfiltrationProbeAction
 ): WeeklyInfiltrationProbeResult {
   if (!isInfiltrationProbeEligible(caseData)) {
     return { case: caseData, events: [], changed: false }
@@ -198,6 +291,23 @@ export function applyWeeklyInfiltrationProbeTick(
     events: evaluation.events,
     changed,
   }
+}
+
+/**
+ * One weekly probe tick for assigned in-progress covert cases.
+ * Uses {@link resolveWeeklyInfiltrationProbeAction} unless `action` is overridden.
+ */
+export function applyWeeklyInfiltrationProbeTick(
+  caseData: CaseInstance,
+  _week: number,
+  action?: InfiltrationProbeAction
+): WeeklyInfiltrationProbeResult {
+  if (!isInfiltrationProbeEligible(caseData)) {
+    return { case: caseData, events: [], changed: false }
+  }
+
+  const resolvedAction = action ?? resolveWeeklyInfiltrationProbeAction(caseData)
+  return applyInfiltrationProbeActionToCase(caseData, resolvedAction)
 }
 
 export function getInfiltrationAwarenessPressure(caseData: CaseInstance) {

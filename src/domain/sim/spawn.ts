@@ -4,6 +4,7 @@ import { createMissionIntelState } from '../intel'
 import { type CaseInstance, type CaseTemplate, type CompromisedAuthorityState, type GameState, type SpawnRule } from '../models'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { copyInfiltrationProbePlan } from '../infiltrationProbe'
 import { applySiteGenerationToCase } from '../siteGeneration'
 import { SIM_NOTES } from '../../data/copy'
 import { EVENT_NOTE_BUILDERS } from './eventNoteBuilders'
@@ -162,6 +163,7 @@ export function instantiateFromTemplate(
       concealmentTriggers !== undefined && concealmentTriggers.length > 0
         ? [...concealmentTriggers]
         : undefined,
+    infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
   }
 
   return applySiteGenerationToCase({

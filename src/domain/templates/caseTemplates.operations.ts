@@ -23,6 +23,10 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['relay', 'cyber'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.5, action: 'probe_access' }],
+    },
     requiredTags: ['tech'],
     preferredTags: ['analyst', 'field-kit'],
     onFail: {
@@ -128,6 +132,10 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['media', 'public'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
     requiredTags: ['medium'],
     preferredTags: ['negotiator', 'liaison', 'infiltration'],
     onFail: {

@@ -1255,6 +1255,9 @@ export interface CaseTemplate {
    * Copied onto spawned `CaseInstance` records for weekly `resolveConcealmentActivation`.
    */
   concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
+
+  /** SPE-521 slice 2: authored weekly infiltration probe action plan (normalized in catalog build). */
+  infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
 }
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
@@ -1332,6 +1335,8 @@ export interface CaseInstance {
   infiltrationStage?: 'probing' | 'exposed' | 'violent'
   /** SPE-2113: authored concealment activation rules evaluated by `resolveConcealmentActivation`. */
   concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
+  /** SPE-521 slice 2: weekly infiltration probe action plan copied from template at spawn. */
+  infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
 
   onFail: SpawnRule
   onUnresolved: SpawnRule

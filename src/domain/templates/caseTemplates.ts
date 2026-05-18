@@ -3,6 +3,10 @@ import {
   buildConcealmentActivationTriggersFromAuthored,
   type AuthoredConcealmentActivationTrigger,
 } from '../hiddenStateActivationAuthoring'
+import {
+  buildInfiltrationProbePlanFromAuthored,
+  type AuthoredInfiltrationProbePlan,
+} from '../infiltrationProbeAuthoring'
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
 import { normalizeSpawnRule } from '../spawnRules'
 import { occultCaseTemplates } from './caseTemplates.occult'
@@ -365,6 +369,10 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['haunting', 'research'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
+    },
     preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
@@ -614,6 +622,10 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['cult'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
     preferredTags: ['negotiator', 'tech', 'infiltration', 'disguise'],
     onFail: {
       stageDelta: 1,
@@ -652,6 +664,7 @@ function normalizeRequiredRoles(roles: TeamCoverageRole[] | undefined) {
 function cloneTemplate(
   template: CaseTemplate & {
     concealmentTriggers?: readonly AuthoredConcealmentActivationTrigger[]
+    infiltrationProbePlan?: AuthoredInfiltrationProbePlan
   }
 ): CaseTemplate {
   const onFail = normalizeSpawnRule(template.onFail)
@@ -659,6 +672,7 @@ function cloneTemplate(
   const concealmentTriggers = buildConcealmentActivationTriggersFromAuthored(
     template.concealmentTriggers ?? []
   )
+  const infiltrationProbePlan = buildInfiltrationProbePlanFromAuthored(template.infiltrationProbePlan)
 
   return {
     ...template,
@@ -681,6 +695,7 @@ function cloneTemplate(
     },
     concealmentTriggers:
       concealmentTriggers.length > 0 ? concealmentTriggers : undefined,
+    infiltrationProbePlan,
   }
 }
 

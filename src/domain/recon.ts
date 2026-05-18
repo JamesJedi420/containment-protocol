@@ -329,6 +329,11 @@ function buildCaseHiddenModifiers(caseData: CaseInstance, mapLayer?: MapLayerRes
   return activeModifiers
 }
 
+/** SPE-2107: hidden-modifier count for concealment activation bridge (no team recon roll). */
+export function countCaseHiddenModifiers(caseData: CaseInstance, mapLayer?: MapLayerResult) {
+  return buildCaseHiddenModifiers(caseData, mapLayer).length
+}
+
 function getAgentReconContribution(
   agent: Agent,
   context?: TeamReconContext & { caseData?: CaseInstance }

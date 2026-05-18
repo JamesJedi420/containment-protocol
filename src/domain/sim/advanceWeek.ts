@@ -180,7 +180,7 @@ import {
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { formatConcealmentActivationSummary } from '../concealmentActivationFeed'
 import {
-  applyConcealmentActivationToCase,
+  mergeConcealmentActivationResult,
   resolveConcealmentActivation,
 } from '../hiddenStateActivation'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
@@ -2100,7 +2100,7 @@ function applyWeeklyConcealmentActivation(
     hiddenModifierCount: countCaseHiddenModifiers(caseData, caseData.mapLayer),
   }
   const activation = resolveConcealmentActivation(caseData, activationContext)
-  const activatedCase = applyConcealmentActivationToCase(caseData, activationContext)
+  const activatedCase = mergeConcealmentActivationResult(caseData, activation)
 
   if (activatedCase !== caseData && activation.applied && activation.mode) {
     context.nextState.cases[caseId] = activatedCase

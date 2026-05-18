@@ -300,12 +300,11 @@ export function resolveConcealmentActivation(
   return { applied: false }
 }
 
-/** Merges activation fields onto a case when {@link resolveConcealmentActivation} applies. */
-export function applyConcealmentActivationToCase(
+/** Merges a pre-resolved activation onto a case without re-running resolution. */
+export function mergeConcealmentActivationResult(
   caseData: CaseInstance,
-  context: ConcealmentActivationContext
+  activation: ConcealmentActivationResult
 ): CaseInstance {
-  const activation = resolveConcealmentActivation(caseData, context)
   if (!activation.applied || !activation.mode) {
     return caseData
   }
@@ -326,4 +325,12 @@ export function applyConcealmentActivationToCase(
     detectionConfidence: activation.detectionConfidence,
     counterDetection: caseData.counterDetection ?? false,
   }
+}
+
+/** Merges activation fields onto a case when {@link resolveConcealmentActivation} applies. */
+export function applyConcealmentActivationToCase(
+  caseData: CaseInstance,
+  context: ConcealmentActivationContext
+): CaseInstance {
+  return mergeConcealmentActivationResult(caseData, resolveConcealmentActivation(caseData, context))
 }

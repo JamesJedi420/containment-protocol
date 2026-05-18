@@ -1,6 +1,9 @@
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
-import type { InfiltrationCoverRole } from './infiltrationCover'
+import {
+  evaluateCoverRoleMismatchPressure,
+  type InfiltrationCoverRole,
+} from './infiltrationCover'
 import {
   getInfiltrationAwarenessPressure,
   getInfiltrationStagePressure,
@@ -185,11 +188,25 @@ export function evaluateBehaviorWeightedDisguiseValidation(
       : authorityScrutiny && documentTier === 1
         ? 0.15
         : 0
+  const coverRoleMismatch = evaluateCoverRoleMismatchPressure(
+    caseData,
+    resolvedContext.coverRole
+  )
+  const coverRoleScrutinyPressure =
+    (authorityScrutiny || proceduralScrutiny) && coverRoleMismatch.pressure > 0
+      ? coverRoleMismatch.pressure
+      : 0
+
+  if (coverRoleMismatch.hasRoleMismatch && (authorityScrutiny || proceduralScrutiny)) {
+    evidenceSignals.push('cover role mismatch')
+  }
+
   const counterDetectionPressure =
     (caseData.counterDetection ? 1 : 0) +
     (priorDetectionConfidence >= DETECTION_CONFIDENCE_PRESSURE_THRESHOLD ? 1 : 0) +
     infiltrationStagePressure +
     documentScrutinyPressure +
+    coverRoleScrutinyPressure +
     (hasEffectiveCountermeasure({ family: 'deception', presentTags: observerTags }) ? 0.5 : 0)
 
   if (validationScore < ESCALATION_VALIDATION_SCORE_THRESHOLD) {

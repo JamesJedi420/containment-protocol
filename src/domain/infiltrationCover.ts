@@ -97,6 +97,57 @@ export function copyInfiltrationCoverProfile(
   }
 }
 
+export interface CoverRoleMismatchEvaluation {
+  /** Bounded pressure for disguise counter-detection (0–1). */
+  pressure: number
+  hasRoleMismatch: boolean
+  hasExtraRouteViolation: boolean
+}
+
+const COVER_ROLE_MISMATCH_DISGUISE_PRESSURE = 0.5
+const COVER_ROUTE_VIOLATION_DISGUISE_PRESSURE = 0.25
+
+/**
+ * Deterministic cover-role vs case-tag mismatch pressure (shared by weekly posture and disguise validation).
+ */
+export function evaluateCoverRoleMismatchPressure(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): CoverRoleMismatchEvaluation {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+
+  if (role === undefined) {
+    return { pressure: 0, hasRoleMismatch: false, hasExtraRouteViolation: false }
+  }
+
+  const profile = caseData.infiltrationCoverProfile
+  const caseTags = collectCaseTags(caseData)
+  const incompatibleTags = ROLE_INCOMPATIBLE_CASE_TAGS[role]
+  const hasRoleMismatch = hasAnyTag(caseTags, incompatibleTags)
+  const incompatibleTagSet = new Set(incompatibleTags)
+  const extraRouteViolations =
+    profile?.routeViolationTags?.filter(
+      (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
+    ) ?? []
+  const hasExtraRouteViolation = extraRouteViolations.length > 0
+
+  let pressure = 0
+
+  if (hasRoleMismatch) {
+    pressure += COVER_ROLE_MISMATCH_DISGUISE_PRESSURE
+  }
+
+  if (hasExtraRouteViolation) {
+    pressure += COVER_ROUTE_VIOLATION_DISGUISE_PRESSURE
+  }
+
+  return {
+    pressure: roundBand(clamp(pressure, 0, 1)),
+    hasRoleMismatch,
+    hasExtraRouteViolation,
+  }
+}
+
 /**
  * Deterministic weekly cover posture pressure from authored profile vs case context.
  */

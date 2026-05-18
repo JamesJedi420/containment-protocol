@@ -111,6 +111,37 @@ describe('behavior-weighted disguise validation', () => {
     expect(result.level).not.toBe('none')
   })
 
+  it('escalates validation when claimed cover role clashes with authority scrutiny', () => {
+    const observer = createBehaviorObserver('a_role_scrutiny', ['liaison'], 30)
+    const hiddenCase = createHiddenBriefingCase({
+      tags: ['infiltration', 'media', 'public'],
+      infiltrationAwareness: 0.6,
+      infiltrationCoverProfile: {
+        claimedRole: 'uniform_guard',
+        documentTier: 2,
+      },
+    })
+
+    const mismatched = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer])
+    const compatible = evaluateBehaviorWeightedDisguiseValidation(
+      {
+        ...hiddenCase,
+        infiltrationCoverProfile: {
+          claimedRole: 'official_inspector',
+          documentTier: 2,
+        },
+      },
+      [observer]
+    )
+
+    expect(mismatched.active).toBe(true)
+    expect(mismatched.level).toBe('strong')
+    expect(mismatched.evidenceSignals).toContain('cover role mismatch')
+    expect(compatible.active).toBe(true)
+    expect(compatible.level).toBe('meaningful')
+    expect(compatible.evidenceSignals).not.toContain('cover role mismatch')
+  })
+
   it('stays inactive on hidden cases without behavior-scrutiny context', () => {
     const state = createStartingState()
     const observer = state.agents.a_mina

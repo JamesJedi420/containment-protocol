@@ -1,11 +1,27 @@
 /**
- * SPE-2107: deterministic runtime concealment activation from tags, global flags, and recon signals.
- * Distinct from SPE-70 field propagation and behavior-weighted disguise validation.
+ * SPE-2107 / SPE-2113: deterministic concealment activation from global flags, authored triggers,
+ * tags, and recon signals. Distinct from SPE-70 field propagation and behavior-weighted disguise validation.
  */
 
 import type { CaseInstance, GameFlagValue, Id } from './models'
 
 export type ConcealmentActivationMode = 'hidden' | 'displaced'
+
+export interface ConcealmentActivationTriggerCondition {
+  readonly anyTag?: readonly string[]
+  readonly allTags?: readonly string[]
+  readonly globalFlag?: string
+  readonly minHiddenModifierCount?: number
+  readonly minInvestigationWeight?: number
+}
+
+export interface ConcealmentActivationTrigger {
+  readonly id: string
+  readonly mode: ConcealmentActivationMode
+  readonly when?: ConcealmentActivationTriggerCondition
+  readonly displacementTarget?: Id | null
+  readonly detectionConfidence?: number
+}
 
 export interface ConcealmentActivationContext {
   globalFlags: Readonly<Record<string, GameFlagValue>>
@@ -103,6 +119,103 @@ function readDisplacementTarget(
   return normalized.length > 0 ? normalized : null
 }
 
+function hasTriggerConditionFields(when: ConcealmentActivationTriggerCondition) {
+  return (
+    (when.anyTag !== undefined && when.anyTag.length > 0) ||
+    (when.allTags !== undefined && when.allTags.length > 0) ||
+    (when.globalFlag !== undefined && when.globalFlag.trim().length > 0) ||
+    when.minHiddenModifierCount !== undefined ||
+    when.minInvestigationWeight !== undefined
+  )
+}
+
+function matchesTriggerCondition(
+  caseData: CaseInstance,
+  context: ConcealmentActivationContext,
+  when: ConcealmentActivationTriggerCondition | undefined,
+  globalFlags: Readonly<Record<string, GameFlagValue>>
+) {
+  if (when === undefined) {
+    return true
+  }
+
+  if (!hasTriggerConditionFields(when)) {
+    return true
+  }
+
+  const caseTags = collectCaseTags(caseData)
+
+  if (when.anyTag !== undefined && when.anyTag.length > 0) {
+    if (!when.anyTag.some((tag) => caseTags.includes(tag))) {
+      return false
+    }
+  }
+
+  if (when.allTags !== undefined && when.allTags.length > 0) {
+    if (!when.allTags.every((tag) => caseTags.includes(tag))) {
+      return false
+    }
+  }
+
+  if (when.globalFlag !== undefined) {
+    const flagId = when.globalFlag.trim()
+    if (flagId.length === 0 || !isTruthyGameFlag(globalFlags[flagId])) {
+      return false
+    }
+  }
+
+  if (when.minHiddenModifierCount !== undefined) {
+    const count = context.hiddenModifierCount ?? 0
+    if (count < when.minHiddenModifierCount) {
+      return false
+    }
+  }
+
+  if (when.minInvestigationWeight !== undefined) {
+    if (caseData.weights.investigation < when.minInvestigationWeight) {
+      return false
+    }
+  }
+
+  return true
+}
+
+function resolveAuthoredConcealmentActivation(
+  caseData: CaseInstance,
+  context: ConcealmentActivationContext,
+  globalFlags: Readonly<Record<string, GameFlagValue>>
+): ConcealmentActivationResult | undefined {
+  const triggers = caseData.concealmentTriggers
+  if (triggers === undefined || triggers.length === 0) {
+    return undefined
+  }
+
+  for (const trigger of triggers) {
+    if (!matchesTriggerCondition(caseData, context, trigger.when, globalFlags)) {
+      continue
+    }
+
+    if (trigger.mode === 'displaced') {
+      return {
+        applied: true,
+        mode: 'displaced',
+        reason: `authored-trigger:${trigger.id}`,
+        detectionConfidence: trigger.detectionConfidence ?? DEFAULT_DISPLACED_DETECTION_CONFIDENCE,
+        displacementTarget: trigger.displacementTarget ?? null,
+      }
+    }
+
+    return {
+      applied: true,
+      mode: 'hidden',
+      reason: `authored-trigger:${trigger.id}`,
+      detectionConfidence: trigger.detectionConfidence ?? DEFAULT_HIDDEN_DETECTION_CONFIDENCE,
+    }
+  }
+
+  return undefined
+}
+
 function matchesReconBridge(caseData: CaseInstance, hiddenModifierCount: number | undefined) {
   if (hiddenModifierCount === undefined) {
     return false
@@ -159,6 +272,11 @@ export function resolveConcealmentActivation(
       reason: `global-flag-prefix:${GLOBAL_CONCEAL_PREFIX}`,
       detectionConfidence: DEFAULT_HIDDEN_DETECTION_CONFIDENCE,
     }
+  }
+
+  const authoredActivation = resolveAuthoredConcealmentActivation(caseData, context, globalFlags)
+  if (authoredActivation !== undefined) {
+    return authoredActivation
   }
 
   if (hasConcealmentActivationTag(caseData)) {

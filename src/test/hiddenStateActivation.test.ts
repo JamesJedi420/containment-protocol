@@ -144,6 +144,71 @@ describe('hiddenStateActivation', () => {
     expect(result.applied).toBe(false)
   })
 
+  it('activates from authored triggers before tag fallbacks when conditions match', () => {
+    const caseData = createActivationCase({
+      tags: ['field'],
+      concealmentTriggers: [
+        {
+          id: 'trigger:gate',
+          mode: 'hidden',
+          when: { globalFlag: 'mission.covert-ready' },
+        },
+      ],
+    })
+
+    expect(resolveConcealmentActivation(caseData, { globalFlags: {} }).applied).toBe(false)
+
+    const activated = resolveConcealmentActivation(caseData, {
+      globalFlags: { 'mission.covert-ready': true },
+    })
+    expect(activated.applied).toBe(true)
+    expect(activated.reason).toBe('authored-trigger:trigger:gate')
+  })
+
+  it('prefers authored triggers over concealment tags when both would apply', () => {
+    const caseData = createActivationCase({
+      tags: ['infiltration'],
+      concealmentTriggers: [{ id: 'trigger:authored-first', mode: 'hidden' }],
+    })
+
+    const result = resolveConcealmentActivation(caseData, { globalFlags: {} })
+    expect(result.applied).toBe(true)
+    expect(result.reason).toBe('authored-trigger:trigger:authored-first')
+  })
+
+  it('prefers global conceal flags over authored triggers', () => {
+    const caseData = createActivationCase({
+      id: 'case-authored',
+      concealmentTriggers: [{ id: 'trigger:always', mode: 'hidden' }],
+    })
+
+    const result = resolveConcealmentActivation(caseData, {
+      globalFlags: { 'conceal.case.case-authored': true },
+    })
+
+    expect(result.applied).toBe(true)
+    expect(result.reason).toBe('global-flag:conceal.case.case-authored')
+  })
+
+  it('activates displaced presence from authored trigger with displacement target', () => {
+    const caseData = createActivationCase({
+      concealmentTriggers: [
+        {
+          id: 'trigger:relocate',
+          mode: 'displaced',
+          displacementTarget: 'fallback-route',
+          when: { anyTag: ['covert'] },
+        },
+      ],
+      tags: ['covert'],
+    })
+
+    const result = resolveConcealmentActivation(caseData, { globalFlags: {} })
+    expect(result.mode).toBe('displaced')
+    expect(result.displacementTarget).toBe('fallback-route')
+    expect(result.reason).toBe('authored-trigger:trigger:relocate')
+  })
+
   it('merges activation fields through applyConcealmentActivationToCase', () => {
     const caseData = createActivationCase({ tags: ['covert'] })
     const activated = applyConcealmentActivationToCase(caseData, { globalFlags: {} })

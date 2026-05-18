@@ -846,6 +846,56 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
         (item) => item.channel === 'aid' && item.effect === 'grant' && item.magnitude < 0
       )
     ).toBe(false)
+
+    const crossChannelDelay = result.effectiveConsequences.find(
+      (item) => item.channel === 'information_flow' && item.effect === 'delay'
+    )
+
+    expect(crossChannelDelay).toBeDefined()
+    expect(crossChannelDelay?.edgeIds).toEqual([])
+  })
+
+  it('15b. new effective consequences inherit edgeIds only from same-channel baseline', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'inst-partner', nodeType: 'institution', label: 'Regional Partner' }),
+      ],
+      edges: [
+        edge({
+          id: 'dep-1',
+          kind: 'dependency',
+          fromNodeId: 'agency-core',
+          toNodeId: 'inst-partner',
+          strength: 70,
+        }),
+      ],
+    }
+
+    const result = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'inst-partner',
+        channel: 'permission',
+        stance: 'cooperate',
+        offerStrength: 55,
+      })
+    )
+
+    const permissionConsequence = result.effectiveConsequences.find(
+      (item) => item.channel === 'permission'
+    )
+
+    expect(permissionConsequence?.edgeIds).toEqual(['dep-1'])
+
+    const aidGrant = result.effectiveConsequences.find(
+      (item) => item.channel === 'aid' && item.effect === 'grant'
+    )
+
+    if (aidGrant) {
+      expect(aidGrant.edgeIds).toEqual([])
+    }
   })
 
   it('17. stall agenda dilution sets top-level delayed when effective consequences delay', () => {
@@ -881,6 +931,56 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
     expect(result.outcome).toBe('agenda_dilution')
     expect(result.delayed).toBe(true)
     expect(result.effectiveConsequences.some((item) => item.effect === 'delay')).toBe(true)
+  })
+
+  it('19. pair hints honor viewerConfidenceFloor like baseline resolver', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'regime-host', nodeType: 'external_regime', label: 'Host Perimeter Authority' }),
+      ],
+      edges: [
+        edge({
+          id: 'shared-1',
+          kind: 'shared_authority',
+          fromNodeId: 'agency-core',
+          toNodeId: 'regime-host',
+          sourceConfidence: 'rumor',
+          pressureChannels: ['secrecy'],
+        }),
+      ],
+    }
+
+    const filtered = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'secrecy',
+        stance: 'cooperate',
+        offerStrength: 55,
+        viewerConfidenceFloor: 'verified',
+      })
+    )
+
+    expect(filtered.baselineConsequences).toEqual([])
+    expect(filtered.outcome).not.toBe('grudging_alignment')
+    expect(filtered.reasonCodes).not.toContain('negotiation_shared_authority')
+
+    const included = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'secrecy',
+        stance: 'cooperate',
+        offerStrength: 55,
+        viewerConfidenceFloor: 'rumor',
+      })
+    )
+
+    expect(included.outcome).toBe('grudging_alignment')
+    expect(included.reasonCodes).toContain('negotiation_shared_authority')
   })
 
   it('18. unrelated graph contradictions do not force grudging alignment', () => {

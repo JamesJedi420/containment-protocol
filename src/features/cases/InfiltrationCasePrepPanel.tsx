@@ -112,9 +112,7 @@ function CoverSummary({ view }: { view: InfiltrationCasePrepView }) {
       <p className="text-sm">
         {view.coverRoleLabel}
         {view.documentTier !== undefined ? ` / Documents tier ${view.documentTier}` : ''}
-        {view.doctrineBand !== undefined
-          ? ` / Doctrine ${Math.round((view.doctrineBand ?? 0) * 100)}%`
-          : ''}
+        {view.doctrineBandPercent !== undefined ? ` / Doctrine ${view.doctrineBandPercent}%` : ''}
       </p>
       <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
         {view.coverStrainNotes.map((note) => (

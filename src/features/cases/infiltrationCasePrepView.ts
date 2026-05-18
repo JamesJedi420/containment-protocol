@@ -54,7 +54,7 @@ export interface InfiltrationCasePrepView {
   readonly awarenessComplicationBandPercent: number
   readonly coverRoleLabel?: string
   readonly documentTier?: number
-  readonly doctrineBand?: number
+  readonly doctrineBandPercent?: number
   readonly coverStrainNotes: readonly string[]
   readonly plannedAction: InfiltrationProbeAction
   readonly plannedActionLabel: string

@@ -170,6 +170,11 @@ export const occultCaseTemplates: CaseTemplate[] = [
       defaultAction: 'probe_route',
       actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
     },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 2,
+      doctrineBand: 0.55,
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'investigator', 'disguise', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },

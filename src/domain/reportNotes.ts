@@ -433,6 +433,23 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
+    case 'infiltration.awareness_complication':
+    case 'infiltration.escalation_exposed':
+    case 'infiltration.escalation_violent':
+    case 'infiltration.cover_strain':
+      return {
+        content: `${draft.payload.caseTitle}: ${draft.payload.summary}`,
+        type: draft.type,
+        metadata: {
+          caseId: draft.payload.caseId,
+          caseTitle: draft.payload.caseTitle,
+          summary: draft.payload.summary,
+          infiltrationAwareness: draft.payload.infiltrationAwareness ?? null,
+          infiltrationProbeProgress: draft.payload.infiltrationProbeProgress ?? null,
+          infiltrationStage: draft.payload.infiltrationStage ?? null,
+        },
+      }
+
     case 'system.equipment_recovered':
       return {
         content: draft.payload.content,

@@ -3,6 +3,7 @@ import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
 import { inferCasePressureValue, inferCaseRegionTag } from '../pressure'
 import { normalizeSpawnRule } from '../spawnRules'
+import { copyInfiltrationCoverProfile } from '../infiltrationCover'
 import { copyInfiltrationProbePlan } from '../infiltrationProbe'
 import { applySiteGenerationToCase } from '../siteGeneration'
 import { caseTemplateMap } from './caseTemplates'
@@ -109,6 +110,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
         ? [...template.concealmentTriggers]
         : undefined,
     infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
+    infiltrationCoverProfile: copyInfiltrationCoverProfile(template.infiltrationCoverProfile),
   }
 
   return applySiteGenerationToCase({

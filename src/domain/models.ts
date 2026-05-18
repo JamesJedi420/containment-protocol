@@ -1258,6 +1258,9 @@ export interface CaseTemplate {
 
   /** SPE-521 slice 2: authored weekly infiltration probe action plan (normalized in catalog build). */
   infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
+
+  /** SPE-521 slice 3: authored cover identity profile (normalized in catalog build). */
+  infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
 }
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */
@@ -1337,6 +1340,8 @@ export interface CaseInstance {
   concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
   /** SPE-521 slice 2: weekly infiltration probe action plan copied from template at spawn. */
   infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
+  /** SPE-521 slice 3: cover identity profile copied from template at spawn. */
+  infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
 
   onFail: SpawnRule
   onUnresolved: SpawnRule
@@ -1457,6 +1462,10 @@ export type ReportNoteType =
   | 'directive.applied'
   // Add support.shortfall for fallout reporting
   | 'support.shortfall'
+  | 'infiltration.awareness_complication'
+  | 'infiltration.escalation_exposed'
+  | 'infiltration.escalation_violent'
+  | 'infiltration.cover_strain'
   | 'support.restored'
   | 'hub.opportunity'
   | 'hub.rumor'

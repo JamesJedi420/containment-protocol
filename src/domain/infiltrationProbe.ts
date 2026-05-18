@@ -3,6 +3,7 @@
  * Progress and awareness advance independently; thresholds emit complications before hard failure.
  */
 
+import { applyWeeklyInfiltrationCoverPostureToCase } from './infiltrationCover'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
 
@@ -57,6 +58,7 @@ export type InfiltrationThresholdEventKind =
   | 'awareness_complication'
   | 'escalation_exposed'
   | 'escalation_violent'
+  | 'cover_strain'
 
 export interface InfiltrationThresholdEvent {
   kind: InfiltrationThresholdEventKind
@@ -308,7 +310,14 @@ export function applyWeeklyInfiltrationProbeTick(
   }
 
   const resolvedAction = action ?? resolveWeeklyInfiltrationProbeAction(caseData)
-  return applyInfiltrationProbeActionToCase(caseData, resolvedAction)
+  const probeResult = applyInfiltrationProbeActionToCase(caseData, resolvedAction)
+  const coverResult = applyWeeklyInfiltrationCoverPostureToCase(probeResult.case)
+
+  return {
+    case: coverResult.case,
+    events: [...probeResult.events, ...coverResult.events],
+    changed: probeResult.changed || coverResult.changed,
+  }
 }
 
 export function getInfiltrationAwarenessPressure(caseData: CaseInstance) {

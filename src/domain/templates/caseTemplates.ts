@@ -4,6 +4,10 @@ import {
   type AuthoredConcealmentActivationTrigger,
 } from '../hiddenStateActivationAuthoring'
 import {
+  buildInfiltrationCoverProfileFromAuthored,
+  type AuthoredInfiltrationCoverProfile,
+} from '../infiltrationCoverAuthoring'
+import {
   buildInfiltrationProbePlanFromAuthored,
   type AuthoredInfiltrationProbePlan,
 } from '../infiltrationProbeAuthoring'
@@ -373,6 +377,11 @@ const baseCaseTemplates: CaseTemplate[] = [
       defaultAction: 'probe_access',
       actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
     },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.5,
+    },
     preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
@@ -626,6 +635,12 @@ const baseCaseTemplates: CaseTemplate[] = [
       defaultAction: 'probe_route',
       actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
     },
+    infiltrationCoverProfile: {
+      claimedRole: 'courier',
+      documentTier: 1,
+      doctrineBand: 0.45,
+      routeViolationTags: ['cult'],
+    },
     preferredTags: ['negotiator', 'tech', 'infiltration', 'disguise'],
     onFail: {
       stageDelta: 1,
@@ -665,6 +680,7 @@ function cloneTemplate(
   template: CaseTemplate & {
     concealmentTriggers?: readonly AuthoredConcealmentActivationTrigger[]
     infiltrationProbePlan?: AuthoredInfiltrationProbePlan
+    infiltrationCoverProfile?: AuthoredInfiltrationCoverProfile
   }
 ): CaseTemplate {
   const onFail = normalizeSpawnRule(template.onFail)
@@ -673,6 +689,9 @@ function cloneTemplate(
     template.concealmentTriggers ?? []
   )
   const infiltrationProbePlan = buildInfiltrationProbePlanFromAuthored(template.infiltrationProbePlan)
+  const infiltrationCoverProfile = buildInfiltrationCoverProfileFromAuthored(
+    template.infiltrationCoverProfile
+  )
 
   return {
     ...template,
@@ -696,6 +715,7 @@ function cloneTemplate(
     concealmentTriggers:
       concealmentTriggers.length > 0 ? concealmentTriggers : undefined,
     infiltrationProbePlan,
+    infiltrationCoverProfile,
   }
 }
 

@@ -278,6 +278,11 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     infiltrationProbePlan: {
       defaultAction: 'probe_route',
     },
+    infiltrationCoverProfile: {
+      claimedRole: 'official_inspector',
+      documentTier: 2,
+      doctrineBand: 0.7,
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'analyst', 'infiltration', 'disguise'],
     pressureValue: 9,

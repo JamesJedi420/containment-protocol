@@ -43,6 +43,41 @@ describe('advanceWeek infiltration probe integration', () => {
     expect(updatedCase.detectionConfidence).toBeGreaterThanOrEqual(0.55)
   })
 
+  it('emits cover strain when media briefing cover clashes with guard role', () => {
+    const state = createStartingState()
+    const [teamId] = Object.keys(state.teams)
+
+    state.reports = []
+    state.agency!.supportAvailable = 3
+    state.globalFlags = { 'conceal.case.case-ops-004-cover': true }
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+    }
+
+    const covertCase = createStarterCase({
+      id: 'case-ops-004-cover',
+      templateId: 'ops-004',
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+    })
+    covertCase.mode = 'deterministic'
+    covertCase.weeksRemaining = 2
+    covertCase.infiltrationAwareness = 0.3
+    covertCase.infiltrationProbeProgress = 0.2
+
+    state.cases['case-ops-004-cover'] = covertCase
+
+    const nextState = advanceWeek(state)
+    const updatedCase = nextState.cases['case-ops-004-cover']
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+
+    expect(updatedCase.hiddenState).toBe('hidden')
+    expect(updatedCase.infiltrationAwareness).toBeGreaterThan(0.42)
+    expect(lastReport.notes.some((note) => note.type === 'infiltration.cover_strain')).toBe(true)
+  })
+
   it('uses authored cleanup when awareness crosses the plan threshold', () => {
     const state = createStartingState()
     const [teamId] = Object.keys(state.teams)

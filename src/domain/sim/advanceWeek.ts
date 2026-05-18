@@ -178,7 +178,9 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
+import { applyConcealmentActivationToCase } from '../hiddenStateActivation'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
+import { countCaseHiddenModifiers } from '../recon'
 import {
   buildAnchorFactionInstabilityNote,
   buildDeterministicReportNotesFromEventDrafts,
@@ -2070,6 +2072,24 @@ function applyActiveTriggerCooldowns(
   context.nextState.agents = updatedAgents
 }
 
+function applyWeeklyConcealmentActivation(
+  context: WeeklyExecutionContext,
+  caseId: string,
+  caseData: CaseInstance
+): CaseInstance {
+  const globalFlags = context.nextState.globalFlags ?? context.sourceState.globalFlags ?? {}
+  const activatedCase = applyConcealmentActivationToCase(caseData, {
+    globalFlags,
+    hiddenModifierCount: countCaseHiddenModifiers(caseData),
+  })
+
+  if (activatedCase !== caseData) {
+    context.nextState.cases[caseId] = activatedCase
+  }
+
+  return activatedCase
+}
+
 // Accept timingCheckState as parameter for shared cadence
 function resolveAssignments(
   context: WeeklyExecutionContext,
@@ -2090,7 +2110,7 @@ function resolveAssignments(
     if (context.finalizedCaseIds.has(caseId)) {
       continue
     }
-    const currentCase = context.sourceState.cases[caseId]
+    let currentCase = context.sourceState.cases[caseId]
     const existingAssignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
       Boolean(context.nextState.teams[teamId])
     )
@@ -2112,6 +2132,8 @@ function resolveAssignments(
     recordProcessedCase(context, caseId, 'resolveAssignments')
     context.progressedCases.push(caseId)
     existingAssignedTeamIds.forEach((teamId) => context.activeTeamIds.add(teamId))
+
+    currentCase = applyWeeklyConcealmentActivation(context, caseId, currentCase)
 
     // SPE-38: Support consumption and shortage
     if (supportAvailable >= supportConsumptionPerCase) {

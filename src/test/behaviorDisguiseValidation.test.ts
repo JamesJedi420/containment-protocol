@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
+import { applyConcealmentActivationToCase } from '../domain/hiddenStateActivation'
 import type { Agent, CaseInstance, GameState, Team } from '../domain/models'
 import { previewResolutionForTeamIds } from '../domain/sim/resolve'
 import { createStarterCase } from '../domain/templates/startingCases'
@@ -92,6 +93,24 @@ function tuneBehaviorGateCase(
 }
 
 describe('behavior-weighted disguise validation', () => {
+  it('activates behavior validation after tag-driven concealment activation', () => {
+    const observer = createBehaviorObserver('a_behavior_reader', ['liaison'], 55)
+    const hiddenCase = applyConcealmentActivationToCase(
+      createHiddenBriefingCase({
+        hiddenState: undefined,
+        detectionConfidence: undefined,
+        counterDetection: undefined,
+        tags: ['infiltration', 'public'],
+      }),
+      { globalFlags: {} }
+    )
+
+    expect(hiddenCase.hiddenState).toBe('hidden')
+    const result = evaluateBehaviorWeightedDisguiseValidation(hiddenCase, [observer])
+    expect(result.active).toBe(true)
+    expect(result.level).not.toBe('none')
+  })
+
   it('stays inactive on hidden cases without behavior-scrutiny context', () => {
     const state = createStartingState()
     const observer = state.agents.a_mina

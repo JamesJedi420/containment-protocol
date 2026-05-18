@@ -80,6 +80,17 @@ const ACCESS_CHANNELS: ReadonlySet<AuthorityPressureChannel> = new Set([
   'permission',
 ])
 
+const CONFIDENCE_FLOOR_ORDER: readonly AuthoritySourceConfidence[] = [
+  'contradicted',
+  'unknown',
+  'redacted',
+  'hostile_dossier',
+  'rumor',
+  'public_cover',
+  'probable',
+  'verified',
+]
+
 function normalizeToken(value: string) {
   return value.trim()
 }
@@ -98,8 +109,36 @@ function uniqueSorted(values: readonly string[]) {
   )
 }
 
-function edgeIsActive(edge: AuthorityGraphEdge, asOfWeek: number) {
-  if (edge.status === 'severed' || edge.status === 'outdated' || edge.status === 'contradicted') {
+function confidenceRank(confidence: AuthoritySourceConfidence) {
+  return CONFIDENCE_FLOOR_ORDER.indexOf(confidence)
+}
+
+function meetsConfidenceFloor(
+  edgeConfidence: AuthoritySourceConfidence,
+  floor: AuthoritySourceConfidence | undefined,
+  includeContradictedClaims: boolean
+) {
+  if (edgeConfidence === 'contradicted') {
+    return includeContradictedClaims
+  }
+
+  if (!floor) {
+    return true
+  }
+
+  return confidenceRank(edgeConfidence) >= confidenceRank(floor)
+}
+
+function edgeIsActive(
+  edge: AuthorityGraphEdge,
+  asOfWeek: number,
+  includeContradictedClaims = false
+) {
+  if (edge.status === 'contradicted') {
+    return includeContradictedClaims
+  }
+
+  if (edge.status === 'severed' || edge.status === 'outdated') {
     return false
   }
 
@@ -109,6 +148,18 @@ function edgeIsActive(edge: AuthorityGraphEdge, asOfWeek: number) {
   }
 
   return ACTIVE_STATUSES.has(edge.status)
+}
+
+function edgePassesQueryConfidenceFilters(
+  edge: AuthorityGraphEdge,
+  viewerConfidenceFloor: AuthoritySourceConfidence | undefined,
+  includeContradictedClaims: boolean
+) {
+  if (edge.sourceConfidence === 'contradicted' && !includeContradictedClaims) {
+    return false
+  }
+
+  return meetsConfidenceFloor(edge.sourceConfidence, viewerConfidenceFloor, includeContradictedClaims)
 }
 
 function edgeInvolvesNode(edge: AuthorityGraphEdge, nodeId: string) {
@@ -136,13 +187,15 @@ interface PairGraphHints {
   maxVolatility: number
 }
 
-/** Pair hints mirror resolver channel filtering: empty/missing pressureChannels = channel-general. */
+/** Pair hints mirror resolver channel and confidence filtering on the query. */
 function collectPairGraphHints(
   graph: AuthorityGraph,
   actorId: string,
   counterpartyId: string,
   asOfWeek: number,
-  channel: AuthorityPressureChannel
+  channel: AuthorityPressureChannel,
+  viewerConfidenceFloor: AuthoritySourceConfidence | undefined,
+  includeContradictedClaims: boolean
 ): PairGraphHints {
   const activeKinds = new Set<AuthorityRelationshipKind>()
   let maxVolatility = 0
@@ -150,8 +203,9 @@ function collectPairGraphHints(
   for (const edge of graph.edges) {
     if (
       !edgeInvolvesPair(edge, actorId, counterpartyId) ||
-      !edgeIsActive(edge, asOfWeek) ||
-      !edgeAppliesToChannel(edge, channel)
+      !edgeIsActive(edge, asOfWeek, includeContradictedClaims) ||
+      !edgeAppliesToChannel(edge, channel) ||
+      !edgePassesQueryConfidenceFilters(edge, viewerConfidenceFloor, includeContradictedClaims)
     ) {
       continue
     }
@@ -611,12 +665,15 @@ export function resolveAuthorityNegotiation(
   const concessionCost = clampInteger(request.concessionCost ?? 40, 0, 100)
 
   const baseline = resolveAuthorityGraphConsequences(graph, buildGraphQuery(request))
+  const includeContradictedClaims = request.includeContradictedClaims === true
   const hints = collectPairGraphHints(
     graph,
     actorId,
     counterpartyId,
     request.asOfWeek,
-    request.channel
+    request.channel,
+    request.viewerConfidenceFloor,
+    includeContradictedClaims
   )
   const signature = buildPressureSignature(baseline, request.channel)
 

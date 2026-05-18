@@ -933,6 +933,56 @@ describe('authorityNegotiation slice 2 (SPE-788)', () => {
     expect(result.effectiveConsequences.some((item) => item.effect === 'delay')).toBe(true)
   })
 
+  it('19. pair hints honor viewerConfidenceFloor like baseline resolver', () => {
+    const graph: AuthorityGraph = {
+      nodes: [
+        node({ id: 'agency-core', nodeType: 'agency', label: 'Containment Directorate' }),
+        node({ id: 'regime-host', nodeType: 'external_regime', label: 'Host Perimeter Authority' }),
+      ],
+      edges: [
+        edge({
+          id: 'shared-1',
+          kind: 'shared_authority',
+          fromNodeId: 'agency-core',
+          toNodeId: 'regime-host',
+          sourceConfidence: 'rumor',
+          pressureChannels: ['secrecy'],
+        }),
+      ],
+    }
+
+    const filtered = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'secrecy',
+        stance: 'cooperate',
+        offerStrength: 55,
+        viewerConfidenceFloor: 'verified',
+      })
+    )
+
+    expect(filtered.baselineConsequences).toEqual([])
+    expect(filtered.outcome).not.toBe('grudging_alignment')
+    expect(filtered.reasonCodes).not.toContain('negotiation_shared_authority')
+
+    const included = resolveAuthorityNegotiation(
+      graph,
+      negotiation({
+        actorNodeId: 'agency-core',
+        counterpartyNodeId: 'regime-host',
+        channel: 'secrecy',
+        stance: 'cooperate',
+        offerStrength: 55,
+        viewerConfidenceFloor: 'rumor',
+      })
+    )
+
+    expect(included.outcome).toBe('grudging_alignment')
+    expect(included.reasonCodes).toContain('negotiation_shared_authority')
+  })
+
   it('18. unrelated graph contradictions do not force grudging alignment', () => {
     const graph: AuthorityGraph = {
       nodes: [

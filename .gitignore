@@ -27,6 +27,10 @@ remaining-subset.json
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Cursor-local agent config (solo dev; environment.json stays tracked)
+.cursor/skills/
+.cursor/rules/
 .DS_Store
 *.suo
 *.ntvs*

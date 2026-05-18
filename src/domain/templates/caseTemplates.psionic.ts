@@ -44,8 +44,15 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['psionic', 'compulsion', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-002-caller-stakeout',
+        mode: 'hidden',
+        when: { anyTag: ['psionic', 'compulsion'] },
+      },
+    ],
     requiredTags: ['investigator'],
-    preferredTags: ['medium', 'tech', 'negotiator'],
+    preferredTags: ['medium', 'tech', 'negotiator', 'infiltration', 'covert'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -72,8 +79,15 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['psionic', 'memory', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-003-witness-screen',
+        mode: 'hidden',
+        when: { anyTag: ['psionic', 'memory'] },
+      },
+    ],
     requiredTags: ['negotiator'],
-    preferredTags: ['medium', 'investigator', 'analyst'],
+    preferredTags: ['medium', 'investigator', 'analyst', 'disguise'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 2 },
@@ -100,8 +114,15 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['psionic', 'occult', 'hybrid', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-occ-001-vigil-blend',
+        mode: 'hidden',
+        when: { allTags: ['psionic', 'occult'] },
+      },
+    ],
     requiredTags: ['medium', 'scholar'],
-    preferredTags: ['ritual-kit', 'investigator', 'tech'],
+    preferredTags: ['ritual-kit', 'investigator', 'tech', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -246,9 +267,16 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     weights: { combat: 0.05, investigation: 0.4, utility: 0.2, social: 0.35 },
     durationWeeks: 2,
     deadlineWeeks: 2,
-    tags: ['psionic', 'market', 'compulsion', 'tier-2'],
+    tags: ['psionic', 'market', 'compulsion', 'covert', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-007-floor-undercover',
+        mode: 'hidden',
+        when: { anyTag: ['market', 'compulsion'] },
+      },
+    ],
     requiredTags: ['negotiator'],
-    preferredTags: ['medium', 'analyst'],
+    preferredTags: ['medium', 'analyst', 'infiltration', 'disguise'],
     pressureValue: 9,
     regionTag: 'occult_district',
     onFail: {

@@ -69,8 +69,15 @@ export const occultCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['occult', 'mirror', 'possession', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-003-mirror-approach',
+        mode: 'hidden',
+        when: { anyTag: ['mirror', 'possession'] },
+      },
+    ],
     requiredTags: ['holy'],
-    preferredTags: ['investigator', 'tech', 'ritual-kit'],
+    preferredTags: ['investigator', 'tech', 'ritual-kit', 'stealth'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -151,9 +158,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
     weights: { combat: 0.15, investigation: 0.2, utility: 0.15, social: 0.5 },
     durationWeeks: 3,
     deadlineWeeks: 2,
-    tags: ['occult', 'parade', 'social', 'tier-2'],
+    tags: ['occult', 'parade', 'social', 'covert', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-006-procession-blend',
+        mode: 'hidden',
+        when: { anyTag: ['parade', 'social'] },
+      },
+    ],
     requiredTags: ['negotiator'],
-    preferredTags: ['medium', 'investigator'],
+    preferredTags: ['medium', 'investigator', 'disguise', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -211,7 +225,14 @@ export const occultCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['occult', 'ritual', 'civilian', 'tier-2'],
-    preferredTags: ['negotiator', 'medium', 'holy'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-008-litany-intercept',
+        mode: 'hidden',
+        when: { allTags: ['ritual', 'civilian'] },
+      },
+    ],
+    preferredTags: ['negotiator', 'medium', 'holy', 'covert', 'infiltration'],
     pressureValue: 8,
     regionTag: 'occult_district',
     onFail: {

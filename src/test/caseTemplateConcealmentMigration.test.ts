@@ -3,6 +3,7 @@ import { caseTemplateMap } from '../data/caseTemplates'
 import { createStartingState } from '../data/startingState'
 import { resolveConcealmentActivation } from '../domain/hiddenStateActivation'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { createStarterCase } from '../domain/templates/startingCases'
 import { instantiateFromTemplate } from '../domain/sim/spawn'
 
 const BATCH_ONE_TEMPLATE_IDS = ['ops-001', 'ops-002', 'ops-003', 'ops-004'] as const
@@ -19,8 +20,23 @@ const BATCH_TWO_TEMPLATE_IDS = [
   'ops-008',
 ] as const
 
+const BATCH_THREE_STARTER_CHAIN_TEMPLATE_IDS = [
+  'combat_vampire_nest',
+  'puzzle_whispering_archive',
+  'mixed_eclipse_ritual',
+  'followup_missing_persons',
+  'followup_false_memories',
+  'followup_campus_outbreak',
+  'followup_blackout',
+  'followup_targeted_abductions',
+] as const
+
 describe('case template concealment migration', () => {
-  it.each([...BATCH_ONE_TEMPLATE_IDS, ...BATCH_TWO_TEMPLATE_IDS])(
+  it.each([
+    ...BATCH_ONE_TEMPLATE_IDS,
+    ...BATCH_TWO_TEMPLATE_IDS,
+    ...BATCH_THREE_STARTER_CHAIN_TEMPLATE_IDS,
+  ])(
     'catalog template %s carries normalized concealmentTriggers',
     (templateId) => {
     const template = caseTemplateMap[templateId]
@@ -53,6 +69,21 @@ describe('case template concealment migration', () => {
     const nextState = advanceWeek(state)
     const resolved = nextState.cases[spawned.id]
     expect(resolved.hiddenState).toBe('hidden')
+  })
+
+  it('copies starter-chain triggers onto cases created via createStarterCase', () => {
+    const starterCase = createStarterCase({
+      id: 'case-starter-test',
+      templateId: 'puzzle_whispering_archive',
+    })
+
+    expect(starterCase.concealmentTriggers).toEqual([
+      {
+        id: 'trigger:puzzle-archive-basement-infiltration',
+        mode: 'hidden',
+        when: { anyTag: ['haunting', 'research'] },
+      },
+    ])
   })
 
   it('activates hidden presence from migrated occult-006 procession blend trigger', () => {

@@ -242,13 +242,13 @@ describe('starter content contracts', () => {
       title: caseTemplateMap['combat_vampire_nest'].title,
       deadlineRemaining: caseTemplateMap['combat_vampire_nest'].deadlineWeeks,
       requiredTags: [],
-      preferredTags: ['silver', 'holy'],
+      preferredTags: ['silver', 'holy', 'stealth', 'covert'],
     })
 
     expect(starterCases['case-002']).toMatchObject({
       templateId: 'puzzle_whispering_archive',
       title: caseTemplateMap['puzzle_whispering_archive'].title,
-      preferredTags: ['scholar', 'tech', 'medium'],
+      preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     })
 
     expect(starterCases['case-003']).toMatchObject({

@@ -180,7 +180,10 @@ import {
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { applyConcealmentActivationToCase } from '../hiddenStateActivation'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
-import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
+import {
+  resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek,
+  resolveMissionSuccessDegradeHint,
+} from '../caseResolutionOrchestration'
 import { countCaseHiddenModifiers } from '../recon'
 import {
   buildAnchorFactionInstabilityNote,
@@ -1556,6 +1559,9 @@ interface WeeklyCaseResolutionStrategy {
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
   behaviorValidation?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['behaviorValidation']
+  infiltrationStageMission?: ReturnType<
+    typeof resolveCanonicalAssignedCaseForWeek
+  >['infiltrationStageMission']
   weakestLinkResult?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['weakestLinkResult']
 }
 
@@ -1692,6 +1698,7 @@ function resolveAssignedCaseForWeek(
     outcome,
     aggregateBattleSummary,
     behaviorValidation: canonicalResolution.behaviorValidation,
+    infiltrationStageMission: canonicalResolution.infiltrationStageMission,
     weakestLinkResult: canonicalResolution.weakestLinkResult,
     campaignToIncident,
     incidentToCampaign,
@@ -2290,8 +2297,14 @@ function resolveAssignments(
       outcome,
       aggregateBattleSummary,
       behaviorValidation,
+      infiltrationStageMission,
       weakestLinkResult,
     } = weeklyResolution
+
+    const missionSuccessDegrade = resolveMissionSuccessDegradeHint({
+      behaviorValidation,
+      infiltrationStageMission,
+    })
 
     Object.assign(context.activeTeamStressModifiers, activeTeamStressModifiers)
     context.nextState.teams = releaseTeams(context.nextState.teams, existingAssignedTeamIds)
@@ -2381,9 +2394,7 @@ function resolveAssignments(
         }
       }
 
-      const willDegrade = Boolean(
-        behaviorValidation?.shouldDegradeSuccessToPartial && behaviorValidation.degradeSuccessReason
-      )
+      const willDegrade = missionSuccessDegrade.shouldDegrade
 
       let rewardBreakdown = buildMissionRewardBreakdown(
         effectiveCase,
@@ -2596,11 +2607,8 @@ function resolveAssignments(
           )
         )
       }
-      if (
-        behaviorValidation?.shouldDegradeSuccessToPartial &&
-        behaviorValidation.degradeSuccessReason
-      ) {
-        downgradeResolvedCaseToPartial(context, caseId, behaviorValidation.degradeSuccessReason)
+      if (missionSuccessDegrade.shouldDegrade && missionSuccessDegrade.reason) {
+        downgradeResolvedCaseToPartial(context, caseId, missionSuccessDegrade.reason)
       }
       continue
     }

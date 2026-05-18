@@ -16,6 +16,7 @@ import { buildAgencyProtocolState } from '../protocols'
 import { buildFactionMissionContext } from '../factions'
 import { evaluateContractRoleFit } from '../contractsRuntime'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../disguiseValidation'
+import { evaluateInfiltrationStageMissionPressure } from '../infiltrationProbe'
 import {
   buildAggregatedLeaderBonus,
   createDefaultPerformanceMetricSummary,
@@ -110,15 +111,19 @@ function buildTeamScoreContextForTeamIds(
         ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
         : null,
   })
+  const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(c)
   const baseScoreAdjustment =
     (coordination?.scoreAdjustment ?? 0) +
     factionContext.scoreAdjustment +
-    (contractFit?.scoreAdjustment ?? 0)
+    (contractFit?.scoreAdjustment ?? 0) +
+    behaviorValidation.scoreAdjustment +
+    infiltrationStageMission.scoreAdjustment
   const scoreAdjustmentReason = [
     coordination?.reason,
     ...factionContext.reasons,
     ...(contractFit?.reasons ?? []),
     behaviorValidation.scoreAdjustmentReason,
+    infiltrationStageMission.scoreAdjustmentReason,
   ]
     .filter(Boolean)
     .join(' / ')
@@ -137,7 +142,7 @@ function buildTeamScoreContextForTeamIds(
         normalizedTeamIds.length === 1
           ? (state.teams[normalizedTeamIds[0]]?.leaderId ?? null)
           : null,
-      scoreAdjustment: baseScoreAdjustment + behaviorValidation.scoreAdjustment,
+      scoreAdjustment: baseScoreAdjustment,
       scoreAdjustmentReason,
       partyCardScoreBonus: partyCardBonus?.scoreAdjustment,
       partyCardReasons: partyCardReason,

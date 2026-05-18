@@ -3,7 +3,10 @@
  * Progress and awareness advance independently; thresholds emit complications before hard failure.
  */
 
-import { applyWeeklyInfiltrationCoverPostureToCase } from './infiltrationCover'
+import {
+  applyWeeklyInfiltrationCoverPostureToCase,
+  INFILTRATION_AUTHORITY_SCRUTINY_TAGS,
+} from './infiltrationCover'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
 
@@ -160,6 +163,64 @@ export function resolveWeeklyInfiltrationProbeAction(caseData: CaseInstance): In
   }
 
   return 'probe_access'
+}
+
+export interface InfiltrationStageMissionPressureResult {
+  active: boolean
+  scoreAdjustment: number
+  scoreAdjustmentReason?: string
+  shouldDegradeSuccessToPartial: boolean
+  degradeSuccessReason?: string
+}
+
+const INACTIVE_STAGE_MISSION_PRESSURE: InfiltrationStageMissionPressureResult = {
+  active: false,
+  scoreAdjustment: 0,
+  shouldDegradeSuccessToPartial: false,
+}
+
+const EXPOSED_STAGE_MISSION_SCORE_ADJUSTMENT = 2.5
+const VIOLENT_STAGE_MISSION_SCORE_ADJUSTMENT = 4.5
+
+function hasAuthorityScrutiny(caseTags: Set<string>) {
+  return INFILTRATION_AUTHORITY_SCRUTINY_TAGS.some((tag) => caseTags.has(tag))
+}
+
+/**
+ * Bounded mission-resolution malus from infiltration stage (distinct from weekly track deltas).
+ */
+export function evaluateInfiltrationStageMissionPressure(
+  caseData: CaseInstance
+): InfiltrationStageMissionPressureResult {
+  if (!isInfiltrationProbeEligible(caseData)) {
+    return INACTIVE_STAGE_MISSION_PRESSURE
+  }
+
+  const stage = caseData.infiltrationStage ?? 'probing'
+
+  if (stage === 'probing') {
+    return INACTIVE_STAGE_MISSION_PRESSURE
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  const authorityScrutiny = hasAuthorityScrutiny(caseTags)
+  const scoreAdjustment =
+    stage === 'violent'
+      ? VIOLENT_STAGE_MISSION_SCORE_ADJUSTMENT
+      : EXPOSED_STAGE_MISSION_SCORE_ADJUSTMENT
+  const label = stage === 'violent' ? 'violent escalation' : 'exposed posture'
+  const scoreAdjustmentReason = `Infiltration stage: +${scoreAdjustment.toFixed(1)} (${label})`
+
+  return {
+    active: true,
+    scoreAdjustment,
+    scoreAdjustmentReason,
+    shouldDegradeSuccessToPartial: stage === 'violent' && authorityScrutiny,
+    degradeSuccessReason:
+      stage === 'violent' && authorityScrutiny
+        ? 'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
+        : undefined,
+  }
 }
 
 /** Counter-detection pressure contribution from infiltration tracks for disguise validation. */

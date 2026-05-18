@@ -60,6 +60,66 @@ function createInfiltrationBriefingCase(overrides: Partial<CaseInstance> = {}): 
   }
 }
 
+describe('evaluateInfiltrationStageMissionPressure edge cases', () => {
+  it('is inactive when the case is not infiltration-probe eligible', () => {
+    const base = createInfiltrationBriefingCase({ infiltrationStage: 'violent' })
+
+    expect(
+      evaluateInfiltrationStageMissionPressure({ ...base, hiddenState: 'visible' }).active
+    ).toBe(false)
+    expect(
+      evaluateInfiltrationStageMissionPressure({
+        ...base,
+        tags: ['media', 'public'],
+      }).active
+    ).toBe(false)
+  })
+
+  it('applies violent malus without partial degrade when authority scrutiny tags are absent', () => {
+    const violentNoAuthority = evaluateInfiltrationStageMissionPressure({
+      ...createInfiltrationBriefingCase({
+        infiltrationStage: 'violent',
+        counterDetection: true,
+        detectionConfidence: 0.75,
+      }),
+      tags: ['infiltration', 'interview', 'civilian'],
+    })
+
+    expect(violentNoAuthority.active).toBe(true)
+    expect(violentNoAuthority.scoreAdjustment).toBe(4.5)
+    expect(violentNoAuthority.shouldDegradeSuccessToPartial).toBe(false)
+    expect(violentNoAuthority.degradeSuccessReason).toBeUndefined()
+  })
+})
+
+describe('resolveMissionSuccessDegradeHint', () => {
+  it('prefers behavior-validation degrade over stage mission degrade', () => {
+    const behaviorReason = 'Behavior mismatch blocked a clean resolution.'
+    const stageReason = 'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
+
+    const hint = resolveMissionSuccessDegradeHint({
+      behaviorValidation: {
+        active: true,
+        level: 'strong',
+        scoreAdjustment: 4.5,
+        evidenceSignals: ['hierarchy fit'],
+        counterDetection: true,
+        shouldDegradeSuccessToPartial: true,
+        degradeSuccessReason: behaviorReason,
+      },
+      infiltrationStageMission: {
+        active: true,
+        scoreAdjustment: 4.5,
+        shouldDegradeSuccessToPartial: true,
+        degradeSuccessReason: stageReason,
+      },
+    })
+
+    expect(hint.shouldDegrade).toBe(true)
+    expect(hint.reason).toBe(behaviorReason)
+  })
+})
+
 describe('infiltration stage mission-resolution fallout', () => {
   it('orders stage malus probing < exposed < violent', () => {
     const base = createInfiltrationBriefingCase()
@@ -154,9 +214,11 @@ describe('infiltration stage mission-resolution fallout', () => {
     expect(probing.infiltrationStageMission?.scoreAdjustment ?? 0).toBe(0)
     expect(exposed.infiltrationStageMission?.scoreAdjustment).toBe(2.5)
     expect(violent.infiltrationStageMission?.scoreAdjustment).toBe(4.5)
-    expect(resolveMissionSuccessDegradeHint({ infiltrationStageMission: exposed }).shouldDegrade).toBe(
-      false
-    )
+    expect(
+      resolveMissionSuccessDegradeHint({
+        infiltrationStageMission: exposed.infiltrationStageMission,
+      }).shouldDegrade
+    ).toBe(false)
     expect(
       resolveMissionSuccessDegradeHint({
         infiltrationStageMission: violent.infiltrationStageMission,

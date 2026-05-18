@@ -45,3 +45,7 @@ linear-export/
 # Loose coverage / test output dumps at the repo root
 coverage_out.txt
 coverage_out_*.txt
+
+# Local temp / sync staging (agent scripts, Google Drive upload fragments)
+.tmp/
+.tmp.driveupload/

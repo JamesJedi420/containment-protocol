@@ -140,8 +140,8 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       },
     ],
     infiltrationProbePlan: {
-      defaultAction: 'probe_access',
-      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
     },
     infiltrationCoverProfile: {
       claimedRole: 'civilian_staff',

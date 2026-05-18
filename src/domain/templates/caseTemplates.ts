@@ -11,6 +11,7 @@ import {
   buildInfiltrationProbePlanFromAuthored,
   type AuthoredInfiltrationProbePlan,
 } from '../infiltrationProbeAuthoring'
+import { CONCEALMENT_ACTIVATION_TAGS } from '../hiddenStateActivation'
 import { getStealthLeaveBehindById, DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY } from '../stealthLeaveBehindRegistry'
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
 import { normalizeSpawnRule } from '../spawnRules'
@@ -840,6 +841,17 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
         errors.push(
           `Template ${template.templateId} references unknown stealthLeaveBehindId ${leaveBehindId}.`
         )
+      } else {
+        const tagUnion = [
+          ...template.tags,
+          ...(template.requiredTags ?? []),
+          ...(template.preferredTags ?? []),
+        ]
+        if (!CONCEALMENT_ACTIVATION_TAGS.some((tag) => tagUnion.includes(tag))) {
+          errors.push(
+            `Template ${template.templateId} declares stealthLeaveBehindId without a concealment activation tag.`
+          )
+        }
       }
     }
 

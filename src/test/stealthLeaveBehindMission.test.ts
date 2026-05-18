@@ -5,7 +5,9 @@ import {
   resolveMissionSuccessDegradeHint,
 } from '../domain/caseResolutionOrchestration'
 import { evaluateStealthLeaveBehindMissionPressure } from '../domain/stealthLeaveBehindRegistry'
+import { caseTemplateMap } from '../data/caseTemplates'
 import { previewResolutionForTeamIds } from '../domain/sim/resolve'
+import { instantiateFromTemplate } from '../domain/sim/spawn'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
 
@@ -62,6 +64,9 @@ describe('evaluateStealthLeaveBehindMissionPressure', () => {
     expect(evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'revealed' }).active).toBe(
       false
     )
+    expect(evaluateStealthLeaveBehindMissionPressure({ ...base, hiddenState: 'displaced' }).active).toBe(
+      false
+    )
     expect(
       evaluateStealthLeaveBehindMissionPressure({
         ...base,
@@ -113,6 +118,33 @@ describe('evaluateStealthLeaveBehindMissionPressure', () => {
 })
 
 describe('resolveMissionSuccessDegradeHint leave-behind priority', () => {
+  it('prefers behavior-validation degrade over leave-behind degrade', () => {
+    const behaviorReason = 'Behavior mismatch blocked a clean resolution.'
+    const leaveBehindReason =
+      'Stealth extraction tradeoff under authority scrutiny prevented a clean resolution.'
+
+    const hint = resolveMissionSuccessDegradeHint({
+      behaviorValidation: {
+        active: true,
+        level: 'strong',
+        scoreAdjustment: 4.5,
+        evidenceSignals: ['hierarchy fit'],
+        counterDetection: true,
+        shouldDegradeSuccessToPartial: true,
+        degradeSuccessReason: behaviorReason,
+      },
+      stealthLeaveBehindMission: {
+        active: true,
+        scoreAdjustment: 3.5,
+        shouldDegradeSuccessToPartial: true,
+        degradeSuccessReason: leaveBehindReason,
+      },
+    })
+
+    expect(hint.shouldDegrade).toBe(true)
+    expect(hint.reason).toBe(behaviorReason)
+  })
+
   it('prefers infiltration stage degrade over leave-behind degrade', () => {
     const stageReason = 'Violent infiltration escalation under authority scrutiny prevented a clean resolution.'
     const leaveBehindReason =
@@ -183,7 +215,17 @@ describe('stealth leave-behind mission-resolution fallout', () => {
     const previewBaseline = previewResolutionForTeamIds(baselineCase, state, [team.id])
     const liveActive = resolveAssignedCaseForWeek(stealthCase, state, () => 0.5)
 
-    expect(liveActive.stealthLeaveBehindMission?.scoreAdjustment).toBe(2.8)
+    const directPressure = evaluateStealthLeaveBehindMissionPressure(stealthCase)
+    expect(liveActive.stealthLeaveBehindMission?.scoreAdjustment).toBe(directPressure.scoreAdjustment)
+    expect(directPressure.scoreAdjustment).toBe(2.8)
     expect(previewActive.odds.success).toBeLessThanOrEqual(previewBaseline.odds.success)
+  })
+
+  it('copies stealthLeaveBehindId from catalog templates at spawn', () => {
+    const ops003 = instantiateFromTemplate(caseTemplateMap['ops-003'], () => 0.2, new Set())
+    const ops004 = instantiateFromTemplate(caseTemplateMap['ops-004'], () => 0.2, new Set())
+
+    expect(ops003.stealthLeaveBehindId).toBe('leave-behind:leave-trace')
+    expect(ops004.stealthLeaveBehindId).toBe('leave-behind:expose-witness')
   })
 })

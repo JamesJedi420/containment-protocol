@@ -22,6 +22,7 @@ import { type CaseInstance, type GameState, type Team } from '../../domain/model
 import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
+import { InvestigationCasePrepPanel } from './InvestigationCasePrepPanel'
 import { StealthLeaveBehindSelectionPanel } from './StealthLeaveBehindSelectionPanel'
 
 export default function CaseDetailPage() {
@@ -327,6 +328,8 @@ export default function CaseDetailPage() {
           </article>
 
           <StealthLeaveBehindSelectionPanel caseData={currentCase} />
+
+          <InvestigationCasePrepPanel caseData={currentCase} />
 
           <article
             className="panel panel-support space-y-3"

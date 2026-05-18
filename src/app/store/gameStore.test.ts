@@ -2,6 +2,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import { createStartingState } from '../../data/startingState'
+import {
+  applySuccessfulInvestigation,
+  buildInvestigationAskedFlagId,
+} from '../../domain/investigationEconomy'
+import { readPersistentFlag } from '../../domain/flagSystem'
+import { createStarterCase } from '../../domain/templates/startingCases'
 import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
 import type { AgentData, Candidate } from '../../domain/models'
 import { advanceWeek as advanceWeekDomain } from '../../domain/sim/advanceWeek'
@@ -124,6 +130,85 @@ beforeEach(() => {
 })
 
 describe('gameStore', () => {
+  it('asks investigation questions only for in-progress cases with budget', () => {
+    let game = createStartingState()
+    game.cases['case-investigation-store'] = {
+      ...createStarterCase({ id: 'case-investigation-store', templateId: 'ops-003' }),
+      status: 'in_progress',
+      weeksRemaining: 2,
+      assignedTeamIds: [],
+      requiredTags: [],
+      preferredTags: [],
+    }
+    game = applySuccessfulInvestigation(game, {
+      caseId: 'case-investigation-store',
+      forensicBudget: 1,
+      tacticalBudget: 0,
+    })
+
+    useGameStore.setState({ game })
+    const before = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(
+      readPersistentFlag(
+        useGameStore.getState().game,
+        buildInvestigationAskedFlagId('case-investigation-store', 'forensic.present-signature')
+      )
+    ).toBe(true)
+    expect(useGameStore.getState().game).not.toBe(before)
+
+    const afterFirstAsk = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion(
+        'case-investigation-store',
+        'forensic',
+        'forensic.present-signature'
+      )
+
+    expect(useGameStore.getState().game).toBe(afterFirstAsk)
+
+    useGameStore.getState().askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
+
+    expect(useGameStore.getState().game).toBe(afterFirstAsk)
+
+    useGameStore.setState({
+      game: {
+        ...afterFirstAsk,
+        cases: {
+          ...afterFirstAsk.cases,
+          'case-investigation-store': {
+            ...afterFirstAsk.cases['case-investigation-store']!,
+            status: 'resolved',
+          },
+        },
+      },
+    })
+
+    const resolvedSnapshot = useGameStore.getState().game
+
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('case-investigation-store', 'forensic', 'forensic.missing-proof')
+
+    expect(useGameStore.getState().game).toBe(resolvedSnapshot)
+    expect(
+      readPersistentFlag(
+        useGameStore.getState().game,
+        buildInvestigationAskedFlagId('case-investigation-store', 'forensic.missing-proof')
+      )
+    ).toBeUndefined()
+  })
+
   it('assigns and unassigns teams through the store actions', () => {
     useGameStore.getState().assign('case-001', 't_nightwatch')
 

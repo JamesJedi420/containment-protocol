@@ -5,6 +5,11 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { readPersistentFlag } from '../../domain/flagSystem'
+import {
+  applySuccessfulInvestigation,
+  buildInvestigationAskedFlagId,
+} from '../../domain/investigationEconomy'
 import { createStarterCase } from '../../domain/templates/startingCases'
 import CaseDetailPage from './CaseDetailPage'
 
@@ -167,6 +172,89 @@ it('shows stealth leave-behind tradeoff selection for eligible in-progress hidde
   expect(useGameStore.getState().game.cases['case-stealth-ui']?.stealthLeaveBehindId).toBe(
     'leave-behind:burn-tool'
   )
+})
+
+it('shows investigation question prep and asks a forensic question', async () => {
+  const user = userEvent.setup()
+  let game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    title: 'Investigation Prep Case',
+    status: 'in_progress',
+    weeksRemaining: 2,
+    assignedTeamIds: [],
+    requiredTags: [],
+    preferredTags: [],
+  }
+
+  game = applySuccessfulInvestigation(game, {
+    caseId: 'case-investigation-ui',
+    forensicBudget: 1,
+    tacticalBudget: 1,
+  })
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  const panel = screen.getByRole('region', { name: /investigation question prep/i })
+
+  expect(within(panel).getByRole('heading', { name: /investigation questions/i })).toBeInTheDocument()
+  expect(within(panel).getByText(/concrete signature is present/i)).toBeInTheDocument()
+
+  const forensicSection = within(panel).getByRole('region', { name: /forensic inquiry/i })
+  const signatureRow = within(forensicSection)
+    .getByText(/concrete signature is present/i)
+    .closest('li')
+  expect(signatureRow).not.toBeNull()
+  await user.click(within(signatureRow as HTMLElement).getByRole('button', { name: /^ask$/i }))
+
+  expect(within(forensicSection).getByRole('button', { name: /asked/i })).toBeInTheDocument()
+  expect(within(forensicSection).getByText(/primary residue signature is real/i)).toBeInTheDocument()
+  expect(
+    readPersistentFlag(
+      useGameStore.getState().game,
+      buildInvestigationAskedFlagId('case-investigation-ui', 'forensic.present-signature')
+    )
+  ).toBe(true)
+})
+
+it('shows investigation prep empty state when no budget is granted yet', () => {
+  const game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    title: 'Investigation Prep Case',
+    status: 'in_progress',
+    weeksRemaining: 2,
+    assignedTeamIds: [],
+    requiredTags: [],
+    preferredTags: [],
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  const panel = screen.getByRole('region', { name: /investigation question prep/i })
+
+  expect(within(panel).getByText(/no investigation budget on this case yet/i)).toBeInTheDocument()
+  expect(within(panel).queryByRole('region', { name: /forensic inquiry/i })).not.toBeInTheDocument()
+})
+
+it('hides investigation question prep when the case is not in progress', () => {
+  const game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    status: 'resolved',
+    weeksRemaining: 0,
+    assignedTeamIds: [],
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  expect(screen.queryByRole('region', { name: /investigation question prep/i })).not.toBeInTheDocument()
 })
 
 it('hides stealth leave-behind tradeoff when the case is not eligible', () => {

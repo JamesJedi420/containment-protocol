@@ -9,6 +9,10 @@ import {
   evaluateBehaviorWeightedDisguiseValidation,
   type BehaviorWeightedDisguiseValidationResult,
 } from './disguiseValidation'
+import {
+  evaluateInfiltrationStageMissionPressure,
+  type InfiltrationStageMissionPressureResult,
+} from './infiltrationProbe'
 import { buildAgencyProtocolState } from './protocols'
 import { computeTeamScore, computeRequiredScore } from './sim/scoring'
 import { applyExecutionInstabilityOverlay } from './executionInstability'
@@ -24,6 +28,7 @@ export interface WeeklyCaseResolutionStrategy {
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
   behaviorValidation?: BehaviorWeightedDisguiseValidationResult
+  infiltrationStageMission?: InfiltrationStageMissionPressureResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
@@ -96,10 +101,15 @@ export function resolveAssignedCaseForWeek(
     effectiveCase,
     behaviorValidation
   )
-  const scoreAdjustment = factionContext.scoreAdjustment + behaviorValidation.scoreAdjustment
+  const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
+  const scoreAdjustment =
+    factionContext.scoreAdjustment +
+    behaviorValidation.scoreAdjustment +
+    infiltrationStageMission.scoreAdjustment
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
+    infiltrationStageMission.scoreAdjustmentReason,
   ]
     .filter(Boolean)
     .join(' / ')
@@ -176,6 +186,9 @@ export function resolveAssignedCaseForWeek(
         ...(behaviorValidation.scoreAdjustmentReason
           ? [behaviorValidation.scoreAdjustmentReason]
           : []),
+        ...(infiltrationStageMission.scoreAdjustmentReason
+          ? [infiltrationStageMission.scoreAdjustmentReason]
+          : []),
         `Weakest-link outcome: ${weakestLinkResult.outcomeCategory}`,
         ...weakestLinkResult.weakestLinkNarrativeReasonCodes,
         ...instabilityReasons,
@@ -218,6 +231,7 @@ export function resolveAssignedCaseForWeek(
     activeTeamStressModifiers,
     outcome,
     behaviorValidation,
+    infiltrationStageMission,
     weakestLinkResult,
   }
 }

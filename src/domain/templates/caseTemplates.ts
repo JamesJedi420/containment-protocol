@@ -767,6 +767,12 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
       errors.push(`Template ${template.templateId} has invalid required roles.`)
     }
 
+    if (template.infiltrationProbePlan !== undefined && template.infiltrationCoverProfile === undefined) {
+      errors.push(
+        `Template ${template.templateId} declares infiltrationProbePlan without a valid infiltrationCoverProfile.`
+      )
+    }
+
     if (template.concealmentTriggers !== undefined) {
       if (template.concealmentTriggers.length === 0) {
         errors.push(`Template ${template.templateId} declares empty concealmentTriggers.`)

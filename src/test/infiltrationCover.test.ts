@@ -6,7 +6,10 @@ import {
   evaluateWeeklyInfiltrationCoverPosture,
 } from '../domain/infiltrationCover'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
-import { applyWeeklyInfiltrationProbeTick } from '../domain/infiltrationProbe'
+import {
+  applyInfiltrationProbeActionToCase,
+  applyWeeklyInfiltrationProbeTick,
+} from '../domain/infiltrationProbe'
 import type { Agent, CaseInstance } from '../domain/models'
 import { caseTemplateMap } from '../domain/templates/caseTemplates'
 
@@ -71,5 +74,56 @@ describe('infiltrationCover', () => {
 
     expect(result.changed).toBe(false)
     expect(result.events).toEqual([])
+  })
+
+  it('does not double-count route violations already covered by role mismatch', () => {
+    const posture = evaluateWeeklyInfiltrationCoverPosture(
+      createCoverCase({
+        infiltrationCoverProfile: {
+          claimedRole: 'uniform_guard',
+          routeViolationTags: ['media', 'public'],
+        },
+      })
+    )
+
+    expect(posture.awarenessDelta).toBe(0.08)
+  })
+
+  it('applies no posture pressure when awareness is already capped', () => {
+    const posture = evaluateWeeklyInfiltrationCoverPosture(
+      createCoverCase({
+        infiltrationAwareness: 1,
+        infiltrationStage: 'violent',
+      })
+    )
+
+    expect(posture.awarenessDelta).toBe(0)
+    expect(posture.events).toEqual([])
+  })
+
+  it('runs cover posture only on the weekly tick, not a single probe action', () => {
+    const baseline = createCoverCase({ infiltrationAwareness: 0.3 })
+    const actionOnly = applyInfiltrationProbeActionToCase(baseline, 'probe_access')
+    const weekly = applyWeeklyInfiltrationProbeTick(baseline, 3)
+
+    expect(actionOnly.case.infiltrationAwareness).toBeLessThan(
+      weekly.case.infiltrationAwareness ?? 0
+    )
+    expect(weekly.events.some((event) => event.kind === 'cover_strain')).toBe(true)
+  })
+
+  it('copies cover profiles on seeded infiltration templates', () => {
+    const templateIds = [
+      'ops-001',
+      'ops-004',
+      'occult-006',
+      'puzzle_whispering_archive',
+      'psi-007',
+      'followup_targeted_abductions',
+    ] as const
+
+    for (const templateId of templateIds) {
+      expect(caseTemplateMap[templateId].infiltrationCoverProfile?.claimedRole).toBeTruthy()
+    }
   })
 })

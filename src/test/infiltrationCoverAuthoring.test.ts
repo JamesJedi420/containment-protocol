@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildInfiltrationCoverProfileFromAuthored,
+  buildInfiltrationCoverProfileFromAuthoredRecord,
   type AuthoredInfiltrationCoverProfile,
 } from '../domain/infiltrationCoverAuthoring'
 
@@ -24,6 +25,19 @@ describe('infiltrationCoverAuthoring', () => {
       documentTier: 1,
       doctrineBand: 0.42,
       routeViolationTags: ['media', 'public'],
+    })
+  })
+
+  it('buildInfiltrationCoverProfileFromAuthoredRecord rejects non-objects', () => {
+    expect(buildInfiltrationCoverProfileFromAuthoredRecord('uniform_guard')).toBeUndefined()
+    expect(
+      buildInfiltrationCoverProfileFromAuthoredRecord({
+        claimedRole: 'courier',
+        documentTier: 2,
+      })
+    ).toEqual({
+      claimedRole: 'courier',
+      documentTier: 2,
     })
   })
 })

@@ -158,7 +158,13 @@ export function evaluateWeeklyInfiltrationCoverPosture(
     strainReasons.push(`claimed ${profile.claimedRole} clashes with site context`)
   }
 
-  if (profile.routeViolationTags !== undefined && hasAnyTag(caseTags, profile.routeViolationTags)) {
+  const incompatibleTagSet = new Set(incompatibleTags)
+  const extraRouteViolations =
+    profile.routeViolationTags?.filter(
+      (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
+    ) ?? []
+
+  if (extraRouteViolations.length > 0) {
     awarenessDelta += ROUTE_VIOLATION_AWARENESS
     strainReasons.push('movement or venue tags contradict the cover story')
   }
@@ -183,8 +189,17 @@ export function evaluateWeeklyInfiltrationCoverPosture(
     return { awarenessDelta: 0, events: [] }
   }
 
-  const events: InfiltrationThresholdEvent[] = []
   const nextAwareness = roundBand(clamp(priorAwareness + awarenessDelta, 0, 1))
+  const effectiveDelta = roundBand(nextAwareness - priorAwareness)
+
+  if (effectiveDelta <= 0) {
+    return { awarenessDelta: 0, events: [] }
+  }
+
+  const events: InfiltrationThresholdEvent[] = []
+  const strainSummary =
+    strainReasons.join('; ') ||
+    'Weekly cover posture review flagged visible mismatch between role and site expectations.'
 
   if (priorAwareness < COVER_STRAIN_BAND && nextAwareness >= COVER_STRAIN_BAND) {
     events.push({
@@ -193,17 +208,18 @@ export function evaluateWeeklyInfiltrationCoverPosture(
         strainReasons[0] ??
         'Cover posture strain accumulated; observers may begin treating the infiltrator as out of role.',
     })
-  } else if (awarenessDelta >= ROUTE_VIOLATION_AWARENESS) {
+  } else if (
+    effectiveDelta >= ROUTE_VIOLATION_AWARENESS &&
+    priorAwareness < AWARENESS_COMPLICATION_THRESHOLD
+  ) {
     events.push({
       kind: 'cover_strain',
-      summary:
-        strainReasons.join('; ') ||
-        'Weekly cover posture review flagged visible mismatch between role and site expectations.',
+      summary: strainSummary,
     })
   }
 
   return {
-    awarenessDelta: roundBand(awarenessDelta),
+    awarenessDelta: effectiveDelta,
     events,
     summary: strainReasons.join('; ') || undefined,
   }
@@ -220,7 +236,9 @@ export function applyWeeklyInfiltrationCoverPostureToCase(
   }
 
   const priorState = readInfiltrationProbeState(caseData)
-  const nextAwareness = roundBand(clamp(priorState.awareness + posture.awarenessDelta, 0, 1))
+  const nextAwareness = roundBand(
+    clamp(priorState.awareness + posture.awarenessDelta, 0, 1)
+  )
   let stage = priorState.stage
 
   if (
@@ -243,15 +261,17 @@ export function applyWeeklyInfiltrationCoverPostureToCase(
 
   const thresholdEvents = resolveThresholdEvents(priorState, nextState)
   const merged = mergeInfiltrationProbeStateIntoCase(caseData, nextState)
+  const events = [...posture.events, ...thresholdEvents]
   const changed =
     merged.infiltrationAwareness !== caseData.infiltrationAwareness ||
     merged.infiltrationStage !== caseData.infiltrationStage ||
     merged.detectionConfidence !== caseData.detectionConfidence ||
-    merged.counterDetection !== caseData.counterDetection
+    merged.counterDetection !== caseData.counterDetection ||
+    events.length > 0
 
   return {
     case: merged,
-    events: [...posture.events, ...thresholdEvents],
+    events,
     changed,
   }
 }

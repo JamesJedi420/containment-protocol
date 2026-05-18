@@ -2098,11 +2098,13 @@ function applyWeeklyInfiltrationProbe(
 ): CaseInstance {
   const probeResult = applyWeeklyInfiltrationProbeTick(caseData, context.sourceState.week)
 
-  if (!probeResult.changed) {
+  if (!probeResult.changed && probeResult.events.length === 0) {
     return caseData
   }
 
-  context.nextState.cases[caseId] = probeResult.case
+  if (probeResult.changed || probeResult.events.length > 0) {
+    context.nextState.cases[caseId] = probeResult.case
+  }
 
   for (const event of probeResult.events) {
     context.eventDrafts.push({
@@ -2120,7 +2122,7 @@ function applyWeeklyInfiltrationProbe(
     })
   }
 
-  return probeResult.case
+  return probeResult.changed || probeResult.events.length > 0 ? probeResult.case : caseData
 }
 
 // Accept timingCheckState as parameter for shared cadence

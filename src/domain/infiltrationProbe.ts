@@ -287,7 +287,8 @@ export function applyInfiltrationProbeActionToCase(
     merged.infiltrationAwareness !== caseData.infiltrationAwareness ||
     merged.infiltrationStage !== caseData.infiltrationStage ||
     merged.detectionConfidence !== caseData.detectionConfidence ||
-    merged.counterDetection !== caseData.counterDetection
+    merged.counterDetection !== caseData.counterDetection ||
+    evaluation.events.length > 0
 
   return {
     case: merged,
@@ -313,10 +314,12 @@ export function applyWeeklyInfiltrationProbeTick(
   const probeResult = applyInfiltrationProbeActionToCase(caseData, resolvedAction)
   const coverResult = applyWeeklyInfiltrationCoverPostureToCase(probeResult.case)
 
+  const events = [...probeResult.events, ...coverResult.events]
+
   return {
     case: coverResult.case,
-    events: [...probeResult.events, ...coverResult.events],
-    changed: probeResult.changed || coverResult.changed,
+    events,
+    changed: probeResult.changed || coverResult.changed || events.length > 0,
   }
 }
 

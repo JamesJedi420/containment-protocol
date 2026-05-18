@@ -145,7 +145,6 @@ export const operationsCaseTemplates: CaseTemplate[] = [
       claimedRole: 'uniform_guard',
       documentTier: 1,
       doctrineBand: 0.4,
-      routeViolationTags: ['media', 'public'],
     },
     requiredTags: ['medium'],
     preferredTags: ['negotiator', 'liaison', 'infiltration'],

@@ -102,8 +102,14 @@ describe('advanceWeek behavior-weighted disguise validation', () => {
     const preAdvanceResolution = resolveAssignedCaseForWeek(state.cases['case-001'], state, () => 0.5)
     expect(preAdvanceResolution.outcome.result).toBe('success')
     expect(preAdvanceResolution.behaviorValidation?.level).toBe('strong')
+    expect(preAdvanceResolution.behaviorValidation?.evidenceSignals).toContain(
+      'cover role mismatch'
+    )
     expect(
       preAdvanceResolution.outcome.reasons.some((reason) => reason.includes('Behavior validation:'))
+    ).toBe(true)
+    expect(
+      preAdvanceResolution.outcome.reasons.some((reason) => reason.includes('cover role mismatch'))
     ).toBe(true)
 
     const nextState = advanceWeek(state)

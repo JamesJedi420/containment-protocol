@@ -112,6 +112,25 @@ describe('infiltrationCover', () => {
     expect(mismatch.pressure).toBe(0.75)
   })
 
+  it('ignores profile route violations when coverRole override disagrees with profile', () => {
+    const caseData = createCoverCase({
+      tags: ['infiltration', 'covert', 'witness'],
+      requiredTags: [],
+      preferredTags: [],
+      infiltrationCoverProfile: {
+        claimedRole: 'maintenance',
+        routeViolationTags: ['witness'],
+      },
+    })
+
+    expect(evaluateCoverRoleMismatchPressure(caseData, 'maintenance').hasExtraRouteViolation).toBe(
+      true
+    )
+    expect(evaluateCoverRoleMismatchPressure(caseData, 'courier').hasExtraRouteViolation).toBe(
+      false
+    )
+  })
+
   it('returns zero pressure when cover role fits site tags', () => {
     const mismatch = evaluateCoverRoleMismatchPressure(
       createCoverCase({

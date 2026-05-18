@@ -55,8 +55,15 @@ export interface WeeklyInfiltrationCoverPostureResult {
   changed: boolean
 }
 
-const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court'] as const
-const PROCEDURAL_SCRUTINY_TAGS = ['witness', 'interview', 'civilian', 'court'] as const
+/** Shared with behavior-weighted disguise validation (SPE-2242). */
+export const INFILTRATION_AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court'] as const
+/** Shared with behavior-weighted disguise validation (SPE-2242). */
+export const INFILTRATION_PROCEDURAL_SCRUTINY_TAGS = [
+  'witness',
+  'interview',
+  'civilian',
+  'court',
+] as const
 
 const ROLE_INCOMPATIBLE_CASE_TAGS: Record<InfiltrationCoverRole, readonly string[]> = {
   uniform_guard: ['media', 'public', 'interview'],
@@ -125,8 +132,12 @@ export function evaluateCoverRoleMismatchPressure(
   const incompatibleTags = ROLE_INCOMPATIBLE_CASE_TAGS[role]
   const hasRoleMismatch = hasAnyTag(caseTags, incompatibleTags)
   const incompatibleTagSet = new Set(incompatibleTags)
+  const routeViolationTags =
+    profile && (coverRole === undefined || coverRole === profile.claimedRole)
+      ? profile.routeViolationTags
+      : undefined
   const extraRouteViolations =
-    profile?.routeViolationTags?.filter(
+    routeViolationTags?.filter(
       (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
     ) ?? []
   const hasExtraRouteViolation = extraRouteViolations.length > 0
@@ -176,8 +187,8 @@ export function evaluateWeeklyInfiltrationCoverPosture(
     strainReasons.push('movement or venue tags contradict the cover story')
   }
 
-  const authorityScrutiny = hasAnyTag(caseTags, AUTHORITY_SCRUTINY_TAGS)
-  const proceduralScrutiny = hasAnyTag(caseTags, PROCEDURAL_SCRUTINY_TAGS)
+  const authorityScrutiny = hasAnyTag(caseTags, INFILTRATION_AUTHORITY_SCRUTINY_TAGS)
+  const proceduralScrutiny = hasAnyTag(caseTags, INFILTRATION_PROCEDURAL_SCRUTINY_TAGS)
   const documentTier = profile.documentTier ?? 2
 
   if (authorityScrutiny && documentTier <= 0) {

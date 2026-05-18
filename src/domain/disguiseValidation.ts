@@ -2,6 +2,8 @@ import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
 import {
   evaluateCoverRoleMismatchPressure,
+  INFILTRATION_AUTHORITY_SCRUTINY_TAGS,
+  INFILTRATION_PROCEDURAL_SCRUTINY_TAGS,
   type InfiltrationCoverRole,
 } from './infiltrationCover'
 import {
@@ -10,8 +12,6 @@ import {
 } from './infiltrationProbe'
 import { hasEffectiveCountermeasure } from './resistances'
 
-const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court']
-const PROCEDURAL_SCRUTINY_TAGS = ['witness', 'interview', 'civilian', 'court']
 const HIERARCHY_READER_TAGS = ['liaison', 'negotiation']
 const PROCEDURAL_READER_TAGS = ['investigator', 'forensics', 'field-kit', 'analyst']
 const SOCIAL_SCRUTINY_WEIGHT_THRESHOLD = 0.55
@@ -125,8 +125,8 @@ export function evaluateBehaviorWeightedDisguiseValidation(
 
   const resolvedContext = resolveDisguiseValidationContextFromCase(caseData, context)
   const caseTags = collectCaseTags(caseData)
-  const authorityScrutiny = hasAnyTag(caseTags, AUTHORITY_SCRUTINY_TAGS)
-  const proceduralScrutiny = hasAnyTag(caseTags, PROCEDURAL_SCRUTINY_TAGS)
+  const authorityScrutiny = hasAnyTag(caseTags, INFILTRATION_AUTHORITY_SCRUTINY_TAGS)
+  const proceduralScrutiny = hasAnyTag(caseTags, INFILTRATION_PROCEDURAL_SCRUTINY_TAGS)
   const silenceScrutiny =
     authorityScrutiny || caseData.weights.social >= SOCIAL_SCRUTINY_WEIGHT_THRESHOLD
 
@@ -193,12 +193,14 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     resolvedContext.coverRole
   )
   const coverRoleScrutinyPressure =
-    (authorityScrutiny || proceduralScrutiny) && coverRoleMismatch.pressure > 0
-      ? coverRoleMismatch.pressure
-      : 0
+    coverRoleMismatch.pressure > 0 ? coverRoleMismatch.pressure : 0
 
-  if (coverRoleMismatch.hasRoleMismatch && (authorityScrutiny || proceduralScrutiny)) {
+  if (coverRoleMismatch.hasRoleMismatch) {
     evidenceSignals.push('cover role mismatch')
+  }
+
+  if (coverRoleMismatch.hasExtraRouteViolation) {
+    evidenceSignals.push('cover route mismatch')
   }
 
   const counterDetectionPressure =

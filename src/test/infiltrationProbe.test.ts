@@ -164,6 +164,21 @@ describe('infiltrationProbe', () => {
     ).toBe('probe_route')
   })
 
+  it('prefers case weekly probe override over authored plan when ticking', () => {
+    const weekly = applyWeeklyInfiltrationProbeTick(
+      createInfiltrationCase({
+        infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+        infiltrationAwareness: 0.2,
+        infiltrationProbeProgress: 0.1,
+        infiltrationWeeklyProbeActionOverride: 'cleanup',
+      }),
+      2
+    )
+
+    expect(weekly.changed).toBe(true)
+    expect(weekly.case.infiltrationAwareness).toBeLessThan(0.2)
+  })
+
   it('applies resolved weekly action when action override is omitted', () => {
     const weekly = applyWeeklyInfiltrationProbeTick(
       createInfiltrationCase({

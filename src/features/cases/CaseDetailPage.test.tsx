@@ -10,7 +10,9 @@ import {
   applySuccessfulInvestigation,
   buildInvestigationAskedFlagId,
 } from '../../domain/investigationEconomy'
+import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
+import { caseTemplateMap } from '../../domain/templates/caseTemplates'
 import CaseDetailPage from './CaseDetailPage'
 
 function renderCaseDetail(route = '/cases/case-001') {
@@ -134,6 +136,46 @@ it('renders assignment timeline events for the selected case only', () => {
     'href',
     '/teams/t_nightwatch'
   )
+})
+
+it('shows infiltration prep and sets weekly probe action override', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+
+  game.cases['case-stealth-ui'] = {
+    ...createStarterCase({ id: 'case-stealth-ui', templateId: 'ops-004' }),
+    title: 'Archive Access Siege',
+    status: 'in_progress',
+    hiddenState: 'hidden',
+    detectionConfidence: 0.25,
+    counterDetection: false,
+    tags: ['infiltration', 'archive', 'records'],
+    infiltrationProbeProgress: 0.2,
+    infiltrationAwareness: 0.3,
+    infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+    infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
+    requiredTags: [],
+    preferredTags: [],
+    assignedTeamIds: [],
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-stealth-ui')
+
+  const panel = screen.getByRole('region', { name: /infiltration case prep/i })
+
+  expect(within(panel).getByRole('heading', { name: /infiltration prep/i })).toBeInTheDocument()
+  expect(within(panel).getByText(/probe progress 20%/i)).toBeInTheDocument()
+  expect(within(panel).getByText(/uniform guard/i)).toBeInTheDocument()
+
+  const cleanupRow = within(panel).getByText(/clean up cover/i).closest('li')
+  expect(cleanupRow).not.toBeNull()
+  await user.click(within(cleanupRow as HTMLElement).getByRole('button', { name: /^select$/i }))
+
+  expect(
+    useGameStore.getState().game.cases['case-stealth-ui']?.infiltrationWeeklyProbeActionOverride
+  ).toBe('cleanup')
+  expect(within(panel).getByRole('button', { name: /use plan default/i })).toBeInTheDocument()
 })
 
 it('shows stealth leave-behind tradeoff selection for eligible in-progress hidden cases', async () => {

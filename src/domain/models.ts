@@ -1343,6 +1343,8 @@ export interface CaseInstance {
   concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
   /** SPE-521 slice 2: weekly infiltration probe action plan copied from template at spawn. */
   infiltrationProbePlan?: import('./infiltrationProbe').InfiltrationProbePlan
+  /** SPE-521 deferred UX: player override for next weekly probe action (cleared when unset). */
+  infiltrationWeeklyProbeActionOverride?: import('./infiltrationProbe').InfiltrationProbeAction
   /** SPE-521 slice 3: cover identity profile copied from template at spawn. */
   infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
   /** SPE-2163 slice 2: stealth tradeoff row copied from template at spawn. */

@@ -91,6 +91,11 @@ import {
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
 import { canAskInvestigationQuestionOnCase } from '../../features/cases/investigationCasePrepView'
+import type { InfiltrationProbeAction } from '../../domain/infiltrationProbe'
+import {
+  applyInfiltrationWeeklyProbeActionOverride,
+  canConfigureInfiltrationWeeklyProbeOnCase,
+} from '../../domain/infiltrationProbeOverride'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
@@ -233,6 +238,11 @@ interface GameStore {
     caseId: Id,
     domain: InvestigationQuestionDomain,
     questionId: string
+  ) => void
+  /** SPE-521 deferred UX: override or clear weekly infiltration probe action on an eligible case. */
+  setInfiltrationWeeklyProbeAction: (
+    caseId: Id,
+    action: InfiltrationProbeAction | null
   ) => void
   hireCandidate: (candidateId: Id) => void
   scoutCandidate: (candidateId: Id) => void
@@ -1158,6 +1168,24 @@ export const useGameStore = create<GameStore>()(
             caseId,
             domain,
             questionId,
+          })
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
+      setInfiltrationWeeklyProbeAction: (caseId, action) =>
+        set((s) => {
+          const caseData = s.game.cases[caseId]
+          if (caseData === undefined || !canConfigureInfiltrationWeeklyProbeOnCase(caseData)) {
+            return { game: s.game }
+          }
+
+          const result = applyInfiltrationWeeklyProbeActionOverride(s.game, {
+            caseId,
+            action,
           })
           if (!result.applied) {
             return { game: s.game }

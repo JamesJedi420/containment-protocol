@@ -402,7 +402,10 @@ export function applyWeeklyInfiltrationProbeTick(
     return { case: caseData, events: [], changed: false }
   }
 
-  const resolvedAction = action ?? resolveWeeklyInfiltrationProbeAction(caseData)
+  const resolvedAction =
+    action ??
+    caseData.infiltrationWeeklyProbeActionOverride ??
+    resolveWeeklyInfiltrationProbeAction(caseData)
   const probeResult = applyInfiltrationProbeActionToCase(caseData, resolvedAction)
   const coverResult = applyWeeklyInfiltrationCoverPostureToCase(probeResult.case)
 

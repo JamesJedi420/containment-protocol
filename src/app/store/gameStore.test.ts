@@ -7,6 +7,7 @@ import {
   buildInvestigationAskedFlagId,
 } from '../../domain/investigationEconomy'
 import { readPersistentFlag } from '../../domain/flagSystem'
+import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
 import { buildWeeklyReportTutorialChoices } from '../../features/operations/frontDeskChoices'
 import type { AgentData, Candidate } from '../../domain/models'
@@ -207,6 +208,38 @@ describe('gameStore', () => {
         buildInvestigationAskedFlagId('case-investigation-store', 'forensic.missing-proof')
       )
     ).toBeUndefined()
+  })
+
+  it('sets infiltration weekly probe override only on eligible in-progress cases', () => {
+    const game = createStartingState()
+    game.cases['case-infiltration-store'] = {
+      ...createStarterCase({ id: 'case-infiltration-store', templateId: 'ops-004' }),
+      status: 'in_progress',
+      hiddenState: 'hidden',
+      tags: ['infiltration'],
+      infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    }
+
+    useGameStore.setState({ game })
+
+    useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', 'probe_route')
+
+    expect(
+      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+    ).toBe('probe_route')
+
+    useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', null)
+
+    expect(
+      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+    ).toBeUndefined()
+
+    useGameStore.getState().setInfiltrationWeeklyProbeAction('missing-case', 'cleanup')
+
+    expect(useGameStore.getState().game.cases['missing-case']).toBeUndefined()
   })
 
   it('assigns and unassigns teams through the store actions', () => {

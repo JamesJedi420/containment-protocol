@@ -229,6 +229,10 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'staff.coping.applied': 'Coping Applied',
   'staff.coping.misconduct': 'Coping Misconduct',
   'staff.side_work.resolved': 'Side Work Resolved',
+  'infiltration.awareness_complication': 'Infiltration Complication',
+  'infiltration.escalation_exposed': 'Cover Exposed',
+  'infiltration.escalation_violent': 'Violent Escalation',
+  'infiltration.cover_strain': 'Cover Strain',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -280,6 +284,10 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'staff.coping.applied': 'personnel',
   'staff.coping.misconduct': 'personnel',
   'staff.side_work.resolved': 'personnel',
+  'infiltration.awareness_complication': 'incident_response',
+  'infiltration.escalation_exposed': 'incident_response',
+  'infiltration.escalation_violent': 'incident_response',
+  'infiltration.cover_strain': 'incident_response',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
@@ -1059,6 +1067,37 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `side work ${event.payload.optionId} ${event.payload.outcome} agent ${event.payload.agentId}`.toLowerCase(),
       }
+
+    case 'infiltration.awareness_complication':
+    case 'infiltration.escalation_exposed':
+    case 'infiltration.escalation_violent':
+    case 'infiltration.cover_strain': {
+      const awarenessSuffix =
+        typeof event.payload.infiltrationAwareness === 'number'
+          ? ` / Awareness ${Math.round(event.payload.infiltrationAwareness * 100)}%`
+          : ''
+      const stageSuffix = event.payload.infiltrationStage
+        ? ` / Stage ${event.payload.infiltrationStage}`
+        : ''
+      const tone =
+        event.type === 'infiltration.escalation_violent'
+          ? 'danger'
+          : 'warning'
+
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.caseTitle}: ${typeLabel}`,
+        detail: `Week ${event.payload.week}${awarenessSuffix}${stageSuffix} / ${event.payload.summary}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone,
+        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        searchText:
+          `${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.summary} infiltration`.toLowerCase(),
+      }
+    }
   }
 
   throw new Error(`Unhandled event feed type: ${(event as OperationEvent).type}`)

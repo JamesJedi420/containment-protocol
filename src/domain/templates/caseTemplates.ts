@@ -319,7 +319,14 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['vampire', 'nest', 'night', 'tier-1'],
-    preferredTags: ['silver', 'holy'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:combat-vampire-night-stalk',
+        mode: 'hidden',
+        when: { anyTag: ['vampire', 'night'] },
+      },
+    ],
+    preferredTags: ['silver', 'holy', 'stealth', 'covert'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -351,7 +358,14 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 1,
     tags: ['haunting', 'cognitive', 'research', 'tier-1'],
-    preferredTags: ['scholar', 'tech', 'medium'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:puzzle-archive-basement-infiltration',
+        mode: 'hidden',
+        when: { anyTag: ['haunting', 'research'] },
+      },
+    ],
+    preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -383,9 +397,16 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 3,
     deadlineWeeks: 2,
     tags: ['cult', 'ritual', 'clock', 'tier-1'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:mixed-eclipse-riverfront-approach',
+        mode: 'hidden',
+        when: { allTags: ['cult', 'ritual'] },
+      },
+    ],
     requiredTags: ['occultist'],
     requiredRoles: ['containment', 'technical'],
-    preferredTags: ['holy', 'tech', 'negotiator'],
+    preferredTags: ['holy', 'tech', 'negotiator', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -419,7 +440,14 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 1,
     deadlineWeeks: 2,
     tags: ['investigation', 'tier-1'],
-    preferredTags: ['tech', 'investigator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-missing-grid-stakeout',
+        mode: 'hidden',
+        when: { anyTag: ['investigation'] },
+      },
+    ],
+    preferredTags: ['tech', 'investigator', 'stealth', 'covert'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 0, max: 1 },
@@ -474,7 +502,14 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 1,
     deadlineWeeks: 1,
     tags: ['cognitive', 'tier-1'],
-    preferredTags: ['negotiator', 'investigator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-false-memory-screen',
+        mode: 'hidden',
+        when: { anyTag: ['cognitive'] },
+      },
+    ],
+    preferredTags: ['negotiator', 'investigator', 'disguise', 'covert'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 0, max: 1 },
@@ -500,8 +535,15 @@ const baseCaseTemplates: CaseTemplate[] = [
     weights: { combat: 0.2, investigation: 0.4, utility: 0.3, social: 0.1 },
     durationWeeks: 2,
     deadlineWeeks: 1,
-    tags: ['raid', 'tier-1'],
-    preferredTags: ['tech', 'medium'],
+    tags: ['raid', 'cognitive', 'tier-1'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-campus-covert-entry',
+        mode: 'hidden',
+        when: { allTags: ['raid', 'cognitive'] },
+      },
+    ],
+    preferredTags: ['tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -529,8 +571,15 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 1,
     tags: ['raid', 'infrastructure', 'tier-1'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-blackout-chaos-cover',
+        mode: 'hidden',
+        when: { anyTag: ['infrastructure'] },
+      },
+    ],
     requiredTags: ['tech'],
-    preferredTags: ['occultist'],
+    preferredTags: ['occultist', 'covert', 'infiltration'],
     raid: { minTeams: 3, maxTeams: 5 },
     onFail: {
       stageDelta: 1,
@@ -558,7 +607,14 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 1,
     tags: ['cult', 'tier-1'],
-    preferredTags: ['negotiator', 'tech'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-abduction-witness-recovery',
+        mode: 'hidden',
+        when: { anyTag: ['cult'] },
+      },
+    ],
+    preferredTags: ['negotiator', 'tech', 'infiltration', 'disguise'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 2 },

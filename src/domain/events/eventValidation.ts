@@ -584,6 +584,19 @@ const infiltrationProbeEventSchema = z
   })
   .strict()
 
+const concealmentActivatedEventSchema = z
+  .object({
+    week: weekSchema,
+    caseId: idSchema,
+    caseTitle: z.string(),
+    mode: z.enum(['hidden', 'displaced']),
+    reason: z.string(),
+    summary: z.string(),
+    detectionConfidence: z.number().optional(),
+    displacementTarget: idSchema.nullable().optional(),
+  })
+  .strict()
+
 const systemAcademyUpgradedSchema = z
   .object({
     week: weekSchema,
@@ -659,6 +672,7 @@ export const operationEventPayloadSchemas = {
   'infiltration.escalation_exposed': infiltrationProbeEventSchema,
   'infiltration.escalation_violent': infiltrationProbeEventSchema,
   'infiltration.cover_strain': infiltrationProbeEventSchema,
+  'concealment.activated': concealmentActivatedEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
   'case.aggregate_battle': z.object({}).passthrough(),

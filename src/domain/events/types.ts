@@ -614,6 +614,16 @@ export interface OperationEventPayloadMap {
     infiltrationProbeProgress?: number
     infiltrationStage?: 'probing' | 'exposed' | 'violent'
   }
+  'concealment.activated': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    mode: 'hidden' | 'displaced'
+    reason: string
+    summary: string
+    detectionConfidence?: number
+    displacementTarget?: Id | null
+  }
   'system.academy_upgraded': {
     week: number
     tierBefore: number
@@ -694,6 +704,7 @@ export interface OperationEventTypeToSourceSystemMap {
   'infiltration.escalation_exposed': 'system'
   'infiltration.escalation_violent': 'system'
   'infiltration.cover_strain': 'system'
+  'concealment.activated': 'system'
   'system.academy_upgraded': 'system'
   'staff.coping.applied': 'agent'
   'staff.coping.misconduct': 'agent'
@@ -749,6 +760,7 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'infiltration.escalation_exposed': 'system',
   'infiltration.escalation_violent': 'system',
   'infiltration.cover_strain': 'system',
+  'concealment.activated': 'system',
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',
   'staff.coping.misconduct': 'agent',

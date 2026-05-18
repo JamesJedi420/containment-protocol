@@ -1473,6 +1473,7 @@ export type ReportNoteType =
   | 'infiltration.escalation_exposed'
   | 'infiltration.escalation_violent'
   | 'infiltration.cover_strain'
+  | 'concealment.activated'
   | 'support.restored'
   | 'hub.opportunity'
   | 'hub.rumor'

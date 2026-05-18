@@ -450,6 +450,20 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         },
       }
 
+    case 'concealment.activated':
+      return {
+        content: `${draft.payload.caseTitle}: ${draft.payload.summary}`,
+        type: 'concealment.activated',
+        metadata: {
+          caseId: draft.payload.caseId,
+          caseTitle: draft.payload.caseTitle,
+          mode: draft.payload.mode,
+          reason: draft.payload.reason,
+          summary: draft.payload.summary,
+          displacementTarget: draft.payload.displacementTarget ?? null,
+        },
+      }
+
     case 'system.equipment_recovered':
       return {
         content: draft.payload.content,

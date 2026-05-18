@@ -54,6 +54,30 @@ describe('advanceWeek concealment activation integration', () => {
     expect(revealedResult?.hiddenState).toBe('revealed')
     expect(displacedResult?.hiddenState).toBe('displaced')
     expect(displacedResult?.displacementTarget).toBe('safehouse-9')
+
+    const activationEvents = nextState.events.filter((event) => event.type === 'concealment.activated')
+    expect(activationEvents).toHaveLength(3)
+    expect(
+      activationEvents.map((event) => (event.payload as { caseId: string }).caseId).sort()
+    ).toEqual(['case-001', 'case-002', 'case-003'])
+
+    const hiddenEvent = activationEvents.find(
+      (event) => (event.payload as { caseId: string }).caseId === 'case-001'
+    )
+    expect(hiddenEvent?.payload).toMatchObject({
+      mode: 'hidden',
+      reason: 'global-flag:conceal.case.case-001',
+    })
+
+    const displacedEvent = activationEvents.find(
+      (event) => (event.payload as { caseId: string }).caseId === 'case-003'
+    )
+    expect(displacedEvent?.payload).toMatchObject({
+      mode: 'displaced',
+      displacementTarget: 'safehouse-9',
+    })
+
+    expect(lastReport.notes.some((note) => note.type === 'concealment.activated')).toBe(true)
   })
 
   it('activates hidden presence from authored concealment triggers during advanceWeek', () => {
@@ -92,5 +116,35 @@ describe('advanceWeek concealment activation integration', () => {
 
     expect(missionResult?.hiddenState).toBe('hidden')
     expect(nextState.cases['case-001'].hiddenState).toBe('hidden')
+
+    const activationEvent = nextState.events.find((event) => event.type === 'concealment.activated')
+    expect(activationEvent?.payload).toMatchObject({
+      caseId: 'case-001',
+      mode: 'hidden',
+      reason: 'authored-trigger:trigger:weekly-cover',
+    })
+    expect(lastReport.notes.some((note) => note.type === 'concealment.activated')).toBe(true)
+  })
+
+  it('does not emit concealment activation when the case is already concealed', () => {
+    const state = createStartingState()
+    const [teamA] = Object.keys(state.teams)
+
+    state.reports = []
+    state.agency!.supportAvailable = 3
+    state.globalFlags = { 'conceal.case.case-001': true }
+
+    const currentCase = state.cases['case-001']
+    currentCase.mode = 'deterministic'
+    currentCase.status = 'in_progress'
+    currentCase.assignedTeamIds = [teamA]
+    currentCase.weeksRemaining = 1
+    currentCase.hiddenState = 'hidden'
+    currentCase.requiredTags = []
+    currentCase.preferredTags = []
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.events.some((event) => event.type === 'concealment.activated')).toBe(false)
   })
 })

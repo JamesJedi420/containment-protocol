@@ -15,7 +15,7 @@ From `README.md` **Current design notes**:
 
 ## Queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation** — Runtime + authored triggers shipped (SPE-2107 / SPE-2113); **next slice:** concealment case prep UI (`planning/concealment-case-prep-slice.md`) so players can preview activation and set `conceal.case.{id}` before weekly resolution.
+1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, and activation event feed shipped (SPE-2107 / SPE-2113); **next:** content batches for templates without `concealmentTriggers`, or infiltration follow-through (backlog #2).
 2. **Infiltration and access follow-through** — Expand follow-on infiltration and access work that consumes hidden-state and behavior-validation surfaces (keeps one rules substrate).
 3. **Route and week navigation** — Extend route-level drill-down and multi-week navigation coverage (legibility and QA for long runs).
 4. **Core UX specs** — Finish or refresh core UX specs so surfaces match canonical domain outputs (`planning/roadmap.md` §15).

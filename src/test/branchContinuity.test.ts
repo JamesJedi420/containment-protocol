@@ -279,6 +279,38 @@ describe('branchContinuity', () => {
     expect(seedWarnings[0]?.id).toContain('seed:branch.seed.doorCode')
   })
 
+  it('collapses duplicate normalized seed keys with last value winning in the validator', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:dup-key',
+        requires: {
+          requiredSeedValues: {
+            'branch.seed.alpha': 1,
+            ' branch.seed.alpha ': 2,
+          },
+        },
+      },
+    ])
+
+    expect(report.warnings).toHaveLength(1)
+    expect(findWarning(report, 'node:dup-key', 'missing_seed_prerequisite')).toMatchObject({
+      summary: expect.stringContaining('branch.seed.alpha=2'),
+    })
+  })
+
+  it('ignores non-integer numeric seed requirements in direct validator input', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:non-integer',
+        requires: {
+          requiredSeedValues: { 'branch.seed.alpha': 1.9 },
+        },
+      },
+    ])
+
+    expect(report.warnings).toHaveLength(0)
+  })
+
   it('orders multiple missing seed warnings deterministically by seed key', () => {
     const report = validateNodes([
       {

@@ -480,6 +480,20 @@ describe('branchContinuityAuthoring', () => {
     expect(report.validation.warnings).toHaveLength(0)
   })
 
+  it('drops non-integer numeric seed requirements from the adapter', () => {
+    const authored = [
+      {
+        id: 'node:float-seed',
+        continuity: {
+          requires: { requiredSeedValues: { 'branch.seed.alpha': 1.9 } },
+        },
+      },
+    ] as AuthoredBranchContinuityNode[]
+
+    const [node] = buildBranchContinuityNodesFromAuthoredGraph(authored)
+    expect(node.requires).toBeUndefined()
+  })
+
   it('keeps the last trimmed duplicate key when authored requiredSeedValues collide', () => {
     const authored = [
       {

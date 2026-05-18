@@ -16,7 +16,7 @@ export interface BranchSimulationTruth {
 export interface BranchPathFacts {
   pathId: string
   acquiredItemIds: readonly string[]
-  seedValues: Readonly<Record<string, string | number | boolean>>
+  seedValues: Readonly<Record<string, BranchSeedValue>>
   roomOfOriginId?: string
   companionStatusById: Readonly<Record<string, BranchCompanionStatus>>
   injuryStatusBySubjectId: Readonly<Record<string, BranchInjuryStatus>>
@@ -214,28 +214,55 @@ function hasPriorChoice(pathFacts: BranchPathFacts, choiceId: string) {
   return pathFacts.priorChoiceIds.includes(choiceId)
 }
 
-function isBranchSeedValue(value: unknown): value is BranchSeedValue {
+export function isBranchSeedNumber(value: number): boolean {
+  return Number.isFinite(value) && Number.isInteger(value)
+}
+
+export function isBranchSeedValue(value: unknown): value is BranchSeedValue {
   return (
     typeof value === 'string' ||
     typeof value === 'boolean' ||
-    (typeof value === 'number' && Number.isFinite(value))
+    (typeof value === 'number' && isBranchSeedNumber(value))
   )
 }
 
+/** Coerces JSON/runtime values into a comparable seed value; non-integer numbers are rejected. */
+export function normalizeBranchSeedValue(value: unknown): BranchSeedValue | undefined {
+  if (typeof value === 'string' || typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number' && isBranchSeedNumber(value)) {
+    return value
+  }
+
+  return undefined
+}
+
 function seedValuesMatch(actual: BranchSeedValue | undefined, required: BranchSeedValue) {
-  if (actual === undefined) {
-    return false
+  return actual !== undefined && actual === required
+}
+
+function buildRequiredSeedEntries(
+  requiredSeedValues: Readonly<Record<string, BranchSeedValue>> | undefined
+): ReadonlyArray<readonly [string, BranchSeedValue]> {
+  const merged: Record<string, BranchSeedValue> = {}
+
+  for (const [rawKey, rawValue] of Object.entries(requiredSeedValues ?? {})) {
+    const seedKey = normalizeString(rawKey)
+    if (seedKey.length === 0) {
+      continue
+    }
+
+    const normalizedValue = normalizeBranchSeedValue(rawValue)
+    if (normalizedValue === undefined) {
+      continue
+    }
+
+    merged[seedKey] = normalizedValue
   }
 
-  if (typeof actual !== typeof required) {
-    return false
-  }
-
-  if (typeof required === 'number') {
-    return Math.trunc(actual as number) === Math.trunc(required)
-  }
-
-  return actual === required
+  return Object.entries(merged).sort(([left], [right]) => left.localeCompare(right))
 }
 
 function hasSeedKey(pathFacts: BranchPathFacts, seedKey: string) {
@@ -469,16 +496,7 @@ function validateRequires(
     }
   }
 
-  const requiredSeedEntries = Object.entries(requires.requiredSeedValues ?? {})
-    .map(([seedKey, seedValue]) => [normalizeString(seedKey), seedValue] as const)
-    .filter(([seedKey]) => seedKey.length > 0)
-    .sort(([left], [right]) => left.localeCompare(right))
-
-  for (const [seedKey, requiredValue] of requiredSeedEntries) {
-    if (!isBranchSeedValue(requiredValue)) {
-      continue
-    }
-
+  for (const [seedKey, requiredValue] of buildRequiredSeedEntries(requires.requiredSeedValues)) {
     const actualValue = pathFacts.seedValues[seedKey]
     if (seedValuesMatch(actualValue, requiredValue)) {
       continue
@@ -503,18 +521,21 @@ function validateRequires(
   }
 
   const anyRequiredSeedKeys = normalizeStringList(requires.anyRequiredSeedKeys)
+  const sortedAnyRequiredSeedKeys = [...anyRequiredSeedKeys].sort((left, right) =>
+    left.localeCompare(right)
+  )
   if (
-    anyRequiredSeedKeys.length > 0 &&
-    !anyRequiredSeedKeys.some((seedKey) => hasSeedKey(pathFacts, seedKey))
+    sortedAnyRequiredSeedKeys.length > 0 &&
+    !sortedAnyRequiredSeedKeys.some((seedKey) => hasSeedKey(pathFacts, seedKey))
   ) {
     pushWarning(warnings, {
       pathId,
       nodeId,
       warningClass: 'missing_seed_prerequisite',
       audience: 'simulation',
-      summary: `Node requires at least one seed key among ${anyRequiredSeedKeys.join(', ')}, but the path has none.`,
-      relatedIds: anyRequiredSeedKeys,
-      detailKey: `any-seed:${anyRequiredSeedKeys.join('|')}`,
+      summary: `Node requires at least one seed key among ${sortedAnyRequiredSeedKeys.join(', ')}, but the path has none.`,
+      relatedIds: sortedAnyRequiredSeedKeys,
+      detailKey: `any-seed:${sortedAnyRequiredSeedKeys.join('|')}`,
     })
   }
 }

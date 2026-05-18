@@ -17,11 +17,12 @@
  * never read on invalid rows.
  */
 
-import type {
-  BranchContinuityNode,
-  BranchNodeRequirements,
-  BranchPlayerKnowledgeAssumption,
-  BranchSeedValue,
+import {
+  normalizeBranchSeedValue,
+  type BranchContinuityNode,
+  type BranchNodeRequirements,
+  type BranchPlayerKnowledgeAssumption,
+  type BranchSeedValue,
 } from './branchContinuity'
 
 export interface AuthoredBranchContinuityNode {
@@ -78,14 +79,6 @@ function copyRecordIfNonEmpty(value: unknown): Record<string, unknown> | undefin
   return { ...record }
 }
 
-function isBranchSeedValue(value: unknown): value is BranchSeedValue {
-  return (
-    typeof value === 'string' ||
-    typeof value === 'boolean' ||
-    (typeof value === 'number' && Number.isFinite(value))
-  )
-}
-
 function copyRequiredSeedValues(
   value: unknown
 ): Readonly<Record<string, BranchSeedValue>> | undefined {
@@ -95,12 +88,16 @@ function copyRequiredSeedValues(
 
   const out: Record<string, BranchSeedValue> = {}
   for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
-    if (typeof rawKey !== 'string' || rawKey.trim().length === 0 || !isBranchSeedValue(rawValue)) {
+    if (typeof rawKey !== 'string' || rawKey.trim().length === 0) {
       continue
     }
 
-    out[rawKey.trim()] =
-      typeof rawValue === 'number' ? Math.trunc(rawValue) : rawValue
+    const normalizedValue = normalizeBranchSeedValue(rawValue)
+    if (normalizedValue === undefined) {
+      continue
+    }
+
+    out[rawKey.trim()] = normalizedValue
   }
 
   return Object.keys(out).length > 0 ? out : undefined

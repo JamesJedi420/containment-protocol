@@ -111,8 +111,17 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['archive', 'records'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
     requiredTags: ['investigator'],
-    preferredTags: ['tech', 'forensics', 'stealth'],
+    preferredTags: ['tech', 'forensics', 'stealth', 'covert', 'infiltration'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

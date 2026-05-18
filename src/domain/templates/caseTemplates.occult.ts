@@ -76,8 +76,17 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['mirror', 'possession'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.4,
+    },
     requiredTags: ['holy'],
-    preferredTags: ['investigator', 'tech', 'ritual-kit', 'stealth'],
+    preferredTags: ['investigator', 'tech', 'ritual-kit', 'stealth', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,

@@ -166,6 +166,10 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['parade', 'social'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'investigator', 'disguise', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },

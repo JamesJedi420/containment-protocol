@@ -3,11 +3,14 @@ import { createStarterCase } from '../domain/templates/startingCases'
 import {
   AWARENESS_COMPLICATION_THRESHOLD,
   applyWeeklyInfiltrationProbeTick,
+  copyInfiltrationProbePlan,
   evaluateInfiltrationProbe,
   getInfiltrationStagePressure,
   isInfiltrationProbeEligible,
   readInfiltrationProbeState,
+  resolveWeeklyInfiltrationProbeAction,
 } from '../domain/infiltrationProbe'
+import { caseTemplateMap } from '../domain/templates/caseTemplates'
 import type { CaseInstance } from '../domain/models'
 
 function createInfiltrationCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
@@ -98,6 +101,72 @@ describe('infiltrationProbe', () => {
         AWARENESS_COMPLICATION_THRESHOLD - 0.2
       )
     ).toBe(0.5)
+  })
+
+  it('resolves weekly action from authored plan before tag heuristics', () => {
+    const ops004Plan = copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan)
+    const ops001Plan = copyInfiltrationProbePlan(caseTemplateMap['ops-001'].infiltrationProbePlan)
+
+    expect(
+      resolveWeeklyInfiltrationProbeAction(
+        createInfiltrationCase({
+          infiltrationProbePlan: ops004Plan,
+          infiltrationAwareness: 0.56,
+        })
+      )
+    ).toBe('cleanup')
+
+    expect(
+      resolveWeeklyInfiltrationProbeAction(
+        createInfiltrationCase({
+          infiltrationProbePlan: ops004Plan,
+          infiltrationAwareness: 0.4,
+        })
+      )
+    ).toBe('probe_access')
+
+    expect(
+      resolveWeeklyInfiltrationProbeAction(
+        createInfiltrationCase({
+          infiltrationProbePlan: ops001Plan,
+          infiltrationProbeProgress: 0.6,
+        })
+      )
+    ).toBe('probe_route')
+
+    expect(
+      resolveWeeklyInfiltrationProbeAction(
+        createInfiltrationCase({
+          infiltrationProbePlan: ops001Plan,
+          infiltrationProbeProgress: 0.2,
+        })
+      )
+    ).toBe('probe_access')
+  })
+
+  it('selects probe_route via tag heuristics when no plan is present', () => {
+    expect(
+      resolveWeeklyInfiltrationProbeAction(
+        createInfiltrationCase({
+          infiltrationProbePlan: undefined,
+          tags: ['infiltration', 'cyber'],
+        })
+      )
+    ).toBe('probe_route')
+  })
+
+  it('applies resolved weekly action when action override is omitted', () => {
+    const weekly = applyWeeklyInfiltrationProbeTick(
+      createInfiltrationCase({
+        infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+        infiltrationAwareness: 0.56,
+        infiltrationProbeProgress: 0.3,
+      }),
+      2
+    )
+
+    expect(weekly.changed).toBe(true)
+    expect(weekly.case.infiltrationAwareness).toBeLessThan(0.56)
   })
 
   it('merges violent escalation into case counter-detection fields', () => {

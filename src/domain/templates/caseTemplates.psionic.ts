@@ -275,6 +275,9 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['market', 'compulsion'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'analyst', 'infiltration', 'disguise'],
     pressureValue: 9,

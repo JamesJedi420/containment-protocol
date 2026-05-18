@@ -41,6 +41,25 @@ describe('infiltrationCover', () => {
     expect(posture.events.some((event) => event.kind === 'cover_strain')).toBe(true)
   })
 
+  it('joins all strain reasons when crossing the cover strain band', () => {
+    const posture = evaluateWeeklyInfiltrationCoverPosture(
+      createCoverCase({
+        tags: ['infiltration', 'covert', 'media', 'public', 'witness', 'interview'],
+        infiltrationAwareness: 0.28,
+        infiltrationCoverProfile: {
+          claimedRole: 'uniform_guard',
+          documentTier: 0,
+          doctrineBand: 0.2,
+        },
+      })
+    )
+
+    const coverStrain = posture.events.find((event) => event.kind === 'cover_strain')
+    expect(coverStrain?.summary).toContain('claimed uniform_guard clashes with site context')
+    expect(coverStrain?.summary).toContain('paperwork cannot survive authority scrutiny')
+    expect(coverStrain?.summary).toContain('cover doctrine slips under procedural questioning')
+  })
+
   it('applies posture after weekly probe tick', () => {
     const weekly = applyWeeklyInfiltrationProbeTick(createCoverCase(), 3)
 

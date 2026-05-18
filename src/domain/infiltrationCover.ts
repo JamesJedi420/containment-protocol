@@ -199,14 +199,12 @@ export function evaluateWeeklyInfiltrationCoverPosture(
   const events: InfiltrationThresholdEvent[] = []
   const strainSummary =
     strainReasons.join('; ') ||
-    'Weekly cover posture review flagged visible mismatch between role and site expectations.'
+    'Cover posture strain accumulated; observers may begin treating the infiltrator as out of role.'
 
   if (priorAwareness < COVER_STRAIN_BAND && nextAwareness >= COVER_STRAIN_BAND) {
     events.push({
       kind: 'cover_strain',
-      summary:
-        strainReasons[0] ??
-        'Cover posture strain accumulated; observers may begin treating the infiltrator as out of role.',
+      summary: strainSummary,
     })
   } else if (
     effectiveDelta >= ROUTE_VIOLATION_AWARENESS &&

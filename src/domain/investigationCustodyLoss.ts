@@ -139,6 +139,43 @@ export function countInvestigationCustodyLossRefs(state: GameState, caseId: stri
   return listInvestigationCustodyLossMarkers(state, caseId).length
 }
 
+/**
+ * Project forensic custody burden after leave-behind refs would be applied at resolution.
+ * Mirrors apply dedupe: skips empty refs, colliding flag suffixes, and existing markers.
+ */
+export function projectInvestigationCustodyLossBurdenAfterRefs(
+  state: GameState,
+  caseId: string,
+  custodyLossRefs: readonly string[]
+): number {
+  const normalizedCaseId = sanitizeCaseId(caseId)
+  if (normalizedCaseId.length === 0) {
+    return 0
+  }
+
+  const appliedFlagSuffixes = new Set(
+    listInvestigationCustodyLossMarkers(state, normalizedCaseId).map((marker) =>
+      normalizeInvestigationCustodyLossRefForFlag(marker.ref)
+    )
+  )
+
+  for (const ref of custodyLossRefs) {
+    const normalizedRef = sanitizeCustodyRef(ref)
+    if (!normalizedRef) {
+      continue
+    }
+
+    const flagSuffix = normalizeInvestigationCustodyLossRefForFlag(normalizedRef)
+    if (!flagSuffix || appliedFlagSuffixes.has(flagSuffix)) {
+      continue
+    }
+
+    appliedFlagSuffixes.add(flagSuffix)
+  }
+
+  return appliedFlagSuffixes.size
+}
+
 export function applyStealthLeaveBehindInvestigationCustodyLoss(
   input: ApplyStealthLeaveBehindInvestigationCustodyLossInput
 ): ApplyStealthLeaveBehindInvestigationCustodyLossResult {

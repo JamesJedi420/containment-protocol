@@ -6,6 +6,7 @@ import {
   countInvestigationCustodyLossRefs,
   listInvestigationCustodyLossMarkers,
   normalizeInvestigationCustodyLossRefForFlag,
+  projectInvestigationCustodyLossBurdenAfterRefs,
   readInvestigationCustodyLossMarker,
 } from '../domain/investigationCustodyLoss'
 import { askInvestigationQuestion, grantInvestigationQuestionBudget } from '../domain/investigationEconomy'
@@ -70,6 +71,37 @@ describe('investigationCustodyLoss', () => {
 
     expect(second.appliedRefs).toEqual([])
     expect(countInvestigationCustodyLossRefs(second.state, 'case-001')).toBe(1)
+  })
+
+  it('projects forensic custody burden after leave-behind refs with apply-equivalent dedupe', () => {
+    const state = createStartingState()
+
+    expect(
+      projectInvestigationCustodyLossBurdenAfterRefs(state, 'case-001', [
+        'custody:field-packet',
+        'custody:chain-seal',
+      ])
+    ).toBe(2)
+
+    const withMarker = applyStealthLeaveBehindInvestigationCustodyLoss({
+      state,
+      caseId: 'case-001',
+      leaveBehindId: 'leave-behind:burn-tool',
+      leaveBehindKind: 'burn_tool',
+      leaveBehindLabel: 'Burn field tool',
+      custodyLossRefs: ['custody:tool-serial'],
+      week: 1,
+    }).state
+
+    expect(
+      projectInvestigationCustodyLossBurdenAfterRefs(withMarker, 'case-001', [
+        'custody:tool-serial',
+        'custody:field-packet',
+      ])
+    ).toBe(2)
+    expect(
+      projectInvestigationCustodyLossBurdenAfterRefs(withMarker, 'case-001', ['!!!', 'custody:field-packet'])
+    ).toBe(2)
   })
 
   it('skips symbolic-only custody refs that do not yield a flag suffix', () => {

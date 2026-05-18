@@ -30,6 +30,23 @@ export function StealthLeaveBehindSelectionPanel({ caseData }: { caseData: CaseI
         pressure; custody refs strain forensic investigation budget after resolution.
       </p>
 
+      <div
+        className="rounded border border-sky-400/25 bg-sky-500/6 px-3 py-2 text-sm"
+        aria-label="Forensic investigation budget"
+      >
+        <p className="text-xs uppercase tracking-wide opacity-60">Forensic investigation budget</p>
+        <p className="mt-1">
+          <span className="opacity-60">Remaining:</span>{' '}
+          <span className="font-medium">{view.forensicBudget.remaining}</span>
+          <span className="opacity-50">
+            {' '}
+            (granted {view.forensicBudget.granted}, spent {view.forensicBudget.spent}, custody
+            burden {view.forensicBudget.custodyLossBurden}
+            {view.forensicBudget.markerCount === 1 ? ' marker' : ' markers'})
+          </span>
+        </p>
+      </div>
+
       <ul className="space-y-2">
         {view.options.map((option) => (
           <li
@@ -81,6 +98,10 @@ function StealthLeaveBehindOptionBody({ option }: { option: StealthLeaveBehindOp
       <p className="text-xs opacity-55">
         Discovery risk {Math.round(option.discoveryRisk * 100)}% / Mission malus +
         {option.scoreAdjustmentPreview.toFixed(1)} / Custody refs {option.custodyLossRefCount}
+      </p>
+      <p className="text-xs opacity-55">
+        If resolved with this tradeoff: forensic custody burden {option.projectedCustodyLossBurden}{' '}
+        / {option.projectedForensicRemaining} forensic questions remaining
       </p>
     </div>
   )

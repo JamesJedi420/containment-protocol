@@ -154,6 +154,7 @@ it('shows stealth leave-behind tradeoff selection for eligible in-progress hidde
   const panel = screen.getByRole('region', { name: /stealth leave-behind tradeoff/i })
 
   expect(within(panel).getByRole('heading', { name: /stealth leave-behind/i })).toBeInTheDocument()
+  expect(within(panel).getByLabelText(/forensic investigation budget/i)).toBeInTheDocument()
   expect(within(panel).getByText(/leave forensic trace/i)).toBeInTheDocument()
   expect(within(panel).getByRole('button', { name: /selected/i })).toBeInTheDocument()
 

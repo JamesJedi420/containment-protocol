@@ -839,6 +839,12 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
       )
     }
 
+    if (template.infiltrationProbePlan !== undefined && !template.stealthLeaveBehindId?.trim()) {
+      errors.push(
+        `Template ${template.templateId} declares infiltrationProbePlan without stealthLeaveBehindId.`
+      )
+    }
+
     if (template.stealthLeaveBehindId !== undefined) {
       const leaveBehindId = template.stealthLeaveBehindId.trim()
       if (!leaveBehindId) {

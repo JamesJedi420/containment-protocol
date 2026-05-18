@@ -28,6 +28,17 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 
 All scripts are documented in `README.md` under the **Scripts** section and in `package.json`.
 
+### Linear (always update)
+
+For every implementation task tied to an SPE or backlog item:
+
+1. **Before coding** — create or find the Linear issue (child slice under parent when the parent is large); set **In Progress**.
+2. **When opening a PR** — link the **slice issue** in the PR body (not only the parent epic).
+3. **On merge** — set the slice issue **Done**; leave the parent **Done** only if the full parent scope shipped, otherwise return parent to **Backlog**.
+4. **After merge** — add a short Linear comment with PR URL and what shipped.
+
+Do not skip Linear because the PR has a linkback bot comment.
+
 ### Documentation hygiene
 
 - **Near-term priorities:** `planning/backlog.md` (single queue; update there instead of duplicating long tactical lists).

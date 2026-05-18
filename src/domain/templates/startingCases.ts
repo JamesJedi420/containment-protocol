@@ -103,6 +103,10 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
       spawnTemplateIds: [...onUnresolved.spawnTemplateIds],
     },
     raid: template.raid ? { ...template.raid } : undefined,
+    concealmentTriggers:
+      template.concealmentTriggers !== undefined && template.concealmentTriggers.length > 0
+        ? [...template.concealmentTriggers]
+        : undefined,
   }
 
   return applySiteGenerationToCase({

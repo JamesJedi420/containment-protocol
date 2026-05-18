@@ -11,8 +11,9 @@ function createActivationCase(overrides: Partial<CaseInstance> = {}): CaseInstan
   return {
     ...createStarterCase({
       id: 'case-conceal',
-      templateId: 'ops-004',
+      templateId: 'chem-001',
     }),
+    concealmentTriggers: undefined,
     mode: 'threshold',
     assignedTeamIds: [],
     requiredTags: [],

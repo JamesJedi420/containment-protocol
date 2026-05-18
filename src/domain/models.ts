@@ -1324,6 +1324,8 @@ export interface CaseInstance {
   /** SPE-521 slice 1: accumulated site awareness while infiltrating (0–1). */
   infiltrationAwareness?: number
   infiltrationStage?: 'probing' | 'exposed' | 'violent'
+  /** SPE-2113: authored concealment activation rules evaluated by `resolveConcealmentActivation`. */
+  concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
 
   onFail: SpawnRule
   onUnresolved: SpawnRule

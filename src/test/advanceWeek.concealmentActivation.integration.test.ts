@@ -55,4 +55,42 @@ describe('advanceWeek concealment activation integration', () => {
     expect(displacedResult?.hiddenState).toBe('displaced')
     expect(displacedResult?.displacementTarget).toBe('safehouse-9')
   })
+
+  it('activates hidden presence from authored concealment triggers during advanceWeek', () => {
+    const state = createStartingState()
+    const [teamA] = Object.keys(state.teams)
+
+    state.reports = []
+    state.globalFlags = { 'mission.covert-ready': true }
+
+    const authoredCase = state.cases['case-001']
+    authoredCase.status = 'open'
+    authoredCase.assignedTeamIds = []
+    authoredCase.requiredTags = []
+    authoredCase.preferredTags = []
+    authoredCase.hiddenState = undefined
+    authoredCase.counterDetection = undefined
+    authoredCase.detectionConfidence = undefined
+    authoredCase.displacementTarget = undefined
+    authoredCase.tags = ['field']
+    authoredCase.concealmentTriggers = [
+      {
+        id: 'trigger:weekly-cover',
+        mode: 'hidden',
+        when: { globalFlag: 'mission.covert-ready', anyTag: ['field'] },
+      },
+    ]
+
+    authoredCase.mode = 'deterministic'
+    authoredCase.status = 'in_progress'
+    authoredCase.assignedTeamIds = [teamA]
+    authoredCase.weeksRemaining = 1
+
+    const nextState = advanceWeek(state)
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const missionResult = lastReport.caseSnapshots?.['case-001']?.missionResult
+
+    expect(missionResult?.hiddenState).toBe('hidden')
+    expect(nextState.cases['case-001'].hiddenState).toBe('hidden')
+  })
 })

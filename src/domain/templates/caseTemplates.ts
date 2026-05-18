@@ -1,4 +1,8 @@
 // cspell:words cataloguers cutovers exfiltration psionic
+import {
+  buildConcealmentActivationTriggersFromAuthored,
+  type AuthoredConcealmentActivationTrigger,
+} from '../hiddenStateActivationAuthoring'
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
 import { normalizeSpawnRule } from '../spawnRules'
 import { occultCaseTemplates } from './caseTemplates.occult'
@@ -589,9 +593,16 @@ function normalizeRequiredRoles(roles: TeamCoverageRole[] | undefined) {
   ]
 }
 
-function cloneTemplate(template: CaseTemplate): CaseTemplate {
+function cloneTemplate(
+  template: CaseTemplate & {
+    concealmentTriggers?: readonly AuthoredConcealmentActivationTrigger[]
+  }
+): CaseTemplate {
   const onFail = normalizeSpawnRule(template.onFail)
   const onUnresolved = normalizeSpawnRule(template.onUnresolved)
+  const concealmentTriggers = buildConcealmentActivationTriggersFromAuthored(
+    template.concealmentTriggers ?? []
+  )
 
   return {
     ...template,
@@ -612,6 +623,8 @@ function cloneTemplate(template: CaseTemplate): CaseTemplate {
       spawnCount: { ...onUnresolved.spawnCount },
       spawnTemplateIds: normalizeTagList(onUnresolved.spawnTemplateIds),
     },
+    concealmentTriggers:
+      concealmentTriggers.length > 0 ? concealmentTriggers : undefined,
   }
 }
 
@@ -661,6 +674,28 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
 
     if ((template.requiredRoles ?? []).some((role) => !TEAM_COVERAGE_ROLES.includes(role))) {
       errors.push(`Template ${template.templateId} has invalid required roles.`)
+    }
+
+    if (template.concealmentTriggers !== undefined) {
+      if (template.concealmentTriggers.length === 0) {
+        errors.push(`Template ${template.templateId} declares empty concealmentTriggers.`)
+      }
+
+      const triggerIds = new Set<string>()
+      for (const trigger of template.concealmentTriggers) {
+        if (triggerIds.has(trigger.id)) {
+          errors.push(
+            `Template ${template.templateId} has duplicate concealment trigger id: ${trigger.id}`
+          )
+        }
+        triggerIds.add(trigger.id)
+
+        if (trigger.mode === 'displaced' && trigger.displacementTarget === undefined) {
+          errors.push(
+            `Template ${template.templateId} trigger ${trigger.id} is displaced without displacementTarget.`
+          )
+        }
+      }
     }
 
     const canConvertToRaid =

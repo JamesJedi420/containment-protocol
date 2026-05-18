@@ -1249,6 +1249,12 @@ export interface CaseTemplate {
 
   /** Only relevant when kind === "raid". */
   raid?: { minTeams: number; maxTeams: number }
+
+  /**
+   * SPE-2113: authored concealment activation rows (normalized in `buildCaseTemplateCatalog`).
+   * Copied onto spawned `CaseInstance` records for weekly `resolveConcealmentActivation`.
+   */
+  concealmentTriggers?: readonly import('./hiddenStateActivation').ConcealmentActivationTrigger[]
 }
 
 /** SPE-1701: deterministic deployment carry-in stamped at team→case assignment. */

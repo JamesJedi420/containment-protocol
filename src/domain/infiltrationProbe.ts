@@ -91,12 +91,13 @@ const ACTION_DELTAS: Record<
   cleanup: { probeProgress: 0.02, awareness: -0.15 },
 }
 
-function collectCaseTags(caseData: CaseInstance) {
-  return [...new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])]
+function collectCaseTags(caseData: CaseInstance): Set<string> {
+  return new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])
 }
 
 export function hasInfiltrationProbeTag(caseData: CaseInstance) {
-  return INFILTRATION_PROBE_TAGS.some((tag) => collectCaseTags(caseData).includes(tag))
+  const caseTags = collectCaseTags(caseData)
+  return INFILTRATION_PROBE_TAGS.some((tag) => caseTags.has(tag))
 }
 
 const ROUTE_PROBE_TAGS = ['logistics', 'relay', 'supply-chain', 'cyber', 'parade', 'market'] as const

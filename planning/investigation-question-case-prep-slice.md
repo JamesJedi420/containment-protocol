@@ -108,14 +108,14 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 ## Risks
 
 - **Double spend:** store must use domain result; do not decrement clocks locally
-- **Panel clutter:** three panels on infiltration cases — acceptable for slice; consolidate budget strip in follow-up
+- **Panel clutter:** addressed via `WeeklyCasePrepPanel` consolidation on case detail.
 - **SPE-626 Linear status:** domain AC largely met in repo; close parent or add child issue when UI ships
 
 ## Runner-up (next after this)
 
 1. ~~**Infiltration case prep panel**~~ — shipped; see `planning/infiltration-case-prep-slice.md`.
 2. **Concealment case prep panel** — `planning/concealment-case-prep-slice.md` (SPE-70 / SPE-2107 slice 3 UX; backlog #1 player-facing gap).
-3. **Covert ops prep consolidation** — merge forensic strip / collapse four prep panels on infiltration cases.
+3. ~~**Covert ops prep consolidation**~~ — shipped (`WeeklyCasePrepPanel` on case detail).
 4. ~~**SPE-1464**~~ — done in repo; branch continuity validator shipped.
 
 ## See also

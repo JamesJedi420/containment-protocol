@@ -7,7 +7,15 @@ import {
   type ConcealmentTriggerRowView,
 } from './concealmentCasePrepView'
 
-export function ConcealmentCasePrepPanel({ caseData }: { caseData: CaseInstance }) {
+import type { CasePrepPanelLayout } from './casePrepPanelLayout'
+
+export function ConcealmentCasePrepPanel({
+  caseData,
+  layout = 'standalone',
+}: {
+  caseData: CaseInstance
+  layout?: CasePrepPanelLayout
+}) {
   const game = useGameStore((state) => state.game)
   const setGlobalFlag = useGameStore((state) => state.setGlobalFlag)
   const view = buildConcealmentCasePrepView(caseData, game)
@@ -17,14 +25,11 @@ export function ConcealmentCasePrepPanel({ caseData }: { caseData: CaseInstance 
   }
 
   const concealFlagId = buildConcealCaseFlagId(caseData.id)
+  const embedded = layout === 'embedded'
 
-  return (
-    <article
-      className="panel panel-support space-y-4"
-      role="region"
-      aria-label="Concealment case prep"
-    >
-      <PanelHeader />
+  const content = (
+    <>
+      {embedded ? null : <PanelHeader />}
 
       <p className="text-sm opacity-60">
         Preview how concealment rules resolve before weekly resolution. Request covert posture to
@@ -75,6 +80,24 @@ export function ConcealmentCasePrepPanel({ caseData }: { caseData: CaseInstance 
           </p>
         </section>
       ) : null}
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="space-y-4" role="group" aria-label="Concealment case prep">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <article
+      className="panel panel-support space-y-4"
+      role="region"
+      aria-label="Concealment case prep"
+    >
+      {content}
     </article>
   )
 }

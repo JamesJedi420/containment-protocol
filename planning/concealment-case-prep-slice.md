@@ -7,7 +7,7 @@ After the infiltration + investigation + leave-behind prep stack on case detail,
 | Candidate | Why / why not |
 | --- | --- |
 | **Concealment case prep (this plan)** | Domain shipped (`hiddenStateActivation.ts`, weekly wire in `advanceWeek`); **zero** case-detail UI today; closes backlog #1 player-facing gap; same patterns as SPE-626 / SPE-521 / SPE-2247 prep slices. |
-| Case prep consolidation | Good polish after concealment panel exists (shared forensic strip, collapsible sections). |
+| Case prep consolidation | **Done** — `WeeklyCasePrepPanel` on case detail (`weeklyCasePrepView.ts`). |
 | Backlog #1 “full” hidden modalities | Too broad (SPE-781, modality matrix); defer. |
 | SPE-1464 branch continuity | **Done** in repo + Linear; no new slice. |
 | Route / multi-week navigation (backlog #3) | High value but different surface; does not complete covert-ops prep arc. |
@@ -170,13 +170,13 @@ Optional thin domain file: `src/domain/concealmentCasePrep.ts` if eligibility is
 
 - **Flag namespace collision:** only touch `conceal.case.{caseId}`; never write `conceal.` prefix from UI without explicit product decision.
 - **Preview drift:** preview must use same `globalFlags` source as `applyWeeklyConcealmentActivation` in `advanceWeek` — verify call site when wiring.
-- **Panel clutter:** four prep panels on full covert cases — consolidation is a follow-up, not a blocker.
+- **Panel clutter:** addressed via weekly prep consolidation on case detail.
 
 ---
 
 ## Follow-ups (after this slice)
 
-1. **Covert ops prep consolidation** — single “Weekly prep” region with subsections.
+1. ~~**Covert ops prep consolidation**~~ — shipped (`WeeklyCasePrepPanel`, collapsible sections, shared forensic strip).
 2. **Concealment event feed** — surface `activation.reason` on first weekly apply (if not already in event payload).
 3. **Remaining templates** without `concealmentTriggers` — content-only batches, not UI.
 

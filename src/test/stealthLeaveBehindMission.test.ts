@@ -4,6 +4,7 @@ import {
   resolveAssignedCaseForWeek,
   resolveMissionSuccessDegradeHint,
 } from '../domain/caseResolutionOrchestration'
+import { countInvestigationCustodyLossRefs } from '../domain/investigationCustodyLoss'
 import { evaluateStealthLeaveBehindMissionPressure } from '../domain/stealthLeaveBehindRegistry'
 import { caseTemplateMap, caseTemplates } from '../data/caseTemplates'
 import { previewResolutionForTeamIds } from '../domain/sim/resolve'
@@ -136,6 +137,7 @@ describe('resolveMissionSuccessDegradeHint leave-behind priority', () => {
       },
       stealthLeaveBehindMission: {
         active: true,
+        custodyLossRefs: [],
         scoreAdjustment: 3.5,
         shouldDegradeSuccessToPartial: true,
         degradeSuccessReason: leaveBehindReason,
@@ -160,6 +162,7 @@ describe('resolveMissionSuccessDegradeHint leave-behind priority', () => {
       },
       stealthLeaveBehindMission: {
         active: true,
+        custodyLossRefs: [],
         scoreAdjustment: 3.5,
         shouldDegradeSuccessToPartial: true,
         degradeSuccessReason: leaveBehindReason,
@@ -315,6 +318,10 @@ describe('advanceWeek stealth leave-behind mission fallout', () => {
           note.includes('Stealth leave-behind:')
       )
     ).toBe(true)
+    expect(
+      notes.some((note) => note.includes('Investigation custody strain'))
+    ).toBe(true)
+    expect(countInvestigationCustodyLossRefs(nextState, 'case-001')).toBe(1)
     expect(nextState.cases['case-001'].status).toBe('open')
   })
 })

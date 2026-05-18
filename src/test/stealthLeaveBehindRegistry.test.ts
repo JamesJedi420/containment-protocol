@@ -42,6 +42,17 @@ describe('stealthLeaveBehindRegistry (SPE-2163 slice 1)', () => {
     expect(result.issues).toHaveLength(0)
   })
 
+  it('rejects custody refs that collide on investigation flag suffixes', () => {
+    const result = validateStealthLeaveBehindDefinition(
+      baseDefinition({
+        custodyLossRefs: ['custody:packet-alpha', 'custody/packet/alpha'],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((issue) => issue.code)).toContain('colliding_custody_loss_ref')
+  })
+
   it('rejects invalid discovery risk, ids, kinds, and custody refs', () => {
     const result = validateStealthLeaveBehindDefinition(
       baseDefinition({

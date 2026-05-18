@@ -1,3 +1,4 @@
+import { countInvestigationCustodyLossRefs } from './investigationCustodyLoss'
 import { setPersistentFlag, readPersistentFlag } from './flagSystem'
 import { advanceDefinedProgressClock, readProgressClock } from './progressClocks'
 import type { GameState } from './models'
@@ -26,6 +27,8 @@ export interface InvestigationBudgetSnapshot {
   maxBudget: number
   granted: number
   spent: number
+  /** Forensic headroom reduced by one per active investigation custody-loss marker. */
+  custodyLossBurden: number
   remaining: number
 }
 
@@ -196,6 +199,9 @@ export function readInvestigationBudget(
   const spentClockId = buildInvestigationBudgetClockId(normalizedCaseId, domain, 'spent')
   const granted = readProgressClock(state, grantedClockId)?.value ?? 0
   const spent = readProgressClock(state, spentClockId)?.value ?? 0
+  const custodyLossBurden =
+    domain === 'forensic' ? countInvestigationCustodyLossRefs(state, normalizedCaseId) : 0
+  const remaining = Math.max(0, granted - spent - custodyLossBurden)
 
   return {
     caseId: normalizedCaseId,
@@ -203,7 +209,8 @@ export function readInvestigationBudget(
     maxBudget: INVESTIGATION_BUDGET_MAX,
     granted,
     spent,
-    remaining: Math.max(0, granted - spent),
+    custodyLossBurden,
+    remaining,
   }
 }
 

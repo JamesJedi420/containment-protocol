@@ -16,7 +16,7 @@ export interface BranchSimulationTruth {
 export interface BranchPathFacts {
   pathId: string
   acquiredItemIds: readonly string[]
-  seedValues: Readonly<Record<string, string | number | boolean>>
+  seedValues: Readonly<Record<string, BranchSeedValue>>
   roomOfOriginId?: string
   companionStatusById: Readonly<Record<string, BranchCompanionStatus>>
   injuryStatusBySubjectId: Readonly<Record<string, BranchInjuryStatus>>
@@ -25,6 +25,8 @@ export interface BranchPathFacts {
   priorChoiceIds: readonly string[]
   simulationTruth?: BranchSimulationTruth
 }
+
+export type BranchSeedValue = string | number | boolean
 
 export interface BranchNodeRequirements {
   anyItemIds?: readonly string[]
@@ -36,6 +38,17 @@ export interface BranchNodeRequirements {
   learnedClueIds?: readonly string[]
   priorChoiceIds?: readonly string[]
   requiredRecordRevisionIds?: readonly string[]
+  /**
+   * Exact key→value match against `BranchPathFacts.seedValues`.
+   * Use full global-flag ids (e.g. `branch.seed.doorCode`) when auditing from GameState projection.
+   */
+  requiredSeedValues?: Readonly<Record<string, BranchSeedValue>>
+  /**
+   * At least one listed key must exist in `BranchPathFacts.seedValues` (presence only).
+   * Does not require truthy values — `false` or `0` still satisfies. Prefer `requiredSeedValues`
+   * when the node needs a specific flag value.
+   */
+  anyRequiredSeedKeys?: readonly string[]
 }
 
 export interface BranchPlayerKnowledgeAssumption {
@@ -66,6 +79,7 @@ export interface BranchCorrectedRecord {
 
 export type BranchContinuityWarningClass =
   | 'missing_item'
+  | 'missing_seed_prerequisite'
   | 'companion_status_mismatch'
   | 'missing_prior_choice'
   | 'injury_contradiction'
@@ -110,6 +124,7 @@ export interface BranchContinuityValidationInput {
 
 const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
   'missing_item',
+  'missing_seed_prerequisite',
   'companion_status_mismatch',
   'missing_prior_choice',
   'injury_contradiction',
@@ -119,6 +134,7 @@ const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
 
 const WARNING_CLASS_ORDER: readonly BranchContinuityWarningClass[] = [
   'missing_item',
+  'missing_seed_prerequisite',
   'companion_status_mismatch',
   'missing_prior_choice',
   'injury_contradiction',
@@ -196,6 +212,61 @@ function hasLearnedClue(pathFacts: BranchPathFacts, clueId: string) {
 
 function hasPriorChoice(pathFacts: BranchPathFacts, choiceId: string) {
   return pathFacts.priorChoiceIds.includes(choiceId)
+}
+
+export function isBranchSeedNumber(value: number): boolean {
+  return Number.isFinite(value) && Number.isInteger(value)
+}
+
+export function isBranchSeedValue(value: unknown): value is BranchSeedValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (typeof value === 'number' && isBranchSeedNumber(value))
+  )
+}
+
+/** Coerces JSON/runtime values into a comparable seed value; non-integer numbers are rejected. */
+export function normalizeBranchSeedValue(value: unknown): BranchSeedValue | undefined {
+  if (typeof value === 'string' || typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number' && isBranchSeedNumber(value)) {
+    return value
+  }
+
+  return undefined
+}
+
+function seedValuesMatch(actual: BranchSeedValue | undefined, required: BranchSeedValue) {
+  return actual !== undefined && actual === required
+}
+
+function buildRequiredSeedEntries(
+  requiredSeedValues: Readonly<Record<string, BranchSeedValue>> | undefined
+): ReadonlyArray<readonly [string, BranchSeedValue]> {
+  const merged: Record<string, BranchSeedValue> = {}
+
+  for (const [rawKey, rawValue] of Object.entries(requiredSeedValues ?? {})) {
+    const seedKey = normalizeString(rawKey)
+    if (seedKey.length === 0) {
+      continue
+    }
+
+    const normalizedValue = normalizeBranchSeedValue(rawValue)
+    if (normalizedValue === undefined) {
+      continue
+    }
+
+    merged[seedKey] = normalizedValue
+  }
+
+  return Object.entries(merged).sort(([left], [right]) => left.localeCompare(right))
+}
+
+function hasSeedKey(pathFacts: BranchPathFacts, seedKey: string) {
+  return Object.prototype.hasOwnProperty.call(pathFacts.seedValues, seedKey)
 }
 
 function isHiddenSimulationEvent(pathFacts: BranchPathFacts, eventId: string) {
@@ -423,6 +494,49 @@ function validateRequires(
         detailKey: `revision:${revisionId}`,
       })
     }
+  }
+
+  for (const [seedKey, requiredValue] of buildRequiredSeedEntries(requires.requiredSeedValues)) {
+    const actualValue = pathFacts.seedValues[seedKey]
+    if (seedValuesMatch(actualValue, requiredValue)) {
+      continue
+    }
+
+    const actualLabel =
+      actualValue === undefined
+        ? 'unset'
+        : typeof actualValue === 'string'
+          ? actualValue
+          : String(actualValue)
+
+    pushWarning(warnings, {
+      pathId,
+      nodeId,
+      warningClass: 'missing_seed_prerequisite',
+      audience: 'simulation',
+      summary: `Node requires seed ${seedKey}=${String(requiredValue)}, but the path has ${actualLabel}.`,
+      relatedIds: [seedKey],
+      detailKey: `seed:${seedKey}`,
+    })
+  }
+
+  const anyRequiredSeedKeys = normalizeStringList(requires.anyRequiredSeedKeys)
+  const sortedAnyRequiredSeedKeys = [...anyRequiredSeedKeys].sort((left, right) =>
+    left.localeCompare(right)
+  )
+  if (
+    sortedAnyRequiredSeedKeys.length > 0 &&
+    !sortedAnyRequiredSeedKeys.some((seedKey) => hasSeedKey(pathFacts, seedKey))
+  ) {
+    pushWarning(warnings, {
+      pathId,
+      nodeId,
+      warningClass: 'missing_seed_prerequisite',
+      audience: 'simulation',
+      summary: `Node requires at least one seed key among ${sortedAnyRequiredSeedKeys.join(', ')}, but the path has none.`,
+      relatedIds: sortedAnyRequiredSeedKeys,
+      detailKey: `any-seed:${sortedAnyRequiredSeedKeys.join('|')}`,
+    })
   }
 }
 

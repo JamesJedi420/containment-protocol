@@ -409,6 +409,110 @@ describe('branchContinuityAuthoring', () => {
     expect(warning).toMatchObject({ severity: 'error', audience: 'simulation' })
   })
 
+  it('maps requiredSeedValues through the adapter and surfaces missing_seed_prerequisite', () => {
+    const game = createStartingState()
+    const nodes = buildBranchContinuityNodesFromAuthoredGraph([
+      {
+        id: 'node:needs-seed',
+        continuity: {
+          requires: { requiredSeedValues: { 'branch.seed.doorCode': 417 } },
+        },
+      },
+    ])
+
+    const [node] = nodes
+    expect(node.requires?.requiredSeedValues).toEqual({ 'branch.seed.doorCode': 417 })
+
+    const report = buildBranchContinuityAuditReport({ game, nodes })
+    const warning = report.validation.warnings.find(
+      (entry) =>
+        entry.nodeId === 'node:needs-seed' && entry.warningClass === 'missing_seed_prerequisite'
+    )
+
+    expect(warning).toMatchObject({ severity: 'error', audience: 'simulation' })
+  })
+
+  it('produces no missing_seed_prerequisite when authored seed matches projected global flags', () => {
+    let game = createStartingState()
+    game = setGlobalFlag(game, 'branch.seed.doorCode', 417)
+
+    const nodes = buildBranchContinuityNodesFromAuthoredGraph([
+      {
+        id: 'node:seed-match',
+        continuity: {
+          requires: { requiredSeedValues: { 'branch.seed.doorCode': 417 } },
+        },
+      },
+    ])
+
+    const report = buildBranchContinuityAuditReport({ game, nodes })
+
+    expect(
+      report.validation.warnings.some(
+        (entry) => entry.warningClass === 'missing_seed_prerequisite'
+      )
+    ).toBe(false)
+  })
+
+  it('drops invalid requiredSeedValues entries from the adapter without surfacing seed warnings', () => {
+    const authored = [
+      {
+        id: 'node:bad-seed',
+        continuity: {
+          requires: {
+            requiredSeedValues: {
+              'branch.seed.doorCode': null,
+              'branch.seed.nan': Number.NaN,
+            },
+          },
+        },
+      },
+    ] as unknown as AuthoredBranchContinuityNode[]
+
+    const [node] = buildBranchContinuityNodesFromAuthoredGraph(authored)
+    expect(node.requires).toBeUndefined()
+
+    const game = createStartingState()
+    const report = buildBranchContinuityAuditReport({
+      game,
+      nodes: buildBranchContinuityNodesFromAuthoredGraph(authored),
+    })
+    expect(report.validation.warnings).toHaveLength(0)
+  })
+
+  it('drops non-integer numeric seed requirements from the adapter', () => {
+    const authored = [
+      {
+        id: 'node:float-seed',
+        continuity: {
+          requires: { requiredSeedValues: { 'branch.seed.alpha': 1.9 } },
+        },
+      },
+    ] as AuthoredBranchContinuityNode[]
+
+    const [node] = buildBranchContinuityNodesFromAuthoredGraph(authored)
+    expect(node.requires).toBeUndefined()
+  })
+
+  it('keeps the last trimmed duplicate key when authored requiredSeedValues collide', () => {
+    const authored = [
+      {
+        id: 'node:dup-key',
+        continuity: {
+          requires: {
+            requiredSeedValues: {
+              'branch.seed.alpha': 1,
+              ' branch.seed.alpha ': 2,
+            },
+          },
+        },
+      },
+    ] as AuthoredBranchContinuityNode[]
+
+    const [node] = buildBranchContinuityNodesFromAuthoredGraph(authored)
+    expect(node.requires?.requiredSeedValues).toEqual({ 'branch.seed.alpha': 2 })
+  })
+
   it('produces zero warnings when requires match starting inventory projection', () => {
     const game = createStartingState()
     expect(game.inventory.electronic_parts).toBeGreaterThan(0)

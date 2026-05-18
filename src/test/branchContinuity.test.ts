@@ -84,6 +84,263 @@ describe('branchContinuity', () => {
     expect(report.summary.byClass.missing_item).toBe(1)
   })
 
+  it('flags missing_seed_prerequisite when a required seed is absent', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:needs-door-code',
+        requires: { requiredSeedValues: { 'branch.seed.doorCode': 417 } },
+      },
+    ])
+
+    const warning = findWarning(report, 'node:needs-door-code', 'missing_seed_prerequisite')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+      relatedIds: ['branch.seed.doorCode'],
+    })
+    expect(warning?.id).toContain('seed:branch.seed.doorCode')
+    expect(report.summary.byClass.missing_seed_prerequisite).toBe(1)
+  })
+
+  it('flags missing_seed_prerequisite when a required seed value mismatches', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:needs-door-code',
+          requires: { requiredSeedValues: { doorCode: 417 } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { doorCode: 999 },
+      })
+    )
+
+    const warning = findWarning(report, 'node:needs-door-code', 'missing_seed_prerequisite')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+      relatedIds: ['doorCode'],
+    })
+  })
+
+  it('produces no missing_seed_prerequisite when required seeds match the path', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:door-ok',
+        requires: { requiredSeedValues: { doorCode: 417 } },
+      },
+    ])
+
+    expect(findWarning(report, 'node:door-ok', 'missing_seed_prerequisite')).toBeUndefined()
+    expect(report.summary.byClass.missing_seed_prerequisite).toBeUndefined()
+  })
+
+  it('flags missing_seed_prerequisite when anyRequiredSeedKeys has no matching path keys', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:needs-exploit-flag',
+        requires: { anyRequiredSeedKeys: ['branch.seed.exploitA', 'branch.seed.exploitB'] },
+      },
+    ])
+
+    const warning = findWarning(report, 'node:needs-exploit-flag', 'missing_seed_prerequisite')
+    expect(warning).toMatchObject({
+      severity: 'error',
+      audience: 'simulation',
+    })
+    expect(warning?.id).toContain('any-seed:')
+  })
+
+  it('produces no warning when anyRequiredSeedKeys is satisfied by one path seed', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:exploit-ok',
+          requires: { anyRequiredSeedKeys: ['branch.seed.exploitA', 'branch.seed.exploitB'] },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.exploitB': true },
+      })
+    )
+
+    expect(findWarning(report, 'node:exploit-ok', 'missing_seed_prerequisite')).toBeUndefined()
+  })
+
+  it('treats anyRequiredSeedKeys as presence-only when the path seed value is false', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:exploit-false',
+          requires: { anyRequiredSeedKeys: ['branch.seed.exploitA'] },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.exploitA': false },
+      })
+    )
+
+    expect(findWarning(report, 'node:exploit-false', 'missing_seed_prerequisite')).toBeUndefined()
+  })
+
+  it('flags string seed mismatch and accepts an exact string match', () => {
+    const mismatch = validateNodes(
+      [
+        {
+          nodeId: 'node:passphrase',
+          requires: { requiredSeedValues: { 'branch.seed.passphrase': 'omega' } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.passphrase': 'alpha' },
+      })
+    )
+    expect(findWarning(mismatch, 'node:passphrase', 'missing_seed_prerequisite')).toBeDefined()
+
+    const match = validateNodes(
+      [
+        {
+          nodeId: 'node:passphrase',
+          requires: { requiredSeedValues: { 'branch.seed.passphrase': 'omega' } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.passphrase': 'omega' },
+      })
+    )
+    expect(findWarning(match, 'node:passphrase', 'missing_seed_prerequisite')).toBeUndefined()
+  })
+
+  it('flags boolean seed mismatch and accepts an exact boolean match', () => {
+    const mismatch = validateNodes(
+      [
+        {
+          nodeId: 'node:gate',
+          requires: { requiredSeedValues: { 'branch.seed.gateOpen': true } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.gateOpen': false },
+      })
+    )
+    expect(findWarning(mismatch, 'node:gate', 'missing_seed_prerequisite')).toBeDefined()
+
+    const match = validateNodes(
+      [
+        {
+          nodeId: 'node:gate',
+          requires: { requiredSeedValues: { 'branch.seed.gateOpen': true } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.gateOpen': true },
+      })
+    )
+    expect(findWarning(match, 'node:gate', 'missing_seed_prerequisite')).toBeUndefined()
+  })
+
+  it('flags type mismatch when the path stores a string but the node requires a number', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:typed-code',
+          requires: { requiredSeedValues: { doorCode: 417 } },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { doorCode: '417' },
+      })
+    )
+
+    expect(findWarning(report, 'node:typed-code', 'missing_seed_prerequisite')).toBeDefined()
+  })
+
+  it('emits required and any seed warnings independently on the same node', () => {
+    const report = validateNodes(
+      [
+        {
+          nodeId: 'node:combo',
+          requires: {
+            requiredSeedValues: { 'branch.seed.doorCode': 417 },
+            anyRequiredSeedKeys: ['branch.seed.exploitA', 'branch.seed.exploitB'],
+          },
+        },
+      ],
+      createRavenloftPathFacts({
+        seedValues: { 'branch.seed.doorCode': 999, 'branch.seed.exploitA': true },
+      })
+    )
+
+    const seedWarnings = report.warnings.filter(
+      (warning) =>
+        warning.nodeId === 'node:combo' && warning.warningClass === 'missing_seed_prerequisite'
+    )
+    expect(seedWarnings).toHaveLength(1)
+    expect(seedWarnings[0]?.id).toContain('seed:branch.seed.doorCode')
+  })
+
+  it('collapses duplicate normalized seed keys with last value winning in the validator', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:dup-key',
+        requires: {
+          requiredSeedValues: {
+            'branch.seed.alpha': 1,
+            ' branch.seed.alpha ': 2,
+          },
+        },
+      },
+    ])
+
+    expect(report.warnings).toHaveLength(1)
+    expect(findWarning(report, 'node:dup-key', 'missing_seed_prerequisite')).toMatchObject({
+      summary: expect.stringContaining('branch.seed.alpha=2'),
+    })
+  })
+
+  it('ignores non-integer numeric seed requirements in direct validator input', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:non-integer',
+        requires: {
+          requiredSeedValues: { 'branch.seed.alpha': 1.9 },
+        },
+      },
+    ])
+
+    expect(report.warnings).toHaveLength(0)
+  })
+
+  it('orders multiple missing seed warnings deterministically by seed key', () => {
+    const report = validateNodes([
+      {
+        nodeId: 'node:multi-seed',
+        requires: {
+          requiredSeedValues: {
+            'branch.seed.zeta': 1,
+            'branch.seed.alpha': 2,
+            'branch.seed.middle': 3,
+          },
+        },
+      },
+    ])
+
+    const seedWarnings = report.warnings
+      .filter(
+        (warning) =>
+          warning.nodeId === 'node:multi-seed' &&
+          warning.warningClass === 'missing_seed_prerequisite' &&
+          warning.id.includes(':seed:')
+      )
+      .map((warning) => warning.id)
+
+    expect(seedWarnings).toEqual([
+      `${PATH_ID}:node:multi-seed:missing_seed_prerequisite:seed:branch.seed.alpha`,
+      `${PATH_ID}:node:multi-seed:missing_seed_prerequisite:seed:branch.seed.middle`,
+      `${PATH_ID}:node:multi-seed:missing_seed_prerequisite:seed:branch.seed.zeta`,
+    ])
+  })
+
   it('flags wounded requirement when the path records healed instead of wounded', () => {
     const report = validateNodes(
       [

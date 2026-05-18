@@ -63,7 +63,7 @@ const ROLE_INCOMPATIBLE_CASE_TAGS: Record<InfiltrationCoverRole, readonly string
   civilian_staff: ['military', 'parade'],
   courier: ['court', 'media'],
   maintenance: ['media', 'public', 'court'],
-  official_inspector: ['covert', 'infiltration'],
+  official_inspector: ['covert'],
 }
 
 const ROLE_MISMATCH_AWARENESS = 0.08

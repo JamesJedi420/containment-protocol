@@ -67,6 +67,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['interview', 'memory'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.35,
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'investigator', 'disguise'],
     onFail: {
@@ -102,8 +111,17 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['archive', 'records'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
     requiredTags: ['investigator'],
-    preferredTags: ['tech', 'forensics', 'stealth'],
+    preferredTags: ['tech', 'forensics', 'stealth', 'covert', 'infiltration'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -266,6 +284,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['court', 'witness'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'official_inspector',
+      documentTier: 2,
+      doctrineBand: 0.65,
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'occult', 'covert', 'disguise'],
     raid: { minTeams: 2, maxTeams: 3 },
@@ -332,6 +359,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['logistics', 'supply-chain'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.5, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'courier',
+      documentTier: 1,
+      doctrineBand: 0.5,
+    },
     preferredTags: ['medic', 'forensics', 'lab-kit', 'stealth', 'infiltration'],
     pressureValue: 7,
     regionTag: 'bio_containment',

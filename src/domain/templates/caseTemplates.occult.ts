@@ -76,8 +76,17 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['mirror', 'possession'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.4,
+    },
     requiredTags: ['holy'],
-    preferredTags: ['investigator', 'tech', 'ritual-kit', 'stealth'],
+    preferredTags: ['investigator', 'tech', 'ritual-kit', 'stealth', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -241,6 +250,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['ritual', 'civilian'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.5,
+      routeViolationTags: ['ritual'],
+    },
     preferredTags: ['negotiator', 'medium', 'holy', 'covert', 'infiltration'],
     pressureValue: 8,
     regionTag: 'occult_district',

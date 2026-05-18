@@ -51,6 +51,15 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['psionic', 'compulsion'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
     requiredTags: ['investigator'],
     preferredTags: ['medium', 'tech', 'negotiator', 'infiltration', 'covert'],
     onFail: {
@@ -86,6 +95,15 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['psionic', 'memory'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 2,
+      doctrineBand: 0.5,
+    },
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'investigator', 'analyst', 'disguise'],
     onFail: {
@@ -121,6 +139,16 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['psionic', 'occult'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.55,
+      routeViolationTags: ['occult', 'psionic'],
+    },
     requiredTags: ['medium', 'scholar'],
     preferredTags: ['ritual-kit', 'investigator', 'tech', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 3 },

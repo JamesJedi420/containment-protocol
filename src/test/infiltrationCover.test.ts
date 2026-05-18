@@ -11,7 +11,7 @@ import {
   applyWeeklyInfiltrationProbeTick,
 } from '../domain/infiltrationProbe'
 import type { Agent, CaseInstance } from '../domain/models'
-import { caseTemplateMap } from '../domain/templates/caseTemplates'
+import { caseTemplateMap, caseTemplates } from '../domain/templates/caseTemplates'
 
 function createCoverCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
   return {
@@ -131,15 +131,20 @@ describe('infiltrationCover', () => {
     expect(weekly.events.some((event) => event.kind === 'cover_strain')).toBe(true)
   })
 
-  it('copies cover profiles on seeded infiltration templates', () => {
-    const templateIds = [
-      'ops-001',
-      'ops-004',
-      'occult-006',
-      'puzzle_whispering_archive',
-      'psi-007',
-      'followup_targeted_abductions',
-    ] as const
+  it('requires a cover profile on every template with a probe plan', () => {
+    const missingCover = caseTemplates
+      .filter((template) => template.infiltrationProbePlan && !template.infiltrationCoverProfile)
+      .map((template) => template.templateId)
+
+    expect(missingCover).toEqual([])
+  })
+
+  it('copies cover profiles on all probe-plan templates', () => {
+    const templateIds = caseTemplates
+      .filter((template) => template.infiltrationProbePlan)
+      .map((template) => template.templateId)
+
+    expect(templateIds.length).toBeGreaterThanOrEqual(19)
 
     for (const templateId of templateIds) {
       expect(caseTemplateMap[templateId].infiltrationCoverProfile?.claimedRole).toBeTruthy()

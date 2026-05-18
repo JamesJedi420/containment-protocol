@@ -334,6 +334,15 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['vampire', 'night'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.5, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.35,
+    },
     preferredTags: ['silver', 'holy', 'stealth', 'covert'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
@@ -421,6 +430,16 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['cult', 'ritual'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 0,
+      doctrineBand: 0.4,
+      routeViolationTags: ['cult'],
+    },
     requiredTags: ['occultist'],
     requiredRoles: ['containment', 'technical'],
     preferredTags: ['holy', 'tech', 'negotiator', 'covert', 'infiltration'],
@@ -464,6 +483,15 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['investigation'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.4,
+    },
     preferredTags: ['tech', 'investigator', 'stealth', 'covert'],
     onFail: {
       stageDelta: 1,
@@ -526,6 +554,15 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['cognitive'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.3,
+    },
     preferredTags: ['negotiator', 'investigator', 'disguise', 'covert'],
     onFail: {
       stageDelta: 1,
@@ -560,6 +597,15 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['raid', 'cognitive'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'courier',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
     preferredTags: ['tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
@@ -595,6 +641,15 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['infrastructure'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.35,
+    },
     requiredTags: ['tech'],
     preferredTags: ['occultist', 'covert', 'infiltration'],
     raid: { minTeams: 3, maxTeams: 5 },

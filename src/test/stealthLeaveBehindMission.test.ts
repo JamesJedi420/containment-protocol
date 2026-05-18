@@ -5,8 +5,9 @@ import {
   resolveMissionSuccessDegradeHint,
 } from '../domain/caseResolutionOrchestration'
 import { evaluateStealthLeaveBehindMissionPressure } from '../domain/stealthLeaveBehindRegistry'
-import { caseTemplateMap } from '../data/caseTemplates'
+import { caseTemplateMap, caseTemplates } from '../data/caseTemplates'
 import { previewResolutionForTeamIds } from '../domain/sim/resolve'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import { instantiateFromTemplate } from '../domain/sim/spawn'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
@@ -227,5 +228,104 @@ describe('stealth leave-behind mission-resolution fallout', () => {
 
     expect(ops003.stealthLeaveBehindId).toBe('leave-behind:leave-trace')
     expect(ops004.stealthLeaveBehindId).toBe('leave-behind:expose-witness')
+  })
+})
+
+describe('advanceWeek stealth leave-behind mission fallout', () => {
+  it('downgrades a successful hidden case when leave-behind tradeoff fires under authority scrutiny', () => {
+    const state = createStartingState()
+    const observer = createBehaviorObserver('a_advance_leave_behind')
+    const team = createObserverTeam('t_advance_leave_behind', observer.id)
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+    state.agency!.supportAvailable = 2
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    let tunedCase: CaseInstance | undefined
+
+    for (let socialDifficulty = 8; socialDifficulty <= 140; socialDifficulty += 1) {
+      const candidate: CaseInstance = {
+        ...createStarterCase({ id: 'case-001', templateId: 'ops-004' }),
+        mode: 'deterministic',
+        status: 'in_progress',
+        weeksRemaining: 1,
+        hiddenState: 'hidden',
+        detectionConfidence: 0.25,
+        counterDetection: false,
+        tags: ['infiltration', 'media', 'public'],
+        requiredTags: ['medium'],
+        preferredTags: [],
+        assignedTeamIds: [team.id],
+        infiltrationStage: 'probing',
+        stealthLeaveBehindId: 'leave-behind:risk-discovery',
+        difficulty: {
+          combat: 0,
+          investigation: 0,
+          utility: 0,
+          social: socialDifficulty,
+        },
+        weights: {
+          combat: 0,
+          investigation: 0,
+          utility: 0,
+          social: 1,
+        },
+      }
+
+      const resolution = resolveAssignedCaseForWeek(candidate, state, () => 0.5)
+
+      if (
+        resolution.outcome.result === 'success' &&
+        resolution.stealthLeaveBehindMission?.shouldDegradeSuccessToPartial &&
+        !resolution.infiltrationStageMission?.shouldDegradeSuccessToPartial &&
+        !resolution.behaviorValidation?.shouldDegradeSuccessToPartial
+      ) {
+        tunedCase = candidate
+        break
+      }
+    }
+
+    if (tunedCase === undefined) {
+      throw new Error('Unable to tune a leave-behind stealth success case for advanceWeek.')
+    }
+
+    state.cases['case-001'] = tunedCase
+
+    const preAdvance = resolveAssignedCaseForWeek(tunedCase, state, () => 0.5)
+    expect(preAdvance.outcome.result).toBe('success')
+    expect(preAdvance.stealthLeaveBehindMission?.shouldDegradeSuccessToPartial).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const missionResult = nextState.reports[nextState.reports.length - 1]?.caseSnapshots?.['case-001']
+      ?.missionResult
+
+    expect(missionResult?.outcome).toBe('partial')
+    const notes = missionResult?.explanationNotes ?? []
+    expect(
+      notes.some(
+        (note) =>
+          note.includes('Stealth extraction tradeoff under authority scrutiny') ||
+          note.includes('Stealth leave-behind:')
+      )
+    ).toBe(true)
+    expect(nextState.cases['case-001'].status).toBe('open')
+  })
+})
+
+describe('infiltration probe template leave-behind catalog', () => {
+  it('declares stealthLeaveBehindId on every template with infiltrationProbePlan', () => {
+    const missing = caseTemplates
+      .filter((template) => template.infiltrationProbePlan !== undefined)
+      .filter((template) => !template.stealthLeaveBehindId?.trim())
+      .map((template) => template.templateId)
+
+    expect(missing).toEqual([])
   })
 })

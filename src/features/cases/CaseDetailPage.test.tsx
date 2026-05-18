@@ -219,6 +219,28 @@ it('shows investigation question prep and asks a forensic question', async () =>
   ).toBe(true)
 })
 
+it('shows investigation prep empty state when no budget is granted yet', () => {
+  const game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    title: 'Investigation Prep Case',
+    status: 'in_progress',
+    weeksRemaining: 2,
+    assignedTeamIds: [],
+    requiredTags: [],
+    preferredTags: [],
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  const panel = screen.getByRole('region', { name: /investigation question prep/i })
+
+  expect(within(panel).getByText(/no investigation budget on this case yet/i)).toBeInTheDocument()
+  expect(within(panel).queryByRole('region', { name: /forensic inquiry/i })).not.toBeInTheDocument()
+})
+
 it('hides investigation question prep when the case is not in progress', () => {
   const game = createStartingState()
 

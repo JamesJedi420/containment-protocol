@@ -90,6 +90,7 @@ import {
   askInvestigationQuestion as applyAskInvestigationQuestion,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
+import { canAskInvestigationQuestionOnCase } from '../../features/cases/investigationCasePrepView'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
@@ -1148,6 +1149,11 @@ export const useGameStore = create<GameStore>()(
 
       askInvestigationQuestion: (caseId, domain, questionId) =>
         set((s) => {
+          const caseData = s.game.cases[caseId]
+          if (!canAskInvestigationQuestionOnCase(caseData)) {
+            return { game: s.game }
+          }
+
           const result = applyAskInvestigationQuestion(s.game, {
             caseId,
             domain,

@@ -40,18 +40,20 @@ export function InvestigationCasePrepPanel({ caseData }: { caseData: CaseInstanc
           No investigation budget on this case yet. Successful investigation during weekly
           resolution grants forensic and tactical questions.
         </p>
-      ) : null}
+      ) : (
+        <>
+          <InvestigationDomainSection
+            domainView={view.forensic}
+            showCustodyBurden
+            onAsk={(questionId) => askInvestigationQuestion(caseData.id, 'forensic', questionId)}
+          />
 
-      <InvestigationDomainSection
-        domainView={view.forensic}
-        showCustodyBurden
-        onAsk={(questionId) => askInvestigationQuestion(caseData.id, 'forensic', questionId)}
-      />
-
-      <InvestigationDomainSection
-        domainView={view.tactical}
-        onAsk={(questionId) => askInvestigationQuestion(caseData.id, 'tactical', questionId)}
-      />
+          <InvestigationDomainSection
+            domainView={view.tactical}
+            onAsk={(questionId) => askInvestigationQuestion(caseData.id, 'tactical', questionId)}
+          />
+        </>
+      )}
 
       {view.custodyMarkers.length > 0 ? (
         <section className="space-y-2" aria-label="Investigation custody strain">
@@ -107,7 +109,14 @@ function InvestigationDomainSection({
                 : 'border-white/10 bg-white/5'
             }`}
           >
-            <InvestigationQuestionRow question={question} onAsk={() => onAsk(question.id)} />
+            <InvestigationQuestionRow
+              question={question}
+              onAsk={() => {
+                if (question.canAsk) {
+                  onAsk(question.id)
+                }
+              }}
+            />
           </li>
         ))}
       </ul>

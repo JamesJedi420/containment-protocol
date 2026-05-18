@@ -9,6 +9,7 @@ import {
 import { createStarterCase } from '../domain/templates/startingCases'
 import {
   buildInvestigationCasePrepView,
+  canAskInvestigationQuestionOnCase,
   canShowInvestigationCasePrepOnCase,
 } from '../features/cases/investigationCasePrepView'
 
@@ -34,6 +35,13 @@ describe('investigationCasePrepView', () => {
 
     const hidden = buildInvestigationCasePrepView({ ...inProgress, status: 'open' }, createStartingState())
     expect(hidden.visible).toBe(false)
+  })
+
+  it('allows asks only for defined in-progress cases', () => {
+    const inProgress = createInProgressCase()
+    expect(canAskInvestigationQuestionOnCase(inProgress)).toBe(true)
+    expect(canAskInvestigationQuestionOnCase(undefined)).toBe(false)
+    expect(canAskInvestigationQuestionOnCase({ ...inProgress, status: 'resolved' })).toBe(false)
   })
 
   it('shows forensic and tactical budgets after investigation grant', () => {

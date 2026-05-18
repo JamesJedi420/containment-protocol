@@ -2,7 +2,6 @@ import { readPersistentFlag } from '../../domain/flagSystem'
 import { listInvestigationCustodyLossMarkers } from '../../domain/investigationCustodyLoss'
 import {
   buildInvestigationAskedFlagId,
-  buildInvestigationLeverageFlagId,
   listInvestigationQuestionSet,
   readInvestigationBudget,
   type InvestigationQuestionDomain,
@@ -51,6 +50,10 @@ export function canShowInvestigationCasePrepOnCase(caseData: CaseInstance) {
   return caseData.status === 'in_progress'
 }
 
+export function canAskInvestigationQuestionOnCase(caseData: CaseInstance | undefined) {
+  return caseData !== undefined && canShowInvestigationCasePrepOnCase(caseData)
+}
+
 function buildDomainPrepView(
   game: GameState,
   caseId: string,
@@ -59,9 +62,6 @@ function buildDomainPrepView(
   const budget = readInvestigationBudget(game, caseId, domain)
   const questions = listInvestigationQuestionSet(domain).map((question) => {
     const asked = Boolean(readPersistentFlag(game, buildInvestigationAskedFlagId(caseId, question.id)))
-    const leverageActive = asked
-      ? Boolean(readPersistentFlag(game, buildInvestigationLeverageFlagId(caseId, question.leverage.id)))
-      : false
 
     return {
       id: question.id,
@@ -69,8 +69,8 @@ function buildDomainPrepView(
       answer: question.answer,
       asked,
       canAsk: !asked && budget.remaining > 0,
-      leverageLabel: leverageActive ? question.leverage.label : undefined,
-      leverageDescription: leverageActive ? question.leverage.description : undefined,
+      leverageLabel: asked ? question.leverage.label : undefined,
+      leverageDescription: asked ? question.leverage.description : undefined,
     }
   })
 

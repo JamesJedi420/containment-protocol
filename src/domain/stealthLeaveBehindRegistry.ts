@@ -204,6 +204,8 @@ export interface StealthLeaveBehindMissionPressureResult {
   active: boolean
   leaveBehindId?: string
   kind?: StealthLeaveBehindKind
+  leaveBehindLabel?: string
+  custodyLossRefs: readonly string[]
   scoreAdjustment: number
   scoreAdjustmentReason?: string
   shouldDegradeSuccessToPartial: boolean
@@ -212,6 +214,7 @@ export interface StealthLeaveBehindMissionPressureResult {
 
 const INACTIVE_LEAVE_BEHIND_MISSION_PRESSURE: StealthLeaveBehindMissionPressureResult = {
   active: false,
+  custodyLossRefs: [],
   scoreAdjustment: 0,
   shouldDegradeSuccessToPartial: false,
 }
@@ -266,6 +269,8 @@ export function evaluateStealthLeaveBehindMissionPressure(
     active: true,
     leaveBehindId: definition.id,
     kind: definition.kind,
+    leaveBehindLabel: definition.label,
+    custodyLossRefs: definition.custodyLossRefs,
     scoreAdjustment,
     scoreAdjustmentReason,
     shouldDegradeSuccessToPartial: highDiscoveryRisk && authorityScrutiny,

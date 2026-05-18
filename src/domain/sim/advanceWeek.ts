@@ -276,6 +276,7 @@ import {
   isCaseUnderConstruction,
 } from '../constructionProgress'
 import { doesProgressClockMeetThreshold } from '../progressClocks'
+import { applyStealthLeaveBehindInvestigationCustodyLoss } from '../investigationCustodyLoss'
 import {
   applySuccessfulInvestigation,
   askInvestigationQuestion,
@@ -2361,6 +2362,28 @@ function resolveAssignments(
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
     ]
+
+    if (
+      stealthLeaveBehindMission?.active &&
+      stealthLeaveBehindMission.leaveBehindId &&
+      stealthLeaveBehindMission.kind &&
+      stealthLeaveBehindMission.leaveBehindLabel
+    ) {
+      const custodyLoss = applyStealthLeaveBehindInvestigationCustodyLoss({
+        state: context.nextState,
+        caseId,
+        leaveBehindId: stealthLeaveBehindMission.leaveBehindId,
+        leaveBehindKind: stealthLeaveBehindMission.kind,
+        leaveBehindLabel: stealthLeaveBehindMission.leaveBehindLabel,
+        custodyLossRefs: stealthLeaveBehindMission.custodyLossRefs,
+        week: context.sourceState.week,
+      })
+      context.nextState = custodyLoss.state
+      if (custodyLoss.resolutionNote) {
+        resolutionReasons.push(custodyLoss.resolutionNote)
+      }
+    }
+
     const aggregateBattleCeasefireWindow =
       buildAggregateBattleCeasefireWindowForOperation(effectiveCase)
     context.performanceByCaseId[caseId] = performanceSummary

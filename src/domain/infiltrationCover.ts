@@ -164,20 +164,14 @@ export function evaluateWeeklyInfiltrationCoverPosture(
   const priorAwareness = clamp(caseData.infiltrationAwareness ?? 0, 0, 1)
   let awarenessDelta = 0
   const strainReasons: string[] = []
+  const roleMismatch = evaluateCoverRoleMismatchPressure(caseData, profile.claimedRole)
 
-  const incompatibleTags = ROLE_INCOMPATIBLE_CASE_TAGS[profile.claimedRole]
-  if (hasAnyTag(caseTags, incompatibleTags)) {
+  if (roleMismatch.hasRoleMismatch) {
     awarenessDelta += ROLE_MISMATCH_AWARENESS
     strainReasons.push(`claimed ${profile.claimedRole} clashes with site context`)
   }
 
-  const incompatibleTagSet = new Set(incompatibleTags)
-  const extraRouteViolations =
-    profile.routeViolationTags?.filter(
-      (tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag)
-    ) ?? []
-
-  if (extraRouteViolations.length > 0) {
+  if (roleMismatch.hasExtraRouteViolation) {
     awarenessDelta += ROUTE_VIOLATION_AWARENESS
     strainReasons.push('movement or venue tags contradict the cover story')
   }

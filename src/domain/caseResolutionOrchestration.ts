@@ -89,6 +89,7 @@ export function resolveAssignedCaseForWeek(
       supportTags,
       teamTags: supportTags,
       leaderId,
+      infiltrationAwareness: effectiveCase.infiltrationAwareness,
     }
   )
   const resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(

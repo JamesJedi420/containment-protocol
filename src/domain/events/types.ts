@@ -578,6 +578,33 @@ export interface OperationEventPayloadMap {
     caseTitle: string
     remainingSupport: number
   }
+  'infiltration.awareness_complication': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+  }
+  'infiltration.escalation_exposed': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+  }
+  'infiltration.escalation_violent': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+  }
   'system.academy_upgraded': {
     week: number
     tierBefore: number
@@ -654,6 +681,9 @@ export interface OperationEventTypeToSourceSystemMap {
   'agency.front_business.resolved': 'system'
   'directive.applied': 'system'
   'support.shortfall': 'system'
+  'infiltration.awareness_complication': 'system'
+  'infiltration.escalation_exposed': 'system'
+  'infiltration.escalation_violent': 'system'
   'system.academy_upgraded': 'system'
   'staff.coping.applied': 'agent'
   'staff.coping.misconduct': 'agent'
@@ -705,6 +735,9 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'agency.front_business.resolved': 'system',
   'directive.applied': 'system',
   'support.shortfall': 'system',
+  'infiltration.awareness_complication': 'system',
+  'infiltration.escalation_exposed': 'system',
+  'infiltration.escalation_violent': 'system',
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',
   'staff.coping.misconduct': 'agent',

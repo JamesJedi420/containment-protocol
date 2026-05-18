@@ -179,6 +179,7 @@ import {
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { applyConcealmentActivationToCase } from '../hiddenStateActivation'
+import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
 import { resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek } from '../caseResolutionOrchestration'
 import { countCaseHiddenModifiers } from '../recon'
 import {
@@ -2090,6 +2091,38 @@ function applyWeeklyConcealmentActivation(
   return activatedCase
 }
 
+function applyWeeklyInfiltrationProbe(
+  context: WeeklyExecutionContext,
+  caseId: string,
+  caseData: CaseInstance
+): CaseInstance {
+  const probeResult = applyWeeklyInfiltrationProbeTick(caseData, context.sourceState.week)
+
+  if (!probeResult.changed) {
+    return caseData
+  }
+
+  context.nextState.cases[caseId] = probeResult.case
+
+  for (const event of probeResult.events) {
+    context.eventDrafts.push({
+      type: `infiltration.${event.kind}`,
+      sourceSystem: 'system',
+      payload: {
+        week: context.sourceState.week,
+        caseId,
+        caseTitle: caseData.title,
+        summary: event.summary,
+        infiltrationAwareness: probeResult.case.infiltrationAwareness,
+        infiltrationProbeProgress: probeResult.case.infiltrationProbeProgress,
+        infiltrationStage: probeResult.case.infiltrationStage,
+      },
+    })
+  }
+
+  return probeResult.case
+}
+
 // Accept timingCheckState as parameter for shared cadence
 function resolveAssignments(
   context: WeeklyExecutionContext,
@@ -2134,6 +2167,7 @@ function resolveAssignments(
     existingAssignedTeamIds.forEach((teamId) => context.activeTeamIds.add(teamId))
 
     currentCase = applyWeeklyConcealmentActivation(context, caseId, currentCase)
+    currentCase = applyWeeklyInfiltrationProbe(context, caseId, currentCase)
 
     // SPE-38: Support consumption and shortage
     if (supportAvailable >= supportConsumptionPerCase) {

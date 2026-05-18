@@ -3,22 +3,9 @@
  * Progress and awareness advance independently; thresholds emit complications before hard failure.
  */
 
+import { applyWeeklyInfiltrationCoverPostureToCase } from './infiltrationCover'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
-
-type ApplyWeeklyInfiltrationCoverPostureToCase = typeof import('./infiltrationCover').applyWeeklyInfiltrationCoverPostureToCase
-
-let applyWeeklyInfiltrationCoverPostureToCase: ApplyWeeklyInfiltrationCoverPostureToCase = ((..._args) => {
-  throw new Error(
-    'applyWeeklyInfiltrationCoverPostureToCase has not been registered in infiltrationProbe.'
-  )
-}) as ApplyWeeklyInfiltrationCoverPostureToCase
-
-export function setApplyWeeklyInfiltrationCoverPostureToCase(
-  applyCoverPosture: ApplyWeeklyInfiltrationCoverPostureToCase
-): void {
-  applyWeeklyInfiltrationCoverPostureToCase = applyCoverPosture
-}
 
 export type InfiltrationStage = 'probing' | 'exposed' | 'violent'
 

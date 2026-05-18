@@ -147,6 +147,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       claimedRole: 'civilian_staff',
       documentTier: 1,
       doctrineBand: 0.55,
+      routeViolationTags: ['occult', 'psionic'],
     },
     requiredTags: ['medium', 'scholar'],
     preferredTags: ['ritual-kit', 'investigator', 'tech', 'covert', 'infiltration'],

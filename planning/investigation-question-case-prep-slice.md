@@ -114,8 +114,9 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 ## Runner-up (next after this)
 
 1. ~~**Infiltration case prep panel**~~ — shipped; see `planning/infiltration-case-prep-slice.md`.
-2. **SPE-1464** — branch/path continuity validation (backlog near-term hint).
-3. **Hidden activation expansion** — backlog #1; broader than case-detail slice.
+2. **Concealment case prep panel** — `planning/concealment-case-prep-slice.md` (SPE-70 / SPE-2107 slice 3 UX; backlog #1 player-facing gap).
+3. **Covert ops prep consolidation** — merge forensic strip / collapse four prep panels on infiltration cases.
+4. ~~**SPE-1464**~~ — done in repo; branch continuity validator shipped.
 
 ## See also
 

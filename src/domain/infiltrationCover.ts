@@ -180,7 +180,7 @@ export function evaluateWeeklyInfiltrationCoverPosture(
 
   const doctrineBand = profile.doctrineBand ?? 1
 
-  if (proceduralScrutiny && doctrineBand < 0.35) {
+  if (proceduralScrutiny && doctrineBand < COVER_STRAIN_BAND) {
     awarenessDelta += WEAK_DOCTRINE_AWARENESS
     strainReasons.push('cover doctrine slips under procedural questioning')
   }

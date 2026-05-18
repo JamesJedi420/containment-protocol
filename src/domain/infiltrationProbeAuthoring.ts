@@ -69,7 +69,7 @@ function normalizeProgressRules(
     return undefined
   }
 
-  return [...normalized].sort((left, right) => left.belowProbeProgress - right.belowProbeProgress)
+  return normalized.sort((left, right) => left.belowProbeProgress - right.belowProbeProgress)
 }
 
 export function buildInfiltrationProbePlanFromAuthored(

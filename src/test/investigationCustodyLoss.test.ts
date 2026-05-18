@@ -5,8 +5,10 @@ import {
   buildInvestigationCustodyLossFlagId,
   countInvestigationCustodyLossRefs,
   listInvestigationCustodyLossMarkers,
+  normalizeInvestigationCustodyLossRefForFlag,
   readInvestigationCustodyLossMarker,
 } from '../domain/investigationCustodyLoss'
+import { askInvestigationQuestion, grantInvestigationQuestionBudget } from '../domain/investigationEconomy'
 import { evaluateStealthLeaveBehindMissionPressure } from '../domain/stealthLeaveBehindRegistry'
 import { readInvestigationBudget } from '../domain/investigationEconomy'
 import { createStarterCase } from '../domain/templates/startingCases'
@@ -68,6 +70,67 @@ describe('investigationCustodyLoss', () => {
 
     expect(second.appliedRefs).toEqual([])
     expect(countInvestigationCustodyLossRefs(second.state, 'case-001')).toBe(1)
+  })
+
+  it('skips symbolic-only custody refs that do not yield a flag suffix', () => {
+    const result = applyStealthLeaveBehindInvestigationCustodyLoss({
+      state: createStartingState(),
+      caseId: 'case-001',
+      leaveBehindId: 'leave-behind:burn-tool',
+      leaveBehindKind: 'burn_tool',
+      leaveBehindLabel: 'Burn field tool',
+      custodyLossRefs: ['!!!', 'custody:tool-serial'],
+      week: 1,
+    })
+
+    expect(result.appliedRefs).toEqual(['custody:tool-serial'])
+    expect(countInvestigationCustodyLossRefs(result.state, 'case-001')).toBe(1)
+    expect(normalizeInvestigationCustodyLossRefForFlag('!!!')).toBe('')
+  })
+
+  it('dedupes custody refs that collide on the same investigation flag suffix', () => {
+    const result = applyStealthLeaveBehindInvestigationCustodyLoss({
+      state: createStartingState(),
+      caseId: 'case-001',
+      leaveBehindId: 'leave-behind:abandon-evidence',
+      leaveBehindKind: 'abandon_evidence',
+      leaveBehindLabel: 'Abandon compromised evidence',
+      custodyLossRefs: ['custody:field-packet', 'custody/field/packet'],
+      week: 1,
+    })
+
+    expect(result.appliedRefs).toEqual(['custody:field-packet'])
+    expect(countInvestigationCustodyLossRefs(result.state, 'case-001')).toBe(1)
+    expect(
+      normalizeInvestigationCustodyLossRefForFlag('custody:field-packet')
+    ).toBe(normalizeInvestigationCustodyLossRefForFlag('custody/field/packet'))
+  })
+
+  it('blocks forensic questions when remaining budget is consumed by custody burden only', () => {
+    let state = createStartingState()
+    state = grantInvestigationQuestionBudget(state, {
+      caseId: 'case-001',
+      domain: 'forensic',
+      amount: 1,
+    })
+    state = applyStealthLeaveBehindInvestigationCustodyLoss({
+      state,
+      caseId: 'case-001',
+      leaveBehindId: 'leave-behind:burn-tool',
+      leaveBehindKind: 'burn_tool',
+      leaveBehindLabel: 'Burn field tool',
+      custodyLossRefs: ['custody:tool-serial'],
+      week: 1,
+    }).state
+
+    const asked = askInvestigationQuestion(state, {
+      caseId: 'case-001',
+      domain: 'forensic',
+      questionId: 'forensic.present-signature',
+    })
+
+    expect(asked.applied).toBe(false)
+    expect(asked.reason).toBe('budget_exhausted')
   })
 
   it('reduces forensic investigation budget headroom by custody-loss burden', () => {

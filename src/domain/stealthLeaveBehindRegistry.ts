@@ -5,6 +5,7 @@
  * with bounded discovery risk and custody-loss references. No weekly hook or UI yet.
  */
 
+import { normalizeInvestigationCustodyLossRefForFlag } from './investigationCustodyLoss'
 import { CONCEALMENT_ACTIVATION_TAGS } from './hiddenStateActivation'
 import { INFILTRATION_AUTHORITY_SCRUTINY_TAGS } from './infiltrationCover'
 import { clamp } from './math'
@@ -46,6 +47,8 @@ export type StealthLeaveBehindValidationCode =
   | 'invalid_discovery_risk'
   | 'empty_custody_loss_ref'
   | 'duplicate_custody_loss_ref'
+  | 'empty_custody_loss_flag_suffix'
+  | 'colliding_custody_loss_ref'
 
 export interface StealthLeaveBehindValidationIssue {
   readonly code: StealthLeaveBehindValidationCode
@@ -115,6 +118,7 @@ export function validateStealthLeaveBehindDefinition(
   }
 
   const seenCustodyRefs = new Set<string>()
+  const seenCustodyFlagSuffixes = new Set<string>()
   for (const ref of definition.custodyLossRefs) {
     const normalized = normalizeToken(ref)
     if (!normalized) {
@@ -132,8 +136,29 @@ export function validateStealthLeaveBehindDefinition(
         detail: `Leave-behind ${id || '(unknown)'} repeats custodyLossRef ${normalized}.`,
         relatedIds: id ? [id] : undefined,
       })
+      continue
+    }
+
+    seenCustodyRefs.add(normalized)
+
+    const flagSuffix = normalizeInvestigationCustodyLossRefForFlag(normalized)
+    if (!flagSuffix) {
+      pushIssue(issues, {
+        code: 'empty_custody_loss_flag_suffix',
+        detail: `Leave-behind ${id || '(unknown)'} custodyLossRef ${normalized} does not yield a stable flag suffix.`,
+        relatedIds: id ? [id] : undefined,
+      })
+      continue
+    }
+
+    if (seenCustodyFlagSuffixes.has(flagSuffix)) {
+      pushIssue(issues, {
+        code: 'colliding_custody_loss_ref',
+        detail: `Leave-behind ${id || '(unknown)'} declares custodyLossRefs that collide on flag suffix ${flagSuffix}.`,
+        relatedIds: id ? [id] : undefined,
+      })
     } else {
-      seenCustodyRefs.add(normalized)
+      seenCustodyFlagSuffixes.add(flagSuffix)
     }
   }
 

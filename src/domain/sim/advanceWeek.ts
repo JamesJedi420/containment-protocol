@@ -2367,7 +2367,8 @@ function resolveAssignments(
       stealthLeaveBehindMission?.active &&
       stealthLeaveBehindMission.leaveBehindId &&
       stealthLeaveBehindMission.kind &&
-      stealthLeaveBehindMission.leaveBehindLabel
+      stealthLeaveBehindMission.leaveBehindLabel &&
+      stealthLeaveBehindMission.custodyLossRefs.length > 0
     ) {
       const custodyLoss = applyStealthLeaveBehindInvestigationCustodyLoss({
         state: context.nextState,

@@ -41,13 +41,14 @@ function sanitizeCustodyRef(ref: string) {
   return ref.trim()
 }
 
-function normalizeRefForFlag(ref: string) {
+/** Stable flag suffix for a custody-loss ref (must match registry validation). */
+export function normalizeInvestigationCustodyLossRefForFlag(ref: string) {
   return sanitizeCustodyRef(ref).replace(/[^a-z0-9]+/gi, '-').replace(/^-+|-+$/g, '')
 }
 
 export function buildInvestigationCustodyLossFlagId(caseId: string, custodyLossRef: string) {
   const normalizedCaseId = sanitizeCaseId(caseId)
-  const normalizedRef = normalizeRefForFlag(custodyLossRef)
+  const normalizedRef = normalizeInvestigationCustodyLossRefForFlag(custodyLossRef)
 
   return `investigation.case.${normalizedCaseId}.custody-loss.${normalizedRef}`
 }
@@ -152,6 +153,7 @@ export function applyStealthLeaveBehindInvestigationCustodyLoss(
 
   let nextState = input.state
   const appliedRefs: string[] = []
+  const appliedFlagSuffixes = new Set<string>()
 
   for (const ref of input.custodyLossRefs) {
     const normalizedRef = sanitizeCustodyRef(ref)
@@ -159,7 +161,13 @@ export function applyStealthLeaveBehindInvestigationCustodyLoss(
       continue
     }
 
+    const flagSuffix = normalizeInvestigationCustodyLossRefForFlag(normalizedRef)
+    if (!flagSuffix || appliedFlagSuffixes.has(flagSuffix)) {
+      continue
+    }
+
     if (readInvestigationCustodyLossMarker(nextState, normalizedCaseId, normalizedRef)) {
+      appliedFlagSuffixes.add(flagSuffix)
       continue
     }
 
@@ -175,6 +183,7 @@ export function applyStealthLeaveBehindInvestigationCustodyLoss(
       buildInvestigationCustodyLossFlagId(normalizedCaseId, normalizedRef),
       serializeInvestigationCustodyLossMarker(marker)
     )
+    appliedFlagSuffixes.add(flagSuffix)
     appliedRefs.push(normalizedRef)
   }
 

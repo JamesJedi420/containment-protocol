@@ -145,11 +145,11 @@ Guard: only when `canPlayerSetConcealCaseFlag(case)`; no-op otherwise (mirror in
 
 ## Acceptance criteria
 
-- [ ] In-progress eligible case shows concealment prep with activation preview reason.
-- [ ] Player can set/clear `conceal.case.{caseId}` from case detail; next `resolveConcealmentActivation` reflects it.
-- [ ] Already-concealed cases do not offer bogus toggles.
-- [ ] `npm run lint` + `npm run test:run` green.
-- [ ] Plan linked from `planning/backlog.md` or SPE-70 comment when PR opens.
+- [x] In-progress eligible case shows concealment prep with activation preview reason.
+- [x] Player can set/clear `conceal.case.{caseId}` from case detail; next `resolveConcealmentActivation` reflects it.
+- [x] Already-concealed cases do not offer bogus toggles (panel hidden when `hiddenState` set).
+- [x] `npm run lint` + `npm run test:run` green (3518 tests).
+- [x] Plan linked from `planning/backlog.md`.
 
 ---
 

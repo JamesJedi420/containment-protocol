@@ -8,6 +8,7 @@ import {
   getInfiltrationStagePressure,
   isInfiltrationProbeEligible,
   readInfiltrationProbeState,
+  resolveInfiltrationThresholdEvents,
   resolveWeeklyInfiltrationProbeAction,
 } from '../domain/infiltrationProbe'
 import { caseTemplateMap } from '../domain/templates/caseTemplates'
@@ -53,6 +54,14 @@ describe('infiltrationProbe', () => {
     expect(access.nextState.awareness).toBeGreaterThan(baseline.awareness)
     expect(route.nextState.probeProgress).toBeGreaterThan(access.nextState.probeProgress)
     expect(route.nextState.awareness).toBeGreaterThan(access.nextState.awareness)
+  })
+
+  it('resolveInfiltrationThresholdEvents matches probe evaluation threshold summaries', () => {
+    const priorState = { probeProgress: 0.2, awareness: 0.5, stage: 'probing' as const }
+    const evaluation = evaluateInfiltrationProbe(priorState, 'probe_access')
+    const fromResolver = resolveInfiltrationThresholdEvents(priorState, evaluation.nextState)
+
+    expect(fromResolver).toEqual(evaluation.events)
   })
 
   it('fires awareness complication without requiring violent escalation', () => {

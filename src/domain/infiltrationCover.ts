@@ -6,12 +6,12 @@ import { clamp } from './math'
 import type { CaseInstance } from './models'
 import {
   AWARENESS_COMPLICATION_THRESHOLD,
-  type InfiltrationProbeState,
   type InfiltrationThresholdEvent,
   isInfiltrationProbeEligible,
   mergeInfiltrationProbeStateIntoCase,
   readInfiltrationProbeState,
-  VIOLENT_ESCALATION_THRESHOLD,
+  resolveInfiltrationStageAfterAwareness,
+  resolveInfiltrationThresholdEvents,
 } from './infiltrationProbe'
 
 export type InfiltrationCoverRole =
@@ -95,44 +95,6 @@ export function copyInfiltrationCoverProfile(
     ...profile,
     routeViolationTags: profile.routeViolationTags ? [...profile.routeViolationTags] : undefined,
   }
-}
-
-function resolveThresholdEvents(
-  priorState: InfiltrationProbeState,
-  nextState: InfiltrationProbeState
-): InfiltrationThresholdEvent[] {
-  const events: InfiltrationThresholdEvent[] = []
-  const priorAwareness = priorState.awareness
-  const priorStage = priorState.stage
-  const { awareness, stage } = nextState
-
-  if (
-    awareness >= AWARENESS_COMPLICATION_THRESHOLD &&
-    priorAwareness < AWARENESS_COMPLICATION_THRESHOLD
-  ) {
-    events.push({
-      kind: 'awareness_complication',
-      summary:
-        'Site awareness crossed the complication band; patrol focus or staff challenges may intensify without ending the operation.',
-    })
-    if (stage === 'exposed' && priorStage === 'probing') {
-      events.push({
-        kind: 'escalation_exposed',
-        summary:
-          'Cover strain is visible to local observers; behavior scrutiny and detection pressure increase.',
-      })
-    }
-  }
-
-  if (awareness >= VIOLENT_ESCALATION_THRESHOLD && priorStage !== 'violent' && stage === 'violent') {
-    events.push({
-      kind: 'escalation_violent',
-      summary:
-        'Infiltrator shifted from probing to overt violence or emergency escape as discovery risk spiked.',
-    })
-  }
-
-  return events
 }
 
 /**
@@ -237,27 +199,18 @@ export function applyWeeklyInfiltrationCoverPostureToCase(
   const nextAwareness = roundBand(
     clamp(priorState.awareness + posture.awarenessDelta, 0, 1)
   )
-  let stage = priorState.stage
-
-  if (
-    nextAwareness >= AWARENESS_COMPLICATION_THRESHOLD &&
-    priorState.awareness < AWARENESS_COMPLICATION_THRESHOLD &&
-    stage === 'probing'
-  ) {
-    stage = 'exposed'
-  }
-
-  if (nextAwareness >= VIOLENT_ESCALATION_THRESHOLD && priorState.stage !== 'violent') {
-    stage = 'violent'
-  }
-
-  const nextState: InfiltrationProbeState = {
+  const stage = resolveInfiltrationStageAfterAwareness(
+    priorState.stage,
+    priorState.awareness,
+    nextAwareness
+  )
+  const nextState = {
     probeProgress: priorState.probeProgress,
     awareness: nextAwareness,
     stage,
   }
 
-  const thresholdEvents = resolveThresholdEvents(priorState, nextState)
+  const thresholdEvents = resolveInfiltrationThresholdEvents(priorState, nextState)
   const merged = mergeInfiltrationProbeStateIntoCase(caseData, nextState)
   const events = [...posture.events, ...thresholdEvents]
   const changed =

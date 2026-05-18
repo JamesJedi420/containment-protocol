@@ -194,21 +194,38 @@ function roundBand(value: number) {
   return Math.round(value * 1000) / 1000
 }
 
-/**
- * Applies one infiltration action to probe/awareness tracks and returns threshold events.
- */
-export function evaluateInfiltrationProbe(
-  state: InfiltrationProbeState,
-  action: InfiltrationProbeAction
-): InfiltrationProbeEvaluation {
-  const events: InfiltrationThresholdEvent[] = []
-  const priorAwareness = state.awareness
-  const priorStage = state.stage
-  const delta = ACTION_DELTAS[action]
+/** Resolves infiltration stage after an awareness change (probe actions or cover posture). */
+export function resolveInfiltrationStageAfterAwareness(
+  priorStage: InfiltrationStage,
+  priorAwareness: number,
+  nextAwareness: number
+): InfiltrationStage {
+  let stage = priorStage
 
-  const probeProgress = roundBand(clamp(state.probeProgress + delta.probeProgress, 0, 1))
-  const awareness = roundBand(clamp(state.awareness + delta.awareness, 0, 1))
-  let stage = state.stage
+  if (
+    nextAwareness >= AWARENESS_COMPLICATION_THRESHOLD &&
+    priorAwareness < AWARENESS_COMPLICATION_THRESHOLD &&
+    stage === 'probing'
+  ) {
+    stage = 'exposed'
+  }
+
+  if (nextAwareness >= VIOLENT_ESCALATION_THRESHOLD && priorStage !== 'violent') {
+    stage = 'violent'
+  }
+
+  return stage
+}
+
+/** Emits threshold events when awareness or stage cross configured bands. */
+export function resolveInfiltrationThresholdEvents(
+  priorState: InfiltrationProbeState,
+  nextState: InfiltrationProbeState
+): InfiltrationThresholdEvent[] {
+  const events: InfiltrationThresholdEvent[] = []
+  const priorAwareness = priorState.awareness
+  const priorStage = priorState.stage
+  const { awareness, stage } = nextState
 
   if (
     awareness >= AWARENESS_COMPLICATION_THRESHOLD &&
@@ -219,8 +236,7 @@ export function evaluateInfiltrationProbe(
       summary:
         'Site awareness crossed the complication band; patrol focus or staff challenges may intensify without ending the operation.',
     })
-    if (stage === 'probing') {
-      stage = 'exposed'
+    if (stage === 'exposed' && priorStage === 'probing') {
       events.push({
         kind: 'escalation_exposed',
         summary:
@@ -229,8 +245,7 @@ export function evaluateInfiltrationProbe(
     }
   }
 
-  if (awareness >= VIOLENT_ESCALATION_THRESHOLD && priorStage !== 'violent') {
-    stage = 'violent'
+  if (awareness >= VIOLENT_ESCALATION_THRESHOLD && priorStage !== 'violent' && stage === 'violent') {
     events.push({
       kind: 'escalation_violent',
       summary:
@@ -238,9 +253,25 @@ export function evaluateInfiltrationProbe(
     })
   }
 
+  return events
+}
+
+/**
+ * Applies one infiltration action to probe/awareness tracks and returns threshold events.
+ */
+export function evaluateInfiltrationProbe(
+  state: InfiltrationProbeState,
+  action: InfiltrationProbeAction
+): InfiltrationProbeEvaluation {
+  const delta = ACTION_DELTAS[action]
+  const probeProgress = roundBand(clamp(state.probeProgress + delta.probeProgress, 0, 1))
+  const awareness = roundBand(clamp(state.awareness + delta.awareness, 0, 1))
+  const stage = resolveInfiltrationStageAfterAwareness(state.stage, state.awareness, awareness)
+  const nextState: InfiltrationProbeState = { probeProgress, awareness, stage }
+
   return {
-    nextState: { probeProgress, awareness, stage },
-    events,
+    nextState,
+    events: resolveInfiltrationThresholdEvents(state, nextState),
   }
 }
 

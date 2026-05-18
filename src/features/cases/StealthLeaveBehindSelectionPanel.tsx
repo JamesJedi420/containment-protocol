@@ -1,11 +1,18 @@
 import { useGameStore } from '../../app/store/gameStore'
 import type { CaseInstance } from '../../domain/models'
+import type { CasePrepPanelLayout } from './casePrepPanelLayout'
 import {
   buildStealthLeaveBehindSelectionView,
   type StealthLeaveBehindOptionView,
 } from './stealthLeaveBehindSelectionView'
 
-export function StealthLeaveBehindSelectionPanel({ caseData }: { caseData: CaseInstance }) {
+export function StealthLeaveBehindSelectionPanel({
+  caseData,
+  layout = 'standalone',
+}: {
+  caseData: CaseInstance
+  layout?: CasePrepPanelLayout
+}) {
   const game = useGameStore((state) => state.game)
   const selectStealthLeaveBehind = useGameStore((state) => state.selectStealthLeaveBehind)
   const view = buildStealthLeaveBehindSelectionView(caseData, game)
@@ -14,38 +21,40 @@ export function StealthLeaveBehindSelectionPanel({ caseData }: { caseData: CaseI
     return null
   }
 
-  return (
-    <article
-      className="panel panel-support space-y-3"
-      role="region"
-      aria-label="Stealth leave-behind tradeoff"
-    >
-      <div className="space-y-1">
-        <h3 className="text-lg font-semibold">Stealth leave-behind</h3>
-        <p className="text-xs uppercase tracking-wide opacity-50">Extraction tradeoff</p>
-      </div>
+  const embedded = layout === 'embedded'
+
+  const content = (
+    <>
+      {embedded ? null : (
+        <div className="space-y-1">
+          <h3 className="text-lg font-semibold">Stealth leave-behind</h3>
+          <p className="text-xs uppercase tracking-wide opacity-50">Extraction tradeoff</p>
+        </div>
+      )}
 
       <p className="text-sm opacity-60">
         Choose the extraction tradeoff before weekly resolution. Discovery risk feeds mission score
         pressure; custody refs strain forensic investigation budget after resolution.
       </p>
 
-      <div
-        className="rounded border border-sky-400/25 bg-sky-500/6 px-3 py-2 text-sm"
-        aria-label="Forensic investigation budget"
-      >
-        <p className="text-xs uppercase tracking-wide opacity-60">Forensic investigation budget</p>
-        <p className="mt-1">
-          <span className="opacity-60">Remaining:</span>{' '}
-          <span className="font-medium">{view.forensicBudget.remaining}</span>
-          <span className="opacity-50">
-            {' '}
-            (granted {view.forensicBudget.granted}, spent {view.forensicBudget.spent}, custody
-            burden {view.forensicBudget.custodyLossBurden}
-            {view.forensicBudget.markerCount === 1 ? ' marker' : ' markers'})
-          </span>
-        </p>
-      </div>
+      {embedded ? null : (
+        <div
+          className="rounded border border-sky-400/25 bg-sky-500/6 px-3 py-2 text-sm"
+          aria-label="Forensic investigation budget"
+        >
+          <p className="text-xs uppercase tracking-wide opacity-60">Forensic investigation budget</p>
+          <p className="mt-1">
+            <span className="opacity-60">Remaining:</span>{' '}
+            <span className="font-medium">{view.forensicBudget.remaining}</span>
+            <span className="opacity-50">
+              {' '}
+              (granted {view.forensicBudget.granted}, spent {view.forensicBudget.spent}, custody
+              burden {view.forensicBudget.custodyLossBurden}
+              {view.forensicBudget.markerCount === 1 ? ' marker' : ' markers'})
+            </span>
+          </p>
+        </div>
+      )}
 
       <ul className="space-y-2">
         {view.options.map((option) => (
@@ -64,6 +73,24 @@ export function StealthLeaveBehindSelectionPanel({ caseData }: { caseData: CaseI
           </li>
         ))}
       </ul>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="space-y-3" role="group" aria-label="Stealth leave-behind tradeoff">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <article
+      className="panel panel-support space-y-3"
+      role="region"
+      aria-label="Stealth leave-behind tradeoff"
+    >
+      {content}
     </article>
   )
 }

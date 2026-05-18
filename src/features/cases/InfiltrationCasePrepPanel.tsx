@@ -6,7 +6,15 @@ import {
   type InfiltrationProbeActionOptionView,
 } from './infiltrationCasePrepView'
 
-export function InfiltrationCasePrepPanel({ caseData }: { caseData: CaseInstance }) {
+import type { CasePrepPanelLayout } from './casePrepPanelLayout'
+
+export function InfiltrationCasePrepPanel({
+  caseData,
+  layout = 'standalone',
+}: {
+  caseData: CaseInstance
+  layout?: CasePrepPanelLayout
+}) {
   const setInfiltrationWeeklyProbeAction = useGameStore(
     (state) => state.setInfiltrationWeeklyProbeAction
   )
@@ -16,13 +24,11 @@ export function InfiltrationCasePrepPanel({ caseData }: { caseData: CaseInstance
     return null
   }
 
-  return (
-    <article
-      className="panel panel-support space-y-4"
-      role="region"
-      aria-label="Infiltration case prep"
-    >
-      <PanelHeader />
+  const embedded = layout === 'embedded'
+
+  const content = (
+    <>
+      {embedded ? null : <PanelHeader />}
 
       <p className="text-sm opacity-60">
         Review probe tracks and cover posture before weekly resolution. Override the next weekly
@@ -77,6 +83,24 @@ export function InfiltrationCasePrepPanel({ caseData }: { caseData: CaseInstance
           </button>
         ) : null}
       </section>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="space-y-4" role="group" aria-label="Infiltration case prep">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <article
+      className="panel panel-support space-y-4"
+      role="region"
+      aria-label="Infiltration case prep"
+    >
+      {content}
     </article>
   )
 }

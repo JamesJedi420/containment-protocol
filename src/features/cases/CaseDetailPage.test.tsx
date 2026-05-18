@@ -155,19 +155,18 @@ it('shows concealment prep and toggles covert posture flag', async () => {
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-conceal-ui')
 
-  const panel = screen.getByRole('region', { name: /concealment case prep/i })
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
-  expect(within(panel).getByRole('heading', { name: /concealment prep/i })).toBeInTheDocument()
-  expect(within(panel).getByText(/next weekly tick will mark this case as hidden/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getByText(/next weekly tick will mark this case as hidden/i)).toBeInTheDocument()
 
-  await user.click(within(panel).getByRole('button', { name: /request covert posture/i }))
+  await user.click(within(weeklyPrep).getByRole('button', { name: /request covert posture/i }))
 
   expect(
     useGameStore.getState().game.runtimeState?.globalFlags?.['conceal.case.case-conceal-ui'] ??
       useGameStore.getState().game.globalFlags?.['conceal.case.case-conceal-ui']
   ).toBeTruthy()
 
-  await user.click(within(panel).getByRole('button', { name: /clear covert request/i }))
+  await user.click(within(weeklyPrep).getByRole('button', { name: /clear covert request/i }))
 
   const flag =
     useGameStore.getState().game.runtimeState?.globalFlags?.['conceal.case.case-conceal-ui'] ??
@@ -199,20 +198,19 @@ it('shows infiltration prep and sets weekly probe action override', async () => 
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-stealth-ui')
 
-  const panel = screen.getByRole('region', { name: /infiltration case prep/i })
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
-  expect(within(panel).getByRole('heading', { name: /infiltration prep/i })).toBeInTheDocument()
-  expect(within(panel).getByText(/probe progress 20%/i)).toBeInTheDocument()
-  expect(within(panel).getByText(/uniform guard/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getByText(/probe progress 20%/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getByText(/uniform guard/i)).toBeInTheDocument()
 
-  const cleanupRow = within(panel).getByText(/clean up cover/i).closest('li')
+  const cleanupRow = within(weeklyPrep).getByText(/clean up cover/i).closest('li')
   expect(cleanupRow).not.toBeNull()
   await user.click(within(cleanupRow as HTMLElement).getByRole('button', { name: /^select$/i }))
 
   expect(
     useGameStore.getState().game.cases['case-stealth-ui']?.infiltrationWeeklyProbeActionOverride
   ).toBe('cleanup')
-  expect(within(panel).getByRole('button', { name: /use plan default/i })).toBeInTheDocument()
+  expect(within(weeklyPrep).getByRole('button', { name: /use plan default/i })).toBeInTheDocument()
 })
 
 it('shows stealth leave-behind tradeoff selection for eligible in-progress hidden cases', async () => {
@@ -235,19 +233,18 @@ it('shows stealth leave-behind tradeoff selection for eligible in-progress hidde
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-stealth-ui')
 
-  const panel = screen.getByRole('region', { name: /stealth leave-behind tradeoff/i })
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
-  expect(within(panel).getByRole('heading', { name: /stealth leave-behind/i })).toBeInTheDocument()
-  expect(within(panel).getByLabelText(/forensic investigation budget/i)).toBeInTheDocument()
-  expect(within(panel).getByText(/leave forensic trace/i)).toBeInTheDocument()
-  expect(within(panel).getByRole('button', { name: /selected/i })).toBeInTheDocument()
+  expect(within(weeklyPrep).getAllByLabelText(/forensic investigation budget/i)).toHaveLength(1)
+  expect(within(weeklyPrep).getByText(/leave forensic trace/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getByRole('button', { name: /selected/i })).toBeInTheDocument()
 
-  const burnRow = within(panel).getByText(/burn field tool/i).closest('li')
+  const burnRow = within(weeklyPrep).getByText(/burn field tool/i).closest('li')
   expect(burnRow).not.toBeNull()
   await user.click(within(burnRow as HTMLElement).getByRole('button', { name: /^select$/i }))
 
-  expect(within(panel).getByText(/burn field tool/i)).toBeInTheDocument()
-  expect(within(panel).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
+  expect(within(weeklyPrep).getByText(/burn field tool/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
   expect(useGameStore.getState().game.cases['case-stealth-ui']?.stealthLeaveBehindId).toBe(
     'leave-behind:burn-tool'
   )
@@ -276,9 +273,9 @@ it('shows investigation question prep and asks a forensic question', async () =>
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-investigation-ui')
 
-  const panel = screen.getByRole('region', { name: /investigation question prep/i })
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
+  const panel = within(weeklyPrep).getByRole('group', { name: /investigation question prep/i })
 
-  expect(within(panel).getByRole('heading', { name: /investigation questions/i })).toBeInTheDocument()
   expect(within(panel).getByText(/concrete signature is present/i)).toBeInTheDocument()
 
   const forensicSection = within(panel).getByRole('region', { name: /forensic inquiry/i })
@@ -314,7 +311,8 @@ it('shows investigation prep empty state when no budget is granted yet', () => {
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-investigation-ui')
 
-  const panel = screen.getByRole('region', { name: /investigation question prep/i })
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
+  const panel = within(weeklyPrep).getByRole('group', { name: /investigation question prep/i })
 
   expect(within(panel).getByText(/no investigation budget on this case yet/i)).toBeInTheDocument()
   expect(within(panel).queryByRole('region', { name: /forensic inquiry/i })).not.toBeInTheDocument()
@@ -333,7 +331,7 @@ it('hides investigation question prep when the case is not in progress', () => {
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-investigation-ui')
 
-  expect(screen.queryByRole('region', { name: /investigation question prep/i })).not.toBeInTheDocument()
+  expect(screen.queryByRole('group', { name: /investigation question prep/i })).not.toBeInTheDocument()
 })
 
 it('hides stealth leave-behind tradeoff when the case is not eligible', () => {
@@ -353,7 +351,7 @@ it('hides stealth leave-behind tradeoff when the case is not eligible', () => {
   useGameStore.setState({ game })
   renderCaseDetail('/cases/case-stealth-ui')
 
-  expect(screen.queryByRole('region', { name: /stealth leave-behind tradeoff/i })).not.toBeInTheDocument()
+  expect(screen.queryByRole('group', { name: /stealth leave-behind tradeoff/i })).not.toBeInTheDocument()
 })
 
 it('shows pre-commit injury, death, and downtime warnings for available teams', () => {

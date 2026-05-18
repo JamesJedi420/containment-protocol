@@ -7,7 +7,15 @@ import {
   type InvestigationQuestionRowView,
 } from './investigationCasePrepView'
 
-export function InvestigationCasePrepPanel({ caseData }: { caseData: CaseInstance }) {
+import type { CasePrepPanelLayout } from './casePrepPanelLayout'
+
+export function InvestigationCasePrepPanel({
+  caseData,
+  layout = 'standalone',
+}: {
+  caseData: CaseInstance
+  layout?: CasePrepPanelLayout
+}) {
   const game = useGameStore((state) => state.game)
   const askInvestigationQuestion = useGameStore((state) => state.askInvestigationQuestion)
   const view = buildInvestigationCasePrepView(caseData, game)
@@ -16,19 +24,16 @@ export function InvestigationCasePrepPanel({ caseData }: { caseData: CaseInstanc
     return null
   }
 
+  const embedded = layout === 'embedded'
   const hasAnyBudget =
     view.forensic.budget.granted > 0 ||
     view.forensic.budget.spent > 0 ||
     view.tactical.budget.granted > 0 ||
     view.tactical.budget.spent > 0
 
-  return (
-    <article
-      className="panel panel-support space-y-4"
-      role="region"
-      aria-label="Investigation question prep"
-    >
-      <PanelHeader />
+  const content = (
+    <>
+      {embedded ? null : <PanelHeader />}
 
       <p className="text-sm opacity-60">
         Spend investigation question budget before weekly resolution. Forensic custody strain from
@@ -44,7 +49,7 @@ export function InvestigationCasePrepPanel({ caseData }: { caseData: CaseInstanc
         <>
           <InvestigationDomainSection
             domainView={view.forensic}
-            showCustodyBurden
+            showCustodyBurden={!embedded}
             onAsk={(questionId) => askInvestigationQuestion(caseData.id, 'forensic', questionId)}
           />
 
@@ -73,6 +78,24 @@ export function InvestigationCasePrepPanel({ caseData }: { caseData: CaseInstanc
           </ul>
         </section>
       ) : null}
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="space-y-4" role="group" aria-label="Investigation question prep">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <article
+      className="panel panel-support space-y-4"
+      role="region"
+      aria-label="Investigation question prep"
+    >
+      {content}
     </article>
   )
 }

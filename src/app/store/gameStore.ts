@@ -86,6 +86,10 @@ import { applyChapterBreakAttritionReset } from '../../domain/agent/attritionRes
 import { applyRotatingRosterContinuityReconciliation } from '../../domain/agent/rosterContinuity'
 import { advanceWeek } from '../../domain/sim/advanceWeek'
 import { assignTeam, launchMajorIncident, unassignTeam } from '../../domain/sim/assign'
+import {
+  askInvestigationQuestion as applyAskInvestigationQuestion,
+  type InvestigationQuestionDomain,
+} from '../../domain/investigationEconomy'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
@@ -223,6 +227,12 @@ interface GameStore {
   unassign: (caseId: Id, teamId?: Id) => void
   /** SPE-2247: set stealth leave-behind tradeoff on an eligible in-progress infiltration case. */
   selectStealthLeaveBehind: (caseId: Id, leaveBehindId: string) => void
+  /** SPE-626: ask a forensic or tactical investigation question on an in-progress case. */
+  askInvestigationQuestion: (
+    caseId: Id,
+    domain: InvestigationQuestionDomain,
+    questionId: string
+  ) => void
   hireCandidate: (candidateId: Id) => void
   scoutCandidate: (candidateId: Id) => void
   transitionCandidateFunnel: (
@@ -1129,6 +1139,20 @@ export const useGameStore = create<GameStore>()(
       selectStealthLeaveBehind: (caseId, leaveBehindId) =>
         set((s) => {
           const result = applyStealthLeaveBehindSelection(s.game, { caseId, leaveBehindId })
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
+      askInvestigationQuestion: (caseId, domain, questionId) =>
+        set((s) => {
+          const result = applyAskInvestigationQuestion(s.game, {
+            caseId,
+            domain,
+            questionId,
+          })
           if (!result.applied) {
             return { game: s.game }
           }

@@ -113,7 +113,7 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 
 ## Runner-up (next after this)
 
-1. **Infiltration case prep panel** — probe progress, awareness, stage, cover posture summary, optional weekly probe action override (SPE-521 deferred UX).
+1. ~~**Infiltration case prep panel**~~ — shipped; see `planning/infiltration-case-prep-slice.md`.
 2. **SPE-1464** — branch/path continuity validation (backlog near-term hint).
 3. **Hidden activation expansion** — backlog #1; broader than case-detail slice.
 

@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { createStartingState } from '../../data/startingState'
 import { useGameStore } from '../../app/store/gameStore'
+import { createStarterCase } from '../../domain/templates/startingCases'
 import CaseDetailPage from './CaseDetailPage'
 
 function renderCaseDetail(route = '/cases/case-001') {
@@ -128,6 +129,64 @@ it('renders assignment timeline events for the selected case only', () => {
     'href',
     '/teams/t_nightwatch'
   )
+})
+
+it('shows stealth leave-behind tradeoff selection for eligible in-progress hidden cases', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+
+  game.cases['case-stealth-ui'] = {
+    ...createStarterCase({ id: 'case-stealth-ui', templateId: 'ops-003' }),
+    title: 'Archive Access Siege',
+    status: 'in_progress',
+    hiddenState: 'hidden',
+    detectionConfidence: 0.25,
+    counterDetection: false,
+    tags: ['infiltration', 'archive', 'records'],
+    requiredTags: [],
+    preferredTags: [],
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-stealth-ui')
+
+  const panel = screen.getByRole('region', { name: /stealth leave-behind tradeoff/i })
+
+  expect(within(panel).getByRole('heading', { name: /stealth leave-behind/i })).toBeInTheDocument()
+  expect(within(panel).getByLabelText(/forensic investigation budget/i)).toBeInTheDocument()
+  expect(within(panel).getByText(/leave forensic trace/i)).toBeInTheDocument()
+  expect(within(panel).getByRole('button', { name: /selected/i })).toBeInTheDocument()
+
+  const burnRow = within(panel).getByText(/burn field tool/i).closest('li')
+  expect(burnRow).not.toBeNull()
+  await user.click(within(burnRow as HTMLElement).getByRole('button', { name: /^select$/i }))
+
+  expect(within(panel).getByText(/burn field tool/i)).toBeInTheDocument()
+  expect(within(panel).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
+  expect(useGameStore.getState().game.cases['case-stealth-ui']?.stealthLeaveBehindId).toBe(
+    'leave-behind:burn-tool'
+  )
+})
+
+it('hides stealth leave-behind tradeoff when the case is not eligible', () => {
+  const game = createStartingState()
+
+  game.cases['case-stealth-ui'] = {
+    ...createStarterCase({ id: 'case-stealth-ui', templateId: 'ops-003' }),
+    title: 'Archive Access Siege',
+    status: 'open',
+    hiddenState: 'hidden',
+    detectionConfidence: 0.25,
+    counterDetection: false,
+    tags: ['infiltration', 'archive', 'records'],
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-stealth-ui')
+
+  expect(screen.queryByRole('region', { name: /stealth leave-behind tradeoff/i })).not.toBeInTheDocument()
 })
 
 it('shows pre-commit injury, death, and downtime warnings for available teams', () => {

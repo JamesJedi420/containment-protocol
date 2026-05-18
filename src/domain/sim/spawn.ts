@@ -129,6 +129,8 @@ export function instantiateFromTemplate(
   usedIds: Set<string> = new Set(),
   week = 1
 ): CaseInstance {
+  const concealmentTriggers = template.concealmentTriggers
+
   const instantiated: CaseInstance = {
     id: nextId(usedIds, rng),
     templateId: template.templateId,
@@ -156,6 +158,10 @@ export function instantiateFromTemplate(
     onFail: { ...template.onFail },
     onUnresolved: { ...template.onUnresolved },
     raid: template.raid,
+    concealmentTriggers:
+      concealmentTriggers !== undefined && concealmentTriggers.length > 0
+        ? [...concealmentTriggers]
+        : undefined,
   }
 
   return applySiteGenerationToCase({

@@ -44,6 +44,21 @@ describe('spawn flows', () => {
     expect(caseA.stage).toBe(1)
   })
 
+  it('copies normalized concealment triggers from catalog templates onto spawned cases', () => {
+    const state = createStartingState()
+    const template = state.templates['ops-004']
+
+    const caseInstance = instantiateFromTemplate(template, () => 0.25, new Set())
+
+    expect(caseInstance.concealmentTriggers).toEqual([
+      {
+        id: 'trigger:ops-004-briefing-cover',
+        mode: 'hidden',
+        when: { anyTag: ['media', 'public'] },
+      },
+    ])
+  })
+
   it('fills missing optional tag lists when instantiating a template', () => {
     const template: CaseTemplate = {
       templateId: 'custom-001',

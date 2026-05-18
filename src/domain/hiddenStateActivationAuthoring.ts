@@ -1,7 +1,7 @@
 /**
  * SPE-2113: normalize authored concealment activation triggers for case content JSON.
  *
- * Does not scan content packs, register CI lint, or wire loaders — callers pass authored rows.
+ * Case templates normalize authored rows in `buildCaseTemplateCatalog`; spawn copies them onto cases.
  */
 
 import type {
@@ -151,6 +151,18 @@ function slimAuthoredTrigger(
   }
 
   return trigger
+}
+
+/** Normalizes optional template-authored rows; returns `undefined` when the catalog omits triggers. */
+export function resolveConcealmentTriggersForTemplate(
+  authoredTriggers: readonly AuthoredConcealmentActivationTrigger[] | undefined
+): readonly ConcealmentActivationTrigger[] | undefined {
+  if (authoredTriggers === undefined) {
+    return undefined
+  }
+
+  const normalized = buildConcealmentActivationTriggersFromAuthored(authoredTriggers)
+  return normalized.length > 0 ? normalized : undefined
 }
 
 export function buildConcealmentActivationTriggersFromAuthored(

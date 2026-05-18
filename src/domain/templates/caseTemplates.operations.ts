@@ -16,6 +16,13 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 3,
     tags: ['cyber', 'relay', 'evidence', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-001-ghost-relay',
+        mode: 'hidden',
+        when: { anyTag: ['relay', 'cyber'] },
+      },
+    ],
     requiredTags: ['tech'],
     preferredTags: ['analyst', 'field-kit'],
     onFail: {
@@ -44,8 +51,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['interview', 'memory', 'civilian', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-002-disinfo-cover',
+        mode: 'hidden',
+        when: { anyTag: ['interview', 'memory'] },
+      },
+    ],
     requiredTags: ['negotiator'],
-    preferredTags: ['medium', 'investigator'],
+    preferredTags: ['medium', 'investigator', 'disguise'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -72,8 +86,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 3,
     tags: ['archive', 'records', 'forensics', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-003-vault-approach',
+        mode: 'hidden',
+        when: { allTags: ['archive', 'records'] },
+      },
+    ],
     requiredTags: ['investigator'],
-    preferredTags: ['tech', 'forensics'],
+    preferredTags: ['tech', 'forensics', 'stealth'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -99,9 +120,16 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     weights: { combat: 0.05, investigation: 0.2, utility: 0.15, social: 0.6 },
     durationWeeks: 1,
     deadlineWeeks: 2,
-    tags: ['media', 'public', 'containment', 'tier-1'],
+    tags: ['media', 'public', 'containment', 'covert', 'tier-1'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-004-briefing-cover',
+        mode: 'hidden',
+        when: { anyTag: ['media', 'public'] },
+      },
+    ],
     requiredTags: ['medium'],
-    preferredTags: ['negotiator', 'liaison'],
+    preferredTags: ['negotiator', 'liaison', 'infiltration'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

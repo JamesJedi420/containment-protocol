@@ -295,12 +295,8 @@ function normalizeToken(value: string) {
   return value.trim()
 }
 
-function normalizeReliability(value: number) {
-  if (!Number.isFinite(value)) {
-    return Number.NaN
-  }
-
-  return Number(Math.max(0, Math.min(1, value)).toFixed(4))
+function isRawReliabilityValid(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
 }
 
 function authorityTierRank(tier: AutomationAuthorityTier) {
@@ -547,14 +543,14 @@ export function validateAutomationEntry(
   }
 
   for (const sensor of entry.sensorSuite) {
-    const reliability = normalizeReliability(sensor.reliability)
-    if (!Number.isFinite(reliability)) {
+    if (!isRawReliabilityValid(sensor.reliability)) {
       pushIssue(issues, {
         code: 'invalid_sensor_reliability',
         severity: 'error',
         detail: `Sensor ${sensor.sensorId} reliability must be a finite number between 0 and 1.`,
         relatedIds: uniqueSorted([id, sensor.sensorId]),
       })
+      continue
     }
 
     for (const token of [sensor.sensorId, sensor.channel]) {

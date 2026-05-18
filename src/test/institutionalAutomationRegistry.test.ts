@@ -135,6 +135,54 @@ describe('institutionalAutomationRegistry slice 1 (SPE-2101)', () => {
     ).toBe(true)
   })
 
+  it('rejects sensor reliability below 0 before normalization', () => {
+    const result = validateAutomationEntry(
+      baseEntry({
+        sensorSuite: [{ sensorId: 'sensor:thermal-1', channel: 'thermal', reliability: -0.2 }],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'invalid_sensor_reliability')).toBe(true)
+  })
+
+  it('rejects sensor reliability above 1 before normalization', () => {
+    for (const reliability of [1.5, 1.8]) {
+      const result = validateAutomationEntry(
+        baseEntry({
+          sensorSuite: [{ sensorId: 'sensor:thermal-1', channel: 'thermal', reliability }],
+        })
+      )
+
+      expect(result.valid).toBe(false)
+      expect(result.issues.some((issue) => issue.code === 'invalid_sensor_reliability')).toBe(true)
+    }
+  })
+
+  it('accepts sensor reliability at 0 and 1', () => {
+    for (const reliability of [0, 1]) {
+      const result = validateAutomationEntry(
+        baseEntry({
+          sensorSuite: [{ sensorId: 'sensor:thermal-1', channel: 'thermal', reliability }],
+        })
+      )
+
+      expect(result.issues.some((issue) => issue.code === 'invalid_sensor_reliability')).toBe(false)
+    }
+  })
+
+  it('rejects malformed non-number sensor reliability without throwing', () => {
+    const entry = baseEntry({
+      sensorSuite: [{ sensorId: 'sensor:thermal-1', channel: 'thermal', reliability: 0.5 }],
+    })
+    ;(entry.sensorSuite[0] as { reliability: unknown }).reliability = 'bad'
+
+    expect(() => validateAutomationEntry(entry)).not.toThrow()
+    const result = validateAutomationEntry(entry)
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'invalid_sensor_reliability')).toBe(true)
+  })
+
   it('5. objective-truth output without confidence errors', () => {
     const validObjective = validateAutomationEntry(
       baseEntry({

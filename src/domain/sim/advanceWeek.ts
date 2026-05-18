@@ -2080,7 +2080,7 @@ function applyWeeklyConcealmentActivation(
   const globalFlags = context.nextState.globalFlags ?? context.sourceState.globalFlags ?? {}
   const activatedCase = applyConcealmentActivationToCase(caseData, {
     globalFlags,
-    hiddenModifierCount: countCaseHiddenModifiers(caseData),
+    hiddenModifierCount: countCaseHiddenModifiers(caseData, caseData.mapLayer),
   })
 
   if (activatedCase !== caseData) {

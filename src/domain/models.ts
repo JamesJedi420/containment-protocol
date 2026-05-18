@@ -1319,6 +1319,11 @@ export interface CaseInstance {
   counterDetection?: boolean
   displacementTarget?: Id | null
   route?: string | null
+  /** SPE-521 slice 1: covert objective progress while under cover (0–1). */
+  infiltrationProbeProgress?: number
+  /** SPE-521 slice 1: accumulated site awareness while infiltrating (0–1). */
+  infiltrationAwareness?: number
+  infiltrationStage?: 'probing' | 'exposed' | 'violent'
 
   onFail: SpawnRule
   onUnresolved: SpawnRule

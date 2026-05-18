@@ -572,6 +572,18 @@ const supportShortfallSchema = z
   })
   .strict()
 
+const infiltrationProbeEventSchema = z
+  .object({
+    week: weekSchema,
+    caseId: idSchema,
+    caseTitle: z.string(),
+    summary: z.string(),
+    infiltrationAwareness: z.number().optional(),
+    infiltrationProbeProgress: z.number().optional(),
+    infiltrationStage: z.enum(['probing', 'exposed', 'violent']).optional(),
+  })
+  .strict()
+
 const systemAcademyUpgradedSchema = z
   .object({
     week: weekSchema,
@@ -643,6 +655,9 @@ export const operationEventPayloadSchemas = {
   }),
   'directive.applied': directiveAppliedSchema,
   'support.shortfall': supportShortfallSchema,
+  'infiltration.awareness_complication': infiltrationProbeEventSchema,
+  'infiltration.escalation_exposed': infiltrationProbeEventSchema,
+  'infiltration.escalation_violent': infiltrationProbeEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
   'case.aggregate_battle': z.object({}).passthrough(),

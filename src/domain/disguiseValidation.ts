@@ -1,5 +1,6 @@
 import { clamp } from './math'
 import type { Agent, CaseInstance, Id } from './models'
+import { getInfiltrationAwarenessPressure } from './infiltrationProbe'
 import { hasEffectiveCountermeasure } from './resistances'
 
 const AUTHORITY_SCRUTINY_TAGS = ['public', 'media', 'court']
@@ -24,6 +25,8 @@ export interface BehaviorWeightedDisguiseValidationContext {
   supportTags?: string[]
   teamTags?: string[]
   leaderId?: Id | null
+  /** SPE-521: optional override; defaults to case infiltration awareness when present. */
+  infiltrationAwareness?: number
 }
 
 export interface BehaviorWeightedDisguiseValidationResult {
@@ -147,9 +150,23 @@ export function evaluateBehaviorWeightedDisguiseValidation(
     typeof caseData.detectionConfidence === 'number'
       ? clamp(caseData.detectionConfidence, 0, 1)
       : 0
+  const infiltrationAwareness = clamp(
+    context.infiltrationAwareness ?? getInfiltrationAwarenessPressure(caseData),
+    0,
+    1
+  )
+  const infiltrationStagePressure =
+    caseData.infiltrationStage === 'violent'
+      ? 1
+      : caseData.infiltrationStage === 'exposed'
+        ? 0.5
+        : infiltrationAwareness >= 0.55
+          ? 0.5
+          : 0
   const counterDetectionPressure =
     (caseData.counterDetection ? 1 : 0) +
     (priorDetectionConfidence >= DETECTION_CONFIDENCE_PRESSURE_THRESHOLD ? 1 : 0) +
+    infiltrationStagePressure +
     (hasEffectiveCountermeasure({ family: 'deception', presentTags: observerTags }) ? 0.5 : 0)
 
   if (validationScore < ESCALATION_VALIDATION_SCORE_THRESHOLD) {

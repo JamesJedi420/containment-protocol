@@ -120,6 +120,7 @@ export const operationsCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.45,
     },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     requiredTags: ['investigator'],
     preferredTags: ['tech', 'forensics', 'stealth', 'covert', 'infiltration'],
     onFail: {
@@ -164,6 +165,7 @@ export const operationsCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.4,
     },
+    stealthLeaveBehindId: 'leave-behind:expose-witness',
     requiredTags: ['medium'],
     preferredTags: ['negotiator', 'liaison', 'infiltration'],
     onFail: {

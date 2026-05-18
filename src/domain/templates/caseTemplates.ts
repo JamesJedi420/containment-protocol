@@ -11,6 +11,7 @@ import {
   buildInfiltrationProbePlanFromAuthored,
   type AuthoredInfiltrationProbePlan,
 } from '../infiltrationProbeAuthoring'
+import { getStealthLeaveBehindById, DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY } from '../stealthLeaveBehindRegistry'
 import { TEAM_COVERAGE_ROLES, type CaseTemplate, type TeamCoverageRole } from '../models'
 import { normalizeSpawnRule } from '../spawnRules'
 import { occultCaseTemplates } from './caseTemplates.occult'
@@ -771,6 +772,7 @@ function cloneTemplate(
       concealmentTriggers.length > 0 ? concealmentTriggers : undefined,
     infiltrationProbePlan,
     infiltrationCoverProfile,
+    stealthLeaveBehindId: template.stealthLeaveBehindId?.trim() || undefined,
   }
 }
 
@@ -826,6 +828,19 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
       errors.push(
         `Template ${template.templateId} declares infiltrationProbePlan without a valid infiltrationCoverProfile.`
       )
+    }
+
+    if (template.stealthLeaveBehindId !== undefined) {
+      const leaveBehindId = template.stealthLeaveBehindId.trim()
+      if (!leaveBehindId) {
+        errors.push(`Template ${template.templateId} declares blank stealthLeaveBehindId.`)
+      } else if (
+        !getStealthLeaveBehindById(DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY, leaveBehindId)
+      ) {
+        errors.push(
+          `Template ${template.templateId} references unknown stealthLeaveBehindId ${leaveBehindId}.`
+        )
+      }
     }
 
     if (template.concealmentTriggers !== undefined) {

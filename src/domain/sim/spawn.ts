@@ -166,6 +166,7 @@ export function instantiateFromTemplate(
         : undefined,
     infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
     infiltrationCoverProfile: copyInfiltrationCoverProfile(template.infiltrationCoverProfile),
+    stealthLeaveBehindId: template.stealthLeaveBehindId?.trim() || undefined,
   }
 
   return applySiteGenerationToCase({

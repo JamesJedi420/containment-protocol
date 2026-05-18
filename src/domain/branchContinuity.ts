@@ -26,6 +26,8 @@ export interface BranchPathFacts {
   simulationTruth?: BranchSimulationTruth
 }
 
+export type BranchSeedValue = string | number | boolean
+
 export interface BranchNodeRequirements {
   anyItemIds?: readonly string[]
   allItemIds?: readonly string[]
@@ -36,6 +38,17 @@ export interface BranchNodeRequirements {
   learnedClueIds?: readonly string[]
   priorChoiceIds?: readonly string[]
   requiredRecordRevisionIds?: readonly string[]
+  /**
+   * Exact key→value match against `BranchPathFacts.seedValues`.
+   * Use full global-flag ids (e.g. `branch.seed.doorCode`) when auditing from GameState projection.
+   */
+  requiredSeedValues?: Readonly<Record<string, BranchSeedValue>>
+  /**
+   * At least one listed key must exist in `BranchPathFacts.seedValues` (presence only).
+   * Does not require truthy values — `false` or `0` still satisfies. Prefer `requiredSeedValues`
+   * when the node needs a specific flag value.
+   */
+  anyRequiredSeedKeys?: readonly string[]
 }
 
 export interface BranchPlayerKnowledgeAssumption {
@@ -66,6 +79,7 @@ export interface BranchCorrectedRecord {
 
 export type BranchContinuityWarningClass =
   | 'missing_item'
+  | 'missing_seed_prerequisite'
   | 'companion_status_mismatch'
   | 'missing_prior_choice'
   | 'injury_contradiction'
@@ -110,6 +124,7 @@ export interface BranchContinuityValidationInput {
 
 const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
   'missing_item',
+  'missing_seed_prerequisite',
   'companion_status_mismatch',
   'missing_prior_choice',
   'injury_contradiction',
@@ -119,6 +134,7 @@ const ERROR_WARNING_CLASSES = new Set<BranchContinuityWarningClass>([
 
 const WARNING_CLASS_ORDER: readonly BranchContinuityWarningClass[] = [
   'missing_item',
+  'missing_seed_prerequisite',
   'companion_status_mismatch',
   'missing_prior_choice',
   'injury_contradiction',
@@ -196,6 +212,34 @@ function hasLearnedClue(pathFacts: BranchPathFacts, clueId: string) {
 
 function hasPriorChoice(pathFacts: BranchPathFacts, choiceId: string) {
   return pathFacts.priorChoiceIds.includes(choiceId)
+}
+
+function isBranchSeedValue(value: unknown): value is BranchSeedValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (typeof value === 'number' && Number.isFinite(value))
+  )
+}
+
+function seedValuesMatch(actual: BranchSeedValue | undefined, required: BranchSeedValue) {
+  if (actual === undefined) {
+    return false
+  }
+
+  if (typeof actual !== typeof required) {
+    return false
+  }
+
+  if (typeof required === 'number') {
+    return Math.trunc(actual as number) === Math.trunc(required)
+  }
+
+  return actual === required
+}
+
+function hasSeedKey(pathFacts: BranchPathFacts, seedKey: string) {
+  return Object.prototype.hasOwnProperty.call(pathFacts.seedValues, seedKey)
 }
 
 function isHiddenSimulationEvent(pathFacts: BranchPathFacts, eventId: string) {
@@ -423,6 +467,55 @@ function validateRequires(
         detailKey: `revision:${revisionId}`,
       })
     }
+  }
+
+  const requiredSeedEntries = Object.entries(requires.requiredSeedValues ?? {})
+    .map(([seedKey, seedValue]) => [normalizeString(seedKey), seedValue] as const)
+    .filter(([seedKey]) => seedKey.length > 0)
+    .sort(([left], [right]) => left.localeCompare(right))
+
+  for (const [seedKey, requiredValue] of requiredSeedEntries) {
+    if (!isBranchSeedValue(requiredValue)) {
+      continue
+    }
+
+    const actualValue = pathFacts.seedValues[seedKey]
+    if (seedValuesMatch(actualValue, requiredValue)) {
+      continue
+    }
+
+    const actualLabel =
+      actualValue === undefined
+        ? 'unset'
+        : typeof actualValue === 'string'
+          ? actualValue
+          : String(actualValue)
+
+    pushWarning(warnings, {
+      pathId,
+      nodeId,
+      warningClass: 'missing_seed_prerequisite',
+      audience: 'simulation',
+      summary: `Node requires seed ${seedKey}=${String(requiredValue)}, but the path has ${actualLabel}.`,
+      relatedIds: [seedKey],
+      detailKey: `seed:${seedKey}`,
+    })
+  }
+
+  const anyRequiredSeedKeys = normalizeStringList(requires.anyRequiredSeedKeys)
+  if (
+    anyRequiredSeedKeys.length > 0 &&
+    !anyRequiredSeedKeys.some((seedKey) => hasSeedKey(pathFacts, seedKey))
+  ) {
+    pushWarning(warnings, {
+      pathId,
+      nodeId,
+      warningClass: 'missing_seed_prerequisite',
+      audience: 'simulation',
+      summary: `Node requires at least one seed key among ${anyRequiredSeedKeys.join(', ')}, but the path has none.`,
+      relatedIds: anyRequiredSeedKeys,
+      detailKey: `any-seed:${anyRequiredSeedKeys.join('|')}`,
+    })
   }
 }
 

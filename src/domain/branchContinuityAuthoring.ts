@@ -21,6 +21,7 @@ import type {
   BranchContinuityNode,
   BranchNodeRequirements,
   BranchPlayerKnowledgeAssumption,
+  BranchSeedValue,
 } from './branchContinuity'
 
 export interface AuthoredBranchContinuityNode {
@@ -77,6 +78,34 @@ function copyRecordIfNonEmpty(value: unknown): Record<string, unknown> | undefin
   return { ...record }
 }
 
+function isBranchSeedValue(value: unknown): value is BranchSeedValue {
+  return (
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (typeof value === 'number' && Number.isFinite(value))
+  )
+}
+
+function copyRequiredSeedValues(
+  value: unknown
+): Readonly<Record<string, BranchSeedValue>> | undefined {
+  if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const out: Record<string, BranchSeedValue> = {}
+  for (const [rawKey, rawValue] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof rawKey !== 'string' || rawKey.trim().length === 0 || !isBranchSeedValue(rawValue)) {
+      continue
+    }
+
+    out[rawKey.trim()] =
+      typeof rawValue === 'number' ? Math.trunc(rawValue) : rawValue
+  }
+
+  return Object.keys(out).length > 0 ? out : undefined
+}
+
 function slimRequires(requires: BranchNodeRequirements | null | undefined): BranchNodeRequirements | undefined {
   if (requires == null) {
     return undefined
@@ -131,6 +160,16 @@ function slimRequires(requires: BranchNodeRequirements | null | undefined): Bran
   const requiredRecordRevisionIds = copyNonEmptyStringList(requires.requiredRecordRevisionIds)
   if (requiredRecordRevisionIds !== undefined) {
     out.requiredRecordRevisionIds = requiredRecordRevisionIds
+  }
+
+  const requiredSeedValues = copyRequiredSeedValues(requires.requiredSeedValues)
+  if (requiredSeedValues !== undefined) {
+    out.requiredSeedValues = requiredSeedValues
+  }
+
+  const anyRequiredSeedKeys = copyNonEmptyStringList(requires.anyRequiredSeedKeys)
+  if (anyRequiredSeedKeys !== undefined) {
+    out.anyRequiredSeedKeys = anyRequiredSeedKeys
   }
 
   return Object.keys(out).length > 0 ? out : undefined

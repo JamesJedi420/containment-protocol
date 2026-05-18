@@ -103,8 +103,8 @@ const ROUTE_PROBE_TAGS = ['logistics', 'relay', 'supply-chain', 'cyber', 'parade
 const CLEANUP_PROBE_TAGS = ['media', 'court', 'public', 'interview', 'civilian'] as const
 const TAG_HEURISTIC_CLEANUP_AWARENESS = AWARENESS_COMPLICATION_THRESHOLD
 
-function matchesAnyTag(caseTags: readonly string[], candidates: readonly string[]) {
-  return candidates.some((tag) => caseTags.includes(tag))
+function matchesAnyTag(caseTags: Set<string>, candidates: readonly string[]) {
+  return candidates.some((tag) => caseTags.has(tag))
 }
 
 function resolveProgressRuleAction(

@@ -345,6 +345,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 0,
       doctrineBand: 0.35,
     },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     preferredTags: ['silver', 'holy', 'stealth', 'covert'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
@@ -393,6 +394,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.5,
     },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     preferredTags: ['scholar', 'tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
@@ -442,6 +444,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       doctrineBand: 0.4,
       routeViolationTags: ['cult', 'ritual'],
     },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     requiredTags: ['occultist'],
     requiredRoles: ['containment', 'technical'],
     preferredTags: ['holy', 'tech', 'negotiator', 'covert', 'infiltration'],
@@ -494,6 +497,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.4,
     },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     preferredTags: ['tech', 'investigator', 'stealth', 'covert'],
     onFail: {
       stageDelta: 1,
@@ -565,6 +569,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.3,
     },
+    stealthLeaveBehindId: 'leave-behind:expose-witness',
     preferredTags: ['negotiator', 'investigator', 'disguise', 'covert'],
     onFail: {
       stageDelta: 1,
@@ -608,6 +613,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.45,
     },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     preferredTags: ['tech', 'medium', 'infiltration', 'stealth'],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
@@ -652,6 +658,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       documentTier: 0,
       doctrineBand: 0.35,
     },
+    stealthLeaveBehindId: 'leave-behind:burn-tool',
     requiredTags: ['tech'],
     preferredTags: ['occultist', 'covert', 'infiltration'],
     raid: { minTeams: 3, maxTeams: 5 },
@@ -698,6 +705,7 @@ const baseCaseTemplates: CaseTemplate[] = [
       doctrineBand: 0.45,
       routeViolationTags: ['cult'],
     },
+    stealthLeaveBehindId: 'leave-behind:abandon-evidence',
     preferredTags: ['negotiator', 'tech', 'infiltration', 'disguise'],
     onFail: {
       stageDelta: 1,
@@ -828,6 +836,12 @@ export function getCaseTemplateCatalogErrors(templates: CaseTemplate[]) {
     if (template.infiltrationProbePlan !== undefined && template.infiltrationCoverProfile === undefined) {
       errors.push(
         `Template ${template.templateId} declares infiltrationProbePlan without a valid infiltrationCoverProfile.`
+      )
+    }
+
+    if (template.infiltrationProbePlan !== undefined && !template.stealthLeaveBehindId?.trim()) {
+      errors.push(
+        `Template ${template.templateId} declares infiltrationProbePlan without stealthLeaveBehindId.`
       )
     }
 

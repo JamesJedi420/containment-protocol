@@ -60,6 +60,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       documentTier: 1,
       doctrineBand: 0.45,
     },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     requiredTags: ['investigator'],
     preferredTags: ['medium', 'tech', 'negotiator', 'infiltration', 'covert'],
     onFail: {
@@ -104,6 +105,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       documentTier: 2,
       doctrineBand: 0.5,
     },
+    stealthLeaveBehindId: 'leave-behind:expose-witness',
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'investigator', 'analyst', 'disguise'],
     onFail: {
@@ -149,6 +151,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       doctrineBand: 0.55,
       routeViolationTags: ['occult', 'psionic'],
     },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     requiredTags: ['medium', 'scholar'],
     preferredTags: ['ritual-kit', 'investigator', 'tech', 'covert', 'infiltration'],
     raid: { minTeams: 2, maxTeams: 3 },
@@ -311,6 +314,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
       documentTier: 2,
       doctrineBand: 0.7,
     },
+    stealthLeaveBehindId: 'leave-behind:burn-tool',
     requiredTags: ['negotiator'],
     preferredTags: ['medium', 'analyst', 'infiltration', 'disguise'],
     pressureValue: 9,

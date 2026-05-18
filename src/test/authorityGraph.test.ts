@@ -802,6 +802,17 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
     expect(pairPermission.every((item) => item.channel !== 'contradiction_flag')).toBe(true)
     expect(pairPermission.some((item) => item.contradicted)).toBe(true)
 
+    const unrelatedContradiction = resolveAuthorityGraphConsequences(
+      graph,
+      query({
+        actorNodeId: 'faction-a',
+        counterpartyNodeId: 'faction-c',
+        channel: 'contradiction_flag',
+      })
+    )
+
+    expect(unrelatedContradiction).toEqual([])
+
     const contradictionQuery = resolveAuthorityGraphConsequences(
       graph,
       query({
@@ -813,6 +824,12 @@ describe('authorityGraph slice 1 (SPE-788)', () => {
 
     expect(contradictionQuery.every((item) => item.channel === 'contradiction_flag')).toBe(true)
     expect(contradictionQuery.length).toBeGreaterThan(0)
+
+    const flaggedEdgeIds = [...new Set(contradictionQuery.flatMap((item) => [...item.edgeIds]))].sort(
+      (left, right) => left.localeCompare(right)
+    )
+
+    expect(flaggedEdgeIds).toEqual(['all-ab', 'front-ab'])
   })
 
   it('17. includeContradictedClaims gates contradicted edges deterministically', () => {

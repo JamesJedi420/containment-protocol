@@ -32,6 +32,33 @@ export interface WeeklyCaseResolutionStrategy {
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
+export function resolveMissionSuccessDegradeHint(input: {
+  behaviorValidation?: BehaviorWeightedDisguiseValidationResult
+  infiltrationStageMission?: InfiltrationStageMissionPressureResult
+}): { shouldDegrade: boolean; reason?: string } {
+  if (
+    input.behaviorValidation?.shouldDegradeSuccessToPartial &&
+    input.behaviorValidation.degradeSuccessReason
+  ) {
+    return {
+      shouldDegrade: true,
+      reason: input.behaviorValidation.degradeSuccessReason,
+    }
+  }
+
+  if (
+    input.infiltrationStageMission?.shouldDegradeSuccessToPartial &&
+    input.infiltrationStageMission.degradeSuccessReason
+  ) {
+    return {
+      shouldDegrade: true,
+      reason: input.infiltrationStageMission.degradeSuccessReason,
+    }
+  }
+
+  return { shouldDegrade: false }
+}
+
 type SeededRng = () => number
 
 export function resolveAssignedCaseForWeek(

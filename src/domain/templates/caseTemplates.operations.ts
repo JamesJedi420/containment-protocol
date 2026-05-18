@@ -241,8 +241,15 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['court', 'witness', 'occult', 'tier-2'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-007-tribunal-cover',
+        mode: 'hidden',
+        when: { allTags: ['court', 'witness'] },
+      },
+    ],
     requiredTags: ['negotiator'],
-    preferredTags: ['medium', 'occult'],
+    preferredTags: ['medium', 'occult', 'covert', 'disguise'],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -300,7 +307,14 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['biological', 'logistics', 'supply-chain', 'tier-2'],
-    preferredTags: ['medic', 'forensics', 'lab-kit'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-008-phantom-chain',
+        mode: 'hidden',
+        when: { anyTag: ['logistics', 'supply-chain'] },
+      },
+    ],
+    preferredTags: ['medic', 'forensics', 'lab-kit', 'stealth', 'infiltration'],
     pressureValue: 7,
     regionTag: 'bio_containment',
     onFail: {

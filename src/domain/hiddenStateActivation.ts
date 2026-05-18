@@ -39,7 +39,7 @@ const DEFAULT_HIDDEN_DETECTION_CONFIDENCE = 0.25
 const DEFAULT_DISPLACED_DETECTION_CONFIDENCE = 0.55
 
 function isTruthyGameFlag(value: GameFlagValue | undefined) {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return false
   }
 
@@ -51,7 +51,12 @@ function isTruthyGameFlag(value: GameFlagValue | undefined) {
     return value !== 0
   }
 
-  return value.trim().length > 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized.length > 0 && normalized !== 'false' && normalized !== '0'
+  }
+
+  return false
 }
 
 function collectCaseTags(caseData: CaseInstance) {

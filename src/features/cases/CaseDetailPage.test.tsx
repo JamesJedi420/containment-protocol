@@ -138,6 +138,43 @@ it('renders assignment timeline events for the selected case only', () => {
   )
 })
 
+it('shows concealment prep and toggles covert posture flag', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+
+  game.cases['case-conceal-ui'] = {
+    ...createStarterCase({ id: 'case-conceal-ui', templateId: 'ops-003' }),
+    title: 'Covert Access',
+    status: 'in_progress',
+    tags: ['infiltration', 'archive'],
+    requiredTags: [],
+    preferredTags: [],
+    assignedTeamIds: [],
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-conceal-ui')
+
+  const panel = screen.getByRole('region', { name: /concealment case prep/i })
+
+  expect(within(panel).getByRole('heading', { name: /concealment prep/i })).toBeInTheDocument()
+  expect(within(panel).getByText(/next weekly tick will mark this case as hidden/i)).toBeInTheDocument()
+
+  await user.click(within(panel).getByRole('button', { name: /request covert posture/i }))
+
+  expect(
+    useGameStore.getState().game.runtimeState?.globalFlags?.['conceal.case.case-conceal-ui'] ??
+      useGameStore.getState().game.globalFlags?.['conceal.case.case-conceal-ui']
+  ).toBeTruthy()
+
+  await user.click(within(panel).getByRole('button', { name: /clear covert request/i }))
+
+  const flag =
+    useGameStore.getState().game.runtimeState?.globalFlags?.['conceal.case.case-conceal-ui'] ??
+    useGameStore.getState().game.globalFlags?.['conceal.case.case-conceal-ui']
+  expect(flag === false || flag === undefined).toBe(true)
+})
+
 it('shows infiltration prep and sets weekly probe action override', async () => {
   const user = userEvent.setup()
   const game = createStartingState()

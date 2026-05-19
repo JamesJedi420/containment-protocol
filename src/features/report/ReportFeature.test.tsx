@@ -258,6 +258,70 @@ it('filters report notes by typed note category without relying on text search',
   expect(screen.getByText(/recruitment pipeline generated 2 candidate\(s\)\./i)).toBeInTheDocument()
 })
 
+it('navigates between adjacent weekly reports from the detail header', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const emptyReport = {
+    rngStateBefore: 1,
+    rngStateAfter: 2,
+    newCases: [] as string[],
+    progressedCases: [] as string[],
+    resolvedCases: [] as string[],
+    failedCases: [] as string[],
+    partialCases: [] as string[],
+    unresolvedTriggers: [] as string[],
+    spawnedCases: [] as string[],
+    maxStage: 1,
+    avgFatigue: 0,
+    teamStatus: [],
+    notes: [],
+  }
+
+  game.reports = [
+    { ...emptyReport, week: 2 },
+    { ...emptyReport, week: 4 },
+  ]
+
+  useGameStore.setState({ game })
+  renderReportDetail('/report/4')
+
+  expect(screen.getByRole('navigation', { name: /weekly report navigation/i })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: /previous week \(2\)/i })).toHaveAttribute('href', '/report/2')
+  expect(screen.queryByRole('link', { name: /next week/i })).not.toBeInTheDocument()
+
+  await user.click(screen.getByRole('link', { name: /previous week \(2\)/i }))
+
+  expect(screen.getByText(/^week 2$/i)).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: /next week \(4\)/i })).toHaveAttribute('href', '/report/4')
+})
+
+it('omits week navigation when only one weekly report exists', () => {
+  const game = createStartingState()
+  game.reports = [
+    {
+      week: 3,
+      rngStateBefore: 1,
+      rngStateAfter: 2,
+      newCases: [],
+      progressedCases: [],
+      resolvedCases: [],
+      failedCases: [],
+      partialCases: [],
+      unresolvedTriggers: [],
+      spawnedCases: [],
+      maxStage: 1,
+      avgFatigue: 0,
+      teamStatus: [],
+      notes: [],
+    },
+  ]
+
+  useGameStore.setState({ game })
+  renderReportDetail('/report/3')
+
+  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
+})
+
 it('renders a local not-found state for unknown report weeks', () => {
   renderReportDetail('/report/999')
 

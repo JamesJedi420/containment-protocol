@@ -688,6 +688,8 @@ export const REPORT_UI_TEXT: Record<string, string> = {
   noTeamStatus: 'No team status was recorded for this week.',
   deployedRecoveryLabel: 'Deployed recovery',
   staleSnapshotSuffix: 'archived snapshot',
+  previousWeekLink: 'Previous week',
+  nextWeekLink: 'Next week',
 }
 
 export const INTEL_UI_TEXT: Record<string, string> = {

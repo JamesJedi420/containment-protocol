@@ -7,7 +7,7 @@ import {
 } from '../../domain/explanations'
 import type { KnowledgeState, KnowledgeStateMap } from '../../domain/knowledge'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
@@ -23,6 +23,7 @@ import {
   REPORT_NOTE_CATEGORY_LABELS,
   type ReportNoteCategory,
 } from './reportNoteView'
+import { buildReportWeekNavigation } from './reportWeekNavigation'
 
 // --- Real-data knowledge/relay/fusion/decay UI helpers ---
 function getTeamKnowledgeLadder(
@@ -93,6 +94,7 @@ export default function ReportDetailPage() {
   const trendSummary = getRunTrendSummary(game, [report])
   const noteCategoryOptions = getAvailableReportNoteCategories(report.notes)
   const filteredNotes = filterReportNotesByCategory(report.notes, selectedNoteCategory)
+  const weekNavigation = buildReportWeekNavigation(game.reports, report.week)
 
   // --- Real-data knowledge/relay/ladder UI wiring ---
   // For each team in the report, show knowledge ladders and relay/decay/fusion for each anomaly/hazard
@@ -150,9 +152,35 @@ export default function ReportDetailPage() {
           </ul>
         </div>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm font-medium">
-            {REPORT_LABELS.week} {report.week}
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">
+              {REPORT_LABELS.week} {report.week}
+            </p>
+            {weekNavigation.previousWeek !== undefined ||
+            weekNavigation.nextWeek !== undefined ? (
+              <nav
+                className="flex flex-wrap items-center gap-3 text-sm"
+                aria-label="Weekly report navigation"
+              >
+                {weekNavigation.previousWeek !== undefined ? (
+                  <Link
+                    to={APP_ROUTES.reportDetail(weekNavigation.previousWeek)}
+                    className="opacity-70 hover:underline"
+                  >
+                    {REPORT_UI_TEXT.previousWeekLink} ({weekNavigation.previousWeek})
+                  </Link>
+                ) : null}
+                {weekNavigation.nextWeek !== undefined ? (
+                  <Link
+                    to={APP_ROUTES.reportDetail(weekNavigation.nextWeek)}
+                    className="opacity-70 hover:underline"
+                  >
+                    {REPORT_UI_TEXT.nextWeekLink} ({weekNavigation.nextWeek})
+                  </Link>
+                ) : null}
+              </nav>
+            ) : null}
+          </div>
           <p className={`text-sm font-semibold ${weekScore >= 0 ? 'text-green-400' : 'text-red-400'}`}>
             {weekScore >= 0 ? '+' : ''}
             {weekScore} {REPORT_LABELS.points}

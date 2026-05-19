@@ -178,7 +178,11 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
-import { applyConcealmentActivationToCase } from '../hiddenStateActivation'
+import { formatConcealmentActivationSummary } from '../concealmentActivationFeed'
+import {
+  mergeConcealmentActivationResult,
+  resolveConcealmentActivation,
+} from '../hiddenStateActivation'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
 import {
   resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek,
@@ -2091,13 +2095,30 @@ function applyWeeklyConcealmentActivation(
   caseData: CaseInstance
 ): CaseInstance {
   const globalFlags = context.nextState.globalFlags ?? context.sourceState.globalFlags ?? {}
-  const activatedCase = applyConcealmentActivationToCase(caseData, {
+  const activationContext = {
     globalFlags,
     hiddenModifierCount: countCaseHiddenModifiers(caseData, caseData.mapLayer),
-  })
+  }
+  const activation = resolveConcealmentActivation(caseData, activationContext)
+  const activatedCase = mergeConcealmentActivationResult(caseData, activation)
 
-  if (activatedCase !== caseData) {
+  if (activatedCase !== caseData && activation.applied && activation.mode) {
     context.nextState.cases[caseId] = activatedCase
+    const reason = activation.reason ?? 'unknown'
+    context.eventDrafts.push({
+      type: 'concealment.activated',
+      sourceSystem: 'system',
+      payload: {
+        week: context.sourceState.week,
+        caseId,
+        caseTitle: caseData.title,
+        mode: activation.mode,
+        reason,
+        summary: formatConcealmentActivationSummary(activation.mode, reason),
+        detectionConfidence: activation.detectionConfidence,
+        displacementTarget: activation.displacementTarget ?? null,
+      },
+    })
   }
 
   return activatedCase

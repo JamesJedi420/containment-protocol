@@ -47,6 +47,7 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'infiltration.escalation_exposed': 'covered',
   'infiltration.escalation_violent': 'covered',
   'infiltration.cover_strain': 'covered',
+  'concealment.activated': 'covered',
   'system.academy_upgraded': 'covered',
   'case.aggregate_battle': 'covered',
   'staff.coping.applied': 'covered',

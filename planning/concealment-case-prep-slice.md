@@ -177,7 +177,7 @@ Optional thin domain file: `src/domain/concealmentCasePrep.ts` if eligibility is
 ## Follow-ups (after this slice)
 
 1. ~~**Covert ops prep consolidation**~~ — shipped (`WeeklyCasePrepPanel`, collapsible sections, shared forensic strip).
-2. **Concealment event feed** — surface `activation.reason` on first weekly apply (if not already in event payload).
+2. ~~**Concealment event feed**~~ — shipped (`concealment.activated` event + report notes; `planning/concealment-activation-event-feed-slice.md`).
 3. **Remaining templates** without `concealmentTriggers` — content-only batches, not UI.
 
 ---

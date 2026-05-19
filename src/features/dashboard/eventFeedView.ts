@@ -233,6 +233,7 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'infiltration.escalation_exposed': 'Cover Exposed',
   'infiltration.escalation_violent': 'Violent Escalation',
   'infiltration.cover_strain': 'Cover Strain',
+  'concealment.activated': 'Concealment Activated',
 }
 
 export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory> = {
@@ -288,6 +289,7 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'infiltration.escalation_exposed': 'incident_response',
   'infiltration.escalation_violent': 'incident_response',
   'infiltration.cover_strain': 'incident_response',
+  'concealment.activated': 'incident_response',
 }
 
 const EVENT_FEED_CATEGORIES = Object.keys(EVENT_CATEGORY_LABELS) as EventFeedCategory[]
@@ -1067,6 +1069,28 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         searchText:
           `side work ${event.payload.optionId} ${event.payload.outcome} agent ${event.payload.agentId}`.toLowerCase(),
       }
+
+    case 'concealment.activated': {
+      const modeLabel = event.payload.mode === 'displaced' ? 'Displaced cover' : 'Hidden presence'
+      const targetSuffix =
+        event.payload.mode === 'displaced' && event.payload.displacementTarget
+          ? ` / Target ${event.payload.displacementTarget}`
+          : ''
+
+      return {
+        event,
+        week: event.payload.week,
+        title: `${event.payload.caseTitle}: ${typeLabel}`,
+        detail: `Week ${event.payload.week} / ${modeLabel}${targetSuffix} / ${event.payload.summary}`,
+        sourceLabel,
+        typeLabel,
+        timestampLabel,
+        tone: 'neutral',
+        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        searchText:
+          `${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.summary} ${event.payload.reason} concealment`.toLowerCase(),
+      }
+    }
 
     case 'infiltration.awareness_complication':
     case 'infiltration.escalation_exposed':

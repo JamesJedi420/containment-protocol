@@ -178,7 +178,7 @@ Optional thin domain file: `src/domain/concealmentCasePrep.ts` if eligibility is
 
 1. ~~**Covert ops prep consolidation**~~ — shipped (`WeeklyCasePrepPanel`, collapsible sections, shared forensic strip).
 2. ~~**Concealment event feed**~~ — shipped (`concealment.activated` event + report notes; `planning/concealment-activation-event-feed-slice.md`).
-3. **Remaining templates** without `concealmentTriggers` — content-only batches, not UI.
+3. **Remaining templates** without `concealmentTriggers` — [SPE-2249](https://linear.app/spectranoir/issue/SPE-2249/concealmenttriggers-migration-batch-4-remaining-templates) (content-only batch 4).
 
 ---
 

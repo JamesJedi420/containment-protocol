@@ -23,4 +23,13 @@ describe('buildReportWeekNavigation', () => {
   it('returns empty navigation for a single report', () => {
     expect(buildReportWeekNavigation([{ week: 3 }], 3)).toEqual({})
   })
+
+  it('dedupes and sorts weeks regardless of report array order', () => {
+    const unsorted = [{ week: 4 }, { week: 1 }, { week: 2 }, { week: 2 }]
+
+    expect(buildReportWeekNavigation(unsorted, 2)).toEqual({
+      previousWeek: 1,
+      nextWeek: 4,
+    })
+  })
 })

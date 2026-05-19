@@ -295,6 +295,36 @@ it('navigates between adjacent weekly reports from the detail header', async () 
   expect(screen.getByRole('link', { name: /next week \(4\)/i })).toHaveAttribute('href', '/report/4')
 })
 
+it('shows only a next-week link on the earliest available report', () => {
+  const game = createStartingState()
+  const emptyReport = {
+    rngStateBefore: 1,
+    rngStateAfter: 2,
+    newCases: [] as string[],
+    progressedCases: [] as string[],
+    resolvedCases: [] as string[],
+    failedCases: [] as string[],
+    partialCases: [] as string[],
+    unresolvedTriggers: [] as string[],
+    spawnedCases: [] as string[],
+    maxStage: 1,
+    avgFatigue: 0,
+    teamStatus: [],
+    notes: [],
+  }
+
+  game.reports = [
+    { ...emptyReport, week: 1 },
+    { ...emptyReport, week: 3 },
+  ]
+
+  useGameStore.setState({ game })
+  renderReportDetail('/report/1')
+
+  expect(screen.getByRole('link', { name: /next week \(3\)/i })).toHaveAttribute('href', '/report/3')
+  expect(screen.queryByRole('link', { name: /previous week/i })).not.toBeInTheDocument()
+})
+
 it('omits week navigation when only one weekly report exists', () => {
   const game = createStartingState()
   game.reports = [
@@ -327,4 +357,12 @@ it('renders a local not-found state for unknown report weeks', () => {
 
   expect(screen.getByText(/report not found/i)).toBeInTheDocument()
   expect(screen.getByRole('link', { name: /back to reports/i })).toHaveAttribute('href', '/report')
+  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
+})
+
+it('renders not-found without week navigation for non-integer week routes', () => {
+  renderReportDetail('/report/2.5')
+
+  expect(screen.getByText(/report not found/i)).toBeInTheDocument()
+  expect(screen.queryByRole('navigation', { name: /weekly report navigation/i })).not.toBeInTheDocument()
 })

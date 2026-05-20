@@ -31,11 +31,27 @@ const BATCH_THREE_STARTER_CHAIN_TEMPLATE_IDS = [
   'followup_targeted_abductions',
 ] as const
 
+const BATCH_FOUR_TEMPLATE_IDS = [
+  'ops-005',
+  'bio-forensics-001',
+  'info-001',
+  'occult-001',
+  'occult-002',
+  'occult-004',
+  'occult-005',
+  'occult-007',
+  'psi-001',
+  'psi-004',
+  'psi-006',
+  'followup_psi_aftermath',
+] as const
+
 describe('case template concealment migration', () => {
   it.each([
     ...BATCH_ONE_TEMPLATE_IDS,
     ...BATCH_TWO_TEMPLATE_IDS,
     ...BATCH_THREE_STARTER_CHAIN_TEMPLATE_IDS,
+    ...BATCH_FOUR_TEMPLATE_IDS,
   ])(
     'catalog template %s carries normalized concealmentTriggers',
     (templateId) => {
@@ -93,5 +109,32 @@ describe('case template concealment migration', () => {
     const activation = resolveConcealmentActivation(caseData, { globalFlags: {} })
     expect(activation.applied).toBe(true)
     expect(activation.reason).toBe('authored-trigger:trigger:occult-006-procession-blend')
+  })
+
+  it('activates hidden presence from migrated ops-005 black chamber trigger', () => {
+    const state = createStartingState()
+    const [teamId] = Object.keys(state.teams)
+    const template = caseTemplateMap['ops-005']
+    const spawned = instantiateFromTemplate(template, () => 0.42, new Set(Object.keys(state.cases)))
+
+    state.reports = []
+    state.agency!.supportAvailable = 3
+    state.globalFlags = {}
+    state.cases[spawned.id] = {
+      ...spawned,
+      mode: 'probability',
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+      weeksRemaining: 1,
+    }
+
+    const activation = resolveConcealmentActivation(state.cases[spawned.id], {
+      globalFlags: state.globalFlags,
+    })
+    expect(activation.applied).toBe(true)
+    expect(activation.reason).toBe('authored-trigger:trigger:ops-005-chamber-approach')
+
+    const nextState = advanceWeek(state)
+    expect(nextState.cases[spawned.id].hiddenState).toBe('hidden')
   })
 })

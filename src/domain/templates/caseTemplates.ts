@@ -169,6 +169,13 @@ const baseCaseTemplates: CaseTemplate[] = [
     requiredTags: ['tech'],
     requiredRoles: ['technical', 'investigator'],
     preferredTags: ['hacker', 'analyst'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:info-001-relay-infiltration',
+        mode: 'hidden',
+        when: { allTags: ['information', 'cyber'] },
+      },
+    ],
     onFail: { stageDelta: 1, spawnCount: { min: 0, max: 1 }, spawnTemplateIds: ['info-001'] },
     onUnresolved: {
       stageDelta: 2,

@@ -198,6 +198,13 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'signal', 'seal', 'tier-2'],
     requiredTags: ['occultist'],
     preferredTags: ['ritual-kit', 'medium'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:ops-005-chamber-approach',
+        mode: 'hidden',
+        when: { allTags: ['occult', 'seal'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -254,6 +261,13 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     tags: ['biological', 'forensics', 'triage', 'tier-2'],
     requiredTags: ['medic'],
     preferredTags: ['investigator', 'lab-kit', 'forensics'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:bio-forensics-001-vector-stakeout',
+        mode: 'hidden',
+        when: { anyTag: ['forensics', 'biological'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

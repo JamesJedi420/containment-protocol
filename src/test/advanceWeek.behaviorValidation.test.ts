@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { DETECTION_SCAN_READOUT_PREFIX } from '../domain/detectionScanReportNotes'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
+import { detectionScanTierOrder } from '../domain/revealPayloadDisguiseIntegration'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { createStarterCase } from '../domain/templates/startingCases'
@@ -111,6 +113,10 @@ describe('advanceWeek behavior-weighted disguise validation', () => {
     expect(
       preAdvanceResolution.outcome.reasons.some((reason) => reason.includes('cover role mismatch'))
     ).toBe(true)
+    expect(preAdvanceResolution.behaviorValidation?.active).toBe(true)
+    expect(detectionScanTierOrder(preAdvanceResolution.behaviorValidation!.detectionScan).length).toBeGreaterThan(
+      1
+    )
 
     const nextState = advanceWeek(state)
     const lastReport = nextState.reports[nextState.reports.length - 1]
@@ -127,6 +133,12 @@ describe('advanceWeek behavior-weighted disguise validation', () => {
       missionResult?.explanationNotes.some((note) =>
         note.includes('Behavior mismatch triggered visible authority scrutiny')
       )
+    ).toBe(true)
+    expect(
+      missionResult?.explanationNotes.some((note) => note.includes(DETECTION_SCAN_READOUT_PREFIX))
+    ).toBe(true)
+    expect(
+      missionResult?.explanationNotes.some((note) => note.includes('contact detected'))
     ).toBe(true)
     expect(nextState.cases['case-001'].status).toBe('open')
   })

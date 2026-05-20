@@ -3,6 +3,10 @@ import { createStartingState } from '../data/startingState'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
 import {
+  appendDetectionScanResolutionReason,
+  DETECTION_SCAN_READOUT_PREFIX,
+} from '../domain/detectionScanReportNotes'
+import {
   buildDisguiseRevealSubjectFromCase,
   detectionScanTierOrder,
 } from '../domain/revealPayloadDisguiseIntegration'
@@ -151,6 +155,14 @@ describe('revealPayloadOrchestration (SPE-781 slice 4)', () => {
 
     expect(detectionScanTierOrder(mismatched.behaviorValidation!.detectionScan)).toContain('category')
     expect(detectionScanTierOrder(inactive.behaviorValidation!.detectionScan)).toEqual(['presence'])
+
+    const inactiveReasons: string[] = []
+    appendDetectionScanResolutionReason(inactiveReasons, inactive.behaviorValidation)
+    expect(inactiveReasons).toHaveLength(0)
+
+    const activeReasons: string[] = []
+    appendDetectionScanResolutionReason(activeReasons, mismatched.behaviorValidation)
+    expect(activeReasons.some((reason) => reason.includes(DETECTION_SCAN_READOUT_PREFIX))).toBe(true)
   })
 
   it('falls back to infiltration contact when cover role is invalid', () => {

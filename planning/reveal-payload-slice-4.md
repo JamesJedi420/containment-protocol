@@ -33,4 +33,4 @@ Wire `evaluateBehaviorWeightedDisguiseValidationWithRevealPayload` into **`resol
 
 ## Follow-up (slice 5)
 
-Player-facing report/event copy from `detectionScan.fields[].playerFacingValue` (mirror `infiltrationEncounterReportNotes.ts`).
+Shipped in `planning/reveal-payload-slice-5.md` — `detectionScanReportNotes.ts` + `advanceWeek` resolution reasons.

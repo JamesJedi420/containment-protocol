@@ -178,6 +178,7 @@ import {
   buildExecutionInstabilityRouteShift,
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
+import { appendDetectionScanResolutionReason } from '../detectionScanReportNotes'
 import { formatConcealmentActivationSummary } from '../concealmentActivationFeed'
 import {
   mergeConcealmentActivationResult,
@@ -2453,6 +2454,7 @@ function resolveAssignments(
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
     ]
+    appendDetectionScanResolutionReason(resolutionReasons, behaviorValidation)
 
     if (
       stealthLeaveBehindMission?.active &&

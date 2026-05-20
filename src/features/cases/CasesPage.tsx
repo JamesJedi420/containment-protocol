@@ -484,7 +484,7 @@ export default function CasesPage() {
           {cases.map((view) => {
             const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
             const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
-            const urgencyMarkers = getUrgencyMarkers(view)
+            const listRowMarkers = getListRowMarkers(view)
             const incidentStrategy =
               majorIncidentStrategyState[view.currentCase.id] ??
               view.currentCase.majorIncident?.strategy ??
@@ -552,17 +552,22 @@ export default function CasesPage() {
                   </span>
                 </div>
 
-                {urgencyMarkers.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {urgencyMarkers.map((marker) => (
+                {listRowMarkers.length > 0 ? (
+                  <div className="flex flex-wrap gap-2" aria-label="Case triage markers">
+                    {listRowMarkers.map((marker) => (
                       <span
-                        key={marker.label}
+                        key={marker.key}
+                        title={marker.title}
                         className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${marker.className}`}
                       >
                         {marker.label}
                       </span>
                     ))}
                   </div>
+                ) : null}
+
+                {view.covertPrepSignals.deferralNote && !recommendation ? (
+                  <p className="text-xs text-amber-200/90">{view.covertPrepSignals.deferralNote}</p>
                 ) : null}
 
                 {recommendation ? (
@@ -572,6 +577,9 @@ export default function CasesPage() {
                     </p>
                     <p className="mt-1 text-sm font-medium">{recommendation.title}</p>
                     <p className="text-xs opacity-70">{recommendation.detail}</p>
+                    {view.covertPrepSignals.deferralNote ? (
+                      <p className="mt-2 text-xs text-amber-200/90">{view.covertPrepSignals.deferralNote}</p>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -863,6 +871,25 @@ export default function CasesPage() {
       )}
     </section>
   )
+}
+
+function getListRowMarkers(view: CaseListItemView) {
+  const markers: Array<{ key: string; label: string; className: string; title?: string }> = []
+
+  for (const marker of getUrgencyMarkers(view)) {
+    markers.push({ key: `urgency:${marker.label}`, ...marker })
+  }
+
+  for (const marker of view.covertPrepSignals.markers) {
+    markers.push({
+      key: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
+  return markers
 }
 
 function getUrgencyMarkers(view: CaseListItemView) {

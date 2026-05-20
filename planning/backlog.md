@@ -30,9 +30,9 @@ From `README.md` **Current design notes**:
 | **Tuning and QA references** | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`. |
 | **MVP loop proof (#6)** | Slice 1 (`SPE-2251`) + slice 2 persistence/4-week fixture (`weeklyMvpLoopProof.slice2.integration.test.ts`). |
 
-## Deferred UX (pick up when triage UI is next)
+## Deferred UX (follow-up after SPE-2255)
 
-- **`ux/mission-triage.md`** — covert prep row signals, leave-behind staging hints, deferral vs batch-4 flag UX (spec status block lists scope).
+- **`ux/mission-triage.md`** — comparison columns for infiltration prep cost vs deferral risk; escalation carryover cross-links; full triage layout refresh (list-row chips shipped SPE-2255 / `planning/mission-triage-covert-prep-slice.md`).
 
 ## SCP-9995 harvest — May 2026 reconciliation
 

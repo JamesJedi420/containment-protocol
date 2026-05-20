@@ -16,6 +16,10 @@ import {
 } from '../../domain/sim/resolve'
 import { isTeamBlockedByTraining } from '../../domain/sim/training'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
+import {
+  buildMissionTriageCovertPrepSignals,
+  type MissionTriageCovertPrepSignals,
+} from './missionTriageCovertPrepView'
 
 export const CASE_STATUS_FILTERS = ['all', 'open', 'in_progress', 'resolved'] as const
 export const CASE_MODE_FILTERS = ['all', 'threshold', 'probability', 'deterministic'] as const
@@ -56,6 +60,7 @@ export interface CaseListItemView {
   isBlockedByRequiredRoles: boolean
   isBlockedByRequiredTags: boolean
   isRaidAtCapacity: boolean
+  covertPrepSignals: MissionTriageCovertPrepSignals
 }
 
 export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
@@ -181,6 +186,7 @@ export function getCaseListItemView(currentCase: CaseInstance, game: GameState):
     isBlockedByRequiredRoles,
     isBlockedByRequiredTags,
     isRaidAtCapacity,
+    covertPrepSignals: buildMissionTriageCovertPrepSignals(currentCase, game),
   }
 }
 

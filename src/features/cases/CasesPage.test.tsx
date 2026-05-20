@@ -5,7 +5,10 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import userEvent from '@testing-library/user-event'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
+import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import type { CaseInstance } from '../../domain/models'
+import { caseTemplateMap } from '../../domain/templates/caseTemplates'
+import { createStarterCase } from '../../domain/templates/startingCases'
 import CasesPage from './CasesPage'
 
 function LocationProbe() {
@@ -146,6 +149,67 @@ it('renders urgency markers for triage cases', () => {
 
   const idleCard = getCardByName('Unassigned Case')
   expect(within(idleCard).getByText('Unassigned')).toBeInTheDocument()
+})
+
+it('renders covert prep markers on triage list rows', () => {
+  const game = createStartingState()
+  game.cases = {
+    covert: {
+      ...createStarterCase({ id: 'covert', templateId: 'ops-004' }),
+      status: 'in_progress',
+      title: 'Covert Infiltration Case',
+      stage: 4,
+      hiddenState: 'hidden',
+      infiltrationProbeProgress: 0.35,
+      infiltrationAwareness: 0.5,
+      infiltrationStage: 'probing',
+      tags: ['infiltration'],
+      infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+      infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
+      stealthLeaveBehindId: 'leave-behind:risk-discovery',
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    },
+    plain: makeCase('plain', 'Plain Open Case', { status: 'open' }),
+  }
+
+  useGameStore.setState({ game })
+
+  renderCasesPage(['/cases'])
+
+  const covertCard = getCardByName('Covert Infiltration Case')
+  expect(within(covertCard).getByText(/Probe 35%/)).toBeInTheDocument()
+  expect(within(covertCard).getByText(/awareness 50%/)).toBeInTheDocument()
+  expect(within(covertCard).getByText('Leave-behind staged')).toBeInTheDocument()
+  expect(
+    within(covertCard).getAllByText(/Deferring may let infiltration exposure escalate/i)
+  ).toHaveLength(1)
+
+  const plainCard = getCardByName('Plain Open Case')
+  expect(within(plainCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()
+  expect(within(plainCard).queryByText(/Probe \d+%/)).not.toBeInTheDocument()
+})
+
+it('renders concealment prep chip on triage list rows', () => {
+  const game = createStartingState()
+  game.cases = {
+    conceal: {
+      ...createStarterCase({ id: 'conceal', templateId: 'ops-003' }),
+      status: 'in_progress',
+      title: 'Covert Preview Case',
+      tags: ['infiltration'],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: [],
+    },
+  }
+
+  useGameStore.setState({ game })
+
+  renderCasesPage(['/cases'])
+
+  expect(within(getCardByName('Covert Preview Case')).getByText('Covert next week')).toBeInTheDocument()
 })
 
 it('renders recommended action guidance for assignable cases', () => {

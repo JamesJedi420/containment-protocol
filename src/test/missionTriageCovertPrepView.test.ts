@@ -15,6 +15,7 @@ import { createStarterCase } from '../domain/templates/startingCases'
 import { caseTemplateMap } from '../domain/templates/caseTemplates'
 import { createStartingState } from '../data/startingState'
 import { buildInvestigationCasePrepView } from '../features/cases/investigationCasePrepView'
+import { MISSION_TRIAGE_COVERT_PREP_LABELS } from '../data/copy'
 import { buildMissionTriageCovertPrepSignals } from '../features/cases/missionTriageCovertPrepView'
 
 function createConcealmentEligibleCase() {
@@ -36,7 +37,7 @@ function createInfiltrationCase() {
     infiltrationProbeProgress: 0.42,
     infiltrationAwareness: 0.61,
     infiltrationStage: 'probing' as const,
-    tags: ['infiltration'],
+    tags: ['infiltration', 'media', 'public'],
     infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
     infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
     requiredTags: [],
@@ -75,7 +76,11 @@ describe('missionTriageCovertPrepView', () => {
     const caseData = createConcealmentEligibleCase()
     const signals = buildMissionTriageCovertPrepSignals(caseData, game)
 
-    expect(signals.markers.some((marker) => marker.label === 'Covert next week')).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentPreview
+      )
+    ).toBe(true)
   })
 
   it('shows covert requested chip when conceal flag is active', () => {
@@ -86,7 +91,24 @@ describe('missionTriageCovertPrepView', () => {
 
     const signals = buildMissionTriageCovertPrepSignals(state.cases[caseData.id]!, state)
 
-    expect(signals.markers.some((marker) => marker.label === 'Covert requested')).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentRequested
+      )
+    ).toBe(true)
+  })
+
+  it('shows cover strain chip when infiltration cover posture is strained', () => {
+    const game = createStartingState()
+    const caseData = createInfiltrationCase()
+    game.cases[caseData.id] = caseData
+    const signals = buildMissionTriageCovertPrepSignals(caseData, game)
+
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.coverStrain
+      )
+    ).toBe(true)
   })
 
   it('shows infiltration probe and awareness chip when probe plan applies', () => {
@@ -121,7 +143,11 @@ describe('missionTriageCovertPrepView', () => {
     game.cases[caseData.id] = caseData
     const signals = buildMissionTriageCovertPrepSignals(caseData, game)
 
-    expect(signals.markers.some((marker) => marker.label === 'Leave-behind staged')).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.leaveBehindStaged
+      )
+    ).toBe(true)
   })
 
   it('shows forensic strain when custody markers burden the case', () => {
@@ -146,7 +172,11 @@ describe('missionTriageCovertPrepView', () => {
 
     const signals = buildMissionTriageCovertPrepSignals(state.cases[caseData.id]!, state)
 
-    expect(signals.markers.some((marker) => marker.label === 'Forensic strain')).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.forensicStrain
+      )
+    ).toBe(true)
     expect(
       state.runtimeState?.globalFlags?.[
         buildInvestigationCustodyLossFlagId(caseData.id, 'custody:field-packet')
@@ -162,8 +192,16 @@ describe('missionTriageCovertPrepView', () => {
 
     const signals = buildMissionTriageCovertPrepSignals(state.cases[caseData.id]!, state)
 
-    expect(signals.markers.some((marker) => marker.label === 'Covert requested')).toBe(true)
-    expect(signals.markers.some((marker) => marker.label === 'Covert next week')).toBe(false)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentRequested
+      )
+    ).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentPreview
+      )
+    ).toBe(false)
   })
 
   it('shows forensic strain when granted budget is exhausted without custody markers', () => {
@@ -210,7 +248,11 @@ describe('missionTriageCovertPrepView', () => {
 
     const signals = buildMissionTriageCovertPrepSignals(caseData, game)
 
-    expect(signals.markers.some((marker) => marker.label === 'Forensic strain')).toBe(false)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.forensicStrain
+      )
+    ).toBe(false)
   })
 
   it('reads leave-behind selection from canonical game case state', () => {
@@ -226,7 +268,11 @@ describe('missionTriageCovertPrepView', () => {
       game
     )
 
-    expect(signals.markers.some((marker) => marker.label === 'Leave-behind staged')).toBe(true)
+    expect(
+      signals.markers.some(
+        (marker) => marker.label === MISSION_TRIAGE_COVERT_PREP_LABELS.leaveBehindStaged
+      )
+    ).toBe(true)
   })
 
   it('surfaces deferral note when infiltration strain coincides with high escalation risk', () => {
@@ -241,7 +287,7 @@ describe('missionTriageCovertPrepView', () => {
 
     const signals = buildMissionTriageCovertPrepSignals(caseData, game)
 
-    expect(signals.deferralNote).toContain('Deferring may let infiltration exposure escalate')
+    expect(signals.deferralNote).toBe(MISSION_TRIAGE_COVERT_PREP_LABELS.deferralNote)
   })
 
   it('omits concealment chips when case is already concealed', () => {

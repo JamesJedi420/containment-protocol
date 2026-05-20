@@ -1,5 +1,12 @@
 import { triageMission } from '../../domain/missionIntakeRouting'
 import type { CaseInstance, GameState } from '../../domain/models'
+import {
+  formatMissionTriageForensicBudgetExhaustedTitle,
+  formatMissionTriageForensicCustodyTitle,
+  formatMissionTriageInfiltrationTracksLabel,
+  formatMissionTriageInfiltrationTracksTitle,
+  MISSION_TRIAGE_COVERT_PREP_LABELS,
+} from '../../data/copy'
 import { buildConcealmentCasePrepView } from './concealmentCasePrepView'
 import {
   buildInfiltrationCasePrepView,
@@ -33,15 +40,6 @@ export interface MissionTriageCovertPrepSignals {
   readonly visible: boolean
   readonly markers: readonly MissionTriageCovertPrepMarker[]
   readonly deferralNote?: string
-}
-
-function hasCoverStrain(infiltration: ReturnType<typeof buildInfiltrationCasePrepView>) {
-  const note = infiltration.coverStrainNotes[0]
-  if (note === undefined) {
-    return false
-  }
-
-  return !note.toLowerCase().includes('stable')
 }
 
 function pushMarker(
@@ -81,14 +79,14 @@ export function buildMissionTriageCovertPrepSignals(
     if (concealment.playerConcealFlagActive) {
       pushMarker(markers, {
         id: 'concealment-requested',
-        label: 'Covert requested',
+        label: MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentRequested,
         className: MARKER_STYLES.concealment,
         title: concealment.previewReasonLabel,
       })
     } else if (concealment.previewApplied) {
       pushMarker(markers, {
         id: 'concealment-preview',
-        label: 'Covert next week',
+        label: MISSION_TRIAGE_COVERT_PREP_LABELS.concealmentPreview,
         className: MARKER_STYLES.concealment,
         title: concealment.previewReasonLabel,
       })
@@ -98,15 +96,21 @@ export function buildMissionTriageCovertPrepSignals(
   if (infiltration?.visible) {
     pushMarker(markers, {
       id: 'infiltration-tracks',
-      label: `Probe ${infiltration.probeProgressPercent}% · awareness ${infiltration.awarenessPercent}%`,
+      label: formatMissionTriageInfiltrationTracksLabel(
+        infiltration.probeProgressPercent,
+        infiltration.awarenessPercent
+      ),
       className: MARKER_STYLES.infiltration,
-      title: `${infiltration.stageLabel} · planned ${infiltration.plannedActionLabel}`,
+      title: formatMissionTriageInfiltrationTracksTitle(
+        infiltration.stageLabel,
+        infiltration.plannedActionLabel
+      ),
     })
 
-    if (hasCoverStrain(infiltration)) {
+    if (infiltration.hasCoverStrain) {
       pushMarker(markers, {
         id: 'infiltration-cover-strain',
-        label: 'Cover strain',
+        label: MISSION_TRIAGE_COVERT_PREP_LABELS.coverStrain,
         className: MARKER_STYLES.coverStrain,
         title: infiltration.coverStrainNotes[0],
       })
@@ -116,7 +120,7 @@ export function buildMissionTriageCovertPrepSignals(
   if (leaveBehind.visible && leaveBehind.selectedLeaveBehindId !== undefined) {
     pushMarker(markers, {
       id: 'leave-behind-staged',
-      label: 'Leave-behind staged',
+      label: MISSION_TRIAGE_COVERT_PREP_LABELS.leaveBehindStaged,
       className: MARKER_STYLES.leaveBehind,
     })
   }
@@ -130,12 +134,18 @@ export function buildMissionTriageCovertPrepSignals(
     if (forensicStrain) {
       pushMarker(markers, {
         id: 'forensic-strain',
-        label: 'Forensic strain',
+        label: MISSION_TRIAGE_COVERT_PREP_LABELS.forensicStrain,
         className: MARKER_STYLES.forensic,
         title:
           investigation.custodyMarkers.length > 0
-            ? `${investigation.custodyMarkers.length} custody marker(s); ${forensicBudget.remaining} forensic question(s) left`
-            : `Forensic budget exhausted (${forensicBudget.spent}/${forensicBudget.granted})`,
+            ? formatMissionTriageForensicCustodyTitle(
+                investigation.custodyMarkers.length,
+                forensicBudget.remaining
+              )
+            : formatMissionTriageForensicBudgetExhaustedTitle(
+                forensicBudget.spent,
+                forensicBudget.granted
+              ),
       })
     }
   }
@@ -144,8 +154,7 @@ export function buildMissionTriageCovertPrepSignals(
   if (infiltration?.visible) {
     const triage = triageMission(game, resolvedCase)
     if (triage.dimensions.escalationRisk >= HIGH_ESCALATION_RISK_THRESHOLD) {
-      deferralNote =
-        'Deferring may let infiltration exposure escalate before you can prep covert follow-up on case detail.'
+      deferralNote = MISSION_TRIAGE_COVERT_PREP_LABELS.deferralNote
     }
   }
 

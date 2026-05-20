@@ -15,7 +15,7 @@ function createEligibleCase() {
     infiltrationProbeProgress: 0.35,
     infiltrationAwareness: 0.42,
     infiltrationStage: 'probing' as const,
-    tags: ['infiltration'],
+    tags: ['infiltration', 'media', 'public'],
     infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
     infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
     infiltrationWeeklyProbeActionOverride: 'probe_route' as const,
@@ -46,5 +46,6 @@ describe('infiltrationCasePrepView', () => {
     expect(view.effectiveAction).toBe('probe_route')
     expect(view.plannedAction).toBe('probe_access')
     expect(view.coverStrainNotes.length).toBeGreaterThan(0)
+    expect(view.hasCoverStrain).toBe(true)
   })
 })

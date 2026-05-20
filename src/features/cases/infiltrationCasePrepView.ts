@@ -56,6 +56,7 @@ export interface InfiltrationCasePrepView {
   readonly documentTier?: number
   readonly doctrineBandPercent?: number
   readonly coverStrainNotes: readonly string[]
+  readonly hasCoverStrain: boolean
   readonly plannedAction: InfiltrationProbeAction
   readonly plannedActionLabel: string
   readonly overrideAction?: InfiltrationProbeAction
@@ -74,6 +75,15 @@ function formatPercent(value: number) {
   return Math.round(value * 100)
 }
 
+function resolveCoverRoleMismatch(caseData: CaseInstance) {
+  const profile = caseData.infiltrationCoverProfile
+  if (profile === undefined) {
+    return { hasRoleMismatch: false, hasExtraRouteViolation: false }
+  }
+
+  return evaluateCoverRoleMismatchPressure(caseData, profile.claimedRole)
+}
+
 function buildCoverStrainNotes(caseData: CaseInstance): string[] {
   const profile = caseData.infiltrationCoverProfile
   if (profile === undefined) {
@@ -81,7 +91,7 @@ function buildCoverStrainNotes(caseData: CaseInstance): string[] {
   }
 
   const notes: string[] = []
-  const mismatch = evaluateCoverRoleMismatchPressure(caseData, profile.claimedRole)
+  const mismatch = resolveCoverRoleMismatch(caseData)
 
   if (mismatch.hasRoleMismatch) {
     notes.push(`Claimed ${COVER_ROLE_LABELS[profile.claimedRole]} clashes with site tags.`)
@@ -120,6 +130,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       stageLabel: INFILTRATION_STAGE_LABELS.probing,
       awarenessComplicationBandPercent: formatPercent(AWARENESS_COMPLICATION_THRESHOLD),
       coverStrainNotes: [],
+      hasCoverStrain: false,
       plannedAction: 'probe_access',
       plannedActionLabel: INFILTRATION_PROBE_ACTION_LABELS.probe_access,
       effectiveAction: 'probe_access',
@@ -146,6 +157,10 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     documentTier: profile?.documentTier,
     doctrineBandPercent: profile?.doctrineBand !== undefined ? formatPercent(profile.doctrineBand) : undefined,
     coverStrainNotes: buildCoverStrainNotes(caseData),
+    hasCoverStrain: (() => {
+      const mismatch = resolveCoverRoleMismatch(caseData)
+      return mismatch.hasRoleMismatch || mismatch.hasExtraRouteViolation
+    })(),
     plannedAction,
     plannedActionLabel: INFILTRATION_PROBE_ACTION_LABELS[plannedAction],
     overrideAction,

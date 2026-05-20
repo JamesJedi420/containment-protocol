@@ -482,6 +482,49 @@ export const CASE_UI_LABELS: Record<string, string> = {
 }
 
 /**
+ * Mission triage list covert-prep chip labels (SPE-2255).
+ */
+export const MISSION_TRIAGE_COVERT_PREP_LABELS = {
+  concealmentRequested: 'Covert requested',
+  concealmentPreview: 'Covert next week',
+  coverStrain: 'Cover strain',
+  leaveBehindStaged: 'Leave-behind staged',
+  forensicStrain: 'Forensic strain',
+  deferralNote:
+    'Deferring may let infiltration exposure escalate before you can prep covert follow-up on case detail.',
+} as const
+
+export function formatMissionTriageInfiltrationTracksLabel(
+  probeProgressPercent: number,
+  awarenessPercent: number
+): string {
+  return `Probe ${probeProgressPercent}% · awareness ${awarenessPercent}%`
+}
+
+export function formatMissionTriageInfiltrationTracksTitle(
+  stageLabel: string,
+  plannedActionLabel: string
+): string {
+  return `${stageLabel} · planned ${plannedActionLabel}`
+}
+
+export function formatMissionTriageForensicCustodyTitle(
+  markerCount: number,
+  remainingQuestions: number
+): string {
+  const markerWord = markerCount === 1 ? 'marker' : 'markers'
+  const questionWord = remainingQuestions === 1 ? 'question' : 'questions'
+  return `${markerCount} custody ${markerWord}; ${remainingQuestions} forensic ${questionWord} left`
+}
+
+export function formatMissionTriageForensicBudgetExhaustedTitle(
+  spent: number,
+  granted: number
+): string {
+  return `Forensic budget exhausted (${spent}/${granted})`
+}
+
+/**
  * Agency-themed labels used across operational views.
  */
 export const AGENCY_LABELS: Record<string, string> = {

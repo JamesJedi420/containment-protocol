@@ -26,6 +26,20 @@ This spec is for:
 
 ---
 
+## Spec status (May 2026)
+
+**Partial refresh shipped elsewhere:** batch-4 covert operations surfacing (concealment activation, infiltration report note types, leave-behind tradeoff copy, report week prev/next) is specified in `ux/operations-report.md` §5.3.1 and `ux/navigation-map.md` §3.5.1–3.5.2. Weekly prep UI behavior lives in domain helpers and case prep views — not re-specified here yet.
+
+**Deferred until triage UI is next:**
+
+- triage row signals for hidden/concealment-eligible cases and staged leave-behind
+- comparison columns for infiltration prep cost vs deferral risk
+- cross-links from triage deferral to escalation carryover (see comparison table and escalation carryover risk rows below)
+
+Do not treat this document as stale for core prioritization UX; treat covert-prep surfacing as **out of scope** until the deferred block is picked up (`planning/backlog.md` item #4).
+
+---
+
 ## Design goals
 
 The Mission Triage view should:

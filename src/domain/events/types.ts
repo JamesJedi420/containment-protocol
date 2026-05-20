@@ -613,6 +613,39 @@ export interface OperationEventPayloadMap {
     infiltrationAwareness?: number
     infiltrationProbeProgress?: number
     infiltrationStage?: 'probing' | 'exposed' | 'violent'
+    probeAction?: string
+    probeActionSource?: string
+    coverRole?: string
+    leaveBehindId?: string
+    leaveBehindLabel?: string
+  }
+  'infiltration.weekly_encounter': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+    probeAction?: string
+    probeActionSource?: string
+    coverRole?: string
+    leaveBehindId?: string
+    leaveBehindLabel?: string
+  }
+  'infiltration.leave_behind_tradeoff': {
+    week: number
+    caseId: Id
+    caseTitle: string
+    summary: string
+    infiltrationAwareness?: number
+    infiltrationProbeProgress?: number
+    infiltrationStage?: 'probing' | 'exposed' | 'violent'
+    probeAction?: string
+    probeActionSource?: string
+    coverRole?: string
+    leaveBehindId?: string
+    leaveBehindLabel?: string
   }
   'concealment.activated': {
     week: number
@@ -704,6 +737,8 @@ export interface OperationEventTypeToSourceSystemMap {
   'infiltration.escalation_exposed': 'system'
   'infiltration.escalation_violent': 'system'
   'infiltration.cover_strain': 'system'
+  'infiltration.weekly_encounter': 'system'
+  'infiltration.leave_behind_tradeoff': 'system'
   'concealment.activated': 'system'
   'system.academy_upgraded': 'system'
   'staff.coping.applied': 'agent'
@@ -760,6 +795,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'infiltration.escalation_exposed': 'system',
   'infiltration.escalation_violent': 'system',
   'infiltration.cover_strain': 'system',
+  'infiltration.weekly_encounter': 'system',
+  'infiltration.leave_behind_tradeoff': 'system',
   'concealment.activated': 'system',
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',

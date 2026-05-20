@@ -437,6 +437,8 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
     case 'infiltration.escalation_exposed':
     case 'infiltration.escalation_violent':
     case 'infiltration.cover_strain':
+    case 'infiltration.weekly_encounter':
+    case 'infiltration.leave_behind_tradeoff':
       return {
         content: `${draft.payload.caseTitle}: ${draft.payload.summary}`,
         type: draft.type,
@@ -447,6 +449,11 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
           infiltrationAwareness: draft.payload.infiltrationAwareness ?? null,
           infiltrationProbeProgress: draft.payload.infiltrationProbeProgress ?? null,
           infiltrationStage: draft.payload.infiltrationStage ?? null,
+          probeAction: draft.payload.probeAction ?? null,
+          probeActionSource: draft.payload.probeActionSource ?? null,
+          coverRole: draft.payload.coverRole ?? null,
+          leaveBehindId: draft.payload.leaveBehindId ?? null,
+          leaveBehindLabel: draft.payload.leaveBehindLabel ?? null,
         },
       }
 

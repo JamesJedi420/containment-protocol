@@ -124,19 +124,15 @@ Reuse helpers from:
 
 ---
 
-## Runner-up slice (after loop proof)
+## Slice 2 (shipped)
 
-### Infiltration encounter report copy (SPE-2250 optional)
+Persistence reload + 4-week fixture: `src/test/weeklyMvpLoopProof.slice2.integration.test.ts`.
 
-**Goal:** Human-readable report lines for authored probe/cover/leave-behind on cases that activated concealment — e.g. “Cover strain under maintenance cover”, “Leave-behind: risk discovery applied”.
+## Related follow-up (shipped)
 
-| Area | Work |
-| --- | --- |
-| Domain | Extend existing report note builders in `advanceWeek` / event emission (no new tracks) |
-| Content | Map `infiltrationStage`, override action, selected leave-behind id → copy keys in `src/data/copy.ts` |
-| Tests | One integration test per note type; catalog guard optional |
+### Infiltration encounter report copy (SPE-2250)
 
-**Why second:** Makes the 33-template content investment visible in the operations report players already drill into.
+Shipped in `src/domain/infiltrationEncounterReportNotes.ts` with `infiltration.weekly_encounter` and `infiltration.leave_behind_tradeoff` report notes.
 
 ---
 

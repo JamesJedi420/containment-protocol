@@ -246,6 +246,38 @@ Recon gaps increased avoidable exposure.
 
 This is one of the most important sections in the entire view.
 
+### 5.3.1 Covert infiltration and concealment note families (batch 4)
+
+#### Purpose
+
+Surface deterministic covert-ops outcomes from the same weekly pipeline as other report notes—**no client-side probe math**.
+
+#### Note types (canonical `type` strings)
+
+| Report / event `type` | When it appears | Player takeaway |
+| --- | --- | --- |
+| `concealment.activated` | Case enters `hidden` or `displaced` from prep flag or authored trigger | Cover is now active for this operation |
+| `infiltration.weekly_encounter` | Eligible hidden case; probe tick ran; **no** threshold events that week | What prep ran (access/route/cleanup), cover role, staged leave-behind, track bands |
+| `infiltration.awareness_complication` | Site awareness crosses complication band (~55%) | Patrol/staff pressure may intensify |
+| `infiltration.escalation_exposed` | Stage moves to exposed on complication cross | Visible cover strain; higher detection pressure |
+| `infiltration.escalation_violent` | Violent stage from very high awareness (~80%+) | Overt escalation / emergency escape risk |
+| `infiltration.cover_strain` | Weekly cover posture evaluation fires strain | Role/document/route mismatch under scrutiny |
+| `infiltration.leave_behind_tradeoff` | Mission resolve with active stealth leave-behind pressure | Extraction tradeoff label; optional custody strain; may fire **without** custody loss |
+
+#### Content and metadata rules
+
+- **Content shape:** `{caseTitle}: {summary}` where `summary` is produced in domain (`infiltrationEncounterReportNotes.ts`, concealment activation feed).
+- **Threshold summaries** are prefixed with weekly prep context (probe action, cover role, leave-behind label, track clause)—do not strip prefixes in UI.
+- **Metadata** (when present on note): `probeAction`, `probeActionSource` (`override` | `authored` | `heuristic`), `coverRole`, `leaveBehindLabel`, `infiltrationAwareness`, `infiltrationProbeProgress`, `infiltrationStage`.
+- **Duplicate guard:** at most one `infiltration.weekly_encounter` per case per week; never alongside threshold infiltration notes for the same case in the same week.
+
+#### Event feed parity
+
+Dashboard event feed must show the same infiltration/concealment types with labels from `eventFeedView.ts`, link to `/report/{week}`, and use tone **neutral** for `weekly_encounter`, **warning** for most other infiltration types, **danger** for `escalation_violent`.
+
+**QA matrix:** `qa/infiltration-concealment-report-matrix.md`  
+**Tuning bands:** `tuning/infiltration-probe-and-concealment.md`
+
 ### 5.4 Fallout and pressure changes
 
 #### Purpose — Fallout and pressure changes
@@ -435,6 +467,19 @@ Should show:
 
 Drilldowns should move the player from understanding to action.
 
+### Report week navigation (prev / next)
+
+When multiple weekly reports exist, the report detail header exposes **Previous week** / **Next week** links that jump only to weeks with a stored report (gaps are skipped).
+
+Rules:
+
+- Omit prev when viewing the earliest available report week.
+- Omit next when viewing the latest available report week.
+- Single-report campaigns show no prev/next chrome.
+- Navigation is **read-only**; it does not change simulation state.
+
+Implementation: `buildReportWeekNavigation` in `src/features/report/reportWeekNavigation.ts`; copy in `REPORT_UI_TEXT`. Spec slice: `planning/report-week-navigation-slice.md`.
+
 ---
 
 ## 10. Relationship to other views
@@ -454,6 +499,10 @@ The report may link indirectly when fallout changes rumor quality, access, or fa
 ### Procurement
 
 The report should link there only when a real equipment or recovery bottleneck is involved.
+
+### Event feed (dashboard)
+
+Infiltration and concealment events in the global feed must agree with this report’s notes for the same week (type, summary, awareness/stage when shown). Drill-down from feed items should land on this report week, not a parallel explanation.
 
 ---
 

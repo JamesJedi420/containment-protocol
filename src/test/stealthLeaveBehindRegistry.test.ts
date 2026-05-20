@@ -42,6 +42,16 @@ describe('stealthLeaveBehindRegistry (SPE-2163 slice 1)', () => {
     expect(result.issues).toHaveLength(0)
   })
 
+  it('allows empty custodyLossRefs for score-only leave-behind tradeoffs', () => {
+    const result = validateStealthLeaveBehindDefinition(
+      baseDefinition({ custodyLossRefs: [] })
+    )
+
+    expect(result.valid).toBe(true)
+    expect(getStealthLeaveBehindById(DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY, 'leave-behind:burn-tool')
+      ?.custodyLossRefs).toEqual([])
+  })
+
   it('rejects custody refs that collide on investigation flag suffixes', () => {
     const result = validateStealthLeaveBehindDefinition(
       baseDefinition({

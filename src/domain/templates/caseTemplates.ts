@@ -166,9 +166,6 @@ const baseCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 3,
     tags: ['information', 'cyber', 'tier-3'],
-    requiredTags: ['tech'],
-    requiredRoles: ['technical', 'investigator'],
-    preferredTags: ['hacker', 'analyst'],
     concealmentTriggers: [
       {
         id: 'trigger:info-001-relay-infiltration',
@@ -176,6 +173,19 @@ const baseCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['information', 'cyber'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.5, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'courier',
+      documentTier: 2,
+      doctrineBand: 0.65,
+    },
+    stealthLeaveBehindId: 'leave-behind:burn-tool',
+    requiredTags: ['tech'],
+    requiredRoles: ['technical', 'investigator'],
+    preferredTags: ['hacker', 'analyst', 'covert', 'infiltration'],
     onFail: { stageDelta: 1, spawnCount: { min: 0, max: 1 }, spawnTemplateIds: ['info-001'] },
     onUnresolved: {
       stageDelta: 2,

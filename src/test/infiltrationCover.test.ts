@@ -228,7 +228,7 @@ describe('infiltrationCover', () => {
       .filter((template) => template.infiltrationProbePlan)
       .map((template) => template.templateId)
 
-    expect(templateIds.length).toBeGreaterThanOrEqual(21)
+    expect(templateIds.length).toBeGreaterThanOrEqual(24)
 
     for (const templateId of templateIds) {
       expect(caseTemplateMap[templateId].infiltrationCoverProfile?.claimedRole).toBeTruthy()

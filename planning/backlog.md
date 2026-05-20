@@ -15,8 +15,8 @@ From `README.md` **Current design notes**:
 
 ## Queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, activation event feed, and batch-4 template migration shipped (`planning/concealment-triggers-migration-batch-4-slice.md`, SPE-2249); **next:** [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250/infiltration-encountercontent-follow-through-post-spe-521-substrate) (encounter/content depth on SPE-521 substrate).
-2. **Infiltration and access follow-through** — [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250/infiltration-encountercontent-follow-through-post-spe-521-substrate) (encounter/content depth on shipped SPE-521 substrate; not new probe mechanics).
+1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, activation event feed, and batch-4 concealment migration shipped (`planning/concealment-triggers-migration-batch-4-slice.md`, SPE-2249); infiltration content slice 1 shipped (`planning/infiltration-encounter-content-slice-1.md`, SPE-2250) for `ops-005`, `psi-001`, `info-001`.
+2. **Infiltration and access follow-through** — [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250/infiltration-encountercontent-follow-through-post-spe-521-substrate) slice 2+: remaining batch-4 templates and encounter depth on shipped SPE-521 substrate (not new probe mechanics).
 3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
 4. **Core UX specs** — Finish or refresh core UX specs so surfaces match canonical domain outputs (`planning/roadmap.md` §15).
 5. **Tuning and QA references** — Complete tuning references and QA references, then use them to harden implementation sequencing (same roadmap section).

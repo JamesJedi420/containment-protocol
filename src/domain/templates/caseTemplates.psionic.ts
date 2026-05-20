@@ -18,6 +18,13 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     tags: ['psionic', 'precognition', 'tier-2'],
     requiredTags: ['medium'],
     preferredTags: ['analyst', 'investigator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-001-bleed-stakeout',
+        mode: 'hidden',
+        when: { anyTag: ['psionic', 'precognition'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -184,6 +191,13 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     tags: ['psionic', 'reliquary', 'memory', 'tier-2'],
     requiredTags: ['scholar'],
     preferredTags: ['medium', 'analyst', 'tech'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-006-reliquary-screen',
+        mode: 'hidden',
+        when: { allTags: ['psionic', 'reliquary'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -213,6 +227,13 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     tags: ['psionic', 'amplifier', 'tier-2'],
     requiredTags: ['medium'],
     preferredTags: ['tech', 'analyst', 'field-kit'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:psi-004-station-infiltration',
+        mode: 'hidden',
+        when: { anyTag: ['amplifier', 'psionic'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -273,6 +294,13 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 2,
     tags: ['psionic', 'aftermath', 'tier-1'],
     preferredTags: ['medium', 'tech', 'investigator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:followup-psi-aftermath-residue-sweep',
+        mode: 'hidden',
+        when: { anyTag: ['psionic', 'aftermath'] },
+      },
+    ],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

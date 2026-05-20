@@ -15,6 +15,13 @@ export const occultCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'ritual', 'chapel', 'tier-2'],
     requiredTags: ['occultist'],
     preferredTags: ['holy', 'negotiator', 'ritual-kit'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-001-chapel-infiltration',
+        mode: 'hidden',
+        when: { allTags: ['occult', 'chapel'] },
+      },
+    ],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -43,6 +50,13 @@ export const occultCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'resonance', 'memorial', 'tier-2'],
     requiredTags: ['scholar'],
     preferredTags: ['scholar', 'negotiator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-002-memorial-blend',
+        mode: 'hidden',
+        when: { anyTag: ['memorial', 'resonance'] },
+      },
+    ],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -116,6 +130,13 @@ export const occultCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'reliquary', 'vault', 'tier-2'],
     requiredTags: ['holy'],
     preferredTags: ['tech', 'medic'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-004-vault-approach',
+        mode: 'hidden',
+        when: { allTags: ['reliquary', 'vault'] },
+      },
+    ],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -143,6 +164,13 @@ export const occultCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'weather', 'cathedral', 'tier-2'],
     requiredTags: ['scholar'],
     preferredTags: ['tech', 'negotiator'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-005-greenhouse-cover',
+        mode: 'hidden',
+        when: { anyTag: ['cathedral', 'weather'] },
+      },
+    ],
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -218,6 +246,13 @@ export const occultCaseTemplates: CaseTemplate[] = [
     tags: ['occult', 'catacomb', 'raid', 'tier-3'],
     requiredTags: ['holy', 'scholar'],
     preferredTags: ['ritual-kit', 'tech', 'medic'],
+    concealmentTriggers: [
+      {
+        id: 'trigger:occult-007-catacomb-infiltration',
+        mode: 'hidden',
+        when: { allTags: ['occult', 'catacomb'] },
+      },
+    ],
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,

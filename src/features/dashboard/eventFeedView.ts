@@ -54,7 +54,7 @@ export const DEFAULT_EVENT_FEED_FILTERS: EventFeedFilters = {
   entityId: '',
 }
 
-const EVENT_FEED_PARAM_KEYS = {
+export const EVENT_FEED_PARAM_KEYS = {
   query: 'feedQ',
   category: 'feedCategory',
   sourceSystem: 'feedSource',
@@ -909,6 +909,9 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: event.payload.delta > 0 ? 'success' : event.payload.delta < 0 ? 'warning' : 'neutral',
+        href: event.payload.caseId
+          ? APP_ROUTES.caseDetail(event.payload.caseId)
+          : undefined,
         searchText:
           `${event.payload.factionName} ${event.payload.factionId} ${event.payload.reason} ${event.payload.caseTitle ?? ''} ${event.payload.interactionLabel ?? ''}`.toLowerCase(),
       }
@@ -1086,7 +1089,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone: 'neutral',
-        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        href: APP_ROUTES.reportDetail(event.payload.week),
         searchText:
           `${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.summary} ${event.payload.reason} concealment`.toLowerCase(),
       }
@@ -1117,7 +1120,7 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
         typeLabel,
         timestampLabel,
         tone,
-        href: APP_ROUTES.caseDetail(event.payload.caseId),
+        href: APP_ROUTES.reportDetail(event.payload.week),
         searchText:
           `${event.payload.caseTitle} ${event.payload.caseId} ${event.payload.summary} infiltration`.toLowerCase(),
       }

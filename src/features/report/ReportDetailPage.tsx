@@ -7,7 +7,7 @@ import {
 } from '../../domain/explanations'
 import type { KnowledgeState, KnowledgeStateMap } from '../../domain/knowledge'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useLocation, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
@@ -23,6 +23,10 @@ import {
   REPORT_NOTE_CATEGORY_LABELS,
   type ReportNoteCategory,
 } from './reportNoteView'
+import {
+  buildDrillDownHrefWithFeedContext,
+  resolveOperationsBackTarget,
+} from '../operations/operationsRouteDrillDown'
 import { buildReportWeekNavigation } from './reportWeekNavigation'
 
 // --- Real-data knowledge/relay/fusion/decay UI helpers ---
@@ -67,22 +71,28 @@ function getFusionExplanation(knowledgeState?: KnowledgeState) {
 
 export default function ReportDetailPage() {
   const { week } = useParams()
+  const location = useLocation()
   const { game } = useGameStore()
   const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
     'all'
   )
+  const locationSearch = new URLSearchParams(location.search)
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
     : undefined
 
   if (!report) {
+    const backTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
+
     return (
       <LocalNotFound
         title={SHELL_UI_TEXT.reportNotFoundTitle}
         message={SHELL_UI_TEXT.reportNotFoundMessage}
-        backTo={APP_ROUTES.report}
-        backLabel={SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Reports')}
+        backTo={backTarget.href}
+        backLabel={
+          backTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Reports')
+        }
       />
     )
   }
@@ -164,7 +174,10 @@ export default function ReportDetailPage() {
               >
                 {weekNavigation.previousWeek !== undefined ? (
                   <Link
-                    to={APP_ROUTES.reportDetail(weekNavigation.previousWeek)}
+                    to={buildDrillDownHrefWithFeedContext(
+                      APP_ROUTES.reportDetail(weekNavigation.previousWeek),
+                      locationSearch
+                    )}
                     className="opacity-70 hover:underline"
                   >
                     {REPORT_UI_TEXT.previousWeekLink} ({weekNavigation.previousWeek})
@@ -172,7 +185,10 @@ export default function ReportDetailPage() {
                 ) : null}
                 {weekNavigation.nextWeek !== undefined ? (
                   <Link
-                    to={APP_ROUTES.reportDetail(weekNavigation.nextWeek)}
+                    to={buildDrillDownHrefWithFeedContext(
+                      APP_ROUTES.reportDetail(weekNavigation.nextWeek),
+                      locationSearch
+                    )}
                     className="opacity-70 hover:underline"
                   >
                     {REPORT_UI_TEXT.nextWeekLink} ({weekNavigation.nextWeek})

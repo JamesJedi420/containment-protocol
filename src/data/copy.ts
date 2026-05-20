@@ -475,6 +475,9 @@ export const CASE_UI_LABELS: Record<string, string> = {
   oddsFailAbbr: 'F',
   removeTeam: 'Remove',
   tags: 'Tags',
+  caseWeeklyReports: 'Weekly reports',
+  caseWeeklyReportsHint: 'After-action reports that reference this case or its weekly notes.',
+  caseWeeklyReportLink: 'Week {week} report',
   loreStub: 'Intelligence stub',
 }
 

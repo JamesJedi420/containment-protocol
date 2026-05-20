@@ -16,6 +16,7 @@ import {
   writeEventFeedFilters,
   type EventFeedTone,
 } from './eventFeedView'
+import { buildDrillDownHrefWithFeedContext } from '../operations/operationsRouteDrillDown'
 
 export function EventFeedPanel() {
   const { game } = useGameStore()
@@ -304,7 +305,10 @@ export function EventFeedPanel() {
                   </div>
                   <div className="space-y-1">
                     {view.href ? (
-                      <Link to={view.href} className="font-medium hover:underline">
+                      <Link
+                        to={buildDrillDownHrefWithFeedContext(view.href, searchParams)}
+                        className="font-medium hover:underline"
+                      >
                         {view.title}
                       </Link>
                     ) : (

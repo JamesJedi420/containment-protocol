@@ -105,6 +105,7 @@ export default function ReportDetailPage() {
   const noteCategoryOptions = getAvailableReportNoteCategories(report.notes)
   const filteredNotes = filterReportNotesByCategory(report.notes, selectedNoteCategory)
   const weekNavigation = buildReportWeekNavigation(game.reports, report.week)
+  const reportBackTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
 
   // --- Real-data knowledge/relay/ladder UI wiring ---
   // For each team in the report, show knowledge ladders and relay/decay/fusion for each anomaly/hazard
@@ -123,6 +124,11 @@ export default function ReportDetailPage() {
 
   return (
     <section className="space-y-4">
+      {reportBackTarget.label ? (
+        <Link to={reportBackTarget.href} className="btn btn-sm btn-ghost w-fit">
+          {reportBackTarget.label}
+        </Link>
+      ) : null}
       <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
         {/* Real-data knowledge ladders and relay/decay/fusion status */}
         <div className="my-2 p-2 bg-blue-50 rounded text-xs">

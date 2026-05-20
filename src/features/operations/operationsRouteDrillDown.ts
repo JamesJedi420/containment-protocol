@@ -15,7 +15,8 @@ function reportListsCase(report: WeeklyReport, caseId: string): boolean {
     report.partialCases.includes(caseId) ||
     report.unresolvedTriggers.includes(caseId) ||
     report.spawnedCases.includes(caseId) ||
-    report.teamStatus.some((entry) => entry.assignedCaseId === caseId)
+    report.teamStatus.some((entry) => entry.assignedCaseId === caseId) ||
+    caseId in (report.caseSnapshots ?? {})
   )
 }
 
@@ -57,7 +58,9 @@ export function buildDrillDownHrefWithFeedContext(
     return href
   }
 
-  const [pathname, existingSearch = ''] = href.split('?')
+  const questionIndex = href.indexOf('?')
+  const pathname = questionIndex === -1 ? href : href.slice(0, questionIndex)
+  const existingSearch = questionIndex === -1 ? '' : href.slice(questionIndex + 1)
   const merged = writeEventFeedFilters(
     readEventFeedFilters(searchParams),
     new URLSearchParams(existingSearch)

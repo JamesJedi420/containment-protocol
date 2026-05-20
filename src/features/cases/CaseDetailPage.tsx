@@ -82,6 +82,11 @@ export default function CaseDetailPage() {
 
   return (
     <section className="space-y-4">
+      {backTarget.label ? (
+        <Link to={backTarget.href} className="btn btn-sm btn-ghost w-fit">
+          {backTarget.label}
+        </Link>
+      ) : null}
       <article className="panel panel-primary space-y-4" role="region" aria-label="Case dossier">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">

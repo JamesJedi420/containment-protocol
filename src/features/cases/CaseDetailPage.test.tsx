@@ -427,3 +427,12 @@ it('returns to the operations desk when opened from a filtered feed', () => {
     '/?feedQ=raid'
   )
 })
+
+it('shows a desk back link on case detail when opened from a filtered feed', () => {
+  renderCaseDetail('/cases/case-001?feedQ=raid')
+
+  expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
+    'href',
+    '/?feedQ=raid'
+  )
+})

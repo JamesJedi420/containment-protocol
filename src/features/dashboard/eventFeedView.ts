@@ -1148,6 +1148,38 @@ export function getAvailableEventCategories(events: OperationEvent[]) {
   )
 }
 
+function hasWeeklyReport(reports: GameState['reports'], week: number): boolean {
+  return reports.some((report) => report.week === week)
+}
+
+function getEventPayloadCaseId(event: OperationEvent): string | undefined {
+  const caseId = (event.payload as { caseId?: string }).caseId
+
+  return typeof caseId === 'string' && caseId.length > 0 ? caseId : undefined
+}
+
+/** Report-week feed links fall back to case detail when that week's report is absent. */
+export function refineEventFeedDrillDownHref(
+  view: EventFeedView,
+  reports: GameState['reports']
+): EventFeedView {
+  if (!view.href?.startsWith(`${APP_ROUTES.report}/`)) {
+    return view
+  }
+
+  if (hasWeeklyReport(reports, view.week)) {
+    return view
+  }
+
+  const caseId = getEventPayloadCaseId(view.event)
+
+  if (!caseId) {
+    return { ...view, href: undefined }
+  }
+
+  return { ...view, href: APP_ROUTES.caseDetail(caseId) }
+}
+
 export function getFilteredEventFeedViews(
   game: GameState,
   filters: EventFeedFilters = DEFAULT_EVENT_FEED_FILTERS
@@ -1162,7 +1194,10 @@ export function getFilteredEventFeedViews(
     entityId: filters.entityId,
   })
 
-  const mapped = filteredEvents.map(buildEventFeedView).filter((view) => {
+  const mapped = filteredEvents
+    .map(buildEventFeedView)
+    .map((view) => refineEventFeedDrillDownHref(view, game.reports))
+    .filter((view) => {
     if (filters.category !== 'all' && EVENT_TYPE_CATEGORIES[view.event.type] !== filters.category) {
       return false
     }

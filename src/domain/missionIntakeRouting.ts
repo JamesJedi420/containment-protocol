@@ -245,6 +245,17 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
   }
 }
 
+/** Matches `escalation-high` reason code banding in {@link triageMission}. */
+export function hasHighMissionEscalationRisk(currentCase: CaseInstance): boolean {
+  const escalationRisk = clampInteger(
+    currentCase.stage * 6 + (currentCase.kind === 'raid' ? 8 : 0),
+    0,
+    20
+  )
+
+  return escalationRisk >= 14
+}
+
 export interface MissionTeamRoutingCandidate {
   teamId: Id
   valid: boolean

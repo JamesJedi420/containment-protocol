@@ -20,7 +20,7 @@ From `README.md` **Current design notes**:
 3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
 4. **Core UX specs** — Finish or refresh core UX specs so surfaces match canonical domain outputs (`planning/roadmap.md` §15).
 5. **Tuning and QA references** — Complete tuning references and QA references, then use them to harden implementation sequencing (same roadmap section).
-6. **MVP loop proof** — Drive implementation toward trustworthy end-to-end weekly loop proof before broadening (`planning/roadmap.md` phases 1–2).
+6. **MVP loop proof** — **Next implement:** slice 1 integration harness (`planning/mvp-weekly-loop-proof-slice-1.md`); then triage→prep→advanceWeek→report→drill-down hardening before broadening (`planning/roadmap.md` phases 1–2).
 7. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 8. **Archived prototype hygiene** — Keep archived prototype code out of active runtime paths unless intentionally revived (`README.md` former “next steps”).
 

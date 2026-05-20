@@ -73,7 +73,7 @@ describe('detectionScanReportNotes', () => {
     ).toBe(true)
   })
 
-  it('returns false for active validation with only a no-contact readout', () => {
+  it('returns false for active validation with presence-only absent contact', () => {
     const scan = resolveDetectionScan(buildSubject({ present: false }), { family: 'presence_sweep' })
 
     expect(

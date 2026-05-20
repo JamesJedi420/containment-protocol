@@ -8,6 +8,15 @@ import type { DisguiseRevealIntegrationResult } from './revealPayloadDisguiseInt
 
 export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 
+function isPresenceOnlyAbsentContact(scan: DetectionScanResult): boolean {
+  if (scan.fields.length !== 1) {
+    return false
+  }
+
+  const field = scan.fields[0]
+  return field.tier === 'presence' && field.internalValue === false
+}
+
 function orderedPlayerFacingValues(result: DetectionScanResult): readonly string[] {
   return result.fields
     .map((field) => field.playerFacingValue.trim())
@@ -23,18 +32,11 @@ export function shouldAppendDetectionScanReportNote(
     return false
   }
 
-  const { fields } = validation.detectionScan
-  if (fields.length === 0) {
+  if (isPresenceOnlyAbsentContact(validation.detectionScan)) {
     return false
   }
 
-  // Suppress if the only information is that no contact was found.
-  if (fields.length === 1 && fields[0].tier === 'presence' && fields[0].internalValue === false) {
-    return false
-  }
-
-
-  return true
+  return orderedPlayerFacingValues(validation.detectionScan).length > 0
 }
 
 function formatDetectionScanStrippedLayersSuffix(result: DetectionScanResult): string {

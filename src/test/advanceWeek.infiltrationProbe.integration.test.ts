@@ -147,4 +147,42 @@ describe('advanceWeek infiltration probe integration', () => {
     expect(updatedCase.infiltrationProbeProgress).toBeCloseTo(0.7, 3)
     expect(updatedCase.infiltrationAwareness).toBeCloseTo(0.38, 3)
   })
+
+  it('ticks probe progress for batch-4 ops-005 after authored concealment activation', () => {
+    const state = createStartingState()
+    const [teamId] = Object.keys(state.teams)
+
+    state.reports = []
+    state.agency!.supportAvailable = 3
+    state.globalFlags = {}
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+    }
+
+    const chamberCase = instantiateFromTemplate(
+      caseTemplateMap['ops-005'],
+      () => 0.42,
+      new Set(Object.keys(state.cases))
+    )
+    chamberCase.id = 'case-ops-005'
+    chamberCase.tags = [...chamberCase.tags, 'infiltration', 'covert']
+    chamberCase.status = 'in_progress'
+    chamberCase.assignedTeamIds = [teamId]
+    chamberCase.weeksRemaining = 2
+    chamberCase.mode = 'probability'
+    chamberCase.infiltrationProbeProgress = 0.15
+    chamberCase.infiltrationAwareness = 0.2
+
+    state.cases['case-ops-005'] = chamberCase
+
+    const nextState = advanceWeek(state)
+    const updatedCase = nextState.cases['case-ops-005']
+
+    expect(updatedCase.hiddenState).toBe('hidden')
+    expect(updatedCase.infiltrationProbeProgress).toBeGreaterThan(0.15)
+    expect(updatedCase.infiltrationCoverProfile?.claimedRole).toBe('maintenance')
+    expect(updatedCase.stealthLeaveBehindId).toBe('leave-behind:risk-discovery')
+  })
 })

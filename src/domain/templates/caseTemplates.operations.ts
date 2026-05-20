@@ -196,8 +196,6 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 2,
     tags: ['occult', 'signal', 'seal', 'tier-2'],
-    requiredTags: ['occultist'],
-    preferredTags: ['ritual-kit', 'medium'],
     concealmentTriggers: [
       {
         id: 'trigger:ops-005-chamber-approach',
@@ -205,6 +203,19 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['occult', 'seal'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.4,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
+    requiredTags: ['occultist'],
+    preferredTags: ['ritual-kit', 'medium', 'covert', 'infiltration', 'stealth'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

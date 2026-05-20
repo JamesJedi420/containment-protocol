@@ -16,8 +16,6 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     durationWeeks: 2,
     deadlineWeeks: 3,
     tags: ['psionic', 'precognition', 'tier-2'],
-    requiredTags: ['medium'],
-    preferredTags: ['analyst', 'investigator'],
     concealmentTriggers: [
       {
         id: 'trigger:psi-001-bleed-stakeout',
@@ -25,6 +23,18 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['psionic', 'precognition'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
+    requiredTags: ['medium'],
+    preferredTags: ['analyst', 'investigator', 'covert', 'infiltration'],
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

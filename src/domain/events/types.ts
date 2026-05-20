@@ -795,6 +795,8 @@ export const EVENT_TYPE_TO_SOURCE_SYSTEM: Readonly<OperationEventTypeToSourceSys
   'infiltration.escalation_exposed': 'system',
   'infiltration.escalation_violent': 'system',
   'infiltration.cover_strain': 'system',
+  'infiltration.weekly_encounter': 'system',
+  'infiltration.leave_behind_tradeoff': 'system',
   'concealment.activated': 'system',
   'system.academy_upgraded': 'system',
   'staff.coping.applied': 'agent',

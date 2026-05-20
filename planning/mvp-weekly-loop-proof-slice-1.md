@@ -108,11 +108,19 @@ Reuse helpers from:
 
 ## Acceptance criteria
 
-- [ ] `weeklyMvpLoopProof.integration.test.ts` runs in CI (`npm run test:run`)
-- [ ] Test covers: prep mutations → `advanceWeek` → report notes + event feed href sanity + week navigation
-- [ ] No new persistence shapes; uses existing store flags and case fields
-- [ ] `npm run lint` green
-- [ ] Plan linked from backlog #6
+- [x] `weeklyMvpLoopProof.integration.test.ts` runs in CI (`npm run test:run`)
+- [x] Test covers: prep mutations → `advanceWeek` → report notes + event feed href sanity + week navigation
+- [x] No new persistence shapes; uses existing domain prep APIs and case fields
+- [x] `npm run lint` green
+- [x] Plan linked from backlog #6
+
+## Shipped artifacts
+
+| Area | Files |
+| --- | --- |
+| Fixture | `src/test/helpers/weeklyMvpLoopProof.ts` |
+| Integration tests | `src/test/weeklyMvpLoopProof.integration.test.ts` |
+| Linear | SPE-2251 |
 
 ---
 

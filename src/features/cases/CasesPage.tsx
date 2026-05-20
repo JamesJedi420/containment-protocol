@@ -89,7 +89,7 @@ export default function CasesPage() {
     }
   }, [normalizedSearchString, searchParamsString, setSearchParams])
 
-  const cases = getFilteredCaseViews(game, filters)
+  const cases = getFilteredCaseViews(game, filters, { includeCovertPrepSignals: true })
   const totalCases = Object.keys(game.cases).length
 
   function updateFilters(nextFilters: CaseListFilters) {
@@ -873,14 +873,24 @@ export default function CasesPage() {
   )
 }
 
+const MAX_LIST_ROW_MARKERS = 4
+
 function getListRowMarkers(view: CaseListItemView) {
   const markers: Array<{ key: string; label: string; className: string; title?: string }> = []
 
   for (const marker of getUrgencyMarkers(view)) {
+    if (markers.length >= MAX_LIST_ROW_MARKERS) {
+      break
+    }
+
     markers.push({ key: `urgency:${marker.label}`, ...marker })
   }
 
   for (const marker of view.covertPrepSignals.markers) {
+    if (markers.length >= MAX_LIST_ROW_MARKERS) {
+      break
+    }
+
     markers.push({
       key: marker.id,
       label: marker.label,

@@ -153,6 +153,7 @@ it('renders urgency markers for triage cases', () => {
 
 it('renders covert prep markers on triage list rows', () => {
   const game = createStartingState()
+  const assignedTeamId = Object.keys(game.teams)[0]!
   game.cases = {
     covert: {
       ...createStarterCase({ id: 'covert', templateId: 'ops-004' }),
@@ -163,13 +164,13 @@ it('renders covert prep markers on triage list rows', () => {
       infiltrationProbeProgress: 0.35,
       infiltrationAwareness: 0.5,
       infiltrationStage: 'probing',
-      tags: ['infiltration'],
+      tags: ['infiltration', 'media', 'public'],
       infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
       infiltrationCoverProfile: caseTemplateMap['ops-004'].infiltrationCoverProfile,
       stealthLeaveBehindId: 'leave-behind:risk-discovery',
       requiredTags: [],
       preferredTags: [],
-      assignedTeamIds: [],
+      assignedTeamIds: [assignedTeamId],
     },
     plain: makeCase('plain', 'Plain Open Case', { status: 'open' }),
   }
@@ -181,10 +182,14 @@ it('renders covert prep markers on triage list rows', () => {
   const covertCard = getCardByName('Covert Infiltration Case')
   expect(within(covertCard).getByText(/Probe 35%/)).toBeInTheDocument()
   expect(within(covertCard).getByText(/awareness 50%/)).toBeInTheDocument()
-  expect(within(covertCard).getByText('Leave-behind staged')).toBeInTheDocument()
+  expect(within(covertCard).getByText('Cover strain')).toBeInTheDocument()
+  expect(within(covertCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()
   expect(
     within(covertCard).getAllByText(/Deferring may let infiltration exposure escalate/i)
   ).toHaveLength(1)
+
+  const markerRegion = within(covertCard).getByLabelText('Case triage markers')
+  expect(markerRegion.querySelectorAll('span').length).toBe(4)
 
   const plainCard = getCardByName('Plain Open Case')
   expect(within(plainCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()

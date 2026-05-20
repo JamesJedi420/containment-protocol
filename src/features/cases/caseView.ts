@@ -72,7 +72,15 @@ export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
   risk: false,
 }
 
-export function getCaseListItemView(currentCase: CaseInstance, game: GameState): CaseListItemView {
+export interface CaseListItemViewOptions {
+  readonly includeCovertPrepSignals?: boolean
+}
+
+export function getCaseListItemView(
+  currentCase: CaseInstance,
+  game: GameState,
+  options?: CaseListItemViewOptions
+): CaseListItemView {
   const previewState = buildResolutionPreviewState(game)
   const isMajorIncident = isOperationalMajorIncidentCase(currentCase)
   const assignedTeams = currentCase.assignedTeamIds
@@ -186,13 +194,20 @@ export function getCaseListItemView(currentCase: CaseInstance, game: GameState):
     isBlockedByRequiredRoles,
     isBlockedByRequiredTags,
     isRaidAtCapacity,
-    covertPrepSignals: buildMissionTriageCovertPrepSignals(currentCase, game),
+    covertPrepSignals:
+      options?.includeCovertPrepSignals === true
+        ? buildMissionTriageCovertPrepSignals(currentCase, game)
+        : { visible: false, markers: [] },
   }
 }
 
-export function getFilteredCaseViews(game: GameState, filters: CaseListFilters) {
+export function getFilteredCaseViews(
+  game: GameState,
+  filters: CaseListFilters,
+  options?: CaseListItemViewOptions
+) {
   return Object.values(game.cases)
-    .map((currentCase) => getCaseListItemView(currentCase, game))
+    .map((currentCase) => getCaseListItemView(currentCase, game, options))
     .filter((view) => matchesCaseFilters(view, filters))
     .sort((left, right) => compareCaseViews(left, right, filters.sort))
 }

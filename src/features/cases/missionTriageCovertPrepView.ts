@@ -1,4 +1,4 @@
-import { triageMission } from '../../domain/missionIntakeRouting'
+import { hasHighMissionEscalationRisk } from '../../domain/missionIntakeRouting'
 import type { CaseInstance, GameState } from '../../domain/models'
 import {
   formatMissionTriageForensicBudgetExhaustedTitle,
@@ -19,7 +19,6 @@ import {
 import { buildStealthLeaveBehindSelectionView } from './stealthLeaveBehindSelectionView'
 
 const MAX_COVER_MARKERS = 4
-const HIGH_ESCALATION_RISK_THRESHOLD = 14
 
 const MARKER_STYLES = {
   concealment: 'border-violet-500/40 bg-violet-500/10 text-violet-100',
@@ -151,11 +150,8 @@ export function buildMissionTriageCovertPrepSignals(
   }
 
   let deferralNote: string | undefined
-  if (infiltration?.visible) {
-    const triage = triageMission(game, resolvedCase)
-    if (triage.dimensions.escalationRisk >= HIGH_ESCALATION_RISK_THRESHOLD) {
-      deferralNote = MISSION_TRIAGE_COVERT_PREP_LABELS.deferralNote
-    }
+  if (infiltration?.visible && hasHighMissionEscalationRisk(resolvedCase)) {
+    deferralNote = MISSION_TRIAGE_COVERT_PREP_LABELS.deferralNote
   }
 
   return {

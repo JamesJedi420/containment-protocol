@@ -11,6 +11,7 @@ import {
 } from '../domain/investigationEconomy'
 import { setPersistentFlag } from '../domain/flagSystem'
 import { buildConcealCaseFlagId } from '../domain/concealmentCasePrep'
+import type { CaseInstance } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
 import { caseTemplateMap } from '../domain/templates/caseTemplates'
 import { createStartingState } from '../data/startingState'
@@ -18,7 +19,7 @@ import { buildInvestigationCasePrepView } from '../features/cases/investigationC
 import { MISSION_TRIAGE_COVERT_PREP_LABELS } from '../data/copy'
 import { buildMissionTriageCovertPrepSignals } from '../features/cases/missionTriageCovertPrepView'
 
-function createConcealmentEligibleCase() {
+function createConcealmentEligibleCase(overrides: Partial<CaseInstance> = {}) {
   return {
     ...createStarterCase({ id: 'case-triage-conceal', templateId: 'ops-003' }),
     status: 'in_progress' as const,
@@ -26,6 +27,7 @@ function createConcealmentEligibleCase() {
     requiredTags: [],
     preferredTags: [],
     assignedTeamIds: [],
+    ...overrides,
   }
 }
 

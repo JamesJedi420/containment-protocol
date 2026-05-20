@@ -271,7 +271,7 @@ export const operationsCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 3,
     tags: ['biological', 'forensics', 'triage', 'tier-2'],
     requiredTags: ['medic'],
-    preferredTags: ['investigator', 'lab-kit', 'forensics'],
+    preferredTags: ['investigator', 'lab-kit', 'forensics', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:bio-forensics-001-vector-stakeout',
@@ -279,6 +279,16 @@ export const operationsCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['forensics', 'biological'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

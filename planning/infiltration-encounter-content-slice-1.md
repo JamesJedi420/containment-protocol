@@ -14,9 +14,9 @@ No new probe mechanics, domain kernel changes, or UI work in this slice.
 | `psi-001` | civilian_staff | `probe_route` (+ access fallback) | `leave-behind:risk-discovery` |
 | `info-001` | courier | `probe_route` (+ access fallback) | `leave-behind:burn-tool` |
 
-## Intentionally deferred (same issue, later slices)
+## Follow-up
 
-Remaining batch-4 templates with triggers only (`bio-forensics-001`, `occult-001`–`007`, `psi-004`, `psi-006`, `followup_psi_aftermath`) and encounter-depth beyond probe/cover/leave-behind.
+Remaining nine batch-4 templates shipped in slice 2 (`planning/infiltration-encounter-content-slice-2.md`).
 
 ## Acceptance
 

@@ -107,6 +107,32 @@ describe('detectionScanReportNotes', () => {
     )
   })
 
+  it('does not append duplicate detection readout lines', () => {
+    const scan = resolveDetectionScan(buildSubject(), { family: 'category_pass' })
+    const reasons: string[] = []
+
+    appendDetectionScanResolutionReason(reasons, {
+      active: true,
+      level: 'strong',
+      scoreAdjustment: 0,
+      evidenceSignals: [],
+      counterDetection: false,
+      shouldDegradeSuccessToPartial: false,
+      detectionScan: scan,
+    })
+    appendDetectionScanResolutionReason(reasons, {
+      active: true,
+      level: 'strong',
+      scoreAdjustment: 0,
+      evidenceSignals: [],
+      counterDetection: false,
+      shouldDegradeSuccessToPartial: false,
+      detectionScan: scan,
+    })
+
+    expect(reasons).toHaveLength(1)
+  })
+
   it('appendDetectionScanResolutionReason pushes a formatted line', () => {
     const agent: Agent = {
       id: 'a_scan_copy',

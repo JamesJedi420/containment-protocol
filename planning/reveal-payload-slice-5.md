@@ -36,8 +36,8 @@ Surface **tiered detection readouts** in player-facing weekly report copy using 
 
 ## Implementation notes
 
-1. Import `detectionScanTierOrder` and `DetectionScanResult` from `revealPayloadDisguiseIntegration.ts` (or re-export surface used by tests).
-2. Wire in `src/domain/sim/advanceWeek.ts` after `weeklyResolution` destructuring, before `buildSuccessCaseOutcomeDraft` / escalated drafts — same block for success, partial, and fail paths that already push `resolutionReasons`.
+1. `detectionScanReportNotes.ts` formats `DetectionScanResult.fields` in resolver order via `playerFacingValue` only.
+2. Wire in `src/domain/sim/advanceWeek.ts` immediately after `resolutionReasons` is seeded (shared success / partial / fail / degrade paths).
 3. Post-merge: update `planning/backlog.md` item #5 (slice 5 shipped; modality matrix remains follow-up).
 
 ## See also

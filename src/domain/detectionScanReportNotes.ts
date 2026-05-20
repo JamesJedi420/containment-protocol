@@ -9,7 +9,9 @@ import type { DisguiseRevealIntegrationResult } from './revealPayloadDisguiseInt
 export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 
 function orderedPlayerFacingValues(result: DetectionScanResult): readonly string[] {
-  return result.fields.map((field) => field.playerFacingValue)
+  return result.fields
+    .map((field) => field.playerFacingValue.trim())
+    .filter((value) => value.length > 0)
 }
 
 export function shouldAppendDetectionScanReportNote(
@@ -60,6 +62,10 @@ export function appendDetectionScanResolutionReason(
   behaviorValidation?: DisguiseRevealIntegrationResult
 ): void {
   if (behaviorValidation === undefined || !shouldAppendDetectionScanReportNote(behaviorValidation)) {
+    return
+  }
+
+  if (resolutionReasons.some((reason) => reason.startsWith(DETECTION_SCAN_READOUT_PREFIX))) {
     return
   }
 

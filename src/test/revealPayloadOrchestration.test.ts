@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
-import { appendDetectionScanResolutionReason } from '../domain/detectionScanReportNotes'
+import {
+  appendDetectionScanResolutionReason,
+  DETECTION_SCAN_READOUT_PREFIX,
+} from '../domain/detectionScanReportNotes'
 import {
   buildDisguiseRevealSubjectFromCase,
   detectionScanTierOrder,
@@ -159,7 +162,7 @@ describe('revealPayloadOrchestration (SPE-781 slice 4)', () => {
 
     const activeReasons: string[] = []
     appendDetectionScanResolutionReason(activeReasons, mismatched.behaviorValidation)
-    expect(activeReasons.some((reason) => reason.includes('Detection readout:'))).toBe(true)
+    expect(activeReasons.some((reason) => reason.includes(DETECTION_SCAN_READOUT_PREFIX))).toBe(true)
   })
 
   it('falls back to infiltration contact when cover role is invalid', () => {

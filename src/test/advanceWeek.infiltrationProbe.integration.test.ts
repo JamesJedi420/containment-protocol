@@ -185,4 +185,42 @@ describe('advanceWeek infiltration probe integration', () => {
     expect(updatedCase.infiltrationCoverProfile?.claimedRole).toBe('maintenance')
     expect(updatedCase.stealthLeaveBehindId).toBe('leave-behind:risk-discovery')
   })
+
+  it('ticks probe progress for batch-4 psi-004 after authored concealment activation', () => {
+    const state = createStartingState()
+    const [teamId] = Object.keys(state.teams)
+
+    state.reports = []
+    state.agency!.supportAvailable = 3
+    state.globalFlags = {}
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+    }
+
+    const stationCase = instantiateFromTemplate(
+      caseTemplateMap['psi-004'],
+      () => 0.42,
+      new Set(Object.keys(state.cases))
+    )
+    stationCase.id = 'case-psi-004'
+    stationCase.tags = [...stationCase.tags, 'infiltration', 'covert']
+    stationCase.status = 'in_progress'
+    stationCase.assignedTeamIds = [teamId]
+    stationCase.weeksRemaining = 2
+    stationCase.mode = 'probability'
+    stationCase.infiltrationProbeProgress = 0.1
+    stationCase.infiltrationAwareness = 0.18
+
+    state.cases['case-psi-004'] = stationCase
+
+    const nextState = advanceWeek(state)
+    const updatedCase = nextState.cases['case-psi-004']
+
+    expect(updatedCase.hiddenState).toBe('hidden')
+    expect(updatedCase.infiltrationProbeProgress).toBeGreaterThan(0.1)
+    expect(updatedCase.infiltrationCoverProfile?.claimedRole).toBe('civilian_staff')
+    expect(updatedCase.stealthLeaveBehindId).toBe('leave-behind:risk-discovery')
+  })
 })

@@ -200,7 +200,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 2,
     tags: ['psionic', 'reliquary', 'memory', 'tier-2'],
     requiredTags: ['scholar'],
-    preferredTags: ['medium', 'analyst', 'tech'],
+    preferredTags: ['medium', 'analyst', 'tech', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:psi-006-reliquary-screen',
@@ -208,6 +208,16 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['psionic', 'reliquary'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -236,7 +246,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 3,
     tags: ['psionic', 'amplifier', 'tier-2'],
     requiredTags: ['medium'],
-    preferredTags: ['tech', 'analyst', 'field-kit'],
+    preferredTags: ['tech', 'analyst', 'field-kit', 'covert', 'infiltration'],
     concealmentTriggers: [
       {
         id: 'trigger:psi-004-station-infiltration',
@@ -244,6 +254,16 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['amplifier', 'psionic'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },
@@ -303,7 +323,7 @@ export const psionicCaseTemplates: CaseTemplate[] = [
     durationWeeks: 1,
     deadlineWeeks: 2,
     tags: ['psionic', 'aftermath', 'tier-1'],
-    preferredTags: ['medium', 'tech', 'investigator'],
+    preferredTags: ['medium', 'tech', 'investigator', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:followup-psi-aftermath-residue-sweep',
@@ -311,6 +331,16 @@ export const psionicCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['psionic', 'aftermath'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.4,
+    },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     onFail: {
       stageDelta: 1,
       spawnCount: { min: 1, max: 1 },

@@ -14,7 +14,7 @@ export const occultCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 2,
     tags: ['occult', 'ritual', 'chapel', 'tier-2'],
     requiredTags: ['occultist'],
-    preferredTags: ['holy', 'negotiator', 'ritual-kit'],
+    preferredTags: ['holy', 'negotiator', 'ritual-kit', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:occult-001-chapel-infiltration',
@@ -22,6 +22,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['occult', 'chapel'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.4,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -49,7 +59,7 @@ export const occultCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 3,
     tags: ['occult', 'resonance', 'memorial', 'tier-2'],
     requiredTags: ['scholar'],
-    preferredTags: ['scholar', 'negotiator'],
+    preferredTags: ['scholar', 'negotiator', 'covert', 'infiltration', 'disguise'],
     concealmentTriggers: [
       {
         id: 'trigger:occult-002-memorial-blend',
@@ -57,6 +67,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['memorial', 'resonance'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_route',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.45, action: 'probe_access' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.5,
+    },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -129,7 +149,7 @@ export const occultCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 2,
     tags: ['occult', 'reliquary', 'vault', 'tier-2'],
     requiredTags: ['holy'],
-    preferredTags: ['tech', 'medic'],
+    preferredTags: ['tech', 'medic', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:occult-004-vault-approach',
@@ -137,6 +157,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['reliquary', 'vault'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.35, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 1,
+      doctrineBand: 0.45,
+    },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,
@@ -163,7 +193,7 @@ export const occultCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 3,
     tags: ['occult', 'weather', 'cathedral', 'tier-2'],
     requiredTags: ['scholar'],
-    preferredTags: ['tech', 'negotiator'],
+    preferredTags: ['tech', 'negotiator', 'covert', 'infiltration', 'disguise'],
     concealmentTriggers: [
       {
         id: 'trigger:occult-005-greenhouse-cover',
@@ -171,6 +201,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { anyTag: ['cathedral', 'weather'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      cleanupWhenAwarenessAtLeast: 0.55,
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.5,
+    },
+    stealthLeaveBehindId: 'leave-behind:leave-trace',
     raid: { minTeams: 2, maxTeams: 3 },
     onFail: {
       stageDelta: 1,
@@ -245,7 +285,7 @@ export const occultCaseTemplates: CaseTemplate[] = [
     deadlineWeeks: 2,
     tags: ['occult', 'catacomb', 'raid', 'tier-3'],
     requiredTags: ['holy', 'scholar'],
-    preferredTags: ['ritual-kit', 'tech', 'medic'],
+    preferredTags: ['ritual-kit', 'tech', 'medic', 'covert', 'infiltration', 'stealth'],
     concealmentTriggers: [
       {
         id: 'trigger:occult-007-catacomb-infiltration',
@@ -253,6 +293,16 @@ export const occultCaseTemplates: CaseTemplate[] = [
         when: { allTags: ['occult', 'catacomb'] },
       },
     ],
+    infiltrationProbePlan: {
+      defaultAction: 'probe_access',
+      actionWhenProbeProgressBelow: [{ belowProbeProgress: 0.4, action: 'probe_route' }],
+    },
+    infiltrationCoverProfile: {
+      claimedRole: 'maintenance',
+      documentTier: 0,
+      doctrineBand: 0.4,
+    },
+    stealthLeaveBehindId: 'leave-behind:risk-discovery',
     raid: { minTeams: 2, maxTeams: 4 },
     onFail: {
       stageDelta: 1,

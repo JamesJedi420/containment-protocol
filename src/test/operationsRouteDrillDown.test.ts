@@ -28,6 +28,29 @@ function emptyReport(week: number): WeeklyReport {
 }
 
 describe('getCaseWeeklyReportWeeks', () => {
+  it('collects weeks from caseSnapshots when case lists are empty', () => {
+    const reports: WeeklyReport[] = [
+      {
+        ...emptyReport(2),
+        caseSnapshots: {
+          'case-a': {
+            caseId: 'case-a',
+            title: 'Snapshot only',
+            kind: 'case',
+            mode: 'containment',
+            status: 'in_progress',
+            stage: 1,
+            deadlineRemaining: 2,
+            durationWeeks: 3,
+            assignedTeamIds: [],
+          },
+        },
+      },
+    ]
+
+    expect(getCaseWeeklyReportWeeks(reports, 'case-a')).toEqual([2])
+  })
+
   it('collects weeks from case lists and note metadata.caseId', () => {
     const reports: WeeklyReport[] = [
       {
@@ -77,6 +100,16 @@ describe('event feed return navigation', () => {
     expect(href).toContain('/cases/case-a')
     expect(href).toContain('feedQ=raid')
     expect(href).toContain('feedCategory=incident_response')
+  })
+
+  it('preserves existing query strings on drill-down hrefs', () => {
+    const href = buildDrillDownHrefWithFeedContext(
+      '/cases/case-a?tab=timeline',
+      new URLSearchParams('feedQ=raid')
+    )
+
+    expect(href).toContain('tab=timeline')
+    expect(href).toContain('feedQ=raid')
   })
 
   it('returns operations desk when feed filters are present', () => {

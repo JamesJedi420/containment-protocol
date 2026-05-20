@@ -34,6 +34,13 @@ Tighten cross-links between the event feed, case detail, and weekly reports for 
 | `faction.standing_changed` | Case detail when `caseId` set; else none |
 | `production.*` / `market.*` / `agency.containment_updated` / `agency.front_business.*` / `system.equipment_recovered` / `system.party_cards_drawn` | None (desk-level or aggregate) |
 
+## Gap hardening (post-merge)
+
+- Report-week feed hrefs fall back to case detail when that week's report is not in state.
+- `getCaseWeeklyReportWeeks` includes `caseSnapshots` keys, not only list columns.
+- Case, report, and agent detail show a desk back link when opened with feed filter params.
+- `buildDrillDownHrefWithFeedContext` preserves pre-existing query strings on targets.
+
 ## Acceptance
 
 - [x] Matrix documented in this file.

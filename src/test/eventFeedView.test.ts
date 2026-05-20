@@ -9,6 +9,7 @@ import {
   getAvailableEventSources,
   getAvailableEventTypes,
   getFilteredEventFeedViews,
+  refineEventFeedDrillDownHref,
 } from '../features/dashboard/eventFeedView'
 
 // ---------------------------------------------------------------------------
@@ -1224,6 +1225,21 @@ describe('buildEventFeedView href', () => {
       infiltrationStage: 'probing',
     })
     expect(buildEventFeedView(infiltration).href).toBe('/report/5')
+  })
+
+  it('refineEventFeedDrillDownHref falls back to case when report week is missing', () => {
+    const concealment = makeEvent('concealment.activated', {
+      week: 9,
+      caseId: 'case-a',
+      caseTitle: 'Hidden op',
+      mode: 'hidden',
+      reason: 'authored',
+      summary: 'Cover engaged',
+    })
+    const view = buildEventFeedView(concealment)
+
+    expect(refineEventFeedDrillDownHref(view, []).href).toBe('/cases/case-a')
+    expect(refineEventFeedDrillDownHref(view, [{ week: 9 } as never]).href).toBe('/report/9')
   })
 })
 

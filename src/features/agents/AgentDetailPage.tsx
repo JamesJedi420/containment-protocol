@@ -12,6 +12,7 @@ import { useGameStore } from '../../app/store/gameStore'
 import { NAVIGATION_ROUTES, SHELL_UI_TEXT } from '../../data/copy'
 import { AgentEntityPanel } from './AgentEntityPanel'
 import { AGENT_DETAIL_TABS, DEFAULT_AGENT_DETAIL_TAB, type TabType } from './agentTabsModel'
+import { resolveOperationsBackTarget } from '../operations/operationsRouteDrillDown'
 import { getAgentView } from './agentView'
 
 interface AgentDetailLocationState {
@@ -39,7 +40,14 @@ export default function AgentDetailPage() {
   const backSearch = toSearchString(backParams)
   const fallbackRegistrySearch =
     isRegistryDetailRoute && !backSearch ? (locationState?.registrySearch ?? '') : ''
-  const backTo = `${backSystemRoute}${backSearch || fallbackRegistrySearch}`
+  const defaultBack = `${backSystemRoute}${backSearch || fallbackRegistrySearch}`
+  const feedBackTarget = resolveOperationsBackTarget(
+    new URLSearchParams(location.search),
+    defaultBack
+  )
+  const backTo = feedBackTarget.href
+  const backLabel =
+    feedBackTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', backSystemLabel)
 
   useEffect(() => {
     const normalizedParams = cloneSearchParams(searchParams)
@@ -64,7 +72,7 @@ export default function AgentDetailPage() {
         title={SHELL_UI_TEXT.agentNotFoundTitle}
         message={SHELL_UI_TEXT.agentNotFoundMessage}
         backTo={backTo}
-        backLabel={SHELL_UI_TEXT.backToTemplate.replace('{label}', backSystemLabel)}
+        backLabel={backLabel}
       />
     )
   }
@@ -77,7 +85,7 @@ export default function AgentDetailPage() {
       headerActions={
         <>
           <Link to={backTo} className="btn btn-sm btn-ghost">
-            {`Back to ${backSystemLabel.toLowerCase()}`}
+            {backLabel}
           </Link>
           <Link to={view.squadBuilderLink} className="btn btn-sm btn-ghost">
             {view.squadBuilderLabel}

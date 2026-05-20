@@ -32,7 +32,9 @@ Short playbook for **keeping planning and design docs honest** as the repo chang
 
 ## See also
 
-- `AGENTS.md` — scripts, audit-index rule, documentation hygiene
+- `AGENTS.md` — scripts, audit-index rule, documentation hygiene, **session handoff**
+- `docs/cursor-user-rules-snippet.md` — paste into Cursor User Rules (merge → main → new agent)
+- `docs/agent-session-handoff.md` — full handoff policy (optional local `.cursor/rules/` copy)
 - `docs/contribution-and-release-operations.md` — contribution norms
 - `planning/backlog.md` — near-term queue
 - `planning/deferred-design-documents.md` — deferred depth tracker

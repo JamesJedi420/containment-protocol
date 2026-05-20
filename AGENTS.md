@@ -1,5 +1,33 @@
 # Containment Protocol — Agent Instructions
 
+## Session handoff (read first)
+
+**Standing policy** is split three ways so new agents do not rely on an old chat:
+
+| Layer | What belongs there |
+| --- | --- |
+| **Cursor User Rules** (Settings → Rules) | Personal workflow: merge → `checkout main` → pull → **new agent** for next slice. Paste from `docs/cursor-user-rules-snippet.md`. |
+| **`AGENTS.md` + `docs/agent-session-handoff.md`** | Repo-wide agent behavior (this file; full handoff doc). |
+| **Linear + `planning/*-slice.md` + first message** | One task: issue link, slice doc, branch name, `main` SHA. |
+
+### After you merge a PR (human)
+
+1. `git checkout main` and `git pull origin main`.
+2. **Start a new agent chat** before the next slice—not the thread that opened or babysat the merged PR.
+3. First message: Linear issue, `planning/…-slice.md`, new branch name, confirm current `main` commit.
+
+Agents: when merge is complete, remind the user to sync `main` and **start a new agent** for the next task.
+
+### During an open PR
+
+One session on the **same branch** is fine (implement, CI, review). New session when the task or merged PR changes.
+
+### Cloud / Move to local
+
+If checkout of a migrated branch fails (`couldn't find remote ref`), use updated **`main`** and a new branch; do not chase deleted remote branch names from old sessions.
+
+---
+
 ## Cursor Cloud specific instructions
 
 This is a client-side-only React/TypeScript SPA (no backend, no database, no external services).

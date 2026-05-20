@@ -93,7 +93,11 @@ it('sorts cases by title from query state', () => {
 
   const caseLinks = screen
     .getAllByRole('link')
-    .filter((link) => link.getAttribute('href')?.startsWith('/cases/'))
+    .filter(
+      (link) =>
+        link.getAttribute('href')?.startsWith('/cases/') &&
+        /case$/i.test((link.textContent ?? '').trim())
+    )
   expect(caseLinks[0]).toHaveTextContent('Alpha Case')
   expect(caseLinks[1]).toHaveTextContent('Zulu Case')
 })
@@ -153,6 +157,12 @@ it('renders recommended action guidance for assignable cases', () => {
 
   expect(screen.getAllByText(/recommended action/i).length).toBeGreaterThan(0)
   expect(screen.getAllByText(/best current success:/i).length).toBeGreaterThan(0)
+  expect(
+    screen.getByText(
+      /core loop: triage cases here, open each dossier to prep, then advance week from front desk and review the new report\./i
+    )
+  ).toBeInTheDocument()
+  expect(screen.getAllByRole('link', { name: /open prep dossier/i }).length).toBeGreaterThan(0)
 })
 
 it('supports top-option comparison and shows confidence/commit cues on assignment actions', async () => {

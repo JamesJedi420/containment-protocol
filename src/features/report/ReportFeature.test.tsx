@@ -60,6 +60,8 @@ it('links report list entries into detail routes', () => {
   renderReportList()
 
   expect(screen.getByRole('link', { name: /^week 1$/i })).toHaveAttribute('href', '/report/1')
+  expect(screen.getByRole('region', { name: /weekly report timeline summary/i })).toBeInTheDocument()
+  expect(screen.getByText(/status cue:/i)).toBeInTheDocument()
 })
 
 it('renders snapshot-driven grouped sections and falls back to archived snapshot text', () => {

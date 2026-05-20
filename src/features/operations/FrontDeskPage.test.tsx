@@ -46,6 +46,9 @@ describe('FrontDeskPage', () => {
     expect(screen.getByRole('heading', { name: /agency standing/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /latest report/i })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /courier network capacity opportunity/i })).toBeInTheDocument()
+    expect(
+      screen.getByText(/core loop prompt: finish triage and prep, then advance week to publish the next report\./i)
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /weekly reports/i }))
     expect(screen.getByText(/reports home/i)).toBeInTheDocument()

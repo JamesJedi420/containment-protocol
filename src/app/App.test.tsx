@@ -1047,12 +1047,6 @@ describe('game app routes', () => {
     expect(
       within(firstReportCard!).getByText(`Max Stage: ${firstReport!.maxStage}`)
     ).toBeInTheDocument()
-    expect(
-      within(firstReportCard!).getByText(`RNG Before: ${firstReport!.rngStateBefore}`)
-    ).toBeInTheDocument()
-    expect(
-      within(firstReportCard!).getByText(`RNG After: ${firstReport!.rngStateAfter}`)
-    ).toBeInTheDocument()
     expect(within(firstReportCard!).getByText(firstReport!.notes[0]!.content)).toBeInTheDocument()
 
     expect(

@@ -540,11 +540,14 @@ export default function FrontDeskPage() {
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Simulation Controls</h2>
                 <p className="text-sm opacity-60">Week {game.week} · Active cap {game.config.maxActiveCases}</p>
+                <p className="text-xs opacity-70">
+                  Core loop prompt: finish triage and prep, then advance week to publish the next report.
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => applyPreset('forgiving')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.forgiving}</button>
-                <button type="button" onClick={() => applyPreset('standard')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.standard}</button>
-                <button type="button" onClick={() => applyPreset('nightmare')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.nightmare}</button>
+                <button type="button" onClick={() => applyPreset('forgiving')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.forgiving}</button>
+                <button type="button" onClick={() => applyPreset('standard')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.standard}</button>
+                <button type="button" onClick={() => applyPreset('nightmare')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.nightmare}</button>
               </div>
             </div>
 
@@ -606,11 +609,11 @@ export default function FrontDeskPage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={handleCopySeed} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={handleCopySeed} className="btn btn-sm btn-ghost focus-ring">
                 <IconCopy className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.copySeed}
               </button>
-              <button type="button" onClick={() => setSeed(Date.now())} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={() => setSeed(Date.now())} className="btn btn-sm btn-ghost focus-ring">
                 {DASHBOARD_ACTIONS.newSeed}
               </button>
               <button
@@ -620,12 +623,12 @@ export default function FrontDeskPage() {
                   advanceWeek()
                 }}
                 disabled={game.gameOver}
-                className="btn btn-sm"
+                className="btn btn-sm focus-ring"
               >
                 <IconAdvance className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.advanceWeek}
               </button>
-              <button type="button" onClick={() => setShowResetConfirm((current) => !current)} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={() => setShowResetConfirm((current) => !current)} className="btn btn-sm btn-ghost focus-ring">
                 <IconReset className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.reset}
               </button>

@@ -4,11 +4,12 @@ import { buildFactionMissionContext } from './factions'
 import { buildTeamCompositionProfile, getTeamMemberIds, getUniqueTeamMembers } from './teamSimulation'
 import { buildTeamCohesionSummary } from './teamComposition'
 import { buildAgentLoadoutReadinessSummary } from './equipment'
+import { applyBehaviorWeightedDisguiseValidationToCase } from './disguiseValidation'
 import {
-  applyBehaviorWeightedDisguiseValidationToCase,
-  evaluateBehaviorWeightedDisguiseValidation,
-  type BehaviorWeightedDisguiseValidationResult,
-} from './disguiseValidation'
+  buildDisguiseRevealSubjectFromCase,
+  evaluateBehaviorWeightedDisguiseValidationWithRevealPayload,
+  type DisguiseRevealIntegrationResult,
+} from './revealPayloadDisguiseIntegration'
 import {
   evaluateInfiltrationStageMissionPressure,
   type InfiltrationStageMissionPressureResult,
@@ -31,14 +32,14 @@ export interface WeeklyCaseResolutionStrategy {
   assignedAgentLeaderBonuses: Record<string, LeaderBonus>
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
-  behaviorValidation?: BehaviorWeightedDisguiseValidationResult
+  behaviorValidation?: DisguiseRevealIntegrationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
   stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
 }
 
 export function resolveMissionSuccessDegradeHint(input: {
-  behaviorValidation?: BehaviorWeightedDisguiseValidationResult
+  behaviorValidation?: DisguiseRevealIntegrationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
   stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
 }): { shouldDegrade: boolean; reason?: string } {
@@ -130,16 +131,17 @@ export function resolveAssignedCaseForWeek(
     currentCase.assignedTeamIds.length === 1
       ? (state.teams[currentCase.assignedTeamIds[0]]?.leaderId ?? null)
       : null
-  const behaviorValidation = evaluateBehaviorWeightedDisguiseValidation(
-    effectiveCase,
-    assignedAgents,
-    {
+  const behaviorValidation = evaluateBehaviorWeightedDisguiseValidationWithRevealPayload({
+    caseData: effectiveCase,
+    agents: assignedAgents,
+    subject: buildDisguiseRevealSubjectFromCase(effectiveCase),
+    context: {
       supportTags,
       teamTags: supportTags,
       leaderId,
       infiltrationAwareness: effectiveCase.infiltrationAwareness,
-    }
-  )
+    },
+  })
   const resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
     effectiveCase,
     behaviorValidation

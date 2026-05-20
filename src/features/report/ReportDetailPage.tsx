@@ -76,16 +76,14 @@ export default function ReportDetailPage() {
   const [selectedNoteCategory, setSelectedNoteCategory] = useState<ReportNoteCategory | 'all'>(
     'all'
   )
+  const locationSearch = new URLSearchParams(location.search)
   const reportWeek = Number(week)
   const report = Number.isInteger(reportWeek)
     ? game.reports.find((entry) => entry.week === reportWeek)
     : undefined
 
   if (!report) {
-    const backTarget = resolveOperationsBackTarget(
-      new URLSearchParams(location.search),
-      APP_ROUTES.report
-    )
+    const backTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
 
     return (
       <LocalNotFound
@@ -178,7 +176,7 @@ export default function ReportDetailPage() {
                   <Link
                     to={buildDrillDownHrefWithFeedContext(
                       APP_ROUTES.reportDetail(weekNavigation.previousWeek),
-                      new URLSearchParams(location.search)
+                      locationSearch
                     )}
                     className="opacity-70 hover:underline"
                   >
@@ -189,7 +187,7 @@ export default function ReportDetailPage() {
                   <Link
                     to={buildDrillDownHrefWithFeedContext(
                       APP_ROUTES.reportDetail(weekNavigation.nextWeek),
-                      new URLSearchParams(location.search)
+                      locationSearch
                     )}
                     className="opacity-70 hover:underline"
                   >

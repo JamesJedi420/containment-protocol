@@ -7,7 +7,7 @@ Tighten cross-links between the event feed, case detail, and weekly reports for 
 ## Scope (this slice)
 
 - Event feed: consistent primary `href` per event type; drill-down links preserve active feed filters when set.
-- Case detail: weekly report links for weeks that reference the case.
+- Case detail: weekly report links for weeks that reference the case (report lists, team status, or note `metadata.caseId`).
 - Report detail: case ids in snapshot sections (existing `reportDetailHelpers` links — verified, no change).
 - Documented event-type → drill-down matrix (below).
 

@@ -22,11 +22,7 @@ function reportListsCase(report: WeeklyReport, caseId: string): boolean {
 function reportNoteReferencesCase(note: ReportNote, caseId: string): boolean {
   const metadataCaseId = note.metadata?.caseId
 
-  if (typeof metadataCaseId === 'string' && metadataCaseId === caseId) {
-    return true
-  }
-
-  return note.content.includes(caseId)
+  return typeof metadataCaseId === 'string' && metadataCaseId === caseId
 }
 
 /** Report weeks that mention `caseId` in lists, team status, or structured notes. */

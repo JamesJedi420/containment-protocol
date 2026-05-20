@@ -14,6 +14,7 @@ interface CaseWeeklyReportsPanelProps {
 export function CaseWeeklyReportsPanel({ caseId }: CaseWeeklyReportsPanelProps) {
   const { game } = useGameStore()
   const location = useLocation()
+  const feedContextSearch = new URLSearchParams(location.search)
   const reportWeeks = getCaseWeeklyReportWeeks(game.reports, caseId)
 
   if (reportWeeks.length === 0) {
@@ -36,7 +37,7 @@ export function CaseWeeklyReportsPanel({ caseId }: CaseWeeklyReportsPanelProps) 
             <Link
               to={buildDrillDownHrefWithFeedContext(
                 APP_ROUTES.reportDetail(week),
-                new URLSearchParams(location.search)
+                feedContextSearch
               )}
               className="btn btn-xs btn-ghost"
             >

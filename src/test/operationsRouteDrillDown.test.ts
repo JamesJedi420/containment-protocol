@@ -28,7 +28,7 @@ function emptyReport(week: number): WeeklyReport {
 }
 
 describe('getCaseWeeklyReportWeeks', () => {
-  it('collects weeks from case lists and note metadata', () => {
+  it('collects weeks from case lists and note metadata.caseId', () => {
     const reports: WeeklyReport[] = [
       {
         ...emptyReport(1),
@@ -39,10 +39,20 @@ describe('getCaseWeeklyReportWeeks', () => {
         notes: [
           {
             id: 'n-1',
-            content: 'Probe strain',
+            content: 'Probe strain on case-a',
             timestamp: 1,
             type: 'infiltration.cover_strain',
             metadata: { caseId: 'case-a', week: 3 },
+          },
+        ],
+      },
+      {
+        ...emptyReport(4),
+        notes: [
+          {
+            id: 'n-2',
+            content: 'Mentions case-a in prose only',
+            timestamp: 1,
           },
         ],
       },

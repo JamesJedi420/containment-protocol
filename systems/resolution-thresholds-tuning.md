@@ -35,6 +35,8 @@ It is the tuning reference for:
 - fallout trigger bands
 - how tolerant or unforgiving the system should feel
 
+**Covert operations (separate reference):** infiltration probe awareness bands, concealment activation, and leave-behind tradeoff surfacing are tuned in `tuning/infiltration-probe-and-concealment.md` (mission score pressure from leave-behind still intersects follow-through here).
+
 This spec is for:
 
 - systems tuning

@@ -581,6 +581,19 @@ const infiltrationProbeEventSchema = z
     infiltrationAwareness: z.number().optional(),
     infiltrationProbeProgress: z.number().optional(),
     infiltrationStage: z.enum(['probing', 'exposed', 'violent']).optional(),
+    probeAction: z.enum(['probe_access', 'probe_route', 'cleanup']).optional(),
+    probeActionSource: z.enum(['override', 'authored', 'heuristic']).optional(),
+    coverRole: z
+      .enum([
+        'uniform_guard',
+        'civilian_staff',
+        'courier',
+        'maintenance',
+        'official_inspector',
+      ])
+      .optional(),
+    leaveBehindId: z.string().optional(),
+    leaveBehindLabel: z.string().optional(),
   })
   .strict()
 
@@ -672,6 +685,8 @@ export const operationEventPayloadSchemas = {
   'infiltration.escalation_exposed': infiltrationProbeEventSchema,
   'infiltration.escalation_violent': infiltrationProbeEventSchema,
   'infiltration.cover_strain': infiltrationProbeEventSchema,
+  'infiltration.weekly_encounter': infiltrationProbeEventSchema,
+  'infiltration.leave_behind_tradeoff': infiltrationProbeEventSchema,
   'concealment.activated': concealmentActivatedEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),

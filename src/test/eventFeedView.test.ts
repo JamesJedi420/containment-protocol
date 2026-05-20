@@ -1225,6 +1225,26 @@ describe('buildEventFeedView href', () => {
       infiltrationStage: 'probing',
     })
     expect(buildEventFeedView(infiltration).href).toBe('/report/5')
+
+    const weeklyEncounter = makeEvent('infiltration.weekly_encounter', {
+      week: 6,
+      caseId: 'case-a',
+      caseTitle: 'Hidden op',
+      summary: 'Weekly prep ran access probe this week.',
+      probeAction: 'probe_access',
+      probeActionSource: 'authored',
+    })
+    expect(buildEventFeedView(weeklyEncounter).tone).toBe('neutral')
+
+    const leaveBehind = makeEvent('infiltration.leave_behind_tradeoff', {
+      week: 7,
+      caseId: 'case-a',
+      caseTitle: 'Hidden op',
+      summary: 'Stealth leave-behind applied — witness exposure.',
+      leaveBehindLabel: 'witness exposure',
+    })
+    expect(buildEventFeedView(leaveBehind).href).toBe('/report/7')
+    expect(buildEventFeedView(leaveBehind).tone).toBe('warning')
   })
 
   it('refineEventFeedDrillDownHref falls back to case when report week is missing', () => {

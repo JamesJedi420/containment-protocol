@@ -550,6 +550,44 @@ Validate:
 - note builder resolves conflict coherently
 - surfaced output remains causal and non-contradictory
 
+## 12.6 Infiltration routine vs threshold notes (same week)
+
+Validate:
+
+- when threshold infiltration events fire (`cover_strain`, `awareness_complication`, escalations), **no** `infiltration.weekly_encounter` note appears for that case
+- when only probe tracks move without thresholds, exactly one routine `weekly_encounter` (or intentional silence if case ineligible)
+
+See matrix row **IC-01**, **IC-02** in `qa/infiltration-concealment-report-matrix.md`.
+
+## 12.7 Leave-behind tradeoff without custody loss
+
+Validate:
+
+- mission resolves with active stealth leave-behind pressure but empty custody refs
+- `infiltration.leave_behind_tradeoff` report note and event still surface with leave-behind label
+- note does not invent custody strain text
+
+See matrix row **IC-06**.
+
+## 12.8 Probe prep override reflected in surfaced copy
+
+Validate:
+
+- `infiltrationWeeklyProbeActionOverride` set before `advanceWeek`
+- threshold or routine infiltration notes include override/action metadata (`probeAction`, `probeActionSource`)
+- enriched threshold summary mentions the selected probe action
+
+See matrix row **IC-03**.
+
+## 12.9 Concealment activates before probe tick
+
+Validate:
+
+- `concealment.activated` (when applicable) precedes infiltration probe notes in weekly ordering
+- probe eligibility requires `hiddenState === 'hidden'` after activation pass
+
+See matrix rows **IC-07**, **IC-08**.
+
 ---
 
 ## 13. Persistence edge cases

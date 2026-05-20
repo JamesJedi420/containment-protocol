@@ -233,6 +233,8 @@ export const EVENT_TYPE_LABELS: Record<OperationEventType, string> = {
   'infiltration.escalation_exposed': 'Cover Exposed',
   'infiltration.escalation_violent': 'Violent Escalation',
   'infiltration.cover_strain': 'Cover Strain',
+  'infiltration.weekly_encounter': 'Infiltration Weekly Encounter',
+  'infiltration.leave_behind_tradeoff': 'Leave-Behind Tradeoff',
   'concealment.activated': 'Concealment Activated',
 }
 
@@ -289,6 +291,8 @@ export const EVENT_TYPE_CATEGORIES: Record<OperationEventType, EventFeedCategory
   'infiltration.escalation_exposed': 'incident_response',
   'infiltration.escalation_violent': 'incident_response',
   'infiltration.cover_strain': 'incident_response',
+  'infiltration.weekly_encounter': 'incident_response',
+  'infiltration.leave_behind_tradeoff': 'incident_response',
   'concealment.activated': 'incident_response',
 }
 
@@ -1098,7 +1102,9 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
     case 'infiltration.awareness_complication':
     case 'infiltration.escalation_exposed':
     case 'infiltration.escalation_violent':
-    case 'infiltration.cover_strain': {
+    case 'infiltration.cover_strain':
+    case 'infiltration.weekly_encounter':
+    case 'infiltration.leave_behind_tradeoff': {
       const awarenessSuffix =
         typeof event.payload.infiltrationAwareness === 'number'
           ? ` / Awareness ${Math.round(event.payload.infiltrationAwareness * 100)}%`
@@ -1109,7 +1115,9 @@ export function buildEventFeedView(event: OperationEvent): EventFeedView {
       const tone =
         event.type === 'infiltration.escalation_violent'
           ? 'danger'
-          : 'warning'
+          : event.type === 'infiltration.weekly_encounter'
+            ? 'neutral'
+            : 'warning'
 
       return {
         event,

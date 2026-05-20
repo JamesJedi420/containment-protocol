@@ -183,6 +183,15 @@ import {
   mergeConcealmentActivationResult,
   resolveConcealmentActivation,
 } from '../hiddenStateActivation'
+import {
+  buildInfiltrationEncounterEventPayload,
+  buildInfiltrationEncounterReportContext,
+  buildInfiltrationEncounterReportContextAfterProbe,
+  enrichInfiltrationThresholdSummary,
+  formatInfiltrationLeaveBehindTradeoffSummary,
+  formatInfiltrationWeeklyEncounterSummary,
+  shouldEmitInfiltrationWeeklyEncounterNote,
+} from '../infiltrationEncounterReportNotes'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
 import {
   resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek,
@@ -2124,6 +2133,36 @@ function applyWeeklyConcealmentActivation(
   return activatedCase
 }
 
+function pushInfiltrationEncounterEventDraft(
+  context: WeeklyExecutionContext,
+  caseId: string,
+  caseData: CaseInstance,
+  eventType:
+    | 'infiltration.awareness_complication'
+    | 'infiltration.escalation_exposed'
+    | 'infiltration.escalation_violent'
+    | 'infiltration.cover_strain'
+    | 'infiltration.weekly_encounter'
+    | 'infiltration.leave_behind_tradeoff',
+  summary: string,
+  options?: {
+    context?: ReturnType<typeof buildInfiltrationEncounterReportContext>
+  }
+) {
+  context.eventDrafts.push({
+    type: eventType,
+    sourceSystem: 'system',
+    payload: buildInfiltrationEncounterEventPayload({
+      week: context.sourceState.week,
+      caseId,
+      caseTitle: caseData.title,
+      summary,
+      caseData,
+      context: options?.context,
+    }),
+  })
+}
+
 function applyWeeklyInfiltrationProbe(
   context: WeeklyExecutionContext,
   caseId: string,
@@ -2132,25 +2171,56 @@ function applyWeeklyInfiltrationProbe(
   const probeResult = applyWeeklyInfiltrationProbeTick(caseData, context.sourceState.week)
 
   if (!probeResult.changed && probeResult.events.length === 0) {
+    if (shouldEmitInfiltrationWeeklyEncounterNote(caseData) && caseData.status === 'in_progress') {
+      const quietContext = buildInfiltrationEncounterReportContext(caseData)
+      if (quietContext) {
+        pushInfiltrationEncounterEventDraft(
+          context,
+          caseId,
+          caseData,
+          'infiltration.weekly_encounter',
+          formatInfiltrationWeeklyEncounterSummary(quietContext),
+          { context: quietContext }
+        )
+      }
+    }
+
     return caseData
   }
 
   context.nextState.cases[caseId] = probeResult.case
 
+  const reportContextAfterProbe =
+    buildInfiltrationEncounterReportContextAfterProbe(caseData, probeResult.case) ??
+    buildInfiltrationEncounterReportContext(probeResult.case)
+
   for (const event of probeResult.events) {
-    context.eventDrafts.push({
-      type: `infiltration.${event.kind}`,
-      sourceSystem: 'system',
-      payload: {
-        week: context.sourceState.week,
+    const summary =
+      reportContextAfterProbe !== undefined
+        ? enrichInfiltrationThresholdSummary(event.summary, reportContextAfterProbe)
+        : event.summary
+
+    pushInfiltrationEncounterEventDraft(
+      context,
+      caseId,
+      probeResult.case,
+      `infiltration.${event.kind}`,
+      summary,
+      { context: reportContextAfterProbe }
+    )
+  }
+
+  if (probeResult.events.length === 0 && shouldEmitInfiltrationWeeklyEncounterNote(probeResult.case)) {
+    if (reportContextAfterProbe && probeResult.case.status === 'in_progress') {
+      pushInfiltrationEncounterEventDraft(
+        context,
         caseId,
-        caseTitle: caseData.title,
-        summary: event.summary,
-        infiltrationAwareness: probeResult.case.infiltrationAwareness,
-        infiltrationProbeProgress: probeResult.case.infiltrationProbeProgress,
-        infiltrationStage: probeResult.case.infiltrationStage,
-      },
-    })
+        probeResult.case,
+        'infiltration.weekly_encounter',
+        formatInfiltrationWeeklyEncounterSummary(reportContextAfterProbe),
+        { context: reportContextAfterProbe }
+      )
+    }
   }
 
   return probeResult.case
@@ -2388,22 +2458,38 @@ function resolveAssignments(
       stealthLeaveBehindMission?.active &&
       stealthLeaveBehindMission.leaveBehindId &&
       stealthLeaveBehindMission.kind &&
-      stealthLeaveBehindMission.leaveBehindLabel &&
-      stealthLeaveBehindMission.custodyLossRefs.length > 0
+      stealthLeaveBehindMission.leaveBehindLabel
     ) {
-      const custodyLoss = applyStealthLeaveBehindInvestigationCustodyLoss({
-        state: context.nextState,
-        caseId,
-        leaveBehindId: stealthLeaveBehindMission.leaveBehindId,
-        leaveBehindKind: stealthLeaveBehindMission.kind,
-        leaveBehindLabel: stealthLeaveBehindMission.leaveBehindLabel,
-        custodyLossRefs: stealthLeaveBehindMission.custodyLossRefs,
-        week: context.sourceState.week,
-      })
-      context.nextState = custodyLoss.state
-      if (custodyLoss.resolutionNote) {
-        resolutionReasons.push(custodyLoss.resolutionNote)
+      let custodyLossSummary: string | undefined
+
+      if (stealthLeaveBehindMission.custodyLossRefs.length > 0) {
+        const custodyLoss = applyStealthLeaveBehindInvestigationCustodyLoss({
+          state: context.nextState,
+          caseId,
+          leaveBehindId: stealthLeaveBehindMission.leaveBehindId,
+          leaveBehindKind: stealthLeaveBehindMission.kind,
+          leaveBehindLabel: stealthLeaveBehindMission.leaveBehindLabel,
+          custodyLossRefs: stealthLeaveBehindMission.custodyLossRefs,
+          week: context.sourceState.week,
+        })
+        context.nextState = custodyLoss.state
+        if (custodyLoss.resolutionNote) {
+          resolutionReasons.push(custodyLoss.resolutionNote)
+          custodyLossSummary = custodyLoss.resolutionNote
+        }
       }
+
+      pushInfiltrationEncounterEventDraft(
+        context,
+        caseId,
+        effectiveCase,
+        'infiltration.leave_behind_tradeoff',
+        formatInfiltrationLeaveBehindTradeoffSummary(stealthLeaveBehindMission.leaveBehindLabel, {
+          custodyLossSummary,
+          scoreAdjustmentReason: stealthLeaveBehindMission.scoreAdjustmentReason,
+        }),
+        { context: buildInfiltrationEncounterReportContext(effectiveCase) }
+      )
     }
 
     const aggregateBattleCeasefireWindow =

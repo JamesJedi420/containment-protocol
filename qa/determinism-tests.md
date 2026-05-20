@@ -10,7 +10,7 @@ This plan exists to verify that:
 
 - identical input state produces identical outcomes
 - weekly transitions are reproducible
-- report notes and surfaced outputs remain causally stable
+- report notes and surfaced outputs remain causally stable (covert-ops note families: `qa/infiltration-concealment-report-matrix.md`)
 - save/load roundtrips do not change future results
 - no hidden runtime-only state or UI-side recomputation alters behavior
 

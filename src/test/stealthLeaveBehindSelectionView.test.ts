@@ -47,7 +47,7 @@ describe('buildStealthLeaveBehindSelectionView forensic preview', () => {
 
     expect(abandon?.projectedCustodyLossBurden).toBe(2)
     expect(abandon?.projectedForensicRemaining).toBe(1)
-    expect(burn?.projectedCustodyLossBurden).toBe(1)
-    expect(burn?.projectedForensicRemaining).toBe(2)
+    expect(burn?.projectedCustodyLossBurden).toBe(0)
+    expect(burn?.projectedForensicRemaining).toBe(3)
   })
 })

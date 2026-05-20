@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { OperationEventType } from '../domain/models'
+import { EVENT_TYPE_TO_SOURCE_SYSTEM, type OperationEventType } from '../domain/events/types'
 
-const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future_stub'> = {
-  'assignment.team_assigned': 'covered',
+const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future_stub'> = {  'assignment.team_assigned': 'covered',
   'assignment.team_unassigned': 'covered',
   'case.resolved': 'covered',
   'case.partially_resolved': 'covered',
@@ -41,17 +40,22 @@ const EVENT_TYPE_COVERAGE_STATUS: Record<OperationEventType, 'covered' | 'future
   'faction.standing_changed': 'covered',
   'faction.unlock_available': 'covered',
   'agency.containment_updated': 'covered',
+  'agency.front_business.opened': 'covered',
+  'agency.front_business.resolved': 'covered',
   'directive.applied': 'covered',
   'support.shortfall': 'covered',
   'infiltration.awareness_complication': 'covered',
   'infiltration.escalation_exposed': 'covered',
   'infiltration.escalation_violent': 'covered',
   'infiltration.cover_strain': 'covered',
+  'infiltration.weekly_encounter': 'covered',
+  'infiltration.leave_behind_tradeoff': 'covered',
   'concealment.activated': 'covered',
   'system.academy_upgraded': 'covered',
   'case.aggregate_battle': 'covered',
   'staff.coping.applied': 'covered',
   'staff.coping.misconduct': 'covered',
+  'staff.side_work.resolved': 'covered',
 }
 
 describe('event type coverage contract', () => {
@@ -64,5 +68,10 @@ describe('event type coverage contract', () => {
         .filter(([, status]) => status === 'future_stub')
         .map(([type]) => type)
     ).toEqual([])
+
+    const canonicalTypes = Object.keys(EVENT_TYPE_TO_SOURCE_SYSTEM) as OperationEventType[]
+    const classifiedTypes = Object.keys(EVENT_TYPE_COVERAGE_STATUS) as OperationEventType[]
+
+    expect(classifiedTypes.sort()).toEqual(canonicalTypes.sort())
   })
 })

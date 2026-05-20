@@ -3,7 +3,7 @@ import { join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const IMPORT_VIOLATION =
-  /from\s+['"][^'"]*(?:docs\/archived|incident-shell)[^'"]*['"]|import\s*\(\s*['"][^'"]*(?:docs\/archived|incident-shell)/
+  /^\s*(?:import|export)\b[^\n]*\bdocs\/archived\/incident-shell\b|import\s*\(\s*['"][^'"]*docs\/archived\/incident-shell/m
 
 function collectSourceFiles(rootDir: string, files: string[] = []): string[] {
   for (const entry of readdirSync(rootDir)) {
@@ -36,14 +36,14 @@ describe('archived prototype hygiene (backlog #5)', () => {
   it('excludes docs/archived from vitest discovery', () => {
     const configSource = readFileSync(join(process.cwd(), 'app.vite.config.ts'), 'utf8')
 
-    expect(configSource).toContain("'docs/**'")
-    expect(configSource).toContain("'**/docs/**'")
-    expect(configSource).toContain("'src/**/*.test.{ts,tsx}'")
+    expect(configSource).toMatch(/['"]docs\/\*\*['"]/)
+    expect(configSource).toMatch(/['"]\*\*\/docs\/\*\*['"]/)
+    expect(configSource).toMatch(/['"]src\/\*\*\/\*\.test\.\{ts,tsx\}['"]/)
   })
 
   it('excludes docs/archived from eslint lint targets', () => {
     const eslintSource = readFileSync(join(process.cwd(), 'eslint.config.js'), 'utf8')
 
-    expect(eslintSource).toContain("'docs/archived/**'")
+    expect(eslintSource).toMatch(/['"]docs\/archived\/\*\*['"]/)
   })
 })

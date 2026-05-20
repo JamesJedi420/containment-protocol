@@ -34,15 +34,21 @@ export interface ScoutingResult {
   withheld: boolean;
 }
 
+export interface EffectiveScoutingConcealment {
+  readonly concealment: number;
+  readonly contextExplanation: string;
+}
+
 /**
- * SPE-59: Context-sensitive scouting resolution. If containerType is 'sealed', increase concealment and alter explanation.
+ * SPE-59 / SPE-781: spatial and container adjustments applied before outcome bands.
+ * Shared with tiered reveal integration so concealment layers match scouting context.
  */
-export function resolveScouting(input: ScoutingInput): ScoutingResult {
-  // Base: team capability - anomaly concealment
+export function computeEffectiveScoutingConcealment(
+  input: ScoutingInput
+): EffectiveScoutingConcealment {
   let concealment = input.anomalyConcealment;
   let contextExplanation = '';
-  // --- Canonical spatial state effects (SPE-57) ---
-  // Visibility state
+
   if (input.visibilityState === 'obstructed') {
     concealment += 1;
     contextExplanation += 'Obstructed visibility: +1 concealment. ';
@@ -50,7 +56,7 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     concealment = Math.max(0, concealment - 1);
     contextExplanation += 'Exposed: -1 concealment. ';
   }
-  // Site layer
+
   if (input.siteLayer === 'exterior') {
     contextExplanation += 'Exterior: approach phase. ';
   } else if (input.siteLayer === 'transition') {
@@ -60,7 +66,7 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     concealment += 0.5;
     contextExplanation += 'Interior: close-quarters (+0.5 concealment). ';
   }
-  // Transition type
+
   if (input.transitionType === 'chokepoint') {
     concealment += 1;
     contextExplanation += 'Chokepoint: +1 concealment. ';
@@ -68,7 +74,7 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     concealment += 0.5;
     contextExplanation += 'Threshold: +0.5 concealment. ';
   }
-  // Container type (legacy)
+
   if (input.containerType === 'sealed') {
     concealment += 2;
     contextExplanation += 'Sealed container: +2 concealment penalty.';
@@ -76,6 +82,15 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     concealment = Math.max(0, concealment - 1);
     contextExplanation += 'Open container: -1 concealment bonus.';
   }
+
+  return { concealment, contextExplanation: contextExplanation.trim() };
+}
+
+/**
+ * SPE-59: Context-sensitive scouting resolution. If containerType is 'sealed', increase concealment and alter explanation.
+ */
+export function resolveScouting(input: ScoutingInput): ScoutingResult {
+  const { concealment, contextExplanation } = computeEffectiveScoutingConcealment(input);
   const base = input.teamCapability - concealment;
   const sources: ModifierSource[] = [
     { source: 'base', value: base }
@@ -124,7 +139,7 @@ export function resolveScouting(input: ScoutingInput): ScoutingResult {
     `Value: ${agg.capped} (${agg.total} raw)`,
     explainModifiers(agg),
     roleExplanation,
-    contextExplanation.trim()
+    contextExplanation
   ].filter(Boolean).join(' | ');
 
   // Reveal/withhold logic (example: success or strong reveals, fail/catastrophic withholds)

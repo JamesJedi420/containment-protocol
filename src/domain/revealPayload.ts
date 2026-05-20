@@ -67,7 +67,7 @@ function isTierBlocked(tier: RevealTier, layers: readonly ConcealmentLayer[]) {
 }
 
 function normalizeLayerStripCount(count: number | undefined) {
-  if (count === undefined || !Number.isFinite(count)) {
+  if (count === undefined || Number.isNaN(count)) {
     return 0
   }
 
@@ -86,7 +86,14 @@ export function stripConcealmentLayers(
   }
 }
 
-function buildPresenceField(truth: SubjectTruthState): RevealPayloadField {
+function buildPresenceField(
+  truth: SubjectTruthState,
+  layers: readonly ConcealmentLayer[]
+): RevealPayloadField | null {
+  if (truth.present && isTierBlocked('presence', layers)) {
+    return null
+  }
+
   return {
     tier: 'presence',
     internalValue: truth.present,
@@ -104,7 +111,7 @@ function buildCategoryField(
   }
 
   const identityBlocked = isTierBlocked('exact_identity', layers)
-  const ambiguous = identityBlocked && truth.category !== truth.exactIdentity
+  const ambiguous = identityBlocked
 
   return {
     tier: 'category',
@@ -145,7 +152,7 @@ function buildActiveProtectionField(
     return null
   }
 
-  const combined = [...visibleProtections, ...visibleEffects]
+  const combined = Array.from(new Set([...visibleProtections, ...visibleEffects]))
 
   return {
     tier: 'active_protection',
@@ -158,7 +165,7 @@ function buildActiveProtectionField(
 function buildConcealmentDepthField(
   layers: readonly ConcealmentLayer[]
 ): RevealPayloadField | null {
-  if (layers.length === 0) {
+  if (layers.length === 0 || isTierBlocked('concealment_depth', layers)) {
     return null
   }
 
@@ -193,7 +200,7 @@ function resolveTierField(
 ): RevealPayloadField | null {
   switch (tier) {
     case 'presence':
-      return buildPresenceField(truth)
+      return buildPresenceField(truth, layers)
     case 'category':
       return buildCategoryField(truth, layers)
     case 'hostility':
@@ -215,9 +222,18 @@ export function resolveDetectionScan(
   truth: SubjectTruthState,
   input: DetectionScanInput
 ): DetectionScanResult {
+  if (!truth.present) {
+    const presence = buildPresenceField(truth, truth.concealmentLayers)
+    return {
+      fields: presence ? [presence] : [],
+      remainingConcealmentLayers: truth.concealmentLayers,
+      strippedLayerIds: [],
+    }
+  }
+
   const peel = stripConcealmentLayers(truth.concealmentLayers, input.layersToStrip)
   const remainingLayers = peel.remaining
-  const requestedTiers = truth.present ? SCAN_FAMILY_TIERS[input.family] : (['presence'] as const)
+  const requestedTiers = SCAN_FAMILY_TIERS[input.family]
 
   const fields = requestedTiers
     .map((tier) => resolveTierField(tier, truth, remainingLayers))

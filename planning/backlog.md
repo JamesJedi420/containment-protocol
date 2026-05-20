@@ -25,9 +25,9 @@ From `README.md` **Current design notes**:
 
 | Item | Outcome |
 | --- | --- |
-| **Archived prototype hygiene (#5)** | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports. |
+| **Archived prototype hygiene** | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports. |
 | **Core UX specs (#4)** | **Closed.** Operations Report + navigation map for batch-4 covert notes and report week prev/next (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Mission Triage full refresh **deferred** until triage UI is the implementation target — see `ux/mission-triage.md` spec status block (covert prep row signals, deferral vs batch-4 flags). |
-| **Tuning and QA references (#5)** | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`. |
+| **Tuning and QA references** | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`. |
 | **MVP loop proof (#6)** | Slice 1 (`SPE-2251`) + slice 2 persistence/4-week fixture (`weeklyMvpLoopProof.slice2.integration.test.ts`). |
 
 ## Deferred UX (pick up when triage UI is next)

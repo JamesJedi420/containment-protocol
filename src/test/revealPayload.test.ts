@@ -128,7 +128,7 @@ describe('revealPayload (SPE-781 slice 1)', () => {
     expect(partialPeel.fields.some((field) => field.tier === 'exact_identity')).toBe(false)
   })
 
-  it('returns only presence when the subject is absent', () => {
+  it('returns only presence when the subject is absent without peeling concealment', () => {
     const result = resolveDetectionScan(buildSubject({ present: false }), {
       family: 'identity_probe',
       layersToStrip: 2,
@@ -142,6 +142,73 @@ describe('revealPayload (SPE-781 slice 1)', () => {
         ambiguous: false,
       },
     ])
+    expect(result.strippedLayerIds).toEqual([])
+    expect(result.remainingConcealmentLayers).toEqual(BASE_LAYERS)
+  })
+
+  it('suppresses presence when an intact layer blocks the presence tier', () => {
+    const result = resolveDetectionScan(
+      buildSubject({
+        concealmentLayers: [{ id: 'layer:concealed-presence', blockedTiers: ['presence'] }],
+      }),
+      { family: 'presence_sweep' }
+    )
+
+    expect(result.fields).toEqual([])
+  })
+
+  it('never leaks exact identity through category when identity tier is blocked', () => {
+    const result = resolveDetectionScan(
+      buildSubject({
+        exactIdentity: 'entity:unique-id',
+        category: 'entity:unique-id',
+        concealmentLayers: CATEGORY_ONLY_LAYERS,
+      }),
+      { family: 'category_pass' }
+    )
+
+    const category = result.fields.find((field) => field.tier === 'category')
+    expect(category?.playerFacingValue).toBe('unclassified contact')
+    expect(category?.ambiguous).toBe(true)
+  })
+
+  it('suppresses concealment depth when the tier is blocked', () => {
+    const result = resolveDetectionScan(
+      buildSubject({
+        concealmentLayers: [{ id: 'layer:depth-mask', blockedTiers: ['concealment_depth'] }],
+      }),
+      { family: 'identity_probe' }
+    )
+
+    expect(result.fields.map((field) => field.tier)).toEqual([
+      'presence',
+      'category',
+      'hostility',
+      'exact_identity',
+    ])
+    expect(result.fields.some((field) => field.tier === 'concealment_depth')).toBe(false)
+  })
+
+  it('strips all layers when layersToStrip is Infinity', () => {
+    expect(stripConcealmentLayers(BASE_LAYERS, Number.POSITIVE_INFINITY)).toEqual({
+      remaining: [],
+      strippedIds: ['layer:glamour', 'layer:signature-mask'],
+    })
+  })
+
+  it('deduplicates overlapping active protections and effects', () => {
+    const result = resolveDetectionScan(
+      buildSubject({
+        concealmentLayers: [],
+        activeProtections: ['cold bloom'],
+        activeEffects: ['cold bloom'],
+      }),
+      { family: 'active_effects' }
+    )
+
+    const active = result.fields.find((field) => field.tier === 'active_protection')
+    expect(active?.internalValue).toEqual(['cold bloom'])
+    expect(active?.playerFacingValue).toBe('cold bloom')
   })
 
   it('omits active protection when the tier is blocked or no active signals exist', () => {

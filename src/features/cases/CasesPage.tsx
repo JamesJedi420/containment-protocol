@@ -530,7 +530,11 @@ export default function CasesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">
-                      <Link to={detailHref} className="hover:underline focus-ring">
+                      <Link
+                        to={detailHref}
+                        className="hover:underline focus-ring"
+                        data-testid={`case-title-link-${view.currentCase.id}`}
+                      >
                         {view.currentCase.title}
                       </Link>
                     </p>

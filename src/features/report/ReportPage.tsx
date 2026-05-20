@@ -66,11 +66,13 @@ export default function ReportPage() {
             Neutral weeks: {neutralWeeks}
           </span>
         </div>
-        <p className="text-xs opacity-70">
-          Best week: {bestWeek.week} ({bestWeek.weekScore >= 0 ? '+' : ''}
-          {bestWeek.weekScore} pts) · Worst week: {worstWeek.week} ({worstWeek.weekScore >= 0 ? '+' : ''}
-          {worstWeek.weekScore} pts)
-        </p>
+        {weeklyScores.length > 0 ? (
+          <p className="text-xs opacity-70">
+            Best week: {bestWeek.week} ({bestWeek.weekScore >= 0 ? '+' : ''}
+            {bestWeek.weekScore} pts) · Worst week: {worstWeek.week} ({worstWeek.weekScore >= 0 ? '+' : ''}
+            {worstWeek.weekScore} pts)
+          </p>
+        ) : null}
       </article>
 
       <TrendSummaryPanel

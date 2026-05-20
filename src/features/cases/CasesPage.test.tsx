@@ -91,15 +91,9 @@ it('sorts cases by title from query state', () => {
 
   renderCasesPage(['/cases?sort=title'])
 
-  const caseLinks = screen
-    .getAllByRole('link')
-    .filter(
-      (link) =>
-        link.getAttribute('href')?.startsWith('/cases/') &&
-        /case$/i.test((link.textContent ?? '').trim())
-    )
-  expect(caseLinks[0]).toHaveTextContent('Alpha Case')
-  expect(caseLinks[1]).toHaveTextContent('Zulu Case')
+  const alphaLink = screen.getByTestId('case-title-link-alpha')
+  const zuluLink = screen.getByTestId('case-title-link-zulu')
+  expect(alphaLink.compareDocumentPosition(zuluLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
 it('renders urgency markers for triage cases', () => {

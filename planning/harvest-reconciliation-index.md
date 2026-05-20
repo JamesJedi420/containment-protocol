@@ -1,0 +1,137 @@
+# Harvest reconciliation index
+
+**Purpose:** Track pattern-harvest batches reconciled to Linear. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). They mirror closure already posted on Linear.
+
+**Content policy:** No franchise names, wiki URLs, or imported canon labels in this repo. Use batch IDs and SPE issue links only.
+
+**Mirror branch:** `docs/harvest-linear-mirror` — planning-only harvest docs; merge via PR without blocking feature work.
+
+| Batch ID | Candidates | Child issue(s) | Hub / parent | Planning doc | Linear closed |
+| -------- | -----------: | -------------- | ------------ | ------------ | ------------- |
+| `analog-media-channel-patterns-55` | 55 | none (fold-ins) | [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120), [SPE-947](https://linear.app/spectranoir/issue/SPE-947), [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111), [SPE-901](https://linear.app/spectranoir/issue/SPE-901) | `planning/analog-media-channel-patterns-55-harvest.md` | 2026-05-18 |
+| `anomalous-species-actor-patterns-18` | 15 | none (fold-ins) | [SPE-2097](https://linear.app/spectranoir/issue/SPE-2097), [SPE-598](https://linear.app/spectranoir/issue/SPE-598), [SPE-557](https://linear.app/spectranoir/issue/SPE-557), [SPE-1069](https://linear.app/spectranoir/issue/SPE-1069) | `planning/anomalous-species-actor-patterns-18-harvest.md` | 2026-05-18 |
+| `antimemetics-division-hub-65` | 65 | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | `planning/antimemetics-division-hub-65-harvest.md` | 2026-05-18 |
+| `broken-masquerade-hub-70` | 70 | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | `planning/broken-masquerade-hub-70-harvest.md` | 2026-05-18 |
+| `benign-contact-indoctrination-metadata-54` | 54 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-677](https://linear.app/spectranoir/issue/SPE-677), [SPE-877](https://linear.app/spectranoir/issue/SPE-877), [SPE-87](https://linear.app/spectranoir/issue/SPE-87) | `planning/benign-contact-indoctrination-metadata-54-harvest.md` | 2026-05-20 |
+| `bystander-sealed-possession-20` | 20 | none (fold-ins) | [SPE-1108](https://linear.app/spectranoir/issue/SPE-1108), [SPE-202](https://linear.app/spectranoir/issue/SPE-202), [SPE-1043](https://linear.app/spectranoir/issue/SPE-1043), [SPE-913](https://linear.app/spectranoir/issue/SPE-913), [SPE-571](https://linear.app/spectranoir/issue/SPE-571), [SPE-126](https://linear.app/spectranoir/issue/SPE-126) | `planning/bystander-sealed-possession-20-harvest.md` | 2026-05-18 |
+| `chill-vengeance-of-dracula-metadata-26` | 26 | none (fold-ins; blocked/partial source) | [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104), [SPE-901](https://linear.app/spectranoir/issue/SPE-901), [SPE-2097](https://linear.app/spectranoir/issue/SPE-2097) | `planning/chill-vengeance-of-dracula-metadata-26-harvest.md` | 2026-05-20 |
+| `collaborative-visual-folklore-20` | 20 | none (fold-ins; extends SPE-2111) | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111), [SPE-947](https://linear.app/spectranoir/issue/SPE-947), [SPE-946](https://linear.app/spectranoir/issue/SPE-946), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | `planning/collaborative-visual-folklore-20-harvest.md` | 2026-05-18 |
+| `compartmentalized-cell-ops-metadata-75` | 75 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-86](https://linear.app/spectranoir/issue/SPE-86), [SPE-373](https://linear.app/spectranoir/issue/SPE-373), [SPE-1524](https://linear.app/spectranoir/issue/SPE-1524), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-788](https://linear.app/spectranoir/issue/SPE-788), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) | `planning/compartmentalized-cell-ops-metadata-75-harvest.md` | 2026-05-20 |
+| `compact-operator-packet-18` | 10 | none (fold-ins) | [SPE-2095](https://linear.app/spectranoir/issue/SPE-2095), [SPE-97](https://linear.app/spectranoir/issue/SPE-97), [SPE-1741](https://linear.app/spectranoir/issue/SPE-1741) | `planning/compact-operator-packet-18-harvest.md` | 2026-05-18 |
+| `corporate-security-hostile-networks-53` | 53 | [SPE-2245](https://linear.app/spectranoir/issue/SPE-2245) | [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-788](https://linear.app/spectranoir/issue/SPE-788), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104) | `planning/corporate-security-hostile-networks-53-harvest.md` | 2026-05-18 |
+| `cthulhu-gaslight-keepers-guide-metadata-35` | 35 | none (fold-ins; blocked/partial source) | [SPE-87](https://linear.app/spectranoir/issue/SPE-87), [SPE-577](https://linear.app/spectranoir/issue/SPE-577), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104) | `planning/cthulhu-gaslight-keepers-guide-metadata-35-harvest.md` | 2026-05-20 |
+| `digital-intrusion-abstraction-18` | 15 | none (fold-ins) | [SPE-1042](https://linear.app/spectranoir/issue/SPE-1042), [SPE-1683](https://linear.app/spectranoir/issue/SPE-1683), [SPE-1919](https://linear.app/spectranoir/issue/SPE-1919), [SPE-1264](https://linear.app/spectranoir/issue/SPE-1264) | `planning/digital-intrusion-abstraction-18-harvest.md` | 2026-05-18 |
+| `domestic-media-intrusion-43` | 43 | none (fold-ins) | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111), [SPE-947](https://linear.app/spectranoir/issue/SPE-947), [SPE-849](https://linear.app/spectranoir/issue/SPE-849), [SPE-900](https://linear.app/spectranoir/issue/SPE-900) | `planning/domestic-media-intrusion-43-harvest.md` | 2026-05-18 |
+| `domestic-trusted-contact-intrusion-41` | 41 | none (fold-ins) | [SPE-1334](https://linear.app/spectranoir/issue/SPE-1334), [SPE-927](https://linear.app/spectranoir/issue/SPE-927), [SPE-900](https://linear.app/spectranoir/issue/SPE-900), [SPE-913](https://linear.app/spectranoir/issue/SPE-913) | `planning/domestic-trusted-contact-intrusion-41-harvest.md` | 2026-05-18 |
+| `extranormal-event-log-75` | 75 | [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | `planning/extranormal-event-log-harvest.md` | 2026-05-18 |
+| `faction-influence-crisis-simulation-30` | 30 | none (fold-ins) | [SPE-788](https://linear.app/spectranoir/issue/SPE-788), [SPE-2180](https://linear.app/spectranoir/issue/SPE-2180), [SPE-861](https://linear.app/spectranoir/issue/SPE-861), [SPE-49](https://linear.app/spectranoir/issue/SPE-49) | `planning/faction-influence-crisis-simulation-30-harvest.md` | 2026-05-18 |
+| `field-engineering-sustainment-18` | 15 | none (fold-ins) | [SPE-612](https://linear.app/spectranoir/issue/SPE-612), [SPE-1237](https://linear.app/spectranoir/issue/SPE-1237), [SPE-1273](https://linear.app/spectranoir/issue/SPE-1273), [SPE-1737](https://linear.app/spectranoir/issue/SPE-1737) | `planning/field-engineering-sustainment-18-harvest.md` | 2026-05-18 |
+| `gamma-world-mind-masters-metadata-26` | 26 | none (fold-ins; blocked/partial source) | [SPE-2101](https://linear.app/spectranoir/issue/SPE-2101), [SPE-588](https://linear.app/spectranoir/issue/SPE-588), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104) | `planning/gamma-world-mind-masters-metadata-26-harvest.md` | 2026-05-20 |
+| `grim-operational-setting-metadata-15` | 15 | none (fold-ins; metadata-only source) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-2227](https://linear.app/spectranoir/issue/SPE-2227), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317), [SPE-1910](https://linear.app/spectranoir/issue/SPE-1910) | `planning/grim-operational-setting-metadata-15-harvest.md` | 2026-05-20 |
+| `hardwired-score-18` | 72 | none (fold-ins) | [SPE-2239](https://linear.app/spectranoir/issue/SPE-2239), [SPE-1493](https://linear.app/spectranoir/issue/SPE-1493), [SPE-548](https://linear.app/spectranoir/issue/SPE-548) | `planning/hardwired-score-18-harvest.md` | 2026-05-18 |
+| `hostile-barrier-predator-metadata-21` | 21 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104), [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) | `planning/hostile-barrier-predator-metadata-21-harvest.md` | 2026-05-20 |
+| `human-replica-mimic-population-metadata-38` | 38 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064), [SPE-2097](https://linear.app/spectranoir/issue/SPE-2097), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317) | `planning/human-replica-mimic-population-metadata-38-harvest.md` | 2026-05-20 |
+| `identity-broadcast-media-intrusion-24` | 25 | none (fold-ins) | [SPE-1334](https://linear.app/spectranoir/issue/SPE-1334), [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120), [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111), [SPE-927](https://linear.app/spectranoir/issue/SPE-927) | `planning/identity-broadcast-media-intrusion-24-harvest.md` | 2026-05-18 |
+| `identity-substitution-taxonomy-20` | 20 | none (fold-ins) | [SPE-1334](https://linear.app/spectranoir/issue/SPE-1334), [SPE-994](https://linear.app/spectranoir/issue/SPE-994), [SPE-654](https://linear.app/spectranoir/issue/SPE-654), [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) | `planning/identity-substitution-taxonomy-20-harvest.md` | 2026-05-18 |
+| `institutional-research-governance-18` | 15 | none (fold-ins) | [SPE-995](https://linear.app/spectranoir/issue/SPE-995), [SPE-2082](https://linear.app/spectranoir/issue/SPE-2082), [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047), [SPE-1032](https://linear.app/spectranoir/issue/SPE-1032) | `planning/institutional-research-governance-18-harvest.md` | 2026-05-18 |
+| `isolated-archive-fieldwork-24` | 25 | none (fold-ins) | [SPE-1201](https://linear.app/spectranoir/issue/SPE-1201), [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120), [SPE-1286](https://linear.app/spectranoir/issue/SPE-1286), [SPE-901](https://linear.app/spectranoir/issue/SPE-901) | `planning/isolated-archive-fieldwork-24-harvest.md` | 2026-05-18 |
+| `isolated-archive-fieldwork-ep2-19` | 20 | none (fold-ins) | [SPE-1241](https://linear.app/spectranoir/issue/SPE-1241), [SPE-1286](https://linear.app/spectranoir/issue/SPE-1286), [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120), [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047) | `planning/isolated-archive-fieldwork-ep2-19-harvest.md` | 2026-05-18 |
+| `isolated-archive-fieldwork-ep6-24` | 25 | none (fold-ins) | [SPE-900](https://linear.app/spectranoir/issue/SPE-900), [SPE-1241](https://linear.app/spectranoir/issue/SPE-1241), [SPE-947](https://linear.app/spectranoir/issue/SPE-947), [SPE-1286](https://linear.app/spectranoir/issue/SPE-1286) | `planning/isolated-archive-fieldwork-ep6-24-harvest.md` | 2026-05-18 |
+| `isolated-archive-fieldwork-ep7-24` | 25 | none (fold-ins) | [SPE-1241](https://linear.app/spectranoir/issue/SPE-1241), [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047), [SPE-1334](https://linear.app/spectranoir/issue/SPE-1334), [SPE-947](https://linear.app/spectranoir/issue/SPE-947) | `planning/isolated-archive-fieldwork-ep7-24-harvest.md` | 2026-05-18 |
+| `last-stand-dragons-end-5e-metadata-31` | 31 | none (fold-ins; blocked source) | [SPE-389](https://linear.app/spectranoir/issue/SPE-389), [SPE-63](https://linear.app/spectranoir/issue/SPE-63), [SPE-1459](https://linear.app/spectranoir/issue/SPE-1459), [SPE-1460](https://linear.app/spectranoir/issue/SPE-1460) | `planning/last-stand-dragons-end-5e-metadata-31-harvest.md` | 2026-05-20 |
+| `lost-time-witchlight-adaptation-metadata-31` | 31 | none (fold-ins; blocked source) | [SPE-888](https://linear.app/spectranoir/issue/SPE-888), [SPE-1401](https://linear.app/spectranoir/issue/SPE-1401), [SPE-1495](https://linear.app/spectranoir/issue/SPE-1495), [SPE-1613](https://linear.app/spectranoir/issue/SPE-1613) | `planning/lost-time-witchlight-adaptation-metadata-31-harvest.md` | 2026-05-20 |
+| `lynchnet-tp04-episode3-patterns-30` | 30 | none (fold-ins; blocked/partial source) | [SPE-867](https://linear.app/spectranoir/issue/SPE-867), [SPE-901](https://linear.app/spectranoir/issue/SPE-901), [SPE-588](https://linear.app/spectranoir/issue/SPE-588) | `planning/lynchnet-tp04-episode3-patterns-30-harvest.md` | 2026-05-20 |
+| `lynchnet-tp05-episode5-patterns-30` | 30 | none (fold-ins; blocked/partial source) | [SPE-901](https://linear.app/spectranoir/issue/SPE-901), [SPE-588](https://linear.app/spectranoir/issue/SPE-588), [SPE-86](https://linear.app/spectranoir/issue/SPE-86) | `planning/lynchnet-tp05-episode5-patterns-30-harvest.md` | 2026-05-20 |
+| `mc-intrusions-screen-63` | 63 | [SPE-2156](https://linear.app/spectranoir/issue/SPE-2156)–[SPE-2173](https://linear.app/spectranoir/issue/SPE-2173) (18 children) | [SPE-41](https://linear.app/spectranoir/issue/SPE-41), [SPE-1051](https://linear.app/spectranoir/issue/SPE-1051) | `planning/mc-intrusions-screen-63-harvest.md` | 2026-05-18 |
+| `modular-horror-scenario-packet-24` | 24 | none (fold-ins; blocked source) | [SPE-1605](https://linear.app/spectranoir/issue/SPE-1605), [SPE-77](https://linear.app/spectranoir/issue/SPE-77), [SPE-116](https://linear.app/spectranoir/issue/SPE-116), [SPE-1629](https://linear.app/spectranoir/issue/SPE-1629) | `planning/modular-horror-scenario-packet-24-harvest.md` | 2026-05-18 |
+| `narrative-pools-rules-summary-48` | 48 | [SPE-2174](https://linear.app/spectranoir/issue/SPE-2174)–[SPE-2185](https://linear.app/spectranoir/issue/SPE-2185) (12 children; **partial source**) | [SPE-41](https://linear.app/spectranoir/issue/SPE-41), [SPE-20](https://linear.app/spectranoir/issue/SPE-20), [SPE-1033](https://linear.app/spectranoir/issue/SPE-1033) | `planning/narrative-pools-rules-summary-48-harvest.md` | 2026-05-18 |
+| `occult-sheet-bundle-48` | 48 | [SPE-2229](https://linear.app/spectranoir/issue/SPE-2229)–[SPE-2236](https://linear.app/spectranoir/issue/SPE-2236) (8 children; **3/4 sources blocked**) | [SPE-1639](https://linear.app/spectranoir/issue/SPE-1639), [SPE-1033](https://linear.app/spectranoir/issue/SPE-1033), [SPE-1443](https://linear.app/spectranoir/issue/SPE-1443) | `planning/occult-sheet-bundle-48-harvest.md` | 2026-05-18 |
+| `personal-invention-records-18` | 15 | none (fold-ins) | [SPE-1447](https://linear.app/spectranoir/issue/SPE-1447) | `planning/personal-invention-records-18-harvest.md` | 2026-05-18 |
+| `proximity-chemical-predator-metadata-26` | 26 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064), [SPE-674](https://linear.app/spectranoir/issue/SPE-674), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) | `planning/proximity-chemical-predator-metadata-26-harvest.md` | 2026-05-20 |
+| `quadruped-predator-posture-metadata-20` | 20 | none (fold-ins) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110), [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317), [SPE-674](https://linear.app/spectranoir/issue/SPE-674), [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064) | `planning/quadruped-predator-posture-metadata-20-harvest.md` | 2026-05-20 |
+| `role-packages-rulebook-excerpt-78` | 78 | [SPE-2186](https://linear.app/spectranoir/issue/SPE-2186)–[SPE-2201](https://linear.app/spectranoir/issue/SPE-2201) (16 children) | [SPE-41](https://linear.app/spectranoir/issue/SPE-41), [SPE-1443](https://linear.app/spectranoir/issue/SPE-1443), [SPE-1112](https://linear.app/spectranoir/issue/SPE-1112) | `planning/role-packages-rulebook-excerpt-78-harvest.md` | 2026-05-18 |
+| `scifi-adventure-distress-spaceport-18` | 59 | none (fold-ins) | [SPE-1752](https://linear.app/spectranoir/issue/SPE-1752), [SPE-1551](https://linear.app/spectranoir/issue/SPE-1551), [SPE-1052](https://linear.app/spectranoir/issue/SPE-1052) | `planning/scifi-adventure-distress-spaceport-18-harvest.md` | 2026-05-18 |
+| `scifi-planets-vol3-18` | 80 | none (fold-ins) | [SPE-1752](https://linear.app/spectranoir/issue/SPE-1752), [SPE-368](https://linear.app/spectranoir/issue/SPE-368), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) | `planning/scifi-planets-vol3-18-harvest.md` | 2026-05-18 |
+| `series-archive-70` | 70 | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) | `planning/series-archive-70-harvest.md` | 2026-05-18 |
+| `skill-threshold-cheatsheet-41` | 41 | [SPE-2221](https://linear.app/spectranoir/issue/SPE-2221)–[SPE-2227](https://linear.app/spectranoir/issue/SPE-2227) (7 children; **Mind Killer triage only**) | [SPE-41](https://linear.app/spectranoir/issue/SPE-41), [SPE-1443](https://linear.app/spectranoir/issue/SPE-1443), [SPE-154](https://linear.app/spectranoir/issue/SPE-154) | `planning/skill-threshold-cheatsheet-41-harvest.md` | 2026-05-18 |
+| `spirit-taxonomy-adjacent-20` | 20 | none (fold-ins; blocked primary source) | [SPE-88](https://linear.app/spectranoir/issue/SPE-88), [SPE-126](https://linear.app/spectranoir/issue/SPE-126), [SPE-1064](https://linear.app/spectranoir/issue/SPE-1064), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) | `planning/spirit-taxonomy-adjacent-20-harvest.md` | 2026-05-20 |
+| `starter-picks-routing-65` | 65 | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) + [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114)–[SPE-2154](https://linear.app/spectranoir/issue/SPE-2154) (41 children) | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) | `planning/starter-picks-routing-65-harvest.md` | 2026-05-18 |
+| `structured-negotiation-challenges-18` | 20 | none (fold-ins) | [SPE-2180](https://linear.app/spectranoir/issue/SPE-2180), [SPE-788](https://linear.app/spectranoir/issue/SPE-788), [SPE-1711](https://linear.app/spectranoir/issue/SPE-1711), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) | `planning/structured-negotiation-challenges-18-harvest.md` | 2026-05-18 |
+| `tactical-rules-reference-68` | 68 | [SPE-2203](https://linear.app/spectranoir/issue/SPE-2203)–[SPE-2220](https://linear.app/spectranoir/issue/SPE-2220) (17 children; **partial Patreon packet**) | [SPE-41](https://linear.app/spectranoir/issue/SPE-41), [SPE-62](https://linear.app/spectranoir/issue/SPE-62), [SPE-529](https://linear.app/spectranoir/issue/SPE-529) | `planning/tactical-rules-reference-68-harvest.md` | 2026-05-18 |
+| `top-secret-ace-of-clubs-metadata-29` | 29 | none (fold-ins; blocked/partial source) | [SPE-86](https://linear.app/spectranoir/issue/SPE-86), [SPE-14](https://linear.app/spectranoir/issue/SPE-14), [SPE-2240](https://linear.app/spectranoir/issue/SPE-2240) | `planning/top-secret-ace-of-clubs-metadata-29-harvest.md` | 2026-05-20 |
+| `top-secret-doomsday-drop-metadata-20` | 20 | none (fold-ins; blocked/partial source) | [SPE-92](https://linear.app/spectranoir/issue/SPE-92), [SPE-69](https://linear.app/spectranoir/issue/SPE-69), [SPE-1104](https://linear.app/spectranoir/issue/SPE-1104) | `planning/top-secret-doomsday-drop-metadata-20-harvest.md` | 2026-05-20 |
+| `unexplained-location-log-99` | 99 | [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) | [SPE-88](https://linear.app/spectranoir/issue/SPE-88) | `planning/unexplained-location-log-harvest.md` | 2026-05-18 |
+| `vaesen-rpg-metadata-31` | 31 | none (fold-ins; blocked/partial source) | [SPE-577](https://linear.app/spectranoir/issue/SPE-577), [SPE-2097](https://linear.app/spectranoir/issue/SPE-2097), [SPE-1650](https://linear.app/spectranoir/issue/SPE-1650) | `planning/vaesen-rpg-metadata-31-harvest.md` | 2026-05-20 |
+| `visual-trigger-hostile-65` | 65 | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) | `planning/visual-trigger-hostile-65-harvest.md` | 2026-05-18 |
+
+## Adjacent intake tiers (boundaries)
+
+| Tier | Issue | Domain module (planned) |
+| ---- | ----- | ------------------------ |
+| Minor objects | [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) | `minorAnomalyItemRegistry.ts` |
+| Brief events | [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) | `extranormalEventRegistry.ts` |
+| Low-threat locations | [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) | `unexplainedLocationRegistry.ts` |
+| Self-censoring information | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) | `selfCensoringInformationRegistry.ts` |
+| Public disclosure states | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) | `publicDisclosureStateRegistry.ts` |
+| Pattern source series (meta) | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) | `patternSourceSeriesRegistry.ts` |
+| Visual-trigger hazards | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) | `visualTriggerHazardRegistry.ts` |
+| Entity welfare reclassification | [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) | `entityWelfareReclassificationRegistry.ts` |
+| Contained-person therapeutic care | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) | `containedPersonTherapeuticCareRegistry.ts` |
+| Naming-hazard descriptors | [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) | `namingHazardDescriptorRegistry.ts` |
+| Recurrent catastrophe amelioration | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) | `recurrentCatastropheAmeliorationRegistry.ts` |
+| Concept-state operators | [SPE-2118](https://linear.app/spectranoir/issue/SPE-2118) | `conceptStateTransformationRegistry.ts` |
+| Anti-narrative record collapse | [SPE-2119](https://linear.app/spectranoir/issue/SPE-2119) | `antiNarrativeRecordCollapseRegistry.ts` |
+| Media-contained events | [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120) | `mediaContainedEventRegistry.ts` |
+| Alternate-reality threshold routes | [SPE-2121](https://linear.app/spectranoir/issue/SPE-2121) | `alternateRealityThresholdRouteRegistry.ts` |
+| Mass anomalous population emergence | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) | `massAnomalousPopulationEmergenceRegistry.ts` |
+| Rule-document compliance containment | [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) | `ruleDocumentComplianceContainmentRegistry.ts` |
+
+Wave 2 starter-picks children (SPE-2124–SPE-2154): full module map in `planning/starter-picks-routing-65-harvest.md`.
+
+| Action / consequence routing | [SPE-2156](https://linear.app/spectranoir/issue/SPE-2156) | `actionIntentResolutionRouter.ts` |
+| Consequence escalation router | [SPE-2157](https://linear.app/spectranoir/issue/SPE-2157) | `actionConsequenceRouter.ts` |
+| Scene escalation queue | [SPE-2164](https://linear.app/spectranoir/issue/SPE-2164) | `sceneEscalationQueueRegistry.ts` |
+| Operational status expansion | [SPE-2166](https://linear.app/spectranoir/issue/SPE-2166) | `operationalStatusExpansionRegistry.ts` |
+
+Full mc-intrusions map: `planning/mc-intrusions-screen-63-harvest.md`.
+
+| Outcome degradation complications | [SPE-2174](https://linear.app/spectranoir/issue/SPE-2174) | `outcomeDegradationComplication.ts` |
+| Diminishing operational pools | [SPE-2175](https://linear.app/spectranoir/issue/SPE-2175) | `diminishingOperationalPoolRegistry.ts` |
+| Pressure consequence budget | [SPE-2177](https://linear.app/spectranoir/issue/SPE-2177) | `pressureConsequenceBudget.ts` |
+| Complex challenge builder | [SPE-2185](https://linear.app/spectranoir/issue/SPE-2185) | `complexChallengeBuilderRegistry.ts` |
+
+Full narrative-pools map: `planning/narrative-pools-rules-summary-48-harvest.md`.
+
+| Defensive-control staff actions | [SPE-2186](https://linear.app/spectranoir/issue/SPE-2186) | `defensiveControlStaffAction.ts` |
+| Effect duration-mode split | [SPE-2191](https://linear.app/spectranoir/issue/SPE-2191) | `effectDurationModeRegistry.ts` |
+| Filtered barrier charge system | [SPE-2194](https://linear.app/spectranoir/issue/SPE-2194) | `filteredBarrierChargeSystem.ts` |
+| Entity encounter statblock packet | [SPE-2197](https://linear.app/spectranoir/issue/SPE-2197) | `entityEncounterStatblockPacket.ts` |
+
+Full role-packages map: `planning/role-packages-rulebook-excerpt-78-harvest.md`.
+
+| Outcome tier-shift modifiers | [SPE-2203](https://linear.app/spectranoir/issue/SPE-2203) | `outcomeTierShiftModifier.ts` |
+| Scene geometry (cover/LOE) | [SPE-2211](https://linear.app/spectranoir/issue/SPE-2211) | `sceneGeometryRegistry.ts` |
+| Triggered response budget | [SPE-2206](https://linear.app/spectranoir/issue/SPE-2206) | `triggeredResponseBudget.ts` |
+| Field action economy | [SPE-2217](https://linear.app/spectranoir/issue/SPE-2217) | `fieldActionEconomyRegistry.ts` |
+
+Full tactical-rules map: `planning/tactical-rules-reference-68-harvest.md`.
+
+| Exceptional success router | [SPE-2221](https://linear.app/spectranoir/issue/SPE-2221) | `exceptionalSuccessEffectRouter.ts` |
+| Staff role signature capability | [SPE-2222](https://linear.app/spectranoir/issue/SPE-2222) | `staffRoleSignatureCapability.ts` |
+| Bounded campaign region packet | [SPE-2227](https://linear.app/spectranoir/issue/SPE-2227) | `boundedCampaignRegionPacket.ts` |
+
+Full skill-threshold map: `planning/skill-threshold-cheatsheet-41-harvest.md`.
+
+| Occult field-analyst role | [SPE-2229](https://linear.app/spectranoir/issue/SPE-2229) | `occultFieldAnalystRolePackage.ts` |
+| Cross-domain document activation | [SPE-2231](https://linear.app/spectranoir/issue/SPE-2231) | `crossDomainAnomalousDocumentActivation.ts` |
+| Planned vs live staff record | [SPE-2234](https://linear.app/spectranoir/issue/SPE-2234) | `plannedBuildLiveRecordSplit.ts` |
+
+Full occult-sheet map: `planning/occult-sheet-bundle-48-harvest.md`.
+
+Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310).
+
+## How to add a row
+
+1. Close the batch on Linear (child + fold-in comments) in the same session as adjudication.
+2. On `docs/harvest-linear-mirror`, add `planning/<batch-id>-harvest.md` and update this index.
+3. Open a docs-only PR; do not mix harvest mirrors with implementation commits.

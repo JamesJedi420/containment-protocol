@@ -43,7 +43,7 @@ Surface **tiered detection readouts** in player-facing weekly report copy using 
 ## See also
 
 - `planning/reveal-payload-slice-4.md`
-- [SPE-781](https://linear.app/spectranoir/issue/SPE-781) (parent)
+- Linear [SPE-2254](https://linear.app/spectranoir/issue/SPE-2254) (child of [SPE-781](https://linear.app/spectranoir/issue/SPE-781))
 - `src/domain/infiltrationEncounterReportNotes.ts` — formatter pattern
 - `src/domain/revealPayloadDisguiseIntegration.ts`
 - `src/domain/sim/advanceWeek.ts` — `resolveAssignments`

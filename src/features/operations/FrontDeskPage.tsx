@@ -255,7 +255,6 @@ export default function FrontDeskPage() {
                           <span className="rounded-full border border-amber-400/35 bg-amber-500/10 text-amber-200 px-2 py-0.5 text-[10px] font-bold">Multiple Teams Recovering</span>
                         )}
                       </div>
-                      <p className="text-xs opacity-60">{card.countLabel}</p>
                     </div>
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(card.tone)}`}>{card.countLabel}</span>
                   </div>
@@ -497,7 +496,7 @@ export default function FrontDeskPage() {
                           </p>
                           <p className="text-xs opacity-55">{item.meta}</p>
                         </div>
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>{item.tone}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>{item.meta}</span>
                       </div>
                       <p className="mt-2 text-sm opacity-75">{item.detail}</p>
                     </li>
@@ -677,7 +676,7 @@ export default function FrontDeskPage() {
                     {team.tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {team.tags.map((tag) => (
-                          <span key={tag} className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass('warning')}`}>{tag}</span>
+                          <span key={tag} className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass('neutral')}`}>{tag}</span>
                         ))}
                       </div>
                     ) : null}

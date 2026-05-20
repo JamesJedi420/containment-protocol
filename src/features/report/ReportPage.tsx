@@ -94,12 +94,6 @@ export default function ReportPage() {
                 <span>
                   {REPORT_LABELS.maxStage}: {report.maxStage}
                 </span>
-                <span>
-                  {REPORT_LABELS.rngBefore}: {report.rngStateBefore}
-                </span>
-                <span>
-                  {REPORT_LABELS.rngAfter}: {report.rngStateAfter}
-                </span>
               </div>
 
               {report.notes.length > 0 ? (

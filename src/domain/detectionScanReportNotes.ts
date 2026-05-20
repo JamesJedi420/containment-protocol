@@ -23,14 +23,16 @@ export function shouldAppendDetectionScanReportNote(
     return false
   }
 
-  const values = orderedPlayerFacingValues(validation.detectionScan)
-  if (values.length === 0) {
+  const { fields } = validation.detectionScan
+  if (fields.length === 0) {
     return false
   }
 
-  if (values.length === 1 && values[0] === 'no contact') {
+  // Suppress if the only information is that no contact was found.
+  if (fields.length === 1 && fields[0].tier === 'presence' && fields[0].internalValue === false) {
     return false
   }
+
 
   return true
 }

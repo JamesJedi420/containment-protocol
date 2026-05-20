@@ -389,3 +389,41 @@ it('shows pre-commit injury, death, and downtime warnings for available teams', 
     within(oddsPanel).getAllByText(/survivability|balanced formation|Fatigue is driving/i).length
   ).toBeGreaterThan(0)
 })
+
+it('links to weekly reports that reference the case', () => {
+  const game = createStartingState()
+
+  game.reports = [
+    {
+      week: 2,
+      rngStateBefore: 1,
+      rngStateAfter: 2,
+      newCases: [],
+      progressedCases: ['case-001'],
+      resolvedCases: [],
+      failedCases: [],
+      partialCases: [],
+      unresolvedTriggers: [],
+      spawnedCases: [],
+      maxStage: 1,
+      avgFatigue: 0,
+      teamStatus: [],
+      notes: [],
+    },
+  ]
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-001')
+
+  expect(screen.getByRole('region', { name: /weekly reports/i })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: /week 2 report/i })).toHaveAttribute('href', '/report/2')
+})
+
+it('returns to the operations desk when opened from a filtered feed', () => {
+  renderCaseDetail('/cases/missing-case?feedQ=raid')
+
+  expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
+    'href',
+    '/?feedQ=raid'
+  )
+})

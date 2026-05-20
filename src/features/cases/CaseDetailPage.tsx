@@ -22,22 +22,28 @@ import { type CaseInstance, type GameState, type Team } from '../../domain/model
 import { getCaseTemplateIntelView } from './caseIntelProjection'
 import { getCaseAssignmentInsights } from './caseInsights'
 import { getCaseListItemView } from './caseView'
+import { CaseWeeklyReportsPanel } from './CaseWeeklyReportsPanel'
 import { WeeklyCasePrepPanel } from './WeeklyCasePrepPanel'
+import { resolveOperationsBackTarget } from '../operations/operationsRouteDrillDown'
 
 export default function CaseDetailPage() {
   const { caseId } = useParams()
   const location = useLocation()
   const { game, assign, unassign, playPartyCard } = useGameStore()
   const currentCase = caseId ? game.cases[caseId] : undefined
-  const backTo = `${APP_ROUTES.cases}${location.search}`
+  const locationSearch = new URLSearchParams(location.search)
+  const defaultBack = `${APP_ROUTES.cases}${location.search}`
+  const backTarget = resolveOperationsBackTarget(locationSearch, defaultBack)
 
   if (!currentCase) {
     return (
       <LocalNotFound
         title={SHELL_UI_TEXT.caseNotFoundTitle}
         message={SHELL_UI_TEXT.caseNotFoundMessage}
-        backTo={backTo}
-        backLabel={SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Cases')}
+        backTo={backTarget.href}
+        backLabel={
+          backTarget.label || SHELL_UI_TEXT.backToTemplate.replace('{label}', 'Cases')
+        }
       />
     )
   }
@@ -325,6 +331,8 @@ export default function CaseDetailPage() {
               </p>
             )}
           </article>
+
+          <CaseWeeklyReportsPanel caseId={currentCase.id} />
 
           <WeeklyCasePrepPanel caseData={currentCase} />
 

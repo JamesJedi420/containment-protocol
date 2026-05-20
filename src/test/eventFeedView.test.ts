@@ -1170,8 +1170,6 @@ describe('buildEventFeedView href', () => {
         standingBefore: 0,
         standingAfter: 2,
         reason: 'case.resolved',
-        caseId: 'case-001',
-        caseTitle: 'Case 1',
       }),
       makeEvent('agency.containment_updated', {
         week: 1,
@@ -1188,6 +1186,44 @@ describe('buildEventFeedView href', () => {
     for (const event of noHrefEvents) {
       expect(buildEventFeedView(event).href).toBeUndefined()
     }
+  })
+
+  it('faction.standing_changed links to case detail when caseId is present', () => {
+    const event = makeEvent('faction.standing_changed', {
+      week: 2,
+      factionId: 'oversight',
+      factionName: 'Oversight Bureau',
+      delta: 2,
+      standingBefore: 0,
+      standingAfter: 2,
+      reason: 'case.resolved',
+      caseId: 'case-001',
+      caseTitle: 'Case 1',
+    })
+
+    expect(buildEventFeedView(event).href).toBe('/cases/case-001')
+  })
+
+  it('concealment and infiltration events link to the weekly report', () => {
+    const concealment = makeEvent('concealment.activated', {
+      week: 4,
+      caseId: 'case-a',
+      caseTitle: 'Hidden op',
+      mode: 'hidden',
+      reason: 'authored',
+      summary: 'Cover engaged',
+    })
+    expect(buildEventFeedView(concealment).href).toBe('/report/4')
+
+    const infiltration = makeEvent('infiltration.cover_strain', {
+      week: 5,
+      caseId: 'case-a',
+      caseTitle: 'Hidden op',
+      summary: 'Strain rising',
+      infiltrationAwareness: 0.4,
+      infiltrationStage: 'probing',
+    })
+    expect(buildEventFeedView(infiltration).href).toBe('/report/5')
   })
 })
 

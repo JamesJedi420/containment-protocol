@@ -17,7 +17,7 @@ From `README.md` **Current design notes**:
 
 1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, and activation event feed shipped (SPE-2107 / SPE-2113); **next:** [SPE-2249](https://linear.app/spectranoir/issue/SPE-2249/concealmenttriggers-migration-batch-4-remaining-templates) (content-only `concealmentTriggers` on remaining templates).
 2. **Infiltration and access follow-through** — [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250/infiltration-encountercontent-follow-through-post-spe-521-substrate) (encounter/content depth on shipped SPE-521 substrate; not new probe mechanics).
-3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); **next:** [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248/operations-ui-route-drill-down-event-feed-casereport-cross-links) (event feed ↔ case/report cross-links).
+3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
 4. **Core UX specs** — Finish or refresh core UX specs so surfaces match canonical domain outputs (`planning/roadmap.md` §15).
 5. **Tuning and QA references** — Complete tuning references and QA references, then use them to harden implementation sequencing (same roadmap section).
 6. **MVP loop proof** — Drive implementation toward trustworthy end-to-end weekly loop proof before broadening (`planning/roadmap.md` phases 1–2).

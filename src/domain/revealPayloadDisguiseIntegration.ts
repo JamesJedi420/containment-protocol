@@ -10,7 +10,12 @@ import {
   type BehaviorWeightedDisguiseValidationContext,
   type BehaviorWeightedDisguiseValidationResult,
 } from './disguiseValidation'
+import { isInfiltrationCoverRole, type InfiltrationCoverRole } from './infiltrationCover'
 import type { Agent, CaseInstance } from './models'
+import {
+  DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY,
+  getStealthLeaveBehindById,
+} from './stealthLeaveBehindRegistry'
 import {
   resolveDetectionScan,
   type DetectionScanInput,
@@ -24,6 +29,14 @@ import {
 } from './revealPayloadScoutingIntegration'
 
 export { detectionScanTierOrder }
+
+const DISGUISE_COVER_CATEGORY_LABELS: Record<InfiltrationCoverRole, string> = {
+  uniform_guard: 'uniform guard cover',
+  civilian_staff: 'civilian staff cover',
+  courier: 'courier cover',
+  maintenance: 'maintenance cover',
+  official_inspector: 'official inspector cover',
+}
 
 export interface DisguiseRevealSubject {
   readonly exactIdentity: string
@@ -83,6 +96,67 @@ export function disguiseConcealmentRatingFromCase(
   }
 
   return clampConcealmentRating(rating)
+}
+
+function resolveDisguiseSubjectHostility(caseData: CaseInstance): HostilityLevel {
+  if (caseData.infiltrationStage === 'violent' || caseData.counterDetection === true) {
+    return 'active'
+  }
+
+  return 'latent'
+}
+
+function resolveDisguiseSubjectCategory(caseData: CaseInstance): string {
+  const claimedRole = caseData.infiltrationCoverProfile?.claimedRole
+
+  if (claimedRole !== undefined && isInfiltrationCoverRole(claimedRole)) {
+    return DISGUISE_COVER_CATEGORY_LABELS[claimedRole]
+  }
+
+  if (caseData.tags.includes('infiltration')) {
+    return 'infiltration contact'
+  }
+
+  return 'concealed contact'
+}
+
+function readDisguiseLeaveBehindLabel(caseData: CaseInstance): string | undefined {
+  const leaveBehindId = caseData.stealthLeaveBehindId?.trim()
+  if (!leaveBehindId) {
+    return undefined
+  }
+
+  return getStealthLeaveBehindById(DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY, leaveBehindId)?.label
+}
+
+function resolveDisguiseActiveProtections(caseData: CaseInstance): readonly string[] {
+  const profile = caseData.infiltrationCoverProfile
+  if (profile === undefined) {
+    return []
+  }
+
+  const documentTier = profile.documentTier
+  if (documentTier === undefined || !Number.isFinite(documentTier)) {
+    return ['document cover']
+  }
+
+  return [`document tier ${Math.max(0, Math.min(2, Math.floor(documentTier)))}`]
+}
+
+/** Deterministic subject snapshot for weekly disguise reveal scans. */
+export function buildDisguiseRevealSubjectFromCase(caseData: CaseInstance): DisguiseRevealSubject {
+  const activeProtections = resolveDisguiseActiveProtections(caseData)
+  const leaveBehindLabel = readDisguiseLeaveBehindLabel(caseData)
+  const activeEffects = leaveBehindLabel !== undefined ? [leaveBehindLabel] : []
+
+  return {
+    exactIdentity: `entity:${caseData.id}`,
+    category: resolveDisguiseSubjectCategory(caseData),
+    hostility: resolveDisguiseSubjectHostility(caseData),
+    activeProtections,
+    activeEffects,
+    dormantEffects: caseData.hiddenState === 'hidden' ? ['undisclosed briefing detail'] : [],
+  }
 }
 
 export function buildSubjectTruthFromDisguise(

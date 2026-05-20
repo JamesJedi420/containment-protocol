@@ -19,7 +19,7 @@ From `README.md` **Current design notes**:
 2. **Infiltration and access follow-through** — Batch-4 probe/cover/leave-behind complete; **report copy slice** shipped (`src/domain/infiltrationEncounterReportNotes.ts` — weekly encounter + leave-behind tradeoff notes). Further optional content depth only (not new probe mechanics).
 3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
 4. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-5. **Tiered detection / reveal payloads (SPE-781)** — Slices 1–3 shipped (`revealPayload.ts`, scouting + disguise integration, PR #2342 / #2344). Orchestration wiring in `resolveAssignedCaseForWeek`, UI copy, and full modality matrix remain follow-up.
+5. **Tiered detection / reveal payloads (SPE-781)** — Slices 1–4 shipped (`revealPayload.ts`, scouting + disguise integration, weekly orchestration in `resolveAssignedCaseForWeek`, PR #2342 / #2344 / #2346). Report/event copy from `detectionScan` and full modality matrix remain follow-up.
 
 ## Shipped (May 2026 — remove from active queue when scanning)
 

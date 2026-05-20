@@ -85,6 +85,13 @@ function mapTeamStatusTone(statusLabel: string): FrontDeskNoticeTone {
   return 'success'
 }
 
+function formatToneLabel(tone: FrontDeskNoticeTone) {
+  if (tone === 'danger') return 'Alert'
+  if (tone === 'warning') return 'Warning'
+  if (tone === 'info') return 'Info'
+  return 'Success'
+}
+
 function choiceToneClass(tone: 'neutral' | 'success' | 'warning' | 'danger') {
   if (tone === 'danger') return 'border-red-400/35 bg-red-500/10 hover:bg-red-500/16'
   if (tone === 'warning') return 'border-amber-300/35 bg-amber-500/10 hover:bg-amber-500/16'
@@ -496,7 +503,9 @@ export default function FrontDeskPage() {
                           </p>
                           <p className="text-xs opacity-55">{item.meta}</p>
                         </div>
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>{item.meta}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>
+                          {formatToneLabel(item.tone)}
+                        </span>
                       </div>
                       <p className="mt-2 text-sm opacity-75">{item.detail}</p>
                     </li>

@@ -25,12 +25,13 @@ export default function ReportPage() {
   const positiveWeeks = weeklyScores.filter(({ weekScore }) => weekScore > 0).length
   const negativeWeeks = weeklyScores.filter(({ weekScore }) => weekScore < 0).length
   const neutralWeeks = weeklyScores.length - positiveWeeks - negativeWeeks
+  const initialScoreSummary = weeklyScores[0] ?? { week: 0, weekScore: 0 }
   const bestWeek = weeklyScores.reduce((best, current) =>
     current.weekScore > best.weekScore ? current : best
-  )
+  , initialScoreSummary)
   const worstWeek = weeklyScores.reduce((worst, current) =>
     current.weekScore < worst.weekScore ? current : worst
-  )
+  , initialScoreSummary)
 
   return (
     <section className="space-y-4">

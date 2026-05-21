@@ -5,7 +5,7 @@ import {
   explainHazardKnowledge,
   explainRelayChain,
 } from '../../domain/explanations'
-import type { KnowledgeState, KnowledgeStateMap } from '../../domain/knowledge'
+import { getKnowledgeKey, type KnowledgeState, type KnowledgeStateMap } from '../../domain/knowledge'
 import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import LocalNotFound from '../../app/LocalNotFound'
@@ -30,43 +30,74 @@ import {
 import { buildReportWeekNavigation } from './reportWeekNavigation'
 
 // --- Real-data knowledge/relay/fusion/decay UI helpers ---
-function getTeamKnowledgeLadder(
-  knowledge: KnowledgeStateMap,
-  teamId: string,
+type TeamSubjectKnowledge = {
   subjectId: string
-) {
-  const key = Object.keys(knowledge).find(
-    (entryKey) => entryKey.includes(teamId) && entryKey.includes(subjectId)
+  state: KnowledgeState
+}
+
+type TeamKnowledgeGroup = {
+  teamId: string
+  anomalies: TeamSubjectKnowledge[]
+  hazards: TeamSubjectKnowledge[]
+}
+
+function buildTeamKnowledgeGroups(
+  knowledge: KnowledgeStateMap,
+  teamIds: string[],
+  anomalyIds: string[],
+  hazardIds: string[]
+): TeamKnowledgeGroup[] {
+  const groups: TeamKnowledgeGroup[] = []
+
+  for (const teamId of teamIds) {
+    const anomalies: TeamSubjectKnowledge[] = []
+    for (const subjectId of anomalyIds) {
+      const state = knowledge[getKnowledgeKey(teamId, subjectId)]
+      if (state) anomalies.push({ subjectId, state })
+    }
+    const hazards: TeamSubjectKnowledge[] = []
+    for (const subjectId of hazardIds) {
+      const state = knowledge[getKnowledgeKey(teamId, subjectId)]
+      if (state) hazards.push({ subjectId, state })
+    }
+    if (anomalies.length > 0 || hazards.length > 0) {
+      groups.push({ teamId, anomalies, hazards })
+    }
+  }
+
+  return groups
+}
+
+function getRelayChainExplanation(knowledgeState: KnowledgeState) {
+  return explainRelayChain(knowledgeState)
+}
+
+function getDecayExplanation(knowledgeState: KnowledgeState) {
+  return explainDecay(knowledgeState)
+}
+
+function getFusionExplanation(knowledgeState: KnowledgeState) {
+  return explainFusion(knowledgeState)
+}
+
+function KnowledgeStateAnnotations({ state }: { state: KnowledgeState }) {
+  const relayExplanation = getRelayChainExplanation(state)
+  const decayExplanation = getDecayExplanation(state)
+  const fusionExplanation = getFusionExplanation(state)
+
+  return (
+    <>
+      {relayExplanation ? (
+        <span className="ml-2 text-amber-300/80">{relayExplanation}</span>
+      ) : null}
+      {decayExplanation ? (
+        <span className="ml-2 opacity-50">{decayExplanation}</span>
+      ) : null}
+      {fusionExplanation ? (
+        <span className="ml-2 text-emerald-300/80">{fusionExplanation}</span>
+      ) : null}
+    </>
   )
-  return key ? knowledge[key] : undefined
-}
-
-function getTeamAnomalyKnowledgeLadder(
-  knowledge: KnowledgeStateMap,
-  teamId: string,
-  anomalyId: string
-) {
-  return getTeamKnowledgeLadder(knowledge, teamId, anomalyId)
-}
-
-function getTeamHazardKnowledgeLadder(
-  knowledge: KnowledgeStateMap,
-  teamId: string,
-  hazardId: string
-) {
-  return getTeamKnowledgeLadder(knowledge, teamId, hazardId)
-}
-
-function getRelayChainExplanation(knowledgeState?: KnowledgeState) {
-  return knowledgeState ? explainRelayChain(knowledgeState) : ''
-}
-
-function getDecayExplanation(knowledgeState?: KnowledgeState) {
-  return knowledgeState ? explainDecay(knowledgeState) : ''
-}
-
-function getFusionExplanation(knowledgeState?: KnowledgeState) {
-  return knowledgeState ? explainFusion(knowledgeState) : ''
 }
 
 export default function ReportDetailPage() {
@@ -121,6 +152,12 @@ export default function ReportDetailPage() {
       )
     })
     .map((currentCase) => currentCase.id)
+  const teamKnowledgeGroups = buildTeamKnowledgeGroups(
+    game.knowledge,
+    teamIds,
+    anomalyIds,
+    hazardIds
+  )
 
   return (
     <section className="space-y-4">
@@ -130,43 +167,39 @@ export default function ReportDetailPage() {
         </Link>
       ) : null}
       <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
-        {/* Real-data knowledge ladders and relay/decay/fusion status */}
-        <div className="my-2 p-2 bg-blue-50 rounded text-xs">
-          <strong>Knowledge Ladders & Relay Status:</strong>
-          <ul className="mt-1 space-y-1">
-            {teamIds.map(teamId => (
-              <li key={teamId}>
-                <span className="font-semibold">Team {teamId}:</span>
-                <ul className="ml-2">
-                  {anomalyIds.map(anomalyId => {
-                    const ks = getTeamAnomalyKnowledgeLadder(game.knowledge, teamId, anomalyId)
-                    if (!ks) return null
-                    return (
-                      <li key={anomalyId}>
-                        <span className="text-blue-900">Anomaly {anomalyId}:</span> {explainDefeatConditionKnowledge(game.knowledge, teamId, anomalyId)}
-                        {getRelayChainExplanation(ks) && <span className="ml-2 text-yellow-700">{getRelayChainExplanation(ks)}</span>}
-                        {getDecayExplanation(ks) && <span className="ml-2 text-gray-500">{getDecayExplanation(ks)}</span>}
-                        {getFusionExplanation(ks) && <span className="ml-2 text-green-700">{getFusionExplanation(ks)}</span>}
+        {/* Knowledge ladders and relay/decay/fusion status — only rendered when data exists */}
+        {teamKnowledgeGroups.length > 0 ? (
+          <div className="rounded border border-white/10 bg-white/5 px-3 py-3 text-xs">
+            <p className="font-semibold uppercase tracking-wide opacity-50">
+              Knowledge Ladders &amp; Relay Status
+            </p>
+            <ul className="mt-2 space-y-2">
+              {teamKnowledgeGroups.map(({ teamId, anomalies, hazards }) => (
+                <li key={teamId}>
+                  <p className="font-semibold opacity-70">Team {teamId}</p>
+                  <ul className="ml-2 mt-1 space-y-1">
+                    {anomalies.map(({ subjectId, state }) => (
+                      <li key={subjectId}>
+                        <span className="opacity-60">Anomaly {subjectId}:</span>{' '}
+                        <span className="opacity-80">
+                          {explainDefeatConditionKnowledge(game.knowledge, teamId, subjectId)}
+                        </span>
+                        <KnowledgeStateAnnotations state={state} />
                       </li>
-                    )
-                  })}
-                  {hazardIds.map(hazardId => {
-                    const ks = getTeamHazardKnowledgeLadder(game.knowledge, teamId, hazardId)
-                    if (!ks) return null
-                    return (
-                      <li key={hazardId}>
-                        <span className="text-red-900">Hazard {hazardId}:</span> {explainHazardKnowledge(ks)}
-                        {getRelayChainExplanation(ks) && <span className="ml-2 text-yellow-700">{getRelayChainExplanation(ks)}</span>}
-                        {getDecayExplanation(ks) && <span className="ml-2 text-gray-500">{getDecayExplanation(ks)}</span>}
-                        {getFusionExplanation(ks) && <span className="ml-2 text-green-700">{getFusionExplanation(ks)}</span>}
+                    ))}
+                    {hazards.map(({ subjectId, state }) => (
+                      <li key={subjectId}>
+                        <span className="text-red-300/70">Hazard {subjectId}:</span>{' '}
+                        <span className="opacity-80">{explainHazardKnowledge(state)}</span>
+                        <KnowledgeStateAnnotations state={state} />
                       </li>
-                    )
-                  })}
-                </ul>
-              </li>
-            ))}
-          </ul>
-        </div>
+                    ))}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-2">
             <p className="text-sm font-medium">

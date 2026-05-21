@@ -85,6 +85,13 @@ function mapTeamStatusTone(statusLabel: string): FrontDeskNoticeTone {
   return 'success'
 }
 
+function formatToneLabel(tone: FrontDeskNoticeTone) {
+  if (tone === 'danger') return 'Alert'
+  if (tone === 'warning') return 'Warning'
+  if (tone === 'info') return 'Info'
+  return 'Success'
+}
+
 function choiceToneClass(tone: 'neutral' | 'success' | 'warning' | 'danger') {
   if (tone === 'danger') return 'border-red-400/35 bg-red-500/10 hover:bg-red-500/16'
   if (tone === 'warning') return 'border-amber-300/35 bg-amber-500/10 hover:bg-amber-500/16'
@@ -255,7 +262,6 @@ export default function FrontDeskPage() {
                           <span className="rounded-full border border-amber-400/35 bg-amber-500/10 text-amber-200 px-2 py-0.5 text-[10px] font-bold">Multiple Teams Recovering</span>
                         )}
                       </div>
-                      <p className="text-xs opacity-60">{card.countLabel}</p>
                     </div>
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(card.tone)}`}>{card.countLabel}</span>
                   </div>
@@ -497,7 +503,9 @@ export default function FrontDeskPage() {
                           </p>
                           <p className="text-xs opacity-55">{item.meta}</p>
                         </div>
-                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>{item.tone}</span>
+                        <span className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(item.tone)}`}>
+                          {formatToneLabel(item.tone)}
+                        </span>
                       </div>
                       <p className="mt-2 text-sm opacity-75">{item.detail}</p>
                     </li>
@@ -541,11 +549,14 @@ export default function FrontDeskPage() {
               <div className="space-y-1">
                 <h2 className="text-lg font-semibold">Simulation Controls</h2>
                 <p className="text-sm opacity-60">Week {game.week} · Active cap {game.config.maxActiveCases}</p>
+                <p className="text-xs opacity-70">
+                  Core loop prompt: finish triage and prep, then advance week to publish the next report.
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => applyPreset('forgiving')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.forgiving}</button>
-                <button type="button" onClick={() => applyPreset('standard')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.standard}</button>
-                <button type="button" onClick={() => applyPreset('nightmare')} className="btn btn-sm btn-ghost">{DASHBOARD_PRESET_LABELS.nightmare}</button>
+                <button type="button" onClick={() => applyPreset('forgiving')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.forgiving}</button>
+                <button type="button" onClick={() => applyPreset('standard')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.standard}</button>
+                <button type="button" onClick={() => applyPreset('nightmare')} className="btn btn-sm btn-ghost focus-ring">{DASHBOARD_PRESET_LABELS.nightmare}</button>
               </div>
             </div>
 
@@ -607,11 +618,11 @@ export default function FrontDeskPage() {
             </p>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" onClick={handleCopySeed} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={handleCopySeed} className="btn btn-sm btn-ghost focus-ring">
                 <IconCopy className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.copySeed}
               </button>
-              <button type="button" onClick={() => setSeed(Date.now())} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={() => setSeed(Date.now())} className="btn btn-sm btn-ghost focus-ring">
                 {DASHBOARD_ACTIONS.newSeed}
               </button>
               <button
@@ -621,12 +632,12 @@ export default function FrontDeskPage() {
                   advanceWeek()
                 }}
                 disabled={game.gameOver}
-                className="btn btn-sm"
+                className="btn btn-sm focus-ring"
               >
                 <IconAdvance className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.advanceWeek}
               </button>
-              <button type="button" onClick={() => setShowResetConfirm((current) => !current)} className="btn btn-sm btn-ghost">
+              <button type="button" onClick={() => setShowResetConfirm((current) => !current)} className="btn btn-sm btn-ghost focus-ring">
                 <IconReset className="h-4 w-4" aria-hidden="true" />
                 {DASHBOARD_ACTIONS.reset}
               </button>
@@ -677,7 +688,7 @@ export default function FrontDeskPage() {
                     {team.tags.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-1.5">
                         {team.tags.map((tag) => (
-                          <span key={tag} className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass('warning')}`}>{tag}</span>
+                          <span key={tag} className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass('neutral')}`}>{tag}</span>
                         ))}
                       </div>
                     ) : null}

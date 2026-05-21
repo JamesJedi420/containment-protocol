@@ -430,7 +430,7 @@ export default function CasesPage() {
           <button
             type="button"
             onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}
-            className="btn btn-sm btn-ghost"
+            className="btn btn-sm btn-ghost focus-ring"
           >
             Clear filters
           </button>
@@ -438,7 +438,7 @@ export default function CasesPage() {
             type="button"
             title={CASES_FILTER_TEXT.riskFilterTooltip}
             onClick={() => updateFilters({ ...filters, risk: !filters.risk })}
-            className={filters.risk ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-ghost'}
+            className={filters.risk ? 'btn btn-sm btn-primary focus-ring' : 'btn btn-sm btn-ghost focus-ring'}
           >
             {filters.risk ? CASES_FILTER_TEXT.riskFilterActive : CASES_FILTER_TEXT.riskFilterLabel}
           </button>
@@ -449,6 +449,9 @@ export default function CasesPage() {
             Showing {cases.length} of {totalCases} cases
           </p>
           <p>Active query: {querySuffix || 'none'}</p>
+        </div>
+        <div className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-80">
+          Core loop: triage cases here, open each dossier to prep, then advance week from Front Desk and review the new report.
         </div>
       </article>
 
@@ -527,13 +530,12 @@ export default function CasesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">
-                      <Link to={detailHref} className="hover:underline focus-ring">
+                      <Link
+                        to={detailHref}
+                        className="hover:underline focus-ring"
+                        data-testid={`case-title-link-${view.currentCase.id}`}
+                      >
                         {view.currentCase.title}
-                      </Link>
-                    </p>
-                    <p className="text-xs uppercase tracking-wide opacity-50">
-                      <Link to={intelHref} className="hover:underline focus-ring">
-                        View intel
                       </Link>
                     </p>
                     <p className="mt-0.5 text-xs opacity-50">{view.currentCase.description}</p>
@@ -542,6 +544,17 @@ export default function CasesPage() {
                         {CASE_UI_LABELS.loreStub}: {CASE_LORE_STUBS[view.currentCase.templateId]}
                       </p>
                     ) : null}
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Link to={detailHref} className="btn btn-sm btn-ghost focus-ring">
+                        Open prep dossier
+                      </Link>
+                      <Link to={intelHref} className="btn btn-sm btn-ghost focus-ring">
+                        Open intel dossier
+                      </Link>
+                      <span className="text-xs opacity-60">
+                        Next step: assign response units, then advance week from Front Desk.
+                      </span>
+                    </div>
                   </div>
                   <span
                     title={TOOLTIPS['case.stage']}
@@ -588,7 +601,7 @@ export default function CasesPage() {
                     {compareOpen ? (
                       <button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        className="btn btn-sm btn-ghost focus-ring"
                         aria-expanded="true"
                         aria-controls={comparePanelId}
                         onClick={() =>
@@ -603,7 +616,7 @@ export default function CasesPage() {
                     ) : (
                       <button
                         type="button"
-                        className="btn btn-sm btn-ghost"
+                        className="btn btn-sm btn-ghost focus-ring"
                         aria-expanded="false"
                         aria-controls={comparePanelId}
                         onClick={() =>
@@ -708,7 +721,7 @@ export default function CasesPage() {
                           <button
                             key={team.id}
                             onClick={() => unassign(view.currentCase.id, team.id)}
-                            className="btn btn-sm btn-ghost"
+                            className="btn btn-sm btn-ghost focus-ring"
                           >
                             {CASE_UI_LABELS.removeTeam} {team.name}
                           </button>
@@ -806,7 +819,7 @@ export default function CasesPage() {
                               onClick={() => assign(view.currentCase.id, team.id)}
                               disabled={odds.blockedByRequiredTags || odds.blockedByRequiredRoles}
                               aria-label={`Assign ${team.name}`}
-                              className="btn btn-sm"
+                              className="btn btn-sm focus-ring"
                             >
                               Assign {AGENCY_LABELS.responseUnit} {team.name} (
                               {CASE_UI_LABELS.oddsSuccessAbbr} {Math.round(odds.success * 100)}% /{' '}
@@ -860,7 +873,7 @@ export default function CasesPage() {
             <div>
               <button
                 type="button"
-                className="btn btn-sm btn-ghost"
+                className="btn btn-sm btn-ghost focus-ring"
                 onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}
               >
                 Clear filters

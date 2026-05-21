@@ -450,7 +450,7 @@ export default function CasesPage() {
           </p>
           <p>Active query: {querySuffix || 'none'}</p>
         </div>
-        <div className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-80" role="status">
+        <div className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-80">
           Core loop: triage cases here, open each dossier to prep, then advance week from Front Desk and review the new report.
         </div>
       </article>

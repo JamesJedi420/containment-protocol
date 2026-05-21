@@ -36,9 +36,10 @@ This spec is for:
 
 **Slice 3 shipped (SPE-2257):** `CasesPage` case queue uses triage category tabs (URL `tab`), split list/detail panel (URL `case`), and context footer via `missionTriageLayoutView` + `MissionTriageTabs` / `MissionTriageListRow` / `MissionTriageContextFooter`. Plan: `planning/mission-triage-layout-slice.md`.
 
+**Slice 4 shipped (SPE-2258):** On `/cases` routes, `ShellStatusBar` appends read-only triage tail chips (queue depth, routable count, unassigned urgent when &gt; 0) via `buildMissionTriageShellExtensionSignals`, using the same filtered board views as `MissionTriageContextFooter`. Plan: `planning/mission-triage-status-bar-slice.md`.
+
 **Still deferred (follow-up slices):**
 
-- status-bar routable/urgent tail chips per `ux/navigation-map.md`
 - route/defer/ignore actions distinct from team assignment
 
 ---

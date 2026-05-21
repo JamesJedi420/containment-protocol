@@ -1,8 +1,8 @@
 // cspell:words topbar
 import '../../test/setup'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Outlet, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { createStartingState } from '../../data/startingState'
@@ -10,19 +10,37 @@ import { normalizeGameState } from '../../domain/teamSimulation'
 import { useGameStore } from '../../app/store/gameStore'
 import { ShellStatusBar } from './ShellStatusBar'
 
+function ShellStatusBarLayout() {
+  return (
+    <>
+      <ShellStatusBar />
+      <Outlet />
+    </>
+  )
+}
+
 function renderShellStatusBar(route = '/') {
   return render(
     <MemoryRouter initialEntries={[route]}>
       <Routes>
-        <Route path="/" element={<ShellStatusBar />} />
-        <Route path="/report" element={<div data-testid="report-index-route">Report index</div>} />
-        <Route path="/report/:week" element={<div data-testid="report-route">Report route</div>} />
-        <Route path="/agency" element={<div data-testid="agency-route">Agency route</div>} />
-        <Route path="/help" element={<div data-testid="help-route">Help route</div>} />
-        <Route path="/recruitment" element={<div data-testid="recruitment-route">Recruitment</div>} />
-        <Route path="/teams" element={<div data-testid="teams-route">Teams</div>} />
-        <Route path="/intel" element={<div data-testid="intel-route">Intel</div>} />
-        <Route path="/cases" element={<div data-testid="cases-route">Cases</div>} />
+        <Route element={<ShellStatusBarLayout />}>
+          <Route path="/" element={<div data-testid="home-route">Home</div>} />
+          <Route path="/report" element={<div data-testid="report-index-route">Report index</div>} />
+          <Route path="/report/:week" element={<div data-testid="report-route">Report route</div>} />
+          <Route path="/agency" element={<div data-testid="agency-route">Agency route</div>} />
+          <Route path="/help" element={<div data-testid="help-route">Help route</div>} />
+          <Route
+            path="/recruitment"
+            element={<div data-testid="recruitment-route">Recruitment</div>}
+          />
+          <Route path="/teams" element={<div data-testid="teams-route">Teams</div>} />
+          <Route path="/intel" element={<div data-testid="intel-route">Intel</div>} />
+          <Route path="/cases" element={<div data-testid="cases-route">Cases</div>} />
+          <Route
+            path="/cases/:caseId"
+            element={<div data-testid="case-detail-route">Case detail</div>}
+          />
+        </Route>
       </Routes>
     </MemoryRouter>
   )
@@ -252,6 +270,78 @@ describe('ShellStatusBar', () => {
 
     expect(topBar).toHaveClass('topbar-shell')
     expect(strip).toHaveClass('whitespace-nowrap')
+  })
+
+  it('aligns triage queue depth with cases URL status filters', () => {
+    const game = createBaseGame()
+    game.cases = {
+      'case-open': {
+        ...game.cases['case-001']!,
+        id: 'case-open',
+        templateId: 'case-open',
+        title: 'Open only',
+        status: 'open',
+        assignedTeamIds: [],
+        contract: undefined,
+      },
+      'case-active': {
+        ...game.cases['case-001']!,
+        id: 'case-active',
+        templateId: 'case-active',
+        title: 'In progress',
+        status: 'in_progress',
+        assignedTeamIds: [],
+        contract: undefined,
+      },
+    }
+    useGameStore.setState({ game: normalizeGameState(game) })
+
+    renderShellStatusBar('/cases')
+    const allQueue = screen.getByTestId('shell-status-triage-queue')
+    expect(allQueue).toHaveTextContent('Queue2')
+    cleanup()
+
+    renderShellStatusBar('/cases?status=open')
+    const openQueue = screen.getByTestId('shell-status-triage-queue')
+    expect(openQueue).toHaveTextContent('Queue1')
+    expect(openQueue.textContent).not.toEqual(allQueue.textContent)
+
+    const routableLink = screen.getByTestId('shell-status-triage-routable')
+    expect(routableLink).toHaveAttribute('href', '/cases?status=open')
+  })
+
+  it('shows triage tail chips on cases routes only', () => {
+    const game = createBaseGame()
+    game.cases['case-urgent'] = {
+      ...game.cases['case-001']!,
+      id: 'case-urgent',
+      templateId: 'case-urgent',
+      title: 'Urgent triage case',
+      status: 'open',
+      stage: 4,
+      deadlineRemaining: 1,
+      assignedTeamIds: [],
+      contract: undefined,
+    }
+    useGameStore.setState({ game: normalizeGameState(game) })
+
+    renderShellStatusBar('/agency')
+    const agencySignals = screen.getByTestId('shell-status-signals-row')
+    expect(within(agencySignals).queryByTestId('shell-status-triage-routable')).not.toBeInTheDocument()
+    cleanup()
+
+    renderShellStatusBar('/cases')
+    const casesSignals = screen.getByTestId('shell-status-signals-row')
+    expect(within(casesSignals).getByTestId('shell-status-triage-queue')).toBeInTheDocument()
+    expect(within(casesSignals).getByTestId('shell-status-triage-routable')).toBeInTheDocument()
+    expect(within(casesSignals).getByTestId('shell-status-triage-urgent')).toHaveAttribute(
+      'data-status-tone',
+      'warning'
+    )
+    cleanup()
+
+    renderShellStatusBar('/cases/case-urgent')
+    expect(screen.getByTestId('shell-status-triage-routable')).toBeInTheDocument()
   })
 
   it('disables advance action when simulation is halted', () => {

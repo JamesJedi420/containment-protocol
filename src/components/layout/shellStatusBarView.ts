@@ -13,7 +13,15 @@ const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'] as const
 export type ShellStatusTone = 'neutral' | 'info' | 'warning' | 'danger'
 
 export interface ShellStatusSignalView {
-  id: 'budget' | 'staffing' | 'readiness' | 'intel' | 'alert'
+  id:
+    | 'budget'
+    | 'staffing'
+    | 'readiness'
+    | 'intel'
+    | 'alert'
+    | 'triage-queue'
+    | 'triage-routable'
+    | 'triage-urgent'
   label: string
   value: string
   tone: ShellStatusTone

@@ -15,7 +15,7 @@
 | contradiction check | 13 |
 | new child | 0 |
 
-Note: These adjudication counts total 92 because they include five supplemental rows in addition to the canonical candidate set `C1–C87` (for example, `C8 supplement` and `C23–C25 supplement`).
+**Owner-map supplements:** Labels such as `C8 supplement` or `C23–C25 supplement` in the owner map are secondary fold-in pointers on canonical candidates (C8, C23–C25), not additional candidates. Roll-up totals use **C1–C87** only.
 
 ## Primary owner map
 

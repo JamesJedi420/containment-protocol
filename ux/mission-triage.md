@@ -34,9 +34,12 @@ This spec is for:
 
 **Slice 2 shipped:** `CasesPage` list rows show a three-column deferral comparison table (`Covert prep load` / `If deferred` / `Carryover`) via `buildMissionTriageDeferralCompareView` and `MissionTriageDeferralCompareTable`; escalation carryover cross-link when deferral risk is high. Plan: `planning/mission-triage-deferral-compare-slice.md`.
 
+**Slice 3 shipped (SPE-2257):** `CasesPage` case queue uses triage category tabs (URL `tab`), split list/detail panel (URL `case`), and context footer via `missionTriageLayoutView` + `MissionTriageTabs` / `MissionTriageListRow` / `MissionTriageContextFooter`. Plan: `planning/mission-triage-layout-slice.md`.
+
 **Still deferred (follow-up slices):**
 
-- full triage layout refresh (filters/tabs/split detail panel per §3)
+- status-bar routable/urgent tail chips per `ux/navigation-map.md`
+- route/defer/ignore actions distinct from team assignment
 
 ---
 

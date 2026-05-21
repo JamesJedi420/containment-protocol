@@ -79,8 +79,14 @@ it('sanitizes invalid query params and preserves canonical case links', async ()
   expect(screen.getByLabelText('Stage')).toHaveValue('all')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 
-  const caseLink = screen.getByRole('link', { name: /vampire nest in the stockyards/i })
-  expect(caseLink).toHaveAttribute('href', '/cases/case-001?q=stockyards&sort=title')
+  const caseLink = screen
+    .getAllByRole('link', { name: /vampire nest in the stockyards/i })
+    .find((link) => link.getAttribute('href')?.includes('/cases/case-001?'))
+  expect(caseLink).toBeDefined()
+  expect(caseLink).toHaveAttribute(
+    'href',
+    '/cases/case-001?q=stockyards&sort=title&case=case-001'
+  )
 })
 
 it('sorts cases by title from query state', () => {
@@ -94,12 +100,14 @@ it('sorts cases by title from query state', () => {
 
   renderCasesPage(['/cases?sort=title'])
 
-  const alphaLink = screen.getByTestId('case-title-link-alpha')
-  const zuluLink = screen.getByTestId('case-title-link-zulu')
+  const triageList = screen.getByLabelText('Triage list')
+  const alphaLink = within(triageList).getByTestId('case-title-link-alpha')
+  const zuluLink = within(triageList).getByTestId('case-title-link-zulu')
   expect(alphaLink.compareDocumentPosition(zuluLink) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 })
 
-it('renders urgency markers for triage cases', () => {
+it('renders urgency markers for triage cases', async () => {
+  const user = userEvent.setup()
   const game = createStartingState()
   game.cases = {
     high: makeCase('high', 'High Risk Case', {
@@ -133,23 +141,28 @@ it('renders urgency markers for triage cases', () => {
   useGameStore.setState({ game })
 
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'High Risk Case')
 
   const highRiskCard = getCardByName('High Risk Case')
   expect(within(highRiskCard).getByText('Unassigned')).toBeInTheDocument()
   expect(within(highRiskCard).getByText('High stage')).toBeInTheDocument()
   expect(within(highRiskCard).getByText('Deadline risk')).toBeInTheDocument()
 
+  await selectTriageCase(user, 'Blocked Case')
   const blockedCard = getCardByName('Blocked Case')
   expect(within(blockedCard).getByText('Required-role blocked')).toBeInTheDocument()
 
+  await selectTriageCase(user, 'Raid Capacity Case')
   const raidCard = getCardByName('Raid Capacity Case')
   expect(within(raidCard).getByText('Raid at capacity')).toBeInTheDocument()
 
+  await selectTriageCase(user, 'Unassigned Case')
   const idleCard = getCardByName('Unassigned Case')
   expect(within(idleCard).getByText('Unassigned')).toBeInTheDocument()
 })
 
-it('renders covert prep markers on triage list rows', () => {
+it('renders covert prep markers on triage list rows', async () => {
+  const user = userEvent.setup()
   const game = createStartingState()
   const assignedTeamId = Object.keys(game.teams)[0]!
   game.cases = {
@@ -176,6 +189,7 @@ it('renders covert prep markers on triage list rows', () => {
   useGameStore.setState({ game })
 
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'Covert Infiltration Case')
 
   const covertCard = getCardByName('Covert Infiltration Case')
   const markerRegion = within(covertCard).getByLabelText('Case triage markers')
@@ -197,12 +211,14 @@ it('renders covert prep markers on triage list rows', () => {
   expect(within(compareTable).getByText('Carryover')).toBeInTheDocument()
   expect(within(covertCard).getByText(/Escalation carryover:/)).toBeInTheDocument()
 
+  await selectTriageCase(user, 'Plain Open Case')
   const plainCard = getCardByName('Plain Open Case')
   expect(within(plainCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()
   expect(within(plainCard).queryByText(/Probe \d+%/)).not.toBeInTheDocument()
 })
 
-it('renders concealment prep chip on triage list rows', () => {
+it('renders concealment prep chip on triage list rows', async () => {
+  const user = userEvent.setup()
   const game = createStartingState()
   game.cases = {
     conceal: {
@@ -219,38 +235,50 @@ it('renders concealment prep chip on triage list rows', () => {
   useGameStore.setState({ game })
 
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'Covert Preview Case')
 
   expect(within(getCardByName('Covert Preview Case')).getByText('Covert next week')).toBeInTheDocument()
 })
 
-it('renders recommended action guidance for assignable cases', () => {
+it('renders recommended action guidance for assignable cases', async () => {
+  const user = userEvent.setup()
   renderCasesPage(['/cases'])
 
-  expect(screen.getAllByText(/recommended action/i).length).toBeGreaterThan(0)
-  expect(screen.getAllByText(/best current success:/i).length).toBeGreaterThan(0)
   expect(
     screen.getByText(
       /core loop: triage cases here, open each dossier to prep, then advance week from front desk and review the new report\./i
     )
   ).toBeInTheDocument()
-  expect(screen.getAllByRole('link', { name: /open prep dossier/i }).length).toBeGreaterThan(0)
+
+  await selectTriageCase(user, 'The Whispering Archive')
+
+  const detail = getCardByName('The Whispering Archive')
+  expect(within(detail).getByText(/recommended action/i)).toBeInTheDocument()
+  expect(within(detail).getByText(/best current success:/i)).toBeInTheDocument()
+  expect(within(detail).getByRole('link', { name: /open prep dossier/i })).toBeInTheDocument()
 })
 
-it('renders open intel dossier quick action and next-step copy for each case card', () => {
+it('renders open intel dossier quick action and next-step copy for each case card', async () => {
+  const user = userEvent.setup()
   renderCasesPage(['/cases'])
 
-  expect(screen.getAllByRole('link', { name: /open intel dossier/i }).length).toBeGreaterThan(0)
+  await selectTriageCase(user, 'The Whispering Archive')
+
+  const detail = getCardByName('The Whispering Archive')
+  expect(within(detail).getByRole('link', { name: /open intel dossier/i })).toBeInTheDocument()
   expect(
-    screen.getAllByText(/next step: assign response units, then advance week from front desk\./i).length
-  ).toBeGreaterThan(0)
+    within(detail).getByText(/next step: assign response units, then advance week from front desk\./i)
+  ).toBeInTheDocument()
 })
 
 it('supports top-option comparison and shows confidence/commit cues on assignment actions', async () => {
   const user = userEvent.setup()
 
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'The Whispering Archive')
 
-  const compareButton = screen.getAllByRole('button', { name: /compare top 2/i })[0]
+  const detail = getCardByName('The Whispering Archive')
+  const compareButton = within(detail).getByRole('button', { name: /compare top 2/i })
   expect(compareButton).toHaveAttribute('aria-expanded', 'false')
   const controlsId = compareButton.getAttribute('aria-controls')
   expect(controlsId).toBeTruthy()
@@ -258,10 +286,10 @@ it('supports top-option comparison and shows confidence/commit cues on assignmen
 
   expect(compareButton).toHaveAttribute('aria-expanded', 'true')
   expect(document.getElementById(controlsId!)).not.toBeNull()
-  expect(screen.getByText(/success delta:/i)).toBeInTheDocument()
-  expect(screen.getByText(/fail delta:/i)).toBeInTheDocument()
-  expect(screen.getAllByText(/confidence:/i).length).toBeGreaterThan(0)
-  expect(screen.getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
+  expect(within(detail).getByText(/success delta:/i)).toBeInTheDocument()
+  expect(within(detail).getByText(/fail delta:/i)).toBeInTheDocument()
+  expect(within(detail).getAllByText(/confidence:/i).length).toBeGreaterThan(0)
+  expect(within(detail).getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
 })
 
 it('renders a major incident planner and warns when one selected team is much weaker', async () => {
@@ -270,6 +298,7 @@ it('renders a major incident planner and warns when one selected team is much we
 
   useGameStore.setState({ game })
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'Regional Fracture Event')
 
   const incidentCard = getCardByName('Regional Fracture Event')
   expect(within(incidentCard).getByText(/major incident planner/i)).toBeInTheDocument()
@@ -324,9 +353,9 @@ it('toggles the at-risk filter and syncs it to query state', async () => {
   })
 
   expect(screen.getByRole('button', { name: /^at-risk$/i })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /high risk case/i })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /blocked case/i })).toBeInTheDocument()
-  expect(screen.queryByRole('link', { name: /low risk case/i })).not.toBeInTheDocument()
+  expect(screen.getAllByRole('link', { name: /high risk case/i }).length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('link', { name: /blocked case/i }).length).toBeGreaterThan(0)
+  expect(screen.queryAllByRole('link', { name: /low risk case/i })).toHaveLength(0)
   expect(screen.queryByRole('link', { name: /resolved critical case/i })).not.toBeInTheDocument()
 
   await user.click(screen.getByRole('button', { name: /^at-risk$/i }))
@@ -336,8 +365,96 @@ it('toggles the at-risk filter and syncs it to query state', async () => {
   })
 
   expect(screen.getByRole('button', { name: /at-risk only/i })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /low risk case/i })).toBeInTheDocument()
-  expect(screen.getByRole('link', { name: /resolved critical case/i })).toBeInTheDocument()
+  expect(screen.getAllByRole('link', { name: /low risk case/i }).length).toBeGreaterThan(0)
+  expect(screen.getAllByRole('link', { name: /resolved critical case/i }).length).toBeGreaterThan(0)
+})
+
+it('re-clicking the active triage tab does not clear the case query', async () => {
+  const user = userEvent.setup()
+
+  renderCasesPage(['/cases?case=case-001&tab=all'])
+
+  await waitFor(() => {
+    expect(screen.getByTestId('location-search')).toHaveTextContent('case=case-001')
+  })
+
+  await user.click(screen.getByRole('tab', { name: /^all\b/i }))
+
+  expect(screen.getByTestId('location-search')).toHaveTextContent('case=case-001')
+})
+
+it('preserves case query when the selected case remains visible after a tab change', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const teamId = Object.keys(game.teams)[0]!
+  const caseId = 'case-001'
+  game.cases = {
+    ...game.cases,
+    [caseId]: {
+      ...game.cases[caseId]!,
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+    },
+  }
+
+  useGameStore.setState({ game })
+  renderCasesPage([`/cases?case=${caseId}&tab=all`])
+
+  await waitFor(() => {
+    expect(screen.getByTestId('location-search')).toHaveTextContent(`case=${caseId}`)
+  })
+
+  await user.click(screen.getByRole('tab', { name: /assigned/i }))
+
+  await waitFor(() => {
+    const search = screen.getByTestId('location-search').textContent ?? ''
+    expect(search).toContain('tab=assigned')
+    expect(search).toContain(`case=${caseId}`)
+  })
+})
+
+it('filters triage list by tab and syncs tab to query state', async () => {
+  const user = userEvent.setup()
+  const game = createStartingState()
+  const teamId = Object.keys(game.teams)[0]!
+  game.cases = {
+    assigned: makeCase('assigned', 'Assigned Case', {
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+    }),
+    open: makeCase('open', 'Open Case', { status: 'open' }),
+  }
+
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases'])
+
+  await user.click(screen.getByRole('tab', { name: /assigned/i }))
+
+  await waitFor(() => {
+    expect(screen.getByTestId('location-search')).toHaveTextContent('tab=assigned')
+  })
+
+  expect(screen.getAllByRole('link', { name: /assigned case/i }).length).toBeGreaterThan(0)
+  expect(screen.queryAllByRole('link', { name: /^open case$/i })).toHaveLength(0)
+  expect(screen.getByLabelText(/mission triage context/i)).toBeInTheDocument()
+})
+
+it('shows triage context footer when filters match no cases', () => {
+  renderCasesPage(['/cases?q=definitely-no-match'])
+
+  expect(screen.getByRole('region', { name: /case triage queue/i })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: /no matching cases/i })).toBeInTheDocument()
+  expect(screen.getByLabelText(/mission triage context/i)).toBeInTheDocument()
+  expect(screen.getByText(/teams available:/i)).toBeInTheDocument()
+})
+
+it('sanitizes stale case query when the case is outside the filtered triage list', async () => {
+  renderCasesPage(['/cases?case=case-does-not-exist&status=open'])
+
+  await waitFor(() => {
+    const search = screen.getByTestId('location-search').textContent ?? ''
+    expect(search).not.toContain('case=case-does-not-exist')
+  })
 })
 
 it('renders the case assignment guidance panel', () => {
@@ -454,8 +571,16 @@ it('shows a clear-filters recovery action in empty results state', async () => {
 })
 
 function getCardByName(name: string) {
-  const link = screen.getByRole('link', { name: new RegExp(name, 'i') })
-  return link.closest('li') as HTMLElement
+  return screen.getByRole('region', {
+    name: new RegExp(`Case triage detail:.*${name}`, 'i'),
+  })
+}
+
+async function selectTriageCase(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole('button', { name: new RegExp(`Select ${name} for triage detail`, 'i') }))
+  await screen.findByRole('region', {
+    name: new RegExp(`Case triage detail:.*${name}`, 'i'),
+  })
 }
 
 function makeCase(id: string, title: string, overrides: Partial<CaseInstance> = {}): CaseInstance {

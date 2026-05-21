@@ -83,18 +83,15 @@ export interface MissionTriageContextFooterView {
   readonly routableCount: number
 }
 
-function supportLoadBand(highCapacityCount: number, total: number): MissionTriageFooterLoadBand {
-  if (total === 0) {
-    return 'low'
-  }
-
-  const ratio = highCapacityCount / total
-
-  if (ratio >= 0.5) {
+/** Capacity reason codes are global (same for every open case in a week), not per-row. */
+function projectedSupportLoadFromCapacityCodes(
+  reasonCodes: readonly string[]
+): MissionTriageFooterLoadBand {
+  if (reasonCodes.includes('capacity-high')) {
     return 'high'
   }
 
-  if (ratio >= 0.25) {
+  if (reasonCodes.includes('capacity-medium')) {
     return 'medium'
   }
 
@@ -145,17 +142,12 @@ export function buildMissionTriageContextFooterView(
     activeViews.map((view) => [view.currentCase.id, triageMission(game, view.currentCase)] as const)
   )
 
-  let highCapacityCount = 0
   let urgentIfDeferred = 0
   let escalationCarryoverRisk = 0
   let routableCount = 0
 
   for (const view of activeViews) {
     const triage = triageByCaseId.get(view.currentCase.id)!
-
-    if (triage.reasonCodes.includes('capacity-high') || triage.reasonCodes.includes('capacity-medium')) {
-      highCapacityCount += 1
-    }
 
     if (isUrgentIfDeferred(view, triage)) {
       urgentIfDeferred += 1
@@ -170,8 +162,12 @@ export function buildMissionTriageContextFooterView(
     }
   }
 
+  const sampleTriage = activeViews[0] ? triageByCaseId.get(activeViews[0].currentCase.id) : undefined
+
   return {
-    projectedSupportLoad: supportLoadBand(highCapacityCount, activeViews.length),
+    projectedSupportLoad: sampleTriage
+      ? projectedSupportLoadFromCapacityCodes(sampleTriage.reasonCodes)
+      : 'low',
     teamsAvailable: countTeamsAvailable(game),
     urgentIfDeferred,
     escalationCarryoverRisk,

@@ -98,6 +98,25 @@ describe('missionTriageLayoutView', () => {
     expect(footer.routableCount).toBe(0)
   })
 
+  it('maps global capacity-medium to medium support load, not high', () => {
+    const game = createStartingState()
+    const teamId = Object.keys(game.teams)[0]!
+    game.cases = {
+      openA: makeCase('openA', { status: 'open' }),
+      openB: makeCase('openB', { status: 'open' }),
+      active: makeCase('active', { status: 'in_progress', assignedTeamIds: [teamId] }),
+    }
+
+    const views = Object.values(game.cases).map((entry) => getCaseListItemView(entry, game))
+    const sampleTriage = triageMission(game, game.cases.openA!)
+    expect(sampleTriage.reasonCodes).toContain('capacity-medium')
+    expect(sampleTriage.reasonCodes).not.toContain('capacity-high')
+
+    const footer = buildMissionTriageContextFooterView(views, game)
+
+    expect(footer.projectedSupportLoad).toBe('medium')
+  })
+
   it('builds context footer counts from active triage views', () => {
     const game = createStartingState()
     game.cases = {

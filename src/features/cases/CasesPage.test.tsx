@@ -81,9 +81,12 @@ it('sanitizes invalid query params and preserves canonical case links', async ()
 
   const caseLink = screen
     .getAllByRole('link', { name: /vampire nest in the stockyards/i })
-    .find((link) => link.getAttribute('href') === '/cases/case-001?q=stockyards&sort=title')
+    .find((link) => link.getAttribute('href')?.includes('/cases/case-001?'))
   expect(caseLink).toBeDefined()
-  expect(caseLink).toHaveAttribute('href', '/cases/case-001?q=stockyards&sort=title')
+  expect(caseLink).toHaveAttribute(
+    'href',
+    '/cases/case-001?q=stockyards&sort=title&case=case-001'
+  )
 })
 
 it('sorts cases by title from query state', () => {

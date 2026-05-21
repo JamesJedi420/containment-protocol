@@ -494,6 +494,75 @@ export const MISSION_TRIAGE_COVERT_PREP_LABELS = {
     'Deferring may let infiltration exposure escalate before you can prep covert follow-up on case detail.',
 } as const
 
+/** Mission triage deferral comparison columns (SPE-16 slice 2). */
+export const MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS = {
+  covertPrepCost: 'Covert prep load',
+  deferralRisk: 'If deferred',
+  escalationCarryover: 'Carryover',
+  covertPrepConcealmentDetail: 'Concealment or posture prep on case detail before advance week.',
+  covertPrepLeaveBehindDetail: 'Leave-behind staged; forensic fallout may compound next resolve.',
+  covertPrepForensicDetail: 'Forensic budget strained; investigation questions cost more before resolve.',
+  carryoverLinkLabel: 'Escalation carryover',
+  carryoverLinkDetail:
+    'Deferred work can worsen under escalation thresholds and incident pressure curves next week.',
+} as const
+
+const DEFERRAL_COMPARE_TONE_VALUES = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+} as const
+
+export function formatMissionTriageCovertPrepCostValue(
+  tone: keyof typeof DEFERRAL_COMPARE_TONE_VALUES
+): string {
+  return DEFERRAL_COMPARE_TONE_VALUES[tone]
+}
+
+export function formatMissionTriageCovertPrepCostDetail(
+  effectiveActionLabel: string,
+  awarenessPercent: number,
+  hasCoverStrain: boolean
+): string {
+  const strain = hasCoverStrain ? ' · cover strain' : ''
+  return `${effectiveActionLabel} · awareness ${awarenessPercent}%${strain}`
+}
+
+export function formatMissionTriageDeferralRiskValue(
+  tone: keyof typeof DEFERRAL_COMPARE_TONE_VALUES,
+  escalationRisk: number
+): string {
+  return `${DEFERRAL_COMPARE_TONE_VALUES[tone]} (${escalationRisk}/20)`
+}
+
+export function formatMissionTriageDeferralRiskDetail(
+  deadlineRemaining: number,
+  stage: number
+): string {
+  const weeksLeft = Math.max(0, Math.trunc(deadlineRemaining))
+
+  if (weeksLeft <= 0) {
+    return `Deadline due this week · stage ${stage}`
+  }
+
+  const deadlineWord = weeksLeft === 1 ? 'week' : 'weeks'
+  return `Deadline ${weeksLeft} ${deadlineWord} left · stage ${stage}`
+}
+
+export function formatMissionTriageDeferralCarryoverLink(
+  tone: keyof typeof DEFERRAL_COMPARE_TONE_VALUES
+): string {
+  return DEFERRAL_COMPARE_TONE_VALUES[tone]
+}
+
+export function formatMissionTriageDeferralCarryoverDetail(
+  stage: number,
+  kind: string
+): string {
+  const kindLabel = kind === 'raid' ? 'raid incident' : 'case'
+  return `Stage ${stage} ${kindLabel} · unresolved work may carry into next week`
+}
+
 export function formatMissionTriageInfiltrationTracksLabel(
   probeProgressPercent: number,
   awarenessPercent: number

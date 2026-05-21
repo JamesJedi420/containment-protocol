@@ -56,6 +56,7 @@ import {
   type CaseListItemView,
   writeCaseListFilters,
 } from './caseView'
+import { MissionTriageDeferralCompareTable } from './MissionTriageDeferralCompareTable'
 
 export default function CasesPage() {
   const { game, launchContract, launchMajorIncident, assign, unassign } = useGameStore()
@@ -569,6 +570,8 @@ export default function CasesPage() {
                 {view.covertPrepSignals.deferralNote && !recommendation ? (
                   <p className="text-xs text-amber-200/90">{view.covertPrepSignals.deferralNote}</p>
                 ) : null}
+
+                <MissionTriageDeferralCompareTable view={view.deferralCompare} />
 
                 {recommendation ? (
                   <div className="rounded border border-sky-400/25 bg-sky-500/8 px-3 py-2">

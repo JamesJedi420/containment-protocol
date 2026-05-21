@@ -180,16 +180,24 @@ it('renders covert prep markers on triage list rows', () => {
   renderCasesPage(['/cases'])
 
   const covertCard = getCardByName('Covert Infiltration Case')
-  expect(within(covertCard).getByText(/Probe 35%/)).toBeInTheDocument()
-  expect(within(covertCard).getByText(/awareness 50%/)).toBeInTheDocument()
-  expect(within(covertCard).getByText('Cover strain')).toBeInTheDocument()
+  const markerRegion = within(covertCard).getByLabelText('Case triage markers')
+  expect(within(markerRegion).getByText(/Probe 35%/)).toBeInTheDocument()
+  expect(within(markerRegion).getByText(/awareness 50%/)).toBeInTheDocument()
+  expect(within(markerRegion).getByText('Cover strain')).toBeInTheDocument()
   expect(within(covertCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()
   expect(
     within(covertCard).getAllByText(/Deferring may let infiltration exposure escalate/i)
   ).toHaveLength(1)
 
-  const markerRegion = within(covertCard).getByLabelText('Case triage markers')
   expect(markerRegion.querySelectorAll('span').length).toBe(4)
+
+  const compareTable = within(covertCard).getByRole('table', {
+    name: 'Deferral and covert prep comparison',
+  })
+  expect(within(compareTable).getByText('Covert prep load')).toBeInTheDocument()
+  expect(within(compareTable).getByText('If deferred')).toBeInTheDocument()
+  expect(within(compareTable).getByText('Carryover')).toBeInTheDocument()
+  expect(within(covertCard).getByText(/Escalation carryover:/)).toBeInTheDocument()
 
   const plainCard = getCardByName('Plain Open Case')
   expect(within(plainCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()

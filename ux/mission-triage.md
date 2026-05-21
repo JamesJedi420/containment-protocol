@@ -32,10 +32,10 @@ This spec is for:
 
 **Slice 1 shipped (SPE-2255):** `CasesPage` list rows show read-only covert-prep chips (concealment preview/request, infiltration probe/awareness, staged leave-behind, forensic strain) via `buildMissionTriageCovertPrepSignals`; optional deferral note when escalation risk is high during active infiltration. Plan: `planning/mission-triage-covert-prep-slice.md`.
 
+**Slice 2 shipped:** `CasesPage` list rows show a three-column deferral comparison table (`Covert prep load` / `If deferred` / `Carryover`) via `buildMissionTriageDeferralCompareView` and `MissionTriageDeferralCompareTable`; escalation carryover cross-link when deferral risk is high. Plan: `planning/mission-triage-deferral-compare-slice.md`.
+
 **Still deferred (follow-up slices):**
 
-- comparison columns for infiltration prep cost vs deferral risk (dedicated columns, not chips only)
-- cross-links from triage deferral to escalation carryover (see comparison table and escalation carryover risk rows below)
 - full triage layout refresh (filters/tabs/split detail panel per §3)
 
 ---

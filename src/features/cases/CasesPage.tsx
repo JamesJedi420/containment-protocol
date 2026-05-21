@@ -112,7 +112,7 @@ export default function CasesPage() {
   const cases = getFilteredCaseViews(game, filters, triageViewOptions)
   const totalCases = Object.keys(game.cases).length
   const effectiveSelectedCaseId =
-    filters.selectedCaseId || (cases[0]?.currentCase.id ?? '')
+    filters.selectedCaseId
   const selectedView =
     cases.find((view) => view.currentCase.id === effectiveSelectedCaseId) ?? null
   const triageFooter = buildMissionTriageContextFooterView(cases, game)

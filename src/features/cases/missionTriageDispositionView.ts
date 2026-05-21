@@ -56,15 +56,13 @@ export function buildMissionTriageDispositionView(
       ? (deferralColumn?.detail ?? MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail)
       : null
 
-  const enabled = currentCase.status !== 'resolved'
-
   return {
     visible: true,
     active,
     activeLabel,
-    routeEnabled: enabled,
-    deferEnabled: enabled,
-    ignoreEnabled: enabled,
+    routeEnabled: true,
+    deferEnabled: true,
+    ignoreEnabled: true,
     consequenceDetail,
     assignDistinctNote,
   }

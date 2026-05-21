@@ -531,12 +531,17 @@ export function dispositionToRoutingState(
   return computed
 }
 
-function canApplyMissionTriageDisposition(state: GameState, caseData: CaseInstance) {
-  if (caseData.status === 'resolved') {
+function missionHasAssignedTeams(state: GameState, missionId: Id) {
+  const currentCase = state.cases[missionId]
+  if (!currentCase) {
     return false
   }
 
-  return !caseData.assignedTeamIds.some((teamId) => Boolean(state.teams[teamId]))
+  return currentCase.assignedTeamIds.some((teamId) => Boolean(state.teams[teamId]))
+}
+
+function canApplyMissionTriageDisposition(state: GameState, caseData: CaseInstance) {
+  return caseData.status !== 'resolved' && !missionHasAssignedTeams(state, caseData.id)
 }
 
 export function isMissionTriageIgnoredThisWeek(game: GameState, missionId: Id) {
@@ -549,15 +554,6 @@ export function isMissionTriageIgnoredThisWeek(game: GameState, missionId: Id) {
   )
 }
 
-function missionHasAssignedTeams(state: GameState, missionId: Id) {
-  const currentCase = state.cases[missionId]
-  if (!currentCase) {
-    return false
-  }
-
-  return currentCase.assignedTeamIds.some((teamId) => Boolean(state.teams[teamId]))
-}
-
 function mergeRecomputedMissionRecord(
   state: GameState,
   mission: MissionRoutingRecord,
@@ -566,7 +562,8 @@ function mergeRecomputedMissionRecord(
   week: number
 ): MissionRoutingRecord {
   const dispositionActive =
-    isMissionTriageDispositionActive(mission, week) && !missionHasAssignedTeams(state, mission.missionId)
+    isMissionTriageDispositionActive(mission, state.week) &&
+    !missionHasAssignedTeams(state, mission.missionId)
   const playerDisposition = dispositionActive ? mission.playerDisposition : undefined
   const playerDispositionWeek = dispositionActive ? mission.playerDispositionWeek : undefined
   const triageIgnored =
@@ -630,6 +627,8 @@ export function applyMissionTriageDisposition(
           ...(routed.timeCostSummary ? { timeCostSummary: { ...routed.timeCostSummary } } : {}),
           lastTriageWeek: state.week,
           lastRoutedWeek: state.week,
+          lastCandidateTeamIds: routed.candidateTeamIds,
+          lastRejectedTeamIds: routed.rejectedTeams,
         },
       },
     },
@@ -710,7 +709,8 @@ function normalizeMissionRecord(
       (existing?.routingBlockers ?? routing.routingBlockers) as string[]
     ) as MissionRoutingBlockerCode[],
     ...(sanitizeMissionTriageDisposition(existing?.playerDisposition) &&
-    existing?.playerDispositionWeek === state.week
+    existing?.playerDispositionWeek === state.week &&
+    !missionHasAssignedTeams(state, caseData.id)
       ? {
           playerDisposition: sanitizeMissionTriageDisposition(existing.playerDisposition),
           playerDispositionWeek: clampInteger(existing.playerDispositionWeek, 1, Number.MAX_SAFE_INTEGER),

@@ -17,6 +17,7 @@ import {
 } from '../domain/missionIntakeRouting'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { evaluateDeploymentEligibility } from '../domain/deploymentReadiness'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
 
 describe('mission intake, triage, and routing', () => {
@@ -231,10 +232,30 @@ describe('mission intake, triage, and routing', () => {
       'case-001',
       'defer'
     )
-    const recomputed = recomputeMissionRouting(base, base.week + 1)
+    const nextWeekState = { ...base, week: base.week + 1 }
+    const recomputed = recomputeMissionRouting(nextWeekState, base.week + 1)
 
     expect(recomputed.missions['case-001']?.playerDisposition).toBeUndefined()
     expect(recomputed.missions['case-001']?.routingState).not.toBe('deferred')
+  })
+
+  it('advanceWeek clears weekly triage disposition on the new week', () => {
+    const base = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+
+    expect(base.missionRouting?.missions['case-001']?.routingState).toBe('deferred')
+
+    const advanced = advanceWeek(base)
+
+    expect(advanced.week).toBe(base.week + 1)
+    expect(advanced.missionRouting?.missions['case-001']?.playerDisposition).toBeUndefined()
+    expect(advanced.missionRouting?.missions['case-001']?.routingState).not.toBe('deferred')
   })
 
   it('route disposition sets shortlisted without assigning a team', () => {

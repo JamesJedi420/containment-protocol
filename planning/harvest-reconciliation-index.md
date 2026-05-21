@@ -2,7 +2,7 @@
 
 **Purpose:** Track pattern-harvest batches reconciled to Linear. These docs are **non-authoritative** for implementation sequencing (see `planning/backlog.md`). They mirror closure already posted on Linear.
 
-**Content policy:** No franchise names, wiki URLs, or imported canon labels in this repo. Use batch IDs and SPE issue links only.
+**Content policy:** Do not add franchise names, wiki URLs, or imported canon labels to extracted prose/copy in this repo. Existing internal batch IDs, planning filenames, and SPE issue links may retain established identifiers used for reconciliation and traceability.
 
 **Mirror branch:** `docs/harvest-linear-mirror` — planning-only harvest docs; merge via PR without blocking feature work.
 

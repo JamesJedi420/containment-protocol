@@ -17,6 +17,10 @@ import {
 import { isTeamBlockedByTraining } from '../../domain/sim/training'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
+  buildMissionTriageDeferralCompareView,
+  type MissionTriageDeferralCompareView,
+} from './missionTriageDeferralCompareView'
+import {
   buildMissionTriageCovertPrepSignals,
   type MissionTriageCovertPrepSignals,
 } from './missionTriageCovertPrepView'
@@ -61,6 +65,7 @@ export interface CaseListItemView {
   isBlockedByRequiredTags: boolean
   isRaidAtCapacity: boolean
   covertPrepSignals: MissionTriageCovertPrepSignals
+  deferralCompare: MissionTriageDeferralCompareView
 }
 
 export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
@@ -171,6 +176,11 @@ export function getCaseListItemView(
     ? majorIncidentBestSuccess
     : assignedOdds?.success ?? availableTeams.reduce((best, option) => Math.max(best, option.odds.success), 0)
 
+  const covertPrepSignals =
+    options?.includeCovertPrepSignals === true
+      ? buildMissionTriageCovertPrepSignals(currentCase, game)
+      : { visible: false, markers: [] }
+
   return {
     currentCase,
     assignedTeams,
@@ -194,10 +204,11 @@ export function getCaseListItemView(
     isBlockedByRequiredRoles,
     isBlockedByRequiredTags,
     isRaidAtCapacity,
-    covertPrepSignals:
+    covertPrepSignals,
+    deferralCompare:
       options?.includeCovertPrepSignals === true
-        ? buildMissionTriageCovertPrepSignals(currentCase, game)
-        : { visible: false, markers: [] },
+        ? buildMissionTriageDeferralCompareView(currentCase, game, { covertPrepSignals })
+        : { visible: false, columns: [] },
   }
 }
 

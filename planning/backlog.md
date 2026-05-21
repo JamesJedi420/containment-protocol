@@ -32,7 +32,7 @@ From `README.md` **Current design notes**:
 
 ## Deferred UX (follow-up after SPE-2255)
 
-- **`ux/mission-triage.md`** — comparison columns for infiltration prep cost vs deferral risk; escalation carryover cross-links; full triage layout refresh (list-row chips shipped SPE-2255 / `planning/mission-triage-covert-prep-slice.md`).
+- **`ux/mission-triage.md`** — full triage layout refresh (filters/tabs/split detail panel); list-row chips + deferral compare columns shipped (SPE-2255 / slice 2 `planning/mission-triage-deferral-compare-slice.md`).
 
 ## SCP-9995 harvest — May 2026 reconciliation
 

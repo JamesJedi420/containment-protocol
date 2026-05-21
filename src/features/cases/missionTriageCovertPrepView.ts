@@ -15,6 +15,7 @@ import {
 import {
   buildInvestigationCasePrepView,
   canShowInvestigationCasePrepOnCase,
+  hasInvestigationForensicStrain,
 } from './investigationCasePrepView'
 import { buildStealthLeaveBehindSelectionView } from './stealthLeaveBehindSelectionView'
 
@@ -124,29 +125,23 @@ export function buildMissionTriageCovertPrepSignals(
     })
   }
 
-  if (investigation?.visible) {
+  if (investigation?.visible && hasInvestigationForensicStrain(investigation)) {
     const forensicBudget = investigation.forensic.budget
-    const forensicStrain =
-      investigation.custodyMarkers.length > 0 ||
-      (forensicBudget.granted > 0 && forensicBudget.remaining === 0)
-
-    if (forensicStrain) {
-      pushMarker(markers, {
-        id: 'forensic-strain',
-        label: MISSION_TRIAGE_COVERT_PREP_LABELS.forensicStrain,
-        className: MARKER_STYLES.forensic,
-        title:
-          investigation.custodyMarkers.length > 0
-            ? formatMissionTriageForensicCustodyTitle(
-                investigation.custodyMarkers.length,
-                forensicBudget.remaining
-              )
-            : formatMissionTriageForensicBudgetExhaustedTitle(
-                forensicBudget.spent,
-                forensicBudget.granted
-              ),
-      })
-    }
+    pushMarker(markers, {
+      id: 'forensic-strain',
+      label: MISSION_TRIAGE_COVERT_PREP_LABELS.forensicStrain,
+      className: MARKER_STYLES.forensic,
+      title:
+        investigation.custodyMarkers.length > 0
+          ? formatMissionTriageForensicCustodyTitle(
+              investigation.custodyMarkers.length,
+              forensicBudget.remaining
+            )
+          : formatMissionTriageForensicBudgetExhaustedTitle(
+              forensicBudget.spent,
+              forensicBudget.granted
+            ),
+    })
   }
 
   let deferralNote: string | undefined

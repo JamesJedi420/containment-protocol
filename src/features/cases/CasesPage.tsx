@@ -52,6 +52,7 @@ import {
   CASE_STAGE_FILTERS,
   CASE_STATUS_FILTERS,
   getFilteredCaseViews,
+  matchesCaseTriageTab,
   normalizeCaseListFilters,
   readCaseListFilters,
   type CaseListFilters,
@@ -113,15 +114,13 @@ export default function CasesPage() {
   const cases =
     filters.tab === 'all'
       ? viewsForTabCounts
-      : viewsForTabCounts.filter(
-          (view) => buildTriageTabCounts([view], game)[filters.tab] > 0
-        )
+      : viewsForTabCounts.filter((view) => matchesCaseTriageTab(view, filters.tab, game))
   const totalCases = Object.keys(game.cases).length
   const effectiveSelectedCaseId =
     filters.selectedCaseId
   const selectedView =
     cases.find((view) => view.currentCase.id === effectiveSelectedCaseId) ?? null
-  const triageFooter = buildMissionTriageContextFooterView(cases, game)
+  const triageFooter = buildMissionTriageContextFooterView(viewsForTabCounts, game)
 
   function updateFilters(nextFilters: CaseListFilters) {
     setSearchParams(writeCaseListFilters(nextFilters), { replace: true })
@@ -547,7 +546,13 @@ export default function CasesPage() {
           <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
             <ul className="space-y-2" aria-label="Triage list">
               {cases.map((view) => {
-                const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
+                const rowQueryString = writeCaseListFilters({
+                  ...filters,
+                  selectedCaseId: view.currentCase.id,
+                }).toString()
+                const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${
+                  rowQueryString ? `?${rowQueryString}` : ''
+                }`
                 const listRowMarkers = getListRowMarkers(view)
                 const markerPreview = listRowMarkers.map((marker) => marker.label).slice(0, 2).join(' · ')
                 const compactRow = buildMissionTriageCompactRowView(

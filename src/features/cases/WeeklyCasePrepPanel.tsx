@@ -79,7 +79,7 @@ function WeeklyPrepSection({
 }) {
   return (
     <details className="weekly-prep-section rounded border border-white/10 bg-white/[0.03]" open={defaultOpen}>
-      <summary className="cursor-pointer px-3 py-2 text-sm font-semibold marker:opacity-60">
+      <summary className="focus-ring cursor-pointer px-3 py-2 text-sm font-semibold marker:opacity-60">
         {title}
       </summary>
       <div className="space-y-4 border-t border-white/10 px-3 py-3">{children}</div>

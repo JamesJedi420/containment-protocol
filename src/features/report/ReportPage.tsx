@@ -21,6 +21,17 @@ export default function ReportPage() {
   }
 
   const trendSummary = getRunTrendSummary(game)
+  const weeklyScores = view.weeklyReports.map(({ report, weekScore }) => ({ week: report.week, weekScore }))
+  const positiveWeeks = weeklyScores.filter(({ weekScore }) => weekScore > 0).length
+  const negativeWeeks = weeklyScores.filter(({ weekScore }) => weekScore < 0).length
+  const neutralWeeks = weeklyScores.length - positiveWeeks - negativeWeeks
+  const initialScoreSummary = weeklyScores[0] ?? { week: 0, weekScore: 0 }
+  const bestWeek = weeklyScores.reduce((best, current) =>
+    current.weekScore > best.weekScore ? current : best
+  , initialScoreSummary)
+  const worstWeek = weeklyScores.reduce((worst, current) =>
+    current.weekScore < worst.weekScore ? current : worst
+  , initialScoreSummary)
 
   return (
     <section className="space-y-4">
@@ -36,6 +47,33 @@ export default function ReportPage() {
           <p className="text-xs opacity-60">{view.summary!.agencySummaryLine}</p>
         </div>
       </div>
+
+      <article className="panel panel-support space-y-3" role="region" aria-label="Weekly report timeline summary">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold">Weekly timeline</h2>
+          <p className="text-sm opacity-70">
+            Scan week-over-week momentum, then open a dossier for full notes and team outcomes.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-2 py-0.5 text-emerald-200">
+            Positive weeks: {positiveWeeks}
+          </span>
+          <span className="rounded-full border border-red-400/30 bg-red-500/10 px-2 py-0.5 text-red-200">
+            Negative weeks: {negativeWeeks}
+          </span>
+          <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/80">
+            Neutral weeks: {neutralWeeks}
+          </span>
+        </div>
+        {weeklyScores.length > 0 ? (
+          <p className="text-xs opacity-70">
+            Best week: {bestWeek.week} ({bestWeek.weekScore >= 0 ? '+' : ''}
+            {bestWeek.weekScore} pts) · Worst week: {worstWeek.week} ({worstWeek.weekScore >= 0 ? '+' : ''}
+            {worstWeek.weekScore} pts)
+          </p>
+        ) : null}
+      </article>
 
       <TrendSummaryPanel
         title="Run trends"
@@ -62,6 +100,13 @@ export default function ReportPage() {
                   {weekScore} {REPORT_LABELS.points}
                 </p>
               </div>
+              <p className="text-xs opacity-60">
+                {weekScore > 0
+                  ? 'Status cue: Positive week'
+                  : weekScore < 0
+                    ? 'Status cue: Negative week'
+                    : 'Status cue: Neutral week'}
+              </p>
 
               <div className="grid grid-cols-2 gap-1 text-sm opacity-70 sm:grid-cols-4">
                 <span>
@@ -93,12 +138,6 @@ export default function ReportPage() {
                 </span>
                 <span>
                   {REPORT_LABELS.maxStage}: {report.maxStage}
-                </span>
-                <span>
-                  {REPORT_LABELS.rngBefore}: {report.rngStateBefore}
-                </span>
-                <span>
-                  {REPORT_LABELS.rngAfter}: {report.rngStateAfter}
                 </span>
               </div>
 

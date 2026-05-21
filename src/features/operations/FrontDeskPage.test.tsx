@@ -1,5 +1,5 @@
 import '../../test/setup'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -8,6 +8,7 @@ import { createStartingState } from '../../data/startingState'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import FrontDeskPage from './FrontDeskPage'
 import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
+import type { OperationEvent } from '../../domain/events/types'
 
 function renderFrontDesk() {
   return render(
@@ -46,6 +47,9 @@ describe('FrontDeskPage', () => {
     expect(screen.getByRole('heading', { name: /agency standing/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /latest report/i })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: /courier network capacity opportunity/i })).toBeInTheDocument()
+    expect(
+      screen.getByText(/core loop prompt: finish triage and prep, then advance week to publish the next report\./i)
+    ).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /weekly reports/i }))
     expect(screen.getByText(/reports home/i)).toBeInTheDocument()
@@ -141,5 +145,54 @@ describe('FrontDeskPage', () => {
         initialRouteLogCount
       )
     })
+  })
+
+  it('renders human-readable tone chip labels in recent operational events', async () => {
+    const game = createStartingState()
+    game.events = [
+      {
+        id: 'event-resolved',
+        schemaVersion: 1,
+        type: 'case.resolved',
+        sourceSystem: 'incident',
+        timestamp: '2026-01-01T00:00:00.000Z',
+        payload: {
+          week: 1,
+          caseId: 'case-001',
+          caseTitle: 'Resolved Case',
+          mode: 'threshold',
+          kind: 'case',
+          stage: 2,
+          teamIds: [],
+        },
+      } as OperationEvent<'case.resolved'>,
+      {
+        id: 'event-failed',
+        schemaVersion: 1,
+        type: 'case.failed',
+        sourceSystem: 'incident',
+        timestamp: '2026-01-01T00:00:01.000Z',
+        payload: {
+          week: 1,
+          caseId: 'case-002',
+          caseTitle: 'Failed Case',
+          mode: 'threshold',
+          kind: 'case',
+          fromStage: 2,
+          toStage: 3,
+          teamIds: [],
+        },
+      } as OperationEvent<'case.failed'>,
+    ]
+
+    act(() => {
+      useGameStore.setState({ game })
+    })
+
+    renderFrontDesk()
+
+    const recentSection = screen.getByRole('region', { name: /recent reports and events/i })
+    expect(within(recentSection).getByText('Success')).toBeInTheDocument()
+    expect(within(recentSection).getByText('Alert')).toBeInTheDocument()
   })
 })

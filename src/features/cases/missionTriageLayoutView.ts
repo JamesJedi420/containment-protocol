@@ -45,14 +45,21 @@ export interface MissionTriageCompactRowView {
   readonly isSelected: boolean
 }
 
+export function buildMissionTriageResultsByCaseId(
+  views: readonly CaseListItemView[],
+  game: GameState
+): ReadonlyMap<string, MissionTriageResult> {
+  return new Map(
+    views.map((view) => [view.currentCase.id, triageMission(game, view.currentCase)]),
+  )
+}
+
 export function buildMissionTriageCompactRowView(
   view: CaseListItemView,
-  game: GameState,
+  triage: MissionTriageResult,
   selectedCaseId: string,
   markerPreview: string
 ): MissionTriageCompactRowView {
-  const triage = triageMission(game, view.currentCase)
-
   return {
     caseId: view.currentCase.id,
     title: view.currentCase.title,

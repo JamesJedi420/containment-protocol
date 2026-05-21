@@ -72,6 +72,7 @@ import {
   type CertificationState,
   type MajorIncidentProvisionType,
   type MajorIncidentStrategy,
+  type MissionTriageDisposition,
   type PlayerProfileState,
   type ProgressClockState,
   type RecruitmentFunnelStage,
@@ -135,7 +136,12 @@ import {
   unassignInstructor,
 } from '../../domain/sim/instructorAssignment'
 import { applyRallySupportStaffAction } from '../../domain/hub/supportActions'
-import { recomputeMissionRouting, routeMissionToTeam } from '../../domain/missionIntakeRouting'
+import {
+  applyMissionTriageDisposition,
+  clearMissionTriageDisposition,
+  recomputeMissionRouting,
+  routeMissionToTeam,
+} from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import {
@@ -297,6 +303,8 @@ interface GameStore {
   discardPartyCard: (cardId: Id) => void
   setWeeklyDirective: (directiveId: WeeklyDirectiveId | null) => void
   refreshMissionRouting: () => void
+  setMissionTriageDisposition: (missionId: Id, disposition: MissionTriageDisposition) => void
+  clearMissionTriageDisposition: (missionId: Id) => void
   evaluateMissionDeployment: (
     missionId: Id,
     teamId: Id
@@ -1548,6 +1556,16 @@ export const useGameStore = create<GameStore>()(
             ...s.game,
             missionRouting: recomputeMissionRouting(s.game),
           },
+        })),
+
+      setMissionTriageDisposition: (missionId, disposition) =>
+        set((s) => ({
+          game: applyMissionTriageDisposition(s.game, missionId, disposition),
+        })),
+
+      clearMissionTriageDisposition: (missionId) =>
+        set((s) => ({
+          game: clearMissionTriageDisposition(s.game, missionId),
         })),
 
       evaluateMissionDeployment: (missionId, teamId) => {

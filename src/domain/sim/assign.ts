@@ -16,6 +16,7 @@ import {
   getProvisionInventoryCost,
   isOperationalMajorIncidentCase,
 } from '../majorIncidentOperations'
+import { clearMissionTriageDisposition } from '../missionIntakeRouting'
 import {
   ensureNormalizedGameState,
   getTeamAssignedCaseId,
@@ -204,7 +205,8 @@ export function assignTeam(state: GameState, caseId: Id, teamId: Id): GameState 
     )
   }
 
-  return normalizeGameState(appendOperationEventDrafts(nextState, drafts))
+  const normalized = normalizeGameState(appendOperationEventDrafts(nextState, drafts))
+  return clearMissionTriageDisposition(normalized, caseId)
 }
 
 export function launchMajorIncident(

@@ -49,6 +49,9 @@ export type MissionRoutingBlockerCode =
 
 export type MissionRoutingStateKind = 'queued' | 'shortlisted' | 'assigned' | 'deferred' | 'blocked'
 
+/** SPE-16 slice 5: player weekly triage intent on the cases board (distinct from team assignment). */
+export type MissionTriageDisposition = 'route' | 'defer' | 'ignore'
+
 export interface MissionTimeCostSummary {
   missionId: string
   plannedStartWeek: number
@@ -93,6 +96,9 @@ export interface MissionRoutingRecord {
   lastRoutedWeek?: number
   lastCandidateTeamIds: string[]
   lastRejectedTeamIds: MissionRejectedTeamRecord[]
+  playerDisposition?: MissionTriageDisposition
+  playerDispositionWeek?: number
+  triageIgnored?: boolean
   id?: string
   state?: MissionRoutingStateKind
   blockers?: MissionRoutingBlockerCode[]

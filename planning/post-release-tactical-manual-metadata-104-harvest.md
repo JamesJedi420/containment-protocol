@@ -8,10 +8,12 @@
 
 ## Adjudication summary
 
+**Candidates:** 104 (88 + 2 + 14 = 104). Matches per-candidate table: C89 and C103 no-op; C27 and C91–C104 contradiction checks.
+
 | Verdict | Count |
 | ------- | ----: |
-| fold-in | 86 |
-| no-op | 4 |
+| fold-in | 88 |
+| no-op | 2 |
 | contradiction check | 14 |
 | new child | 0 |
 

@@ -6,11 +6,12 @@
 
 ## Adjudication summary
 
+**Candidates:** 45 (33 + 12 = 45). Matches per-candidate table: C24, C34, C36, C37–C45 are contradiction checks; no no-op rows.
+
 | Verdict | Count |
 | ------- | ----: |
 | fold-in | 33 |
-| no-op | 2 |
-| contradiction check | 10 |
+| contradiction check | 12 |
 | new child | 0 |
 
 ## Primary owner map

@@ -6,9 +6,11 @@
 
 ## Adjudication summary
 
+**Candidates:** 48 (38 + 2 + 8 = 48). Contradiction checks are C41–C48 (SPE-1085 / SPE-151).
+
 | Verdict | Count |
 | ------- | ----: |
-| fold-in | 44 |
+| fold-in | 38 |
 | no-op | 2 |
 | contradiction check | 8 |
 | new child | 0 |

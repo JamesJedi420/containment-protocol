@@ -6,10 +6,11 @@
 
 ## Adjudication summary
 
+**Candidates:** 44 (36 + 8 = 44). C37–C44 are contradiction checks only (no separate no-op bucket).
+
 | Verdict | Count |
 | ------- | ----: |
 | fold-in | 36 |
-| no-op | 4 |
 | contradiction check | 8 |
 | new child | 0 |
 

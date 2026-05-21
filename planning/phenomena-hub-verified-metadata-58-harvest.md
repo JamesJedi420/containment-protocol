@@ -6,9 +6,11 @@
 
 ## Adjudication summary
 
+**Candidates:** 58 (47 + 1 + 10 = 58). Contradiction checks are C49–C58.
+
 | Verdict | Count |
 | ------- | ----: |
-| fold-in | 50 |
+| fold-in | 47 |
 | no-op | 1 |
 | contradiction check | 10 |
 | new child | 0 |

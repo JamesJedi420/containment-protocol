@@ -6,10 +6,12 @@
 
 ## Adjudication summary
 
+**Candidates:** 87 (73 + 1 + 13 = 87). C42 is no-op; C75–C87 are contradiction checks.
+
 | Verdict | Count |
 | ------- | ----: |
-| fold-in | 74 |
-| no-op | 5 |
+| fold-in | 73 |
+| no-op | 1 |
 | contradiction check | 13 |
 | new child | 0 |
 

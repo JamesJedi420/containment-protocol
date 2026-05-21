@@ -6,6 +6,10 @@
 
 **Mirror branch:** `docs/harvest-linear-mirror` — planning-only harvest docs; merge via PR without blocking feature work.
 
+**Batch ID vs candidate count:** The batch ID is a stable slug (often from source packet label or an earlier pass). The **Candidates** column is the reconciled total. When they differ (e.g. `hardwired-score-18` → 72 candidates, `personal-invention-records-18` → 15), use **Candidates** and the harvest doc summary — not the suffix digit alone.
+
+**This PR (`docs/harvest-linear-mirror`):** Adds the 15 `planning/*-harvest.md` files in the commit; other index rows point at harvest docs already on `main` from earlier merges.
+
 | Batch ID | Candidates | Child issue(s) | Hub / parent | Planning doc | Linear closed |
 | -------- | -----------: | -------------- | ------------ | ------------ | ------------- |
 | `analog-media-channel-patterns-55` | 55 | none (fold-ins) | [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120), [SPE-947](https://linear.app/spectranoir/issue/SPE-947), [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111), [SPE-901](https://linear.app/spectranoir/issue/SPE-901) | `planning/analog-media-channel-patterns-55-harvest.md` | 2026-05-18 |

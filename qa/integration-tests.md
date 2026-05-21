@@ -394,6 +394,25 @@ Expected chain:
 - Hub view reflects improved faction-linked opportunity
 - report note or related surfaced signal explains the shift
 
+### Scenario F — covert infiltration prep → weekly report → event feed
+
+Fixture:
+
+- hidden case with infiltration-family tags and authored or overridden weekly probe prep
+- optional `stealthLeaveBehindId` on final resolve week
+
+Expected chain:
+
+- concealment activation (when prep flag set) before probe tick
+- infiltration report notes match event types (`weekly_encounter`, threshold kinds, or `leave_behind_tradeoff` on resolve)
+- no duplicate `weekly_encounter` when threshold notes already fired
+- event feed entries link to the same report week and carry probe metadata when override applied
+- save/load mid-campaign preserves prep; next `advanceWeek` still surfaces infiltration or concealment family notes
+
+**Sign-off matrix:** `qa/infiltration-concealment-report-matrix.md` (rows IC-01–IC-12).  
+**Constants:** `tuning/infiltration-probe-and-concealment.md`.  
+**Automated anchors:** `infiltrationEncounterReportCopy.test.ts`, `weeklyMvpLoopProof.slice2.integration.test.ts`, `eventFeedView.test.ts`.
+
 ---
 
 ## 8. Common integration failures to watch for

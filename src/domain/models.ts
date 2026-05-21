@@ -1473,6 +1473,8 @@ export type ReportNoteType =
   | 'infiltration.escalation_exposed'
   | 'infiltration.escalation_violent'
   | 'infiltration.cover_strain'
+  | 'infiltration.weekly_encounter'
+  | 'infiltration.leave_behind_tradeoff'
   | 'concealment.activated'
   | 'support.restored'
   | 'hub.opportunity'
@@ -2526,6 +2528,12 @@ export interface GameState {
   squadMetadata?: Record<string, SquadMetadata>
   squadKitTemplates?: Record<string, SquadKitTemplate>
   squadKitAssignments?: Record<string, SquadKitAssignment>
+
+  /**
+   * Transitional compatibility mirror of `runtimeState.globalFlags` for weekly sim paths
+   * and legacy tests that set concealment prep flags before `advanceWeek`.
+   */
+  globalFlags?: Record<string, GameFlagValue>
 }
 
 // ---------------------------------------------------------------------------

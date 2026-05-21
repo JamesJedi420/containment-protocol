@@ -321,9 +321,10 @@ export const DEFAULT_STEALTH_LEAVE_BEHIND_REGISTRY: StealthLeaveBehindRegistry =
       id: 'leave-behind:burn-tool',
       kind: 'burn_tool',
       label: 'Burn field tool',
-      summary: 'Destroy a traceable tool rather than carry it through screening.',
+      summary:
+        'Destroy a traceable tool rather than carry it through screening. Mission score pressure only — no forensic custody chain loss.',
       discoveryRisk: 0.25,
-      custodyLossRefs: ['custody:tool-serial'],
+      custodyLossRefs: [],
     }),
     defineLeaveBehind({
       id: 'leave-behind:expose-witness',

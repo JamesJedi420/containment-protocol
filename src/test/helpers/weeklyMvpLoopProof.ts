@@ -81,3 +81,14 @@ export function createWeeklyMvpLoopProofFixture(): WeeklyMvpLoopProofFixture {
 
   return { state: asked.state, teamId }
 }
+
+/** Re-applies week-open prep flags after save/load (same as fixture week 0). */
+export function applyWeeklyMvpLoopPrepFlags(state: GameState): GameState {
+  return {
+    ...state,
+    globalFlags: {
+      ...state.globalFlags,
+      [`conceal.case.${MVP_LOOP_PROOF_CASE_ID}`]: true,
+    },
+  }
+}

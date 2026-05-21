@@ -414,9 +414,28 @@ review latest week
 
 browse prior reports
 
+move to previous or next stored report week from report detail (skip weeks without a report)
+
 inspect cause summaries
 
 jump from report items to relevant agency or operations surfaces
+
+#### 3.5.1 Report week navigation (prev / next)
+
+When viewing a weekly report dossier:
+
+- show **Previous week** only if an earlier report exists in `state.reports`
+- show **Next week** only if a later report exists
+- skip week indices that have no report artifact (non-contiguous history is normal)
+- hide both controls when only one report exists
+
+This is **not** a second global week control—it reuses the canonical report list ordering. See `planning/report-week-navigation-slice.md` and `ux/operations-report.md` (Report week navigation).
+
+#### 3.5.2 Covert ops notes and event feed drill-down
+
+Report notes for `concealment.activated` and `infiltration.*` types should be readable in the report body; matching **OperationEvent** rows in the dashboard feed link back to the same report week.
+
+Event feed tone guidance: routine `infiltration.weekly_encounter` is low alarm; threshold and leave-behind types read as warnings unless violent escalation (danger). Details: `ux/operations-report.md` §5.3.1.
 
 Should not contain
 

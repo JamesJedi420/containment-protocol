@@ -16,13 +16,23 @@ From `README.md` **Current design notes**:
 ## Queue (highest leverage first — reorder as needed)
 
 1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, activation event feed, batch-4 concealment migration (SPE-2249), and full batch-4 infiltration stack (SPE-2250 slices 1–2; `planning/infiltration-encounter-content-slice-2.md`) shipped.
-2. **Infiltration and access follow-through** — [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250/infiltration-encountercontent-follow-through-post-spe-521-substrate) batch-4 probe/cover/leave-behind complete; further encounter depth beyond authored stacks is optional follow-up (not new probe mechanics).
+2. **Infiltration and access follow-through** — Batch-4 probe/cover/leave-behind complete; **report copy slice** shipped (`src/domain/infiltrationEncounterReportNotes.ts` — weekly encounter + leave-behind tradeoff notes). Further optional content depth only (not new probe mechanics).
 3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
-4. **Core UX specs** — Finish or refresh core UX specs so surfaces match canonical domain outputs (`planning/roadmap.md` §15).
-5. **Tuning and QA references** — Complete tuning references and QA references, then use them to harden implementation sequencing (same roadmap section).
-6. **MVP loop proof** — **Next implement:** slice 1 integration harness (`planning/mvp-weekly-loop-proof-slice-1.md`); then triage→prep→advanceWeek→report→drill-down hardening before broadening (`planning/roadmap.md` phases 1–2).
-7. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-8. **Archived prototype hygiene** — Keep archived prototype code out of active runtime paths unless intentionally revived (`README.md` former “next steps”).
+4. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
+5. **Tiered detection / reveal payloads (SPE-781)** — Slices 1–5 shipped (`revealPayload.ts`, scouting + disguise integration, weekly orchestration, report copy via `detectionScanReportNotes.ts`, PR #2342 / #2344 / #2346 / #2347). Full hidden-modality matrix remains follow-up.
+
+## Shipped (May 2026 — remove from active queue when scanning)
+
+| Item | Outcome |
+| --- | --- |
+| **Archived prototype hygiene** | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports. |
+| **Core UX specs (#4)** | **Closed.** Operations Report + navigation map for batch-4 covert notes and report week prev/next (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Mission Triage full refresh **deferred** until triage UI is the implementation target — see `ux/mission-triage.md` spec status block (covert prep row signals, deferral vs batch-4 flags). |
+| **Tuning and QA references** | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`. |
+| **MVP loop proof (#6)** | Slice 1 (`SPE-2251`) + slice 2 persistence/4-week fixture (`weeklyMvpLoopProof.slice2.integration.test.ts`). |
+
+## Deferred UX (follow-up after SPE-2255)
+
+- **`ux/mission-triage.md`** — comparison columns for infiltration prep cost vs deferral risk; escalation carryover cross-links; full triage layout refresh (list-row chips shipped SPE-2255 / `planning/mission-triage-covert-prep-slice.md`).
 
 ## SCP-9995 harvest — May 2026 reconciliation
 

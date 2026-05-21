@@ -122,6 +122,25 @@ export default function ReportDetailPage() {
     })
     .map((currentCase) => currentCase.id)
 
+  // Precompute knowledge ladders once to avoid repeated Object.keys scans on every render
+  const teamAnomalyLadders = new Map<string, Map<string, KnowledgeState | undefined>>()
+  const teamHazardLadders = new Map<string, Map<string, KnowledgeState | undefined>>()
+  for (const teamId of teamIds) {
+    teamAnomalyLadders.set(
+      teamId,
+      new Map(anomalyIds.map((id) => [id, getTeamAnomalyKnowledgeLadder(game.knowledge, teamId, id)]))
+    )
+    teamHazardLadders.set(
+      teamId,
+      new Map(hazardIds.map((id) => [id, getTeamHazardKnowledgeLadder(game.knowledge, teamId, id)]))
+    )
+  }
+  const hasAnyKnowledgeLadder = teamIds.some(
+    (teamId) =>
+      anomalyIds.some((id) => teamAnomalyLadders.get(teamId)?.get(id)) ||
+      hazardIds.some((id) => teamHazardLadders.get(teamId)?.get(id))
+  )
+
   return (
     <section className="space-y-4">
       {reportBackTarget.label ? (
@@ -131,11 +150,7 @@ export default function ReportDetailPage() {
       ) : null}
       <article className="panel panel-primary space-y-4" role="region" aria-label="Weekly report dossier">
         {/* Knowledge ladders and relay/decay/fusion status — only rendered when data exists */}
-        {teamIds.some(
-          (teamId) =>
-            anomalyIds.some((id) => getTeamAnomalyKnowledgeLadder(game.knowledge, teamId, id)) ||
-            hazardIds.some((id) => getTeamHazardKnowledgeLadder(game.knowledge, teamId, id))
-        ) ? (
+        {hasAnyKnowledgeLadder ? (
           <div className="rounded border border-white/10 bg-white/5 px-3 py-3 text-xs">
             <p className="font-semibold uppercase tracking-wide opacity-50">
               Knowledge Ladders &amp; Relay Status
@@ -146,48 +161,54 @@ export default function ReportDetailPage() {
                   <p className="font-semibold opacity-70">Team {teamId}</p>
                   <ul className="ml-2 mt-1 space-y-1">
                     {anomalyIds.map((anomalyId) => {
-                      const ks = getTeamAnomalyKnowledgeLadder(game.knowledge, teamId, anomalyId)
+                      const ks = teamAnomalyLadders.get(teamId)?.get(anomalyId)
                       if (!ks) return null
+                      const relayExplanation = getRelayChainExplanation(ks)
+                      const decayExplanation = getDecayExplanation(ks)
+                      const fusionExplanation = getFusionExplanation(ks)
                       return (
                         <li key={anomalyId}>
                           <span className="opacity-60">Anomaly {anomalyId}:</span>{' '}
                           <span className="opacity-80">
                             {explainDefeatConditionKnowledge(game.knowledge, teamId, anomalyId)}
                           </span>
-                          {getRelayChainExplanation(ks) && (
+                          {relayExplanation && (
                             <span className="ml-2 text-amber-300/80">
-                              {getRelayChainExplanation(ks)}
+                              {relayExplanation}
                             </span>
                           )}
-                          {getDecayExplanation(ks) && (
-                            <span className="ml-2 opacity-50">{getDecayExplanation(ks)}</span>
+                          {decayExplanation && (
+                            <span className="ml-2 opacity-50">{decayExplanation}</span>
                           )}
-                          {getFusionExplanation(ks) && (
+                          {fusionExplanation && (
                             <span className="ml-2 text-emerald-300/80">
-                              {getFusionExplanation(ks)}
+                              {fusionExplanation}
                             </span>
                           )}
                         </li>
                       )
                     })}
                     {hazardIds.map((hazardId) => {
-                      const ks = getTeamHazardKnowledgeLadder(game.knowledge, teamId, hazardId)
+                      const ks = teamHazardLadders.get(teamId)?.get(hazardId)
                       if (!ks) return null
+                      const relayExplanation = getRelayChainExplanation(ks)
+                      const decayExplanation = getDecayExplanation(ks)
+                      const fusionExplanation = getFusionExplanation(ks)
                       return (
                         <li key={hazardId}>
                           <span className="text-red-300/70">Hazard {hazardId}:</span>{' '}
                           <span className="opacity-80">{explainHazardKnowledge(ks)}</span>
-                          {getRelayChainExplanation(ks) && (
+                          {relayExplanation && (
                             <span className="ml-2 text-amber-300/80">
-                              {getRelayChainExplanation(ks)}
+                              {relayExplanation}
                             </span>
                           )}
-                          {getDecayExplanation(ks) && (
-                            <span className="ml-2 opacity-50">{getDecayExplanation(ks)}</span>
+                          {decayExplanation && (
+                            <span className="ml-2 opacity-50">{decayExplanation}</span>
                           )}
-                          {getFusionExplanation(ks) && (
+                          {fusionExplanation && (
                             <span className="ml-2 text-emerald-300/80">
-                              {getFusionExplanation(ks)}
+                              {fusionExplanation}
                             </span>
                           )}
                         </li>

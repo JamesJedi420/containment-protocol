@@ -67,7 +67,11 @@ it('preserves case query state through case-detail navigation and back', async (
   expect(screen.getByLabelText('Search')).toHaveValue('stockyards')
   expect(screen.getByLabelText('Sort')).toHaveValue('title')
 
-  await user.click(screen.getByRole('link', { name: /vampire nest in the stockyards/i }))
+  await user.click(
+    within(screen.getByLabelText('Triage list')).getByRole('link', {
+      name: /vampire nest in the stockyards/i,
+    })
+  )
 
   expect(
     screen.getByRole('heading', { level: 1, name: /vampire nest in the stockyards/i })

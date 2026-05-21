@@ -8,11 +8,12 @@
 
 ## Adjudication summary
 
+**Candidates:** 80 (66 + 14 = 80). Design-guardrail work on SPE-151 applies to **5 of the 14** contradiction-check candidates — not a separate additive category.
+
 | Verdict | Count |
 | ------- | ----: |
 | fold-in | 66 |
-| contradiction check | 14 |
-| repo document update (guardrails) | 5 (bundled SPE-151) |
+| contradiction check | 14 (5 also need SPE-151 guardrail doc) |
 | new child | 0 |
 
 ## Primary owner map

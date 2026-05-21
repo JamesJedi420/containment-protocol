@@ -18,6 +18,10 @@ export function MissionTriageDeferralCompareTable({
     return null
   }
 
+  const columnGridStyle = {
+    gridTemplateColumns: `repeat(${view.columns.length}, minmax(0, 1fr))`,
+  }
+
   return (
     <div
       className="rounded border border-white/10 bg-white/5 px-3 py-2 text-xs"
@@ -25,7 +29,11 @@ export function MissionTriageDeferralCompareTable({
       aria-label="Deferral and covert prep comparison"
     >
       <div role="rowgroup">
-        <div role="row" className="grid grid-cols-3 gap-3 border-b border-white/10 pb-2">
+        <div
+          role="row"
+          className="grid gap-3 border-b border-white/10 pb-2"
+          style={columnGridStyle}
+        >
           {view.columns.map((column) => (
             <div key={column.id} role="columnheader" className="font-medium uppercase tracking-wide opacity-60">
               {column.label}
@@ -34,7 +42,7 @@ export function MissionTriageDeferralCompareTable({
         </div>
       </div>
       <div role="rowgroup" className="pt-2">
-        <div role="row" className="grid grid-cols-3 gap-3">
+        <div role="row" className="grid gap-3" style={columnGridStyle}>
           {view.columns.map((column) => (
             <div key={column.id} role="cell" className="space-y-0.5">
               <p className={`font-medium ${TONE_VALUE_CLASS[column.tone]}`}>{column.value}</p>

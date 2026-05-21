@@ -7,6 +7,8 @@ import {
   routeMission,
   routeMissionToTeam,
   shortlistMissionCandidateTeams,
+  missionTriageEscalationBandFromReasonCodes,
+  missionTriageShowsEscalationDeferralRisk,
   triageMission,
 } from '../domain/missionIntakeRouting'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
@@ -188,5 +190,14 @@ describe('mission intake, triage, and routing', () => {
 
     const roundTripped = loadGameSave(serializeGameSave(assignedState))
     expect(roundTripped.missionRouting?.missions[missionId]?.routingState).toBe('assigned')
+  })
+
+  it('maps escalation reason codes to triage UI bands', () => {
+    expect(missionTriageEscalationBandFromReasonCodes(['escalation-high'])).toBe('high')
+    expect(missionTriageEscalationBandFromReasonCodes(['escalation-medium'])).toBe('medium')
+    expect(missionTriageEscalationBandFromReasonCodes(['escalation-low'])).toBe('low')
+    expect(missionTriageShowsEscalationDeferralRisk(['escalation-high'])).toBe(true)
+    expect(missionTriageShowsEscalationDeferralRisk(['escalation-medium'])).toBe(true)
+    expect(missionTriageShowsEscalationDeferralRisk(['escalation-low'])).toBe(false)
   })
 })

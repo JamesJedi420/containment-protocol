@@ -146,7 +146,7 @@ describe('missionTriageDeferralCompareView', () => {
     expect(view.visible).toBe(false)
   })
 
-  it('shows medium covert prep when only conceal flag is set', () => {
+  it('shows low covert prep when only conceal flag is set', () => {
     let state = createStartingState()
     const caseData = createConcealmentEligibleCase({ tags: [] })
     state.cases[caseData.id] = caseData

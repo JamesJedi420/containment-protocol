@@ -1,6 +1,8 @@
 import { AWARENESS_COMPLICATION_THRESHOLD } from '../../domain/infiltrationProbe'
 import {
   hasHighMissionEscalationRisk,
+  missionTriageEscalationBandFromReasonCodes,
+  missionTriageShowsEscalationDeferralRisk,
   triageMission,
   type MissionTriageResult,
 } from '../../domain/missionIntakeRouting'
@@ -27,6 +29,7 @@ import {
 import {
   buildInvestigationCasePrepView,
   canShowInvestigationCasePrepOnCase,
+  hasInvestigationForensicStrain,
   type InvestigationCasePrepView,
 } from './investigationCasePrepView'
 import {
@@ -63,18 +66,6 @@ interface DeferralComparePrepContext {
 
 const AWARENESS_COMPLICATION_PERCENT = Math.round(AWARENESS_COMPLICATION_THRESHOLD * 100)
 
-function escalationBand(escalationRisk: number): MissionTriageDeferralCompareTone {
-  if (escalationRisk >= 14) {
-    return 'high'
-  }
-
-  if (escalationRisk >= 7) {
-    return 'medium'
-  }
-
-  return 'low'
-}
-
 function buildDeferralComparePrepContext(
   caseData: CaseInstance,
   game: GameState
@@ -88,18 +79,6 @@ function buildDeferralComparePrepContext(
       ? buildInvestigationCasePrepView(caseData, game)
       : null,
   }
-}
-
-function hasForensicStrain(investigation: InvestigationCasePrepView | null) {
-  if (investigation === null || !investigation.visible) {
-    return false
-  }
-
-  const forensic = investigation.forensic.budget
-  return (
-    investigation.custodyMarkers.length > 0 ||
-    (forensic.granted > 0 && forensic.remaining === 0)
-  )
 }
 
 function resolveCovertPrepCostTone(context: DeferralComparePrepContext): MissionTriageDeferralCompareTone {
@@ -118,7 +97,7 @@ function resolveCovertPrepCostTone(context: DeferralComparePrepContext): Mission
     }
   }
 
-  if (hasForensicStrain(investigation)) {
+  if (hasInvestigationForensicStrain(investigation)) {
     return 'medium'
   }
 
@@ -155,7 +134,7 @@ function buildCovertPrepCostColumn(
       infiltration.awarenessPercent,
       infiltration.hasCoverStrain
     )
-  } else if (hasForensicStrain(investigation)) {
+  } else if (hasInvestigationForensicStrain(investigation)) {
     detail = MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS.covertPrepForensicDetail
   } else if (leaveBehind.visible && leaveBehind.selectedLeaveBehindId !== undefined) {
     detail = MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS.covertPrepLeaveBehindDetail
@@ -177,7 +156,7 @@ function buildDeferralRiskColumn(
   triage: MissionTriageResult
 ): MissionTriageDeferralCompareColumn {
   const escalationRisk = triage.dimensions.escalationRisk
-  const tone = escalationBand(escalationRisk)
+  const tone = missionTriageEscalationBandFromReasonCodes(triage.reasonCodes)
 
   return {
     id: 'deferralRisk',
@@ -196,7 +175,11 @@ function buildEscalationCarryoverColumn(caseData: CaseInstance): MissionTriageDe
   const criticalStage = caseData.stage >= 4
   const raidPressure = caseData.kind === 'raid'
   const tone: MissionTriageDeferralCompareTone =
-    highEscalation || criticalStage ? 'high' : raidPressure || caseData.stage >= 2 ? 'medium' : 'low'
+    highEscalation || criticalStage
+      ? 'high'
+      : raidPressure || caseData.stage >= 2
+        ? 'medium'
+        : 'low'
 
   return {
     id: 'escalationCarryover',
@@ -220,7 +203,7 @@ function shouldShowDeferralCompare(
     return true
   }
 
-  if (triage.dimensions.escalationRisk >= 7) {
+  if (missionTriageShowsEscalationDeferralRisk(triage.reasonCodes)) {
     return true
   }
 

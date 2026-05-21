@@ -50,6 +50,19 @@ export function canShowInvestigationCasePrepOnCase(caseData: CaseInstance) {
   return caseData.status === 'in_progress'
 }
 
+/** Shared with mission triage covert chips and deferral-compare (SPE-2255 / SPE-16 slice 2). */
+export function hasInvestigationForensicStrain(investigation: InvestigationCasePrepView | null) {
+  if (investigation === null || !investigation.visible) {
+    return false
+  }
+
+  const forensic = investigation.forensic.budget
+  return (
+    investigation.custodyMarkers.length > 0 ||
+    (forensic.granted > 0 && forensic.remaining === 0)
+  )
+}
+
 export function canAskInvestigationQuestionOnCase(caseData: CaseInstance | undefined) {
   return caseData !== undefined && canShowInvestigationCasePrepOnCase(caseData)
 }

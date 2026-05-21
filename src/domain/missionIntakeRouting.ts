@@ -245,6 +245,29 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
   }
 }
 
+export type MissionTriageEscalationBand = 'low' | 'medium' | 'high'
+
+/** Mirrors `escalation-*` reason codes emitted by {@link triageMission}. */
+export function missionTriageEscalationBandFromReasonCodes(
+  reasonCodes: readonly string[]
+): MissionTriageEscalationBand {
+  if (reasonCodes.includes('escalation-high')) {
+    return 'high'
+  }
+
+  if (reasonCodes.includes('escalation-medium')) {
+    return 'medium'
+  }
+
+  return 'low'
+}
+
+export function missionTriageShowsEscalationDeferralRisk(reasonCodes: readonly string[]) {
+  return (
+    reasonCodes.includes('escalation-high') || reasonCodes.includes('escalation-medium')
+  )
+}
+
 /** Matches `escalation-high` reason code banding in {@link triageMission}. */
 export function hasHighMissionEscalationRisk(currentCase: CaseInstance): boolean {
   const escalationRisk = clampInteger(

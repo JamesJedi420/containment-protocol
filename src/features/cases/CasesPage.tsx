@@ -599,11 +599,11 @@ export default function CasesPage() {
                 {!view.isMajorIncident && topTwoOptions.length === 2 ? (
                   <div className="space-y-2">
                     {compareOpen ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-ghost focus-ring"
-                          aria-expanded="true"
-                          aria-controls={comparePanelId}
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost focus-ring"
+                        aria-expanded="true"
+                        aria-controls={comparePanelId}
                         onClick={() =>
                           setCompareCaseState((current) => ({
                             ...current,
@@ -614,11 +614,11 @@ export default function CasesPage() {
                         Hide comparison
                       </button>
                     ) : (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-ghost focus-ring"
-                          aria-expanded="false"
-                          aria-controls={comparePanelId}
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-ghost focus-ring"
+                        aria-expanded="false"
+                        aria-controls={comparePanelId}
                         onClick={() =>
                           setCompareCaseState((current) => ({
                             ...current,

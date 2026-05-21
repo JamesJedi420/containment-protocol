@@ -109,7 +109,12 @@ export default function CasesPage() {
     triageViewOptions
   )
   const tabCounts = buildTriageTabCounts(viewsForTabCounts, game)
-  const cases = getFilteredCaseViews(game, filters, triageViewOptions)
+  const cases =
+    filters.tab === 'all'
+      ? viewsForTabCounts
+      : viewsForTabCounts.filter(
+          (view) => buildTriageTabCounts([view], game)[filters.tab] > 0
+        )
   const totalCases = Object.keys(game.cases).length
   const effectiveSelectedCaseId =
     filters.selectedCaseId

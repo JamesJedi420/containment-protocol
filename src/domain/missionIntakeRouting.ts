@@ -544,7 +544,8 @@ export function isMissionTriageIgnoredThisWeek(game: GameState, missionId: Id) {
   return Boolean(
     mission?.triageIgnored &&
       isMissionTriageDispositionActive(mission, game.week) &&
-      mission.playerDisposition === 'ignore'
+      mission.playerDisposition === 'ignore' &&
+      !missionHasAssignedTeams(game, missionId)
   )
 }
 

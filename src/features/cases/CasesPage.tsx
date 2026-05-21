@@ -62,6 +62,7 @@ import { MissionTriageContextFooter } from './MissionTriageContextFooter'
 import { MissionTriageDeferralCompareTable } from './MissionTriageDeferralCompareTable'
 import { MissionTriageListRow } from './MissionTriageListRow'
 import { MissionTriageTabs } from './MissionTriageTabs'
+import { triageMission } from '../../domain/missionIntakeRouting'
 import {
   buildMissionTriageCompactRowView,
   buildMissionTriageContextFooterView,
@@ -551,7 +552,7 @@ export default function CasesPage() {
                 const markerPreview = listRowMarkers.map((marker) => marker.label).slice(0, 2).join(' · ')
                 const compactRow = buildMissionTriageCompactRowView(
                   view,
-                  game,
+                  triageMission(game, view.currentCase),
                   effectiveSelectedCaseId,
                   markerPreview
                 )

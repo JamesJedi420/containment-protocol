@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getCaseListItemView, matchesCaseTriageTab } from '../features/cases/caseView'
-import { buildMissionTriageContextFooterView } from '../features/cases/missionTriageLayoutView'
+import {
+  buildMissionTriageCompactRowView,
+  buildMissionTriageContextFooterView,
+} from '../features/cases/missionTriageLayoutView'
+import { triageMission } from '../domain/missionIntakeRouting'
 import type { CaseInstance } from '../domain/models'
 
 function makeCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
@@ -62,6 +66,21 @@ describe('missionTriageLayoutView', () => {
     expect(matchesCaseTriageTab(views.find((v) => v.currentCase.id === 'contract')!, 'incidents', game)).toBe(
       false
     )
+  })
+
+  it('builds compact row priority from triage result', () => {
+    const game = createStartingState()
+    game.cases = {
+      urgent: makeCase('urgent', { stage: 4, deadlineRemaining: 1 }),
+    }
+
+    const view = getCaseListItemView(game.cases.urgent!, game)
+    const triage = triageMission(game, view.currentCase)
+    const row = buildMissionTriageCompactRowView(view, triage, '', '')
+
+    expect(row.priority).toBe(triage.priority)
+    expect(row.priorityScore).toBe(triage.score)
+    expect(row.priorityScore).toBeGreaterThan(0)
   })
 
   it('builds context footer with zero active cases', () => {

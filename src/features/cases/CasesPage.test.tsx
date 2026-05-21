@@ -237,34 +237,45 @@ it('renders concealment prep chip on triage list rows', async () => {
   expect(within(getCardByName('Covert Preview Case')).getByText('Covert next week')).toBeInTheDocument()
 })
 
-it('renders recommended action guidance for assignable cases', () => {
+it('renders recommended action guidance for assignable cases', async () => {
+  const user = userEvent.setup()
   renderCasesPage(['/cases'])
 
-  expect(screen.getAllByText(/recommended action/i).length).toBeGreaterThan(0)
-  expect(screen.getAllByText(/best current success:/i).length).toBeGreaterThan(0)
   expect(
     screen.getByText(
       /core loop: triage cases here, open each dossier to prep, then advance week from front desk and review the new report\./i
     )
   ).toBeInTheDocument()
-  expect(screen.getAllByRole('link', { name: /open prep dossier/i }).length).toBeGreaterThan(0)
+
+  await selectTriageCase(user, 'The Whispering Archive')
+
+  const detail = getCardByName('The Whispering Archive')
+  expect(within(detail).getByText(/recommended action/i)).toBeInTheDocument()
+  expect(within(detail).getByText(/best current success:/i)).toBeInTheDocument()
+  expect(within(detail).getByRole('link', { name: /open prep dossier/i })).toBeInTheDocument()
 })
 
-it('renders open intel dossier quick action and next-step copy for each case card', () => {
+it('renders open intel dossier quick action and next-step copy for each case card', async () => {
+  const user = userEvent.setup()
   renderCasesPage(['/cases'])
 
-  expect(screen.getAllByRole('link', { name: /open intel dossier/i }).length).toBeGreaterThan(0)
+  await selectTriageCase(user, 'The Whispering Archive')
+
+  const detail = getCardByName('The Whispering Archive')
+  expect(within(detail).getByRole('link', { name: /open intel dossier/i })).toBeInTheDocument()
   expect(
-    screen.getAllByText(/next step: assign response units, then advance week from front desk\./i).length
-  ).toBeGreaterThan(0)
+    within(detail).getByText(/next step: assign response units, then advance week from front desk\./i)
+  ).toBeInTheDocument()
 })
 
 it('supports top-option comparison and shows confidence/commit cues on assignment actions', async () => {
   const user = userEvent.setup()
 
   renderCasesPage(['/cases'])
+  await selectTriageCase(user, 'The Whispering Archive')
 
-  const compareButton = screen.getAllByRole('button', { name: /compare top 2/i })[0]
+  const detail = getCardByName('The Whispering Archive')
+  const compareButton = within(detail).getByRole('button', { name: /compare top 2/i })
   expect(compareButton).toHaveAttribute('aria-expanded', 'false')
   const controlsId = compareButton.getAttribute('aria-controls')
   expect(controlsId).toBeTruthy()
@@ -272,10 +283,10 @@ it('supports top-option comparison and shows confidence/commit cues on assignmen
 
   expect(compareButton).toHaveAttribute('aria-expanded', 'true')
   expect(document.getElementById(controlsId!)).not.toBeNull()
-  expect(screen.getByText(/success delta:/i)).toBeInTheDocument()
-  expect(screen.getByText(/fail delta:/i)).toBeInTheDocument()
-  expect(screen.getAllByText(/confidence:/i).length).toBeGreaterThan(0)
-  expect(screen.getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
+  expect(within(detail).getByText(/success delta:/i)).toBeInTheDocument()
+  expect(within(detail).getByText(/fail delta:/i)).toBeInTheDocument()
+  expect(within(detail).getAllByText(/confidence:/i).length).toBeGreaterThan(0)
+  expect(within(detail).getAllByText(/commit clarity:/i).length).toBeGreaterThan(0)
 })
 
 it('renders a major incident planner and warns when one selected team is much weaker', async () => {

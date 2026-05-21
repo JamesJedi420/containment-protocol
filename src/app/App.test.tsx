@@ -248,15 +248,33 @@ function createCasesCoverageGame() {
   return game
 }
 
+function getTriageList() {
+  return screen.getByLabelText('Triage list')
+}
+
+function openCaseTriageDetailSync(caseTitle: RegExp | string) {
+  const list = getTriageList()
+  const titleLink = within(list).getByRole('link', { name: caseTitle })
+  const row = titleLink.closest('li')
+
+  expect(row).not.toBeNull()
+  fireEvent.click(
+    within(row!).getByRole('button', { name: new RegExp(`Select .* for triage detail`, 'i') })
+  )
+}
+
 function getRaidCaseListItem() {
   return getCaseListItem(RAID_CASE_TITLE)
 }
 
 function getCaseListItem(caseTitle: RegExp | string) {
-  const caseItem = screen.getByText(caseTitle).closest('li')
+  openCaseTriageDetailSync(caseTitle)
+  const titleLink = within(getTriageList()).getByRole('link', { name: caseTitle })
+  const escapedTitle = (titleLink.textContent ?? '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-  expect(caseItem).not.toBeNull()
-  return caseItem!
+  return screen.getByRole('region', {
+    name: new RegExp(`Case triage detail: ${escapedTitle}`, 'i'),
+  })
 }
 
 function getTeamCard(teamName: RegExp | string) {
@@ -500,7 +518,7 @@ describe('game app routes', () => {
     await user.click(screen.getByRole('link', { name: /^cases$/i }))
 
     expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
-    expect(screen.getByText(VAMPIRE_NEST_CASE_TITLE)).toBeInTheDocument()
+    expect(within(getTriageList()).getByText(VAMPIRE_NEST_CASE_TITLE)).toBeInTheDocument()
   })
 
   it('assigns a team from cases and reflects it on teams', async () => {
@@ -663,33 +681,31 @@ describe('game app routes', () => {
     renderApp('/cases')
 
     const stageTwoCase = getCaseListItem(/vampire nest in the stockyards/i)
-    const stageThreeCase = getCaseListItem(/whispering archive/i)
-    const stageFourCase = getCaseListItem(/eclipse ritual/i)
-    const oddsFallbackCase = getCaseListItem(/overflow checkpoint/i)
-
-    expect(within(stageTwoCase!).getByText(/^stage 2$/i)).toHaveClass(
+    expect(within(stageTwoCase).getByText(/^stage 2$/i).closest('span')).toHaveClass(
       'bg-yellow-900/50',
       'text-yellow-300'
     )
-    expect(within(stageThreeCase!).getByText(/^stage 3$/i)).toHaveClass(
+
+    const stageThreeCase = getCaseListItem(/whispering archive/i)
+    expect(within(stageThreeCase).getByText(/^stage 3$/i).closest('span')).toHaveClass(
       'bg-orange-900/50',
       'text-orange-300'
     )
-    expect(within(stageFourCase!).getByText(/^stage 4$/i)).toHaveClass(
+    expect(within(stageThreeCase).getByText(/remaining: 1 week/i)).toBeInTheDocument()
+    expect(within(stageThreeCase).getByText(/assigned: night watch/i)).toBeInTheDocument()
+
+    const stageFourCase = getCaseListItem(/eclipse ritual/i)
+    expect(within(stageFourCase).getByText(/^stage 4$/i).closest('span')).toHaveClass(
       'bg-red-900/50',
       'text-red-300'
     )
+    expect(within(stageFourCase).queryByRole('button', { name: /assign/i })).not.toBeInTheDocument()
 
-    expect(within(stageThreeCase!).getByText(/remaining: 1 week/i)).toBeInTheDocument()
-    expect(within(stageThreeCase!).getByText(/assigned: night watch/i)).toBeInTheDocument()
-    expect(
-      within(stageFourCase!).queryByRole('button', { name: /assign/i })
-    ).not.toBeInTheDocument()
-
-    expect(within(oddsFallbackCase!).getByText(/success: 0%/i)).toBeInTheDocument()
-    expect(within(oddsFallbackCase!).queryByRole('button', { name: /assign/i })).toBeNull()
-    expect(within(oddsFallbackCase!).queryByText(/required tags:/i)).not.toBeInTheDocument()
-    expect(within(oddsFallbackCase!).queryByText(/preferred tags:/i)).not.toBeInTheDocument()
+    const oddsFallbackCase = getCaseListItem(/overflow checkpoint/i)
+    expect(within(oddsFallbackCase).getByText(/success: 0%/i)).toBeInTheDocument()
+    expect(within(oddsFallbackCase).queryByRole('button', { name: /assign/i })).toBeNull()
+    expect(within(oddsFallbackCase).queryByText(/required tags:/i)).not.toBeInTheDocument()
+    expect(within(oddsFallbackCase).queryByText(/preferred tags:/i)).not.toBeInTheDocument()
   })
 
   it('renders zero-fatigue dashboard stats when the roster is empty', () => {
@@ -1118,9 +1134,10 @@ describe('game app routes', () => {
     renderApp('/cases')
 
     expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
-    expect(screen.getByText(/vampire nest in the stockyards/i)).toBeInTheDocument()
-    expect(screen.getByText(/the whispering archive/i)).toBeInTheDocument()
-    expect(screen.getByText(/eclipse ritual at the riverfront/i)).toBeInTheDocument()
+    const triageList = getTriageList()
+    expect(within(triageList).getByRole('link', { name: /vampire nest in the stockyards/i })).toBeInTheDocument()
+    expect(within(triageList).getByRole('link', { name: /the whispering archive/i })).toBeInTheDocument()
+    expect(within(triageList).getByRole('link', { name: /eclipse ritual at the riverfront/i })).toBeInTheDocument()
   })
 
   it('shows both starter teams and all eight agents on the teams route', () => {
@@ -1198,7 +1215,7 @@ describe('game app routes', () => {
     await user.click(screen.getByRole('link', { name: /back to cases/i }))
 
     expect(screen.getByRole('heading', { name: CASES_PAGE_HEADING })).toBeInTheDocument()
-    expect(screen.getByText(VAMPIRE_NEST_CASE_TITLE)).toBeInTheDocument()
+    expect(within(getTriageList()).getByText(VAMPIRE_NEST_CASE_TITLE)).toBeInTheDocument()
   })
 
   it('keeps primary shell navigation working from a detail route', async () => {

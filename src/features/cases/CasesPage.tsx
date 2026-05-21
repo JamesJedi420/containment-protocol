@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
@@ -21,6 +21,7 @@ import {
 } from '../../domain/majorIncidentOperations'
 import { getAgencyProgressionUnlockLabel } from '../../domain/agencyProgression'
 import type {
+  GameState,
   MajorIncidentProvisionType,
   MajorIncidentStrategy,
 } from '../../domain/models'
@@ -51,12 +52,21 @@ import {
   CASE_STAGE_FILTERS,
   CASE_STATUS_FILTERS,
   getFilteredCaseViews,
+  normalizeCaseListFilters,
   readCaseListFilters,
   type CaseListFilters,
   type CaseListItemView,
   writeCaseListFilters,
 } from './caseView'
+import { MissionTriageContextFooter } from './MissionTriageContextFooter'
 import { MissionTriageDeferralCompareTable } from './MissionTriageDeferralCompareTable'
+import { MissionTriageListRow } from './MissionTriageListRow'
+import { MissionTriageTabs } from './MissionTriageTabs'
+import {
+  buildMissionTriageCompactRowView,
+  buildMissionTriageContextFooterView,
+  buildTriageTabCounts,
+} from './missionTriageLayoutView'
 
 export default function CasesPage() {
   const { game, launchContract, launchMajorIncident, assign, unassign } = useGameStore()
@@ -71,7 +81,12 @@ export default function CasesPage() {
   >({})
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const searchParamsString = searchParams.toString()
-  const filters = readCaseListFilters(searchParams)
+  const triageViewOptions = { includeCovertPrepSignals: true as const }
+  const filters = normalizeCaseListFilters(
+    game,
+    readCaseListFilters(searchParams),
+    triageViewOptions
+  )
   const normalizedSearchString = writeCaseListFilters(filters).toString()
   const querySuffix = normalizedSearchString ? `?${normalizedSearchString}` : ''
   const contractOffers = getContractOffers(game)
@@ -79,8 +94,6 @@ export default function CasesPage() {
     contractOffers.find((offer) => offer.id === selectedContractId) ?? contractOffers[0]
   const selectedContractSuggestions = selectedContract
     ? getContractTeamSuggestions(game, selectedContract).slice(0, 3)
-
-  // Presentation: Add visual cues for incident/case variety in list
     : []
   const recommendedContractTeam = selectedContractSuggestions[0]
 
@@ -90,11 +103,45 @@ export default function CasesPage() {
     }
   }, [normalizedSearchString, searchParamsString, setSearchParams])
 
-  const cases = getFilteredCaseViews(game, filters, { includeCovertPrepSignals: true })
+  const viewsForTabCounts = getFilteredCaseViews(
+    game,
+    { ...filters, tab: 'all' },
+    triageViewOptions
+  )
+  const tabCounts = buildTriageTabCounts(viewsForTabCounts, game)
+  const cases = getFilteredCaseViews(game, filters, triageViewOptions)
   const totalCases = Object.keys(game.cases).length
+  const effectiveSelectedCaseId =
+    filters.selectedCaseId || (cases[0]?.currentCase.id ?? '')
+  const selectedView =
+    cases.find((view) => view.currentCase.id === effectiveSelectedCaseId) ?? null
+  const triageFooter = buildMissionTriageContextFooterView(cases, game)
 
   function updateFilters(nextFilters: CaseListFilters) {
     setSearchParams(writeCaseListFilters(nextFilters), { replace: true })
+  }
+
+  function selectTriageCase(caseId: string) {
+    updateFilters({ ...filters, selectedCaseId: caseId })
+  }
+
+  function selectTriageTab(tab: CaseListFilters['tab']) {
+    if (tab === filters.tab) {
+      return
+    }
+
+    const nextTabCases = getFilteredCaseViews(
+      game,
+      { ...filters, tab },
+      triageViewOptions
+    )
+    const selectedCaseId = nextTabCases.some(
+      (view) => view.currentCase.id === filters.selectedCaseId
+    )
+      ? filters.selectedCaseId
+      : ''
+
+    updateFilters({ ...filters, tab, selectedCaseId })
   }
 
   return (
@@ -454,6 +501,12 @@ export default function CasesPage() {
         <div className="rounded border border-white/10 bg-white/5 px-3 py-2 text-sm opacity-80">
           Core loop: triage cases here, open each dossier to prep, then advance week from Front Desk and review the new report.
         </div>
+
+        <MissionTriageTabs
+          activeTab={filters.tab}
+          tabCounts={tabCounts}
+          onSelectTab={selectTriageTab}
+        />
       </article>
 
       <article className="panel space-y-3" role="region" aria-label="Case assignment guidance">
@@ -483,51 +536,173 @@ export default function CasesPage() {
         <p className="text-xs text-amber-200/90">⚠ {CASES_GUIDANCE.stageWarning}</p>
       </article>
 
-      {cases.length > 0 ? (
-        <ul id="cases-results" className="space-y-3" aria-label="Case results">
-          {cases.map((view) => {
-            const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
-            const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
-            const listRowMarkers = getListRowMarkers(view)
-            const incidentStrategy =
-              majorIncidentStrategyState[view.currentCase.id] ??
-              view.currentCase.majorIncident?.strategy ??
-              'balanced'
-            const incidentProvisions =
-              majorIncidentProvisionState[view.currentCase.id] ??
-              view.currentCase.majorIncident?.provisions ??
-              []
-            const selectedIncidentTeamIds =
-              majorIncidentTeamState[view.currentCase.id] ??
-              (view.currentCase.majorIncident ? view.currentCase.assignedTeamIds : [])
-            const majorIncidentPlan = view.isMajorIncident
-              ? evaluateMajorIncidentPlan(game, view.currentCase, selectedIncidentTeamIds, {
-                  strategy: incidentStrategy,
-                  provisions: incidentProvisions,
-                })
-              : null
-            const recommendedIncidentPlan = view.isMajorIncident
-              ? getBestMajorIncidentPlanSuggestion(game, view.currentCase, {
-                  strategy: incidentStrategy,
-                  provisions: incidentProvisions,
-                })
-              : null
-            const majorIncidentProvisionDefs = view.isMajorIncident
-              ? getMajorIncidentProvisionDefinitions(game)
-              : []
-            const selectableIncidentTeams = view.isMajorIncident
-              ? getMajorIncidentSelectableTeams(game, view.currentCase)
-              : []
-            const recommendation = view.isMajorIncident
-              ? getMajorIncidentRecommendation(majorIncidentPlan, recommendedIncidentPlan)
-              : getCaseRecommendation(view)
-            const bestEligibleSuccess = getBestEligibleSuccess(view)
-            const topTwoOptions = getTopTwoEligibleOptions(view)
-            const compareOpen = compareCaseState[view.currentCase.id] ?? false
-            const comparePanelId = `case-compare-${view.currentCase.id}`
+      <div id="cases-results" className="space-y-3" role="region" aria-label="Case triage queue">
+        {cases.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.35fr)]">
+            <ul className="space-y-2" aria-label="Triage list">
+              {cases.map((view) => {
+                const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
+                const listRowMarkers = getListRowMarkers(view)
+                const markerPreview = listRowMarkers.map((marker) => marker.label).slice(0, 2).join(' · ')
+                const compactRow = buildMissionTriageCompactRowView(
+                  view,
+                  game,
+                  effectiveSelectedCaseId,
+                  markerPreview
+                )
 
-            return (
-              <li key={view.currentCase.id} className="panel panel-support space-y-3">
+                return (
+                  <MissionTriageListRow
+                    key={view.currentCase.id}
+                    row={compactRow}
+                    detailHref={detailHref}
+                    onSelect={() => selectTriageCase(view.currentCase.id)}
+                  />
+                )
+              })}
+            </ul>
+
+            {selectedView ? (
+              <div
+                role="region"
+                aria-label={`Case triage detail: ${selectedView.currentCase.title}`}
+                className="min-w-0"
+              >
+                {renderCaseTriageDetail({
+                  view: selectedView,
+                  game,
+                  querySuffix,
+                  compareCaseState,
+                  setCompareCaseState,
+                  majorIncidentTeamState,
+                  setMajorIncidentTeamState,
+                  majorIncidentStrategyState,
+                  setMajorIncidentStrategyState,
+                  majorIncidentProvisionState,
+                  setMajorIncidentProvisionState,
+                  assign,
+                  unassign,
+                  launchMajorIncident,
+                })}
+              </div>
+            ) : (
+              <p className="panel panel-support p-4 text-sm opacity-70">
+                Select a case from the triage list to inspect routing detail.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div
+            className="panel panel-support space-y-2 p-4"
+            role="region"
+            aria-label="No matching cases"
+          >
+            <p className="text-sm font-medium">
+              {filters.status === 'open'
+                ? CASES_GUIDANCE.noOpenCases
+                : filters.status === 'in_progress'
+                  ? CASES_GUIDANCE.noActiveCases
+                  : CASES_GUIDANCE.noResolvedCases}
+            </p>
+            <p className="text-sm opacity-70">{CASES_GUIDANCE.allCasesFiltered}</p>
+            {normalizedSearchString.length > 0 ? (
+              <div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost"
+                  onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}
+                >
+                  Clear filters
+                </button>
+              </div>
+            ) : null}
+          </div>
+        )}
+
+        <MissionTriageContextFooter footer={triageFooter} />
+      </div>
+    </section>
+  )
+}
+
+function renderCaseTriageDetail({
+  view,
+  game,
+  querySuffix,
+  compareCaseState,
+  setCompareCaseState,
+  majorIncidentTeamState,
+  setMajorIncidentTeamState,
+  majorIncidentStrategyState,
+  setMajorIncidentStrategyState,
+  majorIncidentProvisionState,
+  setMajorIncidentProvisionState,
+  assign,
+  unassign,
+  launchMajorIncident,
+}: {
+  view: CaseListItemView
+  game: GameState
+  querySuffix: string
+  compareCaseState: Record<string, boolean>
+  setCompareCaseState: Dispatch<SetStateAction<Record<string, boolean>>>
+  majorIncidentTeamState: Record<string, string[]>
+  setMajorIncidentTeamState: Dispatch<SetStateAction<Record<string, string[]>>>
+  majorIncidentStrategyState: Record<string, MajorIncidentStrategy>
+  setMajorIncidentStrategyState: Dispatch<SetStateAction<Record<string, MajorIncidentStrategy>>>
+  majorIncidentProvisionState: Record<string, MajorIncidentProvisionType[]>
+  setMajorIncidentProvisionState: Dispatch<SetStateAction<Record<string, MajorIncidentProvisionType[]>>>
+  assign: (caseId: string, teamId: string) => void
+  unassign: (caseId: string, teamId: string) => void
+  launchMajorIncident: (
+    caseId: string,
+    teamIds: string[],
+    strategy: MajorIncidentStrategy,
+    provisions: MajorIncidentProvisionType[]
+  ) => void
+}) {
+  const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
+  const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
+  const listRowMarkers = getListRowMarkers(view)
+  const incidentStrategy =
+    majorIncidentStrategyState[view.currentCase.id] ??
+    view.currentCase.majorIncident?.strategy ??
+    'balanced'
+  const incidentProvisions =
+    majorIncidentProvisionState[view.currentCase.id] ??
+    view.currentCase.majorIncident?.provisions ??
+    []
+  const selectedIncidentTeamIds =
+    majorIncidentTeamState[view.currentCase.id] ??
+    (view.currentCase.majorIncident ? view.currentCase.assignedTeamIds : [])
+  const majorIncidentPlan = view.isMajorIncident
+    ? evaluateMajorIncidentPlan(game, view.currentCase, selectedIncidentTeamIds, {
+        strategy: incidentStrategy,
+        provisions: incidentProvisions,
+      })
+    : null
+  const recommendedIncidentPlan = view.isMajorIncident
+    ? getBestMajorIncidentPlanSuggestion(game, view.currentCase, {
+        strategy: incidentStrategy,
+        provisions: incidentProvisions,
+      })
+    : null
+  const majorIncidentProvisionDefs = view.isMajorIncident
+    ? getMajorIncidentProvisionDefinitions(game)
+    : []
+  const selectableIncidentTeams = view.isMajorIncident
+    ? getMajorIncidentSelectableTeams(game, view.currentCase)
+    : []
+  const recommendation = view.isMajorIncident
+    ? getMajorIncidentRecommendation(majorIncidentPlan, recommendedIncidentPlan)
+    : getCaseRecommendation(view)
+  const bestEligibleSuccess = getBestEligibleSuccess(view)
+  const topTwoOptions = getTopTwoEligibleOptions(view)
+  const compareOpen = compareCaseState[view.currentCase.id] ?? false
+  const comparePanelId = `case-compare-${view.currentCase.id}`
+
+  return (
+    <article className="panel panel-support space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="font-medium">
@@ -853,39 +1028,7 @@ export default function CasesPage() {
                     </div>
                   )
                 ) : null}
-              </li>
-            )
-          })}
-        </ul>
-      ) : (
-        <div
-          id="cases-results"
-          className="panel panel-support space-y-2 p-4"
-          role="region"
-          aria-label="No matching cases"
-        >
-          <p className="text-sm font-medium">
-            {filters.status === 'open'
-              ? CASES_GUIDANCE.noOpenCases
-              : filters.status === 'in_progress'
-                ? CASES_GUIDANCE.noActiveCases
-                : CASES_GUIDANCE.noResolvedCases}
-          </p>
-          <p className="text-sm opacity-70">{CASES_GUIDANCE.allCasesFiltered}</p>
-          {normalizedSearchString.length > 0 ? (
-            <div>
-              <button
-                type="button"
-                className="btn btn-sm btn-ghost focus-ring"
-                onClick={() => setSearchParams(new URLSearchParams(), { replace: true })}
-              >
-                Clear filters
-              </button>
-            </div>
-          ) : null}
-        </div>
-      )}
-    </section>
+    </article>
   )
 }
 

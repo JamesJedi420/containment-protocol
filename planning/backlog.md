@@ -32,7 +32,7 @@ From `README.md` **Current design notes**:
 
 ## Deferred UX (follow-up after SPE-2255)
 
-- **`ux/mission-triage.md`** — full triage layout refresh (filters/tabs/split detail panel); list-row chips + deferral compare columns shipped (SPE-2255 / slice 2 `planning/mission-triage-deferral-compare-slice.md`).
+- **`ux/mission-triage.md`** — status-bar triage tail + route/defer/ignore actions (layout tabs/split/footer shipped SPE-2257 / `planning/mission-triage-layout-slice.md`; row chips + deferral compare SPE-2255–2256).
 
 ## SCP-9995 harvest — May 2026 reconciliation
 

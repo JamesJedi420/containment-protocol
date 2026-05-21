@@ -125,10 +125,16 @@ describe('filter helper read/write contracts', () => {
       stage: '4',
       sort: 'deadline',
       risk: true,
+      tab: 'all',
+      selectedCaseId: '',
     })
 
     const riskDisabled = readCaseListFilters(new URLSearchParams('risk=0'))
     expect(riskDisabled.risk).toBe(false)
+
+    const invalidTab = readCaseListFilters(new URLSearchParams('tab=bogus&case=stale-id'))
+    expect(invalidTab.tab).toBe('all')
+    expect(invalidTab.selectedCaseId).toBe('stale-id')
 
     const output = writeCaseListFilters(
       {
@@ -136,10 +142,10 @@ describe('filter helper read/write contracts', () => {
         mode: 'deterministic',
         risk: true,
       },
-      new URLSearchParams('tab=ops')
+      new URLSearchParams('panel=ops')
     )
 
-    expect(output.get('tab')).toBe('ops')
+    expect(output.get('panel')).toBe('ops')
     expect(output.get('mode')).toBe('deterministic')
     expect(output.get('risk')).toBe('1')
     expect(output.has('status')).toBe(false)
@@ -155,6 +161,8 @@ describe('filter helper read/write contracts', () => {
       stage: '4' as const,
       sort: 'deadline' as const,
       risk: true,
+      tab: 'escalating' as const,
+      selectedCaseId: 'case-001',
     }
 
     const serialized = writeCaseListFilters(original)
@@ -168,6 +176,8 @@ describe('filter helper read/write contracts', () => {
       stage: '4',
       sort: 'deadline',
       risk: true,
+      tab: 'escalating',
+      selectedCaseId: 'case-001',
     })
   })
 

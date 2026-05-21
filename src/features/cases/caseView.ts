@@ -21,6 +21,11 @@ import {
   type MissionTriageDeferralCompareView,
 } from './missionTriageDeferralCompareView'
 import {
+  deriveMissionCategory,
+  missionTriageShowsEscalationDeferralRisk,
+  triageMission,
+} from '../../domain/missionIntakeRouting'
+import {
   buildMissionTriageCovertPrepSignals,
   type MissionTriageCovertPrepSignals,
 } from './missionTriageCovertPrepView'
@@ -29,11 +34,20 @@ export const CASE_STATUS_FILTERS = ['all', 'open', 'in_progress', 'resolved'] as
 export const CASE_MODE_FILTERS = ['all', 'threshold', 'probability', 'deterministic'] as const
 export const CASE_STAGE_FILTERS = ['all', '1', '2', '3', '4', '5'] as const
 export const CASE_SORTS = ['priority', 'deadline', 'success', 'title'] as const
+export const CASE_TRIAGE_TABS = [
+  'all',
+  'incidents',
+  'contracts',
+  'leads',
+  'escalating',
+  'assigned',
+] as const
 
 export type CaseStatusFilter = (typeof CASE_STATUS_FILTERS)[number]
 export type CaseModeFilter = (typeof CASE_MODE_FILTERS)[number]
 export type CaseStageFilter = (typeof CASE_STAGE_FILTERS)[number]
 export type CaseSort = (typeof CASE_SORTS)[number]
+export type CaseTriageTab = (typeof CASE_TRIAGE_TABS)[number]
 
 export interface CaseListFilters {
   q: string
@@ -42,6 +56,8 @@ export interface CaseListFilters {
   stage: CaseStageFilter
   sort: CaseSort
   risk: boolean
+  tab: CaseTriageTab
+  selectedCaseId: string
 }
 
 export interface CaseTeamOddsView {
@@ -75,6 +91,8 @@ export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
   stage: 'all',
   sort: 'priority',
   risk: false,
+  tab: 'all',
+  selectedCaseId: '',
 }
 
 export interface CaseListItemViewOptions {
@@ -212,6 +230,60 @@ export function getCaseListItemView(
   }
 }
 
+export function matchesCaseTriageTab(
+  view: CaseListItemView,
+  tab: CaseTriageTab,
+  game: GameState
+): boolean {
+  const currentCase = view.currentCase
+
+  switch (tab) {
+    case 'all':
+      return true
+    case 'contracts':
+      return Boolean(currentCase.contract)
+    case 'assigned':
+      return view.assignedTeams.length > 0
+    case 'leads':
+      return deriveMissionCategory(currentCase) === 'investigation_lead'
+    case 'incidents':
+      return (
+        !currentCase.contract && deriveMissionCategory(currentCase) !== 'investigation_lead'
+      )
+    case 'escalating': {
+      const triage = triageMission(game, currentCase)
+      return (
+        currentCase.stage > 1 ||
+        view.isCriticalStage ||
+        view.hasDeadlineRisk ||
+        missionTriageShowsEscalationDeferralRisk(triage.reasonCodes)
+      )
+    }
+    default: {
+      const _exhaustive: never = tab
+      return _exhaustive
+    }
+  }
+}
+
+export function normalizeCaseListFilters(
+  game: GameState,
+  filters: CaseListFilters,
+  options?: CaseListItemViewOptions
+): CaseListFilters {
+  if (!filters.selectedCaseId) {
+    return filters
+  }
+
+  const visibleCaseIds = new Set(
+    getFilteredCaseViews(game, filters, options).map((view) => view.currentCase.id)
+  )
+
+  return visibleCaseIds.has(filters.selectedCaseId)
+    ? filters
+    : { ...filters, selectedCaseId: '' }
+}
+
 export function getFilteredCaseViews(
   game: GameState,
   filters: CaseListFilters,
@@ -219,7 +291,7 @@ export function getFilteredCaseViews(
 ) {
   return Object.values(game.cases)
     .map((currentCase) => getCaseListItemView(currentCase, game, options))
-    .filter((view) => matchesCaseFilters(view, filters))
+    .filter((view) => matchesCaseFilters(view, filters, game))
     .sort((left, right) => compareCaseViews(left, right, filters.sort))
 }
 
@@ -241,6 +313,8 @@ export function readCaseListFilters(searchParams: URLSearchParams): CaseListFilt
     ),
     sort: readEnumParam(searchParams, 'sort', CASE_SORTS, DEFAULT_CASE_LIST_FILTERS.sort),
     risk: searchParams.get('risk') === '1',
+    tab: readEnumParam(searchParams, 'tab', CASE_TRIAGE_TABS, DEFAULT_CASE_LIST_FILTERS.tab),
+    selectedCaseId: readStringParam(searchParams, 'case'),
   }
 }
 
@@ -258,6 +332,9 @@ export function writeCaseListFilters(filters: CaseListFilters, baseSearchParams?
   } else {
     nextSearchParams.delete('risk')
   }
+
+  writeEnumParam(nextSearchParams, 'tab', filters.tab, DEFAULT_CASE_LIST_FILTERS.tab)
+  writeStringParam(nextSearchParams, 'case', filters.selectedCaseId)
 
   return nextSearchParams
 }
@@ -278,7 +355,11 @@ function isTeamAvailableForCase(team: Team, currentCase: CaseInstance, game: Gam
   return true
 }
 
-function matchesCaseFilters(view: CaseListItemView, filters: CaseListFilters) {
+function matchesCaseFilters(view: CaseListItemView, filters: CaseListFilters, game: GameState) {
+  if (!matchesCaseTriageTab(view, filters.tab, game)) {
+    return false
+  }
+
   if (filters.status !== 'all' && view.currentCase.status !== filters.status) {
     return false
   }
@@ -316,16 +397,20 @@ function matchesCaseFilters(view: CaseListItemView, filters: CaseListFilters) {
   return searchableText.includes(normalizedQuery)
 }
 
+function compareCaseTitle(left: CaseListItemView, right: CaseListItemView) {
+  return String(left.currentCase.title).localeCompare(String(right.currentCase.title))
+}
+
 function compareCaseViews(left: CaseListItemView, right: CaseListItemView, sort: CaseSort) {
   if (sort === 'title') {
-    return left.currentCase.title.localeCompare(right.currentCase.title)
+    return compareCaseTitle(left, right)
   }
 
   if (sort === 'deadline') {
     return (
       left.currentCase.deadlineRemaining - right.currentCase.deadlineRemaining ||
       right.currentCase.stage - left.currentCase.stage ||
-      left.currentCase.title.localeCompare(right.currentCase.title)
+      compareCaseTitle(left, right)
     )
   }
 
@@ -333,14 +418,14 @@ function compareCaseViews(left: CaseListItemView, right: CaseListItemView, sort:
     return (
       right.bestSuccess - left.bestSuccess ||
       right.priorityScore - left.priorityScore ||
-      left.currentCase.title.localeCompare(right.currentCase.title)
+      compareCaseTitle(left, right)
     )
   }
 
   return (
     right.priorityScore - left.priorityScore ||
     left.currentCase.deadlineRemaining - right.currentCase.deadlineRemaining ||
-    left.currentCase.title.localeCompare(right.currentCase.title)
+    compareCaseTitle(left, right)
   )
 }
 

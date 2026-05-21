@@ -159,6 +159,15 @@ it('renders recommended action guidance for assignable cases', () => {
   expect(screen.getAllByRole('link', { name: /open prep dossier/i }).length).toBeGreaterThan(0)
 })
 
+it('renders open intel dossier quick action and next-step copy for each case card', () => {
+  renderCasesPage(['/cases'])
+
+  expect(screen.getAllByRole('link', { name: /open intel dossier/i }).length).toBeGreaterThan(0)
+  expect(
+    screen.getAllByText(/next step: assign response units, then advance week from front desk\./i).length
+  ).toBeGreaterThan(0)
+})
+
 it('supports top-option comparison and shows confidence/commit cues on assignment actions', async () => {
   const user = userEvent.setup()
 

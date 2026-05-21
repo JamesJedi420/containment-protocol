@@ -64,6 +64,69 @@ it('links report list entries into detail routes', () => {
   expect(screen.getByText(/status cue:/i)).toBeInTheDocument()
 })
 
+it('shows correct positive, negative, and neutral counts and best/worst week rollup in timeline summary', () => {
+  const game = createStartingState()
+  const base = {
+    rngStateBefore: 1,
+    rngStateAfter: 2,
+    newCases: [] as string[],
+    progressedCases: [] as string[],
+    partialCases: [] as string[],
+    unresolvedTriggers: [] as string[],
+    spawnedCases: [] as string[],
+    maxStage: 1,
+    avgFatigue: 0,
+    teamStatus: [],
+    notes: [],
+  }
+  // Week 1: +100 pts (positive), Week 2: -30 pts (negative), Week 3: 0 pts (neutral)
+  game.reports = [
+    { ...base, week: 1, resolvedCases: ['case-a'], failedCases: [] },
+    { ...base, week: 2, resolvedCases: [], failedCases: ['case-b'] },
+    { ...base, week: 3, resolvedCases: [], failedCases: [] },
+  ]
+
+  useGameStore.setState({ game })
+  renderReportList()
+
+  const summary = screen.getByRole('region', { name: /weekly report timeline summary/i })
+  expect(within(summary).getByText(/positive weeks: 1/i)).toBeInTheDocument()
+  expect(within(summary).getByText(/negative weeks: 1/i)).toBeInTheDocument()
+  expect(within(summary).getByText(/neutral weeks: 1/i)).toBeInTheDocument()
+  // Best week should be week 1 (+100 pts), worst should be week 2 (-30 pts)
+  expect(within(summary).getByText(/best week: 1/i)).toBeInTheDocument()
+  expect(within(summary).getByText(/worst week: 2/i)).toBeInTheDocument()
+})
+
+it('renders per-week status cues matching each report score sign', () => {
+  const game = createStartingState()
+  const base = {
+    rngStateBefore: 1,
+    rngStateAfter: 2,
+    newCases: [] as string[],
+    progressedCases: [] as string[],
+    partialCases: [] as string[],
+    unresolvedTriggers: [] as string[],
+    spawnedCases: [] as string[],
+    maxStage: 1,
+    avgFatigue: 0,
+    teamStatus: [],
+    notes: [],
+  }
+  game.reports = [
+    { ...base, week: 1, resolvedCases: ['case-a'], failedCases: [] },
+    { ...base, week: 2, resolvedCases: [], failedCases: ['case-b'] },
+    { ...base, week: 3, resolvedCases: [], failedCases: [] },
+  ]
+
+  useGameStore.setState({ game })
+  renderReportList()
+
+  expect(screen.getByText('Status cue: Positive week')).toBeInTheDocument()
+  expect(screen.getByText('Status cue: Negative week')).toBeInTheDocument()
+  expect(screen.getByText('Status cue: Neutral week')).toBeInTheDocument()
+})
+
 it('renders snapshot-driven grouped sections and falls back to archived snapshot text', () => {
   const game = createStartingState()
   game.cases['case-001'] = {

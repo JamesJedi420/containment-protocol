@@ -1,0 +1,48 @@
+{
+  "by_batch": {
+    "top-secret-ace-of-clubs-metadata-29": {
+      "posted_ok": 40,
+      "failed": 0,
+      "errors": []
+    },
+    "gamma-world-mind-masters-metadata-26": {
+      "posted_ok": 27,
+      "failed": 0,
+      "errors": []
+    },
+    "lynchnet-tp05-episode5-patterns-30": {
+      "posted_ok": 43,
+      "failed": 0,
+      "errors": []
+    },
+    "lynchnet-tp04-episode3-patterns-30": {
+      "posted_ok": 78,
+      "failed": 0,
+      "errors": []
+    },
+    "cthulhu-gaslight-keepers-guide-metadata-35": {
+      "posted_ok": 78,
+      "failed": 0,
+      "errors": []
+    },
+    "vaesen-rpg-metadata-31": {
+      "posted_ok": 108,
+      "failed": 0,
+      "errors": []
+    }
+  },
+  "total_posted_ok": 374,
+  "total_failed": 0,
+  "files_processed": [
+    "post_batch_03.json",
+    "post_batch_04.json",
+    "post_batch_05.json",
+    "post_batch_06.json",
+    "post_batch_07.json",
+    "post_batch_08.json",
+    "post_batch_09.json",
+    "post_batch_10.json"
+  ],
+  "items_in_files_03_10": 133,
+  "merged_from": "mcp-post-results-remaining.json"
+}

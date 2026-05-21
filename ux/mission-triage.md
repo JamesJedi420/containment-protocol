@@ -38,9 +38,11 @@ This spec is for:
 
 **Slice 5 shipped:** Triage detail panel exposes Route now / Defer / Ignore via `MissionTriageDispositionActions` and canonical `missionRouting` disposition fields (`applyMissionTriageDisposition`, week-scoped). Plan: `planning/mission-triage-disposition-slice.md`.
 
+**Slice 4 shipped (SPE-2258):** On `/cases` routes, `ShellStatusBar` appends read-only triage tail chips (queue depth, routable count, unassigned urgent when > 0) via `buildMissionTriageShellExtensionSignals`, using the same filtered board views as `MissionTriageContextFooter`. Plan: `planning/mission-triage-status-bar-slice.md`.
+
 **Still deferred (follow-up slices):**
 
-- status-bar routable/urgent tail chips per `ux/navigation-map.md` (slice 4 / SPE-2258 on branch `spe-16-mission-triage-status-bar-slice-4`)
+- route/defer/ignore action follow-up polish and additional triage UX expansion beyond shipped slices 1–5
 
 ---
 

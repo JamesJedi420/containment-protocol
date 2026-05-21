@@ -52,6 +52,7 @@ import {
   CASE_SORTS,
   CASE_STAGE_FILTERS,
   CASE_STATUS_FILTERS,
+  buildMissionTriageBoardViews,
   getFilteredCaseViews,
   matchesCaseTriageTab,
   normalizeCaseListFilters,
@@ -116,11 +117,7 @@ export default function CasesPage() {
     }
   }, [normalizedSearchString, searchParamsString, setSearchParams])
 
-  const viewsForTabCounts = getFilteredCaseViews(
-    game,
-    { ...filters, tab: 'all' },
-    triageViewOptions
-  )
+  const viewsForTabCounts = buildMissionTriageBoardViews(game, filters, triageViewOptions)
   const tabCounts = buildTriageTabCounts(viewsForTabCounts, game)
   const cases =
     filters.tab === 'all'

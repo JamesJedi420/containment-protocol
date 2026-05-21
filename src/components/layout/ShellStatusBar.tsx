@@ -1,8 +1,15 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 
 import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
+import {
+  buildMissionTriageBoardViews,
+  normalizeCaseListFilters,
+  readCaseListFilters,
+  writeCaseListFilters,
+} from '../../features/cases/caseView'
+import { buildMissionTriageShellExtensionSignals } from '../../features/cases/missionTriageShellExtensionView'
 import {
   IconAdvance,
   IconReports,
@@ -12,10 +19,37 @@ import {
 } from '../icons'
 import { buildShellStatusBarView, type ShellStatusSignalView } from './shellStatusBarView'
 
+function isCasesRoute(pathname: string) {
+  return pathname === APP_ROUTES.cases || pathname.startsWith(`${APP_ROUTES.cases}/`)
+}
+
 export function ShellStatusBar() {
   const { game, advanceWeek } = useGameStore()
+  const location = useLocation()
+  const [searchParams] = useSearchParams()
   const [muted, setMuted] = useState(false)
   const view = useMemo(() => buildShellStatusBarView(game), [game])
+  const extensionSignals = useMemo(() => {
+    if (!isCasesRoute(location.pathname)) {
+      return []
+    }
+
+    const triageViewOptions = { includeCovertPrepSignals: true as const }
+    const filters = normalizeCaseListFilters(
+      game,
+      readCaseListFilters(searchParams),
+      triageViewOptions
+    )
+    const boardViews = buildMissionTriageBoardViews(game, filters, triageViewOptions)
+    const queryString = writeCaseListFilters(filters).toString()
+    const casesHref = queryString ? `${APP_ROUTES.cases}?${queryString}` : APP_ROUTES.cases
+
+    return buildMissionTriageShellExtensionSignals(game, boardViews, casesHref)
+  }, [game, location.pathname, searchParams])
+  const signals = useMemo(
+    () => [...view.signals, ...extensionSignals],
+    [view.signals, extensionSignals]
+  )
 
   return (
     <header className="topbar-shell" role="banner" aria-label="Shell status bar">
@@ -38,7 +72,7 @@ export function ShellStatusBar() {
           </ul>
 
           <div className="topbar-signal-group" data-testid="shell-status-signals-row">
-            {view.signals.map((signal) => (
+            {signals.map((signal) => (
               <SignalChip key={signal.id} signal={signal} />
             ))}
           </div>

@@ -299,6 +299,15 @@ export function getFilteredCaseViews(
     .sort((left, right) => compareCaseViews(left, right, filters.sort))
 }
 
+/** Board-wide triage views for tab counts, context footer, and shell extensions (tab forced to `all`). */
+export function buildMissionTriageBoardViews(
+  game: GameState,
+  filters: CaseListFilters,
+  options?: CaseListItemViewOptions
+) {
+  return getFilteredCaseViews(game, { ...filters, tab: 'all' }, options)
+}
+
 export function readCaseListFilters(searchParams: URLSearchParams): CaseListFilters {
   return {
     q: readStringParam(searchParams, 'q'),

@@ -8,6 +8,8 @@
 
 **Batch ID vs candidate count:** The batch ID is a stable slug (often from source packet label or an earlier pass). The **Candidates** column is the reconciled total. When they differ (e.g. `hardwired-score-18` → 72 candidates, `personal-invention-records-18` → 15), use **Candidates** and the harvest doc summary — not the suffix digit alone.
 
+**Not duplicate rows:** Uniqueness is the full batch ID string. Different IDs with the same candidate count are separate batches (e.g. `institutional-research-governance-18` and `personal-invention-records-18` are both 15 candidates but distinct sources and harvest docs).
+
 **This PR (`docs/harvest-linear-mirror`):** Adds the 15 `planning/*-harvest.md` files in the commit; other index rows point at harvest docs already on `main` from earlier merges.
 
 | Batch ID | Candidates | Child issue(s) | Hub / parent | Planning doc | Linear closed |

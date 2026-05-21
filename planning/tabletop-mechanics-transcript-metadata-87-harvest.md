@@ -15,6 +15,8 @@
 | contradiction check | 13 |
 | new child | 0 |
 
+Note: These adjudication counts total 92 because they include five supplemental rows in addition to the canonical candidate set `C1–C87` (for example, `C8 supplement` and `C23–C25 supplement`).
+
 ## Primary owner map
 
 | Owner | Candidates |

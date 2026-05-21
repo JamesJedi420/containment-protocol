@@ -142,7 +142,7 @@ describe('missionTriageShellExtensionView', () => {
       .toMatchObject({ value: '1' })
   })
 
-  it('returns no signals for an empty board view list', () => {
+  it('returns zero-valued queue and routable chips for an empty board view list', () => {
     const game = createStartingState()
     game.cases = {}
 

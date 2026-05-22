@@ -70,6 +70,16 @@ describe('siteOperationalExploration', () => {
     expect(readProgressClock(breach.state, getSiteExplorationTurnClockId('site-1'))?.hidden).toBe(true)
   })
 
+  it('rejects unknown action ids at runtime without casting', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('site-1')
+    const game = { ...state, cases: { 'site-1': currentCase } }
+
+    const result = applySiteExplorationAction(game, 'site-1', 'not-a-valid-action')
+    expect(result.applied).toBe(false)
+    expect(result.reason).toBe('unknown_action')
+  })
+
   it('rejects actions when case is not in site exploration phase', () => {
     const state = createStartingState()
     const flat = { ...state.cases['case-001']!, id: 'flat', spatialFlags: [], mapLayer: undefined }

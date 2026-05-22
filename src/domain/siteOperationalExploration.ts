@@ -146,6 +146,11 @@ export interface ApplySiteExplorationActionResult {
   wanderingCheckTriggered?: boolean
 }
 
+/**
+ * Applies one exploration action. `actionId` is a string (not the union type) so UI,
+ * saves, and future callers can pass runtime input without casting; invalid ids return
+ * `unknown_action` instead of throwing.
+ */
 export function applySiteExplorationAction(
   state: GameState,
   caseId: string,
@@ -164,8 +169,9 @@ export function applySiteExplorationAction(
     return { state, applied: false, reason: 'unknown_action' }
   }
 
-  const turnCost = SITE_EXPLORATION_ACTION_COST_TURNS[actionId]
-  const alertDelta = SITE_EXPLORATION_ACTION_ALERT_DELTA[actionId]
+  const validatedActionId = actionId
+  const turnCost = SITE_EXPLORATION_ACTION_COST_TURNS[validatedActionId]
+  const alertDelta = SITE_EXPLORATION_ACTION_ALERT_DELTA[validatedActionId]
   const turnClockId = getSiteExplorationTurnClockId(caseId)
   const alertClockId = getSiteExplorationAlertClockId(caseId)
   const previousTurnValue = readSiteExplorationTurnValue(state, caseId)
@@ -184,7 +190,7 @@ export function applySiteExplorationAction(
   return {
     state: nextState,
     applied: true,
-    actionId,
+    actionId: validatedActionId,
     turnCost,
     alertDelta,
     turnValue,

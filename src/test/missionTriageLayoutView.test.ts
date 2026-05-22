@@ -5,7 +5,11 @@ import {
   buildMissionTriageCompactRowView,
   buildMissionTriageContextFooterView,
 } from '../features/cases/missionTriageLayoutView'
-import { triageMission } from '../domain/missionIntakeRouting'
+import {
+  applyMissionTriageDisposition,
+  normalizeMissionRoutingState,
+  triageMission,
+} from '../domain/missionIntakeRouting'
 import type { CaseInstance } from '../domain/models'
 
 function makeCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
@@ -136,5 +140,26 @@ describe('missionTriageLayoutView', () => {
     expect(footer.teamsAvailable).toBeGreaterThan(0)
     expect(footer.urgentIfDeferred).toBeGreaterThanOrEqual(1)
     expect(footer.routableCount).toBeGreaterThanOrEqual(1)
+  })
+
+  it('excludes ignored cases from urgent-if-deferred footer count', () => {
+    const starter = createStartingState()
+    const urgentCase = makeCase('urgent', { stage: 4, deadlineRemaining: 1 })
+    const game = applyMissionTriageDisposition(
+      {
+        ...starter,
+        cases: { urgent: urgentCase },
+        missionRouting: normalizeMissionRoutingState({ ...starter, cases: { urgent: urgentCase } }),
+      },
+      'urgent',
+      'ignore'
+    )
+
+    const views = Object.values(game.cases).map((entry) =>
+      getCaseListItemView(entry, game, { includeCovertPrepSignals: true })
+    )
+    const footer = buildMissionTriageContextFooterView(views, game)
+
+    expect(footer.urgentIfDeferred).toBe(0)
   })
 })

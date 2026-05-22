@@ -4,7 +4,9 @@ import { render, screen, within, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router'
 import userEvent from '@testing-library/user-event'
 import { useGameStore } from '../../app/store/gameStore'
+import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import { createStartingState } from '../../data/startingState'
+import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import type { CaseInstance } from '../../domain/models'
 import { caseTemplateMap } from '../../domain/templates/caseTemplates'
@@ -446,6 +448,34 @@ it('shows triage context footer when filters match no cases', () => {
   expect(screen.getByRole('region', { name: /no matching cases/i })).toBeInTheDocument()
   expect(screen.getByLabelText(/mission triage context/i)).toBeInTheDocument()
   expect(screen.getByText(/teams available:/i)).toBeInTheDocument()
+})
+
+it('sets defer disposition from triage detail panel', async () => {
+  const user = userEvent.setup()
+  const game = {
+    ...createStartingState(),
+    missionRouting: normalizeMissionRoutingState(createStartingState()),
+    cases: {
+      ...createStartingState().cases,
+      'case-triage-defer': makeCase('case-triage-defer', 'Defer Me Case', { status: 'open' }),
+    },
+  }
+
+  useGameStore.setState({ game })
+  renderCasesPage(['/cases?case=case-triage-defer'])
+
+  await selectTriageCase(user, 'Defer Me Case')
+
+  await user.click(
+    screen.getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer, exact: true })
+  )
+
+  expect(
+    useGameStore.getState().game.missionRouting?.missions['case-triage-defer']?.routingState
+  ).toBe('deferred')
+  expect(
+    screen.getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
+  ).toBeInTheDocument()
 })
 
 it('sanitizes stale case query when the case is outside the filtered triage list', async () => {

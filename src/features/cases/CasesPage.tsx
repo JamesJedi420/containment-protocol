@@ -24,6 +24,7 @@ import type {
   GameState,
   MajorIncidentProvisionType,
   MajorIncidentStrategy,
+  MissionTriageDisposition,
 } from '../../domain/models'
 import {
   IconInProgress,
@@ -62,6 +63,8 @@ import {
 } from './caseView'
 import { MissionTriageContextFooter } from './MissionTriageContextFooter'
 import { MissionTriageDeferralCompareTable } from './MissionTriageDeferralCompareTable'
+import { MissionTriageDispositionActions } from './MissionTriageDispositionActions'
+import { buildMissionTriageDispositionView } from './missionTriageDispositionView'
 import { MissionTriageListRow } from './MissionTriageListRow'
 import { MissionTriageTabs } from './MissionTriageTabs'
 import { triageMission } from '../../domain/missionIntakeRouting'
@@ -72,7 +75,15 @@ import {
 } from './missionTriageLayoutView'
 
 export default function CasesPage() {
-  const { game, launchContract, launchMajorIncident, assign, unassign } = useGameStore()
+  const {
+    game,
+    launchContract,
+    launchMajorIncident,
+    assign,
+    unassign,
+    setMissionTriageDisposition,
+    clearMissionTriageDisposition,
+  } = useGameStore()
   const [searchParams, setSearchParams] = useSearchParams()
   const [compareCaseState, setCompareCaseState] = useState<Record<string, boolean>>({})
   const [majorIncidentTeamState, setMajorIncidentTeamState] = useState<Record<string, string[]>>({})
@@ -591,6 +602,8 @@ export default function CasesPage() {
                   assign,
                   unassign,
                   launchMajorIncident,
+                  setMissionTriageDisposition,
+                  clearMissionTriageDisposition,
                 })}
               </div>
             ) : (
@@ -648,6 +661,8 @@ function renderCaseTriageDetail({
   assign,
   unassign,
   launchMajorIncident,
+  setMissionTriageDisposition,
+  clearMissionTriageDisposition,
 }: {
   view: CaseListItemView
   game: GameState
@@ -668,7 +683,10 @@ function renderCaseTriageDetail({
     strategy: MajorIncidentStrategy,
     provisions: MajorIncidentProvisionType[]
   ) => void
+  setMissionTriageDisposition: (caseId: string, disposition: MissionTriageDisposition) => void
+  clearMissionTriageDisposition: (caseId: string) => void
 }) {
+  const dispositionView = buildMissionTriageDispositionView(view, game)
   const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
   const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
   const listRowMarkers = getListRowMarkers(view)
@@ -768,6 +786,14 @@ function renderCaseTriageDetail({
                 ) : null}
 
                 <MissionTriageDeferralCompareTable view={view.deferralCompare} />
+
+                <MissionTriageDispositionActions
+                  dispositionView={dispositionView}
+                  onDisposition={(disposition) =>
+                    setMissionTriageDisposition(view.currentCase.id, disposition)
+                  }
+                  onClear={() => clearMissionTriageDisposition(view.currentCase.id)}
+                />
 
                 {recommendation ? (
                   <div className="rounded border border-sky-400/25 bg-sky-500/8 px-3 py-2">

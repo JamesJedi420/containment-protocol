@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  applyMissionTriageDisposition,
+  clearMissionTriageDisposition,
   generateWeeklyMissionIntake,
+  isMissionTriageDispositionActive,
   mapMissionPriority,
   normalizeMissionRoutingState,
+  recomputeMissionRouting,
   routeMission,
   routeMissionToTeam,
   shortlistMissionCandidateTeams,
@@ -12,6 +16,8 @@ import {
   triageMission,
 } from '../domain/missionIntakeRouting'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { evaluateDeploymentEligibility } from '../domain/deploymentReadiness'
+import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
 
 describe('mission intake, triage, and routing', () => {
@@ -199,5 +205,159 @@ describe('mission intake, triage, and routing', () => {
     expect(missionTriageShowsEscalationDeferralRisk(['escalation-high'])).toBe(true)
     expect(missionTriageShowsEscalationDeferralRisk(['escalation-medium'])).toBe(true)
     expect(missionTriageShowsEscalationDeferralRisk(['escalation-low'])).toBe(false)
+  })
+
+  it('applyMissionTriageDisposition sets deferred routingState for current week', () => {
+    const state = {
+      ...createStartingState(),
+      missionRouting: normalizeMissionRoutingState(createStartingState()),
+    }
+    const missionId = 'case-001'
+    const next = applyMissionTriageDisposition(state, missionId, 'defer')
+
+    expect(next.missionRouting?.missions[missionId]?.routingState).toBe('deferred')
+    expect(next.missionRouting?.missions[missionId]?.playerDisposition).toBe('defer')
+    expect(next.missionRouting?.missions[missionId]?.playerDispositionWeek).toBe(state.week)
+    expect(
+      isMissionTriageDispositionActive(next.missionRouting?.missions[missionId], state.week)
+    ).toBe(true)
+  })
+
+  it('recomputeMissionRouting drops disposition when recomputed for a later week', () => {
+    const base = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const nextWeekState = { ...base, week: base.week + 1 }
+    const recomputed = recomputeMissionRouting(nextWeekState, base.week + 1)
+
+    expect(recomputed.missions['case-001']?.playerDisposition).toBeUndefined()
+    expect(recomputed.missions['case-001']?.routingState).not.toBe('deferred')
+  })
+
+  it('advanceWeek clears weekly triage disposition on the new week', () => {
+    const base = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+
+    expect(base.missionRouting?.missions['case-001']?.routingState).toBe('deferred')
+
+    const advanced = advanceWeek(base)
+
+    expect(advanced.week).toBe(base.week + 1)
+    expect(advanced.missionRouting?.missions['case-001']?.playerDisposition).toBeUndefined()
+    expect(advanced.missionRouting?.missions['case-001']?.routingState).not.toBe('deferred')
+  })
+
+  it('route disposition sets shortlisted without assigning a team', () => {
+    const state = {
+      ...createStartingState(),
+      missionRouting: normalizeMissionRoutingState(createStartingState()),
+    }
+    const missionId = 'case-001'
+    const next = applyMissionTriageDisposition(state, missionId, 'route')
+
+    expect(next.missionRouting?.missions[missionId]?.routingState).toBe('shortlisted')
+    expect(next.cases[missionId]?.assignedTeamIds).toEqual([])
+  })
+
+  it('ignore disposition marks triageIgnored without forcing deferred routingState', () => {
+    const state = {
+      ...createStartingState(),
+      missionRouting: normalizeMissionRoutingState(createStartingState()),
+    }
+    const missionId = 'case-001'
+    const next = applyMissionTriageDisposition(state, missionId, 'ignore')
+
+    expect(next.missionRouting?.missions[missionId]?.triageIgnored).toBe(true)
+    expect(next.missionRouting?.missions[missionId]?.routingState).not.toBe('deferred')
+  })
+
+  it('clearMissionTriageDisposition removes weekly disposition fields', () => {
+    const state = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const cleared = clearMissionTriageDisposition(state, 'case-001')
+
+    expect(cleared.missionRouting?.missions['case-001']?.playerDisposition).toBeUndefined()
+    expect(cleared.missionRouting?.missions['case-001']?.triageIgnored).toBeUndefined()
+  })
+
+  it('refreshMissionRouting preserves defer disposition within the same week', () => {
+    const base = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const refreshed = {
+      ...base,
+      missionRouting: recomputeMissionRouting(base, base.week),
+    }
+
+    expect(refreshed.missionRouting?.missions['case-001']?.routingState).toBe('deferred')
+    expect(refreshed.missionRouting?.missions['case-001']?.playerDisposition).toBe('defer')
+  })
+
+  it('defer disposition blocks deployment eligibility', () => {
+    const state = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const teamId = Object.keys(state.teams)[0]!
+    const eligibility = evaluateDeploymentEligibility(state, 'case-001', teamId)
+
+    expect(eligibility.hardBlockers).toContain('routing-state-blocked')
+  })
+
+  it('assignTeam clears weekly triage disposition', () => {
+    const base = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const teamId = Object.keys(base.teams)[0]!
+    const assigned = assignTeam(base, 'case-001', teamId)
+
+    expect(assigned.missionRouting?.missions['case-001']?.playerDisposition).toBeUndefined()
+    expect(assigned.missionRouting?.missions['case-001']?.routingState).not.toBe('deferred')
+  })
+
+  it('persists disposition through save/load', () => {
+    const state = applyMissionTriageDisposition(
+      {
+        ...createStartingState(),
+        missionRouting: normalizeMissionRoutingState(createStartingState()),
+      },
+      'case-001',
+      'defer'
+    )
+    const roundTripped = loadGameSave(serializeGameSave(state))
+
+    expect(roundTripped.missionRouting?.missions['case-001']?.routingState).toBe('deferred')
+    expect(roundTripped.missionRouting?.missions['case-001']?.playerDisposition).toBe('defer')
   })
 })

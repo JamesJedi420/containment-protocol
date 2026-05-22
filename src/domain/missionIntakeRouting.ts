@@ -23,6 +23,7 @@ import type {
   MissionRoutingRecord,
   MissionRoutingState,
   MissionRoutingStateKind,
+  MissionTriageDisposition,
   Team,
 } from './models'
 
@@ -501,6 +502,171 @@ function sanitizePriority(value: unknown): MissionPriorityBand {
     : 'normal'
 }
 
+function sanitizeMissionTriageDisposition(value: unknown): MissionTriageDisposition | undefined {
+  return value === 'route' || value === 'defer' || value === 'ignore' ? value : undefined
+}
+
+export function isMissionTriageDispositionActive(
+  mission: Pick<MissionRoutingRecord, 'playerDisposition' | 'playerDispositionWeek'> | undefined,
+  week: number
+) {
+  return (
+    mission?.playerDisposition !== undefined &&
+    mission.playerDispositionWeek === week
+  )
+}
+
+export function dispositionToRoutingState(
+  disposition: MissionTriageDisposition,
+  computed: MissionRoutingStateKind
+): MissionRoutingStateKind {
+  if (disposition === 'route') {
+    return 'shortlisted'
+  }
+
+  if (disposition === 'defer') {
+    return 'deferred'
+  }
+
+  return computed
+}
+
+function missionHasAssignedTeams(state: GameState, missionId: Id) {
+  const currentCase = state.cases[missionId]
+  if (!currentCase) {
+    return false
+  }
+
+  return currentCase.assignedTeamIds.some((teamId) => Boolean(state.teams[teamId]))
+}
+
+function canApplyMissionTriageDisposition(state: GameState, caseData: CaseInstance) {
+  return caseData.status !== 'resolved' && !missionHasAssignedTeams(state, caseData.id)
+}
+
+export function isMissionTriageIgnoredThisWeek(game: GameState, missionId: Id) {
+  const mission = game.missionRouting?.missions[missionId]
+  return Boolean(
+    mission?.triageIgnored &&
+      isMissionTriageDispositionActive(mission, game.week) &&
+      mission.playerDisposition === 'ignore' &&
+      !missionHasAssignedTeams(game, missionId)
+  )
+}
+
+function mergeRecomputedMissionRecord(
+  state: GameState,
+  mission: MissionRoutingRecord,
+  routed: MissionRoutingResult,
+  triage: ReturnType<typeof triageMission>,
+  week: number
+): MissionRoutingRecord {
+  const dispositionActive =
+    isMissionTriageDispositionActive(mission, state.week) &&
+    !missionHasAssignedTeams(state, mission.missionId)
+  const playerDisposition = dispositionActive ? mission.playerDisposition : undefined
+  const playerDispositionWeek = dispositionActive ? mission.playerDispositionWeek : undefined
+  const triageIgnored =
+    dispositionActive && mission.playerDisposition === 'ignore' ? true : undefined
+
+  return {
+    ...mission,
+    triageScore: triage.score,
+    priority: triage.priority,
+    priorityReasonCodes: triage.reasonCodes,
+    routingState:
+      dispositionActive && playerDisposition
+        ? dispositionToRoutingState(playerDisposition, routed.routingState)
+        : routed.routingState,
+    routingBlockers: routed.routingBlockers,
+    ...(routed.timeCostSummary ? { timeCostSummary: { ...routed.timeCostSummary } } : {}),
+    playerDisposition,
+    playerDispositionWeek,
+    triageIgnored,
+    lastTriageWeek: week,
+    lastRoutedWeek: week,
+    lastCandidateTeamIds: routed.candidateTeamIds,
+    lastRejectedTeamIds: routed.rejectedTeams,
+  }
+}
+
+export function applyMissionTriageDisposition(
+  state: GameState,
+  missionId: Id,
+  disposition: MissionTriageDisposition
+): GameState {
+  const currentCase = state.cases[missionId]
+  if (!currentCase || !canApplyMissionTriageDisposition(state, currentCase)) {
+    return state
+  }
+
+  const missionRouting = normalizeMissionRoutingState(state)
+  const mission = missionRouting.missions[missionId]
+  if (!mission) {
+    return state
+  }
+
+  const routed = routeMission(state, missionId)
+  const routingState = dispositionToRoutingState(disposition, routed.routingState)
+
+  return {
+    ...state,
+    missionRouting: {
+      ...missionRouting,
+      missions: {
+        ...missionRouting.missions,
+        [missionId]: {
+          ...mission,
+          playerDisposition: disposition,
+          playerDispositionWeek: state.week,
+          triageIgnored: disposition === 'ignore' ? true : undefined,
+          routingState,
+          routingBlockers: routed.routingBlockers,
+          lastCandidateTeamIds: [...routed.candidateTeamIds],
+          lastRejectedTeamIds: routed.rejectedTeams.map((team) => team.teamId),
+          ...(routed.timeCostSummary ? { timeCostSummary: { ...routed.timeCostSummary } } : {}),
+          lastTriageWeek: state.week,
+          lastRoutedWeek: state.week,
+          lastCandidateTeamIds: routed.candidateTeamIds,
+          lastRejectedTeamIds: routed.rejectedTeams,
+        },
+      },
+    },
+  }
+}
+
+export function clearMissionTriageDisposition(state: GameState, missionId: Id): GameState {
+  const missionRouting = normalizeMissionRoutingState(state)
+  const mission = missionRouting.missions[missionId]
+  if (!mission) {
+    return state
+  }
+
+  const clearedMission: MissionRoutingRecord = {
+    ...mission,
+    playerDisposition: undefined,
+    playerDispositionWeek: undefined,
+    triageIgnored: undefined,
+  }
+
+  return {
+    ...state,
+    missionRouting: recomputeMissionRouting(
+      {
+        ...state,
+        missionRouting: {
+          ...missionRouting,
+          missions: {
+            ...missionRouting.missions,
+            [missionId]: clearedMission,
+          },
+        },
+      },
+      state.week
+    ),
+  }
+}
+
 function normalizeMissionRecord(
   state: GameState,
   caseData: CaseInstance,
@@ -532,10 +698,25 @@ function normalizeMissionRecord(
     priority: sanitizePriority(existing?.priority ?? triage.priority),
     priorityReasonCodes: uniqueSortedStrings(existing?.priorityReasonCodes ?? triage.reasonCodes),
     triageScore: clampInteger(existing?.triageScore ?? triage.score, 0, 100),
-    routingState: sanitizeRoutingStateKind(existing?.routingState ?? routing.routingState),
+    routingState: sanitizeRoutingStateKind(
+      isMissionTriageDispositionActive(existing, state.week) &&
+        existing?.playerDisposition &&
+        !missionHasAssignedTeams(state, caseData.id)
+        ? dispositionToRoutingState(existing.playerDisposition, routing.routingState)
+        : routing.routingState
+    ),
     routingBlockers: uniqueSortedStrings(
       (existing?.routingBlockers ?? routing.routingBlockers) as string[]
     ) as MissionRoutingBlockerCode[],
+    ...(sanitizeMissionTriageDisposition(existing?.playerDisposition) &&
+    existing?.playerDispositionWeek === state.week &&
+    !missionHasAssignedTeams(state, caseData.id)
+      ? {
+          playerDisposition: sanitizeMissionTriageDisposition(existing.playerDisposition),
+          playerDispositionWeek: clampInteger(existing.playerDispositionWeek, 1, Number.MAX_SAFE_INTEGER),
+          ...(existing.playerDisposition === 'ignore' ? { triageIgnored: true } : {}),
+        }
+      : {}),
     ...(routing.timeCostSummary ? { timeCostSummary: { ...routing.timeCostSummary } } : {}),
     ...(typeof existing?.lastTriageWeek === 'number'
       ? { lastTriageWeek: clampInteger(existing.lastTriageWeek, 1, Number.MAX_SAFE_INTEGER) }
@@ -687,19 +868,7 @@ export function recomputeMissionRouting(state: GameState, week = state.week) {
 
       return [
         missionId,
-        {
-          ...mission,
-          triageScore: triage.score,
-          priority: triage.priority,
-          priorityReasonCodes: triage.reasonCodes,
-          routingState: routed.routingState,
-          routingBlockers: routed.routingBlockers,
-          ...(routed.timeCostSummary ? { timeCostSummary: { ...routed.timeCostSummary } } : {}),
-          lastTriageWeek: week,
-          lastRoutedWeek: week,
-          lastCandidateTeamIds: routed.candidateTeamIds,
-          lastRejectedTeamIds: routed.rejectedTeams,
-        } satisfies MissionRoutingRecord,
+        mergeRecomputedMissionRecord(state, mission, routed, triage, week),
       ]
     })
   )
@@ -753,6 +922,9 @@ export function routeMissionToTeam(state: GameState, missionId: Id, teamId: Id) 
             ...mission,
             routingState: 'assigned',
             routingBlockers: [],
+            playerDisposition: undefined,
+            playerDispositionWeek: undefined,
+            triageIgnored: undefined,
             ...(mission.timeCostSummary ? { timeCostSummary: { ...mission.timeCostSummary } } : {}),
             lastCandidateTeamIds: uniqueSortedStrings([teamId, ...mission.lastCandidateTeamIds]),
             lastRoutedWeek: state.week,

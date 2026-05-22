@@ -3378,6 +3378,14 @@ function settleWeekState(context: WeeklyExecutionContext, rng: SeededRng) {
     rngState: rng.getState(),
     agents: directiveAdjustedAgents,
     emergencyGrayMarketWaiverWeek,
+    ...(context.nextState.missionRouting
+      ? {
+          missionRouting: recomputeMissionRouting(
+            { ...context.nextState, week: nextWeek },
+            nextWeek
+          ),
+        }
+      : {}),
   }
 
   if (prevWaiverWeek !== undefined && prevWaiverWeek === context.sourceState.week) {

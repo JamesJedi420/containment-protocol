@@ -109,7 +109,7 @@ function countTeamsAvailable(game: GameState) {
 }
 
 function isUrgentIfDeferred(view: CaseListItemView, triage: MissionTriageResult) {
-  if (view.currentCase.status === 'resolved') {
+  if (view.currentCase.status === 'resolved' || view.triageIgnored) {
     return false
   }
 

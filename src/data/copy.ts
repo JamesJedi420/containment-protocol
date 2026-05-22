@@ -494,6 +494,22 @@ export const MISSION_TRIAGE_COVERT_PREP_LABELS = {
     'Deferring may let infiltration exposure escalate before you can prep covert follow-up on case detail.',
 } as const
 
+/** Mission triage disposition actions (SPE-16 slice 5). */
+export const MISSION_TRIAGE_DISPOSITION_LABELS = {
+  routeNow: 'Route now',
+  defer: 'Defer',
+  ignore: 'Ignore',
+  clear: 'Clear disposition',
+  routeDetail: 'Mark for operational planning this week. Assign a response unit when ready.',
+  deferDetail: 'Accept delay; escalation may continue while deferred.',
+  ignoreDetail: 'Deprioritize in the triage list this week. Does not dismiss the case.',
+  activeRoute: 'Routed for planning',
+  activeDefer: 'Deferred',
+  activeIgnore: 'Ignored this week',
+  assignDistinct:
+    'Team assignment deploys the mission. Triage disposition only records weekly planning intent.',
+} as const
+
 /** Mission triage deferral comparison columns (SPE-16 slice 2). */
 export const MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS = {
   covertPrepCost: 'Covert prep load',

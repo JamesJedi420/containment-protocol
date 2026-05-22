@@ -23,6 +23,7 @@ import {
 import {
   deriveMissionCategory,
   missionTriageShowsEscalationDeferralRisk,
+  isMissionTriageIgnoredThisWeek,
   triageMission,
 } from '../../domain/missionIntakeRouting'
 import {
@@ -80,6 +81,7 @@ export interface CaseListItemView {
   isBlockedByRequiredRoles: boolean
   isBlockedByRequiredTags: boolean
   isRaidAtCapacity: boolean
+  triageIgnored: boolean
   covertPrepSignals: MissionTriageCovertPrepSignals
   deferralCompare: MissionTriageDeferralCompareView
 }
@@ -214,6 +216,7 @@ export function getCaseListItemView(
       isBlockedByRequiredRoles,
       isBlockedByRequiredTags,
       isRaidAtCapacity,
+      triageIgnored: isMissionTriageIgnoredThisWeek(game, currentCase.id),
     }),
     maxTeams,
     isUnassigned,
@@ -222,6 +225,7 @@ export function getCaseListItemView(
     isBlockedByRequiredRoles,
     isBlockedByRequiredTags,
     isRaidAtCapacity,
+    triageIgnored: isMissionTriageIgnoredThisWeek(game, currentCase.id),
     covertPrepSignals,
     deferralCompare:
       options?.includeCovertPrepSignals === true
@@ -447,6 +451,7 @@ function getPriorityScore(view: {
   isBlockedByRequiredRoles: boolean
   isBlockedByRequiredTags: boolean
   isRaidAtCapacity: boolean
+  triageIgnored: boolean
 }) {
   const base =
     view.currentCase.stage * 100 +
@@ -463,8 +468,9 @@ function getPriorityScore(view: {
 
   const successPenalty = Math.round(view.bestSuccess * 40)
   const resolvedPenalty = view.currentCase.status === 'resolved' ? 1000 : 0
+  const ignoredPenalty = view.triageIgnored ? 500 : 0
 
-  return base + urgency - successPenalty - resolvedPenalty
+  return base + urgency - successPenalty - resolvedPenalty - ignoredPenalty
 }
 
 function isAtRiskCase(view: CaseListItemView) {

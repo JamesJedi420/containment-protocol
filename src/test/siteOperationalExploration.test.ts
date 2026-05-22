@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import type { CaseInstance } from '../domain/models'
 import {
   applySiteExplorationAction,
+  crossedSiteTurnWanderInterval,
   getSiteExplorationAlertClockId,
   getSiteExplorationTurnClockId,
   isCaseInSiteExplorationPhase,
@@ -99,18 +100,38 @@ describe('siteOperationalExploration', () => {
     expect(shouldTriggerSiteWanderingCheck(3, 4, 1)).toBe(false)
   })
 
-  it('triggers cadence wandering when a multi-turn action skips an interval boundary', () => {
+  it('crossedSiteTurnWanderInterval detects skipped boundaries (2→4, not 3→4)', () => {
+    expect(crossedSiteTurnWanderInterval(2, 4)).toBe(true)
+    expect(crossedSiteTurnWanderInterval(3, 4)).toBe(false)
+    expect(crossedSiteTurnWanderInterval(0, 3)).toBe(true)
+  })
+
+  it('triggers cadence wandering when repair skips turn 3 (2→4)', () => {
     const state = createStartingState()
-    const currentCase = buildExplorationCase('skip')
-    let game = { ...state, cases: { skip: currentCase } }
+    const currentCase = buildExplorationCase('skip-repair')
+    let game = { ...state, cases: { 'skip-repair': currentCase } }
 
-    const first = applySiteExplorationAction(game, 'skip', 'listen')
-    const second = applySiteExplorationAction(first.state, 'skip', 'listen')
-    expect(readSiteExplorationTurnValue(second.state, 'skip')).toBe(2)
+    const first = applySiteExplorationAction(game, 'skip-repair', 'listen')
+    const second = applySiteExplorationAction(first.state, 'skip-repair', 'listen')
+    expect(readSiteExplorationTurnValue(second.state, 'skip-repair')).toBe(2)
 
-    const rest = applySiteExplorationAction(second.state, 'skip', 'repair')
-    expect(readSiteExplorationTurnValue(rest.state, 'skip')).toBe(4)
-    expect(rest.wanderingCheckTriggered).toBe(true)
+    const repair = applySiteExplorationAction(second.state, 'skip-repair', 'repair')
+    expect(readSiteExplorationTurnValue(repair.state, 'skip-repair')).toBe(4)
+    expect(repair.wanderingCheckTriggered).toBe(true)
+  })
+
+  it('triggers cadence wandering when breach skips turn 3 (1→4 in one action)', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('skip-breach')
+    const game = { ...state, cases: { 'skip-breach': currentCase } }
+
+    const setup = applySiteExplorationAction(game, 'skip-breach', 'listen')
+    expect(readSiteExplorationTurnValue(setup.state, 'skip-breach')).toBe(1)
+
+    const breach = applySiteExplorationAction(setup.state, 'skip-breach', 'breach')
+    expect(readSiteExplorationTurnValue(breach.state, 'skip-breach')).toBe(4)
+    expect(readSiteExplorationAlertValue(breach.state, 'skip-breach')).toBe(3)
+    expect(breach.wanderingCheckTriggered).toBe(true)
   })
 
   it('flags wandering check after cumulative breach noise', () => {

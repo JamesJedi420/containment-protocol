@@ -71,6 +71,7 @@ import { triageMission } from '../../domain/missionIntakeRouting'
 import {
   buildMissionTriageCompactRowView,
   buildMissionTriageContextFooterView,
+  buildMissionTriageListRowChips,
   buildTriageTabCounts,
 } from './missionTriageLayoutView'
 
@@ -561,13 +562,11 @@ export default function CasesPage() {
                 const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${
                   rowQueryString ? `?${rowQueryString}` : ''
                 }`
-                const listRowMarkers = getListRowMarkers(view)
-                const markerPreview = listRowMarkers.map((marker) => marker.label).slice(0, 2).join(' · ')
                 const compactRow = buildMissionTriageCompactRowView(
                   view,
                   triageMission(game, view.currentCase),
                   effectiveSelectedCaseId,
-                  markerPreview
+                  game
                 )
 
                 return (
@@ -689,7 +688,7 @@ function renderCaseTriageDetail({
   const dispositionView = buildMissionTriageDispositionView(view, game)
   const detailHref = `${APP_ROUTES.caseDetail(view.currentCase.id)}${querySuffix}`
   const intelHref = APP_ROUTES.intelDetail(view.currentCase.templateId)
-  const listRowMarkers = getListRowMarkers(view)
+  const detailRowChips = buildMissionTriageListRowChips(view, dispositionView)
   const incidentStrategy =
     majorIncidentStrategyState[view.currentCase.id] ??
     view.currentCase.majorIncident?.strategy ??
@@ -767,15 +766,15 @@ function renderCaseTriageDetail({
                   </span>
                 </div>
 
-                {listRowMarkers.length > 0 ? (
+                {detailRowChips.length > 0 ? (
                   <div className="flex flex-wrap gap-2" aria-label="Case triage markers">
-                    {listRowMarkers.map((marker) => (
+                    {detailRowChips.map((chip) => (
                       <span
-                        key={marker.key}
-                        title={marker.title}
-                        className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${marker.className}`}
+                        key={chip.id}
+                        title={chip.title}
+                        className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${chip.className}`}
                       >
-                        {marker.label}
+                        {chip.label}
                       </span>
                     ))}
                   </div>
@@ -1066,82 +1065,6 @@ function renderCaseTriageDetail({
   )
 }
 
-const MAX_LIST_ROW_MARKERS = 4
-
-function getListRowMarkers(view: CaseListItemView) {
-  const markers: Array<{ key: string; label: string; className: string; title?: string }> = []
-
-  for (const marker of getUrgencyMarkers(view)) {
-    if (markers.length >= MAX_LIST_ROW_MARKERS) {
-      break
-    }
-
-    markers.push({ key: `urgency:${marker.label}`, ...marker })
-  }
-
-  for (const marker of view.covertPrepSignals.markers) {
-    if (markers.length >= MAX_LIST_ROW_MARKERS) {
-      break
-    }
-
-    markers.push({
-      key: marker.id,
-      label: marker.label,
-      className: marker.className,
-      title: marker.title,
-    })
-  }
-
-  return markers
-}
-
-function getUrgencyMarkers(view: CaseListItemView) {
-  const markers: Array<{ label: string; className: string }> = []
-
-  if (view.isUnassigned) {
-    markers.push({
-      label: 'Unassigned',
-      className: 'border-slate-500/40 bg-slate-500/10 text-slate-200',
-    })
-  }
-
-  if (view.isCriticalStage) {
-    markers.push({
-      label: 'High stage',
-      className: 'border-red-500/40 bg-red-500/10 text-red-200',
-    })
-  }
-
-  if (view.hasDeadlineRisk) {
-    markers.push({
-      label: 'Deadline risk',
-      className: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
-    })
-  }
-
-  if (view.isBlockedByRequiredRoles) {
-    markers.push({
-      label: 'Required-role blocked',
-      className: 'border-violet-500/40 bg-violet-500/10 text-violet-200',
-    })
-  }
-
-  if (view.isBlockedByRequiredTags) {
-    markers.push({
-      label: 'Required-tag blocked',
-      className: 'border-orange-500/40 bg-orange-500/10 text-orange-200',
-    })
-  }
-
-  if (view.isRaidAtCapacity) {
-    markers.push({
-      label: 'Raid at capacity',
-      className: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200',
-    })
-  }
-
-  return markers
-}
 
 function getBestEligibleSuccess(view: CaseListItemView) {
   const eligible = view.availableTeams.filter(

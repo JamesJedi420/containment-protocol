@@ -40,9 +40,11 @@ This spec is for:
 
 **Slice 4 shipped (SPE-2258):** On `/cases` routes, `ShellStatusBar` appends read-only triage tail chips (queue depth, routable count, unassigned urgent when > 0) via `buildMissionTriageShellExtensionSignals`, using the same filtered board views as `MissionTriageContextFooter`. Plan: `planning/mission-triage-status-bar-slice.md`.
 
+**Slice 6 shipped (SPE-2259):** Compact triage list rows show disposition + urgency + covert-prep chips via `buildMissionTriageListRowChips` and `MissionTriageListRow`. Plan: `planning/mission-triage-list-scan-slice.md`.
+
 **Still deferred (follow-up slices):**
 
-- route/defer/ignore action follow-up polish and additional triage UX expansion beyond shipped slices 1–5
+- Additional triage UX expansion beyond shipped slices 1–6 (compare-top-2 on list, bulk actions, spec §13 visual grouping)
 
 ---
 

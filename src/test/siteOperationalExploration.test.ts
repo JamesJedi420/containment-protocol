@@ -109,7 +109,7 @@ describe('siteOperationalExploration', () => {
   it('triggers cadence wandering when repair skips turn 3 (2→4)', () => {
     const state = createStartingState()
     const currentCase = buildExplorationCase('skip-repair')
-    let game = { ...state, cases: { 'skip-repair': currentCase } }
+    const game = { ...state, cases: { 'skip-repair': currentCase } }
 
     const first = applySiteExplorationAction(game, 'skip-repair', 'listen')
     const second = applySiteExplorationAction(first.state, 'skip-repair', 'listen')

@@ -25,7 +25,7 @@
 | SPE-371, SPE-562, SPE-1734 | C1–C2, C18–C21, C137, C139 |
 | SPE-58, SPE-164, SPE-2106 | C4–C11, C8–C10, C16–C17, C53–C55, C75, C93, C110, C138, C141 |
 | SPE-854, SPE-1496 | C6–C7, C12–C15, C38, C40, C52, C63–C66, C78–C85, C141, C144 |
-| SPE-1610, SPE-130, SPE-42 | C14–C23, C31–C36, C67–C76, C91–C110, C142 |
+| SPE-1610, SPE-130, SPE-42 | C13–C23, C31–C36, C67–C76, C91–C110, C142 |
 | SPE-158, SPE-2095, SPE-1025 | C24–C30, C27, C81–C82, C143 |
 | SPE-98, SPE-1074, SPE-529 | C29–C30, C41–C90, C111–C131, C148 |
 | SPE-88, SPE-2105 | C41–C90, C105–C108 |
@@ -34,7 +34,7 @@
 | SPE-35, SPE-208 | C96, C100–C102, C145 |
 | SPE-793, SPE-614 | C24, C36 |
 | SPE-1052 | C97–C98, C104 |
-| SPE-1085, SPE-151 | C13–C14 guardrails; C132–C133, C136, C140, C149–C150 authoring; C151–C165 |
+| SPE-1085, SPE-151 | C132–C133, C136, C140, C149–C150 authoring; C151–C165 contradiction checks (trap/evidence policy overlaps C13–C14) |
 
 ## No-op / delta (selected)
 
@@ -64,8 +64,8 @@
 | C10 | fold_in | SPE-164, SPE-58 | Door state taxonomy |
 | C11 | fold_in | SPE-164, SPE-854 | Breach consequences |
 | C12 | fold_in | SPE-854, SPE-1610 | Trap purpose model |
-| C13 | fold_in | SPE-1610, SPE-788 | Intelligent trap adaptation |
-| C14 | fold_in | SPE-788, SPE-854 | Trap evidence cleanup |
+| C13 | fold_in | SPE-1610, SPE-788, SPE-1085 | Intelligent trap adaptation (C151 arbitrary-punishment guardrail) |
+| C14 | fold_in | SPE-788, SPE-854, SPE-1085 | Trap evidence cleanup (custody/evidence policy) |
 | C15 | fold_in | SPE-1610, SPE-1052 | Trap severity profile |
 | C16 | fold_in | SPE-2106, SPE-88 | Trick-room / rules-puzzle spaces |
 | C17 | fold_in | SPE-58, SPE-2106 | Procedural room generator |

@@ -14,7 +14,7 @@ Linear is the **system of record** for issue state, scope, and closure. GitHub P
 | Phase | Linear action |
 | --- | --- |
 | **Task start** | Find or create the slice issue; set **In Progress** before substantive code or harvest closure. |
-| **During work** | Fold-in comments on every SPE owner when reconciling harvests (same session, not "table only") using **`docs/harvest-fold-in-linear-comments.md`** — boundary clarification, not scope accretion; intake on SPE-2110 when applicable; comment on the slice issue when scope or blockers change materially. |
+| **During work** | Harvest triage: **`docs/harvest-candidate-triage-agent.md`**; fold-in comments on every SPE owner (same session, not "table only") via **`docs/harvest-fold-in-linear-comments.md`**; owner map QA **`docs/harvest-mirror-owner-map-qa.md`**; intake on SPE-2110 when applicable; comment on the slice issue when scope or blockers change materially. |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
 | **PR merged** | Set slice issue **Done**; parent **Done** only if full parent scope shipped, else return parent to **Backlog**. |
 | **After merge** | Short comment on the slice issue: PR URL + what shipped. |

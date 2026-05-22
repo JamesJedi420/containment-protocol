@@ -83,9 +83,12 @@ Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/
 
 ## How to add a row
 
+**Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, branch rules). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
+
 1. Close the batch on Linear (SPE-2110 intake + **fold-in comments on owners**) in the same session as adjudication.
 2. **Fold-in comments** must clarify implementation boundaries — not accrete scope. Required format: [`docs/harvest-fold-in-linear-comments.md`](../docs/harvest-fold-in-linear-comments.md) (owner, acceptance delta, out of scope, disposition).
-3. Add `planning/<batch-id>-harvest.md`, then append a row to **Mirrored batches** above (verify the planning doc link opens).
-4. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
+3. Add `planning/<batch-id>-harvest.md`; reconcile **Primary owner map** to **Per-candidate outcomes** (table is authoritative).
+4. Append a row to **Mirrored batches** above (verify the planning doc link opens).
+5. Open a docs-only PR; do not mix harvest mirrors with implementation commits.
 
 Batches reconciled on Linear without a mirror doc yet stay off this index until the `*-harvest.md` file lands.

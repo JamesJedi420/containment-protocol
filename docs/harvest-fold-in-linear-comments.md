@@ -2,7 +2,9 @@
 
 **Purpose:** Fold-in comments on owner issues are **implementation-boundary clarification**, not a backlog dump or scope accretion. They tell the owner issue what may change later — without rewriting the issue goal or implying the harvest batch is a mandate to implement everything named.
 
-**When:** Same session as candidate adjudication, before the batch mirror PR lands. See `planning/harvest-reconciliation-index.md`.
+**When:** Same session as candidate adjudication, before the batch mirror PR lands. See `planning/harvest-reconciliation-index.md` and **`docs/harvest-candidate-triage-agent.md`**.
+
+**Mirror consistency:** Per-candidate **Owner(s)** in `planning/<batch-id>-harvest.md` must match the primary owner map before fold-ins post — **`docs/harvest-mirror-owner-map-qa.md`**.
 
 **Not a substitute for:** `planning/<batch-id>-harvest.md` (full candidate table), SPE-2110 intake summary, or a child slice issue when work is bounded and shippable on its own.
 

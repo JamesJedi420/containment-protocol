@@ -39,9 +39,10 @@
 | SPE-793, SPE-614 | C27, C54 |
 | SPE-677 | C19–C21, C39 |
 | SPE-158, SPE-2095 | C64, C22 |
-| SPE-68, SPE-130 | C34, C94 |
+| SPE-68, SPE-130 | C34 |
 | SPE-160 | C25 |
-| SPE-1101, SPE-1653 | C48, C94 |
+| SPE-1101, SPE-130 | C48 |
+| SPE-1085, SPE-1101 | C94 |
 
 ## Per-candidate outcomes (C1–C55)
 

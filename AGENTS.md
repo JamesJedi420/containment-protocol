@@ -18,6 +18,24 @@
 
 Agents: when merge is complete, remind the user to sync `main` and **start a new agent** for the next task.
 
+### Linear — mandatory (every session, every agent)
+
+**Non-negotiable** for all agents (local, Cloud, background, subagents) and all task types: implementation, harvest reconciliation, PR babysit, reviews, and docs-only slices. Cursor loads **`.cursor/rules/linear-always-update.mdc`** (`alwaysApply: true`) on every session.
+
+Linear is the system of record for issue state and closure. **Do not** skip Linear because a PR has a GitHub linkback bot comment or because the task feels "metadata only."
+
+| When | Action |
+| --- | --- |
+| **Before substantive work** | Find or create the slice issue; set **In Progress**. |
+| **Harvest / triage closure** | Post fold-in comments on every SPE owner in the **same session**; intake on SPE-2110 when applicable — not "table only." |
+| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
+| **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
+| **After merge** | Short Linear comment: PR URL + what shipped. |
+
+If Linear MCP is unavailable, report the exact comments or status changes that would have been posted; do not treat that as permission to skip updates indefinitely.
+
+Paste **`docs/cursor-user-rules-snippet.md`** into Cursor User Rules so personal sessions inherit the same expectation.
+
 ### During an open PR
 
 One session on the **same branch** is fine (implement, CI, review). New session when the task or merged PR changes.
@@ -55,17 +73,6 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 ### Standard scripts reference
 
 All scripts are documented in `README.md` under the **Scripts** section and in `package.json`.
-
-### Linear (always update)
-
-For every implementation task tied to an SPE or backlog item:
-
-1. **Before coding** — create or find the Linear issue (child slice under parent when the parent is large); set **In Progress**.
-2. **When opening a PR** — link the **slice issue** in the PR body (not only the parent epic).
-3. **On merge** — set the slice issue **Done**; leave the parent **Done** only if the full parent scope shipped, otherwise return parent to **Backlog**.
-4. **After merge** — add a short Linear comment with PR URL and what shipped.
-
-Do not skip Linear because the PR has a linkback bot comment.
 
 ### Documentation hygiene
 

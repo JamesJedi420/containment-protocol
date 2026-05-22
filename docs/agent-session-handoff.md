@@ -2,7 +2,7 @@
 
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
-Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only).
+**Repo-wide Cursor rule (tracked):** `.cursor/rules/linear-always-update.mdc` — `alwaysApply: true` on every agent session. Optional: copy handoff sections into an additional local `.cursor/rules/*.mdc` for personal prefs.
 
 ## Standing policy (repo + user)
 
@@ -33,7 +33,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 1. `planning/backlog.md` or assigned Linear issue.
 2. `planning/<topic>-slice.md` for bounded scope.
-3. Linear lifecycle in `AGENTS.md` (In Progress → PR → Done on merge).
+3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → PR links slice issue → Done on merge → comment what shipped. Harvest triage posts Linear closure in the same turn, not deferred.
 
 ## Optional first message template
 

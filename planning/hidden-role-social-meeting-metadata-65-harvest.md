@@ -36,7 +36,10 @@
 | SPE-98 | C12 |
 | SPE-1034 | C18, C25 |
 | SPE-793 | C32–C33 supplement |
-| SPE-1085, SPE-151 | C57–C65; humane quarantine C58 |
+| SPE-1085, SPE-151 | C57, C60–C62, C64–C65 |
+| SPE-1085, SPE-158 | C58 |
+| SPE-1085, SPE-854 | C59 |
+| SPE-1085 | C63 |
 
 ## Per-candidate outcomes
 

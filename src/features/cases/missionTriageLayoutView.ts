@@ -7,12 +7,17 @@ import {
 import type { GameState, MissionCategory, MissionPriorityBand } from '../../domain/models'
 import { isTeamBlockedByTraining } from '../../domain/sim/training'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
+import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../../data/copy'
 import {
   CASE_TRIAGE_TABS,
   matchesCaseTriageTab,
   type CaseListItemView,
   type CaseTriageTab,
 } from './caseView'
+import {
+  buildMissionTriageDispositionView,
+  type MissionTriageDispositionView,
+} from './missionTriageDispositionView'
 
 export const CASE_TRIAGE_TAB_LABELS: Record<CaseTriageTab, string> = {
   all: 'All',
@@ -35,14 +40,124 @@ export function missionTriageItemTypeLabel(category: MissionCategory): string {
   return MISSION_CATEGORY_LABELS[category]
 }
 
+export interface MissionTriageListRowChip {
+  readonly id: string
+  readonly label: string
+  readonly className: string
+  readonly title?: string
+}
+
+const MAX_LIST_ROW_CHIPS = 5
+
+const DISPOSITION_CHIP_CLASS: Record<
+  NonNullable<MissionTriageDispositionView['active']>,
+  string
+> = {
+  route: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-200',
+  defer: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
+  ignore: 'border-slate-500/40 bg-slate-500/10 text-slate-300',
+}
+
 export interface MissionTriageCompactRowView {
   readonly caseId: string
   readonly title: string
   readonly typeLabel: string
   readonly priority: MissionPriorityBand
   readonly priorityScore: number
-  readonly markerPreview: string
+  readonly chips: readonly MissionTriageListRowChip[]
   readonly isSelected: boolean
+}
+
+function pushListRowChip(chips: MissionTriageListRowChip[], chip: MissionTriageListRowChip) {
+  if (chips.length >= MAX_LIST_ROW_CHIPS) {
+    return
+  }
+
+  chips.push(chip)
+}
+
+function appendUrgencyListRowChips(chips: MissionTriageListRowChip[], view: CaseListItemView) {
+  if (view.isUnassigned) {
+    pushListRowChip(chips, {
+      id: 'urgency:unassigned',
+      label: 'Unassigned',
+      className: 'border-slate-500/40 bg-slate-500/10 text-slate-200',
+    })
+  }
+
+  if (view.isCriticalStage) {
+    pushListRowChip(chips, {
+      id: 'urgency:high-stage',
+      label: 'High stage',
+      className: 'border-red-500/40 bg-red-500/10 text-red-200',
+    })
+  }
+
+  if (view.hasDeadlineRisk) {
+    pushListRowChip(chips, {
+      id: 'urgency:deadline',
+      label: 'Deadline risk',
+      className: 'border-amber-500/40 bg-amber-500/10 text-amber-200',
+    })
+  }
+
+  if (view.isBlockedByRequiredRoles) {
+    pushListRowChip(chips, {
+      id: 'urgency:role-blocked',
+      label: 'Required-role blocked',
+      className: 'border-violet-500/40 bg-violet-500/10 text-violet-200',
+    })
+  }
+
+  if (view.isBlockedByRequiredTags) {
+    pushListRowChip(chips, {
+      id: 'urgency:tag-blocked',
+      label: 'Required-tag blocked',
+      className: 'border-orange-500/40 bg-orange-500/10 text-orange-200',
+    })
+  }
+
+  if (view.isRaidAtCapacity) {
+    pushListRowChip(chips, {
+      id: 'urgency:raid-capacity',
+      label: 'Raid at capacity',
+      className: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200',
+    })
+  }
+}
+
+export function buildMissionTriageListRowChips(
+  view: CaseListItemView,
+  disposition: MissionTriageDispositionView
+): readonly MissionTriageListRowChip[] {
+  const chips: MissionTriageListRowChip[] = []
+
+  if (disposition.active && disposition.activeLabel) {
+    pushListRowChip(chips, {
+      id: `disposition:${disposition.active}`,
+      label: disposition.activeLabel,
+      className: DISPOSITION_CHIP_CLASS[disposition.active],
+      title:
+        disposition.active === 'route'
+          ? MISSION_TRIAGE_DISPOSITION_LABELS.routeDetail
+          : disposition.active === 'defer'
+            ? MISSION_TRIAGE_DISPOSITION_LABELS.deferDetail
+            : MISSION_TRIAGE_DISPOSITION_LABELS.ignoreDetail,
+    })
+  }
+
+  appendUrgencyListRowChips(chips, view)
+
+  for (const marker of view.covertPrepSignals.markers) {
+    pushListRowChip(chips, {
+      id: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
+  return chips
 }
 
 export function buildMissionTriageResultsByCaseId(
@@ -58,8 +173,10 @@ export function buildMissionTriageCompactRowView(
   view: CaseListItemView,
   triage: MissionTriageResult,
   selectedCaseId: string,
-  markerPreview: string
+  game: GameState
 ): MissionTriageCompactRowView {
+  const disposition = buildMissionTriageDispositionView(view, game)
+
   return {
     caseId: view.currentCase.id,
     title: view.currentCase.title,
@@ -68,7 +185,7 @@ export function buildMissionTriageCompactRowView(
       : missionTriageItemTypeLabel(deriveMissionCategory(view.currentCase)),
     priority: triage.priority,
     priorityScore: triage.score,
-    markerPreview,
+    chips: buildMissionTriageListRowChips(view, disposition),
     isSelected: selectedCaseId === view.currentCase.id,
   }
 }

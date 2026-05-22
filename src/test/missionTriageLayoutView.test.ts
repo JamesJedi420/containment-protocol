@@ -1,13 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getCaseListItemView, matchesCaseTriageTab } from '../features/cases/caseView'
+import { MISSION_TRIAGE_DISPOSITION_LABELS } from '../data/copy'
 import {
   buildMissionTriageCompactRowView,
   buildMissionTriageContextFooterView,
+  buildMissionTriageListRowChips,
 } from '../features/cases/missionTriageLayoutView'
+import { buildMissionTriageDispositionView } from '../features/cases/missionTriageDispositionView'
 import {
   applyMissionTriageDisposition,
   normalizeMissionRoutingState,
+  recomputeMissionRouting,
   triageMission,
 } from '../domain/missionIntakeRouting'
 import type { CaseInstance } from '../domain/models'
@@ -80,11 +84,184 @@ describe('missionTriageLayoutView', () => {
 
     const view = getCaseListItemView(game.cases.urgent!, game)
     const triage = triageMission(game, view.currentCase)
-    const row = buildMissionTriageCompactRowView(view, triage, '', '')
+    const row = buildMissionTriageCompactRowView(view, triage, '', game)
 
     expect(row.priority).toBe(triage.priority)
     expect(row.priorityScore).toBe(triage.score)
     expect(row.priorityScore).toBeGreaterThan(0)
+  })
+
+  it('puts disposition chip first on compact row chips', () => {
+    const starter = createStartingState()
+    const openCase = makeCase('open-defer', { status: 'open', title: 'Defer scan' })
+    const game = applyMissionTriageDisposition(
+      {
+        ...starter,
+        cases: { 'open-defer': openCase },
+        missionRouting: normalizeMissionRoutingState({ ...starter, cases: { 'open-defer': openCase } }),
+      },
+      'open-defer',
+      'defer'
+    )
+
+    const view = getCaseListItemView(game.cases['open-defer']!, game, {
+      includeCovertPrepSignals: true,
+    })
+    const disposition = buildMissionTriageDispositionView(view, game)
+    const chips = buildMissionTriageListRowChips(view, disposition)
+
+    expect(chips[0]?.id).toBe('disposition:defer')
+    expect(chips[0]?.label).toBe(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
+
+    const row = buildMissionTriageCompactRowView(
+      view,
+      triageMission(game, view.currentCase),
+      '',
+      game
+    )
+    expect(row.chips[0]?.label).toBe(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
+  })
+
+  it('omits disposition chip on list row when case is assigned', () => {
+    const game = createStartingState()
+    const teamId = Object.keys(game.teams)[0]!
+    const assignedCase = makeCase('assigned-defer', {
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+    })
+    const withDisposition = applyMissionTriageDisposition(
+      {
+        ...game,
+        cases: { 'assigned-defer': assignedCase },
+        missionRouting: normalizeMissionRoutingState({ ...game, cases: { 'assigned-defer': assignedCase } }),
+      },
+      'assigned-defer',
+      'defer'
+    )
+
+    const view = getCaseListItemView(withDisposition.cases['assigned-defer']!, withDisposition)
+    const chips = buildMissionTriageListRowChips(
+      view,
+      buildMissionTriageDispositionView(view, withDisposition)
+    )
+
+    expect(chips.some((chip) => chip.id.startsWith('disposition:'))).toBe(false)
+  })
+
+  it('caps list row chips at five signals', () => {
+    const game = createStartingState()
+    game.cases = {
+      busy: makeCase('busy', {
+        status: 'open',
+        stage: 4,
+        deadlineRemaining: 1,
+        requiredRoles: ['investigator'],
+        requiredTags: ['stealth'],
+        tags: ['infiltration', 'concealment'],
+        infiltrationProbePlan: {
+          plannedAction: 'probe_access',
+          coverRole: 'maintenance',
+          coverTier: 2,
+        },
+        stealthLeaveBehindId: 'leave-behind:risk-discovery',
+      }),
+    }
+
+    const withDisposition = applyMissionTriageDisposition(
+      {
+        ...game,
+        missionRouting: normalizeMissionRoutingState(game),
+      },
+      'busy',
+      'route'
+    )
+    const dispositionView = buildMissionTriageDispositionView(
+      getCaseListItemView(withDisposition.cases.busy!, withDisposition, {
+        includeCovertPrepSignals: true,
+      }),
+      withDisposition
+    )
+    const chips = buildMissionTriageListRowChips(
+      getCaseListItemView(withDisposition.cases.busy!, withDisposition, {
+        includeCovertPrepSignals: true,
+      }),
+      dispositionView
+    )
+
+    expect(chips.length).toBe(5)
+    expect(chips[0]?.id).toBe('disposition:route')
+  })
+
+  it('drops stale disposition chips after the planning week advances', () => {
+    const starter = createStartingState()
+    const openCase = makeCase('stale-disposition', { status: 'open' })
+    const weekOne = applyMissionTriageDisposition(
+      {
+        ...starter,
+        cases: { 'stale-disposition': openCase },
+        missionRouting: normalizeMissionRoutingState({ ...starter, cases: { 'stale-disposition': openCase } }),
+      },
+      'stale-disposition',
+      'defer'
+    )
+
+    const nextWeek = weekOne.week + 1
+    const weekTwo = {
+      ...weekOne,
+      week: nextWeek,
+      missionRouting: recomputeMissionRouting({ ...weekOne, week: nextWeek }, nextWeek),
+    }
+    const view = getCaseListItemView(weekTwo.cases['stale-disposition']!, weekTwo)
+    const chips = buildMissionTriageListRowChips(
+      view,
+      buildMissionTriageDispositionView(view, weekTwo)
+    )
+
+    expect(chips.some((chip) => chip.id.startsWith('disposition:'))).toBe(false)
+  })
+
+  it('returns empty chips when no urgency, covert, or disposition signals apply', () => {
+    const game = createStartingState()
+    game.cases = {
+      assigned: makeCase('assigned', {
+        status: 'in_progress',
+        assignedTeamIds: [Object.keys(game.teams)[0]!],
+      }),
+    }
+
+    const view = getCaseListItemView(game.cases.assigned!, game)
+    const chips = buildMissionTriageListRowChips(
+      view,
+      buildMissionTriageDispositionView(view, game)
+    )
+
+    expect(chips).toEqual([])
+  })
+
+  it('includes urgency and covert-prep chips after disposition on compact row', () => {
+    const game = createStartingState()
+    game.cases = {
+      urgent: makeCase('urgent', {
+        status: 'open',
+        stage: 4,
+        deadlineRemaining: 1,
+        tags: ['infiltration', 'concealment'],
+        infiltrationProbePlan: {
+          plannedAction: 'probe_access',
+          coverRole: 'maintenance',
+          coverTier: 2,
+        },
+      }),
+    }
+
+    const view = getCaseListItemView(game.cases.urgent!, game, { includeCovertPrepSignals: true })
+    const chips = buildMissionTriageListRowChips(
+      view,
+      buildMissionTriageDispositionView(view, game)
+    )
+
+    expect(chips.some((chip) => chip.id.startsWith('urgency:'))).toBe(true)
+    expect(chips.length).toBeGreaterThan(1)
   })
 
   it('builds context footer with zero active cases', () => {

@@ -193,17 +193,22 @@ it('renders covert prep markers on triage list rows', async () => {
   renderCasesPage(['/cases'])
   await selectTriageCase(user, 'Covert Infiltration Case')
 
+  const listChips = screen.getByTestId('case-triage-chips-covert')
+  expect(within(listChips).getByText(/Probe 35%/)).toBeInTheDocument()
+  expect(within(listChips).getByText(/awareness 50%/)).toBeInTheDocument()
+  expect(within(listChips).getByText('Leave-behind staged')).toBeInTheDocument()
+
   const covertCard = getCardByName('Covert Infiltration Case')
-  const markerRegion = within(covertCard).getByLabelText('Case triage markers')
+  const markerRegion = within(covertCard).getByLabelText('Case triage signals')
   expect(within(markerRegion).getByText(/Probe 35%/)).toBeInTheDocument()
   expect(within(markerRegion).getByText(/awareness 50%/)).toBeInTheDocument()
   expect(within(markerRegion).getByText('Cover strain')).toBeInTheDocument()
-  expect(within(covertCard).queryByText('Leave-behind staged')).not.toBeInTheDocument()
+  expect(within(markerRegion).getByText('Leave-behind staged')).toBeInTheDocument()
   expect(
     within(covertCard).getAllByText(/Deferring may let infiltration exposure escalate/i)
   ).toHaveLength(1)
 
-  expect(markerRegion.querySelectorAll('span').length).toBe(4)
+  expect(markerRegion.querySelectorAll('span').length).toBe(5)
 
   const compareTable = within(covertCard).getByRole('table', {
     name: 'Deferral and covert prep comparison',
@@ -237,8 +242,11 @@ it('renders concealment prep chip on triage list rows', async () => {
   useGameStore.setState({ game })
 
   renderCasesPage(['/cases'])
-  await selectTriageCase(user, 'Covert Preview Case')
 
+  const listChips = screen.getByTestId('case-triage-chips-conceal')
+  expect(within(listChips).getByText('Covert next week')).toBeInTheDocument()
+
+  await selectTriageCase(user, 'Covert Preview Case')
   expect(within(getCardByName('Covert Preview Case')).getByText('Covert next week')).toBeInTheDocument()
 })
 
@@ -473,8 +481,17 @@ it('sets defer disposition from triage detail panel', async () => {
   expect(
     useGameStore.getState().game.missionRouting?.missions['case-triage-defer']?.routingState
   ).toBe('deferred')
+
+  const listChips = screen.getByTestId('case-triage-chips-case-triage-defer')
+  expect(within(listChips).getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)).toBeInTheDocument()
+
+  const detail = getCardByName('Defer Me Case')
+  expect(within(detail).getByLabelText('Triage disposition')).toBeInTheDocument()
   expect(
-    screen.getByText(MISSION_TRIAGE_DISPOSITION_LABELS.activeDefer)
+    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.defer, exact: true })
+  ).toHaveAttribute('aria-pressed', 'true')
+  expect(
+    within(detail).getByRole('button', { name: MISSION_TRIAGE_DISPOSITION_LABELS.clear })
   ).toBeInTheDocument()
 })
 

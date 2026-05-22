@@ -52,6 +52,8 @@
 | C44 | urban-100 C64 case-end reflection |
 | C54–C56 | urban-100 C26–C27 map (district confidence, thin places) |
 | C58, C60 | urban-100 C8–C13 mundane overlay; C79 macro fronts |
+| C57 | urban-100 map partial — **delta fold-in** bounded out-of-region haze (detail C57) |
+| C59 | urban-100 awareness tiers partial — **delta fold-in** stage ladder (detail C59; SPE-2108) |
 | C68 | urban-100 C48 countdowns |
 | C89 | urban institution dual function |
 

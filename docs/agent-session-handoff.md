@@ -2,7 +2,7 @@
 
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
-**Repo-wide Cursor rule (tracked):** `.cursor/rules/linear-always-update.mdc` — `alwaysApply: true` on every agent session. Optional: copy handoff sections into an additional local `.cursor/rules/*.mdc` for personal prefs.
+**Repo-wide Cursor rule (tracked):** `.cursor/rules/linear-always-update.mdc` — `alwaysApply: true` on every agent session. Add new shared rules by name in `.gitignore` (`!.cursor/rules/<name>.mdc`). Other files in `.cursor/rules/` stay gitignored for personal prefs.
 
 ## Standing policy (repo + user)
 

@@ -80,11 +80,27 @@ describe('siteOperationalExploration', () => {
     expect(result.reason).toBe('not_site_exploration')
   })
 
-  it('triggers wandering check at alert threshold or turn cadence with alert', () => {
-    expect(shouldTriggerSiteWanderingCheck(2, SITE_EXPLORATION_ALERT_WANDER_THRESHOLD)).toBe(true)
-    expect(shouldTriggerSiteWanderingCheck(3, 1)).toBe(true)
-    expect(shouldTriggerSiteWanderingCheck(3, 0)).toBe(false)
-    expect(shouldTriggerSiteWanderingCheck(2, 1)).toBe(false)
+  it('triggers wandering check at alert threshold or when turn interval bucket is crossed', () => {
+    expect(shouldTriggerSiteWanderingCheck(0, 2, SITE_EXPLORATION_ALERT_WANDER_THRESHOLD)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(2, 3, 1)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(2, 4, 1)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(3, 4, 0)).toBe(false)
+    expect(shouldTriggerSiteWanderingCheck(2, 2, 1)).toBe(false)
+    expect(shouldTriggerSiteWanderingCheck(3, 4, 1)).toBe(false)
+  })
+
+  it('triggers cadence wandering when a multi-turn action skips an interval boundary', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('skip')
+    let game = { ...state, cases: { skip: currentCase } }
+
+    const first = applySiteExplorationAction(game, 'skip', 'listen')
+    const second = applySiteExplorationAction(first.state, 'skip', 'listen')
+    expect(readSiteExplorationTurnValue(second.state, 'skip')).toBe(2)
+
+    const rest = applySiteExplorationAction(second.state, 'skip', 'repair')
+    expect(readSiteExplorationTurnValue(rest.state, 'skip')).toBe(4)
+    expect(rest.wanderingCheckTriggered).toBe(true)
   })
 
   it('flags wandering check after cumulative breach noise', () => {

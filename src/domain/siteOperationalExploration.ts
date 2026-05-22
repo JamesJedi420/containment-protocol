@@ -105,12 +105,33 @@ export function readSiteExplorationAlertValue(state: GameState, caseId: string):
   return readProgressClock(state, getSiteExplorationAlertClockId(caseId))?.value ?? 0
 }
 
-export function shouldTriggerSiteWanderingCheck(turnValue: number, alertValue: number): boolean {
+/** True when nextTurnValue crosses a new wander-interval bucket (e.g. 2→4 still hits the 3-turn boundary). */
+export function crossedSiteTurnWanderInterval(
+  previousTurnValue: number,
+  nextTurnValue: number
+): boolean {
+  if (nextTurnValue <= 0 || nextTurnValue <= previousTurnValue) {
+    return false
+  }
+
+  const interval = SITE_EXPLORATION_TURN_WANDER_INTERVAL
+  return Math.floor(nextTurnValue / interval) > Math.floor(previousTurnValue / interval)
+}
+
+export function shouldTriggerSiteWanderingCheck(
+  previousTurnValue: number,
+  nextTurnValue: number,
+  alertValue: number
+): boolean {
   if (alertValue >= SITE_EXPLORATION_ALERT_WANDER_THRESHOLD) {
     return true
   }
 
-  return turnValue > 0 && turnValue % SITE_EXPLORATION_TURN_WANDER_INTERVAL === 0 && alertValue > 0
+  if (alertValue <= 0) {
+    return false
+  }
+
+  return crossedSiteTurnWanderInterval(previousTurnValue, nextTurnValue)
 }
 
 export interface ApplySiteExplorationActionResult {
@@ -147,6 +168,7 @@ export function applySiteExplorationAction(
   const alertDelta = SITE_EXPLORATION_ACTION_ALERT_DELTA[actionId]
   const turnClockId = getSiteExplorationTurnClockId(caseId)
   const alertClockId = getSiteExplorationAlertClockId(caseId)
+  const previousTurnValue = readSiteExplorationTurnValue(state, caseId)
 
   let nextState = advanceDefinedProgressClock(state, turnClockId, turnCost, turnClockDefaults(currentCase))
   nextState = advanceDefinedProgressClock(
@@ -167,6 +189,10 @@ export function applySiteExplorationAction(
     alertDelta,
     turnValue,
     alertValue,
-    wanderingCheckTriggered: shouldTriggerSiteWanderingCheck(turnValue, alertValue),
+    wanderingCheckTriggered: shouldTriggerSiteWanderingCheck(
+      previousTurnValue,
+      turnValue,
+      alertValue
+    ),
   }
 }

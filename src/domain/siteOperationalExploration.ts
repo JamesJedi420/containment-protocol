@@ -128,7 +128,7 @@ export interface ApplySiteExplorationActionResult {
 export function applySiteExplorationAction(
   state: GameState,
   caseId: string,
-  actionId: SiteExplorationActionId
+  actionId: string
 ): ApplySiteExplorationActionResult {
   const currentCase = state.cases[caseId]
   if (!currentCase) {

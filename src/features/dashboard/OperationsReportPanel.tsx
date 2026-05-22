@@ -440,8 +440,5 @@ function getCertaintyTone(level: 'confirmed' | 'suspected' | 'inferred' | 'contr
   if (level === 'suspected' || level === 'inferred') {
     return 'warning' as const
   }
-  if (level === 'confirmed') {
-    return 'info' as const
-  }
-  return 'neutral' as const
+  return 'info' as const
 }

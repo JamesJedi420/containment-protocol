@@ -130,7 +130,7 @@ function buildRegistryBuckets(game: GameState): {
 } {
   const openCases = Object.values(game.cases)
     .filter((currentCase) => currentCase.status !== 'resolved')
-    .sort((left, right) => left.id.localeCompare(right.id))
+    .sort((left, right) => (left.id < right.id ? -1 : left.id > right.id ? 1 : 0))
 
   const anomalyDetections = new Map<string, DetectionContext>()
   const anomalies = openCases.map((currentCase) => {

@@ -479,5 +479,8 @@ function getCertaintyChipClassName(level: 'confirmed' | 'suspected' | 'inferred'
   if (level === 'suspected' || level === 'inferred') {
     return 'border-amber-400/30 bg-amber-500/10 text-amber-200'
   }
+  if (level === 'confirmed') {
+    return 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
+  }
   return 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
 }

@@ -219,7 +219,7 @@ export function buildOperationalCertaintyView(game: GameState): OperationalCerta
       ? `Certainty warning: ${contradictedCount} contradicted map fact${contradictedCount === 1 ? '' : 's'} need verification before committing teams.`
       : registry.overloadFlag
         ? `Registry overload: ${registry.activeThreatCount} active threat entries require triage before expansion.`
-        : `Operational certainty stable: ${registry.activeThreatCount} active threat entr${registry.activeThreatCount === 1 ? 'y' : 'ies'} with no contradiction hotspots.`
+        : `Operational certainty stable: ${registry.activeThreatCount} active threat ${registry.activeThreatCount === 1 ? 'entry' : 'entries'} with no contradiction hotspots.`
 
   return {
     summary,

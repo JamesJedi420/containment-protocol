@@ -199,7 +199,7 @@ it('renders covert prep markers on triage list rows', async () => {
   expect(within(listChips).getByText('Leave-behind staged')).toBeInTheDocument()
 
   const covertCard = getCardByName('Covert Infiltration Case')
-  const markerRegion = within(covertCard).getByLabelText('Case triage markers')
+  const markerRegion = within(covertCard).getByLabelText('Case triage signals')
   expect(within(markerRegion).getByText(/Probe 35%/)).toBeInTheDocument()
   expect(within(markerRegion).getByText(/awareness 50%/)).toBeInTheDocument()
   expect(within(markerRegion).getByText('Cover strain')).toBeInTheDocument()

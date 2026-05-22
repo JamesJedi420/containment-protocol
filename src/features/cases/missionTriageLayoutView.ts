@@ -76,9 +76,7 @@ function pushListRowChip(chips: MissionTriageListRowChip[], chip: MissionTriageL
   chips.push(chip)
 }
 
-function buildUrgencyListRowChips(view: CaseListItemView): MissionTriageListRowChip[] {
-  const chips: MissionTriageListRowChip[] = []
-
+function appendUrgencyListRowChips(chips: MissionTriageListRowChip[], view: CaseListItemView) {
   if (view.isUnassigned) {
     pushListRowChip(chips, {
       id: 'urgency:unassigned',
@@ -126,8 +124,6 @@ function buildUrgencyListRowChips(view: CaseListItemView): MissionTriageListRowC
       className: 'border-fuchsia-500/40 bg-fuchsia-500/10 text-fuchsia-200',
     })
   }
-
-  return chips
 }
 
 export function buildMissionTriageListRowChips(
@@ -150,9 +146,7 @@ export function buildMissionTriageListRowChips(
     })
   }
 
-  for (const chip of buildUrgencyListRowChips(view)) {
-    pushListRowChip(chips, chip)
-  }
+  appendUrgencyListRowChips(chips, view)
 
   for (const marker of view.covertPrepSignals.markers) {
     pushListRowChip(chips, {

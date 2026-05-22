@@ -767,7 +767,7 @@ function renderCaseTriageDetail({
                 </div>
 
                 {detailRowChips.length > 0 ? (
-                  <div className="flex flex-wrap gap-2" aria-label="Case triage markers">
+                  <div className="flex flex-wrap gap-2" aria-label="Case triage signals">
                     {detailRowChips.map((chip) => (
                       <span
                         key={chip.id}

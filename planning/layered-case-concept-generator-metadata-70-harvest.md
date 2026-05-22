@@ -69,7 +69,7 @@
 | C15 | fold_in | SPE-16, SPE-788 | Contract scope scale field |
 | C16 | fold_in | SPE-16, SPE-854 | Contract theme tags |
 | C17 | fold_in | SPE-854, SPE-371 | Investigation format selector |
-| C18 | fold_in | SPE-854, SPE-854 | Whodunit suspect-web template |
+| C18 | fold_in | SPE-854 | Whodunit suspect-web template |
 | C19 | fold_in | SPE-854, SPE-16 | Cold-case template |
 | C20 | fold_in | SPE-562, SPE-16 | Ticking-clock format |
 | C21 | fold_in | SPE-16, SPE-854 | Quest/search-objective format |

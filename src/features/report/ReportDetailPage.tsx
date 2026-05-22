@@ -28,6 +28,7 @@ import {
   resolveOperationsBackTarget,
 } from '../operations/operationsRouteDrillDown'
 import { buildReportWeekNavigation } from './reportWeekNavigation'
+import { buildOperationalCertaintyView } from '../../domain/operationalCertainty'
 
 // --- Real-data knowledge/relay/fusion/decay UI helpers ---
 type TeamSubjectKnowledge = {
@@ -137,6 +138,7 @@ export default function ReportDetailPage() {
   const filteredNotes = filterReportNotesByCategory(report.notes, selectedNoteCategory)
   const weekNavigation = buildReportWeekNavigation(game.reports, report.week)
   const reportBackTarget = resolveOperationsBackTarget(locationSearch, APP_ROUTES.report)
+  const certainty = buildOperationalCertaintyView(game)
 
   // --- Real-data knowledge/relay/ladder UI wiring ---
   // For each team in the report, show knowledge ladders and relay/decay/fusion for each anomaly/hazard
@@ -289,6 +291,45 @@ export default function ReportDetailPage() {
         </div>
       </article>
 
+      <article
+        className="panel panel-support space-y-3"
+        role="region"
+        aria-label="Operational certainty summary"
+      >
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide opacity-50">Operational certainty</p>
+          <p className="text-sm opacity-70">{certainty.summary}</p>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide opacity-50">Map facts</p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {certainty.mapBuckets.map((bucket) => (
+              <span
+                key={bucket.id}
+                className={`rounded-full border px-2 py-0.5 ${getCertaintyChipClassName(bucket.level)}`}
+              >
+                {bucket.label}: {bucket.count} · {bucket.reasonLabel}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <p className="text-xs uppercase tracking-wide opacity-50">Registry facts</p>
+          <div className="flex flex-wrap gap-2 text-xs">
+            {certainty.registryBuckets.map((bucket) => (
+              <span
+                key={bucket.id}
+                className={`rounded-full border px-2 py-0.5 ${getCertaintyChipClassName(bucket.level)}`}
+              >
+                {bucket.label}: {bucket.count} · {bucket.reasonLabel}
+              </span>
+            ))}
+          </div>
+        </div>
+      </article>
+
       <div className="detail-layout" role="region" aria-label="Report analysis layout">
         <div className="detail-main">
           <article
@@ -429,4 +470,14 @@ export default function ReportDetailPage() {
       </div>
     </section>
   )
+}
+
+function getCertaintyChipClassName(level: 'confirmed' | 'suspected' | 'inferred' | 'contradicted') {
+  if (level === 'contradicted') {
+    return 'border-red-400/30 bg-red-500/10 text-red-200'
+  }
+  if (level === 'suspected' || level === 'inferred') {
+    return 'border-amber-400/30 bg-amber-500/10 text-amber-200'
+  }
+  return 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
 }

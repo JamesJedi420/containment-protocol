@@ -36,6 +36,10 @@ import {
   deploymentMomentumSurfacesEnabled,
   formatDeploymentMomentumSummary,
 } from '../../domain/agent/deploymentMomentum'
+import {
+  buildOperationalCertaintyView,
+  type OperationalCertaintyBucket,
+} from '../../domain/operationalCertainty'
 
 const MAX_ROUTING_ITEMS = 4
 const MAX_READINESS_ITEMS = 4
@@ -158,6 +162,11 @@ export interface OperationsReportView {
   recentOutcomes: WeakestLinkOutcomeReportItemView[]
   weeklySummary: WeeklyOperationsSummaryView
   contractDebrief: ContractDebriefView
+  operationalCertainty: {
+    summary: string
+    map: OperationalCertaintyBucket[]
+    registry: OperationalCertaintyBucket[]
+  }
 }
 
 function capitalizeLabel(value: string) {
@@ -525,11 +534,18 @@ export function getContractDebriefView(game: GameState): ContractDebriefView {
 }
 
 export function getOperationsReportView(game: GameState): OperationsReportView {
+  const certainty = buildOperationalCertaintyView(game)
+
   return {
     missionRouting: getMissionRoutingReportView(game),
     deploymentReadiness: getDeploymentReadinessReportView(game),
     recentOutcomes: getWeakestLinkOutcomeReportView(game),
     weeklySummary: getWeeklyOperationsSummaryView(game),
     contractDebrief: getContractDebriefView(game),
+    operationalCertainty: {
+      summary: certainty.summary,
+      map: certainty.mapBuckets,
+      registry: certainty.registryBuckets,
+    },
   }
 }

@@ -56,6 +56,35 @@ export function OperationsReportPanel() {
           ) : null}
         </article>
 
+        <article className="rounded border border-white/10 px-3 py-3" aria-label="Operational certainty">
+          <div className="space-y-1">
+            <h3 className="text-base font-semibold">Operational certainty</h3>
+            <p className="text-sm opacity-70">{view.operationalCertainty.summary}</p>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            <p className="text-xs uppercase tracking-wide opacity-50">Map facts</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {view.operationalCertainty.map.map((bucket) => (
+                <Tag key={bucket.id} tone={getCertaintyTone(bucket.level)}>
+                  {bucket.label}: {bucket.count} · {bucket.reasonLabel}
+                </Tag>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            <p className="text-xs uppercase tracking-wide opacity-50">Registry facts</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {view.operationalCertainty.registry.map((bucket) => (
+                <Tag key={bucket.id} tone={getCertaintyTone(bucket.level)}>
+                  {bucket.label}: {bucket.count} · {bucket.reasonLabel}
+                </Tag>
+              ))}
+            </div>
+          </div>
+        </article>
+
         <article className="rounded border border-white/10 px-3 py-3" aria-label="Mission routing report">
           <div className="space-y-1">
             <h3 className="text-base font-semibold">Mission routing report</h3>
@@ -402,4 +431,17 @@ function Tag({
           : 'border-white/10 bg-white/5 text-white/80'
 
   return <span className={`rounded-full border px-2 py-0.5 ${className}`}>{children}</span>
+}
+
+function getCertaintyTone(level: 'confirmed' | 'suspected' | 'inferred' | 'contradicted') {
+  if (level === 'contradicted') {
+    return 'danger' as const
+  }
+  if (level === 'suspected' || level === 'inferred') {
+    return 'warning' as const
+  }
+  if (level === 'confirmed') {
+    return 'info' as const
+  }
+  return 'neutral' as const
 }

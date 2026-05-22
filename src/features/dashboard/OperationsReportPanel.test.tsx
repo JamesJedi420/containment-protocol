@@ -50,6 +50,7 @@ describe('OperationsReportPanel', () => {
 
     expect(screen.getByRole('region', { name: /operations report/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /weekly operations summary/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /operational certainty/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /mission routing report/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /deployment readiness report/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /recent outcome report/i })).toBeInTheDocument()

@@ -75,7 +75,7 @@ export function isSiteExplorationActionId(value: string): value is SiteExplorati
  */
 export function isCaseInSiteExplorationPhase(currentCase: CaseInstance): boolean {
   return (
-    currentCase.status !== 'resolved' &&
+    currentCase.status === 'in_progress' &&
     currentCase.mapLayer != null &&
     (currentCase.spatialFlags?.length ?? 0) > 0
   )

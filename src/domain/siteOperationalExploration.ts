@@ -149,17 +149,12 @@ export function applySiteExplorationAction(
   const alertClockId = getSiteExplorationAlertClockId(caseId)
 
   let nextState = advanceDefinedProgressClock(state, turnClockId, turnCost, turnClockDefaults(currentCase))
-  if (alertDelta > 0) {
-    nextState = advanceDefinedProgressClock(
-      nextState,
-      alertClockId,
-      alertDelta,
-      alertClockDefaults(currentCase)
-    )
-  } else {
-    // Ensure alert clock exists for wandering reads even on silent actions.
-    nextState = advanceDefinedProgressClock(nextState, alertClockId, 0, alertClockDefaults(currentCase))
-  }
+  nextState = advanceDefinedProgressClock(
+    nextState,
+    alertClockId,
+    alertDelta,
+    alertClockDefaults(currentCase)
+  )
 
   const turnValue = readSiteExplorationTurnValue(nextState, caseId)
   const alertValue = readSiteExplorationAlertValue(nextState, caseId)

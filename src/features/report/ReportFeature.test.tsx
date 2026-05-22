@@ -190,6 +190,7 @@ it('renders snapshot-driven grouped sections and falls back to archived snapshot
   renderReportDetail('/report/4')
 
   expect(screen.getByRole('region', { name: /weekly report dossier/i })).toBeInTheDocument()
+  expect(screen.getByRole('region', { name: /operational certainty summary/i })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: /report analysis layout/i })).toBeInTheDocument()
   expect(screen.getByRole('complementary', { name: /team status summary/i })).toBeInTheDocument()
   expect(screen.getByRole('region', { name: /team status/i })).toBeInTheDocument()

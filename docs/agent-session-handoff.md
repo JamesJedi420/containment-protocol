@@ -33,7 +33,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 1. `planning/backlog.md` or assigned Linear issue.
 2. `planning/<topic>-slice.md` for bounded scope.
-3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → PR links slice issue → Done on merge → comment what shipped. Harvest triage posts Linear closure in the same turn, not deferred.
+3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → PR links slice issue → Done on merge → comment what shipped. Harvest triage posts SPE-2110 intake + owner fold-ins in the same turn (`docs/harvest-fold-in-linear-comments.md`), not deferred.
 
 ## Optional first message template
 

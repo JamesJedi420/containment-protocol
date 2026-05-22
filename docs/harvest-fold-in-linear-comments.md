@@ -1,103 +1,175 @@
-# Harvest fold-in comments on Linear
+# Harvest comments on Linear (owner + hub)
 
-**Purpose:** Fold-in comments on owner issues are **implementation-boundary clarification**, not a backlog dump or scope accretion. They tell the owner issue what may change later — without rewriting the issue goal or implying the harvest batch is a mandate to implement everything named.
+**Purpose:** Linear is the **durable agent-readable record** for each reconciled harvest **candidate** (extracted pattern from a source batch). A future agent implementing SPE-#### must understand **what the mechanic is**, **why this owner**, **what changes vs what is forbidden**, and **why it is a fold-in vs a new child** — without re-reading the source packet or guessing from a one-line note.
 
 **When:** Same session as candidate adjudication, before the batch mirror PR lands. See `planning/harvest-reconciliation-index.md` and **`docs/harvest-candidate-triage-agent.md`**.
 
-**Mirror consistency:** Per-candidate **Owner(s)** in `planning/<batch-id>-harvest.md` must match the primary owner map before fold-ins post — **`docs/harvest-mirror-owner-map-qa.md`**.
+**Mirror doc:** `planning/<batch-id>-harvest.md` holds the full candidate table (owners authoritative). Linear comments must be **at least as informative** as the mirror **Mechanic / note** column — typically **more** detail on acceptance and boundaries.
 
-**Not a substitute for:** `planning/<batch-id>-harvest.md` (full candidate table), SPE-2110 intake summary, or a child slice issue when work is bounded and shippable on its own.
+**Not a substitute for:** A **new child issue** when the candidate is a bounded shippable slice (own branch, tests, slice doc). Fold-ins clarify owners; child issues **own** delivery.
 
 ---
 
-## Required content (every fold-in comment)
+## What you are posting (candidates)
 
-Answer all four. If a section is empty, say so explicitly (e.g. **Out of scope:** entire candidate — doc traceability only).
+Each **C##** is one **pattern-level mechanic** abstracted from an external source (walkthrough, PDF, transcript, manual). Post enough on Linear that an agent never needs the source document to understand the intended simulation/design behavior in Containment Protocol terms.
 
-| # | Question | Answer in one or two sentences |
+---
+
+## Required content (every owner comment)
+
+Use **all six sections**. If a section is N/A, say so explicitly. **Do not** collapse the mechanic into a single sentence.
+
+| # | Section | What to include |
 | --- | --- | --- |
-| 1 | **What existing issue owns this?** | Link **SPE-####** and name the subsystem (file/module doc if known). Confirm this candidate extends that owner — not a new theme. |
-| 2 | **What exact behavior or acceptance detail changes?** | One concrete delta: state shape, UI surface, resolver rule, or acceptance test — not a topic list. Use “may add” / “when implementing X” — not “implement X now”. |
-| 3 | **What is explicitly out of scope?** | Franchise import, player-facing copy from source, full subsystem builds, duplicate work owned elsewhere, or “entire harvest batch”. |
-| 4 | **Disposition** | **Child issue** / **doc note only** / **no implementation change** (no-op or contradiction already handled on hub). |
+| 1 | **Candidate & source** | `C##`, batch id, source type (e.g. mission-hub walkthrough metadata). One sentence on what pattern was extracted (not franchise names). |
+| 2 | **Mechanic (agent-readable)** | **What it is and how it behaves** in CP terms: triggers, state, player-facing effect, persistence, ties to weekly loop / site / hub / case as applicable. Bullets OK. This is the core payload — not optional. |
+| 3 | **Repo / subsystem anchor** | Files, modules, audits, or existing SPE scope that already touch this behavior; what exists vs net-new. |
+| 4 | **Ownership & reconciliation** | Primary **SPE-####** (link) and co-owners; **why** this owner (not another). Dedup / no-op reference if applicable. |
+| 5 | **Boundary** | **In scope for this owner when it ships:** concrete acceptance deltas (state shape, resolver rule, UI surface, test). **Out of scope:** franchise import, prose, other owners’ subsystems, whole batch mandate. |
+| 6 | **Disposition & issue decision** | **Fold-in** / **new child SPE-####** / **no implementation change** — with **one paragraph of reasoning** using the decision tests below. |
 
 ---
 
-## Fold-in vs new child issue
+## Fold-in vs new child (same-boundary test)
 
-| Use **fold-in** on owner | Use **new child issue** under owner (or SPE-2110) |
+Use this when the candidate “feels like” the same theme as an existing issue.
+
+| Prefer **fold-in** on owner | Prefer **new child** under owner (or SPE-2110) |
 | --- | --- |
-| Clarifies or tightens acceptance on an existing backlog item | Bounded slice with its own branch, tests, and PR |
-| No new subsystem; fits one module the owner already names | Cross-cuts 3+ owners or needs a new domain file |
-| “When you implement SPE-NNN, also consider …” | “Ship X in isolation” (even if small) |
-| Contradiction/guardrail only (disposition: doc note / no code) | Harvest row marked **new child** in `*-harvest.md` |
+| Extends the **same implementation boundary** as the owner: same module(s), same acceptance envelope, would land in the **same future PR slice** as other work on that issue | **Distinct Definition of Done**: own branch, tests, and `planning/*-slice.md` without blocking the parent |
+| Adds acceptance detail or guardrails to behavior the owner **already owns** | Would **bloat** the parent Goal or mix unrelated deliverables on one issue |
+| No new top-level subsystem or registry file; fits files the owner already names | Needs a **new domain file**, registry, or cross-cutting contract not on the owner |
+| Co-owners are **consulted** via links in the comment, not separate delivery owners | **3+ owners** with equal delivery responsibility — create a coordinator **child** and link fold-ins |
+| `contradiction_check` / `no_op` — disposition **no implementation change** or **doc note only** | Harvest row verdict **`new child`** in `*-harvest.md` |
 
-**Default:** fold-in = **note on the owner**, not expansion of the owner’s Goal paragraph. Do not paste harvest candidate lists without mapping to the four questions.
+**Shared-boundary rule:** If two candidates would be implemented in the **same module and same acceptance tests** without inventing a new subsystem, they belong on the **same owner** (fold-in or one child), not split across duplicate issues. If they need **separate PRs** with separate merge criteria, use a **new child** (or separate children), even if themes overlap.
+
+**When unsure:** Default to **new child** if delivery is bounded and testable in isolation; default to **fold-in** if the comment only clarifies how an existing backlog item should behave when eventually built.
 
 ---
 
-## Disposition guide
+## Disposition labels
 
 | Disposition | Meaning |
 | --- | --- |
-| **No implementation change** | `no_op`, dedup, or `contradiction_check` — traceability only; owner unchanged. |
-| **Doc note only** | Update planning audit, architecture stub, or acceptance notes when owner ships — no code until owner slice starts. |
-| **Child issue** | Create (or reference) SPE-#### child with slice doc; link in fold-in comment; parent stays in Backlog until slice ships. |
+| **No implementation change** | `no_op`, dedup, or `contradiction_check` — traceability; owner backlog unchanged. Still write **Mechanic** and **Boundary** so agents know why. |
+| **Doc note only** | Planning/audit update when owner ships; no code until owner slice starts. |
+| **Fold-in** | Owner issue unchanged in title/Goal; this comment is the spec supplement. |
+| **Child issue** | Create (or link) SPE-#### with slice doc; parent stays Backlog until child ships; fold-in comment links child. |
 
 ---
 
 ## Comment template (paste into Linear)
 
 ```markdown
-**Harvest fold-in** — `<batch-id>` · **C##** (and supplements if grouped)
+**Harvest** — `<batch-id>` · **C##** · `<short mechanic title>`
 
-**1. Owner:** [SPE-####](url) — <subsystem one line>
+### 1. Candidate & source
+- **ID:** C##
+- **Batch:** `<batch-id>` — <source type in plain language>
+- **Extracted pattern:** <what was abstracted from the source, pattern-only>
 
-**2. Behavior / acceptance delta (when owner ships):**
-- <single concrete delta>
+### 2. Mechanic (agent-readable)
+- <what happens in the sim / authoring model>
+- <state, triggers, persistence, failure modes>
+- <relation to hub / site / case / week if relevant>
 
-**3. Out of scope:**
-- <bullets>
+### 3. Repo / subsystem anchor
+- **Existing:** <files, modules, prior harvest, partial implementation>
+- **Net-new when owner ships:** <what does not exist yet>
 
-**4. Disposition:** <no implementation change | doc note only | child SPE-####>
+### 4. Ownership & reconciliation
+- **Primary:** [SPE-####](url) — <why this owner>
+- **Co-owners:** [SPE-####](url) — <role: consult / shared state / guardrails only>
+- **Dedup / no-op:** <prior batch C## or repo behavior already covers X, or "none">
 
-**Traceability:** `planning/<batch-id>-harvest.md`
+### 5. Boundary
+**In scope (when owner ships):**
+- <concrete acceptance bullets>
+
+**Out of scope:**
+- <bullets — franchise, other SPE subsystems, full batch, etc.>
+
+### 6. Disposition & issue decision
+- **Disposition:** <fold-in | doc note only | no implementation change | child [SPE-####](url)>
+- **Reasoning:** <why fold-in vs child vs no-op — shared-boundary test applied>
+
+**Traceability:** `planning/<batch-id>-harvest.md` (row C##)
 ```
 
-Group candidates only when they share the **same** disposition and **same** acceptance delta. Otherwise one comment per owner per disposition cluster — not one comment per batch per owner listing every C id.
+### Grouping
+
+Group **only** when multiple **C##** share the **same owner**, **same disposition**, and **same acceptance envelope**. Inside one comment, give **each C##** its own **Mechanic** subsection — do not list IDs without behavior.
 
 ---
 
-## Anti-patterns (scope accretion)
+## Mirror doc `Note` column (planning)
 
-- Long theme paragraphs (“surfaces include …, themes include …”) with no acceptance delta.
-- Restating the Linear issue **Goal** as if the harvest adds new goals.
-- Listing many candidate IDs without saying what changes on **this** issue.
-- “Fold-in” on 20+ owners with identical boilerplate.
-- Implying priority or sequencing (“do this next”, “high leverage”) — use `planning/backlog.md` for queue order.
+The harvest table **Note** column is not a one-liner. Minimum per row:
+
+- **Mechanic summary** (2–4 sentences, same substance as Linear §2, can be shorter).
+- **Verdict** implied by wording (fold-in / no-op / contradiction).
+- Pointer: “Linear: fold-in posted YYYY-MM-DD” or “child SPE-####”.
+
+Linear comments should **match or exceed** this depth.
 
 ---
 
-## Good example (boundary clarification)
+## Anti-patterns
+
+- One-line notes on Linear or in the mirror table (“stress-dream motif” only).
+- Fold-in with **boundary** but no **mechanic** — agents cannot implement or prioritize.
+- Choosing **fold-in** because the theme sounds similar when delivery needs a **separate child** (shared-boundary test failed).
+- Choosing **new child** for every row to avoid writing mechanics on the parent.
+- Restating the owner issue **Goal** as if the harvest replaces product direction.
+- Implying priority (“do next”) — queue lives in `planning/backlog.md`.
+
+**Good tension:** Long **mechanic** sections are required; long **theme marketing** paragraphs without acceptance deltas are not.
+
+---
+
+## Good example (fold-in, rich mechanic)
 
 ```markdown
-**Harvest fold-in** — `osr-site-exploration-metadata-165` · **C2**
+**Harvest** — `osr-site-exploration-metadata-165` · **C2** · Per-action turn costs on site clock
 
-**1. Owner:** SPE-371 — exploration action cost table on site turn clock (with SPE-562 turn advance).
+### 1. Candidate & source
+- **ID:** C2
+- **Batch:** `osr-site-exploration-metadata-165` — OSR site exploration pattern library (metadata)
+- **Extracted pattern:** Each exploration action spends a bounded number of site-turn ticks before effects resolve.
 
-**2. Behavior / acceptance delta (when owner ships):**
-- Author per-action turn costs keyed by `actionId`; invalid ids rejected in pure helper (already partially landed SPE-2260 for C1–C2 only).
+### 2. Mechanic (agent-readable)
+- Site exploration runs on a **site turn clock** distinct from weekly `advanceWeek`.
+- Each `actionId` (search, breach, rest, etc.) declares a **turn cost**; spending reduces remaining site turns for the visit.
+- Invalid or unknown `actionId` is rejected in pure logic (no silent zero-cost actions).
+- Does not by itself add encounters, loot tables, or UI — only the cost table contract.
 
-**3. Out of scope:**
-- Trap adaptation (C13), encounter tables (C18–C21), UI for action picker, weekly `advanceWeek` integration.
+### 3. Repo / subsystem anchor
+- **Existing:** `exploration` helpers (SPE-2260 landed C1–C2 partial), SPE-371, SPE-562 turn advance.
+- **Net-new when owner ships:** Full cost table coverage for all action ids in scope of SPE-1610 slice 2+.
 
-**4. Disposition:** doc note only until SPE-1610 exploration slice 2+; no new child.
+### 4. Ownership & reconciliation
+- **Primary:** [SPE-371](…) — site exploration action economy
+- **Co-owners:** [SPE-562](…) — turn advance integration
+- **Dedup:** none (C1 partial land only)
 
-**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md`
+### 5. Boundary
+**In scope (when owner ships):**
+- Authoring-time or data-driven `actionId → turnCost` map; validator rejects unknown ids.
+
+**Out of scope:**
+- Trap adaptation (C13), encounter tables (C18–C21), action picker UI, weekly campaign integration.
+
+### 6. Disposition & issue decision
+- **Disposition:** fold-in (doc note until SPE-1610 exploration slice 2+)
+- **Reasoning:** Same module and PR slice as SPE-371 exploration clock work; no separate DoD or new registry — extends existing owner boundary (shared-boundary test → fold-in).
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C2)
 ```
 
 ---
 
 ## Hub intake (SPE-2110)
 
-Batch closure comment on SPE-2110 stays a **summary** (counts, batch id, mirror path). Per-owner fold-ins use this contract — do not duplicate the full candidate table on the hub.
+Batch closure on SPE-2110: counts, batch id, mirror path, owner list, **child issues created**. Do **not** paste the full candidate table on the hub — per-owner comments carry row-level detail.

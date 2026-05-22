@@ -1,0 +1,31 @@
+---
+description: Mandatory Linear issue updates for every agent session and task type (implementation, harvest, PR, review).
+alwaysApply: true
+---
+
+# Linear — mandatory (every session, every agent)
+
+**Non-negotiable.** Applies to local Cursor, Cloud Agents, background agents, and subagents — not only feature implementation.
+
+Linear is the **system of record** for issue state, scope, and closure. GitHub PR linkbacks and bot comments **do not** replace agent-owned Linear updates.
+
+## When to update
+
+| Phase | Linear action |
+| --- | --- |
+| **Task start** | Find or create the slice issue; set **In Progress** before substantive code or harvest closure. |
+| **During work** | Fold-in comments on every SPE owner when reconciling harvests (same session, not "table only"); intake on SPE-2110 when applicable; comment on the slice issue when scope or blockers change materially. |
+| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
+| **PR merged** | Set slice issue **Done**; parent **Done** only if full parent scope shipped, else return parent to **Backlog**. |
+| **After merge** | Short comment on the slice issue: PR URL + what shipped. |
+
+## Do not skip because
+
+- The PR has a GitHub linkback bot comment
+- The task was "docs only," "harvest only," or "review only"
+- Linear MCP failed once (report the exact comments/issues to post; retry when possible)
+- A prior agent already commented (add closure for **this** session's work)
+
+## Authoritative detail
+
+Full lifecycle, harvest batches, and documentation hygiene: **`AGENTS.md`** (repo root) and **`docs/agent-session-handoff.md`**.

@@ -50,8 +50,8 @@
 | C28–C30 | urban status/spectrum baselines |
 | C36 | urban-100 C50 non-hostile danger |
 | C44 | urban-100 C64 case-end reflection |
-| C54–C56, C57 | urban-100 C26–C27 map |
-| C58–C60 | urban-100 C8–C13, C79 macro fronts |
+| C54–C56 | urban-100 C26–C27 map (district confidence, thin places) |
+| C58, C60 | urban-100 C8–C13 mundane overlay; C79 macro fronts |
 | C68 | urban-100 C48 countdowns |
 | C89 | urban institution dual function |
 

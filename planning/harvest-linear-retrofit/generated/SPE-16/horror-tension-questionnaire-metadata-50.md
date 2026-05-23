@@ -1,0 +1,246 @@
+**Harvest retrofit (rich)** — `horror-tension-questionnaire-metadata-50` → **SPE-16** (part 1/1)
+_Automated retrofit from `planning/horror-tension-questionnaire-metadata-50-harvest.md` using `docs/harvest-fold-in-linear-comments.md`. Supersedes thin one-line fold-ins for this batch/owner._
+### Batch context
+- **Source:** Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.
+- **Dedup:** Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrief-guide-metadata-50` (mystery redundancy C21/C45), `episodic-quick-incident-metadata-45` (content intensity SPE-361).
+- **Repo at triage:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Candidates on SPE-16:** C6, C16, C26, C30, C37, C39
+---
+
+#### C6 — Multi-stage hazardous procedures
+
+**1. Candidate & source**
+- **ID:** C6
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Multi-stage hazardous procedures
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** Multi-stage hazardous procedures
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-1485
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C6)
+
+---
+
+#### C16 — Host/incident preparation checklist
+
+**1. Candidate & source**
+- **ID:** C16
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Host/incident preparation checklist
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** Host/incident preparation checklist
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-626
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C16)
+
+---
+
+#### C26 — Scenario packet schema 
+
+**1. Candidate & source**
+- **ID:** C26
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Scenario packet schema (premise, cast, threat, exits)
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** Scenario packet schema (premise, cast, threat, exits)
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-626
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C26)
+
+---
+
+#### C30 — One-shot high-pressure incident mode
+
+**1. Candidate & source**
+- **ID:** C30
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** One-shot high-pressure incident mode
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** One-shot high-pressure incident mode
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-160
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C30)
+
+---
+
+#### C37 — Character exit preserves story momentum
+
+**1. Candidate & source**
+- **ID:** C37
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Character exit preserves story momentum
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** Character exit preserves story momentum
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-158
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C37)
+
+---
+
+#### C39 — Horror tone overlay presets
+
+**1. Candidate & source**
+- **ID:** C39
+- **Batch:** `horror-tension-questionnaire-metadata-50`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Horror tone overlay presets
+- **Pattern context:** Abstracted from batch source (Readable horror-RPG manual PDF (questionnaire setup, escalating physical tension pattern, irreversible removal, genre pacing guidance). Pattern-only — no imported game title, scenarios, questionnaire text, story content, or tower branding.).
+- **Repo anchor:** `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `systems/pressure-mechanics.md` (multi-form pressure — not one abstract meter); `progressClocks.ts`; `shared/outcomes.ts`; `beliefTracks.ts`; `mapMetadata.ts`; `advanceWeek.ts` execution-instability consequences; `docs/incident-template.md`.
+- **Table note:** Horror tone overlay presets
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-16
+- **Co-owners:** SPE-160
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-16 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `tabletop-mechanics-transcript-metadata-87` (instability stack C20–C22, partial success C37–C41), `field-staff-operations-handbook-metadata-105` (conditions C31–C34), `investigation-debrie…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/horror-tension-questionnaire-metadata-50-harvest.md` (C39)

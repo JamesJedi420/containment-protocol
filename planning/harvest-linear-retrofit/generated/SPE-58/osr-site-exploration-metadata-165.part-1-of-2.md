@@ -1,0 +1,286 @@
+**Harvest retrofit (rich)** — `osr-site-exploration-metadata-165` → **SPE-58** (part 1/2)
+_Automated retrofit from `planning/osr-site-exploration-metadata-165-harvest.md` using `docs/harvest-fold-in-linear-comments.md`. Supersedes thin one-line fold-ins for this batch/owner._
+### Batch context
+- **Source:** Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.
+- **Dedup:** Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-mechanics-transcript-metadata-87` (OSR agency), `mc-toolkit-contract-authoring-metadata-132` (location/trap authoring), `urban-concealment-investigation-metadata-100` (fallible map), `post-release-tactical-manual-metadata-104` (visibility).
+- **Repo at triage:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Candidates on SPE-58:** C4, C5, C6, C8, C9, C10, C17
+---
+
+#### C4 — Light/visibility state taxonomy
+
+**1. Candidate & source**
+- **ID:** C4
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Light/visibility state taxonomy
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Light/visibility state taxonomy
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-529
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C4)
+
+---
+
+#### C5 — Darkness as tactical terrain
+
+**1. Candidate & source**
+- **ID:** C5
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Darkness as tactical terrain
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Darkness as tactical terrain
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-2108
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C5)
+
+---
+
+#### C6 — Deliberate search requirement
+
+**1. Candidate & source**
+- **ID:** C6
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Deliberate search requirement
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Deliberate search requirement
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-854
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C6)
+
+---
+
+#### C8 — Hidden access / secret routes
+
+**1. Candidate & source**
+- **ID:** C8
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Hidden access / secret routes
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Hidden access / secret routes
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-164
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C8)
+
+---
+
+#### C9 — Listen/scan before entry
+
+**1. Candidate & source**
+- **ID:** C9
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Listen/scan before entry
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Listen/scan before entry
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-854
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C9)
+
+---
+
+#### C10 — Door state taxonomy
+
+**1. Candidate & source**
+- **ID:** C10
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Door state taxonomy
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Door state taxonomy
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-164
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C10)
+
+---
+
+#### C17 — Procedural room generator
+
+**1. Candidate & source**
+- **ID:** C17
+- **Batch:** `osr-site-exploration-metadata-165`
+- **Verdict:** fold_in
+
+**2. Mechanic (agent-readable)**
+- **Harvest summary:** Procedural room generator
+- **Pattern context:** Abstracted from batch source (Readable OSRIC-style fantasy rules reference PDF (exploration, combat support, traps, encounters, morale, hirelings, spell-like effects, monsters, items, artifacts). Pattern-only — no fantasy races/classes, spell/monster/treasure names, alignment labels, tables, values, or source prose.).
+- **Repo anchor:** `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Runtime behavior (when owner ships):** Add or extend pure simulation/authoring rules so the pattern is testable in the owning module(s) — persist state in canonical game state, surface only where the owner already plans UI/reporting.
+
+**3. Repo / subsystem anchor**
+- `siteGeneration/mapMetadata.ts` + `packets.ts`; `progressClocks.ts`; `shared/outcomes.ts`; `equipment.ts`; `aggregateBattle.ts` morale; `visibilityState`; `harvestedMindLoadout`; `caseTemplates.*`.
+- **Table note:** Procedural room generator
+
+**4. Ownership & reconciliation**
+- **Primary (this comment):** SPE-58
+- **Co-owners:** SPE-2106
+
+**5. Boundary**
+**In scope (when owner ships):**
+- Concrete acceptance delta on SPE-58 when that issue's slice is implemented
+- Co-owner consultation only where another SPE owns shared state
+
+**Out of scope:**
+- Franchise names and imported source prose
+- Implementing the entire harvest batch as a mandate
+- Other SPE subsystems not listed as co-owners on the candidate row
+- Duplicate scope covered elsewhere: Supplements `osr-emergent-fieldplay-metadata-60` (encounter tables, hireling morale, encumbrance guideline), `sealed-facility-manual-metadata-95` (site routes, visibility, traps partial), `tabletop-me…
+
+**6. Disposition & issue decision**
+- **Disposition:** fold-in
+- **Reasoning:** Extends the same implementation boundary as this owner (module/acceptance envelope aligns with existing backlog). Shared-boundary test → fold-in when owner ships, not a separate theme issue.
+
+**Traceability:** `planning/osr-site-exploration-metadata-165-harvest.md` (C17)

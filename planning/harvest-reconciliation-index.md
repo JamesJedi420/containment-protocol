@@ -85,6 +85,8 @@ Full case / facility lifecycle: [SPE-1310](https://linear.app/spectranoir/issue/
 
 **Agent workflow:** [`docs/harvest-candidate-triage-agent.md`](../docs/harvest-candidate-triage-agent.md) (session checklist, branch rules). **Owner-map QA before commit:** [`docs/harvest-mirror-owner-map-qa.md`](../docs/harvest-mirror-owner-map-qa.md).
 
+**Linear retrofit (entire mirrored backlog):** Rich owner comments generated under [`harvest-linear-retrofit/`](harvest-linear-retrofit/) — post per [`harvest-linear-retrofit/retrofit-tracker.md`](harvest-linear-retrofit/retrofit-tracker.md).
+
 1. Close the batch on Linear (SPE-2110 intake + **fold-in comments on owners**) in the same session as adjudication.
 2. **Owner comments on Linear** must be agent-readable: mechanic behavior, repo anchor, ownership, in/out scope, fold-in vs new-child reasoning. Required format: [`docs/harvest-fold-in-linear-comments.md`](../docs/harvest-fold-in-linear-comments.md) (six sections — not one-line notes).
 3. Add `planning/<batch-id>-harvest.md`; reconcile **Primary owner map** to **Per-candidate outcomes** (table is authoritative).

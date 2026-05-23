@@ -66,6 +66,12 @@ Your job is **not** to ship code in the mirror PR; it is to **adjudicate**, **do
 
 ---
 
+## Entire mirrored backlog retrofit
+
+All committed `planning/*-harvest.md` batches (see index) have pre-generated rich owner comments under **`planning/harvest-linear-retrofit/`** (~870 Linear posts for ~3021 candidate references). Regenerate with `npm run harvest:retrofit-generate`; post with `node scripts/harvest-linear-autopost.mjs` — see [`planning/harvest-linear-retrofit/retrofit-tracker.md`](../planning/harvest-linear-retrofit/retrofit-tracker.md).
+
+New batches: write rich comments at triage time; retrofit generator is for historical mirrors only.
+
 ## When Linear MCP is unavailable
 
 Draft full comments in the session output (six-section template); post when MCP works. Do not treat GitHub or a one-line mirror note as closure.

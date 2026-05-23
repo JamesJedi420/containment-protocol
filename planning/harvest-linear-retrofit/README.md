@@ -32,6 +32,8 @@ node scripts/harvest-linear-autopost.mjs mark <path>
 
 Or one-at-a-time: `node scripts/harvest-linear-retrofit.mjs --next` (includes body).
 
+Batch queue for MCP loop: `node scripts/harvest-linear-emit-batch.mjs 8` → files in `/tmp/harvest-post-queue/`, then `mark-batch` with `/tmp/harvest-post-queue-paths.json`.
+
 ## Policy
 
 - **Retrofit** supersedes thin historical fold-ins for the same batch/owner; do not delete old comments.

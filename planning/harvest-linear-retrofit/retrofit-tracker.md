@@ -50,7 +50,4 @@ Highest volume owners (plan multi-part posting first):
 
 ## Agent instruction
 
-1. Read `manifest.json` for entries with `"posted": false`.
-2. Read `path`, post body to `issueId` via Linear MCP `save_comment`.
-3. Mark posted; continue until `posted === total`.
-4. Comment on [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) with final counts.
+Use **`skills/harvest-linear-retrofit-post/SKILL.md`** (emit-batch → MCP `save_comment` → `mark-batch` → repeat until `ALL_POSTED`).

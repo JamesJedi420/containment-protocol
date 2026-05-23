@@ -27,7 +27,7 @@ Linear is the system of record for issue state and closure. **Do not** skip Line
 | When | Action |
 | --- | --- |
 | **Before substantive work** | Find or create the slice issue; set **In Progress**. |
-| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** owner comments (mechanic, repo anchor, ownership, boundary, fold-in vs child reasoning) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes; mirror table must match. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session — not "table only." |
+| **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** owner comments (mechanic, repo anchor, ownership, boundary, fold-in vs child reasoning) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes; mirror table must match. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session — not "table only." **Retrofit post loop** (manifest → Linear until `posted === total`): skill **`skills/harvest-linear-retrofit-post/SKILL.md`**. |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
 | **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
 | **After merge** | Short Linear comment: PR URL + what shipped. |

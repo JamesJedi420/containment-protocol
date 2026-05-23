@@ -21,7 +21,7 @@ Each manifest entry maps to one **`save_comment`** on the owner issue (`issueId`
 
 **Tracker:** [`retrofit-tracker.md`](retrofit-tracker.md)
 
-Agents: post pending entries with Linear MCP `save_comment`, then mark posted:
+Agents: follow **`skills/harvest-linear-retrofit-post/SKILL.md`** (autopost loop until `posted === total`). Quick commands:
 
 ```bash
 node scripts/harvest-linear-autopost.mjs stats

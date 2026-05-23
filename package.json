@@ -17,7 +17,8 @@
     "verify:audits-index": "node scripts/verify-design-audits-index.mjs",
     "verify:theme-contracts": "node scripts/verify-external-theme-contracts.mjs",
     "harvest:retrofit-generate": "node scripts/harvest-linear-retrofit.mjs --generate",
-    "harvest:retrofit-manifest": "node scripts/harvest-linear-retrofit.mjs --manifest"
+    "harvest:retrofit-manifest": "node scripts/harvest-linear-retrofit.mjs --manifest",
+    "harvest:retrofit-post-batch": "node scripts/harvest-linear-emit-batch.mjs 6"
   },
   "dependencies": {
     "lucide-react": "^1.6.0",

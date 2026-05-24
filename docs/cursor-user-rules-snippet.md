@@ -12,6 +12,7 @@ Copy the block below into **Cursor → Settings → Rules → User Rules** so ev
 - Standing repo rules: read **`AGENTS.md`** at repo root; follow Linear update steps there.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
+- **Backlog hygiene** (Linear/GitHub grooming only): paste the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` into User Rules when you run hygiene passes.
 
 ---
 

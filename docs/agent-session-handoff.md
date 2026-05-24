@@ -2,7 +2,7 @@
 
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
-Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only).
+Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Backlog hygiene:** committed paste source is `docs/cursor-backlog-hygiene-user-rules-snippet.md` (not in `.cursor/rules/`).
 
 ## Standing policy (repo + user)
 

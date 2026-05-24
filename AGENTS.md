@@ -74,3 +74,4 @@ Do not skip Linear because the PR has a linkback bot comment.
 - **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
+- **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` into Cursor User Rules (`.cursor/rules/` is gitignored; optional local copy at `.cursor/rules/backlog-hygiene.mdc`).

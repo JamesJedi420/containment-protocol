@@ -3,16 +3,15 @@
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
 Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only).
-
 **Cursor rules in this repo:** Only `.cursor/rules/linear-always-update.mdc` is tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores all other files under `.cursor/rules/`—they will **not** be committed. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. To add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
 
 ## Standing policy (repo + user)
 
-| Layer | What belongs there |
-| --- | --- |
-| **Cursor User Rules** | Merge → `checkout main` → pull → **new agent** for next slice |
-| **`AGENTS.md`** | Repo scripts, Linear, doc hygiene, this handoff summary |
-| **Linear + `planning/*-slice.md` + first message** | One task only |
+| Layer                                              | What belongs there                                            |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| **Cursor User Rules**                              | Merge → `checkout main` → pull → **new agent** for next slice |
+| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, this handoff summary       |
+| **Linear + `planning/*-slice.md` + first message** | One task only                                                 |
 
 ## After you merge a PR (human)
 

@@ -6,11 +6,11 @@ Canonical standing policy for humans and agents. **User Rules:** paste the short
 
 ## Standing policy (repo + user)
 
-| Layer | What belongs there |
-| --- | --- |
-| **Cursor User Rules** | Merge → `checkout main` → pull → **new agent** for next slice |
-| **`AGENTS.md`** | Repo scripts, Linear, doc hygiene, this handoff summary |
-| **Linear + `planning/*-slice.md` + first message** | One task only |
+| Layer                                              | What belongs there                                            |
+| -------------------------------------------------- | ------------------------------------------------------------- |
+| **Cursor User Rules**                              | Merge → `checkout main` → pull → **new agent** for next slice |
+| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, this handoff summary       |
+| **Linear + `planning/*-slice.md` + first message** | One task only                                                 |
 
 ## After you merge a PR (human)
 

@@ -1,6 +1,6 @@
 # Cursor User Rules snippet (paste into Settings → Rules)
 
-Copy the blocks from the sources listed below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same standing workflow. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
+Copy the standing-workflow block below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same standing workflow. For implementation-lite or backlog-hygiene blocks, use the sources listed below. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
 
 1. **Standing workflow** (this file, section below)
 2. **Implementation lite** — full block in `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding sessions)

@@ -1,8 +1,20 @@
 # SPE-2247 — Stealth leave-behind tradeoff selection (slice 5)
 
-One-page implementation plan. Linear: [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247/stealth-leave-behind-tradeoff-selection-slice-5) (parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70)).
+## Shipped status
+
+| Field             | Value                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linear**        | [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247/stealth-leave-behind-tradeoff-selection-slice-5)                                     |
+| **Parent**        | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                                                         |
+| **Merged PR**     | [#2323](https://github.com/JamesJedi420/containment-protocol/pull/2323) — `feat(SPE-2247): stealth leave-behind tradeoff selection (slice 5)` |
+| **Shipped scope** | Player selection of `stealthLeaveBehindId` on eligible cases; `stealthLeaveBehindSelection.ts` + `StealthLeaveBehindSelectionPanel`           |
+| **Validation**    | `stealthLeaveBehindSelection.test.ts`, `stealthLeaveBehindSelectionView.test.ts`                                                              |
 
 **Prerequisite (shipped):** SPE-2163 registry, SPE-2244 mission fallout, SPE-2246 template catalog + `advanceWeek` proof, investigation custody-loss markers + forensic `custodyLossBurden` (PR #2321).
+
+---
+
+## Original implementation plan (historical)
 
 ## Goal
 
@@ -28,7 +40,7 @@ Same gates as `evaluateStealthLeaveBehindMissionPressure()`:
 ### New surface (pure)
 
 ```ts
-// src/domain/stealthLeaveBehindSelection.ts (name TBD)
+// src/domain/stealthLeaveBehindSelection.ts (shipped)
 
 listSelectableStealthLeaveBehinds(caseData, registry?): readonly StealthLeaveBehindDefinition[]
 
@@ -44,11 +56,11 @@ readStealthLeaveBehindSelection(state, caseId): string | undefined // from case 
 
 ### Defaulting rule
 
-| State | `stealthLeaveBehindId` on case |
-| --- | --- |
-| Spawn / instantiate | Template default (current behavior) |
-| Player never selects | Keep template default |
-| Player selects | Overwrite instance field |
+| State                     | `stealthLeaveBehindId` on case       |
+| ------------------------- | ------------------------------------ |
+| Spawn / instantiate       | Template default (current behavior)  |
+| Player never selects      | Keep template default                |
+| Player selects            | Overwrite instance field             |
 | Invalid selection attempt | No mutation; return `applied: false` |
 
 Templates remain authoritative **defaults**; catalog invariant `infiltrationProbePlan ⇒ stealthLeaveBehindId` stays.
@@ -61,11 +73,11 @@ Templates remain authoritative **defaults**; catalog invariant `infiltrationProb
 
 ## UI / projection (minimal slice)
 
-| Surface | Content |
-| --- | --- |
-| Case detail (in-progress, eligible) | List 5 catalog rows: label, `discoveryRisk`, custody ref count; highlight current selection |
-| Mission result / explanation | Already receives custody note + leave-behind malus reasons |
-| Forensic investigation | Expose `custodyLossBurden` + marker count via `readInvestigationBudget` / `listInvestigationCustodyLossMarkers` (follow-up if not in same PR) |
+| Surface                             | Content                                                                                                                                       |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Case detail (in-progress, eligible) | List 5 catalog rows: label, `discoveryRisk`, custody ref count; highlight current selection                                                   |
+| Mission result / explanation        | Already receives custody note + leave-behind malus reasons                                                                                    |
+| Forensic investigation              | Expose `custodyLossBurden` + marker count via `readInvestigationBudget` / `listInvestigationCustodyLossMarkers` (follow-up if not in same PR) |
 
 Use existing Zustand/game store case mutation patterns; no new API routes (client-only SPA).
 
@@ -77,22 +89,22 @@ Use existing Zustand/game store case mutation patterns; no new API routes (clien
 4. `advanceWeek` — tuned stealth case: change selection before week → resolution uses new malus (optional)
 5. Regression — spawn still copies template default when player does not interact
 
-## Acceptance criteria
+## Shipped acceptance evidence
 
-- [ ] Player can set `stealthLeaveBehindId` on an eligible in-progress case from the canonical registry
-- [ ] Mission resolution and `advanceWeek` use the **instance** id, not re-read template at resolve time
-- [ ] Invalid / ineligible selection fails closed with stable `reason` codes
-- [ ] Template default remains when no selection API call runs
-- [ ] Vitest coverage for apply + eligibility; no full-suite regression
+- [x] Player can set `stealthLeaveBehindId` on an eligible in-progress case from the canonical registry
+- [x] Mission resolution and `advanceWeek` use the **instance** id, not re-read template at resolve time
+- [x] Invalid / ineligible selection fails closed with stable `reason` codes
+- [x] Template default remains when no selection API call runs
+- [x] Vitest coverage for apply + eligibility; no full-suite regression
 
-## File touch list (expected)
+## Shipped file map
 
-| Area | Files |
-| --- | --- |
-| Domain | `src/domain/stealthLeaveBehindSelection.ts`, `src/domain/stealthLeaveBehindRegistry.ts` (exports only if needed) |
-| Tests | `src/test/stealthLeaveBehindSelection.test.ts` |
-| Store / UI | `src/app/store/*`, one case-detail panel component (minimal) |
-| Docs | this file only |
+| Area      | Files                                                                                           |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| Domain    | `src/domain/stealthLeaveBehindSelection.ts`, `src/domain/stealthLeaveBehindRegistry.ts`         |
+| View / UI | `src/features/cases/stealthLeaveBehindSelectionView.ts`, `StealthLeaveBehindSelectionPanel.tsx` |
+| Store     | `src/app/store/gameStore.ts` (`selectStealthLeaveBehind`)                                       |
+| Tests     | `src/test/stealthLeaveBehindSelection.test.ts`, `stealthLeaveBehindSelectionView.test.ts`       |
 
 ## Risks
 

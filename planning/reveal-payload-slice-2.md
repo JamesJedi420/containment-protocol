@@ -1,10 +1,16 @@
 # Tiered detection / reveal payloads — slice 2 integration (SPE-781)
 
-## Prerequisite
+## Shipped status
 
-Merge or stack on [PR #2342](https://github.com/JamesJedi420/containment-protocol/pull/2342) (slice 1 — `src/domain/revealPayload.ts`).
+| Field             | Value                                                                                                                   |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Linear**        | [SPE-781 — Tiered detection and reveal payloads](https://linear.app/spectranoir/issue/SPE-781)                          |
+| **Merged PR**     | [#2342](https://github.com/JamesJedi420/containment-protocol/pull/2342) — shipped with slice 1 in one merge             |
+| **Depends on**    | Slice 1 `revealPayload.ts` resolver (conceptual ordering; both landed in PR #2342)                                      |
+| **Shipped scope** | Scouting integration via `revealPayloadScoutingIntegration.ts` without changing scouting outcome bands or modifier math |
+| **Validation**    | `revealPayloadScoutingIntegration.test.ts`; PR #2342 — `npm run lint`, `npm run test:run`                               |
 
-## Goal
+## Goal (implemented)
 
 Wire the slice-1 reveal-payload resolver into **one existing contested-resolution path** (`resolveScouting`) without changing scouting outcome bands or modifier math.
 
@@ -12,14 +18,14 @@ Players and reports can consume tiered `DetectionScanResult` fields alongside th
 
 ## Scope (this slice)
 
-| In | Out |
-| --- | --- |
-| `buildSubjectTruthFromScouting` — map scouting inputs to `SubjectTruthState` | Full hidden-modality matrix (SPE-70 doc) |
-| `scoutingOutcomeToDetectionScan` — derive `DetectionScanInput` from scouting outcome | UI / report copy for tier labels |
-| `resolveScoutingWithRevealPayload` — compose scouting + tiered scan | Equipment scan families |
-| Integration tests in `src/test/revealPayloadScoutingIntegration.test.ts` | Changing `resolveScouting` signature or behavior |
+| In                                                                                   | Out                                              |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| `buildSubjectTruthFromScouting` — map scouting inputs to `SubjectTruthState`         | Full hidden-modality matrix (SPE-70 doc)         |
+| `scoutingOutcomeToDetectionScan` — derive `DetectionScanInput` from scouting outcome | UI / report copy for tier labels                 |
+| `resolveScoutingWithRevealPayload` — compose scouting + tiered scan                  | Equipment scan families                          |
+| Integration tests in `src/test/revealPayloadScoutingIntegration.test.ts`             | Changing `resolveScouting` signature or behavior |
 
-## Acceptance
+## Shipped acceptance evidence
 
 - [x] Strong/success scouting yields deeper scan families than fail/catastrophic withhold paths
 - [x] High anomaly concealment adds deterministic concealment layers that block identity tiers

@@ -1,6 +1,10 @@
 # Cursor User Rules snippet (paste into Settings → Rules)
 
-Copy the block below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same standing workflow. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
+Copy the blocks below into **Cursor → Settings → Rules → User Rules** so every new agent (local or cloud) gets the same standing workflow. Repo-specific detail stays in `AGENTS.md` and `docs/agent-session-handoff.md`.
+
+1. **Standing workflow** (this file, section below)
+2. **Implementation lite** — full block in `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding sessions)
+3. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
 
 ---
 
@@ -13,6 +17,8 @@ Copy the block below into **Cursor → Settings → Rules → User Rules** so ev
 - Standing repo rules: read **`AGENTS.md`** at repo root first.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
+- **Implementation lite:** paste the block from `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, PR mapping, validation, Linear closure).
+- **Backlog hygiene** (grooming only, not implementation): paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene passes.
 
 ---
 

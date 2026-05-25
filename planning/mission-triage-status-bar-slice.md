@@ -30,6 +30,6 @@ When the player is on `/cases`, extend the global shell status strip with read-o
 - Chip `href` preserves canonical filter query via `writeCaseListFilters`.
 - `buildMissionTriageShellExtensionSignals(game, views, casesHref)` takes pre-built board views; no parallel metrics helper.
 
-## Follow-up (slice 5)
+## Follow-up (slice 5 — shipped)
 
-Route / defer / ignore actions on triage detail panel — separate Linear issue and `planning/mission-triage-disposition-slice.md` (TBD).
+Slice 5 disposition (Route now / Defer / Ignore on the triage detail panel) shipped in [PR #2359](https://github.com/JamesJedi420/containment-protocol/pull/2359). Plan: [planning/mission-triage-disposition-slice.md](mission-triage-disposition-slice.md). Slice 6 list-scan polish: [SPE-2259](https://linear.app/spectranoir/issue/SPE-2259) / [planning/mission-triage-list-scan-slice.md](mission-triage-list-scan-slice.md).

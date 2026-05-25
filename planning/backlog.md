@@ -2,7 +2,7 @@
 
 This file is the **canonical ordered queue** for concrete engineering and design follow-ups that were previously split across `README.md` and high-level hints in `planning/roadmap.md`. **Edit order here when priorities change**; avoid duplicating long tactical lists elsewhere.
 
-**How to use:** Pick from the top unless a dependency blocks it. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
+**How to use:** Pick from the active queue unless a dependency blocks it. Larger sequencing philosophy stays in `planning/roadmap.md` (phases, risks, §11 / §15).
 
 ## Context (not always a single task)
 
@@ -13,43 +13,47 @@ From `README.md` **Current design notes**:
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
-## Queue (highest leverage first — reorder as needed)
+## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation** — Runtime, authored triggers, weekly prep UI, activation event feed, batch-4 concealment migration (SPE-2249), and full batch-4 infiltration stack (SPE-2250 slices 1–2; `planning/infiltration-encounter-content-slice-2.md`) shipped.
-2. **Infiltration and access follow-through** — Batch-4 probe/cover/leave-behind complete; **report copy slice** shipped (`src/domain/infiltrationEncounterReportNotes.ts` — weekly encounter + leave-behind tradeoff notes). Further optional content depth only (not new probe mechanics).
-3. **Route and week navigation** — Report prev/next shipped (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down shipped (`planning/operations-route-drill-down-slice.md`, SPE-2248).
-4. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-5. **Tiered detection / reveal payloads (SPE-781)** — Slices 1–5 shipped (`revealPayload.ts`, scouting + disguise integration, weekly orchestration, report copy via `detectionScanReportNotes.ts`, PR #2342 / #2344 / #2346 / #2347). Full hidden-modality matrix remains follow-up.
+1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent AC still open: ≥3 mechanically distinct hidden-state modalities in one reusable flow; counter-reveal; known-but-unresolved hidden nodes; false-entity / structural-illusion lifecycle; mode-specific tells. Batch-4 concealment migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249)) and infiltration stack slices 1–2 ([SPE-2250](https://linear.app/spectranoir/issue/SPE-2250)) shipped — see Shipped below.
+2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
+3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
+4. **Tiered detection — full hidden-modality matrix** — [SPE-781](https://linear.app/spectranoir/issue/SPE-781) slices 1–5 shipped (`revealPayload.ts`, scouting + disguise integration, weekly orchestration, report copy via `detectionScanReportNotes.ts`, PR #2342 / #2344 / #2346 / #2347). Full hidden-modality matrix remains follow-up.
 
-## Shipped (May 2026 — remove from active queue when scanning)
+## Blocked / waiting
 
-| Item | Outcome |
-| --- | --- |
-| **Archived prototype hygiene** | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports. |
-| **Core UX specs (#4)** | **Closed.** Operations Report + navigation map for batch-4 covert notes and report week prev/next (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Mission Triage full refresh **deferred** until triage UI is the implementation target — see `ux/mission-triage.md` spec status block (covert prep row signals, deferral vs batch-4 flags). |
-| **Tuning and QA references** | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`. |
-| **MVP loop proof (#6)** | Slice 1 (`SPE-2251`) + slice 2 persistence/4-week fixture (`weeklyMvpLoopProof.slice2.integration.test.ts`). |
+- **Mission triage full refresh** — Mission-triage slices 1–6 shipped (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips); further triage expansion deferred until triage UI is the primary implementation target — see `ux/mission-triage.md` spec status block.
+- **Core UX specs — mission triage** — Operations Report + navigation map for batch-4 covert notes and report week prev/next are closed (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Mission Triage full refresh remains blocked on triage UI being the implementation target.
 
-## Deferred UX (follow-up after SPE-2255)
+## Shipped (May 2026)
 
-- **`ux/mission-triage.md`** — mission-triage slices 1–6 shipped (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips); further triage expansion remains follow-up.
+| Item                                                                                             | Outcome                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Route and week navigation**                                                                    | Report prev/next (`planning/report-week-navigation-slice.md`, PR #2329); operations drill-down (`planning/operations-route-drill-down-slice.md`, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248)).                                                                                                                |
+| **Hidden / disguised activation — batch-4 stack**                                                | Runtime, authored triggers, weekly prep UI, activation event feed, batch-4 concealment migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249)), full batch-4 infiltration stack slices 1–2 ([SPE-2250](https://linear.app/spectranoir/issue/SPE-2250); `planning/infiltration-encounter-content-slice-2.md`). |
+| **Infiltration report copy slice**                                                               | Weekly encounter + leave-behind tradeoff notes in `src/domain/infiltrationEncounterReportNotes.ts`.                                                                                                                                                                                                                         |
+| **Tiered detection / reveal payloads ([SPE-781](https://linear.app/spectranoir/issue/SPE-781))** | Slices 1–5 shipped (PR #2342 / #2344 / #2346 / #2347).                                                                                                                                                                                                                                                                      |
+| **Archived prototype hygiene**                                                                   | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports.                                                                                                                                                                                          |
+| **Core UX specs (#4)**                                                                           | **Closed.** Operations Report + navigation map for batch-4 covert notes and report week prev/next (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2).                                                                                                                                                  |
+| **Tuning and QA references**                                                                     | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`.                                               |
+| **MVP loop proof (#6)**                                                                          | Slice 1 ([SPE-2251](https://linear.app/spectranoir/issue/SPE-2251)) + slice 2 persistence/4-week fixture (`weeklyMvpLoopProof.slice2.integration.test.ts`).                                                                                                                                                                 |
 
-## SCP-9995 harvest — May 2026 reconciliation
+## Harvest reconciliation (SCP-9995 — May 2026)
 
-**Status:** design harvest only — not canon, not player-facing copy, not an implementation commitment. This section maps external design extraction themes to existing Linear owners or explicit gaps. It is **non-authoritative** for sequencing; reorder the queue above when priorities change.
+**Status:** design harvest only — not canon, not player-facing copy, not an implementation commitment. This section maps external design extraction themes to existing Linear owners or explicit gaps. It is **non-authoritative** for sequencing; reorder the active queue above when priorities change.
 
 **Content policy:** Do not use SCP wiki URLs or SCP numbers in player-facing copy without licensing/content review. Translate harvest ideas into bounded institutional-sim mechanics (deterministic weekly SPA), not a live 3D engine, hardware/camera stack, or wiki implementation.
 
-| Theme | Candidate bundle (Containment Protocol reading) | Existing Linear owner / likely fold-in | Status / action |
-| --- | --- | --- | --- |
-| Layered operational truth / map | Separate visible operational picture from collision/inferred geometry, internal telemetry, and unresolved layers; capacity or state outside modeled zones | [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317) (uncertain / map certainty), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (layered truth, supersession), [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (path-fact vs node-assumption validation) | **Fold** into planning; no new issue |
-| Access via edge cases | Procedures gated by non-ordinary inputs (precision, exploit-shaped prerequisites) without a real cheat engine | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (structured node prerequisites), authored-branch patterns in-repo | **Defer** dedicated “exploit access” slice until branch validator exists |
-| Observation & proxies | Live vs mediated viewing; sensor/proxy targets vs body targets; observation as risk and tool | [SPE-941](https://linear.app/spectranoir/issue/SPE-941), [SPE-428](https://linear.app/spectranoir/issue/SPE-428), [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285), [SPE-1519](https://linear.app/spectranoir/issue/SPE-1519) | **Fold** into existing visibility/sensing backlog |
-| Civilian / OSINT pipeline | Civilian optimization communities, crawler blind spots, black-box inference, triage false negatives | [SPE-1043](https://linear.app/spectranoir/issue/SPE-1043), weekly report / operations surfaces in-repo | **Fold** where possible; **gap** for formal OSINT/crawler coverage model |
-| Persistence & volatility | Non-persistent hidden state, cross-site channels with delay, volatile anomalous storage | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085), [SPE-1327](https://linear.app/spectranoir/issue/SPE-1327), [SPE-925](https://linear.app/spectranoir/issue/SPE-925), [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314) | **Fold** into archive/containment policy issues |
-| Post-failure normalcy & politics | Exposure-management posture after containment failure; suppression vs strategic value; institutional tradeoffs | [SPE-1011](https://linear.app/spectranoir/issue/SPE-1011), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085), faction/legitimacy routing in `planning/milestones.md` | **Checklist** in planning; **fold** before new tickets |
-| Digital ↔ physical bridge | Cumulative exposure and specific cognitive deficits from repeated mediated contact | In-repo injury/stress/attrition paths, [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285) (exposure states) | **Fold** or **defer** until injury model owns cumulative deficits |
-| Contradiction checks | Policy tensions (suppression vs exploitation, safe recording vs dangerous procedure spread, observation as hazard and tool) | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) first (branch/path contradictions), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) later (canon-layer contradictions) | **Checklist only** — not implementation tickets |
+| Theme                            | Candidate bundle (Containment Protocol reading)                                                                                                           | Existing Linear owner / likely fold-in                                                                                                                                                                                                                                                          | Status / action                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Layered operational truth / map  | Separate visible operational picture from collision/inferred geometry, internal telemetry, and unresolved layers; capacity or state outside modeled zones | [SPE-1317](https://linear.app/spectranoir/issue/SPE-1317) (uncertain / map certainty), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (layered truth, supersession), [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (path-fact vs node-assumption validation)             | **Fold** into planning; no new issue                                     |
+| Access via edge cases            | Procedures gated by non-ordinary inputs (precision, exploit-shaped prerequisites) without a real cheat engine                                             | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) (structured node prerequisites), authored-branch patterns in-repo                                                                                                                                                                     | **Defer** dedicated “exploit access” slice until branch validator exists |
+| Observation & proxies            | Live vs mediated viewing; sensor/proxy targets vs body targets; observation as risk and tool                                                              | [SPE-941](https://linear.app/spectranoir/issue/SPE-941), [SPE-428](https://linear.app/spectranoir/issue/SPE-428), [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285), [SPE-1519](https://linear.app/spectranoir/issue/SPE-1519) | **Fold** into existing visibility/sensing backlog                        |
+| Civilian / OSINT pipeline        | Civilian optimization communities, crawler blind spots, black-box inference, triage false negatives                                                       | [SPE-1043](https://linear.app/spectranoir/issue/SPE-1043), weekly report / operations surfaces in-repo                                                                                                                                                                                          | **Fold** where possible; **gap** for formal OSINT/crawler coverage model |
+| Persistence & volatility         | Non-persistent hidden state, cross-site channels with delay, volatile anomalous storage                                                                   | [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085), [SPE-1327](https://linear.app/spectranoir/issue/SPE-1327), [SPE-925](https://linear.app/spectranoir/issue/SPE-925), [SPE-1314](https://linear.app/spectranoir/issue/SPE-1314)                                                        | **Fold** into archive/containment policy issues                          |
+| Post-failure normalcy & politics | Exposure-management posture after containment failure; suppression vs strategic value; institutional tradeoffs                                            | [SPE-1011](https://linear.app/spectranoir/issue/SPE-1011), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085), faction/legitimacy routing in `planning/milestones.md`                                                                                                                    | **Checklist** in planning; **fold** before new tickets                   |
+| Digital ↔ physical bridge        | Cumulative exposure and specific cognitive deficits from repeated mediated contact                                                                        | In-repo injury/stress/attrition paths, [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285) (exposure states)                                                                                                                                                                              | **Fold** or **defer** until injury model owns cumulative deficits        |
+| Contradiction checks             | Policy tensions (suppression vs exploitation, safe recording vs dangerous procedure spread, observation as hazard and tool)                               | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) first (branch/path contradictions), [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) later (canon-layer contradictions)                                                                                                      | **Checklist only** — not implementation tickets                          |
 
 ### Do not create yet
 
@@ -66,10 +70,40 @@ From `README.md` **Current design notes**:
 - **Observation/proxy candidates** — fold into [SPE-941](https://linear.app/spectranoir/issue/SPE-941), [SPE-428](https://linear.app/spectranoir/issue/SPE-428), [SPE-529](https://linear.app/spectranoir/issue/SPE-529), [SPE-1285](https://linear.app/spectranoir/issue/SPE-1285), [SPE-1519](https://linear.app/spectranoir/issue/SPE-1519) before any new visibility issue.
 - **[SPE-1734](https://linear.app/spectranoir/issue/SPE-1734)** (Done) — campaign rules/ledger is available for profile anchoring; not a substitute for branch continuity validation.
 
+## Planning slice index (`planning/*-slice.md`)
+
+Git-visible implementation plans for agent sessions. **Linear issue state is authoritative** for Done / In Progress; this index is for navigation and stale-doc avoidance. Do not delete shipped plans—they document boundaries and validation notes.
+
+| File                                                      | Classification | Notes                                                         |
+| --------------------------------------------------------- | -------------- | ------------------------------------------------------------- |
+| `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                 |
+| `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack). |
+| `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                   |
+| `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                        |
+| `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                       |
+| `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                       |
+| `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                |
+| `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                             |
+| `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                             |
+| `mission-triage-layout-slice.md`                          | **Shipped**    | SPE-2257 slice 3.                                             |
+| `mission-triage-status-bar-slice.md`                      | **Shipped**    | SPE-2258 slice 4.                                             |
+| `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                   |
+| `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                         |
+| `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                 |
+| `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                     |
+| `report-week-navigation-slice.md`                         | **Shipped**    | Backlog #3; acceptance checkboxes complete.                   |
+| `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
+| `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
+
+**Superseded / stale:** none identified for deletion (May 2026). If a slice doc contradicts `main` or Linear, add a one-line status banner at the top of that file instead of removing it.
+
+**Reference-only (not a queue):** shipped rows above remain useful for test boundaries, file pointers, and PR archaeology.
+
 ## See also
 
 - `planning/roadmap.md` — phases, dependencies, deferrals, review questions
 - `planning/milestones.md` — milestone proof points and label policy link
+- `planning/harvest-reconciliation-index.md` — harvest bundle index and fold-in ledger
 - `architecture/game-state-and-core-loop.md` — systems map and architecture index
 - `planning/deferred-design-documents.md` — SPE-186+ and knowledge child issues without in-repo deep docs yet
 - `planning/documentation-curation.md` — when to update backlog, maps, mirrors, and audits

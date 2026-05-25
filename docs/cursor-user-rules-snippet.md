@@ -16,8 +16,8 @@ Copy the blocks from the sources listed below into **Cursor → Settings → Rul
 - Standing repo rules: read **`AGENTS.md`** at repo root; follow Linear update steps there.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
-- **Implementation lite:** paste the block from `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, PR mapping, validation, Linear closure).
-- **Backlog hygiene** (grooming only, not implementation): paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene passes.
+- **Implementation lite:** remind me to use the block from `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, PR mapping, validation, Linear closure) for coding sessions.
+- **Backlog hygiene:** remind me to use the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene or grooming passes (not implementation).
 
 ---
 

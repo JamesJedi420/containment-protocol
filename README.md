@@ -18,7 +18,7 @@
 - **Projection / View-Model**: pure selectors and view-models in `src/features/*View.ts`
 - **UI / Components**: presentational React modules in `src/features/**` and `src/styles/**`
 - Shared explanatory output is owned by canonical domain helpers wherever possible
-- Dependency boundaries are enforced by Vitest guardrails (`test/boundary-enforcement.test.ts`); see `docs/dependency-boundaries.md`
+- Dependency boundaries are enforced by Vitest guardrails (`src/test/boundary-enforcement.test.ts`); see `docs/dependency-boundaries.md`
 
 ## Shell route disposition
 

@@ -1,19 +1,28 @@
 # SPE-626 slice — Investigation question case prep (UI)
 
-One-page implementation plan. Parent: [SPE-626 — Question-budget investigation and tactical reads](https://linear.app/spectranoir/issue/SPE-626/question-budget-investigation-and-tactical-reads). Complements merged [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247/stealth-leave-behind-tradeoff-selection-slice-5) / PR #2323.
+## Shipped status
 
-## Why this is next
+| Field             | Value                                                                                                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parent**        | [SPE-626 — Question-budget investigation and tactical reads](https://linear.app/spectranoir/issue/SPE-626/question-budget-investigation-and-tactical-reads)                 |
+| **Merged PR**     | [#2324](https://github.com/JamesJedi420/containment-protocol/pull/2324) — `feat(SPE-626): investigation question case prep UI`                                              |
+| **Shipped scope** | `InvestigationCasePrepPanel` + `buildInvestigationCasePrepView`; store `askInvestigationQuestion`; forensic/tactical budget spend and custody-marker display on case detail |
+| **Validation**    | `investigationCasePrepView.test.ts`, `CaseDetailPage.test.tsx`; complements [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247) / PR #2323 leave-behind selection     |
 
-| Shipped | Gap |
-| --- | --- |
-| `investigationEconomy.ts` — budgets, `askInvestigationQuestion`, leverage flags | No case-detail UI; no store action for player asks |
-| `advanceWeek` — `applySuccessfulInvestigation`, auto tactical read on recon success | Player cannot spend forensic budget before resolve except via sim paths |
-| `investigationCustodyLoss.ts` — markers + `custodyLossBurden` on forensic budget | Markers only visible indirectly via leave-behind **preview**; no post-resolution list |
-| SPE-521 / SPE-70 infiltration + leave-behind stacks | Domain-complete; player prep surfaces still thin on case detail |
+---
 
-**Backlog alignment:** `planning/backlog.md` item 2 (infiltration follow-through) is largely domain-done; item 1 (hidden activation) is broader. This slice tightens the **investigation / casework** loop on the same case-detail surface as leave-behind selection.
+## Original implementation plan (historical)
 
-## Goal
+### Pre-ship gap (resolved)
+
+| Shipped (domain)                                                                    | Gap addressed by this slice                                             |
+| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `investigationEconomy.ts` — budgets, `askInvestigationQuestion`, leverage flags     | Case-detail UI + store action for player asks before resolve            |
+| `advanceWeek` — `applySuccessfulInvestigation`, auto tactical read on recon success | Player forensic/tactical spend on in-progress cases via prep panel      |
+| `investigationCustodyLoss.ts` — markers + `custodyLossBurden`                       | Custody markers listed on case detail after leave-behind fallout        |
+| SPE-521 / SPE-70 infiltration + leave-behind stacks                                 | Investigation prep on same case-detail surface as other covert-ops prep |
+
+### Goal (implemented)
 
 On **in-progress** cases, let the player:
 
@@ -64,12 +73,12 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 
 ## UI (minimal)
 
-| Surface | Content |
-| --- | --- |
+| Surface                        | Content                                                                                       |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
 | `CaseDetailPage` `detail-main` | `InvestigationCasePrepPanel` below leave-behind panel (or merged forensic budget strip later) |
-| Forensic block | Budget line; list FORENSIC_QUESTIONS; Ask / Asked per row; show answer + leverage on success |
-| Tactical block | Same for TACTICAL_READ_QUESTIONS |
-| Custody strain | When `custodyMarkers.length > 0`, list ref + leave-behind label + applied week |
+| Forensic block                 | Budget line; list FORENSIC_QUESTIONS; Ask / Asked per row; show answer + leverage on success  |
+| Tactical block                 | Same for TACTICAL_READ_QUESTIONS                                                              |
+| Custody strain                 | When `custodyMarkers.length > 0`, list ref + leave-behind label + applied week                |
 
 **Eligibility:** `caseData.status === 'in_progress'` (mirror leave-behind panel). Resolved cases: hide panel or read-only asked state only — prefer **hide** for slice 1.
 
@@ -87,22 +96,22 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 4. `CaseDetailPage.test.tsx` — panel visible on tuned in-progress case; ask forensic question updates UI
 5. Regression — `investigationEconomy.test.ts` / `sim.investigationEconomy.integration.test.ts` unchanged
 
-## Acceptance criteria
+## Shipped acceptance evidence
 
-- [ ] Player can ask a forensic and a tactical catalog question on an in-progress case with budget
-- [ ] Asked questions cannot be re-asked; exhausted budget disables remaining rows
-- [ ] Custody markers from leave-behind fallout appear on case detail after `advanceWeek` apply
-- [ ] Forensic remaining reflects `custodyLossBurden` consistently with leave-behind panel
-- [ ] Vitest coverage for view + case detail + store; CI green
+- [x] Player can ask a forensic and a tactical catalog question on an in-progress case with budget
+- [x] Asked questions cannot be re-asked; exhausted budget disables remaining rows
+- [x] Custody markers from leave-behind fallout appear on case detail after `advanceWeek` apply
+- [x] Forensic remaining reflects `custodyLossBurden` consistently with leave-behind panel
+- [x] Vitest coverage for view + case detail + store; CI green
 
 ## File touch list (expected)
 
-| Area | Files |
-| --- | --- |
-| View | `src/features/cases/investigationCasePrepView.ts` |
-| UI | `src/features/cases/InvestigationCasePrepPanel.tsx` |
-| Page | `src/features/cases/CaseDetailPage.tsx` |
-| Store | `src/app/store/gameStore.ts` |
+| Area  | Files                                                                                      |
+| ----- | ------------------------------------------------------------------------------------------ |
+| View  | `src/features/cases/investigationCasePrepView.ts`                                          |
+| UI    | `src/features/cases/InvestigationCasePrepPanel.tsx`                                        |
+| Page  | `src/features/cases/CaseDetailPage.tsx`                                                    |
+| Store | `src/app/store/gameStore.ts`                                                               |
 | Tests | `src/test/investigationCasePrepView.test.ts`, `src/features/cases/CaseDetailPage.test.tsx` |
 
 ## Risks
@@ -111,12 +120,12 @@ askInvestigationQuestion: (caseId, domain, questionId) => void
 - **Panel clutter:** addressed via `WeeklyCasePrepPanel` consolidation on case detail.
 - **SPE-626 Linear status:** domain AC largely met in repo; close parent or add child issue when UI ships
 
-## Runner-up (next after this)
+## Related shipped slices (historical queue)
 
-1. ~~**Infiltration case prep panel**~~ — shipped; see `planning/infiltration-case-prep-slice.md`.
-2. **Concealment case prep panel** — `planning/concealment-case-prep-slice.md` (SPE-70 / SPE-2107 slice 3 UX; backlog #1 player-facing gap).
-3. ~~**Covert ops prep consolidation**~~ — shipped (`WeeklyCasePrepPanel` on case detail).
-4. ~~**SPE-1464**~~ — done in repo; branch continuity validator shipped.
+1. ~~**Infiltration case prep panel**~~ — `planning/infiltration-case-prep-slice.md`
+2. ~~**Concealment case prep panel**~~ — `planning/concealment-case-prep-slice.md` (PR #2326)
+3. ~~**Covert ops prep consolidation**~~ — `WeeklyCasePrepPanel` on case detail
+4. ~~**SPE-1464**~~ — branch continuity validator shipped
 
 ## See also
 

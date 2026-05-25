@@ -1,25 +1,34 @@
-# MVP weekly loop proof — slice 1 (recommended next issue)
+# MVP weekly loop proof — slice 1 (integration harness)
 
-## Recommendation
+## Shipped status
 
-**Next best implementable issue:** bounded **MVP weekly loop proof** (`planning/backlog.md` item **#6**, roadmap §15 / `planning/milestones.md` milestone 6).
-
-| Candidate | Verdict |
-| --- | --- |
-| **MVP weekly loop proof (this plan)** | **Pick first.** Strategic backlog priority; closes the arc after covert-ops content + prep UI + operations drill-down; no new domain frameworks; test-backed, shippable in one PR. |
-| Infiltration encounter report copy (SPE-2250 optional) | Good **slice 2** follow-up: player-visible payoff for 33 probe-plan templates without new mechanics. |
-| SPE-781 tiered detection / reveal payloads | High leverage long-term; **too large** for the next single PR (new reveal taxonomy + scan integration). |
-| ConcealmentTriggers batch 5 (8 remaining `case` templates) | Mostly combat/raid generics (`combat-001`, `escalation-001`, …); **low narrative fit** — defer unless deliberately expanding raid concealment. |
-| Core UX spec refresh (backlog #4) | Valuable but **documentation-first**; does not advance playable proof on its own. |
-| SPE-522 / SPE-1007 infiltration frameworks | Explicitly out of scope per SPE-2250; separate epics. |
-
-**Suggested Linear issue:** new child e.g. **SPE-2251** — “MVP weekly loop proof (slice 1 — integration harness)” (or reopen a milestone-6 tracking issue if one exists).
+| Field             | Value                                                                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linear**        | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — MVP weekly loop proof (slice 1)                                                                                            |
+| **Merged PR**     | [#2339](https://github.com/JamesJedi420/containment-protocol/pull/2339)                                                                                                                |
+| **Shipped scope** | Deterministic multi-week integration harness: prep mutations → `advanceWeek` → report notes + event-feed drill-down + week navigation (`planning/backlog.md` item **#6**, milestone 6) |
+| **Validation**    | `weeklyMvpLoopProof.integration.test.ts`, `src/test/helpers/weeklyMvpLoopProof.ts`; slice 2 persistence reload in `weeklyMvpLoopProof.slice2.integration.test.ts`                      |
 
 ---
 
-## Why now
+## Original implementation plan (historical)
 
-Recent work completed the **covert-ops vertical** end-to-end in code:
+### Queue context (May 2026, pre-ship)
+
+Bounded **MVP weekly loop proof** was the strategic backlog pick after covert-ops content + prep UI + operations drill-down shipped. Candidate comparison at plan time:
+
+| Candidate                                              | Verdict (historical)                              |
+| ------------------------------------------------------ | ------------------------------------------------- |
+| **MVP weekly loop proof (this plan)**                  | Shipped slice 1 — test-backed integration harness |
+| Infiltration encounter report copy (SPE-2250 optional) | Shipped separately (SPE-2250)                     |
+| SPE-781 tiered detection / reveal payloads             | Deferred — large framework                        |
+| ConcealmentTriggers batch 5                            | Deferred — low narrative fit                      |
+| Core UX spec refresh (backlog #4)                      | Documentation-first                               |
+| SPE-522 / SPE-1007 infiltration frameworks             | Out of scope per SPE-2250                         |
+
+### Why this slice shipped when it did
+
+Recent work had completed the **covert-ops vertical** end-to-end in code:
 
 - Domain: concealment activation, infiltration probe/cover/leave-behind, investigation economy, mission fallout
 - Content: batch-4 concealment + full batch-4 infiltration stack (12 templates)
@@ -46,15 +55,15 @@ No Playwright requirement (not in `package.json` today). Vitest + `advanceWeek` 
 
 Use **existing** starter state and a known infiltration-eligible template (e.g. `ops-004` or spawned `ops-005`):
 
-| Step | Action | Assert |
-| --- | --- | --- |
-| 0 | `createStartingState()`, assign team, set case `in_progress` | Case eligible for prep |
-| 1 | Player prep (store or direct state mutation matching store paths) | `conceal.case.{id}` set; `infiltrationWeeklyProbeActionOverride` set; `stealthLeaveBehindId` selected if applicable; one forensic `askInvestigationQuestion` |
-| 2 | `advanceWeek(state)` | Week +1; case progressed or resolved per mode |
-| 3 | Inspect `reports[last]` | Notes include ≥1 of: `concealment.activated`, `infiltration.*`, investigation note types, leave-behind custody markers when pressure applied |
-| 4 | Build event feed rows from report | `buildEventFeedRows` / `refineEventFeedDrillDownHref` — primary `href` resolves (report week or case) |
-| 5 | `buildReportWeekNavigation(reports, week)` | Prev/next consistent with report list |
-| 6 | Second `advanceWeek` (lighter prep) | Second report exists; navigation across two weeks works |
+| Step | Action                                                            | Assert                                                                                                                                                       |
+| ---- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0    | `createStartingState()`, assign team, set case `in_progress`      | Case eligible for prep                                                                                                                                       |
+| 1    | Player prep (store or direct state mutation matching store paths) | `conceal.case.{id}` set; `infiltrationWeeklyProbeActionOverride` set; `stealthLeaveBehindId` selected if applicable; one forensic `askInvestigationQuestion` |
+| 2    | `advanceWeek(state)`                                              | Week +1; case progressed or resolved per mode                                                                                                                |
+| 3    | Inspect `reports[last]`                                           | Notes include ≥1 of: `concealment.activated`, `infiltration.*`, investigation note types, leave-behind custody markers when pressure applied                 |
+| 4    | Build event feed rows from report                                 | `buildEventFeedRows` / `refineEventFeedDrillDownHref` — primary `href` resolves (report week or case)                                                        |
+| 5    | `buildReportWeekNavigation(reports, week)`                        | Prev/next consistent with report list                                                                                                                        |
+| 6    | Second `advanceWeek` (lighter prep)                               | Second report exists; navigation across two weeks works                                                                                                      |
 
 Keep RNG **deterministic** (fixed seed or template spawn `() => 0.42` pattern used elsewhere).
 
@@ -99,14 +108,9 @@ Reuse helpers from:
 - Link this file from `planning/backlog.md` item #6 (one line: slice 1 plan path).
 - No new audit index entry unless adding `docs/*audit*.md`.
 
-### 4. Linear
-
-- Create **SPE-2251** (or equivalent) with acceptance criteria copied from below.
-- Parent: milestone 6 / Containment Protocol project.
-
 ---
 
-## Acceptance criteria
+## Shipped acceptance evidence
 
 - [x] `weeklyMvpLoopProof.integration.test.ts` runs in CI (`npm run test:run`)
 - [x] Test covers: prep mutations → `advanceWeek` → report notes + event feed href sanity + week navigation
@@ -116,11 +120,11 @@ Reuse helpers from:
 
 ## Shipped artifacts
 
-| Area | Files |
-| --- | --- |
-| Fixture | `src/test/helpers/weeklyMvpLoopProof.ts` |
+| Area              | Files                                             |
+| ----------------- | ------------------------------------------------- |
+| Fixture           | `src/test/helpers/weeklyMvpLoopProof.ts`          |
 | Integration tests | `src/test/weeklyMvpLoopProof.integration.test.ts` |
-| Linear | SPE-2251 |
+| Linear            | SPE-2251                                          |
 
 ---
 
@@ -136,15 +140,9 @@ Shipped in `src/domain/infiltrationEncounterReportNotes.ts` with `infiltration.w
 
 ---
 
-## Backlog queue suggestion
+## Post-ship backlog note (historical)
 
-After slice 1 ships, reorder `planning/backlog.md` top items to:
-
-1. MVP loop proof — slice 1 shipped; slice 2+ (triage UI path, persistence reload, 4-week fixture) as needed
-2. Infiltration encounter report copy (optional SPE-2250 follow-up)
-3. Tuning / QA references (backlog #5)
-4. Core UX specs refresh (#4)
-5. SPE-781+ / large frameworks only when loop proof is green
+Slice 1 and slice 2 persistence reload shipped; see `planning/backlog.md` for current queue.
 
 ---
 

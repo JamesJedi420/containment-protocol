@@ -8,7 +8,7 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Hidden or disguised activation beyond already-hidden cases remains a follow-up surface.
+- Concealment activation stack shipped (runtime, triggers, prep UI, event feed, batch-4 migration); SPE-70 umbrella modalities remain — see Shipped table and active queue below.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.

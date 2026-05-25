@@ -2,7 +2,7 @@
 
 Canonical standing policy for humans and agents. **User Rules:** paste the short block from `docs/cursor-user-rules-snippet.md` into Cursor Settings → Rules. **Repo:** summarized at the top of `AGENTS.md`.
 
-Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only).
+**Cursor rules in this repo:** Only `.cursor/rules/linear-always-update.mdc` is tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores all other files under `.cursor/rules/`—they will **not** be committed. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only). If you need a per-developer local rule file, keep it untracked under `.cursor/rules/`; to add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
 
 ## Standing policy (repo + user)
 
@@ -33,7 +33,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 1. `planning/backlog.md` or assigned Linear issue.
 2. `planning/<topic>-slice.md` for bounded scope.
-3. Linear lifecycle in `AGENTS.md` (In Progress → PR → Done on merge).
+3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → PR links slice issue → Done on merge → comment what shipped. **Harvest triage:** `docs/harvest-candidate-triage-agent.md`; Linear owner comments must include **mechanic + boundary + fold-in vs child reasoning** (`docs/harvest-fold-in-linear-comments.md`); owner map QA: `docs/harvest-mirror-owner-map-qa.md` — same session as mirror, not deferred.
 
 ## Optional first message template
 

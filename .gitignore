@@ -30,7 +30,10 @@ remaining-subset.json
 
 # Cursor-local agent config (solo dev; environment.json stays tracked)
 .cursor/skills/
-.cursor/rules/
+# Shared repo rules are tracked explicitly; other files here stay local-only
+.cursor/rules/*
+!.cursor/rules/
+!.cursor/rules/linear-always-update.mdc
 .DS_Store
 *.suo
 *.ntvs*

@@ -91,7 +91,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                         |
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                 |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                     |
-| `report-week-navigation-slice.md`                         | **Shipped**    | Backlog #3; acceptance checkboxes complete.                   |
+| `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329); acceptance checkboxes complete.                   |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
 

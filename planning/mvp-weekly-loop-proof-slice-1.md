@@ -6,7 +6,7 @@
 | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**        | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — MVP weekly loop proof (slice 1)                                                                                            |
 | **Merged PR**     | [#2339](https://github.com/JamesJedi420/containment-protocol/pull/2339)                                                                                                                |
-| **Shipped scope** | Deterministic multi-week integration harness: prep mutations → `advanceWeek` → report notes + event-feed drill-down + week navigation (`planning/backlog.md` item **#6**, milestone 6) |
+| **Shipped scope** | Deterministic multi-week integration harness: prep mutations → advanceWeek → report notes + event-feed drill-down + week navigation (MVP loop proof, milestone 6) |
 | **Validation**    | `weeklyMvpLoopProof.integration.test.ts`, `src/test/helpers/weeklyMvpLoopProof.ts`; slice 2 persistence reload in `weeklyMvpLoopProof.slice2.integration.test.ts`                      |
 
 ---

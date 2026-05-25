@@ -124,7 +124,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 ### Repo-wide stabilization completed
 
-- `npm run test:run` and `npm run lint` are green in CI; treat `npm run typecheck` / `npm run build` as a separate type-contract gate (see `AGENTS.md` for known baseline TypeScript drift and Vite 8 type-import caveats)
+- `npm run test:run` and `npm run lint` are green in CI; treat `npm run build` as a separate type-contract gate (see `AGENTS.md` for known baseline TypeScript drift and Vite 8 type-import caveats)
 - Full Vitest suite is green
 - Compatibility drift across older runtime/test surfaces was resolved without undoing current canonical behavior
 - Hidden-state and disguise-validation bounded slices remain green after stabilization
@@ -141,8 +141,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 ## Scripts
 
 - `npm run dev` — start the local Vite dev server
-- `npm run typecheck` — TypeScript project build (`tsc -b`) over app + Vite config; no bundle (same TS gate as `build`, without Vite)
-- `npm run build` — run `typecheck`, then produce a production bundle with Vite (manual chunks in `app.vite.config.ts` are organizational only: `vendor-react`, `vendor-icons`, `vendor-misc`, `content-catalog`, `sim-core`; no bundle-size budgets or analyzer CI gate yet)
+- `npm run build` — run TypeScript project build (`tsc -b`) over app + Vite config, then produce a production bundle with Vite (manual chunks in `app.vite.config.ts` are organizational only: `vendor-react`, `vendor-icons`, `vendor-misc`, `content-catalog`, `sim-core`; no bundle-size budgets or analyzer CI gate yet)
 - `npm run lint` — run ESLint across the repo
 - `npm run format` — rewrite files with Prettier
 - `npm run format:check` — verify formatting without changing files
@@ -151,9 +150,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - `npm run test:ui` — open the Vitest UI
 - `npm run coverage` — run tests with coverage output
 - `npm run verify:audits-index` — assert `docs/design-audits-index.md` matches every top-level `docs/*audit*.md` (excludes the index file itself)
-- `npm run verify:architecture-index` — assert every `architecture/*.md` (except the map file) appears once under **See also** in `architecture/game-state-and-core-loop.md`
 - `npm run verify:theme-contracts` — assert mirrored **SPE-** follow-ups match `architecture/external-design-theme-contracts.md` coverage lines
-- `npm run materialize:linear-external -- tools/linear-external-get-document.json` — regenerate `docs/linear-external-documentation-follow-ups.md` from the checked-in Linear `get_document` export (optional path argument; see `scripts/materialize-linear-external.mjs --help`)
 
 **Planning and doc curation:** `planning/documentation-curation.md` — when to update backlog, roadmap, mirrors, and the systems map.
 

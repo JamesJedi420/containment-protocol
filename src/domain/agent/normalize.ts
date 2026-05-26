@@ -18,14 +18,8 @@ import {
 import { clamp } from '../math'
 import { synchronizeProgressionState } from '../progression'
 import { cloneDomainStats } from '../statDomains'
-import {
-  createDefaultFatigueChannels,
-  createDefaultOverdriveState,
-} from '../agentFatigueChannels'
-import {
-  createDefaultResponderEnergyBudget,
-  normalizeEnergyBudget,
-} from '../responderEnergyBudget'
+import { createDefaultFatigueChannels } from '../agentFatigueChannels'
+import { normalizeEnergyBudget } from '../responderEnergyBudget'
 import { isAgentAttritionUnavailable } from './attrition'
 import { getEquipmentCatalogEntries } from '../equipment'
 import { PERFORMANCE_PENALTY_MULTIPLIER } from '../sim/betrayal'

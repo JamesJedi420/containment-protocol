@@ -43,7 +43,8 @@ export function clearWeeklyReportIntegrityIssues(state: GameState): GameState {
     return state
   }
 
-  const { weeklyReportIntegrityIssues: _cleared, ...rest } = state
+  const { weeklyReportIntegrityIssues, ...rest } = state
+  void weeklyReportIntegrityIssues
 
   return rest
 }

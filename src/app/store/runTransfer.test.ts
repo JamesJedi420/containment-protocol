@@ -10,7 +10,7 @@ import {
 } from '../../domain/procurementEmergencyAuthority'
 import { getBeliefDrivenCasePressure } from '../../domain/beliefTracks'
 import { getCasePressureWithBelief } from '../../domain/pressure'
-import { getContractOffers, refreshContractBoard } from '../../domain/contracts'
+import { getContractOffers } from '../../domain/contracts'
 import { getCampaignDate, resolveCalendarConfig } from '../../domain/campaignCalendar'
 import { createSeedCampaignLedger } from '../../domain/campaignLedger'
 import { calcWeekScore } from '../../domain/sim/scoring'
@@ -41,7 +41,6 @@ import {
   sanitizeGameConfig,
   sanitizeCandidatesRecruitment,
   sanitizeCasesMap,
-  sanitizeStaffMap,
   sanitizeTeamsMap,
   serializeRunExport,
   stripGameTemplates,
@@ -4939,7 +4938,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       const duplicateEmbeddedA = 'case-duplicate-embedded-a'
       const duplicateEmbeddedB = 'case-duplicate-embedded-b'
       const missingEmbeddedId = 'case-missing-embedded-id'
-      const { id: _seedId, ...missingEmbeddedPayload } = makeHydrationCase(missingEmbeddedId)
+      const seedCase = makeHydrationCase(missingEmbeddedId)
+      const { id: seedCaseId, ...missingEmbeddedPayload } = seedCase
+      void seedCaseId
 
       const hydrated = hydrateGame(
         {
@@ -5221,7 +5222,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       const duplicateEmbeddedA = 't-duplicate-embedded-a'
       const duplicateEmbeddedB = 't-duplicate-embedded-b'
       const missingEmbeddedId = 't-missing-embedded-id'
-      const { id: _seedId, ...missingEmbeddedPayload } = makeHydrationTeam(missingEmbeddedId)
+      const seedTeam = makeHydrationTeam(missingEmbeddedId)
+      const { id: seedTeamId, ...missingEmbeddedPayload } = seedTeam
+      void seedTeamId
 
       const hydrated = hydrateGame(
         {
@@ -5549,7 +5552,8 @@ describe('runTransfer import sanitization (326-332)', () => {
 
     it('418 leaves contracts undefined for legacy saves and sanitizes when the key is present', () => {
       const fallback = createStartingState()
-      const { contracts: _contracts, ...legacyPayload } = stripGameTemplates(fallback)
+      const { contracts: legacyContracts, ...legacyPayload } = stripGameTemplates(fallback)
+      void legacyContracts
       const legacy = hydrateGame(legacyPayload, fallback)
       const dirtyOffer = getContractOffers(fallback)[0]!
 
@@ -7302,7 +7306,6 @@ describe('runTransfer import sanitization (326-332)', () => {
 
     it('466 reconciles party card zones and drops invalid queued play targets', () => {
       const fallback = createStartingState()
-      const caseId = Object.keys(fallback.cases)[0]!
       const teamId = Object.keys(fallback.teams)[0]!
       const cardId = fallback.partyCards!.deck[0]!
 
@@ -12624,7 +12627,8 @@ describe('runTransfer import sanitization (326-332)', () => {
 
     it('606 sanitizes contracts when persisted key is present on hydrateGame', () => {
       const fallback = createStartingState()
-      const { contracts: _contracts, ...legacyPayload } = stripGameTemplates(fallback)
+      const { contracts: legacyContracts, ...legacyPayload } = stripGameTemplates(fallback)
+      void legacyContracts
       const seedOffer = getContractOffers(fallback)[0]!
 
       const legacy = hydrateGame(legacyPayload, fallback)

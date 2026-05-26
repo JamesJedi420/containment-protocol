@@ -1,4 +1,4 @@
-import type { GameState, Id } from '../models'
+import type { GameState } from '../models'
 import type {
   PartyCardDefinition,
   PartyCardEffect,

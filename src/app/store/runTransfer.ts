@@ -10,7 +10,7 @@ import {
   productionMaterialCatalog,
   type ProductionRecipe,
 } from '../../data/production'
-import { getTrainingProgram, trainingCatalog } from '../../data/training'
+import { getTrainingProgram } from '../../data/training'
 import {
   createDefaultAgentAssignmentState,
   deriveAssignmentStatus,
@@ -21,11 +21,7 @@ import {
 } from '../../domain/agent/normalize'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
 import { sanitizeReplacementPressureState } from '../../domain/agent/replacementPressureHydration'
-import {
-  EQUIPMENT_SLOT_KINDS,
-  getEquipmentCatalogEntries,
-  getEquipmentSlotItemId,
-} from '../../domain/equipment'
+import { EQUIPMENT_SLOT_KINDS, getEquipmentSlotItemId } from '../../domain/equipment'
 import {
   DEPLOYMENT_MOMENTUM_MAX_STACKS,
   deploymentMomentumSurfacesEnabled,
@@ -191,7 +187,6 @@ import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
-  normalizeCandidateCategory,
   normalizeCandidateHireStatus,
   normalizeRecruitmentFunnelStage,
   normalizeStaffCandidateSpecialty,
@@ -869,10 +864,7 @@ function trimOperationEventPayloadStrings(payload: Record<string, unknown>): Rec
 }
 
 /** SPE-491: trim event payload strings; preserve stale entity IDs for historical logs. */
-export function reconcileHydratedOperationEventRefs(
-  events: OperationEvent[],
-  _context: OperationEventReconcileContext
-): OperationEvent[] {
+export function reconcileHydratedOperationEventRefs(events: OperationEvent[]): OperationEvent[] {
   return events.map((event) => {
     if (!isRecord(event.payload)) {
       return event
@@ -1703,18 +1695,6 @@ function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
   }
 
   return notes
-}
-
-function sanitizeNumberList(value: unknown, fallback: number[]) {
-  if (!Array.isArray(value)) {
-    return fallback
-  }
-
-  const sanitized = value
-    .filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry))
-    .map((entry) => Math.trunc(entry))
-
-  return sanitized.length > 0 ? sanitized : fallback
 }
 
 const SUBSTANCE_POLICIES = ['permitted', 'restricted', 'prohibited'] as const satisfies readonly NonNullable<
@@ -2659,7 +2639,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
         .map((liability) => liability.trim())
     ),
   ]
-  let availabilityWindow = isRecord(entry.availabilityWindow)
+  const availabilityWindow = isRecord(entry.availabilityWindow)
     ? (() => {
         const opensWeek = finiteCandidateWeek(entry.availabilityWindow.opensWeek, campaignWeek)
         const closesWeek = finiteCandidateWeek(entry.availabilityWindow.closesWeek, campaignWeek)
@@ -2675,7 +2655,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
       })()
     : undefined
   const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
-  let createdWeek = finiteCandidateWeek(entry.createdWeek, campaignWeek)
+  const createdWeek = finiteCandidateWeek(entry.createdWeek, campaignWeek)
   let lastUpdatedWeek = finiteCandidateWeek(entry.lastUpdatedWeek, campaignWeek)
 
   if (createdWeek !== undefined && lastUpdatedWeek !== undefined && lastUpdatedWeek < createdWeek) {
@@ -4791,10 +4771,7 @@ function sanitizeContractRewardPackage(
   }
 }
 
-function sanitizeContractRequirements(
-  value: unknown,
-  fallback: ContractOffer['requirements']
-): ContractOffer['requirements'] {
+function sanitizeContractRequirements(value: unknown): ContractOffer['requirements'] {
   const raw = isRecord(value) ? value : {}
 
   const dedupe = (entries: string[]) => [...new Set(entries)]
@@ -4900,7 +4877,7 @@ function sanitizeHydratedContractOffer(
       )
     ),
     rewards: sanitizeContractRewardPackage(value.rewards, definition.baseRewards),
-    requirements: sanitizeContractRequirements(value.requirements, definition.requirements),
+    requirements: sanitizeContractRequirements(value.requirements),
     modifiers: Array.isArray(value.modifiers)
       ? value.modifiers
           .filter((entry): entry is Record<string, unknown> => isRecord(entry))
@@ -5073,10 +5050,7 @@ function sanitizeHydratedActiveContractRuntime(
     ...(typeof value.lootTableId === 'string' ? { lootTableId: value.lootTableId } : {}),
     ...(isRecord(value.requirements)
       ? {
-          requirements: sanitizeContractRequirements(value.requirements, {
-            recommendedClasses: [],
-            discouragedClasses: [],
-          }),
+          requirements: sanitizeContractRequirements(value.requirements),
         }
       : {}),
     ...(Array.isArray(value.modifiers)
@@ -8181,16 +8155,7 @@ export function hydrateGame(
     weeklyReportsByWeek: buildWeeklyReportIntelSnapshotsByWeek(reports),
     fallbackFeaturedRecipeId: fallback.market.featuredRecipeId,
   })
-  const events = reconcileHydratedOperationEventRefs(sanitizedEvents, {
-    agentIds: new Set(Object.keys(agents)),
-    teamIds: new Set(Object.keys(teams)),
-    caseIds: new Set(Object.keys(normalizedCases)),
-    candidateIds: new Set(candidates.map((candidate) => candidate.id)),
-    staffIds: new Set(Object.keys(staff)),
-    factionIds: new Set(Object.keys(factions ?? {})),
-    templateIds: resolveKnownCaseTemplateIds(fallback.templates) ?? new Set<string>(),
-    trainingIds: new Set(trainingCatalog.map((program) => program.trainingId)),
-  })
+  const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
 
   const hydratedBase = stripUndefinedFields({
       ...fallback,

@@ -1,8 +1,13 @@
 // cspell:words psionic
 import type { CaseInstance, CaseTemplate, GameState } from './models'
+import { getAgencyProgressionUnlockDefinition, getAgencyProgressionUnlockIds } from './agencyProgression'
 import { isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
 import { getBeliefDrivenCasePressure } from './beliefTracks'
 import type { BeliefTrackState } from './beliefTracks'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
 
 export interface ResponseGridConfig {
   majorIncidentThreshold: number
@@ -141,6 +146,73 @@ export function getResponseGridConfig(
   }
 }
 
+/** Known major-incident template ids for hydration (problem 467). */
+export function buildResponseGridTemplateCatalog(
+  templates: Record<string, CaseTemplate>,
+  agency?: GameState['agency']
+): Set<string> {
+  const catalog = new Set<string>([
+    ...Object.keys(templates),
+    ...DEFAULT_RESPONSE_GRID.majorIncidentTemplateIds,
+  ])
+
+  for (const unlockId of getAgencyProgressionUnlockIds({ agency: agency ?? {} })) {
+    for (const templateId of getAgencyProgressionUnlockDefinition(unlockId)?.majorIncidentTemplateIds ??
+      []) {
+      catalog.add(templateId)
+    }
+  }
+
+  return catalog
+}
+
+/**
+ * Hydration problem 467: threshold, template IDs catalog, pressureDecayPerWeek.
+ */
+export function sanitizePersistedResponseGrid(
+  raw: unknown,
+  options: {
+    templates: Record<string, CaseTemplate>
+    agency?: GameState['agency']
+    fallback?: Partial<ResponseGridConfig>
+  }
+): ResponseGridConfig | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const catalog = buildResponseGridTemplateCatalog(options.templates, options.agency)
+  const fallback = options.fallback ?? DEFAULT_RESPONSE_GRID
+
+  const majorIncidentThreshold =
+    typeof raw.majorIncidentThreshold === 'number' && Number.isFinite(raw.majorIncidentThreshold)
+      ? Math.max(1, Math.trunc(raw.majorIncidentThreshold))
+      : fallback.majorIncidentThreshold
+
+  const templateIds = Array.isArray(raw.majorIncidentTemplateIds)
+    ? [
+        ...new Set(
+          raw.majorIncidentTemplateIds
+            .filter((templateId): templateId is string => typeof templateId === 'string')
+            .map((templateId) => templateId.trim())
+            .filter((templateId) => templateId.length > 0 && catalog.has(templateId))
+        ),
+      ]
+    : []
+
+  const pressureDecayPerWeek =
+    typeof raw.pressureDecayPerWeek === 'number' && Number.isFinite(raw.pressureDecayPerWeek)
+      ? Math.max(0, Math.trunc(raw.pressureDecayPerWeek))
+      : fallback.pressureDecayPerWeek
+
+  return {
+    majorIncidentThreshold,
+    majorIncidentTemplateIds:
+      templateIds.length > 0 ? templateIds : [...DEFAULT_RESPONSE_GRID.majorIncidentTemplateIds],
+    ...(pressureDecayPerWeek !== undefined ? { pressureDecayPerWeek } : {}),
+  }
+}
+
 /**
  * Returns the effective case pressure value, augmented by external-party belief
  * state when available.  The belief bonus is driven by institutionalJudgment and
@@ -163,4 +235,48 @@ export function getCasePressureWithBelief(
   }
 
   return base + getBeliefDrivenCasePressure(beliefTracks)
+}
+
+const MAX_PERSISTED_GLOBAL_PRESSURE = 99_999
+
+function sanitizeNonNegativeInteger(value: unknown, max: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined
+  }
+
+  return Math.min(max, Math.max(0, Math.trunc(value)))
+}
+
+/**
+ * Hydration problem 476: clamp persisted global pressure scalars to finite non-negative bounds.
+ */
+export function sanitizePersistedGlobalPressureScalars(raw: {
+  globalPressure?: unknown
+  globalEscalationLevel?: unknown
+  globalThreatDrift?: unknown
+  globalTimePressure?: unknown
+}): Pick<
+  GameState,
+  'globalPressure' | 'globalEscalationLevel' | 'globalThreatDrift' | 'globalTimePressure'
+> {
+  const globalPressure = sanitizeNonNegativeInteger(raw.globalPressure, MAX_PERSISTED_GLOBAL_PRESSURE)
+  const globalEscalationLevel = sanitizeNonNegativeInteger(
+    raw.globalEscalationLevel,
+    PRESSURE_CALIBRATION.maxCaseEscalationLevel
+  )
+  const globalThreatDrift = sanitizeNonNegativeInteger(
+    raw.globalThreatDrift,
+    PRESSURE_CALIBRATION.maxCaseThreatDrift
+  )
+  const globalTimePressure = sanitizeNonNegativeInteger(
+    raw.globalTimePressure,
+    PRESSURE_CALIBRATION.maxCaseTimePressure
+  )
+
+  return {
+    ...(globalPressure !== undefined ? { globalPressure } : {}),
+    ...(globalEscalationLevel !== undefined ? { globalEscalationLevel } : {}),
+    ...(globalThreatDrift !== undefined ? { globalThreatDrift } : {}),
+    ...(globalTimePressure !== undefined ? { globalTimePressure } : {}),
+  }
 }

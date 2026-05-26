@@ -5,6 +5,8 @@ import {
   getProcurementListing,
   getProcurementListings,
   getProcurementMarketPackets,
+  sanitizeFeaturedRecipeId,
+  sanitizePersistedMarketState,
 } from '../domain/market'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
@@ -592,5 +594,30 @@ describe('market procurement simulation', () => {
     expect(marketTransactions[0]!.payload.transactionId).toMatch(
       new RegExp(`^market-${state.week}-${state.market.week}-\\d+$`)
     )
+  })
+})
+
+describe('persisted market hydration (SPE-446–448)', () => {
+  it('falls back unknown featuredRecipeId and clamps attestation week', () => {
+    const fallback = createStartingState().market
+
+    const sanitized = sanitizePersistedMarketState(
+      {
+        ...fallback,
+        featuredRecipeId: 'phantom-recipe',
+        licensedHandlingAttestationWeek: 0,
+        listings: [{ id: 'legacy' }],
+      },
+      fallback,
+      4
+    )
+
+    expect(sanitizeFeaturedRecipeId('phantom-recipe', fallback.featuredRecipeId)).toBe(
+      fallback.featuredRecipeId
+    )
+    expect(sanitized.featuredRecipeId).toBe(fallback.featuredRecipeId)
+    expect(sanitized.licensedHandlingAttestationWeek).toBe(1)
+    expect(sanitized.week).toBe(4)
+    expect(sanitized).not.toHaveProperty('listings')
   })
 })

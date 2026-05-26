@@ -2244,6 +2244,13 @@ function resolveAssignments(
   const supportShortfallCases: string[] = []
 
   for (const caseId of context.initialCaseIds) {
+    const stagedCase = context.nextState.cases[caseId]
+    if (stagedCase?.supportShortfall) {
+      context.nextState.cases[caseId] = { ...stagedCase, supportShortfall: false }
+    }
+  }
+
+  for (const caseId of context.initialCaseIds) {
     if (context.finalizedCaseIds.has(caseId)) {
       continue
     }
@@ -2254,13 +2261,14 @@ function resolveAssignments(
 
     if (currentCase.status !== 'in_progress' || existingAssignedTeamIds.length === 0) {
       if (
-        currentCase.status === 'in_progress' &&
-        currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length
+        currentCase.supportShortfall === true ||
+        (currentCase.status === 'in_progress' &&
+          currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length)
       ) {
         context.nextState.cases[caseId] = {
           ...currentCase,
           assignedTeamIds: existingAssignedTeamIds,
-          supportShortfall: supportShortfallCases.includes(caseId),
+          supportShortfall: false,
         }
       }
       continue

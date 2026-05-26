@@ -1,3 +1,4 @@
+import { clamp } from './math'
 import type {
   CampaignLedgerCompatibilitySnapshot,
   CampaignLedgerState,
@@ -12,6 +13,13 @@ import type {
 const MAX_STRING = 480
 const MAX_LABEL = 160
 const MAX_ID = 96
+
+/** Hydration 558: known campaign rules profiles (id → canonical label). */
+export const CAMPAIGN_RULES_PROFILE_REGISTRY: Readonly<
+  Record<string, { readonly label: string }>
+> = {
+  'baseline-standard': { label: 'Baseline standard containment' },
+} as const
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -63,6 +71,22 @@ function sanitizeProfile(raw: unknown, fallback: CampaignOperationalProfile): Ca
   }
 }
 
+/** Hydration 535-536: last array occurrence wins for the same key. */
+function dedupeByKeyLatestWins<T>(entries: readonly T[], resolveKey: (entry: T) => string): T[] {
+  const byKey = new Map<string, T>()
+
+  for (const entry of entries) {
+    const key = resolveKey(entry)
+    if (key.length === 0) {
+      continue
+    }
+
+    byKey.set(key, entry)
+  }
+
+  return [...byKey.values()]
+}
+
 function sanitizeRunStateModifiers(
   raw: unknown,
   fallback: CampaignRunStateModifier[]
@@ -71,7 +95,11 @@ function sanitizeRunStateModifiers(
     return [...fallback]
   }
 
-  const next: CampaignRunStateModifier[] = []
+  if (raw.length === 0) {
+    return []
+  }
+
+  const parsed: CampaignRunStateModifier[] = []
 
   for (const entry of raw) {
     if (!isRecord(entry)) {
@@ -83,14 +111,14 @@ function sanitizeRunStateModifiers(
       continue
     }
 
-    next.push({
+    parsed.push({
       id,
       label: sanitizeLabel(entry.label, id),
       value: sanitizeBody(entry.value, '—'),
     })
   }
 
-  return next.length > 0 ? next.slice(0, 12) : [...fallback]
+  return dedupeByKeyLatestWins(parsed, (modifier) => modifier.id).slice(0, 12)
 }
 
 function sanitizeModuleToggles(raw: unknown, fallback: CampaignModuleToggle[]): CampaignModuleToggle[] {
@@ -98,7 +126,11 @@ function sanitizeModuleToggles(raw: unknown, fallback: CampaignModuleToggle[]): 
     return [...fallback]
   }
 
-  const next: CampaignModuleToggle[] = []
+  if (raw.length === 0) {
+    return []
+  }
+
+  const parsed: CampaignModuleToggle[] = []
 
   for (const entry of raw) {
     if (!isRecord(entry)) {
@@ -110,21 +142,49 @@ function sanitizeModuleToggles(raw: unknown, fallback: CampaignModuleToggle[]): 
       continue
     }
 
-    next.push({
+    parsed.push({
       moduleId,
       label: sanitizeLabel(entry.label, moduleId),
       enabled: typeof entry.enabled === 'boolean' ? entry.enabled : false,
     })
   }
 
-  return next.length > 0 ? next.slice(0, 24) : [...fallback]
+  return dedupeByKeyLatestWins(parsed, (toggle) => toggle.moduleId).slice(0, 24)
 }
 
 const SETTING_HISTORY_CAP = 200
 
+function resolveSettingHistoryConflict(
+  current: CampaignSettingHistoryEntry,
+  incoming: CampaignSettingHistoryEntry
+): CampaignSettingHistoryEntry {
+  if (incoming.changedAtWeek !== current.changedAtWeek) {
+    return incoming.changedAtWeek > current.changedAtWeek ? incoming : current
+  }
+
+  return incoming.id.localeCompare(current.id) >= 0 ? incoming : current
+}
+
+/** Hydration 538: dedupe by id (latest wins), then by settingId+effectiveFromWeek (latest changedAtWeek). */
+function dedupeSettingHistoryEntries(
+  entries: readonly CampaignSettingHistoryEntry[]
+): CampaignSettingHistoryEntry[] {
+  const byId = dedupeByKeyLatestWins(entries, (entry) => entry.id)
+  const bySettingWeek = new Map<string, CampaignSettingHistoryEntry>()
+
+  for (const entry of byId) {
+    const key = `${entry.settingId}\0${entry.effectiveFromWeek}`
+    const existing = bySettingWeek.get(key)
+    bySettingWeek.set(key, existing ? resolveSettingHistoryConflict(existing, entry) : entry)
+  }
+
+  return [...bySettingWeek.values()]
+}
+
 function sanitizeSettingHistory(
   raw: unknown,
-  fallback: CampaignSettingHistoryEntry[]
+  fallback: CampaignSettingHistoryEntry[],
+  campaignWeek?: number
 ): CampaignSettingHistoryEntry[] {
   if (!Array.isArray(raw)) {
     return [...fallback]
@@ -134,6 +194,8 @@ function sanitizeSettingHistory(
     return []
   }
 
+  const cappedCampaignWeek =
+    campaignWeek !== undefined ? Math.max(1, Math.trunc(campaignWeek)) : undefined
   const next: CampaignSettingHistoryEntry[] = []
 
   for (const entry of raw) {
@@ -147,18 +209,25 @@ function sanitizeSettingHistory(
       continue
     }
 
-    const effectiveFromWeek = Math.max(
+    const rawEffectiveFromWeek = Math.max(
       1,
-      Math.trunc(typeof entry.effectiveFromWeek === 'number' ? entry.effectiveFromWeek : 1)
+      typeof entry.effectiveFromWeek === 'number' && Number.isFinite(entry.effectiveFromWeek)
+        ? Math.trunc(entry.effectiveFromWeek)
+        : 1
     )
-    const changedAtWeek = Math.trunc(typeof entry.changedAtWeek === 'number' ? entry.changedAtWeek : 0)
+    const rawChangedAtWeek = Math.max(
+      0,
+      typeof entry.changedAtWeek === 'number' && Number.isFinite(entry.changedAtWeek)
+        ? Math.trunc(entry.changedAtWeek)
+        : 0
+    )
 
     next.push({
       id,
       settingId,
       value: sanitizeBody(entry.value, ''),
-      effectiveFromWeek,
-      changedAtWeek,
+      effectiveFromWeek: rawEffectiveFromWeek,
+      changedAtWeek: rawChangedAtWeek,
       source: sanitizeSource(entry.source),
       ...(typeof entry.note === 'string' && entry.note.trim().length > 0
         ? { note: clampString(entry.note.trim(), 240) }
@@ -167,10 +236,22 @@ function sanitizeSettingHistory(
   }
 
   if (next.length === 0) {
-    return [...fallback]
+    return []
   }
 
-  const sorted = [...next].sort((left, right) => {
+  const deduped = dedupeSettingHistoryEntries(next).map((entry) => ({
+    ...entry,
+    effectiveFromWeek:
+      cappedCampaignWeek !== undefined && entry.effectiveFromWeek > cappedCampaignWeek
+        ? cappedCampaignWeek
+        : entry.effectiveFromWeek,
+    changedAtWeek:
+      cappedCampaignWeek !== undefined
+        ? clamp(entry.changedAtWeek, 0, cappedCampaignWeek)
+        : entry.changedAtWeek,
+  }))
+
+  const sorted = [...deduped].sort((left, right) => {
     if (left.effectiveFromWeek !== right.effectiveFromWeek) {
       return left.effectiveFromWeek - right.effectiveFromWeek
     }
@@ -185,6 +266,77 @@ function sanitizeSettingHistory(
   return sorted.length > SETTING_HISTORY_CAP ? sorted.slice(-SETTING_HISTORY_CAP) : sorted
 }
 
+/** Hydration 558: reconcile rules profile id/label with registry and surface compatibility warnings. */
+function sanitizeActiveRulesProfile(
+  raw: Record<string, unknown>,
+  fallback: CampaignLedgerState
+): Pick<CampaignLedgerState, 'activeRulesProfileId' | 'activeRulesProfileLabel' | 'compatibility'> {
+  const requestedId = sanitizeId(raw.activeRulesProfileId, fallback.activeRulesProfileId)
+  const registryEntry = CAMPAIGN_RULES_PROFILE_REGISTRY[requestedId]
+  const compatibility = sanitizeCompatibility(raw.compatibility, fallback.compatibility)
+  const warnings = [...compatibility.warnings]
+
+  if (!registryEntry) {
+    const resetId = fallback.activeRulesProfileId
+    const resetLabel =
+      CAMPAIGN_RULES_PROFILE_REGISTRY[resetId]?.label ?? fallback.activeRulesProfileLabel
+
+    warnings.push(`Unknown active rules profile "${requestedId}" — reset to "${resetId}".`)
+
+    return {
+      activeRulesProfileId: resetId,
+      activeRulesProfileLabel: resetLabel,
+      compatibility: {
+        ...compatibility,
+        compatible: false,
+        warnings: dedupeTrimmedCompatibilityStrings(warnings),
+      },
+    }
+  }
+
+  const requestedLabel = sanitizeLabel(raw.activeRulesProfileLabel, registryEntry.label)
+
+  if (requestedLabel !== registryEntry.label) {
+    warnings.push(
+      `Active rules profile label for "${requestedId}" did not match registry — using "${registryEntry.label}".`
+    )
+  }
+
+  return {
+    activeRulesProfileId: requestedId,
+    activeRulesProfileLabel: registryEntry.label,
+    compatibility:
+      warnings.length > compatibility.warnings.length
+        ? {
+            ...compatibility,
+            compatible: false,
+            warnings: dedupeTrimmedCompatibilityStrings(warnings),
+          }
+        : compatibility,
+  }
+}
+
+/** Hydration 550: trim compatibility strings and dedupe trimmed collisions (latest wins). */
+function dedupeTrimmedCompatibilityStrings(values: readonly string[]): string[] {
+  const byTrimmedKey = new Map<string, string>()
+
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue
+    }
+
+    const trimmed = value.trim()
+
+    if (trimmed.length === 0) {
+      continue
+    }
+
+    byTrimmedKey.set(trimmed, clampString(trimmed, MAX_STRING))
+  }
+
+  return [...byTrimmedKey.values()].slice(0, 12)
+}
+
 function sanitizeCompatibility(
   raw: unknown,
   fallback: CampaignLedgerCompatibilitySnapshot
@@ -197,18 +349,12 @@ function sanitizeCompatibility(
 
   const rawNotesPresent = Object.prototype.hasOwnProperty.call(raw, 'notes')
   const notes = rawNotesPresent && Array.isArray(raw.notes)
-    ? raw.notes
-        .filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
-        .map((note) => clampString(note.trim(), MAX_STRING))
-        .slice(0, 12)
+    ? dedupeTrimmedCompatibilityStrings(raw.notes)
     : [...fallback.notes]
 
   const rawWarningsPresent = Object.prototype.hasOwnProperty.call(raw, 'warnings')
   const warnings = rawWarningsPresent && Array.isArray(raw.warnings)
-    ? raw.warnings
-        .filter((note): note is string => typeof note === 'string' && note.trim().length > 0)
-        .map((note) => clampString(note.trim(), MAX_STRING))
-        .slice(0, 12)
+    ? dedupeTrimmedCompatibilityStrings(raw.warnings)
     : [...fallback.warnings]
 
   return {
@@ -280,22 +426,25 @@ export function createSeedCampaignLedger(): CampaignLedgerState {
   }
 }
 
-export function sanitizeCampaignLedger(raw: unknown, fallback: CampaignLedgerState): CampaignLedgerState {
+export function sanitizeCampaignLedger(
+  raw: unknown,
+  fallback: CampaignLedgerState,
+  campaignWeek?: number
+): CampaignLedgerState {
   if (!isRecord(raw)) {
     return structuredClone(fallback)
   }
 
+  const rulesProfile = sanitizeActiveRulesProfile(raw, fallback)
+
   return {
     profile: sanitizeProfile(raw.profile, fallback.profile),
-    activeRulesProfileId: sanitizeId(raw.activeRulesProfileId, fallback.activeRulesProfileId),
-    activeRulesProfileLabel: sanitizeLabel(
-      raw.activeRulesProfileLabel,
-      fallback.activeRulesProfileLabel
-    ),
+    activeRulesProfileId: rulesProfile.activeRulesProfileId,
+    activeRulesProfileLabel: rulesProfile.activeRulesProfileLabel,
     runStateModifiers: sanitizeRunStateModifiers(raw.runStateModifiers, fallback.runStateModifiers),
     moduleToggles: sanitizeModuleToggles(raw.moduleToggles, fallback.moduleToggles),
-    settingHistory: sanitizeSettingHistory(raw.settingHistory, fallback.settingHistory),
-    compatibility: sanitizeCompatibility(raw.compatibility, fallback.compatibility),
+    settingHistory: sanitizeSettingHistory(raw.settingHistory, fallback.settingHistory, campaignWeek),
+    compatibility: rulesProfile.compatibility,
   }
 }
 

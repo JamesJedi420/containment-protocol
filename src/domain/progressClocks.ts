@@ -6,6 +6,9 @@ import {
 } from './gameStateManager'
 import type { GameState, ProgressClockState } from './models'
 
+/** Hydration 650: upper bound for stored clock max/value segments (display uses separate formatters). */
+export const PROGRESS_CLOCK_HYDRATION_MAX = 9999
+
 export const PROGRESS_CLOCK_IDS = {
   breachFollowUpPosture: 'containment.breach.followup.posture',
   incidentBreach: 'incident.chain.breach',
@@ -84,6 +87,30 @@ const AUTHORED_PROGRESS_CLOCKS: readonly ProgressClockDefinition[] = [
 const AUTHORED_PROGRESS_CLOCK_MAP = new Map(
   AUTHORED_PROGRESS_CLOCKS.map((definition) => [definition.id, definition])
 )
+
+const PROCEDURAL_PROGRESS_CLOCK_PREFIXES = [
+  'containment.',
+  'incident.',
+  'story.',
+  'encounter.',
+  'contract.',
+  'debug.',
+] as const
+
+/** Hydration 439: registry IDs or documented procedural namespaces only. */
+export function isAllowedProgressClockId(clockId: string) {
+  const normalizedId = clockId.trim()
+
+  if (normalizedId.length === 0) {
+    return false
+  }
+
+  if (AUTHORED_PROGRESS_CLOCK_MAP.has(normalizedId)) {
+    return true
+  }
+
+  return PROCEDURAL_PROGRESS_CLOCK_PREFIXES.some((prefix) => normalizedId.startsWith(prefix))
+}
 
 function normalizeClockId(value: string | ProgressClockDefinition | undefined | null) {
   if (typeof value === 'string') {

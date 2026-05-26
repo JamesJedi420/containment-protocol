@@ -193,3 +193,229 @@ export function getScheduleSnapshot(
 
   return { traffic, context }
 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function clampFiniteScalar(value: unknown, fallback: number, min: number, max?: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback
+  }
+
+  const truncated = Math.trunc(value)
+  const boundedMin = Math.max(min, truncated)
+  return max === undefined ? boundedMin : Math.min(max, boundedMin)
+}
+
+function sanitizeStringList(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return [
+    ...new Set(
+      value
+        .filter((entry): entry is string => typeof entry === 'string')
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+    ),
+  ]
+}
+
+function sanitizeTimeBandProfile(raw: unknown, fallbackId: string): TimeBandProfile | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+
+  const id =
+    typeof raw.id === 'string' && raw.id.trim().length > 0 ? raw.id.trim() : fallbackId
+  const label =
+    typeof raw.label === 'string' && raw.label.trim().length > 0
+      ? raw.label.trim().slice(0, 120)
+      : id
+
+  return {
+    id,
+    label,
+    baselinePopulation: clampFiniteScalar(raw.baselinePopulation, 0, 0, 100000),
+    witnessModifier: clampFiniteScalar(raw.witnessModifier, 0, 0, 1),
+    visibilityModifier: clampFiniteScalar(raw.visibilityModifier, 0, 0, 1),
+    ...(raw.covertAdvantage === true ? { covertAdvantage: true } : {}),
+  }
+}
+
+function sanitizeDistrictProfile(raw: unknown, fallbackId: string): DistrictProfile | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+
+  const id =
+    typeof raw.id === 'string' && raw.id.trim().length > 0 ? raw.id.trim() : fallbackId
+  const label =
+    typeof raw.label === 'string' && raw.label.trim().length > 0
+      ? raw.label.trim().slice(0, 120)
+      : id
+  const authorityResponseProfile =
+    typeof raw.authorityResponseProfile === 'string' && raw.authorityResponseProfile.trim().length > 0
+      ? raw.authorityResponseProfile.trim().slice(0, 80)
+      : 'standard'
+
+  const escalationModifiers: Record<string, number> = {}
+  if (isRecord(raw.escalationModifiers)) {
+    for (const [key, entry] of Object.entries(raw.escalationModifiers)) {
+      if (typeof entry === 'number' && Number.isFinite(entry)) {
+        escalationModifiers[key] = Number(entry.toFixed(4))
+      }
+    }
+  }
+
+  const timeBandOverrides: Record<string, Partial<TimeBandProfile>> | undefined = isRecord(
+    raw.timeBandOverrides
+  )
+    ? Object.fromEntries(
+        Object.entries(raw.timeBandOverrides)
+          .map(([bandId, entry]) => {
+            const sanitized = sanitizeTimeBandProfile(entry, bandId)
+            return sanitized ? ([bandId, sanitized] as const) : null
+          })
+          .filter((entry): entry is readonly [string, TimeBandProfile] => entry !== null)
+      )
+    : undefined
+
+  return {
+    id,
+    label,
+    encounterFamilyTags: sanitizeStringList(raw.encounterFamilyTags),
+    escalationModifiers,
+    authorityResponseProfile,
+    ...(timeBandOverrides && Object.keys(timeBandOverrides).length > 0
+      ? { timeBandOverrides }
+      : {}),
+  }
+}
+
+function sanitizeRareEventOverlay(
+  raw: unknown,
+  districtIds: Set<string>,
+  campaignWeek: number
+): RareEventOverlay | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+
+  const id = typeof raw.id === 'string' && raw.id.trim().length > 0 ? raw.id.trim() : null
+  if (!id) {
+    return null
+  }
+
+  const label =
+    typeof raw.label === 'string' && raw.label.trim().length > 0
+      ? raw.label.trim().slice(0, 120)
+      : id
+
+  const appliesTo = sanitizeStringList(raw.appliesTo).filter((districtId) => districtIds.has(districtId))
+  if (appliesTo.length === 0) {
+    return null
+  }
+
+  const startWeek = clampFiniteScalar(raw.startWeek, 1, 1, campaignWeek + 520)
+  const endWeek = clampFiniteScalar(raw.endWeek, startWeek, startWeek, startWeek + 520)
+
+  const trafficModifier: RareEventOverlay['trafficModifier'] = {}
+  if (isRecord(raw.trafficModifier)) {
+    if (typeof raw.trafficModifier.populationDelta === 'number' && Number.isFinite(raw.trafficModifier.populationDelta)) {
+      trafficModifier.populationDelta = Math.trunc(raw.trafficModifier.populationDelta)
+    }
+    if (
+      typeof raw.trafficModifier.witnessModifier === 'number' &&
+      Number.isFinite(raw.trafficModifier.witnessModifier)
+    ) {
+      trafficModifier.witnessModifier = clampFiniteScalar(raw.trafficModifier.witnessModifier, 0, 0, 1)
+    }
+    if (
+      typeof raw.trafficModifier.visibilityModifier === 'number' &&
+      Number.isFinite(raw.trafficModifier.visibilityModifier)
+    ) {
+      trafficModifier.visibilityModifier = clampFiniteScalar(
+        raw.trafficModifier.visibilityModifier,
+        0,
+        0,
+        1
+      )
+    }
+  }
+
+  const seedKey =
+    typeof raw.seedKey === 'string' && raw.seedKey.trim().length > 0
+      ? raw.seedKey.trim().slice(0, 120)
+      : `event_${id}`
+
+  return {
+    id,
+    label,
+    appliesTo,
+    startWeek,
+    endWeek,
+    trafficModifier,
+    ...(sanitizeStringList(raw.encounterFamilyBias).length > 0
+      ? { encounterFamilyBias: sanitizeStringList(raw.encounterFamilyBias) }
+      : {}),
+    seedKey,
+  }
+}
+
+/**
+ * Hydration problem 468: districts, time bands, rare events, appliesTo refs.
+ */
+export function sanitizeDistrictScheduleState(
+  raw: unknown,
+  campaignWeek: number
+): DistrictScheduleState | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const settlementId =
+    typeof raw.settlementId === 'string' && raw.settlementId.trim().length > 0
+      ? raw.settlementId.trim().slice(0, 80)
+      : 'haven'
+
+  const districts: Record<string, DistrictProfile> = {}
+  if (isRecord(raw.districts)) {
+    for (const [recordKey, entry] of Object.entries(raw.districts)) {
+      const profile = sanitizeDistrictProfile(entry, recordKey)
+      if (profile) {
+        districts[profile.id] = profile
+      }
+    }
+  }
+
+  const timeBands: Record<string, TimeBandProfile> = {}
+  if (isRecord(raw.timeBands)) {
+    for (const [recordKey, entry] of Object.entries(raw.timeBands)) {
+      const profile = sanitizeTimeBandProfile(entry, recordKey)
+      if (profile) {
+        timeBands[profile.id] = profile
+      }
+    }
+  }
+
+  if (Object.keys(districts).length === 0 || Object.keys(timeBands).length === 0) {
+    return undefined
+  }
+
+  const districtIds = new Set(Object.keys(districts))
+  const events = Array.isArray(raw.events)
+    ? raw.events
+        .map((entry) => sanitizeRareEventOverlay(entry, districtIds, campaignWeek))
+        .filter((entry): entry is RareEventOverlay => entry !== null)
+    : []
+
+  return {
+    settlementId,
+    districts,
+    timeBands,
+    events,
+  }
+}

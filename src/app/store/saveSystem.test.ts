@@ -191,7 +191,7 @@ describe('saveSystem', () => {
               },
             },
             progressClocks: {
-              'chain.partial': {
+              'incident.chain.partial': {
                 label: 'Partial Clock',
                 value: 9,
                 max: 4,
@@ -219,7 +219,7 @@ describe('saveSystem', () => {
     )
 
     expect(loaded.inventory.valid_salvage).toBe(4)
-    expect(loaded.inventory.broken_entry).toBe(0)
+    expect(loaded.inventory.broken_entry).toBeUndefined()
     expect(loaded.runtimeState).toMatchObject({
       globalFlags: {
         'faction.ashkeepers.hostile': true,
@@ -250,7 +250,7 @@ describe('saveSystem', () => {
         },
       },
       progressClocks: {
-        'chain.partial': {
+        'incident.chain.partial': {
           label: 'Partial Clock',
           value: 4,
           max: 4,

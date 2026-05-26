@@ -6,7 +6,9 @@ import {
   advanceProgressClock,
   ensureManagedGameState,
   markOneShotEvent,
+  normalizeRuntimeState,
   readGameStateManager,
+  reconcileRuntimeUiSelections,
   recordSceneVisit,
   setCurrentLocation,
   setEncounterRuntimeState,
@@ -54,11 +56,11 @@ describe('gameStateManager', () => {
       revealedModifierIds: ['known-faction-tail'],
       flags: { scouted: true },
     })
-    state = advanceProgressClock(state, 'hub_alarm', 2, {
+    state = advanceProgressClock(state, 'debug.hub_alarm', 2, {
       label: 'Hub Alarm',
       max: 3,
     })
-    state = advanceProgressClock(state, 'hub_alarm', 5, {
+    state = advanceProgressClock(state, 'debug.hub_alarm', 5, {
       label: 'Hub Alarm',
       max: 3,
     })
@@ -96,7 +98,7 @@ describe('gameStateManager', () => {
       revealedModifierIds: ['known-faction-tail'],
       flags: { scouted: true },
     })
-    expect(view.progressClocks['hub_alarm']).toMatchObject({
+    expect(view.progressClocks['debug.hub_alarm']).toMatchObject({
       label: 'Hub Alarm',
       value: 3,
       max: 3,
@@ -127,7 +129,7 @@ describe('gameStateManager', () => {
     expect(hydrated.runtimeState).toBeDefined()
     expect(hydrated.runtimeState?.player.displayName).toBe('Director')
     expect(hydrated.inventory.medical_supplies).toBe(2)
-    expect(hydrated.inventory.corrupted_entry).toBe(0)
+    expect(hydrated.inventory.corrupted_entry).toBeUndefined()
   })
 
   it('ensures managed state for sparse legacy payloads', () => {
@@ -143,5 +145,406 @@ describe('gameStateManager', () => {
 
     expect(next.runtimeState).toBeDefined()
     expect(next.inventory.temp_cache).toBe(0)
+  })
+
+  describe('hydration problems 639-646', () => {
+    it('639-642 normalizes location, scene history, encounters, and modifier overlap', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          currentLocation: {
+            hubId: 'operations-desk',
+            locationId: 'operations-desk',
+            sceneId: 'dashboard',
+            updatedWeek: 50,
+          },
+          sceneHistory: [
+            { sceneId: 'weekly-report', locationId: 'front-desk', week: 8 },
+            { sceneId: 'dashboard', locationId: 'operations-desk', week: 3 },
+            { sceneId: 'dashboard', locationId: 'operations-desk', week: 3, outcome: 'kept' },
+          ],
+          encounterState: {
+            'enc-overlap': {
+              encounterId: 'enc-overlap',
+              status: 'archived',
+              startedWeek: 9,
+              resolvedWeek: 2,
+              hiddenModifierIds: ['shared-tail', 'hidden-only'],
+              revealedModifierIds: ['shared-tail'],
+              lastUpdatedWeek: 20,
+            },
+          },
+        },
+        5
+      )
+
+      expect(normalized.currentLocation.updatedWeek).toBe(5)
+      expect(normalized.sceneHistory).toEqual([
+        { sceneId: 'dashboard', locationId: 'operations-desk', week: 3, outcome: 'kept' },
+        { sceneId: 'weekly-report', locationId: 'front-desk', week: 5 },
+      ])
+      expect(normalized.encounterState['enc-overlap']).toMatchObject({
+        startedWeek: 5,
+        resolvedWeek: 5,
+        lastUpdatedWeek: 5,
+        hiddenModifierIds: ['hidden-only'],
+        revealedModifierIds: ['shared-tail'],
+      })
+    })
+
+    it('644-646 sanitizes developer log ids, caps retention, and strips legacy player fields', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          player: {
+            id: 'director',
+            displayName: 'Director',
+            pronouns: 'they/them',
+            notes: 'legacy notes',
+          },
+          ui: {
+            debug: {
+              enabled: true,
+              flags: {},
+              eventLog: [
+                {
+                  id: 'devlog-0010',
+                  week: 99,
+                  type: 'flag.set',
+                  summary: 'First.',
+                },
+                {
+                  id: 'devlog-0010',
+                  week: 99,
+                  type: 'route.selected',
+                  summary: 'Duplicate.',
+                },
+              ],
+              nextEventSequence: 2,
+            },
+          },
+        },
+        4
+      )
+
+      expect(normalized.player).not.toHaveProperty('pronouns')
+      expect(normalized.player).not.toHaveProperty('notes')
+      expect(normalized.ui.debug.eventLog.map((entry) => entry.id)).toEqual([
+        'devlog-0010',
+        'devlog-0010-dup-2',
+      ])
+      expect(normalized.ui.debug.eventLog[0]?.week).toBe(4)
+      expect(normalized.ui.debug.nextEventSequence).toBe(11)
+    })
+
+    it('643 reconciles UI selections against live entity maps', () => {
+      const base = createStartingState()
+      const caseId = Object.keys(base.cases)[0]
+      const teamId = Object.keys(base.teams)[0]
+      const agentId = Object.keys(base.agents)[0]
+      const runtime = normalizeRuntimeState(
+        {
+          ...base.runtimeState,
+          ui: {
+            ...base.runtimeState!.ui,
+            selectedCaseId: 'missing-case',
+            selectedTeamId: teamId,
+            selectedAgentId: agentId,
+            selectedLocationId: 'front-desk',
+            selectedSceneId: 'weekly-report',
+          },
+        },
+        base.week
+      )
+
+      const reconciled = reconcileRuntimeUiSelections(runtime, {
+        cases: base.cases,
+        teams: base.teams,
+        agents: base.agents,
+      })
+
+      expect(reconciled.ui.selectedCaseId).toBeUndefined()
+      expect(reconciled.ui.selectedTeamId).toBe(teamId)
+      expect(reconciled.ui.selectedAgentId).toBe(agentId)
+      expect(reconciled.ui.selectedLocationId).toBe('front-desk')
+      expect(reconciled.ui.selectedSceneId).toBe('weekly-report')
+
+      const validCase = reconcileRuntimeUiSelections(
+        {
+          ...runtime,
+          ui: {
+            ...runtime.ui,
+            selectedCaseId: caseId,
+          },
+        },
+        {
+          cases: base.cases,
+          teams: base.teams,
+          agents: base.agents,
+        }
+      )
+
+      expect(validCase.ui.selectedCaseId).toBe(caseId)
+    })
+  })
+
+  describe('hydration problems 647-654', () => {
+    it('647 caps one-shot firstSeenWeek to the campaign week', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          oneShotEvents: {
+            'event.legacy-bool': true,
+            'event.stale-week': {
+              seen: true,
+              firstSeenWeek: 40,
+            },
+          },
+        },
+        6
+      )
+
+      expect(normalized.oneShotEvents['event.legacy-bool']?.firstSeenWeek).toBe(6)
+      expect(normalized.oneShotEvents['event.stale-week']?.firstSeenWeek).toBe(6)
+    })
+
+    it('648-649 preserves finite flag numbers and keeps first trimmed key', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          globalFlags: {
+            ' score.multiplier ': 1.25,
+            'score.multiplier': 9.99,
+            truncatedShouldNotApply: 3.7,
+          },
+        },
+        2
+      )
+
+      expect(normalized.globalFlags['score.multiplier']).toBe(1.25)
+      expect(normalized.globalFlags.truncatedShouldNotApply).toBe(3.7)
+    })
+
+    it('650-651 caps progress clock max and keeps first trimmed clock id', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          progressClocks: {
+            ' story.breach-depth ': {
+              id: 'story.breach-depth',
+              label: 'First',
+              value: 1,
+              max: 2,
+            },
+            'story.breach-depth': {
+              id: 'story.breach-depth',
+              label: 'Second',
+              value: 3,
+              max: 4,
+            },
+            'story.clock-huge': {
+              id: 'story.clock-huge',
+              label: 'Huge',
+              value: 50,
+              max: 50000,
+            },
+          },
+        },
+        3
+      )
+
+      expect(normalized.progressClocks['story.breach-depth']).toMatchObject({
+        label: 'First',
+        value: 1,
+        max: 2,
+      })
+      expect(normalized.progressClocks['story.clock-huge']?.max).toBe(9999)
+      expect(normalized.progressClocks['story.clock-huge']?.value).toBe(50)
+    })
+
+    it('652-654 preserves queue payload and developer-log numeric precision and caps log weeks', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          encounterState: {
+            'enc-live': {
+              encounterId: 'enc-live',
+              status: 'active',
+              lastUpdatedWeek: 4,
+            },
+          },
+          eventQueue: {
+            entries: [
+              {
+                id: 'qevt-0001',
+                type: 'encounter.follow_up',
+                targetId: 'enc-live',
+                week: 4,
+                payload: {
+                  ratio: 0.125,
+                },
+              },
+            ],
+            nextSequence: 2,
+          },
+          ui: {
+            debug: {
+              enabled: true,
+              flags: {},
+              eventLog: [
+                {
+                  id: 'devlog-0001',
+                  week: 80,
+                  type: 'event_queue.enqueued',
+                  summary: 'Queued.',
+                  details: {
+                    ratio: 0.3333333333333333,
+                  },
+                },
+              ],
+              nextEventSequence: 2,
+            },
+          },
+        },
+        4
+      )
+
+      expect(normalized.eventQueue.entries[0]?.payload?.ratio).toBe(0.125)
+      expect(normalized.ui.debug.eventLog[0]?.week).toBe(4)
+      expect(normalized.ui.debug.eventLog[0]?.details?.ratio).toBe(0.3333333333333333)
+    })
+  })
+
+  describe('hydration problems 655-662', () => {
+    it('655-656 normalizes shape-valid runtime and coerces eventQueue.entries before read', () => {
+      const base = createStartingState()
+      const malformedRuntime = {
+        ...base.runtimeState!,
+        eventQueue: {
+          entries: { poisoned: true },
+          nextSequence: 1,
+        },
+        ui: {
+          ...base.runtimeState!.ui,
+          debug: {
+            enabled: true,
+            flags: { ' debug.trace ': true },
+            eventLog: [],
+            nextEventSequence: 1,
+          },
+        },
+      }
+
+      const managed = ensureManagedGameState({
+        ...base,
+        runtimeState: malformedRuntime as typeof base.runtimeState,
+      })
+
+      expect(Array.isArray(managed.runtimeState?.eventQueue.entries)).toBe(true)
+      expect(() => readGameStateManager(managed)).not.toThrow()
+      expect(readGameStateManager(managed).eventQueue.entries).toEqual([])
+    })
+
+    it('657-658 trims inventory keys and derives debug.enabled from sanitized flags', () => {
+      const base = createStartingState()
+      const managed = ensureManagedGameState({
+        ...base,
+        inventory: {
+          ' medical_supplies ': 4,
+        },
+        runtimeState: {
+          ...base.runtimeState!,
+          ui: {
+            ...base.runtimeState!.ui,
+            debug: {
+              enabled: true,
+              flags: {
+                ' trace.verbose ': true,
+                'trace.verbose': false,
+              },
+              eventLog: [],
+              nextEventSequence: 1,
+            },
+          },
+        },
+      })
+
+      expect(managed.inventory['medical_supplies']).toBe(4)
+      expect(managed.runtimeState?.ui.debug.enabled).toBe(true)
+      expect(managed.runtimeState?.ui.debug.flags['trace.verbose']).toBe(true)
+
+      const flagsOff = ensureManagedGameState({
+        ...base,
+        runtimeState: {
+          ...base.runtimeState!,
+          ui: {
+            ...base.runtimeState!.ui,
+            debug: {
+              enabled: true,
+              flags: {},
+              eventLog: [],
+              nextEventSequence: 1,
+            },
+          },
+        },
+      })
+
+      expect(flagsOff.runtimeState?.ui.debug.enabled).toBe(false)
+    })
+
+    it('659-662 caps authoring.updatedWeek and keeps first trimmed collision keys', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          ui: {
+            authoring: {
+              activeContextId: 'ctx-1',
+              updatedWeek: 80,
+            },
+            debug: {
+              enabled: false,
+              flags: {
+                ' ops.panel ': true,
+                'ops.panel': false,
+              },
+              eventLog: [
+                {
+                  id: 'devlog-0099',
+                  week: 2,
+                  type: 'flag.set',
+                  summary: 'Flag changed.',
+                  details: {
+                    ' delta.value ': 1,
+                    'delta.value': 9,
+                  },
+                },
+              ],
+              nextEventSequence: 2,
+            },
+          },
+          encounterState: {
+            'enc-live': {
+              encounterId: 'enc-live',
+              status: 'active',
+              lastUpdatedWeek: 3,
+            },
+          },
+          eventQueue: {
+            entries: [
+              {
+                id: 'qevt-0099',
+                type: 'encounter.follow_up',
+                targetId: 'enc-live',
+                week: 3,
+                payload: {
+                  ' weight.value ': 0.25,
+                  'weight.value': 0.75,
+                },
+              },
+            ],
+            nextSequence: 2,
+          },
+        },
+        3
+      )
+
+      expect(normalized.ui.authoring?.updatedWeek).toBe(3)
+      expect(normalized.ui.debug.flags['ops.panel']).toBe(true)
+      expect(normalized.eventQueue.entries[0]?.payload?.['weight.value']).toBe(0.25)
+      expect(normalized.ui.debug.eventLog[0]?.details?.['delta.value']).toBe(1)
+    })
   })
 })

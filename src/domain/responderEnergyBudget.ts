@@ -93,15 +93,28 @@ function getStatusMultiplier(agent: Agent): number {
   return 1
 }
 
-function normalizeEnergyBudget(energyBudget: AgentEnergyBudgetState): AgentEnergyBudgetState {
+export function normalizeEnergyBudget(energyBudget: AgentEnergyBudgetState): AgentEnergyBudgetState {
   const currentReserve = clamp(energyBudget.currentReserve, 0, 100)
   const exertionDebt = Math.max(0, Math.trunc(energyBudget.exertionDebt))
 
+  const estimateConfidence =
+    energyBudget.estimateConfidence === 'low' ||
+    energyBudget.estimateConfidence === 'medium' ||
+    energyBudget.estimateConfidence === 'high'
+      ? energyBudget.estimateConfidence
+      : 'medium'
+
+  const lastDutyCost =
+    typeof energyBudget.lastDutyCost === 'number' && Number.isFinite(energyBudget.lastDutyCost)
+      ? Math.max(0, Math.trunc(energyBudget.lastDutyCost))
+      : undefined
+
   return {
-    ...energyBudget,
     currentReserve,
     exertionDebt,
     reserveBand: classifyResponderEnergyReserve({ currentReserve, exertionDebt }),
+    estimateConfidence,
+    ...(lastDutyCost !== undefined ? { lastDutyCost } : {}),
   }
 }
 

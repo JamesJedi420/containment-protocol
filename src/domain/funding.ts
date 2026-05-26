@@ -19,15 +19,6 @@ import type {
 } from './models'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
-const KNOWN_FUNDING_REASONS = new Set<string>([
-  'weekly_income',
-  'resolution_reward',
-  'failure_penalty',
-  'unresolved_penalty',
-  'market_transaction',
-  'facility_upgrade',
-])
-
 const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
 
 let knownProcurementItemIdsCache: Set<string> | undefined
@@ -205,7 +196,7 @@ function sanitizeFundingHistory(
         typeof entry.delta === 'number' &&
         Number.isFinite(entry.delta) &&
         typeof entry.reason === 'string' &&
-        KNOWN_FUNDING_REASONS.has(entry.reason.trim())
+        entry.reason.trim().length > 0
     )
     .map((entry) => {
       const week = clampCampaignWeek(entry.week, cappedWeek, cappedWeek)

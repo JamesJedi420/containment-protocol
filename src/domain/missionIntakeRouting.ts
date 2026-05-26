@@ -490,7 +490,7 @@ const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
 ])
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function sanitizeRoutingStateKind(value: unknown): MissionRoutingStateKind {
@@ -1130,7 +1130,6 @@ export function sanitizePersistedMissionRoutingState(
           )
         : []),
       ...Object.keys(missions).filter((missionId) => unresolvedMissionIds.includes(missionId)),
-      ...unresolvedMissionIds.filter((missionId) => missions[missionId] !== undefined),
     ]),
   ]
 

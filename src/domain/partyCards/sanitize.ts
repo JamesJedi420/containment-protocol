@@ -12,7 +12,7 @@ const MAX_HAND_SIZE_CAP = 12
 const MAX_CARD_FIELD_LENGTH = 240
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function sanitizeInteger(value: unknown, fallback: number, min: number, max?: number) {

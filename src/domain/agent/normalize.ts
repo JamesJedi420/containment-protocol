@@ -396,7 +396,7 @@ function normalizeDowntimeActivity(
 function normalizeDowntimeSideWorkLast(
   sideWorkLast: Agent['downtimeSideWorkLast'] | undefined
 ): AgentDowntimeSideWorkLast | undefined {
-  if (!sideWorkLast || typeof sideWorkLast !== 'object') {
+  if (!isRecord(sideWorkLast)) {
     return undefined
   }
 

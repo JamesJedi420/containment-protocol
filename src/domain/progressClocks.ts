@@ -95,6 +95,7 @@ const PROCEDURAL_PROGRESS_CLOCK_PREFIXES = [
   'encounter.',
   'contract.',
   'debug.',
+  'investigation.',
 ] as const
 
 /** Hydration 439: registry IDs or documented procedural namespaces only. */

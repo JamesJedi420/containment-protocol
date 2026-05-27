@@ -260,7 +260,7 @@ function sanitizeProcurementBacklogEntry(
 
   const quantity = Math.max(1, Math.trunc(entry.quantity))
 
-  const requestedWeek = clampCampaignWeek(entry.requestedWeek, cappedWeek, cappedWeek)
+  const requestedWeek = clampCampaignWeek(entry.requestedWeek, cappedWeek, 1)
   let status = entry.status
   let fulfilledWeek =
     typeof entry.fulfilledWeek === 'number' && Number.isFinite(entry.fulfilledWeek)

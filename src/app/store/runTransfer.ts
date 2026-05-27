@@ -1594,21 +1594,11 @@ function repairBlankReportNoteContent(
 }
 
 function sanitizeReportNoteTimestamp(raw: unknown, week: number, sequence: number) {
-  const fallback = buildReportNoteTimestamp(week, sequence)
-  const weekStart = buildReportNoteTimestamp(week, 0)
-  const weekEnd = buildReportNoteTimestamp(week + 1, 0)
-
   if (typeof raw !== 'number' || !Number.isFinite(raw)) {
-    return fallback
+    return buildReportNoteTimestamp(week, sequence)
   }
 
-  const timestamp = Math.max(0, Math.trunc(raw))
-
-  if (timestamp >= weekStart && timestamp < weekEnd) {
-    return timestamp
-  }
-
-  return fallback
+  return Math.max(0, Math.trunc(raw))
 }
 
 function deriveOperationEventWeekFromTimestamp(timestamp: string) {
@@ -2050,8 +2040,16 @@ export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
     nextConfig.durationModel = 'capacity'
   }
 
-  if (!nextConfig.challengeModeEnabled) {
-    nextConfig.attritionPerWeek = fallback.attritionPerWeek
+  if (!nextConfig.challengeModeEnabled && config.attritionPerWeek !== undefined) {
+    const rawAttrition = config.attritionPerWeek
+    if (
+      typeof rawAttrition === 'number' &&
+      Number.isFinite(rawAttrition) &&
+      rawAttrition >= 1 &&
+      rawAttrition <= MAX_GAME_CONFIG_ATTRITION_PER_WEEK
+    ) {
+      nextConfig.attritionPerWeek = fallback.attritionPerWeek
+    }
   }
 
   return nextConfig

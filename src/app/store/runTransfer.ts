@@ -6428,10 +6428,6 @@ function sanitizeDeploymentMomentumState(
   campaignWeek: number,
   config: GameConfig
 ): GameState['deploymentMomentum'] {
-  if (!deploymentMomentumSurfacesEnabled(config)) {
-    return undefined
-  }
-
   if (!isRecord(raw)) {
     return undefined
   }
@@ -6456,6 +6452,10 @@ function sanitizeDeploymentMomentumState(
 
   // Hydration 559: zero stacks do not preserve stale recap metadata.
   if (stacks === 0) {
+    return undefined
+  }
+
+  if (!deploymentMomentumSurfacesEnabled(config)) {
     return undefined
   }
 

@@ -98,7 +98,6 @@ export const minimalOperationEventPayloads = {
     trigger: 'deadline',
     deadlineRemaining: 0,
     convertedToRaid: false,
-    neighborhoodPressureAuditTag: 'district:min|band:low',
   },
   'case.spawned': {
     week: WEEK,
@@ -343,11 +342,6 @@ export const minimalOperationEventPayloads = {
     featuredRecipeName: 'Minimal Recipe',
     pressure: 'stable',
     costMultiplier: 1,
-  },
-  'market.licensed_handling_attested': {
-    week: WEEK,
-    marketWeek: WEEK,
-    attestationWeek: WEEK,
   },
   'market.transaction_recorded': {
     week: WEEK,

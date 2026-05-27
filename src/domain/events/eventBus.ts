@@ -101,6 +101,9 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
     case 'agent.resigned':
       return [event.payload.agentId]
     case 'staff.side_work.resolved':
+    case 'staff.coping.applied':
+    case 'staff.coping.misconduct':
+    case 'agent.killed':
       return [event.payload.agentId]
     default:
       return []
@@ -315,6 +318,34 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
               }
             : contact
         ),
+      }
+      continue
+    }
+
+    if (event.type === 'case.spawned' && event.payload.factionId) {
+      const trigger = event.payload.trigger
+      if (trigger !== 'faction_offer' && trigger !== 'faction_pressure') {
+        continue
+      }
+
+      const faction = nextFactions[event.payload.factionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+      const history = getFactionHistory(faction)
+
+      nextFactions[event.payload.factionId] = {
+        ...faction,
+        history: {
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
+        },
       }
     }
   }

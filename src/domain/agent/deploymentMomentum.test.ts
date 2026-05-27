@@ -105,6 +105,11 @@ describe('deployment momentum (SPE-282)', () => {
 
   it('round-trips deploymentMomentum through the canonical save envelope', () => {
     const state = createStartingState()
+    state.config = {
+      ...state.config,
+      challengeModeEnabled: true,
+      durationModel: 'attrition',
+    }
     state.week = 5
     state.deploymentMomentum = { stacks: 1, lastChangeWeek: 4, lastSummary: 'earn test' }
     const loaded = loadGameSave(serializeGameSave(state))
@@ -117,6 +122,11 @@ describe('deployment momentum (SPE-282)', () => {
       {
         ...base,
         week: 8,
+        config: {
+          ...base.config,
+          challengeModeEnabled: true,
+          durationModel: 'attrition',
+        },
         deploymentMomentum: { stacks: 1, lastChangeWeek: 99, lastSummary: 'future week' },
       },
       base

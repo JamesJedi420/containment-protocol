@@ -155,7 +155,15 @@ function isRuntimeQueuedEventTargetValid(
   encounterState: Record<string, EncounterRuntimeState>
 ) {
   if (type === 'encounter.follow_up') {
-    return targetId.length > 0
+    if (targetId.length === 0) {
+      return false
+    }
+
+    if (encounterState[targetId] !== undefined) {
+      return true
+    }
+
+    return targetId.includes('.')
   }
 
   if (type === 'encounter.patched' || type === 'encounter.escalation') {
@@ -887,7 +895,10 @@ function sanitizeUiState(value: unknown, week: number): GameUiDebugState {
         }
       : {}),
     debug: {
-      enabled: Object.values(debugFlags).some(Boolean),
+      enabled:
+        typeof debug.enabled === 'boolean' && Object.values(debugFlags).some(Boolean)
+          ? debug.enabled
+          : false,
       flags: debugFlags,
       eventLog,
       nextEventSequence,
@@ -1037,6 +1048,34 @@ export function reconcileRuntimeUiSelections(
   }
 }
 
+function hasCanonicalDebugFlags(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  if (!Array.isArray(value.eventLog)) {
+    return false
+  }
+
+  if (value.enabled === true && isRecord(value.flags) && Object.keys(value.flags).length === 0) {
+    return false
+  }
+
+  if (!isRecord(value.flags)) {
+    return true
+  }
+
+  const hasTruthyFlag = Object.entries(value.flags).some(
+    ([key, flagValue]) => key === sanitizeString(key) && key.length > 0 && Boolean(flagValue)
+  )
+
+  if (value.enabled === true && !hasTruthyFlag) {
+    return false
+  }
+
+  return Object.keys(value.flags).every((key) => key === sanitizeString(key) && key.length > 0)
+}
+
 function hasRuntimeShape(value: unknown): value is RuntimeState {
   return (
     isRecord(value) &&
@@ -1048,8 +1087,9 @@ function hasRuntimeShape(value: unknown): value is RuntimeState {
     isRecord(value.encounterState) &&
     isRecord(value.progressClocks) &&
     isRecord(value.eventQueue) &&
+    Array.isArray(value.eventQueue.entries) &&
     isRecord(value.ui) &&
-    isRecord((value.ui as Record<string, unknown>).debug)
+    hasCanonicalDebugFlags((value.ui as Record<string, unknown>).debug)
   )
 }
 

@@ -411,6 +411,7 @@ describe('gameStateManager', () => {
     it('preserves encounter.follow_up queue entries when targetId is an authored follow-up id', () => {
       const normalized = normalizeRuntimeState(
         {
+          encounterState: {},
           eventQueue: {
             entries: [
               {

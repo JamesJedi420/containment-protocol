@@ -1567,9 +1567,14 @@ export function pruneInvalidRuntimeQueueEvents(state: GameState): RuntimeQueuePr
 }
 
 export function normalizeInvalidProgressClocks(state: GameState): ProgressClockNormalizationResult {
-  const runtime = readGameStateManager(state)
+  // Read unsanitized clocks so malformed ids (for example `clock-invalid`) are still repairable.
+  const rawClocks = state.runtimeState?.progressClocks
+  const nextProgressClocks: RuntimeState['progressClocks'] = {
+    ...(rawClocks && typeof rawClocks === 'object' && !Array.isArray(rawClocks)
+      ? { ...rawClocks }
+      : readGameStateManager(state).progressClocks),
+  }
   const normalizedClockIds: string[] = []
-  const nextProgressClocks: RuntimeState['progressClocks'] = { ...runtime.progressClocks }
 
   for (const [clockId, clock] of Object.entries(nextProgressClocks)) {
     const max = Number.isFinite(clock.max) ? Math.max(1, Math.trunc(clock.max)) : 1

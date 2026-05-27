@@ -90,12 +90,18 @@ const AUTHORED_PROGRESS_CLOCK_MAP = new Map(
 
 const PROCEDURAL_PROGRESS_CLOCK_PREFIXES = [
   'containment.',
+  'construction.',
   'incident.',
   'story.',
   'encounter.',
   'contract.',
   'debug.',
   'investigation.',
+  'site.',
+  'frontdesk.',
+  'reset.',
+  'runtime.',
+  'clock.',
 ] as const
 
 /** Hydration 439: registry IDs or documented procedural namespaces only. */

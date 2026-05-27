@@ -65,6 +65,7 @@ import { clamp, normalizeSeed, nextSeed } from '../../domain/math'
 import {
   buildReportNoteTimestamp,
   createDeterministicReportNote,
+  deriveReportNoteWeekFromTimestamp,
 } from '../../domain/reportNotes'
 import { MAX_ACADEMY_TIER } from '../../domain/sim/academyUpgrade'
 import { isTrainingProgramUnlocked } from '../../domain/sim/training'
@@ -73,6 +74,15 @@ import { buildReportTeamStatus } from '../../domain/sim/reportTeamStatus'
 import { calcWeekScore, resolvePartialMarginUpperBound } from '../../domain/sim/scoring'
 import { computeClearanceLevel, resolveMaxClearanceLevel } from '../../domain/sim/clearanceLevel'
 import { buildTeamDeploymentReadinessState } from '../../domain/deploymentReadiness'
+import type {
+  ExecutionInstabilityOverlay,
+  RecoveryPressureBand,
+  WeakestLinkMissionResolutionResult,
+  WeakestLinkPenaltyBucket,
+  WeakestLinkPenaltySourceCode,
+  WeakestLinkResolutionOutcomeCategory,
+  WeakestLinkResultKind,
+} from '../../domain/weakestLinkResolution'
 import {
   getContractNextIntentValues,
   resolveContractTemplateDefinition,
@@ -1598,6 +1608,12 @@ function sanitizeReportNoteTimestamp(raw: unknown, week: number, sequence: numbe
     return buildReportNoteTimestamp(week, sequence)
   }
 
+  const derivedWeek = deriveReportNoteWeekFromTimestamp(raw)
+
+  if (derivedWeek === null || derivedWeek !== week) {
+    return buildReportNoteTimestamp(week, sequence)
+  }
+
   return Math.max(0, Math.trunc(raw))
 }
 
@@ -1904,11 +1920,16 @@ export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
   }
 
   if (config.attritionPerWeek !== undefined) {
-    nextConfig.attritionPerWeek = clamp(
-      sanitizeInteger(config.attritionPerWeek as number, fallback.attritionPerWeek, 1),
-      1,
-      MAX_GAME_CONFIG_ATTRITION_PER_WEEK
+    const parsedAttrition = sanitizeInteger(
+      config.attritionPerWeek as number,
+      fallback.attritionPerWeek,
+      1
     )
+
+    nextConfig.attritionPerWeek =
+      parsedAttrition > MAX_GAME_CONFIG_ATTRITION_PER_WEEK
+        ? fallback.attritionPerWeek
+        : clamp(parsedAttrition, 1, MAX_GAME_CONFIG_ATTRITION_PER_WEEK)
   }
 
   if (config.probabilityK !== undefined) {
@@ -2041,14 +2062,10 @@ export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
   }
 
   if (!nextConfig.challengeModeEnabled && config.attritionPerWeek !== undefined) {
-    const rawAttrition = config.attritionPerWeek
-    if (
-      typeof rawAttrition === 'number' &&
-      Number.isFinite(rawAttrition) &&
-      rawAttrition >= 1 &&
-      rawAttrition <= MAX_GAME_CONFIG_ATTRITION_PER_WEEK
-    ) {
-      nextConfig.attritionPerWeek = fallback.attritionPerWeek
+    const rawAttrition = config.attritionPerWeek as number
+
+    if (!Number.isFinite(rawAttrition) || rawAttrition < 1) {
+      nextConfig.attritionPerWeek = 1
     }
   }
 
@@ -2653,8 +2670,12 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
       })()
     : undefined
   const funnelStage = normalizeRecruitmentFunnelStage(entry.funnelStage)
-  const createdWeek = finiteCandidateWeek(entry.createdWeek, campaignWeek)
-  let lastUpdatedWeek = finiteCandidateWeek(entry.lastUpdatedWeek, campaignWeek)
+  // Recruitment funnel metadata (created/lastUpdated) is informational and must survive
+  // save/load round-trips even when it is out-of-range relative to current campaign week.
+  // Only lower-bound normalize to 1..N-safe finite weeks.
+  let createdWeek = finiteCandidateWeek(entry.createdWeek)
+  let lastUpdatedWeek = finiteCandidateWeek(entry.lastUpdatedWeek)
+  let normalizedAvailabilityWindow = availabilityWindow
 
   if (createdWeek !== undefined && lastUpdatedWeek !== undefined && lastUpdatedWeek < createdWeek) {
     lastUpdatedWeek = createdWeek
@@ -2666,13 +2687,24 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
     cappedCampaignWeek !== undefined &&
     hireStatus === 'available' &&
     (expiryWeek < cappedCampaignWeek ||
-      (availabilityWindow !== undefined && availabilityWindow.closesWeek < cappedCampaignWeek))
+      (normalizedAvailabilityWindow !== undefined &&
+        normalizedAvailabilityWindow.closesWeek < cappedCampaignWeek))
   ) {
     hireStatus = 'expired'
   }
 
-  if (availabilityWindow !== undefined) {
-    expiryWeek = Math.max(expiryWeek, availabilityWindow.closesWeek)
+  if (normalizedAvailabilityWindow !== undefined) {
+    expiryWeek = Math.max(expiryWeek, normalizedAvailabilityWindow.closesWeek)
+  }
+
+  if (cappedCampaignWeek !== undefined && hireStatus === 'expired') {
+    createdWeek = createdWeek !== undefined ? Math.min(createdWeek, cappedCampaignWeek) : cappedCampaignWeek
+    lastUpdatedWeek = cappedCampaignWeek
+    expiryWeek = cappedCampaignWeek
+    normalizedAvailabilityWindow = {
+      opensWeek: cappedCampaignWeek,
+      closesWeek: cappedCampaignWeek,
+    }
   }
 
   const lossReason =
@@ -2716,7 +2748,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
     ...(roleInclination ? { roleInclination } : {}),
     ...(skills.length > 0 ? { skills } : {}),
     ...(liabilities.length > 0 ? { liabilities } : {}),
-    ...(availabilityWindow ? { availabilityWindow } : {}),
+    ...(normalizedAvailabilityWindow ? { availabilityWindow: normalizedAvailabilityWindow } : {}),
     funnelStage,
     ...(createdWeek !== undefined ? { createdWeek } : {}),
     ...(lastUpdatedWeek !== undefined ? { lastUpdatedWeek } : {}),
@@ -3216,11 +3248,19 @@ export function sanitizeAgentsMap(
         context.cases,
         context.teams
       )
-      normalized = {
-        ...normalized,
-        assignment,
-        assignmentStatus: deriveAssignmentStatus(assignment),
-      }
+      // Recompute derived readiness profile after assignment repair so hydration does not
+      // carry stale deployability/coverage state across save/load round-trips.
+      normalized = normalizeAgent(
+        {
+          ...normalized,
+          assignment,
+        },
+        {
+          knownAgentIds,
+          fallbackBaseStats: fallbackAgent?.baseStats ?? merged.baseStats,
+          campaignWeek: context.campaignWeek,
+        }
+      )
     }
 
     next[agentId] = normalized
@@ -3763,6 +3803,200 @@ function sanitizeMissionResult(
       containmentActionsCompleted: 0,
     }
 
+  const WEAKST_LINK_PENALTY_SOURCE_CODES = [
+    'missing-coverage',
+    'low-min-readiness',
+    'fragile-cohesion',
+    'training-lock-pressure',
+    'loadout-gate-miss',
+    'fatigue-concentration',
+    'intel-friction',
+  ] as const satisfies readonly WeakestLinkPenaltySourceCode[]
+
+  const WEAKST_LINK_OUTCOME_CATEGORIES = [
+    'clean_success',
+    'strained_success',
+    'partial',
+    'failure',
+    'failure_recovery_pressure',
+  ] as const satisfies readonly WeakestLinkResolutionOutcomeCategory[]
+
+  const WEAKST_LINK_RESULT_KINDS = ['success', 'partial', 'fail'] as const satisfies readonly WeakestLinkResultKind[]
+
+  const WEAKST_LINK_RECOVERY_PRESSURE_BANDS = [
+    'low',
+    'moderate',
+    'high',
+    'severe',
+  ] as const satisfies readonly RecoveryPressureBand[]
+
+  const sanitizeWeakestLinkPenaltyBucket = (
+    entry: unknown
+  ): WeakestLinkPenaltyBucket | undefined => {
+    if (!isRecord(entry)) return undefined
+
+    const code = isOneOf(entry.code, WEAKST_LINK_PENALTY_SOURCE_CODES)
+      ? entry.code
+      : undefined
+    const weight = typeof entry.weight === 'number' && Number.isFinite(entry.weight) ? entry.weight : undefined
+    const rawSignal =
+      typeof entry.rawSignal === 'number' && Number.isFinite(entry.rawSignal) ? entry.rawSignal : undefined
+    const appliedPenalty =
+      typeof entry.appliedPenalty === 'number' && Number.isFinite(entry.appliedPenalty)
+        ? entry.appliedPenalty
+        : undefined
+
+    if (!code || weight === undefined || rawSignal === undefined || appliedPenalty === undefined) return undefined
+
+    return { code, weight, rawSignal, appliedPenalty }
+  }
+
+  const sanitizeWeakestLinkMissionResolutionResult = (
+    raw: unknown,
+    weakFallback?: WeakestLinkMissionResolutionResult
+  ): WeakestLinkMissionResolutionResult | undefined => {
+    if (!isRecord(raw)) {
+      return weakFallback
+    }
+
+    const missionId =
+      typeof raw.missionId === 'string' && raw.missionId.trim().length > 0
+        ? raw.missionId.trim()
+        : weakFallback?.missionId
+
+    const week =
+      typeof raw.week === 'number' && Number.isFinite(raw.week) ? Math.max(1, Math.trunc(raw.week)) : weakFallback?.week
+
+    const outcomeCategory = isOneOf(raw.outcomeCategory, WEAKST_LINK_OUTCOME_CATEGORIES)
+      ? raw.outcomeCategory
+      : weakFallback?.outcomeCategory
+
+    const resultKind = isOneOf(raw.resultKind, WEAKST_LINK_RESULT_KINDS) ? raw.resultKind : weakFallback?.resultKind
+
+    if (!missionId || week === undefined || !outcomeCategory || !resultKind) {
+      return weakFallback
+    }
+
+    const baseScore =
+      typeof raw.baseScore === 'number' && Number.isFinite(raw.baseScore) ? raw.baseScore : weakFallback?.baseScore ?? 0
+    const requiredScore =
+      typeof raw.requiredScore === 'number' && Number.isFinite(raw.requiredScore) ? raw.requiredScore : weakFallback?.requiredScore ?? 0
+    const finalDelta =
+      typeof raw.finalDelta === 'number' && Number.isFinite(raw.finalDelta) ? raw.finalDelta : weakFallback?.finalDelta ?? 0
+
+    const weakestLinkTotalPenalty =
+      typeof raw.weakestLinkTotalPenalty === 'number' && Number.isFinite(raw.weakestLinkTotalPenalty)
+        ? raw.weakestLinkTotalPenalty
+        : weakFallback?.weakestLinkTotalPenalty ?? 0
+
+    const weakestLinkPenaltyBuckets = Array.isArray(raw.weakestLinkPenaltyBuckets)
+      ? raw.weakestLinkPenaltyBuckets
+          .map(sanitizeWeakestLinkPenaltyBucket)
+          .filter((bucket): bucket is WeakestLinkPenaltyBucket => bucket !== undefined)
+      : weakFallback?.weakestLinkPenaltyBuckets ?? []
+
+    const weakestLinkContributors = Array.isArray(raw.weakestLinkContributors)
+      ? raw.weakestLinkContributors.filter((entry): entry is string => typeof entry === 'string')
+      : weakFallback?.weakestLinkContributors ?? []
+
+    const weakestLinkNarrativeReasonCodes = Array.isArray(raw.weakestLinkNarrativeReasonCodes)
+      ? raw.weakestLinkNarrativeReasonCodes.filter((entry): entry is string => typeof entry === 'string')
+      : weakFallback?.weakestLinkNarrativeReasonCodes ?? []
+
+    const injuryRiskDelta =
+      typeof raw.injuryRiskDelta === 'number' && Number.isFinite(raw.injuryRiskDelta) ? raw.injuryRiskDelta : weakFallback?.injuryRiskDelta
+    const fatalityRiskDelta =
+      typeof raw.fatalityRiskDelta === 'number' && Number.isFinite(raw.fatalityRiskDelta) ? raw.fatalityRiskDelta : weakFallback?.fatalityRiskDelta
+    const expectedRecoveryWeeksDelta =
+      typeof raw.expectedRecoveryWeeksDelta === 'number' && Number.isFinite(raw.expectedRecoveryWeeksDelta)
+        ? raw.expectedRecoveryWeeksDelta
+        : weakFallback?.expectedRecoveryWeeksDelta
+
+    const recoveryPressureBand = isOneOf(raw.recoveryPressureBand, WEAKST_LINK_RECOVERY_PRESSURE_BANDS)
+      ? raw.recoveryPressureBand
+      : weakFallback?.recoveryPressureBand
+
+    const deploymentDebtSignals = Array.isArray(raw.deploymentDebtSignals)
+      ? raw.deploymentDebtSignals.filter((entry): entry is string => typeof entry === 'string')
+      : weakFallback?.deploymentDebtSignals
+
+    const penaltyComputationVersion =
+      typeof raw.penaltyComputationVersion === 'string' && raw.penaltyComputationVersion.trim().length > 0
+        ? raw.penaltyComputationVersion.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
+        : weakFallback?.penaltyComputationVersion
+
+    const orderedPenaltyApplication = Array.isArray(raw.orderedPenaltyApplication)
+      ? raw.orderedPenaltyApplication
+          .map(sanitizeWeakestLinkPenaltyBucket)
+          .filter((bucket): bucket is WeakestLinkPenaltyBucket => bucket !== undefined)
+      : weakFallback?.orderedPenaltyApplication
+
+    const cappedPenalties = Array.isArray(raw.cappedPenalties)
+      ? raw.cappedPenalties
+          .map(sanitizeWeakestLinkPenaltyBucket)
+          .filter((bucket): bucket is WeakestLinkPenaltyBucket => bucket !== undefined)
+      : weakFallback?.cappedPenalties
+
+    const executionInstability = isRecord(raw.executionInstability)
+      ? (() => {
+          const flag =
+            raw.executionInstability.flag === 'contract_archive_instability'
+              ? raw.executionInstability.flag
+              : undefined
+          const applied =
+            typeof raw.executionInstability.applied === 'boolean'
+              ? raw.executionInstability.applied
+              : undefined
+          const upstreamCause =
+            typeof raw.executionInstability.upstreamCause === 'string' &&
+            raw.executionInstability.upstreamCause.trim().length > 0
+              ? raw.executionInstability.upstreamCause.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
+              : undefined
+          const downstreamEffect =
+            typeof raw.executionInstability.downstreamEffect === 'string' &&
+            raw.executionInstability.downstreamEffect.trim().length > 0
+              ? raw.executionInstability.downstreamEffect.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
+              : undefined
+
+          if (!flag || applied === undefined || !upstreamCause || !downstreamEffect) {
+            return weakFallback?.executionInstability
+          }
+
+          return {
+            flag,
+            applied,
+            upstreamCause,
+            downstreamEffect,
+          } satisfies ExecutionInstabilityOverlay
+        })()
+      : weakFallback?.executionInstability
+
+    return stripUndefinedFields({
+      missionId,
+      week,
+      outcomeCategory,
+      resultKind,
+      baseScore,
+      requiredScore,
+      finalDelta,
+      weakestLinkTotalPenalty,
+      weakestLinkPenaltyBuckets,
+      weakestLinkContributors,
+      weakestLinkNarrativeReasonCodes,
+      ...(injuryRiskDelta !== undefined ? { injuryRiskDelta } : {}),
+      ...(fatalityRiskDelta !== undefined ? { fatalityRiskDelta } : {}),
+      ...(expectedRecoveryWeeksDelta !== undefined ? { expectedRecoveryWeeksDelta } : {}),
+      ...(recoveryPressureBand !== undefined ? { recoveryPressureBand } : {}),
+      ...(deploymentDebtSignals !== undefined ? { deploymentDebtSignals } : {}),
+      ...(penaltyComputationVersion !== undefined ? { penaltyComputationVersion } : {}),
+      ...(orderedPenaltyApplication !== undefined ? { orderedPenaltyApplication } : {}),
+      ...(cappedPenalties !== undefined ? { cappedPenalties } : {}),
+      ...(executionInstability !== undefined ? { executionInstability } : {}),
+    }) as WeakestLinkMissionResolutionResult
+  }
+
+  const weakestLink = sanitizeWeakestLinkMissionResolutionResult(value.weakestLink, fallback?.weakestLink)
+
   const rewards = isRecord(value.rewards)
     ? {
         ...(fallback?.rewards ?? {
@@ -3870,6 +4104,7 @@ function sanitizeMissionResult(
         : (fallback?.caseTitle ?? caseId),
     teamsUsed,
     outcome,
+    ...(weakestLink ? { weakestLink } : {}),
     performanceSummary,
     rewards,
     penalties,
@@ -3902,10 +4137,32 @@ function sanitizeMissionResult(
 }
 
 /** SPE-460: resolved snapshots require a valid mission result; active snapshots drop stale results. */
-function reconcileCaseSnapshotStatusMissionResult(snapshot: WeeklyReportCaseSnapshot): WeeklyReportCaseSnapshot {
+function reconcileCaseSnapshotStatusMissionResult(
+  snapshot: WeeklyReportCaseSnapshot
+): WeeklyReportCaseSnapshot {
   const missionResult = snapshot.missionResult
 
-  if (missionResult) {
+  if (!missionResult || missionResult.caseId !== snapshot.caseId) {
+    if (snapshot.status === 'resolved') {
+      return {
+        ...snapshot,
+        status: 'open',
+        missionResult: undefined,
+      }
+    }
+
+    return {
+      ...snapshot,
+      missionResult: undefined,
+    }
+  }
+
+  const terminalOutcome =
+    missionResult.outcome === 'success' ||
+    missionResult.outcome === 'partial' ||
+    missionResult.outcome === 'fail'
+
+  if (terminalOutcome) {
     return {
       ...snapshot,
       status: 'resolved',
@@ -3913,17 +4170,11 @@ function reconcileCaseSnapshotStatusMissionResult(snapshot: WeeklyReportCaseSnap
     }
   }
 
-  if (snapshot.status === 'resolved') {
-    return {
-      ...snapshot,
-      status: 'open',
-      missionResult: undefined,
-    }
-  }
-
+  // Non-terminal outcomes (for example unresolved/escalated) may keep mission
+  // metadata while the snapshot status remains open/in_progress.
   return {
     ...snapshot,
-    missionResult: undefined,
+    missionResult,
   }
 }
 

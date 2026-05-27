@@ -1155,6 +1155,13 @@ function sanitizeRequiredRolesField(
     ),
   ]
 
+  // Important for save/load invariance: if the persisted shape includes
+  // `requiredRoles: []`, keep it as an explicit empty array rather than
+  // dropping to `undefined` (which triggers default fallback required roles).
+  if (value.length === 0) {
+    return []
+  }
+
   return roles.length > 0 ? roles : undefined
 }
 

@@ -137,6 +137,48 @@ function clampCampaignWeek(value: unknown, campaignWeek: number, fallback: numbe
   return Math.min(cappedWeek, sanitizeInteger(value, fallback, 1))
 }
 
+/** Runtime/save-load: preserve near-future encounter weeks above the current campaign week. */
+function clampEncounterTimelineWeek(value: unknown, campaignWeek: number, fallback: number) {
+  const parsed = sanitizeInteger(value, fallback, 1)
+  const cap = Math.max(campaignWeek, campaignWeek + 100)
+
+  return Math.min(cap, parsed)
+}
+
+type EncounterHydrationWeekField = 'started' | 'resolved' | 'lastUpdated'
+
+/** Hydration: cap corrupt far-future weeks while keeping intentional near-future scheduling. */
+function clampEncounterHydrationWeek(
+  value: unknown,
+  campaignWeek: number,
+  fallback: number,
+  field: EncounterHydrationWeekField
+) {
+  const parsed = sanitizeInteger(value, fallback, 1)
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const nearFutureSlack = field === 'lastUpdated' ? 4 : 1
+
+  if (parsed > cappedWeek + nearFutureSlack) {
+    return cappedWeek
+  }
+
+  return Math.min(Math.max(cappedWeek, cappedWeek + 100), parsed)
+}
+
+type EncounterWeekClampMode = 'hydrate' | 'runtime'
+
+function clampEncounterWeekField(
+  value: unknown,
+  campaignWeek: number,
+  fallback: number,
+  mode: EncounterWeekClampMode,
+  field: EncounterHydrationWeekField
+) {
+  return mode === 'hydrate'
+    ? clampEncounterHydrationWeek(value, campaignWeek, fallback, field)
+    : clampEncounterTimelineWeek(value, campaignWeek, fallback)
+}
+
 function parseQueueEventSequence(eventId: string) {
   const match = /^qevt-(\d+)$/i.exec(sanitizeString(eventId))
 
@@ -386,24 +428,32 @@ function isEncounterResolutionOutcome(value: unknown): value is EncounterResolut
 
 function finalizeEncounterRuntimeState(
   encounter: EncounterRuntimeState,
-  campaignWeek: number
+  campaignWeek: number,
+  weekClampMode: EncounterWeekClampMode
 ): EncounterRuntimeState {
   const status = encounter.status ?? 'available'
+  const clampWeek = (value: unknown, fallback: number, field: EncounterHydrationWeekField) =>
+    clampEncounterWeekField(value, campaignWeek, fallback, weekClampMode, field)
   const startedWeek =
     typeof encounter.startedWeek === 'number'
-      ? clampCampaignWeek(encounter.startedWeek, campaignWeek, campaignWeek)
+      ? clampWeek(encounter.startedWeek, campaignWeek, 'started')
       : undefined
   let resolvedWeek =
     typeof encounter.resolvedWeek === 'number'
-      ? clampCampaignWeek(encounter.resolvedWeek, campaignWeek, campaignWeek)
+      ? clampWeek(encounter.resolvedWeek, campaignWeek, 'resolved')
       : undefined
   let latestOutcome = encounter.latestOutcome
   let lastResolutionId = encounter.lastResolutionId
 
   if (status === 'active') {
-    resolvedWeek = undefined
-    latestOutcome = undefined
-    lastResolutionId = undefined
+    if (weekClampMode === 'hydrate' && typeof encounter.resolvedWeek === 'number') {
+      resolvedWeek = undefined
+      latestOutcome = undefined
+      lastResolutionId = undefined
+    } else if (!latestOutcome) {
+      resolvedWeek = undefined
+      lastResolutionId = undefined
+    }
   }
 
   if (status === 'resolved') {
@@ -413,14 +463,11 @@ function finalizeEncounterRuntimeState(
 
     const resolvedAnchor = resolvedWeek ?? startedWeek ?? campaignWeek
     const startAnchor = startedWeek ?? 1
-    resolvedWeek = Math.max(startAnchor, clampCampaignWeek(resolvedAnchor, campaignWeek, startAnchor))
+    resolvedWeek = Math.max(startAnchor, clampWeek(resolvedAnchor, startAnchor, 'resolved'))
   } else if (resolvedWeek !== undefined && startedWeek !== undefined) {
-    resolvedWeek = Math.max(
-      startedWeek,
-      clampCampaignWeek(resolvedWeek, campaignWeek, startedWeek)
-    )
+    resolvedWeek = Math.max(startedWeek, clampWeek(resolvedWeek, startedWeek, 'resolved'))
   } else if (resolvedWeek !== undefined) {
-    resolvedWeek = clampCampaignWeek(resolvedWeek, campaignWeek, campaignWeek)
+    resolvedWeek = clampWeek(resolvedWeek, campaignWeek, 'resolved')
   }
 
   const modifierLists = reconcileEncounterModifierLists(
@@ -436,7 +483,7 @@ function finalizeEncounterRuntimeState(
     hiddenModifierIds: modifierLists.hiddenModifierIds,
     revealedModifierIds: modifierLists.revealedModifierIds,
     flags: encounter.flags,
-    lastUpdatedWeek: clampCampaignWeek(encounter.lastUpdatedWeek, campaignWeek, campaignWeek),
+    lastUpdatedWeek: clampWeek(encounter.lastUpdatedWeek, campaignWeek, 'lastUpdated'),
   }
 
   if (resolvedWeek !== undefined) {
@@ -461,8 +508,11 @@ function finalizeEncounterRuntimeState(
 function sanitizeEncounterRuntimeState(
   encounterId: string,
   value: unknown,
-  week: number
+  week: number,
+  weekClampMode: EncounterWeekClampMode = 'runtime'
 ): EncounterRuntimeState {
+  const clampWeek = (value: unknown, fallback: number, field: EncounterHydrationWeekField) =>
+    clampEncounterWeekField(value, week, fallback, weekClampMode, field)
   const fallback: EncounterRuntimeState = {
     encounterId,
     status: 'available',
@@ -492,10 +542,10 @@ function sanitizeEncounterRuntimeState(
     status,
     ...(sanitizeOptionalString(value.phase) ? { phase: sanitizeOptionalString(value.phase) } : {}),
     ...(typeof value.startedWeek === 'number'
-      ? { startedWeek: clampCampaignWeek(value.startedWeek, week, week) }
+      ? { startedWeek: clampWeek(value.startedWeek, week, 'started') }
       : {}),
     ...(typeof value.resolvedWeek === 'number'
-      ? { resolvedWeek: clampCampaignWeek(value.resolvedWeek, week, week) }
+      ? { resolvedWeek: clampWeek(value.resolvedWeek, week, 'resolved') }
       : {}),
     ...(isEncounterResolutionOutcome(value.latestOutcome) ? { latestOutcome: value.latestOutcome } : {}),
     ...(sanitizeOptionalString(value.lastResolutionId)
@@ -507,10 +557,10 @@ function sanitizeEncounterRuntimeState(
     hiddenModifierIds: sanitizeStringList(value.hiddenModifierIds),
     revealedModifierIds: sanitizeStringList(value.revealedModifierIds),
     flags: sanitizeEncounterFlags(value.flags),
-    lastUpdatedWeek: clampCampaignWeek(value.lastUpdatedWeek, week, week),
+    lastUpdatedWeek: clampWeek(value.lastUpdatedWeek, week, 'lastUpdated'),
   }
 
-  return finalizeEncounterRuntimeState(encounter, week)
+  return finalizeEncounterRuntimeState(encounter, week, weekClampMode)
 }
 
 function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
@@ -527,7 +577,7 @@ function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
       continue
     }
 
-    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week)
+    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week, 'hydrate')
   }
 
   return next

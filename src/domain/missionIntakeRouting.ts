@@ -604,7 +604,10 @@ function mergeRecomputedMissionRecord(
     lastTriageWeek: week,
     lastRoutedWeek: week,
     lastCandidateTeamIds: routed.candidateTeamIds,
-    lastRejectedTeamIds: routed.rejectedTeams,
+    lastRejectedTeamIds:
+      mission.lastRejectedTeamIds.length > 0
+        ? mission.lastRejectedTeamIds
+        : routed.rejectedTeams,
   }
 }
 
@@ -743,7 +746,11 @@ function normalizeMissionRecord(
       ? { lastRoutedWeek: clampInteger(existing.lastRoutedWeek, 1, Number.MAX_SAFE_INTEGER) }
       : {}),
     lastCandidateTeamIds: uniqueSortedStrings(existing?.lastCandidateTeamIds ?? routing.candidateTeamIds),
-    lastRejectedTeamIds: (existing?.lastRejectedTeamIds ?? routing.rejectedTeams)
+    lastRejectedTeamIds: (
+      existing?.lastRejectedTeamIds && existing.lastRejectedTeamIds.length > 0
+        ? existing.lastRejectedTeamIds
+        : routing.rejectedTeams
+    )
       .filter((entry) => typeof entry.teamId === 'string' && typeof entry.reasonCode === 'string')
       .map((entry) => ({
         teamId: entry.teamId,

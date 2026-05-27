@@ -91,10 +91,6 @@ function sanitizeKnowledgeEntry(
     return null
   }
 
-  if (context.knownTeamIds && !context.knownTeamIds.has(entityId)) {
-    return null
-  }
-
   const tier =
     typeof value.tier === 'string' && KNOWLEDGE_TIERS.has(value.tier as KnowledgeTier)
       ? (value.tier as KnowledgeTier)
@@ -105,6 +101,14 @@ function sanitizeKnowledgeEntry(
     KNOWLEDGE_OWNER_TYPES.has(value.entityType as KnowledgeOwnerType)
       ? (value.entityType as KnowledgeOwnerType)
       : 'team'
+
+  if (
+    context.knownTeamIds &&
+    entityType === 'team' &&
+    !context.knownTeamIds.has(entityId)
+  ) {
+    return null
+  }
 
   const subjectType =
     typeof value.subjectType === 'string' &&

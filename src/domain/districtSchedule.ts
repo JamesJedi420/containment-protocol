@@ -208,6 +208,14 @@ function clampFiniteScalar(value: unknown, fallback: number, min: number, max?: 
   return max === undefined ? boundedMin : Math.min(max, boundedMin)
 }
 
+function clampUnitIntervalScalar(value: unknown, fallback: number, min: number, max: number) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return fallback
+  }
+
+  return Math.min(max, Math.max(min, value))
+}
+
 function sanitizeStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return []
@@ -239,8 +247,8 @@ function sanitizeTimeBandProfile(raw: unknown, fallbackId: string): TimeBandProf
     id,
     label,
     baselinePopulation: clampFiniteScalar(raw.baselinePopulation, 0, 0, 100000),
-    witnessModifier: clampFiniteScalar(raw.witnessModifier, 0, 0, 1),
-    visibilityModifier: clampFiniteScalar(raw.visibilityModifier, 0, 0, 1),
+    witnessModifier: clampUnitIntervalScalar(raw.witnessModifier, 0, 0, 1),
+    visibilityModifier: clampUnitIntervalScalar(raw.visibilityModifier, 0, 0, 1),
     ...(raw.covertAdvantage === true ? { covertAdvantage: true } : {}),
   }
 }
@@ -331,13 +339,18 @@ function sanitizeRareEventOverlay(
       typeof raw.trafficModifier.witnessModifier === 'number' &&
       Number.isFinite(raw.trafficModifier.witnessModifier)
     ) {
-      trafficModifier.witnessModifier = clampFiniteScalar(raw.trafficModifier.witnessModifier, 0, 0, 1)
+      trafficModifier.witnessModifier = clampUnitIntervalScalar(
+        raw.trafficModifier.witnessModifier,
+        0,
+        0,
+        1
+      )
     }
     if (
       typeof raw.trafficModifier.visibilityModifier === 'number' &&
       Number.isFinite(raw.trafficModifier.visibilityModifier)
     ) {
-      trafficModifier.visibilityModifier = clampFiniteScalar(
+      trafficModifier.visibilityModifier = clampUnitIntervalScalar(
         raw.trafficModifier.visibilityModifier,
         0,
         0,

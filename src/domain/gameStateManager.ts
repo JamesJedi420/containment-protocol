@@ -315,7 +315,11 @@ function finalizeSceneHistoryEntries(entries: SceneHistoryEntry[]): SceneHistory
     .slice(-SCENE_HISTORY_LIMIT)
 }
 
-function sanitizeSceneHistoryEntry(value: unknown, campaignWeek: number): SceneHistoryEntry | null {
+function sanitizeSceneHistoryEntry(
+  value: unknown,
+  campaignWeek: number,
+  weekClampMode: EncounterWeekClampMode = 'hydrate'
+): SceneHistoryEntry | null {
   if (!isRecord(value)) {
     return null
   }
@@ -327,14 +331,22 @@ function sanitizeSceneHistoryEntry(value: unknown, campaignWeek: number): SceneH
     return null
   }
 
-  if (!isRuntimeSceneHistoryEntryValid(locationId, sceneId)) {
+  if (
+    weekClampMode === 'hydrate' &&
+    !isRuntimeSceneHistoryEntryValid(locationId, sceneId)
+  ) {
     return null
   }
+
+  const week =
+    weekClampMode === 'runtime'
+      ? clampEncounterTimelineWeek(value.week, campaignWeek, 1)
+      : clampCampaignWeek(value.week, campaignWeek, 1)
 
   return {
     sceneId,
     locationId,
-    week: clampCampaignWeek(value.week, campaignWeek, 1),
+    week,
     ...(sanitizeOptionalString(value.outcome) ? { outcome: sanitizeOptionalString(value.outcome) } : {}),
     ...(sanitizeStringList(value.tags).length > 0 ? { tags: sanitizeStringList(value.tags) } : {}),
   }
@@ -563,7 +575,11 @@ function sanitizeEncounterRuntimeState(
   return finalizeEncounterRuntimeState(encounter, week, weekClampMode)
 }
 
-function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
+function sanitizeEncounterRuntimeMap(
+  value: unknown,
+  week: number,
+  weekClampMode: EncounterWeekClampMode = 'runtime'
+) {
   if (!isRecord(value)) {
     return {}
   }
@@ -577,7 +593,12 @@ function sanitizeEncounterRuntimeMap(value: unknown, week: number) {
       continue
     }
 
-    next[normalizedId] = sanitizeEncounterRuntimeState(normalizedId, rawEntry, week, 'hydrate')
+    next[normalizedId] = sanitizeEncounterRuntimeState(
+      normalizedId,
+      rawEntry,
+      week,
+      weekClampMode
+    )
   }
 
   return next
@@ -1098,52 +1119,12 @@ export function reconcileRuntimeUiSelections(
   }
 }
 
-function hasCanonicalDebugFlags(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  if (!Array.isArray(value.eventLog)) {
-    return false
-  }
-
-  if (value.enabled === true && isRecord(value.flags) && Object.keys(value.flags).length === 0) {
-    return false
-  }
-
-  if (!isRecord(value.flags)) {
-    return true
-  }
-
-  const hasTruthyFlag = Object.entries(value.flags).some(
-    ([key, flagValue]) => key === sanitizeString(key) && key.length > 0 && Boolean(flagValue)
-  )
-
-  if (value.enabled === true && !hasTruthyFlag) {
-    return false
-  }
-
-  return Object.keys(value.flags).every((key) => key === sanitizeString(key) && key.length > 0)
-}
-
-function hasRuntimeShape(value: unknown): value is RuntimeState {
-  return (
-    isRecord(value) &&
-    isRecord(value.player) &&
-    isRecord(value.globalFlags) &&
-    isRecord(value.oneShotEvents) &&
-    isRecord(value.currentLocation) &&
-    Array.isArray(value.sceneHistory) &&
-    isRecord(value.encounterState) &&
-    isRecord(value.progressClocks) &&
-    isRecord(value.eventQueue) &&
-    Array.isArray(value.eventQueue.entries) &&
-    isRecord(value.ui) &&
-    hasCanonicalDebugFlags((value.ui as Record<string, unknown>).debug)
-  )
-}
-
-export function normalizeRuntimeState(value: unknown, week: number, fallback?: RuntimeState): RuntimeState {
+export function normalizeRuntimeState(
+  value: unknown,
+  week: number,
+  fallback?: RuntimeState,
+  encounterWeekClampMode: EncounterWeekClampMode = 'hydrate'
+): RuntimeState {
   const base = fallback ?? createDefaultRuntimeState(week)
 
   if (!isRecord(value)) {
@@ -1153,11 +1134,15 @@ export function normalizeRuntimeState(value: unknown, week: number, fallback?: R
   const sceneHistory = Array.isArray(value.sceneHistory)
     ? finalizeSceneHistoryEntries(
         value.sceneHistory
-          .map((entry) => sanitizeSceneHistoryEntry(entry, week))
+          .map((entry) => sanitizeSceneHistoryEntry(entry, week, encounterWeekClampMode))
           .filter((entry): entry is SceneHistoryEntry => entry !== null)
       )
     : base.sceneHistory
-  const encounterState = sanitizeEncounterRuntimeMap(value.encounterState, week)
+  const encounterState = sanitizeEncounterRuntimeMap(
+    value.encounterState,
+    week,
+    encounterWeekClampMode
+  )
 
   return {
     player: sanitizePlayerProfile(value.player, base.player),
@@ -1291,9 +1276,7 @@ export function getProgressClock(state: GameState, clockId: string) {
 }
 
 export function ensureManagedGameState(state: GameState): GameState {
-  const runtimeState = hasRuntimeShape(state.runtimeState)
-    ? state.runtimeState
-    : normalizeRuntimeState(state.runtimeState, state.week)
+  const runtimeState = normalizeRuntimeState(state.runtimeState, state.week, undefined, 'runtime')
   const inventory = isInventoryCanonical(state.inventory)
     ? state.inventory
     : sanitizeInventoryRecord(state.inventory)
@@ -1317,7 +1300,12 @@ function withRuntimeState(
   }
 ) {
   const normalized = ensureManagedGameState(state)
-  const runtimeState = normalizeRuntimeState(normalized.runtimeState, normalized.week)
+  const runtimeState = normalizeRuntimeState(
+    normalized.runtimeState,
+    normalized.week,
+    undefined,
+    'runtime'
+  )
   const inventory = isInventoryCanonical(normalized.inventory)
     ? normalized.inventory
     : sanitizeInventoryRecord(normalized.inventory)
@@ -1484,13 +1472,17 @@ export function recordSceneVisit(state: GameState, input: SceneVisitInput) {
   }
 
   return withRuntimeState(state, (runtimeState) => {
-    const nextEntry = sanitizeSceneHistoryEntry({
-      sceneId,
-      locationId,
-      week: input.week ?? state.week,
-      outcome: input.outcome,
-      tags: input.tags,
-    })
+    const nextEntry = sanitizeSceneHistoryEntry(
+      {
+        sceneId,
+        locationId,
+        week: input.week ?? state.week,
+        outcome: input.outcome,
+        tags: input.tags,
+      },
+      state.week,
+      'runtime'
+    )
 
     if (!nextEntry) {
       return { runtimeState }

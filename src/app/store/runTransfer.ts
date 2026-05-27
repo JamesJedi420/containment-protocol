@@ -11,10 +11,7 @@ import {
   type ProductionRecipe,
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
-import {
-  createDefaultAgentAssignmentState,
-  deriveAssignmentStatus,
-} from '../../domain/agentDefaults'
+import { createDefaultAgentAssignmentState } from '../../domain/agentDefaults'
 import {
   normalizeAgent,
   reconcileAgentAssignmentAgainstGame,
@@ -1870,7 +1867,12 @@ const MAX_GAME_CONFIG_WEEKS_PER_YEAR = 104
 const MAX_GAME_CONFIG_FUNDING_SCALAR = 1_000_000
 const MAX_GAME_CONFIG_CONTAINMENT_DELTA = 1_000
 
-export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
+export function sanitizeGameConfig(
+  config: unknown,
+  fallback: GameConfig,
+  options: { invalidAttritionPolicy?: 'fallback' | 'minimum' } = {}
+) {
+  const invalidAttritionPolicy = options.invalidAttritionPolicy ?? 'fallback'
   const nextConfig = { ...fallback }
 
   if (!isRecord(config)) {
@@ -2065,7 +2067,8 @@ export function sanitizeGameConfig(config: unknown, fallback: GameConfig) {
     const rawAttrition = config.attritionPerWeek as number
 
     if (!Number.isFinite(rawAttrition) || rawAttrition < 1) {
-      nextConfig.attritionPerWeek = 1
+      nextConfig.attritionPerWeek =
+        invalidAttritionPolicy === 'minimum' ? 1 : fallback.attritionPerWeek
     }
   }
 
@@ -5534,7 +5537,7 @@ function sanitizeFactionsMap(
             (contact): contact is Contact =>
               contact !== null && knownContactIds.has(contact.id)
           )
-      : []
+      : [...(fallback[factionId]?.contacts ?? [])]
     const historyRaw = isRecord(entry.history) ? entry.history : {}
     const missionsCompleted = Math.max(
       0,
@@ -5765,7 +5768,8 @@ function reconcileHydratedGlobalFlags(
       },
     },
     campaignWeek,
-    fallbackRuntime
+    fallbackRuntime,
+    'hydrate'
   )
 
   return {
@@ -8405,6 +8409,7 @@ export function hydrateGame(
     fallbackFeaturedRecipeId: fallback.market.featuredRecipeId,
   })
   const events = reconcileHydratedOperationEventRefs(sanitizedEvents)
+  const market = sanitizeMarket(game.market, fallback.market, week)
 
   const hydratedBase = stripUndefinedFields({
       ...fallback,
@@ -8468,12 +8473,8 @@ export function hydrateGame(
         factions
       ),
       trainingQueue: sanitizeTrainingQueue(game.trainingQueue, agents, teams, academyTier, week),
-      productionQueue: sanitizeProductionQueue(
-        game.productionQueue,
-        week,
-        isRecord(game.market) ? (game.market as MarketState) : fallback.market
-      ),
-      market: sanitizeMarket(game.market, fallback.market, week),
+      market,
+      productionQueue: sanitizeProductionQueue(game.productionQueue, week, market),
       config,
       campaignLedger: sanitizeCampaignLedger(
         game.campaignLedger,

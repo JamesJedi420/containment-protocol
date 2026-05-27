@@ -636,7 +636,7 @@ function hasRequiredOperationEventIdentity(
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function isOneOf<T extends string>(value: unknown, options: readonly T[]): value is T {

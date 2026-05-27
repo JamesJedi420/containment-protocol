@@ -154,7 +154,11 @@ function isRuntimeQueuedEventTargetValid(
   targetId: string,
   encounterState: Record<string, EncounterRuntimeState>
 ) {
-  if (type === 'encounter.follow_up' || type === 'encounter.patched' || type === 'encounter.escalation') {
+  if (type === 'encounter.follow_up') {
+    return targetId.length > 0
+  }
+
+  if (type === 'encounter.patched' || type === 'encounter.escalation') {
     return targetId.length > 0 && encounterState[targetId] !== undefined
   }
 
@@ -1033,6 +1037,22 @@ export function reconcileRuntimeUiSelections(
   }
 }
 
+function hasRuntimeShape(value: unknown): value is RuntimeState {
+  return (
+    isRecord(value) &&
+    isRecord(value.player) &&
+    isRecord(value.globalFlags) &&
+    isRecord(value.oneShotEvents) &&
+    isRecord(value.currentLocation) &&
+    Array.isArray(value.sceneHistory) &&
+    isRecord(value.encounterState) &&
+    isRecord(value.progressClocks) &&
+    isRecord(value.eventQueue) &&
+    isRecord(value.ui) &&
+    isRecord((value.ui as Record<string, unknown>).debug)
+  )
+}
+
 export function normalizeRuntimeState(value: unknown, week: number, fallback?: RuntimeState): RuntimeState {
   const base = fallback ?? createDefaultRuntimeState(week)
 
@@ -1181,10 +1201,16 @@ export function getProgressClock(state: GameState, clockId: string) {
 }
 
 export function ensureManagedGameState(state: GameState): GameState {
-  const runtimeState = normalizeRuntimeState(state.runtimeState, state.week)
+  const runtimeState = hasRuntimeShape(state.runtimeState)
+    ? state.runtimeState
+    : normalizeRuntimeState(state.runtimeState, state.week)
   const inventory = isInventoryCanonical(state.inventory)
     ? state.inventory
     : sanitizeInventoryRecord(state.inventory)
+
+  if (runtimeState === state.runtimeState && inventory === state.inventory) {
+    return state
+  }
 
   return {
     ...state,

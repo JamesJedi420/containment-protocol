@@ -16,6 +16,7 @@ const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.escalated',
   'case.spawned',
   'case.raid_converted',
+  'case.aggregate_battle',
 ]
 
 const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
@@ -29,6 +30,11 @@ const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
 const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'system.week_delta',
   'system.party_cards_drawn',
+  'system.equipment_recovered',
+  'system.escalation_consequence',
+  'system.proxy_conflict',
+  'system.protocol_contact',
+  'system.anchor_instability',
   'agent.training_completed',
   'production.queue_completed',
   'market.shifted',
@@ -37,6 +43,17 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'faction.unlock_available',
   'agency.containment_updated',
   'directive.applied',
+  'support.shortfall',
+  'support.restored',
+  'infiltration.awareness_complication',
+  'infiltration.escalation_exposed',
+  'infiltration.escalation_violent',
+  'infiltration.cover_strain',
+  'infiltration.weekly_encounter',
+  'infiltration.leave_behind_tradeoff',
+  'concealment.activated',
+  'hub.opportunity',
+  'hub.rumor',
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {

@@ -7764,6 +7764,20 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
     })
 
+    it('480b keeps fallback staff when persisted staff payload is an array', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame(
+        {
+          ...stripGameTemplates(fallback),
+          staff: [{ role: 'instructor', name: 'Corrupt' }],
+        },
+        fallback
+      )
+
+      expect(hydrated.staff).toEqual(fallback.staff)
+    })
+
     it('481 applies normalizeAgent via sanitizeAgentsMap instead of shallow roster cast', () => {
       const fallback = createStartingState()
       const agentId = Object.keys(fallback.agents)[0]!

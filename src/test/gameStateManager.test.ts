@@ -407,6 +407,33 @@ describe('gameStateManager', () => {
       expect(normalized.ui.debug.eventLog[0]?.week).toBe(4)
       expect(normalized.ui.debug.eventLog[0]?.details?.ratio).toBe(0.3333333333333333)
     })
+
+    it('preserves encounter.follow_up queue entries when targetId is an authored follow-up id', () => {
+      const normalized = normalizeRuntimeState(
+        {
+          eventQueue: {
+            entries: [
+              {
+                id: 'qevt-authored-follow-up',
+                type: 'encounter.follow_up',
+                targetId: 'frontdesk.notice.authority.exchange',
+                week: 2,
+              },
+            ],
+            nextSequence: 2,
+          },
+        },
+        2
+      )
+
+      expect(normalized.eventQueue.entries).toEqual([
+        expect.objectContaining({
+          id: 'qevt-authored-follow-up',
+          type: 'encounter.follow_up',
+          targetId: 'frontdesk.notice.authority.exchange',
+        }),
+      ])
+    })
   })
 
   describe('hydration problems 655-662', () => {

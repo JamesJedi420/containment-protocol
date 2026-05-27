@@ -1,0 +1,756 @@
+<user_query>
+Tool target: Cursor with Linear access.
+This is Linear backlog reconciliation update only.
+Do not send this to Codex or GitHub Copilot.
+Do not edit code.
+Do not create a branch.
+Do not open a PR.
+Do not change status, assignee, labels, priority, project, parent, duplicate target, or relations.
+Do not rewrite descriptions.
+Do not create new issues unless this prompt explicitly gives a full issue title and full issue body.
+This prompt creates no new issues.
+
+Source-safety rule:
+Do not put external source names, external URLs, external article/page titles, author names, publisher names, RPG/product names, subreddit names, review-site names, or source-specific proper nouns into Linear issue titles, descriptions, comments, or final update notes.
+
+Use only neutral wording:
+* External extraction candidate [number]
+* External design discussion candidate [number]
+* External pattern extraction
+
+Controlling decision:
+Every listed candidate below has a specific Linear action.
+Do not invent additional updates.
+Do not report rejected or no-action candidates.
+Do not create contradiction-check issues.
+Do not create a cluster summary comment as a substitute for the individual candidate comments below.
+
+Duplicate-prevention rule:
+Before adding each comment:
+1. Open the target issue.
+2. Search existing comments for:
+   * Candidate [number]
+   * the comment title line
+3. If the exact substance already exists, skip that one comment and report “already covered.”
+4. If it does not exist, add the exact comment text shown below.
+5. Keep one Linear comment per candidate listed below.
+
+Candidate 1 — Single-page operational scenario architecture
+Target issue: SPE-696 — Template grammar for hazards and incidents
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 1: Single-page operational scenario architecture
+
+Fold this candidate into SPE-696 as incident-template compression guidance.
+
+Implementation note:
+Incident and hazard templates should be able to compress operationally critical information into a compact structured packet: trigger, visible manifestations, cast or actors, locations, escalation vectors, investigation visibility, consequence hooks, and resolution pressures. The goal is rapid authoring and system interpretation without sprawling bespoke scenario prose.
+
+Boundary:
+Keep this inside SPE-696 as template grammar and compact incident structure. UI presentation panels remain with presentation-specific issues.
+
+Traceability:
+External extraction candidate 1.
+
+Candidate 2 — Omen-driven escalation sequencing
+Target issue: SPE-1672 — Threat countdown progression
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 2: Sequential manifestation escalation
+
+Fold this candidate into SPE-1672 as staged threat-countdown behavior.
+
+Implementation note:
+Incidents should be able to escalate through ordered manifestation states that progressively destabilize civilian interpretation, evidence availability, operational certainty, local behavior, site control, and public exposure. These stages should be discrete enough for deterministic countdown handling and after-action review.
+
+Boundary:
+Keep this inside SPE-1672 as countdown stage design and offscreen advancement behavior. Do not create a separate escalation-sequence issue.
+
+Traceability:
+External extraction candidate 2.
+
+Candidate 3 — Sparse-stat dense-imagination entity presentation
+Target issue: SPE-242 — Presentation-rules decoupling for entities
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 3: Sparse entity presentation
+
+Fold this candidate into SPE-242 as presentation-rules decoupling guidance.
+
+Implementation note:
+Anomaly records should be able to use sparse but psychologically loaded descriptors while preserving internal rule clarity. Appearance, rumor, silhouette, witness detail, implied equipment, and observed behavior can remain incomplete or variable without changing the entity’s underlying rule package.
+
+Boundary:
+Keep this inside SPE-242 as presentation-rule separation. Do not require exhaustive visual canon for every anomaly.
+
+Traceability:
+External extraction candidate 3.
+
+Candidate 4 — Singular-theme incident framework
+Target issue: SPE-696 — Template grammar for hazards and incidents
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 4: Singular-theme incident framework
+
+Fold this candidate into SPE-696 as incident-template focus guidance.
+
+Implementation note:
+Incident templates should support a dominant conceptual anomaly or pressure theme whose effects permeate locations, actors, evidence, environment, escalation, and resolution. This helps avoid mixed-threat noise when a single strong anomaly concept should drive the operational scenario.
+
+Boundary:
+Keep this inside SPE-696 as incident template structure. Anomaly taxonomy remains with anomaly-record issues.
+
+Traceability:
+External extraction candidate 4.
+
+Candidate 5 — Environmental ambiguity preserving interpretive instability
+Target issue: SPE-642 — Folklore truth-layer authoring
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 5: Environmental ambiguity preserving interpretive instability
+
+Fold this candidate into SPE-642 as multi-ontology truth-layer guidance.
+
+Implementation note:
+Certain entities or sites should be able to sustain multiple plausible interpretations at once, such as natural, anomalous, social, folkloric, psychological, or misidentified explanations. Authoring should preserve which interpretations are plausible, which evidence supports each, and when the operational system must act under unresolved ontology.
+
+Boundary:
+Keep this inside SPE-642 as truth-layer and folklore authoring behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 5.
+
+Candidate 6 — Realm generation through procedural identity layers
+Target issue: SPE-1081 — Procedural campaign generation and seeded content rules
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 6: Procedural regional-identity layers
+
+Fold this candidate into SPE-1081 as regional campaign-generation guidance.
+
+Implementation note:
+Operational regions should be able to derive from modular identity layers such as terrain pressure, institutional footprint, anomaly history, faction influence, civic trust, infrastructure condition, and symbolic or folkloric associations rather than fixed canonical geography alone.
+
+Boundary:
+Keep this inside SPE-1081 as procedural campaign and region-seeding behavior. Regional map control remains with map and zone-control issues.
+
+Traceability:
+External extraction candidate 6.
+
+Candidate 7 — Doctrine-driven engagement framework
+Target issue: SPE-698 — Institution doctrine, identity, and permissions
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 7: Doctrine-driven engagement framework
+
+Fold this candidate into SPE-698 as institutional-doctrine alignment guidance.
+
+Implementation note:
+Institutional doctrine, training, oath, conditioning, clearance norms, and mission identity should naturally align personnel toward dangerous incident engagement. The system should explain why qualified staff do not simply ignore anomalous threats when institutional role and obligation make engagement part of identity and authority.
+
+Boundary:
+Keep this inside SPE-698 as doctrine, identity, and permission behavior. Duty-driven territorial diversions remain with stewardship issues.
+
+Traceability:
+External extraction candidate 7.
+
+Candidate 8 — Deterministic engagement-resolution framework
+Target issue: SPE-73 — Local confrontation resolution with odds bands
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 8: Deterministic engagement-resolution framework
+
+Fold this candidate into SPE-73 as consequence-first confrontation guidance.
+
+Implementation note:
+Local confrontation should prioritize posture, positioning, vulnerability layers, operational tradeoffs, and consequence states rather than relying on probabilistic hit confirmation as the main source of tension. Resolution can be deterministic while still producing meaningful fallout, escalation, delay, disruption, and exposure.
+
+Boundary:
+Keep this inside SPE-73 as local confrontation and result-band behavior. Do not create a tactical-combat minigame.
+
+Traceability:
+External extraction candidate 8.
+
+Candidate 9 — Conditional tactical-action framework
+Target issue: SPE-73 — Local confrontation resolution with odds bands
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 9: Conditional tactical-action framework
+
+Fold this candidate into SPE-73 as conditional secondary-action behavior.
+
+Implementation note:
+Favorable operational states should be able to unlock tactical interventions such as disarm, delay, force retreat, suppress, protect, reposition, break posture, expose vulnerability, reduce collateral, or isolate a target. These interventions should emerge from result bands, positioning, equipment, support, or compatibility state rather than only baseline attack actions.
+
+Boundary:
+Keep this inside SPE-73 as confrontation secondary-effect and result-band behavior.
+
+Traceability:
+External extraction candidate 9.
+
+Candidate 10 — Symbolic personnel-archetype system
+Target issue: SPE-1443 — Layered staff package schema
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 10: Symbolic personnel-archetype system
+
+Fold this candidate into SPE-1443 as layered personnel-package guidance.
+
+Implementation note:
+Personnel archetypes should be able to express ideological, symbolic, institutional, tactical, and behavioral themes rather than pure numeric specialization. A staff package can imply duties, temptations, support behavior, conflict style, recovery needs, and crisis actions as well as capability.
+
+Boundary:
+Keep this inside SPE-1443 as layered staff package behavior. Personality-specific outputs remain with related personality and relationship issues.
+
+Traceability:
+External extraction candidate 10.
+
+Candidate 11 — Ideological recovery-state framework
+Target issue: SPE-1029 — Staff housing, recovery, and morale stabilization system
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 11: Ideological recovery-state framework
+
+Fold this candidate into SPE-1029 as personalized morale-recovery guidance.
+
+Implementation note:
+Stress recovery and morale restoration should be able to depend on ideology-consistent behavior, institutional identity, role-affirming duty, truth-telling, ritualized decompression, private space, trusted colleagues, or meaningful service rather than consumables or generic rest alone.
+
+Boundary:
+Keep this inside SPE-1029 as staff recovery and morale stabilization behavior. Do not create a new recovery issue from this candidate.
+
+Traceability:
+External extraction candidate 11.
+
+Candidate 12 — Patron-linked personnel framework
+Target issue: SPE-51 — Patron obligations and symbolic social debt
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 12: Patron-linked personnel framework
+
+Fold this candidate into SPE-51 as patron-obligation and personnel-origin guidance.
+
+Implementation note:
+Personnel may emerge from mentor, patron, sponsor, handler, department, or institutional lineage structures that influence ideology, assignments, escalation priorities, obligation, loyalty, and social debt. These links should be able to create both support and pressure.
+
+Boundary:
+Keep this inside SPE-51 as patron obligation and symbolic social debt behavior. Staff package composition remains with SPE-1443.
+
+Traceability:
+External extraction candidate 12.
+
+Candidate 13 — Generational continuity through successor inheritance
+Target issue: SPE-1051 — Recoverable failure, campaign scars, and after-action collapse model
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 13: Generational continuity through successor inheritance
+
+Fold this candidate into SPE-1051 as long-horizon institutional continuity guidance.
+
+Implementation note:
+Long-duration campaigns should support inherited institutional memory, successor-state continuity, persistent facilities, archive scars, doctrine shifts, memorials, and operating constraints across changing personnel. Staff may leave, die, retire, or be replaced while institutional consequences remain.
+
+Boundary:
+Keep this inside SPE-1051 as campaign-scar and long-horizon institutional consequence behavior.
+
+Traceability:
+External extraction candidate 13.
+
+Candidate 14 — Art as operational lore transmission
+Target issue: SPE-1448 — Illustrated incident scene presentation
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 14: Visual lore transmission
+
+Fold this candidate into SPE-1448 as illustrated-scene information guidance.
+
+Implementation note:
+Illustrated incident scenes should be able to transmit operational context, anomaly logic, myth-state, public belief, witness unreliability, and consequence state directly through composition, props, silhouettes, captions, overlays, distortion, and visual emphasis rather than functioning as decoration only.
+
+Boundary:
+Keep this inside SPE-1448 as illustrated incident-scene presentation. General visual language remains with visual-overlay and readability issues.
+
+Traceability:
+External extraction candidate 14.
+
+Candidate 15 — Primacy-of-action operational framework
+Target issue: SPE-1127 — Vetoable action lifecycle
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 15: Primacy-of-action operational framework
+
+Fold this candidate into SPE-1127 as action-lifecycle momentum guidance.
+
+Implementation note:
+Simulation flow should prioritize resolving player intent and preserving operational momentum over exhaustive procedural gating. Preparation, veto, commitment, execution, and aftermath stages should clarify when an action can proceed, be interrupted, be redirected, or produce partial consequences without causing procedural stalls.
+
+Boundary:
+Keep this inside SPE-1127 as action lifecycle and interruption-window behavior. Local confrontation consequences remain with SPE-73.
+
+Traceability:
+External extraction candidate 15.
+
+Candidate 16 — Mythic-density content framework
+Target issue: SPE-696 — Template grammar for hazards and incidents
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 16: Dense symbolic incident content
+
+Fold this candidate into SPE-696 as compact hazard/incident template guidance.
+
+Implementation note:
+Incident templates should prioritize symbolic density and operational implication over exhaustive lore accumulation. A compact entry should carry enough trigger, consequence, visibility, pressure, and thematic signal for systems and authors to elaborate during play.
+
+Boundary:
+Keep this inside SPE-696 as template grammar and compact incident design. Documentation-only style guidance should not become separate backlog scope.
+
+Traceability:
+External extraction candidate 16.
+
+Candidate 17 — Unified anomaly-incident architecture
+Target issue: SPE-696 — Template grammar for hazards and incidents
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 17: Unified anomaly-incident architecture
+
+Fold this candidate into SPE-696 as anomaly/incident template integration guidance.
+
+Implementation note:
+Some anomaly records should be able to function as operational incident anchors, not only encyclopedia entries. A single structured artifact may define the anomaly concept, trigger, cast, site pressure, escalation behavior, evidence hooks, and resolution surfaces.
+
+Boundary:
+Keep this inside SPE-696 as hazard and incident template grammar. Do not create a separate anomaly-incident architecture issue.
+
+Traceability:
+External extraction candidate 17.
+
+Candidate 18 — Operator-driven interpretation framework
+Target issue: SPE-882 — Persistent symbolic clue capture and translation
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 18: Operator-driven interpretation framework
+
+Fold this candidate into SPE-882 as interpretive-space guidance.
+
+Implementation note:
+The simulation should preserve interpretive space where operators, analysts, or downstream systems infer meaning from incomplete symbolic clues rather than receiving immediate full explanation. Gaps should remain bounded by capture quality, evidence links, translation state, confidence, and later verification routes.
+
+Boundary:
+Keep this inside SPE-882 as symbolic clue interpretation and hypothesis-confidence behavior.
+
+Traceability:
+External extraction candidate 18.
+
+Candidate 19 — Exclusive-role assignment framework
+Target issue: SPE-1443 — Layered staff package schema
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 19: Exclusive-role assignment framework
+
+Fold this candidate into SPE-1443 as package compatibility and exclusivity guidance.
+
+Implementation note:
+Some institutional roles, anomaly-exposure packages, crisis roles, or specialty overlays should be exclusive or uniqueness-limited to preserve identity differentiation, staffing tradeoffs, and operational readability. Package compatibility rules should explain why certain combinations are blocked or modified.
+
+Boundary:
+Keep this inside SPE-1443 as package compatibility and exclusivity behavior.
+
+Traceability:
+External extraction candidate 19.
+
+Candidate 20 — Symbolic pacing-cue framework
+Target issue: SPE-1672 — Threat countdown progression
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 20: Symbolic pacing-cue framework
+
+Fold this candidate into SPE-1672 as compressed escalation cue guidance.
+
+Implementation note:
+Threat countdown stages should be able to surface as compressed symbolic cues, brief manifestations, witness fragments, environmental changes, or pressure-map shifts rather than exposition-heavy mission scripting. Each cue should still connect to deterministic stage state and operational consequences.
+
+Boundary:
+Keep this inside SPE-1672 as staged manifestation and threat-countdown behavior.
+
+Traceability:
+External extraction candidate 20.
+
+Candidate 21 — Exhaustive visual canon versus intentionally undefined anomalies
+Target issue: SPE-242 — Presentation-rules decoupling for entities
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 21: Undefined anomaly presentation
+
+Fold this candidate into SPE-242 as visual-definition boundary guidance.
+
+Implementation note:
+Not every anomaly needs exhaustive canonical visualization. Some entities should remain visually partial, contradictory, witness-dependent, or presentation-dependent while their internal rule package remains inspectable and testable. This supports uncertainty without making the underlying system arbitrary.
+
+Boundary:
+Keep this inside SPE-242 as presentation-rule decoupling. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 21.
+
+Candidate 22 — Broad variety versus singular thematic concentration
+Target issue: SPE-696 — Template grammar for hazards and incidents
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 22: Singular threat-density focus
+
+Fold this candidate into SPE-696 as incident-focus guidance.
+
+Implementation note:
+Incident density does not always need many unrelated threat types. Some incidents should concentrate around one dominant anomaly theme, motif, or pressure source and let that theme shape evidence, cast, environment, escalation, and resolution.
+
+Boundary:
+Keep this inside SPE-696 as incident template focus. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 22.
+
+Candidate 23 — Rationalized world-state versus unresolved ontological ambiguity
+Target issue: SPE-642 — Folklore truth-layer authoring
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 23: Ontological ambiguity tolerance
+
+Fold this candidate into SPE-642 as truth-layer authoring guidance.
+
+Implementation note:
+Operational threats do not always need fully knowable ontology at the moment of play. The system should preserve when a threat is confirmed, suspected, socially believed, symbolically framed, misidentified, or unresolved, while still allowing operators to make bounded decisions under uncertainty.
+
+Boundary:
+Keep this inside SPE-642 as folklore truth-layer authoring. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 23.
+
+Candidate 24 — Static character continuity versus institutional succession
+Target issue: SPE-1051 — Recoverable failure, campaign scars, and after-action collapse model
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 24: Institutional succession over static protagonist continuity
+
+Fold this candidate into SPE-1051 as succession and continuity guidance.
+
+Implementation note:
+Campaign continuity should not depend solely on permanently persistent protagonist identities. Institutional memory, facilities, doctrine, archives, scars, successors, and inherited constraints can preserve continuity even when individual personnel age out, die, defect, retire, or are replaced.
+
+Boundary:
+Keep this inside SPE-1051 as long-horizon institutional consequence and campaign continuity behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 24.
+
+Candidate 25 — Myth emergence through geographic traversal
+Target issue: SPE-230 — Multi-axis encounter-frequency routing
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 25: Geographic traversal incident emergence
+
+Fold this candidate into SPE-230 as traversal-triggered anomaly-pressure behavior.
+
+Implementation note:
+Traversal across operational regions should be able to surface dormant or unresolved anomaly states based on route class, local section, proximity, timing, regional hostility, pressure state, and environmental conditions. Movement should be a discovery and pressure surface, not only transit.
+
+Boundary:
+Keep this inside SPE-230 as encounter-frequency routing and traversal pressure. Regional ambient hostility remains with SPE-1077.
+
+Traceability:
+External extraction candidate 25.
+
+Candidate 26 — Realm deterioration as background campaign pressure
+Target issue: SPE-1077 — Environment hostility tiers and ambient threat pressure
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 26: Background macro-instability pressure
+
+Fold this candidate into SPE-1077 as region-scale deterioration behavior.
+
+Implementation note:
+The broader operational world should be able to destabilize over campaign time even outside direct player interaction. Hostility, infrastructure degradation, anomaly bleed, civilian distrust, faction adaptation, and environmental symptoms can worsen as unresolved pressure accumulates.
+
+Boundary:
+Keep this inside SPE-1077 as ambient hostility and regional pressure behavior. Campaign-loss scarring remains with SPE-1051.
+
+Traceability:
+External extraction candidate 26.
+
+Candidate 27 — Holdings and strongholds as operational anchors
+Target issue: SPE-1052 — Core facility institution and base simulation model
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 27: Distributed operational anchors
+
+Fold this candidate into SPE-1052 as distributed facility and stronghold-state guidance.
+
+Implementation note:
+The simulation should support distributed operational anchors such as field bases, strongholds, sanctums, regional offices, secured sites, fallback locations, and power nodes with evolving logistical, defensive, political, staffing, and symbolic state.
+
+Boundary:
+Keep this inside SPE-1052 as facility/institution base simulation. Recovery-specific field-base behavior remains with recovery and staging issues.
+
+Traceability:
+External extraction candidate 27.
+
+Candidate 28 — Localized anomaly interpreters
+Target issue: SPE-882 — Persistent symbolic clue capture and translation
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 28: Localized anomaly interpreters
+
+Fold this candidate into SPE-882 as regional interpretation dependency guidance.
+
+Implementation note:
+High-level anomaly interpreters, analysts, local experts, archivists, or specialist institutions should be able to connect to specific regional manifestation patterns. Their knowledge may be geographically scoped, confidence-limited, politically compromised, or tied to recurring local anomaly conditions.
+
+Boundary:
+Keep this inside SPE-882 as symbolic clue translation and specialist interpretation behavior. Patron or mentor obligations remain with patron/social-debt issues.
+
+Traceability:
+External extraction candidate 28.
+
+Candidate 29 — Resolution through meaningful change instead of correct answers
+Target issue: SPE-1051 — Recoverable failure, campaign scars, and after-action collapse model
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 29: Resolution through meaningful state change
+
+Fold this candidate into SPE-1051 as noncanonical resolution guidance.
+
+Implementation note:
+Incident resolution should allow multiple valid stabilization outcomes rather than one canonical puzzle answer. A case may resolve through containment, evacuation, exposure control, ritual stabilization, political settlement, environmental change, evidence preservation, negotiated compromise, or accepting a scarred but survivable state.
+
+Boundary:
+Keep this inside SPE-1051 as resolution-state and persistent-consequence behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 29.
+
+Candidate 30 — Procedural traversal producing macro-narrative
+Target issue: SPE-1081 — Procedural campaign generation and seeded content rules
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 30: Procedural macro-narrative emergence
+
+Fold this candidate into SPE-1081 as emergent campaign-generation guidance.
+
+Implementation note:
+Macro-scale narrative arcs should be able to emerge from interacting procedural systems such as travel pressure, unresolved threats, faction activity, objective conflict, territorial duties, institutional scars, and regional instability rather than exclusively authored campaign scripting.
+
+Boundary:
+Keep this inside SPE-1081 as procedural campaign-generation and seeded-content behavior. Threat countdowns remain with SPE-1672.
+
+Traceability:
+External extraction candidate 30.
+
+Candidate 31 — Escalation integrated into routine travel
+Target issue: SPE-230 — Multi-axis encounter-frequency routing
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 31: Ambient escalation during traversal
+
+Fold this candidate into SPE-230 as traversal-pressure escalation guidance.
+
+Implementation note:
+Anomaly escalation should be able to occur during ordinary operational movement rather than only inside explicitly activated incidents. Route choice, time spent, local section, proximity, and regional pressure should be able to surface mutation, signs, contacts, warnings, or altered encounter states.
+
+Boundary:
+Keep this inside SPE-230 as traversal encounter-pressure behavior. Countdown stage advancement remains with SPE-1672.
+
+Traceability:
+External extraction candidate 31.
+
+Candidate 32 — Exhaustion through ideological and operational depletion
+Target issue: SPE-130 — Multi-axis fatigue, stress, and exhaustion
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 32: Ideological and operational exhaustion channels
+
+Fold this candidate into SPE-130 as multi-axis depletion guidance.
+
+Implementation note:
+Personnel capability degradation should be able to emerge from ideological strain, psychological depletion, operational stress, crisis fatigue, moral injury, and physical exhaustion rather than only injury or physical wear. Different channels should affect different downstream systems and recovery paths.
+
+Boundary:
+Keep this inside SPE-130 as fatigue/stress channel behavior. Personalized recovery surfaces remain with SPE-1029.
+
+Traceability:
+External extraction candidate 32.
+
+Candidate 33 — Interesting-choice balancing over equalized optimization
+Target issue: SPE-40 — Operational action budget and mission tradeoffs
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 33: Interesting-choice balancing
+
+Fold this candidate into SPE-40 as operational tradeoff design guidance.
+
+Implementation note:
+System balance should prioritize meaningful operational tradeoffs over equalized efficiency parity. Actions, tools, staff roles, and routes can be asymmetrical if each creates a legible cost, risk, opportunity, or downstream consequence that preserves interesting decisions.
+
+Boundary:
+Keep this inside SPE-40 as action-budget and mission-tradeoff behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 33.
+
+Candidate 34 — Sensory-first improvisation framework
+Target issue: SPE-1335 — Motif-based anomaly clustering
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 34: Sensory reinforcement framework
+
+Fold this candidate into SPE-1335 as motif and sensory-callback guidance.
+
+Implementation note:
+Procedural content should be able to reinforce atmosphere and learned truths through recurring sensory motifs, environmental callbacks, sounds, smells, textures, visual distortions, repeated symbols, and altered ordinary details. These cues should support inference, recognition, and anomaly-state continuity.
+
+Boundary:
+Keep this inside SPE-1335 as motif-based anomaly clustering and sensory reinforcement. Illustrated scene presentation remains with SPE-1448.
+
+Traceability:
+External extraction candidate 34.
+
+Candidate 35 — Dynamic warband-scale threat handling
+Target issue: SPE-106 — Aggregate Battle Units & Routed Morale States
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 35: Scalable hostile-group abstraction
+
+Fold this candidate into SPE-106 as aggregate hostile-force behavior.
+
+Implementation note:
+Large hostile groups should resolve through scalable abstraction rather than individual-unit simulation when the operational scale calls for it. Warband-scale threats should support grouped posture, morale, routed state, command influence, pressure projection, and consequence bands without requiring one actor per body.
+
+Boundary:
+Keep this inside SPE-106 as aggregate battle-unit and routed-morale behavior. Do not reopen completed work unless a future implementation slice is explicitly created.
+
+Traceability:
+External extraction candidate 35.
+
+Candidate 36 — Built-in content loops replacing module dependency
+Target issue: SPE-1081 — Procedural campaign generation and seeded content rules
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 36: Self-generating content-loop framework
+
+Fold this candidate into SPE-1081 as procedural content-loop guidance.
+
+Implementation note:
+Core simulation systems should be able to generate operational content loops internally from seeds, region pressure, threat countdowns, travel, factions, objectives, and unresolved consequences rather than requiring constant external authored content injection.
+
+Boundary:
+Keep this inside SPE-1081 as procedural campaign-generation behavior. Compact contract seeds remain with SPE-1752.
+
+Traceability:
+External extraction candidate 36.
+
+Candidate 37 — Dense rules compression maximizing operational readability
+Target issue: SPE-1080 — Presentation, accessibility, and simulation explainability
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 37: Dense operational-presentation framework
+
+Fold this candidate into SPE-1080 as presentation and explainability guidance.
+
+Implementation note:
+Operational tools, incident documents, and simulation explanation surfaces should maximize information density while minimizing lookup friction. Dense presentation is useful only when it preserves readability, hierarchy, actionability, and debugging clarity.
+
+Boundary:
+Keep this inside SPE-1080 as presentation, accessibility, and explainability behavior. Incident-template structure remains with SPE-696.
+
+Traceability:
+External extraction candidate 37.
+
+Candidate 38 — Campaign continuity through inherited holdings and succession
+Target issue: SPE-1051 — Recoverable failure, campaign scars, and after-action collapse model
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 38: Institutional succession architecture
+
+Fold this candidate into SPE-1051 as long-duration continuity guidance.
+
+Implementation note:
+Long-duration simulations should preserve infrastructure, holdings, operational anchors, institutional doctrine, archives, scars, and successor-state continuity across changing personnel generations. Continuity can live in the institution and world state rather than only in a permanent protagonist.
+
+Boundary:
+Keep this inside SPE-1051 as campaign-scar and institutional-continuity behavior.
+
+Traceability:
+External extraction candidate 38.
+
+Candidate 39 — Fully authored campaign structure versus procedural emergence
+Target issue: SPE-1081 — Procedural campaign generation and seeded content rules
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 39: Authored versus emergent campaign model
+
+Fold this candidate into SPE-1081 as procedural-emergence guidance.
+
+Implementation note:
+Meaningful campaign structure should be able to emerge from procedural travel pressure, regional instability, threat countdowns, faction activity, objective conflict, and generated incident seeds. Authored material should provide bounded structure without requiring every campaign path to be prewritten.
+
+Boundary:
+Keep this inside SPE-1081 as procedural campaign-generation behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 39.
+
+Candidate 40 — Clear mission objectives versus interpretive ambiguity
+Target issue: SPE-882 — Persistent symbolic clue capture and translation
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 40: Objective clarity versus interpretive ambiguity
+
+Fold this candidate into SPE-882 as bounded ambiguity guidance.
+
+Implementation note:
+Player engagement does not always require immediate explicit objective clarity. Some anomaly states can begin as ambiguous, symbolic, partial, or contested, provided the system preserves capture quality, confidence, interpretation paths, and eventual routes for action or verification.
+
+Boundary:
+Keep this inside SPE-882 as symbolic clue and interpretation-confidence behavior. Do not create a contradiction-check issue from this candidate.
+
+Traceability:
+External extraction candidate 40.
+
+Candidate 41 — Static safe zones versus traversal-spread pressure
+Target issue: SPE-1077 — Environment hostility tiers and ambient threat pressure
+Action: Add this exact comment.
+
+External pattern extraction reconciliation — Candidate 41: Traversal-spread pressure
+
+Fold this candidate into SPE-1077 as regional pressure spread guidance.
+
+Implementation note:
+Operational movement between incidents should not always remain neutral or low-pressure. Traversal can reveal, spread, or intensify anomaly pressure through contamination, rumor, pursuit, exposure, local panic, infrastructure stress, or route degradation.
+
+Boundary:
+Keep this inside SPE-1077 as ambient environment pressure, containment bleed, and regional hostility behavior. Route-specific encounter cadence remains with SPE-230.
+
+Traceability:
+External extraction candidate 41.
+
+Final report required:
+Return only the actionable update report.
+
+Report format:
+Updated existing issues:
+* Candidate [number] — SPE-[id] — comment added / already covered
+
+Routed to SPE-1705:
+* Candidate [number] — comment added / already covered
+
+New issues created:
+* none
+
+Contradiction checks created:
+* none
+
+Description rewrites:
+* none
+
+Do not include rejected or no-action candidates in the final report.
+Do not include any external source names, URLs, external article/page titles, author names, publisher names, RPG/product names, subreddit names, review-site names, or source-specific proper nouns in the final report.
+</user_query>

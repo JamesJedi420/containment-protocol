@@ -1,0 +1,1150 @@
+﻿{
+  "totalDocs": 158,
+  "withBoundaries": 143,
+  "part1": {
+    "linked": [
+      {
+        "title": "Prophecy-centered settlements",
+        "id": "351a8889-b6f9-4b4b-b235-a4707eb8992e",
+        "primary": "SPE-633",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Latent emergence and mentor gating",
+        "id": "fa7c7a86-e5e4-4604-83eb-598c9080497c",
+        "primary": "SPE-632",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Psychometric residue scans",
+        "id": "85fe0978-055d-4a82-91a6-2fb959461f30",
+        "primary": "SPE-631",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Internal cognition-source abilities",
+        "id": "70d7cc41-468d-4539-8a73-d5a3e4b05640",
+        "primary": "SPE-630",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Drop-in encounter power scaling",
+        "id": "760e008f-6cf3-4895-82f7-4131d07b1383",
+        "primary": "SPE-628",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Venue games and wagering",
+        "id": "5674c067-1919-4d0e-9294-e57b75e351d4",
+        "primary": "SPE-627",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Question-budget investigation",
+        "id": "47a65ad3-95ed-4351-a573-4227563f4836",
+        "primary": "SPE-626",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Case file packets and custom moves",
+        "id": "7a8a9673-ceb8-4bcf-a977-4e5769ee0481",
+        "primary": "SPE-625",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Luck overrides and death fallout",
+        "id": "680007af-5bdf-43cc-a7c2-193c67802b7b",
+        "primary": "SPE-624",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Threat roles and motivations",
+        "id": "8600c7c0-5f60-4201-85b9-0b5fe8e55da0",
+        "primary": "SPE-623",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Fear pressure and madness fallout",
+        "id": "3a12ddaf-72cd-4c86-8a8a-cf8a0223538a",
+        "primary": "SPE-622",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Sacred site lifecycle",
+        "id": "94c64697-f9d7-4049-89e6-1e24d270edda",
+        "primary": "SPE-621",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Ecological circle hierarchy",
+        "id": "83e1d2e7-e106-4c1e-9ed5-8ac53a206b21",
+        "primary": "SPE-620",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Security complexity and noisy bypass",
+        "id": "83c05c93-ae31-4c59-82ac-23c3e3ba8048",
+        "primary": "SPE-619",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Covert sect operations",
+        "id": "30c172ba-ea16-4f28-9c13-d025dc743f83",
+        "primary": "SPE-593",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Clerical fraud and false relics",
+        "id": "90fa1430-351c-422a-9a52-2e2bed632807",
+        "primary": "SPE-592",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Miracle petitions and cure ladders",
+        "id": "fa1e22f6-a9df-4b14-898a-8bbbe59e1820",
+        "primary": "SPE-591",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Weapon training and style layers",
+        "id": "ab4d0e72-8f3c-468f-a6a8-dbf18e5ef614",
+        "primary": "SPE-613",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Workshop crafting infrastructure",
+        "id": "6c4daa0e-9db8-484e-9930-885549a20bb6",
+        "primary": "SPE-612",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Territorial stewardship duty loop",
+        "id": "caf7073d-ce86-423a-b0fe-8057af8d7a51",
+        "primary": "SPE-608",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Companion autonomy and lifecycle",
+        "id": "7191c7dc-5193-4d03-baaa-f13f6bbfa65c",
+        "primary": "SPE-607",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Trail forensics and reacquisition",
+        "id": "cad0c1dd-99ca-4bce-b19a-b193d74c4b1c",
+        "primary": "SPE-606",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Procedural exploration decks",
+        "id": "09643b8e-2caa-4683-aa34-40a3eb1be71e",
+        "primary": "SPE-605",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Negative threat ledger",
+        "id": "2254b0a5-9a90-4765-b592-40b452ec2393",
+        "primary": "SPE-604",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Hidden populations and assimilation",
+        "id": "2da3bc11-90b0-4bb6-b273-10593808c781",
+        "primary": "SPE-598",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Patronage maintenance networks",
+        "id": "6a8b6bc2-817a-4b69-96ba-3d58b6bd2250",
+        "primary": "SPE-597",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Races and arena mercy",
+        "id": "84a18efb-91e1-401a-afc9-5845b60865d0",
+        "primary": "SPE-596",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cross-jurisdiction authority",
+        "id": "7e66d293-f188-4f9f-b648-5dc2fc915269",
+        "primary": "SPE-595",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Ambient spirit pressures",
+        "id": "b5420983-4ac8-4738-b2c6-7fa17d8698ed",
+        "primary": "SPE-594",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Outcome pool sealing",
+        "id": "c3360f52-2d8a-4a78-aa54-edaccfa1d9bf",
+        "primary": "SPE-603",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Jurisdiction admission matrices",
+        "id": "c162b7f5-626a-4014-880d-3c0ab898ec2f",
+        "primary": "SPE-602",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Rank and audience access",
+        "id": "1f57280f-386b-407b-be82-123e48443bf2",
+        "primary": "SPE-601",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Credential transit compliance",
+        "id": "af787815-ad78-4053-949f-fe3ab70687a5",
+        "primary": "SPE-600",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Remote curse anchors",
+        "id": "4559da92-365d-4197-98d2-1755f119c3ba",
+        "primary": "SPE-599",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Covert sect operations",
+        "id": "a3a095b8-a116-44dd-a30c-6109e2e54278",
+        "primary": "SPE-593",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Clerical fraud and false relics",
+        "id": "6e8a6aba-9cc6-4eda-b08d-9b0a2a2b07c8",
+        "primary": "SPE-592",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Miracle petitions and cure ladders",
+        "id": "8032c898-a50d-48fb-987d-0830b5958f3b",
+        "primary": "SPE-591",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Roster-profile encounter filtering",
+        "id": "1b531f27-7f05-4ae5-96c3-c575a8ca3ded",
+        "primary": "SPE-590",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Knowledge freshness and fragmentation",
+        "id": "47f96827-6ed7-46ff-a070-1a100f78714b",
+        "primary": "SPE-589",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Layered martial build schema",
+        "id": "f2df49f0-7dc7-49a7-9456-44fce2db15ee",
+        "primary": "SPE-580",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "War-service campaign loop",
+        "id": "cb43827e-a24d-4029-a08a-384f34d7d991",
+        "primary": "SPE-579",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Social standing and lifestyle",
+        "id": "9b13084e-4108-4baa-8000-93c760af9cee",
+        "primary": "SPE-578",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Nonstandard knowledge channels",
+        "id": "30b53cbd-8150-4b81-8d19-17f6c561e2de",
+        "primary": "SPE-588",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Patron portfolio matrix",
+        "id": "7dcf391c-5104-49b3-afbe-78dee3bccf8f",
+        "primary": "SPE-582",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Specialist domain access",
+        "id": "56afd42d-ca34-46e9-8767-c408f404a787",
+        "primary": "SPE-581",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Layered martial build schema",
+        "id": "9ddba482-cdbb-4be9-99c1-a36f3f37ee6f",
+        "primary": "SPE-580",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "War-service campaign loop",
+        "id": "d1cae0c8-bce2-477a-8f4c-160b10316ed0",
+        "primary": "SPE-579",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Social standing and lifestyle",
+        "id": "d03053e4-9a4f-4fd6-b219-b0529214e0d7",
+        "primary": "SPE-578",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Folklore truth profiles",
+        "id": "02d04578-5fe2-4b9d-885f-469025e0f8cd",
+        "primary": "SPE-577",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Item activation model",
+        "id": "a41ec908-8011-4716-bfe4-b5d44a84364a",
+        "primary": "SPE-576",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Captive-source power devices",
+        "id": "131d1383-844f-451a-99b6-19f1dd58e0fe",
+        "primary": "SPE-575",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchored mind-body separation",
+        "id": "174f925c-ab90-4e3b-91d9-64f47d4ccaa8",
+        "primary": "SPE-574",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchored artifacts and corruption",
+        "id": "a8e56555-ba54-4065-bf26-3f9b4de03e8c",
+        "primary": "SPE-573",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Site-device lifecycles",
+        "id": "6e733296-7f76-4a28-b5a2-b2bedb7c7055",
+        "primary": "SPE-572",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Book-object systems",
+        "id": "f642bcad-da80-4a94-bc47-f31000dc4bf3",
+        "primary": "SPE-571",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Dream-state influence",
+        "id": "9f70ac4a-f5a8-4b89-a061-4a80afa37d0b",
+        "primary": "SPE-570",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Captive-source power devices",
+        "id": "a9f7a2af-448e-48eb-bd19-d2fd559e220e",
+        "primary": "SPE-575",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchored mind-body separation",
+        "id": "570a5262-e632-42a7-922a-49b4ee8be19e",
+        "primary": "SPE-574",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchored artifacts and corruption",
+        "id": "fe401e60-1616-4671-b5e0-5a66aceee7f6",
+        "primary": "SPE-573",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Installed magical device lifecycles",
+        "id": "49ac28ff-9cc3-4a1e-8aa3-5019e214bd64",
+        "primary": "SPE-572",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Deceptive artifact identification",
+        "id": "47808b1c-e862-4402-a693-4554c2a7a3fb",
+        "primary": "SPE-565",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Item boon persistence",
+        "id": "ff7c425e-5d59-48b4-9d96-e03584f12dea",
+        "primary": "SPE-563",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Autonomous catastrophe artifacts",
+        "id": "f2cbdc9c-0c95-4368-808d-7e3e0673c439",
+        "primary": "SPE-562",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Generator-backed one-shots",
+        "id": "602fe024-2017-4772-9929-0d4675d59dc8",
+        "primary": "SPE-561",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Carousing and downtime complications",
+        "id": "f38ec2ec-84cd-42f7-9af5-d582a64e481f",
+        "primary": "SPE-560",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Sentient items and occupied objects",
+        "id": "4816772d-bb66-41bc-9178-e8f0be6a2b9c",
+        "primary": "SPE-559",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Compact region packets",
+        "id": "ad5ebb68-428c-4ed4-9d7b-0cace2c56634",
+        "primary": "SPE-558",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Hostile-species protagonist conversion",
+        "id": "4db0f58e-6aa2-40f0-886b-5921065e5575",
+        "primary": "SPE-557",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Inset campaign roster swaps",
+        "id": "08dbaab1-7ecc-4b02-85bd-65a983a4d094",
+        "primary": "SPE-556",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Heavy engine operation",
+        "id": "5364932e-6993-43cb-b4e6-bff733b384d8",
+        "primary": "SPE-554",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Tournament and prestige events",
+        "id": "d492fc22-208d-4823-91d7-c1788259766c",
+        "primary": "SPE-553",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Civic taxation and permit surfaces",
+        "id": "81389011-e0bf-4d3e-b39e-9deaddd9b6fe",
+        "primary": "SPE-552",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Institutional espionage and counterintelligence",
+        "id": "fc397f61-8c67-403a-8f43-dce7149fff14",
+        "primary": "SPE-551",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cargo-signature retaliation",
+        "id": "abf88310-d236-4daf-880f-5cbdc0c0cdd9",
+        "primary": "SPE-545",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anomalous resource toxicity",
+        "id": "30fef1c8-a7f1-4ce3-94a4-19c4e308f431",
+        "primary": "SPE-544",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Vertical settlement transit",
+        "id": "8f9f232e-cf60-444a-b879-76b871e56d6a",
+        "primary": "SPE-548",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Attack profile families",
+        "id": "2f9f76cd-492f-4462-ad8e-4b06bff7864a",
+        "primary": "SPE-535",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Reshuffle encounter events",
+        "id": "51aa39ed-4322-4585-a907-99d00cda2fcc",
+        "primary": "SPE-534",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Weighted traversal fallback",
+        "id": "41e4e860-5596-4074-8da2-4b218132d12a",
+        "primary": "SPE-533",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cognition reserve storage",
+        "id": "7775678a-5f9f-45b5-90b1-f999fda4674b",
+        "primary": "SPE-532",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Kinetic control and interception",
+        "id": "77fcb0a9-784f-48e1-9f4c-daee4b719dbc",
+        "primary": "SPE-531",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cognitive contact conflict",
+        "id": "b73e2223-5ad8-452c-afab-640ed5ce8bc7",
+        "primary": "SPE-530",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Sensing, masking, and relay surfaces",
+        "id": "2d3ccc12-66af-4faf-a4ea-c7c371d15868",
+        "primary": "SPE-529",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cognitive intervention procedures",
+        "id": "47fffa21-7c0a-4c4e-8f34-4b8255f31918",
+        "primary": "SPE-527",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cognition topology states",
+        "id": "5913fa11-328f-4c0f-a438-07d35b525c7a",
+        "primary": "SPE-526",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Institutional cover infiltration",
+        "id": "d1bc2bf5-219c-49bc-9c2b-dedd5ab5f8b4",
+        "primary": "SPE-521",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "False-positive prophecy targeting",
+        "id": "f8d187e9-c56d-4814-a75b-42063c3ac65d",
+        "primary": "SPE-520",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Architectural actors and motive access",
+        "id": "d1cc333c-2d53-4fe3-8fef-e6e840c5eb45",
+        "primary": "SPE-519",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Room phase traps and flood seals",
+        "id": "4c454675-3332-42ff-b82b-5567ce5aaa9c",
+        "primary": "SPE-518",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Guardian profile adjudication",
+        "id": "7c409a8e-e4ed-42c0-b012-48ac7c3b8d21",
+        "primary": "SPE-517",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchored projection and scry interfaces",
+        "id": "86b06446-887a-44bb-a875-77ef69263760",
+        "primary": "SPE-251",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Anchor-linked recursive defenders",
+        "id": "50ea3004-14ca-4cd7-be47-341d3ae22a9f",
+        "primary": "SPE-515",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Elite morphology generation",
+        "id": "74f56793-a57a-47c3-ba47-9bf260f6005b",
+        "primary": "SPE-513",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Healing conversion anomalies",
+        "id": "edc2f683-9b4d-42fe-8f90-e7299ac274cb",
+        "primary": "SPE-512",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Encounter chain scaffolds",
+        "id": "ed4a42aa-59a6-453a-ba11-2a2c00d2693c",
+        "primary": "SPE-511",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Mundane magical interfaces",
+        "id": "c83988e0-a969-44d5-af56-e9c27330f519",
+        "primary": "SPE-510",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Vulnerable-actor transport",
+        "id": "3aadc924-2cb2-4d65-981f-9d9bdc4d0910",
+        "primary": "SPE-509",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Control-object swarm resolution",
+        "id": "c0fe804e-89b0-40b9-80bc-54ed4479c88e",
+        "primary": "SPE-507",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Concealed-terrain predator ambush",
+        "id": "4e7c47b7-54d8-49f9-b4f4-44887338922c",
+        "primary": "SPE-505",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Total-control wearables",
+        "id": "5c614fb9-0efb-4d82-88c3-a45dea8cc200",
+        "primary": "SPE-503",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Returning currency and coded tender",
+        "id": "98c60c7a-420d-48d5-aadd-8d10a847134d",
+        "primary": "SPE-502",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Biome authority and permission relics",
+        "id": "e653c48d-944a-42b9-b683-18c53c4967f4",
+        "primary": "SPE-499",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Compulsory aid networks",
+        "id": "848344d3-2a09-42f4-9fb9-ef29fef9f0bb",
+        "primary": "SPE-498",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Weapon-family bias fields",
+        "id": "820f2f59-4c0c-4d51-a3a7-8c472d48ba4b",
+        "primary": "SPE-497",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Occupancy-gated defensive platforms",
+        "id": "fb9ff37a-6beb-460e-8a17-b4309af2978e",
+        "primary": "SPE-495",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Campaign construction toolkit",
+        "id": "ac45f2ba-9834-43b0-97d8-58aa604e43b4",
+        "primary": "SPE-494",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "World-law compatibility and contradictions",
+        "id": "323178a9-65df-4098-97f8-d486fc8d76cb",
+        "primary": "SPE-151",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Pilgrimage-linked remote upkeep",
+        "id": "c4ff96ee-c16f-4fbc-81f7-1a2dad5dda3d",
+        "primary": "SPE-489",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cursed broadcast equipment",
+        "id": "c81138a4-8c27-4011-8cc7-b9e98c22b23c",
+        "primary": "SPE-488",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Growth-field environmental rewrite",
+        "id": "7eea3d40-5c9f-4a22-be8d-3b6b1986596a",
+        "primary": "SPE-486",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Localized reality exceptions",
+        "id": "fb2c3569-dd19-4f1e-85f3-c84bc9a999f3",
+        "primary": "SPE-483",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cognitive sanctuary and clue objects",
+        "id": "c7c14cda-c0c0-4dd1-ad91-d3f7483507f1",
+        "primary": "SPE-482",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Environment-bound reconstitution",
+        "id": "a502c189-2750-4fe9-b713-368fa29d49cb",
+        "primary": "SPE-469",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "False objects and barter witnesses",
+        "id": "0e855b4a-dc85-4485-9d57-7d771b2634ed",
+        "primary": "SPE-468",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Protected archives and self-erasure",
+        "id": "6ac7445f-0dcf-4592-9fd2-235e97745ece",
+        "primary": "SPE-467",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Experimental consumable conversion",
+        "id": "e86d2b78-cb8a-40df-b3fa-4c27048a9418",
+        "primary": "SPE-466",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Settlement defense and crisis command",
+        "id": "2e619e25-f852-4e67-95da-7a54ff854aa4",
+        "primary": "SPE-455",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Shadow followers and betrayal states",
+        "id": "e8112ca3-f36c-4260-9c7e-adac1d65cd86",
+        "primary": "SPE-454",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Defensive ring geometry",
+        "id": "260202c0-8d15-43de-a3e4-4812174880ae",
+        "primary": "SPE-448",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Emergent and project magic",
+        "id": "75ce5093-cea2-434f-9fc3-2a742e38bfbc",
+        "primary": "SPE-444",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Consumable sequencing rules",
+        "id": "81f1b141-a290-4483-af43-c384b8384fc5",
+        "primary": "SPE-442",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Appendage escalation combat states",
+        "id": "2bf413d2-8186-43f6-b0d0-9cf3eb6a7910",
+        "primary": "SPE-441",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Interactive loot and ritual furnishings",
+        "id": "9aab76f5-6ffe-481a-8f90-0e6a3b1b85d5",
+        "primary": "SPE-438",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Detention and interrogation procedures",
+        "id": "2a467e06-0032-4dcf-a688-189926f6553c",
+        "primary": "SPE-474",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Long-horizon influence and background progression",
+        "id": "9fd74685-a338-4100-8305-ca5b2c5234c6",
+        "primary": "SPE-463",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Generation and extraction economy variants",
+        "id": "a238110c-2693-45aa-b3eb-380a245353aa",
+        "primary": "SPE-419",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Sanctuary, interdiction, and sample tracking",
+        "id": "3dc9c650-2a38-4945-ae5d-69b96a23eb6e",
+        "primary": "SPE-459",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Cross-layer observation and climax interventions",
+        "id": "320c9506-cf76-458f-b0fe-2ef980d09ef8",
+        "primary": "SPE-428",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Artifact and field-state behavior extensions",
+        "id": "4356c48b-f081-42c1-8aaf-7c54c798628a",
+        "primary": "SPE-421",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Mass-combat command and siege extensions",
+        "id": "1c19c922-6124-4135-8196-43769a0d6bbb",
+        "primary": "SPE-386",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Psychological scenario generation",
+        "id": "c2dd464d-0f4a-4852-b124-95197ebcc7d8",
+        "primary": "SPE-433",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Summoned zone and battlefield control effects",
+        "id": "bac7212e-89d4-4427-9c6c-cbb3f3a0ee18",
+        "primary": "SPE-391",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Objective degradation and capture doctrine",
+        "id": "948006ba-1514-4d3a-9b29-6237aa660c7b",
+        "primary": "SPE-424",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Artifact mode and charge states",
+        "id": "a7ed4b55-0cb0-4796-a4a4-aee4973cbf5f",
+        "primary": "SPE-421",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Extraction systems and workforce site states",
+        "id": "189ebc76-9954-49d8-ae4a-51111b159777",
+        "primary": "SPE-419",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "NPC pressure and roaming behavior",
+        "id": "000336ee-d6eb-4473-b41c-4acfedab2fd9",
+        "primary": "SPE-411",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Transformation and shadow-state systems",
+        "id": "20de1ec1-72a9-4d6b-be01-e95a343132e7",
+        "primary": "SPE-407",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Access state grammar",
+        "id": "759291a8-57b8-4784-afbe-fa3d856e1a7b",
+        "primary": "SPE-406",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Travel scenes and roadside negotiation",
+        "id": "185eb041-fe80-44a0-8de1-35c82a37506c",
+        "primary": "SPE-401",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Stage-conditioned site generation",
+        "id": "8d45c8aa-fe8f-4f77-8961-c8578665ca80",
+        "primary": "SPE-400",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Field effects and nonstandard combat states",
+        "id": "8b23b90b-d00d-4861-ab70-ae94ca9f7bf1",
+        "primary": "SPE-391",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Mass encounter unit abstraction",
+        "id": "a9db958e-8f65-44a1-b073-63e20309dcbd",
+        "primary": "SPE-385",
+        "action": "attach_to_issue"
+      },
+      {
+        "title": "Card schema and puzzle-support records",
+        "id": "384ef55d-c451-4e0d-9768-ede0f3ba73f0",
+        "primary": "SPE-382",
+        "action": "attach_to_issue"
+      }
+    ],
+    "projectLevel": [
+      {
+        "title": "First-run week loop",
+        "id": "70287ecb-7866-4d61-8e44-d7c6320f57c7"
+      },
+      {
+        "title": "Milestone scope and label policy",
+        "id": "25aa042c-e571-4756-bdeb-74271648681f"
+      }
+    ],
+    "canonicalRouting": [
+      {
+        "title": "Covert sect operations",
+        "id": "30c172ba-ea16-4f28-9c13-d025dc743f83",
+        "duplicateIds": ["a3a095b8-a116-44dd-a30c-6109e2e54278"]
+      },
+      {
+        "title": "Clerical fraud and false relics",
+        "id": "90fa1430-351c-422a-9a52-2e2bed632807",
+        "duplicateIds": ["6e8a6aba-9cc6-4eda-b08d-9b0a2a2b07c8"]
+      },
+      {
+        "title": "Miracle petitions and cure ladders",
+        "id": "fa1e22f6-a9df-4b14-898a-8bbbe59e1820",
+        "duplicateIds": ["8032c898-a50d-48fb-987d-0830b5958f3b"]
+      },
+      {
+        "title": "Covert sect operations",
+        "id": "a3a095b8-a116-44dd-a30c-6109e2e54278",
+        "duplicateIds": ["30c172ba-ea16-4f28-9c13-d025dc743f83"]
+      },
+      {
+        "title": "Clerical fraud and false relics",
+        "id": "6e8a6aba-9cc6-4eda-b08d-9b0a2a2b07c8",
+        "duplicateIds": ["90fa1430-351c-422a-9a52-2e2bed632807"]
+      },
+      {
+        "title": "Miracle petitions and cure ladders",
+        "id": "8032c898-a50d-48fb-987d-0830b5958f3b",
+        "duplicateIds": ["fa1e22f6-a9df-4b14-898a-8bbbe59e1820"]
+      },
+      {
+        "title": "Layered martial build schema",
+        "id": "f2df49f0-7dc7-49a7-9456-44fce2db15ee",
+        "duplicateIds": ["9ddba482-cdbb-4be9-99c1-a36f3f37ee6f"]
+      },
+      {
+        "title": "War-service campaign loop",
+        "id": "cb43827e-a24d-4029-a08a-384f34d7d991",
+        "duplicateIds": ["d1cae0c8-bce2-477a-8f4c-160b10316ed0"]
+      },
+      {
+        "title": "Social standing and lifestyle",
+        "id": "9b13084e-4108-4baa-8000-93c760af9cee",
+        "duplicateIds": ["d03053e4-9a4f-4fd6-b219-b0529214e0d7"]
+      },
+      {
+        "title": "Layered martial build schema",
+        "id": "9ddba482-cdbb-4be9-99c1-a36f3f37ee6f",
+        "duplicateIds": ["f2df49f0-7dc7-49a7-9456-44fce2db15ee"]
+      },
+      {
+        "title": "War-service campaign loop",
+        "id": "d1cae0c8-bce2-477a-8f4c-160b10316ed0",
+        "duplicateIds": ["cb43827e-a24d-4029-a08a-384f34d7d991"]
+      },
+      {
+        "title": "Social standing and lifestyle",
+        "id": "d03053e4-9a4f-4fd6-b219-b0529214e0d7",
+        "duplicateIds": ["9b13084e-4108-4baa-8000-93c760af9cee"]
+      },
+      {
+        "title": "Captive-source power devices",
+        "id": "131d1383-844f-451a-99b6-19f1dd58e0fe",
+        "duplicateIds": ["a9f7a2af-448e-48eb-bd19-d2fd559e220e"]
+      },
+      {
+        "title": "Anchored mind-body separation",
+        "id": "174f925c-ab90-4e3b-91d9-64f47d4ccaa8",
+        "duplicateIds": ["570a5262-e632-42a7-922a-49b4ee8be19e"]
+      },
+      {
+        "title": "Anchored artifacts and corruption",
+        "id": "a8e56555-ba54-4065-bf26-3f9b4de03e8c",
+        "duplicateIds": ["fe401e60-1616-4671-b5e0-5a66aceee7f6"]
+      },
+      {
+        "title": "Captive-source power devices",
+        "id": "a9f7a2af-448e-48eb-bd19-d2fd559e220e",
+        "duplicateIds": ["131d1383-844f-451a-99b6-19f1dd58e0fe"]
+      },
+      {
+        "title": "Anchored mind-body separation",
+        "id": "570a5262-e632-42a7-922a-49b4ee8be19e",
+        "duplicateIds": ["174f925c-ab90-4e3b-91d9-64f47d4ccaa8"]
+      },
+      {
+        "title": "Anchored artifacts and corruption",
+        "id": "fe401e60-1616-4671-b5e0-5a66aceee7f6",
+        "duplicateIds": ["a8e56555-ba54-4065-bf26-3f9b4de03e8c"]
+      },
+      {
+        "title": "NPC pressure and roaming behavior",
+        "id": "000336ee-d6eb-4473-b41c-4acfedab2fd9",
+        "duplicateIds": ["0da64294-46e8-4f36-91f7-d1e15f835a37"]
+      }
+    ],
+    "badRefs": [],
+    "ownerDecisions": [
+      {
+        "title": "Patron portfolio matrix",
+        "id": "7dcf391c-5104-49b3-afbe-78dee3bccf8f",
+        "issues": ["SPE-582", "SPE-583"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Campaign construction toolkit",
+        "id": "ac45f2ba-9834-43b0-97d8-58aa604e43b4",
+        "issues": ["SPE-494", "SPE-555"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "World-law compatibility and contradictions",
+        "id": "323178a9-65df-4098-97f8-d486fc8d76cb",
+        "issues": ["SPE-151", "SPE-492"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Localized reality exceptions",
+        "id": "fb2c3569-dd19-4f1e-85f3-c84bc9a999f3",
+        "issues": ["SPE-483", "SPE-485"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Interactive loot and ritual furnishings",
+        "id": "9aab76f5-6ffe-481a-8f90-0e6a3b1b85d5",
+        "issues": ["SPE-438", "SPE-439"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Detention and interrogation procedures",
+        "id": "2a467e06-0032-4dcf-a688-189926f6553c",
+        "issues": ["SPE-474", "SPE-475"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Long-horizon influence and background progression",
+        "id": "9fd74685-a338-4100-8305-ca5b2c5234c6",
+        "issues": ["SPE-463", "SPE-464", "SPE-465"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Generation and extraction economy variants",
+        "id": "a238110c-2693-45aa-b3eb-380a245353aa",
+        "issues": ["SPE-419", "SPE-420", "SPE-316"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Sanctuary, interdiction, and sample tracking",
+        "id": "3dc9c650-2a38-4945-ae5d-69b96a23eb6e",
+        "issues": ["SPE-459", "SPE-460", "SPE-461"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Cross-layer observation and climax interventions",
+        "id": "320c9506-cf76-458f-b0fe-2ef980d09ef8",
+        "issues": ["SPE-428", "SPE-429"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Artifact and field-state behavior extensions",
+        "id": "4356c48b-f081-42c1-8aaf-7c54c798628a",
+        "issues": ["SPE-421", "SPE-422", "SPE-423"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Mass-combat command and siege extensions",
+        "id": "1c19c922-6124-4135-8196-43769a0d6bbb",
+        "issues": ["SPE-386", "SPE-387"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Psychological scenario generation",
+        "id": "c2dd464d-0f4a-4852-b124-95197ebcc7d8",
+        "issues": ["SPE-433", "SPE-446"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Summoned zone and battlefield control effects",
+        "id": "bac7212e-89d4-4427-9c6c-cbb3f3a0ee18",
+        "issues": ["SPE-391", "SPE-392"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Objective degradation and capture doctrine",
+        "id": "948006ba-1514-4d3a-9b29-6237aa660c7b",
+        "issues": ["SPE-424", "SPE-425"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Artifact mode and charge states",
+        "id": "a7ed4b55-0cb0-4796-a4a4-aee4973cbf5f",
+        "issues": ["SPE-421", "SPE-422", "SPE-423"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Extraction systems and workforce site states",
+        "id": "189ebc76-9954-49d8-ae4a-51111b159777",
+        "issues": ["SPE-419", "SPE-420"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "NPC pressure and roaming behavior",
+        "id": "000336ee-d6eb-4473-b41c-4acfedab2fd9",
+        "issues": ["SPE-411", "SPE-414"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Access state grammar",
+        "id": "759291a8-57b8-4784-afbe-fa3d856e1a7b",
+        "issues": ["SPE-406", "SPE-418"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Travel scenes and roadside negotiation",
+        "id": "185eb041-fe80-44a0-8de1-35c82a37506c",
+        "issues": ["SPE-401", "SPE-402"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Stage-conditioned site generation",
+        "id": "8d45c8aa-fe8f-4f77-8961-c8578665ca80",
+        "issues": ["SPE-400", "SPE-396"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Mass encounter unit abstraction",
+        "id": "a9db958e-8f65-44a1-b073-63e20309dcbd",
+        "issues": ["SPE-385", "SPE-386"],
+        "reason": "multiple boundary issues"
+      },
+      {
+        "title": "Card schema and puzzle-support records",
+        "id": "384ef55d-c451-4e0d-9768-ede0f3ba73f0",
+        "issues": ["SPE-382", "SPE-383", "SPE-384", "SPE-404"],
+        "reason": "multiple boundary issues"
+      }
+    ]
+  },
+  "part2Summary": {
+    "iconNull": 158,
+    "colorNull": 158,
+    "groups": {
+      "World Rules": 19,
+      "Equipment": 4,
+      "Investigation": 11,
+      "Social": 11,
+      "Combat": 31,
+      "Ambiguous": 52,
+      "Sites": 18,
+      "Artifacts": 10,
+      "Planning": 2
+    },
+    "ambiguousCount": 52,
+    "duplicateTitleGroups": 19
+  },
+  "part3": {
+    "total": 132,
+    "byClass": {
+      "traceability-only": 4,
+      "extraction-rubric": 23,
+      "source-adaptation": 40,
+      "safety-tone": 61,
+      "impl-context": 2,
+      "glossary": 2
+    },
+    "samples": {
+      "traceability-only": "**Relation semantics audit (2026-05-23)**\n\nThis doc-routing ledger has **~60 `relatedTo` links**, mostly contradiction-check and implementation owners added during harvest reconciliation.\n\n| Category ",
+      "extraction-rubric": "External design-lexicon reconciliation ΓÇö Candidate 57: Mechanistic loop dominance\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDo not make every incident resolve t",
+      "source-adaptation": "Source routing note from SPE-1966:\nWhen source material marks an incident, anomaly, evidence record, contained person, location, or relationship hazard as archived, inactive, low-priority, neutralized",
+      "safety-tone": "Harvest fold-in ΓÇö batch `domains-of-dread-ravenloft-metadata-32` ΓÇö **C30ΓÇôC31:** Route representation and TTRPG copyright guardrails to design-doc ledger entries (coordinate SPE-151 policy comments).\n\n",
+      "impl-context": "Reconciliation update\n\nFold batch-9993 humane integration versus firm-hand pressure, authentic grievance versus external exploitation, autonomy-versus-imprisonment labeling, and historical-prejudice a",
+      "glossary": "**Reconciliation pass (May 16, 2026) ΓÇö batch-9985 meta batch**\n\nDisposition: design-doc / planning routing only (not new implementation issues).\n\nSource: SPE-1864 (batch-9985 reconciliation: event-del"
+    }
+  }
+}

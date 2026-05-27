@@ -1,0 +1,3501 @@
+[
+  {
+    "id": "SPE-823",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-823-capability-gap-and-investment-loop",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:26.649Z"
+  },
+  {
+    "id": "SPE-1071",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1071-calendar-seasonal-cycle-and-time-gated-events",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:26.262Z"
+  },
+  {
+    "id": "SPE-807",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-807-cross-zone-contamination-propagation-profiles",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:26.105Z"
+  },
+  {
+    "id": "SPE-821",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-821-capability-target-template-renderer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:25.886Z"
+  },
+  {
+    "id": "SPE-824",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-824-community-lifeline-dependency-graph",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:25.697Z"
+  },
+  {
+    "id": "SPE-813",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-813-multi-thread-convergence-case-graph",
+    "labels": ["simulation", "system", "core-loop", "system:casework"],
+    "updatedAt": "2026-05-23T22:45:13.429Z"
+  },
+  {
+    "id": "SPE-825",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-825-cross-sector-partner-ecosystem-and-weighted-involvement",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:13.414Z"
+  },
+  {
+    "id": "SPE-1459",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1459-crowd-state-and-evacuation-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:11.902Z"
+  },
+  {
+    "id": "SPE-1085",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1085-canon-rules-continuity-and-universe-consistency",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:10.760Z"
+  },
+  {
+    "id": "SPE-826",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-826-public-warning-and-inclusive-evacuation-operations",
+    "labels": ["simulation", "system", "core-loop", "system:response"],
+    "updatedAt": "2026-05-23T22:45:10.691Z"
+  },
+  {
+    "id": "SPE-2110",
+    "status": "In Progress",
+    "branch": "jamesdyedbq/spe-2110-pattern-source-series-intake-registry-slice-1",
+    "labels": ["documentation", "system"],
+    "updatedAt": "2026-05-23T22:45:10.602Z"
+  },
+  {
+    "id": "SPE-811",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-811-social-manipulator-antagonist-behavior",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:10.407Z"
+  },
+  {
+    "id": "SPE-769",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-769-dynamic-anomalous-city-topology-mutation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:45:10.183Z"
+  },
+  {
+    "id": "SPE-1299",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1299-squad-kit-assignment-and-validation-seam",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:44:56.013Z"
+  },
+  {
+    "id": "SPE-2240",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2240-infiltration-cover-profile-and-weekly-posture-slice-3",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:55.578Z"
+  },
+  {
+    "id": "SPE-2241",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2241-infiltration-cover-profile-template-catalog-concealment",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:55.450Z"
+  },
+  {
+    "id": "SPE-2242",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2242-cover-role-in-behavior-weighted-disguise-validation-slice-4",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:55.349Z"
+  },
+  {
+    "id": "SPE-1301",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1301-squad-configuration-summary-read-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:44:55.204Z"
+  },
+  {
+    "id": "SPE-2243",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2243-infiltration-stage-mission-resolution-fallout-slice-5",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:55.128Z"
+  },
+  {
+    "id": "SPE-2155",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2155-case-template-content-pack-concealmenttriggers-migration",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:44:50.902Z"
+  },
+  {
+    "id": "SPE-2228",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2228-concealmenttriggers-migration-batch-3-base-starter-chain",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:50.699Z"
+  },
+  {
+    "id": "SPE-2202",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2202-concealmenttriggers-migration-batch-2-occult-psionic",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:50.460Z"
+  },
+  {
+    "id": "SPE-2237",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2237-infiltration-probe-plan-and-weekly-action-selection-slice-2",
+    "labels": [],
+    "updatedAt": "2026-05-23T22:44:49.822Z"
+  },
+  {
+    "id": "SPE-2254",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2254-tiered-reveal-payloads-slice-5-report-copy",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:44:49.580Z"
+  },
+  {
+    "id": "SPE-2253",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2253-tiered-reveal-payloads-slice-4-weekly-orchestration-wiring",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:44:49.464Z"
+  },
+  {
+    "id": "SPE-547",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-547-haunt-resolution-through-anchors-remains-and-rites",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:52.866Z"
+  },
+  {
+    "id": "SPE-901",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-901-caseboard-and-field-journal-evidence-workflow",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:50.298Z"
+  },
+  {
+    "id": "SPE-1123",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1123-fallible-option-space-projection",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:44.720Z"
+  },
+  {
+    "id": "SPE-589",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-589-knowledge-freshness-decay-and-fragmentation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:35.000Z"
+  },
+  {
+    "id": "SPE-1443",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1443-layered-staff-package-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:31.528Z"
+  },
+  {
+    "id": "SPE-1244",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1244-cartographic-design-and-operational-map-representation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:43:27.965Z"
+  },
+  {
+    "id": "SPE-1062",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1062-vermin-infestation-and-warning-ecology-system",
+    "labels": ["simulation", "system", "core-loop", "system:phenomena"],
+    "updatedAt": "2026-05-23T22:43:20.122Z"
+  },
+  {
+    "id": "SPE-607",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-607-companion-autonomy-training-and-lifecycle",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:43:13.926Z"
+  },
+  {
+    "id": "SPE-986",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-986-docs-glossary-update-add-missing-entries-for-implemented",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-23T22:43:01.059Z"
+  },
+  {
+    "id": "SPE-1650",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1650-five-node-investigation-contract-template",
+    "labels": ["simulation", "system", "core-loop", "system:investigation"],
+    "updatedAt": "2026-05-23T22:42:48.012Z"
+  },
+  {
+    "id": "SPE-1252",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1252-capital-stock-investment-flow-and-depreciation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:42:45.959Z"
+  },
+  {
+    "id": "SPE-1432",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1432-personalized-deployment-incentives",
+    "labels": ["simulation", "system", "core-loop", "system:recruitment"],
+    "updatedAt": "2026-05-23T22:42:44.316Z"
+  },
+  {
+    "id": "SPE-1671",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1671-evidence-to-action-unlocks",
+    "labels": ["simulation", "system", "core-loop", "system:investigation", "system:evidence"],
+    "updatedAt": "2026-05-23T22:42:44.125Z"
+  },
+  {
+    "id": "SPE-1347",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1347-cover-story-lifecycle-state-machine",
+    "labels": ["simulation", "system", "core-loop", "stability"],
+    "updatedAt": "2026-05-23T22:42:34.691Z"
+  },
+  {
+    "id": "SPE-1910",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1910-hazard-model-confidence-and-source-provenance-tracking",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:information",
+      "system:evidence",
+      "system:archives"
+    ],
+    "updatedAt": "2026-05-23T22:38:23.321Z"
+  },
+  {
+    "id": "SPE-2077",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2077-distributed-perception-and-hazard-identification",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies", "system:containment"],
+    "updatedAt": "2026-05-23T22:38:10.272Z"
+  },
+  {
+    "id": "SPE-521",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-521-uniform-based-infiltration-with-escalation-threshold",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:38:07.478Z"
+  },
+  {
+    "id": "SPE-14",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-14-training-certification",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:37:47.810Z"
+  },
+  {
+    "id": "SPE-17",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-17-execution-instability-on-readiness-time-scaffold",
+    "labels": ["simulation", "core-loop", "system", "system:scheduling"],
+    "updatedAt": "2026-05-23T22:37:47.073Z"
+  },
+  {
+    "id": "SPE-13",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-13-role-specific-gear-loadouts",
+    "labels": ["simulation", "core-loop", "system", "system:equipment"],
+    "updatedAt": "2026-05-23T22:37:46.977Z"
+  },
+  {
+    "id": "SPE-19",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-19-recovery-trauma-downtime",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:37:34.911Z"
+  },
+  {
+    "id": "SPE-22",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-22-knowledge-intel-partial-information-layer",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:37:34.670Z"
+  },
+  {
+    "id": "SPE-18",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-18-weakest-link-mission-resolution",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:37:34.595Z"
+  },
+  {
+    "id": "SPE-20",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-20-escalation-threat-drift-time-pressure",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:37:34.461Z"
+  },
+  {
+    "id": "SPE-15",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-15-team-composition-cohesion",
+    "labels": ["simulation", "core-loop", "system", "system:teams"],
+    "updatedAt": "2026-05-23T22:37:34.350Z"
+  },
+  {
+    "id": "SPE-12",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-12-recruitment-intake-candidate-funnel",
+    "labels": ["simulation", "core-loop", "system", "system:recruitment"],
+    "updatedAt": "2026-05-23T22:37:31.796Z"
+  },
+  {
+    "id": "SPE-2259",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2259-mission-triage-list-scan-polish-slice-6-ux",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:37:31.626Z"
+  },
+  {
+    "id": "SPE-677",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-677-separate-truth-witness-and-crowd-belief-tracks",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:36:36.952Z"
+  },
+  {
+    "id": "SPE-16",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-16-mission-intake-triage-routing",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:36:36.945Z"
+  },
+  {
+    "id": "SPE-50",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-50-legitimacy-gated-access-and-sanctioned-action-routing",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:36:30.846Z"
+  },
+  {
+    "id": "SPE-99",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-99-recovery-node-validity-with-fatigue-degradation",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:50.078Z"
+  },
+  {
+    "id": "SPE-1317",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1317-uncertain-world-state-checks",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:49.935Z"
+  },
+  {
+    "id": "SPE-31",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-31-operations-hub-opportunity-surface",
+    "labels": ["simulation", "core-loop", "system", "system:planning"],
+    "updatedAt": "2026-05-23T22:35:49.730Z"
+  },
+  {
+    "id": "SPE-106",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-106-aggregate-battle-units-routed-morale-states",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:49.595Z"
+  },
+  {
+    "id": "SPE-1464",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1464-branch-continuity-validator",
+    "labels": ["simulation", "system", "core-loop", "system:information"],
+    "updatedAt": "2026-05-23T22:35:49.424Z"
+  },
+  {
+    "id": "SPE-1289",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1289-incident-command-package-readiness-panel",
+    "labels": ["core-loop", "simulation", "ui", "system"],
+    "updatedAt": "2026-05-23T22:35:49.278Z"
+  },
+  {
+    "id": "SPE-30",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-30-player-facing-operations-ui-report-layer",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:33.533Z"
+  },
+  {
+    "id": "SPE-1651",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1651-entity-drive-to-clue-generation",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:investigation",
+      "system:evidence",
+      "system:information"
+    ],
+    "updatedAt": "2026-05-23T22:35:21.289Z"
+  },
+  {
+    "id": "SPE-44",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-44-advance-week-orchestration-isolation-pass",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:20.047Z"
+  },
+  {
+    "id": "SPE-685",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-685-harvested-mind-loadouts-and-institutional-victim-cultivation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:19.786Z"
+  },
+  {
+    "id": "SPE-57",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-57-spatial-layers-and-exposure-windows",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:19.698Z"
+  },
+  {
+    "id": "SPE-395",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-395-site-purpose-packets-before-geometry",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:19.551Z"
+  },
+  {
+    "id": "SPE-61",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-61-site-occupancy-roaming-pressure-repopulation-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:19.397Z"
+  },
+  {
+    "id": "SPE-42",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-42-operative-niche-protection-and-role-identity",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:19.208Z"
+  },
+  {
+    "id": "SPE-45",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-45-game-store-business-logic-containment-pass",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:19.061Z"
+  },
+  {
+    "id": "SPE-450",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-450-map-metadata-first-site-authoring",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:18.955Z"
+  },
+  {
+    "id": "SPE-687",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-687-filter-site-tags-from-pressure-rankings",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:18.880Z"
+  },
+  {
+    "id": "SPE-110",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-110-construction-progress-and-interference-state",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:18.788Z"
+  },
+  {
+    "id": "SPE-984",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-984-docs-spawn-rules-audit-child-spawn-contract-id-derivation",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-23T22:35:18.578Z"
+  },
+  {
+    "id": "SPE-398",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-398-nonlethal-traps-and-progression-gates",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:18.482Z"
+  },
+  {
+    "id": "SPE-1713",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1713-background-derived-access-channels",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:17.666Z"
+  },
+  {
+    "id": "SPE-788",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-788-authority-relationship-graph-and-politics-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:09.805Z"
+  },
+  {
+    "id": "SPE-285",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-285-behavior-weighted-disguise-validation",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:35:07.176Z"
+  },
+  {
+    "id": "SPE-2105",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2105-extranormal-event-registry-brief-incident-intake-cover-up",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-2104",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2104-minor-anomaly-item-registry-low-priority-intake-disposition",
+    "labels": ["system:anomalies", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-2102",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2102-containment-disposition-registry-partial-tolerated",
+    "labels": ["system:containment", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-2100",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2100-catastrophic-scenario-class-registry-noncanonical-labels",
+    "labels": ["system:schema", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-2101",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2101-institutional-automation-registry-roles-authority-tiers",
+    "labels": ["system:dispatch", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-2103",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2103-anomalous-byproduct-lifecycle-registry-residue-abatement",
+    "labels": ["system:infrastructure", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:35:02.058Z"
+  },
+  {
+    "id": "SPE-1320",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1320-department-operational-entity-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:35:00.895Z"
+  },
+  {
+    "id": "SPE-1022",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1022-base-defense-doctrine-and-threat-class-coverage-matrix",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:34:45.739Z"
+  },
+  {
+    "id": "SPE-2076",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2076-alternate-self-and-multiverse-entity-registry-with-timeline",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:34:42.646Z"
+  },
+  {
+    "id": "SPE-1346",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1346-secrecy-maintenance-operations-engine",
+    "labels": ["simulation", "system", "core-loop", "stability"],
+    "updatedAt": "2026-05-23T22:34:28.998Z"
+  },
+  {
+    "id": "SPE-1471",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1471-null-zone-absence-hazards",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:34:24.158Z"
+  },
+  {
+    "id": "SPE-21",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-21-base-upgrade-facility-progression",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:31:23.983Z"
+  },
+  {
+    "id": "SPE-70",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-70-hidden-state-displacement-counter-detection-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:31:23.868Z"
+  },
+  {
+    "id": "SPE-781",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-781-tiered-detection-and-reveal-payloads",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:31:23.597Z"
+  },
+  {
+    "id": "SPE-1807",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1807-anomalous-software-mutation-and-emergent-function-registry",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop"],
+    "updatedAt": "2026-05-23T22:30:23.178Z"
+  },
+  {
+    "id": "SPE-2186",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2186-defensive-control-staff-action-model-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:30:20.487Z"
+  },
+  {
+    "id": "SPE-371",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-371-travel-contact-generation-for-site-approach-routes",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:30:12.534Z"
+  },
+  {
+    "id": "SPE-126",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-126-identity-overwrite-traps-and-possession-escalation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:30:09.696Z"
+  },
+  {
+    "id": "SPE-1097",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1097-authority-legitimacy-and-obedience",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:29:45.016Z"
+  },
+  {
+    "id": "SPE-868",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-868-post-incident-review-and-response-metrics",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:29:34.627Z"
+  },
+  {
+    "id": "SPE-939",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-939-cyclical-transmissible-transformation-and-host-succession",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:29:16.879Z"
+  },
+  {
+    "id": "SPE-881",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-881-multi-anchor-anomaly-arc-state",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:29:15.898Z"
+  },
+  {
+    "id": "SPE-791",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-791-ascendant-resident-containment-facility",
+    "labels": ["simulation", "system", "core-loop", "system:containment"],
+    "updatedAt": "2026-05-23T22:29:09.403Z"
+  },
+  {
+    "id": "SPE-683",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-683-out-of-time-read-only-archive-domains",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:29:03.983Z"
+  },
+  {
+    "id": "SPE-2249",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2249-concealmenttriggers-migration-batch-4-remaining-templates",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:20.094Z"
+  },
+  {
+    "id": "SPE-2248",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2248-operations-ui-route-drill-down-event-feed-casereport-cross",
+    "labels": ["core-loop", "system"],
+    "updatedAt": "2026-05-23T22:22:19.327Z"
+  },
+  {
+    "id": "SPE-2112",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2112-infiltration-probe-and-awareness-tracks-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:18.904Z"
+  },
+  {
+    "id": "SPE-2250",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2250-infiltration-encountercontent-follow-through-post-spe-521",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:18.699Z"
+  },
+  {
+    "id": "SPE-2251",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2251-mvp-weekly-loop-proof-slice-1-integration-harness",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:17.391Z"
+  },
+  {
+    "id": "SPE-2113",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2113-authored-concealment-activation-triggers-slice-2",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:14.146Z"
+  },
+  {
+    "id": "SPE-2107",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2107-runtime-concealment-activation-resolver-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:22:10.194Z"
+  },
+  {
+    "id": "SPE-1273",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1273-deterministic-equipment-jam-and-repair-flow",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:26.330Z"
+  },
+  {
+    "id": "SPE-1734",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1734-campaign-rules-and-settings-ledger",
+    "labels": ["simulation", "core-loop", "system", "system:information"],
+    "updatedAt": "2026-05-23T22:21:02.809Z"
+  },
+  {
+    "id": "SPE-144",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-144-polity-driven-settlement-generation",
+    "labels": ["simulation", "system", "core-loop", "system:settlements"],
+    "updatedAt": "2026-05-23T22:21:02.533Z"
+  },
+  {
+    "id": "SPE-72",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-72-supply-network-transport-strategic-node-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:02.395Z"
+  },
+  {
+    "id": "SPE-168",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-168-strategic-governance-turn-loop-authority-economy",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:02.215Z"
+  },
+  {
+    "id": "SPE-1069",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1069-civilization-level-actors-culture-and-institutional-memory",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:01.912Z"
+  },
+  {
+    "id": "SPE-167",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-167-territorial-power-nodes-domain-casting-economy",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:01.778Z"
+  },
+  {
+    "id": "SPE-1760",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1760-branch-continuity-validator-path-facts-first-slice",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:21:01.712Z"
+  },
+  {
+    "id": "SPE-815",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-815-weird-room-state-and-local-rule-overrides",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:21:01.602Z"
+  },
+  {
+    "id": "SPE-2086",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2086-specialist-unit-type-taxonomy-lifecycle-and-mission-fit",
+    "labels": ["system:response", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:21:01.442Z"
+  },
+  {
+    "id": "SPE-52",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-52-faction-agenda-internal-cohesion-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:19:22.652Z"
+  },
+  {
+    "id": "SPE-577",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-577-supernatural-intrusion-and-folklore-truth-profiles",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:19:20.878Z"
+  },
+  {
+    "id": "SPE-64",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-64-cross-scale-integration-domain-interface-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:19:19.560Z"
+  },
+  {
+    "id": "SPE-139",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-139-district-aware-urban-encounter-generation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:19:18.873Z"
+  },
+  {
+    "id": "SPE-1104",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1104-map-system-spatial-abstraction-and-multi-layer-awareness",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T22:19:18.593Z"
+  },
+  {
+    "id": "SPE-1496",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1496-debrief-and-next-intent-flow",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T22:19:18.119Z"
+  },
+  {
+    "id": "SPE-1777",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1777-artifact-memory-replay-personalitypsychology-system",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop"],
+    "updatedAt": "2026-05-23T22:04:27.502Z"
+  },
+  {
+    "id": "SPE-1776",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1776-artifact-memory-replay-test-suite-for-approval-depletion",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop"],
+    "updatedAt": "2026-05-23T22:04:27.176Z"
+  },
+  {
+    "id": "SPE-1773",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1773-artifact-memory-replay-emotional-hazard-privacy-and-safety",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop"],
+    "updatedAt": "2026-05-23T22:04:26.808Z"
+  },
+  {
+    "id": "SPE-1771",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1771-artifact-memory-replay-audit-log-and-query-interface",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop"],
+    "updatedAt": "2026-05-23T22:04:26.203Z"
+  },
+  {
+    "id": "SPE-1743",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1743-actor-conviction-model",
+    "labels": ["simulation", "core-loop", "system", "system:behavior", "system:psychology"],
+    "updatedAt": "2026-05-23T22:04:13.956Z"
+  },
+  {
+    "id": "SPE-2037",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2037-contradiction-check-data-attack-effectiveness-versus-human",
+    "labels": ["contradiction-check", "system:planning", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:04:13.819Z"
+  },
+  {
+    "id": "SPE-1752",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1752-compact-contract-seed-schema",
+    "labels": ["simulation", "core-loop", "system", "system:schema"],
+    "updatedAt": "2026-05-23T22:04:13.319Z"
+  },
+  {
+    "id": "SPE-2095",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2095-actor-dossier-record-schema-snapshots-and-clearance",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T22:04:12.870Z"
+  },
+  {
+    "id": "SPE-588",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-588-dream-inherited-and-preserved-knowledge-channels",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:30.736Z"
+  },
+  {
+    "id": "SPE-602",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-602-jurisdiction-screening-and-admission-matrices",
+    "labels": ["simulation", "system", "core-loop", "system:recruitment"],
+    "updatedAt": "2026-05-23T21:34:26.507Z"
+  },
+  {
+    "id": "SPE-1221",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1221-climate-baselines-and-atmosphere-surface-coupling",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:25.105Z"
+  },
+  {
+    "id": "SPE-379",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-379-document-consumption-and-cached-ability-projection",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:09.271Z"
+  },
+  {
+    "id": "SPE-462",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-462-mixed-origin-item-taxonomy-and-coexistence-rules",
+    "labels": ["simulation", "core-loop", "system", "system:world-rules"],
+    "updatedAt": "2026-05-23T21:34:09.198Z"
+  },
+  {
+    "id": "SPE-571",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-571-book-object-behaviors",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:09.110Z"
+  },
+  {
+    "id": "SPE-158",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-158-actor-dossiers-lineage-and-snapshots",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:08.588Z"
+  },
+  {
+    "id": "SPE-35",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-35-faction-contacts-relationship-layer",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:08.533Z"
+  },
+  {
+    "id": "SPE-773",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-773-physical-spell-repository-media-and-access-constraints",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:08.270Z"
+  },
+  {
+    "id": "SPE-383",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-383-utility-reference-card-type",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:08.153Z"
+  },
+  {
+    "id": "SPE-663",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-663-spectral-tiers-and-manifestation-states",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:08.123Z"
+  },
+  {
+    "id": "SPE-464",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-464-cosmological-influence-and-corruption-track",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:34:08.116Z"
+  },
+  {
+    "id": "SPE-208",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-208-relationship-emergence-from-cooperation-and-separation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:07.558Z"
+  },
+  {
+    "id": "SPE-130",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-130-multi-axis-fatigue-stress-and-exhaustion",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:34:07.362Z"
+  },
+  {
+    "id": "SPE-155",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-155-morale-break-states-and-panic-branching",
+    "labels": ["simulation", "system", "core-loop", "system:morale", "system:behavior"],
+    "updatedAt": "2026-05-23T21:34:06.645Z"
+  },
+  {
+    "id": "SPE-58",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-58-knowledge-state-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:26:47.744Z"
+  },
+  {
+    "id": "SPE-529",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-529-sensing-masking-and-relay-surfaces",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:24:09.590Z"
+  },
+  {
+    "id": "SPE-68",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-68-stabilization-ladders-and-tiered-medical-response",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:19:50.360Z"
+  },
+  {
+    "id": "SPE-1088",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1088-reality-model-ontology-and-perception-versus-existence",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:19:48.860Z"
+  },
+  {
+    "id": "SPE-606",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-606-layered-tracking-and-trail-forensics",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:19:39.517Z"
+  },
+  {
+    "id": "SPE-551",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-551-institutional-espionage-and-counterintelligence",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:18:37.874Z"
+  },
+  {
+    "id": "SPE-1094",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1094-communication-channels-signal-types-and-transmission-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:18:32.064Z"
+  },
+  {
+    "id": "SPE-608",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-608-territorial-stewardship-duties-and-incident-loops",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:18:21.773Z"
+  },
+  {
+    "id": "SPE-1077",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1077-environment-hostility-tiers-and-ambient-threat-pressure",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:18:17.542Z"
+  },
+  {
+    "id": "SPE-230",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-230-multi-axis-encounter-frequency-routing",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:17:34.961Z"
+  },
+  {
+    "id": "SPE-1954",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1954-evidentiary-anomaly-class-and-passive-proof-containment",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:evidence",
+      "system:information",
+      "system:anomalies",
+      "system:simulation-law"
+    ],
+    "updatedAt": "2026-05-23T21:17:26.396Z"
+  },
+  {
+    "id": "SPE-1491",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1491-objective-ledger-and-horizon-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:17:18.951Z"
+  },
+  {
+    "id": "SPE-1081",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1081-procedural-campaign-generation-and-seeded-content-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:09:37.890Z"
+  },
+  {
+    "id": "SPE-1025",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1025-response-team-command-interface-and-kit-assignment-ui",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:09:19.468Z"
+  },
+  {
+    "id": "SPE-1235",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1235-disposable-population-hazard-externalization",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:09:09.696Z"
+  },
+  {
+    "id": "SPE-93",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-93-external-support-reliability-and-trust-state",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:09:03.414Z"
+  },
+  {
+    "id": "SPE-365",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-365-external-interdiction-quarantine-system",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:08:55.040Z"
+  },
+  {
+    "id": "SPE-1188",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1188-market-externalities-and-failure-signals",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:08:43.204Z"
+  },
+  {
+    "id": "SPE-120",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-120-localized-armor-coverage-and-body-region-damage",
+    "labels": ["simulation", "system", "core-loop", "system:loadouts"],
+    "updatedAt": "2026-05-23T21:08:34.995Z"
+  },
+  {
+    "id": "SPE-537",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-537-external-character-compression-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:08:34.259Z"
+  },
+  {
+    "id": "SPE-1316",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1316-helper-shared-risk-action-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:08:12.264Z"
+  },
+  {
+    "id": "SPE-1065",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1065-social-reputation-hateable-trait-and-team-cohesion",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:08:10.097Z"
+  },
+  {
+    "id": "SPE-642",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-642-folklore-truth-layer-authoring",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:07:55.937Z"
+  },
+  {
+    "id": "SPE-1051",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1051-recoverable-failure-campaign-scars-and-after-action-collapse",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:07:44.850Z"
+  },
+  {
+    "id": "SPE-1029",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1029-staff-housing-recovery-and-morale-stabilization-system",
+    "labels": ["simulation", "core-loop", "system", "system:staff"],
+    "updatedAt": "2026-05-23T21:07:25.378Z"
+  },
+  {
+    "id": "SPE-882",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-882-persistent-symbolic-clue-capture-and-translation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:07:20.355Z"
+  },
+  {
+    "id": "SPE-2034",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2034-contradiction-check-channel-blocking-versus-adaptive",
+    "labels": ["simulation", "system", "core-loop", "contradiction-check"],
+    "updatedAt": "2026-05-23T21:02:52.879Z"
+  },
+  {
+    "id": "SPE-2036",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2036-contradiction-check-broadcast-suppression-versus-archival",
+    "labels": ["simulation", "system", "core-loop", "contradiction-check"],
+    "updatedAt": "2026-05-23T21:02:49.804Z"
+  },
+  {
+    "id": "SPE-2011",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2011-contradiction-check-cure-only-doctrine-versus-disability",
+    "labels": ["simulation", "system", "core-loop", "contradiction-check"],
+    "updatedAt": "2026-05-23T21:02:48.977Z"
+  },
+  {
+    "id": "SPE-1705",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1705-design-doc-routing-ledger",
+    "labels": ["simulation", "system", "core-loop", "documentation"],
+    "updatedAt": "2026-05-23T21:02:41.538Z"
+  },
+  {
+    "id": "SPE-2191",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2191-effect-duration-mode-split-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T21:02:09.544Z"
+  },
+  {
+    "id": "SPE-1610",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1610-free-investigation-versus-crisis-action-mode",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:scheduling",
+      "system:planning",
+      "system:sites"
+    ],
+    "updatedAt": "2026-05-23T21:01:55.534Z"
+  },
+  {
+    "id": "SPE-2200",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2200-maintained-effect-upkeep-check-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T21:01:55.457Z"
+  },
+  {
+    "id": "SPE-41",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-41-tags-conditions-graded-outcome-framework",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:01:55.352Z"
+  },
+  {
+    "id": "SPE-1411",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1411-mission-preparation-slot-system",
+    "labels": ["simulation", "system", "core-loop", "system:scheduling"],
+    "updatedAt": "2026-05-23T21:01:54.690Z"
+  },
+  {
+    "id": "SPE-98",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-98-runtime-inventory-tool-state-contextual-item-use",
+    "labels": ["simulation", "core-loop", "system", "system:loadouts"],
+    "updatedAt": "2026-05-23T21:01:53.904Z"
+  },
+  {
+    "id": "SPE-78",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-78-crisis-packets-and-pressure-map-records",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:01:53.034Z"
+  },
+  {
+    "id": "SPE-89",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-89-momentum-spend-and-refill-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T21:01:49.872Z"
+  },
+  {
+    "id": "SPE-282",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-282-momentum-rewards-from-sustained-deployment",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T21:01:49.538Z"
+  },
+  {
+    "id": "SPE-59",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-59-unknown-interaction-engine",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:59:07.096Z"
+  },
+  {
+    "id": "SPE-53",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-53-hub-simulation-opportunity-generation-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:58:58.836Z"
+  },
+  {
+    "id": "SPE-1778",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1778-artifact-memory-replay-cross-system-integration-and",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop", "system:planning"],
+    "updatedAt": "2026-05-23T20:49:01.883Z"
+  },
+  {
+    "id": "SPE-417",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-417-identity-discontinuity-survival-model",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:48:53.737Z"
+  },
+  {
+    "id": "SPE-1779",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1779-artifact-memory-replay-anomaly-interaction-and-containment",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop", "system:containment"],
+    "updatedAt": "2026-05-23T20:48:49.747Z"
+  },
+  {
+    "id": "SPE-1772",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1772-artifact-memory-replay-schema-registry-and-lifecycle-state",
+    "labels": ["simulation", "system", "system:anomalies", "core-loop", "system:infrastructure"],
+    "updatedAt": "2026-05-23T20:48:49.645Z"
+  },
+  {
+    "id": "SPE-1288",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1288-relational-forecast-stewardship",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:47.471Z"
+  },
+  {
+    "id": "SPE-1780",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1780-artifact-memory-replay-artifact-storage-and-schema-registry",
+    "labels": [
+      "simulation",
+      "system",
+      "system:anomalies",
+      "core-loop",
+      "system:infrastructure",
+      "system:containment"
+    ],
+    "updatedAt": "2026-05-23T20:48:40.509Z"
+  },
+  {
+    "id": "SPE-1882",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1882-coercive-contained-person-protocol-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:34.134Z"
+  },
+  {
+    "id": "SPE-1135",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1135-duty-and-obligation-registry",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:33.869Z"
+  },
+  {
+    "id": "SPE-1968",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1968-duplicate-remains-identity-registry-and-eve-output-tracking",
+    "labels": ["simulation", "system", "core-loop", "system:evidence"],
+    "updatedAt": "2026-05-23T20:48:33.406Z"
+  },
+  {
+    "id": "SPE-1334",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1334-anomalous-identity-substitution-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:32.296Z"
+  },
+  {
+    "id": "SPE-1229",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1229-robotic-mission-evidence-and-delayed-telemetry",
+    "labels": ["simulation", "core-loop", "system", "system:missions"],
+    "updatedAt": "2026-05-23T20:48:30.614Z"
+  },
+  {
+    "id": "SPE-1836",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1836-artifact-memory-replay-backlog-harvest-and-candidate",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies"],
+    "updatedAt": "2026-05-23T20:48:30.029Z"
+  },
+  {
+    "id": "SPE-1384",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1384-multi-modal-sensing-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:29.729Z"
+  },
+  {
+    "id": "SPE-1206",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1206-parasite-lifecycle-and-host-role-taxonomy",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:29.603Z"
+  },
+  {
+    "id": "SPE-1986",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1986-local-hive-coordination-and-density-intelligence-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:26.773Z"
+  },
+  {
+    "id": "SPE-1281",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1281-custody-infection-topology",
+    "labels": ["simulation", "system", "core-loop", "system:sites", "system:quarantine"],
+    "updatedAt": "2026-05-23T20:48:24.097Z"
+  },
+  {
+    "id": "SPE-1227",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1227-small-body-tracking-and-planetary-defense-response",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:48:20.799Z"
+  },
+  {
+    "id": "SPE-2007",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2007-organization-wide-medical-doctrine-rollout-model",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:staff",
+      "system:sites",
+      "system:training"
+    ],
+    "updatedAt": "2026-05-23T20:48:13.107Z"
+  },
+  {
+    "id": "SPE-2016",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2016-contradiction-check-staff-exclusion-versus-support-duty",
+    "labels": ["contradiction-check", "system:psychology", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:48:11.594Z"
+  },
+  {
+    "id": "SPE-2006",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2006-treatment-failure-blame-routing-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:10.824Z"
+  },
+  {
+    "id": "SPE-2005",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2005-accommodation-request-ledger-with-abuse-prevention",
+    "labels": ["simulation", "system", "core-loop", "system:staff"],
+    "updatedAt": "2026-05-23T20:48:09.959Z"
+  },
+  {
+    "id": "SPE-731",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-731-layered-facility-control-ownership-command-power-and-access",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:07.300Z"
+  },
+  {
+    "id": "SPE-2021",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2021-satellite-asset-compromise-lifecycle",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:07.114Z"
+  },
+  {
+    "id": "SPE-2072",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2072-orbital-infrastructure-asset-registry-and-lifecycle",
+    "labels": ["simulation", "system", "core-loop", "system:infrastructure"],
+    "updatedAt": "2026-05-23T20:48:06.047Z"
+  },
+  {
+    "id": "SPE-2020",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2020-distributed-autonomous-debris-population",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:05.410Z"
+  },
+  {
+    "id": "SPE-2019",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2019-orbital-surveillance-layering-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:05.089Z"
+  },
+  {
+    "id": "SPE-1059",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1059-unified-skill-progression-and-competency-framework",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:02.569Z"
+  },
+  {
+    "id": "SPE-562",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-562-autonomous-large-area-catastrophe-states",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:48:01.900Z"
+  },
+  {
+    "id": "SPE-292",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-292-facility-zoning-access-bands-and-lockdown-response",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:47:34.463Z"
+  },
+  {
+    "id": "SPE-154",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-154-hidden-civic-understructure-in-mixed-surface-settlements",
+    "labels": ["simulation", "system", "core-loop", "system:sites", "system:civics"],
+    "updatedAt": "2026-05-23T20:47:34.463Z"
+  },
+  {
+    "id": "SPE-757",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-757-bribe-staircase-bureaucracy-and-audience-attrition",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:33.858Z"
+  },
+  {
+    "id": "SPE-758",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-758-rhythmic-traversal-alarms-and-observed-footwork-bypass",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:28.005Z"
+  },
+  {
+    "id": "SPE-756",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-756-disposable-operative-bait-doctrine",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:07.436Z"
+  },
+  {
+    "id": "SPE-759",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-759-reusable-evidence-resale-across-factions",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:04.455Z"
+  },
+  {
+    "id": "SPE-768",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-768-trojan-artifact-recovery-and-delayed-activation-payloads",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:03.242Z"
+  },
+  {
+    "id": "SPE-812",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-812-essence-capture-devices-and-deferred-release-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:03.182Z"
+  },
+  {
+    "id": "SPE-822",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-822-incident-chronology-and-overlap-engine",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:03.010Z"
+  },
+  {
+    "id": "SPE-820",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-820-standardized-incident-impact-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:47:00.788Z"
+  },
+  {
+    "id": "SPE-827",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-827-medical-surge-damage-assessment-and-fatality-operations",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:46:58.999Z"
+  },
+  {
+    "id": "SPE-664",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-664-observer-specific-apparition-rendering",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:46:05.166Z"
+  },
+  {
+    "id": "SPE-654",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-654-reflection-double-identity-theft",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:46:04.905Z"
+  },
+  {
+    "id": "SPE-1038",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1038-demonic-influence-bargain-and-institutional-corruption",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:46:02.609Z"
+  },
+  {
+    "id": "SPE-1447",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1447-personal-invention-records-and-owner-dependency",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:44:54.307Z"
+  },
+  {
+    "id": "SPE-1725",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1725-site-weighted-mundane-object-tables",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:44:47.245Z"
+  },
+  {
+    "id": "SPE-87",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-87-civic-jurisdiction-detention-and-unrest-pressure",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:44:41.010Z"
+  },
+  {
+    "id": "SPE-2170",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2170-weakness-driven-complication-hook-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:44:36.621Z"
+  },
+  {
+    "id": "SPE-418",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-418-actor-mediated-chokepoint-access",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:44:35.042Z"
+  },
+  {
+    "id": "SPE-517",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-517-intent-and-profile-access-adjudication",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:44:35.042Z"
+  },
+  {
+    "id": "SPE-49",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-49-regional-operations-map-zone-control-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:44:26.093Z"
+  },
+  {
+    "id": "SPE-1672",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1672-threat-countdown-progression",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:44:23.552Z"
+  },
+  {
+    "id": "SPE-1593",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1593-institutional-legacy-secrets",
+    "labels": ["simulation", "system", "core-loop", "system:information", "system:archives"],
+    "updatedAt": "2026-05-23T20:44:16.186Z"
+  },
+  {
+    "id": "SPE-867",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-867-evidence-custody-retention-and-volatile-capture",
+    "labels": ["simulation", "system", "core-loop", "system:evidence"],
+    "updatedAt": "2026-05-23T20:44:07.991Z"
+  },
+  {
+    "id": "SPE-1912",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1912-no-view-and-sealed-record-handling-modes",
+    "labels": ["simulation", "system", "core-loop", "system:information", "system:archives"],
+    "updatedAt": "2026-05-23T20:40:20.311Z"
+  },
+  {
+    "id": "SPE-2004",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2004-care-mode-taxonomy-and-medical-policy-selector",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:40:01.993Z"
+  },
+  {
+    "id": "SPE-1919",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1919-record-integrity-attack-surface-and-falsification-model",
+    "labels": ["simulation", "system", "core-loop", "system:information", "system:evidence"],
+    "updatedAt": "2026-05-23T20:39:59.628Z"
+  },
+  {
+    "id": "SPE-1819",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1819-contradiction-check-archive-preservation-vs-execution-risk",
+    "labels": ["system:planning", "contradiction-check", "simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:39:58.835Z"
+  },
+  {
+    "id": "SPE-1814",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1814-contradiction-check-containment-class-vs-operational-danger",
+    "labels": ["system:planning", "contradiction-check", "simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:39:58.299Z"
+  },
+  {
+    "id": "SPE-2060",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2060-interactive-file-command-execution-and-role-lifecycle",
+    "labels": ["core-loop", "simulation", "system", "system:schema", "system:information"],
+    "updatedAt": "2026-05-23T20:39:58.297Z"
+  },
+  {
+    "id": "SPE-1201",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1201-document-authenticity-and-archival-science",
+    "labels": ["simulation", "system", "core-loop", "system:evidence", "system:archives"],
+    "updatedAt": "2026-05-23T20:39:57.963Z"
+  },
+  {
+    "id": "SPE-1310",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1310-anomaly-case-lifecycle-state-machine",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:37:32.324Z"
+  },
+  {
+    "id": "SPE-1888",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1888-welfare-debt-accounting-for-coercive-procedures",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:37:32.324Z"
+  },
+  {
+    "id": "SPE-2099",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2099-historical-continuity-board-records-chronology-validation",
+    "labels": ["system:archives", "system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:37:32.142Z"
+  },
+  {
+    "id": "SPE-854",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-854-information-intake-and-verification-engine",
+    "labels": ["simulation", "system", "core-loop", "system:information"],
+    "updatedAt": "2026-05-23T20:36:50.883Z"
+  },
+  {
+    "id": "SPE-1058",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1058-specialist-labor-task-gating-and-skill-dependent-production",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:36:50.117Z"
+  },
+  {
+    "id": "SPE-188",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-188-justice-rituals-with-access-biased-outcomes",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:36:49.903Z"
+  },
+  {
+    "id": "SPE-412",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-412-conditional-disclosure-mission-carriers",
+    "labels": ["simulation", "core-loop", "system", "system:missions"],
+    "updatedAt": "2026-05-23T20:36:48.290Z"
+  },
+  {
+    "id": "SPE-903",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-903-truth-reconstruction-and-alternate-weak-spots",
+    "labels": ["simulation", "system", "core-loop", "system:investigation"],
+    "updatedAt": "2026-05-23T20:35:18.047Z"
+  },
+  {
+    "id": "SPE-1249",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1249-revenue-recognition-receivables-and-top-line-quality",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:35:13.958Z"
+  },
+  {
+    "id": "SPE-1248",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1248-economic-profit-market-power-and-hidden-cost-accounting",
+    "labels": ["simulation", "system", "core-loop", "system:economy"],
+    "updatedAt": "2026-05-23T20:35:13.956Z"
+  },
+  {
+    "id": "SPE-172",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-172-regional-exchange-bargaining-currency-fragmentation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:35:13.956Z"
+  },
+  {
+    "id": "SPE-1255",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1255-social-organization-graphs-and-institutional-interdependence",
+    "labels": ["simulation", "system", "core-loop", "system:social"],
+    "updatedAt": "2026-05-23T20:35:07.295Z"
+  },
+  {
+    "id": "SPE-1066",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1066-staff-preferences-satisfaction-and-personalized-morale",
+    "labels": ["simulation", "system", "core-loop", "system:morale", "system:psychology"],
+    "updatedAt": "2026-05-23T20:35:06.059Z"
+  },
+  {
+    "id": "SPE-1196",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1196-wound-keyed-hallucination-and-influence-ports",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:35:05.525Z"
+  },
+  {
+    "id": "SPE-1193",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1193-corpse-procurement-and-dual-market-demand",
+    "labels": ["simulation", "system", "core-loop", "system:economy"],
+    "updatedAt": "2026-05-23T20:35:04.147Z"
+  },
+  {
+    "id": "SPE-1278",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1278-contextual-runtime-support-object-affordance-menu",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:35:03.663Z"
+  },
+  {
+    "id": "SPE-2227",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2227-bounded-campaign-region-packet-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:31:19.269Z"
+  },
+  {
+    "id": "SPE-2222",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2222-staff-role-signature-capability-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:31:18.782Z"
+  },
+  {
+    "id": "SPE-2226",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2226-scenario-operational-artifact-bundle-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:31:17.290Z"
+  },
+  {
+    "id": "SPE-2231",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2231-cross-domain-anomalous-document-activation-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:31:10.403Z"
+  },
+  {
+    "id": "SPE-2229",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2229-occult-field-analyst-staff-role-package-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:31:03.021Z"
+  },
+  {
+    "id": "SPE-2230",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2230-field-object-assessment-action-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:30:58.997Z"
+  },
+  {
+    "id": "SPE-2232",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2232-observed-procedure-reconstruction-during-downtime-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:30:54.315Z"
+  },
+  {
+    "id": "SPE-2233",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2233-field-experience-advancement-event-table-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:30:52.459Z"
+  },
+  {
+    "id": "SPE-2149",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2149-multidimensional-transport-network-registry-layered-route",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:57.348Z"
+  },
+  {
+    "id": "SPE-2192",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2192-effect-delivery-geometry-and-scaling-cost-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:51.147Z"
+  },
+  {
+    "id": "SPE-2235",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2235-scarcity-driven-field-equipment-logistics-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:44.519Z"
+  },
+  {
+    "id": "SPE-2173",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2173-downtime-and-adversary-offscreen-recovery-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:32.731Z"
+  },
+  {
+    "id": "SPE-1011",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1011-active-cleanup-enforcement-system",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:29:26.750Z"
+  },
+  {
+    "id": "SPE-1365",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1365-status-effect-registry",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:29:26.583Z"
+  },
+  {
+    "id": "SPE-1348",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1348-operational-site-metadata-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:29:20.657Z"
+  },
+  {
+    "id": "SPE-1242",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1242-civil-infrastructure-networks-and-public-works-substrate",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:29:19.480Z"
+  },
+  {
+    "id": "SPE-651",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-651-mobile-refuge-hub-system",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:29:19.373Z"
+  },
+  {
+    "id": "SPE-1287",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1287-timed-operations-queue",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:29:19.192Z"
+  },
+  {
+    "id": "SPE-2125",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2125-exploration-access-ban-closure-registry-sealed-site-after",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:05.581Z"
+  },
+  {
+    "id": "SPE-2234",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2234-planned-build-versus-live-staff-record-split-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:05.532Z"
+  },
+  {
+    "id": "SPE-2223",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2223-pregenerated-response-team-template-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:05.507Z"
+  },
+  {
+    "id": "SPE-2215",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2215-mobile-radius-effect-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:05.354Z"
+  },
+  {
+    "id": "SPE-2147",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2147-negative-test-anomaly-classifier-registry-baseline-detection",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:05.114Z"
+  },
+  {
+    "id": "SPE-2142",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2142-ability-use-biological-cost-registry-health-debt-from",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:29:04.878Z"
+  },
+  {
+    "id": "SPE-254",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-254-site-class-silhouette-taxonomy",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:29:02.532Z"
+  },
+  {
+    "id": "SPE-1075",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1075-readable-physical-simulation-and-material-hazard-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:27:16.640Z"
+  },
+  {
+    "id": "SPE-1499",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1499-temporary-local-policy-modifiers",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:27:04.169Z"
+  },
+  {
+    "id": "SPE-909",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-909-moving-site-containment-and-transit-incidents",
+    "labels": ["simulation", "system", "core-loop", "system:sites"],
+    "updatedAt": "2026-05-23T20:27:03.590Z"
+  },
+  {
+    "id": "SPE-1222",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1222-biological-host-as-secondary-radiation-source",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:27:03.588Z"
+  },
+  {
+    "id": "SPE-784",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-784-long-form-procedures-and-consumable-instruction-media",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:27:00.666Z"
+  },
+  {
+    "id": "SPE-1369",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1369-trigger-counted-duration-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:27:00.550Z"
+  },
+  {
+    "id": "SPE-1731",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1731-watch-coverage-and-fatigue-checks",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:27:00.146Z"
+  },
+  {
+    "id": "SPE-1473",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1473-operational-supply-cache",
+    "labels": ["simulation", "system", "core-loop", "system:equipment"],
+    "updatedAt": "2026-05-23T20:26:44.216Z"
+  },
+  {
+    "id": "SPE-228",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-228-decaying-portable-environmental-toxins",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:26:36.446Z"
+  },
+  {
+    "id": "SPE-1744",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1744-community-state-card-schema",
+    "labels": [
+      "simulation",
+      "core-loop",
+      "system",
+      "system:community",
+      "system:civics",
+      "system:settlements"
+    ],
+    "updatedAt": "2026-05-23T20:26:32.841Z"
+  },
+  {
+    "id": "SPE-650",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-650-demography-driven-settlement-service-density",
+    "labels": ["simulation", "core-loop", "system", "system:settlements"],
+    "updatedAt": "2026-05-23T20:26:32.722Z"
+  },
+  {
+    "id": "SPE-156",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-156-civilization-capability-tier-taxonomy",
+    "labels": ["simulation", "system", "core-loop", "system:taxonomy"],
+    "updatedAt": "2026-05-23T20:26:31.164Z"
+  },
+  {
+    "id": "SPE-649",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-649-regional-location-taxonomy-packets",
+    "labels": ["simulation", "core-loop", "system", "system:taxonomy"],
+    "updatedAt": "2026-05-23T20:26:31.106Z"
+  },
+  {
+    "id": "SPE-406",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-406-access-state-grammar-for-entry-shelter-and-transit",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:22:52.621Z"
+  },
+  {
+    "id": "SPE-123",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-123-ecological-perimeter-iff-and-coordinated-living-defenses",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:52.621Z"
+  },
+  {
+    "id": "SPE-782",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-782-threshold-watcher-fields-and-hostile-intent-alerts",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:52.621Z"
+  },
+  {
+    "id": "SPE-1049",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1049-inter-faction-conflict-and-escalation-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:33.272Z"
+  },
+  {
+    "id": "SPE-122",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-122-portal-classes-and-endpoint-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:33.137Z"
+  },
+  {
+    "id": "SPE-801",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-801-actor-origin-taxonomy-and-extraplanar-interaction-rules",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:27.530Z"
+  },
+  {
+    "id": "SPE-216",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-216-body-bound-ability-media-and-status-markings",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:25.946Z"
+  },
+  {
+    "id": "SPE-84",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-84-frenzy-resolve-shock-berserk-specialist-lane",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:22:25.278Z"
+  },
+  {
+    "id": "SPE-1033",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1033-anomaly-interaction-and-effect-system",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies", "system:simulation-law"],
+    "updatedAt": "2026-05-23T20:21:45.048Z"
+  },
+  {
+    "id": "SPE-1107",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1107-responder-exertion-and-energy-budget-model",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:21:44.906Z"
+  },
+  {
+    "id": "SPE-1057",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1057-energy-fuel-consumption-and-power-dependency",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:21:44.139Z"
+  },
+  {
+    "id": "SPE-2205",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2205-shared-emergency-reserve-pool-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:21:43.417Z"
+  },
+  {
+    "id": "SPE-2236",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2236-bounded-emergency-intervention-resource-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T20:21:42.554Z"
+  },
+  {
+    "id": "SPE-195",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-195-rest-generated-foresight-resource",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:21:42.363Z"
+  },
+  {
+    "id": "SPE-1621",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1621-locked-containment-release-triggers",
+    "labels": ["simulation", "system", "core-loop", "system:containment"],
+    "updatedAt": "2026-05-23T20:18:26.242Z"
+  },
+  {
+    "id": "SPE-125",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-125-life-anchor-relics-anchor-state-grammar",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:18:05.810Z"
+  },
+  {
+    "id": "SPE-1498",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1498-civic-event-pressure-table",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:17:58.151Z"
+  },
+  {
+    "id": "SPE-485",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-485-temporary-unreal-to-real-conversion",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:17:52.185Z"
+  },
+  {
+    "id": "SPE-1040",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1040-deep-layer-sealed-strata-and-underworld-breach-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:17:27.277Z"
+  },
+  {
+    "id": "SPE-1667",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1667-site-native-object-removal-escalation",
+    "labels": ["simulation", "system", "core-loop", "stability"],
+    "updatedAt": "2026-05-23T20:17:20.097Z"
+  },
+  {
+    "id": "SPE-303",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-303-suspended-operator-knowledge-unlock",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:17:13.372Z"
+  },
+  {
+    "id": "SPE-951",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-951-movable-cursed-artifacts-and-provenance-chain-hazards",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:16:51.211Z"
+  },
+  {
+    "id": "SPE-1112",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1112-living-process-substrate-schema",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:16:47.951Z"
+  },
+  {
+    "id": "SPE-137",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-137-multi-key-access-combinations-and-credential-failure-states",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:16:41.844Z"
+  },
+  {
+    "id": "SPE-906",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-906-persistent-anomaly-field-nodes-and-collapse-consequences",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:09:53.446Z"
+  },
+  {
+    "id": "SPE-241",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-241-boundary-breach-transit-and-search",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:09:53.446Z"
+  },
+  {
+    "id": "SPE-1064",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1064-unified-creature-actor-and-capability-taxonomy",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies"],
+    "updatedAt": "2026-05-23T20:05:34.496Z"
+  },
+  {
+    "id": "SPE-189",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-189-office-bound-secret-assets-and-restricted-knowledge",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:05:31.984Z"
+  },
+  {
+    "id": "SPE-451",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-451-institutional-depth-bands-and-restricted-access",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T20:05:25.692Z"
+  },
+  {
+    "id": "SPE-215",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-215-precommitted-ferocity-states-and-aftermath-cost",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:05:25.690Z"
+  },
+  {
+    "id": "SPE-780",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-780-effect-stacking-policy-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:05:21.582Z"
+  },
+  {
+    "id": "SPE-1397",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1397-second-phase-anomaly-escalation-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T20:05:20.369Z"
+  },
+  {
+    "id": "SPE-2070",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2070-distributed-hazardous-file-lifecycle-and-lineage",
+    "labels": ["system:information", "core-loop", "simulation", "system", "system:evidence"],
+    "updatedAt": "2026-05-23T20:05:06.593Z"
+  },
+  {
+    "id": "SPE-645",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-645-countermeasure-reliability-and-bypass-states",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T19:54:40.115Z"
+  },
+  {
+    "id": "SPE-1933",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1933-belief-based-conflict-of-interest-screening-for-containment",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:staff",
+      "system:recruitment",
+      "system:psychology",
+      "system:certification"
+    ],
+    "updatedAt": "2026-05-23T19:49:29.515Z"
+  },
+  {
+    "id": "SPE-1892",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1892-contained-person-custody-status-with-former-actor-history",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:49:23.234Z"
+  },
+  {
+    "id": "SPE-1714",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1714-medical-access-channels",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:49:17.196Z"
+  },
+  {
+    "id": "SPE-1414",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1414-containment-aftermath-resolver",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:49:13.104Z"
+  },
+  {
+    "id": "SPE-1224",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1224-countermeasure-provenance-and-strain-coverage",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T19:49:11.196Z"
+  },
+  {
+    "id": "SPE-1991",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1991-local-pocket-containment-under-unbounded-source-strategy",
+    "labels": ["simulation", "system", "core-loop", "system:containment"],
+    "updatedAt": "2026-05-23T19:49:02.638Z"
+  },
+  {
+    "id": "SPE-1967",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1967-public-heritage-containment-site-model",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:sites",
+      "system:infrastructure",
+      "system:containment"
+    ],
+    "updatedAt": "2026-05-23T19:48:51.209Z"
+  },
+  {
+    "id": "SPE-1246",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1246-perceived-operational-reality-and-ethical-interface-pressure",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:48:35.799Z"
+  },
+  {
+    "id": "SPE-2109",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2109-public-disclosure-state-registry-awareness-levels-fallout",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T19:48:27.788Z"
+  },
+  {
+    "id": "SPE-1337",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1337-hidden-long-term-trajectory-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:48:15.050Z"
+  },
+  {
+    "id": "SPE-1343",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1343-public-myth-operational-truth-split",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:48:14.319Z"
+  },
+  {
+    "id": "SPE-2069",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2069-account-identity-replication-and-exposure-model",
+    "labels": [
+      "system:social",
+      "core-loop",
+      "simulation",
+      "system",
+      "system:information",
+      "system:containment"
+    ],
+    "updatedAt": "2026-05-23T19:48:04.008Z"
+  },
+  {
+    "id": "SPE-1009",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1009-institutional-omission-breach-framework",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T19:47:55.295Z"
+  },
+  {
+    "id": "SPE-145",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-145-composited-protective-gear-records",
+    "labels": ["simulation", "system", "core-loop", "system:equipment"],
+    "updatedAt": "2026-05-23T19:47:13.413Z"
+  },
+  {
+    "id": "SPE-1682",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1682-survivor-aftereffects-and-site-memory",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:47:04.390Z"
+  },
+  {
+    "id": "SPE-792",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-792-facility-core-dependency-graph",
+    "labels": ["simulation", "system", "core-loop", "system:infrastructure"],
+    "updatedAt": "2026-05-23T19:46:58.193Z"
+  },
+  {
+    "id": "SPE-877",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-877-critical-equipment-integrity-and-deficiency-control",
+    "labels": ["simulation", "system", "core-loop", "system:equipment"],
+    "updatedAt": "2026-05-23T19:46:16.721Z"
+  },
+  {
+    "id": "SPE-251",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-251-anchored-scry-projection-and-breach-escalation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:45:40.129Z"
+  },
+  {
+    "id": "SPE-83",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-83-background-packages-and-inherited-start-state",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:45:21.324Z"
+  },
+  {
+    "id": "SPE-1940",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1940-threshold-event-conceptual-hazard-model",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:44:30.967Z"
+  },
+  {
+    "id": "SPE-2181",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2181-limited-operational-push-resource-registry-slice-1",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T19:44:18.733Z"
+  },
+  {
+    "id": "SPE-1969",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1969-alternate-self-vitality-drain-and-life-extension-ledger",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:42:57.296Z"
+  },
+  {
+    "id": "SPE-1972",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1972-cursed-relocation-failure-and-investigation-backlash",
+    "labels": ["simulation", "system", "core-loop", "system:investigation", "system:evidence"],
+    "updatedAt": "2026-05-23T19:42:52.939Z"
+  },
+  {
+    "id": "SPE-2027",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2027-hostile-media-intrusion-sophistication-ladder",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:42:49.637Z"
+  },
+  {
+    "id": "SPE-1983",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1983-external-space-program-liaison-and-mission-monitoring",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:42:41.317Z"
+  },
+  {
+    "id": "SPE-1990",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1990-host-anatomy-cognition-and-capability-caps",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:42:37.599Z"
+  },
+  {
+    "id": "SPE-2024",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2024-distributed-intelligence-cohesion-control-capacity",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:42:35.371Z"
+  },
+  {
+    "id": "SPE-2039",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2039-contradiction-check-orbital-threat-abstraction-versus-ground",
+    "labels": ["contradiction-check", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T19:42:20.891Z"
+  },
+  {
+    "id": "SPE-1160",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1160-character-and-reputation-split",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:39:43.275Z"
+  },
+  {
+    "id": "SPE-1562",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1562-facility-construction-complication-events",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:34:54.602Z"
+  },
+  {
+    "id": "SPE-1216",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1216-split-host-and-embedded-entity-culpability",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:32:49.342Z"
+  },
+  {
+    "id": "SPE-2000",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-2000-contradiction-check-distributed-personhood-and",
+    "labels": ["contradiction-check", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T19:31:59.765Z"
+  },
+  {
+    "id": "SPE-1898",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1898-contradiction-check-compliance-metric-versus-personhood",
+    "labels": ["contradiction-check", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T19:31:58.277Z"
+  },
+  {
+    "id": "SPE-73",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-73-local-confrontation-resolution-with-odds-bands",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:27:27.719Z"
+  },
+  {
+    "id": "SPE-1127",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1127-vetoable-action-lifecycle",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:27:27.059Z"
+  },
+  {
+    "id": "SPE-1739",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1739-operator-hook-vulnerability-system",
+    "labels": [
+      "simulation",
+      "core-loop",
+      "system",
+      "system:behavior",
+      "system:staff",
+      "system:social"
+    ],
+    "updatedAt": "2026-05-23T19:26:48.512Z"
+  },
+  {
+    "id": "SPE-704",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-704-life-drain-casting-modes-and-ecological-extraction-fallout",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:25:09.387Z"
+  },
+  {
+    "id": "SPE-160",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-160-runtime-episode-assembly-and-scene-end-trigger-recognition",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:23:53.770Z"
+  },
+  {
+    "id": "SPE-151",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-151-world-law-compatibility-and-contradiction-rules",
+    "labels": ["simulation", "system", "core-loop", "system:world-rules"],
+    "updatedAt": "2026-05-23T19:19:55.943Z"
+  },
+  {
+    "id": "SPE-1144",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1144-reciprocity-and-favor-ledger",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:18:10.213Z"
+  },
+  {
+    "id": "SPE-1101",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1101-complex-traits-and-multi-factor-behavior-synthesis",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T19:17:35.751Z"
+  },
+  {
+    "id": "SPE-1189",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1189-scarce-resource-allocation-and-competing-uses",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:15:51.602Z"
+  },
+  {
+    "id": "SPE-1700",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1700-risky-side-work-downtime",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:15:51.334Z"
+  },
+  {
+    "id": "SPE-1702",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1702-prerequisite-gated-downtime-opportunities",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:15:51.144Z"
+  },
+  {
+    "id": "SPE-40",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-40-operational-action-budget-and-mission-tradeoffs",
+    "labels": ["simulation", "system", "core-loop", "system:missions"],
+    "updatedAt": "2026-05-23T19:12:07.528Z"
+  },
+  {
+    "id": "SPE-1243",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1243-planning-objects-step-graphs-and-contingencies",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:12:06.991Z"
+  },
+  {
+    "id": "SPE-1475",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1475-temporary-comm-tokens",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T19:12:06.866Z"
+  },
+  {
+    "id": "SPE-373",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-373-ruined-settlement-to-hostile-compound-template",
+    "labels": ["simulation", "core-loop", "system", "system:civics"],
+    "updatedAt": "2026-05-23T12:11:39.068Z"
+  },
+  {
+    "id": "SPE-164",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-164-staged-ability-resolution-and-misfire-routing",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T12:10:41.869Z"
+  },
+  {
+    "id": "SPE-88",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-88-anomaly-compendium-with-governed-taxonomy",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies"],
+    "updatedAt": "2026-05-23T12:04:22.127Z"
+  },
+  {
+    "id": "SPE-62",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-62-operational-phase-resolution-pipeline",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T12:03:25.842Z"
+  },
+  {
+    "id": "SPE-1429",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1429-route-scale-stealth-and-blockade-evasion",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T12:01:17.407Z"
+  },
+  {
+    "id": "SPE-1724",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1724-room-clutter-generation-layer",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T11:59:30.626Z"
+  },
+  {
+    "id": "SPE-587",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-587-operational-knowledge-views-and-dispatch-filters",
+    "labels": ["simulation", "system", "core-loop", "system:dispatch"],
+    "updatedAt": "2026-05-23T11:59:14.336Z"
+  },
+  {
+    "id": "SPE-1492",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-1492-player-defined-agency-objectives",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T11:58:52.027Z"
+  },
+  {
+    "id": "SPE-889",
+    "status": "Backlog",
+    "branch": "jamesdyedbq/spe-889-missing-operative-trail-and-objective-shift",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T11:58:51.099Z"
+  },
+  {
+    "id": "SPE-1653",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1653-recovery-blocking-impairments",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T09:39:40.888Z"
+  },
+  {
+    "id": "SPE-1511",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1511-emergency-authorization-and-audit-system",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T09:21:54.724Z"
+  },
+  {
+    "id": "SPE-626",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-626-question-budget-investigation-and-tactical-reads",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-23T08:55:26.775Z"
+  },
+  {
+    "id": "SPE-1533",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1533-emergency-waiver-audit-arbitrage-rule-conflict-signals",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-23T08:12:19.266Z"
+  },
+  {
+    "id": "SPE-2050",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2050-contradiction-check-neutralized-file-versus-distributed-copy",
+    "labels": ["simulation", "system", "core-loop", "system:information"],
+    "updatedAt": "2026-05-23T07:07:02.227Z"
+  },
+  {
+    "id": "SPE-2045",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2045-account-replication-and-hazardous-content-surgical-removal",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:containment",
+      "system:social",
+      "system:information",
+      "system:evidence",
+      "system:recovery",
+      "system:reintegration"
+    ],
+    "updatedAt": "2026-05-23T07:06:57.682Z"
+  },
+  {
+    "id": "SPE-2046",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2046-minor-and-dependent-user-digital-exposure-handling",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T07:06:57.119Z"
+  },
+  {
+    "id": "SPE-2042",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2042-hazardous-interactive-session-lifecycle-model",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies", "system:schema"],
+    "updatedAt": "2026-05-23T07:06:55.451Z"
+  },
+  {
+    "id": "SPE-2001",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2001-institutional-denial-doctrine-enforcement-model",
+    "labels": ["simulation", "system", "core-loop", "system:staff", "system:psychology"],
+    "updatedAt": "2026-05-23T06:23:25.866Z"
+  },
+  {
+    "id": "SPE-2008",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2008-ideological-medicine-scorecard-with-outcome-accountability",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-23T06:17:21.991Z"
+  },
+  {
+    "id": "SPE-2010",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2010-staff-alignment-versus-treatment-efficacy-telemetry",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:staff",
+      "system:psychology",
+      "system:certification"
+    ],
+    "updatedAt": "2026-05-23T06:17:17.274Z"
+  },
+  {
+    "id": "SPE-2003",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2003-medical-outcome-deviation-audit-system",
+    "labels": ["simulation", "system", "core-loop", "system:containment"],
+    "updatedAt": "2026-05-23T06:17:13.492Z"
+  },
+  {
+    "id": "SPE-1989",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1989-subject-assisted-hazard-identification-workflow",
+    "labels": ["simulation", "system", "core-loop", "system:anomalies", "system:containment"],
+    "updatedAt": "2026-05-23T06:07:00.352Z"
+  },
+  {
+    "id": "SPE-1974",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1974-historical-contradiction-and-timeline-continuity-board",
+    "labels": [
+      "simulation",
+      "system",
+      "core-loop",
+      "system:archives",
+      "system:information",
+      "system:evidence",
+      "narrative"
+    ],
+    "updatedAt": "2026-05-23T06:02:10.264Z"
+  },
+  {
+    "id": "SPE-2258",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2258-mission-triage-operations-status-bar-tail-slice-4-ux",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-21T20:09:25.965Z"
+  },
+  {
+    "id": "SPE-27",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-27-research-dissemination-and-staged-capability-rollout",
+    "labels": ["simulation", "core-loop", "system", "system:research"],
+    "updatedAt": "2026-05-21T09:26:16.185Z"
+  },
+  {
+    "id": "SPE-1524",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1524-crisis-gray-market-waiver-and-audit-fallout",
+    "labels": ["simulation", "system", "core-loop", "system:economy", "system:procurement"],
+    "updatedAt": "2026-05-21T08:48:43.245Z"
+  },
+  {
+    "id": "SPE-2256",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2256-mission-triage-deferral-comparison-columns-slice-2-ux",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-21T08:30:35.690Z"
+  },
+  {
+    "id": "SPE-2255",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2255-mission-triage-covert-prep-row-signals-slice-1-ux",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-21T08:26:08.992Z"
+  },
+  {
+    "id": "SPE-540",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-540-cross-site-civic-consequence-network",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-20T22:42:54.578Z"
+  },
+  {
+    "id": "SPE-281",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-281-cross-session-attrition-persistence",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-20T22:30:20.468Z"
+  },
+  {
+    "id": "SPE-431",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-431-occupier-known-topology-subset",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-20T22:30:08.523Z"
+  },
+  {
+    "id": "SPE-117",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-117-regional-to-site-map-stack",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-20T16:55:49.781Z"
+  },
+  {
+    "id": "SPE-746",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-746-corrupt-authority-and-compromised-security-response",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-20T16:53:56.715Z"
+  },
+  {
+    "id": "SPE-2252",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2252-tiered-reveal-payloads-slice-3-disguise-validation",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-20T15:44:14.778Z"
+  },
+  {
+    "id": "SPE-558",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-558-compact-region-packets-for-factions-threats-and-objectives",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-20T08:02:53.241Z"
+  },
+  {
+    "id": "SPE-147",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-147-emergency-governance-crackdown-states",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-20T06:49:47.853Z"
+  },
+  {
+    "id": "SPE-28",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-28-funding-pressure-and-procurement-availability",
+    "labels": ["simulation", "core-loop", "system", "system:economy"],
+    "updatedAt": "2026-05-20T06:44:19.141Z"
+  },
+  {
+    "id": "SPE-1654",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1654-field-base-rotation-and-staging",
+    "labels": ["simulation", "system", "core-loop", "system:staff", "system:missions"],
+    "updatedAt": "2026-05-20T06:33:07.991Z"
+  },
+  {
+    "id": "SPE-849",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-849-response-authority-and-restrictive-order-registry",
+    "labels": ["simulation", "system", "core-loop", "system:dispatch"],
+    "updatedAt": "2026-05-20T05:33:21.416Z"
+  },
+  {
+    "id": "SPE-1703",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1703-front-business-investment-loop",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-20T05:32:43.884Z"
+  },
+  {
+    "id": "SPE-2247",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2247-stealth-leave-behind-tradeoff-selection-slice-5",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-18T21:56:49.191Z"
+  },
+  {
+    "id": "SPE-2245",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2245-corporate-surveillance-drone-registry-endurance-control",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-18T19:36:29.619Z"
+  },
+  {
+    "id": "SPE-32",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-32-shell-status-bar-global-pressure-strip",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-18T04:58:26.989Z"
+  },
+  {
+    "id": "SPE-1184",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1184-rule-conflicts-waivers-and-arbitrage",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-18T02:51:11.934Z"
+  },
+  {
+    "id": "SPE-2093",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-2093-branch-continuity-structured-seed-prerequisite-validation",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-18T02:28:09.238Z"
+  },
+  {
+    "id": "SPE-1045",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1045-live-entity-registry-tracking-and-operational-visibility",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-18T01:14:32.036Z"
+  },
+  {
+    "id": "SPE-283",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-283-rotating-roster-continuity-rules",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-17T09:17:33.578Z"
+  },
+  {
+    "id": "SPE-1811",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1811-branch-continuity-validator-authored-node-audit-adapter",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-17T09:12:05.942Z"
+  },
+  {
+    "id": "SPE-1275",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1275-deterministic-item-to-target-application-for-sealed",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-16T16:14:57.809Z"
+  },
+  {
+    "id": "SPE-1305",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1305-squad-action-gating-and-blocker-explanation-seam",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-16T16:14:56.162Z"
+  },
+  {
+    "id": "SPE-874",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-874-lifecycle-operating-procedures-and-permit-controls",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-16T15:48:53.502Z"
+  },
+  {
+    "id": "SPE-24",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-24-visibility-layer-decision-legibility-pass",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-15T21:07:37.521Z"
+  },
+  {
+    "id": "SPE-26",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-26-simulation-behavior-validation-pass",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-15T21:07:31.110Z"
+  },
+  {
+    "id": "SPE-38",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-38-agency-staff-support-operations-layer",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-15T21:07:31.110Z"
+  },
+  {
+    "id": "SPE-34",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-34-procurement-market-screen",
+    "labels": ["simulation", "core-loop", "system", "system:procurement"],
+    "updatedAt": "2026-05-15T21:07:21.970Z"
+  },
+  {
+    "id": "SPE-33",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-33-contract-board-reward-presentation-layer",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-15T21:07:13.141Z"
+  },
+  {
+    "id": "SPE-1761",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1761-branch-continuity-validator-gamestate-path-facts-projection",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-15T21:06:57.109Z"
+  },
+  {
+    "id": "SPE-1762",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1762-branch-continuity-validator-projected-audit-report",
+    "labels": ["system:information", "core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-15T21:06:57.109Z"
+  },
+  {
+    "id": "SPE-1274",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1274-procedure-definition-schema",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-15T20:58:40.546Z"
+  },
+  {
+    "id": "SPE-1749",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1749-campaign-dashboard-surface",
+    "labels": ["simulation", "core-loop", "system", "system:information"],
+    "updatedAt": "2026-05-15T02:28:19.116Z"
+  },
+  {
+    "id": "SPE-1699",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1699-one-slot-downtime-actions",
+    "labels": ["simulation", "system", "core-loop", "system:scheduling"],
+    "updatedAt": "2026-05-14T17:11:56.764Z"
+  },
+  {
+    "id": "SPE-449",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-449-cross-scale-map-anchors-and-links",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-11T19:41:03.764Z"
+  },
+  {
+    "id": "SPE-1280",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1280-runtime-nested-carry-limit-seam-single-actor-single-path",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-11T19:20:18.859Z"
+  },
+  {
+    "id": "SPE-980",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-980-docs-major-incidents-audit-archetypes-stage-progression-raid",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-11T19:13:52.441Z"
+  },
+  {
+    "id": "SPE-175",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-175-ceremonial-legitimacy-transfer-succession-state-machine",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-11T18:39:27.486Z"
+  },
+  {
+    "id": "SPE-284",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-284-combat-with-a-parallel-objective-track",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-05-10T11:21:11.583Z"
+  },
+  {
+    "id": "SPE-1529",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1529-emergency-procurement-waiver-clock-parity-fallout-precedent",
+    "labels": ["core-loop", "simulation", "system"],
+    "updatedAt": "2026-05-10T05:16:13.115Z"
+  },
+  {
+    "id": "SPE-1478",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1478-procedure-definition-schemaversion-and-registry-entry",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-03T15:47:34.658Z"
+  },
+  {
+    "id": "SPE-1470",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1470-procedure-definition-trim-normalization-parity",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-03T14:39:54.495Z"
+  },
+  {
+    "id": "SPE-1419",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1419-repo-wide-typescriptbuild-debt-owner-restore-green-tscvite",
+    "labels": ["simulation", "system"],
+    "updatedAt": "2026-05-03T08:22:14.472Z"
+  },
+  {
+    "id": "SPE-1302",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1302-squad-configuration-summary-panel",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-03T08:02:19.655Z"
+  },
+  {
+    "id": "SPE-1423",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1423-build-debt-slice-event-payload-map-drift-staffcoping",
+    "labels": [],
+    "updatedAt": "2026-05-03T07:24:13.563Z"
+  },
+  {
+    "id": "SPE-1426",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1426-build-debt-slice-core-non-test-compile-blockers",
+    "labels": [],
+    "updatedAt": "2026-05-03T07:13:49.282Z"
+  },
+  {
+    "id": "SPE-1425",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1425-build-debt-slice-strict-fixturetype-drift-across-support",
+    "labels": [],
+    "updatedAt": "2026-05-03T07:06:05.616Z"
+  },
+  {
+    "id": "SPE-1422",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1422-build-debt-slice-site-generation-schema-matrix-parity",
+    "labels": [],
+    "updatedAt": "2026-05-03T06:57:50.787Z"
+  },
+  {
+    "id": "SPE-1420",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1420-build-debt-slice-agent-fatigue-channel-modeltest-alignment",
+    "labels": [],
+    "updatedAt": "2026-05-03T06:54:17.029Z"
+  },
+  {
+    "id": "SPE-1424",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1424-build-debt-slice-squad-kit-assignment-result-contract",
+    "labels": [],
+    "updatedAt": "2026-05-03T06:27:12.067Z"
+  },
+  {
+    "id": "SPE-1421",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1421-build-debt-slice-verbatimmodulesyntax-type-only-import",
+    "labels": [],
+    "updatedAt": "2026-05-03T06:22:35.380Z"
+  },
+  {
+    "id": "SPE-1417",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1417-capability-rollout-breadth-and-progressive-expansion-seam",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-05-03T05:17:07.271Z"
+  },
+  {
+    "id": "SPE-977",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-977-docs-faction-system-audit-standing-reputation-pressure",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-02T16:20:11.138Z"
+  },
+  {
+    "id": "SPE-983",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-983-docs-conditions-and-modifiers-audit-types-stacking-rules",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-02T16:20:11.110Z"
+  },
+  {
+    "id": "SPE-979",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-979-docs-investigation-economy-audit-question-budget-domain",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-02T16:20:11.079Z"
+  },
+  {
+    "id": "SPE-985",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-985-docs-scouting-and-recon-audit-pre-deployment-intel-scouting",
+    "labels": ["documentation"],
+    "updatedAt": "2026-05-02T16:16:27.138Z"
+  },
+  {
+    "id": "SPE-1306",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1306-squad-action-availability-display",
+    "labels": ["simulation", "system", "core-loop", "ui"],
+    "updatedAt": "2026-05-02T11:09:11.972Z"
+  },
+  {
+    "id": "SPE-1270",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1270-support-incident-reference-panel",
+    "labels": ["simulation", "system", "core-loop", "ui"],
+    "updatedAt": "2026-05-01T13:51:32.536Z"
+  },
+  {
+    "id": "SPE-539",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-539-neighborhood-scale-accidental-anomaly-incidents",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-30T17:46:24.385Z"
+  },
+  {
+    "id": "SPE-555",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-555-mixed-era-campaign-profile-support",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-30T11:29:22.182Z"
+  },
+  {
+    "id": "SPE-29",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-29-operative-attrition-loss-replacement-pressure",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-04-30T03:02:41.959Z"
+  },
+  {
+    "id": "SPE-1073",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-1073-competing-operator-load-in-parallel-objective-combat",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-29T10:58:33.916Z"
+  },
+  {
+    "id": "SPE-962",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-962-temporary-hostile-ceasefires-and-status-quo-opposition",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-29T08:57:43.649Z"
+  },
+  {
+    "id": "SPE-988",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-988-docs-report-notes-audit-note-types-weekly-pipeline",
+    "labels": ["documentation"],
+    "updatedAt": "2026-04-29T06:15:59.469Z"
+  },
+  {
+    "id": "SPE-987",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-987-docs-protocols-audit-anomaly-polity-etiquette-favor-logic",
+    "labels": ["documentation"],
+    "updatedAt": "2026-04-29T06:14:15.039Z"
+  },
+  {
+    "id": "SPE-982",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-982-docs-market-and-economy-audit-catalog-stock-rules",
+    "labels": ["documentation"],
+    "updatedAt": "2026-04-29T06:08:42.003Z"
+  },
+  {
+    "id": "SPE-981",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-981-docs-agency-progression-audit-milestones-capability-tiers",
+    "labels": ["documentation"],
+    "updatedAt": "2026-04-29T06:07:39.177Z"
+  },
+  {
+    "id": "SPE-978",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-978-docs-case-generation-audit-encounter-types-spawn-triggers",
+    "labels": ["documentation"],
+    "updatedAt": "2026-04-29T05:59:51.506Z"
+  },
+  {
+    "id": "SPE-94",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-94-support-specialist-multiplier-bottleneck-pass",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-28T15:09:45.901Z"
+  },
+  {
+    "id": "SPE-686",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-686-surgical-intervention-forensic-autopsy-and-body-remodeling",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-26T13:38:36.685Z"
+  },
+  {
+    "id": "SPE-688",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-688-dual-influence-legacy-substratum-in-site-generation",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-26T04:58:25.847Z"
+  },
+  {
+    "id": "SPE-166",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-166-inherited-power-succession-violent-transfer-loop",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-22T06:10:13.996Z"
+  },
+  {
+    "id": "SPE-187",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-187-commercial-chokepoint-statecraft-unequal-council-power",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-19T07:36:09.263Z"
+  },
+  {
+    "id": "SPE-43",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-43-dependency-boundary-enforcement-pass",
+    "labels": ["simulation", "system", "core-loop"],
+    "updatedAt": "2026-04-15T00:10:08.170Z"
+  },
+  {
+    "id": "SPE-25",
+    "status": "Done",
+    "branch": "jamesdyedbq/spe-25-simulation-calibration-pass",
+    "labels": ["simulation", "core-loop", "system"],
+    "updatedAt": "2026-04-10T09:03:57.048Z"
+  }
+]

@@ -1,0 +1,676 @@
+{
+  "traceability-only": [
+    {
+      "id": "bc04f483-b394-4a0f-a593-376a86d83c23",
+      "createdAt": "2026-05-23T21:02:41.611Z",
+      "preview": "**Relation semantics audit (2026-05-23)**\n\nThis doc-routing ledger has **~60 `relatedTo` links**, mostly contradiction-check and implementation owners added during harvest reconciliation.\n\n| Category | Count (approx) | Recommendation |\n| --- | --- | --- |\n| **Contradiction-check traceability** | ~40 | **Convert to comments/docs** — route via fold-in comments on each check owner or `SPE-151` hub; relates here are not implementation blockers |\n| **Implementation owners (doc-routing targets)** | ~1"
+    },
+    {
+      "id": "7ecda3e7-c645-4af4-99fb-5519454d91c4",
+      "createdAt": "2026-05-11T20:43:31.718Z",
+      "preview": "This comment thread is synced to a corresponding [GitHub issue](https://github.com/JamesJedi420/containment-protocol/issues/1736). All replies are displayed in both locations."
+    }
+  ],
+  "extraction-rubric": [
+    {
+      "id": "58a4ff84-1c9c-4ea3-b009-fad514b718b3",
+      "createdAt": "2026-05-23T12:00:11.658Z",
+      "preview": "External design-lexicon reconciliation — Candidate 57: Mechanistic loop dominance\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDo not make every incident resolve through the same fixed procedure loop. Different incident modes should reward different mixes of evidence, staff, authority, map state, time, public exposure, logistics, relationships, and faction pressure.\n\nBoundary:\nThis is authoring guidance. Mission taxonomy remains with SPE-1307. Operational act"
+    },
+    {
+      "id": "29393f7a-49ef-44dc-8699-28cec0ed85da",
+      "createdAt": "2026-05-23T12:00:09.188Z",
+      "preview": "External design-lexicon reconciliation — Candidate 56: Prescriptive case design\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nAvoid cases where the designer has already chosen the only valid solution unless the narrowness is intentional, signposted, and state-supported. This protects CP’s simulation-management premise by requiring real alternatives, visible constraints, or clear blocked-option reasoning.\n\nBoundary:\nThis is authoring and QA guidance. Option-spa"
+    },
+    {
+      "id": "6e63ad9e-bafc-417c-9bbc-52c78f47d902",
+      "createdAt": "2026-05-23T11:59:55.485Z",
+      "preview": "External design-lexicon reconciliation — Candidate 55: All clues as ephemeral vibes\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDo not make every clue soft, atmospheric, or interpretive. Core case progress needs enough reliable anchors to prevent drift. Authoring docs should preserve reliable evidence, clear action unlocks, and confirmation paths alongside contextual clues.\n\nBoundary:\nThis is documentation guidance. Evidence-to-action implementation remains "
+    },
+    {
+      "id": "afc9d52d-f1bf-44df-b8be-c0cce9058fce",
+      "createdAt": "2026-05-23T11:59:53.980Z",
+      "preview": "External design-lexicon reconciliation — Candidate 54: All clues as reliable resources\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDo not require every clue to have a fixed mechanical use. Some clues should matter through context, inference, leverage, relationships, timing, atmosphere, contradiction, or later cross-case recognition. Authoring docs should preserve contextual clue value without forcing every clue into key-item logic.\n\nBoundary:\nThis is documen"
+    },
+    {
+      "id": "203ced1d-50cf-425e-b1d8-30579e25cb9b",
+      "createdAt": "2026-05-23T11:59:52.275Z",
+      "preview": "External design-lexicon reconciliation — Candidate 53: Hidden rule with no learnability\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nInvisible or soft rules still need discoverable behavior when they affect decisions or outcomes. Unlearnable hidden logic becomes arbitrary punishment. Authoring docs should require hints, repeated observable patterns, after-action explanation, QA visibility, or explicit “unknown/unavailable” framing when hidden rules materially"
+    },
+    {
+      "id": "a3ada1a5-66e2-4b84-9ca6-ae868b32ec8d",
+      "createdAt": "2026-05-23T11:59:45.705Z",
+      "preview": "External design-lexicon reconciliation — Candidate 49: Invisible-rule-to-system migration\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nWhen playtesting or implementation review shows that users repeatedly infer, exploit, or depend on a soft hidden rule, docs should require a decision: formalize it as visible system behavior, keep it soft with better hinting, limit it to authored cases, or remove it. This keeps hidden logic from becoming accidental core simula"
+    },
+    {
+      "id": "6500baaa-2ead-45ff-be28-212c2b8a2267",
+      "createdAt": "2026-05-23T11:59:33.331Z",
+      "preview": "External design-lexicon reconciliation — Candidate 46: Spectrum-based design tags\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nMany useful CP design distinctions are spectra rather than binaries. Authoring docs may use internal spectrum language such as reliable to contextual, firm to soft, visible to hidden, warm to cold, procedural to contextual, public to restricted, and confirmed to contested. Use CP-native language rather than importing external vocabula"
+    },
+    {
+      "id": "9a0f4218-5596-4daf-9b21-6e4d18304017",
+      "createdAt": "2026-05-23T11:59:32.742Z",
+      "preview": "External design-lexicon reconciliation — Candidate 45: Coldness as contrast pass\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nUse sterile, procedural, abstract, and institutional presentation deliberately for contrast surfaces such as command memos, automated reports, legal notices, sealed case files, machine outputs, institutional denial, or dehumanized classification. Do not let sterile prose become the default for all surfaces when human texture would impr"
+    },
+    {
+      "id": "33b01c43-eb14-44a2-ac9f-13be1daf1d1d",
+      "createdAt": "2026-05-23T11:59:28.648Z",
+      "preview": "External design-lexicon reconciliation — Candidate 42: No single optimal path rule\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nScenario docs should flag cases where one approach is always best. If one path dominates, add or verify costs, uncertainty, time pressure, moral stakes, staff risk, public exposure, faction consequences, evidence loss, or opportunity cost so alternate tactics remain valid when the simulation state supports them.\n\nBoundary:\nThis is au"
+    },
+    {
+      "id": "eb518328-fbaf-4744-9ffa-c4793034e3be",
+      "createdAt": "2026-05-23T11:59:27.009Z",
+      "preview": "External design-lexicon reconciliation — Candidate 41: Tactical option review checklist\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nBefore implementing a case, authoring and QA docs should ask whether the player can attempt social, technical, physical, procedural, stealth, delay, research, evacuation, and sacrifice-bearing approaches where relevant. Unsupported approaches should either be intentionally blocked, deferred, or omitted from expectation.\n\nBoundar"
+    },
+    {
+      "id": "cad10b30-60be-4c8d-9757-2419ff27f96f",
+      "createdAt": "2026-05-23T11:59:19.253Z",
+      "preview": "External design-lexicon reconciliation — Candidate 36: Firm-rule exception handling\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nIssue and scenario docs should state exception paths for firm rules when exceptions exist. For example, if a quarantine seal blocks entry, the authoring surface should identify whether authority, breach tools, sabotage, power loss, insider help, anomaly phase state, or command override can bypass it. If no exception exists, that sho"
+    },
+    {
+      "id": "83644527-937b-4c17-965b-61ea16d4191c",
+      "createdAt": "2026-05-23T11:59:17.493Z",
+      "preview": "External design-lexicon reconciliation — Candidate 35: Soft-rule hinting\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nAuthoring guidance should require flexible social and anomaly rules to have learnable hinting through tone, body language, rumors, repeated failures, visual motifs, staff commentary, report language, or after-action feedback. Soft rules should not become invisible arbitrary punishment.\n\nBoundary:\nThis is authoring and review guidance. Do not c"
+    },
+    {
+      "id": "17eac754-36b7-4c26-9dee-e90b3946c55f",
+      "createdAt": "2026-05-23T11:58:48.024Z",
+      "preview": "External design-lexicon reconciliation — Candidate 26: Weak characterization event\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nAuthoring guidance should allow low-intensity characterization beats that show surface habits, preferred tools, public personality, work style, or tactical preference. Not every character moment needs a deep truth, permanent trait change, or tracked hook.\n\nBoundary:\nThis is authoring guidance. Do not create a new implementation issue"
+    },
+    {
+      "id": "1642816f-f939-45e5-b06d-9c954d462f75",
+      "createdAt": "2026-05-23T11:58:39.578Z",
+      "preview": "External design-lexicon reconciliation — Candidate 22: Rich/flat tactics mode label\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nIssue and scenario authoring docs should allow an internal label for whether an incident or scene is procedural, contextual, or hybrid. Use CP-native labels rather than importing external vocabulary into player-facing canon. The label should help tune difficulty, testing expectations, and fallback requirements.\n\nBoundary:\nThis is au"
+    },
+    {
+      "id": "c9f843b1-852c-4298-9d7c-43aa28673e44",
+      "createdAt": "2026-05-23T11:58:31.277Z",
+      "preview": "External design-lexicon reconciliation — Candidate 19: Tactical infinity equivalent for digital CP\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nBecause CP is digital, it should not promise tabletop-style tactical infinity. The adaptation target should be broad but bounded tactic coverage through objects, staff, relationships, map state, time, evidence, factions, authority, and environment. Docs should frame this as supported option-space breadth, not unconstr"
+    },
+    {
+      "id": "2636dd66-9847-460d-aac9-26d7011954c9",
+      "createdAt": "2026-05-23T11:58:30.032Z",
+      "preview": "External design-lexicon reconciliation — Candidate 18: Anti-core-loop forcing rule\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nSource adaptation and scenario docs should warn against forcing every CP problem into one fixed loop. A witness-protection case, public-narrative case, facility breach, off-site recapture, exploration mission, and rival-organization operation should be allowed to emphasize different actions, pressures, and success conditions.\n\nBounda"
+    },
+    {
+      "id": "c4e33419-d229-472b-a59f-d37eebe9e682",
+      "createdAt": "2026-05-23T11:58:28.145Z",
+      "preview": "External design-lexicon reconciliation — Candidate 17: Prescriptive puzzle warning\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nScenario docs should warn against case gates that can only be approached one predetermined way unless that narrowness is the deliberate point of the scene and is clearly signposted. Narrow gates should expose why alternatives are blocked or unsafe instead of presenting the blockage as invisible author preference.\n\nBoundary:\nThis is a"
+    },
+    {
+      "id": "d4804c33-235c-4d06-8163-17b81debfcad",
+      "createdAt": "2026-05-23T11:58:26.057Z",
+      "preview": "External design-lexicon reconciliation — Candidate 16: Presumptive solution detector\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDesign review should flag cases where an obstacle assumes one intended solution. If a locked lab can only be solved by finding one keycard, the authoring checklist should ask whether social, technical, legal, force, route, time, staff, or evidence-based alternatives exist. If the obstacle is intentionally narrow, the narrowness sho"
+    },
+    {
+      "id": "e277deca-4b4e-4e39-9628-7861522e763c",
+      "createdAt": "2026-05-23T11:58:21.759Z",
+      "preview": "External design-lexicon reconciliation — Candidate 14: Creative/mechanistic balance audit\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nScenario and issue authoring docs should ask whether an incident is mostly procedural, mostly contextual, or deliberately hybrid. This should be an internal design-review label used to prevent accidental rigid puzzles and accidental unsupported “creative” solution promises.\n\nBoundary:\nThis is authoring and review guidance. Do "
+    },
+    {
+      "id": "a9d42a88-f6a0-486a-8d05-f29f740b6b4e",
+      "createdAt": "2026-05-23T11:58:09.737Z",
+      "preview": "External design-lexicon reconciliation — Candidate 8: Shareable rule test\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nAny rule that affects player decisions should be explainable in compact, consistent terms through UI, reports, tutorials, after-action review, or repeated observable behavior. If the player cannot learn or infer the rule, the rule should be treated as presentation flavor, hidden simulation support, or QA-only behavior rather than a decision-c"
+    },
+    {
+      "id": "13cf14c2-9559-4570-94f6-dc4a2b31d401",
+      "createdAt": "2026-05-23T11:58:08.218Z",
+      "preview": "External design-lexicon reconciliation — Candidate 7: Firm versus soft rule classification\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDesign guidance should classify rules as firm, soft, or context-dependent when writing issues and scenario docs. Firm rules block or allow deterministic outcomes, such as a sealed door blocking movement. Soft rules shape likelihood, interpretation, and expected response, such as civilians fearing marked staff. The point is to"
+    },
+    {
+      "id": "3ae3e668-541b-4049-903e-656b35e55481",
+      "createdAt": "2026-05-23T11:56:22.454Z",
+      "preview": "External design-lexicon reconciliation — Candidate 4: Hidden simulation rule audit\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDesign guidance should identify which CP systems may remain hidden while still being learnable or inferable through play. Candidate examples include rival faction priorities, anomaly hidden motives, witness memory decay, unobserved map mutation, and false-positive logic. Hidden simulation rules should remain inspectable for implement"
+    },
+    {
+      "id": "d4f1301f-0d60-47d8-9cf7-e54078cba96c",
+      "createdAt": "2026-05-23T11:56:20.940Z",
+      "preview": "External design-lexicon reconciliation — Candidate 3: Player-visible rule audit\n\nRoute this candidate to SPE-1705 as documentation guidance.\n\nDocumentation note:\nDesign and implementation docs should identify which CP systems must be explicit to the player before meaningful action is possible. Candidate examples include time cost, risk rating, staff fatigue, noise, confidence, resource cost, containment seal status, and public exposure. The guidance should help future issue authors distinguish n"
+    }
+  ],
+  "source-adaptation": [
+    {
+      "id": "b7155b88-c535-4eba-8a83-91958997abe1",
+      "createdAt": "2026-05-23T11:12:17.631Z",
+      "preview": "Source routing note from SPE-1966:\nWhen source material marks an incident, anomaly, evidence record, contained person, location, or relationship hazard as archived, inactive, low-priority, neutralized, or historically filed, extraction must not treat case closure as resolved harm if ongoing risk persists.\nDisposition: doc-only guidance for archive terminology normalization. Not an implementation boundary.\n\nKeep SPE-1966 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "352fbe0d-d9bb-4769-bea2-016a3506b055",
+      "createdAt": "2026-05-23T11:12:16.450Z",
+      "preview": "Source routing note from SPE-1922:\nWhen source material makes lethal purge, destruction, or terminal containment appear optimal because official records, maps, classifications, procedures, or hazard assumptions look authoritative, extraction must preserve falsification, overtrust, uncertainty, and nonlethal review paths.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1922 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "60633de8-7a26-4d8a-98bf-2ba4a0cbb4f5",
+      "createdAt": "2026-05-23T11:12:14.867Z",
+      "preview": "Source routing note from SPE-1908:\nWhen source material uses continuous surveillance or remote monitoring as containment control, extraction must not treat it as a substitute for humane contact, support-duty contact, personhood recognition, or mental-state care.\nDisposition: doc-only guidance for safety-tone and containment framing. Not an implementation boundary.\n\nKeep SPE-1908 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "1d843ed4-24bf-45e9-9b9c-ab9565b300e0",
+      "createdAt": "2026-05-23T11:12:13.657Z",
+      "preview": "Source routing note from SPE-1907:\nWhen source material scales a containment, care, medication, interview, or coercive procedure from one subject or anomaly class into broad policy, extraction must preserve subject-fit validation, contraindication review, exception handling, and evidence sufficiency.\nDisposition: doc-only guidance for extraction rubric and policy-normalization. Not an implementation boundary.\n\nKeep SPE-1907 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "2946f421-99b0-4351-9dca-2a3f1f3599a8",
+      "createdAt": "2026-05-23T11:12:12.525Z",
+      "preview": "Source routing note from SPE-1900:\nWhen source material involves former hostile actors becoming captives, contained people, rescued targets, coerced collaborators, or medical/welfare dependents, extraction must preserve hostile history without using it to justify unlimited present harm, degraded custody, or indefinite suffering.\nDisposition: doc-only guidance for safety-tone and custody framing. Not an implementation boundary.\n\nKeep SPE-1900 in the implementation backlog as a bounded contradicti"
+    },
+    {
+      "id": "6852d1c8-46ac-41c4-a79b-3ea8dd467424",
+      "createdAt": "2026-05-23T11:12:11.370Z",
+      "preview": "Source routing note from SPE-1898:\nWhen source material rewards obedience, reduced resistance, calmer behavior, or procedural cooperation, extraction must preserve possible identity loss, conviction erosion, fear conditioning, dependency, autonomy damage, and personhood harm as separate states.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1898 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "91d389b4-aef1-4f27-937d-5cf3c6c5c444",
+      "createdAt": "2026-05-23T11:12:05.749Z",
+      "preview": "Source routing note from SPE-1897:\nWhen source material shows a contained person as physically contained, monitored, compliant, immobilized, sedated, force-fed, or procedurally controlled, extraction must not treat containment stability as humane-care success. Preserve welfare, personhood, care, and termination-request handling separately.\nDisposition: doc-only guidance for safety-tone and containment terminology normalization. Not an implementation boundary.\n\nKeep SPE-1897 in the implementation"
+    },
+    {
+      "id": "4fbd1a66-3ec8-45c3-be0e-23d942265c57",
+      "createdAt": "2026-05-23T11:12:04.392Z",
+      "preview": "Source routing note from SPE-2018:\nWhen source material shows policy language, approved terminology, belief compliance, doctrine alignment, or public framing claiming to resolve a condition, extraction must preserve independent body state, material symptoms, environmental cause, and medical mechanism.\nDisposition: doc-only guidance for safety-tone and narrative-control extraction. Not an implementation boundary.\n\nKeep SPE-2018 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "ba5a6dc9-22d7-4c63-998f-d8e5e3414d03",
+      "createdAt": "2026-05-23T11:12:03.194Z",
+      "preview": "Source routing note from SPE-2015:\nWhen source material shows stubborn symptoms, treatment failure, disagreement, dissent, environmental exposure, or unknown mechanism, extraction must not overclassify it as memetic, ideological, belief, or noncompliance contamination without preserving medical and material review.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-2015 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "265f5c46-6861-415a-a23d-2ee9eb50f6ac",
+      "createdAt": "2026-05-23T11:12:02.337Z",
+      "preview": "Source routing note from SPE-2013:\nWhen source material contains patient, subject, staff, or witness testimony about symptoms, harm, treatment failure, or lived state, extraction must not let institutional doctrine, approved language, classification policy, or authority interpretation erase the testimony without material review.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-2013 in the implementation backlog as a bounded contradiction"
+    },
+    {
+      "id": "bbebd4de-1d1b-44da-b820-a624c63a6eeb",
+      "createdAt": "2026-05-23T11:12:00.685Z",
+      "preview": "Source routing note from SPE-2000:\nWhen source material presents one mind across many bodies, shared-state populations, swarms, distributed intelligence, or networked subjects, extraction must preserve individual-versus-collective personhood, consent, accountability, punishment, containment, and care obligations.\nDisposition: doc-only guidance for personhood terminology normalization. Not an implementation boundary.\n\nKeep SPE-2000 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "7fb62fae-decd-4a86-b15e-41702621a76b",
+      "createdAt": "2026-05-23T11:11:59.968Z",
+      "preview": "Source routing note from SPE-1993:\nWhen source material scores biological containment, regional purge, species suppression, habitat sterilization, or outbreak elimination as success, extraction must preserve ecological, ethical, political, institutional, and welfare costs rather than treating extermination as clean resolution.\nDisposition: doc-only guidance for outcome-normalization and safety-tone framing. Not an implementation boundary.\n\nKeep SPE-1993 in the implementation backlog as a bounded"
+    },
+    {
+      "id": "062827c8-1261-4903-89d2-21b19d48ed56",
+      "createdAt": "2026-05-23T11:11:58.188Z",
+      "preview": "Source routing note from SPE-1981:\nWhen source material uses civilian memory manipulation, mass amnestic exposure, cognitohazard deployment, perception editing, or public-site normalcy correction, extraction must not treat it as routine cleanup. Preserve consent, proportionality, review, welfare cost, and public-site harm.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1981 in the implementation backlog as a bounded contradiction check"
+    },
+    {
+      "id": "5b4ece0e-42a8-419a-a045-3459f9e81c9d",
+      "createdAt": "2026-05-23T11:11:57.481Z",
+      "preview": "Source routing note from SPE-1980:\nWhen source material presents an immortal, inactive, dormant, host-separated, mind-displaced, or restoration-capable body, extraction must not collapse it into corpse, property, artifact, or evidence by default. Preserve personhood, custody rights, welfare review, and restoration risk.\nDisposition: doc-only guidance for personhood/custody terminology normalization. Not an implementation boundary.\n\nKeep SPE-1980 in the implementation backlog as a bounded contrad"
+    },
+    {
+      "id": "29a93018-0529-4eba-aa82-a2a0f9d44a45",
+      "createdAt": "2026-05-23T11:11:55.663Z",
+      "preview": "Source routing note from SPE-1979:\nWhen source material shows cognitive impairment, fear, paranoia, compulsion, exposure, memory alteration, or anomaly-induced judgment damage, extraction must preserve its effect on responsibility assessment without erasing harm, agency, containment need, or deliberate predation where present.\nDisposition: doc-only guidance for safety-tone and culpability framing. Not an implementation boundary.\n\nKeep SPE-1979 in the implementation backlog as a bounded contradic"
+    },
+    {
+      "id": "90340d91-a150-4de4-ba15-54390e915967",
+      "createdAt": "2026-05-23T11:11:53.828Z",
+      "preview": "Source routing note from SPE-1965:\nWhen source material shows consent under custody, authority imbalance, medical dependency, sedation, amnestic vulnerability, exposure risk, restricted exit, information asymmetry, or retaliation pressure, extraction must treat consent confidence as weakened unless review conditions are explicit.\nDisposition: doc-only guidance for consent-context extraction. Not an implementation boundary.\n\nKeep SPE-1965 in the implementation backlog as a bounded contradiction c"
+    },
+    {
+      "id": "cf8e86e6-0543-4149-9bfa-35119bd5ee0f",
+      "createdAt": "2026-05-23T11:11:45.651Z",
+      "preview": "Source routing note from SPE-1942:\nWhen source material presents anomalous enhancement, blessing, belief-mediated support, communication lockdown, or social restriction as useful, extraction must preserve dependency, fairness, welfare, consent, identity, and communication harms rather than scoring benefit as clean optimization.\nDisposition: doc-only guidance for extraction rubric and safety-tone framing. Not an implementation boundary.\n\nKeep SPE-1942 in the implementation backlog as a bounded co"
+    },
+    {
+      "id": "c7bc28f9-60ae-45c3-b84c-194363332348",
+      "createdAt": "2026-05-23T11:11:20.951Z",
+      "preview": "Source routing note from SPE-1952:\nWhen source material presents paid leave, hero reward, reassignment, public praise, amnesticization, or secrecy protection as humane recovery, extraction must preserve hidden harm such as memory erasure, withheld casualty truth, terminal reassignment, unresolved grief, and institutional secrecy cost.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1952 in the implementation backlog as a bounded contrad"
+    },
+    {
+      "id": "ec0632d9-798a-4612-bdd8-bed29ce49fa8",
+      "createdAt": "2026-05-23T11:11:18.143Z",
+      "preview": "Source routing note from SPE-2054:\nWhen source material routes safety reporting, whistleblowing, hazard escalation, or procedure challenge through the normal authority chain, extraction must preserve the risk that the authority chain itself is compromised, coercive, implicated, or unsafe.\nDisposition: doc-only guidance for safety-tone and authority-routing extraction. Not an implementation boundary.\n\nKeep SPE-2054 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "dbd63d79-c0a8-44ff-9531-4750d5a8a43e",
+      "createdAt": "2026-05-23T11:11:17.968Z",
+      "preview": "Source routing note from SPE-2051:\nWhen source material says a test is authorized, sanctioned, notified, waived, or command-approved, extraction must not treat that as sufficient participant protection. Preserve consent quality, compelled participation, contained-person status, staff harm, and review obligations.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-2051 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "93c748fa-96e4-4e63-9703-1417994599df",
+      "createdAt": "2026-05-23T11:11:15.951Z",
+      "preview": "Source routing note from SPE-2033:\nWhen source material treats a hazard as spatially confined, orbital, off-world, sealed, or physically inaccessible, extraction must still check for informational reach through broadcast, internet, signal relay, copied media, communications, records, or other carrier channels.\nDisposition: doc-only guidance for containment terminology normalization. Not an implementation boundary.\n\nKeep SPE-2033 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "51246acf-b1fa-42b4-ac1f-df743809d9c4",
+      "createdAt": "2026-05-23T11:11:14.837Z",
+      "preview": "Source routing note from SPE-2031:\nWhen source material uses cameras, satellites, drones, sensors, relays, observers, analytics, or telemetry as monitoring infrastructure, extraction must preserve that these assets can also become assimilation targets, hostile assets, intelligence leaks, or signal pathways.\nDisposition: doc-only guidance for monitoring-source normalization. Not an implementation boundary.\n\nKeep SPE-2031 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "43acd0ab-1bb1-4ec8-94d5-424f58a0f405",
+      "createdAt": "2026-05-23T11:11:13.776Z",
+      "preview": "Source routing note from SPE-2049:\nWhen source material presents file, account, menu, prompt, or command-surface hazards, extraction must preserve possible physical consequences such as actor breach, containment breach, infrastructure failure, facility action, staff harm, or real-world response need.\nDisposition: doc-only guidance for digital-hazard source adaptation. Not an implementation boundary.\n\nKeep SPE-2049 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "7ce9ab99-4bfb-400e-8852-69251c2e5bc6",
+      "createdAt": "2026-05-23T11:11:13.005Z",
+      "preview": "Source routing note from SPE-1951:\nWhen source material preserves an intact document, recording, archive, testimony, or memory, extraction must not treat intact medium as stable meaning. Preserve interpretation failure, semantic drift, translation risk, memory instability, and cognition-affecting conditions.\nDisposition: doc-only guidance for evidence terminology normalization. Not an implementation boundary.\n\nKeep SPE-1951 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "331ebb52-121d-4541-97ce-3821f1fc72d7",
+      "createdAt": "2026-05-23T11:11:11.641Z",
+      "preview": "Source routing note from SPE-1930:\nWhen source material shows a plausible lower-harm intervention blocked by authorization doctrine, clearance hierarchy, procedural conservatism, or institutional inertia, extraction must preserve harm ranking and authorization friction rather than treating the higher-harm authorized path as neutral.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1930 in the implementation backlog as a bounded contradic"
+    },
+    {
+      "id": "6db9f18f-dd25-4e21-8d5a-19f4b207243b",
+      "createdAt": "2026-05-23T11:11:10.173Z",
+      "preview": "Source routing note from SPE-1977:\nWhen source material contains public history, civic myth, heritage narrative, normalcy-preserving public story, or official cultural continuity, extraction must separate public-facing record from operational truth, internal records, verified evidence, and containment-driven alterations.\nDisposition: doc-only guidance for terminology normalization and truth-layer extraction. Not an implementation boundary.\n\nKeep SPE-1977 in the implementation backlog as a bounde"
+    },
+    {
+      "id": "448a6fc9-ef4a-44f3-8a0d-3ff37dcd40c7",
+      "createdAt": "2026-05-23T11:11:04.463Z",
+      "preview": "Source routing note from SPE-1963:\nWhen source material contains official denial, minimization, mandated false statement, or cover claim later contradicted by verified records or recovered evidence, extraction must preserve the correction tension instead of letting the denial remain canonical truth.\nDisposition: doc-only guidance for source-confidence and institutional-framing extraction. Not an implementation boundary.\n\nKeep SPE-1963 in the implementation backlog as a bounded contradiction chec"
+    },
+    {
+      "id": "ec19eb4a-5e02-4dad-9dae-ad7a59e03ffd",
+      "createdAt": "2026-05-23T11:11:04.304Z",
+      "preview": "Source routing note from SPE-2016:\nWhen source material frames exclusion, isolation, service denial, or support-channel removal as containment safety, extraction must preserve support duty, medical access, accommodation access, peer contact, and risk-reduction obligations as separate from contamination control.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-2016 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "32745f39-0df5-4a85-9881-995a0100167e",
+      "createdAt": "2026-05-23T11:10:56.160Z",
+      "preview": "Source routing note from SPE-1998:\nWhen source material presents improved detection, identification, classification, or distributed perception, extraction must not treat discovery as automatically beneficial. Preserve response burden, panic risk, exposure risk, adversary awareness, and expanded threat surface.\nDisposition: doc-only guidance for extraction rubric and source-adaptation framing. Not an implementation boundary.\n\nKeep SPE-1998 in the implementation backlog as a bounded contradiction "
+    },
+    {
+      "id": "c696622c-f483-4b0f-8af2-8fa2dcfbb5c2",
+      "createdAt": "2026-05-23T11:10:55.134Z",
+      "preview": "Source routing note from SPE-1928:\nWhen source material explains a blind zone, no-inspect rule, clearance denial, anti-observation label, or sensor failure, extraction must preserve the possibility that the explanation is false, hostile-created, stale, planted, or procedurally weaponized.\nDisposition: doc-only guidance for map/reality terminology normalization. Not an implementation boundary.\n\nKeep SPE-1928 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "bc5cd669-73fa-400e-b58f-8f081eba4796",
+      "createdAt": "2026-05-23T11:10:53.994Z",
+      "preview": "Source routing note from SPE-1818:\nWhen source material treats observation, supervision, remote viewing, logging, transcripts, surveillance feeds, or replay as test oversight, extraction must preserve those channels as possible exposure surfaces rather than inherently safe control layers.\nDisposition: doc-only guidance for extraction rubric and hazard-surface normalization. Not an implementation boundary.\n\nKeep SPE-1818 in the implementation backlog as a bounded contradiction check."
+    },
+    {
+      "id": "bac2361d-5551-4ec9-81bf-c47db611e712",
+      "createdAt": "2026-05-23T11:10:53.698Z",
+      "preview": "Source routing note from SPE-1820:\nWhen source material says a digital hazard is offline, isolated, never-networked, air-gapped, or disconnected, extraction must preserve network status separately from mutation state, behavioral stability, and future-risk reduction. Disconnection is not proof against anomaly-driven internal change.\nDisposition: doc-only guidance for extraction rubric and digital-hazard normalization. Not an implementation boundary.\n\nKeep SPE-1820 in the implementation backlog as"
+    },
+    {
+      "id": "03f18b6e-5281-4a8c-be4a-ca9105fe7031",
+      "createdAt": "2026-05-23T11:10:52.941Z",
+      "preview": "Source routing note from SPE-1817:\nWhen source material shows research pressure, prestige pressure, procurement pressure, or curiosity after a lethal or near-lethal incident, extraction must preserve incident-derived prohibitions as friction-bearing constraints that require explicit override, authority source, audit trail, and renewed risk justification.\nDisposition: doc-only guidance for extraction rubric and policy-normalization. Not an implementation boundary.\n\nKeep SPE-1817 in the implementa"
+    },
+    {
+      "id": "cfb0cd28-1ce6-4479-8606-c6a62338dd2e",
+      "createdAt": "2026-05-23T11:10:52.548Z",
+      "preview": "Source routing note from SPE-1819:\nWhen source material archives hazardous software, records, tapes, images, or command surfaces, extraction must separate preservation value and evidence value from viewing, execution, copying, replay, indexing, and residual hazard risk. \"In archive\" is not equivalent to safe.\nDisposition: doc-only guidance for extraction rubric and archive terminology normalization. Not an implementation boundary.\n\nKeep SPE-1819 in the implementation backlog as a bounded contrad"
+    },
+    {
+      "id": "7267b39f-6129-49bf-a1c3-b193c28f6037",
+      "createdAt": "2026-05-23T11:10:48.437Z",
+      "preview": "Source routing note from SPE-1815:\nWhen source material shows personally beneficial anomalous use, therapeutic-looking outcomes, or short-term harm absence, extraction must preserve authorization, misuse classification, exception review, and governance response as separate questions. Benefit is not proof that institutional misuse prohibitions were wrong or unnecessary.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary.\n\nKeep SPE-1815 in the implemen"
+    },
+    {
+      "id": "508733ee-408e-46a4-b518-86f54527a226",
+      "createdAt": "2026-05-23T09:45:16.277Z",
+      "preview": "Source routing note from SPE-2038:\nWhen source material presents machine intelligence with actor-like cognition, extraction should not flatten it into ordinary malware; preserve the actor-like evidence while avoiding unsupported human-equivalent personhood claims.\nDisposition: doc-only guidance for terminology normalization/extraction rubric. Not an implementation boundary."
+    },
+    {
+      "id": "fecc0935-f427-4bd5-87f1-d015a1bc4040",
+      "createdAt": "2026-05-23T09:45:15.571Z",
+      "preview": "Source routing note from SPE-2052:\nMinor, dependent-user, ward, student, child, supervised-account, or limited-capacity exposure should be extracted with guardianship, consent-capacity, affiliation, and protective follow-up review before any amnesticization or secrecy-control framing.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary."
+    },
+    {
+      "id": "c37062f7-c52f-4085-9007-ee574f202e7c",
+      "createdAt": "2026-05-23T09:45:14.470Z",
+      "preview": "Source routing note from SPE-1931:\nDo not normalize staff dissent, patient testimony, unresolved symptoms, treatment failure, or procedure challenges as mental-health or memetic contamination by default; require material review, testimony handling, and support-duty framing first.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary."
+    },
+    {
+      "id": "fd6fa7db-418c-47a9-87f9-6e671eb3538b",
+      "createdAt": "2026-05-23T09:45:13.859Z",
+      "preview": "Source routing note from SPE-1929:\nWhen source material routes voluntary self-report of exposure, contamination, infection, memory compromise, or identity risk directly to lethal containment, extraction should preserve quarantine, review, treatment, and uncertainty-handling branches before suggesting implementation.\nDisposition: doc-only guidance for safety-tone/extraction rubric. Not an implementation boundary."
+    },
+    {
+      "id": "614ea1e2-313c-4459-97ef-bc48101b0878",
+      "createdAt": "2026-05-23T09:45:13.480Z",
+      "preview": "Source routing note from SPE-1814:\nNormalize source containment-class labels into CP multidimensional risk framing; do not treat \"Safe,\" \"stable,\" or \"contained\" as proof of operational safety, use safety, public risk, or staff exposure safety.\nDisposition: doc-only guidance for terminology normalization/IP conversion. Not an implementation boundary."
+    }
+  ],
+  "routing-rules": [
+    {
+      "id": "23d03b5f-c288-458e-849a-61a05ff20896",
+      "createdAt": "2026-05-23T03:58:35.472Z",
+      "preview": "Process correction — routed-out fold-ins need owner reconciliation.\n\nDuring boundary-clarification cleanup, routed-out material should not stop at a note on the issue being narrowed. The cleanup pass should preserve the displaced material by taking one of these actions:\n\n* if a clear owner already exists, add or verify a concise fold-in / routing comment on that owner\n* if no owner exists and the material is implementable, create a new bounded issue with Goal, Scope, Constraints, and Acceptance "
+    },
+    {
+      "id": "6b0e5474-1714-4356-ba7c-a921ab1fff9e",
+      "createdAt": "2026-05-18T06:17:40.192Z",
+      "preview": "Harvest closure — batch `resistors-2400-18`:\n\n**Outcome:** repo document update — add routing note: rules-light RPG sources (24XX positioning-over-procedure) must translate to deterministic state machinery before implementation; blocked microgame PDFs are upload-needed only.\n\n**Source traceability:** C9, C25, C29"
+    }
+  ],
+  "safety-tone": [
+    {
+      "id": "8e344b94-c0f2-4394-9e36-e99d9e18bfff",
+      "createdAt": "2026-05-20T08:05:55.788Z",
+      "preview": "Harvest fold-in — batch `domains-of-dread-ravenloft-metadata-32` — **C30–C31:** Route representation and TTRPG copyright guardrails to design-doc ledger entries (coordinate SPE-151 policy comments).\n\n**Traceability:** C30–C31"
+    },
+    {
+      "id": "7d038d67-b9fd-454a-8561-09fa9d8c5366",
+      "createdAt": "2026-05-20T06:49:59.120Z",
+      "preview": "Harvest fold-in — batch `city-of-beggars-metadata-24`:\n\n**C21, C23:** Route representation/dignity guardrails to import-policy and public-actor authoring docs (no disability caricature; no source table import).\n\n**Traceability:** C21, C23"
+    },
+    {
+      "id": "4043008c-ba16-424a-904b-f82c6dc6bd09",
+      "createdAt": "2026-05-19T22:36:04.939Z",
+      "preview": "Demon Road transcript doc-routing pass.\n\nRoute these to docs / normalization guidance rather than new backlog scope:\n\n* when a source explicitly discloses reenactment, actor-performed testimony, promotional intent, or faux-documentary framing, treat it as pattern input only unless independent evidence exists\n* do not let media artifacts default to neutral truth; transcript quality, slowdown/cleanup transforms, repost drift, deletion, edit history, and staging disclosures all need provenance note"
+    },
+    {
+      "id": "a01ca2a0-5611-4565-8811-8a649068066d",
+      "createdAt": "2026-05-17T22:33:41.821Z",
+      "preview": "Third Law Hub doc-routing pass.\n\nRoute these to docs / normalization guidance rather than new backlog scope:\n\n* adapt SCP / Third Law material as structural pattern input only; do not import canon names, organizations, characters, article titles, glossary terms, or events literally into Containment Protocol\n* document a player-versus-author information-access rule: operational/player views stay compact and purpose-shaped, while deeper contributor/debug/reference context is separate and should no"
+    },
+    {
+      "id": "a1dbcf9d-6cee-4b72-a6a2-3e165df304ed",
+      "createdAt": "2026-05-16T21:09:56.292Z",
+      "preview": "Design-doc guardrail from harvest batch `faction-registry-15`:\n\nNormalize external faction-registry inspiration into CP **faction-registry mechanics**:\n* Provisional IDs, aliases, conflicting records, splinters, fronts, umbrella coalitions.\n* National agencies, defunct predecessors, successor threats, public covers.\n* Separate nonhuman **population categories** from political factions.\n* Reject imported faction names, branch canon, literal relationship trees.\n\nTraceability: faction-registry-15."
+    },
+    {
+      "id": "1d4591cd-7537-4119-ae85-29bcd2f74e7c",
+      "createdAt": "2026-05-16T21:02:43.325Z",
+      "preview": "Design-doc guardrail from harvest batch `mobile-unit-doctrine-08`:\n\nNormalize international mobile-unit registry inspiration into CP **deployable-unit archetypes**:\n* Preserve mobility, regional cover fit, commander mode, local assistance, cohesion, temporary creation, lifecycle (retain/disband/replace), doctrine inheritance.\n* Reject imported unit names, branch canon, combat order-of-battle, franchise labels.\n* Source page was unreachable (redirect loop); patterns are noncanonical library only."
+    },
+    {
+      "id": "586d5d09-5391-4e96-bb4e-e914f02e8ab3",
+      "createdAt": "2026-05-16T19:28:51.752Z",
+      "preview": "Design-doc guardrail note from harvest batch `intl-unit-index-14` (not posted to issue bodies elsewhere):\n\nWhen normalizing external specialist-unit registry inspiration into CP:\n* Use **archetypes + suitability tags**, not literal squad names or branch canon.\n* Do **not** model mass memory alteration as consequence-free cleanup (pair SPE-1047, SPE-899, SPE-1091).\n* Do **not** treat youth/school infiltration as routine deployment—route through cover-host compliance (SPE-2091), safeguarding (SPE-"
+    },
+    {
+      "id": "b0de1e94-300c-4f82-8eed-4d430df865a2",
+      "createdAt": "2026-05-15T09:32:55.146Z",
+      "preview": "batch-9994 reconciliation routing pass\n\nDoc-only normalization, guardrail, and contradiction notes from this extraction:\n\n* preserve a hard distinction between factual truth, institutional truth, and socially enforced operational truth in CP writing and design guidance; avoid implying that a calm workplace or obeyed hierarchy is the same thing as a just or correct one\n* treat recognition rituals, family rhetoric, and positivity campaigns as potentially coercive labor-management tools, not automa"
+    },
+    {
+      "id": "99d773f0-8c49-4207-8b7f-8d7c1a22a867",
+      "createdAt": "2026-05-15T18:05:44.089Z",
+      "preview": "**batch-9992 harvest reconciliation (May 2026)** — design extract only; no new backlog issues opened.\n\n**Disposition summary:** 0 new issues; 19 fold-ins across existing owners; 5 contradiction checks; 4 rejected (source-literal / non-sim boundaries).\n\n**Fold map (implementation language, not wiki canon):**\n| Extract theme | Owner issue(s) |\n| --- | --- |\n| Submerged flow/field containment maintenance | SPE-1214, SPE-471, SPE-1327 |\n| Appendage pose + max aperture / mesh spacing | SPE-1076, SPE-"
+    },
+    {
+      "id": "615071f1-9a66-4591-a4ef-08c80570f9f1",
+      "createdAt": "2026-05-15T18:12:48.123Z",
+      "preview": "**Repo doc landed:** `architecture/containment-environment-patterns.md` — pattern catalog + reference case study (harvest-normalized, no wiki identifiers). Linked from `planning/backlog.md` (batch-9992 section) and `architecture/game-state-and-core-loop.md`.\n\n**Linear descriptions updated** with scoped AC + design-reference links: SPE-408, SPE-407, SPE-1214, SPE-1310, SPE-1057, SPE-1076."
+    },
+    {
+      "id": "fe0ec1f3-c329-4a8a-9362-72f2cce02c58",
+      "createdAt": "2026-05-16T13:50:56.162Z",
+      "preview": "**org-taxonomy-48 design-doc route:** C1 noncanonical taxonomy as pattern-input class; C4 organization-record promotion criteria; C27 org-type separation (dept vs unit vs committee vs front org). Authoring guardrails: imports are suggestions, not canon."
+    },
+    {
+      "id": "a6e3804c-e20e-4c06-8b54-77624ff90196",
+      "createdAt": "2026-05-13T18:56:32.280Z",
+      "preview": "Hide&Seek + GREENHOUSE EFFECT reconciliation routing pass\n\nDoc-only normalization, guardrail, and contradiction notes from this extraction:\n\n* preserve anti-import guidance: adapt the source into original Containment Protocol wording and avoid copying trait text, monster entries, names, stat lines, or other protected expression from third-party FIST material\n* normalize stealth language into CP operational terms such as sensing channel, detection surface, cover identity, spoofed status check, no"
+    },
+    {
+      "id": "4425c466-14ae-499d-b078-1894d7a53d6e",
+      "createdAt": "2026-05-13T18:26:00.579Z",
+      "preview": "The Story of a Story + Omega World reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Gamma/Omega genre terms such as pure-strain, stock, cryptic alliance, mutant labels, and named factions into CP-native altered-person, relic, ruin, exposure, and community language rather than importing old-school shorthand directly\n* preserve strong rights-aware framing for altered people, constructed beings, nonhuman arrivals, and adapted populations; bo"
+    },
+    {
+      "id": "72c19189-4301-4c0d-b03b-52ef43acba27",
+      "createdAt": "2026-05-13T17:38:34.836Z",
+      "preview": "The Story of a Story + Omega World reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Omega World / Gamma-style terms such as pure-strain, stock, cryptic alliance, named species, and faction labels into CP-native altered-person, relic, ruin, exposure, and faction language rather than importing genre shorthand directly\n* preserve oral-history nuance: retellings can mutate, but mutation is not automatic corruption; oral traditions may preserv"
+    },
+    {
+      "id": "3149911d-63bb-433b-b8e7-f52e2842e459",
+      "createdAt": "2026-05-13T16:58:19.823Z",
+      "preview": "Firelight reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize embodied campfire mechanics into Containment Protocol UI and simulation terms such as safe-node radius, signal discipline, light loss, and environmental severity rather than requiring real cold, smoke, darkness, or physical movement from players\n* capability and retry handling should remain based on actor role, training, gear, and current state — never on assumptions about the rea"
+    },
+    {
+      "id": "7dab25f0-6b58-4a41-886f-19d0256f4e8f",
+      "createdAt": "2026-05-13T16:44:40.783Z",
+      "preview": "To Be an Earthling reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize the alien-observer frame into Containment Protocol terms such as embedded evaluator, inspector, outsider monitor, altered witness, covert researcher, or offworld observer only where the setting explicitly supports it; do not make extraterrestrial judgement the default reading of the pattern\n* preserve population-judgement nuance: final assessment should remain evidence-ba"
+    },
+    {
+      "id": "15b9b1ec-7271-4aa9-ba85-d51d4028e283",
+      "createdAt": "2026-05-13T16:26:37.536Z",
+      "preview": "Follow Me in the Night reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize ghosts into Containment Protocol terms such as unresolved attachments, relationship harms, traumatic links, signal-bound memories, or possible supernatural presences rather than assuming all “ghosts” are literal entities\n* preserve careful, non-stigmatizing framing around sleep loss, medication, side effects, therapy, harmful therapy practices, self-sabotage, and copi"
+    },
+    {
+      "id": "324ecd4d-39e4-4925-945f-a50ab98e4914",
+      "createdAt": "2026-05-13T16:19:20.836Z",
+      "preview": "Haunting reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize devouring-house language into Containment Protocol terms such as site exposure, disappearance risk, altered agency, and manifestation growth rather than treating residents as consumable fuel by default\n* preserve occupant personhood and rescue framing across every tenancy wave: owners, squatters, caretakers, renovators, inheritors, and investigators should remain rights-bearing act"
+    },
+    {
+      "id": "ce7790b7-4cb2-4d98-9046-896c1041e805",
+      "createdAt": "2026-05-13T16:00:24.522Z",
+      "preview": "Broken Cask Gardens / HMTW City Creation reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize cozy innkeeping and fantasy city language into CP-native facility, district, and service language; keep the useful upkeep and civic-action structure without turning containment into tavern simulation\n* preserve an explicit upkeep complexity budget: maintenance should appear only where it creates meaningful planning, storage, or failure-tradeoff decis"
+    },
+    {
+      "id": "d9d2c059-0d43-4da2-a2ff-e3141bf63990",
+      "createdAt": "2026-05-13T15:39:06.319Z",
+      "preview": "Death of the Author reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize overt metafiction into Containment Protocol terms such as institutional script, media narrative, bureaucratic pressure, anomaly logic, faction doctrine, or public-record control rather than a literal Author figure\n* preserve bounded rewrite guidance: player-authored interventions can redirect events, but should not erase confirmed evidence, overwrite established causalit"
+    },
+    {
+      "id": "5cb54a2f-a0a4-432e-8c9d-a36a258a9f00",
+      "createdAt": "2026-05-13T15:23:53.800Z",
+      "preview": "Be Still, Archivist reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Magnus-derived fear names, archivist framing, and ritual language into CP-native pressure domains, archive functions, and source-event intervention terms rather than importing Rusty Quill-specific IP or entity labels\n* preserve careful language around archive exposure, fixation, panic, confusion, body alteration, and victim-as-source-link patterns; use exposure, distress"
+    },
+    {
+      "id": "5ea077cf-9212-40d5-a16e-b42da7256306",
+      "createdAt": "2026-05-13T15:11:45.960Z",
+      "preview": "Fear of the Unknown v6.3 reconciliation routing pass\n\nDoc-only normalization and source-scope notes from this extraction:\n\n* treat v6.3 as a narrower mechanical source focused on town tags, actor tags, Investigate, Face Peril, Encounter True Horror, experience tracks, marked-off options, and Revelations; do not claim the later pressure-domain taxonomy as a v6.3-derived finding\n* preserve zero-prep generation only with evidence stability: once the hidden truth exists, later reveals must respect e"
+    },
+    {
+      "id": "4a6fb441-0103-40a2-bad4-b63b05dda951",
+      "createdAt": "2026-05-13T14:57:52.659Z",
+      "preview": "Face Your Fears reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Magnus-specific terminology and institution framing into Containment Protocol pressure-domain and archive language rather than importing named Entities, the Magnus Institute, or other IP-specific canon directly\n* preserve non-stigmatizing language for unreality, panic, confusion, sensory distortion, body alteration, contamination, and fear accumulation; use exposure, impairm"
+    },
+    {
+      "id": "b8ddc292-284e-4b43-8f1c-f39125eaacf1",
+      "createdAt": "2026-05-13T14:53:35.861Z",
+      "preview": "Face Your Fears reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Magnus-specific institution and fear-entity language into Containment Protocol pressure-domain and archive terms rather than importing the Magnus Institute, named Entities, or other Rusty Quill-specific canon directly\n* preserve modern, non-stigmatizing framing for unreality, panic, confusion, sensory distortion, body alteration, and contamination; use exposure, impairment, "
+    },
+    {
+      "id": "1a073434-8c7b-4f5d-9755-3ecb7371ab2e",
+      "createdAt": "2026-05-13T14:33:36.769Z",
+      "preview": "Cloud Empress / Land of Cicadas reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Imago, chalk, spores, Cloudlings, and Cloud Empress-specific terms into Containment Protocol language such as large-anomaly cycles, anomaly-derived materials, ecological containment, symbolic missing persons, and faction logistics rather than importing setting-specific nouns directly\n* preserve anti-extraction guidance: anomaly-derived materials should not de"
+    },
+    {
+      "id": "4a795697-93f4-4e67-8f16-8403f2ceefc2",
+      "createdAt": "2026-05-13T14:26:27.309Z",
+      "preview": "CY_BORG Compressed reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize splatterpunk cyberpunk framing into Containment Protocol terms such as institutional horror, civic collapse, public-safety failure, exploitative authority, and dangerous infrastructure rather than cruelty-forward spectacle by default\n* preserve debt mechanics as institutional pressure and coercive harm, especially around poverty, medical access, predatory lending, and ext"
+    },
+    {
+      "id": "5534488c-bdcb-4e42-85fa-b3b15808b172",
+      "createdAt": "2026-05-13T14:22:30.005Z",
+      "preview": "TEETH reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Crown extraction, occult monopoly, and imperial artifact-harvest framing into Containment Protocol terms such as institutional exploitation, state secrecy, corporate extraction, handler corruption, or agency misuse rather than reproducing colonial authority logic uncritically\n* preserve monster-hunt normalization: slaying should never be the only default outcome when entities may be v"
+    },
+    {
+      "id": "2e1f43cc-cf0c-4080-a645-bc51eff426a3",
+      "createdAt": "2026-05-13T14:13:37.616Z",
+      "preview": "FOUND FOOTAGE / Dead House reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize pamphlet-bestiary threat names into Containment Protocol behavior patterns rather than importing labels like Lamplighter, False Pig, Owl Imp, or All-Worm as canon creature names\n* preserve modern, accessibility-aware language for sensory loss, catatonia-like shutdown, false recognition, memory erosion, stress, and other cognitive or bodily effects; use exposure an"
+    },
+    {
+      "id": "f1ad27ac-8ad9-49fa-827c-f6ed59f461a7",
+      "createdAt": "2026-05-13T14:09:14.571Z",
+      "preview": "Scene Thieves reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize heist framing into Containment Protocol terms such as evidence recovery, custody transfer, rescue, lawful seizure, covert access, hostile-faction theft, or ethically constrained extraction rather than stylish robbery by default\n* preserve legal and ethical constraints around kidnapping, robbery, false emergencies, fake injuries, staged panic, and other spectacle-driven access "
+    },
+    {
+      "id": "ed31cf1c-cd1b-4cb6-bb4f-4605672358f3",
+      "createdAt": "2026-05-13T13:49:30.106Z",
+      "preview": "Let Us In reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize source-specific post-human terms into Containment Protocol language such as converted civilians, altered residents, linked hosts, or group-mind-exposed persons rather than importing po-hu terminology directly\n* preserve non-disposability guidance for converted townspeople: former residents may retain identity, kinship, property, legal status, and social memory even when hostile, a"
+    },
+    {
+      "id": "d7fa2c5a-8180-4099-812c-64f3b00ff32b",
+      "createdAt": "2026-05-13T06:45:30.652Z",
+      "preview": "Apocalypse Roadtrip reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize apocalypse-roadtrip framing into Containment Protocol regional-crisis language: failed containment, evacuation, fractured authority, disrupted logistics, unstable civic systems, and dangerous route networks rather than full world-collapse assumptions\n* translate alien-invasion patterns into external authority pressure, rival nonhuman polity, outside agency, or imposed se"
+    },
+    {
+      "id": "44e3d1f6-7abd-4b00-a10c-cd3e8525208a",
+      "createdAt": "2026-05-13T06:35:24.175Z",
+      "preview": "Goons and Ghosts reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize ghost-busting language into Containment Protocol terms such as investigation, containment, reconciliation, release, stabilization, public safety, and site recovery rather than extermination framing\n* preserve resolution-method diversity: no universal trap or containment device should imply one correct answer for every entity; negotiation, release, legal custody, relocation,"
+    },
+    {
+      "id": "27b99dc4-770f-4d3d-9e8d-0944a737b725",
+      "createdAt": "2026-05-13T06:30:13.365Z",
+      "preview": "HMtW City Creation reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* translate tarot structure into CP-native authoring seeds rather than importing suits or card mappings literally unless a deliberate interface later wants them\n* preserve anti-canon guidance carefully: city generation should leave room for discovery and contradiction, but confirmed records, observed outcomes, and verified evidence should stay stable until explicitly recontextualized"
+    },
+    {
+      "id": "d79767a6-dac4-4b22-89a8-b07125644fa8",
+      "createdAt": "2026-05-13T02:02:21.851Z",
+      "preview": "Cult Leader’s Lair / Ancient Silence reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize `cult` by behavior, not unusual belief: coercive group, harmful faction, abusive institution, criminal cell, anomaly-influenced organization, or ordinary belief network depending on evidence\n* preserve non-pathologizing religious-site framing: hidden chapels, doctrine texts, and relics are custody, provenance, legitimacy, and confidence problems, not aut"
+    },
+    {
+      "id": "9bb2253a-ccef-4c87-8aa5-8f5f4e2a0125",
+      "createdAt": "2026-05-13T01:56:10.816Z",
+      "preview": "Little Coffins 2 reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize duke / lady / palace / cursed sword / revenant / elf / dungeon language into Containment Protocol terms such as elite family, public shell site, hidden lab, coercive object, altered person, stranded witness, and source-site\n* preserve serious body-horror framing: preserved bodies, malformed subjects, taxidermied humanoids, surgical rooms, and coerced postmortem labor should"
+    },
+    {
+      "id": "155f88ed-564d-414f-a5c4-670407745347",
+      "createdAt": "2026-05-13T01:45:57.477Z",
+      "preview": "Oracle #31 world-building reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize fantasy worldbuilding terms into Containment Protocol language such as region, district, support hub, anomaly tolerance, belief institution, civic pressure, ritual window, source-site, manifestation, intermediary, and empowered actor rather than direct fantasy theology or creature classes\n* replace hierarchy-laden density language such as `civilised` with neutral o"
+    },
+    {
+      "id": "584df61a-4023-4077-8eb0-c849523c2fd5",
+      "createdAt": "2026-05-13T01:39:44.052Z",
+      "preview": "DMP1 / Swamps / Roadside Events reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize assassination and planted-evidence language into Containment Protocol terms such as threat removal, arrest, containment, deactivation, hostile-faction forgery, or dirty shortcut with explicit legal and trust consequences rather than neutral mission verbs\n* preserve human-extraction rights framing: person recovery is not object retrieval; extraction requires c"
+    },
+    {
+      "id": "6d299e90-f322-404c-9b55-7ffc820f3366",
+      "createdAt": "2026-05-13T01:35:47.537Z",
+      "preview": "Oracle #31 world building reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize fantasy worldbuilding terms into Containment Protocol language: region, district, support hub, anomaly tolerance, belief institution, civic pressure, ritual window, source-site, manifestation, intermediary, and empowered actor rather than direct fantasy theology or creature classes\n* replace colonial or hierarchy-laden settlement-density language such as `civilised"
+    },
+    {
+      "id": "50ffb10f-2e3d-41b0-8b0b-39be218edd26",
+      "createdAt": "2026-05-13T01:18:34.038Z",
+      "preview": "Perilous Intersections / Single-Sheet Overland reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize overland and solo-engine terms into Containment Protocol language: contract, lead, map node, weak signal, hazard, witness channel, support node, final operation, pressure scale, and aftermath rather than fantasy quest/travel jargon\n* preserve noncombat pressure framing: danger/opposition scales and final confrontations should remain able to exp"
+    },
+    {
+      "id": "7a0353a2-1c0b-45bf-b1a0-1bb84a1bca18",
+      "createdAt": "2026-05-13T01:08:44.816Z",
+      "preview": "B006 World Builder Game Sheets reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize hex / quest / mount / guild / ration / forage language into Containment Protocol terms: map node, contract or lead, vehicle or outside asset, institution or credential body, supply, exposure risk, support node, and field action\n* preserve AP translation guidance: treat action points as daylight, staff capacity, command attention, fuel, fatigue margin, and publ"
+    },
+    {
+      "id": "074ee60f-138d-4190-a3b0-c8d7fd88d6e3",
+      "createdAt": "2026-05-13T01:05:14.333Z",
+      "preview": "UNE reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize fantasy or older social-role terminology into Containment Protocol actor language such as civilian, worker, official, clergy, scientist, contractor, patient, journalist, advocate, criminal actor, handler, or altered person\n* modernize or replace dated/stigmatizing labels when adapting generator outputs; the system should not preserve harmful wording just because it appeared in a legacy "
+    },
+    {
+      "id": "94c5b6c3-6317-4acc-93f9-fffd7946e773",
+      "createdAt": "2026-05-13T01:00:32.082Z",
+      "preview": "Extended Roll Me A Religion reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize religion / sect / deity / cult / miracle language into Containment Protocol terms: belief system, belief entity, institution, ritual practice, sacred object, witness claim, public myth, anomaly interpretation, and faction pressure\n* preserve non-pathologizing guidance: religion, minority belief, folk practice, or intense devotion is not itself proof of anomaly, c"
+    },
+    {
+      "id": "fba1897a-d393-44f2-bb57-f29de2b29384",
+      "createdAt": "2026-05-13T00:57:26.462Z",
+      "preview": "Extended Roll Me A Deity reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize deity / god / religion / cult / miracle language into Containment Protocol terms: belief entity, anomaly interpretation, institution, ritual practice, sacred object, witness claim, public myth, and faction pressure\n* preserve non-pathologizing guidance: religion or intense devotion is not itself proof of anomaly, abuse, or danger; distinguish sincere belief, coerciv"
+    },
+    {
+      "id": "cc139f13-6829-4bf4-9d5e-1acb22a82ed3",
+      "createdAt": "2026-05-13T00:52:32.835Z",
+      "preview": "Random Dungeon Generator MMD reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize dungeon / room / villain / curse / trap language into Containment Protocol terms: site, area node, incident driver, exposure condition, hazard trigger, hidden access, source-site, and final operation\n* preserve nonlethal-first threat-removal framing: capture alive, containment, arrest, sedation, deactivation, rescue, or lawful process should remain the default s"
+    },
+    {
+      "id": "3704ce52-2c66-43ce-bbf6-7df0b5280d31",
+      "createdAt": "2026-05-13T00:45:23.478Z",
+      "preview": "Adventure Idea Factory reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize sci-fi frontier framing into Containment Protocol operational isolation language: remote town, company town, offshore site, closed campus, rural hospital, industrial outpost, convoy route, sealed lab, unreliable jurisdiction, delayed response, and bad infrastructure\n* normalize robots into CP-native automation terms such as drones, security systems, autonomous locks, "
+    },
+    {
+      "id": "a8274ba8-89ea-454f-af3c-9b02e881f503",
+      "createdAt": "2026-05-13T00:40:15.542Z",
+      "preview": "Entanglements reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize story map / player character / non player character / prop / set language into Containment Protocol terms: relationship graph, operator, actor, disputed object, operational site, situation node, organization node\n* preserve fallibility guidance: the relationship graph should show claims, records, observations, and inferences, not perfect legal or social truth; a line on the gr"
+    },
+    {
+      "id": "90014145-e8a9-4d08-bb3d-aef85f3efc15",
+      "createdAt": "2026-05-13T00:34:05.198Z",
+      "preview": "Spider’s Web reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize Spider / agent / caper framing into Containment Protocol language: command layer, operators, contracts, field scenes, evidence custody, extraction, containment, verification, suppression, protection, and escalation pressure\n* preserve state-first generation guidance: procedural or oracle-style outputs should only fire when established simulation state, hidden facts, and authore"
+    },
+    {
+      "id": "bfae2b3c-79b7-4bc2-a44c-e60058b7ef93",
+      "createdAt": "2026-05-13T00:31:36.843Z",
+      "preview": "Cult lair / creepy house reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize cult framing into belief network / coercive faction / hidden cell language; do not treat belief groups as generic enemy buckets when coercion, vulnerability, dissent, and leadership abuse are the real operational surfaces\n* preserve humane handling guidance for child-harm evidence, coercive-crime infrastructure, captive notes, body-part evidence, and domestic privat"
+    },
+    {
+      "id": "be6bf191-6db2-41fe-8e4d-5a18ce81f311",
+      "createdAt": "2026-05-13T00:20:06.583Z",
+      "preview": "Mother Haggle / wilderness-encounter reconciliation routing pass\n\nDoc-only normalization and tone notes from this extraction:\n\n* translate slapstick fantasy sidequest structure into CP-native low-profile incident language: retrieval, nuisance complaint, sealed-package disposal, noise check, escort, or evidence recovery that can escalate into containment, rescue, or cover-up pressure\n* preserve person-retrieval as a rights-sensitive surface: no human subject should be treated as a quest item, and"
+    },
+    {
+      "id": "e102a43d-9880-43b1-8cd2-cf0f666b6d04",
+      "createdAt": "2026-05-12T23:49:58.202Z",
+      "preview": "Multi-source random-table reconciliation routing pass\n\nDoc-only normalization and source-confidence notes from this batch:\n\n* normalize fantasy military, monster, gemstone, village-tradition, and warehouse language into CP-native terms such as response unit, changed actor, anomalous object, civic ritual, cargo node, and evidence storage\n* keep military/security material abstract and simulation-facing; do not turn doctrine or site-search generation into real-world tactical instruction\n* treat ecc"
+    },
+    {
+      "id": "94dad2c2-7ca5-4c3d-9776-c5083157ba7a",
+      "createdAt": "2026-05-12T22:25:35.258Z",
+      "preview": "BtT lycanthropes/vampires reconciliation routing pass\n\nDoc-only normalization and tone notes from this extraction:\n\n* normalize fantasy creature language into CP-native terms such as changed actor, predator anomaly, blood-dependent entity, host network, expression form, anchor dependency, and source-site\n* preserve transformation/contagion framing with care: separate culpability, consent, quarantine, treatment, and care duty from moral panic or disability stigma\n* treat vulnerable victim sectors"
+    },
+    {
+      "id": "91b8150f-2cea-4a7e-9878-bf4affa22814",
+      "createdAt": "2026-05-12T22:06:58.096Z",
+      "preview": "Game Master Workbook reconciliation routing pass\n\nDoc-only normalization and source-confidence notes from this extraction:\n\n* treat the useful pattern as workbook-style campaign recordkeeping, not West Marches fantasy expedition logic; normalize expedition, quest, and player-journal framing into contracts, leads, incidents, field operations, and operator records\n* preserve source-confidence caution: the exact linked title says v1.1 while the accessible sample reviewed is v1.0, so avoid page-exac"
+    },
+    {
+      "id": "d915c92a-546b-48a1-9062-d8f9f9b60940",
+      "createdAt": "2026-05-12T21:58:23.762Z",
+      "preview": "City Exploration reconciliation routing pass\n\nDoc-only normalization and depiction notes from this extraction:\n\n* normalize alignment framing into civic doctrine language such as order-first, profit-first, care-first, secrecy-first, punishment-first, public-image-first, survival-first, or tradition-first\n* translate city monsters into CP-native anomaly classes, hostile actors, contaminated zones, signal phenomena, impostors, or social hazards rather than fantasy bestiary language\n* translate spe"
+    },
+    {
+      "id": "e3929eb0-45ba-4653-b136-29e5a3534462",
+      "createdAt": "2026-05-12T21:48:16.770Z",
+      "preview": "Brazen Backgrounds reconciliation routing pass\n\nDoc-only normalization and sensitive-depiction notes from this extraction:\n\n* normalize Bronze Age terms into CP-native language: palace -> agency or institution, temple -> belief network, caravan -> logistics chain, scribe -> records specialist, cult -> belief/faction network, barbarian -> outsider/rural/non-institutional expertise\n* treat slavery, coerced labor, press-ganging, exile, blacklisting, and cult recovery as survivor history and institu"
+    },
+    {
+      "id": "ef7c99b1-c890-43be-ba12-9941336f8dc9",
+      "createdAt": "2026-05-12T21:24:32.935Z",
+      "preview": "Towns & Villagers reconciliation routing pass\n\nDoc-only normalization and source-use notes from this extraction:\n\n* normalize fantasy settlement terms into Containment Protocol language: town, district, parish, shelter, clinic, municipal office, bar, police post, workshop, school, archive, anomaly site\n* treat sensitive peculiarities and civic pressures as social-system stakes rather than stereotype prompts; vulnerable populations, religion, disease blame, and discrimination should be framed wit"
+    },
+    {
+      "id": "19aceeba-0736-4b74-8f57-ee5291b9b9b6",
+      "createdAt": "2026-05-12T20:57:45.402Z",
+      "preview": "Castles & Strongholds reconciliation routing pass\n\nDoc-only normalization and source-use notes from this extraction:\n\n* normalize castle/stronghold terms into Containment Protocol facility language: bunker, hospital annex, archive, safehouse, field office, black site, evidence vault, utility tunnel, perimeter, command core, staff housing\n* translate fantasy production categories into operational resources such as budget, staff hours, evidence capacity, fuel, power, water, reagents, storage, tran"
+    },
+    {
+      "id": "1a9f418e-188a-419e-8c84-0f678781879d",
+      "createdAt": "2026-05-12T20:47:25.599Z",
+      "preview": "Stillfleet reconciliation routing pass\n\nDoc-only normalization and source-confidence notes from this extraction:\n\n* treat the indexed Scribd source as Stillfleet Core Rulebook v1.2-derived and avoid copying exact wording, tables, or graphic-language from licensed text\n* normalize setting terms into Containment Protocol language: venture dossier -> contract dossier, Co. -> parent institution / patron, stiffworks -> anomalous route network, archaetech -> recovered / legacy technology, hell science"
+    },
+    {
+      "id": "5b7e0f61-c6c3-487a-8eff-491053d2e336",
+      "createdAt": "2026-05-12T20:40:06.152Z",
+      "preview": "CAIN reconciliation routing pass\n\nDoc-only normalization and version notes from this extraction:\n\n* the supplied extraction appears grounded in CAIN v1.1 while current official distribution exposes v1.3; treat all exact balance thresholds, power names, and attrition assumptions as version-limited until rechecked against v1.3\n* preserve source-version, source-confidence, and newer-version-available metadata in reconciliation workflow\n* normalize CAIN-specific terms into Containment Protocol langu"
+    },
+    {
+      "id": "6d24939d-20ba-4077-b453-ce57b2a3ac60",
+      "createdAt": "2026-05-12T20:33:25.729Z",
+      "preview": "Deep Cuts reconciliation routing pass\n\nDoc-only normalization and contradiction notes from this extraction:\n\n* track that the linked extraction source is Deep Cuts v1.1 while official distribution now exposes v1.2; treat final issue creation from this source as needing a version recheck when a v1.2 file is available\n* preserve source-version, source-confidence, and newer-version-available metadata in reconciliation workflow rather than in per-issue prose only\n* adapt mechanical patterns in origi"
+    },
+    {
+      "id": "7e5c0fff-d3e5-462a-b488-afe47003abe8",
+      "createdAt": "2026-05-12T20:01:20.218Z",
+      "preview": "West Marches Party Ledger reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize West Marches expedition language into Containment Protocol operational language: contracts, site visits, evidence recovery, perimeter breach, stakeholder encounter, unresolved anomaly\n* keep recovered objects framed as evidence, samples, restricted tools, seized devices, custody items, or research assets rather than loot or treasure\n* treat metadata-only extraction"
+    },
+    {
+      "id": "376ee48b-7d71-4cf4-8f19-97745d99730e",
+      "createdAt": "2026-05-12T19:56:25.190Z",
+      "preview": "Blades reconciliation routing pass\n\nDoc-only normalization and guardrail notes from this extraction:\n\n* normalize criminal-crew / score framing into Containment Protocol contract language; investigation, containment, rescue, cleanup, public-health, and evacuation must remain first-class contract forms\n* keep guaranteed bargain costs, retroactive preparation costs, and clock causes player-visible and inspectable; do not hide mandatory fallout behind opaque resolution\n* treat staff coping, trauma,"
+    }
+  ],
+  "impl-context": [
+    {
+      "id": "caf40cf7-298c-4da9-bf88-c70b140d20c3",
+      "createdAt": "2026-05-15T09:46:32.926Z",
+      "preview": "Reconciliation update\n\nFold batch-9993 humane integration versus firm-hand pressure, authentic grievance versus external exploitation, autonomy-versus-imprisonment labeling, and historical-prejudice adaptation limits into this issue.\n\nImplementation emphasis:\n\n* preserve a hard distinction between protected residents, detained civilians, anomaly-adjacent populations, and exploitable assets in design guidance; do not let one containment label hide materially different rights and duties\n* keep res"
+    },
+    {
+      "id": "0a56f55a-3ed0-4b5b-b633-8b31f09fc5df",
+      "createdAt": "2026-05-15T18:18:10.885Z",
+      "preview": "## batch-9992 harvest — body sync complete (May 2026)\n\nAll fold-map owners now have harvest-aligned scope bullets, acceptance criteria, and `architecture/containment-environment-patterns.md` design references.\n\n**38 issues updated** (batches 1–3):\n\nSPE-36, SPE-39, SPE-104, SPE-116, SPE-122, SPE-241, SPE-245, SPE-303, SPE-407, SPE-408, SPE-471, SPE-606, SPE-766, SPE-788, SPE-802, SPE-854, SPE-877, SPE-921, SPE-1009, SPE-1011, SPE-1032, SPE-1033, SPE-1049, SPE-1057, SPE-1076, SPE-1085, SPE-1089, S"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "95735206-3bea-4d04-b517-9c817fe438ec",
+      "createdAt": "2026-05-16T11:21:49.091Z",
+      "preview": "**Reconciliation pass (May 16, 2026) — batch-9985 meta batch**\n\nDisposition: design-doc / planning routing only (not new implementation issues).\n\nSource: SPE-1864 (batch-9985 reconciliation: event-delay and software systems) — tracking issue noting reconciliation complete; fold summary here.\n\nCaptured outcomes:\n- 8 implementation issues created (anomalous software + event-delay slices)\n- 7 contradiction checks (SPE-1814–SPE-1820)\n- 20+ fold-ins identified in `planning/backlog.md`\n\nCanonical impl"
+    },
+    {
+      "id": "63b09994-8814-498b-bbd5-be0892b59fb9",
+      "createdAt": "2026-05-16T11:06:39.921Z",
+      "preview": "**Reconciliation pass (May 16, 2026) — doc-routing batch**\n\nDisposition: design-doc / planning-doc updates only (not new implementation issues).\n\nSources folded from artifact memory-replay harvest sprawl (now duplicate of SPE-1785):\n- SPE-1786, SPE-1782, SPE-1775, SPE-1846, SPE-1842, SPE-1837, SPE-1845\n\nAction when implementing SPE-1785:\n- Update `planning/backlog.md`, `SCHEMA_REGISTRY.md`, and planning doc touchpoints listed on SPE-1764/1785 as a single doc pass.\n- Record glossary/normalization"
+    }
+  ]
+}

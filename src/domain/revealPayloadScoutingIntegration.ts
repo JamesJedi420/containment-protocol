@@ -128,7 +128,7 @@ function resolveScoutingSubjectCategory(caseData: CaseInstance): string {
     return 'displaced contact'
   }
 
-  if (caseData.tags.includes('concealment')) {
+  if (caseData.tags?.includes('concealment')) {
     return 'concealed presence'
   }
 
@@ -153,7 +153,7 @@ export function buildScoutingRevealSubjectFromCase(caseData: CaseInstance): Scou
     category: resolveScoutingSubjectCategory(caseData),
     hostility: resolveScoutingSubjectHostility(caseData),
     activeProtections: [],
-    activeEffects: caseData.tags.includes('concealment') ? ['concealment field'] : [],
+    activeEffects: caseData.tags?.includes('concealment') ? ['concealment field'] : [],
     dormantEffects: caseData.hiddenState === 'hidden' ? ['undisclosed briefing detail'] : [],
   }
 }
@@ -170,7 +170,7 @@ export function buildScoutingRevealInputFromCase(
     teamCapability: teamScoutingCapabilityFromAgents(agents),
     anomalyConcealment: anomalyConcealmentFromCase(caseData),
     teamTags: [...new Set([...teamTags, ...agentTags])],
-    anomalyTags: [...caseData.tags],
+    anomalyTags: [...(caseData.tags ?? [])],
     subject: buildScoutingRevealSubjectFromCase(caseData),
   }
 }

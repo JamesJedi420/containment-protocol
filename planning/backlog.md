@@ -18,7 +18,7 @@ From `README.md` **Current design notes**:
 1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: optional post-matrix modality families (signature masking, false-detection output, glamour). **Next matrix slice:** [SPE-2286](https://linear.app/spectranoir/issue/SPE-2286) mode-specific tells — `planning/hidden-modality-matrix-slice-6.md`. **Shipped:** concealment activation, batch-4, infiltration stack, SPE-781 reveal, matrix slices 1–5 (PR #2403–#2411).
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-4. **Docs hygiene** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) shipped (PR #2412); [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) case-prep planning doc reconciliation (in progress).
+4. **Docs hygiene** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) shipped (PR #2412); [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) case-prep planning docs reconciled (SPE-2251 / SPE-626 / SPE-70 prep / SPE-2247).
 
 ## Blocked / waiting
 

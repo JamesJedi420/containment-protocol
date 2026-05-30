@@ -94,7 +94,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |
 | `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                          |
 | `hidden-modality-matrix-slice-2.md`                       | **Shipped**    | SPE-2282 / PR #2405; weekly orchestration wiring.              |
-| `hidden-modality-matrix-slice-3.md`                       | **Active**     | SPE-2283; modality report / event-feed copy (next).           |
+| `hidden-modality-matrix-slice-3.md`                       | **Shipped**    | SPE-2283 / PR #2407; modality report copy.                    |
+| `hidden-modality-matrix-slice-4.md`                       | **Active**     | SPE-2284; persistent recon cache.                             |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
 

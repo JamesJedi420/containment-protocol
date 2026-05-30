@@ -8,6 +8,7 @@ import {
   buildDisguiseRevealSubjectFromCase,
   disguiseConcealmentRatingFromCase,
 } from './revealPayloadDisguiseIntegration'
+import { extraLayersToStripFromReconCache } from './hiddenStateScoutingReconCache'
 import {
   buildSubjectTruthFromScouting,
   concealmentLayersFromRating,
@@ -239,13 +240,20 @@ export function scoutingOutcomeToDetectionScanForCase(
 ): DetectionScanInput {
   const base = scoutingOutcomeToDetectionScan(scouting)
   const modality = resolveHiddenStateModality(caseData)
+  let layersToStrip = base.layersToStrip ?? 0
 
-  if (modality === 'none' || !caseData.counterDetection) {
+  layersToStrip = Math.max(layersToStrip, extraLayersToStripFromReconCache(caseData))
+
+  if (modality !== 'none' && caseData.counterDetection) {
+    layersToStrip = Math.max(layersToStrip, 1)
+  }
+
+  if (layersToStrip === (base.layersToStrip ?? 0)) {
     return base
   }
 
   return {
     ...base,
-    layersToStrip: Math.max(base.layersToStrip ?? 0, 1),
+    layersToStrip,
   }
 }

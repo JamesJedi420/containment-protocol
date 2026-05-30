@@ -18,7 +18,16 @@ import {
 import type { CaseInstance } from './models'
 import type { DetectionScanResult } from './revealPayload'
 import type { DisguiseRevealIntegrationResult } from './revealPayloadDisguiseIntegration'
+import type { HiddenStateModalityTellResult } from './hiddenStateModalityTells'
+import { MODALITY_TELL_READOUT_PREFIXES } from './hiddenStateModalityTells'
 import type { HiddenStateScoutingRevealIntegrationResult } from './revealPayloadScoutingIntegration'
+
+export {
+  CONCEALMENT_TELL_READOUT_PREFIX,
+  COVER_TELL_READOUT_PREFIX,
+  DISPLACEMENT_TELL_READOUT_PREFIX,
+  MODALITY_TELL_READOUT_PREFIXES,
+} from './hiddenStateModalityTells'
 
 export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 export const CONCEALMENT_SCAN_READOUT_PREFIX = 'Concealment readout:'
@@ -70,6 +79,31 @@ function orderedPlayerFacingValues(result: DetectionScanResult): readonly string
 
 function resolutionReasonHasDetectionScanReadout(reason: string): boolean {
   return DETECTION_SCAN_READOUT_PREFIXES.some((prefix) => reason.startsWith(prefix))
+}
+
+function resolutionReasonHasModalityTellReadout(reason: string): boolean {
+  return MODALITY_TELL_READOUT_PREFIXES.some((prefix) => reason.startsWith(prefix))
+}
+
+export function shouldAppendModalityTellReportNote(
+  tell: HiddenStateModalityTellResult | undefined
+): boolean {
+  return tell?.active === true && (tell.readoutLine?.length ?? 0) > 0
+}
+
+export function appendModalityTellResolutionReason(
+  resolutionReasons: string[],
+  tell: HiddenStateModalityTellResult | undefined
+): void {
+  if (!shouldAppendModalityTellReportNote(tell)) {
+    return
+  }
+
+  if (resolutionReasons.some(resolutionReasonHasModalityTellReadout)) {
+    return
+  }
+
+  resolutionReasons.push(tell!.readoutLine!)
 }
 
 export function shouldAppendDetectionScanReportNote(
@@ -139,7 +173,8 @@ export function appendDetectionScanResolutionReason(
   resolutionReasons: string[],
   behaviorValidation?: DisguiseRevealIntegrationResult,
   hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult,
-  caseData?: CaseInstance
+  caseData?: CaseInstance,
+  modalityTell?: HiddenStateModalityTellResult
 ): void {
   if (resolutionReasons.some(resolutionReasonHasDetectionScanReadout)) {
     return
@@ -186,4 +221,6 @@ export function appendDetectionScanResolutionReason(
       formatIllusionDisproofSuffix(caseData?.hiddenStateIllusionState)
     resolutionReasons.push(summary)
   }
+
+  appendModalityTellResolutionReason(resolutionReasons, modalityTell)
 }

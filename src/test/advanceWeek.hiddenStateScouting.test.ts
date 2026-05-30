@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
   CONCEALMENT_SCAN_READOUT_PREFIX,
+  CONCEALMENT_TELL_READOUT_PREFIX,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
+  DISPLACEMENT_TELL_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
+import { TELL_ROUTE_TIMING_TAG, TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
@@ -162,6 +165,84 @@ describe('advanceWeek hidden-state scouting report copy (SPE-2283)', () => {
     ).toBe(true)
     expect(
       missionResult?.explanationNotes.some((note) => note.includes('decoy locus annex-b'))
+    ).toBe(true)
+  })
+
+  it('surfaces concealment tell readout without revealing hidden state', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_concealed_tell', 60)
+    const team: Team = {
+      id: 'team-concealed-tell',
+      name: 'Concealed tell team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      tags: ['concealment', TELL_THERMAL_RESIDUAL_TAG],
+    })
+
+    const preAdvance = resolveAssignedCaseForWeek(state.cases['case-concealed-readout'], state, () => 0.5)
+    expect(preAdvance.hiddenStateModalityTell?.active).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(CONCEALMENT_TELL_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(snapshot?.hiddenState).not.toBe('revealed')
+  })
+
+  it('surfaces displacement tell readout for route-timing tags', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_displaced_tell', 60)
+    const team: Team = {
+      id: 'team-displaced-tell',
+      name: 'Displaced tell team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      hiddenState: 'displaced',
+      displacementTarget: 'annex-b',
+      tags: [TELL_ROUTE_TIMING_TAG],
+    })
+
+    const nextState = advanceWeek(state)
+    const missionResult =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+        ?.missionResult
+
+    expect(
+      missionResult?.explanationNotes.some((note) => note.includes(DISPLACEMENT_TELL_READOUT_PREFIX))
+    ).toBe(true)
+    expect(
+      missionResult?.explanationNotes.some((note) => note.includes('movement log'))
     ).toBe(true)
   })
 })

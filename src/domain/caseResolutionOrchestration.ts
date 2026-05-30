@@ -14,6 +14,8 @@ import {
   applyHiddenStateIllusionLifecyclePass,
   buildIllusionLifecycleContext,
 } from './hiddenStateIllusionLifecycle'
+import { evaluateHiddenStateModalityTell } from './hiddenStateModalityTells'
+import type { HiddenStateModalityTellResult } from './hiddenStateModalityTells'
 import {
   applyHiddenStateScoutingReconCacheToCase,
   scoutingReconCacheScoreAdjustment,
@@ -45,6 +47,7 @@ export interface WeeklyCaseResolutionStrategy {
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
   behaviorValidation?: DisguiseRevealIntegrationResult
+  hiddenStateModalityTell?: HiddenStateModalityTellResult
   hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
   stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
@@ -163,6 +166,11 @@ export function resolveAssignedCaseForWeek(
     resolvedEffectiveCase,
     buildIllusionLifecycleContext(resolvedEffectiveCase)
   )
+  const hiddenStateModalityTell = evaluateHiddenStateModalityTell({
+    caseData: resolvedEffectiveCase,
+    agents: assignedAgents,
+    disguiseValidationActive: behaviorValidation.active,
+  })
   const hiddenStateScouting = evaluateHiddenStateScoutingWithRevealPayload({
     caseData: resolvedEffectiveCase,
     agents: assignedAgents,
@@ -182,12 +190,14 @@ export function resolveAssignedCaseForWeek(
   const scoreAdjustment =
     factionContext.scoreAdjustment +
     behaviorValidation.scoreAdjustment +
+    hiddenStateModalityTell.scoreAdjustment +
     infiltrationStageMission.scoreAdjustment +
     stealthLeaveBehindMission.scoreAdjustment +
     reconCacheScore.delta
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
+    hiddenStateModalityTell.scoreAdjustmentReason,
     infiltrationStageMission.scoreAdjustmentReason,
     stealthLeaveBehindMission.scoreAdjustmentReason,
     reconCacheScore.reason,
@@ -325,6 +335,7 @@ export function resolveAssignedCaseForWeek(
     activeTeamStressModifiers,
     outcome,
     behaviorValidation,
+    hiddenStateModalityTell,
     hiddenStateScouting,
     infiltrationStageMission,
     stealthLeaveBehindMission,

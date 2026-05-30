@@ -11,6 +11,10 @@ import {
   type DisguiseRevealIntegrationResult,
 } from './revealPayloadDisguiseIntegration'
 import {
+  applyHiddenStateIllusionLifecyclePass,
+  buildIllusionLifecycleContext,
+} from './hiddenStateIllusionLifecycle'
+import {
   applyHiddenStateScoutingReconCacheToCase,
   scoutingReconCacheScoreAdjustment,
 } from './hiddenStateScoutingReconCache'
@@ -154,6 +158,10 @@ export function resolveAssignedCaseForWeek(
   let resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
     effectiveCase,
     behaviorValidation
+  )
+  resolvedEffectiveCase = applyHiddenStateIllusionLifecyclePass(
+    resolvedEffectiveCase,
+    buildIllusionLifecycleContext(resolvedEffectiveCase)
   )
   const hiddenStateScouting = evaluateHiddenStateScoutingWithRevealPayload({
     caseData: resolvedEffectiveCase,
@@ -300,6 +308,16 @@ export function resolveAssignedCaseForWeek(
             partyCardReasons: cardBonus?.reasons,
           })
   }
+
+  const missionResult =
+    outcome.result === 'success' || outcome.result === 'partial' || outcome.result === 'fail'
+      ? outcome.result
+      : undefined
+  resolvedEffectiveCase = applyHiddenStateIllusionLifecyclePass(resolvedEffectiveCase, {
+    ...buildIllusionLifecycleContext(resolvedEffectiveCase),
+    missionResult,
+  })
+
   return {
     effectiveCase: resolvedEffectiveCase,
     assignedAgents,

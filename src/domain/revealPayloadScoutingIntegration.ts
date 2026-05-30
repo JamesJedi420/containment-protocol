@@ -14,6 +14,13 @@ import {
   type SubjectTruthState,
 } from './revealPayload'
 import {
+  applyIllusionScanProjection,
+  formatIllusionDisproofSuffix,
+  illusionReadoutPrefixForState,
+  isIllusionLifecycleInert,
+  resolveIllusionKindFromCase,
+} from './hiddenStateIllusionLifecycle'
+import {
   applyFalsePositionScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   resolveHiddenStateModality,
@@ -51,6 +58,9 @@ export interface ScoutingRevealIntegrationResult extends ScoutingResult {
 
 export interface HiddenStateScoutingRevealIntegrationResult extends ScoutingRevealIntegrationResult {
   readonly active: true
+  /** SPE-2285: prefix captured at compose time (survives post-resolution illusion collapse). */
+  readonly illusionReadoutPrefix?: string | null
+  readonly illusionDisproofSuffix?: string
 }
 
 export interface CaseScoutingRevealBuildResult {
@@ -212,16 +222,20 @@ export function evaluateHiddenStateScoutingWithRevealPayload(input: {
     input.teamTags ?? []
   )
 
+  const integrated = resolveScoutingWithCaseHiddenState({
+    teamCapability: built.teamCapability,
+    anomalyConcealment: built.anomalyConcealment,
+    teamTags: [...built.teamTags],
+    anomalyTags: [...built.anomalyTags],
+    subject: built.subject,
+    caseData: input.caseData,
+  })
+
   return {
     active: true,
-    ...resolveScoutingWithCaseHiddenState({
-      teamCapability: built.teamCapability,
-      anomalyConcealment: built.anomalyConcealment,
-      teamTags: [...built.teamTags],
-      anomalyTags: [...built.anomalyTags],
-      subject: built.subject,
-      caseData: input.caseData,
-    }),
+    ...integrated,
+    illusionReadoutPrefix: illusionReadoutPrefixForState(input.caseData.hiddenStateIllusionState),
+    illusionDisproofSuffix: formatIllusionDisproofSuffix(input.caseData.hiddenStateIllusionState),
   }
 }
 
@@ -297,6 +311,13 @@ export function resolveScoutingWithCaseHiddenState(
 
   if (resolveHiddenStateModality(input.caseData) === 'false_position') {
     detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)
+  }
+
+  if (
+    resolveIllusionKindFromCase(input.caseData) !== null &&
+    !isIllusionLifecycleInert(input.caseData)
+  ) {
+    detectionScan = applyIllusionScanProjection(detectionScan, input.caseData)
   }
 
   return {

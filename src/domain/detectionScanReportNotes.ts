@@ -4,6 +4,14 @@
 
 import type { BehaviorWeightedDisguiseValidationResult } from './disguiseValidation'
 import {
+  FABRICATED_CONTACT_READOUT_PREFIX,
+  STRUCTURAL_ILLUSION_READOUT_PREFIX,
+  formatIllusionDisproofSuffix,
+  illusionReadoutPrefixForState,
+} from './hiddenStateIllusionLifecycle'
+
+export { FABRICATED_CONTACT_READOUT_PREFIX, STRUCTURAL_ILLUSION_READOUT_PREFIX }
+import {
   resolveHiddenStateModality,
   type HiddenStateModalityKind,
 } from './hiddenStateModality'
@@ -22,6 +30,8 @@ export const DETECTION_SCAN_READOUT_PREFIXES = [
   CONCEALMENT_SCAN_READOUT_PREFIX,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
   COVER_SCAN_READOUT_PREFIX,
+  FABRICATED_CONTACT_READOUT_PREFIX,
+  STRUCTURAL_ILLUSION_READOUT_PREFIX,
 ] as const
 
 export function detectionScanReadoutPrefixForModality(
@@ -80,10 +90,16 @@ export function shouldAppendDetectionScanReportNote(
 
 export function shouldAppendHiddenStateScoutingReportNote(
   scouting: HiddenStateScoutingRevealIntegrationResult,
-  modality: HiddenStateModalityKind
+  modality: HiddenStateModalityKind,
+  caseData?: CaseInstance
 ): boolean {
   if (!scouting.active || modality === 'none') {
     return false
+  }
+
+  const illusionPhase = caseData?.hiddenStateIllusionState?.phase
+  if (illusionPhase === 'active' || illusionPhase === 'disproved') {
+    return orderedPlayerFacingValues(scouting.detectionScan).length > 0
   }
 
   if (isPresenceOnlyAbsentContact(scouting.detectionScan)) {
@@ -147,18 +163,27 @@ export function appendDetectionScanResolutionReason(
     return
   }
 
+  const illusionPrefix =
+    hiddenStateScouting.illusionReadoutPrefix ??
+    (caseData !== undefined
+      ? illusionReadoutPrefixForState(caseData.hiddenStateIllusionState)
+      : null)
   const modality =
     caseData !== undefined ? resolveHiddenStateModality(caseData) : ('none' as const)
 
-  if (!shouldAppendHiddenStateScoutingReportNote(hiddenStateScouting, modality)) {
+  if (!shouldAppendHiddenStateScoutingReportNote(hiddenStateScouting, modality, caseData)) {
     return
   }
 
-  const summary = formatDetectionScanSummary(hiddenStateScouting.detectionScan, {
-    prefix: detectionScanReadoutPrefixForModality(modality),
+  const prefix = illusionPrefix ?? detectionScanReadoutPrefixForModality(modality)
+  let summary = formatDetectionScanSummary(hiddenStateScouting.detectionScan, {
+    prefix,
   })
 
   if (summary.length > 0) {
+    summary +=
+      hiddenStateScouting.illusionDisproofSuffix ??
+      formatIllusionDisproofSuffix(caseData?.hiddenStateIllusionState)
     resolutionReasons.push(summary)
   }
 }

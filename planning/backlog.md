@@ -15,10 +15,10 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: **mode-specific tells** and observer-threshold validation; optional post-matrix modality families (signature masking, false-detection output, glamour — see `architecture/hidden-state-displacement-counter-detection.md`). **Shipped:** concealment activation ([SPE-2107](https://linear.app/spectranoir/issue/SPE-2107) / [SPE-2113](https://linear.app/spectranoir/issue/SPE-2113)), batch-4 migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249)), infiltration stack slices 1–2 ([SPE-2250](https://linear.app/spectranoir/issue/SPE-2250)), [SPE-781](https://linear.app/spectranoir/issue/SPE-781) reveal slices, hidden-modality matrix slices 1–5 ([SPE-2281](https://linear.app/spectranoir/issue/SPE-2281)–[SPE-2285](https://linear.app/spectranoir/issue/SPE-2285) / PR #2403–#2411).
+1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: optional post-matrix modality families (signature masking, false-detection output, glamour). **Next matrix slice:** [SPE-2286](https://linear.app/spectranoir/issue/SPE-2286) mode-specific tells — `planning/hidden-modality-matrix-slice-6.md`. **Shipped:** concealment activation, batch-4, infiltration stack, SPE-781 reveal, matrix slices 1–5 (PR #2403–#2411).
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-4. **Docs hygiene** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) README/backlog reconciliation after matrix slice 5; [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) shipped case-prep planning doc reconciliation.
+4. **Docs hygiene** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) shipped (PR #2412); [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) case-prep planning doc reconciliation (in progress).
 
 ## Blocked / waiting
 
@@ -97,6 +97,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `hidden-modality-matrix-slice-3.md`                       | **Shipped**    | SPE-2283 / PR #2407; modality report copy.                    |
 | `hidden-modality-matrix-slice-4.md`                       | **Shipped**    | SPE-2284 / PR #2409; persistent recon cache.                 |
 | `hidden-modality-matrix-slice-5.md`                       | **Shipped**    | SPE-2285 / PR #2411; false-entity / structural-illusion lifecycle. |
+| `hidden-modality-matrix-slice-6.md`                       | **Active**     | SPE-2286; mode-specific tells / observer-threshold (next).       |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
 

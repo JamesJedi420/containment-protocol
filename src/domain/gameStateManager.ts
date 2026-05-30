@@ -1119,6 +1119,51 @@ export function reconcileRuntimeUiSelections(
   }
 }
 
+function hasCanonicalDebugFlags(value: unknown): boolean {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  if (!Array.isArray(value.eventLog)) {
+    return false
+  }
+
+  if (value.enabled === true && isRecord(value.flags) && Object.keys(value.flags).length === 0) {
+    return false
+  }
+
+  if (!isRecord(value.flags)) {
+    return true
+  }
+
+  const hasTruthyFlag = Object.entries(value.flags).some(
+    ([key, flagValue]) => key === sanitizeString(key) && key.length > 0 && Boolean(flagValue)
+  )
+
+  if (value.enabled === true && !hasTruthyFlag) {
+    return false
+  }
+
+  return Object.keys(value.flags).every((key) => key === sanitizeString(key) && key.length > 0)
+}
+
+function hasRuntimeShape(value: unknown): value is RuntimeState {
+  return (
+    isRecord(value) &&
+    isRecord(value.player) &&
+    isRecord(value.globalFlags) &&
+    isRecord(value.oneShotEvents) &&
+    isRecord(value.currentLocation) &&
+    Array.isArray(value.sceneHistory) &&
+    isRecord(value.encounterState) &&
+    isRecord(value.progressClocks) &&
+    isRecord(value.eventQueue) &&
+    Array.isArray(value.eventQueue.entries) &&
+    isRecord(value.ui) &&
+    hasCanonicalDebugFlags((value.ui as Record<string, unknown>).debug)
+  )
+}
+
 export function normalizeRuntimeState(
   value: unknown,
   week: number,
@@ -1276,7 +1321,9 @@ export function getProgressClock(state: GameState, clockId: string) {
 }
 
 export function ensureManagedGameState(state: GameState): GameState {
-  const runtimeState = normalizeRuntimeState(state.runtimeState, state.week, undefined, 'runtime')
+  const runtimeState = hasRuntimeShape(state.runtimeState)
+    ? state.runtimeState
+    : normalizeRuntimeState(state.runtimeState, state.week, undefined, 'runtime')
   const inventory = isInventoryCanonical(state.inventory)
     ? state.inventory
     : sanitizeInventoryRecord(state.inventory)

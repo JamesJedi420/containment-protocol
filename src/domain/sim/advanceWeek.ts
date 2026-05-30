@@ -2465,7 +2465,12 @@ function resolveAssignments(
       ...outcome.reasons,
       ...buildAggregateBattleResolutionReasons(aggregateBattleSummary),
     ]
-    appendDetectionScanResolutionReason(resolutionReasons, behaviorValidation, hiddenStateScouting)
+    appendDetectionScanResolutionReason(
+      resolutionReasons,
+      behaviorValidation,
+      hiddenStateScouting,
+      effectiveCase
+    )
 
     if (
       stealthLeaveBehindMission?.active &&

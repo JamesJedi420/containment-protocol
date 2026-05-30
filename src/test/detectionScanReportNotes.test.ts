@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendDetectionScanResolutionReason,
+  CONCEALMENT_SCAN_READOUT_PREFIX,
+  COVER_SCAN_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
+  detectionScanReadoutPrefixForModality,
+  DISPLACEMENT_SCAN_READOUT_PREFIX,
   formatDetectionScanSummary,
   shouldAppendDetectionScanReportNote,
 } from '../domain/detectionScanReportNotes'
@@ -39,6 +43,26 @@ describe('detectionScanReportNotes', () => {
     expect(formatDetectionScanSummary(scan)).toBe(
       `${DETECTION_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`
     )
+  })
+
+  it('formats modality-specific readout prefixes', () => {
+    const scan = resolveDetectionScan(buildSubject(), { family: 'category_pass' })
+
+    expect(
+      formatDetectionScanSummary(scan, { prefix: CONCEALMENT_SCAN_READOUT_PREFIX })
+    ).toBe(`${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`)
+
+    expect(
+      formatDetectionScanSummary(scan, { prefix: DISPLACEMENT_SCAN_READOUT_PREFIX })
+    ).toContain(DISPLACEMENT_SCAN_READOUT_PREFIX)
+
+    expect(detectionScanReadoutPrefixForModality('concealed_presence')).toBe(
+      CONCEALMENT_SCAN_READOUT_PREFIX
+    )
+    expect(detectionScanReadoutPrefixForModality('false_position')).toBe(
+      DISPLACEMENT_SCAN_READOUT_PREFIX
+    )
+    expect(detectionScanReadoutPrefixForModality('disguised_identity')).toBe(COVER_SCAN_READOUT_PREFIX)
   })
 
   it('appends counter-detection peel suffix when layers were stripped', () => {
@@ -120,6 +144,25 @@ describe('detectionScanReportNotes', () => {
       shouldDegradeSuccessToPartial: false,
       detectionScan: scan,
     })
+    appendDetectionScanResolutionReason(reasons, {
+      active: true,
+      level: 'strong',
+      scoreAdjustment: 0,
+      evidenceSignals: [],
+      counterDetection: false,
+      shouldDegradeSuccessToPartial: false,
+      detectionScan: scan,
+    })
+
+    expect(reasons).toHaveLength(1)
+  })
+
+  it('does not append a second readout when a modality prefix line already exists', () => {
+    const scan = resolveDetectionScan(buildSubject(), { family: 'category_pass' })
+    const reasons = [
+      `${CONCEALMENT_SCAN_READOUT_PREFIX} contact detected; unclassified contact.`,
+    ]
+
     appendDetectionScanResolutionReason(reasons, {
       active: true,
       level: 'strong',

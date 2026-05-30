@@ -6584,7 +6584,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.funding).toBe(42)
       expect(hydrated.agency?.funding).toBe(42)
       expect(hydrated.agency?.fundingState?.funding).toBe(42)
-      expect(hydrated.agency?.fundingState?.fundingHistory).toEqual([])
+      expect(hydrated.agency?.fundingState?.fundingHistory).toEqual([
+        { week: 6, delta: -1, reason: 'bogus_reason' },
+      ])
       expect(Number.isFinite(hydrated.agency?.fundingState?.budgetPressure ?? NaN)).toBe(true)
     })
 
@@ -6653,11 +6655,16 @@ describe('runTransfer import sanitization (326-332)', () => {
       const fs = hydrated.agency?.fundingState
       expect(fs?.courierShellBudgetPressureDebt).toBeUndefined()
       expect(Number.isFinite(fs?.budgetPressure ?? NaN)).toBe(true)
-      expect(fs?.fundingHistory).toHaveLength(1)
-      expect(fs?.fundingHistory[0]).toMatchObject({
+      expect(fs?.fundingHistory).toHaveLength(2)
+      expect(fs?.fundingHistory.find((entry) => entry.reason === 'market_transaction')).toMatchObject({
         week: 5,
         reason: 'market_transaction',
         sourceId: 'req-known',
+      })
+      expect(fs?.fundingHistory.find((entry) => entry.reason === 'not_a_real_reason')).toMatchObject({
+        week: 5,
+        reason: 'not_a_real_reason',
+        delta: 1,
       })
       expect(fs?.procurementBacklog.find((e) => e.requestId === 'req-zero')).toBeUndefined()
       expect(fs?.procurementBacklog.find((e) => e.requestId === 'req-known')?.status).toBe('pending')

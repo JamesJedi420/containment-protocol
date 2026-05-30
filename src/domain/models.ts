@@ -1661,6 +1661,9 @@ export interface MarketState {
   featuredRecipeId: string
   pressure: MarketPressure
   costMultiplier: number
+  /**
+   * Legacy import-only field — procurement listings are derived at read time and stripped on hydrate (SPE-448).
+   */
   listings?: unknown[]
   /**
    * Campaign week when licensed-handling doctrine was last acknowledged (SPE-874 permit freshness).

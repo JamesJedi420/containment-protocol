@@ -12,10 +12,94 @@ import type {
 import type {
   CaseTemplate,
   CompromisedAuthorityState,
+  CompromisedOfficialRole,
   CompromisedResponseCategory,
   CompromisedResponseOverride,
   CorruptionDepth,
+  FactionRuntimeState,
 } from '../models'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const COMPROMISED_OFFICIAL_ROLES = new Set<CompromisedOfficialRole>([
+  'sheriff',
+  'magistrate',
+  'watchCommander',
+  'inquisitor',
+])
+
+const CORRUPTION_DEPTHS = new Set<CorruptionDepth>(['shallow_cover', 'embedded_control'])
+
+const COMPROMISED_RESPONSE_CATEGORIES = new Set<CompromisedResponseCategory>([
+  'patrol',
+  'interrogation',
+  'custody',
+  'evidence',
+])
+
+/**
+ * Hydration problem 469: enums, faction ref, patrol count.
+ */
+export function sanitizeCompromisedAuthorityState(
+  raw: unknown,
+  factions: Record<string, FactionRuntimeState> | undefined
+): CompromisedAuthorityState | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const officialRole = COMPROMISED_OFFICIAL_ROLES.has(raw.officialRole as CompromisedOfficialRole)
+    ? (raw.officialRole as CompromisedOfficialRole)
+    : undefined
+
+  const corruptionDepth = CORRUPTION_DEPTHS.has(raw.corruptionDepth as CorruptionDepth)
+    ? (raw.corruptionDepth as CorruptionDepth)
+    : undefined
+
+  const benefittingFactionId =
+    typeof raw.benefittingFactionId === 'string' && raw.benefittingFactionId.trim().length > 0
+      ? raw.benefittingFactionId.trim()
+      : undefined
+
+  if (!officialRole || !corruptionDepth || !benefittingFactionId) {
+    return undefined
+  }
+
+  if (factions && !(benefittingFactionId in factions)) {
+    return undefined
+  }
+
+  const distortedCategories = Array.isArray(raw.distortedCategories)
+    ? [
+        ...new Set(
+          raw.distortedCategories.filter(
+            (entry): entry is CompromisedResponseCategory =>
+              typeof entry === 'string' &&
+              COMPROMISED_RESPONSE_CATEGORIES.has(entry as CompromisedResponseCategory)
+          )
+        ),
+      ]
+    : []
+
+  const patrolAnomalyCount =
+    typeof raw.patrolAnomalyCount === 'number' && Number.isFinite(raw.patrolAnomalyCount)
+      ? Math.max(0, Math.trunc(raw.patrolAnomalyCount))
+      : 0
+
+  const authorityLinkEvidenceFound =
+    raw.authorityLinkEvidenceFound === true ? true : undefined
+
+  return {
+    officialRole,
+    benefittingFactionId,
+    distortedCategories,
+    corruptionDepth,
+    patrolAnomalyCount,
+    ...(authorityLinkEvidenceFound ? { authorityLinkEvidenceFound } : {}),
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Threshold constants

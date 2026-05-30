@@ -14,6 +14,53 @@ export function getNonFieldStaff(game: GameState): Agent[] {
   return Object.values(game.agents).filter((agent) => !assignedAgentIds.has(agent.id))
 }
 
+function isQueuedForTraining(game: GameState, agentId: string) {
+  return game.trainingQueue.some((entry) => entry.agentId === agentId)
+}
+
+export function isDeployableReserveAgent(
+  agent: Agent,
+  game: GameState,
+  assignedAgentIds: ReadonlySet<string>
+): boolean {
+  if (assignedAgentIds.has(agent.id)) {
+    return false
+  }
+
+  if (agent.status === 'dead' || agent.status === 'resigned') {
+    return false
+  }
+
+  if (agent.status === 'recovering' || agent.assignment?.state === 'recovery') {
+    return false
+  }
+
+  const readiness = agent.readinessProfile
+  if (
+    readiness?.state === 'training' ||
+    readiness?.availabilityState === 'training'
+  ) {
+    return false
+  }
+
+  if (readiness?.deploymentEligible === false || readiness?.deployable === false) {
+    return false
+  }
+
+  if (isQueuedForTraining(game, agent.id)) {
+    return false
+  }
+
+  return agent.status === 'active'
+}
+
+export function getDeployableReserveStaff(game: GameState): Agent[] {
+  const assignedAgentIds = getAssignedAgentIds(game)
+  return Object.values(game.agents).filter((agent) =>
+    isDeployableReserveAgent(agent, game, assignedAgentIds)
+  )
+}
+
 export function getAssignmentSummary(game: GameState) {
   const cases = Object.values(game.cases)
   const teams = Object.values(game.teams)

@@ -1150,6 +1150,11 @@ function getContractDefinition(templateId: string) {
   return CONTRACT_TEMPLATES.find((definition) => definition.id === templateId)
 }
 
+/** Hydration: resolve a persisted contract template id against the canonical catalog. */
+export function resolveContractTemplateDefinition(templateId: string) {
+  return getContractDefinition(templateId)
+}
+
 /** Contract modifier id that triggers SPE-17 execution-instability overlay (not intel-friction scoring). */
 export const CONTRACT_ARCHIVE_INSTABILITY_MODIFIER_ID = 'archive-instability' as const
 
@@ -2007,6 +2012,7 @@ export function refreshContractBoard(state: GameState): GameState {
       ...(typeof contracts.nextIntentCapturedWeek === 'number'
         ? { nextIntentCapturedWeek: contracts.nextIntentCapturedWeek }
         : {}),
+      ...(contracts.active ? { active: { ...contracts.active } } : {}),
     },
   }
 }

@@ -475,6 +475,24 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
   }
 }
 
+const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
+  'missing-coverage',
+  'training-blocked',
+  'missing-certification',
+  'invalid-loadout-gate',
+  'fatigue-over-threshold',
+  'team-state-incompatible',
+  'recovery-required',
+  'routing-state-blocked',
+  'capacity-locked',
+  'no-valid-team',
+  'no-eligible-teams',
+])
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 function sanitizeRoutingStateKind(value: unknown): MissionRoutingStateKind {
   return value === 'queued' ||
     value === 'shortlisted' ||
@@ -586,7 +604,10 @@ function mergeRecomputedMissionRecord(
     lastTriageWeek: week,
     lastRoutedWeek: week,
     lastCandidateTeamIds: routed.candidateTeamIds,
-    lastRejectedTeamIds: routed.rejectedTeams,
+    lastRejectedTeamIds:
+      mission.lastRejectedTeamIds.length > 0
+        ? mission.lastRejectedTeamIds
+        : routed.rejectedTeams,
   }
 }
 
@@ -725,7 +746,11 @@ function normalizeMissionRecord(
       ? { lastRoutedWeek: clampInteger(existing.lastRoutedWeek, 1, Number.MAX_SAFE_INTEGER) }
       : {}),
     lastCandidateTeamIds: uniqueSortedStrings(existing?.lastCandidateTeamIds ?? routing.candidateTeamIds),
-    lastRejectedTeamIds: (existing?.lastRejectedTeamIds ?? routing.rejectedTeams)
+    lastRejectedTeamIds: (
+      existing?.lastRejectedTeamIds && existing.lastRejectedTeamIds.length > 0
+        ? existing.lastRejectedTeamIds
+        : routing.rejectedTeams
+    )
       .filter((entry) => typeof entry.teamId === 'string' && typeof entry.reasonCode === 'string')
       .map((entry) => ({
         teamId: entry.teamId,
@@ -934,5 +959,207 @@ export function routeMissionToTeam(state: GameState, missionId: Id, teamId: Id) 
     },
     assigned: true,
     reason: 'assigned' as const,
+  }
+}
+
+function sanitizeMissionRoutingBlockerCode(value: unknown): MissionRoutingBlockerCode | null {
+  return typeof value === 'string' && MISSION_ROUTING_BLOCKER_CODES.has(value as MissionRoutingBlockerCode)
+    ? (value as MissionRoutingBlockerCode)
+    : null
+}
+
+function sanitizeRejectedTeamRecords(
+  value: unknown,
+  teams: GameState['teams']
+): MissionRejectedTeamRecord[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const seen = new Set<string>()
+
+  return value
+    .filter((entry): entry is Record<string, unknown> => isRecord(entry))
+    .map((entry) => {
+      const teamId = typeof entry.teamId === 'string' ? entry.teamId.trim() : ''
+      const reasonCode = sanitizeMissionRoutingBlockerCode(entry.reasonCode)
+
+      if (!teamId || !reasonCode || !(teamId in teams) || seen.has(teamId)) {
+        return null
+      }
+
+      seen.add(teamId)
+      return { teamId, reasonCode }
+    })
+    .filter((entry): entry is MissionRejectedTeamRecord => entry !== null)
+}
+
+function sanitizeMissionRoutingRecord(
+  missionId: Id,
+  raw: unknown,
+  context: { cases: GameState['cases']; teams: GameState['teams']; week: number }
+): MissionRoutingRecord | null {
+  if (!isRecord(raw)) {
+    return null
+  }
+
+  const currentCase = context.cases[missionId]
+  if (!currentCase || currentCase.status === 'resolved') {
+    return null
+  }
+
+  const assignedTeamIds = (Array.isArray(raw.assignedTeamIds) ? raw.assignedTeamIds : currentCase.assignedTeamIds)
+    .filter((teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams)
+
+  const lastCandidateTeamIds = uniqueSortedStrings(
+    (Array.isArray(raw.lastCandidateTeamIds) ? raw.lastCandidateTeamIds : [])
+      .filter((teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams)
+  )
+
+  const lastRejectedTeamIds = sanitizeRejectedTeamRecords(raw.lastRejectedTeamIds, context.teams)
+
+  const routingBlockers = uniqueSortedStrings(
+    (Array.isArray(raw.routingBlockers) ? raw.routingBlockers : [])
+      .map((entry) => sanitizeMissionRoutingBlockerCode(entry))
+      .filter((entry): entry is MissionRoutingBlockerCode => entry !== null)
+  ) as MissionRoutingBlockerCode[]
+
+  const playerDisposition = sanitizeMissionTriageDisposition(raw.playerDisposition)
+  const playerDispositionWeek =
+    playerDisposition &&
+    typeof raw.playerDispositionWeek === 'number' &&
+    Number.isFinite(raw.playerDispositionWeek)
+      ? clampInteger(raw.playerDispositionWeek, 1, Number.MAX_SAFE_INTEGER)
+      : undefined
+
+  const dispositionActive =
+    playerDisposition !== undefined && playerDispositionWeek === context.week
+
+  return {
+    missionId,
+    templateId:
+      typeof raw.templateId === 'string' && raw.templateId.length > 0
+        ? raw.templateId
+        : currentCase.templateId,
+    category: deriveMissionCategory(currentCase),
+    kind: currentCase.kind,
+    status: currentCase.status,
+    generatedWeek: clampInteger(
+      typeof raw.generatedWeek === 'number' ? raw.generatedWeek : context.week,
+      1,
+      context.week
+    ),
+    deadlineRemaining: clampInteger(currentCase.deadlineRemaining, 0, 99),
+    durationWeeks: clampInteger(currentCase.durationWeeks, 1, 99),
+    ...(typeof currentCase.weeksRemaining === 'number'
+      ? { weeksRemaining: clampInteger(currentCase.weeksRemaining, 0, 99) }
+      : {}),
+    stage: clampInteger(currentCase.stage, 1, 5),
+    difficulty: { ...currentCase.difficulty },
+    weights: { ...currentCase.weights },
+    requiredRoles: [...(currentCase.requiredRoles ?? [])],
+    requiredTags: [...currentCase.requiredTags],
+    preferredTags: [...currentCase.preferredTags],
+    assignedTeamIds,
+    intakeSource: sanitizeIntakeSource(raw.intakeSource ?? deriveMissionIntakeSource(currentCase)),
+    priority: sanitizePriority(raw.priority),
+    priorityReasonCodes: uniqueSortedStrings(
+      Array.isArray(raw.priorityReasonCodes)
+        ? raw.priorityReasonCodes.filter((entry): entry is string => typeof entry === 'string')
+        : []
+    ),
+    triageScore: clampInteger(typeof raw.triageScore === 'number' ? raw.triageScore : 0, 0, 100),
+    routingState: dispositionActive && playerDisposition
+      ? dispositionToRoutingState(
+          playerDisposition,
+          sanitizeRoutingStateKind(raw.routingState ?? raw.state)
+        )
+      : sanitizeRoutingStateKind(raw.routingState ?? raw.state),
+    routingBlockers,
+    ...(dispositionActive && playerDisposition
+      ? {
+          playerDisposition,
+          playerDispositionWeek,
+          ...(playerDisposition === 'ignore' ? { triageIgnored: true } : {}),
+        }
+      : {}),
+    ...(typeof raw.lastTriageWeek === 'number' && Number.isFinite(raw.lastTriageWeek)
+      ? { lastTriageWeek: clampInteger(raw.lastTriageWeek, 1, context.week) }
+      : {}),
+    ...(typeof raw.lastRoutedWeek === 'number' && Number.isFinite(raw.lastRoutedWeek)
+      ? { lastRoutedWeek: clampInteger(raw.lastRoutedWeek, 1, context.week) }
+      : {}),
+    lastCandidateTeamIds,
+    lastRejectedTeamIds,
+  }
+}
+
+export interface SanitizeMissionRoutingContext {
+  cases: GameState['cases']
+  teams: GameState['teams']
+  week: number
+}
+
+/**
+ * Hydration problems 462–463: mission routing records, enums, weeks, sequence, team reconciliation.
+ */
+export function sanitizePersistedMissionRoutingState(
+  raw: unknown,
+  context: SanitizeMissionRoutingContext
+): MissionRoutingState | undefined {
+  if (!isRecord(raw)) {
+    return undefined
+  }
+
+  const missions: Record<string, MissionRoutingRecord> = {}
+
+  if (isRecord(raw.missions)) {
+    for (const [missionId, entry] of Object.entries(raw.missions)) {
+      const record = sanitizeMissionRoutingRecord(missionId, entry, context)
+      if (record) {
+        missions[missionId] = record
+      }
+    }
+  }
+
+  const unresolvedMissionIds = Object.values(context.cases)
+    .filter((currentCase) => currentCase.status !== 'resolved')
+    .map((currentCase) => currentCase.id)
+
+  const orderedMissionIds = [
+    ...new Set([
+      ...(Array.isArray(raw.orderedMissionIds)
+        ? raw.orderedMissionIds.filter(
+            (missionId): missionId is string =>
+              typeof missionId === 'string' &&
+              missionId.length > 0 &&
+              unresolvedMissionIds.includes(missionId)
+          )
+        : []),
+      ...Object.keys(missions).filter((missionId) => unresolvedMissionIds.includes(missionId)),
+    ]),
+  ]
+
+  if (orderedMissionIds.length === 0) {
+    return undefined
+  }
+
+  const nextGeneratedSequence = clampInteger(
+    typeof raw.nextGeneratedSequence === 'number' ? raw.nextGeneratedSequence : orderedMissionIds.length + 1,
+    orderedMissionIds.length + 1,
+    Number.MAX_SAFE_INTEGER
+  )
+
+  return {
+    orderedMissionIds,
+    missions: Object.fromEntries(
+      orderedMissionIds
+        .map((missionId) => {
+          const record = missions[missionId]
+          return record ? ([missionId, record] as const) : null
+        })
+        .filter((entry): entry is readonly [Id, MissionRoutingRecord] => entry !== null)
+    ),
+    nextGeneratedSequence,
   }
 }

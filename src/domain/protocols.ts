@@ -1,4 +1,5 @@
 import type {
+  AgencyState,
   Agent,
   AgentActiveProtocol,
   GameState,
@@ -192,6 +193,12 @@ const PROTOCOL_DEFINITIONS: readonly ProtocolDefinition[] = [
   },
 ] as const
 
+const PROTOCOL_CATALOG_IDS = Object.freeze(PROTOCOL_DEFINITIONS.map((definition) => definition.id))
+
+export function getProtocolCatalogIds(): readonly string[] {
+  return PROTOCOL_CATALOG_IDS
+}
+
 export function listProtocolCatalog(): ProtocolCatalogEntry[] {
   return PROTOCOL_DEFINITIONS.map((definition) => ({
     id: definition.id,
@@ -200,6 +207,55 @@ export function listProtocolCatalog(): ProtocolCatalogEntry[] {
     tier: definition.tier,
     scope: definition.scope,
   }))
+}
+
+function resolvePersistedProtocolSelectionLimit(
+  agency: Pick<GameState['agency'], 'protocolSelectionLimit'> | undefined,
+  clearanceLevel: number
+) {
+  const explicitLimit = agency?.protocolSelectionLimit
+
+  if (typeof explicitLimit === 'number' && Number.isFinite(explicitLimit)) {
+    return Math.max(1, Math.trunc(explicitLimit))
+  }
+
+  return Math.max(1, Math.min(3, Math.trunc(clearanceLevel)))
+}
+
+/** SPE-451: validate protocol limit and active ids against catalog; enforce selection cap. */
+export function sanitizePersistedAgencyProtocols(
+  raw: unknown,
+  clearanceLevel: number
+): Pick<AgencyState, 'protocolSelectionLimit' | 'activeProtocolIds'> | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined
+  }
+
+  const record = raw as Pick<GameState['agency'], 'protocolSelectionLimit' | 'activeProtocolIds'>
+  const catalog = new Set(PROTOCOL_CATALOG_IDS)
+  const selectionLimit = resolvePersistedProtocolSelectionLimit(record, clearanceLevel)
+  const hasLimitField =
+    typeof record.protocolSelectionLimit === 'number' && Number.isFinite(record.protocolSelectionLimit)
+  const hasActiveField = Array.isArray(record.activeProtocolIds)
+
+  if (!hasLimitField && !hasActiveField) {
+    return undefined
+  }
+
+  const activeProtocolIds = hasActiveField
+    ? [
+        ...new Set(
+          record.activeProtocolIds!
+            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+            .filter((id) => catalog.has(id))
+        ),
+      ].slice(0, selectionLimit)
+    : undefined
+
+  return {
+    ...(hasLimitField ? { protocolSelectionLimit: selectionLimit } : {}),
+    ...(hasActiveField ? { activeProtocolIds: activeProtocolIds ?? [] } : {}),
+  }
 }
 
 function getAgencyState(

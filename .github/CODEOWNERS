@@ -1,0 +1,22 @@
+# CODEOWNERS — replace @OWNER placeholders with real GitHub usernames or teams before enabling review routing.
+# Until then, this file documents intended ownership groups only (no automatic review requests).
+
+# Domain simulation and shared models
+# /src/domain/                    @OWNER-domain
+
+# App shell, store, routing
+# /src/app/                       @OWNER-app
+
+# Feature surfaces and view-models
+# /src/features/                  @OWNER-features
+
+# Architecture and design contracts
+# /architecture/                  @OWNER-architecture
+
+# Docs, audits, planning
+# /docs/                          @OWNER-docs
+# /planning/                      @OWNER-docs
+
+# Systems / scripts / CI
+# /scripts/                       @OWNER-systems
+# /.github/                       @OWNER-github

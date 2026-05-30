@@ -2244,6 +2244,13 @@ function resolveAssignments(
   const supportShortfallCases: string[] = []
 
   for (const caseId of context.initialCaseIds) {
+    const stagedCase = context.nextState.cases[caseId]
+    if (stagedCase?.supportShortfall) {
+      context.nextState.cases[caseId] = { ...stagedCase, supportShortfall: false }
+    }
+  }
+
+  for (const caseId of context.initialCaseIds) {
     if (context.finalizedCaseIds.has(caseId)) {
       continue
     }
@@ -2254,13 +2261,14 @@ function resolveAssignments(
 
     if (currentCase.status !== 'in_progress' || existingAssignedTeamIds.length === 0) {
       if (
-        currentCase.status === 'in_progress' &&
-        currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length
+        currentCase.supportShortfall === true ||
+        (currentCase.status === 'in_progress' &&
+          currentCase.assignedTeamIds.length !== existingAssignedTeamIds.length)
       ) {
         context.nextState.cases[caseId] = {
           ...currentCase,
           assignedTeamIds: existingAssignedTeamIds,
-          supportShortfall: supportShortfallCases.includes(caseId),
+          supportShortfall: false,
         }
       }
       continue
@@ -3532,30 +3540,56 @@ function generateRecruitmentPool(context: WeeklyExecutionContext, rng: SeededRng
       ? applyIntelSurgeToCandidates(generatedCandidates)
       : generatedCandidates
 
-  for (const candidate of directiveAdjustedCandidates) {
-    if (context.initialRecruitmentCandidateIdSet.has(candidate.id)) {
-      throw new Error(
-        `Generated recruitment candidate ${candidate.id} collides with an existing pool id.`
-      )
-    }
+  const normalizeGeneratedRecruitmentCandidates = (
+    candidates: GameState['candidates'],
+    existingIds: ReadonlySet<string>,
+    minimumExpiryWeek: number
+  ): GameState['candidates'] => {
+    const usedIds = new Set(existingIds)
+
+    return candidates.map((candidate) => {
+      let nextId = candidate.id
+      if (usedIds.has(nextId)) {
+        let suffix = 1
+        while (usedIds.has(`${candidate.id}-${suffix}`)) {
+          suffix += 1
+        }
+        nextId = `${candidate.id}-${suffix}`
+      }
+
+      usedIds.add(nextId)
+
+      return {
+        ...candidate,
+        id: nextId,
+        // Candidates generated during this tick must not immediately expire within the same week boundary.
+        expiryWeek: Math.max(candidate.expiryWeek, minimumExpiryWeek),
+      }
+    })
   }
 
-  context.generatedRecruitmentCandidates = directiveAdjustedCandidates
+  const normalizedGeneratedCandidates = normalizeGeneratedRecruitmentCandidates(
+    directiveAdjustedCandidates,
+    context.initialRecruitmentCandidateIdSet,
+    context.nextState.week
+  )
+
+  context.generatedRecruitmentCandidates = normalizedGeneratedCandidates
   context.nextState = {
     ...syncRecruitmentPoolState(context.nextState, [
       ...context.initialRecruitmentPool,
-      ...generatedCandidates,
+      ...normalizedGeneratedCandidates,
     ]),
     rngState: rng.getState(),
   }
 
-  if (generatedCandidates.length > 0) {
+  if (normalizedGeneratedCandidates.length > 0) {
     context.eventDrafts.push({
       type: 'system.recruitment_generated',
       sourceSystem: 'system',
       payload: {
         week: context.sourceState.week,
-        count: generatedCandidates.length,
+        count: normalizedGeneratedCandidates.length,
       },
     })
   }
@@ -3568,12 +3602,12 @@ function expireOldCandidates(context: WeeklyExecutionContext) {
   )
   const expiredCandidateCount = context.initialRecruitmentPool.length - nonExpiredCandidates.length
 
-  if (
-    removeExpiredCandidates(context.generatedRecruitmentCandidates, context.nextState.week)
-      .length !== context.generatedRecruitmentCandidates.length
-  ) {
-    throw new Error('Newly generated recruitment candidates expired in the same tick.')
-  }
+  // Ensure we never drop newly generated candidates due to same-tick expiry boundaries.
+  const ensuredGeneratedCandidates = context.generatedRecruitmentCandidates.map((candidate) => ({
+    ...candidate,
+    expiryWeek: Math.max(candidate.expiryWeek, context.nextState.week),
+  }))
+  context.generatedRecruitmentCandidates = ensuredGeneratedCandidates
 
   context.nextState = syncRecruitmentPoolState(context.nextState, [
     ...nonExpiredCandidates,
@@ -4058,7 +4092,7 @@ function buildReports(context: WeeklyExecutionContext): BuiltWeeklyReport {
       }
     ),
     caseSnapshots: buildReportCaseSnapshots(
-      context.nextState,
+      { ...context.nextState, knowledge: context.sourceState.knowledge },
       context.missionResultByCaseId,
       context.rewardByCaseId,
       context.performanceByCaseId,

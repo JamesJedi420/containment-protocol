@@ -44,8 +44,86 @@ describe('SPE-1734 campaign ledger', () => {
       fallback
     )
     expect(sanitized.profile.organizationName).toBe(fallback.profile.organizationName)
-    expect(sanitized.runStateModifiers.length).toBeGreaterThanOrEqual(2)
-    expect(sanitized.settingHistory.every((row) => row.id.length > 0)).toBe(true)
+    expect(sanitized.runStateModifiers).toEqual([])
+    expect(sanitized.settingHistory).toEqual([])
+  })
+
+  it('535-537 dedupes modifiers/toggles by key (latest wins) and preserves explicit empty arrays', () => {
+    const fallback = createSeedCampaignLedger()
+
+    const sanitized = sanitizeCampaignLedger(
+      {
+        ...fallback,
+        runStateModifiers: [
+          { id: 'challenge_posture', label: 'Old', value: 'old' },
+          { id: 'challenge_posture', label: 'New', value: 'new' },
+        ],
+        moduleToggles: [
+          { moduleId: 'courier_network', label: 'Old', enabled: false },
+          { moduleId: 'courier_network', label: 'New', enabled: true },
+        ],
+      },
+      fallback
+    )
+
+    expect(sanitized.runStateModifiers).toEqual([
+      { id: 'challenge_posture', label: 'New', value: 'new' },
+    ])
+    expect(sanitized.moduleToggles).toEqual([
+      { moduleId: 'courier_network', label: 'New', enabled: true },
+    ])
+
+    const cleared = sanitizeCampaignLedger(
+      { ...fallback, runStateModifiers: [], moduleToggles: [] },
+      fallback
+    )
+    expect(cleared.runStateModifiers).toEqual([])
+    expect(cleared.moduleToggles).toEqual([])
+  })
+
+  it('538 dedupes setting history by id and settingId+effectiveFromWeek', () => {
+    const fallback = createSeedCampaignLedger()
+    const sanitized = sanitizeCampaignLedger(
+      {
+        ...fallback,
+        settingHistory: [
+          {
+            id: 'hist_a',
+            settingId: 'toneScopeLabel',
+            value: 'A-old',
+            effectiveFromWeek: 2,
+            changedAtWeek: 1,
+            source: 'seed',
+          },
+          {
+            id: 'hist_a',
+            settingId: 'toneScopeLabel',
+            value: 'A-new',
+            effectiveFromWeek: 2,
+            changedAtWeek: 1,
+            source: 'seed',
+          },
+          {
+            id: 'hist_b',
+            settingId: 'toneScopeLabel',
+            value: 'B-wins',
+            effectiveFromWeek: 2,
+            changedAtWeek: 2,
+            source: 'seed',
+          },
+        ],
+      },
+      fallback,
+      5
+    )
+
+    expect(sanitized.settingHistory).toHaveLength(1)
+    expect(sanitized.settingHistory[0]).toMatchObject({
+      id: 'hist_b',
+      value: 'B-wins',
+      effectiveFromWeek: 2,
+      changedAtWeek: 2,
+    })
   })
 
   it('keeps the chronologically latest setting history rows when capping past 200 entries', () => {
@@ -75,6 +153,25 @@ describe('SPE-1734 campaign ledger', () => {
     const base = createSeedCampaignLedger()
     const sanitized = sanitizeCampaignLedger({ ...base, settingHistory: [] }, base)
     expect(sanitized.settingHistory).toEqual([])
+  })
+
+  it('550 dedupes trimmed compatibility notes and warnings (latest wins)', () => {
+    const fallback = createSeedCampaignLedger()
+
+    const sanitized = sanitizeCampaignLedger(
+      {
+        ...fallback,
+        compatibility: {
+          compatible: true,
+          notes: [' Courier note ', 'Courier note', ''],
+          warnings: [' warn ', 'warn', ' duplicate warn '],
+        },
+      },
+      fallback
+    )
+
+    expect(sanitized.compatibility.notes).toEqual(['Courier note'])
+    expect(sanitized.compatibility.warnings).toEqual(['warn', 'duplicate warn'])
   })
 
   it('preserves intentionally empty compatibility notes through sanitize, hydrate, and summary', () => {
@@ -113,6 +210,40 @@ describe('SPE-1734 campaign ledger', () => {
     expect(summary.headline).toMatch(/Containment Protocol/)
     expect(summary.lines.some((l) => l.includes('Mid-Atlantic'))).toBe(true)
     expect(summary.compatibilitySummary).toMatch(/Compatibility/)
+  })
+
+  it('558 reconciles activeRulesProfileId with registry, label match, and compatibility warnings', () => {
+    const fallback = createSeedCampaignLedger()
+
+    const unknownProfile = sanitizeCampaignLedger(
+      {
+        ...fallback,
+        activeRulesProfileId: 'phantom-profile',
+        activeRulesProfileLabel: 'Phantom label',
+      },
+      fallback
+    )
+
+    expect(unknownProfile.activeRulesProfileId).toBe('baseline-standard')
+    expect(unknownProfile.activeRulesProfileLabel).toBe('Baseline standard containment')
+    expect(unknownProfile.compatibility.compatible).toBe(false)
+    expect(unknownProfile.compatibility.warnings.some((w) => /unknown active rules profile/i.test(w))).toBe(
+      true
+    )
+
+    const mismatchedLabel = sanitizeCampaignLedger(
+      {
+        ...fallback,
+        activeRulesProfileLabel: 'Wrong label',
+      },
+      fallback
+    )
+
+    expect(mismatchedLabel.activeRulesProfileLabel).toBe('Baseline standard containment')
+    expect(mismatchedLabel.compatibility.compatible).toBe(false)
+    expect(
+      mismatchedLabel.compatibility.warnings.some((w) => /did not match registry/i.test(w))
+    ).toBe(true)
   })
 
   it('reflects live game.config for mirrored challenge and duration lines (Front Desk presets)', () => {

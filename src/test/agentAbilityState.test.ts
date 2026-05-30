@@ -68,6 +68,39 @@ describe('agent ability runtime state normalization', () => {
     })
   })
 
+  it('drops stale abilityState keys not declared on agent.abilities', () => {
+    const raw: Agent = {
+      id: 'a_stale',
+      name: 'S. Tale',
+      role: 'tech',
+      baseStats: { combat: 30, investigation: 60, utility: 55, social: 25 },
+      abilities: [
+        {
+          id: 'signal-overclock',
+          label: 'Signal Overclock',
+          type: 'active',
+          trigger: 'OnCaseStart',
+          cooldown: 2,
+          effect: { control: 3 },
+        },
+      ],
+      abilityState: {
+        'signal-overclock': { cooldownRemaining: 1 },
+        'retired-ability': { cooldownRemaining: 4 },
+      },
+      tags: ['tech'],
+      relationships: {},
+      fatigue: 0,
+      status: 'active',
+    }
+
+    const normalized = normalizeAgent(raw)
+
+    expect(normalized.abilityState).toEqual({
+      'signal-overclock': { cooldownRemaining: 1 },
+    })
+  })
+
   it('keeps passive-only agents free of runtime ability state by default', () => {
     const agent = createAgent({
       id: 'a_passive',

@@ -51,8 +51,35 @@ const AGENCY_PROGRESSION_UNLOCK_DEFINITIONS: Record<string, AgencyProgressionUnl
   },
 }
 
+const AGENCY_PROGRESSION_UNLOCK_CATALOG_IDS = Object.freeze(
+  Object.keys(AGENCY_PROGRESSION_UNLOCK_DEFINITIONS)
+)
+
+export function getAgencyProgressionUnlockCatalogIds(): readonly string[] {
+  return AGENCY_PROGRESSION_UNLOCK_CATALOG_IDS
+}
+
 export function getAgencyProgressionUnlockDefinition(unlockId: string) {
   return AGENCY_PROGRESSION_UNLOCK_DEFINITIONS[unlockId]
+}
+
+/** SPE-453: trim, dedupe, and drop ids outside the progression unlock catalog. */
+export function sanitizeProgressionUnlockIds(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  const catalog = new Set(AGENCY_PROGRESSION_UNLOCK_CATALOG_IDS)
+  const next = [
+    ...new Set(
+      value
+        .filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+        .map((id) => id.trim())
+        .filter((id) => catalog.has(id))
+    ),
+  ]
+
+  return next.length > 0 ? next : undefined
 }
 
 export function getAgencyProgressionUnlockLabel(unlockId: string) {

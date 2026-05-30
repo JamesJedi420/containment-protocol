@@ -424,7 +424,7 @@ describe('gameStore', () => {
   it('runs bounded debug reset actions without mutating unrelated simulation state', () => {
     useGameStore.getState().setPersistentFlag('reset.test.flag', true)
     useGameStore.getState().markOneShotEvent('reset.test.one-shot', 'debug')
-    useGameStore.getState().advanceProgressClock('reset.test.clock', 2, {
+    useGameStore.getState().advanceProgressClock('debug.reset.test.clock', 2, {
       label: 'Reset Test Clock',
       max: 4,
     })
@@ -451,7 +451,7 @@ describe('gameStore', () => {
       clearEncounterRuntime: { clearAll: true },
       resetFlags: { flagIds: ['reset.test.flag'] },
       resetOneShots: { contentIds: ['reset.test.one-shot'] },
-      resetProgressClocks: { clockIds: ['reset.test.clock'], resetToDefaults: false },
+      resetProgressClocks: { clockIds: ['debug.reset.test.clock'], resetToDefaults: false },
       resetAuthoredDebugContext: true,
     })
 
@@ -469,7 +469,7 @@ describe('gameStore', () => {
     const game = useGameStore.getState().game
     expect(game.runtimeState?.globalFlags['reset.test.flag']).toBeUndefined()
     expect(game.runtimeState?.oneShotEvents['reset.test.one-shot']).toBeUndefined()
-    expect(game.runtimeState?.progressClocks['reset.test.clock']).toMatchObject({
+    expect(game.runtimeState?.progressClocks['debug.reset.test.clock']).toMatchObject({
       value: 0,
       max: 4,
     })
@@ -1425,7 +1425,7 @@ describe('gameStore persistence', () => {
       partialMargin: 0,
       stageScalar: 0.05,
       challengeModeEnabled: false,
-      attritionPerWeek: 1,
+      attritionPerWeek: persistedGame.config.attritionPerWeek,
       probabilityK: 2.4,
       raidCoordinationPenaltyPerExtraTeam: 0,
       durationModel: 'capacity',

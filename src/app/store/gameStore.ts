@@ -1656,7 +1656,9 @@ export const useGameStore = create<GameStore>()(
         set((s) => ({
           game: {
             ...s.game,
-            config: sanitizeGameConfig(patch, s.game.config),
+            config: sanitizeGameConfig(patch, s.game.config, {
+              invalidAttritionPolicy: 'minimum',
+            }),
           },
         })),
 

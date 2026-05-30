@@ -141,6 +141,25 @@ describe('hiddenStateModality (SPE-2281)', () => {
     expect(identityField?.playerFacingValue).toBe('entity:chapel-wraith')
   })
 
+  it('strips the outer modality layer on category_pass when counter-detection is active', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: ['concealment'],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const scanInput = scoutingOutcomeToDetectionScanForCase(
+      { outcome: 'success', revealed: true, withheld: false },
+      caseData
+    )
+
+    expect(scanInput).toEqual({ family: 'category_pass', layersToStrip: 1 })
+
+    const scan = resolveDetectionScan(truth, scanInput)
+    expect(scan.strippedLayerIds).toEqual(['layer:concealed-presence'])
+    expect(detectionScanTierOrder(scan)).toContain('category')
+  })
+
   it('strips only the outer modality layer when counter-detection is active', () => {
     const caseData = createModalityCase({
       hiddenState: 'hidden',

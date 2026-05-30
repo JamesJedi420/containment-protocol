@@ -14,7 +14,11 @@ import {
   scoutingOutcomeToDetectionScan,
   type ScoutingRevealSubject,
 } from './revealPayloadScoutingIntegration'
-import { computeEffectiveScoutingConcealment, type ScoutingInput, type ScoutingResult } from './scoutingResolution'
+import {
+  computeEffectiveScoutingConcealment,
+  type ScoutingInput,
+  type ScoutingResult,
+} from './scoutingResolution'
 
 export type HiddenStateModalityKind =
   | 'none'
@@ -45,9 +49,9 @@ export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
   }
 
   const tagSet = new Set([
-    ...caseData.tags,
-    ...caseData.requiredTags,
-    ...caseData.preferredTags,
+    ...(caseData.tags ?? []),
+    ...(caseData.requiredTags ?? []),
+    ...(caseData.preferredTags ?? []),
   ])
 
   return DISGUISE_SIGNAL_TAGS.some((tag) => tagSet.has(tag))
@@ -108,20 +112,8 @@ function mergeConcealmentLayers(
   return merged
 }
 
-function resolveSubjectPresent(
-  caseData: CaseInstance,
-  subject: ScoutingRevealSubject,
-  modality: HiddenStateModalityKind
-): boolean {
-  if (subject.present !== undefined) {
-    return subject.present
-  }
-
-  if (modality === 'false_position' || modality === 'concealed_presence' || modality === 'disguised_identity') {
-    return true
-  }
-
-  return true
+function resolveSubjectPresent(subject: ScoutingRevealSubject): boolean {
+  return subject.present ?? true
 }
 
 function resolveScoutingSubjectForCase(
@@ -150,10 +142,8 @@ function scoutingConcealmentLayersForCase(
   scoutingInput: ScoutingInput,
   modality: HiddenStateModalityKind
 ): readonly ConcealmentLayer[] {
-  const scoutingLayers = buildSubjectTruthFromScouting(scoutingInput, {
-    exactIdentity: 'probe',
-    category: 'probe',
-  }).concealmentLayers
+  const { concealment } = computeEffectiveScoutingConcealment(scoutingInput)
+  const scoutingLayers = concealmentLayersFromRating(concealment)
 
   if (modality === 'disguised_identity') {
     return mergeConcealmentLayers(
@@ -174,9 +164,10 @@ export function buildSubjectTruthFromCaseHiddenState(
   const modality = resolveHiddenStateModality(caseData)
   const modalityLayer = hiddenStateModalityLayer(modality)
   const resolvedSubject = resolveScoutingSubjectForCase(caseData, subject, modality)
+  const present = resolveSubjectPresent(resolvedSubject)
   const baseTruth = buildSubjectTruthFromScouting(scoutingInput, {
     ...resolvedSubject,
-    present: resolveSubjectPresent(caseData, resolvedSubject, modality),
+    present,
   })
 
   const scoutingLayers = scoutingConcealmentLayersForCase(caseData, scoutingInput, modality)
@@ -186,7 +177,7 @@ export function buildSubjectTruthFromCaseHiddenState(
 
   return {
     ...baseTruth,
-    present: resolveSubjectPresent(caseData, resolvedSubject, modality),
+    present,
     exactIdentity: resolvedSubject.exactIdentity,
     category: resolvedSubject.category,
     concealmentLayers,
@@ -253,14 +244,8 @@ export function scoutingOutcomeToDetectionScanForCase(
     return base
   }
 
-  if (base.family !== 'identity_probe') {
-    return base
-  }
-
-  const layersToStrip = Math.max(base.layersToStrip ?? 0, 1)
-
   return {
     ...base,
-    layersToStrip,
+    layersToStrip: Math.max(base.layersToStrip ?? 0, 1),
   }
 }

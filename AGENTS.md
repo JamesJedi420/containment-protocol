@@ -56,7 +56,7 @@ All simulation logic is pure TypeScript; state is managed via Zustand with `loca
 | Service         | Command                          | Notes                                                               |
 | --------------- | -------------------------------- | ------------------------------------------------------------------- |
 | Dev server      | `npm run dev`                    | Vite on http://localhost:5173 with HMR                              |
-| Lint            | `npm run lint`                   | ESLint 9                                                            |
+| Lint            | `npm run lint`                   | ESLint 10                                                           |
 | Tests           | `npm run test:run`               | Vitest (302 files, ~2700 tests, ~55s)                               |
 | Format check    | `npm run format:check`           | Prettier                                                            |
 | Audit index     | `npm run verify:audits-index`    | `docs/design-audits-index.md` ↔ `docs/*audit*.md`                   |

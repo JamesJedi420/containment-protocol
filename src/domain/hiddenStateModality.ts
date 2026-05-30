@@ -8,6 +8,12 @@ import {
   buildDisguiseRevealSubjectFromCase,
   disguiseConcealmentRatingFromCase,
 } from './revealPayloadDisguiseIntegration'
+import {
+  extraLayersToStripFromIllusion,
+  illusionConcealmentLayer,
+  resolveIllusionKindFromCase,
+  shouldWithholdCanonicalSubjectForIllusion,
+} from './hiddenStateIllusionLifecycle'
 import { extraLayersToStripFromReconCache } from './hiddenStateScoutingReconCache'
 import {
   buildSubjectTruthFromScouting,
@@ -165,16 +171,34 @@ export function buildSubjectTruthFromCaseHiddenState(
   const modality = resolveHiddenStateModality(caseData)
   const modalityLayer = hiddenStateModalityLayer(modality)
   const resolvedSubject = resolveScoutingSubjectForCase(caseData, subject, modality)
-  const present = resolveSubjectPresent(resolvedSubject)
+  let present = resolveSubjectPresent(resolvedSubject)
+  if (shouldWithholdCanonicalSubjectForIllusion(caseData)) {
+    present = false
+  }
+
   const baseTruth = buildSubjectTruthFromScouting(scoutingInput, {
     ...resolvedSubject,
     present,
   })
 
   const scoutingLayers = scoutingConcealmentLayersForCase(caseData, scoutingInput, modality)
-  const concealmentLayers = modalityLayer
-    ? mergeConcealmentLayers([modalityLayer], scoutingLayers)
-    : scoutingLayers
+  const illusionKind = resolveIllusionKindFromCase(caseData)
+  const illusionLayer =
+    illusionKind !== null &&
+    caseData.hiddenStateIllusionState !== undefined &&
+    caseData.hiddenStateIllusionState.phase !== 'collapsed'
+      ? illusionConcealmentLayer(illusionKind)
+      : null
+  const layerGroups: ConcealmentLayer[][] = []
+  if (modalityLayer) {
+    layerGroups.push([modalityLayer])
+  }
+  if (illusionLayer) {
+    layerGroups.push([illusionLayer])
+  }
+  layerGroups.push(scoutingLayers)
+  const concealmentLayers =
+    layerGroups.length > 0 ? mergeConcealmentLayers(...layerGroups) : scoutingLayers
 
   return {
     ...baseTruth,
@@ -243,6 +267,7 @@ export function scoutingOutcomeToDetectionScanForCase(
   let layersToStrip = base.layersToStrip ?? 0
 
   layersToStrip = Math.max(layersToStrip, extraLayersToStripFromReconCache(caseData))
+  layersToStrip = Math.max(layersToStrip, extraLayersToStripFromIllusion(caseData))
 
   if (modality !== 'none' && caseData.counterDetection) {
     layersToStrip = Math.max(layersToStrip, 1)

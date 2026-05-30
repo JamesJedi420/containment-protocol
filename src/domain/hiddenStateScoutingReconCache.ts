@@ -6,6 +6,10 @@ import type { DetectionScanResult } from './revealPayload'
 import type { CaseInstance } from './models'
 import type { GameState } from './models'
 import {
+  applyHiddenStateIllusionLifecyclePass,
+  buildIllusionLifecycleContext,
+} from './hiddenStateIllusionLifecycle'
+import {
   evaluateHiddenStateScoutingWithRevealPayload,
 } from './revealPayloadScoutingIntegration'
 import { evaluateBehaviorWeightedDisguiseValidation } from './disguiseValidation'
@@ -122,10 +126,14 @@ export function applyWeeklyHiddenStateScoutingReconPass(
   const supportTags = [
     ...new Set(assignedTeamIds.flatMap((teamId) => state.teams[teamId]?.tags ?? [])),
   ]
-  const disguiseValidation = evaluateBehaviorWeightedDisguiseValidation({
+  const illusionAdjustedCase = applyHiddenStateIllusionLifecyclePass(
     caseData,
+    buildIllusionLifecycleContext(caseData)
+  )
+  const disguiseValidation = evaluateBehaviorWeightedDisguiseValidation({
+    caseData: illusionAdjustedCase,
     agents,
-    subject: buildDisguiseRevealSubjectFromCase(caseData),
+    subject: buildDisguiseRevealSubjectFromCase(illusionAdjustedCase),
     context: {
       supportTags,
       teamTags: supportTags,
@@ -133,18 +141,18 @@ export function applyWeeklyHiddenStateScoutingReconPass(
     },
   })
   const hiddenStateScouting = evaluateHiddenStateScoutingWithRevealPayload({
-    caseData,
+    caseData: illusionAdjustedCase,
     agents,
     teamTags: supportTags,
     disguiseValidationActive: disguiseValidation.active,
   })
 
   if (hiddenStateScouting === undefined) {
-    return caseData
+    return illusionAdjustedCase
   }
 
   return mergeHiddenStateScoutingReconCache(
-    caseData,
+    illusionAdjustedCase,
     hiddenStateScouting.detectionScan,
     state.week
   )

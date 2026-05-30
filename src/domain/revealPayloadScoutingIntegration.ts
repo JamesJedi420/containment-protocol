@@ -19,7 +19,7 @@ import {
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
 } from './hiddenStateModality'
-import type { CaseInstance } from './models'
+import type { Agent, CaseInstance } from './models'
 import {
   computeEffectiveScoutingConcealment,
   resolveScouting,
@@ -47,6 +47,18 @@ export interface CaseScoutingRevealIntegrationInput extends ScoutingRevealIntegr
 
 export interface ScoutingRevealIntegrationResult extends ScoutingResult {
   readonly detectionScan: DetectionScanResult
+}
+
+export interface HiddenStateScoutingRevealIntegrationResult extends ScoutingRevealIntegrationResult {
+  readonly active: true
+}
+
+export interface CaseScoutingRevealBuildResult {
+  readonly teamCapability: number
+  readonly anomalyConcealment: number
+  readonly teamTags: readonly string[]
+  readonly anomalyTags: readonly string[]
+  readonly subject: ScoutingRevealSubject
 }
 
 const GLAMOUR_LAYER: ConcealmentLayer = {
@@ -80,6 +92,137 @@ export function concealmentLayersFromRating(anomalyConcealment: number): readonl
   }
 
   return layers
+}
+
+function clampScoutingRating(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
+  return Math.max(0, Math.min(3, Math.floor(value)))
+}
+
+function averageAgentInvestigation(agents: readonly Agent[]): number {
+  if (agents.length === 0) {
+    return 0
+  }
+
+  return agents.reduce((sum, agent) => sum + agent.baseStats.investigation, 0) / agents.length
+}
+
+/** Deterministic team scouting capability (0–3) from assigned agents. */
+export function teamScoutingCapabilityFromAgents(agents: readonly Agent[]): number {
+  return clampScoutingRating(averageAgentInvestigation(agents) / 20)
+}
+
+/** Deterministic anomaly concealment rating (0–3) from case investigation pressure. */
+export function anomalyConcealmentFromCase(caseData: CaseInstance): number {
+  const investigation =
+    caseData.difficulty?.investigation ?? Math.round((caseData.weights?.investigation ?? 0) * 100)
+
+  return clampScoutingRating(investigation / 15)
+}
+
+function resolveScoutingSubjectCategory(caseData: CaseInstance): string {
+  if (caseData.hiddenState === 'displaced') {
+    return 'displaced contact'
+  }
+
+  if (caseData.tags?.includes('concealment')) {
+    return 'concealed presence'
+  }
+
+  return 'hidden contact'
+}
+
+function resolveScoutingSubjectHostility(caseData: CaseInstance): HostilityLevel {
+  if (caseData.counterDetection === true || caseData.infiltrationStage === 'violent') {
+    return 'active'
+  }
+
+  return 'latent'
+}
+
+/** Deterministic subject snapshot for weekly hidden-state scouting scans. */
+export function buildScoutingRevealSubjectFromCase(caseData: CaseInstance): ScoutingRevealSubject {
+  const present = caseData.hiddenState === 'hidden' || caseData.hiddenState === 'displaced'
+
+  return {
+    present,
+    exactIdentity: `entity:${caseData.id}`,
+    category: resolveScoutingSubjectCategory(caseData),
+    hostility: resolveScoutingSubjectHostility(caseData),
+    activeProtections: [],
+    activeEffects: caseData.tags?.includes('concealment') ? ['concealment field'] : [],
+    dormantEffects: caseData.hiddenState === 'hidden' ? ['undisclosed briefing detail'] : [],
+  }
+}
+
+/** Deterministic scouting input + subject for weekly hidden-state modality compose. */
+export function buildScoutingRevealInputFromCase(
+  caseData: CaseInstance,
+  agents: readonly Agent[],
+  teamTags: readonly string[] = []
+): CaseScoutingRevealBuildResult {
+  const agentTags = agents.flatMap((agent) => agent.tags ?? [])
+
+  return {
+    teamCapability: teamScoutingCapabilityFromAgents(agents),
+    anomalyConcealment: anomalyConcealmentFromCase(caseData),
+    teamTags: [...new Set([...teamTags, ...agentTags])],
+    anomalyTags: [...(caseData.tags ?? [])],
+    subject: buildScoutingRevealSubjectFromCase(caseData),
+  }
+}
+
+export function shouldRunHiddenStateScoutingCompose(
+  caseData: CaseInstance,
+  disguiseValidationActive: boolean
+): boolean {
+  const modality = resolveHiddenStateModality(caseData)
+
+  if (modality === 'none') {
+    return false
+  }
+
+  if (modality === 'disguised_identity' && disguiseValidationActive) {
+    return false
+  }
+
+  return true
+}
+
+/** SPE-2282: weekly hidden-state scouting + tiered scan when disguise path is inactive. */
+export function evaluateHiddenStateScoutingWithRevealPayload(input: {
+  readonly caseData: CaseInstance
+  readonly agents: readonly Agent[]
+  readonly teamTags?: readonly string[]
+  readonly disguiseValidationActive: boolean
+}): HiddenStateScoutingRevealIntegrationResult | undefined {
+  if (
+    input.agents.length === 0 ||
+    !shouldRunHiddenStateScoutingCompose(input.caseData, input.disguiseValidationActive)
+  ) {
+    return undefined
+  }
+
+  const built = buildScoutingRevealInputFromCase(
+    input.caseData,
+    input.agents,
+    input.teamTags ?? []
+  )
+
+  return {
+    active: true,
+    ...resolveScoutingWithCaseHiddenState({
+      teamCapability: built.teamCapability,
+      anomalyConcealment: built.anomalyConcealment,
+      teamTags: [...built.teamTags],
+      anomalyTags: [...built.anomalyTags],
+      subject: built.subject,
+      caseData: input.caseData,
+    }),
+  }
 }
 
 export function buildSubjectTruthFromScouting(

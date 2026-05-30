@@ -5,6 +5,7 @@
 import type { BehaviorWeightedDisguiseValidationResult } from './disguiseValidation'
 import type { DetectionScanResult } from './revealPayload'
 import type { DisguiseRevealIntegrationResult } from './revealPayloadDisguiseIntegration'
+import type { HiddenStateScoutingRevealIntegrationResult } from './revealPayloadScoutingIntegration'
 
 export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 
@@ -63,17 +64,25 @@ export function formatDetectionScanSummary(result: DetectionScanResult): string 
 
 export function appendDetectionScanResolutionReason(
   resolutionReasons: string[],
-  behaviorValidation?: DisguiseRevealIntegrationResult
+  behaviorValidation?: DisguiseRevealIntegrationResult,
+  hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult
 ): void {
-  if (behaviorValidation === undefined || !shouldAppendDetectionScanReportNote(behaviorValidation)) {
-    return
-  }
-
   if (resolutionReasons.some((reason) => reason.startsWith(DETECTION_SCAN_READOUT_PREFIX))) {
     return
   }
 
-  const summary = formatDetectionScanSummary(behaviorValidation.detectionScan)
+  const scanSource =
+    behaviorValidation !== undefined && shouldAppendDetectionScanReportNote(behaviorValidation)
+      ? behaviorValidation.detectionScan
+      : hiddenStateScouting !== undefined && shouldAppendDetectionScanReportNote(hiddenStateScouting)
+        ? hiddenStateScouting.detectionScan
+        : undefined
+
+  if (scanSource === undefined) {
+    return
+  }
+
+  const summary = formatDetectionScanSummary(scanSource)
   if (summary.length === 0) {
     return
   }

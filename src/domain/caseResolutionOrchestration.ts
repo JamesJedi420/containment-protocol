@@ -11,6 +11,10 @@ import {
   type DisguiseRevealIntegrationResult,
 } from './revealPayloadDisguiseIntegration'
 import {
+  evaluateHiddenStateScoutingWithRevealPayload,
+  type HiddenStateScoutingRevealIntegrationResult,
+} from './revealPayloadScoutingIntegration'
+import {
   evaluateInfiltrationStageMissionPressure,
   type InfiltrationStageMissionPressureResult,
 } from './infiltrationProbe'
@@ -33,6 +37,7 @@ export interface WeeklyCaseResolutionStrategy {
   activeTeamStressModifiers: Record<string, number>
   outcome: ResolutionOutcome
   behaviorValidation?: DisguiseRevealIntegrationResult
+  hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult
   infiltrationStageMission?: InfiltrationStageMissionPressureResult
   stealthLeaveBehindMission?: StealthLeaveBehindMissionPressureResult
   weakestLinkResult?: import('./weakestLinkResolution').WeakestLinkMissionResolutionResult
@@ -146,6 +151,12 @@ export function resolveAssignedCaseForWeek(
     effectiveCase,
     behaviorValidation
   )
+  const hiddenStateScouting = evaluateHiddenStateScoutingWithRevealPayload({
+    caseData: resolvedEffectiveCase,
+    agents: assignedAgents,
+    teamTags: supportTags,
+    disguiseValidationActive: behaviorValidation.active,
+  })
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
   const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =
@@ -282,6 +293,7 @@ export function resolveAssignedCaseForWeek(
     activeTeamStressModifiers,
     outcome,
     behaviorValidation,
+    hiddenStateScouting,
     infiltrationStageMission,
     stealthLeaveBehindMission,
     weakestLinkResult,

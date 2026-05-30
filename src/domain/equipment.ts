@@ -1420,7 +1420,7 @@ export function validateAgentLoadoutAssignment(
   const currentReadiness = buildAgentLoadoutReadinessSummary(agent, {
     state: options?.state,
   })
-  let projectedReadiness = currentReadiness
+  let projectedReadiness: AgentLoadoutReadinessSummary
   const inventoryDeltas = new Map<string, number>()
   let availableStock = 0
   let consumesFromStock = false

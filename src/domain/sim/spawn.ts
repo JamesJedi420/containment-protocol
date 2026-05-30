@@ -40,7 +40,7 @@ export interface SpawnedCaseRecord {
 }
 
 function nextId(usedIds: Set<string>, rng: () => number): string {
-  let id = ''
+  let id: string
 
   do {
     id = `case-spawned-${randInt(rng, 1000, 999999999)}`

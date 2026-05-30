@@ -4,7 +4,9 @@ import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestratio
 import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseValidation'
 import {
   appendDetectionScanResolutionReason,
+  CONCEALMENT_SCAN_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
+  DISPLACEMENT_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
 import {
   buildDisguiseRevealSubjectFromCase,
@@ -372,8 +374,46 @@ describe('hiddenStateScoutingOrchestration (SPE-2282)', () => {
     const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
     const reasons: string[] = []
 
-    appendDetectionScanResolutionReason(reasons, resolution.behaviorValidation, resolution.hiddenStateScouting)
+    appendDetectionScanResolutionReason(
+      reasons,
+      resolution.behaviorValidation,
+      resolution.hiddenStateScouting,
+      caseData
+    )
 
-    expect(reasons.some((reason) => reason.includes(DETECTION_SCAN_READOUT_PREFIX))).toBe(true)
+    expect(reasons.some((reason) => reason.includes(CONCEALMENT_SCAN_READOUT_PREFIX))).toBe(true)
+    expect(reasons.some((reason) => reason.includes(DETECTION_SCAN_READOUT_PREFIX))).toBe(false)
+  })
+
+  it('appends displacement readout for false-position hiddenStateScouting', () => {
+    const observer = createReconObserver('a_displacement_report', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({
+      assignedTeamIds: [team.id],
+      hiddenState: 'displaced',
+      displacementTarget: 'annex-b',
+      difficulty: { combat: 0, investigation: 0, utility: 0, social: 0 },
+    })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+    const reasons: string[] = []
+
+    appendDetectionScanResolutionReason(
+      reasons,
+      resolution.behaviorValidation,
+      resolution.hiddenStateScouting,
+      caseData
+    )
+
+    expect(reasons.some((reason) => reason.includes(DISPLACEMENT_SCAN_READOUT_PREFIX))).toBe(true)
+    expect(reasons.some((reason) => reason.includes('decoy locus annex-b'))).toBe(true)
   })
 })

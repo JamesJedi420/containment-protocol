@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2283](https://linear.app/spectranoir/
 | **Linear** | [SPE-2283 — Hidden-state modality matrix slice 3](https://linear.app/spectranoir/issue/SPE-2283) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `jamesdyedbq/spe-2283-hidden-modality-matrix-slice-3-report-copy` |
-| **Status** | Backlog — SPE-2283 |
+| **Status** | In Progress — SPE-2283 |
 
 ## Goal
 
@@ -69,11 +69,11 @@ Reference: `architecture/hidden-state-displacement-counter-detection.md` (projec
 
 ## Acceptance
 
-- [ ] Concealed-presence weekly mission: `explanationNotes` contains concealment-framed readout (not only generic `Detection readout`).
-- [ ] False-position fixture (`displaced` + `displacementTarget`): displacement-framed readout retains decoy locus in tier clauses.
-- [ ] Active disguised infiltration: disguise readout unchanged; no second hidden-state readout line.
-- [ ] Counter-detection peel: modality-specific suffix; mission scores unchanged vs SPE-2282 baselines.
-- [ ] `npm run lint` + targeted `npm run test:run` green on touched files.
+- [x] Concealed-presence weekly mission: `explanationNotes` contains concealment-framed readout (not only generic `Detection readout`).
+- [x] False-position fixture (`displaced` + `displacementTarget`): displacement-framed readout retains decoy locus in tier clauses.
+- [x] Active disguised infiltration: disguise readout unchanged; no second hidden-state readout line (orchestration regression).
+- [x] Counter-detection peel: modality-specific suffix; mission scores unchanged vs SPE-2282 baselines.
+- [x] `npm run lint` + targeted `npm run test:run` green on touched files.
 
 ## TDD order
 

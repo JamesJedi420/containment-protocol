@@ -14,7 +14,7 @@ import {
   scoutingOutcomeToDetectionScan,
   type ScoutingRevealSubject,
 } from './revealPayloadScoutingIntegration'
-import type { ScoutingInput, ScoutingResult } from './scoutingResolution'
+import { computeEffectiveScoutingConcealment, type ScoutingInput, type ScoutingResult } from './scoutingResolution'
 
 export type HiddenStateModalityKind =
   | 'none'

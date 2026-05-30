@@ -134,7 +134,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - React 19
 - TypeScript
 - Vite 8
-- ESLint 9
+- ESLint 10
 - Vitest
 - Testing Library
 

@@ -95,7 +95,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                          |
 | `hidden-modality-matrix-slice-2.md`                       | **Shipped**    | SPE-2282 / PR #2405; weekly orchestration wiring.              |
 | `hidden-modality-matrix-slice-3.md`                       | **Shipped**    | SPE-2283 / PR #2407; modality report copy.                    |
-| `hidden-modality-matrix-slice-4.md`                       | **Active**     | SPE-2284; persistent recon cache.                             |
+| `hidden-modality-matrix-slice-4.md`                       | **Shipped**    | SPE-2284 / PR #2409; persistent recon cache.                 |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
 

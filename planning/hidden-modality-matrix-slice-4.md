@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2284](https://linear.app/spectranoir/
 | **Linear** | [SPE-2284 — Hidden-state modality matrix slice 4](https://linear.app/spectranoir/issue/SPE-2284) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `jamesdyedbq/spe-2284-hidden-modality-matrix-slice-4-recon-cache` |
-| **Status** | **Shipped** — SPE-2284 (pending PR) |
+| **Status** | **Shipped** — SPE-2284 / PR #2409 |
 
 ## Goal
 

@@ -8,6 +8,9 @@ import {
   cancelProcurementOrder,
   recomputeBudgetPressure,
   getCompactFundingSummary,
+  normalizeFundingState,
+  sanitizeCourierShellFrontState,
+  sanitizeMaintenanceSpecialistsAvailable,
 } from './funding'
 
 describe('Funding, Procurement, & Budget Pressure System', () => {
@@ -142,6 +145,144 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
         cost: 100,
       })
     ).toThrow('Insufficient funds')
+  })
+
+  it('sanitizes courier shell debt before recomputing budget pressure', () => {
+    const state = createInitialFundingState(
+      basePerWeek,
+      perResolution,
+      penaltyPerFail,
+      penaltyPerUnresolved,
+      initialFunding
+    )
+
+    const normalized = normalizeFundingState(
+      initialFunding,
+      {
+        fundingBasePerWeek: basePerWeek,
+        fundingPerResolution: perResolution,
+        fundingPenaltyPerFail: penaltyPerFail,
+        fundingPenaltyPerUnresolved: penaltyPerUnresolved,
+      },
+      {
+        ...state,
+        courierShellBudgetPressureDebt: Number.NaN,
+      },
+      week
+    )
+
+    expect(normalized.courierShellBudgetPressureDebt).toBeUndefined()
+    expect(Number.isFinite(normalized.budgetPressure)).toBe(true)
+  })
+
+  it('sanitizes courier shell front weeks and collapse reason (SPE-449–450)', () => {
+    const front = sanitizeCourierShellFrontState(
+      {
+        type: 'courierShell',
+        status: 'collapsed',
+        startedWeek: 2,
+        startupCostPaid: 400,
+        lastResolvedWeek: 99,
+        exposureBand: 'bogus',
+        collapseReason: 'overstretched',
+      },
+      5
+    )
+
+    expect(front).toMatchObject({
+      status: 'collapsed',
+      startedWeek: 2,
+      lastResolvedWeek: 5,
+      exposureBand: 'elevated',
+      collapseReason: 'overstretched',
+    })
+  })
+
+  it('clamps maintenance specialists to bounded capacity (SPE-452)', () => {
+    expect(sanitizeMaintenanceSpecialistsAvailable(-3)).toBe(0)
+    expect(sanitizeMaintenanceSpecialistsAvailable(250)).toBe(99)
+    expect(sanitizeMaintenanceSpecialistsAvailable(Number.NaN)).toBeUndefined()
+  })
+
+  it('clamps negative procurement cost to zero on normalize (SPE-457)', () => {
+    const normalized = normalizeFundingState(
+      500,
+      {
+        fundingBasePerWeek: basePerWeek,
+        fundingPerResolution: perResolution,
+        fundingPenaltyPerFail: penaltyPerFail,
+        fundingPenaltyPerUnresolved: penaltyPerUnresolved,
+      },
+      {
+        ...createInitialFundingState(
+          basePerWeek,
+          perResolution,
+          penaltyPerFail,
+          penaltyPerUnresolved,
+          500
+        ),
+        procurementBacklog: [
+          {
+            requestId: 'req-negative-cost',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: week,
+            cost: -25,
+          },
+        ],
+      },
+      week
+    )
+
+    expect(normalized.procurementBacklog[0]?.cost).toBe(0)
+  })
+
+  it('dedupes procurement backlog requestId keeping earliest week (SPE-458)', () => {
+    const normalized = normalizeFundingState(
+      500,
+      {
+        fundingBasePerWeek: basePerWeek,
+        fundingPerResolution: perResolution,
+        fundingPenaltyPerFail: penaltyPerFail,
+        fundingPenaltyPerUnresolved: penaltyPerUnresolved,
+      },
+      {
+        ...createInitialFundingState(
+          basePerWeek,
+          perResolution,
+          penaltyPerFail,
+          penaltyPerUnresolved,
+          500
+        ),
+        procurementBacklog: [
+          {
+            requestId: 'req-dup',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: week,
+            cost: 5,
+          },
+          {
+            requestId: 'req-dup',
+            itemId: 'medkits',
+            quantity: 3,
+            status: 'fulfilled',
+            requestedWeek: week + 2,
+            cost: 9,
+          },
+        ],
+      },
+      week
+    )
+
+    expect(normalized.procurementBacklog).toHaveLength(1)
+    expect(normalized.procurementBacklog[0]).toMatchObject({
+      requestId: 'req-dup',
+      requestedWeek: week,
+      quantity: 1,
+    })
   })
 
   it('throws on invalid status transitions', () => {

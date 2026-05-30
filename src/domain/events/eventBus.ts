@@ -101,6 +101,9 @@ function getAffectedAgentIds(state: GameState, event: OperationEvent) {
     case 'agent.resigned':
       return [event.payload.agentId]
     case 'staff.side_work.resolved':
+    case 'staff.coping.applied':
+    case 'staff.coping.misconduct':
+    case 'agent.killed':
       return [event.payload.agentId]
     default:
       return []
@@ -315,6 +318,34 @@ function appendFactionLogsFromEvents(state: GameState, events: readonly Operatio
               }
             : contact
         ),
+      }
+      continue
+    }
+
+    if (event.type === 'case.spawned' && event.payload.factionId) {
+      const trigger = event.payload.trigger
+      if (trigger !== 'faction_offer' && trigger !== 'faction_pressure') {
+        continue
+      }
+
+      const faction = nextFactions[event.payload.factionId]
+      if (!faction) {
+        continue
+      }
+
+      const eventRef = {
+        eventId: event.id,
+        type: event.type,
+        week: event.payload.week,
+      }
+      const history = getFactionHistory(faction)
+
+      nextFactions[event.payload.factionId] = {
+        ...faction,
+        history: {
+          ...history,
+          interactionLog: [...history.interactionLog, eventRef],
+        },
       }
     }
   }
@@ -647,3 +678,34 @@ export function createSystemAcademyUpgradedDraft(
     payload,
   }
 }
+
+/** Event types covered by create*Draft factories in this module (producer validation tests). */
+export const OPERATION_EVENT_FACTORY_TYPES = [
+  'assignment.team_assigned',
+  'assignment.team_unassigned',
+  'agent.hired',
+  'agent.training_started',
+  'agent.training_completed',
+  'agent.training_cancelled',
+  'agent.relationship_changed',
+  'agent.instructor_assigned',
+  'agent.instructor_unassigned',
+  'agent.injured',
+  'agent.killed',
+  'agent.betrayed',
+  'agent.resigned',
+  'agent.promoted',
+  'recruitment.scouting_initiated',
+  'recruitment.scouting_refined',
+  'recruitment.intel_confirmed',
+  'progression.xp_gained',
+  'production.queue_started',
+  'production.queue_completed',
+  'market.shifted',
+  'market.transaction_recorded',
+  'faction.standing_changed',
+  'faction.unlock_available',
+  'agency.front_business.opened',
+  'agency.front_business.resolved',
+  'system.academy_upgraded',
+] as const satisfies readonly OperationEventType[]

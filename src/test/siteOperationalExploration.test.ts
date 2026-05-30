@@ -1,0 +1,147 @@
+import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import type { CaseInstance } from '../domain/models'
+import {
+  applySiteExplorationAction,
+  crossedSiteTurnWanderInterval,
+  getSiteExplorationAlertClockId,
+  getSiteExplorationTurnClockId,
+  isCaseInSiteExplorationPhase,
+  readSiteExplorationAlertValue,
+  readSiteExplorationTurnValue,
+  shouldTriggerSiteWanderingCheck,
+  SITE_EXPLORATION_ACTION_COST_TURNS,
+  SITE_EXPLORATION_ALERT_WANDER_THRESHOLD,
+} from '../domain/siteOperationalExploration'
+import { readProgressClock } from '../domain/progressClocks'
+
+function buildExplorationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
+  const state = createStartingState()
+  const base = state.cases['case-001']!
+  return {
+    ...base,
+    id,
+    title: `Exploration ${id}`,
+    status: 'in_progress',
+    spatialFlags: ['ingress:service_door'],
+    mapLayer: {
+      authoringMode: 'map-metadata-first',
+      legend: [],
+      zones: [],
+      routes: [],
+      occupierKnownRouteIds: [],
+      scaleAnchors: [],
+    },
+    ...overrides,
+  }
+}
+
+describe('siteOperationalExploration', () => {
+  it('uses deterministic per-case clock ids', () => {
+    expect(getSiteExplorationTurnClockId('case-a')).toBe('site.exploration.case-a.turn')
+    expect(getSiteExplorationAlertClockId('case-a')).toBe('site.exploration.case-a.alert')
+  })
+
+  it('requires mapLayer and spatial flags for exploration phase', () => {
+    const active = buildExplorationCase('active')
+    expect(isCaseInSiteExplorationPhase(active)).toBe(true)
+
+    const noMap = buildExplorationCase('no-map', { mapLayer: undefined })
+    expect(isCaseInSiteExplorationPhase(noMap)).toBe(false)
+
+    const noFlags = buildExplorationCase('no-flags', { spatialFlags: [] })
+    expect(isCaseInSiteExplorationPhase(noFlags)).toBe(false)
+  })
+
+  it('advances turn clock by action cost and raises alert on noisy actions', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('site-1')
+    const game = { ...state, cases: { 'site-1': currentCase } }
+
+    const listen = applySiteExplorationAction(game, 'site-1', 'listen')
+    expect(listen.applied).toBe(true)
+    expect(listen.turnCost).toBe(SITE_EXPLORATION_ACTION_COST_TURNS.listen)
+    expect(readSiteExplorationTurnValue(listen.state, 'site-1')).toBe(1)
+    expect(readSiteExplorationAlertValue(listen.state, 'site-1')).toBe(0)
+
+    const breach = applySiteExplorationAction(listen.state, 'site-1', 'breach')
+    expect(breach.applied).toBe(true)
+    expect(readSiteExplorationTurnValue(breach.state, 'site-1')).toBe(4)
+    expect(readSiteExplorationAlertValue(breach.state, 'site-1')).toBe(3)
+    expect(readProgressClock(breach.state, getSiteExplorationTurnClockId('site-1'))?.hidden).toBe(true)
+  })
+
+  it('rejects unknown action ids at runtime without casting', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('site-1')
+    const game = { ...state, cases: { 'site-1': currentCase } }
+
+    const result = applySiteExplorationAction(game, 'site-1', 'not-a-valid-action')
+    expect(result.applied).toBe(false)
+    expect(result.reason).toBe('unknown_action')
+  })
+
+  it('rejects actions when case is not in site exploration phase', () => {
+    const state = createStartingState()
+    const flat = { ...state.cases['case-001']!, id: 'flat', spatialFlags: [], mapLayer: undefined }
+    const game = { ...state, cases: { flat } }
+
+    const result = applySiteExplorationAction(game, 'flat', 'search')
+    expect(result.applied).toBe(false)
+    expect(result.reason).toBe('not_site_exploration')
+  })
+
+  it('triggers wandering check at alert threshold or when turn interval bucket is crossed', () => {
+    expect(shouldTriggerSiteWanderingCheck(0, 2, SITE_EXPLORATION_ALERT_WANDER_THRESHOLD)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(2, 3, 1)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(2, 4, 1)).toBe(true)
+    expect(shouldTriggerSiteWanderingCheck(3, 4, 0)).toBe(false)
+    expect(shouldTriggerSiteWanderingCheck(2, 2, 1)).toBe(false)
+    expect(shouldTriggerSiteWanderingCheck(3, 4, 1)).toBe(false)
+  })
+
+  it('crossedSiteTurnWanderInterval detects skipped boundaries (2→4, not 3→4)', () => {
+    expect(crossedSiteTurnWanderInterval(2, 4)).toBe(true)
+    expect(crossedSiteTurnWanderInterval(3, 4)).toBe(false)
+    expect(crossedSiteTurnWanderInterval(0, 3)).toBe(true)
+  })
+
+  it('triggers cadence wandering when repair skips turn 3 (2→4)', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('skip-repair')
+    const game = { ...state, cases: { 'skip-repair': currentCase } }
+
+    const first = applySiteExplorationAction(game, 'skip-repair', 'listen')
+    const second = applySiteExplorationAction(first.state, 'skip-repair', 'listen')
+    expect(readSiteExplorationTurnValue(second.state, 'skip-repair')).toBe(2)
+
+    const repair = applySiteExplorationAction(second.state, 'skip-repair', 'repair')
+    expect(readSiteExplorationTurnValue(repair.state, 'skip-repair')).toBe(4)
+    expect(repair.wanderingCheckTriggered).toBe(true)
+  })
+
+  it('triggers cadence wandering when breach skips turn 3 (1→4 in one action)', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('skip-breach')
+    const game = { ...state, cases: { 'skip-breach': currentCase } }
+
+    const setup = applySiteExplorationAction(game, 'skip-breach', 'listen')
+    expect(readSiteExplorationTurnValue(setup.state, 'skip-breach')).toBe(1)
+
+    const breach = applySiteExplorationAction(setup.state, 'skip-breach', 'breach')
+    expect(readSiteExplorationTurnValue(breach.state, 'skip-breach')).toBe(4)
+    expect(readSiteExplorationAlertValue(breach.state, 'skip-breach')).toBe(3)
+    expect(breach.wanderingCheckTriggered).toBe(true)
+  })
+
+  it('flags wandering check after cumulative breach noise', () => {
+    const state = createStartingState()
+    const currentCase = buildExplorationCase('noisy')
+    let game = { ...state, cases: { noisy: currentCase } }
+
+    let last = applySiteExplorationAction(game, 'noisy', 'breach')
+    game = last.state
+    last = applySiteExplorationAction(game, 'noisy', 'breach')
+    expect(last.wanderingCheckTriggered).toBe(true)
+  })
+})

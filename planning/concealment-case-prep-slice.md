@@ -1,34 +1,41 @@
 # SPE-70 / SPE-2107 slice 3 — Concealment case prep (UI)
 
-## Recommendation (next best issue)
+## Shipped status
 
-After the infiltration + investigation + leave-behind prep stack on case detail, the highest-leverage **scoped** follow-up is a **concealment case prep panel**: make weekly `resolveConcealmentActivation` legible and optionally let the player set `conceal.case.{caseId}` before `advanceWeek`.
-
-| Candidate | Why / why not |
-| --- | --- |
-| **Concealment case prep (this plan)** | Domain shipped (`hiddenStateActivation.ts`, weekly wire in `advanceWeek`); **zero** case-detail UI today; closes backlog #1 player-facing gap; same patterns as SPE-626 / SPE-521 / SPE-2247 prep slices. |
-| Case prep consolidation | **Done** — `WeeklyCasePrepPanel` on case detail (`weeklyCasePrepView.ts`). |
-| Backlog #1 “full” hidden modalities | Too broad (SPE-781, modality matrix); defer. |
-| SPE-1464 branch continuity | **Done** in repo + Linear; no new slice. |
-| Route / multi-week navigation (backlog #3) | High value but different surface; does not complete covert-ops prep arc. |
-| Infiltration follow-through (backlog #2) | Largely satisfied by SPE-521 stack + prep panel; remaining work is content/encounter depth, not one UI slice. |
-
-**Suggested Linear child:** under SPE-70 or SPE-2107 — “Concealment case prep panel (slice 3 UX)”.
+| Field             | Value                                                                                                                                                                             |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parent**        | [SPE-70 — Hidden-State, Displacement, & Counter-Detection Layer](https://linear.app/spectranoir/issue/SPE-70) (domain: [SPE-2107](https://linear.app/spectranoir/issue/SPE-2107)) |
+| **Merged PR**     | [#2326](https://github.com/JamesJedi420/containment-protocol/pull/2326) — `feat(SPE-70): concealment case prep panel on case detail`                                              |
+| **Shipped scope** | `ConcealmentCasePrepPanel` + `buildConcealmentCasePrepView`; player `conceal.case.{caseId}` toggle; activation preview via `resolveConcealmentActivation`                         |
+| **Validation**    | `concealmentCasePrepView.test.ts`, `CaseDetailPage.test.tsx`; integrated in `WeeklyCasePrepPanel` stack                                                                           |
 
 ---
 
-## Why this is next
+## Original implementation plan (historical)
 
-| Already shipped | Gap |
-| --- | --- |
-| `resolveConcealmentActivation` + `applyWeeklyConcealmentActivation` in `advanceWeek` | Players cannot see *why* a case will go hidden/displaced or what triggers apply |
-| Authored `concealmentTriggers[]` on templates (SPE-2113 / 2155 / 2202) | No preview of which authored row would win |
-| Global flags `conceal.case.*`, `conceal.displace.*`, `conceal.*` | Only used in tests / sim; no store-driven prep action from case detail |
-| Infiltration + investigation + leave-behind prep panels | Concealment is the missing fourth pillar on the same page |
+### Queue context (May 2026, pre-ship)
 
----
+After infiltration + investigation + leave-behind prep on case detail, concealment case prep closed the fourth covert-ops prep pillar on the same surface.
 
-## Goal
+| Candidate                             | Verdict (historical)                                                             |
+| ------------------------------------- | -------------------------------------------------------------------------------- |
+| **Concealment case prep (this plan)** | Shipped — case-detail UI for weekly activation preview and `conceal.case.*` prep |
+| Case prep consolidation               | Shipped — `WeeklyCasePrepPanel`                                                  |
+| Backlog #1 full hidden modalities     | Deferred (SPE-781)                                                               |
+| SPE-1464 branch continuity            | Shipped                                                                          |
+| Route / multi-week navigation         | Shipped separately (backlog #3)                                                  |
+| Infiltration follow-through           | Domain + prep largely complete (SPE-521 / SPE-2250)                              |
+
+### Pre-ship gap (resolved)
+
+| Already shipped (domain)                                                             | Gap addressed by this slice                                         |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `resolveConcealmentActivation` + `applyWeeklyConcealmentActivation` in `advanceWeek` | Case-detail preview of activation mode/reason and authored triggers |
+| Authored `concealmentTriggers[]` on templates                                        | Trigger summary in prep panel                                       |
+| Global flags `conceal.case.*`, …                                                     | Store-driven `conceal.case.{caseId}` toggle from case detail        |
+| Infiltration + investigation + leave-behind prep panels                              | Concealment prep as fourth pillar on case detail                    |
+
+### Goal (implemented)
 
 On **in-progress** cases that can still activate concealment (`hiddenState === undefined`), show:
 
@@ -53,13 +60,13 @@ Do **not** add new weekly hooks, modalities, or persistence beyond flags already
 
 ## Domain reuse (no new simulation math)
 
-| API | Use |
-| --- | --- |
-| `resolveConcealmentActivation(case, { globalFlags, hiddenModifierCount? })` | Preview next activation; read-only |
-| `applyConcealmentActivationToCase` | **Do not** call from UI (weekly path only) |
-| `CONCEALMENT_ACTIVATION_TAGS` | Eligibility copy |
-| `countCaseHiddenModifiers` (if used elsewhere for recon bridge) | Optional `hiddenModifierCount` in preview context |
-| `setGlobalFlag` / `setPersistentFlag` on store | Player `conceal.case.{id}` toggle |
+| API                                                                         | Use                                               |
+| --------------------------------------------------------------------------- | ------------------------------------------------- |
+| `resolveConcealmentActivation(case, { globalFlags, hiddenModifierCount? })` | Preview next activation; read-only                |
+| `applyConcealmentActivationToCase`                                          | **Do not** call from UI (weekly path only)        |
+| `CONCEALMENT_ACTIVATION_TAGS`                                               | Eligibility copy                                  |
+| `countCaseHiddenModifiers` (if used elsewhere for recon bridge)             | Optional `hiddenModifierCount` in preview context |
+| `setGlobalFlag` / `setPersistentFlag` on store                              | Player `conceal.case.{id}` toggle                 |
 
 ### Eligibility helpers (new, thin)
 
@@ -81,17 +88,17 @@ Already hidden/displaced cases: show **read-only status** strip (no flag toggle)
 
 `buildConcealmentCasePrepView(caseData, game)` →
 
-| Field | Source |
-| --- | --- |
-| `visible` | `canShowConcealmentCasePrepOnCase` |
-| `activationTags` | intersection of case tags with `CONCEALMENT_ACTIVATION_TAGS` |
-| `triggerRows` | map `concealmentTriggers` → label, mode, when summary |
-| `previewApplied` | `resolveConcealmentActivation(...).applied` |
-| `previewMode` | `hidden` \| `displaced` |
-| `previewReason` | reason string (e.g. `global-flag:conceal.case.x`, `case-tag`, `authored:trigger-id`) |
-| `playerConcealFlagActive` | `readPersistentFlag(game, 'conceal.case.{id}')` |
-| `canToggleConcealFlag` | eligibility + not already applied on case |
-| `hiddenModifierCount` | optional, from map layer when available on case |
+| Field                     | Source                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `visible`                 | `canShowConcealmentCasePrepOnCase`                                                   |
+| `activationTags`          | intersection of case tags with `CONCEALMENT_ACTIVATION_TAGS`                         |
+| `triggerRows`             | map `concealmentTriggers` → label, mode, when summary                                |
+| `previewApplied`          | `resolveConcealmentActivation(...).applied`                                          |
+| `previewMode`             | `hidden` \| `displaced`                                                              |
+| `previewReason`           | reason string (e.g. `global-flag:conceal.case.x`, `case-tag`, `authored:trigger-id`) |
+| `playerConcealFlagActive` | `readPersistentFlag(game, 'conceal.case.{id}')`                                      |
+| `canToggleConcealFlag`    | eligibility + not already applied on case                                            |
+| `hiddenModifierCount`     | optional, from map layer when available on case                                      |
 
 **Preview context:** pass `game.runtimeState?.globalFlags ?? game.globalFlags` (match `advanceWeek` concealment context).
 
@@ -143,7 +150,7 @@ Guard: only when `canPlayerSetConcealCaseFlag(case)`; no-op otherwise (mirror in
 
 ---
 
-## Acceptance criteria
+## Shipped acceptance evidence
 
 - [x] In-progress eligible case shows concealment prep with activation preview reason.
 - [x] Player can set/clear `conceal.case.{caseId}` from case detail; next `resolveConcealmentActivation` reflects it.
@@ -155,11 +162,11 @@ Guard: only when `canPlayerSetConcealCaseFlag(case)`; no-op otherwise (mirror in
 
 ## File touch list (expected)
 
-| Area | Files |
-| --- | --- |
-| View | `src/features/cases/concealmentCasePrepView.ts` |
-| UI | `src/features/cases/ConcealmentCasePrepPanel.tsx` |
-| Page | `src/features/cases/CaseDetailPage.tsx` |
+| Area  | Files                                                                 |
+| ----- | --------------------------------------------------------------------- |
+| View  | `src/features/cases/concealmentCasePrepView.ts`                       |
+| UI    | `src/features/cases/ConcealmentCasePrepPanel.tsx`                     |
+| Page  | `src/features/cases/CaseDetailPage.tsx`                               |
 | Tests | `src/test/concealmentCasePrepView.test.ts`, `CaseDetailPage.test.tsx` |
 
 Optional thin domain file: `src/domain/concealmentCasePrep.ts` if eligibility is reused outside React.

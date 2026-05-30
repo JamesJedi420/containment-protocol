@@ -51,6 +51,9 @@ const EquipmentPage = createRouteComponent(() => import('../features/equipment/E
 const FabricationPage = createRouteComponent(
   () => import('../features/fabrication/FabricationPage')
 )
+const TrainingDivisionPage = createRouteComponent(
+  () => import('../features/training/TrainingDivisionPage')
+)
 const ContainmentSiteRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function ContainmentSiteRoute() {
@@ -105,6 +108,7 @@ export default function App() {
           <Route index element={<TeamsPage />} />
           <Route path=":teamId" element={<TeamDetailPage />} />
         </Route>
+        <Route path="training-division" element={renderLazyRoute(TrainingDivisionPage)} />
         <Route path="equipment" element={renderLazyRoute(EquipmentPage)} />
         <Route path="fabrication" element={renderLazyRoute(FabricationPage)} />
         <Route path="containment-site" element={renderLazyRoute(ContainmentSiteRoute)} />

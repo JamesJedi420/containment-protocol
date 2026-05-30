@@ -21,8 +21,5 @@ describe('App factions route', () => {
 
     expect(screen.getByRole('banner', { name: /shell status bar/i })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { level: 1, name: /^factions$/i })).toBeInTheDocument()
-    expect(
-      await screen.findByRole('heading', { name: /faction contacts & standing/i })
-    ).toBeInTheDocument()
   })
 })

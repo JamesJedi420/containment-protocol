@@ -1043,6 +1043,22 @@ function createEmptyResolutionProfile(): TeamResolutionProfile {
   }
 }
 
+/**
+ * Hydration 570: cap persisted partialMargin to a score band derived from the threshold resolution model.
+ * Threshold missions treat delta in [-partialMargin, 0) as partial; the cap tracks stage-scaling headroom.
+ */
+export function resolvePartialMarginUpperBound(
+  config: Pick<GameConfig, 'stageScalar' | 'durationModel' | 'challengeModeEnabled' | 'attritionPerWeek'>
+): number {
+  const stageHeadroom = Math.ceil(32 * Math.max(0.05, config.stageScalar))
+  const attritionHeadroom =
+    config.challengeModeEnabled === true && config.durationModel === 'attrition'
+      ? Math.ceil(Math.max(1, config.attritionPerWeek) * 3)
+      : 0
+
+  return Math.max(1, stageHeadroom + attritionHeadroom)
+}
+
 function createDefaultScoringConfig(): GameConfig {
   return {
     maxActiveCases: 7,

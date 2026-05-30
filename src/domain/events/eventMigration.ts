@@ -1,6 +1,17 @@
 import type { OperationEvent, OperationEventType } from './types'
 import { validateOperationEventPayload } from './eventValidation'
 
+/**
+ * Operation event schema versions (hydration 542).
+ *
+ * - **v1 → v2:** structural-compatible bump — payloads are not reshaped; hydration assigns
+ *   `schemaVersion: 2` and validates against `operationEventPayloadSchemas`. Invalid payloads are
+ *   logged in non-test environments but still carried forward so saves remain loadable.
+ * - **v2:** current canonical version used by `sanitizeOperationEvents` / `migrateOperationEventToCurrentSchema`.
+ *
+ * Per-type payload migrations belong in `eventValidation` or `sanitizeOperationEvents` when a
+ * future schema requires field renames; until then, `migrateEventV1toV2` is the single entry point.
+ */
 export const SCHEMA_VERSION = 2 as const
 
 const SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS = (() => {

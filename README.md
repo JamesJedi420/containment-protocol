@@ -18,7 +18,18 @@
 - **Projection / View-Model**: pure selectors and view-models in `src/features/*View.ts`
 - **UI / Components**: presentational React modules in `src/features/**` and `src/styles/**`
 - Shared explanatory output is owned by canonical domain helpers wherever possible
-- Dependency boundaries are enforced by lint/test guardrails; see `docs/dependency-boundaries.md`
+- Dependency boundaries are enforced by Vitest guardrails (`src/test/boundary-enforcement.test.ts`); see `docs/dependency-boundaries.md`
+
+## Shell route disposition
+
+| Route                | Disposition            | Implementation                                                                       |
+| -------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
+| `/help`              | Bounded guidance index | `HelpPlaceholderPage` — links to Operations Desk, Report, Contracts, Registry, Cases |
+| `/containment-site`  | Future placeholder     | `SystemBoundaryPage` — live metrics, no dedicated site UI                            |
+| `/rankings`          | Future placeholder     | `SystemBoundaryPage` — report-derived benchmarks only                                |
+| `/agency`            | Future placeholder     | `SystemBoundaryPage` — economy/directives stay on Operations Desk until shipped      |
+| `/markets-suppliers` | Live                   | `MarketPage`                                                                         |
+| `/factions`          | Live                   | `FactionsPage`                                                                       |
 
 ## UI / UX Features
 
@@ -53,7 +64,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 ## Recent Updates
 
-### Hidden-state, displacement, and counter-detection layer completed ([SPE-70](Issue:15794d65-0b21-4027-a731-195311fbef60))
+### Hidden-state, displacement, and counter-detection layer completed ([SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer))
 
 - Mission results now carry canonical hidden-state fields:
   - `hiddenState`
@@ -68,7 +79,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
   - player-facing ambiguous / partial reveal output
 - Design reference: `architecture/hidden-state-displacement-counter-detection.md`
 
-### Behavior-weighted disguise validation completed as a bounded pass ([SPE-285](Issue:8b614f9d-f6f2-40dc-8e33-236639ee52d1))
+### Behavior-weighted disguise validation completed as a bounded pass ([SPE-285](https://linear.app/spectranoir/issue/SPE-285/behavior-weighted-disguise-validation))
 
 - Added a shared deterministic behavior-weighted disguise evaluator
 - Reused the existing hidden-state pipeline rather than introducing a parallel disguise framework
@@ -80,7 +91,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - Reporting continues to use existing mission-result fields and `explanationNotes`
 - This pass is intentionally bounded to cases already entering with `hiddenState: 'hidden'`
 
-### Shared rules substrate completed and consumer-migrated ([SPE-41](Issue:2ff4dd31-c2da-4f2d-af8a-8972ff3e2c3c))
+### Shared rules substrate completed and consumer-migrated ([SPE-41](https://linear.app/spectranoir/issue/SPE-41/tags-conditions-and-graded-outcome-framework))
 
 - Canonical shared rules now live in:
   - `src/domain/shared/tags.ts`
@@ -90,21 +101,21 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 - Distortion handling, typed consequence routing, and shared outcome formatting now flow through canonical helpers
 - Dashboard, agency, containment, and shared copy surfaces now consume canonical domain outputs rather than local reinterpretation
 
-### Cross-scale integration and explicit handoff contracts completed ([SPE-64](Issue:08947c41-d5f7-4942-93db-03e0d4476780))
+### Cross-scale integration and explicit handoff contracts completed ([SPE-64](https://linear.app/spectranoir/issue/SPE-64/cross-scale-integration-and-domain-interface-layer))
 
 - Explicit `CampaignToIncidentPacket` and `IncidentToCampaignPacket` contracts now carry bounded state between campaign and incident paths
 - Weekly resolution uses explicit handoff packets instead of hidden mutable coupling
 - Optional modular hook points can inspect or alter handoff packets without rewriting the core loop
 - Deterministic contract tests cover packet transfer and integration behavior
 
-### Escalation, threat drift, and time pressure canonicalized ([SPE-20](Issue:95cbf900-c778-4bbd-b803-3b24611f7487))
+### Escalation, threat drift, and time pressure canonicalized ([SPE-20](https://linear.app/spectranoir/issue/SPE-20/escalation-threat-drift-and-time-pressure))
 
 - Escalation, drift, and time pressure live in canonical simulation state
 - Weekly outcome assignment is routed through a canonical registrar with exclusive bucketing
 - Per-tick case bucketing no longer allows double assignment across resolved / failed / partial / unresolved paths
 - Deterministic scheduler and escalation coverage is green
 
-### Support bottleneck pass completed ([SPE-94](Issue:0291ac24-2790-484f-8551-85794766ca65))
+### Support bottleneck pass completed ([SPE-94](https://linear.app/spectranoir/issue/SPE-94/support-specialist-multiplier-and-bottleneck-pass))
 
 - Equipment recovery throughput is gated by bounded maintenance specialist availability
 - Missing or overcommitted support specialists create visible operational bottlenecks
@@ -130,18 +141,20 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 ## Scripts
 
 - `npm run dev` — start the local Vite dev server
-- `npm run build` — run TypeScript build mode and produce a production bundle
+- `npm run build` — run TypeScript project build (`tsc -b`) over app + Vite config, then produce a production bundle with Vite (manual chunks in `app.vite.config.ts` are organizational only: `vendor-react`, `vendor-icons`, `vendor-misc`, `content-catalog`, `sim-core`; no bundle-size budgets or analyzer CI gate yet)
 - `npm run lint` — run ESLint across the repo
 - `npm run format` — rewrite files with Prettier
 - `npm run format:check` — verify formatting without changing files
-- `npm run test -- --run` — execute the Vitest suite once
-- `npm run test:run` — execute the test suite in the repo’s standard non-watch mode
+- `npm run test:run` — execute the full Vitest suite once (CI and pre-merge gate; same flags as `npm run test` with `vitest run`)
+- `npm run test` — Vitest in watch mode (pass a file path to narrow scope while iterating)
 - `npm run test:ui` — open the Vitest UI
 - `npm run coverage` — run tests with coverage output
 - `npm run verify:audits-index` — assert `docs/design-audits-index.md` matches every top-level `docs/*audit*.md` (excludes the index file itself)
 - `npm run verify:theme-contracts` — assert mirrored **SPE-** follow-ups match `architecture/external-design-theme-contracts.md` coverage lines
 
 **Planning and doc curation:** `planning/documentation-curation.md` — when to update backlog, roadmap, mirrors, and the systems map.
+
+**Contributing:** Track work in [Linear](https://linear.app/spectranoir/team/SPE/all) (not GitHub issues). PRs use `.github/pull_request_template.md`; see `docs/contribution-and-release-operations.md` for intake policy, CODEOWNERS placeholders, and Dependabot grouping.
 
 ## Structure
 
@@ -159,7 +172,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 ## Cross-Scale Integration & Modular Contracts
 
-### Explicit handoff contracts ([SPE-64](Issue:08947c41-d5f7-4942-93db-03e0d4476780))
+### Explicit handoff contracts ([SPE-64](https://linear.app/spectranoir/issue/SPE-64/cross-scale-integration-and-domain-interface-layer))
 
 - `CampaignToIncidentPacket` and `IncidentToCampaignPacket` define deterministic cross-scale transfer
 - `src/domain/sim/advanceWeek.ts` uses these contracts in the canonical weekly loop
@@ -171,7 +184,7 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 ## Current Design Notes
 
-- Hidden/disguised activation beyond already-hidden cases remains a follow-up surface
+- **Concealment activation (shipped on `main`):** runtime resolver ([SPE-2107](https://linear.app/spectranoir/issue/SPE-2107), PR #2169), authored triggers ([SPE-2113](https://linear.app/spectranoir/issue/SPE-2113), PR #2175), case-detail prep UI ([SPE-70](https://linear.app/spectranoir/issue/SPE-70), PR #2326), activation events/report notes (PR #2328), and batch-4 concealment trigger migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249), PR #2335). **Remaining under [SPE-70](https://linear.app/spectranoir/issue/SPE-70):** broader hidden-modality matrix, deeper counter-detection/reveal breadth ([SPE-781](https://linear.app/spectranoir/issue/SPE-781) slices shipped; full matrix still open), and optional infiltration content depth — see `planning/backlog.md`.
 - Shared explanatory ownership stays in the domain wherever possible
 - The project prefers compact reusable rules vocabularies over bespoke subsystem logic
 - Optional modules should integrate through explicit contracts, not shared mutable state

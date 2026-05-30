@@ -16,7 +16,7 @@ import {
   type EquipmentSlotKind,
 } from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
-import type { GameState, OperationEvent } from './models'
+import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 
 export type ProcurementTransactionAction = 'buy' | 'sell'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
@@ -1067,4 +1067,109 @@ export function getAvailableMarketCategories() {
 
 export function getMarketItemLabel(game: GameState, listingId: string) {
   return getProcurementListing(game, listingId)?.itemName ?? listingId
+}
+
+const PERSISTED_MARKET_PRESSURES: readonly MarketPressure[] = ['discounted', 'stable', 'tight']
+
+const PRODUCTION_RECIPE_IDS = new Set(productionCatalog.map((recipe) => recipe.recipeId))
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function sanitizeMarketInteger(value: number | undefined, fallback: number, min: number, max?: number) {
+  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
+  const boundedMin = Math.max(min, finiteValue)
+
+  if (typeof max === 'number') {
+    return Math.min(max, boundedMin)
+  }
+
+  return boundedMin
+}
+
+function sanitizeMarketDecimal(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number
+) {
+  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? value : fallback
+
+  return Math.min(max, Math.max(min, finiteValue))
+}
+
+function isMarketPressure(value: unknown): value is MarketPressure {
+  return (
+    typeof value === 'string' &&
+    (PERSISTED_MARKET_PRESSURES as readonly string[]).includes(value)
+  )
+}
+
+/** SPE-454: canonical exchange multiplier for each persisted pressure band. */
+export function getCanonicalMarketCostMultiplier(pressure: MarketPressure): number {
+  if (pressure === 'discounted') {
+    return 0.9
+  }
+
+  if (pressure === 'tight') {
+    return 1.15
+  }
+
+  return 1
+}
+
+/** SPE-446: unknown featured ids fall back to a catalog recipe (never persist phantom recipes). */
+export function sanitizeFeaturedRecipeId(value: unknown, fallbackRecipeId: string): string {
+  if (typeof value === 'string' && value.length > 0 && PRODUCTION_RECIPE_IDS.has(value)) {
+    return value
+  }
+
+  if (PRODUCTION_RECIPE_IDS.has(fallbackRecipeId)) {
+    return fallbackRecipeId
+  }
+
+  return productionCatalog[0]?.recipeId ?? 'ward-seals'
+}
+
+/**
+ * SPE-446–448: normalize persisted market snapshots on import.
+ * `listings` are derived at read time — strip any persisted copy (SPE-448).
+ */
+export function sanitizePersistedMarketState(
+  value: unknown,
+  fallback: MarketState,
+  campaignWeek: number
+): MarketState {
+  if (!isRecord(value)) {
+    return { ...fallback, week: campaignWeek }
+  }
+
+  const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const attestationFallback = fallback.licensedHandlingAttestationWeek ?? fallback.week
+  const pressure = isMarketPressure(value.pressure) ? value.pressure : fallback.pressure
+  const boundedCostMultiplier = sanitizeMarketDecimal(
+    value.costMultiplier as number | undefined,
+    getCanonicalMarketCostMultiplier(pressure),
+    0.5,
+    2
+  )
+  const canonicalCostMultiplier = getCanonicalMarketCostMultiplier(pressure)
+  const costMultiplier =
+    boundedCostMultiplier === canonicalCostMultiplier
+      ? boundedCostMultiplier
+      : canonicalCostMultiplier
+
+  return {
+    week: cappedWeek,
+    featuredRecipeId: sanitizeFeaturedRecipeId(value.featuredRecipeId, fallback.featuredRecipeId),
+    pressure,
+    costMultiplier,
+    licensedHandlingAttestationWeek: sanitizeMarketInteger(
+      value.licensedHandlingAttestationWeek as number | undefined,
+      attestationFallback,
+      1,
+      cappedWeek
+    ),
+  }
 }

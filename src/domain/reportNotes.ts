@@ -168,6 +168,16 @@ function normalizeSequence(sequence: number) {
   return Math.max(0, Math.trunc(sequence))
 }
 
+export function deriveReportNoteWeekFromTimestamp(timestamp: number) {
+  if (typeof timestamp !== 'number' || !Number.isFinite(timestamp)) {
+    return null
+  }
+
+  const weekIndex = Math.floor((timestamp - REPORT_NOTE_CLOCK_START_MS) / REPORT_NOTE_WEEK_MS)
+
+  return Math.max(1, weekIndex + 1)
+}
+
 export function buildReportNoteTimestamp(week: number, sequence: number, baseTimestamp?: number) {
   const safeSequence = normalizeSequence(sequence)
 

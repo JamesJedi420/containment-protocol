@@ -8,17 +8,16 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–5 shipped (SPE-2281–SPE-2285 / PR #2403–#2411); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains for mode-specific tells and optional post-matrix modality families — see Shipped table and active queue below.
+- Concealment activation stack and hidden-modality matrix slices 1–6 shipped (SPE-2281–SPE-2286 / PR #2403–#2415); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains for optional post-matrix modality families only — see Shipped table and active queue below.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: optional post-matrix modality families (signature masking, false-detection output, glamour). **Next matrix slice:** [SPE-2286](https://linear.app/spectranoir/issue/SPE-2286) mode-specific tells — `planning/hidden-modality-matrix-slice-6.md`. **Shipped:** concealment activation, batch-4, infiltration stack, SPE-781 reveal, matrix slices 1–5 (PR #2403–#2411).
+1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: optional post-matrix modality families (signature masking, false-detection output, glamour). **Matrix stack complete:** slices 1–6 ([SPE-2281](https://linear.app/spectranoir/issue/SPE-2281)–[SPE-2286](https://linear.app/spectranoir/issue/SPE-2286), PR #2403–#2415). **Shipped:** concealment activation, batch-4, infiltration stack, SPE-781 reveal, full hidden-modality matrix.
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-4. **Docs hygiene (shipped May 2026)** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) / PR #2412; [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) / PR #2414.
 
 ## Blocked / waiting
 
@@ -36,7 +35,8 @@ From `README.md` **Current design notes**:
 | **Archived prototype hygiene**                                                                   | Guard test `src/test/archivedPrototypeHygiene.test.ts`; vitest/eslint already exclude `docs/archived/**`; no active `src` imports.                                                                                                                                                                                          |
 | **Core UX specs (#4)**                                                                           | **Closed.** Operations Report + navigation map for batch-4 covert notes and report week prev/next (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2).                                                                                                                                                  |
 | **Tuning and QA references**                                                                     | Infiltration/concealment tuning reference, QA matrix, edge-case §12.6–12.9, integration Scenario F. **SPE-25 calibration pass (May 2026):** MVP harness confirms current probe/action deltas — no constant changes; anchor `src/test/weeklyMvpLoopProof.calibration.test.ts`.                                               |
-| **MVP loop proof ([SPE-2251](https://linear.app/spectranoir/issue/SPE-2251))**                   | Slice 1 + slice 2 persistence/4-week fixture (`src/test/weeklyMvpLoopProof.slice2.integration.test.ts`; see `planning/mvp-weekly-loop-proof-slice-1.md`).                                                                                                                                                                  |
+| **MVP loop proof ([SPE-2251](https://linear.app/spectranoir/issue/SPE-2251))**                   | Slice 1 + slice 2 persistence/4-week fixture (`src/test/weeklyMvpLoopProof.slice2.integration.test.ts`; see `planning/mvp-weekly-loop-proof-slice-1.md`).                                                                                                                                                                   |
+| **Hidden-modality matrix slice 6 ([SPE-2286](https://linear.app/spectranoir/issue/SPE-2286))**   | Mode-specific tells / observer-threshold validation (PR #2415); `src/domain/hiddenStateModalityTells.ts`, orchestration + report copy; see `planning/hidden-modality-matrix-slice-6.md`.                                                                                                                                    |
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
@@ -74,32 +74,32 @@ From `README.md` **Current design notes**:
 
 Git-visible implementation plans for agent sessions. **Linear issue state is authoritative** for Done / In Progress; this index is for navigation and stale-doc avoidance. Do not delete shipped plans—they document boundaries and validation notes.
 
-| File                                                      | Classification | Notes                                                         |
-| --------------------------------------------------------- | -------------- | ------------------------------------------------------------- |
-| `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                 |
-| `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack). |
-| `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                   |
-| `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                        |
-| `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                       |
-| `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                       |
-| `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                |
-| `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                             |
-| `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                             |
-| `mission-triage-layout-slice.md`                          | **Shipped**    | SPE-2257 slice 3.                                             |
-| `mission-triage-status-bar-slice.md`                      | **Shipped**    | SPE-2258 slice 4.                                             |
-| `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                   |
-| `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                         |
-| `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                 |
-| `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                     |
+| File                                                      | Classification | Notes                                                                                                                                               |
+| --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
+| `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack).                                                                                       |
+| `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                                                                                                         |
+| `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |
+| `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                                                                                                             |
+| `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |
+| `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
+| `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
+| `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |
+| `mission-triage-layout-slice.md`                          | **Shipped**    | SPE-2257 slice 3.                                                                                                                                   |
+| `mission-triage-status-bar-slice.md`                      | **Shipped**    | SPE-2258 slice 4.                                                                                                                                   |
+| `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                                                                                                         |
+| `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                                                                                                               |
+| `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
+| `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |
-| `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                          |
-| `hidden-modality-matrix-slice-2.md`                       | **Shipped**    | SPE-2282 / PR #2405; weekly orchestration wiring.              |
-| `hidden-modality-matrix-slice-3.md`                       | **Shipped**    | SPE-2283 / PR #2407; modality report copy.                    |
-| `hidden-modality-matrix-slice-4.md`                       | **Shipped**    | SPE-2284 / PR #2409; persistent recon cache.                 |
-| `hidden-modality-matrix-slice-5.md`                       | **Shipped**    | SPE-2285 / PR #2411; false-entity / structural-illusion lifecycle. |
-| `hidden-modality-matrix-slice-6.md`                       | **Active**     | SPE-2286; mode-specific tells / observer-threshold (next).       |
-| `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                         |
-| `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                          |
+| `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                                                                                                                |
+| `hidden-modality-matrix-slice-2.md`                       | **Shipped**    | SPE-2282 / PR #2405; weekly orchestration wiring.                                                                                                   |
+| `hidden-modality-matrix-slice-3.md`                       | **Shipped**    | SPE-2283 / PR #2407; modality report copy.                                                                                                          |
+| `hidden-modality-matrix-slice-4.md`                       | **Shipped**    | SPE-2284 / PR #2409; persistent recon cache.                                                                                                        |
+| `hidden-modality-matrix-slice-5.md`                       | **Shipped**    | SPE-2285 / PR #2411; false-entity / structural-illusion lifecycle.                                                                                  |
+| `hidden-modality-matrix-slice-6.md`                       | **Shipped**    | SPE-2286 / PR #2415; mode-specific tells / observer-threshold.                                                                                      |
+| `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
+| `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 
 **Superseded / stale:** none identified for deletion (May 2026). If a slice doc contradicts `main` or Linear, add a one-line status banner at the top of that file instead of removing it.
 

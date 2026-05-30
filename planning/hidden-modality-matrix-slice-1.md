@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2281](https://linear.app/spectranoir/
 | **Linear** | [SPE-2281 — Hidden-state modality matrix slice 1](https://linear.app/spectranoir/issue/SPE-2281) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `jamesdyedbq/spe-70-hidden-modality-matrix-slice-1` |
-| **Status** | Shipped on branch — pending PR |
+| **Status** | **Shipped** — PR #2403 |
 
 ## Goal
 

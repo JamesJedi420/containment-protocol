@@ -10,6 +10,9 @@ import {
   buildDisguiseRevealSubjectFromCase,
   detectionScanTierOrder,
 } from '../domain/revealPayloadDisguiseIntegration'
+import {
+  buildScoutingRevealInputFromCase,
+} from '../domain/revealPayloadScoutingIntegration'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
 
@@ -25,6 +28,24 @@ function createBehaviorObserver(id: string, tags: string[], social: number): Age
       social,
     },
     tags: ['medium', ...tags],
+    relationships: {},
+    fatigue: 0,
+    status: 'active',
+  }
+}
+
+function createReconObserver(id: string, investigation: number): Agent {
+  return {
+    id,
+    name: id,
+    role: 'medium',
+    baseStats: {
+      combat: 10,
+      investigation,
+      utility: 40,
+      social: 40,
+    },
+    tags: ['medium', 'recon-specialist'],
     relationships: {},
     fatigue: 0,
     status: 'active',
@@ -49,6 +70,28 @@ function createHiddenCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
     difficulty: { combat: 0, investigation: 0, utility: 0, social: 40 },
     infiltrationAwareness: 0.35,
     infiltrationCoverProfile: { claimedRole: 'official_inspector', documentTier: 1 },
+    ...overrides,
+  }
+}
+
+function createConcealedPresenceCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
+  return {
+    ...createStarterCase({
+      id: 'case-orchestration-concealed',
+      templateId: 'combat_vampire_nest',
+    }),
+    mode: 'threshold',
+    hiddenState: 'hidden',
+    detectionConfidence: 0.2,
+    counterDetection: false,
+    tags: ['concealment'],
+    requiredTags: [],
+    preferredTags: [],
+    assignedTeamIds: ['team-reveal'],
+    infiltrationCoverProfile: undefined,
+    infiltrationProbePlan: undefined,
+    weights: { combat: 0, investigation: 0.4, utility: 0, social: 0 },
+    difficulty: { combat: 0, investigation: 40, utility: 0, social: 0 },
     ...overrides,
   }
 }
@@ -199,5 +242,138 @@ describe('revealPayloadOrchestration (SPE-781 slice 4)', () => {
       caseData.detectionConfidence ?? 0
     )
     expect(resolution.effectiveCase.counterDetection).toBe(true)
+  })
+})
+
+describe('hiddenStateScoutingOrchestration (SPE-2282)', () => {
+  it('buildScoutingRevealInputFromCase maps investigation pressure and team capability', () => {
+    const observer = createReconObserver('a_scouting_input', 60)
+    const caseData = createConcealedPresenceCase()
+
+    expect(buildScoutingRevealInputFromCase(caseData, [observer])).toMatchObject({
+      teamCapability: 3,
+      anomalyConcealment: 2,
+      subject: {
+        exactIdentity: 'entity:case-orchestration-concealed',
+        category: 'concealed presence',
+        present: true,
+      },
+    })
+  })
+
+  it('attach hiddenStateScouting for concealed-presence cases without active disguise validation', () => {
+    const observer = createReconObserver('a_concealed_orchestration', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({ assignedTeamIds: [team.id] })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+
+    expect(resolution.behaviorValidation?.active).toBe(false)
+    expect(resolution.hiddenStateScouting?.active).toBe(true)
+    expect(detectionScanTierOrder(resolution.hiddenStateScouting!.detectionScan).length).toBeGreaterThan(
+      0
+    )
+  })
+
+  it('anchors false-position hiddenStateScouting readouts to decoy locus', () => {
+    const observer = createReconObserver('a_displaced_orchestration', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({
+      assignedTeamIds: [team.id],
+      hiddenState: 'displaced',
+      displacementTarget: 'annex-b',
+      difficulty: { combat: 0, investigation: 0, utility: 0, social: 0 },
+    })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+
+    expect(resolution.hiddenStateScouting?.active).toBe(true)
+    const playerFacingValues = resolution.hiddenStateScouting!.detectionScan.fields.map(
+      (field) => field.playerFacingValue
+    )
+    expect(playerFacingValues.some((value) => value.includes('decoy locus annex-b'))).toBe(true)
+  })
+
+  it('does not attach hiddenStateScouting when disguised infiltration validation is active', () => {
+    const observer = createBehaviorObserver('a_disguise_orchestration', ['liaison', 'negotiation'], 58)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createHiddenCase({ assignedTeamIds: [team.id] })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+
+    expect(resolution.behaviorValidation?.active).toBe(true)
+    expect(resolution.hiddenStateScouting).toBeUndefined()
+    expect(resolution.behaviorValidation?.detectionScan).toBeDefined()
+  })
+
+  it('strips one modality layer when counter-detection is enabled on concealed cases', () => {
+    const observer = createReconObserver('a_counter_orchestration', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({
+      assignedTeamIds: [team.id],
+      counterDetection: true,
+    })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+
+    expect(resolution.hiddenStateScouting?.detectionScan.strippedLayerIds).toContain(
+      'layer:concealed-presence'
+    )
+  })
+
+  it('appends detection readout resolution reasons from hiddenStateScouting when disguise is inactive', () => {
+    const observer = createReconObserver('a_report_orchestration', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({
+      assignedTeamIds: [team.id],
+      counterDetection: true,
+    })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+    const reasons: string[] = []
+
+    appendDetectionScanResolutionReason(reasons, resolution.behaviorValidation, resolution.hiddenStateScouting)
+
+    expect(reasons.some((reason) => reason.includes(DETECTION_SCAN_READOUT_PREFIX))).toBe(true)
   })
 })

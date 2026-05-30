@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2285](https://linear.app/spectranoir/
 | **Linear** | [SPE-2285 — Hidden-state modality matrix slice 5](https://linear.app/spectranoir/issue/SPE-2285) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `jamesdyedbq/spe-2285-hidden-modality-matrix-slice-5-illusion-lifecycle` |
-| **Status** | In Progress — SPE-2285 |
+| **Status** | Shipped — SPE-2285 / PR #2411 |
 
 ## Goal
 

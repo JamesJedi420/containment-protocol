@@ -114,8 +114,15 @@ describe('hiddenStateIllusionLifecycle (SPE-2285)', () => {
     expect(disproved.hiddenStateIllusionState?.phase).toBe('disproved')
     expect(disproved.hiddenStateIllusionState?.disproofReason).toContain('counter-detection')
 
+    const stillDisprovedAfterTriggerOnly = applyHiddenStateIllusionLifecyclePass(
+      withCounterDetection,
+      buildIllusionLifecycleContext(withCounterDetection)
+    )
+    expect(stillDisprovedAfterTriggerOnly.hiddenStateIllusionState?.phase).toBe('disproved')
+
     const collapsed = applyHiddenStateIllusionLifecyclePass(disproved, {
       ...buildIllusionLifecycleContext(disproved),
+      counterDetection: true,
       missionResult: 'success',
     })
 

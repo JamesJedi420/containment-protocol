@@ -302,8 +302,11 @@ export function applyHiddenStateIllusionLifecyclePass(
     }
   }
 
-  if (state.phase === 'disproved' && (trigger || missionCollapse)) {
-    return clearIllusionState(caseData)
+  if (state.phase === 'disproved') {
+    const isPostMission = context.missionResult !== undefined
+    if (isPostMission ? missionCollapse : trigger) {
+      return clearIllusionState(caseData)
+    }
   }
 
   return {

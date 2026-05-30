@@ -190,11 +190,11 @@ export function buildSubjectTruthFromCaseHiddenState(
       ? illusionConcealmentLayer(illusionKind)
       : null
   const layerGroups: ConcealmentLayer[][] = []
-  if (modalityLayer) {
-    layerGroups.push([modalityLayer])
-  }
   if (illusionLayer) {
     layerGroups.push([illusionLayer])
+  }
+  if (modalityLayer) {
+    layerGroups.push([modalityLayer])
   }
   layerGroups.push(scoutingLayers)
   const concealmentLayers =

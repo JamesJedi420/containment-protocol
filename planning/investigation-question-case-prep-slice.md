@@ -2,13 +2,13 @@
 
 ## Shipped status
 
-| Field             | Value                                                                                                                                                                       |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Parent**        | [SPE-626 — Question-budget investigation and tactical reads](https://linear.app/spectranoir/issue/SPE-626/question-budget-investigation-and-tactical-reads)                 |
-| **Merged PR**     | [#2324](https://github.com/JamesJedi420/containment-protocol/pull/2324) — `feat(SPE-626): investigation question case prep UI`                                              |
-| **Shipped scope** | `InvestigationCasePrepPanel` + `buildInvestigationCasePrepView`; store `askInvestigationQuestion`; forensic/tactical budget spend and custody-marker display on case detail |
-| **Validation**    | `investigationCasePrepView.test.ts`, `CaseDetailPage.test.tsx`; complements [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247) / PR #2323 leave-behind selection     |
-| **Doc reconciliation (SPE-2278)** | May 2026 @ main `64225023` — shipped block is authoritative; historical sections below are archival only. |
+| Field                             | Value                                                                                                                                                                       |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parent**                        | [SPE-626 — Question-budget investigation and tactical reads](https://linear.app/spectranoir/issue/SPE-626/question-budget-investigation-and-tactical-reads)                 |
+| **Merged PR**                     | [#2324](https://github.com/JamesJedi420/containment-protocol/pull/2324) — `feat(SPE-626): investigation question case prep UI`                                              |
+| **Shipped scope**                 | `InvestigationCasePrepPanel` + `buildInvestigationCasePrepView`; store `askInvestigationQuestion`; forensic/tactical budget spend and custody-marker display on case detail |
+| **Validation**                    | `investigationCasePrepView.test.ts`, `CaseDetailPage.test.tsx`; complements [SPE-2247](https://linear.app/spectranoir/issue/SPE-2247) / PR #2323 leave-behind selection     |
+| **Doc reconciliation (SPE-2278)** | May 2026 @ main `64225023` — shipped block is authoritative; historical sections below are archival only.                                                                   |
 
 > **Agent note:** Do not treat pre-ship gap tables as open work unless explicitly marked unshipped.
 

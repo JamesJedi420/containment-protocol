@@ -33,12 +33,14 @@ export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 export const CONCEALMENT_SCAN_READOUT_PREFIX = 'Concealment readout:'
 export const DISPLACEMENT_SCAN_READOUT_PREFIX = 'Displacement readout:'
 export const COVER_SCAN_READOUT_PREFIX = 'Cover readout:'
+export const SIGNATURE_MASK_SCAN_READOUT_PREFIX = 'Signature mask readout:'
 
 export const DETECTION_SCAN_READOUT_PREFIXES = [
   DETECTION_SCAN_READOUT_PREFIX,
   CONCEALMENT_SCAN_READOUT_PREFIX,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
   COVER_SCAN_READOUT_PREFIX,
+  SIGNATURE_MASK_SCAN_READOUT_PREFIX,
   FABRICATED_CONTACT_READOUT_PREFIX,
   STRUCTURAL_ILLUSION_READOUT_PREFIX,
 ] as const
@@ -53,6 +55,8 @@ export function detectionScanReadoutPrefixForModality(
       return DISPLACEMENT_SCAN_READOUT_PREFIX
     case 'disguised_identity':
       return COVER_SCAN_READOUT_PREFIX
+    case 'signature_masking':
+      return SIGNATURE_MASK_SCAN_READOUT_PREFIX
     case 'none':
       return DETECTION_SCAN_READOUT_PREFIX
     default: {

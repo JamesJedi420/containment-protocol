@@ -22,6 +22,7 @@ import {
 } from './hiddenStateIllusionLifecycle'
 import {
   applyFalsePositionScanProjection,
+  applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
@@ -309,8 +310,14 @@ export function resolveScoutingWithCaseHiddenState(
   const scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
   let detectionScan = resolveDetectionScan(truth, scanInput)
 
-  if (resolveHiddenStateModality(input.caseData) === 'false_position') {
+  const modality = resolveHiddenStateModality(input.caseData)
+
+  if (modality === 'false_position') {
     detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)
+  }
+
+  if (modality === 'signature_masking') {
+    detectionScan = applySignatureMaskScanProjection(detectionScan)
   }
 
   if (

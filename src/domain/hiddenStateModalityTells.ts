@@ -14,8 +14,10 @@ export type HiddenStateTellKind =
   | 'route_timing'
   | 'speech_cadence'
   | 'metadata_spoof'
+  | 'signature_drift'
 
 export const TELL_THERMAL_RESIDUAL_TAG = 'tell-thermal-residual'
+export const TELL_SIGNATURE_DRIFT_TAG = 'tell-signature-drift'
 export const TELL_ROUTE_TIMING_TAG = 'tell-route-timing'
 export const TELL_SPEECH_CADENCE_TAG = 'tell-speech-cadence'
 export const TELL_METADATA_SPOOF_TAG = 'tell-metadata-spoof'
@@ -24,11 +26,13 @@ export const OBSERVER_THRESHOLD_STRICT_TAG = 'observer-threshold-strict'
 export const CONCEALMENT_TELL_READOUT_PREFIX = 'Concealment tell readout:'
 export const DISPLACEMENT_TELL_READOUT_PREFIX = 'Displacement tell readout:'
 export const COVER_TELL_READOUT_PREFIX = 'Cover tell readout:'
+export const SIGNATURE_MASK_TELL_READOUT_PREFIX = 'Signature mask tell readout:'
 
 export const MODALITY_TELL_READOUT_PREFIXES = [
   CONCEALMENT_TELL_READOUT_PREFIX,
   DISPLACEMENT_TELL_READOUT_PREFIX,
   COVER_TELL_READOUT_PREFIX,
+  SIGNATURE_MASK_TELL_READOUT_PREFIX,
 ] as const
 
 const MEANINGFUL_DETECTION_CONFIDENCE_FLOOR = 0.6
@@ -78,6 +82,12 @@ const TELL_CANDIDATES: readonly TellCandidate[] = [
   },
   {
     priority: 3,
+    kind: 'signature_drift',
+    modality: 'signature_masking',
+    tag: TELL_SIGNATURE_DRIFT_TAG,
+  },
+  {
+    priority: 4,
     kind: 'thermal_residual',
     modality: 'concealed_presence',
     tag: TELL_THERMAL_RESIDUAL_TAG,
@@ -136,6 +146,8 @@ export function tellReadoutPrefixForModality(modality: HiddenStateModalityKind):
       return DISPLACEMENT_TELL_READOUT_PREFIX
     case 'disguised_identity':
       return COVER_TELL_READOUT_PREFIX
+    case 'signature_masking':
+      return SIGNATURE_MASK_TELL_READOUT_PREFIX
     case 'none':
       return null
     default: {
@@ -164,6 +176,8 @@ export function formatModalityTellReadout(
       return 'Speech cadence does not match the claimed cover profile.'
     case 'metadata_spoof':
       return 'Contact metadata shows spoofed chain-of-custody markers.'
+    case 'signature_drift':
+      return 'Class estimate drifts from filed baseline without matching exact identity markers.'
     default: {
       const _exhaustive: never = kind
       return _exhaustive

@@ -8,17 +8,17 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack shipped (runtime, triggers, prep UI, event feed, batch-4 migration); SPE-70 umbrella modalities remain — see Shipped table and active queue below.
+- Concealment activation stack and hidden-modality matrix slices 1–5 shipped (SPE-2281–SPE-2285 / PR #2403–#2411); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains for mode-specific tells and optional post-matrix modality families — see Shipped table and active queue below.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent AC still open: ≥3 mechanically distinct hidden-state modalities in one reusable flow; counter-reveal; known-but-unresolved hidden nodes; false-entity / structural-illusion lifecycle; mode-specific tells. Batch-4 concealment migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249)) and infiltration stack slices 1–2 ([SPE-2250](https://linear.app/spectranoir/issue/SPE-2250)) shipped — see Shipped below.
+1. **Hidden / disguised activation — remaining umbrella scope** — [SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer) parent: **mode-specific tells** and observer-threshold validation; optional post-matrix modality families (signature masking, false-detection output, glamour — see `architecture/hidden-state-displacement-counter-detection.md`). **Shipped:** concealment activation ([SPE-2107](https://linear.app/spectranoir/issue/SPE-2107) / [SPE-2113](https://linear.app/spectranoir/issue/SPE-2113)), batch-4 migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249)), infiltration stack slices 1–2 ([SPE-2250](https://linear.app/spectranoir/issue/SPE-2250)), [SPE-781](https://linear.app/spectranoir/issue/SPE-781) reveal slices, hidden-modality matrix slices 1–5 ([SPE-2281](https://linear.app/spectranoir/issue/SPE-2281)–[SPE-2285](https://linear.app/spectranoir/issue/SPE-2285) / PR #2403–#2411).
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
-4. **Tiered detection — full hidden-modality matrix** — [SPE-781](https://linear.app/spectranoir/issue/SPE-781) slices 1–5 shipped (`revealPayload.ts`, scouting + disguise integration, weekly orchestration, report copy via `detectionScanReportNotes.ts`, PR #2342 / #2344 / #2346 / #2347). Full hidden-modality matrix remains follow-up.
+4. **Docs hygiene** — [SPE-2280](https://linear.app/spectranoir/issue/SPE-2280) README/backlog reconciliation after matrix slice 5; [SPE-2278](https://linear.app/spectranoir/issue/SPE-2278) shipped case-prep planning doc reconciliation.
 
 ## Blocked / waiting
 

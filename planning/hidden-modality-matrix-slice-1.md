@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2281](https://linear.app/spectranoir/
 | **Linear** | [SPE-2281 — Hidden-state modality matrix slice 1](https://linear.app/spectranoir/issue/SPE-2281) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `jamesdyedbq/spe-70-hidden-modality-matrix-slice-1` |
-| **Status** | Backlog — not started |
+| **Status** | Shipped on branch — pending PR |
 
 ## Goal
 
@@ -58,13 +58,13 @@ Treat these as **first-class modes** (combinable only when explicitly authored o
 
 ## Acceptance
 
-- [ ] Three modalities produce **distinct** `DetectionScanResult` tier payloads in one shared compose function (fixture cases, no manual test-only `hiddenState` assignment beyond spawn helpers).
-- [ ] Concealed presence: strong scouting can reach category/hostility tiers only after layer strip; presence-only sweep stays ambiguous or withheld per policy.
-- [ ] False position: identity/category readouts can mislocate or reference decoy locus while internal truth retains canonical identity.
-- [ ] Disguised identity path: unchanged disguise validation scores; modality compose does not alter SPE-285 math.
-- [ ] Counter-detection strips one modality layer without solving all modalities on the same scan.
-- [ ] `resolveScouting` legacy fields (`outcome`, `revealed`, `withheld`) unchanged vs plain `resolveScouting` for the same inputs.
-- [ ] `npm run lint` + targeted `npm run test:run` green on touched files.
+- [x] Three modalities produce **distinct** `DetectionScanResult` tier payloads in one shared compose function (fixture cases, no manual test-only `hiddenState` assignment beyond spawn helpers).
+- [x] Concealed presence: strong scouting can reach category/hostility tiers only after layer strip; presence-only sweep stays ambiguous or withheld per policy.
+- [x] False position: identity/category readouts can mislocate or reference decoy locus while internal truth retains canonical identity.
+- [x] Disguised identity path: unchanged disguise validation scores; modality compose does not alter SPE-285 math (scouting path delegates disguise subject; SPE-285 weekly path untouched).
+- [x] Counter-detection strips one modality layer without solving all modalities on the same scan.
+- [x] `resolveScouting` legacy fields (`outcome`, `revealed`, `withheld`) unchanged vs plain `resolveScouting` for the same inputs.
+- [x] `npm run lint` + targeted `npm run test:run` green on touched files.
 
 ## TDD order
 

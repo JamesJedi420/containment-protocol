@@ -14,6 +14,13 @@ import {
   type SubjectTruthState,
 } from './revealPayload'
 import {
+  applyFalsePositionScanProjection,
+  buildSubjectTruthFromCaseHiddenState,
+  resolveHiddenStateModality,
+  scoutingOutcomeToDetectionScanForCase,
+} from './hiddenStateModality'
+import type { CaseInstance } from './models'
+import {
   computeEffectiveScoutingConcealment,
   resolveScouting,
   type ScoutingInput,
@@ -32,6 +39,10 @@ export interface ScoutingRevealSubject {
 
 export interface ScoutingRevealIntegrationInput extends ScoutingInput {
   readonly subject: ScoutingRevealSubject
+}
+
+export interface CaseScoutingRevealIntegrationInput extends ScoutingRevealIntegrationInput {
+  readonly caseData: CaseInstance
 }
 
 export interface ScoutingRevealIntegrationResult extends ScoutingResult {
@@ -125,6 +136,25 @@ export function resolveScoutingWithRevealPayload(
   const truth = buildSubjectTruthFromScouting(input, input.subject)
   const scanInput = scoutingOutcomeToDetectionScan(scouting)
   const detectionScan = resolveDetectionScan(truth, scanInput)
+
+  return {
+    ...scouting,
+    detectionScan,
+  }
+}
+
+/** SPE-2281: scouting + tiered scan with case hidden-state modalities (SPE-70). */
+export function resolveScoutingWithCaseHiddenState(
+  input: CaseScoutingRevealIntegrationInput
+): ScoutingRevealIntegrationResult {
+  const scouting = resolveScouting(input)
+  const truth = buildSubjectTruthFromCaseHiddenState(input.caseData, input, input.subject)
+  const scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
+  let detectionScan = resolveDetectionScan(truth, scanInput)
+
+  if (resolveHiddenStateModality(input.caseData) === 'false_position') {
+    detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)
+  }
 
   return {
     ...scouting,

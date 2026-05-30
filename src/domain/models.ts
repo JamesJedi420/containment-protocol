@@ -1340,6 +1340,8 @@ export interface CaseInstance {
   counterDetection?: boolean
   displacementTarget?: Id | null
   route?: string | null
+  /** SPE-2284: known-but-unresolved hidden-state scouting nodes across weekly passes. */
+  hiddenStateScoutingReconCache?: import('./hiddenStateScoutingReconCache').HiddenStateScoutingReconCache
   /** SPE-521 slice 1: covert objective progress while under cover (0–1). */
   infiltrationProbeProgress?: number
   /** SPE-521 slice 1: accumulated site awareness while infiltrating (0–1). */

@@ -11,6 +11,10 @@ import {
   type DisguiseRevealIntegrationResult,
 } from './revealPayloadDisguiseIntegration'
 import {
+  applyHiddenStateScoutingReconCacheToCase,
+  scoutingReconCacheScoreAdjustment,
+} from './hiddenStateScoutingReconCache'
+import {
   evaluateHiddenStateScoutingWithRevealPayload,
   type HiddenStateScoutingRevealIntegrationResult,
 } from './revealPayloadScoutingIntegration'
@@ -147,7 +151,7 @@ export function resolveAssignedCaseForWeek(
       infiltrationAwareness: effectiveCase.infiltrationAwareness,
     },
   })
-  const resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
+  let resolvedEffectiveCase = applyBehaviorWeightedDisguiseValidationToCase(
     effectiveCase,
     behaviorValidation
   )
@@ -157,18 +161,28 @@ export function resolveAssignedCaseForWeek(
     teamTags: supportTags,
     disguiseValidationActive: behaviorValidation.active,
   })
+  if (hiddenStateScouting !== undefined) {
+    resolvedEffectiveCase = applyHiddenStateScoutingReconCacheToCase(
+      resolvedEffectiveCase,
+      hiddenStateScouting.detectionScan,
+      state.week
+    )
+  }
+  const reconCacheScore = scoutingReconCacheScoreAdjustment(resolvedEffectiveCase)
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
   const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =
     factionContext.scoreAdjustment +
     behaviorValidation.scoreAdjustment +
     infiltrationStageMission.scoreAdjustment +
-    stealthLeaveBehindMission.scoreAdjustment
+    stealthLeaveBehindMission.scoreAdjustment +
+    reconCacheScore.delta
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
     infiltrationStageMission.scoreAdjustmentReason,
     stealthLeaveBehindMission.scoreAdjustmentReason,
+    reconCacheScore.reason,
   ]
     .filter(Boolean)
     .join(' / ')

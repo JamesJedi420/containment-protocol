@@ -179,6 +179,7 @@ import {
 } from '../executionInstability'
 import { buildMissionRewardBreakdown } from '../missionResults'
 import { appendDetectionScanResolutionReason } from '../detectionScanReportNotes'
+import { applyWeeklyHiddenStateScoutingReconPass } from '../hiddenStateScoutingReconCache'
 import { formatConcealmentActivationSummary } from '../concealmentActivationFeed'
 import {
   mergeConcealmentActivationResult,
@@ -2282,6 +2283,11 @@ function resolveAssignments(
 
     currentCase = applyWeeklyConcealmentActivation(context, caseId, currentCase)
     currentCase = applyWeeklyInfiltrationProbe(context, caseId, currentCase)
+    currentCase = applyWeeklyHiddenStateScoutingReconPass(
+      context.sourceState,
+      currentCase,
+      existingAssignedTeamIds
+    )
 
     // SPE-38: Support consumption and shortage
     if (supportAvailable >= supportConsumptionPerCase) {

@@ -208,8 +208,15 @@ function isRuntimeQueuedEventTargetValid(
     return targetId.includes('.')
   }
 
-  if (type === 'encounter.patched' || type === 'encounter.escalation') {
+  if (type === 'encounter.patched') {
     return targetId.length > 0 && encounterState[targetId] !== undefined
+  }
+
+  if (type === 'encounter.escalation') {
+    return (
+      targetId.length > 0 &&
+      (encounterState[targetId] !== undefined || targetId.includes('.'))
+    )
   }
 
   return targetId.length > 0

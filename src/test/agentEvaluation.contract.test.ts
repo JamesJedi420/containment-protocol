@@ -18,6 +18,7 @@ import {
   normalizeAgentCasePerformanceWeights,
   normalizeAgentPerformanceBuckets,
 } from '../domain/evaluateAgent'
+import { normalizeAgent } from '../domain/agent/normalize'
 import {
   buildCaseDomainWeights,
   buildContextualRoleDomainWeights,
@@ -43,20 +44,26 @@ function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
 }
 
 function makeAgent(overrides: Partial<Agent> = {}): Agent {
-  return {
+  const merged = {
     ...createStartingState().agents.a_ava,
     id: 'agent-test',
     name: 'Agent Test',
-    role: 'tech',
+    role: 'tech' as const,
     baseStats: { combat: 20, investigation: 30, utility: 40, social: 50 },
     stats: makeDomainStats(),
     tags: ['tech', 'analyst'],
     relationships: {},
     fatigue: 0,
-    status: 'active',
+    status: 'active' as const,
     traits: [],
     ...overrides,
   }
+
+  return normalizeAgent(merged, {
+    knownAgentIds: new Set([merged.id]),
+    fallbackBaseStats: merged.baseStats,
+    campaignWeek: 1,
+  })
 }
 
 function makeCase(overrides: Partial<CaseInstance> = {}): CaseInstance {

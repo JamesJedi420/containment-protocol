@@ -61,7 +61,7 @@ describe('SPE-1703a courier shell front business', () => {
         procurementBacklog: [
           {
             requestId: 'req-courier-shell-test',
-            itemId: 'stabilizer-kit',
+            itemId: 'medkits',
             quantity: 1,
             requestedWeek: 1,
             cost: 1,

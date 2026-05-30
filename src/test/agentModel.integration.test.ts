@@ -168,11 +168,30 @@ describe('core agent model integration', () => {
           relationshipDelta: 0.25,
           trainedRelationshipDelta: 2,
         },
+        {
+          id: 'training-legacy-2',
+          trainingId: 'coordination-drill',
+          trainingName: 'Coordination Drill',
+          scope: 'team',
+          agentId: 'a_ava',
+          agentName: 'Ava Brooks',
+          teamId: 't_nightwatch',
+          teamName: 'Night Watch',
+          drillGroupId: 'group-1',
+          memberIds: ['a_ava', 'a_rook'],
+          targetStat: 'utility',
+          statDelta: 1,
+          startedWeek: 2,
+          durationWeeks: 2,
+          remainingWeeks: 0,
+          fundingCost: 15,
+          fatigueDelta: 6,
+        },
       ],
     })
 
     expect(hydrated.academyTier).toBe(3)
-    expect(hydrated.trainingQueue).toHaveLength(1)
+    expect(hydrated.trainingQueue).toHaveLength(2)
     expect(hydrated.trainingQueue[0]).toMatchObject({
       scope: 'team',
       teamId: 't_nightwatch',

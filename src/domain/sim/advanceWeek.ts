@@ -1575,6 +1575,9 @@ interface WeeklyCaseResolutionStrategy {
   outcome: ResolutionOutcomeWithDetails
   aggregateBattleSummary?: AggregateBattleCampaignSummary
   behaviorValidation?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['behaviorValidation']
+  hiddenStateModalityTell?: ReturnType<
+    typeof resolveCanonicalAssignedCaseForWeek
+  >['hiddenStateModalityTell']
   hiddenStateScouting?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['hiddenStateScouting']
   infiltrationStageMission?: ReturnType<
     typeof resolveCanonicalAssignedCaseForWeek
@@ -1718,6 +1721,7 @@ function resolveAssignedCaseForWeek(
     outcome,
     aggregateBattleSummary,
     behaviorValidation: canonicalResolution.behaviorValidation,
+    hiddenStateModalityTell: canonicalResolution.hiddenStateModalityTell,
     hiddenStateScouting: canonicalResolution.hiddenStateScouting,
     infiltrationStageMission: canonicalResolution.infiltrationStageMission,
     stealthLeaveBehindMission: canonicalResolution.stealthLeaveBehindMission,
@@ -2410,6 +2414,7 @@ function resolveAssignments(
       outcome,
       aggregateBattleSummary,
       behaviorValidation,
+      hiddenStateModalityTell,
       hiddenStateScouting,
       infiltrationStageMission,
       stealthLeaveBehindMission,
@@ -2475,7 +2480,8 @@ function resolveAssignments(
       resolutionReasons,
       behaviorValidation,
       hiddenStateScouting,
-      effectiveCase
+      effectiveCase,
+      hiddenStateModalityTell
     )
 
     if (

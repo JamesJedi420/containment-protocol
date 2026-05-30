@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest'
 import {
   appendDetectionScanResolutionReason,
+  appendModalityTellResolutionReason,
   CONCEALMENT_SCAN_READOUT_PREFIX,
+  CONCEALMENT_TELL_READOUT_PREFIX,
   COVER_SCAN_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
   detectionScanReadoutPrefixForModality,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
   formatDetectionScanSummary,
   shouldAppendDetectionScanReportNote,
+  shouldAppendModalityTellReportNote,
 } from '../domain/detectionScanReportNotes'
+import { evaluateHiddenStateModalityTell } from '../domain/hiddenStateModalityTells'
+import { TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import { resolveDetectionScan, type SubjectTruthState } from '../domain/revealPayload'
 import {
   buildDisguiseRevealSubjectFromCase,
@@ -212,5 +217,109 @@ describe('detectionScanReportNotes', () => {
     expect(reasons).toHaveLength(1)
     expect(reasons[0]).toContain(DETECTION_SCAN_READOUT_PREFIX)
     expect(reasons[0]).toContain('contact detected')
+  })
+
+  it('appends modality tell readout after scouting copy without duplicate prefixes', () => {
+    const caseData = {
+      ...createStarterCase({ id: 'case-tell-copy', templateId: 'combat_vampire_nest' }),
+      hiddenState: 'hidden' as const,
+      detectionConfidence: 0.2,
+      counterDetection: false,
+      tags: ['concealment', TELL_THERMAL_RESIDUAL_TAG],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: ['team-tell'],
+      infiltrationCoverProfile: undefined,
+      infiltrationProbePlan: undefined,
+      weights: { combat: 0, investigation: 0.4, utility: 0, social: 0 },
+      difficulty: { combat: 0, investigation: 40, utility: 0, social: 0 },
+    }
+    const agent: Agent = {
+      id: 'a_tell_copy',
+      name: 'a_tell_copy',
+      role: 'medium',
+      baseStats: { combat: 10, investigation: 60, utility: 40, social: 40 },
+      tags: ['medium'],
+      relationships: {},
+      fatigue: 0,
+      status: 'active',
+    }
+    const tell = evaluateHiddenStateModalityTell({
+      caseData,
+      agents: [agent],
+      disguiseValidationActive: false,
+    })
+
+    expect(shouldAppendModalityTellReportNote(tell)).toBe(true)
+
+    const reasons: string[] = []
+    appendModalityTellResolutionReason(reasons, tell)
+    appendModalityTellResolutionReason(reasons, tell)
+
+    expect(reasons).toHaveLength(1)
+    expect(reasons[0]).toContain(CONCEALMENT_TELL_READOUT_PREFIX)
+  })
+
+  it('appends modality tell when hidden-state scouting scan has no player-facing fields', () => {
+    const caseData = {
+      ...createStarterCase({ id: 'case-tell-no-scan', templateId: 'combat_vampire_nest' }),
+      hiddenState: 'hidden' as const,
+      detectionConfidence: 0.2,
+      counterDetection: false,
+      tags: ['concealment', TELL_THERMAL_RESIDUAL_TAG],
+      requiredTags: [],
+      preferredTags: [],
+      assignedTeamIds: ['team-tell'],
+      infiltrationCoverProfile: undefined,
+      infiltrationProbePlan: undefined,
+      weights: { combat: 0, investigation: 0.4, utility: 0, social: 0 },
+      difficulty: { combat: 0, investigation: 40, utility: 0, social: 0 },
+    }
+    const agent: Agent = {
+      id: 'a_tell_no_scan',
+      name: 'a_tell_no_scan',
+      role: 'medium',
+      baseStats: { combat: 10, investigation: 60, utility: 40, social: 40 },
+      tags: ['medium'],
+      relationships: {},
+      fatigue: 0,
+      status: 'active',
+    }
+    const tell = evaluateHiddenStateModalityTell({
+      caseData,
+      agents: [agent],
+      disguiseValidationActive: false,
+    })
+    const presenceOnlyScan = resolveDetectionScan(
+      {
+        present: false,
+        exactIdentity: 'entity:case-tell-no-scan',
+        category: 'concealed presence',
+        hostility: 'latent',
+        activeProtections: [],
+        concealmentLayers: [],
+        activeEffects: [],
+        dormantEffects: [],
+      },
+      { family: 'presence_sweep' }
+    )
+    const reasons: string[] = []
+
+    appendDetectionScanResolutionReason(
+      reasons,
+      undefined,
+      {
+        active: true,
+        outcome: 'fail',
+        revealed: false,
+        withheld: true,
+        detectionScan: presenceOnlyScan,
+      },
+      caseData,
+      tell
+    )
+
+    expect(reasons.some((reason) => reason.includes(CONCEALMENT_TELL_READOUT_PREFIX))).toBe(true)
+    expect(reasons.some((reason) => reason.includes(CONCEALMENT_SCAN_READOUT_PREFIX))).toBe(false)
   })
 })

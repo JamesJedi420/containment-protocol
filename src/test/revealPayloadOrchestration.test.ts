@@ -5,9 +5,11 @@ import { evaluateBehaviorWeightedDisguiseValidation } from '../domain/disguiseVa
 import {
   appendDetectionScanResolutionReason,
   CONCEALMENT_SCAN_READOUT_PREFIX,
+  CONCEALMENT_TELL_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
+import { TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import {
   buildDisguiseRevealSubjectFromCase,
   detectionScanTierOrder,
@@ -415,5 +417,38 @@ describe('hiddenStateScoutingOrchestration (SPE-2282)', () => {
 
     expect(reasons.some((reason) => reason.includes(DISPLACEMENT_SCAN_READOUT_PREFIX))).toBe(true)
     expect(reasons.some((reason) => reason.includes('decoy locus annex-b'))).toBe(true)
+  })
+
+  it('attaches hiddenStateModalityTell and appends tell readout when tell tags are authored', () => {
+    const observer = createReconObserver('a_tell_orchestration', 60)
+    const team: Team = {
+      id: 'team-reveal',
+      name: 'Reveal team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    const state = createStartingState()
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    const caseData = createConcealedPresenceCase({
+      assignedTeamIds: [team.id],
+      tags: ['concealment', TELL_THERMAL_RESIDUAL_TAG],
+    })
+
+    const resolution = resolveAssignedCaseForWeek(caseData, state, () => 0.5)
+    const reasons: string[] = []
+
+    expect(resolution.hiddenStateModalityTell?.active).toBe(true)
+
+    appendDetectionScanResolutionReason(
+      reasons,
+      resolution.behaviorValidation,
+      resolution.hiddenStateScouting,
+      resolution.effectiveCase,
+      resolution.hiddenStateModalityTell
+    )
+
+    expect(reasons.some((reason) => reason.includes(CONCEALMENT_TELL_READOUT_PREFIX))).toBe(true)
+    expect(resolution.effectiveCase.hiddenState).not.toBe('revealed')
   })
 })

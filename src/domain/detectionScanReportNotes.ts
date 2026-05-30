@@ -18,7 +18,16 @@ import {
 import type { CaseInstance } from './models'
 import type { DetectionScanResult } from './revealPayload'
 import type { DisguiseRevealIntegrationResult } from './revealPayloadDisguiseIntegration'
+import type { HiddenStateModalityTellResult } from './hiddenStateModalityTells'
+import { MODALITY_TELL_READOUT_PREFIXES } from './hiddenStateModalityTells'
 import type { HiddenStateScoutingRevealIntegrationResult } from './revealPayloadScoutingIntegration'
+
+export {
+  CONCEALMENT_TELL_READOUT_PREFIX,
+  COVER_TELL_READOUT_PREFIX,
+  DISPLACEMENT_TELL_READOUT_PREFIX,
+  MODALITY_TELL_READOUT_PREFIXES,
+} from './hiddenStateModalityTells'
 
 export const DETECTION_SCAN_READOUT_PREFIX = 'Detection readout:'
 export const CONCEALMENT_SCAN_READOUT_PREFIX = 'Concealment readout:'
@@ -70,6 +79,31 @@ function orderedPlayerFacingValues(result: DetectionScanResult): readonly string
 
 function resolutionReasonHasDetectionScanReadout(reason: string): boolean {
   return DETECTION_SCAN_READOUT_PREFIXES.some((prefix) => reason.startsWith(prefix))
+}
+
+function resolutionReasonHasModalityTellReadout(reason: string): boolean {
+  return MODALITY_TELL_READOUT_PREFIXES.some((prefix) => reason.startsWith(prefix))
+}
+
+export function shouldAppendModalityTellReportNote(
+  tell: HiddenStateModalityTellResult | undefined
+): boolean {
+  return tell?.active === true && (tell.readoutLine?.length ?? 0) > 0
+}
+
+export function appendModalityTellResolutionReason(
+  resolutionReasons: string[],
+  tell: HiddenStateModalityTellResult | undefined
+): void {
+  if (!shouldAppendModalityTellReportNote(tell)) {
+    return
+  }
+
+  if (resolutionReasons.some(resolutionReasonHasModalityTellReadout)) {
+    return
+  }
+
+  resolutionReasons.push(tell!.readoutLine!)
 }
 
 export function shouldAppendDetectionScanReportNote(
@@ -139,51 +173,44 @@ export function appendDetectionScanResolutionReason(
   resolutionReasons: string[],
   behaviorValidation?: DisguiseRevealIntegrationResult,
   hiddenStateScouting?: HiddenStateScoutingRevealIntegrationResult,
-  caseData?: CaseInstance
+  caseData?: CaseInstance,
+  modalityTell?: HiddenStateModalityTellResult
 ): void {
-  if (resolutionReasons.some(resolutionReasonHasDetectionScanReadout)) {
-    return
-  }
+  if (!resolutionReasons.some(resolutionReasonHasDetectionScanReadout)) {
+    if (
+      behaviorValidation !== undefined &&
+      shouldAppendDetectionScanReportNote(behaviorValidation)
+    ) {
+      const summary = formatDetectionScanSummary(behaviorValidation.detectionScan, {
+        prefix: DETECTION_SCAN_READOUT_PREFIX,
+      })
+      if (summary.length > 0) {
+        resolutionReasons.push(summary)
+      }
+    } else if (hiddenStateScouting !== undefined) {
+      const illusionPrefix =
+        hiddenStateScouting.illusionReadoutPrefix ??
+        (caseData !== undefined
+          ? illusionReadoutPrefixForState(caseData.hiddenStateIllusionState)
+          : null)
+      const modality =
+        caseData !== undefined ? resolveHiddenStateModality(caseData) : ('none' as const)
 
-  if (
-    behaviorValidation !== undefined &&
-    shouldAppendDetectionScanReportNote(behaviorValidation)
-  ) {
-    const summary = formatDetectionScanSummary(behaviorValidation.detectionScan, {
-      prefix: DETECTION_SCAN_READOUT_PREFIX,
-    })
-    if (summary.length > 0) {
-      resolutionReasons.push(summary)
+      if (shouldAppendHiddenStateScoutingReportNote(hiddenStateScouting, modality, caseData)) {
+        const prefix = illusionPrefix ?? detectionScanReadoutPrefixForModality(modality)
+        let summary = formatDetectionScanSummary(hiddenStateScouting.detectionScan, {
+          prefix,
+        })
+
+        if (summary.length > 0) {
+          summary +=
+            hiddenStateScouting.illusionDisproofSuffix ??
+            formatIllusionDisproofSuffix(caseData?.hiddenStateIllusionState)
+          resolutionReasons.push(summary)
+        }
+      }
     }
-
-    return
   }
 
-  if (hiddenStateScouting === undefined) {
-    return
-  }
-
-  const illusionPrefix =
-    hiddenStateScouting.illusionReadoutPrefix ??
-    (caseData !== undefined
-      ? illusionReadoutPrefixForState(caseData.hiddenStateIllusionState)
-      : null)
-  const modality =
-    caseData !== undefined ? resolveHiddenStateModality(caseData) : ('none' as const)
-
-  if (!shouldAppendHiddenStateScoutingReportNote(hiddenStateScouting, modality, caseData)) {
-    return
-  }
-
-  const prefix = illusionPrefix ?? detectionScanReadoutPrefixForModality(modality)
-  let summary = formatDetectionScanSummary(hiddenStateScouting.detectionScan, {
-    prefix,
-  })
-
-  if (summary.length > 0) {
-    summary +=
-      hiddenStateScouting.illusionDisproofSuffix ??
-      formatIllusionDisproofSuffix(caseData?.hiddenStateIllusionState)
-    resolutionReasons.push(summary)
-  }
+  appendModalityTellResolutionReason(resolutionReasons, modalityTell)
 }

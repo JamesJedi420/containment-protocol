@@ -8,6 +8,9 @@
 | **Merged PR**     | [#2339](https://github.com/JamesJedi420/containment-protocol/pull/2339)                                                                                                                |
 | **Shipped scope** | Deterministic multi-week integration harness: prep mutations → `advanceWeek` → report notes + event-feed drill-down + week navigation ([SPE-2251](https://linear.app/spectranoir/issue/SPE-2251), milestone 6) |
 | **Validation**    | `weeklyMvpLoopProof.integration.test.ts`, `src/test/helpers/weeklyMvpLoopProof.ts`; slice 2 persistence reload in `weeklyMvpLoopProof.slice2.integration.test.ts`                      |
+| **Doc reconciliation (SPE-2278)** | May 2026 @ main `64225023` — shipped block is authoritative; historical sections below are archival only. |
+
+> **Agent note:** Do not treat candidate comparison tables as open queue items.
 
 ---
 

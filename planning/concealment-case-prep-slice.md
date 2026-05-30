@@ -8,6 +8,9 @@
 | **Merged PR**     | [#2326](https://github.com/JamesJedi420/containment-protocol/pull/2326) — `feat(SPE-70): concealment case prep panel on case detail`                                              |
 | **Shipped scope** | `ConcealmentCasePrepPanel` + `buildConcealmentCasePrepView`; player `conceal.case.{caseId}` toggle; activation preview via `resolveConcealmentActivation`                         |
 | **Validation**    | `concealmentCasePrepView.test.ts`, `CaseDetailPage.test.tsx`; integrated in `WeeklyCasePrepPanel` stack                                                                           |
+| **Doc reconciliation (SPE-2278)** | May 2026 @ main `64225023` — shipped block is authoritative; historical sections below are archival only. |
+
+> **Agent note:** Do not treat pre-ship gap tables or follow-up lists as open work unless explicitly marked unshipped.
 
 ---
 

@@ -9,14 +9,17 @@
 | **Merged PR**     | [#2323](https://github.com/JamesJedi420/containment-protocol/pull/2323) — `feat(SPE-2247): stealth leave-behind tradeoff selection (slice 5)` |
 | **Shipped scope** | Player selection of `stealthLeaveBehindId` on eligible cases; `stealthLeaveBehindSelection.ts` + `StealthLeaveBehindSelectionPanel`           |
 | **Validation**    | `stealthLeaveBehindSelection.test.ts`, `stealthLeaveBehindSelectionView.test.ts`                                                              |
+| **Doc reconciliation (SPE-2278)** | May 2026 @ main `64225023` — shipped block is authoritative; historical sections below are archival only. |
 
 **Prerequisite (shipped):** SPE-2163 registry, SPE-2244 mission fallout, SPE-2246 template catalog + `advanceWeek` proof, investigation custody-loss markers + forensic `custodyLossBurden` (PR #2321).
+
+> **Agent note:** Do not treat domain contract sections below as unimplemented.
 
 ---
 
 ## Original implementation plan (historical)
 
-## Goal
+### Goal
 
 Let players **choose** an authored stealth leave-behind on eligible infiltration cases before weekly resolution, instead of only using the template default. Selection must drive existing `evaluateStealthLeaveBehindMissionPressure()` and custody-loss apply paths unchanged in semantics.
 

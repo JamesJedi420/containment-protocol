@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2289](https://linear.app/spectranoir/
 | **Linear** | [SPE-2289 — Hidden-state modality matrix slice 8](https://linear.app/spectranoir/issue/SPE-2289) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                |
 | **Branch** | `jamesdyedbq/spe-2289-hidden-state-modality-matrix-slice-8-false-detection-output`                   |
-| **Status** | **Implemented** — pending PR                                                                                         |
+| **Status** | Shipped — SPE-2289 / PR #2422                                                                                      |
 
 ## Goal
 

@@ -23,6 +23,7 @@ import {
 import {
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
+  applyGlamourOverlayScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   resolveHiddenStateModality,
@@ -323,6 +324,10 @@ export function resolveScoutingWithCaseHiddenState(
 
   if (modality === 'false_detection_output') {
     detectionScan = applyFalseDetectionScanProjection(detectionScan)
+  }
+
+  if (modality === 'glamour_overlay') {
+    detectionScan = applyGlamourOverlayScanProjection(detectionScan)
   }
 
   if (

@@ -15,7 +15,7 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation — post-matrix queue (SPE-70)** — Slice 7 shipped ([SPE-2288](https://linear.app/spectranoir/issue/SPE-2288) / PR #2421). **Next implementation:** [SPE-2289](https://linear.app/spectranoir/issue/SPE-2289) slice 8 (false-detection output) → [SPE-2290](https://linear.app/spectranoir/issue/SPE-2290) slice 9 (glamour). Queue: `planning/hidden-modality-matrix-post-matrix-queue.md`; slice 8 plan: `planning/hidden-modality-matrix-slice-8.md`.
+1. **Hidden / disguised activation — post-matrix queue (SPE-70)** — Slices 7–8 shipped ([SPE-2288](https://linear.app/spectranoir/issue/SPE-2288) / PR #2421, [SPE-2289](https://linear.app/spectranoir/issue/SPE-2289) / PR #2422). **Next implementation:** [SPE-2290](https://linear.app/spectranoir/issue/SPE-2290) slice 9 (glamour / presentation overlay). Queue: `planning/hidden-modality-matrix-post-matrix-queue.md`; slice 9 plan: `planning/hidden-modality-matrix-slice-9.md`.
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
@@ -101,7 +101,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `hidden-modality-matrix-slice-6.md`                       | **Shipped**    | SPE-2286 / PR #2415; mode-specific tells / observer-threshold.                                                                                      |
 | `hidden-modality-matrix-post-matrix-queue.md`             | **Active**     | Post-matrix slices 7–9 routing; Linear SPE-2288–SPE-2290.                                                                                           |
 | `hidden-modality-matrix-slice-7.md`                       | **Shipped**    | SPE-2288 / PR #2421; signature masking modality.                                                                                                    |
-| `hidden-modality-matrix-slice-8.md`                       | **Queued**     | SPE-2289; false-detection output — next implementation slice.                                                                                       |
+| `hidden-modality-matrix-slice-8.md`                       | **Shipped**    | SPE-2289 / PR #2422; false-detection output modality.                                                                                                |
+| `hidden-modality-matrix-slice-9.md`                       | **Queued**     | SPE-2290; glamour / presentation overlay — next implementation slice.                                                                               |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

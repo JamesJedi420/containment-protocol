@@ -2,15 +2,20 @@ import { describe, expect, it } from 'vitest'
 import {
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
+  applyGlamourOverlayScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   formatDecoyLocusLabel,
   FALSE_DETECTION_FABRICATED_CATEGORY,
   FALSE_DETECTION_FABRICATED_PRESENCE,
+  GLAMOUR_OVERLAY_CATEGORY_SKEW,
+  GLAMOUR_OVERLAY_HOSTILITY_SKEW,
   hiddenStateModalityLayer,
   INSTRUMENTATION_ATTACK_TAG,
   MODALITY_FALSE_DETECTION_TAG,
+  MODALITY_GLAMOUR_TAG,
   MODALITY_SIGNATURE_MASK_TAG,
+  PRESENTATION_OVERLAY_TAG,
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
   SIGNATURE_MASK_CATEGORY_SKEW,
@@ -124,6 +129,42 @@ describe('hiddenStateModality (SPE-2281)', () => {
         })
       )
     ).toBe('false_detection_output')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_GLAMOUR_TAG],
+        })
+      )
+    ).toBe('glamour_overlay')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [PRESENTATION_OVERLAY_TAG],
+        })
+      )
+    ).toBe('glamour_overlay')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_SIGNATURE_MASK_TAG, MODALITY_GLAMOUR_TAG],
+        })
+      )
+    ).toBe('signature_masking')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_FALSE_DETECTION_TAG, MODALITY_GLAMOUR_TAG],
+        })
+      )
+    ).toBe('false_detection_output')
+  })
+
+  it('maps glamour overlay to authored glamour layer', () => {
+    expect(hiddenStateModalityLayer('glamour_overlay')?.id).toBe('layer:authored-glamour')
   })
 
   it('maps false-detection output to authored false-detection layer', () => {
@@ -433,6 +474,134 @@ describe('hiddenStateModality (SPE-2281)', () => {
       signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')
         ?.playerFacingValue
     ).toBe(SIGNATURE_MASK_CATEGORY_SKEW)
+  })
+
+  it('projects glamour-overlay presentation skew while blocking deeper tiers until stripped', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_GLAMOUR_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const blocked = resolveDetectionScan(truth, { family: 'category_pass' })
+
+    expect(detectionScanTierOrder(blocked)).toEqual(['presence'])
+    expect(blocked.fields.some((field) => field.tier === 'category')).toBe(false)
+
+    const blockedProbe = resolveDetectionScan(truth, { family: 'identity_probe' })
+    expect(detectionScanTierOrder(blockedProbe)).toEqual(['presence', 'concealment_depth'])
+    expect(blockedProbe.fields.some((field) => field.tier === 'category')).toBe(false)
+    expect(blockedProbe.fields.some((field) => field.tier === 'hostility')).toBe(false)
+    expect(blockedProbe.fields.some((field) => field.tier === 'exact_identity')).toBe(false)
+
+    const scan = applyGlamourOverlayScanProjection(
+      resolveDetectionScan(truth, { family: 'identity_probe', layersToStrip: 1 })
+    )
+
+    expect(scan.fields.find((field) => field.tier === 'category')?.playerFacingValue).toBe(
+      GLAMOUR_OVERLAY_CATEGORY_SKEW
+    )
+    expect(scan.fields.find((field) => field.tier === 'category')?.internalValue).toBe(
+      'spectral intruder'
+    )
+    expect(scan.fields.find((field) => field.tier === 'hostility')?.playerFacingValue).toBe(
+      GLAMOUR_OVERLAY_HOSTILITY_SKEW
+    )
+    expect(scan.fields.find((field) => field.tier === 'hostility')?.internalValue).toBe('latent')
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-glamour'])
+  })
+
+  it('strips glamour-overlay layer on counter-detection without solving rating layers', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: [MODALITY_GLAMOUR_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const scanInput = scoutingOutcomeToDetectionScanForCase(
+      { outcome: 'strong', revealed: true, withheld: false },
+      caseData
+    )
+
+    expect(scanInput).toEqual({ family: 'identity_probe', layersToStrip: 1 })
+
+    const scan = resolveDetectionScan(truth, scanInput)
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-glamour'])
+    expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
+    expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('preserves rating-derived glamour when authored glamour layer is stripped', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: [MODALITY_GLAMOUR_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+
+    expect(truth.concealmentLayers.map((layer) => layer.id)).toEqual([
+      'layer:authored-glamour',
+      'layer:glamour',
+      'layer:signature-mask',
+    ])
+
+    const scan = resolveDetectionScan(truth, { family: 'identity_probe', layersToStrip: 1 })
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-glamour'])
+    expect(scan.remainingConcealmentLayers.map((layer) => layer.id)).toEqual([
+      'layer:glamour',
+      'layer:signature-mask',
+    ])
+    expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('includes glamour overlay in distinct modality compose path', () => {
+    const glamourOverlay = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_GLAMOUR_TAG],
+      }),
+    })
+    const signatureMasked = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_SIGNATURE_MASK_TAG],
+      }),
+    })
+    const falseDetection = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_FALSE_DETECTION_TAG],
+      }),
+    })
+
+    expect(glamourOverlay.detectionScan.strippedLayerIds).toEqual(['layer:authored-glamour'])
+    expect(
+      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+    ).toBe(GLAMOUR_OVERLAY_CATEGORY_SKEW)
+    expect(
+      glamourOverlay.detectionScan.fields.find((field) => field.tier === 'hostility')?.playerFacingValue
+    ).toBe(GLAMOUR_OVERLAY_HOSTILITY_SKEW)
+    expect(
+      signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+    ).toBe(SIGNATURE_MASK_CATEGORY_SKEW)
+    expect(
+      falseDetection.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+    ).toBe(FALSE_DETECTION_FABRICATED_CATEGORY)
+  })
+
+  it('preserves rating-derived glamour layer when modality tag absent', () => {
+    const caseData = createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+
+    expect(truth.concealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
+    expect(truth.concealmentLayers.some((layer) => layer.id === 'layer:authored-glamour')).toBe(
+      false
+    )
   })
 
   it('preserves legacy scouting fields while attaching modality-aware detection scans', () => {

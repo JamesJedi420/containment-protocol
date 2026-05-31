@@ -22,15 +22,15 @@ Implement **one slice at a time** — each touches `hiddenStateModality.ts` and 
 
 | Order | Slice | Linear   | Modality family           | Plan |
 | ----- | ----- | -------- | ------------------------- | ---- |
-| 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` |
-| 2     | 8     | SPE-2289 | False-detection output    | Linear body only (planning doc when slice 7 ships) |
+| 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` (shipped PR #2421) |
+| 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` |
 | 3     | 9     | SPE-2290 | Glamour / presentation overlay | Linear body only (planning doc when slice 8 ships) |
 
 ### Repo anchors (pre-implementation)
 
-- `HiddenStateModalityKind` today: `none`, `concealed_presence`, `false_position`, `disguised_identity` — see `src/domain/hiddenStateModality.ts`.
-- `layer:signature-mask` and `layer:glamour` exist as **rating-derived** layers in `concealmentLayersFromRating`; post-matrix slices add **case-authored modality paths** without removing rating layers.
-- False-detection output has **no** dedicated layer or modality kind yet.
+- `HiddenStateModalityKind` today: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking` — see `src/domain/hiddenStateModality.ts`.
+- Authored signature mask uses `layer:authored-signature-mask` (distinct from rating `layer:signature-mask`).
+- `layer:glamour` and rating `layer:signature-mask` remain in `concealmentLayersFromRating`; post-matrix slices add **case-authored modality paths** without removing rating layers.
 
 ### Explicitly deferred (not in queue)
 
@@ -42,7 +42,7 @@ Implement **one slice at a time** — each touches `hiddenStateModality.ts` and 
 ## Agent handoff template (next implementation slice)
 
 ```text
-PR #____ merged. On main @ <sha>. Next: https://linear.app/spectranoir/issue/SPE-2288 — see planning/hidden-modality-matrix-slice-7.md — branch jamesdyedbq/spe-2288-hidden-modality-matrix-slice-7-signature-masking.
+PR #2421 merged. On main @ c474af93. Next: https://linear.app/spectranoir/issue/SPE-2289 — see planning/hidden-modality-matrix-slice-8.md — branch jamesdyedbq/spe-2289-hidden-state-modality-matrix-slice-8-false-detection-output.
 ```
 
 ## See also

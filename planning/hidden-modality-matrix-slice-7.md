@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2288](https://linear.app/spectranoir/
 | **Linear** | [SPE-2288 — Hidden-state modality matrix slice 7](https://linear.app/spectranoir/issue/SPE-2288) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                              |
 | **Branch** | `jamesdyedbq/spe-2288-hidden-modality-matrix-slice-7-signature-masking`                            |
-| **Status** | **Queued** — post-matrix slice 1 of 3                                                              |
+| **Status** | Shipped — SPE-2288 / PR #2421                                                                    |
 
 ## Goal
 

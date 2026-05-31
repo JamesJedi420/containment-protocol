@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2108](https://linear.app/spectranoir/
 | **Linear** | [SPE-2108 — Self-censoring information registry slice 1](https://linear.app/spectranoir/issue/SPE-2108)  |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine                |
 | **Branch** | `jamesdyedbq/spe-2108-self-censoring-information-registry-negative-facts-retention`                         |
-| **Status** | **In Progress** — runtime implementation slice                                                             |
+| **Status** | **Shipped** — PR #2429                                                                                     |
 
 ## Goal
 

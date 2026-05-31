@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2110](https://linear.app/spectranoir/
 | **Linear** | [SPE-2110 — Pattern source series intake registry (slice 1)](https://linear.app/spectranoir/issue/SPE-2110) |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — Contribution intake and modular release operations |
 | **Branch** | `jamesdyedbq/spe-2110-pattern-source-series-intake-registry-slice-1`                                         |
-| **Status** | Implemented on branch (pending PR)                                                                       |
+| **Status** | **Shipped** — PR #2431                                                                                     |
 
 ## Goal
 

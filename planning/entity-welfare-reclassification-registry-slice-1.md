@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2114](https://linear.app/spectranoir/
 | **Linear** | [SPE-2114 — Entity welfare reclassification registry — threat label drift and disposition review (slice 1)](https://linear.app/spectranoir/issue/SPE-2114) |
 | **Parent** | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) — Affiliation status and entity custody posture |
 | **Branch** | `jamesdyedbq/spe-2114-entity-welfare-reclassification-registry-threat-label-drift`                           |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2433                                                                                     |
 
 ## Goal
 

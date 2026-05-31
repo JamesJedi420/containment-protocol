@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2115](https://linear.app/spectranoir/
 | **Linear** | [SPE-2115 — Contained-person therapeutic care schedule registry (slice 1)](https://linear.app/spectranoir/issue/SPE-2115) |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — Contained-person condition bundle and integrated health model |
 | **Branch** | `jamesdyedbq/spe-2115-contained-person-therapeutic-care-schedule-registry-slice-1`                         |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2434                                                                                     |
 
 ## Goal
 
@@ -114,12 +114,12 @@ Add a pure deterministic **contained-person therapeutic care schedule registry**
 
 Complete in the **same PR** as implementation or an immediate docs-only follow-up before starting SPE-2116.
 
-- [ ] **`planning/contained-person-therapeutic-care-registry-slice-1.md`** — set Status to **Shipped — PR #____**; check acceptance boxes.
-- [ ] **`planning/entity-welfare-reclassification-registry-slice-1.md`** — set Status to **Shipped — PR #2433** (currently stale: In Progress).
-- [ ] **`planning/backlog.md`**
+- [x] **`planning/contained-person-therapeutic-care-registry-slice-1.md`** — set Status to **Shipped — PR #2434**; check acceptance boxes.
+- [x] **`planning/entity-welfare-reclassification-registry-slice-1.md`** — set Status to **Shipped — PR #2433** (was stale: In Progress).
+- [x] **`planning/backlog.md`**
   - Active queue: registry wave complete through SPE-2115; next adjacent tier [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116).
   - Recommended next step: handoff to SPE-2116 after SPE-2115 merge.
   - Shipped table: add SPE-2115 row with module + PR.
   - Planning slice index: add `contained-person-therapeutic-care-registry-slice-1.md` as **Shipped**.
 - [ ] **Linear** — SPE-2115 → Done + comment (PR URL, what shipped, validation). Parent SPE-1889 stays Backlog; parent SPE-854 stays In Progress.
-- [ ] **Next agent handoff** — `On main @ <sha>. Next: SPE-2116 — naming-hazard descriptor registry — branch jamesdyedbq/spe-2116-naming-hazard-descriptor-registry-safe-labels-and-reference`.
+- [x] **Next agent handoff** — `On main @ cde20979. Next: SPE-2116 — naming-hazard descriptor registry — branch jamesdyedbq/spe-2116-naming-hazard-descriptor-registry-safe-labels-and-reference`.

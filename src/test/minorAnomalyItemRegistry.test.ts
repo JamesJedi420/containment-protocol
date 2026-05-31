@@ -194,6 +194,40 @@ describe('minorAnomalyItemRegistry (SPE-2104 slice 1)', () => {
     })
   })
 
+  it('keeps redacted recovery and origin refs visible when suppress policy is false', () => {
+    const redactedRecord = baseRecord({
+      recoverySiteRef: 'site:restricted-vault',
+      suspectedOriginRef: 'site:unknown-stall',
+      redactedFields: ['recoverySiteRef', 'suspectedOriginRef'],
+    })
+
+    const projection = projectMinorAnomalyForOperator(redactedRecord, {
+      suppressRedactedRecoverySite: false,
+      suppressRedactedOrigin: false,
+    })
+
+    expect(projection.recoverySiteRef).toBe('site:restricted-vault')
+    expect(projection.suspectedOriginRef).toBe('site:unknown-stall')
+  })
+
+  it('warns when lowValue is set without a declared latentRiskScore on untrusted payloads', () => {
+    const result = validateMinorAnomalyRecord({
+      id: 'item:unscored-trinket',
+      label: 'Unscored trinket',
+      disposition: 'recovered',
+      lowValue: true,
+    } as MinorAnomalyRecord)
+
+    expect(result.valid).toBe(true)
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        code: 'low_value_without_latent_risk_score',
+        severity: 'warning',
+      }),
+    ])
+    expect(result.issues.some((issue) => issue.code === 'invalid_latent_risk_score')).toBe(false)
+  })
+
   it('respects operator projection policy minimum confidence and redaction', () => {
     const redactedRecord = baseRecord({
       recoverySiteRef: 'site:restricted-vault',

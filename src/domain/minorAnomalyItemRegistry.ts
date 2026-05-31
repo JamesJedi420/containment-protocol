@@ -239,7 +239,7 @@ function resolveProjectedRef(
     (fieldName === 'recoverySiteRef' && redactedFields.has('recoverySite')) ||
     (fieldName === 'suspectedOriginRef' && redactedFields.has('suspectedOrigin'))
 
-  if (fieldRedacted || legacyLocationRedacted || (suppressWhenRedacted === true && fieldRedacted)) {
+  if (legacyLocationRedacted || (suppressWhenRedacted === true && fieldRedacted)) {
     return null
   }
 
@@ -315,7 +315,18 @@ export function validateMinorAnomalyRecord(
     })
   }
 
-  if (!isValidLatentRiskScore(record.latentRiskScore)) {
+  const hasDeclaredLatentRiskScore =
+    Object.prototype.hasOwnProperty.call(record, 'latentRiskScore') &&
+    record.latentRiskScore !== undefined
+
+  if (record.lowValue === true && !hasDeclaredLatentRiskScore) {
+    pushIssue(issues, {
+      code: 'low_value_without_latent_risk_score',
+      severity: 'warning',
+      detail: `Minor anomaly item ${id || '(unknown)'} is lowValue without latentRiskScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  } else if (!isValidLatentRiskScore(record.latentRiskScore)) {
     pushIssue(issues, {
       code: 'invalid_latent_risk_score',
       severity: 'error',
@@ -397,15 +408,6 @@ export function validateMinorAnomalyRecord(
       code: 'destroyed_without_authorization',
       severity: 'error',
       detail: `Minor anomaly item ${id || '(unknown)'} is destroyed without destructionAuthorizationRef.`,
-      relatedIds: id ? [id] : undefined,
-    })
-  }
-
-  if (record.lowValue === true && record.latentRiskScore === undefined) {
-    pushIssue(issues, {
-      code: 'low_value_without_latent_risk_score',
-      severity: 'warning',
-      detail: `Minor anomaly item ${id || '(unknown)'} is lowValue without latentRiskScore.`,
       relatedIds: id ? [id] : undefined,
     })
   }

@@ -112,6 +112,32 @@ describe('namingHazardDescriptorRegistry (SPE-2116 slice 1)', () => {
     expect(projection.redacted).toBe(false)
   })
 
+  it('restricts mapLabelMode redacted to map surface only', () => {
+    const record = baseRecord({
+      mapLabelMode: 'redacted',
+      uiSubstitutionPolicy: 'pool_descriptor',
+    })
+
+    const mapProjection = projectSafeLabel(record, { surface: 'map' })
+    const briefingProjection = projectSafeLabel(record, { surface: 'briefing' })
+
+    expect(mapProjection.safeLabel).toBe('[REDACTED]')
+    expect(mapProjection.redacted).toBe(true)
+    expect(briefingProjection.safeLabel).toBe('Approved surrogate label')
+    expect(briefingProjection.redacted).toBe(false)
+  })
+
+  it('errors on wiki token in safe descriptor pool entry', () => {
+    const result = validateNamingHazardDescriptorRecord(
+      baseRecord({
+        safeDescriptorPool: ['See wiki.scpfoundation.net for details'],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'franchise_token_in_field')).toBe(true)
+  })
+
   it('errors on franchise token in record label', () => {
     const result = validateNamingHazardDescriptorRecord(
       baseRecord({

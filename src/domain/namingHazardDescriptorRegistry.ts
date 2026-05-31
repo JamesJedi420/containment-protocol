@@ -141,7 +141,7 @@ const UI_SUBSTITUTION_POLICY_SET = new Set<string>(UI_SUBSTITUTION_POLICIES)
 const MAP_LABEL_MODE_SET = new Set<string>(MAP_LABEL_MODES)
 
 export const FRANCHISE_TOKEN_PATTERN =
-  /(?:\b(?:scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|group of interest|broken masquerade|masquerade breach)\b|goi-)/i
+  /\b(scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|goi-|group of interest|broken masquerade|masquerade breach|wiki\.|wikidot)\b/i
 
 export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
 
@@ -311,13 +311,20 @@ function scanForbiddenTokens(
   }
 
   for (const descriptor of normalizedPool(record)) {
-    if (containsFranchiseToken(descriptor) || containsBrandedObjectNumber(descriptor)) {
+    if (containsFranchiseToken(descriptor)) {
       pushIssue(issues, {
-        code: containsFranchiseToken(descriptor)
-          ? 'franchise_token_in_field'
-          : 'branded_object_number_in_field',
+        code: 'franchise_token_in_field',
         severity: 'error',
-        detail: `Naming-hazard descriptor record ${id || '(unknown)'} safeDescriptorPool contains a forbidden token.`,
+        detail: `Naming-hazard descriptor record ${id || '(unknown)'} safeDescriptorPool contains a franchise or source-literal token.`,
+        relatedIds: id ? [id] : undefined,
+      })
+    }
+
+    if (containsBrandedObjectNumber(descriptor)) {
+      pushIssue(issues, {
+        code: 'branded_object_number_in_field',
+        severity: 'error',
+        detail: `Naming-hazard descriptor record ${id || '(unknown)'} safeDescriptorPool contains a branded object number.`,
         relatedIds: id ? [id] : undefined,
       })
     }
@@ -541,8 +548,7 @@ export function projectSafeLabel(
 
   if (
     record.uiSubstitutionPolicy === 'redacted' ||
-    record.mapLabelMode === 'redacted' ||
-    context.surface === 'map' && record.mapLabelMode === 'redacted'
+    (context.surface === 'map' && record.mapLabelMode === 'redacted')
   ) {
     return Object.freeze({
       recordId,

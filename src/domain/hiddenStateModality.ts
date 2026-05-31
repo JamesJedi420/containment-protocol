@@ -34,13 +34,20 @@ export type HiddenStateModalityKind =
   | 'disguised_identity'
   | 'signature_masking'
   | 'false_detection_output'
+  | 'glamour_overlay'
 
 export const MODALITY_SIGNATURE_MASK_TAG = 'modality-signature-mask'
 export const MODALITY_FALSE_DETECTION_TAG = 'modality-false-detection'
+export const MODALITY_GLAMOUR_TAG = 'modality-glamour'
+export const PRESENTATION_OVERLAY_TAG = 'presentation-overlay'
 export const INSTRUMENTATION_ATTACK_TAG = 'instrumentation-attack'
 
 /** Player-facing category skew when signature-masking modality is active. */
 export const SIGNATURE_MASK_CATEGORY_SKEW = 'benign utility signature'
+
+/** Player-facing presentation skew when glamour-overlay modality is active. */
+export const GLAMOUR_OVERLAY_CATEGORY_SKEW = 'benign facility presentation'
+export const GLAMOUR_OVERLAY_HOSTILITY_SKEW = 'dormant presentation'
 
 /** Player-facing fabricated readouts when false-detection modality is active. */
 export const FALSE_DETECTION_FABRICATED_PRESENCE = 'fabricated maintenance contact'
@@ -71,6 +78,11 @@ const FALSE_DETECTION_LAYER: ConcealmentLayer = {
   blockedTiers: ['exact_identity'],
 }
 
+const GLAMOUR_OVERLAY_LAYER: ConcealmentLayer = {
+  id: 'layer:authored-glamour',
+  blockedTiers: ['category', 'hostility', 'exact_identity'],
+}
+
 const DISGUISE_SIGNAL_TAGS = ['infiltration', 'disguise', 'covert', 'stealth'] as const
 
 function caseModalityTagSet(caseData: CaseInstance): Set<string> {
@@ -89,6 +101,12 @@ export function caseHasFalseDetectionModality(caseData: CaseInstance): boolean {
 
 export function caseHasSignatureMaskModality(caseData: CaseInstance): boolean {
   return caseModalityTagSet(caseData).has(MODALITY_SIGNATURE_MASK_TAG)
+}
+
+export function caseHasGlamourOverlayModality(caseData: CaseInstance): boolean {
+  const tags = caseModalityTagSet(caseData)
+
+  return tags.has(MODALITY_GLAMOUR_TAG) || tags.has(PRESENTATION_OVERLAY_TAG)
 }
 
 export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
@@ -122,6 +140,10 @@ export function resolveHiddenStateModality(caseData: CaseInstance): HiddenStateM
     return 'signature_masking'
   }
 
+  if (caseHasGlamourOverlayModality(caseData)) {
+    return 'glamour_overlay'
+  }
+
   return 'concealed_presence'
 }
 
@@ -139,6 +161,8 @@ export function hiddenStateModalityLayer(
       return SIGNATURE_MASKING_LAYER
     case 'false_detection_output':
       return FALSE_DETECTION_LAYER
+    case 'glamour_overlay':
+      return GLAMOUR_OVERLAY_LAYER
     case 'none':
       return null
     default: {
@@ -314,6 +338,34 @@ export function applySignatureMaskScanProjection(scan: DetectionScanResult): Det
       return {
         ...field,
         playerFacingValue: SIGNATURE_MASK_CATEGORY_SKEW,
+        ambiguous: true,
+      }
+    }
+
+    return field
+  })
+
+  return {
+    ...scan,
+    fields,
+  }
+}
+
+/** Player-facing scan projection for glamour overlay without mutating canonical truth tiers. */
+export function applyGlamourOverlayScanProjection(scan: DetectionScanResult): DetectionScanResult {
+  const fields = scan.fields.map((field) => {
+    if (field.tier === 'category') {
+      return {
+        ...field,
+        playerFacingValue: GLAMOUR_OVERLAY_CATEGORY_SKEW,
+        ambiguous: true,
+      }
+    }
+
+    if (field.tier === 'hostility') {
+      return {
+        ...field,
+        playerFacingValue: GLAMOUR_OVERLAY_HOSTILITY_SKEW,
         ambiguous: true,
       }
     }

@@ -23,12 +23,12 @@ Implement **one slice at a time** — each touches `hiddenStateModality.ts` and 
 | Order | Slice | Linear   | Modality family           | Plan |
 | ----- | ----- | -------- | ------------------------- | ---- |
 | 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` (shipped PR #2421) |
-| 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` |
-| 3     | 9     | SPE-2290 | Glamour / presentation overlay | Linear body only (planning doc when slice 8 ships) |
+| 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` (shipped PR #2422) |
+| 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` |
 
 ### Repo anchors (pre-implementation)
 
-- `HiddenStateModalityKind` today: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking` — see `src/domain/hiddenStateModality.ts`.
+- `HiddenStateModalityKind` today: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output` — see `src/domain/hiddenStateModality.ts`.
 - Authored signature mask uses `layer:authored-signature-mask` (distinct from rating `layer:signature-mask`).
 - `layer:glamour` and rating `layer:signature-mask` remain in `concealmentLayersFromRating`; post-matrix slices add **case-authored modality paths** without removing rating layers.
 
@@ -42,7 +42,7 @@ Implement **one slice at a time** — each touches `hiddenStateModality.ts` and 
 ## Agent handoff template (next implementation slice)
 
 ```text
-PR #2421 merged. On main @ c474af93. Next: https://linear.app/spectranoir/issue/SPE-2289 — see planning/hidden-modality-matrix-slice-8.md — branch jamesdyedbq/spe-2289-hidden-state-modality-matrix-slice-8-false-detection-output.
+PR #2422 merged. On main @ 2d10cb9d. Next: https://linear.app/spectranoir/issue/SPE-2290 — see planning/hidden-modality-matrix-slice-9.md — branch jamesdyedbq/spe-2290-hidden-state-modality-matrix-slice-9-glamour-presentation.
 ```
 
 ## See also

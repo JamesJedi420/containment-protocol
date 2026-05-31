@@ -313,7 +313,11 @@ function normalizeToken(value: unknown) {
 }
 
 function asStringArray(value: unknown): readonly string[] {
-  return Array.isArray(value) ? value : []
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((item): item is string => typeof item === 'string')
 }
 
 function asEditorialStatus(value: unknown): readonly EditorialStatus[] {
@@ -439,7 +443,8 @@ function scanCpNeutralStringField(
   issues: PatternSourceSeriesValidationIssue[],
   id: string,
   field: string,
-  value: string | undefined
+  value: string | undefined,
+  franchiseCode: PatternSourceSeriesValidationCode = 'franchise_token_in_field'
 ) {
   const token = normalizeToken(value ?? '')
   if (!token) {
@@ -448,7 +453,7 @@ function scanCpNeutralStringField(
 
   if (containsFranchiseToken(token)) {
     pushIssue(issues, {
-      code: 'franchise_token_in_field',
+      code: franchiseCode,
       severity: 'error',
       detail: `Pattern source series record ${id || '(unknown)'} field ${field} contains a franchise or source-literal token.`,
       relatedIds: id ? [id] : undefined,
@@ -490,6 +495,57 @@ function scanCpNeutralStringField(
       relatedIds: id ? [id] : undefined,
     })
   }
+}
+
+function scanCpNeutralTitleField(
+  issues: PatternSourceSeriesValidationIssue[],
+  id: string,
+  title: string
+) {
+  const token = normalizeToken(title)
+  if (!token) {
+    return
+  }
+
+  if (containsBrandedLabelToken(token)) {
+    pushIssue(issues, {
+      code: 'branded_label_token_in_cp_field',
+      severity: 'error',
+      detail: `Pattern source series record ${id || '(unknown)'} field title contains a branded label token.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsImportedOrganizationName(token)) {
+    pushIssue(issues, {
+      code: 'imported_organization_name_in_cp_field',
+      severity: 'error',
+      detail: `Pattern source series record ${id || '(unknown)'} field title contains an imported organization name.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsImportedCharacterIdentity(token)) {
+    pushIssue(issues, {
+      code: 'imported_character_identity_in_cp_field',
+      severity: 'error',
+      detail: `Pattern source series record ${id || '(unknown)'} field title contains a source-specific character identity.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsImportedPlotOrSetting(token)) {
+    pushIssue(issues, {
+      code: 'imported_plot_or_setting_in_cp_field',
+      severity: 'error',
+      detail: `Pattern source series record ${id || '(unknown)'} field title contains imported plot or setting sequence markers.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+}
+
+function resolvePublicationOrderTieBreaker(value: unknown): string {
+  return normalizeToken(value) || '0000-00-00'
 }
 
 function resolveCpUtilityBoost(
@@ -541,6 +597,10 @@ export function isExpressionRiskFlag(value: string): value is ExpressionRiskFlag
 // ---------------------------------------------------------------------------
 
 export function classifyBlurbDomains(blurbStub: PatternSourceBlurbStub): readonly BlurbDomainHint[] {
+  if (!blurbStub || typeof blurbStub !== 'object') {
+    return Object.freeze([])
+  }
+
   const corpus = [
     normalizeToken(blurbStub.title),
     normalizeToken(blurbStub.descriptionStub),
@@ -563,6 +623,46 @@ export function classifyBlurbDomains(blurbStub: PatternSourceBlurbStub): readonl
 export function validatePatternSourceSeriesRecord(
   record: PatternSourceSeriesRecord
 ): PatternSourceSeriesValidationResult {
+  if (!record || typeof record !== 'object') {
+    return freezeValidationResult([
+      {
+        code: 'missing_id',
+        severity: 'error',
+        detail: 'Pattern source series record is missing id.',
+      },
+      {
+        code: 'missing_slug',
+        severity: 'error',
+        detail: 'Pattern source series record is missing slug.',
+      },
+      {
+        code: 'missing_title',
+        severity: 'error',
+        detail: 'Pattern source series record is missing title.',
+      },
+      {
+        code: 'invalid_source_family',
+        severity: 'error',
+        detail: 'Pattern source series record (unknown) has invalid sourceFamily undefined.',
+      },
+      {
+        code: 'invalid_publication_order',
+        severity: 'error',
+        detail: 'Pattern source series record (unknown) publicationOrder must be a valid YYYY-MM-DD date.',
+      },
+      {
+        code: 'invalid_processing_status',
+        severity: 'error',
+        detail: 'Pattern source series record (unknown) has invalid processingStatus undefined.',
+      },
+      {
+        code: 'invalid_readiness_score',
+        severity: 'error',
+        detail: 'Pattern source series record (unknown) readinessScore must be a finite number between 0 and 1.',
+      },
+    ])
+  }
+
   const issues: PatternSourceSeriesValidationIssue[] = []
   const id = normalizeToken(record.id)
   const slug = normalizeToken(record.slug)
@@ -612,7 +712,8 @@ export function validatePatternSourceSeriesRecord(
     })
   }
 
-  scanCpNeutralStringField(issues, id, 'title', title)
+  scanCpNeutralStringField(issues, id, 'slug', slug)
+  scanCpNeutralTitleField(issues, id, title)
   scanCpNeutralStringField(issues, id, 'descriptionStub', record.descriptionStub)
   scanCpNeutralStringField(issues, id, 'dedicatedTag', record.dedicatedTag)
   scanCpNeutralStringField(issues, id, 'crossClusterReinforcementRef', record.crossClusterReinforcementRef)
@@ -834,7 +935,9 @@ export function projectSeriesProcessingQueue(
 
   const ranked = records
     .filter((record) => record && typeof record === 'object')
+    .filter((record) => isProcessingStatus(record.processingStatus))
     .filter((record) => !excluded.has(record.processingStatus))
+    .filter((record) => isValidUnitScore(record.readinessScore))
     .filter((record) => record.readinessScore >= minimumReadiness)
     .map((record) => {
       const cpUtilityScore = resolveCpUtilityBoost(record, policy)
@@ -857,7 +960,9 @@ export function projectSeriesProcessingQueue(
         return readinessCompare
       }
 
-      return left.record.publicationOrder.localeCompare(right.record.publicationOrder)
+      return resolvePublicationOrderTieBreaker(left.record.publicationOrder).localeCompare(
+        resolvePublicationOrderTieBreaker(right.record.publicationOrder)
+      )
     })
     .map((entry, index) =>
       Object.freeze({

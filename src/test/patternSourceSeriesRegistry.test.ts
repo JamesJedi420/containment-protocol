@@ -138,6 +138,25 @@ describe('patternSourceSeriesRegistry (SPE-2110 slice 1)', () => {
 
   it('returns empty blurb domain hints for empty stub', () => {
     expect(classifyBlurbDomains({})).toEqual([])
+    expect(classifyBlurbDomains(null as unknown as PatternSourceBlurbStub)).toEqual([])
+  })
+
+  it('errors on source-literal slug used as routing key', () => {
+    const result = validatePatternSourceSeriesRecord(
+      baseRecord({
+        slug: 'scp-173-containment-pattern',
+        title: 'Neutral intake label',
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(
+      result.issues.some(
+        (issue) =>
+          issue.code === 'branded_label_token_in_cp_field' ||
+          issue.code === 'franchise_token_in_field'
+      )
+    ).toBe(true)
   })
 
   it('warns on canon_hub source family for series archive intake', () => {

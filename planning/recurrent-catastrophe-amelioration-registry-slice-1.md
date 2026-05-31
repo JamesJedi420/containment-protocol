@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2117](https://linear.app/spectranoir/
 | **Linear** | [SPE-2117 — Recurrent catastrophe amelioration registry — recurrence cycles and effect softening (slice 1)](https://linear.app/spectranoir/issue/SPE-2117) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle |
 | **Branch** | `jamesdyedbq/spe-2117-recurrent-catastrophe-amelioration-registry-slice-1`                               |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2436                                                                                     |
 
 ## Goal
 
@@ -103,3 +103,12 @@ Add a pure deterministic **recurrent catastrophe amelioration registry** for ano
 
 - `planning/harvest-reconciliation-index.md` — adjacent intake tier row for SPE-2117
 - `src/domain/namingHazardDescriptorRegistry.ts` — validation + projection conventions (SPE-2116)
+
+---
+
+## Post-ship doc hygiene (mandatory after merge)
+
+- [x] **`planning/recurrent-catastrophe-amelioration-registry-slice-1.md`** — Status **Shipped — PR #2436**; acceptance boxes checked.
+- [x] **`planning/backlog.md`** — wave through SPE-2117; shipped table + slice index; handoff to SPE-2118 @ `8f84bed3`.
+- [x] **Linear** — SPE-2117 → Done + merge comment (PR #2436, validation). Parent SPE-1310 → Backlog (already open).
+- [x] **Next agent handoff** — `On main @ 8f84bed3. Next: SPE-2118 — concept-state transformation registry — branch jamesdyedbq/spe-2118-concept-state-transformation-registry-slice-1`.

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2109](https://linear.app/spectranoir/
 | **Linear** | [SPE-2109 — Public disclosure state registry slice 1](https://linear.app/spectranoir/issue/SPE-2109)     |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Post-secrecy / broken-masquerade campaign layer |
 | **Branch** | `jamesdyedbq/spe-2109-public-disclosure-state-registry-awareness-levels-fallout`                           |
-| **Status** | **In PR** — PR #2430                                                                                       |
+| **Status** | **Shipped** — PR #2430                                                                                     |
 
 ## Goal
 

@@ -121,5 +121,5 @@ Complete in the **same PR** as implementation or an immediate docs-only follow-u
   - Recommended next step: handoff to SPE-2116 after SPE-2115 merge.
   - Shipped table: add SPE-2115 row with module + PR.
   - Planning slice index: add `contained-person-therapeutic-care-registry-slice-1.md` as **Shipped**.
-- [ ] **Linear** — SPE-2115 → Done + comment (PR URL, what shipped, validation). Parent SPE-1889 stays Backlog; parent SPE-854 stays In Progress.
+- [x] **Linear** — SPE-2115 → Done + comment (PR URL, what shipped, validation). Parent SPE-1889 stays Backlog; parent SPE-854 stays In Progress.
 - [x] **Next agent handoff** — `On main @ cde20979. Next: SPE-2116 — naming-hazard descriptor registry — branch jamesdyedbq/spe-2116-naming-hazard-descriptor-registry-safe-labels-and-reference`.

@@ -231,6 +231,41 @@ describe('unexplainedLocationRegistry (SPE-2106 slice 1)', () => {
     )
   })
 
+  it('validates malformed array fields without throwing on untrusted payloads', () => {
+    const result = validateUnexplainedLocationRecord({
+      id: 'location:malformed',
+      label: 'Malformed payload',
+      effectGeometry: 'point',
+      effectDomainTags: 'spatial' as unknown as UnexplainedLocationRecord['effectDomainTags'],
+      populationSelectors: null as unknown as UnexplainedLocationRecord['populationSelectors'],
+      securityControlTags: 'map_manipulation' as unknown as UnexplainedLocationRecord['securityControlTags'],
+      lifecycleState: 'active',
+      latentSeverityScore: 10,
+      statusHistory: 'invalid' as unknown as UnexplainedLocationRecord['statusHistory'],
+      contradictionRefs: 42 as unknown as UnexplainedLocationRecord['contradictionRefs'],
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it('projects map layers without throwing when array metadata is malformed', () => {
+    const projection = projectUnexplainedLocationForMap({
+      id: 'location:malformed-map',
+      label: 'Malformed map payload',
+      effectGeometry: 'point',
+      effectDomainTags: [],
+      populationSelectors: [],
+      lifecycleState: 'active',
+      latentSeverityScore: 10,
+      redactedFields: 'confidence' as unknown as UnexplainedLocationRecord['redactedFields'],
+      unknownFields: null as unknown as UnexplainedLocationRecord['unknownFields'],
+      securityControlTags: null as unknown as UnexplainedLocationRecord['securityControlTags'],
+    })
+
+    expect(projection.locationId).toBe('location:malformed-map')
+    expect(projection.layers).toHaveLength(4)
+  })
+
   it('produces byte-stable validation output on repeated runs', () => {
     const record = baseRecord({
       lowPriority: true,

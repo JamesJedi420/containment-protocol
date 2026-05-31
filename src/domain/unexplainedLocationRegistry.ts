@@ -264,6 +264,20 @@ function normalizeToken(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function asStringArray(value: unknown): readonly string[] {
+  return Array.isArray(value) ? value : []
+}
+
+function asPopulationSelectors(value: unknown): readonly PopulationSelector[] {
+  return Array.isArray(value) ? value : []
+}
+
+function asStatusHistory(
+  value: unknown
+): readonly UnexplainedLocationStatusHistoryEntry[] {
+  return Array.isArray(value) ? value : []
+}
+
 function pushIssue(
   issues: UnexplainedLocationValidationIssue[],
   issue: UnexplainedLocationValidationIssue
@@ -322,15 +336,15 @@ function hasSecurityTag(
   record: UnexplainedLocationRecord,
   tag: SecurityControlTag
 ): boolean {
-  return (record.securityControlTags ?? []).includes(tag)
+  return asStringArray(record.securityControlTags).includes(tag)
 }
 
 function resolveConfidence(
   record: UnexplainedLocationRecord,
   policy: UnexplainedLocationMapProjectionPolicy
 ): number | null {
-  const redactedFields = new Set(record.redactedFields ?? [])
-  const unknownFields = record.unknownFields ?? []
+  const redactedFields = new Set(asStringArray(record.redactedFields))
+  const unknownFields = asStringArray(record.unknownFields)
 
   if (redactedFields.has('confidence')) {
     return null
@@ -352,7 +366,7 @@ function resolveLocationTag(
   record: UnexplainedLocationRecord,
   policy: UnexplainedLocationMapProjectionPolicy
 ): string | null {
-  const redactedFields = new Set(record.redactedFields ?? [])
+  const redactedFields = new Set(asStringArray(record.redactedFields))
   const locationRedacted =
     redactedFields.has('locationTag') ||
     (policy.suppressRedactedLocation === true && redactedFields.has('location'))
@@ -428,7 +442,7 @@ export function validateUnexplainedLocationRecord(
     })
   }
 
-  for (const tag of record.effectDomainTags ?? []) {
+  for (const tag of asStringArray(record.effectDomainTags)) {
     if (!isEffectDomainTag(tag)) {
       pushIssue(issues, {
         code: 'invalid_effect_domain_tag',
@@ -439,7 +453,17 @@ export function validateUnexplainedLocationRecord(
     }
   }
 
-  for (const selector of record.populationSelectors ?? []) {
+  for (const selector of asPopulationSelectors(record.populationSelectors)) {
+    if (!selector || typeof selector !== 'object') {
+      pushIssue(issues, {
+        code: 'invalid_population_selector_kind',
+        severity: 'error',
+        detail: `Unexplained location ${id || '(unknown)'} has invalid population selector entry.`,
+        relatedIds: id ? [id] : undefined,
+      })
+      continue
+    }
+
     if (!isPopulationSelectorKind(selector.kind)) {
       pushIssue(issues, {
         code: 'invalid_population_selector_kind',
@@ -459,7 +483,7 @@ export function validateUnexplainedLocationRecord(
     }
   }
 
-  for (const tag of record.securityControlTags ?? []) {
+  for (const tag of asStringArray(record.securityControlTags)) {
     if (!isSecurityControlTag(tag)) {
       pushIssue(issues, {
         code: 'invalid_security_control_tag',
@@ -536,7 +560,17 @@ export function validateUnexplainedLocationRecord(
     })
   }
 
-  for (const entry of record.statusHistory ?? []) {
+  for (const entry of asStatusHistory(record.statusHistory)) {
+    if (!entry || typeof entry !== 'object') {
+      pushIssue(issues, {
+        code: 'invalid_status_history_state',
+        severity: 'error',
+        detail: `Unexplained location ${id || '(unknown)'} statusHistory contains invalid entry.`,
+        relatedIds: id ? [id] : undefined,
+      })
+      continue
+    }
+
     if (!isUnexplainedLocationLifecycleState(entry.fromState) || !isUnexplainedLocationLifecycleState(entry.toState)) {
       pushIssue(issues, {
         code: 'invalid_status_history_state',
@@ -580,7 +614,7 @@ export function validateUnexplainedLocationRecord(
 
   if (
     record.lifecycleState === 'disputed' &&
-    (record.contradictionRefs ?? []).every((ref) => !normalizeToken(ref))
+    asStringArray(record.contradictionRefs).every((ref) => !normalizeToken(ref))
   ) {
     pushIssue(issues, {
       code: 'disputed_without_contradiction_refs',
@@ -626,7 +660,9 @@ export function projectUnexplainedLocationForMap(
   const locationId = normalizeToken(record.id) || '(unknown)'
   const locationTag = resolveLocationTag(record, policy)
   const confidence = resolveConfidence(record, policy)
-  const unknownFields = Object.freeze([...(record.unknownFields ?? [])].sort((a, b) => a.localeCompare(b)))
+  const unknownFields = Object.freeze(
+    [...asStringArray(record.unknownFields)].sort((a, b) => a.localeCompare(b))
+  )
   const mapSuppressed = hasSecurityTag(record, 'map_manipulation')
 
   const publicLayer = Object.freeze({

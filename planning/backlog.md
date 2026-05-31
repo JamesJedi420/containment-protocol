@@ -9,20 +9,20 @@ This file is the **canonical ordered queue** for concrete engineering and design
 From `README.md` **Current design notes**:
 
 - Concealment activation stack and hidden-modality matrix slices 1–9 shipped (SPE-2281–SPE-2290 / PR #2403–#2423); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for deferred anti-scan / out-of-phase families only — see Shipped table and active queue below.
-- Intake registry wave shipped on `main` through adjacent tier SPE-2115 (SPE-2104–SPE-2115 / PR #2428–#2434); [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), and [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) parents remain open.
+- Intake registry wave shipped on `main` through adjacent tier SPE-2116 (SPE-2104–SPE-2116 / PR #2428–#2435); [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), and [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) parents remain open.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Information intake ([SPE-854](https://linear.app/spectranoir/issue/SPE-854))** — Registry wave complete through SPE-2115 (SPE-2104–SPE-2115). Next adjacent tier: [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) naming-hazard descriptors (`namingHazardDescriptorRegistry.ts`). Parents [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), and [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) stay open.
+1. **Information intake ([SPE-854](https://linear.app/spectranoir/issue/SPE-854))** — Registry wave complete through SPE-2116 (SPE-2104–SPE-2116). Next adjacent tier: [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) recurrent catastrophe amelioration (`recurrentCatastropheAmeliorationRegistry.ts`). Parents [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), and [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) stay open.
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
 ## Recommended next step (agent handoff)
 
-PR #2434 merged. On `main` @ `cde20979` after pull. Next: [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) naming-hazard descriptor registry — draft slice doc from Linear, implement `namingHazardDescriptorRegistry.ts` + tests. Branch `jamesdyedbq/spe-2116-naming-hazard-descriptor-registry-safe-labels-and-reference`. See `planning/harvest-reconciliation-index.md` adjacent intake tiers.
+PR #2435 merged. On `main` @ `aa83cd5b` after pull. Next: [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) recurrent catastrophe amelioration registry — draft slice doc from Linear, implement `recurrentCatastropheAmeliorationRegistry.ts` + tests. Branch `jamesdyedbq/spe-2117-recurrent-catastrophe-amelioration-registry-slice-1`. See `planning/harvest-reconciliation-index.md` adjacent intake tiers.
 
 ## Blocked / waiting
 
@@ -53,6 +53,7 @@ PR #2434 merged. On `main` @ `cde20979` after pull. Next: [SPE-2116](https://lin
 | **Visual-trigger hazard registry ([SPE-2111](https://linear.app/spectranoir/issue/SPE-2111))** | Slice 1 shipped (PR #2432); `src/domain/visualTriggerHazardRegistry.ts`; see `planning/visual-trigger-hazard-registry-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays open. |
 | **Entity welfare reclassification registry ([SPE-2114](https://linear.app/spectranoir/issue/SPE-2114))** | Slice 1 shipped (PR #2433); `src/domain/entityWelfareReclassificationRegistry.ts`; see `planning/entity-welfare-reclassification-registry-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays open. |
 | **Contained-person therapeutic care registry ([SPE-2115](https://linear.app/spectranoir/issue/SPE-2115))** | Slice 1 shipped (PR #2434); `src/domain/containedPersonTherapeuticCareRegistry.ts`; see `planning/contained-person-therapeutic-care-registry-slice-1.md`. Parent [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) stays open. |
+| **Naming-hazard descriptor registry ([SPE-2116](https://linear.app/spectranoir/issue/SPE-2116))** | Slice 1 shipped (PR #2435); `src/domain/namingHazardDescriptorRegistry.ts`; see `planning/naming-hazard-descriptor-registry-slice-1.md`. Parent [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) stays open. |
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
@@ -126,6 +127,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `visual-trigger-hazard-registry-slice-1.md`               | **Shipped**    | SPE-2111 / PR #2432; pursuit state, hazardous media, exposure targets.                                                                                |
 | `entity-welfare-reclassification-registry-slice-1.md`     | **Shipped**    | SPE-2114 / PR #2433; threat label drift and disposition review.                                                                                       |
 | `contained-person-therapeutic-care-registry-slice-1.md`   | **Shipped**    | SPE-2115 / PR #2434; psych/medical care cadence and compliance risk projection.                                                                       |
+| `naming-hazard-descriptor-registry-slice-1.md`            | **Shipped**    | SPE-2116 / PR #2435; safe labels, reference constraints, map/briefing projection.                                                                     |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

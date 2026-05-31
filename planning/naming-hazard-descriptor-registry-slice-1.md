@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2116](https://linear.app/spectranoir/
 | **Linear** | [SPE-2116 — Naming-hazard descriptor registry — safe labels and reference constraints (slice 1)](https://linear.app/spectranoir/issue/SPE-2116) |
 | **Parent** | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) — Self-censoring information registry |
 | **Branch** | `jamesdyedbq/spe-2116-naming-hazard-descriptor-registry-safe-labels-and-reference`                         |
-| **Status** | **In Progress** — implementation on branch |
+| **Status** | **Shipped** — PR #2435                                                                                     |
 
 ## Goal
 

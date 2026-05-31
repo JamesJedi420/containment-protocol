@@ -218,9 +218,24 @@ describe('publicDisclosureStateRegistry (SPE-2109 slice 1)', () => {
       awarenessLevel: 'local_rumor',
       falloutPhase: 'leak',
       trustByRegion: 'invalid' as unknown as PublicDisclosureRecord['trustByRegion'],
+      unknownFields: [42, null, 'confidence'] as unknown as PublicDisclosureRecord['unknownFields'],
+      redactedFields: 'summary' as unknown as PublicDisclosureRecord['redactedFields'],
     })
 
     expect(projection.regionalTrust).toEqual([])
+    expect(projection.unknownFields).toEqual(['confidence'])
+  })
+
+  it('sets projection redacted when confidence is below minimumConfidence threshold', () => {
+    const projection = projectDisclosureRegionalView(
+      baseRecord({
+        confidence: 0.35,
+      }),
+      { minimumConfidence: 0.5 }
+    )
+
+    expect(projection.confidence).toBeNull()
+    expect(projection.redacted).toBe(true)
   })
 
   it('produces byte-stable validation output on repeated runs', () => {

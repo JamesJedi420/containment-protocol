@@ -172,6 +172,7 @@ export interface PublicDisclosureValidationResult {
 
 export interface DisclosureRegionalViewProjectionPolicy {
   readonly minimumTrustScore?: number
+  readonly minimumConfidence?: number
   readonly redactUnknown?: boolean
   readonly suppressRedactedSummary?: boolean
 }
@@ -225,7 +226,17 @@ function normalizeToken(value: unknown) {
 }
 
 function asStringArray(value: unknown): readonly string[] {
-  return Array.isArray(value) ? value : []
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function sortedStringArray(value: unknown): readonly string[] {
+  return Object.freeze(
+    [...asStringArray(value)].sort((left, right) => left.localeCompare(right))
+  )
 }
 
 function asTrustByRegion(value: unknown): readonly RegionalTrustScore[] {
@@ -438,7 +449,11 @@ function resolveConfidence(
   }
 
   const confidence = record.confidence ?? null
-  if (confidence !== null && policy.minimumTrustScore !== undefined && confidence < policy.minimumTrustScore) {
+  if (
+    confidence !== null &&
+    policy.minimumConfidence !== undefined &&
+    confidence < policy.minimumConfidence
+  ) {
     return null
   }
 
@@ -712,7 +727,6 @@ export function validatePublicDisclosureRecord(
 
   if (
     record.awarenessLevel === 'official_disclosure' &&
-    !PRIOR_LEAK_OR_SCANDAL_LEVELS.has(record.awarenessLevel) &&
     !historyIncludesPriorLeakOrScandal(transitionHistory)
   ) {
     pushIssue(issues, {
@@ -760,9 +774,7 @@ export function projectDisclosureRegionalView(
 ): DisclosureRegionalViewProjection {
   const recordId = normalizeToken(record.id) || '(unknown)'
   const redactedFields = new Set(asStringArray(record.redactedFields))
-  const unknownFields = Object.freeze(
-    [...asStringArray(record.unknownFields)].sort((left, right) => left.localeCompare(right))
-  )
+  const unknownFields = sortedStringArray(record.unknownFields)
 
   const summaryRedacted = redactedFields.has('summary')
   const summary = summaryRedacted ? null : normalizeToken(record.summary ?? '') || null
@@ -787,6 +799,9 @@ export function projectDisclosureRegionalView(
   const redacted =
     summaryRedacted ||
     redactedFields.has('confidence') ||
+    (confidence === null &&
+      record.confidence !== undefined &&
+      policy.minimumConfidence !== undefined) ||
     regionalTrust.some((entry) => entry.redacted) ||
     oversightRedacted
 

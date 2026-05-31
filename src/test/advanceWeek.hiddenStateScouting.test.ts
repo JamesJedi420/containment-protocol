@@ -7,8 +7,12 @@ import {
   DISPLACEMENT_TELL_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
   SIGNATURE_MASK_SCAN_READOUT_PREFIX,
+  FALSE_DETECTION_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
-import { MODALITY_SIGNATURE_MASK_TAG } from '../domain/hiddenStateModality'
+import {
+  MODALITY_FALSE_DETECTION_TAG,
+  MODALITY_SIGNATURE_MASK_TAG,
+} from '../domain/hiddenStateModality'
 import { TELL_ROUTE_TIMING_TAG, TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import type { Agent, CaseInstance, Team } from '../domain/models'
@@ -282,6 +286,50 @@ describe('advanceWeek hidden-state scouting report copy (SPE-2283)', () => {
     expect(
       snapshot?.missionResult?.explanationNotes.some((note) =>
         note.includes(SIGNATURE_MASK_SCAN_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(snapshot?.hiddenState).not.toBe('revealed')
+  })
+
+  it('surfaces false-detection readout without revealing hidden state', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_false_detection_readout', 60)
+    const team: Team = {
+      id: 'team-false-detection-readout',
+      name: 'False-detection readout team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      tags: [MODALITY_FALSE_DETECTION_TAG],
+    })
+
+    const preAdvance = resolveAssignedCaseForWeek(state.cases['case-concealed-readout'], state, () => 0.5)
+    expect(preAdvance.hiddenStateScouting?.active).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(FALSE_DETECTION_SCAN_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes('fabricated maintenance contact')
       )
     ).toBe(true)
     expect(snapshot?.hiddenState).not.toBe('revealed')

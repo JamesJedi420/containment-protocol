@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2289](https://linear.app/spectranoir/
 | **Linear** | [SPE-2289 — Hidden-state modality matrix slice 8](https://linear.app/spectranoir/issue/SPE-2289) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                |
 | **Branch** | `jamesdyedbq/spe-2289-hidden-state-modality-matrix-slice-8-false-detection-output`                   |
-| **Status** | **Queued** — post-matrix slice 2 of 3                                                              |
+| **Status** | **Implemented** — pending PR                                                                                         |
 
 ## Goal
 
@@ -61,11 +61,11 @@ Add **false-detection output** (instrumentation attack) as a fifth case-authored
 
 ## Acceptance
 
-- [ ] Authored fixture: scan shows fabricated contact/class; internal truth unchanged; `hiddenState` stays non-`revealed`.
-- [ ] Distinct `DetectionScanResult` from concealed and signature-mask fixtures in shared compose path.
-- [ ] Counter-detection strips false-detection layer only; slices 1–7 regression unchanged.
-- [ ] Illusion lifecycle tests and readout prefixes unchanged (no prefix collision).
-- [ ] `npm run lint` + targeted `npm run test:run` green.
+- [x] Authored fixture: scan shows fabricated contact/class; internal truth unchanged; `hiddenState` stays non-`revealed`.
+- [x] Distinct `DetectionScanResult` from concealed and signature-mask fixtures in shared compose path.
+- [x] Counter-detection strips false-detection layer only; slices 1–7 regression unchanged.
+- [x] Illusion lifecycle tests and readout prefixes unchanged (no prefix collision).
+- [x] `npm run lint` + targeted `npm run test:run` green.
 
 ## TDD order
 

@@ -33,11 +33,18 @@ export type HiddenStateModalityKind =
   | 'false_position'
   | 'disguised_identity'
   | 'signature_masking'
+  | 'false_detection_output'
 
 export const MODALITY_SIGNATURE_MASK_TAG = 'modality-signature-mask'
+export const MODALITY_FALSE_DETECTION_TAG = 'modality-false-detection'
+export const INSTRUMENTATION_ATTACK_TAG = 'instrumentation-attack'
 
 /** Player-facing category skew when signature-masking modality is active. */
 export const SIGNATURE_MASK_CATEGORY_SKEW = 'benign utility signature'
+
+/** Player-facing fabricated readouts when false-detection modality is active. */
+export const FALSE_DETECTION_FABRICATED_PRESENCE = 'fabricated maintenance contact'
+export const FALSE_DETECTION_FABRICATED_CATEGORY = 'instrumented false contact'
 
 const CONCEALED_PRESENCE_LAYER: ConcealmentLayer = {
   id: 'layer:concealed-presence',
@@ -59,16 +66,29 @@ const SIGNATURE_MASKING_LAYER: ConcealmentLayer = {
   blockedTiers: ['exact_identity'],
 }
 
+const FALSE_DETECTION_LAYER: ConcealmentLayer = {
+  id: 'layer:authored-false-detection',
+  blockedTiers: ['exact_identity'],
+}
+
 const DISGUISE_SIGNAL_TAGS = ['infiltration', 'disguise', 'covert', 'stealth'] as const
 
-export function caseHasSignatureMaskModality(caseData: CaseInstance): boolean {
-  const tagSet = new Set([
+function caseModalityTagSet(caseData: CaseInstance): Set<string> {
+  return new Set([
     ...(caseData.tags ?? []),
     ...(caseData.requiredTags ?? []),
     ...(caseData.preferredTags ?? []),
   ])
+}
 
-  return tagSet.has(MODALITY_SIGNATURE_MASK_TAG)
+export function caseHasFalseDetectionModality(caseData: CaseInstance): boolean {
+  const tags = caseModalityTagSet(caseData)
+
+  return tags.has(MODALITY_FALSE_DETECTION_TAG) || tags.has(INSTRUMENTATION_ATTACK_TAG)
+}
+
+export function caseHasSignatureMaskModality(caseData: CaseInstance): boolean {
+  return caseModalityTagSet(caseData).has(MODALITY_SIGNATURE_MASK_TAG)
 }
 
 export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
@@ -76,11 +96,7 @@ export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
     return true
   }
 
-  const tagSet = new Set([
-    ...(caseData.tags ?? []),
-    ...(caseData.requiredTags ?? []),
-    ...(caseData.preferredTags ?? []),
-  ])
+  const tagSet = caseModalityTagSet(caseData)
 
   return DISGUISE_SIGNAL_TAGS.some((tag) => tagSet.has(tag))
 }
@@ -96,6 +112,10 @@ export function resolveHiddenStateModality(caseData: CaseInstance): HiddenStateM
 
   if (caseHasDisguiseSignals(caseData)) {
     return 'disguised_identity'
+  }
+
+  if (caseHasFalseDetectionModality(caseData)) {
+    return 'false_detection_output'
   }
 
   if (caseHasSignatureMaskModality(caseData)) {
@@ -117,6 +137,8 @@ export function hiddenStateModalityLayer(
       return DISGUISED_IDENTITY_LAYER
     case 'signature_masking':
       return SIGNATURE_MASKING_LAYER
+    case 'false_detection_output':
+      return FALSE_DETECTION_LAYER
     case 'none':
       return null
     default: {
@@ -292,6 +314,34 @@ export function applySignatureMaskScanProjection(scan: DetectionScanResult): Det
       return {
         ...field,
         playerFacingValue: SIGNATURE_MASK_CATEGORY_SKEW,
+        ambiguous: true,
+      }
+    }
+
+    return field
+  })
+
+  return {
+    ...scan,
+    fields,
+  }
+}
+
+/** Player-facing scan projection for false-detection output without mutating canonical truth tiers. */
+export function applyFalseDetectionScanProjection(scan: DetectionScanResult): DetectionScanResult {
+  const fields = scan.fields.map((field) => {
+    if (field.tier === 'presence') {
+      return {
+        ...field,
+        playerFacingValue: FALSE_DETECTION_FABRICATED_PRESENCE,
+        ambiguous: true,
+      }
+    }
+
+    if (field.tier === 'category') {
+      return {
+        ...field,
+        playerFacingValue: FALSE_DETECTION_FABRICATED_CATEGORY,
         ambiguous: true,
       }
     }

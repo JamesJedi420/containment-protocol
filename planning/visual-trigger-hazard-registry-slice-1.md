@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2111](https://linear.app/spectranoir/
 | **Linear** | [SPE-2111 — Visual-trigger hazard registry — pursuit state, hazardous media, and exposure targets (slice 1)](https://linear.app/spectranoir/issue/SPE-2111) |
 | **Parent** | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — Visual-trigger and pursuit-adjacent hazard intake |
 | **Branch** | `jamesdyedbq/spe-2111-visual-trigger-hazard-registry-pursuit-state-hazardous-media`                         |
-| **Status** | Implemented on branch (pending PR)                                                                       |
+| **Status** | **Shipped** — PR #2432                                                                                     |
 
 ## Goal
 

@@ -22,7 +22,7 @@ From `README.md` **Current design notes**:
 
 ## Recommended next step (agent handoff)
 
-PR #2435 merged. On `main` @ `aa83cd5b` after pull. Next: [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) recurrent catastrophe amelioration registry — draft slice doc from Linear, implement `recurrentCatastropheAmeliorationRegistry.ts` + tests. Branch `jamesdyedbq/spe-2117-recurrent-catastrophe-amelioration-registry-slice-1`. See `planning/harvest-reconciliation-index.md` adjacent intake tiers.
+PR #2435 merged. On `main` @ `3d2cf928` after pull. Next: [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) recurrent catastrophe amelioration registry — draft slice doc from Linear, implement `recurrentCatastropheAmeliorationRegistry.ts` + tests. Branch `jamesdyedbq/spe-2117-recurrent-catastrophe-amelioration-registry-slice-1`. See `planning/harvest-reconciliation-index.md` adjacent intake tiers.
 
 ## Blocked / waiting
 

@@ -105,3 +105,12 @@ Add a pure deterministic **naming-hazard descriptor registry** so locations, ent
 - `planning/harvest-reconciliation-index.md` — adjacent intake tier row for SPE-2116
 - `src/domain/selfCensoringInformationRegistry.ts` — parent chain validation conventions (SPE-2108)
 - `architecture/procedural-naming-layered-identity.md` — SPE-76 boundary (distinct from this registry)
+
+---
+
+## Post-ship doc hygiene (mandatory after merge)
+
+- [x] **`planning/naming-hazard-descriptor-registry-slice-1.md`** — Status **Shipped — PR #2435**; acceptance boxes checked.
+- [x] **`planning/backlog.md`** — wave through SPE-2116; shipped table + slice index; handoff to SPE-2117 @ `3d2cf928`.
+- [x] **Linear** — SPE-2116 → Done + merge comment (PR #2435, validation). Parent SPE-2108 → Backlog (umbrella open).
+- [x] **Next agent handoff** — `On main @ 3d2cf928. Next: SPE-2117 — recurrent catastrophe amelioration registry — branch jamesdyedbq/spe-2117-recurrent-catastrophe-amelioration-registry-slice-1`.

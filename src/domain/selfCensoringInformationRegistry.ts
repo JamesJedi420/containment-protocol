@@ -190,6 +190,14 @@ function asStringArray(value: unknown): readonly string[] {
   return Array.isArray(value) ? value : []
 }
 
+function asNegativeFacts(value: unknown): readonly NegativeFactPredicate[] {
+  return Array.isArray(value) ? value : []
+}
+
+function asAbsenceSignals(value: unknown): readonly AbsenceSignal[] {
+  return Array.isArray(value) ? value : []
+}
+
 function pushIssue(
   issues: SelfCensoringInformationValidationIssue[],
   issue: SelfCensoringInformationValidationIssue
@@ -292,7 +300,11 @@ function scanFranchiseTokens(
     }
   }
 
-  for (const fact of record.negativeFacts ?? []) {
+  for (const fact of asNegativeFacts(record.negativeFacts)) {
+    if (!fact || typeof fact !== 'object') {
+      continue
+    }
+
     for (const token of [fact.predicate, fact.scope]) {
       const normalized = normalizeToken(token ?? '')
       if (normalized && containsFranchiseToken(normalized)) {
@@ -306,7 +318,11 @@ function scanFranchiseTokens(
     }
   }
 
-  for (const signal of record.absenceSignals ?? []) {
+  for (const signal of asAbsenceSignals(record.absenceSignals)) {
+    if (!signal || typeof signal !== 'object') {
+      continue
+    }
+
     const descriptor = normalizeToken(signal.descriptor ?? '')
     if (descriptor && containsFranchiseToken(descriptor)) {
       pushIssue(issues, {
@@ -318,7 +334,7 @@ function scanFranchiseTokens(
     }
   }
 
-  for (const ref of record.rediscoveryLoop?.forgottenWarningRefs ?? []) {
+  for (const ref of asStringArray(record.rediscoveryLoop?.forgottenWarningRefs)) {
     const normalized = normalizeToken(ref)
     if (normalized && containsFranchiseToken(normalized)) {
       pushIssue(issues, {
@@ -334,7 +350,11 @@ function scanFranchiseTokens(
 function buildContradictionSignals(record: SelfCensoringInformationRecord): readonly string[] {
   const signals: string[] = []
 
-  for (const fact of record.negativeFacts ?? []) {
+  for (const fact of asNegativeFacts(record.negativeFacts)) {
+    if (!fact || typeof fact !== 'object') {
+      continue
+    }
+
     const predicate = normalizeToken(fact.predicate)
     if (!predicate) {
       continue
@@ -344,7 +364,11 @@ function buildContradictionSignals(record: SelfCensoringInformationRecord): read
     signals.push(scope ? `Unverified absence: ${predicate} (${scope})` : `Unverified absence: ${predicate}`)
   }
 
-  for (const signal of record.absenceSignals ?? []) {
+  for (const signal of asAbsenceSignals(record.absenceSignals)) {
+    if (!signal || typeof signal !== 'object') {
+      continue
+    }
+
     const descriptor = normalizeToken(signal.descriptor)
     if (!descriptor) {
       continue
@@ -450,8 +474,8 @@ export function validateSelfCensoringInformationRecord(
 
   scanFranchiseTokens(issues, id, label, record)
 
-  for (const tag of record.propagationResistance ?? []) {
-    if (!isPropagationResistanceTag(tag)) {
+  for (const tag of asStringArray(record.propagationResistance)) {
+    if (typeof tag !== 'string' || !isPropagationResistanceTag(tag)) {
       pushIssue(issues, {
         code: 'invalid_propagation_resistance_tag',
         severity: 'error',
@@ -461,7 +485,7 @@ export function validateSelfCensoringInformationRecord(
     }
   }
 
-  const negativeFacts = record.negativeFacts ?? []
+  const negativeFacts = asNegativeFacts(record.negativeFacts)
   for (const fact of negativeFacts) {
     if (!fact || typeof fact !== 'object' || !normalizeToken(fact.predicate)) {
       pushIssue(issues, {
@@ -493,6 +517,10 @@ export function validateSelfCensoringInformationRecord(
 
   const loop = record.rediscoveryLoop
   if (loop !== undefined) {
+    const forgottenWarningRefs = asStringArray(
+      loop !== null && typeof loop === 'object' ? loop.forgottenWarningRefs : undefined
+    )
+
     if (loop === null || typeof loop !== 'object' || !Object.prototype.hasOwnProperty.call(loop, 'loopCount')) {
       pushIssue(issues, {
         code: 'rediscovery_loop_missing_loop_count',
@@ -509,8 +537,7 @@ export function validateSelfCensoringInformationRecord(
       })
     } else if (
       loop.loopCount === 0 &&
-      (isFiniteWeek(loop.lastAlarmWeek) ||
-        (loop.forgottenWarningRefs ?? []).some((ref) => normalizeToken(ref)))
+      (isFiniteWeek(loop.lastAlarmWeek) || forgottenWarningRefs.some((ref) => normalizeToken(ref)))
     ) {
       pushIssue(issues, {
         code: 'rediscovery_loop_zero_with_alarm_ref',
@@ -520,7 +547,12 @@ export function validateSelfCensoringInformationRecord(
       })
     }
 
-    if (loop?.lastAlarmWeek !== undefined && !isFiniteWeek(loop.lastAlarmWeek)) {
+    if (
+      loop !== null &&
+      typeof loop === 'object' &&
+      loop.lastAlarmWeek !== undefined &&
+      !isFiniteWeek(loop.lastAlarmWeek)
+    ) {
       pushIssue(issues, {
         code: 'invalid_rediscovery_last_alarm_week',
         severity: 'error',
@@ -529,7 +561,7 @@ export function validateSelfCensoringInformationRecord(
       })
     }
 
-    for (const ref of loop?.forgottenWarningRefs ?? []) {
+    for (const ref of forgottenWarningRefs) {
       if (!normalizeToken(ref)) {
         pushIssue(issues, {
           code: 'empty_forgotten_warning_ref',
@@ -574,7 +606,7 @@ export function validateSelfCensoringInformationRecord(
     })
   }
 
-  for (const signal of record.absenceSignals ?? []) {
+  for (const signal of asAbsenceSignals(record.absenceSignals)) {
     if (!signal || typeof signal !== 'object') {
       pushIssue(issues, {
         code: 'invalid_absence_signal_kind',
@@ -630,18 +662,18 @@ export function projectAntimemeticCaseView(
     [...asStringArray(record.unknownFields)].sort((left, right) => left.localeCompare(right))
   )
 
-  const summaryRedacted =
-    redactedFields.has('summary') ||
-    (policy.suppressRedactedSummary === true && redactedFields.has('summary'))
+  const summaryRedacted = redactedFields.has('summary')
   const summary = summaryRedacted ? null : normalizeToken(record.summary ?? '') || null
 
   const absenceSignals = Object.freeze(
-    (record.absenceSignals ?? []).map((signal) =>
-      Object.freeze({
-        kind: signal.kind,
-        descriptor: normalizeToken(signal.descriptor),
-      })
-    )
+    asAbsenceSignals(record.absenceSignals)
+      .filter((signal) => signal && typeof signal === 'object')
+      .map((signal) =>
+        Object.freeze({
+          kind: signal.kind,
+          descriptor: normalizeToken(signal.descriptor),
+        })
+      )
   )
 
   const confidence = resolveConfidence(record, policy)

@@ -8,6 +8,7 @@ import {
   projectAntimemeticCaseView,
   validateSelfCensoringInformationRecord,
   type SelfCensoringInformationRecord,
+  type RediscoveryLoop,
 } from '../domain/selfCensoringInformationRegistry'
 
 function baseRecord(
@@ -194,6 +195,34 @@ describe('selfCensoringInformationRegistry (SPE-2108 slice 1)', () => {
 
     expect(result.valid).toBe(false)
     expect(result.issues.map((issue) => issue.code).sort()).toEqual(['missing_id', 'missing_label'].sort())
+  })
+
+  it('validates malformed array fields without throwing on untrusted payloads', () => {
+    const result = validateSelfCensoringInformationRecord({
+      id: 'info:malformed',
+      label: 'Malformed payload',
+      propagationResistance: 'forgetting' as unknown as SelfCensoringInformationRecord['propagationResistance'],
+      negativeFacts: null as unknown as SelfCensoringInformationRecord['negativeFacts'],
+      absenceSignals: 'missing_roster' as unknown as SelfCensoringInformationRecord['absenceSignals'],
+      rediscoveryLoop: {
+        loopCount: 1,
+        forgottenWarningRefs: 42 as unknown as RediscoveryLoop['forgottenWarningRefs'],
+      },
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it('projects dossier view without throwing when array metadata is malformed', () => {
+    const projection = projectAntimemeticCaseView({
+      id: 'info:malformed-projection',
+      label: 'Malformed projection payload',
+      negativeFacts: 'invalid' as unknown as SelfCensoringInformationRecord['negativeFacts'],
+      absenceSignals: null as unknown as SelfCensoringInformationRecord['absenceSignals'],
+    })
+
+    expect(projection.contradictionSignals).toEqual([])
+    expect(projection.absenceSignals).toEqual([])
   })
 
   it('produces byte-stable validation output on repeated runs', () => {

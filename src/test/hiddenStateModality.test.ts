@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import {
   applyFalsePositionScanProjection,
+  applyFalseDetectionScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   formatDecoyLocusLabel,
+  FALSE_DETECTION_FABRICATED_CATEGORY,
+  FALSE_DETECTION_FABRICATED_PRESENCE,
   hiddenStateModalityLayer,
+  INSTRUMENTATION_ATTACK_TAG,
+  MODALITY_FALSE_DETECTION_TAG,
   MODALITY_SIGNATURE_MASK_TAG,
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
@@ -95,10 +100,36 @@ describe('hiddenStateModality (SPE-2281)', () => {
         })
       )
     ).toBe('signature_masking')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_FALSE_DETECTION_TAG],
+        })
+      )
+    ).toBe('false_detection_output')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [INSTRUMENTATION_ATTACK_TAG],
+        })
+      )
+    ).toBe('false_detection_output')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_FALSE_DETECTION_TAG, MODALITY_SIGNATURE_MASK_TAG],
+        })
+      )
+    ).toBe('false_detection_output')
   })
 
-  it('maps signature masking to authored layer distinct from rating sig-mask', () => {
-    expect(hiddenStateModalityLayer('signature_masking')?.id).toBe('layer:authored-signature-mask')
+  it('maps false-detection output to authored false-detection layer', () => {
+    expect(hiddenStateModalityLayer('false_detection_output')?.id).toBe(
+      'layer:authored-false-detection'
+    )
   })
 
   it('maps each modality to a distinct concealment layer id', () => {
@@ -302,6 +333,89 @@ describe('hiddenStateModality (SPE-2281)', () => {
       'layer:signature-mask',
     ])
     expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('maps signature masking to authored layer distinct from rating sig-mask', () => {
+    expect(hiddenStateModalityLayer('signature_masking')?.id).toBe('layer:authored-signature-mask')
+  })
+
+  it('projects false-detection fabricated readouts while preserving internal truth', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_FALSE_DETECTION_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_LOW_CONCEALMENT, SUBJECT)
+    const scan = applyFalseDetectionScanProjection(
+      resolveDetectionScan(truth, { family: 'category_pass' })
+    )
+
+    expect(scan.fields.find((field) => field.tier === 'presence')?.playerFacingValue).toBe(
+      FALSE_DETECTION_FABRICATED_PRESENCE
+    )
+    expect(scan.fields.find((field) => field.tier === 'category')?.playerFacingValue).toBe(
+      FALSE_DETECTION_FABRICATED_CATEGORY
+    )
+    expect(scan.fields.find((field) => field.tier === 'category')?.internalValue).toBe(
+      'spectral intruder'
+    )
+    expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('strips false-detection layer on counter-detection without solving rating layers', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: [MODALITY_FALSE_DETECTION_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+    const scanInput = scoutingOutcomeToDetectionScanForCase(
+      { outcome: 'strong', revealed: true, withheld: false },
+      caseData
+    )
+
+    expect(scanInput).toEqual({ family: 'identity_probe', layersToStrip: 1 })
+
+    const scan = resolveDetectionScan(truth, scanInput)
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-false-detection'])
+    expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
+    expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('includes false-detection output in distinct modality compose path', () => {
+    const falseDetection = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_FALSE_DETECTION_TAG],
+      }),
+    })
+    const concealed = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({ hiddenState: 'hidden', tags: ['concealment'] }),
+    })
+    const signatureMasked = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_SIGNATURE_MASK_TAG],
+      }),
+    })
+
+    expect(falseDetection.detectionScan.strippedLayerIds).toEqual(['layer:authored-false-detection'])
+    expect(
+      falseDetection.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
+    ).toBe(FALSE_DETECTION_FABRICATED_CATEGORY)
+    expect(
+      concealed.detectionScan.fields.find((field) => field.tier === 'category')?.playerFacingValue
+    ).toBe('spectral intruder')
+    expect(
+      signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')
+        ?.playerFacingValue
+    ).toBe(SIGNATURE_MASK_CATEGORY_SKEW)
   })
 
   it('includes signature masking in distinct modality compose path', () => {

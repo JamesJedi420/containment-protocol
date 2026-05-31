@@ -224,6 +224,32 @@ describe('extranormalEventRegistry (SPE-2105 slice 1)', () => {
     expect(projection.unknownFields).toEqual(['confidence'])
   })
 
+  it('suppresses confidence when redactedFields includes confidence', () => {
+    const projection = projectExtranormalEventForMap(
+      baseRecord({
+        confidence: 0.82,
+        redactedFields: ['confidence'],
+      })
+    )
+
+    expect(projection.confidence).toBeNull()
+    expect(projection.redacted).toBe(true)
+  })
+
+  it('validates untrusted payloads without throwing when fields are missing or nullish', () => {
+    const result = validateExtranormalEventRecord({} as ExtranormalEventRecord)
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.map((issue) => issue.code).sort()).toEqual(
+      [
+        'invalid_affected_area_geometry',
+        'invalid_occurrence_window',
+        'missing_id',
+        'missing_label',
+      ].sort()
+    )
+  })
+
   it('produces byte-stable validation output on repeated runs', () => {
     const record = baseRecord({
       resolved: true,

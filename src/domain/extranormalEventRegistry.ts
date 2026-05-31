@@ -244,8 +244,8 @@ const CLOSURE_STATE_SET = new Set<string>(EXTRANORMAL_CLOSURE_STATES)
 // Helpers
 // ---------------------------------------------------------------------------
 
-function normalizeToken(value: string) {
-  return value.trim()
+function normalizeToken(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
 }
 
 function uniqueSorted(values: readonly string[]) {
@@ -285,8 +285,12 @@ function isValidConfidence(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
 }
 
-function hasOccurrenceWindow(window: OccurrenceWindow): boolean {
-  const intervalToken = normalizeToken(window.intervalToken ?? '')
+function hasOccurrenceWindow(window: OccurrenceWindow | null | undefined): boolean {
+  if (!window || typeof window !== 'object') {
+    return false
+  }
+
+  const intervalToken = normalizeToken(window.intervalToken)
   if (intervalToken) {
     return true
   }
@@ -377,7 +381,7 @@ export function validateExtranormalEventRecord(
       relatedIds: id ? [id] : undefined,
     })
   } else {
-    const { startWeek, endWeek } = record.occurrenceWindow
+    const { startWeek, endWeek } = record.occurrenceWindow ?? {}
     if (startWeek !== undefined && !isFiniteWeek(startWeek)) {
       pushIssue(issues, {
         code: 'invalid_occurrence_window',
@@ -408,7 +412,7 @@ export function validateExtranormalEventRecord(
     }
   }
 
-  for (const tag of record.effectDomainTags) {
+  for (const tag of record.effectDomainTags ?? []) {
     if (!isEffectDomainTag(tag)) {
       pushIssue(issues, {
         code: 'invalid_effect_domain_tag',
@@ -428,7 +432,7 @@ export function validateExtranormalEventRecord(
     })
   }
 
-  for (const selector of record.populationSelectors) {
+  for (const selector of record.populationSelectors ?? []) {
     if (!isPopulationSelectorKind(selector.kind)) {
       pushIssue(issues, {
         code: 'invalid_population_selector_kind',
@@ -596,7 +600,13 @@ export function projectExtranormalEventForMap(
   const locationTag = locationRedacted ? null : normalizeToken(record.locationTag ?? '') || null
 
   let confidence = record.confidence ?? null
-  if (confidence !== null && policy.minimumConfidence !== undefined && confidence < policy.minimumConfidence) {
+  if (redactedFields.has('confidence')) {
+    confidence = null
+  } else if (
+    confidence !== null &&
+    policy.minimumConfidence !== undefined &&
+    confidence < policy.minimumConfidence
+  ) {
     confidence = null
   }
 
@@ -610,7 +620,7 @@ export function projectExtranormalEventForMap(
     (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 
   return Object.freeze({
-    eventId: record.id,
+    eventId: normalizeToken(record.id) || '(unknown)',
     locationTag,
     affectedAreaGeometry: record.affectedAreaGeometry,
     confidence,

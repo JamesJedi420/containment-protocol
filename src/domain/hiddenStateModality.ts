@@ -55,7 +55,7 @@ const DISGUISED_IDENTITY_LAYER: ConcealmentLayer = {
 }
 
 const SIGNATURE_MASKING_LAYER: ConcealmentLayer = {
-  id: 'layer:signature-mask',
+  id: 'layer:authored-signature-mask',
   blockedTiers: ['exact_identity'],
 }
 

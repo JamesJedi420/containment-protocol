@@ -97,8 +97,8 @@ describe('hiddenStateModality (SPE-2281)', () => {
     ).toBe('signature_masking')
   })
 
-  it('maps signature masking to layer:signature-mask', () => {
-    expect(hiddenStateModalityLayer('signature_masking')?.id).toBe('layer:signature-mask')
+  it('maps signature masking to authored layer distinct from rating sig-mask', () => {
+    expect(hiddenStateModalityLayer('signature_masking')?.id).toBe('layer:authored-signature-mask')
   })
 
   it('maps each modality to a distinct concealment layer id', () => {
@@ -273,8 +273,34 @@ describe('hiddenStateModality (SPE-2281)', () => {
     expect(scanInput).toEqual({ family: 'identity_probe', layersToStrip: 1 })
 
     const scan = resolveDetectionScan(truth, scanInput)
-    expect(scan.strippedLayerIds).toEqual(['layer:signature-mask'])
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-signature-mask'])
     expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:glamour')).toBe(true)
+    expect(scan.remainingConcealmentLayers.some((layer) => layer.id === 'layer:signature-mask')).toBe(
+      true
+    )
+    expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
+  })
+
+  it('preserves rating-derived signature mask when authored modality layer is stripped', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: [MODALITY_SIGNATURE_MASK_TAG],
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(caseData, SCOUTING_INPUT, SUBJECT)
+
+    expect(truth.concealmentLayers.map((layer) => layer.id)).toEqual([
+      'layer:authored-signature-mask',
+      'layer:glamour',
+      'layer:signature-mask',
+    ])
+
+    const scan = resolveDetectionScan(truth, { family: 'identity_probe', layersToStrip: 1 })
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-signature-mask'])
+    expect(scan.remainingConcealmentLayers.map((layer) => layer.id)).toEqual([
+      'layer:glamour',
+      'layer:signature-mask',
+    ])
     expect(detectionScanTierOrder(scan)).not.toContain('exact_identity')
   })
 
@@ -288,7 +314,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
       }),
     })
 
-    expect(signatureMasked.detectionScan.strippedLayerIds).toEqual(['layer:signature-mask'])
+    expect(signatureMasked.detectionScan.strippedLayerIds).toEqual(['layer:authored-signature-mask'])
     expect(
       signatureMasked.detectionScan.fields.find((field) => field.tier === 'category')
         ?.playerFacingValue

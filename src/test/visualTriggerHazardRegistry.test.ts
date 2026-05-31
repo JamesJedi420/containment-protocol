@@ -113,10 +113,10 @@ describe('visualTriggerHazardRegistry (SPE-2111 slice 1)', () => {
     expect(compliance.requiredActions).toEqual(
       expect.arrayContaining(['sweep', 'occlusion', 'redaction'])
     )
-    expect(compliance.overdueMediaInstanceIds).toContain('media:custody-roll-11')
+    expect(compliance.pendingComplianceMediaInstanceIds).toContain('media:custody-roll-11')
 
     const afterDeadline = resolveDisposalDeadlineCompliance(DISPOSAL_DEADLINE_SWEEP_FIXTURE, 42)
-    expect(afterDeadline.overdueMediaInstanceIds).toHaveLength(0)
+    expect(afterDeadline.pendingComplianceMediaInstanceIds).toHaveLength(0)
     expect(afterDeadline.compliant).toBe(true)
   })
 
@@ -133,6 +133,17 @@ describe('visualTriggerHazardRegistry (SPE-2111 slice 1)', () => {
       targetInstanceIds: ['target:viewer-1'],
     })
     expect(resolvePursuitStateAfterOcclusion(exposedRecord)).toBe('active_pursuit')
+  })
+
+  it('errors on imported object number in record label', () => {
+    const result = validateVisualTriggerHazardRecord(
+      baseRecord({
+        label: 'Archive hazard linked to SCP-096 exposure clip',
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'branded_object_number_in_label')).toBe(true)
   })
 
   it('errors on imported object number in record id', () => {
@@ -166,6 +177,46 @@ describe('visualTriggerHazardRegistry (SPE-2111 slice 1)', () => {
         severity: 'error',
       }),
     ])
+  })
+
+  it('honors custom broadcastThreshold in exposure projection escalation band', () => {
+    const defaultProjection = projectExposureChainRisk(BACKGROUND_FRAGMENT_LATENT_FIXTURE)
+    const strictProjection = projectExposureChainRisk(BACKGROUND_FRAGMENT_LATENT_FIXTURE, {
+      broadcastThreshold: 1.05,
+    })
+
+    expect(defaultProjection.escalationBand).toBe('broadcast')
+    expect(strictProjection.escalationBand).not.toBe('broadcast')
+  })
+
+  it('applies repostAmplification policy to exposure risk score', () => {
+    const baseline = projectExposureChainRisk(BACKGROUND_FRAGMENT_LATENT_FIXTURE)
+    const amplified = projectExposureChainRisk(BACKGROUND_FRAGMENT_LATENT_FIXTURE, {
+      repostAmplification: 2,
+    })
+
+    expect(amplified.broadcastRiskScore).toBeGreaterThanOrEqual(baseline.broadcastRiskScore)
+  })
+
+  it('returns zero pursuit pressure for artistic_exempt derivative profile', () => {
+    const record = baseRecord({
+      derivativeHazardProfile: 'artistic_exempt',
+      awarenessRequirement: 'conscious',
+    })
+
+    const result = observerAwarenessEscalation(record, 'unaware', 'full')
+
+    expect(result.pursuitPressure).toBe(0)
+    expect(result.manifestationRisk).toBe(0)
+    expect(result.pursuitState).toBe('dormant')
+  })
+
+  it('returns safe projection for untrusted null record input', () => {
+    const projection = projectExposureChainRisk(null as unknown as VisualTriggerHazardRecord)
+
+    expect(projection.recordId).toBe('(unknown)')
+    expect(projection.broadcastRiskScore).toBe(0)
+    expect(projection.escalationBand).toBe('local')
   })
 
   it('projects broadcast-scale exposure chain risk from repost chains and storage scope', () => {

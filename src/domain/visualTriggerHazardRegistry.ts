@@ -225,6 +225,7 @@ export type VisualTriggerHazardValidationCode =
   | 'franchise_token_in_label'
   | 'franchise_token_in_field'
   | 'branded_object_number_in_id'
+  | 'branded_object_number_in_label'
   | 'branded_object_number_in_field'
 
 export interface VisualTriggerHazardValidationIssue {
@@ -268,7 +269,8 @@ export interface EffectiveDerivativeHazard {
 export interface DisposalDeadlineComplianceResult {
   readonly compliant: boolean
   readonly requiredActions: readonly DisposalComplianceAction[]
-  readonly overdueMediaInstanceIds: readonly string[]
+  /** Media instances still inside the pre-deadline compliance window. */
+  readonly pendingComplianceMediaInstanceIds: readonly string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -566,6 +568,10 @@ function resolveMaxRepostDepth(instances: readonly HazardousMediaInstance[]): nu
   let depth = 0
 
   for (const instance of instances) {
+    if (!instance || typeof instance !== 'object') {
+      continue
+    }
+
     const chainLength = asStringArray(instance.copyRepostChainRefs).filter(Boolean).length
     depth = Math.max(depth, chainLength)
   }
@@ -573,7 +579,10 @@ function resolveMaxRepostDepth(instances: readonly HazardousMediaInstance[]): nu
   return depth
 }
 
-function resolveBroadcastRiskScore(record: VisualTriggerHazardRecord): number {
+function resolveBroadcastRiskScore(
+  record: VisualTriggerHazardRecord,
+  repostAmplification = 1
+): number {
   const triggerWeight = TRIGGER_MEDIUM_EXPOSURE_WEIGHT[record.triggerMedium] ?? 0.2
   const derivative = resolveEffectiveDerivativeHazard(
     record.derivativeHazardProfile,
@@ -589,7 +598,7 @@ function resolveBroadcastRiskScore(record: VisualTriggerHazardRecord): number {
   }
 
   const repostDepth = resolveMaxRepostDepth(instances)
-  const repostBoost = Math.min(0.35, repostDepth * 0.08)
+  const repostBoost = Math.min(0.35, repostDepth * 0.08 * repostAmplification)
   const latentBoost = record.latentActivation === true ? 0.15 : 0
 
   return roundBand(
@@ -597,12 +606,13 @@ function resolveBroadcastRiskScore(record: VisualTriggerHazardRecord): number {
   )
 }
 
-function resolveEscalationBand(score: number): ExposureEscalationBand {
-  if (score >= 0.72) {
+function resolveEscalationBand(score: number, broadcastThreshold = 0.72): ExposureEscalationBand {
+  if (score >= broadcastThreshold) {
     return 'broadcast'
   }
 
-  if (score >= 0.42) {
+  const regionalThreshold = broadcastThreshold * (0.42 / 0.72)
+  if (score >= regionalThreshold) {
     return 'regional'
   }
 
@@ -611,7 +621,8 @@ function resolveEscalationBand(score: number): ExposureEscalationBand {
 
 function resolveRequiredCountermeasures(
   record: VisualTriggerHazardRecord,
-  score: number
+  score: number,
+  broadcastThreshold = 0.72
 ): readonly string[] {
   const measures = new Set<string>()
 
@@ -641,7 +652,7 @@ function resolveRequiredCountermeasures(
     }
   }
 
-  if (score >= 0.72) {
+  if (score >= broadcastThreshold) {
     measures.add('broadcast_takedown')
   }
 
@@ -755,8 +766,19 @@ export function observerAwarenessEscalation(
     record.latentActivation === true
   )
 
-  const basePressure = nextOrder * 0.18 * requirementMultiplier * Math.max(derivative.hazardWeight, 0.1)
-  const pursuitPressure = roundBand(clampUnit(basePressure + delta * 0.12))
+  if (derivative.hazardWeight === 0) {
+    return Object.freeze({
+      pursuitPressure: 0,
+      manifestationRisk: 0,
+      communicationFailure: false,
+      dreamIntrusion: false,
+      evidenceCorruptionBand: 'none' as EvidenceCorruptionBand,
+      pursuitState: record.pursuitState === 'resolved' ? 'resolved' : 'dormant',
+    })
+  }
+
+  const basePressure = nextOrder * 0.18 * requirementMultiplier * derivative.hazardWeight
+  const pursuitPressure = roundBand(clampUnit(basePressure + delta * 0.12 * derivative.hazardWeight))
   const manifestationRisk = roundBand(
     clampUnit(pursuitPressure * 0.85 + (record.latentActivation === true ? 0.1 : 0))
   )
@@ -808,7 +830,7 @@ export function resolveDisposalDeadlineCompliance(
   currentWeek: number
 ): DisposalDeadlineComplianceResult {
   const requiredActions = new Set<DisposalComplianceAction>()
-  const overdueMediaInstanceIds: string[] = []
+  const pendingComplianceMediaInstanceIds: string[] = []
 
   for (const instance of asHazardousMediaInstances(record.hazardousMediaInstances)) {
     if (!instance || typeof instance !== 'object') {
@@ -820,11 +842,12 @@ export function resolveDisposalDeadlineCompliance(
       continue
     }
 
+    // Compliance window: required actions must be complete before disposalDeadlineWeek.
     if (currentWeek >= instance.disposalDeadlineWeek) {
       continue
     }
 
-    overdueMediaInstanceIds.push(mediaInstanceId)
+    pendingComplianceMediaInstanceIds.push(mediaInstanceId)
 
     if (instance.sweepStatus !== 'complete' && instance.sweepStatus !== 'in_progress') {
       requiredActions.add('sweep')
@@ -844,11 +867,13 @@ export function resolveDisposalDeadlineCompliance(
   }
 
   return Object.freeze({
-    compliant: overdueMediaInstanceIds.length === 0 || requiredActions.size === 0,
+    compliant: pendingComplianceMediaInstanceIds.length === 0 || requiredActions.size === 0,
     requiredActions: Object.freeze(
       [...requiredActions].sort((left, right) => left.localeCompare(right))
     ),
-    overdueMediaInstanceIds: Object.freeze([...overdueMediaInstanceIds].sort()),
+    pendingComplianceMediaInstanceIds: Object.freeze(
+      [...pendingComplianceMediaInstanceIds].sort()
+    ),
   })
 }
 
@@ -939,6 +964,15 @@ export function validateVisualTriggerHazardRecord(
       code: 'franchise_token_in_label',
       severity: 'error',
       detail: `Visual trigger hazard record label ${label || '(unknown)'} contains a franchise or source-literal token.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsBrandedObjectNumber(label)) {
+    pushIssue(issues, {
+      code: 'branded_object_number_in_label',
+      severity: 'error',
+      detail: `Visual trigger hazard record label ${label || '(unknown)'} contains an imported object number token.`,
       relatedIds: id ? [id] : undefined,
     })
   }
@@ -1200,21 +1234,32 @@ export function projectExposureChainRisk(
   record: VisualTriggerHazardRecord,
   policy: ExposureChainRiskPolicy = {}
 ): ExposureChainRiskProjection {
+  if (!record || typeof record !== 'object') {
+    return Object.freeze({
+      recordId: '(unknown)',
+      broadcastRiskScore: 0,
+      repostChainDepth: 0,
+      latentActivationForecast: false,
+      requiredCountermeasures: Object.freeze([] as readonly string[]),
+      escalationBand: 'local' as ExposureEscalationBand,
+    })
+  }
+
   const recordId = normalizeToken(record.id) || '(unknown)'
-  const broadcastRiskScore = resolveBroadcastRiskScore(record)
+  const repostAmplification = policy.repostAmplification ?? 1
+  const broadcastRiskScore = resolveBroadcastRiskScore(record, repostAmplification)
   const repostChainDepth = resolveMaxRepostDepth(asHazardousMediaInstances(record.hazardousMediaInstances))
   const latentActivationForecast =
     record.derivativeHazardProfile === 'latent' || record.latentActivation === true
 
   const threshold = policy.broadcastThreshold ?? 0.72
-  const escalationBand =
-    broadcastRiskScore >= threshold ? 'broadcast' : resolveEscalationBand(broadcastRiskScore)
+  const escalationBand = resolveEscalationBand(broadcastRiskScore, threshold)
 
   const confidence = record.confidence ?? 1
   const requiredCountermeasures =
     policy.minimumConfidence !== undefined && confidence < policy.minimumConfidence
       ? Object.freeze([] as readonly string[])
-      : resolveRequiredCountermeasures(record, broadcastRiskScore)
+      : resolveRequiredCountermeasures(record, broadcastRiskScore, threshold)
 
   return Object.freeze({
     recordId,

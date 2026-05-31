@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2104](https://linear.app/spectranoir/
 | **Linear** | [SPE-2104 — Minor anomaly item registry slice 1](https://linear.app/spectranoir/issue/SPE-2104)          |
 | **Parent** | [SPE-88](https://linear.app/spectranoir/issue/SPE-88) — Anomaly systems umbrella                           |
 | **Branch** | `jamesdyedbq/spe-2104-minor-anomaly-item-registry-low-priority-intake-disposition`                         |
-| **Status** | **In Progress** — runtime implementation slice                                                             |
+| **Status** | **Shipped** — PR #2428                                                                                     |
 
 ## Goal
 

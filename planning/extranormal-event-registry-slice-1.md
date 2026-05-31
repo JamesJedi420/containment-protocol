@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2105](https://linear.app/spectranoir/
 | **Linear** | [SPE-2105 — Extranormal event registry slice 1](https://linear.app/spectranoir/issue/SPE-2105)           |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine       |
 | **Branch** | `jamesdyedbq/spe-2105-extranormal-event-registry-brief-incident-intake-cover-up`                           |
-| **Status** | **Queued** — next runtime implementation slice                                                             |
+| **Status** | **Shipped** — PR #2426                                                                                     |
 
 ## Goal
 

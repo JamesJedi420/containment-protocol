@@ -6,7 +6,9 @@ import {
   DISPLACEMENT_SCAN_READOUT_PREFIX,
   DISPLACEMENT_TELL_READOUT_PREFIX,
   DETECTION_SCAN_READOUT_PREFIX,
+  SIGNATURE_MASK_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
+import { MODALITY_SIGNATURE_MASK_TAG } from '../domain/hiddenStateModality'
 import { TELL_ROUTE_TIMING_TAG, TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
 import type { Agent, CaseInstance, Team } from '../domain/models'
@@ -244,5 +246,44 @@ describe('advanceWeek hidden-state scouting report copy (SPE-2283)', () => {
     expect(
       missionResult?.explanationNotes.some((note) => note.includes('movement log'))
     ).toBe(true)
+  })
+
+  it('surfaces signature-mask readout without revealing hidden state', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_signature_mask_readout', 60)
+    const team: Team = {
+      id: 'team-signature-mask-readout',
+      name: 'Signature mask readout team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      tags: [MODALITY_SIGNATURE_MASK_TAG],
+    })
+
+    const preAdvance = resolveAssignedCaseForWeek(state.cases['case-concealed-readout'], state, () => 0.5)
+    expect(preAdvance.hiddenStateScouting?.active).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(SIGNATURE_MASK_SCAN_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(snapshot?.hiddenState).not.toBe('revealed')
   })
 })

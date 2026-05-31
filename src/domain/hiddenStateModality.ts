@@ -32,6 +32,12 @@ export type HiddenStateModalityKind =
   | 'concealed_presence'
   | 'false_position'
   | 'disguised_identity'
+  | 'signature_masking'
+
+export const MODALITY_SIGNATURE_MASK_TAG = 'modality-signature-mask'
+
+/** Player-facing category skew when signature-masking modality is active. */
+export const SIGNATURE_MASK_CATEGORY_SKEW = 'benign utility signature'
 
 const CONCEALED_PRESENCE_LAYER: ConcealmentLayer = {
   id: 'layer:concealed-presence',
@@ -48,7 +54,22 @@ const DISGUISED_IDENTITY_LAYER: ConcealmentLayer = {
   blockedTiers: ['exact_identity'],
 }
 
+const SIGNATURE_MASKING_LAYER: ConcealmentLayer = {
+  id: 'layer:authored-signature-mask',
+  blockedTiers: ['exact_identity'],
+}
+
 const DISGUISE_SIGNAL_TAGS = ['infiltration', 'disguise', 'covert', 'stealth'] as const
+
+export function caseHasSignatureMaskModality(caseData: CaseInstance): boolean {
+  const tagSet = new Set([
+    ...(caseData.tags ?? []),
+    ...(caseData.requiredTags ?? []),
+    ...(caseData.preferredTags ?? []),
+  ])
+
+  return tagSet.has(MODALITY_SIGNATURE_MASK_TAG)
+}
 
 export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
   if (caseData.infiltrationCoverProfile !== undefined) {
@@ -77,6 +98,10 @@ export function resolveHiddenStateModality(caseData: CaseInstance): HiddenStateM
     return 'disguised_identity'
   }
 
+  if (caseHasSignatureMaskModality(caseData)) {
+    return 'signature_masking'
+  }
+
   return 'concealed_presence'
 }
 
@@ -90,6 +115,8 @@ export function hiddenStateModalityLayer(
       return FALSE_POSITION_LAYER
     case 'disguised_identity':
       return DISGUISED_IDENTITY_LAYER
+    case 'signature_masking':
+      return SIGNATURE_MASKING_LAYER
     case 'none':
       return null
     default: {
@@ -245,6 +272,26 @@ export function applyFalsePositionScanProjection(
       return {
         ...field,
         playerFacingValue: `contact at ${decoyLabel}`,
+        ambiguous: true,
+      }
+    }
+
+    return field
+  })
+
+  return {
+    ...scan,
+    fields,
+  }
+}
+
+/** Player-facing scan projection for signature masking without mutating canonical identity tiers. */
+export function applySignatureMaskScanProjection(scan: DetectionScanResult): DetectionScanResult {
+  const fields = scan.fields.map((field) => {
+    if (field.tier === 'category') {
+      return {
+        ...field,
+        playerFacingValue: SIGNATURE_MASK_CATEGORY_SKEW,
         ambiguous: true,
       }
     }

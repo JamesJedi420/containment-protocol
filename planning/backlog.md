@@ -8,14 +8,14 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–6 shipped (SPE-2281–SPE-2286 / PR #2403–#2415); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains for optional post-matrix modality families only — see Shipped table and active queue below.
+- Concealment activation stack and hidden-modality matrix slices 1–9 shipped (SPE-2281–SPE-2290 / PR #2403–#2423); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for deferred anti-scan / out-of-phase families only — see Shipped table and active queue below.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Hidden / disguised activation — post-matrix queue (SPE-70)** — Slices 7–8 shipped ([SPE-2288](https://linear.app/spectranoir/issue/SPE-2288) / PR #2421, [SPE-2289](https://linear.app/spectranoir/issue/SPE-2289) / PR #2422). **Next implementation:** [SPE-2290](https://linear.app/spectranoir/issue/SPE-2290) slice 9 (glamour / presentation overlay). Queue: `planning/hidden-modality-matrix-post-matrix-queue.md`; slice 9 plan: `planning/hidden-modality-matrix-slice-9.md`.
+1. **Information intake — extranormal event registry (SPE-854)** — **Next implementation:** [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) slice 1 (brief incident intake schema). Plan: `planning/extranormal-event-registry-slice-1.md`. Parent [SPE-854](https://linear.app/spectranoir/issue/SPE-854) In Progress.
 2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
@@ -38,6 +38,9 @@ From `README.md` **Current design notes**:
 | **MVP loop proof ([SPE-2251](https://linear.app/spectranoir/issue/SPE-2251))**                   | Slice 1 + slice 2 persistence/4-week fixture (`src/test/weeklyMvpLoopProof.slice2.integration.test.ts`; see `planning/mvp-weekly-loop-proof-slice-1.md`).                                                                                                                                                                   |
 | **Hidden-modality matrix slice 6 ([SPE-2286](https://linear.app/spectranoir/issue/SPE-2286))**   | Mode-specific tells / observer-threshold validation (PR #2415); `src/domain/hiddenStateModalityTells.ts`, orchestration + report copy; see `planning/hidden-modality-matrix-slice-6.md`.                                                                                                                                    |
 | **Hidden-modality matrix slice 7 ([SPE-2288](https://linear.app/spectranoir/issue/SPE-2288))**   | Signature masking modality (PR #2421); `layer:authored-signature-mask`, report/tell prefixes; see `planning/hidden-modality-matrix-slice-7.md`.                                                                                                              |
+| **Hidden-modality matrix slice 8 ([SPE-2289](https://linear.app/spectranoir/issue/SPE-2289))**   | False-detection output modality (PR #2422); `layer:authored-false-detection`, fabricated readouts; see `planning/hidden-modality-matrix-slice-8.md`.                                                                                                         |
+| **Hidden-modality matrix slice 9 ([SPE-2290](https://linear.app/spectranoir/issue/SPE-2290))**   | Glamour / presentation overlay (PR #2423); `layer:authored-glamour`, `Glamour readout:` prefix; see `planning/hidden-modality-matrix-slice-9.md`.                                                                                                           |
+| **Post-matrix doc reconciliation ([SPE-2291](https://linear.app/spectranoir/issue/SPE-2291))**   | Backlog + queue handoff to SPE-2105; see `planning/extranormal-event-registry-slice-1.md`.                                                                                                                                                                    |
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
@@ -99,10 +102,11 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `hidden-modality-matrix-slice-4.md`                       | **Shipped**    | SPE-2284 / PR #2409; persistent recon cache.                                                                                                        |
 | `hidden-modality-matrix-slice-5.md`                       | **Shipped**    | SPE-2285 / PR #2411; false-entity / structural-illusion lifecycle.                                                                                  |
 | `hidden-modality-matrix-slice-6.md`                       | **Shipped**    | SPE-2286 / PR #2415; mode-specific tells / observer-threshold.                                                                                      |
-| `hidden-modality-matrix-post-matrix-queue.md`             | **Active**     | Post-matrix slices 7–9 routing; Linear SPE-2288–SPE-2290.                                                                                           |
+| `hidden-modality-matrix-post-matrix-queue.md`             | **Shipped**    | Post-matrix slices 7–9 complete; handoff to SPE-2105.                                                                                               |
 | `hidden-modality-matrix-slice-7.md`                       | **Shipped**    | SPE-2288 / PR #2421; signature masking modality.                                                                                                    |
 | `hidden-modality-matrix-slice-8.md`                       | **Shipped**    | SPE-2289 / PR #2422; false-detection output modality.                                                                                                |
-| `hidden-modality-matrix-slice-9.md`                       | **Queued**     | SPE-2290; glamour / presentation overlay — next implementation slice.                                                                               |
+| `hidden-modality-matrix-slice-9.md`                       | **Shipped**    | SPE-2290 / PR #2423; glamour / presentation overlay modality.                                                                                        |
+| `extranormal-event-registry-slice-1.md`                   | **Queued**     | SPE-2105; brief incident intake schema — next runtime slice.                                                                                          |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

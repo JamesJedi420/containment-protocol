@@ -12,40 +12,40 @@ Routing doc for optional modality families after matrix slices 1–6 shipped. **
 | 4     | SPE-2284 | #2409  | Persistent recon cache                     |
 | 5     | SPE-2285 | #2411  | False-entity / structural-illusion lifecycle |
 | 6     | SPE-2286 | #2415  | Mode-specific tells / observer threshold   |
-| —     | SPE-2287 | #2417  | Docs reconciliation (not runtime)            |
+| —     | SPE-2287 | #2417  | Docs reconciliation (not runtime)          |
 
-Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** until post-matrix slices close optional families or owner defers remainder.
+Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families shipped; deferred anti-scan / out-of-phase families and mission-triage chips remain out of scope.
 
-## Post-matrix queue (ordered)
-
-Implement **one slice at a time** — each touches `hiddenStateModality.ts` and orchestration; later slices block on earlier merge to avoid parallel conflicts.
+## Post-matrix queue (complete)
 
 | Order | Slice | Linear   | Modality family           | Plan |
 | ----- | ----- | -------- | ------------------------- | ---- |
 | 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` (shipped PR #2421) |
 | 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` (shipped PR #2422) |
-| 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` |
+| 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` (shipped PR #2423) |
+| —     | —     | SPE-2291 | Docs reconciliation       | `planning/backlog.md` handoff (PR pending) |
 
-### Repo anchors (pre-implementation)
+### Repo anchors (post-queue)
 
-- `HiddenStateModalityKind` today: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output` — see `src/domain/hiddenStateModality.ts`.
-- Authored signature mask uses `layer:authored-signature-mask` (distinct from rating `layer:signature-mask`).
-- `layer:glamour` and rating `layer:signature-mask` remain in `concealmentLayersFromRating`; post-matrix slices add **case-authored modality paths** without removing rating layers.
+- `HiddenStateModalityKind`: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output`, `glamour_overlay` — see `src/domain/hiddenStateModality.ts`.
+- Authored layers distinct from rating layers: `layer:authored-signature-mask`, `layer:authored-false-detection`, `layer:authored-glamour`.
+- Rating-derived `layer:glamour` and `layer:signature-mask` remain in `concealmentLayersFromRating`.
 
 ### Explicitly deferred (not in queue)
 
 - Out-of-phase / liminal presence
 - Anti-scan compartments (dead zones, Faraday, warded volumes)
 - Mission triage illusion/tell chips
-- Full SPE-70 parent Done (evaluate after slice 9 or owner deferral)
+- Full SPE-70 parent Done (evaluate after owner review of deferred families)
 
-## Agent handoff template (next implementation slice)
+## Agent handoff template (next runtime slice)
 
 ```text
-PR #2422 merged. On main @ 2d10cb9d. Next: https://linear.app/spectranoir/issue/SPE-2290 — see planning/hidden-modality-matrix-slice-9.md — branch jamesdyedbq/spe-2290-hidden-state-modality-matrix-slice-9-glamour-presentation.
+PR #2423 merged. On main @ d031fd91. Next: https://linear.app/spectranoir/issue/SPE-2105 — see planning/extranormal-event-registry-slice-1.md — branch jamesdyedbq/spe-2105-extranormal-event-registry-brief-incident-intake-cover-up.
 ```
 
 ## See also
 
-- `planning/backlog.md` — active queue item #1
+- `planning/backlog.md` — active queue item #1 (SPE-2105)
+- `planning/extranormal-event-registry-slice-1.md`
 - `architecture/hidden-state-displacement-counter-detection.md`

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2290](https://linear.app/spectranoir/
 | **Linear** | [SPE-2290 — Hidden-state modality matrix slice 9](https://linear.app/spectranoir/issue/SPE-2290) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                |
 | **Branch** | `jamesdyedbq/spe-2290-hidden-state-modality-matrix-slice-9-glamour-presentation`                   |
-| **Status** | **In Progress** — implementation on branch                                                   |
+| **Status** | Shipped — SPE-2290 / PR #2423                                                                                      |
 
 ## Goal
 
@@ -65,11 +65,11 @@ Add **glamour / presentation overlay** as a sixth case-authored `HiddenStateModa
 
 ## Acceptance
 
-- [ ] Authored fixture: scan shows presentation skew; category/hostility/exact_identity blocked; internal truth unchanged; `hiddenState` stays non-`revealed`.
-- [ ] Distinct `DetectionScanResult` from signature-mask and false-detection fixtures in shared compose path.
-- [ ] Counter-detection strips glamour overlay layer only; slices 1–8 regression unchanged.
-- [ ] Rating-derived `layer:glamour` from high concealment rating still works when modality tag absent.
-- [ ] `npm run lint` + targeted `npm run test:run` green.
+- [x] Authored fixture: scan shows presentation skew; category/hostility/exact_identity blocked; internal truth unchanged; `hiddenState` stays non-`revealed`.
+- [x] Distinct `DetectionScanResult` from signature-mask and false-detection fixtures in shared compose path.
+- [x] Counter-detection strips glamour overlay layer only; slices 1–8 regression unchanged.
+- [x] Rating-derived `layer:glamour` from high concealment rating still works when modality tag absent.
+- [x] `npm run lint` + targeted `npm run test:run` green.
 
 ## TDD order
 

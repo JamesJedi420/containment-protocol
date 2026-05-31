@@ -1,4 +1,4 @@
-# SPE-1046 — Entity welfare reclassification registry slice 1
+# SPE-2114 — Entity welfare reclassification registry slice 1
 
 One-page implementation plan. Linear: [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) (child under [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)). Follows shipped [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) (visual-trigger hazard registry).
 

@@ -166,13 +166,56 @@ describe('entityWelfareReclassificationRegistry (SPE-2114 slice 1)', () => {
   })
 
   it('redacts pressure forecasts when policy requests unknown redaction', () => {
-    const projection = projectReclassificationPressure(PENDING_TO_APPROVED_FIXTURE, {
-      redactUnknown: true,
+    const projection = projectReclassificationPressure(
+      {
+        ...PENDING_TO_APPROVED_FIXTURE,
+        unknownFields: ['staffMoraleForecast', 'liabilityForecast', 'publicRiskForecast'],
+      },
+      {
+        redactUnknown: true,
+      }
+    )
+
+    expect(projection.staffMoraleForecast).toBeNull()
+    expect(projection.liabilityForecast).toBeNull()
+    expect(projection.publicRiskForecast).toBeNull()
+    expect(projection.redacted).toBe(true)
+  })
+
+  it('marks projection redacted when only one forecast field is hidden', () => {
+    const projection = projectReclassificationPressure({
+      ...PENDING_TO_APPROVED_FIXTURE,
+      redactedFields: ['staffMoraleForecast'],
     })
 
-    expect(projection.staffMoraleForecast).not.toBeNull()
+    expect(projection.staffMoraleForecast).toBeNull()
     expect(projection.liabilityForecast).not.toBeNull()
-    expect(projection.publicRiskForecast).not.toBeNull()
+    expect(projection.redacted).toBe(true)
+  })
+
+  it('errors on goi- franchise token prefix in record label', () => {
+    const result = validateEntityWelfareReclassificationRecord(
+      baseRecord({
+        label: 'goi-arcadia custody review',
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'franchise_token_in_label')).toBe(true)
+  })
+
+  it('keeps projection finite when record union fields are invalid', () => {
+    const projection = projectReclassificationPressure(
+      baseRecord({
+        reviewGate: 'invalid-gate' as EntityWelfareReclassificationRecord['reviewGate'],
+        proposedDisposition: 'invalid-disposition' as EntityWelfareReclassificationRecord['proposedDisposition'],
+        reclassificationState: 'invalid-state' as EntityWelfareReclassificationRecord['reclassificationState'],
+      })
+    )
+
+    expect(Number.isFinite(projection.liabilityForecast)).toBe(true)
+    expect(Number.isFinite(projection.publicRiskForecast)).toBe(true)
+    expect(projection.reclassificationState).toBe('pending')
   })
 
   it('returns byte-stable validation results on repeated calls', () => {

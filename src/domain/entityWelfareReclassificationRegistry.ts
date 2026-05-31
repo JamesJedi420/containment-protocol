@@ -166,7 +166,7 @@ const DISPOSITION_PUBLIC_RISK_WEIGHT: Readonly<Record<ProposedDisposition, numbe
 }
 
 export const FRANCHISE_TOKEN_PATTERN =
-  /\b(scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|goi-|group of interest|broken masquerade|masquerade breach)\b/i
+  /(?:\b(?:scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|group of interest|broken masquerade|masquerade breach)\b|goi-)/i
 
 export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
 
@@ -300,6 +300,10 @@ function clampUnit(value: number): number {
 }
 
 function roundUnit(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
   return Math.round(clampUnit(value) * 1000) / 1000
 }
 
@@ -481,19 +485,40 @@ function resolveLiabilityForecast(
   record: EntityWelfareReclassificationRecord,
   policy: ReclassificationPressureProjectionPolicy
 ): number {
-  const gateWeight = record.reviewGate ? REVIEW_GATE_LIABILITY_WEIGHT[record.reviewGate] : 0.5
+  const gateWeight =
+    record.reviewGate !== undefined && isReviewGate(record.reviewGate)
+      ? REVIEW_GATE_LIABILITY_WEIGHT[record.reviewGate]
+      : 0.5
   const debtLift = normalizeToken(record.welfareDebtRef ?? '').length > 0 ? 0.18 : 0
   const hostilePriorLift = isHostilePriorLabel(record.priorThreatLabel) ? 0.14 : 0.04
-  const terminalLift = TERMINAL_STATES.has(record.reclassificationState) ? 0.08 : 0
-  const amplification = policy.liabilityAmplification ?? 1
+  const terminalLift =
+    isReclassificationState(record.reclassificationState) &&
+    TERMINAL_STATES.has(record.reclassificationState)
+      ? 0.08
+      : 0
+  const amplification =
+    typeof policy.liabilityAmplification === 'number' &&
+    Number.isFinite(policy.liabilityAmplification)
+      ? policy.liabilityAmplification
+      : 1
 
   return roundUnit((gateWeight + debtLift + hostilePriorLift + terminalLift) * amplification)
 }
 
 function resolvePublicRiskForecast(record: EntityWelfareReclassificationRecord): number {
-  const dispositionRisk = DISPOSITION_PUBLIC_RISK_WEIGHT[record.proposedDisposition]
-  const pendingUncertainty = record.reclassificationState === 'pending' ? 0.08 : 0
-  const deniedBacklash = record.reclassificationState === 'denied' ? 0.1 : 0
+  const dispositionRisk = isProposedDisposition(record.proposedDisposition)
+    ? DISPOSITION_PUBLIC_RISK_WEIGHT[record.proposedDisposition]
+    : DISPOSITION_PUBLIC_RISK_WEIGHT.unknown
+  const pendingUncertainty =
+    isReclassificationState(record.reclassificationState) &&
+    record.reclassificationState === 'pending'
+      ? 0.08
+      : 0
+  const deniedBacklash =
+    isReclassificationState(record.reclassificationState) &&
+    record.reclassificationState === 'denied'
+      ? 0.1
+      : 0
   const revisionRelief = hasContainmentRevision(record) ? -0.06 : 0
 
   return roundUnit(dispositionRisk + pendingUncertainty + deniedBacklash + revisionRelief)
@@ -503,16 +528,16 @@ function resolvePublicRiskForecast(record: EntityWelfareReclassificationRecord):
 // Type guards
 // ---------------------------------------------------------------------------
 
-export function isProposedDisposition(value: string): value is ProposedDisposition {
-  return PROPOSED_DISPOSITION_SET.has(value)
+export function isProposedDisposition(value: unknown): value is ProposedDisposition {
+  return typeof value === 'string' && PROPOSED_DISPOSITION_SET.has(value)
 }
 
-export function isReviewGate(value: string): value is ReviewGate {
-  return REVIEW_GATE_SET.has(value)
+export function isReviewGate(value: unknown): value is ReviewGate {
+  return typeof value === 'string' && REVIEW_GATE_SET.has(value)
 }
 
-export function isReclassificationState(value: string): value is ReclassificationState {
-  return RECLASSIFICATION_STATE_SET.has(value)
+export function isReclassificationState(value: unknown): value is ReclassificationState {
+  return typeof value === 'string' && RECLASSIFICATION_STATE_SET.has(value)
 }
 
 // ---------------------------------------------------------------------------
@@ -712,10 +737,11 @@ export function projectReclassificationPressure(
 
   const welfareDebtLinked = normalizeToken(record.welfareDebtRef ?? '').length > 0
   const redacted =
-    moraleRedacted &&
-    liabilityRedacted &&
-    publicRiskRedacted &&
-    (confidence === null || redactedFields.has('confidence'))
+    moraleRedacted ||
+    liabilityRedacted ||
+    publicRiskRedacted ||
+    redactedFields.has('confidence') ||
+    (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 
   return Object.freeze({
     recordId,

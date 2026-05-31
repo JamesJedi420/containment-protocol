@@ -127,6 +127,32 @@ describe('recurrentCatastropheAmeliorationRegistry (SPE-2117 slice 1)', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))
   })
 
+  it('errors when ameliorationTactics is not an array', () => {
+    const result = validateRecurrentCatastropheRecord(
+      baseRecord({
+        ameliorationTactics: undefined as unknown as RecurrentCatastropheRecord['ameliorationTactics'],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'invalid_amelioration_tactics')).toBe(true)
+  })
+
+  it('redacts confidence when policy requests unknown redaction', () => {
+    const projection = projectNextRecurrenceRisk(
+      {
+        ...RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+        unknownFields: ['confidence'],
+      },
+      {
+        redactUnknown: true,
+      }
+    )
+
+    expect(projection.confidence).toBeNull()
+    expect(projection.redacted).toBe(true)
+  })
+
   it('exports stable union catalogs', () => {
     expect(RECURRENCE_CADENCES).toEqual(['weekly', 'monthly', 'seasonal', 'annual', 'irregular'])
     expect(CATASTROPHE_FAILURE_MODES).toEqual(['breach', 'manifestation', 'cascade'])

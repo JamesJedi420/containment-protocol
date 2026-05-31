@@ -117,6 +117,8 @@ export type RecurrentCatastropheValidationCode =
   | 'invalid_recurrence_count'
   | 'invalid_last_occurrence_week'
   | 'invalid_confidence'
+  | 'invalid_amelioration_tactics'
+  | 'invalid_prevention_tactics'
   | 'empty_damage_ledger_ref'
   | 'empty_post_incident_review_ref'
   | 'active_prevention_when_ceiling_impossible'
@@ -295,12 +297,42 @@ function roundUnit(value: number): number {
   return Math.round(clampUnit(value) * 1000) / 1000
 }
 
+function asAmeliorationTacticEntries(value: unknown): readonly ActiveAmeliorationTactic[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(
+    (entry): entry is ActiveAmeliorationTactic =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      'tactic' in entry &&
+      'active' in entry
+  )
+}
+
+function asPreventionTacticEntries(value: unknown): readonly ActivePreventionTactic[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(
+    (entry): entry is ActivePreventionTactic =>
+      typeof entry === 'object' &&
+      entry !== null &&
+      'tactic' in entry &&
+      'active' in entry
+  )
+}
+
 function countActiveAmeliorationTactics(record: RecurrentCatastropheRecord): number {
-  return record.ameliorationTactics.filter((entry) => entry.active === true).length
+  return asAmeliorationTacticEntries(record.ameliorationTactics).filter(
+    (entry) => entry.active === true
+  ).length
 }
 
 function hasActivePreventionTactic(record: RecurrentCatastropheRecord): boolean {
-  return (record.preventionTactics ?? []).some((entry) => entry.active === true)
+  return asPreventionTacticEntries(record.preventionTactics).some((entry) => entry.active === true)
 }
 
 function scanForbiddenTokens(
@@ -406,7 +438,7 @@ function resolveCadenceElapsedPressure(
 function resolveAmeliorationSoftening(record: RecurrentCatastropheRecord): number {
   let softening = 0
 
-  for (const entry of record.ameliorationTactics) {
+  for (const entry of asAmeliorationTacticEntries(record.ameliorationTactics)) {
     if (entry.active !== true || !isAmeliorationTactic(entry.tactic)) {
       continue
     }
@@ -522,25 +554,43 @@ export function validateRecurrentCatastropheRecord(
     })
   }
 
-  for (const entry of record.ameliorationTactics) {
-    if (!isAmeliorationTactic(entry.tactic)) {
-      pushIssue(issues, {
-        code: 'invalid_amelioration_tactic',
-        severity: 'error',
-        detail: `Recurrent catastrophe record ${id || '(unknown)'} has invalid amelioration tactic ${String(entry.tactic)}.`,
-        relatedIds: id ? [id] : undefined,
-      })
+  if (!Array.isArray(record.ameliorationTactics)) {
+    pushIssue(issues, {
+      code: 'invalid_amelioration_tactics',
+      severity: 'error',
+      detail: `Recurrent catastrophe record ${id || '(unknown)'} ameliorationTactics must be an array.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  } else {
+    for (const entry of record.ameliorationTactics) {
+      if (!isAmeliorationTactic(entry.tactic)) {
+        pushIssue(issues, {
+          code: 'invalid_amelioration_tactic',
+          severity: 'error',
+          detail: `Recurrent catastrophe record ${id || '(unknown)'} has invalid amelioration tactic ${String(entry.tactic)}.`,
+          relatedIds: id ? [id] : undefined,
+        })
+      }
     }
   }
 
-  for (const entry of record.preventionTactics ?? []) {
-    if (!isPreventionTactic(entry.tactic)) {
-      pushIssue(issues, {
-        code: 'invalid_prevention_tactic',
-        severity: 'error',
-        detail: `Recurrent catastrophe record ${id || '(unknown)'} has invalid prevention tactic ${String(entry.tactic)}.`,
-        relatedIds: id ? [id] : undefined,
-      })
+  if (record.preventionTactics !== undefined && !Array.isArray(record.preventionTactics)) {
+    pushIssue(issues, {
+      code: 'invalid_prevention_tactics',
+      severity: 'error',
+      detail: `Recurrent catastrophe record ${id || '(unknown)'} preventionTactics must be an array when provided.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  } else {
+    for (const entry of record.preventionTactics ?? []) {
+      if (!isPreventionTactic(entry.tactic)) {
+        pushIssue(issues, {
+          code: 'invalid_prevention_tactic',
+          severity: 'error',
+          detail: `Recurrent catastrophe record ${id || '(unknown)'} has invalid prevention tactic ${String(entry.tactic)}.`,
+          relatedIds: id ? [id] : undefined,
+        })
+      }
     }
   }
 
@@ -664,6 +714,7 @@ export function projectNextRecurrenceRisk(
   const redacted =
     riskRedacted ||
     redactedFields.has('confidence') ||
+    (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
     (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 
   return Object.freeze({

@@ -117,6 +117,17 @@ describe('alternateRealityThresholdRouteRegistry (SPE-2121 slice 1)', () => {
     expect(result.issues.some((issue) => issue.code === 'franchise_token_in_id')).toBe(true)
   })
 
+  it('errors on goi- franchise token prefix in record label', () => {
+    const result = validateThresholdRouteRecord(
+      baseRecord({
+        label: 'goi-arcadia threshold crossing',
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'franchise_token_in_label')).toBe(true)
+  })
+
   it('errors on branded object number in lostPersonRefs', () => {
     const result = validateThresholdRouteRecord(
       baseRecord({
@@ -128,6 +139,22 @@ describe('alternateRealityThresholdRouteRegistry (SPE-2121 slice 1)', () => {
     expect(result.issues.some((issue) => issue.code === 'branded_object_number_in_field')).toBe(
       true
     )
+  })
+
+  it('redacts projected risks when returnRule is unknown to policy', () => {
+    const projection = projectTransitAccountability(
+      {
+        ...OPTIONAL_RETURN_JURISDICTION_FIXTURE,
+        unknownFields: ['returnRule'],
+      },
+      {
+        redactUnknown: true,
+      }
+    )
+
+    expect(projection.projectedPopulationRisk).toBeNull()
+    expect(projection.projectedEvidenceRisk).toBeNull()
+    expect(projection.accountabilityBand).toBeNull()
   })
 
   it('redacts jurisdiction symptoms when policy requests unknown redaction', () => {

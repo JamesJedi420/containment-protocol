@@ -1,4 +1,4 @@
-# SPE-765 — Alternate-reality threshold route registry slice 1
+# SPE-2121 — Alternate-reality threshold route registry slice 1
 
 One-page implementation plan. Linear: [SPE-2121](https://linear.app/spectranoir/issue/SPE-2121) (child under [SPE-765](https://linear.app/spectranoir/issue/SPE-765)). Follows shipped [SPE-2120](https://linear.app/spectranoir/issue/SPE-2120) (media-contained event registry).
 
@@ -27,7 +27,7 @@ Add a pure deterministic **alternate-reality threshold route registry** for door
 | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | `ThresholdRouteId` + `ThresholdRouteRecord` in `src/domain/alternateRealityThresholdRouteRegistry.ts`                            | GameState persistence                         |
 | entryRef, destinationLayerId, returnRule, authorizationClass, jurisdictionHandoff, transitRisk, lostPersonRefs, roundTripScheduleRefs | SPE-765 anomalous route graph integration     |
-| `validateThresholdRouteRecord(record)` — one_way with mandatory return policy → error; token guardrails on nested refs            | SPE-122 portal endpoint rules                 |
+| `validateThresholdRouteRecord(record)` — one_way with non-empty roundTripScheduleRefs → error; token guardrails on nested refs   | SPE-122 portal endpoint rules                 |
 | `projectTransitAccountability(record, policy)` — population and evidence custody forecast                                         | Full SPE-765 parent Done                      |
 | Focused tests in `src/test/alternateRealityThresholdRouteRegistry.test.ts`                                                         | Live route simulation / map rendering         |
 
@@ -56,7 +56,7 @@ Add a pure deterministic **alternate-reality threshold route registry** for door
 
 ### Projection (`projectTransitAccountability`)
 
-- Inputs: record + optional policy (`currentWeek`, `minimumConfidence`, `redactUnknown`, `suppressHiddenConflictLabels`, `requireLostPersonReview`).
+- Inputs: record + optional policy (`currentWeek`, `minimumConfidence`, `redactUnknown`, `suppressHiddenConflictLabels`).
 - Outputs: accountability band, jurisdiction symptom entries, lost-person custody forecast, and evidence-chain gap hints — symptom-first, not hidden route truth labels.
 - Deterministic mapping from returnRule + transitRisk + jurisdictionHandoff to projected population/evidence risk scores.
 

@@ -125,7 +125,6 @@ export interface TransitAccountabilityProjectionPolicy {
   readonly minimumConfidence?: number
   readonly redactUnknown?: boolean
   readonly suppressHiddenConflictLabels?: boolean
-  readonly requireLostPersonReview?: boolean
 }
 
 export interface JurisdictionSymptom {
@@ -165,7 +164,7 @@ const JURISDICTION_HANDOFF_SET = new Set<string>(JURISDICTION_HANDOFFS)
 const TRANSIT_RISK_SET = new Set<string>(TRANSIT_RISKS)
 
 export const FRANCHISE_TOKEN_PATTERN =
-  /\b(scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|goi-|group of interest|broken masquerade|masquerade breach|wiki\.|wikidot)(?!\w)/i
+  /(?:\b(?:scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|group of interest|broken masquerade|masquerade breach|wiki\.|wikidot)\b|goi-)/i
 
 export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
 
@@ -483,6 +482,18 @@ function resolveLostPersonPressure(record: ThresholdRouteRecord): number {
   return Math.min(0.2, refs.length * 0.05)
 }
 
+function masksRiskInput(
+  field: string,
+  redactedFields: ReadonlySet<string>,
+  unknownFields: readonly string[],
+  policy: TransitAccountabilityProjectionPolicy
+): boolean {
+  return (
+    redactedFields.has(field) ||
+    (policy.redactUnknown === true && unknownFields.includes(field))
+  )
+}
+
 function resolveProjectedRisks(
   record: ThresholdRouteRecord,
   policy: TransitAccountabilityProjectionPolicy
@@ -490,9 +501,18 @@ function resolveProjectedRisks(
   const redactedFields = new Set(asStringArray(record.redactedFields))
   const unknownFields = asStringArray(record.unknownFields)
 
+  const riskInputFields = [
+    'transitRisk',
+    'returnRule',
+    'jurisdictionHandoff',
+    'authorizationClass',
+    'lostPersonRefs',
+  ] as const
+
   if (
-    redactedFields.has('transitRisk') ||
-    (policy.redactUnknown === true && unknownFields.includes('transitRisk'))
+    riskInputFields.some((field) =>
+      masksRiskInput(field, redactedFields, unknownFields, policy)
+    )
   ) {
     return { populationRisk: null, evidenceRisk: null }
   }
@@ -780,10 +800,11 @@ export function projectTransitAccountability(
     (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
     (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 
+  const activeRisks = [populationRisk, evidenceRisk].filter(
+    (risk): risk is number => risk !== null
+  )
   const accountabilityScore =
-    populationRisk === null && evidenceRisk === null
-      ? null
-      : roundUnit(Math.max(populationRisk ?? 0, evidenceRisk ?? 0))
+    activeRisks.length === 0 ? null : roundUnit(Math.max(...activeRisks))
 
   return Object.freeze({
     recordId,

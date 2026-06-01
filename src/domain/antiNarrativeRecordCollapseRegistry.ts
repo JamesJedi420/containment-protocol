@@ -145,7 +145,7 @@ const ANTI_NARRATIVE_COLLAPSE_MODE_SET = new Set<string>(ANTI_NARRATIVE_COLLAPSE
 const ANTI_NARRATIVE_COUNTERMEASURE_STATE_SET = new Set<string>(ANTI_NARRATIVE_COUNTERMEASURE_STATES)
 
 export const FRANCHISE_TOKEN_PATTERN =
-  /\b(scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|goi-|group of interest|broken masquerade|masquerade breach|wiki\.|wikidot)\b/i
+  /\b(scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|goi-|group of interest|broken masquerade|masquerade breach|wiki\.|wikidot)(?!\w)/i
 
 export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
 
@@ -390,6 +390,16 @@ function validateStringRefArray(
       code: invalidArrayCode,
       severity: 'error',
       detail: `Anti-narrative collapse record ${id || '(unknown)'} ${fieldName} must be an array.`,
+      relatedIds: id ? [id] : undefined,
+    })
+    return
+  }
+
+  if (required && value.length === 0) {
+    pushIssue(issues, {
+      code: invalidArrayCode,
+      severity: 'error',
+      detail: `Anti-narrative collapse record ${id || '(unknown)'} ${fieldName} must contain at least one ref.`,
       relatedIds: id ? [id] : undefined,
     })
     return

@@ -116,6 +116,17 @@ describe('massAnomalousPopulationEmergenceRegistry (SPE-2122 slice 1)', () => {
     expect(result.issues.some((issue) => issue.code === 'invalid_triage_lanes')).toBe(true)
   })
 
+  it('errors when triageLanes is an empty array', () => {
+    const result = validatePopulationEmergenceRecord(
+      baseRecord({
+        triageLanes: [],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'empty_triage_lanes')).toBe(true)
+  })
+
   it('errors on franchise token in record id', () => {
     const result = validatePopulationEmergenceRecord(
       baseRecord({

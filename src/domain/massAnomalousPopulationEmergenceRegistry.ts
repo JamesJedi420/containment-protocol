@@ -74,6 +74,7 @@ export type PopulationEmergenceValidationCode =
   | 'invalid_triage_lanes'
   | 'invalid_triage_lane'
   | 'empty_triage_lane'
+  | 'empty_triage_lanes'
   | 'invalid_rights_review_queue_refs'
   | 'invalid_rights_review_queue_ref'
   | 'empty_rights_review_queue_ref'
@@ -744,6 +745,18 @@ export function validatePopulationEmergenceRecord(
     'empty_triage_lane'
   )
 
+  if (
+    Array.isArray(record.triageLanes) &&
+    !asStringArray(record.triageLanes).some((lane) => normalizeToken(lane).length > 0)
+  ) {
+    pushIssue(issues, {
+      code: 'empty_triage_lanes',
+      severity: 'error',
+      detail: `Population emergence record ${id || '(unknown)'} triageLanes must include at least one lane.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
   validateOptionalStringRefArray(
     issues,
     id,
@@ -819,13 +832,31 @@ export function projectGovernanceSurge(
     ? Object.freeze([])
     : buildTriageLaneSymptoms(record, policy)
 
+  const educationBurdenRedacted =
+    redactedFields.has('publicEducationBurden') ||
+    redactedFields.has('governanceMode') ||
+    (policy.redactUnknown === true &&
+      (unknownFields.includes('publicEducationBurden') ||
+        unknownFields.includes('governanceMode')))
+
+  const capacityRedacted = (
+    [
+      'emergenceMagnitudeBand',
+      'registrationBacklogWeeks',
+      'governanceMode',
+      'newlyAnomalousCountEstimate',
+      'triageLanes',
+      'rightsReviewQueueRefs',
+      'securitySurgeRefs',
+    ] as const
+  ).some((field) =>
+    masksProjectionInput(field, redactedFields, unknownFields, policy)
+  )
+
   const redacted =
     triageRedacted ||
-    recorded === null ||
-    effective === null ||
-    registrationPressure === null ||
-    rightsReviewPressure === null ||
-    surgeScore === null ||
+    educationBurdenRedacted ||
+    capacityRedacted ||
     redactedFields.has('confidence') ||
     (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
     (confidence === null &&

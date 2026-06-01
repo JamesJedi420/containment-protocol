@@ -68,7 +68,11 @@ export type ConceptStateOperatorValidationCode =
   | 'invalid_operator'
   | 'invalid_detection_difficulty'
   | 'invalid_confidence'
+  | 'invalid_scope_rules'
+  | 'invalid_scope_rule'
   | 'empty_scope_rule_constraint'
+  | 'invalid_collateral_concept_refs'
+  | 'invalid_collateral_concept_ref'
   | 'empty_collateral_concept_ref'
   | 'bind_without_scope_rules'
   | 'franchise_token_in_id'
@@ -161,20 +165,6 @@ function sortedStringArray(value: unknown): readonly string[] {
   )
 }
 
-function asScopeRules(value: unknown): readonly ConceptScopeRule[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.filter(
-    (entry): entry is ConceptScopeRule =>
-      typeof entry === 'object' &&
-      entry !== null &&
-      'constraint' in entry &&
-      typeof (entry as ConceptScopeRule).constraint === 'string'
-  )
-}
-
 function pushIssue(
   issues: ConceptStateOperatorValidationIssue[],
   issue: ConceptStateOperatorValidationIssue
@@ -232,7 +222,17 @@ function containsBrandedObjectNumber(value: string): boolean {
 }
 
 function hasNonEmptyScopeRules(record: ConceptStateOperatorRecord): boolean {
-  return asScopeRules(record.scopeRules).some((rule) => normalizeToken(rule.constraint).length > 0)
+  if (!Array.isArray(record.scopeRules)) {
+    return false
+  }
+
+  return record.scopeRules.some(
+    (rule) =>
+      typeof rule === 'object' &&
+      rule !== null &&
+      typeof rule.constraint === 'string' &&
+      normalizeToken(rule.constraint).length > 0
+  )
 }
 
 function scanForbiddenTokens(
@@ -307,6 +307,69 @@ function scanForbiddenTokens(
       })
     }
   }
+
+  if (Array.isArray(record.scopeRules)) {
+    for (const rule of record.scopeRules) {
+      if (typeof rule !== 'object' || rule === null) {
+        continue
+      }
+
+      const scopeFields: Array<{ field: string; value: string | undefined }> = [
+        { field: 'scopeRules.constraint', value: rule.constraint },
+        { field: 'scopeRules.boundaryRef', value: rule.boundaryRef },
+      ]
+
+      for (const { field, value } of scopeFields) {
+        const token = normalizeToken(value ?? '')
+        if (!token) {
+          continue
+        }
+
+        if (containsFranchiseToken(token)) {
+          pushIssue(issues, {
+            code: 'franchise_token_in_field',
+            severity: 'error',
+            detail: `Concept-state operator record ${id || '(unknown)'} field ${field} contains a franchise or source-literal token.`,
+            relatedIds: id ? [id] : undefined,
+          })
+        }
+
+        if (containsBrandedObjectNumber(token)) {
+          pushIssue(issues, {
+            code: 'branded_object_number_in_field',
+            severity: 'error',
+            detail: `Concept-state operator record ${id || '(unknown)'} field ${field} contains a branded object number.`,
+            relatedIds: id ? [id] : undefined,
+          })
+        }
+      }
+    }
+  }
+
+  for (const ref of asStringArray(record.collateralConceptRefs)) {
+    const token = normalizeToken(ref)
+    if (!token) {
+      continue
+    }
+
+    if (containsFranchiseToken(token)) {
+      pushIssue(issues, {
+        code: 'franchise_token_in_field',
+        severity: 'error',
+        detail: `Concept-state operator record ${id || '(unknown)'} field collateralConceptRefs contains a franchise or source-literal token.`,
+        relatedIds: id ? [id] : undefined,
+      })
+    }
+
+    if (containsBrandedObjectNumber(token)) {
+      pushIssue(issues, {
+        code: 'branded_object_number_in_field',
+        severity: 'error',
+        detail: `Concept-state operator record ${id || '(unknown)'} field collateralConceptRefs contains a branded object number.`,
+        relatedIds: id ? [id] : undefined,
+      })
+    }
+  }
 }
 
 function resolveConfidence(
@@ -357,7 +420,7 @@ function resolveDetectionDifficulty(
 
 function resolveRoleHint(
   record: ConceptStateOperatorRecord,
-  ref: string,
+  _ref: string,
   policy: ConceptCollateralProjectionPolicy
 ): string | null {
   if (policy.suppressHiddenConflictLabels === true) {
@@ -495,25 +558,63 @@ export function validateConceptStateOperatorRecord(
     })
   }
 
-  for (const rule of asScopeRules(record.scopeRules)) {
-    if (!normalizeToken(rule.constraint)) {
-      pushIssue(issues, {
-        code: 'empty_scope_rule_constraint',
-        severity: 'error',
-        detail: `Concept-state operator record ${id || '(unknown)'} scopeRules contains an empty constraint.`,
-        relatedIds: id ? [id] : undefined,
-      })
+  if (record.scopeRules !== undefined && !Array.isArray(record.scopeRules)) {
+    pushIssue(issues, {
+      code: 'invalid_scope_rules',
+      severity: 'error',
+      detail: `Concept-state operator record ${id || '(unknown)'} scopeRules must be an array when provided.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  } else if (Array.isArray(record.scopeRules)) {
+    for (const entry of record.scopeRules) {
+      if (typeof entry !== 'object' || entry === null) {
+        pushIssue(issues, {
+          code: 'invalid_scope_rule',
+          severity: 'error',
+          detail: `Concept-state operator record ${id || '(unknown)'} scopeRules contains a non-object entry.`,
+          relatedIds: id ? [id] : undefined,
+        })
+        continue
+      }
+
+      if (typeof entry.constraint !== 'string' || !normalizeToken(entry.constraint)) {
+        pushIssue(issues, {
+          code: 'empty_scope_rule_constraint',
+          severity: 'error',
+          detail: `Concept-state operator record ${id || '(unknown)'} scopeRules contains an empty constraint.`,
+          relatedIds: id ? [id] : undefined,
+        })
+      }
     }
   }
 
-  for (const ref of asStringArray(record.collateralConceptRefs)) {
-    if (!normalizeToken(ref)) {
-      pushIssue(issues, {
-        code: 'empty_collateral_concept_ref',
-        severity: 'error',
-        detail: `Concept-state operator record ${id || '(unknown)'} collateralConceptRefs contains an empty ref.`,
-        relatedIds: id ? [id] : undefined,
-      })
+  if (record.collateralConceptRefs !== undefined && !Array.isArray(record.collateralConceptRefs)) {
+    pushIssue(issues, {
+      code: 'invalid_collateral_concept_refs',
+      severity: 'error',
+      detail: `Concept-state operator record ${id || '(unknown)'} collateralConceptRefs must be an array when provided.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  } else {
+    for (const ref of record.collateralConceptRefs ?? []) {
+      if (typeof ref !== 'string') {
+        pushIssue(issues, {
+          code: 'invalid_collateral_concept_ref',
+          severity: 'error',
+          detail: `Concept-state operator record ${id || '(unknown)'} collateralConceptRefs contains a non-string ref.`,
+          relatedIds: id ? [id] : undefined,
+        })
+        continue
+      }
+
+      if (!normalizeToken(ref)) {
+        pushIssue(issues, {
+          code: 'empty_collateral_concept_ref',
+          severity: 'error',
+          detail: `Concept-state operator record ${id || '(unknown)'} collateralConceptRefs contains an empty ref.`,
+          relatedIds: id ? [id] : undefined,
+        })
+      }
     }
   }
 
@@ -551,9 +652,14 @@ export function projectConceptCollateral(
 
   const affectedEntries = collateralRedacted ? Object.freeze([]) : buildAffectedEntries(record, policy)
 
+  const difficultyRedacted =
+    redactedFields.has('detectionDifficulty') ||
+    (policy.redactUnknown === true && unknownFields.includes('detectionDifficulty'))
+
   const redacted =
     collateralRedacted ||
     redactedFields.has('confidence') ||
+    difficultyRedacted ||
     (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
     (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 

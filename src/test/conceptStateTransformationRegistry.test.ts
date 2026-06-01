@@ -121,6 +121,27 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))
   })
 
+  it('sets projection redacted when detectionDifficulty is redacted', () => {
+    const projection = projectConceptCollateral({
+      ...CONCEPT_RELOCATE_COLLATERAL_FIXTURE,
+      redactedFields: ['detectionDifficulty'],
+    })
+
+    expect(projection.detectionDifficulty).toBeNull()
+    expect(projection.redacted).toBe(true)
+  })
+
+  it('errors on franchise token in scopeRules constraint', () => {
+    const result = validateConceptStateOperatorRecord(
+      baseRecord({
+        scopeRules: [{ constraint: 'foundation perimeter bind' }],
+      })
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.issues.some((issue) => issue.code === 'franchise_token_in_field')).toBe(true)
+  })
+
   it('exports stable union catalogs', () => {
     expect(CONCEPT_STATE_TARGET_KINDS).toEqual(['object', 'concept', 'relation', 'category'])
     expect(CONCEPT_STATE_OPERATORS).toEqual(['relocate', 'invert', 'collapse', 'bind'])

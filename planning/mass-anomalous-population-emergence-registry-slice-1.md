@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2122](https://linear.app/spectranoir/
 | **Linear** | [SPE-2122 — Mass anomalous population emergence registry — registration, triage, and governance surge (slice 1)](https://linear.app/spectranoir/issue/SPE-2122) |
 | **Parent** | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) — Public disclosure state registry |
 | **Branch** | `jamesdyedbq/spe-2122-mass-anomalous-population-emergence-registry-registration` |
-| **Status** | **In Progress** |
+| **Status** | **Done** (PR #2441) |
 
 ## Goal
 

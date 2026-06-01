@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2121](https://linear.app/spectranoir/
 | **Linear** | [SPE-2121 — Alternate-reality threshold route registry — cross-layer edges and return rules (slice 1)](https://linear.app/spectranoir/issue/SPE-2121) |
 | **Parent** | [SPE-765](https://linear.app/spectranoir/issue/SPE-765) — Anomalous route graphs and misrouting |
 | **Branch** | `jamesdyedbq/spe-2121-alternate-reality-threshold-route-registry-cross-layer-edges` |
-| **Status** | **In Progress** |
+| **Status** | **Done** (PR #2440) |
 
 ## Goal
 

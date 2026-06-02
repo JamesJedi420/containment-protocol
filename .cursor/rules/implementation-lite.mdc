@@ -135,14 +135,26 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ## Session closeout (mandatory)
 
-After the current slice is **committed**, **pushed**, **PR opened** (or merged), and **Linear** updated to the truthful status:
+Two phases — **do not** produce the next-issue plan when the PR is only open.
+
+### Phase A — PR opened (end of implementation session)
+
+After **commit**, **push**, **PR opened**, and **Linear** updated (PR URL on slice issue; slice **In Progress**):
 
 1. **Do not** implement the next issue in this session.
+2. **Do not** prepare a next-issue implementation plan yet.
+3. Return the **phase A** final response in `docs/agent-session-closeout.md` (no `Next issue implementation plan` content except the deferral line).
+
+### Phase B — After merge
+
+After the PR is **merged**, slice issue **Done**, and merge comment on Linear:
+
+1. **Do not** implement the next issue unless the user explicitly asks in that session.
 2. **Do** prepare a **next-issue implementation plan** only (see `docs/agent-session-closeout.md`).
-3. Return the **final response** using **only** the structure in that doc (no extra preamble or sections).
+3. Return the **phase B** final response structure from that doc.
 
 Next-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
 
-Closeout rules: do not expand the current issue; do not mark Done unless the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite); recommend smallest accurate Linear status change from validated evidence.
+Closeout rules: do not expand the current issue; do not mark Done until merge when the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite).
 
-After **merge**, remind the human: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.
+After **merge** (phase B): remind the human: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.

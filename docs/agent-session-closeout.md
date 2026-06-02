@@ -1,18 +1,33 @@
 # Agent session closeout (implementation)
 
-Canonical closeout after the **current slice** is committed, Linear is updated, and validation has run. Applies at the end of an implementation session (PR opened or merged). **Do not implement the next issue** in the same session — prepare a **next-issue plan only**.
+Canonical closeout after the **current slice** is committed, validated, and Linear is current. **Do not implement the next issue** in the same session.
 
 Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Paste duplicate: `docs/cursor-session-closeout-user-rules-snippet.md`.
 
 ---
 
-## After current issue: next slice
+## Two phases (order matters)
 
-When the current slice is shipped (commit + push + PR) and Linear reflects the truthful status:
+| Phase | When | Agent does | Agent does **not** |
+| ----- | ---- | ---------- | ------------------- |
+| **A — PR opened** | Commit + push + PR + Linear PR comment; slice **In Progress** | Pre-ship closeout (status, changes, audit, validation, deferred, PR URL) | Next-issue plan; mark slice **Done** |
+| **B — After merge** | PR merged; slice **Done** + merge comment on Linear | Next-issue implementation plan only (research) | Code the next issue in the merge/babysit thread |
 
-1. **Do not** start coding the next Linear issue.
-2. **Do** produce a **next-issue implementation plan** from `planning/backlog.md`, the parent issue, or the user's stated "next" issue.
-3. Remind the human: after **merge**, `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.
+**Next-issue plan is phase B only** — after merge on `main`, not when the PR is first opened.
+
+Phase A reminder for the human: merge the PR, then `git checkout main` && `git pull`, then **new agent chat** for phase B (or the next slice).
+
+Phase B reminder: new chat with Linear URL, slice doc, branch name, and current `main` SHA.
+
+---
+
+## After merge: next slice (phase B)
+
+When the current slice PR is **merged** and Linear reflects **Done** (child boundary satisfied):
+
+1. **Do not** start coding the next Linear issue in the merge/babysit session unless the user explicitly asks for implementation.
+2. **Do** produce a **next-issue implementation plan** from `planning/backlog.md`, the parent issue, deferred rows in the slice doc, or the user's stated "next" issue.
+3. Remind the human: sync `main`, then **new agent chat** to implement the next slice.
 
 ### Next-issue plan content (research only)
 
@@ -62,11 +77,15 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording
 
 ## Final response format (mandatory)
 
-Return **only** this structure (no extra sections, no preamble):
+Return **only** the structure for the current phase (no extra sections, no preamble).
+
+### Phase A — PR opened (implementation session end)
+
+Use when the slice is committed, pushed, PR is open, and Linear has the PR link (slice stays **In Progress** until merge).
 
 ```text
 Current issue status:
-- Complete / partially complete / blocked / already complete
+- Partially complete (PR open) / blocked / …
 
 Changes made:
 - concise list of changed files and what changed
@@ -82,11 +101,26 @@ Audit passes:
 Validation:
 - command:
 - result:
-- command:
-- result:
 
 Remaining risks or deferred work:
 - list only real follow-ups, or write “none”
+
+PR:
+- URL:
+
+Next issue implementation plan:
+- Deferred until after merge (phase B). Do not fill this section when the PR is only open.
+```
+
+### Phase B — After merge
+
+Use when the PR is **merged**, the slice issue is **Done**, and the merge comment is on Linear.
+
+```text
+Merge closeout:
+- PR URL:
+- What shipped (one line):
+- Parent issue status (open / done):
 
 Next issue implementation plan:
 - Issue:
@@ -98,6 +132,9 @@ Next issue implementation plan:
 - Docs:
 - What not to change:
 - Implementation sequence:
+
+Handoff:
+- Remind: git checkout main && git pull; new agent chat with Linear URL, slice doc, branch name, main SHA.
 ```
 
-Fill every subsection. Use `none` only when truly empty. **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md` (scope/integration through cleanup). For **Validation**, list each command and its result on separate `- command:` / `- result:` pairs.
+Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next-issue plan.

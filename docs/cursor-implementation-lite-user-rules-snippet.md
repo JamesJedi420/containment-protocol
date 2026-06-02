@@ -98,4 +98,4 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ### Session closeout (mandatory)
 
-After commit, push, PR (or merge), and Linear update: **do not implement the next issue** — next-issue plan only. Final response: **only** the structure in `docs/agent-session-closeout.md`. Full paste block: `docs/cursor-session-closeout-user-rules-snippet.md`.
+**Phase A (PR open):** after commit, push, PR, and Linear PR comment — closeout only; **no** next-issue plan. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.

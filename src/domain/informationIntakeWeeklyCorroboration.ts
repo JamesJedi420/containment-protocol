@@ -86,6 +86,25 @@ function getMatchingCaseIds(
   report: InformationIntakeReportRecord,
   cases: readonly WeeklyCorroborationCaseContext[]
 ): readonly string[] {
+  const normalizedTopicRef = report.topicRef.trim().toLowerCase()
+  const exactMatches = cases
+    .filter((currentCase) => {
+      if (currentCase.status === 'resolved') {
+        return false
+      }
+
+      return (
+        currentCase.id.trim().toLowerCase() === normalizedTopicRef ||
+        currentCase.templateId.trim().toLowerCase() === normalizedTopicRef
+      )
+    })
+    .map((currentCase) => currentCase.id)
+    .sort((left, right) => left.localeCompare(right))
+
+  if (exactMatches.length > 0) {
+    return exactMatches
+  }
+
   const topicTokens = splitTopicTokens(report.topicRef)
   if (topicTokens.length === 0) {
     return []

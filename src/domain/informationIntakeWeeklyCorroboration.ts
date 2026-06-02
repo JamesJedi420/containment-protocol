@@ -8,18 +8,22 @@
 import {
   applyContradictionEvent,
   applyCorroborationEvent,
-  FORMAL_ALERT_PARTIAL_FIXTURE,
-  IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
-  PUBLIC_RUMOR_CONFLICT_FIXTURE,
   type ContradictionEvent,
   type CorroborationEvent,
   type InformationIntakeReportRecord,
   type InformationIntakeReportsMap,
+  type IntakeSourceClass,
 } from './informationIntakeReport'
+import type { CaseInstance } from './models'
 
 type WeeklyIntakeSyntheticEvent =
   | { readonly kind: 'corroboration'; readonly event: CorroborationEvent }
   | { readonly kind: 'contradiction'; readonly event: ContradictionEvent }
+
+type WeeklyCorroborationCaseContext = Pick<
+  CaseInstance,
+  'id' | 'templateId' | 'title' | 'status' | 'tags' | 'requiredTags' | 'preferredTags'
+>
 
 export function buildWeeklyIntakeSyntheticEventId(
   reportId: string,
@@ -46,110 +50,179 @@ function stableOrdinalFromId(id: string): number {
   return hash
 }
 
-function resolveAuthoredWeeklySyntheticEvent(
+function normalizeToken(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+}
+
+function splitTopicTokens(topicRef: string): string[] {
+  return topicRef
+    .split(/[^a-z0-9]+/i)
+    .map((token) => token.toLowerCase().trim())
+    .filter((token) => token.length >= 4)
+}
+
+function collectCaseTopicTokens(currentCase: WeeklyCorroborationCaseContext): Set<string> {
+  const tokens = new Set<string>()
+  const addTokens = (value: string) => {
+    for (const token of splitTopicTokens(value)) {
+      tokens.add(token)
+    }
+  }
+
+  addTokens(currentCase.id)
+  addTokens(currentCase.templateId)
+  addTokens(currentCase.title)
+  for (const tag of currentCase.tags) addTokens(tag)
+  for (const tag of currentCase.requiredTags) addTokens(tag)
+  for (const tag of currentCase.preferredTags) addTokens(tag)
+
+  return tokens
+}
+
+function getMatchingCaseIds(
   report: InformationIntakeReportRecord,
-  week: number
-): WeeklyIntakeSyntheticEvent | null {
-  const normalizedWeek = normalizeWeek(week)
-
-  switch (report.id) {
-    case IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id:
-      if (normalizedWeek % 2 === 0) {
-        return null
+  cases: readonly WeeklyCorroborationCaseContext[]
+): readonly string[] {
+  const normalizedTopicRef = report.topicRef.trim().toLowerCase()
+  const exactMatches = cases
+    .filter((currentCase) => {
+      if (currentCase.status === 'resolved') {
+        return false
       }
 
-      return {
-        kind: 'corroboration',
-        event: {
-          eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
-          week: normalizedWeek,
-          sourceRef: `witness:weekly-archive-review-${normalizedWeek}`,
-          sourceClass: 'field_witness',
-          weight: 0.2,
-          note: 'Weekly field review cross-checks archive residue claim.',
-        },
-      }
+      return (
+        currentCase.id.trim().toLowerCase() === normalizedTopicRef ||
+        currentCase.templateId.trim().toLowerCase() === normalizedTopicRef
+      )
+    })
+    .map((currentCase) => currentCase.id)
+    .sort((left, right) => left.localeCompare(right))
 
-    case PUBLIC_RUMOR_CONFLICT_FIXTURE.id:
-      if (normalizedWeek % 4 === 0) {
-        return {
-          kind: 'contradiction',
-          event: {
-            eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'contradiction'),
-            week: normalizedWeek,
-            sourceRef: `audit:weekly-rumor-baseline-${normalizedWeek}`,
-            severity: 'minor',
-            note: 'Weekly baseline audit flags rumor timing conflict.',
-          },
-        }
-      }
+  if (exactMatches.length > 0) {
+    return exactMatches
+  }
 
-      return {
-        kind: 'corroboration',
-        event: {
-          eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
-          week: normalizedWeek,
-          sourceRef: `witness:weekly-rumor-corroboration-${normalizedWeek}`,
-          sourceClass: 'field_witness',
-          weight: 0.18,
-        },
-      }
+  const topicTokens = splitTopicTokens(report.topicRef)
+  if (topicTokens.length === 0) {
+    return []
+  }
 
-    case FORMAL_ALERT_PARTIAL_FIXTURE.id:
-      return {
-        kind: 'corroboration',
-        event: {
-          eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
-          week: normalizedWeek,
-          sourceRef: `sensor:weekly-thermal-grid-${normalizedWeek}`,
-          sourceClass: 'technical_trace',
-          weight: 0.22,
-          note: 'Weekly grid thermal corroboration tick.',
-        },
-      }
+  const matches: string[] = []
+  for (const currentCase of cases) {
+    if (currentCase.status === 'resolved') {
+      continue
+    }
 
+    const caseTokens = collectCaseTopicTokens(currentCase)
+    const hasMatch = topicTokens.some((token) => caseTokens.has(token))
+    if (hasMatch) {
+      matches.push(currentCase.id)
+    }
+  }
+
+  return matches.sort((left, right) => left.localeCompare(right))
+}
+
+function resolveCorroborationSourceClass(
+  sourceClass: IntakeSourceClass,
+  hasLinkedCases: boolean
+): IntakeSourceClass {
+  if (!hasLinkedCases) {
+    return sourceClass === 'rumor_chain' ? 'public_signal' : 'partner_channel'
+  }
+
+  switch (sourceClass) {
+    case 'formal_alert':
+    case 'technical_trace':
+      return 'technical_trace'
+    case 'rumor_chain':
+    case 'public_signal':
+      return 'field_witness'
+    case 'archive_signature':
+      return 'archive_signature'
     default:
-      return resolveFallbackWeeklySyntheticEvent(report, normalizedWeek)
+      return 'partner_channel'
   }
 }
 
-function resolveFallbackWeeklySyntheticEvent(
+function resolveCaseTopicLinkedWeeklySyntheticEvent(
   report: InformationIntakeReportRecord,
-  week: number
+  week: number,
+  cases: readonly WeeklyCorroborationCaseContext[]
 ): WeeklyIntakeSyntheticEvent | null {
-  const phase = (week + stableOrdinalFromId(report.id)) % 6
+  const normalizedWeek = normalizeWeek(week)
+  const linkedCaseIds = getMatchingCaseIds(report, cases)
+  const hasLinkedCases = linkedCaseIds.length > 0
+  const phase = (normalizedWeek + stableOrdinalFromId(report.id) + linkedCaseIds.length) % 6
+  const normalizedTopic = normalizeToken(report.topicRef)
+  const caseSegment = hasLinkedCases ? linkedCaseIds.join('+') : 'no-case-link'
 
   if (phase === 0) {
     return {
       kind: 'contradiction',
       event: {
-        eventId: buildWeeklyIntakeSyntheticEventId(report.id, week, 'contradiction'),
-        week,
-        sourceRef: `audit:weekly-intake-${report.topicRef}`,
-        severity: 'minor',
+        eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'contradiction'),
+        week: normalizedWeek,
+        sourceRef: `audit:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        severity: hasLinkedCases ? 'minor' : 'major',
       },
     }
+  }
+
+  if (phase === 2 && report.initialSourceClass === 'archive_signature') {
+    return null
   }
 
   if (phase === 1 || phase === 3) {
-    const sourceClass =
-      report.initialSourceClass === 'rumor_chain' || report.initialSourceClass === 'public_signal'
-        ? 'public_signal'
-        : 'partner_channel'
-
+    const sourceClass = resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases)
+    const baseWeight =
+      report.initialSourceClass === 'formal_alert' || report.initialSourceClass === 'technical_trace'
+        ? 0.22
+        : hasLinkedCases
+          ? phase === 3
+            ? 0.22
+            : 0.18
+          : phase === 3
+            ? 0.2
+            : 0.15
     return {
       kind: 'corroboration',
       event: {
-        eventId: buildWeeklyIntakeSyntheticEventId(report.id, week, 'corroboration'),
-        week,
-        sourceRef: `source:weekly-intake-${report.topicRef}`,
+        eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
+        week: normalizedWeek,
+        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
         sourceClass,
-        weight: phase === 3 ? 0.2 : 0.15,
+        weight: baseWeight,
       },
     }
   }
 
-  return null
+  if (report.initialSourceClass === 'formal_alert' || report.initialSourceClass === 'technical_trace') {
+    return {
+      kind: 'corroboration',
+      event: {
+        eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
+        week: normalizedWeek,
+        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceClass: 'technical_trace',
+        weight: 0.22,
+      },
+    }
+  }
+
+  return {
+    kind: 'corroboration',
+    event: {
+      eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
+      week: normalizedWeek,
+      sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+      sourceClass: resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases),
+      weight: hasLinkedCases ? 0.16 : 0.12,
+    },
+  }
 }
 
 /**
@@ -158,9 +231,11 @@ function resolveFallbackWeeklySyntheticEvent(
  */
 export function applyWeeklyIntakeCorroborationTick(
   reports: InformationIntakeReportsMap | null | undefined,
-  week: number
+  week: number,
+  casesById?: Record<string, WeeklyCorroborationCaseContext> | null
 ): InformationIntakeReportsMap {
   const safeReports = reports ?? {}
+  const cases = Object.values(casesById ?? {})
   const reportIds = Object.keys(safeReports)
   if (reportIds.length === 0) {
     return safeReports
@@ -174,7 +249,7 @@ export function applyWeeklyIntakeCorroborationTick(
       continue
     }
 
-    const synthetic = resolveAuthoredWeeklySyntheticEvent(report, week)
+    const synthetic = resolveCaseTopicLinkedWeeklySyntheticEvent(report, week, cases)
     if (!synthetic) {
       continue
     }

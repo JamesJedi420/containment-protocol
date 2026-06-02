@@ -4455,7 +4455,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(priorIntakeReports).length > 0) {
     outputWeeklyState.informationIntakeReports = applyWeeklyIntakeCorroborationTick(
       priorIntakeReports,
-      intakeCorroborationWeek
+      intakeCorroborationWeek,
+      inputWeeklyState.cases
     )
   }
 

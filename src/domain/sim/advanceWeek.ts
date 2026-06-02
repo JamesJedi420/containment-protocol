@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
@@ -4453,11 +4454,32 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
   const priorIntakeReports = inputWeeklyState.informationIntakeReports ?? {}
   if (Object.keys(priorIntakeReports).length > 0) {
-    outputWeeklyState.informationIntakeReports = applyWeeklyIntakeCorroborationTick(
+    const nextIntakeReports = applyWeeklyIntakeCorroborationTick(
       priorIntakeReports,
       intakeCorroborationWeek,
       inputWeeklyState.cases
     )
+    outputWeeklyState.informationIntakeReports = nextIntakeReports
+
+    // SPE-854 slice 7: project weekly intake verification narratives into report notes.
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const intakeVerificationNotes = buildWeeklyIntakeVerificationReportNotes({
+      priorReports: priorIntakeReports,
+      nextReports: nextIntakeReports,
+      week: intakeCorroborationWeek,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...intakeVerificationNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.

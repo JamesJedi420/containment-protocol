@@ -185,8 +185,27 @@ describe('topicIntakeCoverage (SPE-854 slice 3)', () => {
 
     expect(result.coverageBand).toBe('partial_public')
     expect(result.intakeSummary.reportCount).toBe(0)
+    expect(result.intakeSummary.topicRef).toBe('topic:empty')
+    expect(result.structuredReasons).toContain('intake:topic:topic:empty')
     expect(result.structuredReasons).toContain('sparse_input_defaults')
     expect(result.confidencePenalty).toBeLessThanOrEqual(0.15)
+  })
+
+  it('scopes to the first report topic when topic id is omitted from a multi-topic map', () => {
+    const result = evaluateTopicIntakeCoverage({
+      reports: {
+        [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+        'intake:other-topic': {
+          ...PUBLIC_RUMOR_CONFLICT_FIXTURE,
+          id: 'intake:other-topic',
+          topicRef: 'topic:warehouse-cluster',
+        },
+      },
+    })
+
+    expect(result.topicId).toBe('topic:canal-bridge-incident')
+    expect(result.intakeSummary.reportCount).toBe(1)
+    expect(result.structuredReasons).toContain('intake:topic:topic:canal-bridge-incident')
   })
 
   it('filters report map entries by topic id before composing coverage', () => {

@@ -402,8 +402,8 @@ function collectIntakeSourceClasses(reports: readonly InformationIntakeReportRec
 
 function applySourceClassToFlags(
   sourceClass: IntakeSourceClass,
-  institutional: InstitutionalChannelFlags,
-  publicChannels: PublicChannelFlags
+  institutional: Record<string, boolean>,
+  publicChannels: Record<string, boolean>
 ) {
   const institutionalKey = INSTITUTIONAL_SOURCE_CLASSES[sourceClass]
   if (institutionalKey) {
@@ -423,8 +423,8 @@ function applySourceClassToFlags(
 export function projectChannelFlagsFromIntakeReports(
   reports: readonly InformationIntakeReportRecord[]
 ): ProjectedChannelFlags {
-  const institutionalChannels: InstitutionalChannelFlags = {}
-  const publicChannels: PublicChannelFlags = {}
+  const institutionalChannels: Record<string, boolean> = {}
+  const publicChannels: Record<string, boolean> = {}
 
   for (const sourceClass of collectIntakeSourceClasses(reports)) {
     applySourceClassToFlags(sourceClass, institutionalChannels, publicChannels)
@@ -440,26 +440,47 @@ export function projectChannelFlagsFromIntakeReports(
   }
 
   return {
-    institutionalChannels,
-    publicChannels,
+    institutionalChannels: institutionalChannels as InstitutionalChannelFlags,
+    publicChannels: publicChannels as PublicChannelFlags,
   }
+}
+
+function listIntakeReports(
+  reports: TopicIntakeCoverageRequest['reports']
+): InformationIntakeReportRecord[] {
+  if (!reports) {
+    return []
+  }
+
+  return Array.isArray(reports) ? [...reports] : Object.values(reports)
 }
 
 function resolveTopicReports(
   reports: TopicIntakeCoverageRequest['reports'],
   topicId: string
 ): InformationIntakeReportRecord[] {
-  if (!reports) {
+  const list = listIntakeReports(reports)
+
+  if (!topicId) {
     return []
   }
 
-  const list = Array.isArray(reports) ? [...reports] : Object.values(reports)
-
-  if (!topicId) {
-    return list
-  }
-
   return list.filter((report) => normalizeToken(report.topicRef) === topicId)
+}
+
+function normalizeIntakeSummaryTopicRef(
+  summary: MixedSourceIntakeSummary,
+  topicId: string
+): MixedSourceIntakeSummary {
+  const structuredReasons = summary.structuredReasons
+    .map((reason) => (reason.startsWith('topic:') ? `topic:${topicId}` : reason))
+    .sort((left, right) => left.localeCompare(right))
+
+  return {
+    ...summary,
+    topicRef: topicId,
+    structuredReasons,
+  }
 }
 
 function deriveCrawlerReachBandFromIntake(input: {
@@ -524,13 +545,17 @@ export function evaluateTopicIntakeCoverage(
   input: TopicIntakeCoverageRequest = {}
 ): TopicIntakeCoverageResult {
   const requestedTopicId = normalizeToken(input.topicId)
-  const topicReports = resolveTopicReports(input.reports, requestedTopicId)
+  const allReports = listIntakeReports(input.reports)
   const topicId =
     requestedTopicId ||
-    normalizeToken(topicReports[0]?.topicRef) ||
+    normalizeToken(allReports[0]?.topicRef) ||
     '(unknown-topic)'
 
-  const intakeSummary = summarizeMixedSourceIntake(topicReports)
+  const topicReports = resolveTopicReports(input.reports, topicId)
+  const intakeSummary = normalizeIntakeSummaryTopicRef(
+    summarizeMixedSourceIntake(topicReports),
+    topicId
+  )
   const projectedChannelFlags = projectChannelFlagsFromIntakeReports(topicReports)
 
   const crawlerReachBand =
@@ -552,10 +577,7 @@ export function evaluateTopicIntakeCoverage(
     ...coverage,
     topicId,
     structuredReasons: mergeStructuredReasons(coverage.structuredReasons, intakeSummary.structuredReasons),
-    intakeSummary: {
-      ...intakeSummary,
-      topicRef: topicId,
-    },
+    intakeSummary,
     projectedChannelFlags,
   }
 }

@@ -539,7 +539,6 @@ function buildRevisionAuditSymptoms(
   const refs = asStringArray(record.revisionHistoryRefs)
     .map((ref) => normalizeToken(ref))
     .filter((ref) => ref.length > 0)
-    .sort((left, right) => left.localeCompare(right))
 
   return Object.freeze(
     refs.map((ref) =>

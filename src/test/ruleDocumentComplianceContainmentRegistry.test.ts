@@ -129,6 +129,23 @@ describe('ruleDocumentComplianceContainmentRegistry (SPE-2123 slice 1)', () => {
     )
   })
 
+  it('preserves revisionHistoryRefs order in audit symptom projection', () => {
+    const projection = projectComplianceDecay({
+      ...VOLUNTARY_COMPLIANT_PHYSICAL_COPY_FIXTURE,
+      revisionHistoryRefs: [
+        'revision:procedure-binding-v2',
+        'audit:drift-signal-week-14',
+        'revision:procedure-binding-v10',
+      ],
+    })
+
+    expect(projection.revisionAuditSymptoms.map((entry) => entry.ref)).toEqual([
+      'revision:procedure-binding-v2',
+      'audit:drift-signal-week-14',
+      'revision:procedure-binding-v10',
+    ])
+  })
+
   it('redacts drift probability when complianceState is unknown to policy', () => {
     const projection = projectComplianceDecay(
       {

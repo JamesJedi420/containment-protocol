@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-854](https://linear.app/s
 | **Linear** | [SPE-2293 — Information intake report GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2293) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine       |
 | **Branch** | `spe-854-information-intake-report-persistence-slice-2`                                                    |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** (PR #2447 merged @ `0c5f9c54`)                                                                 |
 
 ## Goal
 

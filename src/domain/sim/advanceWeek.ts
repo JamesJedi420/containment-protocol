@@ -262,6 +262,7 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
+import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
@@ -4409,6 +4410,10 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const agencyMetrics = updateAgencyMetrics(context, builtReport)
 
   const result = finalizeEvents(context, builtReport, agencyMetrics)
+
+  // SPE-854 slice 4: accumulate weekly corroboration/contradiction on persisted intake reports.
+  const intakeCorroborationWeek = sourceState.week
+
   // Patch: preserve unknown fields from input state for testability (e.g., damagedEquipmentQueue)
   const stateWithUnknownFields = state as unknown as Record<string, unknown>
   const resultWithUnknownFields = result as unknown as Record<string, unknown>
@@ -4444,6 +4449,14 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.civicAuthoritySources = mergedAuthoritySources
   } else if ('civicAuthoritySources' in outputWeeklyState) {
     delete resultWithUnknownFields.civicAuthoritySources
+  }
+
+  const priorIntakeReports = inputWeeklyState.informationIntakeReports ?? {}
+  if (Object.keys(priorIntakeReports).length > 0) {
+    outputWeeklyState.informationIntakeReports = applyWeeklyIntakeCorroborationTick(
+      priorIntakeReports,
+      intakeCorroborationWeek
+    )
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.

@@ -35,7 +35,7 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 
 1. `planning/backlog.md` or assigned Linear issue.
 2. `planning/<topic>-slice.md` for bounded scope.
-3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → **pre-ship audit** (six passes + clean validation, `docs/agent-pre-ship-audit.md`) → **commit + push + open PR** (ship loop) → closeout next-issue plan only → Done on merge + comment what shipped. **Harvest triage:** `docs/harvest-candidate-triage-agent.md`; Linear owner comments must include **mechanic + boundary + fold-in vs child reasoning** (`docs/harvest-fold-in-linear-comments.md`); owner map QA: `docs/harvest-mirror-owner-map-qa.md` — same session as mirror, not deferred.
+3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → **pre-ship audit** (six passes + clean validation, `docs/agent-pre-ship-audit.md`) → **commit + push + open PR** (ship loop) → closeout next-issue plan only → Done on merge + comment what shipped. **Deferred work:** record in slice doc `## Deferred` + Linear comment same session (`docs/agent-session-closeout.md` § Deferred work recording; `implementation-lite.mdc`). **Harvest triage:** `docs/harvest-candidate-triage-agent.md`; Linear owner comments must include **mechanic + boundary + fold-in vs child reasoning** (`docs/harvest-fold-in-linear-comments.md`); owner map QA: `docs/harvest-mirror-owner-map-qa.md` — same session as mirror, not deferred.
 
 ## Session closeout (agents)
 

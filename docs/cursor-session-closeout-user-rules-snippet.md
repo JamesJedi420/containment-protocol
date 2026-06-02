@@ -13,3 +13,5 @@ Next-issue plan must include: (1) issue ID and title, (2) smallest correct bound
 End the session using **only** the final response structure in `docs/agent-session-closeout.md` (Current issue status → Changes made → Audit passes → Validation → Remaining risks → Next issue implementation plan).
 
 Do not expand the current issue. Do not implement the next issue. Do not mark complete unless the full issue boundary is satisfied. Keep parent issues open for child slices only. Prefer small deterministic testable changes. Preserve mistaken records + later corrections; do not silent overwrite.
+
+When deferring work: same session, record in the slice doc `## Deferred` + Linear parent/child comment (mechanic + boundary). Chat alone is not enough. See `docs/agent-session-closeout.md` § Deferred work recording.

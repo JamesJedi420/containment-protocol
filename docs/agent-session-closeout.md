@@ -28,6 +28,25 @@ When the current slice is shipped (commit + push + PR) and Linear reflects the t
 
 ---
 
+## Deferred work recording (mandatory)
+
+Agents do not retain deferred work across new chats. When something is **out of slice** or **left for later**, write it down in the **same session** before ending:
+
+| Where | What to write |
+| ----- | --------------- |
+| **Active slice doc** | `## Deferred` — bullet or table: item, target Linear issue (or “create child”), one-line boundary |
+| **Linear parent or child** | Comment with mechanic, repo anchor, fold-in vs new child — not “deferred to later” alone |
+| **Parent issue** | Keep **In Progress** / **Backlog** until parent acceptance is truly met |
+| **This closeout block** | `Remaining risks or deferred work` must match the slice doc + Linear comment |
+
+Optional: add a **Backlog** row in `planning/backlog.md` when the next slice is already named.
+
+**Do not** rely on: chat history, PR description only, GitHub linkback bots, or closeout text with no slice/Linear anchor.
+
+Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording.
+
+---
+
 ## Session rules (closeout)
 
 - Do not expand the current issue.  

@@ -39,6 +39,7 @@ const startingStateTemplate: GameState = {
   partyCards: createStartingPartyCardState(),
 
   knowledge: startingKnowledge,
+  informationIntakeReports: {},
   factions: createInitialFactionState(),
 
   agency: {

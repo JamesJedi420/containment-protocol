@@ -910,3 +910,195 @@ export function summarizeMixedSourceIntake(
     structuredReasons,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Persistence sanitize (SPE-854 slice 2)
+// ---------------------------------------------------------------------------
+
+export type InformationIntakeReportsMap = Record<string, InformationIntakeReportRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function parseCorroborationEvent(value: unknown): CorroborationEvent | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const eventId = normalizeToken(value.eventId)
+  const sourceRef = normalizeToken(value.sourceRef)
+  if (!eventId || !sourceRef || !isFiniteWeek(value.week)) {
+    return null
+  }
+
+  if (!isIntakeSourceClass(value.sourceClass)) {
+    return null
+  }
+
+  if (!Number.isFinite(value.weight) || value.weight < 0 || value.weight > 1) {
+    return null
+  }
+
+  const note =
+    typeof value.note === 'string' && value.note.trim().length > 0 ? value.note.trim() : undefined
+
+  return {
+    eventId,
+    week: value.week,
+    sourceRef,
+    sourceClass: value.sourceClass,
+    weight: value.weight,
+    ...(note ? { note } : {}),
+  }
+}
+
+function parseContradictionEvent(value: unknown): ContradictionEvent | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const eventId = normalizeToken(value.eventId)
+  const sourceRef = normalizeToken(value.sourceRef)
+  if (!eventId || !sourceRef || !isFiniteWeek(value.week)) {
+    return null
+  }
+
+  if (value.severity !== 'minor' && value.severity !== 'major') {
+    return null
+  }
+
+  const note =
+    typeof value.note === 'string' && value.note.trim().length > 0 ? value.note.trim() : undefined
+
+  return {
+    eventId,
+    week: value.week,
+    sourceRef,
+    severity: value.severity,
+    ...(note ? { note } : {}),
+  }
+}
+
+function parseCorroborationHistory(value: unknown): readonly CorroborationEvent[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const events: CorroborationEvent[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    const parsed = parseCorroborationEvent(entry)
+    if (!parsed || seen.has(parsed.eventId)) {
+      continue
+    }
+
+    seen.add(parsed.eventId)
+    events.push(parsed)
+  }
+
+  return events
+}
+
+function parseContradictionHistory(value: unknown): readonly ContradictionEvent[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const events: ContradictionEvent[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    const parsed = parseContradictionEvent(entry)
+    if (!parsed || seen.has(parsed.eventId)) {
+      continue
+    }
+
+    seen.add(parsed.eventId)
+    events.push(parsed)
+  }
+
+  return events
+}
+
+function sanitizeInformationIntakeReportEntry(value: unknown): InformationIntakeReportRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const topicRef = normalizeToken(value.topicRef)
+
+  if (
+    !id ||
+    !label ||
+    !topicRef ||
+    !isIntakeSourceClass(value.initialSourceClass) ||
+    !isInformationVerificationStatus(value.verificationStatus) ||
+    !isCredibilityBand(value.credibility) ||
+    !isPlausibilityBand(value.plausibility) ||
+    !isRumorRiskBand(value.rumorRisk) ||
+    !Number.isFinite(value.confidenceScore) ||
+    value.confidenceScore < 0 ||
+    value.confidenceScore > 1
+  ) {
+    return null
+  }
+
+  const corroborationHistory = parseCorroborationHistory(value.corroborationHistory)
+  const contradictionHistory = parseContradictionHistory(value.contradictionHistory)
+  const retainedDespiteContradiction = value.retainedDespiteContradiction === true
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+
+  const record: InformationIntakeReportRecord = {
+    id,
+    label,
+    topicRef,
+    initialSourceClass: value.initialSourceClass,
+    credibility: value.credibility,
+    plausibility: value.plausibility,
+    rumorRisk: value.rumorRisk,
+    verificationStatus: value.verificationStatus,
+    confidenceScore: value.confidenceScore,
+    corroborationHistory,
+    contradictionHistory,
+    retainedDespiteContradiction,
+    ...(summary ? { summary } : {}),
+  }
+
+  if (!validateInformationIntakeReport(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical report map keyed by report id; drops invalid and duplicate-id entries. */
+export function sanitizeInformationIntakeReports(
+  value: unknown,
+  fallback: InformationIntakeReportsMap = {}
+): InformationIntakeReportsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: InformationIntakeReportsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeInformationIntakeReportEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}

@@ -191,6 +191,7 @@ import { isDistortionState, propagateDistortion } from '../../domain/shared/dist
 import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
 import { getKnowledgeKey } from '../../domain/knowledge'
 import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
+import { sanitizeInformationIntakeReports } from '../../domain/informationIntakeReport'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8351,6 +8352,10 @@ export function hydrateGame(
     campaignWeek: week,
     knownTeamIds: new Set(Object.keys(teams)),
   })
+  const informationIntakeReports = sanitizeInformationIntakeReports(
+    game.informationIntakeReports,
+    fallback.informationIntakeReports ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8426,6 +8431,7 @@ export function hydrateGame(
       agents,
       staff,
       knowledge,
+      informationIntakeReports,
       candidates,
       recruitmentPool,
       teams,

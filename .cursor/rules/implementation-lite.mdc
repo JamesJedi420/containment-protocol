@@ -1,18 +1,15 @@
-# Cursor User Rules — implementation lite (paste into Settings → Rules)
-
-Paste the block below into **Cursor → Settings → Rules → User Rules** so every implementation session gets lightweight guardrails. User Rules apply globally (equivalent to `alwaysApply: true` on a project rule).
-
-Optional local copy: `.cursor/rules/implementation-lite.mdc` (folder is gitignored).
-
-Full repo detail: `AGENTS.md`. Backlog grooming only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`.
-
+---
+description: Lightweight Containment Protocol implementation guardrails for normal Cursor coding sessions.
+alwaysApply: true
 ---
 
-## Containment Protocol — Implementation Lite Rules
+# Containment Protocol — Implementation Lite Rules
 
 Use this rule for ordinary implementation work. Do not perform full backlog hygiene unless explicitly asked.
 
-### Source of truth
+**Instruction voice:** when writing slice docs, Linear bodies, PR text, or rules, follow `.cursor/rules/agent-instruction-voice.mdc` (AI-executable prose, not human onboarding).
+
+## Source of truth
 
 Linear is the authoritative source for scope, status, and closure.
 
@@ -24,7 +21,7 @@ Before coding:
 
 If Linear and chat instructions diverge, follow Linear and call out the mismatch.
 
-### Scope discipline
+## Scope discipline
 
 Implement the smallest coherent deterministic slice that satisfies the issue.
 
@@ -37,7 +34,7 @@ Do not:
 
 If the issue boundary is unclear, stop and report the ambiguity instead of guessing.
 
-### Pre-coding summary
+## Pre-coding summary
 
 Before substantive edits, provide:
 
@@ -47,7 +44,7 @@ Before substantive edits, provide:
 - validation plan
 - docs that must be updated as part of this same boundary
 
-### Implementation rules
+## Implementation rules
 
 Prefer existing systems over new abstractions.
 
@@ -59,7 +56,7 @@ When adding or changing behavior:
 - keep domain logic out of UI unless the existing architecture already does otherwise
 - update in-boundary docs when the implementation would make docs stale
 
-### Ship loop (mandatory)
+## Ship loop (mandatory)
 
 An implementation slice is **not complete** until it is on GitHub as a pull request.
 
@@ -68,15 +65,15 @@ After validation passes:
 1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
-4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment).
+4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
 
 Do **not** end an implementation session with only local files, uncommitted work, or "say if you want a PR."
 
-**Exceptions** (explicit user words only): "no commit," "no PR," "local only," "plan only," or "do not push."
+**Exceptions** (honor explicit user words only): "no commit," "no PR," "local only," "plan only," or "do not push."
 
 Repo ship loop overrides a generic "commit only when asked" preference for Containment Protocol **implementation** sessions on a named slice branch.
 
-### PR mapping
+## PR mapping
 
 When opening or updating a PR, the PR body must name:
 
@@ -90,7 +87,7 @@ When opening or updating a PR, the PR body must name:
 
 If the PR satisfies a child issue, do not reference only the parent.
 
-### Validation
+## Validation
 
 Before finishing, run the most targeted validation that proves the issue boundary.
 
@@ -101,7 +98,7 @@ Prefer:
 
 Do not claim completion from helper-level tests alone if the issue requires real-flow behavior.
 
-### Linear updates
+## Linear updates
 
 After implementation evidence exists:
 
@@ -113,7 +110,7 @@ After implementation evidence exists:
 
 If Linear tooling is unavailable, report the exact status/comment update that should be made.
 
-### Final report
+## Final report
 
 End every implementation session with:
 

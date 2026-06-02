@@ -10,14 +10,14 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 
 ## Containment Protocol — standing workflow
 
-- **Linear is mandatory on every agent session** (implementation, harvest, PR babysit, review): In Progress before work, slice issue linked in PR, Done + comment on merge. Never skip because GitHub has a bot linkback. Repo rule: `.cursor/rules/linear-always-update.mdc`; detail in **`AGENTS.md`**. Harvest triage: post **rich** owner comments (mechanic + boundary + fold-in vs child) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes.
+- **Linear is mandatory on every agent session** (implementation, harvest, PR babysit, review): In Progress before work, **commit + push + open PR** before claiming an implementation slice complete, slice issue linked in PR, Done + comment on merge. Never skip because GitHub has a bot linkback. Repo rules: `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/implementation-lite.mdc`; detail in **`AGENTS.md`**. Harvest triage: post **rich** owner comments (mechanic + boundary + fold-in vs child) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes.
 - After a PR **merges**: run `git checkout main` and `git pull origin main`, then **start a new agent chat** for the next slice. Do not continue the old thread—it keeps stale branches, CI context, and failed "Move to local" branch names.
 - During an **open PR** on one branch: one agent session is fine until merge.
 - Each new task: give the agent the **Linear issue**, **`planning/*-slice.md`**, **branch name**, and confirm **current `main` commit** in the first message.
 - Standing repo rules: read **`AGENTS.md`** at repo root first.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
-- **Implementation lite:** remind me to use the block from `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, PR mapping, validation, Linear closure) for coding sessions.
+- **Implementation lite:** use `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **ship loop**, PR mapping, validation, Linear closure) for coding sessions.
 - **Backlog hygiene:** remind me to use the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene or grooming passes (not implementation).
 
 ---

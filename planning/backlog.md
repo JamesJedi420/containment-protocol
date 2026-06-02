@@ -134,7 +134,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `recurrent-catastrophe-amelioration-registry-slice-1.md`  | **Shipped**    | SPE-2117 / PR #2436; recurrence cycles, prevention ceiling, amelioration tactics.                                                                     |
 | `mass-anomalous-population-emergence-registry-slice-1.md` | **Shipped**    | SPE-2122 / PR #2441; population emergence registration, triage, governance surge projection.                                                          |
 | `rule-document-compliance-containment-registry-slice-1.md` | **Shipped**    | SPE-2123 / PR #2442; written-conduct binding, compliance decay, breach consequence validation.                                                        |
-| `information-intake-report-slice-1.md`                     | **In progress** | SPE-2292 / branch `spe-854-information-intake-report-slice-1`; incoming report schema + verification progression under SPE-854.                      |
+| `information-intake-report-slice-1.md`                     | **Shipped**    | SPE-2292 / PR #2444; incoming report schema + verification progression under SPE-854.                                                               |
+| `public-signal-coverage-slice-1.md`                        | **In progress** | SPE-2092 / branch `spe-2092-public-signal-coverage-slice-1`; institutional vs public channel coverage evaluator under SPE-854.                      |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

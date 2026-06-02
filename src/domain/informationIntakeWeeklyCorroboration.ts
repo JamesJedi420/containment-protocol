@@ -14,6 +14,13 @@ import {
   type InformationIntakeReportsMap,
   type IntakeSourceClass,
 } from './informationIntakeReport'
+import {
+  buildWeeklyIntakeCaseOutcomeMetadata,
+  selectWeeklyIntakeContradictionCueToken,
+  selectWeeklyIntakeContradictionDisputeToken,
+  selectWeeklyIntakeCorroborationChannelToken,
+  selectWeeklyIntakeCorroborationTraceToken,
+} from './informationIntakeWeeklyNarrativeTemplates'
 import type { CaseInstance } from './models'
 
 type WeeklyIntakeSyntheticEvent =
@@ -22,7 +29,14 @@ type WeeklyIntakeSyntheticEvent =
 
 type WeeklyCorroborationCaseContext = Pick<
   CaseInstance,
-  'id' | 'templateId' | 'title' | 'status' | 'tags' | 'requiredTags' | 'preferredTags'
+  | 'id'
+  | 'templateId'
+  | 'title'
+  | 'status'
+  | 'stage'
+  | 'tags'
+  | 'requiredTags'
+  | 'preferredTags'
 >
 
 export function buildWeeklyIntakeSyntheticEventId(
@@ -148,32 +162,30 @@ function resolveCorroborationSourceClass(
   }
 }
 
-function pickNarrativeToken(tokens: readonly string[], reportId: string, week: number, offset: number): string {
-  if (tokens.length === 0) {
-    return 'baseline'
-  }
-
-  const index = (stableOrdinalFromId(reportId) + normalizeWeek(week) + offset) % tokens.length
-  return tokens[index] ?? 'baseline'
-}
-
 function buildWeeklyContradictionSourceRef(
   normalizedTopic: string,
   caseSegment: string,
   report: InformationIntakeReportRecord,
   week: number,
-  hasLinkedCases: boolean
+  hasLinkedCases: boolean,
+  linkedCaseIds: readonly string[],
+  cases: readonly WeeklyCorroborationCaseContext[]
 ): string {
-  const disputeTokens = hasLinkedCases
-    ? ['conflict-window', 'witness-mismatch', 'timeline-drift']
-    : ['confidence-drop', 'signal-gap', 'unsupported-claim']
-  const dispute = pickNarrativeToken(disputeTokens, report.id, week, 0)
-  const sourceCue = pickNarrativeToken(
-    ['audit-trace', 'triage-review', 'cross-check'],
-    report.id,
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, cases)
+  const dispute = selectWeeklyIntakeContradictionDisputeToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
     week,
-    report.topicRef.length
-  )
+    offset: 0,
+  })
+  const sourceCue = selectWeeklyIntakeContradictionCueToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: report.topicRef.length,
+  })
   return `audit:weekly-intake:${normalizedTopic}:${caseSegment}:dispute-${dispute}:cue-${sourceCue}`
 }
 
@@ -182,14 +194,25 @@ function buildWeeklyCorroborationSourceRef(
   caseSegment: string,
   report: InformationIntakeReportRecord,
   week: number,
-  hasLinkedCases: boolean
+  hasLinkedCases: boolean,
+  linkedCaseIds: readonly string[],
+  cases: readonly WeeklyCorroborationCaseContext[]
 ): string {
-  const traceTokens = hasLinkedCases
-    ? ['linked-case', 'coincident-signal', 'field-alignment']
-    : ['ambient-signal', 'community-thread', 'partner-check']
-  const channelTokens = ['routing-sync', 'watchlist-match', 'pattern-stability']
-  const trace = pickNarrativeToken(traceTokens, report.id, week, 1)
-  const channel = pickNarrativeToken(channelTokens, report.id, week, report.topicRef.length + 1)
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, cases)
+  const trace = selectWeeklyIntakeCorroborationTraceToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: 1,
+  })
+  const channel = selectWeeklyIntakeCorroborationChannelToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: report.topicRef.length + 1,
+  })
   return `source:weekly-intake:${normalizedTopic}:${caseSegment}:trace-${trace}:channel-${channel}`
 }
 
@@ -216,7 +239,9 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           caseSegment,
           report,
           normalizedWeek,
-          hasLinkedCases
+          hasLinkedCases,
+          linkedCaseIds,
+          cases
         ),
         severity: hasLinkedCases ? 'minor' : 'major',
       },
@@ -249,7 +274,9 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           caseSegment,
           report,
           normalizedWeek,
-          hasLinkedCases
+          hasLinkedCases,
+          linkedCaseIds,
+          cases
         ),
         sourceClass,
         weight: baseWeight,
@@ -268,7 +295,9 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           caseSegment,
           report,
           normalizedWeek,
-          hasLinkedCases
+          hasLinkedCases,
+          linkedCaseIds,
+          cases
         ),
         sourceClass: 'technical_trace',
         weight: 0.22,
@@ -286,7 +315,9 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
         caseSegment,
         report,
         normalizedWeek,
-        hasLinkedCases
+        hasLinkedCases,
+        linkedCaseIds,
+        cases
       ),
       sourceClass: resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases),
       weight: hasLinkedCases ? 0.16 : 0.12,

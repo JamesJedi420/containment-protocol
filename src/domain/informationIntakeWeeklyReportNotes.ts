@@ -12,24 +12,23 @@ import type {
   InformationIntakeReportsMap,
   InformationVerificationStatus,
 } from './informationIntakeReport'
-import type { ReportNote } from './models'
+import {
+  buildWeeklyIntakeCaseOutcomeMetadata,
+  deriveWeeklyIntakeNarrativeSegments,
+  extractWeeklyIntakeNarrativeSegmentsFromSourceRef,
+  type WeeklyIntakeNarrativeSegments,
+} from './informationIntakeWeeklyNarrativeTemplates'
+import type { CaseInstance, ReportNote } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 
 const WEEKLY_SYNTHETIC_EVENT_ID_PREFIX = 'weekly-intake:'
 
-const NARRATIVE_SEGMENT_PATTERNS = {
-  trace: /:trace-([^:]+)/,
-  channel: /:channel-([^:]+)/,
-  dispute: /:dispute-([^:]+)/,
-  cue: /:cue-([^:]+)/,
-} as const
+export type { WeeklyIntakeNarrativeSegments }
 
-export type WeeklyIntakeNarrativeSegments = {
-  readonly trace?: string
-  readonly channel?: string
-  readonly dispute?: string
-  readonly cue?: string
-}
+type WeeklyIntakeReportCaseContext = Pick<
+  CaseInstance,
+  'id' | 'stage' | 'status' | 'tags' | 'requiredTags' | 'preferredTags'
+>
 
 type WeeklyIntakeVerificationEventRef =
   | { readonly kind: 'corroboration'; readonly event: CorroborationEvent }
@@ -40,21 +39,73 @@ function humanizeNarrativeToken(token: string): string {
 }
 
 export function extractWeeklyIntakeNarrativeSegments(sourceRef: string): WeeklyIntakeNarrativeSegments {
-  const trace = sourceRef.match(NARRATIVE_SEGMENT_PATTERNS.trace)?.[1]
-  const channel = sourceRef.match(NARRATIVE_SEGMENT_PATTERNS.channel)?.[1]
-  const dispute = sourceRef.match(NARRATIVE_SEGMENT_PATTERNS.dispute)?.[1]
-  const cue = sourceRef.match(NARRATIVE_SEGMENT_PATTERNS.cue)?.[1]
-
-  return {
-    ...(trace ? { trace } : {}),
-    ...(channel ? { channel } : {}),
-    ...(dispute ? { dispute } : {}),
-    ...(cue ? { cue } : {}),
-  }
+  return extractWeeklyIntakeNarrativeSegmentsFromSourceRef(sourceRef)
 }
 
 function isWeeklySyntheticEventId(eventId: string): boolean {
   return eventId.startsWith(WEEKLY_SYNTHETIC_EVENT_ID_PREFIX)
+}
+
+function extractLinkedCaseIdsFromSourceRef(sourceRef: string): readonly string[] {
+  const weeklyIntakeMatch = sourceRef.match(/:weekly-intake:[^:]+:([^:]+):/)
+  const caseSegment = weeklyIntakeMatch?.[1]
+  if (!caseSegment || caseSegment === 'no-case-link') {
+    return []
+  }
+
+  return caseSegment
+    .split('+')
+    .map((caseId) => caseId.trim())
+    .filter((caseId) => caseId.length > 0)
+    .sort((left, right) => left.localeCompare(right))
+}
+
+function resolveLinkedCaseIdsForReport(
+  report: InformationIntakeReportRecord,
+  sourceRef: string,
+  casesById: Record<string, WeeklyIntakeReportCaseContext> | null | undefined
+): readonly string[] {
+  const fromSourceRef = extractLinkedCaseIdsFromSourceRef(sourceRef)
+  if (fromSourceRef.length > 0) {
+    return fromSourceRef
+  }
+
+  const cases = Object.values(casesById ?? {})
+  if (cases.length === 0) {
+    return []
+  }
+
+  const normalizedTopicRef = report.topicRef.trim().toLowerCase()
+  const exactMatches = cases
+    .filter((currentCase) => currentCase.id.trim().toLowerCase() === normalizedTopicRef)
+    .map((currentCase) => currentCase.id)
+    .sort((left, right) => left.localeCompare(right))
+
+  if (exactMatches.length > 0) {
+    return exactMatches
+  }
+
+  return []
+}
+
+function resolveWeeklyIntakeNarrativeSegments(input: {
+  report: InformationIntakeReportRecord
+  eventKind: 'corroboration' | 'contradiction'
+  sourceRef: string
+  week: number
+  casesById: Record<string, WeeklyIntakeReportCaseContext> | null | undefined
+}): WeeklyIntakeNarrativeSegments {
+  const linkedCaseIds = resolveLinkedCaseIdsForReport(input.report, input.sourceRef, input.casesById)
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, Object.values(input.casesById ?? {}))
+
+  return deriveWeeklyIntakeNarrativeSegments({
+    sourceRef: input.sourceRef,
+    eventKind: input.eventKind,
+    metadata,
+    hasLinkedCases: linkedCaseIds.length > 0,
+    reportId: input.report.id,
+    week: input.week,
+  })
 }
 
 function formatVerificationStatusLabel(status: InformationVerificationStatus): string {
@@ -141,6 +192,7 @@ export function buildWeeklyIntakeVerificationReportNotes(input: {
   week: number
   sequenceStart: number
   baseTimestamp?: number
+  casesById?: Record<string, WeeklyIntakeReportCaseContext> | null
 }): ReportNote[] {
   const priorReports = input.priorReports ?? {}
   const nextReports = input.nextReports ?? {}
@@ -159,7 +211,13 @@ export function buildWeeklyIntakeVerificationReportNotes(input: {
     addedEvents.sort((left, right) => left.event.eventId.localeCompare(right.event.eventId))
 
     for (const added of addedEvents) {
-      const segments = extractWeeklyIntakeNarrativeSegments(added.event.sourceRef)
+      const segments = resolveWeeklyIntakeNarrativeSegments({
+        report: nextReport,
+        eventKind: added.kind,
+        sourceRef: added.event.sourceRef,
+        week: input.week,
+        casesById: input.casesById,
+      })
       const content =
         added.kind === 'corroboration'
           ? formatCorroborationNoteContent(nextReport, segments)

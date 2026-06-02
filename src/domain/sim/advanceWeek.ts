@@ -4469,6 +4469,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       week: intakeCorroborationWeek,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
+      casesById: inputWeeklyState.cases,
     })
     if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {
       const reports = [...result.reports]

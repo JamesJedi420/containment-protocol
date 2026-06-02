@@ -137,6 +137,54 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     expect(contradictionEvent?.sourceRef).toContain(':cue-')
   })
 
+  it('uses linked case stage and status metadata in corroboration narrative tokens', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const linkedCase = Object.values(state.cases)[0]
+    linkedCase.stage = 6
+    linkedCase.status = 'in_progress'
+    linkedCase.tags = ['occult', 'investigation']
+    const week = state.week
+
+    const linkedReport = createInformationIntakeReport({
+      id: 'intake:metadata-linked-case',
+      label: 'Metadata-linked corroboration probe',
+      topicRef: linkedCase.id,
+      initialSourceClass: 'formal_alert',
+      credibility: 'high',
+      plausibility: 'plausible',
+      rumorRisk: 'low',
+    })
+
+    state.informationIntakeReports = {
+      [linkedReport.id]: linkedReport,
+    }
+
+    const nextState = advanceWeek(state)
+    const nextLinkedReport = nextState.informationIntakeReports?.[linkedReport.id]
+    expect(nextLinkedReport).toBeDefined()
+
+    const corroborationEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'corroboration')
+    const corroborationEvent = nextLinkedReport?.corroborationHistory.find(
+      (event) => event.eventId === corroborationEventId
+    )
+
+    if (corroborationEvent) {
+      expect(corroborationEvent.sourceRef).toMatch(/:trace-(deep-corroboration|multi-source-lock|escalation-confirm)/)
+      expect(corroborationEvent.sourceRef).toMatch(
+        /:channel-(active-case-sync|field-routing|priority-channel|topic-occult|topic-investigation)/
+      )
+    } else {
+      const contradictionEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'contradiction')
+      const contradictionEvent = nextLinkedReport?.contradictionHistory.find(
+        (event) => event.eventId === contradictionEventId
+      )
+      expect(contradictionEvent?.sourceRef).toMatch(
+        /:dispute-(escalation-drift|conflict-window|witness-mismatch)/
+      )
+    }
+  })
+
   it('treats null or undefined report maps as empty without throwing', () => {
     expect(applyWeeklyIntakeCorroborationTick(null, 3)).toEqual({})
     expect(applyWeeklyIntakeCorroborationTick(undefined, 3)).toEqual({})

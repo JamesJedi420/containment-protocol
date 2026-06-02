@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2300](https://linear.app/spectranoir/
 | **Linear** | [SPE-2300 — Dynamic intake narrative templates from case outcome metadata (slice 9)](https://linear.app/spectranoir/issue/SPE-2300) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine |
 | **Branch** | `spe-854-information-intake-weekly-hook-slice-9` |
-| **Status** | **Shipped** (PR #2463) |
+| **Status** | **Shipped** (PR #2463; `main` @ `6b537551`) |
 
 ## Goal
 
@@ -53,4 +53,4 @@ Derive weekly intake corroboration/contradiction narrative content from linked c
 
 ## Parent
 
-Keep [SPE-854](https://linear.app/spectranoir/issue/SPE-854) **Backlog** until full parent acceptance ships (parent closure still deferred).
+Keep [SPE-854](https://linear.app/spectranoir/issue/SPE-854) **In Progress** until full parent acceptance ships (parent closure still deferred).

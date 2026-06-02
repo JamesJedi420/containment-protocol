@@ -10,6 +10,7 @@ import {
   rankBestAvailableTeams,
   validateTeamComposition,
 } from './teamComposition'
+import { deriveMissionIntakeInformationSignals } from './missionIntakeInformationRouting'
 import type {
   Agent,
   CaseInstance,
@@ -102,7 +103,10 @@ export function deriveMissionCategory(currentCase: CaseInstance): MissionCategor
   return 'strategic_opportunity'
 }
 
-export function deriveMissionIntakeSource(currentCase: CaseInstance): MissionIntakeSource {
+export function deriveMissionIntakeSource(
+  currentCase: CaseInstance,
+  state?: Pick<GameState, 'informationIntakeReports'>
+): MissionIntakeSource {
   if (currentCase.contract) {
     return 'contract'
   }
@@ -121,6 +125,13 @@ export function deriveMissionIntakeSource(currentCase: CaseInstance): MissionInt
 
   if (currentCase.factionId) {
     return 'faction'
+  }
+
+  if (state) {
+    const intakeSignals = deriveMissionIntakeInformationSignals(state, currentCase)
+    if (intakeSignals.intakeSourceOverride) {
+      return intakeSignals.intakeSourceOverride
+    }
   }
 
   return 'scripted'
@@ -193,6 +204,8 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
   const budgetPenalty = clampInteger(fundingPressure.deploymentTriagePenalty, 0, 10)
   const attritionPenalty = clampInteger(attritionPressure.deploymentTriagePenalty, 0, 8)
 
+  const intakeSignals = deriveMissionIntakeInformationSignals(state, currentCase)
+
   const score = clampInteger(
     urgency +
       threatSeverity +
@@ -201,12 +214,14 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
       capacityPenalty -
       intelRisk -
       budgetPenalty -
-      attritionPenalty,
+      attritionPenalty +
+      intakeSignals.scoreAdjustment,
     0,
     100
   )
 
   const reasonCodes = uniqueSortedStrings([
+    ...intakeSignals.reasonCodes,
     urgency >= 24 ? 'urgency-high' : urgency >= 12 ? 'urgency-medium' : 'urgency-low',
     threatSeverity >= 18 ? 'threat-high' : threatSeverity >= 10 ? 'threat-medium' : 'threat-low',
     escalationRisk >= 14 ? 'escalation-high' : escalationRisk >= 7 ? 'escalation-medium' : 'escalation-low',
@@ -715,7 +730,9 @@ function normalizeMissionRecord(
     requiredTags: [...caseData.requiredTags],
     preferredTags: [...caseData.preferredTags],
     assignedTeamIds: [...caseData.assignedTeamIds],
-    intakeSource: sanitizeIntakeSource(existing?.intakeSource ?? deriveMissionIntakeSource(caseData)),
+    intakeSource: sanitizeIntakeSource(
+      existing?.intakeSource ?? deriveMissionIntakeSource(caseData, state)
+    ),
     priority: sanitizePriority(existing?.priority ?? triage.priority),
     priorityReasonCodes: uniqueSortedStrings(existing?.priorityReasonCodes ?? triage.reasonCodes),
     triageScore: clampInteger(existing?.triageScore ?? triage.score, 0, 100),

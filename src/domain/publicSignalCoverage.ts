@@ -1,10 +1,19 @@
 /**
  * SPE-2092 slice 1: public signal coverage evaluator.
+ * SPE-854 slice 3: topic intake coverage composition.
  *
  * Pure deterministic helper scoring institutional versus ambient public-signal
  * channel coverage for a topic/district — distinct from intake report verification
  * (SPE-2292) and intel distortion (SPE-22).
  */
+
+import type {
+  InformationIntakeReportRecord,
+  InformationIntakeReportsMap,
+  IntakeSourceClass,
+  MixedSourceIntakeSummary,
+} from './informationIntakeReport'
+import { summarizeMixedSourceIntake } from './informationIntakeReport'
 
 // ---------------------------------------------------------------------------
 // Bands and channel flags
@@ -332,7 +341,249 @@ function buildStructuredReasons(input: {
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Intake → channel projection (SPE-854 slice 3)
+// ---------------------------------------------------------------------------
+
+export interface ProjectedChannelFlags {
+  readonly institutionalChannels: InstitutionalChannelFlags
+  readonly publicChannels: PublicChannelFlags
+}
+
+export interface TopicIntakeCoverageRequest {
+  readonly topicId?: string
+  readonly districtId?: string
+  readonly reports?: readonly InformationIntakeReportRecord[] | InformationIntakeReportsMap
+  readonly crawlerReachBand?: CrawlerReachBand
+  readonly inferenceModelBand?: InferenceModelBand
+}
+
+export interface TopicIntakeCoverageResult extends PublicSignalCoverageResult {
+  readonly intakeSummary: MixedSourceIntakeSummary
+  readonly projectedChannelFlags: ProjectedChannelFlags
+}
+
+const INSTITUTIONAL_SOURCE_CLASSES: Readonly<Partial<Record<IntakeSourceClass, keyof InstitutionalChannelFlags>>> =
+  {
+    formal_alert: 'formalAlert',
+    partner_channel: 'partnerChannel',
+    technical_trace: 'technicalTrace',
+    archive_signature: 'agencyCanonicalFeed',
+  }
+
+const PUBLIC_SOURCE_CLASSES: Readonly<Partial<Record<IntakeSourceClass, keyof PublicChannelFlags>>> = {
+  public_signal: 'ambientSocialSignal',
+  media_trace: 'mediaTrace',
+  rumor_chain: 'rumorChain',
+  field_witness: 'communityPatternMatching',
+  off_channel: 'ambientSocialSignal',
+}
+
+const PUBLIC_DENSITY_SOURCE_CLASSES = new Set<IntakeSourceClass>([
+  'public_signal',
+  'media_trace',
+  'rumor_chain',
+  'field_witness',
+  'off_channel',
+])
+
+function collectIntakeSourceClasses(reports: readonly InformationIntakeReportRecord[]): IntakeSourceClass[] {
+  const classes: IntakeSourceClass[] = []
+
+  for (const report of reports) {
+    classes.push(report.initialSourceClass)
+
+    for (const event of report.corroborationHistory) {
+      classes.push(event.sourceClass)
+    }
+  }
+
+  return classes
+}
+
+function applySourceClassToFlags(
+  sourceClass: IntakeSourceClass,
+  institutional: Record<string, boolean>,
+  publicChannels: Record<string, boolean>
+) {
+  const institutionalKey = INSTITUTIONAL_SOURCE_CLASSES[sourceClass]
+  if (institutionalKey) {
+    institutional[institutionalKey] = true
+  }
+
+  const publicKey = PUBLIC_SOURCE_CLASSES[sourceClass]
+  if (publicKey) {
+    publicChannels[publicKey] = true
+  }
+
+  if (sourceClass === 'public_signal') {
+    publicChannels.communityPatternMatching = true
+  }
+}
+
+export function projectChannelFlagsFromIntakeReports(
+  reports: readonly InformationIntakeReportRecord[]
+): ProjectedChannelFlags {
+  const institutionalChannels: Record<string, boolean> = {}
+  const publicChannels: Record<string, boolean> = {}
+
+  for (const sourceClass of collectIntakeSourceClasses(reports)) {
+    applySourceClassToFlags(sourceClass, institutionalChannels, publicChannels)
+  }
+
+  const publicDensityCount = reports.filter((report) =>
+    PUBLIC_DENSITY_SOURCE_CLASSES.has(report.initialSourceClass)
+  ).length
+  const rumorReportCount = reports.filter((report) => report.rumorRisk !== 'none').length
+
+  if (publicDensityCount >= 2 || rumorReportCount >= 2) {
+    publicChannels.grassrootsDensityHigh = true
+  }
+
+  return {
+    institutionalChannels: institutionalChannels as InstitutionalChannelFlags,
+    publicChannels: publicChannels as PublicChannelFlags,
+  }
+}
+
+function listIntakeReports(
+  reports: TopicIntakeCoverageRequest['reports']
+): InformationIntakeReportRecord[] {
+  if (!reports) {
+    return []
+  }
+
+  return Array.isArray(reports) ? [...reports] : Object.values(reports)
+}
+
+function resolveTopicReports(
+  reports: TopicIntakeCoverageRequest['reports'],
+  topicId: string
+): InformationIntakeReportRecord[] {
+  const list = listIntakeReports(reports)
+
+  if (!topicId) {
+    return []
+  }
+
+  return list.filter((report) => normalizeToken(report.topicRef) === topicId)
+}
+
+function normalizeIntakeSummaryTopicRef(
+  summary: MixedSourceIntakeSummary,
+  topicId: string
+): MixedSourceIntakeSummary {
+  const structuredReasons = summary.structuredReasons
+    .map((reason) => (reason.startsWith('topic:') ? `topic:${topicId}` : reason))
+    .sort((left, right) => left.localeCompare(right))
+
+  return {
+    ...summary,
+    topicRef: topicId,
+    structuredReasons,
+  }
+}
+
+function deriveCrawlerReachBandFromIntake(input: {
+  projected: ProjectedChannelFlags
+  intakeSummary: MixedSourceIntakeSummary
+}): CrawlerReachBand {
+  const institutionalCount = countInstitutionalChannels(input.projected.institutionalChannels)
+  const publicCount = countPublicChannels(input.projected.publicChannels)
+  const publicWeight = computePublicActivityWeight(publicCount, input.projected.publicChannels)
+
+  if (institutionalCount === 0 && publicWeight > 0) {
+    return 'none'
+  }
+
+  if (input.intakeSummary.hasIncompleteIntake && publicCount > 0) {
+    return 'low'
+  }
+
+  if (institutionalCount > 0 && publicCount === 0 && !input.intakeSummary.hasIncompleteIntake) {
+    return 'high'
+  }
+
+  return 'medium'
+}
+
+function deriveInferenceModelBandFromIntake(intakeSummary: MixedSourceIntakeSummary): InferenceModelBand {
+  if (intakeSummary.hasConflictingVerification) {
+    return 'low'
+  }
+
+  if (intakeSummary.dominantVerificationStatus === 'escalated_confidence') {
+    return 'high'
+  }
+
+  if (
+    intakeSummary.dominantVerificationStatus === 'verified' &&
+    !intakeSummary.hasIncompleteIntake
+  ) {
+    return 'moderate'
+  }
+
+  if (intakeSummary.hasIncompleteIntake) {
+    return 'opaque'
+  }
+
+  return 'moderate'
+}
+
+function mergeStructuredReasons(
+  coverageReasons: readonly string[],
+  intakeReasons: readonly string[]
+): readonly string[] {
+  const merged = [
+    ...coverageReasons,
+    ...intakeReasons.map((reason) => `intake:${reason}`),
+  ]
+
+  return [...new Set(merged)].sort((left, right) => left.localeCompare(right))
+}
+
+export function evaluateTopicIntakeCoverage(
+  input: TopicIntakeCoverageRequest = {}
+): TopicIntakeCoverageResult {
+  const requestedTopicId = normalizeToken(input.topicId)
+  const allReports = listIntakeReports(input.reports)
+  const topicId =
+    requestedTopicId ||
+    normalizeToken(allReports[0]?.topicRef) ||
+    '(unknown-topic)'
+
+  const topicReports = resolveTopicReports(input.reports, topicId)
+  const intakeSummary = normalizeIntakeSummaryTopicRef(
+    summarizeMixedSourceIntake(topicReports),
+    topicId
+  )
+  const projectedChannelFlags = projectChannelFlagsFromIntakeReports(topicReports)
+
+  const crawlerReachBand =
+    input.crawlerReachBand ??
+    deriveCrawlerReachBandFromIntake({ projected: projectedChannelFlags, intakeSummary })
+  const inferenceModelBand =
+    input.inferenceModelBand ?? deriveInferenceModelBandFromIntake(intakeSummary)
+
+  const coverage = evaluatePublicSignalCoverage({
+    topicId,
+    districtId: input.districtId,
+    institutionalChannels: projectedChannelFlags.institutionalChannels,
+    publicChannels: projectedChannelFlags.publicChannels,
+    crawlerReachBand,
+    inferenceModelBand,
+  })
+
+  return {
+    ...coverage,
+    topicId,
+    structuredReasons: mergeStructuredReasons(coverage.structuredReasons, intakeSummary.structuredReasons),
+    intakeSummary,
+    projectedChannelFlags,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Public signal coverage evaluator
 // ---------------------------------------------------------------------------
 
 export function evaluatePublicSignalCoverage(

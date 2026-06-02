@@ -4462,11 +4462,12 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.informationIntakeReports = nextIntakeReports
 
     // SPE-854 slice 7: project weekly intake verification narratives into report notes.
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
     const intakeVerificationNotes = buildWeeklyIntakeVerificationReportNotes({
       priorReports: priorIntakeReports,
       nextReports: nextIntakeReports,
       week: intakeCorroborationWeek,
-      sequenceStart: (result.reports.at(-1)?.notes.length ?? 0) + 1,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
     })
     if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {

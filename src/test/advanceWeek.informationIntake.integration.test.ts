@@ -163,7 +163,7 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     }
 
     const nextState = advanceWeek(state)
-    const weeklyReport = nextState.reports.at(-1)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
 
     expect(weeklyReport).toBeDefined()
     const intakeNotes =

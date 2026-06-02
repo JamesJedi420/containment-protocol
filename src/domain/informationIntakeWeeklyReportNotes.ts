@@ -63,7 +63,6 @@ function formatVerificationStatusLabel(status: InformationVerificationStatus): s
 
 function formatCorroborationNoteContent(
   report: InformationIntakeReportRecord,
-  event: CorroborationEvent,
   segments: WeeklyIntakeNarrativeSegments
 ): string {
   const traceLabel = segments.trace ? humanizeNarrativeToken(segments.trace) : 'ambient trace'
@@ -157,15 +156,13 @@ export function buildWeeklyIntakeVerificationReportNotes(input: {
     }
 
     const addedEvents = collectAddedWeeklySyntheticEvents(priorReports[reportId], nextReport, input.week)
-    const sortedEvents = [...addedEvents].sort((left, right) =>
-      left.event.eventId.localeCompare(right.event.eventId)
-    )
+    addedEvents.sort((left, right) => left.event.eventId.localeCompare(right.event.eventId))
 
-    for (const added of sortedEvents) {
+    for (const added of addedEvents) {
       const segments = extractWeeklyIntakeNarrativeSegments(added.event.sourceRef)
       const content =
         added.kind === 'corroboration'
-          ? formatCorroborationNoteContent(nextReport, added.event, segments)
+          ? formatCorroborationNoteContent(nextReport, segments)
           : formatContradictionNoteContent(nextReport, added.event, segments)
 
       notes.push(

@@ -113,15 +113,6 @@ After implementation evidence exists:
 
 If Linear tooling is unavailable, report the exact status/comment update that should be made.
 
-### Final report
+### Session closeout (mandatory)
 
-End every implementation session with:
-
-- issue worked (slice + parent IDs)
-- files changed
-- what changed
-- validation run
-- docs updated, if any
-- **commit SHA** and **PR URL** (or explicit exception reason)
-- Linear update made or needed
-- remaining follow-up (post-merge only; not "open a PR")
+After commit, push, PR (or merge), and Linear update: **do not implement the next issue** — next-issue plan only. Final response: **only** the structure in `docs/agent-session-closeout.md`. Full paste block: `docs/cursor-session-closeout-user-rules-snippet.md`.

@@ -110,15 +110,16 @@ After implementation evidence exists:
 
 If Linear tooling is unavailable, report the exact status/comment update that should be made.
 
-## Final report
+## Session closeout (mandatory)
 
-End every implementation session with:
+After the current slice is **committed**, **pushed**, **PR opened** (or merged), and **Linear** updated to the truthful status:
 
-- issue worked (slice + parent IDs)
-- files changed
-- what changed
-- validation run
-- docs updated, if any
-- **commit SHA** and **PR URL** (or explicit exception reason)
-- Linear update made or needed
-- remaining follow-up (post-merge only; not "open a PR")
+1. **Do not** implement the next issue in this session.
+2. **Do** prepare a **next-issue implementation plan** only (see `docs/agent-session-closeout.md`).
+3. Return the **final response** using **only** the structure in that doc (no extra preamble or sections).
+
+Next-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
+
+Closeout rules: do not expand the current issue; do not mark Done unless the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite); recommend smallest accurate Linear status change from validated evidence.
+
+After **merge**, remind the human: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.

@@ -37,6 +37,10 @@ One agent session on the **same branch** is fine (implement, CI, review). Start 
 2. `planning/<topic>-slice.md` for bounded scope.
 3. **Linear lifecycle** — mandatory every session (`AGENTS.md` + `.cursor/rules/linear-always-update.mdc`): In Progress before work → **commit + push + open PR** before claiming slice complete (implementation-lite ship loop) → PR links slice issue → Done on merge → comment what shipped. **Harvest triage:** `docs/harvest-candidate-triage-agent.md`; Linear owner comments must include **mechanic + boundary + fold-in vs child reasoning** (`docs/harvest-fold-in-linear-comments.md`); owner map QA: `docs/harvest-mirror-owner-map-qa.md` — same session as mirror, not deferred.
 
+## Session closeout (agents)
+
+When the current slice is committed, pushed, PR-linked, and Linear is current: **do not code the next issue**. Produce a next-issue plan and end with **only** the response structure in **`docs/agent-session-closeout.md`**. Paste source for User Rules: **`docs/cursor-session-closeout-user-rules-snippet.md`**.
+
 ## Optional first message template
 
 ```

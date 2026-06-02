@@ -4,7 +4,8 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 
 1. **Standing workflow** (this file, section below)
 2. **Implementation lite** — full block in `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding sessions)
-3. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
+3. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md` (after commit + Linear; plan next issue only)
+4. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
 
 ---
 
@@ -19,6 +20,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
 - **Implementation lite:** use `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **ship loop**, PR mapping, validation, Linear closure) for coding sessions.
+- **Session closeout:** after current slice is committed and Linear updated, **do not implement the next issue** — next-issue plan only; final reply **only** per `docs/agent-session-closeout.md`.
 - **Backlog hygiene:** remind me to use the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene or grooming passes (not implementation).
 
 ---

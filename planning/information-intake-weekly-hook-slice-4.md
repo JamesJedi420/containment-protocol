@@ -48,6 +48,15 @@ Wire persisted `informationIntakeReports` into `advanceWeek` so reports accumula
 | Tests  | `src/test/advanceWeek.informationIntake.integration.test.ts`          |
 | Plan   | `planning/information-intake-weekly-hook-slice-4.md`, `planning/backlog.md` |
 
+## Deferred (recorded for follow-up)
+
+| Item | Suggested owner | Why deferred (slice 4 boundary) |
+| ---- | --------------- | --------------------------------- |
+| Case/topic-linked corroboration sources (derive events from sim state, not fixture ids) | New SPE-854 child | Slice 4 stub only; hook must not assume case linkage yet |
+| Full narrative corroboration generator | New SPE-854 child | Authored fixture events per report id for deterministic tests |
+| Intake verification UI / report copy surfaces | SPE-854 or adjacent UX owner | Explicitly out of slice 4 |
+| Parent SPE-854 acceptance (mixed-source incident, operational routing) | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Slices 1–4 are domain/persistence/hook only |
+
 ## Parent
 
 Keep [SPE-854](https://linear.app/spectranoir/issue/SPE-854) **In Progress**.

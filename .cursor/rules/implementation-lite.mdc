@@ -34,6 +34,19 @@ Do not:
 
 If the issue boundary is unclear, stop and report the ambiguity instead of guessing.
 
+## Deferred work recording (mandatory)
+
+When scope is intentionally **out of slice** or **not done this session**, record it durably in the **same session** — not only in chat or closeout prose.
+
+Minimum (pick all that apply):
+
+1. **Slice doc** — `## Deferred` table: item, suggested owner issue, why deferred.
+2. **Linear** — comment on the **parent** or a **new/existing child** in Backlog with mechanic + boundary (not a one-liner).
+3. **Parent stays open** — do not mark the umbrella Done while deferred items satisfy parent acceptance.
+4. **Closeout** — `Remaining risks or deferred work` must match what was written to (1) and (2).
+
+Chat and session memory do **not** substitute for (1)–(2). Full checklist: `docs/agent-session-closeout.md` § Deferred work recording.
+
 ## Pre-coding summary
 
 Before substantive edits, inspect relevant files, tests, docs, routes, state models, schemas, fixtures, and patterns. Confirm status: **already complete**, **partially complete**, **incorrectly implemented**, or **blocked**.

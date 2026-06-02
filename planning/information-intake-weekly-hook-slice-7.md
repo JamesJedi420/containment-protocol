@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2298](https://linear.app/spectranoir/
 | **Linear** | [SPE-2298 — Weekly intake verification narratives in report notes (slice 7)](https://linear.app/spectranoir/issue/SPE-2298) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine |
 | **Branch** | `spe-854-information-intake-weekly-hook-slice-7` |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** (PR #2459) |
 
 ## Goal
 

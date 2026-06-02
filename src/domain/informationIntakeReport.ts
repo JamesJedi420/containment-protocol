@@ -910,3 +910,205 @@ export function summarizeMixedSourceIntake(
     structuredReasons,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Persistence sanitize (SPE-854 slice 2)
+// ---------------------------------------------------------------------------
+
+export type InformationIntakeReportsMap = Record<string, InformationIntakeReportRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function parseCorroborationEvent(value: unknown): CorroborationEvent | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const eventId = normalizeToken(value.eventId)
+  const sourceRef = normalizeToken(value.sourceRef)
+  if (!eventId || !sourceRef || !isFiniteWeek(value.week)) {
+    return null
+  }
+
+  const sourceClass = typeof value.sourceClass === 'string' ? value.sourceClass : ''
+  if (!isIntakeSourceClass(sourceClass)) {
+    return null
+  }
+
+  const weight = typeof value.weight === 'number' ? value.weight : NaN
+  if (!Number.isFinite(weight) || weight < 0 || weight > 1) {
+    return null
+  }
+
+  const note =
+    typeof value.note === 'string' && value.note.trim().length > 0 ? value.note.trim() : undefined
+
+  return {
+    eventId,
+    week: value.week,
+    sourceRef,
+    sourceClass,
+    weight,
+    ...(note ? { note } : {}),
+  }
+}
+
+function parseContradictionEvent(value: unknown): ContradictionEvent | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const eventId = normalizeToken(value.eventId)
+  const sourceRef = normalizeToken(value.sourceRef)
+  if (!eventId || !sourceRef || !isFiniteWeek(value.week)) {
+    return null
+  }
+
+  if (typeof value.severity !== 'string' || (value.severity !== 'minor' && value.severity !== 'major')) {
+    return null
+  }
+
+  const note =
+    typeof value.note === 'string' && value.note.trim().length > 0 ? value.note.trim() : undefined
+
+  return {
+    eventId,
+    week: value.week,
+    sourceRef,
+    severity: value.severity,
+    ...(note ? { note } : {}),
+  }
+}
+
+function parseCorroborationHistory(value: unknown): readonly CorroborationEvent[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const events: CorroborationEvent[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    const parsed = parseCorroborationEvent(entry)
+    if (!parsed || seen.has(parsed.eventId)) {
+      continue
+    }
+
+    seen.add(parsed.eventId)
+    events.push(parsed)
+  }
+
+  return events
+}
+
+function parseContradictionHistory(value: unknown): readonly ContradictionEvent[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const events: ContradictionEvent[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    const parsed = parseContradictionEvent(entry)
+    if (!parsed || seen.has(parsed.eventId)) {
+      continue
+    }
+
+    seen.add(parsed.eventId)
+    events.push(parsed)
+  }
+
+  return events
+}
+
+function sanitizeInformationIntakeReportEntry(value: unknown): InformationIntakeReportRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const topicRef = normalizeToken(value.topicRef)
+  const initialSourceClass =
+    typeof value.initialSourceClass === 'string' ? value.initialSourceClass : ''
+  const verificationStatus =
+    typeof value.verificationStatus === 'string' ? value.verificationStatus : ''
+  const credibility = typeof value.credibility === 'string' ? value.credibility : ''
+  const plausibility = typeof value.plausibility === 'string' ? value.plausibility : ''
+  const rumorRisk = typeof value.rumorRisk === 'string' ? value.rumorRisk : ''
+  const confidenceScore = typeof value.confidenceScore === 'number' ? value.confidenceScore : NaN
+
+  if (
+    !id ||
+    !label ||
+    !topicRef ||
+    !isIntakeSourceClass(initialSourceClass) ||
+    !isInformationVerificationStatus(verificationStatus) ||
+    !isCredibilityBand(credibility) ||
+    !isPlausibilityBand(plausibility) ||
+    !isRumorRiskBand(rumorRisk) ||
+    !Number.isFinite(confidenceScore) ||
+    confidenceScore < 0 ||
+    confidenceScore > 1
+  ) {
+    return null
+  }
+
+  const corroborationHistory = parseCorroborationHistory(value.corroborationHistory)
+  const contradictionHistory = parseContradictionHistory(value.contradictionHistory)
+  const retainedDespiteContradiction = value.retainedDespiteContradiction === true
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+
+  const record: InformationIntakeReportRecord = {
+    id,
+    label,
+    topicRef,
+    initialSourceClass,
+    credibility,
+    plausibility,
+    rumorRisk,
+    verificationStatus,
+    confidenceScore,
+    corroborationHistory,
+    contradictionHistory,
+    retainedDespiteContradiction,
+    ...(summary ? { summary } : {}),
+  }
+
+  if (!validateInformationIntakeReport(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical report map keyed by report id; drops invalid and duplicate-id entries. */
+export function sanitizeInformationIntakeReports(
+  value: unknown,
+  fallback: InformationIntakeReportsMap = {}
+): InformationIntakeReportsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: InformationIntakeReportsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeInformationIntakeReportEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}

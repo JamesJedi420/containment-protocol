@@ -243,6 +243,7 @@ import type {
 } from './agent/models'
 import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
+import type { InformationIntakeReportRecord } from './informationIntakeReport'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2529,6 +2530,12 @@ export interface GameState {
 
   /** Canonical persistent knowledge-state map (keyed by entity/subject) */
   knowledge: KnowledgeStateMap
+
+  /**
+   * SPE-854 slice 2: persisted incoming incident intake reports (keyed by report id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  informationIntakeReports?: Record<string, InformationIntakeReportRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

@@ -138,7 +138,9 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `public-signal-coverage-slice-1.md`                        | **Shipped**    | SPE-2092 / PR #2445; institutional vs public channel coverage evaluator under SPE-854.                                                              |
 | `information-intake-report-persistence-slice-2.md`         | **Shipped**    | SPE-2293 / PR #2447; GameState persistence + sanitize/hydration for intake reports under SPE-854.                                                    |
 | `information-intake-coverage-compose-slice-3.md`             | **Shipped**    | SPE-2294 / PR #2449; topic intake coverage composition under SPE-854.                                                                                |
-| `information-intake-weekly-hook-slice-4.md`                  | **In PR**      | SPE-2295; weekly `advanceWeek` corroboration/contradiction hook for persisted intake reports under SPE-854.                                          |
+| `information-intake-weekly-hook-slice-4.md`                  | **Shipped**    | SPE-2295 / PR #2450; weekly `advanceWeek` corroboration/contradiction hook for persisted intake reports under SPE-854.                              |
+| `information-intake-weekly-hook-slice-5.md`                  | **Shipped**    | SPE-2296 / PR #2451; case/topic-linked weekly corroboration source derivation under SPE-854.                                                        |
+| `information-intake-weekly-hook-slice-6.md`                  | **In Progress** | SPE-2297; deterministic narrative corroboration/contradiction source-ref generator under SPE-854.                                                   |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

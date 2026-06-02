@@ -148,6 +148,51 @@ function resolveCorroborationSourceClass(
   }
 }
 
+function pickNarrativeToken(tokens: readonly string[], reportId: string, week: number, offset: number): string {
+  if (tokens.length === 0) {
+    return 'baseline'
+  }
+
+  const index = (stableOrdinalFromId(reportId) + normalizeWeek(week) + offset) % tokens.length
+  return tokens[index] ?? 'baseline'
+}
+
+function buildWeeklyContradictionSourceRef(
+  normalizedTopic: string,
+  caseSegment: string,
+  report: InformationIntakeReportRecord,
+  week: number,
+  hasLinkedCases: boolean
+): string {
+  const disputeTokens = hasLinkedCases
+    ? ['conflict-window', 'witness-mismatch', 'timeline-drift']
+    : ['confidence-drop', 'signal-gap', 'unsupported-claim']
+  const dispute = pickNarrativeToken(disputeTokens, report.id, week, 0)
+  const sourceCue = pickNarrativeToken(
+    ['audit-trace', 'triage-review', 'cross-check'],
+    report.id,
+    week,
+    report.topicRef.length
+  )
+  return `audit:weekly-intake:${normalizedTopic}:${caseSegment}:dispute-${dispute}:cue-${sourceCue}`
+}
+
+function buildWeeklyCorroborationSourceRef(
+  normalizedTopic: string,
+  caseSegment: string,
+  report: InformationIntakeReportRecord,
+  week: number,
+  hasLinkedCases: boolean
+): string {
+  const traceTokens = hasLinkedCases
+    ? ['linked-case', 'coincident-signal', 'field-alignment']
+    : ['ambient-signal', 'community-thread', 'partner-check']
+  const channelTokens = ['routing-sync', 'watchlist-match', 'pattern-stability']
+  const trace = pickNarrativeToken(traceTokens, report.id, week, 1)
+  const channel = pickNarrativeToken(channelTokens, report.id, week, report.topicRef.length + 1)
+  return `source:weekly-intake:${normalizedTopic}:${caseSegment}:trace-${trace}:channel-${channel}`
+}
+
 function resolveCaseTopicLinkedWeeklySyntheticEvent(
   report: InformationIntakeReportRecord,
   week: number,
@@ -166,7 +211,13 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'contradiction'),
         week: normalizedWeek,
-        sourceRef: `audit:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyContradictionSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases
+        ),
         severity: hasLinkedCases ? 'minor' : 'major',
       },
     }
@@ -193,7 +244,13 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
         week: normalizedWeek,
-        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyCorroborationSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases
+        ),
         sourceClass,
         weight: baseWeight,
       },
@@ -206,7 +263,13 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
         week: normalizedWeek,
-        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyCorroborationSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases
+        ),
         sourceClass: 'technical_trace',
         weight: 0.22,
       },
@@ -218,7 +281,13 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
     event: {
       eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
       week: normalizedWeek,
-      sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+      sourceRef: buildWeeklyCorroborationSourceRef(
+        normalizedTopic,
+        caseSegment,
+        report,
+        normalizedWeek,
+        hasLinkedCases
+      ),
       sourceClass: resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases),
       weight: hasLinkedCases ? 0.16 : 0.12,
     },

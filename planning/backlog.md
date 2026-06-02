@@ -142,7 +142,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-weekly-hook-slice-5.md`                  | **Shipped**    | SPE-2296 / PR #2451; case/topic-linked weekly corroboration source derivation under SPE-854.                                                        |
 | `information-intake-weekly-hook-slice-6.md`                  | **Shipped**    | SPE-2297 / PR #2455; deterministic narrative corroboration/contradiction source-ref generator under SPE-854.                                          |
 | `information-intake-weekly-hook-slice-7.md`                  | **Shipped**    | SPE-2298 / PR #2459; weekly intake verification narratives in report notes under SPE-854.                                                            |
-| `information-intake-weekly-hook-slice-8.md`                  | **In Progress** | SPE-2299; dedicated `information_intake.verification` report note type + UI bucket under SPE-854.                                                  |
+| `information-intake-weekly-hook-slice-8.md`                  | **Shipped**    | SPE-2299 / PR #2461; dedicated `information_intake.verification` report note type + UI bucket under SPE-854.                                        |
+| `information-intake-weekly-hook-slice-9.md`                  | **In Progress** | SPE-2300; dynamic intake narrative templates from case outcome metadata under SPE-854.                                                              |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

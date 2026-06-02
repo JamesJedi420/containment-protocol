@@ -121,6 +121,7 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
       expect(corroborationEvent.sourceRef).toContain(linkedCase.id)
       expect(corroborationEvent.sourceRef).toContain('weekly-intake')
       expect(corroborationEvent.sourceRef).toContain(':trace-')
+      expect(corroborationEvent.sourceRef).toContain(':channel-')
       return
     }
 
@@ -133,6 +134,7 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     expect(contradictionEvent?.sourceRef).toContain(linkedCase.id)
     expect(contradictionEvent?.sourceRef).toContain('weekly-intake')
     expect(contradictionEvent?.sourceRef).toContain(':dispute-')
+    expect(contradictionEvent?.sourceRef).toContain(':cue-')
   })
 
   it('treats null or undefined report maps as empty without throwing', () => {

@@ -1,0 +1,135 @@
+---
+description: Lightweight Containment Protocol implementation guardrails for normal Cursor coding sessions.
+alwaysApply: true
+---
+
+# Containment Protocol — Implementation Lite Rules
+
+Use this rule for ordinary implementation work. Do not perform full backlog hygiene unless explicitly asked.
+
+**Instruction voice:** when writing slice docs, Linear bodies, PR text, or rules, follow `.cursor/rules/agent-instruction-voice.mdc` (AI-executable prose, not human onboarding).
+
+## Source of truth
+
+Linear is the authoritative source for scope, status, and closure. Also use repository docs, tests, existing architecture, and current code.
+
+Before coding:
+1. Read the target Linear issue (and GitHub mirror if linked).
+2. Read issue comments; fold durable scope, constraints, acceptance criteria, deferred work, and implementation notes into your working summary.
+3. Read parent/child issues when the issue sits under a broader umbrella.
+4. Treat Goal, Scope, Constraints, Acceptance criteria, and reconciliation comments as binding.
+
+If Linear and chat instructions diverge, follow Linear and call out the mismatch. **Preserve the issue boundary.** Do not expand scope.
+
+## Scope discipline
+
+Implement the smallest coherent deterministic slice that satisfies the issue.
+
+Do not:
+- expand scope
+- create parallel systems
+- rewrite unrelated code
+- fix nearby issues unless required by the current acceptance criteria
+- close parent issues because a child slice shipped
+
+If the issue boundary is unclear, stop and report the ambiguity instead of guessing.
+
+## Pre-coding summary
+
+Before substantive edits, inspect relevant files, tests, docs, routes, state models, schemas, fixtures, and patterns. Confirm status: **already complete**, **partially complete**, **incorrectly implemented**, or **blocked**.
+
+Report:
+
+- relevant files
+- current behavior
+- expected behavior
+- implementation boundary
+- known risks
+- validation plan
+- docs that must be updated as part of this same boundary
+
+## Implementation rules
+
+Prefer existing systems over new abstractions.
+
+Keep changes inside the issue boundary.
+
+When adding or changing behavior:
+- update targeted tests
+- preserve deterministic behavior
+- keep domain logic out of UI unless the existing architecture already does otherwise
+- update in-boundary docs when the implementation would make docs stale
+
+## Pre-ship audit (mandatory — before commit)
+
+Before **commit**, **push**, or **PR**: audit the active slice, fix all issues inside the boundary, and run validation until clean. **Do not** implement the next issue.
+
+Re-run **all six passes iteratively** until each finds nothing new (full checklist: `docs/agent-pre-ship-audit.md`):
+
+1. **Scope and integration** — goal, acceptance, architecture, naming; no parallel/duplicate subsystems.
+2. **Edge cases** — empty/malformed data, optional fields, duplicates, stale records, failed lookups, ordering, empty UI states.
+3. **Determinism and state** — reproducible, testable; no hidden randomness, silent mutation, or fallible UI revealing hidden truth.
+4. **Regression** — nearby systems and tests; update expectations only when truly obsolete.
+5. **Documentation and authoring** — in-boundary docs/fixtures/schemas only.
+6. **Cleanup** — dead code, unused imports, debug noise, speculative TODOs; minimal diff.
+
+**Validation:** most specific tests first, then lint and broader checks; fix and rerun until clean. If a command cannot run, state which, why, and what is unverified — do not claim complete.
+
+**Ready for commit/PR** only when: boundary match; edge cases handled or deferred; tests cover changes; docs updated if required; validation passes; no unrelated scope; diff clean. Paste block: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
+
+## Ship loop (mandatory)
+
+An implementation slice is **not complete** until it is on GitHub as a pull request.
+
+Run the ship loop only **after** pre-ship audit completion criteria are met:
+
+1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
+2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
+3. **Open a PR** against `main` with the PR mapping body below.
+4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
+
+Do **not** end an implementation session with only local files, uncommitted work, or "say if you want a PR."
+
+**Exceptions** (honor explicit user words only): "no commit," "no PR," "local only," "plan only," or "do not push."
+
+Repo ship loop overrides a generic "commit only when asked" preference for Containment Protocol **implementation** sessions on a named slice branch.
+
+## PR mapping
+
+When opening or updating a PR, the PR body must name:
+
+- the canonical Linear issue
+- any parent issue
+- each child issue covered by the branch
+- what shipped
+- validation run
+- docs updated
+- whether the parent remains open
+
+If the PR satisfies a child issue, do not reference only the parent.
+
+## Linear updates
+
+After implementation evidence exists:
+
+- Move the child issue to the truthful status.
+- Mark Done only when the full child acceptance bar is satisfied.
+- Add a concise Linear comment with PR URL, what shipped, and validation.
+- Keep parent issues open unless the completed children satisfy the full parent body.
+- If work is partial, add a progress comment instead of closing.
+
+If Linear tooling is unavailable, report the exact status/comment update that should be made.
+
+## Session closeout (mandatory)
+
+After the current slice is **committed**, **pushed**, **PR opened** (or merged), and **Linear** updated to the truthful status:
+
+1. **Do not** implement the next issue in this session.
+2. **Do** prepare a **next-issue implementation plan** only (see `docs/agent-session-closeout.md`).
+3. Return the **final response** using **only** the structure in that doc (no extra preamble or sections).
+
+Next-issue plan must cover: issue ID/title; smallest boundary; files to inspect; systems to reuse; risks/edge cases; required tests; required docs; what not to change; step-by-step sequence.
+
+Closeout rules: do not expand the current issue; do not mark Done unless the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite); recommend smallest accurate Linear status change from validated evidence.
+
+After **merge**, remind the human: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.

@@ -28,7 +28,8 @@ Linear is the system of record for issue state and closure. **Do not** skip Line
 | --- | --- |
 | **Before substantive work** | Find or create the slice issue; set **In Progress**. |
 | **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** owner comments (mechanic, repo anchor, ownership, boundary, fold-in vs child reasoning) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes; mirror table must match. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session — not "table only." |
-| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic). |
+| **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
+| **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
 | **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
 | **After merge** | Short Linear comment: PR URL + what shipped. |
 
@@ -81,5 +82,7 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 - **New design audits:** when adding `docs/*audit*.md`, insert a bullet in **strict alphabetical order** in `docs/design-audits-index.md`; `npm run verify:audits-index` must pass (also enforced in CI).
 - **External theme map:** when the SPE-186+ mirror or `architecture/external-design-theme-contracts.md` changes, run `npm run verify:theme-contracts` (CI enforces after audit index).
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
-- **Implementation lite (default coding):** paste from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules (optional local `.cursor/rules/implementation-lite.mdc`, `alwaysApply: true`).
+- **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
+- **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
+- **Session closeout:** after commit + Linear on a slice, plan the next issue only — final response format in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
 - **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` (optional local `.cursor/rules/backlog-hygiene.mdc`; grooming only, not implementation).

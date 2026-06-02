@@ -171,8 +171,14 @@ export function buildWeeklyIntakeVerificationReportNotes(input: {
           input.week,
           sequence,
           input.baseTimestamp,
-          'system.week_delta',
-          { delta: content }
+          'information_intake.verification',
+          {
+            reportId,
+            reportLabel: nextReport.label,
+            eventKind: added.kind,
+            verificationStatus: nextReport.verificationStatus,
+            week: input.week,
+          }
         )
       )
       sequence += 1

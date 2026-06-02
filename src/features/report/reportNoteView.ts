@@ -1,13 +1,21 @@
 import type { ReportNote, ReportNoteType } from '../../domain/models'
 
-export type ReportNoteCategory = 'incident_response' | 'recruitment' | 'system' | 'uncategorized'
+export type ReportNoteCategory =
+  | 'incident_response'
+  | 'recruitment'
+  | 'information_intake'
+  | 'system'
+  | 'uncategorized'
 
 export const REPORT_NOTE_CATEGORY_LABELS: Record<ReportNoteCategory, string> = {
   incident_response: 'Incident response',
   recruitment: 'Recruitment',
+  information_intake: 'Information intake',
   system: 'System',
   uncategorized: 'Uncategorized',
 }
+
+const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = ['information_intake.verification']
 
 const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.resolved',
@@ -59,6 +67,10 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {
   if (note.type !== undefined && RECRUITMENT_NOTE_TYPES.includes(note.type)) {
     return 'recruitment'
+  }
+
+  if (note.type !== undefined && INFORMATION_INTAKE_NOTE_TYPES.includes(note.type)) {
+    return 'information_intake'
   }
 
   if (note.type !== undefined && SYSTEM_NOTE_TYPES.includes(note.type)) {

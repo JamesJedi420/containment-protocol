@@ -321,6 +321,7 @@ export const REPORT_NOTE_TYPES = [
   'hub.opportunity',
   'hub.rumor',
   'system.equipment_recovered',
+  'information_intake.verification',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -578,6 +579,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
   ],
   'hub.opportunity': ['label', 'summary', 'week'],
   'hub.rumor': ['label', 'summary', 'week'],
+  'information_intake.verification': [
+    'reportId',
+    'reportLabel',
+    'eventKind',
+    'verificationStatus',
+    'week',
+  ],
 }
 
 const FALLBACK_WEEKLY_DIRECTIVE_ID = getWeeklyDirectiveDefinitions()[0]?.id ?? 'intel-surge'

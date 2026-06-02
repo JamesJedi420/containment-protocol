@@ -7,7 +7,7 @@
 
 import type { InformationIntakeReportRecord } from './informationIntakeReport'
 import {
-  evaluateTopicIntakeCoverage,
+  evaluateTopicIntakeCoverageFromLinkedReports,
   type PublicSignalCoverageBand,
 } from './publicSignalCoverage'
 import type { CaseInstance, GameState, MissionIntakeSource } from './models'
@@ -25,7 +25,7 @@ export function resolveMissionIntakeTopicKeys(
 ): readonly string[] {
   const keys = new Set<string>([normalizeToken(currentCase.id)])
 
-  for (const tag of currentCase.tags) {
+  for (const tag of currentCase.tags ?? []) {
     const normalized = normalizeToken(tag)
     if (!normalized) {
       continue
@@ -97,11 +97,8 @@ export function deriveMissionIntakeInformationSignals(
     return NEUTRAL_SIGNALS
   }
 
-  const primaryTopicRef = normalizeToken(linkedReports[0]?.topicRef) || currentCase.id
-  const coverage = evaluateTopicIntakeCoverage({
-    topicId: primaryTopicRef,
-    reports: linkedReports,
-  })
+  const topicLabel = normalizeToken(currentCase.id) || normalizeToken(linkedReports[0]?.topicRef)
+  const coverage = evaluateTopicIntakeCoverageFromLinkedReports(topicLabel, linkedReports)
   const summary = coverage.intakeSummary
 
   let scoreAdjustment = 0

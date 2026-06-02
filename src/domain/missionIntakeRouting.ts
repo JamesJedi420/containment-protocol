@@ -730,9 +730,7 @@ function normalizeMissionRecord(
     requiredTags: [...caseData.requiredTags],
     preferredTags: [...caseData.preferredTags],
     assignedTeamIds: [...caseData.assignedTeamIds],
-    intakeSource: sanitizeIntakeSource(
-      existing?.intakeSource ?? deriveMissionIntakeSource(caseData, state)
-    ),
+    intakeSource: sanitizeIntakeSource(deriveMissionIntakeSource(caseData, state)),
     priority: sanitizePriority(existing?.priority ?? triage.priority),
     priorityReasonCodes: uniqueSortedStrings(existing?.priorityReasonCodes ?? triage.reasonCodes),
     triageScore: clampInteger(existing?.triageScore ?? triage.score, 0, 100),

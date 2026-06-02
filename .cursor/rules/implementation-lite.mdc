@@ -11,15 +11,15 @@ Use this rule for ordinary implementation work. Do not perform full backlog hygi
 
 ## Source of truth
 
-Linear is the authoritative source for scope, status, and closure.
+Linear is the authoritative source for scope, status, and closure. Also use repository docs, tests, existing architecture, and current code.
 
 Before coding:
-1. Read the target Linear issue.
-2. Read the issue comments if they contain implementation-relevant decisions.
+1. Read the target Linear issue (and GitHub mirror if linked).
+2. Read issue comments; fold durable scope, constraints, acceptance criteria, deferred work, and implementation notes into your working summary.
 3. Read parent/child issues when the issue sits under a broader umbrella.
 4. Treat Goal, Scope, Constraints, Acceptance criteria, and reconciliation comments as binding.
 
-If Linear and chat instructions diverge, follow Linear and call out the mismatch.
+If Linear and chat instructions diverge, follow Linear and call out the mismatch. **Preserve the issue boundary.** Do not expand scope.
 
 ## Scope discipline
 
@@ -36,11 +36,15 @@ If the issue boundary is unclear, stop and report the ambiguity instead of guess
 
 ## Pre-coding summary
 
-Before substantive edits, provide:
+Before substantive edits, inspect relevant files, tests, docs, routes, state models, schemas, fixtures, and patterns. Confirm status: **already complete**, **partially complete**, **incorrectly implemented**, or **blocked**.
+
+Report:
 
 - relevant files
 - current behavior
-- proposed boundary
+- expected behavior
+- implementation boundary
+- known risks
 - validation plan
 - docs that must be updated as part of this same boundary
 
@@ -56,11 +60,28 @@ When adding or changing behavior:
 - keep domain logic out of UI unless the existing architecture already does otherwise
 - update in-boundary docs when the implementation would make docs stale
 
+## Pre-ship audit (mandatory — before commit)
+
+Before **commit**, **push**, or **PR**: audit the active slice, fix all issues inside the boundary, and run validation until clean. **Do not** implement the next issue.
+
+Re-run **all six passes iteratively** until each finds nothing new (full checklist: `docs/agent-pre-ship-audit.md`):
+
+1. **Scope and integration** — goal, acceptance, architecture, naming; no parallel/duplicate subsystems.
+2. **Edge cases** — empty/malformed data, optional fields, duplicates, stale records, failed lookups, ordering, empty UI states.
+3. **Determinism and state** — reproducible, testable; no hidden randomness, silent mutation, or fallible UI revealing hidden truth.
+4. **Regression** — nearby systems and tests; update expectations only when truly obsolete.
+5. **Documentation and authoring** — in-boundary docs/fixtures/schemas only.
+6. **Cleanup** — dead code, unused imports, debug noise, speculative TODOs; minimal diff.
+
+**Validation:** most specific tests first, then lint and broader checks; fix and rerun until clean. If a command cannot run, state which, why, and what is unverified — do not claim complete.
+
+**Ready for commit/PR** only when: boundary match; edge cases handled or deferred; tests cover changes; docs updated if required; validation passes; no unrelated scope; diff clean. Paste block: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
+
 ## Ship loop (mandatory)
 
 An implementation slice is **not complete** until it is on GitHub as a pull request.
 
-After validation passes:
+Run the ship loop only **after** pre-ship audit completion criteria are met:
 
 1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
@@ -86,17 +107,6 @@ When opening or updating a PR, the PR body must name:
 - whether the parent remains open
 
 If the PR satisfies a child issue, do not reference only the parent.
-
-## Validation
-
-Before finishing, run the most targeted validation that proves the issue boundary.
-
-Prefer:
-- targeted tests for touched behavior
-- relevant lint/type checks
-- repo-specific verification scripts when docs or indexes are touched
-
-Do not claim completion from helper-level tests alone if the issue requires real-flow behavior.
 
 ## Linear updates
 

@@ -2,9 +2,9 @@
 
 Paste the block below into **Cursor → Settings → Rules → User Rules** so every implementation session gets lightweight guardrails. User Rules apply globally (equivalent to `alwaysApply: true` on a project rule).
 
-Optional local copy: `.cursor/rules/implementation-lite.mdc` (folder is gitignored).
+Tracked copy: `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true` in this repo).
 
-Full repo detail: `AGENTS.md`. Backlog grooming only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`.
+Full repo detail: `AGENTS.md`. Pre-ship audit paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`. Closeout paste: `docs/cursor-session-closeout-user-rules-snippet.md`. Backlog grooming: `docs/cursor-backlog-hygiene-user-rules-snippet.md`.
 
 ---
 
@@ -14,15 +14,9 @@ Use this rule for ordinary implementation work. Do not perform full backlog hygi
 
 ### Source of truth
 
-Linear is the authoritative source for scope, status, and closure.
+Linear is authoritative for scope, status, and closure. Also use repo docs, tests, architecture, and current code. Fold durable issue comments into scope. Preserve boundary; do not expand scope.
 
-Before coding:
-1. Read the target Linear issue.
-2. Read the issue comments if they contain implementation-relevant decisions.
-3. Read parent/child issues when the issue sits under a broader umbrella.
-4. Treat Goal, Scope, Constraints, Acceptance criteria, and reconciliation comments as binding.
-
-If Linear and chat instructions diverge, follow Linear and call out the mismatch.
+Before coding: read Linear (and GitHub mirror); parent/child when relevant; treat Goal, Scope, Constraints, Acceptance criteria as binding. If chat diverges from Linear, follow Linear and call out mismatch.
 
 ### Scope discipline
 
@@ -39,13 +33,9 @@ If the issue boundary is unclear, stop and report the ambiguity instead of guess
 
 ### Pre-coding summary
 
-Before substantive edits, provide:
+Inspect files, tests, docs, routes, state, schemas, fixtures, patterns. Confirm: already complete / partial / wrong / blocked.
 
-- relevant files
-- current behavior
-- proposed boundary
-- validation plan
-- docs that must be updated as part of this same boundary
+Report: relevant files; current vs expected behavior; boundary; risks; validation plan; in-boundary docs to update.
 
 ### Implementation rules
 
@@ -59,11 +49,15 @@ When adding or changing behavior:
 - keep domain logic out of UI unless the existing architecture already does otherwise
 - update in-boundary docs when the implementation would make docs stale
 
+### Pre-ship audit (mandatory — before commit)
+
+Six passes iteratively until clean: scope/integration, edge cases, determinism/state, regression, docs/authoring, cleanup. Validation: specific tests first, then lint/broader; fix and rerun. Ready for commit only when boundary, tests, docs, validation, and minimal diff all satisfy. Full checklist: `docs/agent-pre-ship-audit.md`.
+
 ### Ship loop (mandatory)
 
 An implementation slice is **not complete** until it is on GitHub as a pull request.
 
-After validation passes:
+Run only **after** pre-ship audit passes:
 
 1. **Commit** all in-boundary changes on the branch named in the slice doc or task message (focused message; SPE-* in title when team workflow applies).
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
@@ -89,17 +83,6 @@ When opening or updating a PR, the PR body must name:
 - whether the parent remains open
 
 If the PR satisfies a child issue, do not reference only the parent.
-
-### Validation
-
-Before finishing, run the most targeted validation that proves the issue boundary.
-
-Prefer:
-- targeted tests for touched behavior
-- relevant lint/type checks
-- repo-specific verification scripts when docs or indexes are touched
-
-Do not claim completion from helper-level tests alone if the issue requires real-flow behavior.
 
 ### Linear updates
 

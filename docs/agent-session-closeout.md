@@ -81,4 +81,4 @@ Next issue implementation plan:
 - Implementation sequence:
 ```
 
-Fill every subsection. Use `none` only when truly empty. For **Validation**, list each command and its result on separate `- command:` / `- result:` pairs.
+Fill every subsection. Use `none` only when truly empty. **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md` (scope/integration through cleanup). For **Validation**, list each command and its result on separate `- command:` / `- result:` pairs.

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-854](https://linear.app/s
 | **Linear** | [SPE-2294 — Topic intake coverage composition (slice 3)](https://linear.app/spectranoir/issue/SPE-2294)       |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine       |
 | **Branch** | `spe-854-topic-intake-coverage-compose-slice-3`                                                            |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** (PR #2449 merged @ `c43c779d`)                                                                 |
 
 ## Goal
 

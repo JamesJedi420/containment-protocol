@@ -137,7 +137,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-report-slice-1.md`                     | **Shipped**    | SPE-2292 / PR #2444; incoming report schema + verification progression under SPE-854.                                                               |
 | `public-signal-coverage-slice-1.md`                        | **Shipped**    | SPE-2092 / PR #2445; institutional vs public channel coverage evaluator under SPE-854.                                                              |
 | `information-intake-report-persistence-slice-2.md`         | **Shipped**    | SPE-2293 / PR #2447; GameState persistence + sanitize/hydration for intake reports under SPE-854.                                                    |
-| `information-intake-coverage-compose-slice-3.md`             | **In Progress** | SPE-2294; topic intake coverage composition (`projectChannelFlagsFromIntakeReports` + `evaluateTopicIntakeCoverage`) under SPE-854.                  |
+| `information-intake-coverage-compose-slice-3.md`             | **Shipped**    | SPE-2294 / PR #2449; topic intake coverage composition under SPE-854.                                                                                |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

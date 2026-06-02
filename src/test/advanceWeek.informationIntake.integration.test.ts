@@ -175,7 +175,7 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
       note.content.includes(FORMAL_ALERT_PARTIAL_FIXTURE.label)
     )
     expect(formalNote).toBeDefined()
-    expect(formalNote?.type).toBe('system.week_delta')
+    expect(formalNote?.type).toBe('information_intake.verification')
     expect(formalNote?.content).toMatch(/corroboration \(.+; .+\)\./)
 
     const nextLinkedReport = nextState.informationIntakeReports?.[FORMAL_ALERT_PARTIAL_FIXTURE.id]

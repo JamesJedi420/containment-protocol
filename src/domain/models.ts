@@ -1491,6 +1491,7 @@ export type ReportNoteType =
   | 'hub.opportunity'
   | 'hub.rumor'
   | 'system.equipment_recovered'
+  | 'information_intake.verification'
 
 export type ReportNoteMetadataValue =
   | string

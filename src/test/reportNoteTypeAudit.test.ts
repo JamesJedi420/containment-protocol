@@ -48,6 +48,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
   'hub.opportunity': { status: 'active', producer: 'hubReportNotes', category: 'system' },
   'hub.rumor': { status: 'active', producer: 'hubReportNotes', category: 'system' },
   'system.equipment_recovered': { status: 'active', producer: 'advanceWeek', category: 'system' },
+  'information_intake.verification': {
+    status: 'active',
+    producer: 'informationIntakeWeeklyReportNotes',
+    category: 'information_intake',
+  },
 } as const satisfies Record<
   ReportNoteType,
   { status: 'active' | 'future-reserved' | 'stale'; producer: string; category: string }
@@ -59,7 +64,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(38)
+    expect(entries).toHaveLength(39)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

@@ -56,6 +56,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'concealment.activated': 'system',
   'hub.opportunity': 'system',
   'hub.rumor': 'system',
+  'information_intake.verification': 'information_intake',
 } satisfies Record<ReportNoteType, ReportNoteCategory>
 
 describe('reportNoteView', () => {
@@ -106,6 +107,7 @@ describe('reportNoteView', () => {
 
   it('exposes stable category labels', () => {
     expect(REPORT_NOTE_CATEGORY_LABELS.incident_response).toBe('Incident response')
+    expect(REPORT_NOTE_CATEGORY_LABELS.information_intake).toBe('Information intake')
     expect(REPORT_NOTE_CATEGORY_LABELS.system).toBe('System')
   })
 })

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2301](https://linear.app/spectranoir/
 | **Linear** | [SPE-2301 — Mixed-source intake mission routing integration (parent slice 1)](https://linear.app/spectranoir/issue/SPE-2301) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine |
 | **Branch** | `spe-854-information-intake-parent-integration-slice-1` |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** (PR #2465) |
 
 ## Goal
 

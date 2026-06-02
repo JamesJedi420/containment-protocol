@@ -932,11 +932,13 @@ function parseCorroborationEvent(value: unknown): CorroborationEvent | null {
     return null
   }
 
-  if (!isIntakeSourceClass(value.sourceClass)) {
+  const sourceClass = typeof value.sourceClass === 'string' ? value.sourceClass : ''
+  if (!isIntakeSourceClass(sourceClass)) {
     return null
   }
 
-  if (!Number.isFinite(value.weight) || value.weight < 0 || value.weight > 1) {
+  const weight = typeof value.weight === 'number' ? value.weight : NaN
+  if (!Number.isFinite(weight) || weight < 0 || weight > 1) {
     return null
   }
 
@@ -947,8 +949,8 @@ function parseCorroborationEvent(value: unknown): CorroborationEvent | null {
     eventId,
     week: value.week,
     sourceRef,
-    sourceClass: value.sourceClass,
-    weight: value.weight,
+    sourceClass,
+    weight,
     ...(note ? { note } : {}),
   }
 }
@@ -964,7 +966,7 @@ function parseContradictionEvent(value: unknown): ContradictionEvent | null {
     return null
   }
 
-  if (value.severity !== 'minor' && value.severity !== 'major') {
+  if (typeof value.severity !== 'string' || (value.severity !== 'minor' && value.severity !== 'major')) {
     return null
   }
 
@@ -1030,19 +1032,27 @@ function sanitizeInformationIntakeReportEntry(value: unknown): InformationIntake
   const id = normalizeToken(value.id)
   const label = normalizeToken(value.label)
   const topicRef = normalizeToken(value.topicRef)
+  const initialSourceClass =
+    typeof value.initialSourceClass === 'string' ? value.initialSourceClass : ''
+  const verificationStatus =
+    typeof value.verificationStatus === 'string' ? value.verificationStatus : ''
+  const credibility = typeof value.credibility === 'string' ? value.credibility : ''
+  const plausibility = typeof value.plausibility === 'string' ? value.plausibility : ''
+  const rumorRisk = typeof value.rumorRisk === 'string' ? value.rumorRisk : ''
+  const confidenceScore = typeof value.confidenceScore === 'number' ? value.confidenceScore : NaN
 
   if (
     !id ||
     !label ||
     !topicRef ||
-    !isIntakeSourceClass(value.initialSourceClass) ||
-    !isInformationVerificationStatus(value.verificationStatus) ||
-    !isCredibilityBand(value.credibility) ||
-    !isPlausibilityBand(value.plausibility) ||
-    !isRumorRiskBand(value.rumorRisk) ||
-    !Number.isFinite(value.confidenceScore) ||
-    value.confidenceScore < 0 ||
-    value.confidenceScore > 1
+    !isIntakeSourceClass(initialSourceClass) ||
+    !isInformationVerificationStatus(verificationStatus) ||
+    !isCredibilityBand(credibility) ||
+    !isPlausibilityBand(plausibility) ||
+    !isRumorRiskBand(rumorRisk) ||
+    !Number.isFinite(confidenceScore) ||
+    confidenceScore < 0 ||
+    confidenceScore > 1
   ) {
     return null
   }
@@ -1059,12 +1069,12 @@ function sanitizeInformationIntakeReportEntry(value: unknown): InformationIntake
     id,
     label,
     topicRef,
-    initialSourceClass: value.initialSourceClass,
-    credibility: value.credibility,
-    plausibility: value.plausibility,
-    rumorRisk: value.rumorRisk,
-    verificationStatus: value.verificationStatus,
-    confidenceScore: value.confidenceScore,
+    initialSourceClass,
+    credibility,
+    plausibility,
+    rumorRisk,
+    verificationStatus,
+    confidenceScore,
     corroborationHistory,
     contradictionHistory,
     retainedDespiteContradiction,

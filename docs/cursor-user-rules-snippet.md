@@ -10,6 +10,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 
 ## Containment Protocol — standing workflow
 
+- **Git exception:** For Containment Protocol **implementation slices**, follow repo **`implementation-lite` ship loop** (commit → push → open PR on the named branch) even when another rule says "only commit when requested." Tracked repo rules apply automatically: `.cursor/rules/implementation-lite.mdc` and `.cursor/rules/linear-always-update.mdc` (`alwaysApply: true`). Honor explicit **no commit** / **no PR** / **local only** only when the user says so in that session.
 - **Linear is mandatory on every agent session** (implementation, harvest, PR babysit, review): In Progress before work, **commit + push + open PR** before claiming an implementation slice complete, slice issue linked in PR, Done + comment on merge. Never skip because GitHub has a bot linkback. Repo rules: `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/implementation-lite.mdc`; detail in **`AGENTS.md`**. Harvest triage: post **rich** owner comments (mechanic + boundary + fold-in vs child) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes.
 - After a PR **merges**: run `git checkout main` and `git pull origin main`, then **start a new agent chat** for the next slice. Do not continue the old thread—it keeps stale branches, CI context, and failed "Move to local" branch names.
 - During an **open PR** on one branch: one agent session is fine until merge.

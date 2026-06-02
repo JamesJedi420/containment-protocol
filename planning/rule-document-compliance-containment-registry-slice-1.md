@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2123](https://linear.app/spectranoir/
 | **Linear** | [SPE-2123 — Rule-document compliance containment registry — written-conduct binding (slice 1)](https://linear.app/spectranoir/issue/SPE-2123) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine |
 | **Branch** | `jamesdyedbq/spe-2123-rule-document-compliance-containment-registry-written` |
-| **Status** | **In Progress** |
+| **Status** | **Done** (PR #2442) |
 
 ## Goal
 

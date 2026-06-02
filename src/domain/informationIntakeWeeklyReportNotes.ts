@@ -47,8 +47,8 @@ function isWeeklySyntheticEventId(eventId: string): boolean {
 }
 
 function extractLinkedCaseIdsFromSourceRef(sourceRef: string): readonly string[] {
-  const weeklyIntakeMatch = sourceRef.match(/:weekly-intake:[^:]+:([^:]+):/)
-  const caseSegment = weeklyIntakeMatch?.[1]
+  const parts = sourceRef.split(':')
+  const caseSegment = parts[1] === 'weekly-intake' ? parts[3] : undefined
   if (!caseSegment || caseSegment === 'no-case-link') {
     return []
   }
@@ -105,6 +105,7 @@ function resolveWeeklyIntakeNarrativeSegments(input: {
     hasLinkedCases: linkedCaseIds.length > 0,
     reportId: input.report.id,
     week: input.week,
+    topicRef: input.report.topicRef,
   })
 }
 

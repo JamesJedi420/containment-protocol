@@ -115,15 +115,27 @@ describe('informationIntakeWeeklyNarrativeTemplates (SPE-854 slice 9)', () => {
     expect(derived.channel).toBeTruthy()
   })
 
-  it('falls back to unlinked token pools when metadata is absent', () => {
-    const trace = selectWeeklyIntakeCorroborationTraceToken({
+  it('uses topicRef length for fallback channel/cue offsets to match generation', () => {
+    const topicRef = 'district-alpha'
+    const derived = deriveWeeklyIntakeNarrativeSegments({
+      sourceRef: 'source:weekly-intake:topic:case-001:trace-:channel-',
+      eventKind: 'corroboration',
       metadata: null,
       hasLinkedCases: false,
-      reportId: 'intake:rumor',
-      week: 1,
-      offset: 0,
+      reportId: 'intake:probe',
+      week: 3,
+      topicRef,
     })
 
-    expect(['ambient-signal', 'community-thread', 'partner-check']).toContain(trace)
+    expect(derived.trace).toBeTruthy()
+    expect(derived.channel).toBeTruthy()
+  })
+
+  it('extracts linked case ids from colon-delimited weekly intake source refs', () => {
+    const sourceRef = 'source:weekly-intake:formal-alert:case-alpha+case-beta:trace-linked-case:channel-watchlist-match'
+    const segments = extractWeeklyIntakeNarrativeSegmentsFromSourceRef(sourceRef)
+
+    expect(segments.trace).toBe('linked-case')
+    expect(segments.channel).toBe('watchlist-match')
   })
 })

@@ -169,9 +169,10 @@ function buildWeeklyContradictionSourceRef(
   week: number,
   hasLinkedCases: boolean,
   linkedCaseIds: readonly string[],
-  cases: readonly WeeklyCorroborationCaseContext[]
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[]
 ): string {
-  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, cases)
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
   const dispute = selectWeeklyIntakeContradictionDisputeToken({
     metadata,
     hasLinkedCases,
@@ -196,9 +197,10 @@ function buildWeeklyCorroborationSourceRef(
   week: number,
   hasLinkedCases: boolean,
   linkedCaseIds: readonly string[],
-  cases: readonly WeeklyCorroborationCaseContext[]
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[]
 ): string {
-  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, cases)
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
   const trace = selectWeeklyIntakeCorroborationTraceToken({
     metadata,
     hasLinkedCases,
@@ -219,10 +221,11 @@ function buildWeeklyCorroborationSourceRef(
 function resolveCaseTopicLinkedWeeklySyntheticEvent(
   report: InformationIntakeReportRecord,
   week: number,
-  cases: readonly WeeklyCorroborationCaseContext[]
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[] = linkingCases
 ): WeeklyIntakeSyntheticEvent | null {
   const normalizedWeek = normalizeWeek(week)
-  const linkedCaseIds = getMatchingCaseIds(report, cases)
+  const linkedCaseIds = getMatchingCaseIds(report, linkingCases)
   const hasLinkedCases = linkedCaseIds.length > 0
   const phase = (normalizedWeek + stableOrdinalFromId(report.id) + linkedCaseIds.length) % 6
   const normalizedTopic = normalizeToken(report.topicRef)
@@ -241,7 +244,8 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           normalizedWeek,
           hasLinkedCases,
           linkedCaseIds,
-          cases
+          linkingCases,
+          outcomeCases
         ),
         severity: hasLinkedCases ? 'minor' : 'major',
       },
@@ -276,7 +280,8 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           normalizedWeek,
           hasLinkedCases,
           linkedCaseIds,
-          cases
+          linkingCases,
+          outcomeCases
         ),
         sourceClass,
         weight: baseWeight,
@@ -297,7 +302,8 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
           normalizedWeek,
           hasLinkedCases,
           linkedCaseIds,
-          cases
+          linkingCases,
+          outcomeCases
         ),
         sourceClass: 'technical_trace',
         weight: 0.22,
@@ -317,7 +323,8 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
         normalizedWeek,
         hasLinkedCases,
         linkedCaseIds,
-        cases
+        linkingCases,
+        outcomeCases
       ),
       sourceClass: resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases),
       weight: hasLinkedCases ? 0.16 : 0.12,
@@ -332,10 +339,12 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
 export function applyWeeklyIntakeCorroborationTick(
   reports: InformationIntakeReportsMap | null | undefined,
   week: number,
-  casesById?: Record<string, WeeklyCorroborationCaseContext> | null
+  casesById?: Record<string, WeeklyCorroborationCaseContext> | null,
+  outcomeCasesById?: Record<string, WeeklyCorroborationCaseContext> | null
 ): InformationIntakeReportsMap {
   const safeReports = reports ?? {}
-  const cases = Object.values(casesById ?? {})
+  const linkingCases = Object.values(casesById ?? {})
+  const outcomeCases = Object.values(outcomeCasesById ?? casesById ?? {})
   const reportIds = Object.keys(safeReports)
   if (reportIds.length === 0) {
     return safeReports
@@ -349,7 +358,12 @@ export function applyWeeklyIntakeCorroborationTick(
       continue
     }
 
-    const synthetic = resolveCaseTopicLinkedWeeklySyntheticEvent(report, week, cases)
+    const synthetic = resolveCaseTopicLinkedWeeklySyntheticEvent(
+      report,
+      week,
+      linkingCases,
+      outcomeCases
+    )
     if (!synthetic) {
       continue
     }

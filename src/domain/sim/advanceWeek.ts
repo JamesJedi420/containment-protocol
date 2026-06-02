@@ -4457,7 +4457,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     const nextIntakeReports = applyWeeklyIntakeCorroborationTick(
       priorIntakeReports,
       intakeCorroborationWeek,
-      inputWeeklyState.cases
+      inputWeeklyState.cases,
+      outputWeeklyState.cases
     )
     outputWeeklyState.informationIntakeReports = nextIntakeReports
 
@@ -4469,7 +4470,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       week: intakeCorroborationWeek,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
-      casesById: inputWeeklyState.cases,
+      casesById: outputWeeklyState.cases,
     })
     if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {
       const reports = [...result.reports]

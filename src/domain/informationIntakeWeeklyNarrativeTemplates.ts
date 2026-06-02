@@ -328,8 +328,10 @@ export function deriveWeeklyIntakeNarrativeSegments(input: {
   hasLinkedCases: boolean
   reportId: string
   week: number
+  topicRef?: string
 }): WeeklyIntakeNarrativeSegments {
   const fromSourceRef = extractWeeklyIntakeNarrativeSegmentsFromSourceRef(input.sourceRef)
+  const topicRefLength = input.topicRef?.length ?? 0
 
   if (input.eventKind === 'corroboration') {
     return {
@@ -349,7 +351,7 @@ export function deriveWeeklyIntakeNarrativeSegments(input: {
           hasLinkedCases: input.hasLinkedCases,
           reportId: input.reportId,
           week: input.week,
-          offset: input.sourceRef.length + 1,
+          offset: topicRefLength + 1,
         }),
     }
   }
@@ -371,7 +373,7 @@ export function deriveWeeklyIntakeNarrativeSegments(input: {
         hasLinkedCases: input.hasLinkedCases,
         reportId: input.reportId,
         week: input.week,
-        offset: input.sourceRef.length,
+        offset: topicRefLength,
       }),
   }
 }

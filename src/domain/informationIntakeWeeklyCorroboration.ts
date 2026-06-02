@@ -30,11 +30,11 @@ export function buildWeeklyIntakeSyntheticEventId(
 }
 
 function normalizeWeek(week: number): number {
-  if (!Number.isFinite(week) || week < 0) {
-    return 0
+  if (!Number.isFinite(week)) {
+    return 1
   }
 
-  return Math.trunc(week)
+  return Math.max(1, Math.trunc(week))
 }
 
 function stableOrdinalFromId(id: string): number {
@@ -157,18 +157,19 @@ function resolveFallbackWeeklySyntheticEvent(
  * Empty map is a no-op. Re-applying for the same week is idempotent (stable event ids).
  */
 export function applyWeeklyIntakeCorroborationTick(
-  reports: InformationIntakeReportsMap,
+  reports: InformationIntakeReportsMap | null | undefined,
   week: number
 ): InformationIntakeReportsMap {
-  const reportIds = Object.keys(reports)
+  const safeReports = reports ?? {}
+  const reportIds = Object.keys(safeReports)
   if (reportIds.length === 0) {
-    return reports
+    return safeReports
   }
 
-  const next: InformationIntakeReportsMap = { ...reports }
+  const next: InformationIntakeReportsMap = { ...safeReports }
 
   for (const reportId of reportIds.sort((left, right) => left.localeCompare(right))) {
-    const report = reports[reportId]
+    const report = safeReports[reportId]
     if (!report) {
       continue
     }

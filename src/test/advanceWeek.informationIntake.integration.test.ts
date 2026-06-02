@@ -82,6 +82,11 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     )
   })
 
+  it('treats null or undefined report maps as empty without throwing', () => {
+    expect(applyWeeklyIntakeCorroborationTick(null, 3)).toEqual({})
+    expect(applyWeeklyIntakeCorroborationTick(undefined, 3)).toEqual({})
+  })
+
   it('is idempotent when the same weekly synthetic event id is re-applied', () => {
     const week = 5
     const reports = {

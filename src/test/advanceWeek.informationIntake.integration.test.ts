@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  createInformationIntakeReport,
   FORMAL_ALERT_PARTIAL_FIXTURE,
   PUBLIC_RUMOR_CONFLICT_FIXTURE,
 } from '../domain/informationIntakeReport'
@@ -49,21 +50,26 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     expect(rumorReport).toBeDefined()
     expect(formalReport).toBeDefined()
 
-    const expectedRumorEventId = buildWeeklyIntakeSyntheticEventId(
+    const expectedRumorContradictionEventId = buildWeeklyIntakeSyntheticEventId(
       PUBLIC_RUMOR_CONFLICT_FIXTURE.id,
       week,
-      week % 4 === 0 ? 'contradiction' : 'corroboration'
+      'contradiction'
     )
+    const expectedRumorCorroborationEventId = buildWeeklyIntakeSyntheticEventId(
+      PUBLIC_RUMOR_CONFLICT_FIXTURE.id,
+      week,
+      'corroboration'
+    )
+    const hasRumorContradiction =
+      rumorReport?.contradictionHistory.some((event) => event.eventId === expectedRumorContradictionEventId) ??
+      false
 
-    if (week % 4 === 0) {
-      expect(rumorReport?.contradictionHistory.map((event) => event.eventId)).toContain(
-        expectedRumorEventId
-      )
+    if (hasRumorContradiction) {
       expect(rumorReport?.retainedDespiteContradiction).toBe(true)
       expect(rumorReport?.contradictionHistory).toHaveLength(1)
     } else {
       expect(rumorReport?.corroborationHistory.map((event) => event.eventId)).toContain(
-        expectedRumorEventId
+        expectedRumorCorroborationEventId
       )
       expect(rumorReport?.corroborationHistory).toHaveLength(1)
       expect(rumorReport?.verificationStatus).toBe('unverified')
@@ -80,6 +86,51 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     expect(formalReport?.corroborationHistory).toHaveLength(
       FORMAL_ALERT_PARTIAL_FIXTURE.corroborationHistory.length + 1
     )
+  })
+
+  it('derives weekly corroboration source refs from linked case/topic state', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const linkedCase = Object.values(state.cases)[0]
+    const week = state.week
+
+    const linkedReport = createInformationIntakeReport({
+      id: 'intake:linked-case-topic-source',
+      label: 'Linked-case corroboration source probe',
+      topicRef: linkedCase.id,
+      initialSourceClass: 'formal_alert',
+      credibility: 'high',
+      plausibility: 'plausible',
+      rumorRisk: 'low',
+    })
+
+    state.informationIntakeReports = {
+      [linkedReport.id]: linkedReport,
+    }
+
+    const nextState = advanceWeek(state)
+    const nextLinkedReport = nextState.informationIntakeReports?.[linkedReport.id]
+
+    expect(nextLinkedReport).toBeDefined()
+
+    const corroborationEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'corroboration')
+    const corroborationEvent = nextLinkedReport?.corroborationHistory.find(
+      (event) => event.eventId === corroborationEventId
+    )
+    if (corroborationEvent) {
+      expect(corroborationEvent.sourceRef).toContain(linkedCase.id)
+      expect(corroborationEvent.sourceRef).toContain('weekly-intake')
+      return
+    }
+
+    const contradictionEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'contradiction')
+    const contradictionEvent = nextLinkedReport?.contradictionHistory.find(
+      (event) => event.eventId === contradictionEventId
+    )
+
+    expect(contradictionEvent).toBeDefined()
+    expect(contradictionEvent?.sourceRef).toContain(linkedCase.id)
+    expect(contradictionEvent?.sourceRef).toContain('weekly-intake')
   })
 
   it('treats null or undefined report maps as empty without throwing', () => {

@@ -473,7 +473,12 @@ function sanitizeHiddenDisplacementFields(
   fallback: CaseInstance
 ): Pick<
   CaseInstance,
-  'hiddenState' | 'detectionConfidence' | 'counterDetection' | 'displacementTarget' | 'route'
+  | 'hiddenState'
+  | 'detectionConfidence'
+  | 'counterDetection'
+  | 'displacementTarget'
+  | 'route'
+  | 'compartment'
 > {
   const resolvedHiddenState = isOneOf(entry.hiddenState, CASE_HIDDEN_STATES)
     ? entry.hiddenState
@@ -487,6 +492,7 @@ function sanitizeHiddenDisplacementFields(
         : fallback.displacementTarget ?? null
 
   let route = sanitizeOptionalRouteField(entry.route, fallback.route ?? null)
+  let compartment = sanitizeOptionalRouteField(entry.compartment, fallback.compartment ?? null)
 
   let hiddenState = resolvedHiddenState
   let detectionConfidence =
@@ -508,10 +514,14 @@ function sanitizeHiddenDisplacementFields(
     if (hiddenState !== 'displaced' && route !== null && route !== undefined) {
       route = hiddenState === 'hidden' || hiddenState === 'revealed' ? route : null
     }
+    if (compartment !== null && compartment !== undefined) {
+      compartment = hiddenState === 'hidden' || hiddenState === 'revealed' ? compartment : null
+    }
   } else if (!displacementTarget) {
     hiddenState = 'revealed'
     displacementTarget = undefined
     route = null
+    compartment = null
   }
 
   if (hiddenState === 'revealed' && detectionConfidence === undefined) {
@@ -532,6 +542,7 @@ function sanitizeHiddenDisplacementFields(
     ...(counterDetection !== undefined ? { counterDetection } : {}),
     ...(displacementTarget !== undefined ? { displacementTarget } : {}),
     ...(route !== undefined ? { route } : {}),
+    ...(compartment !== undefined ? { compartment } : {}),
   }
 }
 

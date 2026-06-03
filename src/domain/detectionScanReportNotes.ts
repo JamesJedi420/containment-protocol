@@ -156,7 +156,7 @@ export function shouldAppendHiddenStateScoutingReportNote(
     return orderedPlayerFacingValues(scouting.detectionScan).length > 0
   }
 
-  if (modality === 'out_of_phase_presence' || modality === 'anti_scan_compartment') {
+  if (modality === 'out_of_phase_presence') {
     return orderedPlayerFacingValues(scouting.detectionScan).length > 0
   }
 

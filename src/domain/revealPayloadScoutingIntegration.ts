@@ -28,6 +28,7 @@ import {
   applyOutOfPhaseScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
+  isAntiScanCompartmentAligned,
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
 } from './hiddenStateModality'
@@ -311,10 +312,16 @@ export function resolveScoutingWithCaseHiddenState(
 ): ScoutingRevealIntegrationResult {
   const scouting = resolveScouting(input)
   const truth = buildSubjectTruthFromCaseHiddenState(input.caseData, input, input.subject)
-  const scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
-  let detectionScan = resolveDetectionScan(truth, scanInput)
-
+  const teamTags = input.teamTags ?? []
   const modality = resolveHiddenStateModality(input.caseData)
+  let scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
+  if (
+    modality === 'anti_scan_compartment' &&
+    !isAntiScanCompartmentAligned(input.caseData, teamTags)
+  ) {
+    scanInput = { family: 'presence_sweep' }
+  }
+  let detectionScan = resolveDetectionScan(truth, scanInput)
 
   if (modality === 'false_position') {
     detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)

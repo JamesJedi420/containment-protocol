@@ -871,6 +871,31 @@ describe('hiddenStateModality (SPE-2281)', () => {
     expect(antiScanCompartmentScoutingScoreAdjustment(caseData, [SCAN_BYPASS_TAG]).delta).toBe(0)
   })
 
+  it('limits misaligned anti-scan compose path to presence tier on strong scouting', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_ANTI_SCAN_TAG],
+      compartment: 'warded-volume-alpha',
+    })
+    const integrated = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData,
+      teamTags: SCOUTING_LOW_CONCEALMENT.teamTags,
+    })
+
+    expect(integrated.outcome).toBe('strong')
+    expect(detectionScanTierOrder(integrated.detectionScan)).toEqual(['presence'])
+    expect(
+      integrated.detectionScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
+    ).toBe(ANTI_SCAN_DEGRADED_PRESENCE_SKEW)
+    expect(
+      integrated.detectionScan.remainingConcealmentLayers.some(
+        (layer) => layer.id === 'layer:authored-anti-scan'
+      )
+    ).toBe(true)
+  })
+
   it('includes anti-scan compartment in distinct modality compose path', () => {
     const antiScan = resolveScoutingWithCaseHiddenState({
       ...SCOUTING_LOW_CONCEALMENT,

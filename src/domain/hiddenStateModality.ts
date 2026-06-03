@@ -540,6 +540,10 @@ export function applyAntiScanCompartmentScanProjection(
       return field
     }
 
+    if (field.internalValue === false) {
+      return field
+    }
+
     if (!aligned) {
       return {
         ...field,

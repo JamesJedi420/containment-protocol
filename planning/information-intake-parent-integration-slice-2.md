@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2304](https://linear.app/spectranoir/
 | **Linear** | [SPE-2304 — Mission routing hydration intake linkage — parent slice 2](https://linear.app/spectranoir/issue/SPE-2304) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine |
 | **Branch** | `spe-854-information-intake-parent-integration-slice-2` |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** (PR #2471) |
 
 ## Goal
 

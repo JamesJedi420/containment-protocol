@@ -66,10 +66,57 @@ describe('infiltrationEncounterReportNotes', () => {
     const enriched = enrichInfiltrationThresholdSummary('Observers intensified scrutiny.', context)
 
     expect(enriched).toContain('Authored probe plan')
+    expect(enriched).toContain('badge chains and restricted corridors')
     expect(enriched).toContain('uniform guard cover')
+    expect(enriched).toContain('Checkpoint staff compare badge sequences')
     expect(enriched).toContain('Burn field tool')
     expect(enriched).toContain('Observers intensified scrutiny')
     expect(enriched).toContain('10% probe / 20% awareness')
+  })
+
+  it('adds probe-action encounter detail and cover-role friction to weekly summaries', () => {
+    const context = buildInfiltrationEncounterReportContext(createCovertCase())!
+    const summary = formatInfiltrationWeeklyEncounterSummary(context)
+
+    expect(summary).toContain('badge chains and restricted corridors')
+    expect(summary).toContain('Checkpoint staff compare badge sequences')
+  })
+
+  it('adds stage observer pressure for exposed and violent tracks', () => {
+    const exposed = buildInfiltrationEncounterReportContext({
+      ...createCovertCase(),
+      infiltrationStage: 'exposed',
+    })!
+    expect(formatInfiltrationWeeklyEncounterSummary(exposed)).toContain(
+      'Local observers treat the claimed role as doubtful'
+    )
+
+    const violent = buildInfiltrationEncounterReportContext({
+      ...createCovertCase(),
+      infiltrationStage: 'violent',
+    })!
+    expect(formatInfiltrationWeeklyEncounterSummary(violent)).toContain(
+      'Site security posture shifted toward force response'
+    )
+  })
+
+  it('selects distinct encounter detail per probe action', () => {
+    const access = buildInfiltrationEncounterReportContext({
+      ...createCovertCase(),
+      infiltrationProbePlan: { defaultAction: 'probe_access' },
+    })!
+    const route = buildInfiltrationEncounterReportContext({
+      ...createCovertCase(),
+      infiltrationProbePlan: { defaultAction: 'probe_route' },
+    })!
+    const cleanup = buildInfiltrationEncounterReportContext({
+      ...createCovertCase(),
+      infiltrationWeeklyProbeActionOverride: 'cleanup',
+    })!
+
+    expect(formatInfiltrationWeeklyEncounterSummary(access)).toContain('restricted corridors')
+    expect(formatInfiltrationWeeklyEncounterSummary(route)).toContain('patrol gaps and service routes')
+    expect(formatInfiltrationWeeklyEncounterSummary(cleanup)).toContain('back-channel contacts')
   })
 
   it('formats leave-behind tradeoff with score pressure and optional custody strain', () => {

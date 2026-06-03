@@ -36,6 +36,7 @@ export type HiddenStateModalityKind =
   | 'false_detection_output'
   | 'glamour_overlay'
   | 'out_of_phase_presence'
+  | 'anti_scan_compartment'
 
 export const MODALITY_SIGNATURE_MASK_TAG = 'modality-signature-mask'
 export const MODALITY_FALSE_DETECTION_TAG = 'modality-false-detection'
@@ -43,6 +44,10 @@ export const MODALITY_GLAMOUR_TAG = 'modality-glamour'
 export const MODALITY_OUT_OF_PHASE_TAG = 'modality-out-of-phase'
 export const LIMINAL_PRESENCE_TAG = 'liminal-presence'
 export const LIMINAL_FREQUENCY_TAG = 'liminal-frequency'
+export const MODALITY_ANTI_SCAN_TAG = 'modality-anti-scan'
+export const ANTI_SCAN_COMPARTMENT_TAG = 'anti-scan-compartment'
+export const SCAN_BYPASS_TAG = 'scan-bypass'
+export const EM_SWEEP_TAG = 'em-sweep'
 export const PRESENTATION_OVERLAY_TAG = 'presentation-overlay'
 export const INSTRUMENTATION_ATTACK_TAG = 'instrumentation-attack'
 
@@ -63,6 +68,13 @@ export const OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW = 'liminal trace contact'
 
 /** Bounded weekly score delta when out-of-phase target is absent on the filed route. */
 export const OUT_OF_PHASE_ROUTE_CAUTION_SCORE_DELTA = 0.25
+
+/** Player-facing readouts when anti-scan compartment modality is active. */
+export const ANTI_SCAN_DEGRADED_PRESENCE_SKEW = 'degraded contact through warded volume'
+export const ANTI_SCAN_PARTIAL_PRESENCE_SKEW = 'confirmed contact past compartment screening'
+
+/** Bounded weekly score delta when anti-scan bypass policy is not satisfied. */
+export const ANTI_SCAN_COMPARTMENT_CAUTION_SCORE_DELTA = 0.3
 
 const CONCEALED_PRESENCE_LAYER: ConcealmentLayer = {
   id: 'layer:concealed-presence',
@@ -99,6 +111,11 @@ const OUT_OF_PHASE_LAYER: ConcealmentLayer = {
   blockedTiers: ['category', 'hostility', 'exact_identity'],
 }
 
+const ANTI_SCAN_COMPARTMENT_LAYER: ConcealmentLayer = {
+  id: 'layer:authored-anti-scan',
+  blockedTiers: ['category', 'hostility', 'exact_identity'],
+}
+
 const DISGUISE_SIGNAL_TAGS = ['infiltration', 'disguise', 'covert', 'stealth'] as const
 
 function caseModalityTagSet(caseData: CaseInstance): Set<string> {
@@ -129,6 +146,55 @@ export function caseHasOutOfPhasePresenceModality(caseData: CaseInstance): boole
   const tags = caseModalityTagSet(caseData)
 
   return tags.has(MODALITY_OUT_OF_PHASE_TAG) || tags.has(LIMINAL_PRESENCE_TAG)
+}
+
+export function caseHasAntiScanCompartmentModality(caseData: CaseInstance): boolean {
+  const tags = caseModalityTagSet(caseData)
+
+  return tags.has(MODALITY_ANTI_SCAN_TAG) || tags.has(ANTI_SCAN_COMPARTMENT_TAG)
+}
+
+/** True when scouting team tags satisfy bypass or compartment-entry policy. */
+export function isAntiScanCompartmentAligned(
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): boolean {
+  const tagSet = new Set(teamTags)
+  if (tagSet.has(SCAN_BYPASS_TAG) || tagSet.has(EM_SWEEP_TAG)) {
+    return true
+  }
+
+  const compartment = caseData.compartment?.trim()
+  if (compartment === undefined || compartment.length === 0) {
+    return false
+  }
+
+  return tagSet.has(compartment)
+}
+
+export interface AntiScanScoutingScoreAdjustment {
+  readonly delta: number
+  readonly reason?: string
+}
+
+export function antiScanCompartmentScoutingScoreAdjustment(
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): AntiScanScoutingScoreAdjustment {
+  if (resolveHiddenStateModality(caseData) !== 'anti_scan_compartment') {
+    return { delta: 0 }
+  }
+
+  if (isAntiScanCompartmentAligned(caseData, teamTags)) {
+    return { delta: 0 }
+  }
+
+  const compartmentLabel = caseData.compartment?.trim() || 'warded volume'
+
+  return {
+    delta: ANTI_SCAN_COMPARTMENT_CAUTION_SCORE_DELTA,
+    reason: `Anti-scan compartment ${compartmentLabel} — scan caution.`,
+  }
 }
 
 /** True when scouting team tags satisfy the case route or liminal-frequency gate. */
@@ -213,6 +279,10 @@ export function resolveHiddenStateModality(caseData: CaseInstance): HiddenStateM
     return 'out_of_phase_presence'
   }
 
+  if (caseHasAntiScanCompartmentModality(caseData)) {
+    return 'anti_scan_compartment'
+  }
+
   return 'concealed_presence'
 }
 
@@ -234,6 +304,8 @@ export function hiddenStateModalityLayer(
       return GLAMOUR_OVERLAY_LAYER
     case 'out_of_phase_presence':
       return OUT_OF_PHASE_LAYER
+    case 'anti_scan_compartment':
+      return ANTI_SCAN_COMPARTMENT_LAYER
     case 'none':
       return null
     default: {
@@ -448,6 +520,43 @@ export function applyGlamourOverlayScanProjection(scan: DetectionScanResult): De
     }
 
     return field
+  })
+
+  return {
+    ...scan,
+    fields,
+  }
+}
+
+/** Player-facing scan projection for anti-scan compartments without mutating canonical truth tiers. */
+export function applyAntiScanCompartmentScanProjection(
+  scan: DetectionScanResult,
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): DetectionScanResult {
+  const aligned = isAntiScanCompartmentAligned(caseData, teamTags)
+  const fields = scan.fields.map((field) => {
+    if (field.tier !== 'presence') {
+      return field
+    }
+
+    if (field.internalValue === false) {
+      return field
+    }
+
+    if (!aligned) {
+      return {
+        ...field,
+        playerFacingValue: ANTI_SCAN_DEGRADED_PRESENCE_SKEW,
+        ambiguous: true,
+      }
+    }
+
+    return {
+      ...field,
+      playerFacingValue: ANTI_SCAN_PARTIAL_PRESENCE_SKEW,
+      ambiguous: true,
+    }
   })
 
   return {

@@ -10,8 +10,11 @@ import {
   FALSE_DETECTION_SCAN_READOUT_PREFIX,
   GLAMOUR_SCAN_READOUT_PREFIX,
   OUT_OF_PHASE_SCAN_READOUT_PREFIX,
+  ANTI_SCAN_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
 import {
+  ANTI_SCAN_DEGRADED_PRESENCE_SKEW,
+  MODALITY_ANTI_SCAN_TAG,
   MODALITY_FALSE_DETECTION_TAG,
   MODALITY_GLAMOUR_TAG,
   MODALITY_OUT_OF_PHASE_TAG,
@@ -430,6 +433,55 @@ describe('advanceWeek hidden-state scouting report copy (SPE-2283)', () => {
     ).toBe(true)
     expect(
       snapshot?.missionResult?.explanationNotes.some((note) => note.includes('route caution'))
+    ).toBe(true)
+    expect(snapshot?.hiddenState).not.toBe('revealed')
+  })
+
+  it('surfaces anti-scan readout and scan caution without revealing hidden state', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_anti_scan_readout', 60)
+    const team: Team = {
+      id: 'team-anti-scan-readout',
+      name: 'Anti-scan readout team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      tags: [MODALITY_ANTI_SCAN_TAG],
+      compartment: 'warded-volume-alpha',
+      counterDetection: false,
+    })
+
+    const preAdvance = resolveAssignedCaseForWeek(state.cases['case-concealed-readout'], state, () => 0.5)
+    expect(preAdvance.hiddenStateScouting?.active).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(ANTI_SCAN_SCAN_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(ANTI_SCAN_DEGRADED_PRESENCE_SKEW)
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) => note.includes('scan caution'))
     ).toBe(true)
     expect(snapshot?.hiddenState).not.toBe('revealed')
   })

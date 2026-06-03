@@ -8,7 +8,7 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–10 shipped (SPE-2281–SPE-2302 / PR #2403–#2467); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for deferred anti-scan families only — see Shipped table and active queue below.
+- Concealment activation stack and hidden-modality matrix slices 1–10 shipped (SPE-2281–SPE-2302 / PR #2403–#2467); slice 11 anti-scan compartments in flight ([SPE-2303](https://linear.app/spectranoir/issue/SPE-2303)); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for mission-triage chips only after slice 11 — see Shipped table and active queue below.
 - Intake registry wave shipped on `main` through adjacent tier SPE-2123 (SPE-2104–SPE-2123 / PR #2428–#2442); [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) parents remain open.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.

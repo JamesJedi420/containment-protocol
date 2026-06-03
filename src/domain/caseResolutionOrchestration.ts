@@ -14,7 +14,10 @@ import {
   applyHiddenStateIllusionLifecyclePass,
   buildIllusionLifecycleContext,
 } from './hiddenStateIllusionLifecycle'
-import { outOfPhaseScoutingScoreAdjustment } from './hiddenStateModality'
+import {
+  antiScanCompartmentScoutingScoreAdjustment,
+  outOfPhaseScoutingScoreAdjustment,
+} from './hiddenStateModality'
 import { evaluateHiddenStateModalityTell } from './hiddenStateModalityTells'
 import type { HiddenStateModalityTellResult } from './hiddenStateModalityTells'
 import {
@@ -196,6 +199,10 @@ export function resolveAssignedCaseForWeek(
     resolvedEffectiveCase,
     scoutingAlignmentTags
   )
+  const antiScanScore = antiScanCompartmentScoutingScoreAdjustment(
+    resolvedEffectiveCase,
+    scoutingAlignmentTags
+  )
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
   const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =
@@ -205,7 +212,8 @@ export function resolveAssignedCaseForWeek(
     infiltrationStageMission.scoreAdjustment +
     stealthLeaveBehindMission.scoreAdjustment +
     reconCacheScore.delta +
-    outOfPhaseScore.delta
+    outOfPhaseScore.delta +
+    antiScanScore.delta
   const scoreAdjustmentReason = [
     ...factionContext.reasons,
     behaviorValidation.scoreAdjustmentReason,
@@ -214,6 +222,7 @@ export function resolveAssignedCaseForWeek(
     stealthLeaveBehindMission.scoreAdjustmentReason,
     reconCacheScore.reason,
     outOfPhaseScore.reason,
+    antiScanScore.reason,
   ]
     .filter(Boolean)
     .join(' / ')

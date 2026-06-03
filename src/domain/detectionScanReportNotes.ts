@@ -37,6 +37,7 @@ export const SIGNATURE_MASK_SCAN_READOUT_PREFIX = 'Signature mask readout:'
 export const FALSE_DETECTION_SCAN_READOUT_PREFIX = 'False-detection readout:'
 export const GLAMOUR_SCAN_READOUT_PREFIX = 'Glamour readout:'
 export const OUT_OF_PHASE_SCAN_READOUT_PREFIX = 'Out-of-phase readout:'
+export const ANTI_SCAN_SCAN_READOUT_PREFIX = 'Anti-scan readout:'
 
 export const DETECTION_SCAN_READOUT_PREFIXES = [
   DETECTION_SCAN_READOUT_PREFIX,
@@ -47,6 +48,7 @@ export const DETECTION_SCAN_READOUT_PREFIXES = [
   FALSE_DETECTION_SCAN_READOUT_PREFIX,
   GLAMOUR_SCAN_READOUT_PREFIX,
   OUT_OF_PHASE_SCAN_READOUT_PREFIX,
+  ANTI_SCAN_SCAN_READOUT_PREFIX,
   FABRICATED_CONTACT_READOUT_PREFIX,
   STRUCTURAL_ILLUSION_READOUT_PREFIX,
 ] as const
@@ -69,6 +71,8 @@ export function detectionScanReadoutPrefixForModality(
       return GLAMOUR_SCAN_READOUT_PREFIX
     case 'out_of_phase_presence':
       return OUT_OF_PHASE_SCAN_READOUT_PREFIX
+    case 'anti_scan_compartment':
+      return ANTI_SCAN_SCAN_READOUT_PREFIX
     case 'none':
       return DETECTION_SCAN_READOUT_PREFIX
     default: {

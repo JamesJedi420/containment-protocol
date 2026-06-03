@@ -3,15 +3,24 @@ import {
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
   applyGlamourOverlayScanProjection,
+  applyAntiScanCompartmentScanProjection,
   applyOutOfPhaseScanProjection,
   applySignatureMaskScanProjection,
+  ANTI_SCAN_COMPARTMENT_TAG,
+  ANTI_SCAN_DEGRADED_PRESENCE_SKEW,
+  ANTI_SCAN_PARTIAL_PRESENCE_SKEW,
+  antiScanCompartmentScoutingScoreAdjustment,
+  EM_SWEEP_TAG,
+  isAntiScanCompartmentAligned,
   isOutOfPhasePresenceAligned,
   LIMINAL_FREQUENCY_TAG,
   LIMINAL_PRESENCE_TAG,
+  MODALITY_ANTI_SCAN_TAG,
   MODALITY_OUT_OF_PHASE_TAG,
   OUT_OF_PHASE_ABSENT_ROUTE_SKEW,
   OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW,
   outOfPhaseScoutingScoreAdjustment,
+  SCAN_BYPASS_TAG,
   buildSubjectTruthFromCaseHiddenState,
   formatDecoyLocusLabel,
   FALSE_DETECTION_FABRICATED_CATEGORY,
@@ -193,6 +202,34 @@ describe('hiddenStateModality (SPE-2281)', () => {
         })
       )
     ).toBe('glamour_overlay')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_ANTI_SCAN_TAG],
+        })
+      )
+    ).toBe('anti_scan_compartment')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [ANTI_SCAN_COMPARTMENT_TAG],
+        })
+      )
+    ).toBe('anti_scan_compartment')
+    expect(
+      resolveHiddenStateModality(
+        createModalityCase({
+          hiddenState: 'hidden',
+          tags: [MODALITY_OUT_OF_PHASE_TAG, MODALITY_ANTI_SCAN_TAG],
+        })
+      )
+    ).toBe('out_of_phase_presence')
+  })
+
+  it('maps anti-scan compartment to authored anti-scan layer', () => {
+    expect(hiddenStateModalityLayer('anti_scan_compartment')?.id).toBe('layer:authored-anti-scan')
   })
 
   it('maps out-of-phase presence to authored out-of-phase layer', () => {
@@ -753,6 +790,125 @@ describe('hiddenStateModality (SPE-2281)', () => {
 
     expect(outOfPhaseScoutingScoreAdjustment(caseData, []).delta).toBe(0.25)
     expect(outOfPhaseScoutingScoreAdjustment(caseData, [LIMINAL_FREQUENCY_TAG]).delta).toBe(0)
+  })
+
+  it('projects anti-scan readouts for misaligned and aligned bypass', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_ANTI_SCAN_TAG],
+      compartment: 'warded-volume-alpha',
+    })
+    const misalignedTruth = buildSubjectTruthFromCaseHiddenState(
+      caseData,
+      SCOUTING_LOW_CONCEALMENT,
+      SUBJECT
+    )
+    const misalignedScan = applyAntiScanCompartmentScanProjection(
+      resolveDetectionScan(misalignedTruth, { family: 'presence_sweep' }),
+      caseData,
+      SCOUTING_LOW_CONCEALMENT.teamTags
+    )
+
+    expect(misalignedTruth.present).toBe(true)
+    expect(
+      misalignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
+    ).toBe(ANTI_SCAN_DEGRADED_PRESENCE_SKEW)
+
+    const alignedTruth = buildSubjectTruthFromCaseHiddenState(
+      caseData,
+      { ...SCOUTING_LOW_CONCEALMENT, teamTags: [SCAN_BYPASS_TAG] },
+      SUBJECT
+    )
+    const alignedScan = applyAntiScanCompartmentScanProjection(
+      resolveDetectionScan(alignedTruth, { family: 'category_pass' }),
+      caseData,
+      [SCAN_BYPASS_TAG]
+    )
+
+    expect(
+      alignedScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
+    ).toBe(ANTI_SCAN_PARTIAL_PRESENCE_SKEW)
+    expect(isAntiScanCompartmentAligned(caseData, [EM_SWEEP_TAG])).toBe(true)
+    expect(
+      isAntiScanCompartmentAligned(caseData, ['warded-volume-alpha'])
+    ).toBe(true)
+  })
+
+  it('strips anti-scan layer on counter-detection without solving other families', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      counterDetection: true,
+      tags: [MODALITY_ANTI_SCAN_TAG],
+      compartment: 'warded-volume-alpha',
+    })
+    const truth = buildSubjectTruthFromCaseHiddenState(
+      caseData,
+      { ...SCOUTING_INPUT, teamTags: [SCAN_BYPASS_TAG] },
+      SUBJECT
+    )
+    const scanInput = scoutingOutcomeToDetectionScanForCase(
+      { outcome: 'strong', revealed: true, withheld: false },
+      caseData
+    )
+
+    const scan = resolveDetectionScan(truth, scanInput)
+    expect(scan.strippedLayerIds).toEqual(['layer:authored-anti-scan'])
+  })
+
+  it('applies scan-caution score adjustment when anti-scan bypass is misaligned', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_ANTI_SCAN_TAG],
+      compartment: 'warded-volume-alpha',
+    })
+
+    expect(antiScanCompartmentScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).delta).toBe(
+      0.3
+    )
+    expect(
+      antiScanCompartmentScoutingScoreAdjustment(caseData, SCOUTING_INPUT.teamTags).reason
+    ).toContain('scan caution')
+    expect(antiScanCompartmentScoutingScoreAdjustment(caseData, [SCAN_BYPASS_TAG]).delta).toBe(0)
+  })
+
+  it('includes anti-scan compartment in distinct modality compose path', () => {
+    const antiScan = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_ANTI_SCAN_TAG],
+        compartment: 'warded-volume-alpha',
+      }),
+    })
+    const outOfPhase = resolveScoutingWithCaseHiddenState({
+      ...SCOUTING_LOW_CONCEALMENT,
+      subject: SUBJECT,
+      caseData: createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_OUT_OF_PHASE_TAG],
+        route: 'ritual-corridor-alpha',
+      }),
+    })
+
+    expect(
+      antiScan.detectionScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
+    ).toBe(ANTI_SCAN_DEGRADED_PRESENCE_SKEW)
+    const antiScanTruth = buildSubjectTruthFromCaseHiddenState(
+      createModalityCase({
+        hiddenState: 'hidden',
+        tags: [MODALITY_ANTI_SCAN_TAG],
+        compartment: 'warded-volume-alpha',
+      }),
+      SCOUTING_LOW_CONCEALMENT,
+      SUBJECT
+    )
+    expect(
+      antiScanTruth.concealmentLayers.some((layer) => layer.id === 'layer:authored-anti-scan')
+    ).toBe(true)
+    expect(
+      outOfPhase.detectionScan.fields.find((field) => field.tier === 'presence')?.playerFacingValue
+    ).toBe(OUT_OF_PHASE_ABSENT_ROUTE_SKEW)
   })
 
   it('includes out-of-phase presence in distinct modality compose path', () => {

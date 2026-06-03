@@ -1341,6 +1341,8 @@ export interface CaseInstance {
   counterDetection?: boolean
   displacementTarget?: Id | null
   route?: string | null
+  /** SPE-2303: authored anti-scan compartment token for bypass alignment (mirrors `route`). */
+  compartment?: string | null
   /** SPE-2284: known-but-unresolved hidden-state scouting nodes across weekly passes. */
   hiddenStateScoutingReconCache?: import('./hiddenStateScoutingReconCache').HiddenStateScoutingReconCache
   /** SPE-2285: false-entity / structural-illusion lifecycle overlay. */

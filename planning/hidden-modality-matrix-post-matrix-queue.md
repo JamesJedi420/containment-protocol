@@ -14,7 +14,7 @@ Routing doc for optional modality families after matrix slices 1–6 shipped. **
 | 6     | SPE-2286 | #2415  | Mode-specific tells / observer threshold   |
 | —     | SPE-2287 | #2417  | Docs reconciliation (not runtime)          |
 
-Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families through slice 10 shipped or in flight; deferred anti-scan compartments and mission-triage chips remain out of scope.
+Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families through slice 11 in flight; mission-triage chips remain out of scope.
 
 ## Post-matrix queue (complete)
 
@@ -24,17 +24,17 @@ Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog**
 | 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` (shipped PR #2422) |
 | 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` (shipped PR #2423) |
 | 4     | 10    | SPE-2302 | Out-of-phase / liminal presence | `planning/hidden-modality-matrix-slice-10.md` (shipped PR #2467) |
+| 5     | 11    | SPE-2303 | Anti-scan compartments          | `planning/hidden-modality-matrix-slice-11.md` (in flight) |
 | —     | —     | SPE-2291 | Docs reconciliation       | `planning/backlog.md` handoff (shipped) |
 
 ### Repo anchors (post-queue)
 
-- `HiddenStateModalityKind`: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output`, `glamour_overlay`, `out_of_phase_presence` — see `src/domain/hiddenStateModality.ts`.
-- Authored layers distinct from rating layers: `layer:authored-signature-mask`, `layer:authored-false-detection`, `layer:authored-glamour`, `layer:authored-out-of-phase`.
+- `HiddenStateModalityKind`: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output`, `glamour_overlay`, `out_of_phase_presence`, `anti_scan_compartment` — see `src/domain/hiddenStateModality.ts`.
+- Authored layers distinct from rating layers: `layer:authored-signature-mask`, `layer:authored-false-detection`, `layer:authored-glamour`, `layer:authored-out-of-phase`, `layer:authored-anti-scan`.
 - Rating-derived `layer:glamour` and `layer:signature-mask` remain in `concealmentLayersFromRating`.
 
 ### Explicitly deferred (not in queue)
 
-- Anti-scan compartments (dead zones, Faraday, warded volumes)
 - Mission triage illusion/tell chips
 - Full SPE-70 parent Done (evaluate after owner review of deferred families)
 

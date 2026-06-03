@@ -21,6 +21,7 @@ import {
   resolveIllusionKindFromCase,
 } from './hiddenStateIllusionLifecycle'
 import {
+  applyAntiScanCompartmentScanProjection,
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
   applyGlamourOverlayScanProjection,
@@ -333,6 +334,14 @@ export function resolveScoutingWithCaseHiddenState(
 
   if (modality === 'out_of_phase_presence') {
     detectionScan = applyOutOfPhaseScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
+  }
+
+  if (modality === 'anti_scan_compartment') {
+    detectionScan = applyAntiScanCompartmentScanProjection(
       detectionScan,
       input.caseData,
       input.teamTags ?? []

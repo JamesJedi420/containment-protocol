@@ -223,7 +223,7 @@ export function enrichInfiltrationThresholdSummary(
   context: InfiltrationEncounterReportContext
 ): string {
   const prepLead = formatProbeActionClause(context).replace(/\.$/, '')
-  const encounterDetail = formatProbeEncounterDetailClause(context).trim()
+  const encounterDetail = formatProbeEncounterDetailClause(context).trim().replace(/\.$/, '')
   return `${prepLead}; ${encounterDetail}; ${baseSummary}${formatCoverClause(context)}${formatCoverRoleFrictionClause(context)}${formatLeaveBehindClause(context)}${formatStageObserverClause(context)}${formatTrackClause(context)}`
 }
 

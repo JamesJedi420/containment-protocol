@@ -72,6 +72,7 @@ describe('infiltrationEncounterReportNotes', () => {
     expect(enriched).toContain('Burn field tool')
     expect(enriched).toContain('Observers intensified scrutiny')
     expect(enriched).toContain('10% probe / 20% awareness')
+    expect(enriched).not.toContain('.;')
   })
 
   it('adds probe-action encounter detail and cover-role friction to weekly summaries', () => {

@@ -16,6 +16,7 @@ import {
 } from '../../domain/hiddenStateIllusionLifecycle'
 import { resolveHiddenStateModality } from '../../domain/hiddenStateModality'
 import type { Agent, CaseInstance, GameState, Team } from '../../domain/models'
+import { getUniqueTeamMembers } from '../../domain/teamSimulation'
 
 const MAX_MODALITY_MARKERS = 2
 
@@ -48,19 +49,16 @@ function pushMarker(
   markers.push(marker)
 }
 
-function agentsForTeams(game: GameState, teams: readonly Team[]): Agent[] {
-  const agents: Agent[] = []
-
-  for (const team of teams) {
-    for (const agentId of team.agentIds) {
-      const agent = game.agents[agentId]
-      if (agent) {
-        agents.push(agent)
-      }
-    }
+function agentsForAssignedTeams(game: GameState, teams: readonly Team[]): Agent[] {
+  if (teams.length === 0) {
+    return []
   }
 
-  return agents
+  return getUniqueTeamMembers(
+    teams.map((team) => team.id),
+    game.teams,
+    game.agents
+  )
 }
 
 function caseTagSet(caseData: CaseInstance): Set<string> {
@@ -178,13 +176,16 @@ function appendTellMarker(
         })
       : null
 
-  if (tell?.active === true && tell.kind !== undefined) {
-    pushMarker(markers, {
-      id: `tell:${tell.kind}`,
-      label: tellChipLabel(tell.kind),
-      className: MARKER_STYLES.tell,
-      title: tell.readoutLine,
-    })
+  if (assignedAgents.length > 0) {
+    if (tell?.active === true && tell.kind !== undefined) {
+      pushMarker(markers, {
+        id: `tell:${tell.kind}`,
+        label: tellChipLabel(tell.kind),
+        className: MARKER_STYLES.tell,
+        title: tell.readoutLine,
+      })
+    }
+
     return
   }
 
@@ -215,7 +216,7 @@ export function buildMissionTriageModalitySignals(
   const markers: MissionTriageModalitySignalMarker[] = []
 
   appendIllusionMarker(markers, resolvedCase)
-  appendTellMarker(markers, resolvedCase, agentsForTeams(game, assignedTeams))
+  appendTellMarker(markers, resolvedCase, agentsForAssignedTeams(game, assignedTeams))
 
   return {
     visible: markers.length > 0,

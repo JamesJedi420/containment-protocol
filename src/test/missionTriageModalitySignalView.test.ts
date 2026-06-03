@@ -4,7 +4,10 @@ import { buildMissionTriageModalitySignals } from '../features/cases/missionTria
 import { buildMissionTriageListRowChips } from '../features/cases/missionTriageLayoutView'
 import { buildMissionTriageDispositionView } from '../features/cases/missionTriageDispositionView'
 import { getCaseListItemView } from '../features/cases/caseView'
-import { TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
+import {
+  OBSERVER_THRESHOLD_STRICT_TAG,
+  TELL_THERMAL_RESIDUAL_TAG,
+} from '../domain/hiddenStateModalityTells'
 import type { Agent, CaseInstance } from '../domain/models'
 import { createStarterCase } from '../domain/templates/startingCases'
 
@@ -60,7 +63,7 @@ describe('missionTriageModalitySignalView (SPE-2306)', () => {
     expect(signals.markers[0]?.title).toContain('Residual signature')
   })
 
-  it('shows active tell chip when assigned team agents satisfy observer gate', () => {
+  it('shows active tell chip when assigned team agents detect the tell', () => {
     const game = createStartingState()
     const teamId = Object.keys(game.teams)[0]!
     const agent = makeObserver('agent-tell', 70)
@@ -81,6 +84,30 @@ describe('missionTriageModalitySignalView (SPE-2306)', () => {
     const signals = buildMissionTriageModalitySignals(caseData, game, [game.teams[teamId]!])
 
     expect(signals.markers.some((marker) => marker.id === 'tell:thermal_residual')).toBe(true)
+  })
+
+  it('hides tell chip when assigned team fails observer-threshold gate (no preview fallback)', () => {
+    const game = createStartingState()
+    const teamId = Object.keys(game.teams)[0]!
+    const agent = makeObserver('agent-tell-strong', 60)
+    game.agents = { [agent.id]: agent }
+    game.teams = {
+      ...game.teams,
+      [teamId]: { ...game.teams[teamId]!, agentIds: [agent.id] },
+    }
+
+    const caseData = createHiddenCase({
+      id: 'case-tell-gated',
+      status: 'in_progress',
+      assignedTeamIds: [teamId],
+      tags: ['concealment', TELL_THERMAL_RESIDUAL_TAG, OBSERVER_THRESHOLD_STRICT_TAG],
+      difficulty: { combat: 0, investigation: 15, utility: 0, social: 0 },
+    })
+    game.cases = { [caseData.id]: caseData }
+
+    const signals = buildMissionTriageModalitySignals(caseData, game, [game.teams[teamId]!])
+
+    expect(signals.markers.some((marker) => marker.id.startsWith('tell'))).toBe(false)
   })
 
   it('shows illusion chips for active and disproved phases', () => {

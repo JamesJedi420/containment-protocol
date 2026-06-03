@@ -8,7 +8,7 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–10 shipped (SPE-2281–SPE-2302 / PR #2403–#2467); slice 11 anti-scan compartments in flight ([SPE-2303](https://linear.app/spectranoir/issue/SPE-2303)); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for mission-triage chips only after slice 11 — see Shipped table and active queue below.
+- Concealment activation stack and hidden-modality matrix slices 1–11 shipped (SPE-2281–SPE-2303 / PR #2403–#2469); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for mission-triage chips only — see Shipped table and active queue below.
 - Intake registry wave shipped on `main` through adjacent tier SPE-2123 (SPE-2104–SPE-2123 / PR #2428–#2442); [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) parents remain open.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
@@ -17,7 +17,7 @@ From `README.md` **Current design notes**:
 ## Active queue (highest leverage first — reorder as needed)
 
 1. **Information intake ([SPE-854](https://linear.app/spectranoir/issue/SPE-854))** — Adjacent intake registry wave **complete** through SPE-2123 (SPE-2104–SPE-2123). No further SPE-21xx slice rows in `planning/harvest-reconciliation-index.md`; pick next work from backlog item 2, parent integration slices, or backlog grooming. Parents [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stay open.
-2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind and report copy slice complete (`src/domain/infiltrationEncounterReportNotes.ts`). Further authored content only; not new probe mechanics.
+2. **Infiltration optional content depth** — Batch-4 probe/cover/leave-behind stacks and report copy shipped (SPE-2250 slices 1–2); slice 3 report encounter depth in flight ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305)). Authored copy only; not new probe mechanics.
 3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
 ## Recommended next step (agent handoff)
@@ -102,6 +102,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |
 | `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                                                                                                             |
 | `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |
+| `infiltration-encounter-content-slice-3.md`               | **In progress** | SPE-2305; optional report encounter copy depth.                                                                                                    |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

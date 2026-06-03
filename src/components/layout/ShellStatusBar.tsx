@@ -34,7 +34,10 @@ export function ShellStatusBar() {
       return []
     }
 
-    const triageViewOptions = { includeCovertPrepSignals: true as const }
+    const triageViewOptions = {
+      includeCovertPrepSignals: true as const,
+      includeModalitySignals: true as const,
+    }
     const filters = normalizeCaseListFilters(
       game,
       readCaseListFilters(searchParams),

@@ -30,6 +30,10 @@ import {
   buildMissionTriageCovertPrepSignals,
   type MissionTriageCovertPrepSignals,
 } from './missionTriageCovertPrepView'
+import {
+  buildMissionTriageModalitySignals,
+  type MissionTriageModalitySignals,
+} from './missionTriageModalitySignalView'
 
 export const CASE_STATUS_FILTERS = ['all', 'open', 'in_progress', 'resolved'] as const
 export const CASE_MODE_FILTERS = ['all', 'threshold', 'probability', 'deterministic'] as const
@@ -83,6 +87,7 @@ export interface CaseListItemView {
   isRaidAtCapacity: boolean
   triageIgnored: boolean
   covertPrepSignals: MissionTriageCovertPrepSignals
+  modalitySignals: MissionTriageModalitySignals
   deferralCompare: MissionTriageDeferralCompareView
 }
 
@@ -99,6 +104,7 @@ export const DEFAULT_CASE_LIST_FILTERS: CaseListFilters = {
 
 export interface CaseListItemViewOptions {
   readonly includeCovertPrepSignals?: boolean
+  readonly includeModalitySignals?: boolean
 }
 
 export function getCaseListItemView(
@@ -200,6 +206,10 @@ export function getCaseListItemView(
     options?.includeCovertPrepSignals === true
       ? buildMissionTriageCovertPrepSignals(currentCase, game)
       : { visible: false, markers: [] }
+  const modalitySignals =
+    options?.includeModalitySignals === true
+      ? buildMissionTriageModalitySignals(currentCase, game, assignedTeams)
+      : { visible: false, markers: [] }
 
   return {
     currentCase,
@@ -227,6 +237,7 @@ export function getCaseListItemView(
     isRaidAtCapacity,
     triageIgnored: isMissionTriageIgnoredThisWeek(game, currentCase.id),
     covertPrepSignals,
+    modalitySignals,
     deferralCompare:
       options?.includeCovertPrepSignals === true
         ? buildMissionTriageDeferralCompareView(currentCase, game, { covertPrepSignals })

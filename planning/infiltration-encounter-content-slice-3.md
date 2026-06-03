@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2305](https://linear.app/spectranoir/
 | **Linear** | [SPE-2305 — Infiltration encounter content slice 3](https://linear.app/spectranoir/issue/SPE-2305) |
 | **Parent** | [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250)                                            |
 | **Branch** | `jamesdyedbq/spe-2305-infiltration-encounter-content-slice-3-report-copy-depth`                      |
-| **Status** | In progress — PR pending                                                                                          |
+| **Status** | Shipped — SPE-2305 / PR #2473                                                                        |
 
 ## Goal
 

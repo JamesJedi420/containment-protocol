@@ -35,7 +35,7 @@ Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog**
 
 ### Explicitly deferred (not in queue)
 
-- Mission triage illusion/tell chips
+- ~~Mission triage illusion/tell chips~~ → shipped SPE-2306 / `planning/mission-triage-modality-signal-slice.md`
 - Full SPE-70 parent Done (evaluate after owner review of deferred families)
 
 ## Agent handoff template (next runtime slice)

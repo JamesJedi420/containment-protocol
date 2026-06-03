@@ -8,26 +8,25 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–11 shipped (SPE-2281–SPE-2303 / PR #2403–#2469); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open for mission-triage chips only — see Shipped table and active queue below.
-- Intake registry wave shipped on `main` through adjacent tier SPE-2123 (SPE-2104–SPE-2123 / PR #2428–#2442); [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) parents remain open.
+- Concealment activation stack and hidden-modality matrix slices 1–11 shipped (SPE-2281–SPE-2303 / PR #2403–#2469); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) umbrella remains open — mission-triage tell/illusion chips shipped in SPE-2306; see Shipped table and active queue below.
+- Intake registry wave and [SPE-854](https://linear.app/spectranoir/issue/SPE-854) parent integration slices 1–2 shipped (SPE-2292–SPE-2304 / PR #2444–#2471); parent [SPE-854](https://linear.app/spectranoir/issue/SPE-854) **Done** on Linear. [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) parents remain open.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
 - Optional modules integrate through explicit contracts, not shared mutable state.
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Information intake ([SPE-854](https://linear.app/spectranoir/issue/SPE-854))** — Adjacent intake registry wave **complete** through SPE-2123 (SPE-2104–SPE-2123). No further SPE-21xx slice rows in `planning/harvest-reconciliation-index.md`; pick next work from backlog item 2, parent integration slices, or backlog grooming. Parents [SPE-854](https://linear.app/spectranoir/issue/SPE-854), [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343), [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889), [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109), and [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stay open.
-2. **Infiltration optional content depth** — Report encounter copy slice 3 shipped ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305) / PR #2473). Further optional template stacks or prep UI copy under [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) / [SPE-521](https://linear.app/spectranoir/issue/SPE-521) when narratively warranted.
-3. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
+1. **Infiltration optional content depth** — Report encounter copy slice 3 shipped ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305) / PR #2473). Further optional template stacks or prep UI copy under [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) / [SPE-521](https://linear.app/spectranoir/issue/SPE-521) when narratively warranted.
+2. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
 ## Recommended next step (agent handoff)
 
-PR #2442 merged. On `main` @ `335bf788` after pull. Adjacent intake registry wave complete through SPE-2123. Next: pick from `planning/backlog.md` active queue (no unshipped SPE-21xx row in `planning/harvest-reconciliation-index.md`).
+PR #2471 merged. On `main` @ `f730ca14`. SPE-854 parent Done; SPE-70 tell/illusion triage chips next — see `planning/mission-triage-modality-signal-slice.md` ([SPE-2306](https://linear.app/spectranoir/issue/SPE-2306)).
 
 ## Blocked / waiting
 
-- **Mission triage full refresh** — Mission-triage slices 1–6 shipped (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips); further triage expansion deferred until triage UI is the primary implementation target — see `ux/mission-triage.md` spec status block.
-- **Core UX specs — mission triage** — Operations Report + navigation map for batch-4 covert notes and report week prev/next are closed (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Mission Triage full refresh remains blocked on triage UI being the implementation target.
+- **Mission triage full refresh** — Slices 1–7 shipped (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips, modality tell/illusion chips); further triage expansion (compare-top-2, bulk actions, spec §13 grouping) deferred until triage UI is again the primary implementation target — see `ux/mission-triage.md` spec status block.
+- **Core UX specs — mission triage** — Operations Report + navigation map for batch-4 covert notes and report week prev/next are closed (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Residual triage expansion remains blocked per slice boundary above.
 
 ## Shipped (May 2026)
 
@@ -111,6 +110,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mission-triage-status-bar-slice.md`                      | **Shipped**    | SPE-2258 slice 4.                                                                                                                                   |
 | `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                                                                                                         |
 | `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                                                                                                               |
+| `mission-triage-modality-signal-slice.md`                 | **In progress** | SPE-2306 slice 7; tell/illusion triage chips under SPE-70.                                                                                          |
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |

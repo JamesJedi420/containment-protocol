@@ -145,6 +145,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-weekly-hook-slice-8.md`                  | **Shipped**    | SPE-2299 / PR #2461; dedicated `information_intake.verification` report note type + UI bucket under SPE-854.                                        |
 | `information-intake-weekly-hook-slice-9.md`                  | **Shipped**    | SPE-2300 / PR #2463; dynamic intake narrative templates from case outcome metadata under SPE-854.                                                    |
 | `information-intake-parent-integration-slice-1.md`           | **Shipped**    | SPE-2301 / PR #2465; mixed-source intake → mission triage/routing under SPE-854.                                                                    |
+| `information-intake-parent-integration-slice-2.md`           | **In Progress** | SPE-2304; mission routing hydrate intake-linked triage refresh under SPE-854.                                                                      |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

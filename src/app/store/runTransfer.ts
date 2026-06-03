@@ -49,6 +49,7 @@ import { normalizeCaseInstance } from '../../domain/case/normalizeCase'
 import { sanitizeDistrictScheduleState } from '../../domain/districtSchedule'
 import { normalizeMissionIntelRecord } from '../../domain/intel'
 import {
+  reconcileHydratedMissionRoutingTriage,
   sanitizePersistedMissionRoutingState,
 } from '../../domain/missionIntakeRouting'
 import { sanitizePersistedPartyCardState } from '../../domain/partyCards/sanitize'
@@ -8398,6 +8399,7 @@ export function hydrateGame(
     teams,
     squadKitTemplates
   )
+  const hydrationFunding = sanitizeInteger(game.funding as number | undefined, fallback.funding, 0)
   const gameOver = typeof game.gameOver === 'boolean' ? game.gameOver : fallback.gameOver
   const gameOverReason = sanitizeGameOverReason(
     gameOver,
@@ -8479,6 +8481,12 @@ export function hydrateGame(
         cases: normalizedCases,
         teams,
         week,
+        informationIntakeReports,
+        agents,
+        config,
+        funding: hydrationFunding,
+        agency: fallback.agency,
+        supportStaff: staff,
       }),
       replacementPressureState: sanitizeReplacementPressureState(game.replacementPressureState),
       districtScheduleState: sanitizeDistrictScheduleState(game.districtScheduleState, week),
@@ -8596,6 +8604,14 @@ export function hydrateGame(
       agents,
     }),
   })
+
+  hydrated = {
+    ...hydrated,
+    missionRouting: reconcileHydratedMissionRoutingTriage(hydratedBase.missionRouting, hydrated.missionRouting, {
+      cases: normalizedCases,
+      informationIntakeReports,
+    }),
+  }
 
   if (!legitimacy) {
     delete hydrated.legitimacy

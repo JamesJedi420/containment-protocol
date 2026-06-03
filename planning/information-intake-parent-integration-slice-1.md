@@ -51,7 +51,7 @@ Wire persisted `informationIntakeReports` into mission intake triage and routing
 | ---- | --------------- | ------------ |
 | Full parent SPE-854 acceptance (remaining acceptance bullets) | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Slice 1 covers routing integration only |
 | UI surfacing of intake signals on Cases triage panel | SPE-16 or UX child | Domain-only slice |
-| Hydration path `sanitizePersistedMissionRoutingState` intake linkage | Follow-up child | `normalizeMissionRecord` recomputes live state |
+| Hydration path `sanitizePersistedMissionRoutingState` intake linkage | [SPE-2304](https://linear.app/spectranoir/issue/SPE-2304) | `planning/information-intake-parent-integration-slice-2.md` |
 
 ## Parent
 

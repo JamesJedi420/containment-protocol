@@ -10,7 +10,10 @@ import {
   rankBestAvailableTeams,
   validateTeamComposition,
 } from './teamComposition'
-import { deriveMissionIntakeInformationSignals } from './missionIntakeInformationRouting'
+import {
+  deriveMissionIntakeInformationSignals,
+  missionHasLinkedIntakeReports,
+} from './missionIntakeInformationRouting'
 import type {
   Agent,
   CaseInstance,
@@ -710,6 +713,7 @@ function normalizeMissionRecord(
 ): MissionRoutingRecord {
   const triage = triageMission(state, caseData)
   const routing = routeMission(state, caseData.id)
+  const intakeLinked = missionHasLinkedIntakeReports(state, caseData)
 
   return {
     missionId: caseData.id,
@@ -731,9 +735,11 @@ function normalizeMissionRecord(
     preferredTags: [...caseData.preferredTags],
     assignedTeamIds: [...caseData.assignedTeamIds],
     intakeSource: sanitizeIntakeSource(deriveMissionIntakeSource(caseData, state)),
-    priority: sanitizePriority(existing?.priority ?? triage.priority),
-    priorityReasonCodes: uniqueSortedStrings(existing?.priorityReasonCodes ?? triage.reasonCodes),
-    triageScore: clampInteger(existing?.triageScore ?? triage.score, 0, 100),
+    priority: sanitizePriority(intakeLinked ? triage.priority : (existing?.priority ?? triage.priority)),
+    priorityReasonCodes: uniqueSortedStrings(
+      intakeLinked ? triage.reasonCodes : (existing?.priorityReasonCodes ?? triage.reasonCodes)
+    ),
+    triageScore: clampInteger(intakeLinked ? triage.score : (existing?.triageScore ?? triage.score), 0, 100),
     routingState: sanitizeRoutingStateKind(
       isMissionTriageDispositionActive(existing, state.week) &&
         existing?.playerDisposition &&
@@ -1109,10 +1115,116 @@ function sanitizeMissionRoutingRecord(
   }
 }
 
+export type MissionRoutingHydrationTriageContext = Pick<
+  GameState,
+  | 'week'
+  | 'cases'
+  | 'teams'
+  | 'agents'
+  | 'agency'
+  | 'config'
+  | 'funding'
+  | 'supportStaff'
+  | 'informationIntakeReports'
+>
+
 export interface SanitizeMissionRoutingContext {
   cases: GameState['cases']
   teams: GameState['teams']
   week: number
+  informationIntakeReports?: GameState['informationIntakeReports']
+  agents?: GameState['agents']
+  agency?: GameState['agency']
+  config?: GameState['config']
+  funding?: number
+  supportStaff?: GameState['supportStaff']
+}
+
+function buildHydrationTriageState(context: SanitizeMissionRoutingContext): GameState | null {
+  if (!context.agents || !context.config || !context.agency) {
+    return null
+  }
+
+  return {
+    week: context.week,
+    cases: context.cases,
+    teams: context.teams,
+    agents: context.agents,
+    agency: context.agency,
+    config: context.config,
+    funding: context.funding ?? 0,
+    supportStaff: context.supportStaff,
+    informationIntakeReports: context.informationIntakeReports ?? {},
+  } as GameState
+}
+
+/**
+ * After attrition-derived `recomputeMissionRouting`, restore sanitized triage fields for
+ * missions without linked intake so hydrate does not drift persisted scores.
+ */
+export function reconcileHydratedMissionRoutingTriage(
+  sanitized: MissionRoutingState | undefined,
+  recomputed: MissionRoutingState | undefined,
+  context: Pick<GameState, 'cases' | 'informationIntakeReports'>
+): MissionRoutingState | undefined {
+  if (!recomputed) {
+    return recomputed
+  }
+
+  if (!sanitized) {
+    return recomputed
+  }
+
+  const missions = Object.fromEntries(
+    Object.entries(recomputed.missions).map(([missionId, mission]) => {
+      const currentCase = context.cases[missionId]
+      if (!currentCase || missionHasLinkedIntakeReports(context, currentCase)) {
+        return [missionId, mission] as const
+      }
+
+      const prior = sanitized.missions[missionId]
+      if (!prior) {
+        return [missionId, mission] as const
+      }
+
+      return [
+        missionId,
+        {
+          ...mission,
+          triageScore: prior.triageScore,
+          priority: prior.priority,
+          priorityReasonCodes: [...prior.priorityReasonCodes],
+          intakeSource: prior.intakeSource,
+        },
+      ] as const
+    })
+  )
+
+  return {
+    ...recomputed,
+    missions,
+  }
+}
+
+function refreshIntakeLinkedMissionRoutingRecord(
+  context: SanitizeMissionRoutingContext,
+  record: MissionRoutingRecord
+): MissionRoutingRecord {
+  const triageState = buildHydrationTriageState(context)
+  const currentCase = context.cases[record.missionId]
+  if (!triageState || !currentCase || !missionHasLinkedIntakeReports(triageState, currentCase)) {
+    return record
+  }
+
+  const triage = triageMission(triageState, currentCase)
+
+  return {
+    ...record,
+    intakeSource: sanitizeIntakeSource(deriveMissionIntakeSource(currentCase, triageState)),
+    triageScore: triage.score,
+    priority: triage.priority,
+    priorityReasonCodes: triage.reasonCodes,
+  }
 }
 
 /**
@@ -1165,16 +1277,22 @@ export function sanitizePersistedMissionRoutingState(
     Number.MAX_SAFE_INTEGER
   )
 
+  const refreshedMissions = Object.fromEntries(
+    orderedMissionIds
+      .map((missionId) => {
+        const record = missions[missionId]
+        if (!record) {
+          return null
+        }
+
+        return [missionId, refreshIntakeLinkedMissionRoutingRecord(context, record)] as const
+      })
+      .filter((entry): entry is readonly [Id, MissionRoutingRecord] => entry !== null)
+  )
+
   return {
     orderedMissionIds,
-    missions: Object.fromEntries(
-      orderedMissionIds
-        .map((missionId) => {
-          const record = missions[missionId]
-          return record ? ([missionId, record] as const) : null
-        })
-        .filter((entry): entry is readonly [Id, MissionRoutingRecord] => entry !== null)
-    ),
+    missions: refreshedMissions,
     nextGeneratedSequence,
   }
 }

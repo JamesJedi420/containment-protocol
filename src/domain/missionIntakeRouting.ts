@@ -1140,7 +1140,9 @@ export interface SanitizeMissionRoutingContext {
   supportStaff?: GameState['supportStaff']
 }
 
-function buildHydrationTriageState(context: SanitizeMissionRoutingContext): GameState | null {
+function buildHydrationTriageState(
+  context: SanitizeMissionRoutingContext
+): MissionRoutingHydrationTriageContext | null {
   if (!context.agents || !context.config || !context.agency) {
     return null
   }
@@ -1155,7 +1157,7 @@ function buildHydrationTriageState(context: SanitizeMissionRoutingContext): Game
     funding: context.funding ?? 0,
     supportStaff: context.supportStaff,
     informationIntakeReports: context.informationIntakeReports ?? {},
-  } as GameState
+  }
 }
 
 /**
@@ -1216,11 +1218,13 @@ function refreshIntakeLinkedMissionRoutingRecord(
     return record
   }
 
-  const triage = triageMission(triageState, currentCase)
+  const triage = triageMission(triageState as GameState, currentCase)
 
   return {
     ...record,
-    intakeSource: sanitizeIntakeSource(deriveMissionIntakeSource(currentCase, triageState)),
+    intakeSource: sanitizeIntakeSource(
+      deriveMissionIntakeSource(currentCase, triageState as Pick<GameState, 'informationIntakeReports'>)
+    ),
     triageScore: triage.score,
     priority: triage.priority,
     priorityReasonCodes: triage.reasonCodes,

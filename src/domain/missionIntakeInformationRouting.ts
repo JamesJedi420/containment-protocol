@@ -93,7 +93,7 @@ export function missionHasLinkedIntakeReports(
   state: Pick<GameState, 'informationIntakeReports'>,
   currentCase: Pick<CaseInstance, 'id' | 'tags'>
 ): boolean {
-  return deriveMissionIntakeInformationSignals(state, currentCase).linkedReportCount > 0
+  return listInformationIntakeReportsForMission(state, currentCase).length > 0
 }
 
 export function deriveMissionIntakeInformationSignals(

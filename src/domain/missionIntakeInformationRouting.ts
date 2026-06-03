@@ -88,6 +88,14 @@ function clampInteger(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(value)))
 }
 
+/** True when persisted intake reports link to this mission (non-neutral intake routing signals). */
+export function missionHasLinkedIntakeReports(
+  state: Pick<GameState, 'informationIntakeReports'>,
+  currentCase: Pick<CaseInstance, 'id' | 'tags'>
+): boolean {
+  return listInformationIntakeReportsForMission(state, currentCase).length > 0
+}
+
 export function deriveMissionIntakeInformationSignals(
   state: Pick<GameState, 'informationIntakeReports'>,
   currentCase: Pick<CaseInstance, 'id' | 'tags' | 'contract' | 'stage' | 'factionId'>

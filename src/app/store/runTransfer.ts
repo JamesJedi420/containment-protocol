@@ -49,6 +49,7 @@ import { normalizeCaseInstance } from '../../domain/case/normalizeCase'
 import { sanitizeDistrictScheduleState } from '../../domain/districtSchedule'
 import { normalizeMissionIntelRecord } from '../../domain/intel'
 import {
+  reconcileHydratedMissionRoutingTriage,
   sanitizePersistedMissionRoutingState,
 } from '../../domain/missionIntakeRouting'
 import { sanitizePersistedPartyCardState } from '../../domain/partyCards/sanitize'
@@ -8398,6 +8399,47 @@ export function hydrateGame(
     teams,
     squadKitTemplates
   )
+  const hydrationFunding = sanitizeInteger(game.funding as number | undefined, fallback.funding, 0)
+  const hydrationContainmentRating = sanitizeInteger(
+    game.containmentRating as number | undefined,
+    fallback.containmentRating,
+    0
+  )
+  const hydrationClearanceLevel = reconcileHydratedClearanceLevel(
+    sanitizeInteger(game.clearanceLevel as number | undefined, fallback.clearanceLevel, 1),
+    hydrationContainmentRating,
+    config.clearanceThresholds
+  )
+  const hydrationSupportAvailable = reconcileHydratedSupportAvailable(
+    game.supportAvailable,
+    isRecord(game.agency) ? game.agency.supportAvailable : undefined,
+    fallback.supportAvailable
+  )
+  const hydrationCoordinationFriction = reconcileHydratedCoordinationFriction(
+    game.coordinationFrictionActive,
+    game.coordinationFrictionReason,
+    isRecord(game.agency) ? game.agency.coordinationFrictionActive : undefined,
+    isRecord(game.agency) ? game.agency.coordinationFrictionReason : undefined,
+    {
+      coordinationFrictionActive: fallback.coordinationFrictionActive,
+      coordinationFrictionReason: fallback.coordinationFrictionReason,
+    }
+  )
+  const hydrationSupportStaff = sanitizeSupportStaffSummary(game.supportStaff)
+  const hydrationAgency =
+    sanitizeAgencyState(
+      game.agency ?? fallback.agency,
+      {
+        containmentRating: hydrationContainmentRating,
+        clearanceLevel: hydrationClearanceLevel,
+        funding: hydrationFunding,
+        supportAvailable: hydrationSupportAvailable,
+        coordinationFrictionActive: hydrationCoordinationFriction.coordinationFrictionActive,
+        coordinationFrictionReason: hydrationCoordinationFriction.coordinationFrictionReason,
+      },
+      config,
+      week
+    ) ?? fallback.agency
   const gameOver = typeof game.gameOver === 'boolean' ? game.gameOver : fallback.gameOver
   const gameOverReason = sanitizeGameOverReason(
     gameOver,
@@ -8479,6 +8521,12 @@ export function hydrateGame(
         cases: normalizedCases,
         teams,
         week,
+        informationIntakeReports,
+        agents,
+        config,
+        funding: hydrationFunding,
+        agency: hydrationAgency,
+        supportStaff: hydrationSupportStaff,
       }),
       replacementPressureState: sanitizeReplacementPressureState(game.replacementPressureState),
       districtScheduleState: sanitizeDistrictScheduleState(game.districtScheduleState, week),
@@ -8499,17 +8547,9 @@ export function hydrateGame(
       factions,
       externalSupportAssets,
       academyTier,
-      containmentRating: sanitizeInteger(
-        game.containmentRating as number | undefined,
-        fallback.containmentRating,
-        0
-      ),
-      clearanceLevel: sanitizeInteger(
-        game.clearanceLevel as number | undefined,
-        fallback.clearanceLevel,
-        1
-      ),
-      funding: sanitizeInteger(game.funding as number | undefined, fallback.funding, 0),
+      containmentRating: hydrationContainmentRating,
+      clearanceLevel: hydrationClearanceLevel,
+      funding: hydrationFunding,
       emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
         game.emergencyGrayMarketWaiverWeek,
         week
@@ -8521,36 +8561,14 @@ export function hydrateGame(
       templates: fallback.templates,
     }) as GameState
 
-  const containmentRating = sanitizeInteger(
-    game.containmentRating as number | undefined,
-    fallback.containmentRating,
-    0
-  )
-  const clearanceLevel = reconcileHydratedClearanceLevel(
-    sanitizeInteger(game.clearanceLevel as number | undefined, fallback.clearanceLevel, 1),
-    containmentRating,
-    config.clearanceThresholds
-  )
-  const funding = sanitizeInteger(game.funding as number | undefined, fallback.funding, 0)
-  const supportAvailable = reconcileHydratedSupportAvailable(
-    game.supportAvailable,
-    isRecord(game.agency) ? game.agency.supportAvailable : undefined,
-    fallback.supportAvailable
-  )
-  const coordinationFriction = reconcileHydratedCoordinationFriction(
-    game.coordinationFrictionActive,
-    game.coordinationFrictionReason,
-    isRecord(game.agency) ? game.agency.coordinationFrictionActive : undefined,
-    isRecord(game.agency) ? game.agency.coordinationFrictionReason : undefined,
-    {
-      coordinationFrictionActive: fallback.coordinationFrictionActive,
-      coordinationFrictionReason: fallback.coordinationFrictionReason,
-    }
-  )
-  const coordinationFrictionActive = coordinationFriction.coordinationFrictionActive
-  const coordinationFrictionReason = coordinationFriction.coordinationFrictionReason
+  const containmentRating = hydrationContainmentRating
+  const clearanceLevel = hydrationClearanceLevel
+  const funding = hydrationFunding
+  const supportAvailable = hydrationSupportAvailable
+  const coordinationFrictionActive = hydrationCoordinationFriction.coordinationFrictionActive
+  const coordinationFrictionReason = hydrationCoordinationFriction.coordinationFrictionReason
   const legitimacy = sanitizeLegitimacyState(game.legitimacy)
-  const supportStaff = sanitizeSupportStaffSummary(game.supportStaff)
+  const supportStaff = hydrationSupportStaff
   const globalPressureScalars = sanitizePersistedGlobalPressureScalars({
     globalPressure: game.globalPressure,
     globalEscalationLevel: game.globalEscalationLevel,
@@ -8558,19 +8576,7 @@ export function hydrateGame(
     globalTimePressure: game.globalTimePressure,
   })
 
-  const agency = sanitizeAgencyState(
-    game.agency ?? fallback.agency,
-    {
-      containmentRating,
-      clearanceLevel,
-      funding,
-      supportAvailable,
-      coordinationFrictionActive,
-      coordinationFrictionReason,
-    },
-    hydratedBase.config,
-    week
-  )
+  const agency = hydrationAgency
 
   const responseGrid = sanitizePersistedResponseGrid(game.responseGrid, {
     templates: fallback.templates,
@@ -8596,6 +8602,14 @@ export function hydrateGame(
       agents,
     }),
   })
+
+  hydrated = {
+    ...hydrated,
+    missionRouting: reconcileHydratedMissionRoutingTriage(hydratedBase.missionRouting, hydrated.missionRouting, {
+      cases: normalizedCases,
+      informationIntakeReports,
+    }),
+  }
 
   if (!legitimacy) {
     delete hydrated.legitimacy

@@ -332,7 +332,11 @@ export function resolveScoutingWithCaseHiddenState(
   }
 
   if (modality === 'out_of_phase_presence') {
-    detectionScan = applyOutOfPhaseScanProjection(detectionScan, input.caseData, input.teamTags)
+    detectionScan = applyOutOfPhaseScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
   }
 
   if (

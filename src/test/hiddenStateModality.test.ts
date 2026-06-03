@@ -665,7 +665,7 @@ describe('hiddenStateModality (SPE-2281)', () => {
     )
 
     expect(truth.present).toBe(true)
-    expect(isOutOfPhasePresenceAligned(caseData, ['liminal-frequency'])).toBe(true)
+    expect(isOutOfPhasePresenceAligned(caseData, [LIMINAL_FREQUENCY_TAG])).toBe(true)
   })
 
   it('projects out-of-phase readouts for misaligned and aligned presence', () => {
@@ -742,6 +742,17 @@ describe('hiddenStateModality (SPE-2281)', () => {
     expect(
       outOfPhaseScoutingScoreAdjustment(caseData, [LIMINAL_FREQUENCY_TAG]).delta
     ).toBe(0)
+  })
+
+  it('suppresses route-caution score when alignment comes from agent tags only', () => {
+    const caseData = createModalityCase({
+      hiddenState: 'hidden',
+      tags: [MODALITY_OUT_OF_PHASE_TAG],
+      route: 'ritual-corridor-alpha',
+    })
+
+    expect(outOfPhaseScoutingScoreAdjustment(caseData, []).delta).toBe(0.25)
+    expect(outOfPhaseScoutingScoreAdjustment(caseData, [LIMINAL_FREQUENCY_TAG]).delta).toBe(0)
   })
 
   it('includes out-of-phase presence in distinct modality compose path', () => {

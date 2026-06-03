@@ -166,7 +166,7 @@ export function outOfPhaseScoutingScoreAdjustment(
     return { delta: 0 }
   }
 
-  const routeLabel = caseData.route?.trim() ?? 'filed route'
+  const routeLabel = caseData.route?.trim() || 'filed route'
 
   return {
     delta: OUT_OF_PHASE_ROUTE_CAUTION_SCORE_DELTA,

@@ -186,7 +186,16 @@ export function resolveAssignedCaseForWeek(
     )
   }
   const reconCacheScore = scoutingReconCacheScoreAdjustment(resolvedEffectiveCase)
-  const outOfPhaseScore = outOfPhaseScoutingScoreAdjustment(resolvedEffectiveCase, supportTags)
+  const scoutingAlignmentTags = [
+    ...new Set([
+      ...supportTags,
+      ...assignedAgents.flatMap((agent) => agent.tags ?? []),
+    ]),
+  ]
+  const outOfPhaseScore = outOfPhaseScoutingScoreAdjustment(
+    resolvedEffectiveCase,
+    scoutingAlignmentTags
+  )
   const infiltrationStageMission = evaluateInfiltrationStageMissionPressure(resolvedEffectiveCase)
   const stealthLeaveBehindMission = evaluateStealthLeaveBehindMissionPressure(resolvedEffectiveCase)
   const scoreAdjustment =

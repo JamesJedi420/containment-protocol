@@ -14,7 +14,7 @@ Routing doc for optional modality families after matrix slices 1–6 shipped. **
 | 6     | SPE-2286 | #2415  | Mode-specific tells / observer threshold   |
 | —     | SPE-2287 | #2417  | Docs reconciliation (not runtime)          |
 
-Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families shipped; deferred anti-scan / out-of-phase families and mission-triage chips remain out of scope.
+Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families through slice 10 shipped or in flight; deferred anti-scan compartments and mission-triage chips remain out of scope.
 
 ## Post-matrix queue (complete)
 

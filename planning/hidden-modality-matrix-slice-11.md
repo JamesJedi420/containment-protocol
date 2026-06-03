@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2303](https://linear.app/spectranoir/
 | **Linear** | [SPE-2303 — Hidden-state modality matrix slice 11](https://linear.app/spectranoir/issue/SPE-2303) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                |
 | **Branch** | `jamesdyedbq/spe-2303-hidden-state-modality-matrix-slice-11-anti-scan-compartments`                 |
-| **Status** | In progress                                                                                          |
+| **Status** | Shipped — SPE-2303 / PR #2469                                                                        |
 
 ## Goal
 

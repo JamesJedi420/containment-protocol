@@ -24,6 +24,7 @@ import {
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
   applyGlamourOverlayScanProjection,
+  applyOutOfPhaseScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
   resolveHiddenStateModality,
@@ -328,6 +329,10 @@ export function resolveScoutingWithCaseHiddenState(
 
   if (modality === 'glamour_overlay') {
     detectionScan = applyGlamourOverlayScanProjection(detectionScan)
+  }
+
+  if (modality === 'out_of_phase_presence') {
+    detectionScan = applyOutOfPhaseScanProjection(detectionScan, input.caseData, input.teamTags)
   }
 
   if (

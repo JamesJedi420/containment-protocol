@@ -23,17 +23,17 @@ Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog**
 | 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` (shipped PR #2421) |
 | 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` (shipped PR #2422) |
 | 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` (shipped PR #2423) |
-| —     | —     | SPE-2291 | Docs reconciliation       | `planning/backlog.md` handoff (PR pending) |
+| 4     | 10    | SPE-2302 | Out-of-phase / liminal presence | `planning/hidden-modality-matrix-slice-10.md` (in progress) |
+| —     | —     | SPE-2291 | Docs reconciliation       | `planning/backlog.md` handoff (shipped) |
 
 ### Repo anchors (post-queue)
 
-- `HiddenStateModalityKind`: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output`, `glamour_overlay` — see `src/domain/hiddenStateModality.ts`.
-- Authored layers distinct from rating layers: `layer:authored-signature-mask`, `layer:authored-false-detection`, `layer:authored-glamour`.
+- `HiddenStateModalityKind`: `none`, `concealed_presence`, `false_position`, `disguised_identity`, `signature_masking`, `false_detection_output`, `glamour_overlay`, `out_of_phase_presence` — see `src/domain/hiddenStateModality.ts`.
+- Authored layers distinct from rating layers: `layer:authored-signature-mask`, `layer:authored-false-detection`, `layer:authored-glamour`, `layer:authored-out-of-phase`.
 - Rating-derived `layer:glamour` and `layer:signature-mask` remain in `concealmentLayersFromRating`.
 
 ### Explicitly deferred (not in queue)
 
-- Out-of-phase / liminal presence
 - Anti-scan compartments (dead zones, Faraday, warded volumes)
 - Mission triage illusion/tell chips
 - Full SPE-70 parent Done (evaluate after owner review of deferred families)

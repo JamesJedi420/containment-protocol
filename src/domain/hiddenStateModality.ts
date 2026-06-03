@@ -35,10 +35,14 @@ export type HiddenStateModalityKind =
   | 'signature_masking'
   | 'false_detection_output'
   | 'glamour_overlay'
+  | 'out_of_phase_presence'
 
 export const MODALITY_SIGNATURE_MASK_TAG = 'modality-signature-mask'
 export const MODALITY_FALSE_DETECTION_TAG = 'modality-false-detection'
 export const MODALITY_GLAMOUR_TAG = 'modality-glamour'
+export const MODALITY_OUT_OF_PHASE_TAG = 'modality-out-of-phase'
+export const LIMINAL_PRESENCE_TAG = 'liminal-presence'
+export const LIMINAL_FREQUENCY_TAG = 'liminal-frequency'
 export const PRESENTATION_OVERLAY_TAG = 'presentation-overlay'
 export const INSTRUMENTATION_ATTACK_TAG = 'instrumentation-attack'
 
@@ -52,6 +56,13 @@ export const GLAMOUR_OVERLAY_HOSTILITY_SKEW = 'dormant presentation'
 /** Player-facing fabricated readouts when false-detection modality is active. */
 export const FALSE_DETECTION_FABRICATED_PRESENCE = 'fabricated maintenance contact'
 export const FALSE_DETECTION_FABRICATED_CATEGORY = 'instrumented false contact'
+
+/** Player-facing readouts when out-of-phase presence is active. */
+export const OUT_OF_PHASE_ABSENT_ROUTE_SKEW = 'no contact on filed route'
+export const OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW = 'liminal trace contact'
+
+/** Bounded weekly score delta when out-of-phase target is absent on the filed route. */
+export const OUT_OF_PHASE_ROUTE_CAUTION_SCORE_DELTA = 0.25
 
 const CONCEALED_PRESENCE_LAYER: ConcealmentLayer = {
   id: 'layer:concealed-presence',
@@ -83,6 +94,11 @@ const GLAMOUR_OVERLAY_LAYER: ConcealmentLayer = {
   blockedTiers: ['category', 'hostility', 'exact_identity'],
 }
 
+const OUT_OF_PHASE_LAYER: ConcealmentLayer = {
+  id: 'layer:authored-out-of-phase',
+  blockedTiers: ['category', 'hostility', 'exact_identity'],
+}
+
 const DISGUISE_SIGNAL_TAGS = ['infiltration', 'disguise', 'covert', 'stealth'] as const
 
 function caseModalityTagSet(caseData: CaseInstance): Set<string> {
@@ -107,6 +123,55 @@ export function caseHasGlamourOverlayModality(caseData: CaseInstance): boolean {
   const tags = caseModalityTagSet(caseData)
 
   return tags.has(MODALITY_GLAMOUR_TAG) || tags.has(PRESENTATION_OVERLAY_TAG)
+}
+
+export function caseHasOutOfPhasePresenceModality(caseData: CaseInstance): boolean {
+  const tags = caseModalityTagSet(caseData)
+
+  return tags.has(MODALITY_OUT_OF_PHASE_TAG) || tags.has(LIMINAL_PRESENCE_TAG)
+}
+
+/** True when scouting team tags satisfy the case route or liminal-frequency gate. */
+export function isOutOfPhasePresenceAligned(
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): boolean {
+  const tagSet = new Set(teamTags)
+  if (tagSet.has(LIMINAL_FREQUENCY_TAG)) {
+    return true
+  }
+
+  const route = caseData.route?.trim()
+  if (route === undefined || route.length === 0) {
+    return false
+  }
+
+  return tagSet.has(route)
+}
+
+export interface OutOfPhaseScoutingScoreAdjustment {
+  readonly delta: number
+  readonly reason?: string
+}
+
+export function outOfPhaseScoutingScoreAdjustment(
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): OutOfPhaseScoutingScoreAdjustment {
+  if (resolveHiddenStateModality(caseData) !== 'out_of_phase_presence') {
+    return { delta: 0 }
+  }
+
+  if (isOutOfPhasePresenceAligned(caseData, teamTags)) {
+    return { delta: 0 }
+  }
+
+  const routeLabel = caseData.route?.trim() ?? 'filed route'
+
+  return {
+    delta: OUT_OF_PHASE_ROUTE_CAUTION_SCORE_DELTA,
+    reason: `Out-of-phase target absent on ${routeLabel} — route caution.`,
+  }
 }
 
 export function caseHasDisguiseSignals(caseData: CaseInstance): boolean {
@@ -144,6 +209,10 @@ export function resolveHiddenStateModality(caseData: CaseInstance): HiddenStateM
     return 'glamour_overlay'
   }
 
+  if (caseHasOutOfPhasePresenceModality(caseData)) {
+    return 'out_of_phase_presence'
+  }
+
   return 'concealed_presence'
 }
 
@@ -163,6 +232,8 @@ export function hiddenStateModalityLayer(
       return FALSE_DETECTION_LAYER
     case 'glamour_overlay':
       return GLAMOUR_OVERLAY_LAYER
+    case 'out_of_phase_presence':
+      return OUT_OF_PHASE_LAYER
     case 'none':
       return null
     default: {
@@ -245,6 +316,12 @@ export function buildSubjectTruthFromCaseHiddenState(
   const modalityLayer = hiddenStateModalityLayer(modality)
   const resolvedSubject = resolveScoutingSubjectForCase(caseData, subject, modality)
   let present = resolveSubjectPresent(resolvedSubject)
+  if (
+    modality === 'out_of_phase_presence' &&
+    !isOutOfPhasePresenceAligned(caseData, scoutingInput.teamTags ?? [])
+  ) {
+    present = false
+  }
   if (shouldWithholdCanonicalSubjectForIllusion(caseData)) {
     present = false
   }
@@ -371,6 +448,39 @@ export function applyGlamourOverlayScanProjection(scan: DetectionScanResult): De
     }
 
     return field
+  })
+
+  return {
+    ...scan,
+    fields,
+  }
+}
+
+/** Player-facing scan projection for out-of-phase presence without mutating canonical truth tiers. */
+export function applyOutOfPhaseScanProjection(
+  scan: DetectionScanResult,
+  caseData: CaseInstance,
+  teamTags: readonly string[]
+): DetectionScanResult {
+  const aligned = isOutOfPhasePresenceAligned(caseData, teamTags)
+  const fields = scan.fields.map((field) => {
+    if (field.tier !== 'presence') {
+      return field
+    }
+
+    if (!aligned) {
+      return {
+        ...field,
+        playerFacingValue: OUT_OF_PHASE_ABSENT_ROUTE_SKEW,
+        ambiguous: true,
+      }
+    }
+
+    return {
+      ...field,
+      playerFacingValue: OUT_OF_PHASE_PARTIAL_PRESENCE_SKEW,
+      ambiguous: true,
+    }
   })
 
   return {

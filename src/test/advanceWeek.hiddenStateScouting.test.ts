@@ -9,12 +9,15 @@ import {
   SIGNATURE_MASK_SCAN_READOUT_PREFIX,
   FALSE_DETECTION_SCAN_READOUT_PREFIX,
   GLAMOUR_SCAN_READOUT_PREFIX,
+  OUT_OF_PHASE_SCAN_READOUT_PREFIX,
 } from '../domain/detectionScanReportNotes'
 import {
   MODALITY_FALSE_DETECTION_TAG,
   MODALITY_GLAMOUR_TAG,
+  MODALITY_OUT_OF_PHASE_TAG,
   MODALITY_SIGNATURE_MASK_TAG,
   GLAMOUR_OVERLAY_CATEGORY_SKEW,
+  OUT_OF_PHASE_ABSENT_ROUTE_SKEW,
 } from '../domain/hiddenStateModality'
 import { TELL_ROUTE_TIMING_TAG, TELL_THERMAL_RESIDUAL_TAG } from '../domain/hiddenStateModalityTells'
 import { resolveAssignedCaseForWeek } from '../domain/caseResolutionOrchestration'
@@ -378,6 +381,55 @@ describe('advanceWeek hidden-state scouting report copy (SPE-2283)', () => {
       snapshot?.missionResult?.explanationNotes.some((note) =>
         note.includes(GLAMOUR_OVERLAY_CATEGORY_SKEW)
       )
+    ).toBe(true)
+    expect(snapshot?.hiddenState).not.toBe('revealed')
+  })
+
+  it('surfaces out-of-phase readout and route caution without revealing hidden state', () => {
+    const state = createStartingState()
+    const observer = createReconObserver('a_out_of_phase_readout', 60)
+    const team: Team = {
+      id: 'team-out-of-phase-readout',
+      name: 'Out-of-phase readout team',
+      agentIds: [observer.id],
+      tags: [],
+    }
+    state.agents[observer.id] = observer
+    state.teams[team.id] = team
+    state.reports = []
+
+    for (const currentCase of Object.values(state.cases)) {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.requiredTags = []
+      currentCase.preferredTags = []
+    }
+
+    state.cases['case-concealed-readout'] = tuneConcealedInvestigationCase(state, team.id, {
+      tags: [MODALITY_OUT_OF_PHASE_TAG],
+      route: 'ritual-corridor-alpha',
+      counterDetection: false,
+    })
+
+    const preAdvance = resolveAssignedCaseForWeek(state.cases['case-concealed-readout'], state, () => 0.5)
+    expect(preAdvance.hiddenStateScouting?.active).toBe(true)
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.reports[nextState.reports.length - 1].caseSnapshots?.['case-concealed-readout']
+
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(OUT_OF_PHASE_SCAN_READOUT_PREFIX)
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) =>
+        note.includes(OUT_OF_PHASE_ABSENT_ROUTE_SKEW)
+      )
+    ).toBe(true)
+    expect(
+      snapshot?.missionResult?.explanationNotes.some((note) => note.includes('route caution'))
     ).toBe(true)
     expect(snapshot?.hiddenState).not.toBe('revealed')
   })

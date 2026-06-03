@@ -23,7 +23,7 @@ Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog**
 | 1     | 7     | SPE-2288 | Signature masking         | `planning/hidden-modality-matrix-slice-7.md` (shipped PR #2421) |
 | 2     | 8     | SPE-2289 | False-detection output    | `planning/hidden-modality-matrix-slice-8.md` (shipped PR #2422) |
 | 3     | 9     | SPE-2290 | Glamour / presentation overlay | `planning/hidden-modality-matrix-slice-9.md` (shipped PR #2423) |
-| 4     | 10    | SPE-2302 | Out-of-phase / liminal presence | `planning/hidden-modality-matrix-slice-10.md` (in progress) |
+| 4     | 10    | SPE-2302 | Out-of-phase / liminal presence | `planning/hidden-modality-matrix-slice-10.md` (shipped PR #2467) |
 | —     | —     | SPE-2291 | Docs reconciliation       | `planning/backlog.md` handoff (shipped) |
 
 ### Repo anchors (post-queue)

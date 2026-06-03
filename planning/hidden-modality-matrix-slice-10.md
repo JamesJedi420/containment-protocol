@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2302](https://linear.app/spectranoir/
 | **Linear** | [SPE-2302 — Hidden-state modality matrix slice 10](https://linear.app/spectranoir/issue/SPE-2302) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)                                                |
 | **Branch** | `jamesdyedbq/spe-2302-hidden-state-modality-matrix-slice-10-out-of-phase-presence`                 |
-| **Status** | In progress                                                                                          |
+| **Status** | Shipped — SPE-2302 / PR #2467                                                                        |
 
 ## Goal
 
@@ -67,10 +67,10 @@ Add **out-of-phase / liminal presence** as a seventh case-authored `HiddenStateM
 
 ## Acceptance
 
-- [ ] Authored fixture: misaligned route shows absent presence + route caution; aligned shows liminal trace without revealing `hiddenState`.
-- [ ] Distinct `DetectionScanResult` from glamour and concealed fixtures in shared compose path.
-- [ ] Counter-detection strips out-of-phase layer only; slices 1–9 regression unchanged.
-- [ ] `npm run lint` + targeted `npm run test:run` green.
+- [x] Authored fixture: misaligned route shows absent presence + route caution; aligned shows liminal trace without revealing `hiddenState`.
+- [x] Distinct `DetectionScanResult` from glamour and concealed fixtures in shared compose path.
+- [x] Counter-detection strips out-of-phase layer only; slices 1–9 regression unchanged.
+- [x] `npm run lint` + targeted `npm run test:run` green.
 
 ## TDD order
 

@@ -629,6 +629,253 @@ export function projectExtranormalEventForMap(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2105 slice 2)
+// ---------------------------------------------------------------------------
+
+export type ExtranormalEventRecordsMap = Record<ExtranormalEventId, ExtranormalEventRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return uniqueSorted(
+    value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry)
+  )
+}
+
+function parseOccurrenceWindow(value: unknown): OccurrenceWindow | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const startWeek = value.startWeek
+  const endWeek = value.endWeek
+  const intervalToken = normalizeToken(value.intervalToken)
+
+  const window: OccurrenceWindow = {
+    ...(isFiniteWeek(startWeek) ? { startWeek } : {}),
+    ...(isFiniteWeek(endWeek) ? { endWeek } : {}),
+    ...(intervalToken ? { intervalToken } : {}),
+  }
+
+  return hasOccurrenceWindow(window) ? window : null
+}
+
+function parseEffectDomainTags(value: unknown): readonly EffectDomainTag[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tags: EffectDomainTag[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !isEffectDomainTag(entry) || seen.has(entry)) {
+      continue
+    }
+
+    seen.add(entry)
+    tags.push(entry)
+  }
+
+  return tags
+}
+
+function parsePopulationSelectors(value: unknown): readonly PopulationSelector[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const selectors: PopulationSelector[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const kind = typeof entry.kind === 'string' ? entry.kind : ''
+    const selectorValue = normalizeToken(entry.value)
+    if (!isPopulationSelectorKind(kind) || !selectorValue) {
+      continue
+    }
+
+    const key = `${kind}:${selectorValue}`
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    selectors.push({ kind, value: selectorValue })
+  }
+
+  return selectors
+}
+
+function parseEvidenceTypes(value: unknown): readonly EvidenceType[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const types: EvidenceType[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !isEvidenceType(entry) || seen.has(entry)) {
+      continue
+    }
+
+    seen.add(entry)
+    types.push(entry)
+  }
+
+  return types
+}
+
+function parseSimilarEventCluster(value: unknown): readonly SimilarEventClusterRef[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const refs: SimilarEventClusterRef[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const eventId = normalizeToken(entry.eventId)
+    if (!eventId || seen.has(eventId)) {
+      continue
+    }
+
+    const confidence = entry.confidence
+    if (confidence !== undefined && !isValidConfidence(confidence)) {
+      continue
+    }
+
+    seen.add(eventId)
+    refs.push({
+      eventId,
+      ...(confidence !== undefined ? { confidence } : {}),
+    })
+  }
+
+  return refs
+}
+
+function sanitizeExtranormalEventRecordEntry(value: unknown): ExtranormalEventRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const occurrenceWindow = parseOccurrenceWindow(value.occurrenceWindow)
+  const effectDomainTags = parseEffectDomainTags(value.effectDomainTags)
+  const affectedAreaGeometry =
+    typeof value.affectedAreaGeometry === 'string' ? value.affectedAreaGeometry : ''
+  const populationSelectors = parsePopulationSelectors(value.populationSelectors)
+
+  if (
+    !id ||
+    !label ||
+    !occurrenceWindow ||
+    !isAffectedAreaGeometry(affectedAreaGeometry)
+  ) {
+    return null
+  }
+
+  const evidenceTypes = parseEvidenceTypes(value.evidenceTypes)
+  const similarEventCluster = parseSimilarEventCluster(value.similarEventCluster)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const observerClassTags = parseStringList(value.observerClassTags)
+  const procedurePatternRefs = parseStringList(value.procedurePatternRefs)
+
+  const coverStoryCode = normalizeToken(value.coverStoryCode ?? '') || undefined
+  const witnessPlan = normalizeToken(value.witnessPlan ?? '') || undefined
+  const witnessResponseClass =
+    typeof value.witnessResponseClass === 'string' ? value.witnessResponseClass : undefined
+  const closureState = typeof value.closureState === 'string' ? value.closureState : undefined
+  const escalatedCaseRef = normalizeToken(value.escalatedCaseRef ?? '') || undefined
+  const themeRef = normalizeToken(value.themeRef ?? '') || undefined
+  const dangerProfileRef = normalizeToken(value.dangerProfileRef ?? '') || undefined
+  const locationTag = normalizeToken(value.locationTag ?? '') || undefined
+  const summary = typeof value.summary === 'string' && value.summary.trim().length > 0 ? value.summary.trim() : undefined
+
+  const monitoringUntilWeek = value.monitoringUntilWeek
+  const confidence = value.confidence
+  const resolved = value.resolved === true ? true : undefined
+
+  const record: ExtranormalEventRecord = {
+    id,
+    label,
+    occurrenceWindow,
+    effectDomainTags,
+    affectedAreaGeometry,
+    populationSelectors,
+    ...(evidenceTypes.length > 0 ? { evidenceTypes } : {}),
+    ...(coverStoryCode ? { coverStoryCode } : {}),
+    ...(witnessPlan ? { witnessPlan } : {}),
+    ...(witnessResponseClass && isWitnessResponseClass(witnessResponseClass)
+      ? { witnessResponseClass }
+      : {}),
+    ...(isFiniteWeek(monitoringUntilWeek) ? { monitoringUntilWeek } : {}),
+    ...(closureState && isExtranormalClosureState(closureState) ? { closureState } : {}),
+    ...(resolved ? { resolved } : {}),
+    ...(isValidConfidence(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+    ...(similarEventCluster.length > 0 ? { similarEventCluster } : {}),
+    ...(escalatedCaseRef ? { escalatedCaseRef } : {}),
+    ...(observerClassTags.length > 0 ? { observerClassTags } : {}),
+    ...(themeRef ? { themeRef } : {}),
+    ...(dangerProfileRef ? { dangerProfileRef } : {}),
+    ...(procedurePatternRefs.length > 0 ? { procedurePatternRefs } : {}),
+    ...(locationTag ? { locationTag } : {}),
+    ...(summary ? { summary } : {}),
+  }
+
+  if (!validateExtranormalEventRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical event map keyed by event id; drops invalid and duplicate-id entries. */
+export function sanitizeExtranormalEventRecords(
+  value: unknown,
+  fallback: ExtranormalEventRecordsMap = {}
+): ExtranormalEventRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: ExtranormalEventRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeExtranormalEventRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineEvent(record: ExtranormalEventRecord): ExtranormalEventRecord {
   return Object.freeze({ ...record })
 }

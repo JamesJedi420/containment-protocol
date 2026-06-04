@@ -709,6 +709,279 @@ export function projectUnexplainedLocationForMap(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2106 slice 2)
+// ---------------------------------------------------------------------------
+
+export type UnexplainedLocationRecordsMap = Record<UnexplainedLocationId, UnexplainedLocationRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function uniqueSorted(values: readonly string[]) {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return uniqueSorted(
+    value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry)
+  )
+}
+
+function parseEffectDomainTags(value: unknown): readonly EffectDomainTag[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tags: EffectDomainTag[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !isEffectDomainTag(entry) || seen.has(entry)) {
+      continue
+    }
+
+    seen.add(entry)
+    tags.push(entry)
+  }
+
+  return tags
+}
+
+function parsePopulationSelectors(value: unknown): readonly PopulationSelector[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const selectors: PopulationSelector[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const kind = typeof entry.kind === 'string' ? entry.kind : ''
+    const selectorValue = normalizeToken(entry.value)
+    if (!isPopulationSelectorKind(kind) || !selectorValue) {
+      continue
+    }
+
+    const key = `${kind}:${selectorValue}`
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    selectors.push({ kind, value: selectorValue })
+  }
+
+  return selectors
+}
+
+function parseSecurityControlTags(value: unknown): readonly SecurityControlTag[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tags: SecurityControlTag[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !isSecurityControlTag(entry) || seen.has(entry)) {
+      continue
+    }
+
+    seen.add(entry)
+    tags.push(entry)
+  }
+
+  return tags
+}
+
+function parseStatusHistory(value: unknown): readonly UnexplainedLocationStatusHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const history: UnexplainedLocationStatusHistoryEntry[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const fromState = typeof entry.fromState === 'string' ? entry.fromState : ''
+    const toState = typeof entry.toState === 'string' ? entry.toState : ''
+    const week = entry.week
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0 ? entry.note.trim() : undefined
+
+    if (
+      !isUnexplainedLocationLifecycleState(fromState) ||
+      !isUnexplainedLocationLifecycleState(toState) ||
+      !isFiniteWeek(week)
+    ) {
+      continue
+    }
+
+    history.push({
+      fromState,
+      toState,
+      week,
+      ...(note ? { note } : {}),
+    })
+  }
+
+  return history
+}
+
+function parseUpdateLedger(value: unknown): readonly UnexplainedLocationUpdateLedgerEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const ledger: UnexplainedLocationUpdateLedgerEntry[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const week = entry.week
+    const field = normalizeToken(entry.field)
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0 ? entry.note.trim() : undefined
+
+    if (!isFiniteWeek(week) || !field) {
+      continue
+    }
+
+    ledger.push({
+      week,
+      field,
+      ...(note ? { note } : {}),
+    })
+  }
+
+  return ledger
+}
+
+function sanitizeUnexplainedLocationRecordEntry(value: unknown): UnexplainedLocationRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const effectGeometry = typeof value.effectGeometry === 'string' ? value.effectGeometry : ''
+  const effectDomainTags = parseEffectDomainTags(value.effectDomainTags)
+  const populationSelectors = parsePopulationSelectors(value.populationSelectors)
+  const lifecycleState = typeof value.lifecycleState === 'string' ? value.lifecycleState : ''
+  const latentSeverityScore = value.latentSeverityScore
+
+  if (
+    !id ||
+    !label ||
+    !isEffectGeometry(effectGeometry) ||
+    !isUnexplainedLocationLifecycleState(lifecycleState) ||
+    !isValidSeverityScore(latentSeverityScore)
+  ) {
+    return null
+  }
+
+  const securityControlTags = parseSecurityControlTags(value.securityControlTags)
+  const statusHistory = parseStatusHistory(value.statusHistory)
+  const updateLedger = parseUpdateLedger(value.updateLedger)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const disputedFields = parseStringList(value.disputedFields)
+  const contradictionRefs = parseStringList(value.contradictionRefs)
+
+  const descriptionStub =
+    typeof value.descriptionStub === 'string' && value.descriptionStub.trim().length > 0
+      ? value.descriptionStub.trim()
+      : undefined
+  const coverStoryCode = normalizeToken(value.coverStoryCode ?? '') || undefined
+  const mapLayerPolicy = normalizeToken(value.mapLayerPolicy ?? '') || undefined
+  const locationTag = normalizeToken(value.locationTag ?? '') || undefined
+  const neutralizationAuthorizationRef =
+    normalizeToken(value.neutralizationAuthorizationRef ?? '') || undefined
+
+  const discoveryWeek = value.discoveryWeek
+  const containmentWeek = value.containmentWeek
+  const monitoringCadenceWeeks = value.monitoringCadenceWeeks
+  const accessProbability = value.accessProbability
+  const confidence = value.confidence
+  const lowPriority = value.lowPriority === true ? true : undefined
+
+  const record: UnexplainedLocationRecord = {
+    id,
+    label,
+    effectGeometry,
+    effectDomainTags,
+    populationSelectors,
+    lifecycleState,
+    latentSeverityScore,
+    ...(descriptionStub ? { descriptionStub } : {}),
+    ...(isFiniteWeek(discoveryWeek) ? { discoveryWeek } : {}),
+    ...(isFiniteWeek(containmentWeek) ? { containmentWeek } : {}),
+    ...(securityControlTags.length > 0 ? { securityControlTags } : {}),
+    ...(coverStoryCode ? { coverStoryCode } : {}),
+    ...(isFiniteWeek(monitoringCadenceWeeks) && monitoringCadenceWeeks !== 0
+      ? { monitoringCadenceWeeks }
+      : {}),
+    ...(isValidUnitInterval(accessProbability) ? { accessProbability } : {}),
+    ...(lowPriority ? { lowPriority } : {}),
+    ...(isValidUnitInterval(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+    ...(disputedFields.length > 0 ? { disputedFields } : {}),
+    ...(contradictionRefs.length > 0 ? { contradictionRefs } : {}),
+    ...(neutralizationAuthorizationRef ? { neutralizationAuthorizationRef } : {}),
+    ...(mapLayerPolicy ? { mapLayerPolicy } : {}),
+    ...(locationTag ? { locationTag } : {}),
+    ...(statusHistory.length > 0 ? { statusHistory } : {}),
+    ...(updateLedger.length > 0 ? { updateLedger } : {}),
+  }
+
+  if (!validateUnexplainedLocationRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical location map keyed by location id; drops invalid and duplicate-id entries. */
+export function sanitizeUnexplainedLocationRecords(
+  value: unknown,
+  fallback: UnexplainedLocationRecordsMap = {}
+): UnexplainedLocationRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: UnexplainedLocationRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeUnexplainedLocationRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineLocation(record: UnexplainedLocationRecord): UnexplainedLocationRecord {
   return Object.freeze({ ...record })
 }

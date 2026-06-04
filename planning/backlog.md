@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Extranormal event registry GameState persistence (slice 2)** — [SPE-2312](https://linear.app/spectranoir/issue/SPE-2312) **In Progress**; plan `planning/extranormal-event-registry-slice-2.md`; branch `spe-2105-extranormal-event-registry-persistence-slice-2`.
+1. **Registry slice-2+ (next)** — [SPE-2313](https://linear.app/spectranoir/issue/SPE-2313) unexplained location persistence (PR in flight); then [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) minor anomaly persistence or SPE-2105 slice 3 weekly hook.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `80f7ffdb` (post–slice 5 merge, PR #2486). [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) **Done** — Claims 1–6 test-backed at harness granularity. **Next:** extranormal event registry persistence slice 2 (`planning/extranormal-event-registry-slice-2.md`, branch `spe-2105-extranormal-event-registry-persistence-slice-2`). Sibling intake registries (SPE-2106, SPE-2104) defer slice-2 until this pattern lands.
+Branch `spe-2106-unexplained-location-registry-persistence-slice-2` — [SPE-2313](https://linear.app/spectranoir/issue/SPE-2313) **In Progress**. After merge: [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) minor anomaly persistence or SPE-2105 slice 3 weekly hook (`planning/extranormal-event-registry-slice-2.md` deferred table).
 
 ## Blocked / waiting
 
@@ -58,6 +58,7 @@ On `main` @ `80f7ffdb` (post–slice 5 merge, PR #2486). [SPE-2251](https://line
 | **Recurrent catastrophe amelioration registry ([SPE-2117](https://linear.app/spectranoir/issue/SPE-2117))** | Slice 1 shipped (PR #2436); `src/domain/recurrentCatastropheAmeliorationRegistry.ts`; see `planning/recurrent-catastrophe-amelioration-registry-slice-1.md`. Parent [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stays open. |
 | **Mass anomalous population emergence registry ([SPE-2122](https://linear.app/spectranoir/issue/SPE-2122))** | Slice 1 shipped (PR #2441); `src/domain/massAnomalousPopulationEmergenceRegistry.ts`; see `planning/mass-anomalous-population-emergence-registry-slice-1.md`. Parent [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) stays open. |
 | **Rule-document compliance containment registry ([SPE-2123](https://linear.app/spectranoir/issue/SPE-2123))** | Slice 1 shipped (PR #2442); `src/domain/ruleDocumentComplianceContainmentRegistry.ts`; see `planning/rule-document-compliance-containment-registry-slice-1.md`. Parent [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stays open. |
+| **Extranormal event registry persistence ([SPE-2312](https://linear.app/spectranoir/issue/SPE-2312))** | [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) slice 2 — `extranormalEventRecords` on GameState (PR #2488); see `planning/extranormal-event-registry-slice-2.md`. |
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
@@ -118,7 +119,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
 | `mvp-weekly-loop-proof-slice-4.md`                        | **Shipped**    | [SPE-2310](https://linear.app/spectranoir/issue/SPE-2310) / PR #2484 — Claims 3–4.                                                                    |
 | `mvp-weekly-loop-proof-slice-5.md`                        | **Shipped**    | [SPE-2311](https://linear.app/spectranoir/issue/SPE-2311) / PR #2486 — Claims 5–6; closes SPE-2251 harness.                                          |
-| `extranormal-event-registry-slice-2.md`                   | **Queued**     | GameState persistence for SPE-2105 records; create Linear child when starting.                                                                          |
+| `extranormal-event-registry-slice-2.md`                   | **Shipped**    | [SPE-2312](https://linear.app/spectranoir/issue/SPE-2312) / PR #2488 — GameState persistence for SPE-2105 records.                                      |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |
 | `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                                                                                                                |

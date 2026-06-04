@@ -194,6 +194,7 @@ import { getKnowledgeKey } from '../../domain/knowledge'
 import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import { sanitizeInformationIntakeReports } from '../../domain/informationIntakeReport'
 import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRegistry'
+import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8370,6 +8371,10 @@ export function hydrateGame(
     game.extranormalEventRecords,
     fallback.extranormalEventRecords ?? {}
   )
+  const unexplainedLocationRecords = sanitizeUnexplainedLocationRecords(
+    game.unexplainedLocationRecords,
+    fallback.unexplainedLocationRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8488,6 +8493,7 @@ export function hydrateGame(
       knowledge,
       informationIntakeReports,
       extranormalEventRecords,
+      unexplainedLocationRecords,
       candidates,
       recruitmentPool,
       teams,

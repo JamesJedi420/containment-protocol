@@ -21,7 +21,7 @@ From `README.md` **Current design notes**:
 
 ## Recommended next step (agent handoff)
 
-PR #2471 merged. On `main` @ `f730ca14`. SPE-854 parent Done; SPE-70 tell/illusion triage chips next — see `planning/mission-triage-modality-signal-slice.md` ([SPE-2306](https://linear.app/spectranoir/issue/SPE-2306)).
+PR #2475 merged. On `main` @ `5fbd9c2f`. SPE-2306 shipped. Next: pick from `planning/backlog.md` active queue (infiltration optional depth, or SPE-854 intake signal chips deferred to SPE-16).
 
 ## Blocked / waiting
 
@@ -110,7 +110,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mission-triage-status-bar-slice.md`                      | **Shipped**    | SPE-2258 slice 4.                                                                                                                                   |
 | `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                                                                                                         |
 | `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                                                                                                               |
-| `mission-triage-modality-signal-slice.md`                 | **In progress** | SPE-2306 slice 7; tell/illusion triage chips under SPE-70.                                                                                          |
+| `mission-triage-modality-signal-slice.md`                 | **Shipped**    | SPE-2306 slice 7 / PR #2475; tell/illusion triage chips under SPE-70.                                                                               |
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |

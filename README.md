@@ -198,4 +198,4 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 Canonical near-term queue (merged with roadmap focus): **`planning/backlog.md`**. Deferred deep design without in-repo bodies yet (SPE-186+, knowledge children): **`planning/deferred-design-documents.md`**.
 
-**Recommended next step:** Run `git checkout main && git pull origin main`, then pick from **`planning/backlog.md`** (canonical ordered queue). After the June 2026 scope-discipline grooming pass, the default implementation target is MVP weekly loop proof slice 3 — see `planning/scope-discipline-grooming-pass.md`.
+**Recommended next step:** Run `git checkout main && git pull origin main`, then pick from **`planning/backlog.md`**. Historical grooming context is in `planning/scope-discipline-grooming-pass.md`; do not treat it as the current sequencing source.

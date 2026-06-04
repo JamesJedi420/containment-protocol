@@ -264,6 +264,7 @@ import {
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
+import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4500,6 +4501,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentMinorAnomalyItems).length > 0) {
     outputWeeklyState.minorAnomalyItemRecords = applyWeeklyMinorAnomalyItemDispositionTick(
       currentMinorAnomalyItems,
+      result.week
+    )
+  }
+
+  // SPE-2106 slice 3: advance site lifecycle when monitoring cadence due week is reached.
+  const currentUnexplainedLocations = outputWeeklyState.unexplainedLocationRecords ?? {}
+  if (Object.keys(currentUnexplainedLocations).length > 0) {
+    outputWeeklyState.unexplainedLocationRecords = applyWeeklyUnexplainedLocationLifecycleTick(
+      currentUnexplainedLocations,
       result.week
     )
   }

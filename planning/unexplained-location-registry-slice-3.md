@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2106](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2317 — Unexplained location registry weekly lifecycle/monitoring cadence advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2317) |
-| **Status** | **In Progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2498 @ `43df6ac8`                                                                        |
 | **Parent** | [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) — registry anchor (slice 1–2 shipped)          |
 | **Branch** | `spe-2106-unexplained-location-registry-weekly-lifecycle-slice-3`                                          |
 | **Base `main` SHA** | `4045c2b8`                                                                                          |

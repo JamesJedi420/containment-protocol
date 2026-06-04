@@ -135,9 +135,9 @@ Reuse helpers from:
 
 Persistence reload + 4-week fixture: `src/test/weeklyMvpLoopProof.slice2.integration.test.ts`.
 
-## Slice 3 (in flight)
+## Slice 3 (shipped)
 
-Triage routing + intake verification notes in multi-week save/load: `planning/mvp-weekly-loop-proof-slice-3.md`, [SPE-2309](https://linear.app/spectranoir/issue/SPE-2309), `src/test/weeklyMvpLoopProof.slice3.integration.test.ts`.
+Triage routing + intake verification notes in multi-week save/load: `planning/mvp-weekly-loop-proof-slice-3.md`, [SPE-2309](https://linear.app/spectranoir/issue/SPE-2309) / PR #2482, `src/test/weeklyMvpLoopProof.slice3.integration.test.ts`.
 
 ## Related follow-up (shipped)
 

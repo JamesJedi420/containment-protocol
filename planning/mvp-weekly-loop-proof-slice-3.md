@@ -1,13 +1,13 @@
 # MVP weekly loop proof — slice 3 (triage + intake persistence)
 
-## Status
+## Shipped status
 
 | Field | Value |
 | --- | --- |
-| **Linear (slice)** | [SPE-2309](https://linear.app/spectranoir/issue/SPE-2309) — MVP weekly loop proof (slice 3 — triage + intake persistence) |
-| **Linear (parent)** | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — MVP weekly loop proof (slice 1) |
-| **Branch** | `spe-2251-mvp-weekly-loop-proof-slice-3` from `main` @ `967e9e55` |
-| **MVP claims** | `planning/mvp-scope.md` §8 Claims 1, 2, 6 |
+| **Linear (slice)** | [SPE-2309](https://linear.app/spectranoir/issue/SPE-2309) — Done |
+| **Merged PR** | [#2482](https://github.com/JamesJedi420/containment-protocol/pull/2482) @ `ac9baacd` |
+| **Linear (parent)** | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — open (milestone 6 incomplete) |
+| **MVP claims** | `planning/mvp-scope.md` §8 Claims 1, 2 (partial), 6 |
 
 ## Goal
 
@@ -30,12 +30,11 @@ Extend the SPE-2251 `weeklyMvpLoopProof` harness so one deterministic flow prove
 | Helper hooks | `applyWeeklyMvpLoopIntakeAndTriage`, `readWeeklyMvpLoopTriageScores`, `MVP_LOOP_INTAKE_TOPIC` |
 | Tests | `src/test/weeklyMvpLoopProof.slice3.integration.test.ts` |
 
-## Acceptance
+## Shipped acceptance
 
-- [ ] Slice 3 integration tests pass in `npm run test:run`
-- [ ] Full suite green
-- [ ] `npm run lint` green on touched files
-- [ ] PR links SPE-2309; parent SPE-2251 stays open until milestone 6 proof is complete
+- [x] `weeklyMvpLoopProof.slice3.integration.test.ts` in CI
+- [x] Full suite green (CI test job)
+- [x] PR #2482 merged; parent SPE-2251 remains open
 
 ## Deferred
 

@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Registry slice-2+ (next)** — [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) minor anomaly item persistence (slice 2); then SPE-2105 slice 3 weekly hook or other intake-registry parents. Owner creates Linear child.
+1. **Registry slice-3+ (next)** — [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) disposition weekly hook (slice 3+) or [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) extranormal weekly monitoring hook after [SPE-2314](https://linear.app/spectranoir/issue/SPE-2314) persistence merges.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `ae5354f5` (post–SPE-2313 merge, PR #2490). [SPE-2313](https://linear.app/spectranoir/issue/SPE-2313) **Done** — unexplained location persistence. **Next:** [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) minor anomaly persistence (`planning/minor-anomaly-item-registry-slice-2.md` when created); defer SPE-2105 slice 3 until sibling registry wave completes.
+On `main` @ `97463533`. [SPE-2314](https://linear.app/spectranoir/issue/SPE-2314) **In Progress** — minor anomaly item persistence (`planning/minor-anomaly-item-registry-slice-2.md`). **Next after merge:** registry slice-3 weekly hooks (SPE-2104 / SPE-2105) or other intake-registry parents.
 
 ## Blocked / waiting
 
@@ -136,6 +136,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `hidden-modality-matrix-slice-9.md`                       | **Shipped**    | SPE-2290 / PR #2423; glamour / presentation overlay modality.                                                                                        |
 | `extranormal-event-registry-slice-1.md`                   | **Shipped**    | SPE-2105 / PR #2426; brief incident intake schema.                                                                                                  |
 | `minor-anomaly-item-registry-slice-1.md`                  | **Shipped**    | SPE-2104 / PR #2428; low-priority item intake schema.                                                                                               |
+| `minor-anomaly-item-registry-slice-2.md`                  | **In Progress** | SPE-2314; `minorAnomalyItemRecords` GameState persistence.                                                                                          |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |
 | `public-disclosure-state-registry-slice-1.md`             | **Shipped**    | SPE-2109 / PR #2430; awareness levels, fallout timeline, regional trust — post-secrecy campaign slice 1.                                              |
 | `pattern-source-series-registry-slice-1.md`               | **Shipped**    | SPE-2110 / PR #2431; series-hub intake metadata and processing queue projection.                                                                      |

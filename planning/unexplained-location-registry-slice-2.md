@@ -54,7 +54,7 @@ Persist validated `UnexplainedLocationRecord` entries on `GameState` with saniti
 | Item | Owner | Why |
 | --- | --- | --- |
 | Weekly lifecycle / monitoring cadence advance | SPE-2106 slice 3+ | Persistence must land before orchestration |
-| Minor anomaly item persistence | SPE-2104 slice 2 | One registry per PR |
+| Minor anomaly item persistence | [SPE-2314](https://linear.app/spectranoir/issue/SPE-2314) | Sibling registry wave; SPE-2106 slice 3+ owns weekly lifecycle hook |
 | Extranormal event weekly monitoring hook | SPE-2105 slice 3 | Separate parent; unblocked on main |
 
 ## See also

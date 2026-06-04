@@ -246,6 +246,7 @@ import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 import type { InformationIntakeReportRecord } from './informationIntakeReport'
 import type { ExtranormalEventRecord } from './extranormalEventRegistry'
 import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
+import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2553,6 +2554,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   unexplainedLocationRecords?: Record<string, UnexplainedLocationRecord>
+
+  /**
+   * SPE-2104 slice 2: persisted low-priority minor anomaly item records (keyed by item id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  minorAnomalyItemRecords?: Record<string, MinorAnomalyRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

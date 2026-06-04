@@ -42,6 +42,7 @@ const startingStateTemplate: GameState = {
   informationIntakeReports: {},
   extranormalEventRecords: {},
   unexplainedLocationRecords: {},
+  minorAnomalyItemRecords: {},
   factions: createInitialFactionState(),
 
   agency: {

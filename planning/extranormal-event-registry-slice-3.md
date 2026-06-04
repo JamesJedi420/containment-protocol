@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2105](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2315 — Extranormal event registry weekly monitoring/closure advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2315) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2494 @ `91fa6cf7`                                                                        |
 | **Parent** | [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) — registry anchor (slice 1–2 shipped)            |
 | **Branch** | `spe-2105-extranormal-event-registry-weekly-monitoring-slice-3`                                          |
 | **Base `main` SHA** | `79ff0fbf`                                                                                          |

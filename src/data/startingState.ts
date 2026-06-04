@@ -40,6 +40,7 @@ const startingStateTemplate: GameState = {
 
   knowledge: startingKnowledge,
   informationIntakeReports: {},
+  extranormalEventRecords: {},
   factions: createInitialFactionState(),
 
   agency: {

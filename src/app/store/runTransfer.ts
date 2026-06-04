@@ -193,6 +193,7 @@ import { createDefaultPowerImpactSummary } from '../../domain/teamSimulation'
 import { getKnowledgeKey } from '../../domain/knowledge'
 import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import { sanitizeInformationIntakeReports } from '../../domain/informationIntakeReport'
+import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRegistry'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8365,6 +8366,10 @@ export function hydrateGame(
     game.informationIntakeReports,
     fallback.informationIntakeReports ?? {}
   )
+  const extranormalEventRecords = sanitizeExtranormalEventRecords(
+    game.extranormalEventRecords,
+    fallback.extranormalEventRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8482,6 +8487,7 @@ export function hydrateGame(
       staff,
       knowledge,
       informationIntakeReports,
+      extranormalEventRecords,
       candidates,
       recruitmentPool,
       teams,

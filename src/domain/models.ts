@@ -244,6 +244,7 @@ import type {
 import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 import type { InformationIntakeReportRecord } from './informationIntakeReport'
+import type { ExtranormalEventRecord } from './extranormalEventRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2539,6 +2540,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   informationIntakeReports?: Record<string, InformationIntakeReportRecord>
+
+  /**
+   * SPE-2105 slice 2: persisted brief extranormal incident records (keyed by event id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  extranormalEventRecords?: Record<string, ExtranormalEventRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

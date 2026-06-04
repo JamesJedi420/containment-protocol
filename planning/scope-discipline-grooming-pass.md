@@ -59,27 +59,27 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 - New hidden-modality families beyond shipped 1–11 stack
 - SPE-2250 batch-4+ template authoring — see audit gates below
 
-## Phase 4 — Roadmap §14 review (candidates)
+## Phase 4 — Roadmap §14 review (candidates — updated post SPE-2251)
 
 | Candidate | §14 pass? | Notes |
 | --- | --- | --- |
-| **MVP weekly loop proof slice 3** | **Yes** | Extends SPE-2251 harness toward Claims 1–2 (`mvp-scope.md` §8): triage/deployment path + institutional carryover in one test-backed flow; reuses shipped intake + triage integration |
+| **Extranormal event registry persistence (SPE-2105 slice 2)** | **Yes** | First intake-registry persistence after SPE-2251 harness closure; mirrors SPE-2293 pattern; strengthens loop without new surfaces |
+| Registry slice-2 wave (other parents) | Partial | One registry per PR after SPE-2105 pattern lands |
 | SPE-70 parent Done review | Partial | Hygiene only — no runtime unless owner reopens AC |
 | Mission triage residual | **No** | Blocked — surfaces without loop truth |
-| Registry slice-2 wave | **No** | Breadth before central-machine proof |
-| SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates |
+| SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates (audit unchanged) |
 
-## Phase 5 — Backlog outcome
+## Phase 5 — Backlog outcome (updated June 2026 post SPE-2251 / PR #2486)
 
 **Recommended next implementation (owner creates Linear child when starting):**
 
-**MVP weekly loop proof slice 3** — extend `weeklyMvpLoopProof` harness to cover mission triage routing and/or intake verification notes in the multi-week persistence path (Claims 1–2, 6 in `mvp-scope.md` §8). Plan anchor: `planning/mvp-weekly-loop-proof-slice-1.md` (add slice-3 section when scoped).
+**Extranormal event registry GameState persistence slice 2** — `planning/extranormal-event-registry-slice-2.md`, branch `spe-2105-extranormal-event-registry-persistence-slice-2`, base `main` @ `80f7ffdb`.
 
-**Explicitly deferred until owner pick or new template batch:**
+**Explicitly deferred:**
 
-- SPE-2250 batch-4+ — `planning/infiltration-encounter-content-batch4plus-audit.md`
-- Registry parent slice-2+ waves
-- Mission triage full refresh
+- SPE-2250 batch-4+ — `planning/infiltration-encounter-content-batch4plus-audit.md` (audit gates still fail)
+- Sibling registry slice-2 (SPE-2106, SPE-2104, SPE-1309+ parents) — after SPE-2105 persistence pattern
+- Mission triage full refresh — blocked
 
 ## SPE-2250 revisit gates (unchanged)
 

@@ -23,6 +23,10 @@ const INTAKE_REASON_PRIORITY: readonly string[] = [
   'intake-linked-reports',
 ]
 
+const INTAKE_REASON_PRIORITY_INDEX = new Map(
+  INTAKE_REASON_PRIORITY.map((code, index) => [code, index])
+)
+
 export interface MissionTriageIntakeSignalMarker {
   readonly id: string
   readonly label: string
@@ -90,7 +94,7 @@ function intakeChipTitle(reasonCode: string, linkedReportCount: number): string 
     case 'intake-verification-corroborated':
       return 'Dominant linked intake verification is corroborated or escalated.'
     case 'intake-linked-reports':
-      return `${linkedReportCount} information intake report${linkedReportCount === 1 ? '' : 's'} link to this mission.`
+      return `${linkedReportCount} information intake report${linkedReportCount === 1 ? '' : 's'} linked to this mission.`
     default:
       if (reasonCode.startsWith('intake-coverage-')) {
         return 'Linked intake coverage band adjusts triage priority.'
@@ -117,11 +121,10 @@ function intakeChipClassName(reasonCode: string): string {
 
 function sortedIntakeReasonCodes(reasonCodes: readonly string[]): string[] {
   const intakeCodes = reasonCodes.filter((code) => code.startsWith('intake-'))
-  const priorityIndex = new Map(INTAKE_REASON_PRIORITY.map((code, index) => [code, index]))
 
   return [...intakeCodes].sort((left, right) => {
-    const leftPriority = priorityIndex.get(left) ?? Number.MAX_SAFE_INTEGER
-    const rightPriority = priorityIndex.get(right) ?? Number.MAX_SAFE_INTEGER
+    const leftPriority = INTAKE_REASON_PRIORITY_INDEX.get(left) ?? Number.MAX_SAFE_INTEGER
+    const rightPriority = INTAKE_REASON_PRIORITY_INDEX.get(right) ?? Number.MAX_SAFE_INTEGER
 
     if (leftPriority !== rightPriority) {
       return leftPriority - rightPriority
@@ -149,6 +152,10 @@ export function buildMissionTriageIntakeSignals(
   const markers: MissionTriageIntakeSignalMarker[] = []
 
   for (const reasonCode of sortedIntakeReasonCodes(signals.reasonCodes)) {
+    if (markers.length >= MAX_INTAKE_MARKERS) {
+      break
+    }
+
     pushMarker(markers, {
       id: reasonCode,
       label: intakeChipLabel(reasonCode),

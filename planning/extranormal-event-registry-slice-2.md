@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-854](https://linear.app/s
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2312 — Extranormal event registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2312) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2488 @ `017ec758`                                                                        |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine (Done); registry anchor [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) |
 | **Branch** | `spe-2105-extranormal-event-registry-persistence-slice-2`                                                  |
 | **Base `main` SHA** | `80f7ffdb`                                                                                          |

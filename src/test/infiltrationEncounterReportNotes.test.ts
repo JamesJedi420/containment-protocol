@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import {
   buildInfiltrationEncounterReportContext,
   buildInfiltrationEncounterReportContextAfterProbe,
+  buildInfiltrationPrepEncounterNotes,
+  INFILTRATION_COVER_ROLE_OBSERVER_FRICTION,
+  INFILTRATION_PROBE_ENCOUNTER_DETAILS,
   enrichInfiltrationThresholdSummary,
   formatInfiltrationLeaveBehindTradeoffSummary,
   formatInfiltrationWeeklyEncounterSummary,
@@ -149,6 +152,20 @@ describe('infiltrationEncounterReportNotes', () => {
         preferredTags: [],
       })
     ).toBe(false)
+  })
+
+  it('builds prep encounter preview bullets without weekly report framing', () => {
+    const caseData = createCovertCase()
+    const context = buildInfiltrationEncounterReportContext(caseData)!
+    const notes = buildInfiltrationPrepEncounterNotes(caseData)
+
+    expect(notes[0]).toBe(INFILTRATION_PROBE_ENCOUNTER_DETAILS[context.probeAction])
+    if (context.coverRole !== undefined) {
+      expect(notes).toContain(INFILTRATION_COVER_ROLE_OBSERVER_FRICTION[context.coverRole])
+    }
+    expect(notes).toContain('Staged leave-behind: Burn field tool.')
+    expect(notes.join(' ')).not.toContain('Authored probe plan')
+    expect(notes.join(' ')).not.toContain('Tracks at')
   })
 
   it('omits cover and leave-behind clauses when absent', () => {

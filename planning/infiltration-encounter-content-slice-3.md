@@ -82,7 +82,7 @@ When `coverRole` is set, one role-specific observer-friction sentence after the 
 | Item | Owner | Why |
 | ---- | ----- | --- |
 | Additional template probe/cover stacks | SPE-2250 follow-up | Out of slice 3 copy-only boundary |
-| Case prep UI encounter summaries | SPE-521 follow-up | UI not in scope |
+| Case prep UI encounter summaries | [SPE-2308](https://linear.app/spectranoir/issue/SPE-2308) | Shipped in prep encounter preview slice |
 
 ## See also
 

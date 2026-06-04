@@ -236,15 +236,19 @@ it('shows stealth leave-behind tradeoff selection for eligible in-progress hidde
   const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
   expect(within(weeklyPrep).getAllByLabelText(/forensic investigation budget/i)).toHaveLength(1)
-  expect(within(weeklyPrep).getByText(/leave forensic trace/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getByRole('button', { name: /selected/i })).toBeInTheDocument()
 
-  const burnRow = within(weeklyPrep).getByText(/burn field tool/i).closest('li')
+  const leaveBehindGroup = within(weeklyPrep).getByRole('group', {
+    name: /stealth leave-behind tradeoff/i,
+  })
+  expect(within(leaveBehindGroup).getByText(/leave forensic trace/i)).toBeInTheDocument()
+  expect(within(leaveBehindGroup).getByRole('button', { name: /selected/i })).toBeInTheDocument()
+
+  const burnRow = within(leaveBehindGroup).getByText(/burn field tool/i).closest('li')
   expect(burnRow).not.toBeNull()
   await user.click(within(burnRow as HTMLElement).getByRole('button', { name: /^select$/i }))
 
-  expect(within(weeklyPrep).getByText(/burn field tool/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
+  expect(within(leaveBehindGroup).getByText(/burn field tool/i)).toBeInTheDocument()
+  expect(within(leaveBehindGroup).getAllByRole('button', { name: /selected/i })).toHaveLength(1)
   expect(useGameStore.getState().game.cases['case-stealth-ui']?.stealthLeaveBehindId).toBe(
     'leave-behind:burn-tool'
   )

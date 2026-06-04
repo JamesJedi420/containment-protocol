@@ -16,12 +16,12 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Infiltration optional content depth** — Report encounter copy slice 3 shipped ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305) / PR #2473). Further optional template stacks or prep UI copy under [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) / [SPE-521](https://linear.app/spectranoir/issue/SPE-521) when narratively warranted.
+1. **Infiltration optional content depth** — Prep encounter preview shipped ([SPE-2308](https://linear.app/spectranoir/issue/SPE-2308)); report copy slice 3 ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305) / PR #2473). Further optional template stacks beyond batch-4 under [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) when narratively warranted.
 2. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
 ## Recommended next step (agent handoff)
 
-PR #2477 merged. On `main` @ `72c22086`. SPE-2307 shipped. **Next:** infiltration optional depth per active queue.
+On `main` @ `12fa92d9`. **Next:** optional batch-4+ template infiltration stacks (SPE-2250) when narratively warranted; SPE-2308 prep preview in PR.
 
 ## Blocked / waiting
 

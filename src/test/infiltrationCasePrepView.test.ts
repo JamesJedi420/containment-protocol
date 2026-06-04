@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { copyInfiltrationProbePlan } from '../domain/infiltrationProbe'
 import {
+  INFILTRATION_COVER_ROLE_OBSERVER_FRICTION,
+  INFILTRATION_PROBE_ENCOUNTER_DETAILS,
+  INFILTRATION_STAGE_OBSERVER_CLAUSES,
+} from '../domain/infiltrationEncounterReportNotes'
+import {
   buildInfiltrationCasePrepView,
   canShowInfiltrationCasePrepOnCase,
 } from '../features/cases/infiltrationCasePrepView'
@@ -47,5 +52,28 @@ describe('infiltrationCasePrepView', () => {
     expect(view.plannedAction).toBe('probe_access')
     expect(view.coverStrainNotes.length).toBeGreaterThan(0)
     expect(view.hasCoverStrain).toBe(true)
+  })
+
+  it('surfaces encounter preview notes from report copy constants', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.encounterPreviewNotes).toContain(
+      INFILTRATION_PROBE_ENCOUNTER_DETAILS.probe_route
+    )
+    expect(view.encounterPreviewNotes).toContain(
+      INFILTRATION_COVER_ROLE_OBSERVER_FRICTION.uniform_guard
+    )
+    expect(view.encounterPreviewNotes).not.toContain(
+      INFILTRATION_STAGE_OBSERVER_CLAUSES.exposed
+    )
+  })
+
+  it('includes stage observer pressure when infiltration stage is exposed', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createEligibleCase(),
+      infiltrationStage: 'exposed',
+    })
+
+    expect(view.encounterPreviewNotes).toContain(INFILTRATION_STAGE_OBSERVER_CLAUSES.exposed)
   })
 })

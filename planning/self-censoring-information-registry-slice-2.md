@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2318](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2318 — Self-censoring information registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2318) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2500 @ `9cd48aeb`                                                                        |
 | **Parent** | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) — Self-censoring information registry; umbrella [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) |
 | **Branch** | `spe-2108-self-censoring-information-registry-persistence-slice-2`                                         |
 | **Base `main` SHA** | `39fee7c6`                                                                                          |

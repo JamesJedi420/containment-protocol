@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-88](https://linear.app/sp
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2313 — Unexplained location registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2313) |
-| **Status** | In progress                                                                                                |
+| **Status** | **Shipped** — PR #2490 @ `ae5354f5`                                                                       |
 | **Parent** | [SPE-88](https://linear.app/spectranoir/issue/SPE-88) — Anomaly compendium umbrella; registry anchor [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) |
 | **Branch** | `spe-2106-unexplained-location-registry-persistence-slice-2`                                             |
 | **Base `main` SHA** | `017ec758`                                                                                          |

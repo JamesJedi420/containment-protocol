@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2307](https://linear.app/spectranoir/
 | **Linear** | [SPE-2307 — Mission triage intake signal chips (slice 8 UX)](https://linear.app/spectranoir/issue/SPE-2307) |
 | **Parent** | [SPE-16](https://linear.app/spectranoir/issue/SPE-16) — Mission Intake, Triage, & Routing |
 | **Branch** | `spe-2307-mission-triage-intake-signal-chips` |
-| **Status** | **In PR** — https://github.com/JamesJedi420/containment-protocol/pull/2477 |
+| **Status** | **Shipped** (PR #2477 / `72c22086`) |
 
 ## Goal
 
@@ -33,11 +33,11 @@ Surface bounded **intake-* reason codes** as read-only chips on the compact `/ca
 
 ## Acceptance
 
-- [ ] Canal-bridge linked mission shows intake chips on list row (`Intake: conflict`, `Intake: incomplete`)
-- [ ] Unlinked missions show no intake chips
-- [ ] Resolved missions hide intake markers
-- [ ] Chips derive from live `informationIntakeReports`, not stale persisted routing codes
-- [ ] `npm run lint` + targeted Vitest green
+- [x] Canal-bridge linked mission shows intake chips on list row (`Intake: conflict`, `Intake: incomplete`)
+- [x] Unlinked missions show no intake chips
+- [x] Resolved missions hide intake markers
+- [x] Chips derive from live `informationIntakeReports`, not stale persisted routing codes
+- [x] `npm run lint` + targeted Vitest green
 
 ## File touch list
 

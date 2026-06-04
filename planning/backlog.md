@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Registry slice-3+ (next)** — [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) disposition weekly hook (slice 3+) or [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) extranormal weekly monitoring hook (registry persistence wave complete).
+1. **Registry slice-3+ (next)** — [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) disposition weekly hook (slice 3+); extranormal monitoring hook in PR ([SPE-2315](https://linear.app/spectranoir/issue/SPE-2315)).
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `91c902f4` (post–SPE-2314 merge, PR #2492). [SPE-2314](https://linear.app/spectranoir/issue/SPE-2314) **Done** — minor anomaly item persistence shipped. **Next:** registry slice-3 weekly hooks (SPE-2104 disposition or SPE-2105 monitoring); create Linear child + slice doc per owner.
+On `main` @ `79ff0fbf`. [SPE-2315](https://linear.app/spectranoir/issue/SPE-2315) extranormal weekly monitoring hook **In PR** (`planning/extranormal-event-registry-slice-3.md`). **Next:** [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) disposition weekly hook (slice 3+) or unexplained-location slice 3+ per registry wave.
 
 ## Blocked / waiting
 
@@ -120,6 +120,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
 | `mvp-weekly-loop-proof-slice-4.md`                        | **Shipped**    | [SPE-2310](https://linear.app/spectranoir/issue/SPE-2310) / PR #2484 — Claims 3–4.                                                                    |
 | `mvp-weekly-loop-proof-slice-5.md`                        | **Shipped**    | [SPE-2311](https://linear.app/spectranoir/issue/SPE-2311) / PR #2486 — Claims 5–6; closes SPE-2251 harness.                                          |
+| `extranormal-event-registry-slice-3.md`                   | **In PR**      | [SPE-2315](https://linear.app/spectranoir/issue/SPE-2315) — weekly `monitoringUntilWeek` / `monitor_only` advance hook for SPE-2105.                  |
 | `extranormal-event-registry-slice-2.md`                   | **Shipped**    | [SPE-2312](https://linear.app/spectranoir/issue/SPE-2312) / PR #2488 — GameState persistence for SPE-2105 records.                                      |
 | `unexplained-location-registry-slice-2.md`                | **Shipped**    | [SPE-2313](https://linear.app/spectranoir/issue/SPE-2313) / PR #2490 — GameState persistence for SPE-2106 records.                                      |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |

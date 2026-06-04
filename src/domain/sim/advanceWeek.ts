@@ -262,6 +262,7 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
+import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4482,6 +4483,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       }
       result.reports = reports
     }
+  }
+
+  // SPE-2105 slice 3: expire extranormal monitoring windows and advance monitor_only closure.
+  const currentExtranormalEvents = outputWeeklyState.extranormalEventRecords ?? {}
+  if (Object.keys(currentExtranormalEvents).length > 0) {
+    outputWeeklyState.extranormalEventRecords = applyWeeklyExtranormalEventMonitoringTick(
+      currentExtranormalEvents,
+      result.week
+    )
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.

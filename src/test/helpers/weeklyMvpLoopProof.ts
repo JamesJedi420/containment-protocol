@@ -205,7 +205,13 @@ export function tuneWeeklyMvpLoopCovertForPartialBand(
     throw new Error('Expected covert MVP loop case and team before partial-band tuning')
   }
 
-  const memberAgents = team.agentIds.map((agentId) => state.agents[agentId]!).filter(Boolean)
+  const memberAgents = team.agentIds.map((agentId) => {
+    const agent = state.agents[agentId]
+    if (!agent) {
+      throw new Error(`Expected agent ${agentId} on team ${teamId} for partial-band tuning`)
+    }
+    return agent
+  })
   const thresholdCase = {
     ...covertCase,
     mode: 'threshold' as const,
@@ -217,7 +223,11 @@ export function tuneWeeklyMvpLoopCovertForPartialBand(
     preferredTags: [],
   }
 
-  const calibratedPartialScore = computeTeamScore(memberAgents, thresholdCase)
+  const calibratedPartialScore = computeTeamScore(memberAgents, thresholdCase, {
+    leaderId: team.leaderId ?? team.agentIds[0],
+    teamTags: team.tags,
+    supportTags: team.tags,
+  })
   const tunedCase = {
     ...thresholdCase,
     difficulty: {

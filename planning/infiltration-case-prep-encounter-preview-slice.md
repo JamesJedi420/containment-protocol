@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2308](https://linear.app/spectranoir/
 | **Linear** | [SPE-2308 — Infiltration case prep encounter preview](https://linear.app/spectranoir/issue/SPE-2308) |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521)               |
 | **Branch** | `jamesdyedbq/spe-521-infiltration-case-prep-encounter-preview`        |
-| **Status** | In progress                                                           |
+| **Status** | Shipped — SPE-2308 / PR #2479                                                                        |
 
 ## Goal
 

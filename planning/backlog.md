@@ -21,7 +21,7 @@ From `README.md` **Current design notes**:
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `12fa92d9`. **Next:** optional batch-4+ template infiltration stacks (SPE-2250) when narratively warranted; SPE-2308 prep preview in PR.
+PR #2479 merged. On `main` @ `5e2abcde`. SPE-2308 shipped. **Next:** optional batch-4+ template infiltration stacks (SPE-2250) when narratively warranted, or scope-discipline grooming only.
 
 ## Blocked / waiting
 

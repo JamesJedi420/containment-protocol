@@ -16,12 +16,11 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Infiltration optional content depth** — Prep encounter preview shipped ([SPE-2308](https://linear.app/spectranoir/issue/SPE-2308)); report copy slice 3 ([SPE-2305](https://linear.app/spectranoir/issue/SPE-2305) / PR #2473). Further optional template stacks beyond batch-4 under [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) when narratively warranted.
-2. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
+1. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
 
 ## Recommended next step (agent handoff)
 
-PR #2479 merged. On `main` @ `5e2abcde`. SPE-2308 shipped. **Next:** optional batch-4+ template infiltration stacks (SPE-2250) when narratively warranted, or scope-discipline grooming only.
+On `main` @ `22550174`. Batch-4+ infiltration template audit **deferred** — no eligible templates outside the twelve batch-4 IDs (`planning/infiltration-encounter-content-batch4plus-audit.md`). **Next:** scope-discipline grooming only unless a new template batch warrants SPE-2250 follow-up.
 
 ## Blocked / waiting
 
@@ -103,6 +102,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                                                                                                             |
 | `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |
 | `infiltration-encounter-content-slice-3.md`               | **Shipped**    | SPE-2305 / PR #2473; optional report encounter copy depth.                                                                                          |
+| `infiltration-encounter-content-batch4plus-audit.md`      | **Audit**      | SPE-2250 batch-4+ deferral; no eligible templates (June 2026).                                                                                        |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

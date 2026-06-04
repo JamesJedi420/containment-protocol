@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2307](https://linear.app/spectranoir/
 | **Linear** | [SPE-2307 — Mission triage intake signal chips (slice 8 UX)](https://linear.app/spectranoir/issue/SPE-2307) |
 | **Parent** | [SPE-16](https://linear.app/spectranoir/issue/SPE-16) — Mission Intake, Triage, & Routing |
 | **Branch** | `spe-2307-mission-triage-intake-signal-chips` |
-| **Status** | **In PR** |
+| **Status** | **In PR** — https://github.com/JamesJedi420/containment-protocol/pull/2477 |
 
 ## Goal
 

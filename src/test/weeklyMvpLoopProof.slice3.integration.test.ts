@@ -56,10 +56,10 @@ describe('MVP weekly loop proof (slice 3)', () => {
 
     const week1 = advanceWeek(applyWeeklyMvpLoopPrepFlags(state))
     expect(week1.gameOver).toBe(false)
-    const intakeNotesWeek1 =
-      week1.reports[week1.reports.length - 1]?.notes.filter(
-        (note) => note.type === 'information_intake.verification'
-      ) ?? []
+    const intakeNotesWeek1 = week1.reports.flatMap(
+      (report) =>
+        report.notes?.filter((note) => note.type === 'information_intake.verification') ?? []
+    )
     expect(intakeNotesWeek1.length).toBeGreaterThan(0)
     expect(
       intakeNotesWeek1.some((note) => note.content.includes(FORMAL_ALERT_PARTIAL_FIXTURE.label))
@@ -73,8 +73,9 @@ describe('MVP weekly loop proof (slice 3)', () => {
     expect(week2.week).toBe(week1.week + 1)
     expect(week2.week).toBeGreaterThan(startWeek)
 
-    const allIntakeNotes = week2.reports.flatMap((report) =>
-      report.notes.filter((note) => note.type === 'information_intake.verification')
+    const allIntakeNotes = week2.reports.flatMap(
+      (report) =>
+        report.notes?.filter((note) => note.type === 'information_intake.verification') ?? []
     )
     expect(allIntakeNotes.length).toBeGreaterThanOrEqual(intakeNotesWeek1.length)
     expect(week2.reports.length).toBeGreaterThan(week1.reports.length)

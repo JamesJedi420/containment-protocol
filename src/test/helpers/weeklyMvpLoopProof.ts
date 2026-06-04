@@ -117,7 +117,7 @@ function buildMvpLoopIntakeReports(): Record<string, InformationIntakeReportReco
 
 /**
  * Links mixed-source intake to the covert case topic and recomputes mission routing
- * for triage assertions (SPE-2251 slice 3).
+ * for triage assertions (SPE-2309 slice 3).
  */
 export function applyWeeklyMvpLoopIntakeAndTriage(state: GameState): GameState {
   const covertCase = state.cases[MVP_LOOP_PROOF_CASE_ID]
@@ -138,7 +138,10 @@ export function applyWeeklyMvpLoopIntakeAndTriage(state: GameState): GameState {
       ...state.cases,
       [MVP_LOOP_PROOF_CASE_ID]: taggedCovert,
     },
-    informationIntakeReports: buildMvpLoopIntakeReports(),
+    informationIntakeReports: {
+      ...state.informationIntakeReports,
+      ...buildMvpLoopIntakeReports(),
+    },
   }
 
   return {

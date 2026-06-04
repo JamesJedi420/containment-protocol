@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4490,6 +4491,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentExtranormalEvents).length > 0) {
     outputWeeklyState.extranormalEventRecords = applyWeeklyExtranormalEventMonitoringTick(
       currentExtranormalEvents,
+      result.week
+    )
+  }
+
+  // SPE-2104 slice 3: advance intake disposition when custody review due week is reached.
+  const currentMinorAnomalyItems = outputWeeklyState.minorAnomalyItemRecords ?? {}
+  if (Object.keys(currentMinorAnomalyItems).length > 0) {
+    outputWeeklyState.minorAnomalyItemRecords = applyWeeklyMinorAnomalyItemDispositionTick(
+      currentMinorAnomalyItems,
       result.week
     )
   }

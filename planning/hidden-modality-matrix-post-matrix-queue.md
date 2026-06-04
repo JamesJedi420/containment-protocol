@@ -14,7 +14,7 @@ Routing doc for optional modality families after matrix slices 1–6 shipped. **
 | 6     | SPE-2286 | #2415  | Mode-specific tells / observer threshold   |
 | —     | SPE-2287 | #2417  | Docs reconciliation (not runtime)          |
 
-Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix optional families through slice 11 in flight; mission-triage chips remain out of scope.
+Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog** — post-matrix slices 7–11 and mission-triage chips (SPE-2306) shipped; owner evaluates parent **Done** vs deferred families per `planning/scope-discipline-grooming-pass.md`.
 
 ## Post-matrix queue (complete)
 
@@ -38,14 +38,17 @@ Parent [SPE-70](https://linear.app/spectranoir/issue/SPE-70) remains **Backlog**
 - ~~Mission triage illusion/tell chips~~ → shipped SPE-2306 / `planning/mission-triage-modality-signal-slice.md`
 - Full SPE-70 parent Done (evaluate after owner review of deferred families)
 
-## Agent handoff template (next runtime slice)
+## Agent handoff (historical — May 2026)
+
+The block below recorded the post-matrix → intake-registry wave handoff. **Do not use for sequencing** — see `planning/backlog.md` § Recommended next step.
 
 ```text
-PR #2423 merged. On main @ d031fd91. Next: https://linear.app/spectranoir/issue/SPE-2105 — see planning/extranormal-event-registry-slice-1.md — branch jamesdyedbq/spe-2105-extranormal-event-registry-brief-incident-intake-cover-up.
+PR #2423 merged. On main @ d031fd91. Next: SPE-2105 — planning/extranormal-event-registry-slice-1.md (intake registry wave; now shipped).
 ```
 
 ## See also
 
-- `planning/backlog.md` — active queue item #1 (SPE-2105)
+- `planning/backlog.md` — canonical active queue
+- `planning/scope-discipline-grooming-pass.md` — June 2026 §15 grooming record
 - `planning/extranormal-event-registry-slice-1.md`
 - `architecture/hidden-state-displacement-counter-detection.md`

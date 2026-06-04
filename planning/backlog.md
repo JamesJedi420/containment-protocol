@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Registry slice-3+ (next)** — [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle.
+1. **Registry slice-3+ (next)** — pick next intake-registry or compendium follow-up after [SPE-2317](https://linear.app/spectranoir/issue/SPE-2317) merges (unexplained-location weekly lifecycle in PR).
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `a84e293e` (post–SPE-2316 merge, PR #2496). [SPE-2316](https://linear.app/spectranoir/issue/SPE-2316) **Done** — minor-anomaly weekly disposition hook shipped. **Next:** [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle.
+On `main` @ `4045c2b8`. [SPE-2317](https://linear.app/spectranoir/issue/SPE-2317) **In Progress** — unexplained-location weekly lifecycle hook (slice 3). [SPE-2316](https://linear.app/spectranoir/issue/SPE-2316) **Done** (PR #2496).
 
 ## Blocked / waiting
 
@@ -123,6 +123,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `extranormal-event-registry-slice-3.md`                   | **Shipped**    | [SPE-2315](https://linear.app/spectranoir/issue/SPE-2315) / PR #2494 — weekly monitoring/closure advance hook for SPE-2105.                           |
 | `extranormal-event-registry-slice-2.md`                   | **Shipped**    | [SPE-2312](https://linear.app/spectranoir/issue/SPE-2312) / PR #2488 — GameState persistence for SPE-2105 records.                                      |
 | `unexplained-location-registry-slice-2.md`                | **Shipped**    | [SPE-2313](https://linear.app/spectranoir/issue/SPE-2313) / PR #2490 — GameState persistence for SPE-2106 records.                                      |
+| `unexplained-location-registry-slice-3.md`                | **In Progress** | [SPE-2317](https://linear.app/spectranoir/issue/SPE-2317) — weekly monitoring-cadence lifecycle advance hook for SPE-2106.                            |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |
 | `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                                                                                                                |

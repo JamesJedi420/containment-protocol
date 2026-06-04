@@ -1,13 +1,13 @@
 # MVP weekly loop proof — slice 4 (partial success + institutional carryover)
 
-## Status
+## Shipped status
 
 | Field | Value |
 | --- | --- |
-| **Linear (slice)** | [SPE-2310](https://linear.app/spectranoir/issue/SPE-2310) — In Progress |
-| **Linear (parent)** | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — milestone 6 umbrella |
+| **Linear (slice)** | [SPE-2310](https://linear.app/spectranoir/issue/SPE-2310) — Done |
+| **Merged PR** | [#2484](https://github.com/JamesJedi420/containment-protocol/pull/2484) @ `b191ef36` |
+| **Linear (parent)** | [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) — open (milestone 6 incomplete) |
 | **MVP claims** | `planning/mvp-scope.md` §8 Claims 3–4 |
-| **Branch** | `spe-2251-mvp-weekly-loop-proof-slice-4` from `main` @ `25aceb34` |
 
 ## Goal
 
@@ -29,11 +29,11 @@ Extend the SPE-2251 `weeklyMvpLoopProof` harness so one deterministic flow prove
 | Helper hooks | `tuneWeeklyMvpLoopCovertForPartialBand`, `applyWeeklyMvpLoopInstitutionalPressure`, `readWeeklyMvpLoopCovertMissionResult`, `collectWeeklyMvpLoopReportNotesByType` |
 | Tests | `src/test/weeklyMvpLoopProof.slice4.integration.test.ts` |
 
-## Acceptance
+## Shipped acceptance
 
-- [ ] `weeklyMvpLoopProof.slice4.integration.test.ts` green locally + CI
-- [ ] `npm run test:run` full suite green
-- [ ] PR links SPE-2310; comment PR URL on slice issue
+- [x] `weeklyMvpLoopProof.slice4.integration.test.ts` in CI
+- [x] Full suite green (CI test job)
+- [x] PR #2484 merged; parent SPE-2251 remains open
 
 ## Deferred
 

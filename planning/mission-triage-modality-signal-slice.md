@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2306](https://linear.app/spectranoir/
 | **Linear** | [SPE-2306 — Mission triage illusion/tell signal chips](https://linear.app/spectranoir/issue/SPE-2306) |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) |
 | **Branch** | `spe-2306-mission-triage-modality-signal-chips` |
-| **Status** | In progress |
+| **Status** | Shipped — SPE-2306 / PR #2475 |
 
 ## Goal
 

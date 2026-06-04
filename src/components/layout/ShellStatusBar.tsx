@@ -36,6 +36,7 @@ export function ShellStatusBar() {
 
     const triageViewOptions = {
       includeCovertPrepSignals: true as const,
+      includeIntakeSignals: true as const,
       includeModalitySignals: true as const,
     }
     const filters = normalizeCaseListFilters(

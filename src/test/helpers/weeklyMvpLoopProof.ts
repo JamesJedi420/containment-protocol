@@ -1,9 +1,15 @@
 import { createStartingState } from '../../data/startingState'
 import { caseTemplateMap } from '../../data/caseTemplates'
 import {
+  FORMAL_ALERT_PARTIAL_FIXTURE,
+  PUBLIC_RUMOR_CONFLICT_FIXTURE,
+  type InformationIntakeReportRecord,
+} from '../../domain/informationIntakeReport'
+import {
   applySuccessfulInvestigation,
   askInvestigationQuestion,
 } from '../../domain/investigationEconomy'
+import { triageMission, recomputeMissionRouting } from '../../domain/missionIntakeRouting'
 import type { GameState } from '../../domain/models'
 import { assignTeam } from '../../domain/sim/assign'
 import { createStarterCase } from '../../domain/templates/startingCases'
@@ -11,6 +17,7 @@ import { createStarterCase } from '../../domain/templates/startingCases'
 export const MVP_LOOP_PROOF_CASE_ID = 'case-mvp-covert'
 export const MVP_LOOP_PROOF_TEMPLATE_ID = 'ops-004'
 export const MVP_LOOP_FORENSIC_QUESTION_ID = 'forensic.present-signature'
+export const MVP_LOOP_INTAKE_TOPIC = 'topic:mvp-covert-incident'
 
 export interface WeeklyMvpLoopProofFixture {
   readonly state: GameState
@@ -91,4 +98,70 @@ export function applyWeeklyMvpLoopPrepFlags(state: GameState): GameState {
       [`conceal.case.${MVP_LOOP_PROOF_CASE_ID}`]: true,
     },
   }
+}
+
+function buildMvpLoopIntakeReports(): Record<string, InformationIntakeReportRecord> {
+  const topicRef = MVP_LOOP_INTAKE_TOPIC
+
+  return {
+    [FORMAL_ALERT_PARTIAL_FIXTURE.id]: {
+      ...FORMAL_ALERT_PARTIAL_FIXTURE,
+      topicRef,
+    },
+    [PUBLIC_RUMOR_CONFLICT_FIXTURE.id]: {
+      ...PUBLIC_RUMOR_CONFLICT_FIXTURE,
+      topicRef,
+    },
+  }
+}
+
+/**
+ * Links mixed-source intake to the covert case topic and recomputes mission routing
+ * for triage assertions (SPE-2309 slice 3).
+ */
+export function applyWeeklyMvpLoopIntakeAndTriage(state: GameState): GameState {
+  const covertCase = state.cases[MVP_LOOP_PROOF_CASE_ID]
+  if (!covertCase) {
+    throw new Error('Expected covert MVP loop case before intake/triage wiring')
+  }
+
+  const taggedCovert = {
+    ...covertCase,
+    tags: [...new Set([...covertCase.tags, MVP_LOOP_INTAKE_TOPIC])],
+    weeksRemaining: Math.max(covertCase.weeksRemaining ?? 0, 5),
+  }
+
+  const withCase: GameState = {
+    ...state,
+    agency: state.agency ? { ...state.agency, supportAvailable: 5 } : state.agency,
+    cases: {
+      ...state.cases,
+      [MVP_LOOP_PROOF_CASE_ID]: taggedCovert,
+    },
+    informationIntakeReports: {
+      ...state.informationIntakeReports,
+      ...buildMvpLoopIntakeReports(),
+    },
+  }
+
+  return {
+    ...withCase,
+    missionRouting: recomputeMissionRouting(withCase),
+  }
+}
+
+/** Live triage scores for the same covert mission with and without linked intake (Claim 1). */
+export function readWeeklyMvpLoopTriageScores(state: GameState) {
+  const covertCase = state.cases[MVP_LOOP_PROOF_CASE_ID]
+  if (!covertCase) {
+    throw new Error('Expected covert MVP loop case for triage reads')
+  }
+
+  const withoutIntake = triageMission(
+    { ...state, informationIntakeReports: {} },
+    covertCase
+  )
+  const withIntake = triageMission(state, covertCase)
+
+  return { withoutIntake, withIntake }
 }

@@ -44,6 +44,8 @@ This spec is for:
 
 **Slice 7 shipped (SPE-2306):** Compact triage list rows also show read-only hidden-state **modality tell** and **illusion** signal chips via `buildMissionTriageModalitySignals` (reuses `hiddenStateModalityTells.ts` / `hiddenStateIllusionLifecycle.ts`). Plan: `planning/mission-triage-modality-signal-slice.md`.
 
+**Slice 8 shipped (SPE-2307):** Compact triage list rows also show read-only **information intake** signal chips via `buildMissionTriageIntakeSignals` (reuses `deriveMissionIntakeInformationSignals` / SPE-2301–2304). Plan: `planning/mission-triage-intake-signal-slice.md`.
+
 **Still deferred (follow-up slices):**
 
 - Additional triage UX expansion beyond shipped slices 1–7 (compare-top-2 on list, bulk actions, spec §13 visual grouping)

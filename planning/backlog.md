@@ -21,11 +21,11 @@ From `README.md` **Current design notes**:
 
 ## Recommended next step (agent handoff)
 
-PR #2475 merged. On `main` @ `5fbd9c2f`. SPE-2306 shipped. Next: pick from `planning/backlog.md` active queue (infiltration optional depth, or SPE-854 intake signal chips deferred to SPE-16).
+PR #2475 merged. On `main` @ `25eee991`. SPE-2306 shipped. **Next:** infiltration optional depth or SPE-2307 intake triage chips (in PR).
 
 ## Blocked / waiting
 
-- **Mission triage full refresh** — Slices 1–7 shipped (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips, modality tell/illusion chips); further triage expansion (compare-top-2, bulk actions, spec §13 grouping) deferred until triage UI is again the primary implementation target — see `ux/mission-triage.md` spec status block.
+- **Mission triage full refresh** — Slices 1–8 shipped or in PR (covert row signals, deferral compare, split layout, status-bar tail, disposition actions, list scan chips, modality tell/illusion chips, intake signal chips); further triage expansion (compare-top-2, bulk actions, spec §13 grouping) deferred until triage UI is again the primary implementation target — see `ux/mission-triage.md` spec status block.
 - **Core UX specs — mission triage** — Operations Report + navigation map for batch-4 covert notes and report week prev/next are closed (`ux/operations-report.md` §5.3.1, `ux/navigation-map.md` §3.5.1–3.5.2). Residual triage expansion remains blocked per slice boundary above.
 
 ## Shipped (May 2026)
@@ -111,6 +111,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mission-triage-disposition-slice.md`                     | **Shipped**    | SPE-16 slice 5 disposition.                                                                                                                         |
 | `mission-triage-list-scan-slice.md`                       | **Shipped**    | SPE-2259 slice 6; parent SPE-16 Done.                                                                                                               |
 | `mission-triage-modality-signal-slice.md`                 | **Shipped**    | SPE-2306 slice 7 / PR #2475; tell/illusion triage chips under SPE-70.                                                                               |
+| `mission-triage-intake-signal-slice.md`                   | **In PR**      | SPE-2307 slice 8; intake reason-code triage chips under SPE-16.                                                                                     |
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |

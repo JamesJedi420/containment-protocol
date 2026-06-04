@@ -275,6 +275,35 @@ export function shouldEmitInfiltrationWeeklyEncounterNote(caseData: CaseInstance
   return isInfiltrationProbeEligible(caseData)
 }
 
+/**
+ * Prep-panel encounter preview bullets — same constants as weekly report copy,
+ * without post-tick or threshold-prefixed sentences.
+ */
+export function buildInfiltrationPrepEncounterNotes(
+  caseData: CaseInstance
+): readonly string[] {
+  const context = buildInfiltrationEncounterReportContext(caseData)
+  if (context === undefined) {
+    return []
+  }
+
+  const notes: string[] = [INFILTRATION_PROBE_ENCOUNTER_DETAILS[context.probeAction]]
+
+  if (context.coverRole !== undefined) {
+    notes.push(INFILTRATION_COVER_ROLE_OBSERVER_FRICTION[context.coverRole])
+  }
+
+  if (context.stage !== 'probing') {
+    notes.push(INFILTRATION_STAGE_OBSERVER_CLAUSES[context.stage])
+  }
+
+  if (context.leaveBehindLabel) {
+    notes.push(`Staged leave-behind: ${context.leaveBehindLabel}.`)
+  }
+
+  return notes
+}
+
 /** Context after a probe tick — uses post-tick tracks and stage on the merged case. */
 export function buildInfiltrationEncounterReportContextAfterProbe(
   caseBeforeTick: CaseInstance,

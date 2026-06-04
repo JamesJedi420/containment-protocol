@@ -10,6 +10,7 @@ import {
   type InfiltrationProbeAction,
   type InfiltrationStage,
 } from '../../domain/infiltrationProbe'
+import { buildInfiltrationPrepEncounterNotes } from '../../domain/infiltrationEncounterReportNotes'
 import { readInfiltrationWeeklyProbeActionOverride } from '../../domain/infiltrationProbeOverride'
 import type { CaseInstance } from '../../domain/models'
 
@@ -65,6 +66,7 @@ export interface InfiltrationCasePrepView {
   readonly effectiveActionLabel: string
   readonly actionOptions: readonly InfiltrationProbeActionOptionView[]
   readonly usingOverride: boolean
+  readonly encounterPreviewNotes: readonly string[]
 }
 
 export function canShowInfiltrationCasePrepOnCase(caseData: CaseInstance) {
@@ -137,6 +139,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       effectiveActionLabel: INFILTRATION_PROBE_ACTION_LABELS.probe_access,
       actionOptions: emptyOptions,
       usingOverride: false,
+      encounterPreviewNotes: [],
     }
   }
 
@@ -177,5 +180,6 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       selected: overrideAction === id,
     })),
     usingOverride: overrideAction !== undefined,
+    encounterPreviewNotes: buildInfiltrationPrepEncounterNotes(caseData),
   }
 }

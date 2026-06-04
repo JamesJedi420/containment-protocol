@@ -12,7 +12,12 @@ import {
 import { resolveAssignedCaseForWeek } from '../../domain/caseResolutionOrchestration'
 import { createInitialFundingState, normalizeFundingState } from '../../domain/funding'
 import { triageMission, recomputeMissionRouting } from '../../domain/missionIntakeRouting'
-import type { GameState, WeeklyReport } from '../../domain/models'
+import type { GameState, ReportNote, WeeklyReport, WeeklyReportCaseSnapshot } from '../../domain/models'
+import { getCaseWeeklyReportWeeks } from '../../features/operations/operationsRouteDrillDown'
+import {
+  filterReportNotesByCategory,
+  getAvailableReportNoteCategories,
+} from '../../features/report/reportNoteView'
 import { assignTeam } from '../../domain/sim/assign'
 import { computeTeamScore } from '../../domain/sim/scoring'
 import { createStarterCase } from '../../domain/templates/startingCases'
@@ -351,4 +356,107 @@ export function applyWeeklyMvpLoopInstitutionalPressure(
   }
 
   return pressured
+}
+
+/** Report for a campaign week (stable lookup; avoids last-index ordering). */
+export function findWeeklyMvpLoopReportByWeek(
+  reports: readonly WeeklyReport[],
+  week: number
+): WeeklyReport | undefined {
+  return reports.find((report) => report.week === week)
+}
+
+/** Report that recorded a partial outcome for the covert MVP case (rollup-key lookup). */
+export function findWeeklyMvpLoopReportWithPartialOutcome(
+  reports: readonly WeeklyReport[]
+): WeeklyReport | undefined {
+  return reports.find((report) => report.partialCases.includes(MVP_LOOP_PROOF_CASE_ID))
+}
+
+export interface WeeklyMvpLoopReportSurfacingBundle {
+  readonly report: WeeklyReport | undefined
+  readonly notes: readonly ReportNote[]
+  readonly categories: ReturnType<typeof getAvailableReportNoteCategories>
+  readonly incidentNotes: ReportNote[]
+  readonly systemNotes: ReportNote[]
+  readonly intakeNotes: ReportNote[]
+  readonly caseSnapshot: WeeklyReportCaseSnapshot | undefined
+  readonly reportWeeksForCase: number[]
+}
+
+/** Player-facing report bundle for Claim 5 (categories, snapshots, note filters). */
+export function readWeeklyMvpLoopReportSurfacingBundle(
+  reports: readonly WeeklyReport[],
+  week?: number
+): WeeklyMvpLoopReportSurfacingBundle {
+  const report =
+    week === undefined
+      ? findWeeklyMvpLoopReportWithPartialOutcome(reports) ??
+        reports[reports.length - 1]
+      : findWeeklyMvpLoopReportByWeek(reports, week)
+  const notes = report?.notes ?? []
+
+  return {
+    report,
+    notes,
+    categories: getAvailableReportNoteCategories([...notes]),
+    incidentNotes: filterReportNotesByCategory(notes, 'incident_response'),
+    systemNotes: filterReportNotesByCategory(notes, 'system'),
+    intakeNotes: filterReportNotesByCategory(notes, 'information_intake'),
+    caseSnapshot: report?.caseSnapshots?.[MVP_LOOP_PROOF_CASE_ID],
+    reportWeeksForCase: getCaseWeeklyReportWeeks(reports, MVP_LOOP_PROOF_CASE_ID),
+  }
+}
+
+export interface WeeklyMvpLoopInstitutionalPosture {
+  readonly week: number
+  readonly supportAvailable: number | undefined
+  readonly budgetPressure: number
+  readonly triageScore: number
+  readonly triageReasonCodes: readonly string[]
+  readonly covertSupportShortfall: boolean
+  readonly covertStatus: string | undefined
+}
+
+/** Live institutional + triage posture for Claim 6 week-over-week deltas. */
+export function readWeeklyMvpLoopInstitutionalPosture(
+  state: GameState
+): WeeklyMvpLoopInstitutionalPosture {
+  const covertCase = state.cases[MVP_LOOP_PROOF_CASE_ID]
+  const triage = covertCase
+    ? triageMission(state, covertCase)
+    : { score: 0, reasonCodes: [] as string[] }
+
+  return {
+    week: state.week,
+    supportAvailable: state.agency?.supportAvailable,
+    budgetPressure: state.agency?.fundingState?.budgetPressure ?? 0,
+    triageScore: triage.score,
+    triageReasonCodes: triage.reasonCodes,
+    covertSupportShortfall: covertCase?.supportShortfall === true,
+    covertStatus: covertCase?.status,
+  }
+}
+
+export interface WeeklyMvpLoopPostureDelta {
+  readonly weekAdvanced: boolean
+  readonly supportChanged: boolean
+  readonly budgetPressureChanged: boolean
+  readonly triageScoreChanged: boolean
+  readonly shortfallIntroduced: boolean
+  readonly shortfallPersisted: boolean
+}
+
+export function compareWeeklyMvpLoopInstitutionalPosture(
+  before: WeeklyMvpLoopInstitutionalPosture,
+  after: WeeklyMvpLoopInstitutionalPosture
+): WeeklyMvpLoopPostureDelta {
+  return {
+    weekAdvanced: after.week > before.week,
+    supportChanged: before.supportAvailable !== after.supportAvailable,
+    budgetPressureChanged: before.budgetPressure !== after.budgetPressure,
+    triageScoreChanged: before.triageScore !== after.triageScore,
+    shortfallIntroduced: !before.covertSupportShortfall && after.covertSupportShortfall,
+    shortfallPersisted: before.covertSupportShortfall && after.covertSupportShortfall,
+  }
 }

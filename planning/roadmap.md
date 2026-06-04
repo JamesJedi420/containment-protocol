@@ -368,12 +368,9 @@ These questions help keep the roadmap systems-oriented.
 
 Concrete ordered tasks live in **`planning/backlog.md`** so this roadmap stays strategic. Ongoing doc hygiene (when to touch backlog vs mirrors vs maps) lives in **`planning/documentation-curation.md`**. Based on the current dependency structure, near-term focus should usually remain:
 
-- finish core UX specs
-- complete tuning references
-- complete QA references
-- use those to harden implementation sequencing
-- drive toward MVP loop proof
-- resist broadening planning into too many simultaneous future branches
+- maintain closed core UX specs and tuning/QA references (spot-check when related surfaces change)
+- extend MVP loop proof harness until `planning/mvp-scope.md` §8 claims are test-backed
+- resist broadening planning into too many simultaneous future branches (registry slice-2 waves, new modality families, template content without audit gates)
 
 This keeps the roadmap grounded in the real dependency order already established.
 

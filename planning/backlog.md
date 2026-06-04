@@ -16,11 +16,11 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Scope discipline** — Resist broadening planning into too many simultaneous future branches until the central machine is more real (`planning/roadmap.md` §15).
+1. **MVP weekly loop proof slice 3** — Extend SPE-2251 integration harness toward `planning/mvp-scope.md` §8 Claims 1–2 and 6 (triage/deployment + multi-week carryover with intake verification where applicable). Owner creates Linear child when starting; plan anchor `planning/mvp-weekly-loop-proof-slice-1.md` + grooming record `planning/scope-discipline-grooming-pass.md`.
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `22550174`. Batch-4+ infiltration template audit **deferred** — no eligible templates outside the twelve batch-4 IDs (`planning/infiltration-encounter-content-batch4plus-audit.md`). **Next:** scope-discipline grooming only unless a new template batch warrants SPE-2250 follow-up.
+On `main` @ `17df0ed3`. Scope-discipline grooming pass **shipped** (`planning/scope-discipline-grooming-pass.md`). SPE-2250 batch-4+ **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md`. **Next:** MVP loop proof slice 3 (above) unless owner reprioritizes.
 
 ## Blocked / waiting
 
@@ -103,6 +103,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |
 | `infiltration-encounter-content-slice-3.md`               | **Shipped**    | SPE-2305 / PR #2473; optional report encounter copy depth.                                                                                          |
 | `infiltration-encounter-content-batch4plus-audit.md`      | **Audit**      | SPE-2250 batch-4+ deferral; no eligible templates (June 2026).                                                                                        |
+| `scope-discipline-grooming-pass.md`                       | **Audit**      | Roadmap §15 grooming (June 2026); handoff + §14 next-step record.                                                                                      |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

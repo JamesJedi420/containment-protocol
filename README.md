@@ -198,4 +198,4 @@ Early prototype work is preserved in `docs/archived/incident-shell/` and is not 
 
 Canonical near-term queue (merged with roadmap focus): **`planning/backlog.md`**. Deferred deep design without in-repo bodies yet (SPE-186+, knowledge children): **`planning/deferred-design-documents.md`**.
 
-**Recommended next step:** PR #2430 merged. Run `git checkout main && git pull origin main`, then start a new agent for [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) pattern source series intake registry — draft slice doc from Linear, implement `patternSourceSeriesRegistry.ts` + tests per `planning/harvest-reconciliation-index.md`.
+**Recommended next step:** Run `git checkout main && git pull origin main`, then pick from **`planning/backlog.md`** (canonical ordered queue). After the June 2026 scope-discipline grooming pass, the default implementation target is MVP weekly loop proof slice 3 — see `planning/scope-discipline-grooming-pass.md`.

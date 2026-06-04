@@ -16,11 +16,11 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-*(empty — owner reprioritize.)* Candidates from `planning/scope-discipline-grooming-pass.md` § Phase 4–5: remaining MVP loop proof claims under [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) (Claims 3–4), registry slice-2+ wave, or SPE-2250 batch-4+ when audit gates pass. Mission triage full refresh remains **blocked**.
+*(empty — owner reprioritize.)* Candidates from `planning/scope-discipline-grooming-pass.md` § Phase 4–5: remaining MVP loop proof claims under [SPE-2251](https://linear.app/spectranoir/issue/SPE-2251) (Claims 5–6), registry slice-2+ wave, or SPE-2250 batch-4+ when audit gates pass. Mission triage full refresh remains **blocked**.
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `ac9baacd`. MVP loop proof slice 3 **shipped** ([SPE-2309](https://linear.app/spectranoir/issue/SPE-2309), PR #2482). **Next:** owner picks from grooming deferred list or extends SPE-2251 harness for remaining `mvp-scope.md` §8 claims.
+On `main` @ `25aceb34`. MVP loop proof slice 4 ([SPE-2310](https://linear.app/spectranoir/issue/SPE-2310), `planning/mvp-weekly-loop-proof-slice-4.md`) covers `mvp-scope.md` §8 Claims 3–4 — open PR or merge, then owner picks Claims 5–6 / grooming deferred list.
 
 ## Blocked / waiting
 
@@ -114,6 +114,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `mission-triage-modality-signal-slice.md`                 | **Shipped**    | SPE-2306 slice 7 / PR #2475; tell/illusion triage chips under SPE-70.                                                                               |
 | `mission-triage-intake-signal-slice.md`                   | **Shipped**    | SPE-2307 slice 8 / PR #2477; intake reason-code triage chips under SPE-16.                                                                          |
 | `mvp-weekly-loop-proof-slice-1.md`                        | **Shipped**    | SPE-2251 slice 1; see Shipped MVP loop proof.                                                                                                       |
+| `mvp-weekly-loop-proof-slice-4.md`                        | **In flight**  | [SPE-2310](https://linear.app/spectranoir/issue/SPE-2310) — partial success + institutional carryover (`main` @ `25aceb34`).                          |
 | `operations-route-drill-down-slice.md`                    | **Shipped**    | SPE-2248 / PR drill-down.                                                                                                                           |
 | `report-week-navigation-slice.md`                         | **Shipped**    | Route and week navigation (PR #2329, [SPE-2248](https://linear.app/spectranoir/issue/SPE-2248) drill-down sibling); acceptance checkboxes complete. |
 | `hidden-modality-matrix-slice-1.md`                       | **Shipped**    | SPE-2281 / PR #2403; domain compose.                                                                                                                |

@@ -4486,10 +4486,10 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-2105 slice 3: expire extranormal monitoring windows and advance monitor_only closure.
-  const priorExtranormalEvents = inputWeeklyState.extranormalEventRecords ?? {}
-  if (Object.keys(priorExtranormalEvents).length > 0) {
+  const currentExtranormalEvents = outputWeeklyState.extranormalEventRecords ?? {}
+  if (Object.keys(currentExtranormalEvents).length > 0) {
     outputWeeklyState.extranormalEventRecords = applyWeeklyExtranormalEventMonitoringTick(
-      priorExtranormalEvents,
+      currentExtranormalEvents,
       result.week
     )
   }

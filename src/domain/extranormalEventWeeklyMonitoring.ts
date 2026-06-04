@@ -56,8 +56,8 @@ export function advanceExtranormalEventRecordMonitoringForWeek(
 
   const nextClosureState = resolveClosureStateAfterMonitoringExpiry(record.closureState)
 
-  const withoutMonitoring = { ...record }
-  delete (withoutMonitoring as Partial<ExtranormalEventRecord>).monitoringUntilWeek
+  const { monitoringUntilWeek: _monitoringUntilWeek, ...withoutMonitoring } = record
+  void _monitoringUntilWeek
   const candidate: ExtranormalEventRecord = {
     ...withoutMonitoring,
     ...(nextClosureState !== undefined ? { closureState: nextClosureState } : {}),

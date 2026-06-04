@@ -742,7 +742,7 @@ function parseAbsenceSignals(value: unknown): readonly AbsenceSignal[] {
 
     const kind = entry.kind
     const descriptor = normalizeToken(entry.descriptor)
-    if (!isAbsenceSignalKind(kind) || !descriptor) {
+    if (typeof kind !== 'string' || !isAbsenceSignalKind(kind) || !descriptor) {
       continue
     }
 

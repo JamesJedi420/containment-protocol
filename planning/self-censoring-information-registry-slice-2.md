@@ -1,4 +1,4 @@
-# SPE-1309 — Self-censoring information registry GameState persistence (slice 2)
+# SPE-2108 — Self-censoring information registry GameState persistence (slice 2)
 
 One-page implementation plan. Linear: [SPE-2318](https://linear.app/spectranoir/issue/SPE-2318) (child under [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108)). Follows shipped slice 1 (`planning/self-censoring-information-registry-slice-1.md`, PR #2429).
 

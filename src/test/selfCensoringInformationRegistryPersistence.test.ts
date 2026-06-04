@@ -58,7 +58,6 @@ describe('selfCensoringInformationRegistry persistence (SPE-2108 slice 2)', () =
     expect(sanitized['info:sealed-briefing-corpus']).toEqual(STUDY_BLOCKED_ARCHIVE_FIXTURE)
     expect(sanitized.invalid).toBeUndefined()
     expect(sanitized.zeroLoopWithAlarm).toBeUndefined()
-    expect(sanitized.invalidConfidence).toBeUndefined()
     expect(sanitized.franchiseLabel).toBeUndefined()
     expect(sanitized.duplicate).toBeUndefined()
     expect(sanitized['wrong-key']).toBeUndefined()

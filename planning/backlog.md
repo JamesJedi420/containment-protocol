@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Registry slice-3+ (next)** — [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle (SPE-2104 slice 3 in PR).
+1. **Registry slice-3+ (next)** — [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `ae78790b`. [SPE-2315](https://linear.app/spectranoir/issue/SPE-2315) **Done** (PR #2494). [SPE-2316](https://linear.app/spectranoir/issue/SPE-2316) **In Progress** — minor-anomaly weekly disposition hook. **Next:** [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle.
+On `main` @ `a84e293e` (post–SPE-2316 merge, PR #2496). [SPE-2316](https://linear.app/spectranoir/issue/SPE-2316) **Done** — minor-anomaly weekly disposition hook shipped. **Next:** [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained-location weekly lifecycle.
 
 ## Blocked / waiting
 
@@ -138,7 +138,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `extranormal-event-registry-slice-1.md`                   | **Shipped**    | SPE-2105 / PR #2426; brief incident intake schema.                                                                                                  |
 | `minor-anomaly-item-registry-slice-1.md`                  | **Shipped**    | SPE-2104 / PR #2428; low-priority item intake schema.                                                                                               |
 | `minor-anomaly-item-registry-slice-2.md`                  | **Shipped**    | SPE-2314 / PR #2492; `minorAnomalyItemRecords` GameState persistence.                                                                               |
-| `minor-anomaly-item-registry-slice-3.md`                  | **In Progress** | SPE-2316 — weekly disposition/custody advance hook for SPE-2104.                                                                                    |
+| `minor-anomaly-item-registry-slice-3.md`                  | **Shipped**    | SPE-2316 / PR #2496 — weekly disposition/custody advance hook for SPE-2104.                                                                         |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |
 | `public-disclosure-state-registry-slice-1.md`             | **Shipped**    | SPE-2109 / PR #2430; awareness levels, fallout timeline, regional trust — post-secrecy campaign slice 1.                                              |
 | `pattern-source-series-registry-slice-1.md`               | **Shipped**    | SPE-2110 / PR #2431; series-hub intake metadata and processing queue projection.                                                                      |

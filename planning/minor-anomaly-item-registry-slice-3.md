@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2104](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2316 — Minor anomaly item registry weekly disposition/custody advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2316) |
-| **Status** | **In Progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2496 @ `a84e293e`                                                                        |
 | **Parent** | [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) — registry anchor (slice 1–2 shipped)          |
 | **Branch** | `spe-2104-minor-anomaly-item-registry-weekly-disposition-slice-3`                                          |
 | **Base `main` SHA** | `ae78790b`                                                                                          |

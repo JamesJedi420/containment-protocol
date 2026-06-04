@@ -16,11 +16,11 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **MVP weekly loop proof slice 3** — Extend SPE-2251 integration harness toward `planning/mvp-scope.md` §8 Claims 1–2 and 6 (triage/deployment + multi-week carryover with intake verification where applicable). Owner creates Linear child when starting; plan anchor `planning/mvp-weekly-loop-proof-slice-1.md` + grooming record `planning/scope-discipline-grooming-pass.md`.
+1. *(in flight — SPE-2309)* **MVP weekly loop proof slice 3** — Extend SPE-2251 harness: triage + intake verification in multi-week save/load (`planning/mvp-weekly-loop-proof-slice-3.md`).
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `17df0ed3`. Scope-discipline grooming pass **shipped** (`planning/scope-discipline-grooming-pass.md`). SPE-2250 batch-4+ **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md`. **Next:** MVP loop proof slice 3 (above) unless owner reprioritizes.
+On `main` @ `967e9e55`. Scope-discipline grooming pass **shipped** (`planning/scope-discipline-grooming-pass.md`, PR #2480). **In flight:** MVP loop proof slice 3 ([SPE-2309](https://linear.app/spectranoir/issue/SPE-2309), branch `spe-2251-mvp-weekly-loop-proof-slice-3`). After merge: pick next item from grooming pass / backlog unless owner reprioritizes.
 
 ## Blocked / waiting
 

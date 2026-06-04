@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2104](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2314 — Minor anomaly item registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2314) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2492 @ `91c902f4`                                                                       |
 | **Parent** | [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) — Minor anomaly item registry; umbrella [SPE-88](https://linear.app/spectranoir/issue/SPE-88) |
 | **Branch** | `spe-2104-minor-anomaly-item-registry-persistence-slice-2`                                                 |
 | **Base `main` SHA** | `97463533`                                                                                          |

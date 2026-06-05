@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { getCanonicalFundingState } from '../domain/funding'
 import { triageMission } from '../domain/missionIntakeRouting'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
@@ -64,7 +65,7 @@ describe('MVP weekly loop proof (slice 4)', () => {
     const week1 = advanceWeek(applyWeeklyMvpLoopPrepFlags(state))
     expect(week1.gameOver).toBe(false)
 
-    const pressureAfterWeek1 = week1.agency?.fundingState?.budgetPressure ?? 0
+    const pressureAfterWeek1 = getCanonicalFundingState(week1).budgetPressure
     expect(pressureAfterWeek1).toBeGreaterThanOrEqual(2)
 
     const recoveringAgentId = Object.entries(week1.agents).find(
@@ -73,7 +74,7 @@ describe('MVP weekly loop proof (slice 4)', () => {
     expect(recoveringAgentId).toBeDefined()
 
     const reloaded = loadGameSave(serializeGameSave(week1))
-    expect(reloaded.agency?.fundingState?.budgetPressure).toBe(pressureAfterWeek1)
+    expect(getCanonicalFundingState(reloaded).budgetPressure).toBe(pressureAfterWeek1)
     expect(reloaded.agents[recoveringAgentId!]?.status).toBe('recovering')
     expect(reloaded.agents[recoveringAgentId!]?.assignment?.state).toBe('recovery')
 
@@ -83,7 +84,7 @@ describe('MVP weekly loop proof (slice 4)', () => {
     const week2 = advanceWeek(applyWeeklyMvpLoopPrepFlags(reloaded))
     expect(week2.gameOver).toBe(false)
     expect(week2.week).toBe(week1.week + 1)
-    expect(week2.agency?.fundingState?.budgetPressure).toBeGreaterThanOrEqual(pressureAfterWeek1)
+    expect(getCanonicalFundingState(week2).budgetPressure).toBeGreaterThanOrEqual(pressureAfterWeek1)
     expect(week2.agents[recoveringAgentId!]?.status).toMatch(/recovering|active/)
     expect(week2.reports.length).toBeGreaterThan(week1.reports.length)
 

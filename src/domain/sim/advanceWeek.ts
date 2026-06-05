@@ -4165,7 +4165,7 @@ function updateAgencyMetrics(
     ? 0
     : computeWeeklyOperatingCost(context.nextState, closedWeek)
 
-  const nextFunding = context.nextState.funding + fundingDelta - operatingCost
+  const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,

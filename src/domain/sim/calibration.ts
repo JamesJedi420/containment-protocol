@@ -193,8 +193,9 @@ export const FUNDING_CALIBRATION = {
   },
   /** SPE-2320: inventory carrying cost charged once per closed week in advanceWeek. */
   weeklyInventoryHoldingCost: {
+    /** Stock at or below this level incurs no carrying fee (baseline working inventory). */
+    billableStockThreshold: 50,
     costPerStockUnit: 1,
-    liquidationValueRate: 0.02,
   },
 } as const
 

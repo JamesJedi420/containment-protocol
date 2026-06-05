@@ -25,7 +25,7 @@ Add a deterministic weekly inventory holding fee at week-close so stocked units 
 | --- | --- |
 | Calibration | `FUNDING_CALIBRATION.weeklyInventoryHoldingCost` in `src/domain/sim/calibration.ts` |
 | Domain | `computeWeeklyInventoryHoldingCost`, `hasWeeklyInventoryHoldingCostForWeek`, `applyWeeklyInventoryHoldingCostToFundingState` in `src/domain/funding.ts` |
-| Fee basis | `buildEconomyLoopOverview` → `totalStock`, `inventoryLiquidationValue` in `src/domain/economy.ts` |
+| Fee basis | `sumInventoryStock` in `funding.ts`; billable stock above `billableStockThreshold` in calibration |
 | Week-close hook | `updateAgencyMetrics` in `src/domain/sim/advanceWeek.ts` (post operating cost, ordering aligned with SPE-2319) |
 | Pressure / UX | `assessFundingPressure.reasonCodes`, `src/features/market/marketView.ts` budget summary |
 | History reason | `inventory_holding_cost` (new `FundingHistoryReason`) |

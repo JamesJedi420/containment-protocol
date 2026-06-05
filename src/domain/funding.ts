@@ -17,7 +17,6 @@ import type {
   ProcurementBacklogEntry,
   SupportStaffSummary,
 } from './models'
-import { buildEconomyLoopOverview } from './economy'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
 const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
@@ -493,23 +492,29 @@ export function applyWeeklyOperatingCostToFundingState(
   }
 }
 
+function sumInventoryStock(inventory: GameState['inventory']): number {
+  return Object.values(inventory).reduce(
+    (sum, quantity) =>
+      sum + Math.max(0, Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)),
+    0
+  )
+}
+
 /** SPE-2320: stocked inventory carrying fee for the week being closed (deterministic, no simulator). */
 export function computeWeeklyInventoryHoldingCost(
-  game: GameState,
+  game: Pick<GameState, 'inventory'>,
   closedWeek: number
 ): number {
   void closedWeek
   const cal = FUNDING_CALIBRATION.weeklyInventoryHoldingCost
-  const { totalStock, inventoryLiquidationValue } = buildEconomyLoopOverview(game)
+  const totalStock = sumInventoryStock(game.inventory)
+  const billableStock = Math.max(0, totalStock - cal.billableStockThreshold)
 
-  if (totalStock <= 0) {
+  if (billableStock <= 0) {
     return 0
   }
 
-  const stockFee = totalStock * cal.costPerStockUnit
-  const liquidationFee = Math.round(inventoryLiquidationValue * cal.liquidationValueRate)
-
-  return Math.max(0, stockFee + liquidationFee)
+  return Math.max(0, billableStock * cal.costPerStockUnit)
 }
 
 export function hasWeeklyInventoryHoldingCostForWeek(
@@ -532,7 +537,7 @@ export function hasWeeklyInventoryHoldingCostForWeek(
 
 export function applyWeeklyInventoryHoldingCostToFundingState(
   state: FundingState,
-  game: GameState,
+  game: Pick<GameState, 'inventory'>,
   closedWeek: number
 ): { state: FundingState; appliedAmount: number } {
   const week = Math.max(1, Math.trunc(closedWeek))

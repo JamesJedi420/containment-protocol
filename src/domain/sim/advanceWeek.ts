@@ -274,13 +274,7 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
-import {
-  applyWeeklyOperatingCostToFundingState,
-  computeWeeklyOperatingCost,
-  createInitialFundingState,
-  hasWeeklyOperatingCostForWeek,
-  normalizeFundingState,
-} from '../funding'
+import { applyWeeklyOperatingCostToFundingState, createInitialFundingState, normalizeFundingState } from '../funding'
 import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'

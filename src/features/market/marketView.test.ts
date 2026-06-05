@@ -7,6 +7,7 @@ import {
   createInitialFundingState,
   normalizeFundingState,
 } from '../../domain/funding'
+import { getProcurementListings } from '../../domain/market'
 import {
   getCurrentWeekMarketTransactions,
   getFilteredMarketListings,
@@ -256,6 +257,40 @@ describe('marketView', () => {
     )
     expect(combatStims!.canBuyOne).toBe(false)
     expect(combatStims!.buyBlockedReason).toMatch(/doctrine attestation is stale/i)
+  })
+
+  it('surfaces vendor shortage pressure in procurement budget summary and listing blockers', () => {
+    const game = {
+      ...createStartingState(),
+      inventory: {
+        ...createStartingState().inventory,
+        medkits: 25,
+      },
+    }
+    const listing = getProcurementListings(game).find(
+      (entry) => entry.id === 'material:medical_supplies'
+    )
+
+    expect(listing).toBeDefined()
+    expect(assessFundingPressure(game).reasonCodes).toContain('vendor-shortage-pressure')
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Vendor shortage pressure/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.blockerDetails.join(' ')).toMatch(/Vendor shortage pressure/i)
   })
 
   it('surfaces inventory holding cost in procurement budget summary when stock tightens headroom', () => {

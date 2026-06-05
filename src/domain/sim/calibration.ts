@@ -197,6 +197,16 @@ export const FUNDING_CALIBRATION = {
     billableStockThreshold: 50,
     costPerStockUnit: 1,
   },
+  /** SPE-2321: read-time vendor shortage on one canonical roster listing (no week-close cash). */
+  procurementShortagePressure: {
+    listingId: 'material:medical_supplies',
+    /** Agency stock above this level signals vendor rationing on the target listing. */
+    stockThreshold: 60,
+    budgetPressureThreshold: 2,
+    /** Subtracted from derived bundle availability when shortage signals are active. */
+    availabilityPenaltyBundles: 12,
+    minBundles: 0,
+  },
 } as const
 
 export const ATTRITION_CALIBRATION = {

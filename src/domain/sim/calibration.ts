@@ -181,6 +181,8 @@ export const FUNDING_CALIBRATION = {
     recentPenaltyCountThreshold: 4,
     maxPressure: 4,
   },
+  /** SPE-28 / SPE-2319: weeks from order placement until backlog inventory is granted on week-close. */
+  procurementDelayedFulfillmentWeeks: 1,
   /** SPE-28: deterministic payroll + facility upkeep charged once per closed week in advanceWeek. */
   weeklyOperatingCost: {
     payrollPerAgent: 4,

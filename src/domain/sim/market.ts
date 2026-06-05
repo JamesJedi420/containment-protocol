@@ -1,10 +1,18 @@
 import { appendOperationEventDrafts } from '../events'
-import type { GameState } from '../models'
+import type { FundingState, GameState } from '../models'
 import {
   assessFactionFavorExchangeProcurement,
   buildProcurementAllocationPackets,
   getProcurementListing,
 } from '../market'
+import {
+  cancelProcurementOrder,
+  fulfillProcurementOrder,
+  getCanonicalFundingState,
+  placeProcurementOrder,
+  recomputeBudgetPressure,
+} from '../funding'
+import { FUNDING_CALIBRATION } from './calibration'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 
 function getNextMarketTransactionSequence(state: GameState) {
@@ -18,6 +26,40 @@ function getNextMarketTransactionSequence(state: GameState) {
 
 function nextTransactionId(state: GameState) {
   return `market-${state.week}-${state.market.week}-${getNextMarketTransactionSequence(state)}`
+}
+
+function nextProcurementRequestId(state: GameState) {
+  const pendingCount =
+    getCanonicalFundingState(state).procurementBacklog.filter((entry) => entry.status === 'pending')
+      .length + 1
+
+  return `market-order-${state.week}-${pendingCount}`
+}
+
+function syncGameFundingState(state: GameState, fundingState: FundingState): GameState {
+  const agency = state.agency ?? {
+    containmentRating: 0,
+    clearanceLevel: 1,
+    funding: 0,
+    supportAvailable: 0,
+  }
+  const normalizedFundingState = recomputeBudgetPressure(fundingState, state.week)
+
+  return normalizeGameState({
+    ...state,
+    funding: normalizedFundingState.funding,
+    agency: {
+      ...agency,
+      funding: normalizedFundingState.funding,
+      fundingState: normalizedFundingState,
+    },
+  })
+}
+
+function getBacklogDelayWeeks(entry: {
+  delayWeeks?: number
+}): number {
+  return entry.delayWeeks ?? FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
 }
 
 /** Sets licensed-handling doctrine attestation to the current campaign week (procurement permit slice). */
@@ -39,6 +81,10 @@ export function purchaseMarketInventory(
   const listing = getProcurementListing(state, listingId)
 
   if (!listing) {
+    return ensureNormalizedGameState(state)
+  }
+
+  if (typeof listing.delayedFulfillmentWeeks === 'number' && listing.delayedFulfillmentWeeks > 0) {
     return ensureNormalizedGameState(state)
   }
 
@@ -192,6 +238,148 @@ export function redeemFactionFavorProcurement(
       ]
     )
   )
+}
+
+/** SPE-2319: place a delayed supplier order — funding deducted now, inventory on week-close fulfillment. */
+export function placeDelayedMarketOrder(
+  state: GameState,
+  listingId: string,
+  bundles = 1
+): GameState {
+  const listing = getProcurementListing(state, listingId)
+
+  if (
+    !listing ||
+    typeof listing.delayedFulfillmentWeeks !== 'number' ||
+    listing.delayedFulfillmentWeeks < 1 ||
+    !listing.cashPurchaseAllowed ||
+    !listing.accessAvailable ||
+    listing.accessChannel === 'faction_favor_exchange'
+  ) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const normalizedBundles = Math.max(1, Math.trunc(bundles))
+  const quantity = normalizedBundles * listing.bundleQuantity
+  const totalPrice = normalizedBundles * listing.buyPrice
+  const fundingState = getCanonicalFundingState(state)
+
+  if (totalPrice > fundingState.funding) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const requestId = nextProcurementRequestId(state)
+  const delayWeeks = listing.delayedFulfillmentWeeks
+  const withOrder = placeProcurementOrder(fundingState, {
+    requestId,
+    itemId: listing.itemId,
+    quantity,
+    requestedWeek: state.week,
+    cost: totalPrice,
+    listingId: listing.id,
+    delayWeeks,
+  })
+  const transactionId = nextTransactionId(state)
+
+  return syncGameFundingState(
+    appendOperationEventDrafts(state, [
+      {
+        type: 'market.transaction_recorded',
+        sourceSystem: 'production',
+        payload: {
+          week: state.week,
+          marketWeek: state.market.week,
+          transactionId,
+          action: 'order',
+          listingId: listing.id,
+          itemId: listing.itemId,
+          itemName: listing.itemName,
+          category: listing.category,
+          quantity,
+          bundleCount: normalizedBundles,
+          unitPrice: Math.round((listing.buyPrice / listing.bundleQuantity) * 100) / 100,
+          totalPrice,
+          remainingAvailability: listing.remainingAvailability,
+        },
+      },
+    ]),
+    withOrder
+  )
+}
+
+/**
+ * SPE-2319: idempotent week-close fulfillment for pending procurement backlog entries.
+ * Called from advanceWeek after operating-cost application.
+ */
+export function fulfillPendingProcurementBacklogAtWeekClose(
+  state: GameState,
+  closedWeek: number
+): GameState {
+  const week = Math.max(1, Math.trunc(closedWeek))
+  let fundingState = getCanonicalFundingState(state, week)
+  let nextState = state
+  const eventDrafts: Parameters<typeof appendOperationEventDrafts>[1] = []
+
+  for (const entry of fundingState.procurementBacklog) {
+    if (entry.status !== 'pending' || !entry.listingId) {
+      continue
+    }
+
+    const dueWeek = entry.requestedWeek + getBacklogDelayWeeks(entry)
+    if (week < dueWeek) {
+      continue
+    }
+
+    const listingId = entry.listingId ?? `gear:${entry.itemId}`
+    const listing = getProcurementListing(nextState, listingId)
+    const requiredBundles = Math.ceil(entry.quantity / Math.max(1, listing?.bundleQuantity ?? 1))
+
+    if (!listing || listing.availableBundles < requiredBundles) {
+      fundingState = cancelProcurementOrder(
+        fundingState,
+        entry.requestId,
+        week,
+        'supplier_allocation_exhausted'
+      )
+      continue
+    }
+
+    fundingState = fulfillProcurementOrder(fundingState, entry.requestId, week)
+    const nextInventory = {
+      ...nextState.inventory,
+      [entry.itemId]: (nextState.inventory[entry.itemId] ?? 0) + entry.quantity,
+    }
+    nextState = {
+      ...nextState,
+      inventory: nextInventory,
+    }
+
+    eventDrafts.push({
+      type: 'market.transaction_recorded',
+      sourceSystem: 'production',
+      payload: {
+        week,
+        marketWeek: nextState.market.week,
+        transactionId: `market-fulfill-${entry.requestId}`,
+        action: 'fulfill',
+        listingId,
+        itemId: entry.itemId,
+        itemName: listing.itemName,
+        category: listing.category,
+        quantity: entry.quantity,
+        bundleCount: requiredBundles,
+        unitPrice: Math.round((entry.cost / entry.quantity) * 100) / 100,
+        totalPrice: entry.cost,
+        remainingAvailability: Math.max(0, listing.remainingAvailability - entry.quantity),
+      },
+    })
+  }
+
+  if (eventDrafts.length === 0) {
+    return syncGameFundingState(nextState, fundingState)
+  }
+
+  return syncGameFundingState(appendOperationEventDrafts(nextState, eventDrafts), fundingState)
 }
 
 export function sellMarketInventory(state: GameState, listingId: string, bundles = 1): GameState {

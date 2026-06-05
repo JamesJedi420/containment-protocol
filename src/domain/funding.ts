@@ -279,6 +279,15 @@ function sanitizeProcurementBacklogEntry(
     }
   }
 
+  const listingId =
+    typeof entry.listingId === 'string' && entry.listingId.trim().length > 0
+      ? entry.listingId.trim()
+      : undefined
+  const delayWeeks =
+    typeof entry.delayWeeks === 'number' && Number.isFinite(entry.delayWeeks)
+      ? Math.max(0, Math.trunc(entry.delayWeeks))
+      : undefined
+
   return {
     requestId: entry.requestId,
     itemId: entry.itemId,
@@ -288,6 +297,8 @@ function sanitizeProcurementBacklogEntry(
     status,
     ...(fulfilledWeek !== undefined ? { fulfilledWeek } : {}),
     ...(blockedReason ? { blockedReason } : {}),
+    ...(listingId ? { listingId } : {}),
+    ...(delayWeeks !== undefined ? { delayWeeks } : {}),
   }
 }
 

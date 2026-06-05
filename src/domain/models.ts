@@ -1900,6 +1900,10 @@ export interface ProcurementBacklogEntry {
   fulfilledWeek?: number
   cost: number
   blockedReason?: string
+  /** SPE-2319: market listing that originated a delayed supplier order (fulfillment lookup). */
+  listingId?: string
+  /** SPE-2319: supplier lead time in campaign weeks (defaults to calibration when omitted). */
+  delayWeeks?: number
 }
 
 export interface FundingState {

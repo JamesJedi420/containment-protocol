@@ -411,7 +411,7 @@ export interface OperationEventPayloadMap {
     week: number
     marketWeek: number
     transactionId: string
-    action: 'buy' | 'sell' | 'favor_exchange'
+    action: 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
     listingId: string
     itemId: string
     itemName: string

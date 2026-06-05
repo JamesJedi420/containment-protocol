@@ -443,7 +443,7 @@ const marketTransactionRecordedSchema = z
     week: weekSchema,
     marketWeek: weekSchema,
     transactionId: z.string(),
-    action: z.enum(['buy', 'sell', 'favor_exchange']),
+    action: z.enum(['buy', 'sell', 'favor_exchange', 'order', 'fulfill']),
     listingId: z.string(),
     itemId: z.string(),
     itemName: z.string(),

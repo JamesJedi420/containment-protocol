@@ -281,6 +281,7 @@ import {
   hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
+import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -4164,8 +4165,8 @@ function updateAgencyMetrics(
   const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
     ? 0
     : computeWeeklyOperatingCost(context.nextState, closedWeek)
-
   const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
+
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4180,28 +4181,6 @@ function updateAgencyMetrics(
     cumulativeScore,
     context.nextState.config.clearanceThresholds
   )
-
-  if (
-    nextFunding !== context.nextState.funding ||
-    nextContainmentRating !== context.nextState.containmentRating ||
-    nextClearanceLevel !== context.nextState.clearanceLevel
-  ) {
-    context.eventDrafts.push({
-      type: 'agency.containment_updated',
-      sourceSystem: 'system',
-      payload: {
-        week: report.week,
-        containmentRatingBefore: context.nextState.containmentRating,
-        containmentRatingAfter: nextContainmentRating,
-        containmentDelta,
-        clearanceLevelBefore: context.nextState.clearanceLevel,
-        clearanceLevelAfter: nextClearanceLevel,
-        fundingBefore: context.nextState.funding,
-        fundingAfter: nextFunding,
-        fundingDelta,
-      },
-    })
-  }
 
   if (context.selectedDirectiveId !== null) {
     const definition = getWeeklyDirectiveDefinition(context.selectedDirectiveId)
@@ -4242,13 +4221,49 @@ function updateAgencyMetrics(
     context.nextState,
     closedWeek
   )
+  const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
+    {
+      ...context.nextState,
+      funding: nextFunding,
+      agency: {
+        ...prevAgency,
+        funding: nextFunding,
+        fundingState: fundingStateAfterOperatingCost,
+      },
+    },
+    closedWeek
+  )
+  const fundingStateAfterBacklog =
+    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterOperatingCost
+
+  if (
+    nextFunding !== context.nextState.funding ||
+    nextContainmentRating !== context.nextState.containmentRating ||
+    nextClearanceLevel !== context.nextState.clearanceLevel
+  ) {
+    context.eventDrafts.push({
+      type: 'agency.containment_updated',
+      sourceSystem: 'system',
+      payload: {
+        week: report.week,
+        containmentRatingBefore: context.nextState.containmentRating,
+        containmentRatingAfter: nextContainmentRating,
+        containmentDelta,
+        clearanceLevelBefore: context.nextState.clearanceLevel,
+        clearanceLevelAfter: nextClearanceLevel,
+        fundingBefore: context.nextState.funding,
+        fundingAfter: nextFunding,
+        fundingDelta,
+      },
+    })
+  }
 
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
     funding: nextFunding,
-    fundingState: fundingStateAfterOperatingCost,
+    fundingState: fundingStateAfterBacklog,
   }
   return {
     weekScore,
@@ -4266,6 +4281,8 @@ function updateAgencyMetrics(
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
       funding: nextFunding,
+      inventory: stateAfterBacklogFulfillment.inventory,
+      events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,

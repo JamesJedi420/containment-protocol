@@ -134,13 +134,13 @@ describe('marketView', () => {
 
   it('surfaces supplier attention substitution after a competing use commits the slot', () => {
     const game = createStartingState()
-    const fieldPlate = getMarketListings(game).find(
-      (candidate) => candidate.itemId === 'field_plate'
+    const emfSensors = getMarketListings(game).find(
+      (candidate) => candidate.itemId === 'emf_sensors'
     )
 
-    expect(fieldPlate).toBeDefined()
+    expect(emfSensors).toBeDefined()
 
-    const afterFieldPlate = purchaseMarketInventory(game, fieldPlate!.id, 1)
+    const afterFieldPlate = purchaseMarketInventory(game, emfSensors!.id, 1)
     const hazmatSuit = getMarketListings(afterFieldPlate).find(
       (candidate) => candidate.itemId === 'hazmat_suit'
     )

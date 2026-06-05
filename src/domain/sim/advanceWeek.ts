@@ -4162,11 +4162,6 @@ function updateAgencyMetrics(
   }
   prevAgency = canonicalizeAgencyState(prevAgency)
 
-  const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
-    ? 0
-    : computeWeeklyOperatingCost(context.nextState, closedWeek)
-
-  const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4181,28 +4176,6 @@ function updateAgencyMetrics(
     cumulativeScore,
     context.nextState.config.clearanceThresholds
   )
-
-  if (
-    nextFunding !== context.nextState.funding ||
-    nextContainmentRating !== context.nextState.containmentRating ||
-    nextClearanceLevel !== context.nextState.clearanceLevel
-  ) {
-    context.eventDrafts.push({
-      type: 'agency.containment_updated',
-      sourceSystem: 'system',
-      payload: {
-        week: report.week,
-        containmentRatingBefore: context.nextState.containmentRating,
-        containmentRatingAfter: nextContainmentRating,
-        containmentDelta,
-        clearanceLevelBefore: context.nextState.clearanceLevel,
-        clearanceLevelAfter: nextClearanceLevel,
-        fundingBefore: context.nextState.funding,
-        fundingAfter: nextFunding,
-        fundingDelta,
-      },
-    })
-  }
 
   if (context.selectedDirectiveId !== null) {
     const definition = getWeeklyDirectiveDefinition(context.selectedDirectiveId)
@@ -4223,6 +4196,7 @@ function updateAgencyMetrics(
   const allResolved = activeCaseCount === 0
   const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
 
+  const fundingBeforeOperatingCost = Math.max(0, context.nextState.funding + fundingDelta)
   const baseFundingState =
     prevAgency.fundingState ??
     createInitialFundingState(
@@ -4230,10 +4204,10 @@ function updateAgencyMetrics(
       context.nextState.config.fundingPerResolution,
       context.nextState.config.fundingPenaltyPerFail,
       context.nextState.config.fundingPenaltyPerUnresolved,
-      nextFunding
+      fundingBeforeOperatingCost
     )
   const normalizedFundingState = normalizeFundingState(
-    nextFunding,
+    fundingBeforeOperatingCost,
     context.nextState.config,
     baseFundingState,
     closedWeek
@@ -4257,12 +4231,35 @@ function updateAgencyMetrics(
   )
   const fundingStateAfterBacklog =
     stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterOperatingCost
+  const nextFunding = fundingStateAfterBacklog.funding
+
+  if (
+    nextFunding !== context.nextState.funding ||
+    nextContainmentRating !== context.nextState.containmentRating ||
+    nextClearanceLevel !== context.nextState.clearanceLevel
+  ) {
+    context.eventDrafts.push({
+      type: 'agency.containment_updated',
+      sourceSystem: 'system',
+      payload: {
+        week: report.week,
+        containmentRatingBefore: context.nextState.containmentRating,
+        containmentRatingAfter: nextContainmentRating,
+        containmentDelta,
+        clearanceLevelBefore: context.nextState.clearanceLevel,
+        clearanceLevelAfter: nextClearanceLevel,
+        fundingBefore: context.nextState.funding,
+        fundingAfter: nextFunding,
+        fundingDelta,
+      },
+    })
+  }
 
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
-    funding: stateAfterBacklogFulfillment.funding,
+    funding: nextFunding,
     fundingState: fundingStateAfterBacklog,
   }
   return {
@@ -4280,7 +4277,7 @@ function updateAgencyMetrics(
         : capacityExceeded
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
-      funding: stateAfterBacklogFulfillment.funding,
+      funding: nextFunding,
       inventory: stateAfterBacklogFulfillment.inventory,
       events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,

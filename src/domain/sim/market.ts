@@ -321,7 +321,7 @@ export function fulfillPendingProcurementBacklogAtWeekClose(
   const eventDrafts: Parameters<typeof appendOperationEventDrafts>[1] = []
 
   for (const entry of fundingState.procurementBacklog) {
-    if (entry.status !== 'pending') {
+    if (entry.status !== 'pending' || !entry.listingId) {
       continue
     }
 

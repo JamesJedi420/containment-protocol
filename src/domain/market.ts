@@ -17,8 +17,9 @@ import {
 } from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
+import { FUNDING_CALIBRATION } from './sim/calibration'
 
-export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange'
+export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
 export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
 export type ProcurementAccessChannel =
@@ -124,6 +125,8 @@ export interface ProcurementListing {
   cashPurchaseAllowed: boolean
   favorRedeemAvailable: boolean
   favorExchange?: FactionFavorExchangeProcurementRule
+  /** SPE-2319: supplier lead time when acquisition uses procurement backlog instead of instant exchange. */
+  delayedFulfillmentWeeks?: number
   totalAvailability: number
   remainingAvailability: number
   availableBundles: number
@@ -211,6 +214,7 @@ interface ProcurementAccessRule {
   accessLabel: string
   details: string[]
   requiredClearanceLevel?: number
+  delayedFulfillmentWeeks?: number
 }
 
 export interface FactionFavorExchangeProcurementRule {
@@ -285,6 +289,16 @@ const DEFAULT_PROCUREMENT_ACCESS = {
 } as const satisfies Omit<ProcurementAccessRule, 'requiredClearanceLevel'>
 
 const PROCUREMENT_ACCESS_RULES: Record<string, ProcurementAccessRule> = {
+  'gear:field_plate': {
+    acquisitionClass: 'standard',
+    accessChannel: 'open_exchange',
+    accessLabel: 'Supplier delivery order',
+    details: [
+      'Replacement field armor restores lost protection without expanding roster capacity.',
+      'Funding is charged when the order is placed; inventory arrives after supplier lead time.',
+    ],
+    delayedFulfillmentWeeks: FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks,
+  },
   'gear:advanced_recon_suite': {
     acquisitionClass: 'restricted',
     accessChannel: 'directorate_special_channel',
@@ -1056,6 +1070,9 @@ function buildListing(
   )
   const access = assessProcurementAccess(definition, game, marketPacket)
 
+  const accessRule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
+  const delayedFulfillmentWeeks = accessRule.delayedFulfillmentWeeks
+
   return {
     ...definition,
     featured,
@@ -1067,6 +1084,7 @@ function buildListing(
     allocationStatus,
     resourceStatuses,
     ...access,
+    ...(typeof delayedFulfillmentWeeks === 'number' ? { delayedFulfillmentWeeks } : {}),
     totalAvailability,
     remainingAvailability,
     availableBundles: Math.floor(remainingAvailability / definition.bundleQuantity),

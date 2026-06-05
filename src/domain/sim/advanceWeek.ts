@@ -281,6 +281,7 @@ import {
   hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
+import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -4242,13 +4243,27 @@ function updateAgencyMetrics(
     context.nextState,
     closedWeek
   )
+  const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
+    {
+      ...context.nextState,
+      funding: fundingStateAfterOperatingCost.funding,
+      agency: {
+        ...prevAgency,
+        funding: fundingStateAfterOperatingCost.funding,
+        fundingState: fundingStateAfterOperatingCost,
+      },
+    },
+    closedWeek
+  )
+  const fundingStateAfterBacklog =
+    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterOperatingCost
 
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
-    funding: nextFunding,
-    fundingState: fundingStateAfterOperatingCost,
+    funding: stateAfterBacklogFulfillment.funding,
+    fundingState: fundingStateAfterBacklog,
   }
   return {
     weekScore,
@@ -4265,7 +4280,9 @@ function updateAgencyMetrics(
         : capacityExceeded
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
-      funding: nextFunding,
+      funding: stateAfterBacklogFulfillment.funding,
+      inventory: stateAfterBacklogFulfillment.inventory,
+      events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,

@@ -638,6 +638,9 @@ function buildProcurementBudgetSummary(
         fundingPressure.reasonCodes.includes('weekly-operating-cost')
           ? 'Payroll and facility upkeep were charged at week close, tightening procurement headroom.'
           : '',
+        fundingPressure.reasonCodes.includes('weekly-inventory-holding-cost')
+          ? 'Inventory carrying costs were charged at week close, tightening procurement headroom.'
+          : '',
         game.factions?.corporate_supply?.availableFavors?.some(
           (favor) => favor.id === 'corporate-supply-salvage-credit'
         )

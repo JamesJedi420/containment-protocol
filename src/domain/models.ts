@@ -1882,6 +1882,7 @@ export type FundingCategory =
   | 'market_transaction'
   | 'facility_upgrade'
   | 'operating_cost'
+  | 'inventory_holding_cost'
   | (string & {})
 
 export interface FundingHistoryRecord {

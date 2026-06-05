@@ -3,9 +3,15 @@ import { createStartingState } from '../../data/startingState'
 import { purchaseMarketInventory } from '../../domain/sim/market'
 import { queueFabrication } from '../../domain/sim/production'
 import {
+  assessFundingPressure,
+  createInitialFundingState,
+  normalizeFundingState,
+} from '../../domain/funding'
+import {
   getCurrentWeekMarketTransactions,
   getFilteredMarketListings,
   getMarketListings,
+  getProcurementScreenView,
   readMarketFilters,
   type MarketFilters,
 } from './marketView'
@@ -250,6 +256,52 @@ describe('marketView', () => {
     )
     expect(combatStims!.canBuyOne).toBe(false)
     expect(combatStims!.buyBlockedReason).toMatch(/doctrine attestation is stale/i)
+  })
+
+  it('surfaces inventory holding cost in procurement budget summary when stock tightens headroom', () => {
+    const game = createStartingState()
+    const fundingState = normalizeFundingState(
+      12,
+      game.config,
+      {
+        ...createInitialFundingState(
+          game.config.fundingBasePerWeek,
+          game.config.fundingPerResolution,
+          game.config.fundingPenaltyPerFail,
+          game.config.fundingPenaltyPerUnresolved,
+          12
+        ),
+        fundingHistory: [
+          {
+            week: game.week,
+            delta: -30,
+            reason: 'inventory_holding_cost',
+            sourceId: 'weekly-inventory-holding-cost',
+          },
+        ],
+      },
+      game.week
+    )
+    const pressuredGame = {
+      ...game,
+      funding: 12,
+      agency: {
+        ...game.agency!,
+        fundingState,
+      },
+    }
+
+    expect(assessFundingPressure(pressuredGame).reasonCodes).toContain(
+      'weekly-inventory-holding-cost'
+    )
+
+    const view = getProcurementScreenView(pressuredGame, {
+      q: '',
+      category: 'all',
+      sort: 'recommended',
+    })
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Inventory carrying costs/i)
   })
 
   it('normalizes invalid market query params to defaults', () => {

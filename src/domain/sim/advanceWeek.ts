@@ -275,9 +275,12 @@ import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import {
+  applyWeeklyInventoryHoldingCostToFundingState,
   applyWeeklyOperatingCostToFundingState,
+  computeWeeklyInventoryHoldingCost,
   computeWeeklyOperatingCost,
   createInitialFundingState,
+  hasWeeklyInventoryHoldingCostForWeek,
   hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
@@ -4165,7 +4168,16 @@ function updateAgencyMetrics(
   const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
     ? 0
     : computeWeeklyOperatingCost(context.nextState, closedWeek)
-  const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
+  const inventoryHoldingCost = hasWeeklyInventoryHoldingCostForWeek(
+    prevAgency.fundingState,
+    closedWeek
+  )
+    ? 0
+    : computeWeeklyInventoryHoldingCost(context.nextState, closedWeek)
+  const nextFunding = Math.max(
+    0,
+    context.nextState.funding + fundingDelta - operatingCost - inventoryHoldingCost
+  )
 
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
@@ -4221,6 +4233,11 @@ function updateAgencyMetrics(
     context.nextState,
     closedWeek
   )
+  const { state: fundingStateAfterHoldingCost } = applyWeeklyInventoryHoldingCostToFundingState(
+    fundingStateAfterOperatingCost,
+    context.nextState,
+    closedWeek
+  )
   const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
     {
       ...context.nextState,
@@ -4228,13 +4245,13 @@ function updateAgencyMetrics(
       agency: {
         ...prevAgency,
         funding: nextFunding,
-        fundingState: fundingStateAfterOperatingCost,
+        fundingState: fundingStateAfterHoldingCost,
       },
     },
     closedWeek
   )
   const fundingStateAfterBacklog =
-    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterOperatingCost
+    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterHoldingCost
 
   if (
     nextFunding !== context.nextState.funding ||

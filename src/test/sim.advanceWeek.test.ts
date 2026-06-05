@@ -1268,8 +1268,10 @@ describe('advanceWeek', () => {
     }
 
     const next = advanceWeek(state)
+    const operatingCost = computeWeeklyOperatingCost(state, state.week)
 
-    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(false)
+    expect(operatingCost).toBeGreaterThan(0)
+    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(true)
   })
 
   it('emits post-week case snapshots and enriched team status', () => {
@@ -2757,10 +2759,13 @@ describe('advanceWeek', () => {
     const operatingCost = computeWeeklyOperatingCost(state, state.week)
 
     expect(next.funding).toBe(
-      state.funding +
-        state.config.fundingBasePerWeek +
-        (rewardBreakdown?.fundingDelta ?? 0) -
-        operatingCost
+      Math.max(
+        0,
+        state.funding +
+          state.config.fundingBasePerWeek +
+          (rewardBreakdown?.fundingDelta ?? 0) -
+          operatingCost
+      )
     )
     expect(next.containmentRating).toBe(0)
   })

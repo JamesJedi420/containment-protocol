@@ -1,10 +1,14 @@
 import { describe, it, expect } from 'vitest'
+import { createStartingState } from '../data/startingState'
 import {
   createInitialFundingState,
   applyFundingIncome,
   applyFundingExpense,
+  applyWeeklyInventoryHoldingCostToFundingState,
   applyWeeklyOperatingCostToFundingState,
+  computeWeeklyInventoryHoldingCost,
   computeWeeklyOperatingCost,
+  hasWeeklyInventoryHoldingCostForWeek,
   hasWeeklyOperatingCostForWeek,
   placeProcurementOrder,
   fulfillProcurementOrder,
@@ -67,6 +71,36 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
     const secondPass = applyWeeklyOperatingCostToFundingState(firstPass.state, { agents, supportStaff: undefined }, 1)
     expect(secondPass.appliedAmount).toBe(0)
     expect(secondPass.state.funding).toBe(80)
+  })
+
+  it('computes deterministic weekly inventory holding cost and applies it once per closed week', () => {
+    const stockedGame = {
+      ...createStartingState(),
+      inventory: {
+        ...createStartingState().inventory,
+        medkits: 40,
+      },
+    }
+    const holdingCost = computeWeeklyInventoryHoldingCost(stockedGame, 1)
+    expect(holdingCost).toBeGreaterThan(0)
+
+    const emptyGame = {
+      ...createStartingState(),
+      inventory: Object.fromEntries(
+        Object.keys(createStartingState().inventory).map((itemId) => [itemId, 0])
+      ),
+    }
+    expect(computeWeeklyInventoryHoldingCost(emptyGame, 1)).toBe(0)
+
+    const state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 200)
+    const firstPass = applyWeeklyInventoryHoldingCostToFundingState(state, stockedGame, 1)
+    expect(firstPass.appliedAmount).toBe(holdingCost)
+    expect(firstPass.state.funding).toBe(200 - holdingCost)
+    expect(hasWeeklyInventoryHoldingCostForWeek(firstPass.state, 1)).toBe(true)
+
+    const secondPass = applyWeeklyInventoryHoldingCostToFundingState(firstPass.state, stockedGame, 1)
+    expect(secondPass.appliedAmount).toBe(0)
+    expect(secondPass.state.funding).toBe(200 - holdingCost)
   })
 
   it('places procurement order, deducts cost, and logs', () => {

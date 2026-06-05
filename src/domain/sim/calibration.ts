@@ -191,6 +191,12 @@ export const FUNDING_CALIBRATION = {
     upkeepSpikeEveryWeeks: 4,
     upkeepSpikeAmount: 12,
   },
+  /** SPE-2320: inventory carrying cost charged once per closed week in advanceWeek. */
+  weeklyInventoryHoldingCost: {
+    /** Stock at or below this level incurs no carrying fee (baseline working inventory). */
+    billableStockThreshold: 50,
+    costPerStockUnit: 1,
+  },
 } as const
 
 export const ATTRITION_CALIBRATION = {

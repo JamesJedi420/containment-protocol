@@ -409,6 +409,7 @@ export function applyFundingExpense(
 }
 
 const WEEKLY_OPERATING_COST_SOURCE_ID = 'weekly-operating-cost'
+const WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID = 'weekly-inventory-holding-cost'
 
 function countSupportStaffHeadcount(supportStaff: SupportStaffSummary | undefined) {
   if (!supportStaff) {
@@ -483,6 +484,79 @@ export function applyWeeklyOperatingCostToFundingState(
     'operating_cost',
     week,
     WEEKLY_OPERATING_COST_SOURCE_ID
+  )
+
+  return {
+    state: recomputeBudgetPressure(withExpense, week),
+    appliedAmount: amount,
+  }
+}
+
+function sumInventoryStock(inventory: GameState['inventory']): number {
+  return Object.values(inventory).reduce(
+    (sum, quantity) =>
+      sum + Math.max(0, Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)),
+    0
+  )
+}
+
+/** SPE-2320: stocked inventory carrying fee for the week being closed (deterministic, no simulator). */
+export function computeWeeklyInventoryHoldingCost(
+  game: Pick<GameState, 'inventory'>,
+  closedWeek: number
+): number {
+  void closedWeek
+  const cal = FUNDING_CALIBRATION.weeklyInventoryHoldingCost
+  const totalStock = sumInventoryStock(game.inventory)
+  const billableStock = Math.max(0, totalStock - cal.billableStockThreshold)
+
+  if (billableStock <= 0) {
+    return 0
+  }
+
+  return Math.max(0, billableStock * cal.costPerStockUnit)
+}
+
+export function hasWeeklyInventoryHoldingCostForWeek(
+  fundingState: FundingState | undefined,
+  closedWeek: number
+): boolean {
+  if (!fundingState) {
+    return false
+  }
+
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  return fundingState.fundingHistory.some(
+    (entry) =>
+      entry.week === week &&
+      entry.reason === 'inventory_holding_cost' &&
+      entry.sourceId === WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID
+  )
+}
+
+export function applyWeeklyInventoryHoldingCostToFundingState(
+  state: FundingState,
+  game: Pick<GameState, 'inventory'>,
+  closedWeek: number
+): { state: FundingState; appliedAmount: number } {
+  const week = Math.max(1, Math.trunc(closedWeek))
+
+  if (hasWeeklyInventoryHoldingCostForWeek(state, week)) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const amount = computeWeeklyInventoryHoldingCost(game, week)
+  if (amount <= 0) {
+    return { state, appliedAmount: 0 }
+  }
+
+  const withExpense = applyFundingExpense(
+    state,
+    amount,
+    'inventory_holding_cost',
+    week,
+    WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID
   )
 
   return {
@@ -743,6 +817,22 @@ export function assessFundingPressure(
     game.week - recentOperatingCostEntry.week <= 1 &&
     fundingState.funding < recentOperatingDrain + game.config.fundingBasePerWeek
 
+  const recentHoldingCostEntry = [...fundingState.fundingHistory]
+    .filter(
+      (entry) =>
+        entry.reason === 'inventory_holding_cost' &&
+        entry.sourceId === WEEKLY_INVENTORY_HOLDING_COST_SOURCE_ID &&
+        entry.delta < 0
+    )
+    .sort((left, right) => right.week - left.week)[0]
+  const recentHoldingDrain = recentHoldingCostEntry
+    ? Math.abs(recentHoldingCostEntry.delta)
+    : 0
+  const holdingCostSignalsProcurementTiming =
+    recentHoldingCostEntry !== undefined &&
+    game.week - recentHoldingCostEntry.week <= 1 &&
+    fundingState.funding < recentHoldingDrain + game.config.fundingBasePerWeek
+
   return {
     funding: fundingState.funding,
     budgetPressure,
@@ -766,6 +856,7 @@ export function assessFundingPressure(
         : '',
       staleProcurementRequestIds.length > 0 ? 'stale-procurement-backlog' : '',
       operatingCostSignalsProcurementTiming ? 'weekly-operating-cost' : '',
+      holdingCostSignalsProcurementTiming ? 'weekly-inventory-holding-cost' : '',
     ]),
   }
 }

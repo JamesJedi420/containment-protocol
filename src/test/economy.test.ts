@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import { buildEconomyLoopOverview } from '../domain/economy'
 import {
   assessFundingPressure,
+  computeWeeklyInventoryHoldingCost,
   computeWeeklyOperatingCost,
 } from '../domain/funding'
 import { getProcurementListings } from '../domain/market'
@@ -65,6 +66,53 @@ describe('economy', () => {
     expect(overview.bestRecipeEdges[0]?.savings).toBeGreaterThanOrEqual(0)
     expect(overview.materialPressure.length).toBeGreaterThan(0)
     expect(overview.inventoryLiquidationValue).toBeGreaterThanOrEqual(0)
+  })
+
+  it('applies weekly inventory holding cost on advanceWeek so high stock tightens procurement headroom', () => {
+    const initial = createStartingState()
+    const listing = getProcurementListings(initial).find(
+      (entry) =>
+        entry.accessAvailable &&
+        entry.resourceStatuses.every((status) => status.purchaseAvailable) &&
+        entry.buyPrice >= 20
+    )
+
+    expect(listing).toBeDefined()
+
+    const closedWeek = initial.week
+    const stockedGame = {
+      ...initial,
+      inventory: {
+        ...initial.inventory,
+        medkits: 40,
+      },
+    }
+    const operatingCost = computeWeeklyOperatingCost(stockedGame, closedWeek)
+    const holdingCost = computeWeeklyInventoryHoldingCost(stockedGame, closedWeek)
+    const preWeekFunding = listing!.buyPrice + operatingCost + holdingCost - 1
+
+    const preWeek = {
+      ...stockedGame,
+      funding: preWeekFunding,
+      agency: {
+        ...stockedGame.agency!,
+        funding: preWeekFunding,
+      },
+      config: {
+        ...stockedGame.config,
+        fundingBasePerWeek: 0,
+        fundingPerResolution: 0,
+        fundingPenaltyPerFail: 0,
+        fundingPenaltyPerUnresolved: 0,
+      },
+    }
+
+    expect(preWeek.funding).toBeGreaterThanOrEqual(listing!.buyPrice)
+
+    const afterWeek = advanceWeek(preWeek)
+
+    expect(afterWeek.funding).toBeLessThan(listing!.buyPrice)
+    expect(assessFundingPressure(afterWeek).reasonCodes).toContain('weekly-inventory-holding-cost')
   })
 
   it('applies weekly operating cost on advanceWeek so a previously affordable listing becomes budget-blocked', () => {

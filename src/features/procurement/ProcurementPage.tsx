@@ -2,10 +2,7 @@ import React, { useState } from 'react'
 import { getProcurementScreenView } from './procurementView'
 import './ProcurementPage.css'
 
-// TODO: Wire to canonical state/store
-
 export const ProcurementPage: React.FC = () => {
-  // Placeholder: Replace with canonical state
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null)
   const view = getProcurementScreenView()
 
@@ -65,6 +62,10 @@ export const ProcurementPage: React.FC = () => {
             <div>Category: {selected.category}</div>
             <div>Source: {selected.source}</div>
             <div>Availability: {selected.availability}</div>
+            {selected.accessLabel && <div>Access: {selected.accessLabel}</div>}
+            {selected.accessDetails && selected.accessDetails.length > 0 && (
+              <div>Access details: {selected.accessDetails.join('; ')}</div>
+            )}
             <div>Budget Impact: {selected.budgetImpact}</div>
             <div>After Purchase: ${selected.afterFunding}</div>
             <div>Pressure Consequences: {selected.pressureConsequences}</div>

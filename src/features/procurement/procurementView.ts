@@ -1,8 +1,11 @@
 // View-model for Procurement / Market Screen (SPE-34)
 
+import { MARKET_SOURCE_LABELS, MARKET_UI_TEXT } from '../../data/copy'
 import { assessFundingPressure, getCanonicalFundingState, getProcurementBacklog } from '../../domain/funding'
-import { getEquipmentCatalogEntries } from '../../domain/equipment'
-import { productionCatalog } from '../../data/production'
+import {
+  getProcurementListings,
+  type ProcurementListing,
+} from '../../domain/market'
 import { useGameStore } from '../../app/store/gameStore'
 
 // Types for the procurement screen
@@ -14,6 +17,8 @@ export interface ProcurementOptionView {
   category?: string
   source?: string
   availability?: string
+  accessLabel?: string
+  accessDetails?: string[]
   affordable: boolean
   blockers: string[]
   budgetImpact?: string
@@ -43,96 +48,170 @@ export interface ProcurementScreenView {
   onRequest: (optionId: string) => void
 }
 
+function formatCurrency(value: number) {
+  return `$${value}`
+}
+
+function mapListingCategory(listing: ProcurementListing): string {
+  if (listing.source === 'direct_equipment') {
+    return 'Equipment'
+  }
+
+  if (listing.source === 'recipe') {
+    return 'Market'
+  }
+
+  return MARKET_SOURCE_LABELS[listing.source]
+}
+
+function buildAvailabilityLabel(listing: ProcurementListing): string {
+  if (!listing.accessAvailable) {
+    return listing.accessBlockedReason ?? 'Access blocked'
+  }
+
+  if (listing.availableBundles <= 0) {
+    return MARKET_UI_TEXT.exhaustedListing
+  }
+
+  const bundleLabel =
+    listing.availableBundles === 1
+      ? '1 bundle open'
+      : `${listing.availableBundles} bundles open`
+
+  return `${bundleLabel} (${listing.remainingAvailability} units remaining)`
+}
+
+function collectNonBudgetBlockers(listing: ProcurementListing): string[] {
+  const blockers: string[] = []
+
+  if (!listing.accessAvailable && listing.accessBlockedReason) {
+    blockers.push(listing.accessBlockedReason)
+  }
+
+  if (listing.marketPacket.blockedReason) {
+    blockers.push(listing.marketPacket.blockedReason)
+  }
+
+  for (const status of listing.resourceStatuses) {
+    if (!status.purchaseAvailable && status.blockerReason) {
+      blockers.push(status.blockerReason)
+    }
+  }
+
+  if (listing.accessAvailable && listing.availableBundles < 1) {
+    blockers.push(MARKET_UI_TEXT.exhaustedListing)
+  }
+
+  return [...new Set(blockers)]
+}
+
+function buildListingOption(
+  listing: ProcurementListing,
+  funding: number,
+  budgetPressure: number
+): ProcurementOptionView {
+  const cost = listing.buyPrice
+  const affordable = funding >= cost
+  const afterFunding = funding - cost
+  const blockers = collectNonBudgetBlockers(listing)
+  const isCritical = budgetPressure >= 3 && affordable && blockers.length === 0
+  const isRecommended = budgetPressure < 2 && affordable && blockers.length === 0
+
+  return {
+    id: listing.id,
+    name: listing.itemName,
+    description: listing.description,
+    cost,
+    category: mapListingCategory(listing),
+    source: listing.marketPacket.label,
+    availability: buildAvailabilityLabel(listing),
+    accessLabel: listing.accessLabel,
+    accessDetails: listing.accessDetails,
+    affordable,
+    blockers,
+    budgetImpact: `-${formatCurrency(cost)}`,
+    pressureConsequences: listing.pressureLabel,
+    afterFunding,
+    isCritical,
+    isRecommended,
+  }
+}
+
+function buildFabricationOption(
+  listing: ProcurementListing,
+  funding: number,
+  budgetPressure: number
+): ProcurementOptionView | null {
+  if (listing.source !== 'recipe' || listing.fabricationCost === undefined || !listing.recipeId) {
+    return null
+  }
+
+  const cost = listing.fabricationCost
+  const affordable = funding >= cost
+  const afterFunding = funding - cost
+  const blockers: string[] = []
+  const isCritical = budgetPressure >= 3 && affordable
+  const isRecommended = budgetPressure < 2 && affordable
+
+  return {
+    id: listing.recipeId,
+    name: listing.itemName,
+    description: listing.description,
+    cost,
+    category: 'Fabrication',
+    source: 'Workshop',
+    availability: 'Queue when funded',
+    affordable,
+    blockers,
+    budgetImpact: `-${formatCurrency(cost)}`,
+    pressureConsequences: undefined,
+    afterFunding,
+    isCritical,
+    isRecommended,
+  }
+}
+
 // Main view-model function
 export function getProcurementScreenView(): ProcurementScreenView {
-  // Use canonical game state from the store
   const game = useGameStore.getState().game
   const fundingState = getCanonicalFundingState(game)
   const fundingPressure = assessFundingPressure(game)
   const backlog = getProcurementBacklog(fundingState)
+  const listings = getProcurementListings(game)
 
-  // Aggregate all procurement options (equipment + fabrication/production)
-  const equipmentOptions = getEquipmentCatalogEntries().map((def) => {
-    // Affordability and blockers
-    const cost = 100 // Placeholder, replace with real cost
-    const affordable = fundingState.funding >= cost
-    const afterFunding = fundingState.funding - cost
-    const blockers: string[] = []
-    if (!affordable) blockers.push('Insufficient funds')
-    // Priority: recommend if budget pressure is low and affordable, critical if pressure is high and affordable
-    const isCritical = fundingPressure.budgetPressure >= 3 && affordable
-    const isRecommended = fundingPressure.budgetPressure < 2 && affordable
-    return {
-      id: def.id,
-      name: def.name,
-      description: undefined, // Could add from definition
-      cost,
-      category: 'Equipment',
-      source: 'Quartermaster',
-      availability: 'Available',
-      affordable,
-      blockers,
-      budgetImpact: `-$${cost}`,
-      pressureConsequences: undefined,
-      afterFunding,
-      isCritical,
-      isRecommended,
-    }
-  })
+  const listingOptions = listings.map((listing) =>
+    buildListingOption(listing, fundingState.funding, fundingPressure.budgetPressure)
+  )
 
-  const fabricationOptions = productionCatalog.map((recipe) => {
-    const cost = recipe.baseFundingCost
-    const affordable = fundingState.funding >= cost
-    const afterFunding = fundingState.funding - cost
-    const blockers: string[] = []
-    if (!affordable) blockers.push('Insufficient funds')
-    // Priority: recommend if backlog is low, critical if pressure is high
-    const isCritical = fundingPressure.budgetPressure >= 3 && affordable
-    const isRecommended = fundingPressure.budgetPressure < 2 && affordable
-    return {
-      id: recipe.recipeId,
-      name: recipe.name,
-      description: recipe.description,
-      cost,
-      category: 'Fabrication',
-      source: 'Workshop',
-      availability: 'Available',
-      affordable,
-      blockers,
-      budgetImpact: `-$${cost}`,
-      pressureConsequences: undefined,
-      afterFunding,
-      isCritical,
-      isRecommended,
-    }
-  })
+  const fabricationOptions = listings
+    .map((listing) =>
+      buildFabricationOption(listing, fundingState.funding, fundingPressure.budgetPressure)
+    )
+    .filter((option): option is ProcurementOptionView => option !== null)
 
-  // Combine all options
-  const options = [...equipmentOptions, ...fabricationOptions]
+  const options = [...listingOptions, ...fabricationOptions]
 
-  // Map backlog entries
   const backlogView: ProcurementBacklogEntryView[] = backlog.map((entry) => {
-    // Try to resolve name from equipment or production
-    const eq = getEquipmentCatalogEntries().find((e) => e.id === entry.itemId)
-    const prod = productionCatalog.find((r) => r.outputItemId === entry.itemId)
+    const listing = listings.find((candidate) => candidate.itemId === entry.itemId)
+
     return {
       requestId: entry.requestId,
-      name: eq?.name || prod?.outputItemName || entry.itemId,
+      name: listing?.itemName ?? entry.itemId,
       cost: entry.cost,
       status: entry.status,
     }
   })
 
-  // Backlog pressure signal
-  const backlogPending = backlog.filter((e) => e.status === 'pending').length
+  const backlogPending = backlog.filter((entry) => entry.status === 'pending').length
   const backlogStale = backlog.filter(
-    (e) => e.status === 'pending' && fundingPressure.staleProcurementRequestIds.includes(e.requestId)
+    (entry) =>
+      entry.status === 'pending' &&
+      fundingPressure.staleProcurementRequestIds.includes(entry.requestId)
   ).length
   let backlogSignal = ''
   if (backlogPending >= 5) backlogSignal = 'Backlog congestion'
   else if (backlogStale > 0) backlogSignal = 'Delay risk'
 
-  // Budget/pressure summary
   const budget = {
     funding: fundingPressure.funding,
     budgetPressure: fundingPressure.budgetPressure,
@@ -141,18 +220,16 @@ export function getProcurementScreenView(): ProcurementScreenView {
     backlogSignal,
   }
 
-  // Canonical purchase/request action
   function onRequest(optionId: string) {
-    const opt = options.find((o) => o.id === optionId)
-    if (!opt || !opt.affordable) return
-    // Canonical action: dispatch to store
-    // For equipment: treat as market inventory purchase
-    // For fabrication: treat as production/fabrication request
-    if (opt.category === 'Equipment') {
-      useGameStore.getState().purchaseMarketInventory(optionId)
-    } else if (opt.category === 'Fabrication') {
+    const opt = options.find((candidate) => candidate.id === optionId)
+    if (!opt || !opt.affordable || opt.blockers.length > 0) return
+
+    if (opt.category === 'Fabrication') {
       useGameStore.getState().queueFabrication(optionId)
+      return
     }
+
+    useGameStore.getState().purchaseMarketInventory(optionId)
   }
 
   return {

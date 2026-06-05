@@ -516,7 +516,10 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
 
     case 'market.transaction_recorded':
       return {
-        content: `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
+        content:
+          draft.payload.action === 'favor_exchange'
+            ? `Market favor exchange: ${draft.payload.quantity}x ${draft.payload.itemName} via ${draft.payload.favorExchangeLabel ?? 'faction favor'} (no funding spent).`
+            : `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
         type: 'market.transaction_recorded',
         metadata: {
           action: draft.payload.action,

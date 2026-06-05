@@ -7,6 +7,7 @@ import {
 import { inventoryItemLabels } from '../../data/production'
 import { assessFundingPressure, getCanonicalFundingState } from '../../domain/funding'
 import {
+  assessFactionFavorExchangeProcurement,
   getAvailableMarketCategories,
   getCurrentMarketTransactions,
   getProcurementListings,
@@ -40,6 +41,8 @@ export interface MarketFilters {
 export interface MarketListingView extends ProcurementListing {
   canBuyOne: boolean
   canBuyThree: boolean
+  canRedeemFavorOne: boolean
+  canRedeemFavorThree: boolean
   canAffordOne: boolean
   canAffordThree: boolean
   canSellOne: boolean
@@ -221,11 +224,13 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   const canAffordOne = game.funding >= listing.buyPrice
   const canAffordThree = game.funding >= listing.buyPrice * 3
   const canBuyOne =
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     listing.availableBundles >= 1 &&
     canAffordOne
   const canBuyThree =
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     !listing.resourceStatuses.some((status) => status.substitution) &&
@@ -233,18 +238,39 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     canAffordThree
   const canSellOne = listing.inventoryStock >= listing.bundleQuantity
   const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
+  const favorAssessment =
+    listing.favorExchange && assessFactionFavorExchangeProcurement(game, listing.id)
+  const favorResourcesReady = listing.resourceStatuses.every((status) => status.purchaseAvailable)
+  const canRedeemFavorOne =
+    !listing.cashPurchaseAllowed &&
+    Boolean(listing.favorExchange) &&
+    listing.favorRedeemAvailable &&
+    favorAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 1
+  const canRedeemFavorThree =
+    canRedeemFavorOne &&
+    !listing.resourceStatuses.some((status) => status.substitution) &&
+    listing.availableBundles >= 3
 
-  const budgetBlockedReason = canAffordOne
-    ? undefined
-    : MARKET_UI_TEXT.insufficientFundingBy.replace(
-        '{amount}',
-        formatCurrency(Math.max(0, listing.buyPrice - game.funding))
-      )
+  const budgetBlockedReason =
+    listing.cashPurchaseAllowed && !canAffordOne
+      ? MARKET_UI_TEXT.insufficientFundingBy.replace(
+          '{amount}',
+          formatCurrency(Math.max(0, listing.buyPrice - game.funding))
+        )
+      : undefined
   const availabilityBlockedReason =
     listing.availableBundles < 1 ? MARKET_UI_TEXT.exhaustedListing : undefined
   let buyBlockedReason: string | undefined
-  if (!listing.accessAvailable) {
+  if (!listing.accessAvailable && listing.accessBlockedReason) {
     buyBlockedReason = listing.accessBlockedReason
+  } else if (listing.marketPacket.blockedReason) {
+    buyBlockedReason = listing.marketPacket.blockedReason
+  } else if (!listing.cashPurchaseAllowed && listing.favorExchange) {
+    buyBlockedReason = favorAssessment?.eligible
+      ? `${listing.favorExchange.exchangeLabel} ready — redeem favor instead of cash purchase.`
+      : favorAssessment?.detail
   } else if (listing.resourceStatuses.some((status) => !status.purchaseAvailable)) {
     buyBlockedReason = listing.resourceStatuses.find(
       (status) => !status.purchaseAvailable
@@ -264,6 +290,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     ...listing,
     canBuyOne,
     canBuyThree,
+    canRedeemFavorOne,
+    canRedeemFavorThree,
     canAffordOne,
     canAffordThree,
     canSellOne,
@@ -551,6 +579,11 @@ function buildProcurementBudgetSummary(
           : '',
         fundingPressure.reasonCodes.includes('weekly-operating-cost')
           ? 'Payroll and facility upkeep were charged at week close, tightening procurement headroom.'
+          : '',
+        game.factions?.corporate_supply?.availableFavors?.some(
+          (favor) => favor.id === 'corporate-supply-salvage-credit'
+        )
+          ? 'Open salvage reclamation favor can redeem rare containment gear without spending funding.'
           : '',
       ],
       4

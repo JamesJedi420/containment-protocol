@@ -103,6 +103,7 @@ import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergen
 import {
   acknowledgeLicensedHandlingDoctrine,
   purchaseMarketInventory,
+  redeemFactionFavorProcurement,
   sellMarketInventory,
 } from '../../domain/sim/market'
 import { hireCandidate } from '../../domain/sim/hire'
@@ -293,6 +294,7 @@ interface GameStore {
   unequipAgentItem: (agentId: Id, slot: EquipmentSlotKind) => void
   queueFabrication: (recipeId: string) => void
   purchaseMarketInventory: (listingId: string, bundles?: number) => void
+  redeemFactionFavorProcurement: (listingId: string, bundles?: number) => void
   /** Renew licensed-handling doctrine attestation for the current campaign week (SPE-874). */
   acknowledgeLicensedHandlingDoctrine: () => void
   /** Crisis waiver: temporarily unlock gray-market broker for sanctioned posture (SPE-1524). */
@@ -1478,6 +1480,9 @@ export const useGameStore = create<GameStore>()(
 
       purchaseMarketInventory: (listingId, bundles = 1) =>
         set((s) => ({ game: purchaseMarketInventory(s.game, listingId, bundles) })),
+
+      redeemFactionFavorProcurement: (listingId, bundles = 1) =>
+        set((s) => ({ game: redeemFactionFavorProcurement(s.game, listingId, bundles) })),
 
       acknowledgeLicensedHandlingDoctrine: () =>
         set((s) => ({ game: acknowledgeLicensedHandlingDoctrine(s.game) })),

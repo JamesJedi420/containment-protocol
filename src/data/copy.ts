@@ -332,6 +332,8 @@ export const MARKET_UI_TEXT = {
   availableFundingLabel: 'Available funding',
   buyOne: 'Buy 1 bundle',
   buyThree: 'Buy 3 bundles',
+  redeemFavorOne: 'Redeem favor (1 bundle)',
+  redeemFavorThree: 'Redeem favor (3 bundles)',
   sellOne: 'Sell 1 bundle',
   sellThree: 'Sell 3 bundles',
   noListings: 'No listings match the current filters.',

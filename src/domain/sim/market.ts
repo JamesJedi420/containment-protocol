@@ -1,6 +1,10 @@
 import { appendOperationEventDrafts } from '../events'
 import type { GameState } from '../models'
-import { buildProcurementAllocationPackets, getProcurementListing } from '../market'
+import {
+  assessFactionFavorExchangeProcurement,
+  buildProcurementAllocationPackets,
+  getProcurementListing,
+} from '../market'
 import { ensureNormalizedGameState, normalizeGameState } from '../teamSimulation'
 
 function getNextMarketTransactionSequence(state: GameState) {
@@ -43,6 +47,7 @@ export function purchaseMarketInventory(
   const totalPrice = normalizedBundles * listing.buyPrice
 
   if (
+    !listing.cashPurchaseAllowed ||
     !listing.accessAvailable ||
     !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
     (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
@@ -90,6 +95,98 @@ export function purchaseMarketInventory(
             remainingAvailability: Math.max(0, listing.remainingAvailability - quantity),
             allocation: allocations[0]!,
             allocations,
+          },
+        },
+      ]
+    )
+  )
+}
+
+export function redeemFactionFavorProcurement(
+  state: GameState,
+  listingId: string,
+  bundles = 1
+): GameState {
+  const listing = getProcurementListing(state, listingId)
+
+  if (!listing?.favorExchange) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const favorAssessment = assessFactionFavorExchangeProcurement(state, listingId)
+  if (!favorAssessment.eligible || !listing.favorRedeemAvailable) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const normalizedBundles = Math.max(1, Math.trunc(bundles))
+  const quantity = normalizedBundles * listing.bundleQuantity
+
+  if (
+    !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
+    (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
+    normalizedBundles > listing.availableBundles
+  ) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const { factionId, favorId } = listing.favorExchange
+  const runtime = state.factions?.[factionId]
+  if (!runtime) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const nextFavors = (runtime.availableFavors ?? []).filter((favor) => favor.id !== favorId)
+  if (nextFavors.length === (runtime.availableFavors ?? []).length) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const nextInventory = {
+    ...state.inventory,
+    [listing.itemId]: (state.inventory[listing.itemId] ?? 0) + quantity,
+  }
+  const transactionId = nextTransactionId(state)
+  const allocations = buildProcurementAllocationPackets({
+    listing,
+    transactionId,
+    quantity,
+  })
+
+  return normalizeGameState(
+    appendOperationEventDrafts(
+      {
+        ...state,
+        inventory: nextInventory,
+        factions: {
+          ...state.factions,
+          [factionId]: {
+            ...runtime,
+            availableFavors: nextFavors,
+          },
+        },
+      },
+      [
+        {
+          type: 'market.transaction_recorded',
+          sourceSystem: 'production',
+          payload: {
+            week: state.week,
+            marketWeek: state.market.week,
+            transactionId,
+            action: 'favor_exchange',
+            listingId: listing.id,
+            itemId: listing.itemId,
+            itemName: listing.itemName,
+            category: listing.category,
+            quantity,
+            bundleCount: normalizedBundles,
+            unitPrice: 0,
+            totalPrice: 0,
+            remainingAvailability: Math.max(0, listing.remainingAvailability - quantity),
+            allocation: allocations[0]!,
+            allocations,
+            favorExchangeFactionId: factionId,
+            favorExchangeFavorId: favorId,
+            favorExchangeLabel: listing.favorExchange.exchangeLabel,
           },
         },
       ]

@@ -18,10 +18,13 @@ import {
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 
-export type ProcurementTransactionAction = 'buy' | 'sell'
+export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
-export type ProcurementAcquisitionClass = 'standard' | 'restricted'
-export type ProcurementAccessChannel = 'open_exchange' | 'directorate_special_channel'
+export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
+export type ProcurementAccessChannel =
+  | 'open_exchange'
+  | 'directorate_special_channel'
+  | 'faction_favor_exchange'
 export type ProcurementMarketPacketId = 'agency_supplier_roster' | 'gray_market_broker'
 export type ProcurementMarketBoundary = 'agency-supplier-roster' | 'settlement-gray-market'
 export type ProcurementLegalityAccessMode = 'licensed' | 'covert'
@@ -118,6 +121,9 @@ export interface ProcurementListing {
   accessDetails: string[]
   accessAvailable: boolean
   accessBlockedReason?: string
+  cashPurchaseAllowed: boolean
+  favorRedeemAvailable: boolean
+  favorExchange?: FactionFavorExchangeProcurementRule
   totalAvailability: number
   remainingAvailability: number
   availableBundles: number
@@ -207,6 +213,32 @@ interface ProcurementAccessRule {
   requiredClearanceLevel?: number
 }
 
+export interface FactionFavorExchangeProcurementRule {
+  factionId: string
+  favorId: string
+  exchangeLabel: string
+  details: string[]
+}
+
+export interface FactionFavorExchangeAssessment {
+  listingId: string
+  eligible: boolean
+  reasonCode: 'favor-exchange-ready' | 'favor-exchange-missing' | 'not-favor-exchange-listing'
+  detail: string
+}
+
+const FAVOR_EXCHANGE_PROCUREMENT_RULES: Record<string, FactionFavorExchangeProcurementRule> = {
+  'gear:containment_staff': {
+    factionId: 'corporate_supply',
+    favorId: 'corporate-supply-salvage-credit',
+    exchangeLabel: 'Salvage reclamation favor',
+    details: [
+      'Rare containment gear circulates only through supplier salvage credit.',
+      'Cash purchase is blocked; redeem the open corporate_supply favor instead.',
+    ],
+  },
+}
+
 const PROCUREMENT_MARKET_PACKET_DEFINITIONS: Record<
   ProcurementMarketPacketId,
   ProcurementMarketPacketDefinition
@@ -262,6 +294,12 @@ const PROCUREMENT_ACCESS_RULES: Record<string, ProcurementAccessRule> = {
       'Requires directorate clearance before supplier release.',
     ],
     requiredClearanceLevel: 2,
+  },
+  'gear:containment_staff': {
+    acquisitionClass: 'rare',
+    accessChannel: 'faction_favor_exchange',
+    accessLabel: 'Faction favor exchange',
+    details: FAVOR_EXCHANGE_PROCUREMENT_RULES['gear:containment_staff']!.details,
   },
 }
 
@@ -424,12 +462,57 @@ export function getProcurementMarketPacket(
   return buildMarketPacket(packetId, game)
 }
 
+function hasOpenFactionFavor(
+  game: Pick<GameState, 'factions'>,
+  factionId: string,
+  favorId: string
+) {
+  const runtime = game.factions?.[factionId]
+  return (runtime?.availableFavors ?? []).some((favor) => favor.id === favorId)
+}
+
+export function getFactionFavorExchangeProcurementRule(listingId: string) {
+  return FAVOR_EXCHANGE_PROCUREMENT_RULES[listingId]
+}
+
+export function assessFactionFavorExchangeProcurement(
+  game: Pick<GameState, 'factions'>,
+  listingId: string
+): FactionFavorExchangeAssessment {
+  const rule = getFactionFavorExchangeProcurementRule(listingId)
+  if (!rule) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'not-favor-exchange-listing',
+      detail: 'Listing is not configured for faction favor exchange.',
+    }
+  }
+
+  if (!hasOpenFactionFavor(game, rule.factionId, rule.favorId)) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'favor-exchange-missing',
+      detail: `${rule.exchangeLabel} required from ${rule.factionId}; no open favor is available.`,
+    }
+  }
+
+  return {
+    listingId,
+    eligible: true,
+    reasonCode: 'favor-exchange-ready',
+    detail: `${rule.exchangeLabel} from ${rule.factionId} can redeem this listing without spending funding.`,
+  }
+}
+
 function assessProcurementAccess(
   definition: ProcurementListingDefinition,
   game: GameState,
   marketPacket: ProcurementMarketPacket
 ) {
   const rule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
+  const favorExchange = getFactionFavorExchangeProcurementRule(definition.id)
   const clearanceLevel = getClearanceLevel(game)
   const accessDetails = [...marketPacket.knownDistortions, ...rule.details]
 
@@ -437,18 +520,28 @@ function assessProcurementAccess(
     accessDetails.push(`Clearance ${rule.requiredClearanceLevel}+ required.`)
   }
 
-  const ruleBlockedReason =
+  if (favorExchange) {
+    const favorAssessment = assessFactionFavorExchangeProcurement(game, definition.id)
+    accessDetails.push(favorAssessment.detail)
+  }
+
+  const clearanceBlocked =
     typeof rule.requiredClearanceLevel === 'number' && clearanceLevel < rule.requiredClearanceLevel
-      ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
-      : undefined
-  const accessBlockedReason = marketPacket.blockedReason ?? ruleBlockedReason
+  const accessBlockedReason = clearanceBlocked
+    ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
+    : marketPacket.blockedReason
+  const cashPurchaseAllowed = rule.accessChannel !== 'faction_favor_exchange'
+  const channelAvailable = marketPacket.available && accessBlockedReason === undefined
 
   return {
     acquisitionClass: rule.acquisitionClass,
     accessChannel: rule.accessChannel,
     accessLabel: rule.accessLabel,
     accessDetails,
-    accessAvailable: marketPacket.available && accessBlockedReason === undefined,
+    cashPurchaseAllowed,
+    ...(favorExchange ? { favorExchange } : {}),
+    accessAvailable: cashPurchaseAllowed && channelAvailable,
+    favorRedeemAvailable: Boolean(favorExchange && channelAvailable),
     ...(accessBlockedReason ? { accessBlockedReason } : {}),
   }
 }
@@ -531,6 +624,7 @@ function getListingTransactionTotalsForWeek(
 
     switch (event.payload.action) {
       case 'buy':
+      case 'favor_exchange':
         boughtByListingId[listingId] = (boughtByListingId[listingId] ?? 0) + quantity
         break
       case 'sell':
@@ -553,7 +647,11 @@ function getCurrentSupplierAttentionAllocations(
 ): ProcurementAllocationPacket[] {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter((allocation) => allocation.resourceClass === 'supplier_attention_slot')
     .sort((left, right) => left.allocationId.localeCompare(right.allocationId))
@@ -642,7 +740,11 @@ function getCurrentReagentStockAllocations(
   })
   const marketAllocations = game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter(
       (allocation) =>
@@ -720,7 +822,11 @@ function getCurrentLicensedHandlingAllocations(
 ): ProcurementAllocationPacket[] {
   return game.events
     .filter((event) => isMarketTransactionEvent(event))
-    .filter((event) => event.payload.action === 'buy' && event.payload.marketWeek === marketWeek)
+    .filter(
+      (event) =>
+        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        event.payload.marketWeek === marketWeek
+    )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
     .filter(
       (allocation) =>

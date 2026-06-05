@@ -12,8 +12,10 @@ import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   acknowledgeLicensedHandlingDoctrine,
   purchaseMarketInventory,
+  redeemFactionFavorProcurement,
   sellMarketInventory,
 } from '../domain/sim/market'
+import { assessFactionFavorExchangeProcurement } from '../domain/market'
 import { queueFabrication } from '../domain/sim/production'
 
 describe('market procurement simulation', () => {
@@ -594,6 +596,66 @@ describe('market procurement simulation', () => {
     expect(marketTransactions[0]!.payload.transactionId).toMatch(
       new RegExp(`^market-${state.week}-${state.market.week}-\\d+$`)
     )
+  })
+})
+
+describe('faction favor exchange (SPE-28)', () => {
+  const listingId = 'gear:containment_staff'
+
+  it('blocks cash purchase for rare containment staff even with surplus funding', () => {
+    const state = {
+      ...createStartingState(),
+      funding: 9999,
+      agency: {
+        ...createStartingState().agency!,
+        funding: 9999,
+      },
+    }
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)
+
+    expect(listing).toBeDefined()
+    expect(listing!.cashPurchaseAllowed).toBe(false)
+    expect(listing!.acquisitionClass).toBe('rare')
+    expect(listing!.accessChannel).toBe('faction_favor_exchange')
+    expect(state.funding).toBeGreaterThanOrEqual(listing!.buyPrice)
+
+    const cashAttempt = purchaseMarketInventory(state, listingId, 1)
+
+    expect(cashAttempt.funding).toBe(state.funding)
+    expect(cashAttempt.inventory.containment_staff ?? 0).toBe(state.inventory.containment_staff ?? 0)
+  })
+
+  it('redeems open corporate_supply salvage favor without spending funding', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)
+
+    expect(listing).toBeDefined()
+    expect(assessFactionFavorExchangeProcurement(state, listingId).eligible).toBe(true)
+
+    const redeemed = redeemFactionFavorProcurement(state, listingId, 1)
+
+    expect(redeemed.funding).toBe(state.funding)
+    expect(redeemed.inventory.containment_staff).toBe(
+      (state.inventory.containment_staff ?? 0) + listing!.bundleQuantity
+    )
+    expect(redeemed.factions?.corporate_supply?.availableFavors ?? []).toHaveLength(0)
+
+    const event = redeemed.events.find((entry) => entry.type === 'market.transaction_recorded')
+    expect(event?.payload.action).toBe('favor_exchange')
+    expect(event?.payload.totalPrice).toBe(0)
+    expect(event?.payload.favorExchangeFavorId).toBe('corporate-supply-salvage-credit')
+  })
+
+  it('keeps access-blocker separate from budget-blocker on standard listings', () => {
+    const state = createStartingState()
+    const standardListing = getProcurementListings(state).find(
+      (candidate) => candidate.id === 'med-kits'
+    )
+
+    expect(standardListing).toBeDefined()
+    expect(standardListing!.cashPurchaseAllowed).toBe(true)
+    expect(standardListing!.accessAvailable).toBe(true)
+    expect(state.funding).toBeGreaterThanOrEqual(standardListing!.buyPrice)
   })
 })
 

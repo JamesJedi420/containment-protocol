@@ -7,6 +7,7 @@ import {
 import { inventoryItemLabels } from '../../data/production'
 import { assessFundingPressure, getCanonicalFundingState } from '../../domain/funding'
 import {
+  assessFactionFavorExchangeProcurement,
   getAvailableMarketCategories,
   getCurrentMarketTransactions,
   getProcurementListings,
@@ -221,11 +222,13 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   const canAffordOne = game.funding >= listing.buyPrice
   const canAffordThree = game.funding >= listing.buyPrice * 3
   const canBuyOne =
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     listing.availableBundles >= 1 &&
     canAffordOne
   const canBuyThree =
+    listing.cashPurchaseAllowed &&
     listing.accessAvailable &&
     listing.resourceStatuses.every((status) => status.purchaseAvailable) &&
     !listing.resourceStatuses.some((status) => status.substitution) &&
@@ -243,7 +246,12 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   const availabilityBlockedReason =
     listing.availableBundles < 1 ? MARKET_UI_TEXT.exhaustedListing : undefined
   let buyBlockedReason: string | undefined
-  if (!listing.accessAvailable) {
+  if (!listing.cashPurchaseAllowed && listing.favorExchange) {
+    const favorAssessment = assessFactionFavorExchangeProcurement(game, listing.id)
+    buyBlockedReason = favorAssessment.eligible
+      ? `${listing.favorExchange.exchangeLabel} ready — redeem favor instead of cash purchase.`
+      : favorAssessment.detail
+  } else if (!listing.accessAvailable) {
     buyBlockedReason = listing.accessBlockedReason
   } else if (listing.resourceStatuses.some((status) => !status.purchaseAvailable)) {
     buyBlockedReason = listing.resourceStatuses.find(
@@ -551,6 +559,11 @@ function buildProcurementBudgetSummary(
           : '',
         fundingPressure.reasonCodes.includes('weekly-operating-cost')
           ? 'Payroll and facility upkeep were charged at week close, tightening procurement headroom.'
+          : '',
+        game.factions?.corporate_supply?.availableFavors?.some(
+          (favor) => favor.id === 'corporate-supply-salvage-credit'
+        )
+          ? 'Open salvage reclamation favor can redeem rare containment gear without spending funding.'
           : '',
       ],
       4

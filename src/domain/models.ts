@@ -244,6 +244,10 @@ import type {
 import type { BeliefTrackState } from './beliefTracks'
 import type { KnowledgeState, KnowledgeStateMap } from './knowledge'
 import type { InformationIntakeReportRecord } from './informationIntakeReport'
+import type { ExtranormalEventRecord } from './extranormalEventRegistry'
+import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
+import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
+import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -1341,6 +1345,8 @@ export interface CaseInstance {
   counterDetection?: boolean
   displacementTarget?: Id | null
   route?: string | null
+  /** SPE-2303: authored anti-scan compartment token for bypass alignment (mirrors `route`). */
+  compartment?: string | null
   /** SPE-2284: known-but-unresolved hidden-state scouting nodes across weekly passes. */
   hiddenStateScoutingReconCache?: import('./hiddenStateScoutingReconCache').HiddenStateScoutingReconCache
   /** SPE-2285: false-entity / structural-illusion lifecycle overlay. */
@@ -1491,6 +1497,7 @@ export type ReportNoteType =
   | 'hub.opportunity'
   | 'hub.rumor'
   | 'system.equipment_recovered'
+  | 'information_intake.verification'
 
 export type ReportNoteMetadataValue =
   | string
@@ -1874,6 +1881,8 @@ export type FundingCategory =
   | 'unresolved_penalty'
   | 'market_transaction'
   | 'facility_upgrade'
+  | 'operating_cost'
+  | 'inventory_holding_cost'
   | (string & {})
 
 export interface FundingHistoryRecord {
@@ -1892,6 +1901,10 @@ export interface ProcurementBacklogEntry {
   fulfilledWeek?: number
   cost: number
   blockedReason?: string
+  /** SPE-2319: market listing that originated a delayed supplier order (fulfillment lookup). */
+  listingId?: string
+  /** SPE-2319: supplier lead time in campaign weeks (defaults to calibration when omitted). */
+  delayWeeks?: number
 }
 
 export interface FundingState {
@@ -2536,6 +2549,30 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   informationIntakeReports?: Record<string, InformationIntakeReportRecord>
+
+  /**
+   * SPE-2105 slice 2: persisted brief extranormal incident records (keyed by event id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  extranormalEventRecords?: Record<string, ExtranormalEventRecord>
+
+  /**
+   * SPE-2106 slice 2: persisted low-threat unexplained location records (keyed by location id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  unexplainedLocationRecords?: Record<string, UnexplainedLocationRecord>
+
+  /**
+   * SPE-2104 slice 2: persisted low-priority minor anomaly item records (keyed by item id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  minorAnomalyItemRecords?: Record<string, MinorAnomalyRecord>
+
+  /**
+   * SPE-2108 slice 2: persisted self-censoring information records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  selfCensoringInformationRecords?: Record<string, SelfCensoringInformationRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

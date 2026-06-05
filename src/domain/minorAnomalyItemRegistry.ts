@@ -524,6 +524,194 @@ export function projectMinorAnomalyForOperator(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2104 slice 2)
+// ---------------------------------------------------------------------------
+
+export type MinorAnomalyItemRecordsMap = Record<MinorAnomalyItemId, MinorAnomalyRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function uniqueSorted(values: readonly string[]) {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return uniqueSorted(
+    value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry)
+  )
+}
+
+function parseStatusHistory(value: unknown): readonly MinorAnomalyStatusHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const history: MinorAnomalyStatusHistoryEntry[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const fromDisposition = typeof entry.fromDisposition === 'string' ? entry.fromDisposition : ''
+    const toDisposition = typeof entry.toDisposition === 'string' ? entry.toDisposition : ''
+    const week = entry.week
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0 ? entry.note.trim() : undefined
+
+    if (
+      !isMinorAnomalyDisposition(fromDisposition) ||
+      !isMinorAnomalyDisposition(toDisposition) ||
+      !isFiniteWeek(week)
+    ) {
+      continue
+    }
+
+    history.push({
+      fromDisposition,
+      toDisposition,
+      week,
+      ...(note ? { note } : {}),
+    })
+  }
+
+  return history
+}
+
+function parseStaffNoteProvenance(value: unknown): readonly StaffNoteProvenanceHook[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const hooks: StaffNoteProvenanceHook[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const noteRef = normalizeToken(entry.noteRef)
+    if (!noteRef || seen.has(noteRef)) {
+      continue
+    }
+
+    const authorRef = normalizeToken(entry.authorRef ?? '') || undefined
+    const week = entry.week
+
+    if (week !== undefined && !isFiniteWeek(week)) {
+      continue
+    }
+
+    seen.add(noteRef)
+    hooks.push({
+      noteRef,
+      ...(authorRef ? { authorRef } : {}),
+      ...(week !== undefined ? { week } : {}),
+    })
+  }
+
+  return hooks
+}
+
+function sanitizeMinorAnomalyItemRecordEntry(value: unknown): MinorAnomalyRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const disposition = typeof value.disposition === 'string' ? value.disposition : ''
+
+  if (!id || !label || !isMinorAnomalyDisposition(disposition)) {
+    return null
+  }
+
+  const latentRiskScore = value.latentRiskScore
+  if (!isValidLatentRiskScore(latentRiskScore)) {
+    return null
+  }
+
+  const statusHistory = parseStatusHistory(value.statusHistory)
+  const staffNoteProvenance = parseStaffNoteProvenance(value.staffNoteProvenance)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const descriptionStub =
+    typeof value.descriptionStub === 'string' && value.descriptionStub.trim().length > 0
+      ? value.descriptionStub.trim()
+      : undefined
+  const recoverySiteRef = normalizeToken(value.recoverySiteRef ?? '') || undefined
+  const suspectedOriginRef = normalizeToken(value.suspectedOriginRef ?? '') || undefined
+  const currentCustodyRef = normalizeToken(value.currentCustodyRef ?? '') || undefined
+  const status = normalizeToken(value.status ?? '') || undefined
+  const destructionAuthorizationRef =
+    normalizeToken(value.destructionAuthorizationRef ?? '') || undefined
+  const investigationRef = normalizeToken(value.investigationRef ?? '') || undefined
+  const publicDisruptionRef = normalizeToken(value.publicDisruptionRef ?? '') || undefined
+  const lowValue = value.lowValue === true ? true : undefined
+  const confidence = value.confidence
+
+  const record: MinorAnomalyRecord = {
+    id,
+    label,
+    disposition,
+    latentRiskScore,
+    ...(descriptionStub ? { descriptionStub } : {}),
+    ...(recoverySiteRef ? { recoverySiteRef } : {}),
+    ...(suspectedOriginRef ? { suspectedOriginRef } : {}),
+    ...(currentCustodyRef ? { currentCustodyRef } : {}),
+    ...(status ? { status } : {}),
+    ...(statusHistory.length > 0 ? { statusHistory } : {}),
+    ...(lowValue ? { lowValue } : {}),
+    ...(isValidUnitInterval(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+    ...(destructionAuthorizationRef ? { destructionAuthorizationRef } : {}),
+    ...(investigationRef ? { investigationRef } : {}),
+    ...(publicDisruptionRef ? { publicDisruptionRef } : {}),
+    ...(staffNoteProvenance.length > 0 ? { staffNoteProvenance } : {}),
+  }
+
+  if (!validateMinorAnomalyRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical item map keyed by item id; drops invalid and duplicate-id entries. */
+export function sanitizeMinorAnomalyItemRecords(
+  value: unknown,
+  fallback: MinorAnomalyItemRecordsMap = {}
+): MinorAnomalyItemRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: MinorAnomalyItemRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeMinorAnomalyItemRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineItem(record: MinorAnomalyRecord): MinorAnomalyRecord {
   return Object.freeze({ ...record })
 }

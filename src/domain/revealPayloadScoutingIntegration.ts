@@ -21,11 +21,14 @@ import {
   resolveIllusionKindFromCase,
 } from './hiddenStateIllusionLifecycle'
 import {
+  applyAntiScanCompartmentScanProjection,
   applyFalsePositionScanProjection,
   applyFalseDetectionScanProjection,
   applyGlamourOverlayScanProjection,
+  applyOutOfPhaseScanProjection,
   applySignatureMaskScanProjection,
   buildSubjectTruthFromCaseHiddenState,
+  isAntiScanCompartmentAligned,
   resolveHiddenStateModality,
   scoutingOutcomeToDetectionScanForCase,
 } from './hiddenStateModality'
@@ -309,10 +312,16 @@ export function resolveScoutingWithCaseHiddenState(
 ): ScoutingRevealIntegrationResult {
   const scouting = resolveScouting(input)
   const truth = buildSubjectTruthFromCaseHiddenState(input.caseData, input, input.subject)
-  const scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
-  let detectionScan = resolveDetectionScan(truth, scanInput)
-
+  const teamTags = input.teamTags ?? []
   const modality = resolveHiddenStateModality(input.caseData)
+  let scanInput = scoutingOutcomeToDetectionScanForCase(scouting, input.caseData)
+  if (
+    modality === 'anti_scan_compartment' &&
+    !isAntiScanCompartmentAligned(input.caseData, teamTags)
+  ) {
+    scanInput = { family: 'presence_sweep' }
+  }
+  let detectionScan = resolveDetectionScan(truth, scanInput)
 
   if (modality === 'false_position') {
     detectionScan = applyFalsePositionScanProjection(detectionScan, input.caseData)
@@ -328,6 +337,22 @@ export function resolveScoutingWithCaseHiddenState(
 
   if (modality === 'glamour_overlay') {
     detectionScan = applyGlamourOverlayScanProjection(detectionScan)
+  }
+
+  if (modality === 'out_of_phase_presence') {
+    detectionScan = applyOutOfPhaseScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
+  }
+
+  if (modality === 'anti_scan_compartment') {
+    detectionScan = applyAntiScanCompartmentScanProjection(
+      detectionScan,
+      input.caseData,
+      input.teamTags ?? []
+    )
   }
 
   if (

@@ -37,6 +37,8 @@ export function InfiltrationCasePrepPanel({
 
       <TrackSummary view={view} />
 
+      {view.encounterPreviewNotes.length > 0 ? <EncounterPreview view={view} /> : null}
+
       {view.coverRoleLabel ? <CoverSummary view={view} /> : null}
 
       <section className="space-y-2" aria-label="Weekly probe action">
@@ -125,6 +127,19 @@ function TrackSummary({ view }: { view: InfiltrationCasePrepView }) {
       <p className="text-xs opacity-55">
         Complication band begins at {view.awarenessComplicationBandPercent}% awareness.
       </p>
+    </section>
+  )
+}
+
+function EncounterPreview({ view }: { view: InfiltrationCasePrepView }) {
+  return (
+    <section className="space-y-1" aria-label="Encounter preview">
+      <p className="text-xs uppercase tracking-wide opacity-50">Encounter preview</p>
+      <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+        {view.encounterPreviewNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
     </section>
   )
 }

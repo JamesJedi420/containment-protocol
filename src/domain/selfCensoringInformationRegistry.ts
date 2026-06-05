@@ -648,6 +648,203 @@ export function validateSelfCensoringInformationRecord(
   return freezeValidationResult(issues)
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2108 slice 2)
+// ---------------------------------------------------------------------------
+
+export type SelfCensoringInformationRecordsMap = Record<
+  SelfCensoringInformationId,
+  SelfCensoringInformationRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parsePropagationResistanceTags(value: unknown): readonly PropagationResistanceTag[] {
+  const tags: PropagationResistanceTag[] = []
+
+  for (const entry of asStringArray(value)) {
+    if (typeof entry === 'string' && isPropagationResistanceTag(entry)) {
+      tags.push(entry)
+    }
+  }
+
+  return tags
+}
+
+function parseNegativeFacts(value: unknown): readonly NegativeFactPredicate[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const facts: NegativeFactPredicate[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const predicate = normalizeToken(entry.predicate)
+    if (!predicate) {
+      continue
+    }
+
+    const scope = normalizeToken(entry.scope ?? '') || undefined
+    facts.push(scope ? { predicate, scope } : { predicate })
+  }
+
+  return facts
+}
+
+function parseRediscoveryLoop(value: unknown): RediscoveryLoop | undefined {
+  if (!isRecord(value) || !Object.prototype.hasOwnProperty.call(value, 'loopCount')) {
+    return undefined
+  }
+
+  if (!isValidLoopCount(value.loopCount)) {
+    return undefined
+  }
+
+  const loopCount = value.loopCount
+  const lastAlarmWeek = value.lastAlarmWeek
+  const forgottenWarningRefs = parseStringList(value.forgottenWarningRefs)
+
+  return {
+    loopCount,
+    ...(isFiniteWeek(lastAlarmWeek) ? { lastAlarmWeek } : {}),
+    ...(forgottenWarningRefs.length > 0 ? { forgottenWarningRefs } : {}),
+  }
+}
+
+function parseAbsenceSignals(value: unknown): readonly AbsenceSignal[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const signals: AbsenceSignal[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const kind = entry.kind
+    const descriptor = normalizeToken(entry.descriptor)
+    if (typeof kind !== 'string' || !isAbsenceSignalKind(kind) || !descriptor) {
+      continue
+    }
+
+    signals.push({ kind, descriptor })
+  }
+
+  return signals
+}
+
+function sanitizeSelfCensoringInformationRecordEntry(
+  value: unknown
+): SelfCensoringInformationRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  if (!id || !label) {
+    return null
+  }
+
+  const propagationResistance = parsePropagationResistanceTags(value.propagationResistance)
+  const negativeFacts = parseNegativeFacts(value.negativeFacts)
+  const rediscoveryLoop = parseRediscoveryLoop(value.rediscoveryLoop)
+  const absenceSignals = parseAbsenceSignals(value.absenceSignals)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const parentCaseRef = normalizeToken(value.parentCaseRef ?? '') || undefined
+  const retentionDecayTimer = value.retentionDecayTimer
+  const informationFailureMode =
+    typeof value.informationFailureMode === 'string' ? value.informationFailureMode : undefined
+  const usableArchiveState =
+    typeof value.usableArchiveState === 'string' ? value.usableArchiveState : undefined
+  const mediumIntegrityNotes =
+    typeof value.mediumIntegrityNotes === 'string' && value.mediumIntegrityNotes.trim().length > 0
+      ? value.mediumIntegrityNotes.trim()
+      : undefined
+  const cognitionResistanceStaffTrait =
+    normalizeToken(value.cognitionResistanceStaffTrait ?? '') || undefined
+  const confidence = value.confidence
+
+  const record: SelfCensoringInformationRecord = {
+    id,
+    label,
+    ...(summary ? { summary } : {}),
+    ...(propagationResistance.length > 0 ? { propagationResistance } : {}),
+    ...(negativeFacts.length > 0 ? { negativeFacts } : {}),
+    ...(parentCaseRef ? { parentCaseRef } : {}),
+    ...(isFiniteWeek(retentionDecayTimer) ? { retentionDecayTimer } : {}),
+    ...(rediscoveryLoop ? { rediscoveryLoop } : {}),
+    ...(informationFailureMode && isInformationFailureMode(informationFailureMode)
+      ? { informationFailureMode }
+      : {}),
+    ...(usableArchiveState && isUsableArchiveState(usableArchiveState)
+      ? { usableArchiveState }
+      : {}),
+    ...(mediumIntegrityNotes ? { mediumIntegrityNotes } : {}),
+    ...(absenceSignals.length > 0 ? { absenceSignals } : {}),
+    ...(cognitionResistanceStaffTrait ? { cognitionResistanceStaffTrait } : {}),
+    ...(isValidConfidence(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateSelfCensoringInformationRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeSelfCensoringInformationRecords(
+  value: unknown,
+  fallback: SelfCensoringInformationRecordsMap = {}
+): SelfCensoringInformationRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: SelfCensoringInformationRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeSelfCensoringInformationRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 /**
  * Projects a fallible dossier view from record-derived contradiction signals.
  * Does not assert objective truth or omniscient hazard classification.

@@ -96,7 +96,11 @@ export default function CasesPage() {
   >({})
   const [selectedContractId, setSelectedContractId] = useState<string | null>(null)
   const searchParamsString = searchParams.toString()
-  const triageViewOptions = { includeCovertPrepSignals: true as const }
+  const triageViewOptions = {
+    includeCovertPrepSignals: true as const,
+    includeIntakeSignals: true as const,
+    includeModalitySignals: true as const,
+  }
   const filters = normalizeCaseListFilters(
     game,
     readCaseListFilters(searchParams),

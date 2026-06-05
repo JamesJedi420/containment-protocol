@@ -324,6 +324,13 @@ export function createInitialFactionState(): NonNullable<GameState['factions']> 
       hiddenModifierCount: 1,
     }),
     corporate_supply: createFactionRuntimeState('corporate_supply', {
+      reputation: 12,
+      availableFavors: [
+        {
+          id: 'corporate-supply-salvage-credit',
+          label: 'Salvage reclamation credit',
+        },
+      ],
       contacts: [
         createContact({
           id: 'corporate-supply-vale',

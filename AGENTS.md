@@ -84,6 +84,6 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 - **Curation rhythm:** `planning/documentation-curation.md` (what to update per PR, milestone, or Linear mirror change).
 - **Implementation lite (default coding):** tracked `.cursor/rules/implementation-lite.mdc` (`alwaysApply: true`); paste duplicate from `docs/cursor-implementation-lite-user-rules-snippet.md` into Cursor User Rules if needed.
 - **Pre-ship audit:** before commit/PR — six iterative passes + validation until clean; `docs/agent-pre-ship-audit.md`; User Rules paste: `docs/cursor-pre-ship-audit-user-rules-snippet.md`.
-- **Session closeout:** after commit + Linear on a slice, plan the next issue only — final response format in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
+- **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
 - **Deferred work:** same session — slice doc `## Deferred` + Linear parent/child comment; see `docs/agent-session-closeout.md` § Deferred work recording and `.cursor/rules/implementation-lite.mdc`.
 - **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` (optional local `.cursor/rules/backlog-hygiene.mdc`; grooming only, not implementation).

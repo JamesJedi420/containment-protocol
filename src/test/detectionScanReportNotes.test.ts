@@ -9,6 +9,8 @@ import {
   detectionScanReadoutPrefixForModality,
   DISPLACEMENT_SCAN_READOUT_PREFIX,
   GLAMOUR_SCAN_READOUT_PREFIX,
+  OUT_OF_PHASE_SCAN_READOUT_PREFIX,
+  ANTI_SCAN_SCAN_READOUT_PREFIX,
   formatDetectionScanSummary,
   shouldAppendDetectionScanReportNote,
   shouldAppendModalityTellReportNote,
@@ -70,6 +72,12 @@ describe('detectionScanReportNotes', () => {
     )
     expect(detectionScanReadoutPrefixForModality('disguised_identity')).toBe(COVER_SCAN_READOUT_PREFIX)
     expect(detectionScanReadoutPrefixForModality('glamour_overlay')).toBe(GLAMOUR_SCAN_READOUT_PREFIX)
+    expect(detectionScanReadoutPrefixForModality('out_of_phase_presence')).toBe(
+      OUT_OF_PHASE_SCAN_READOUT_PREFIX
+    )
+    expect(detectionScanReadoutPrefixForModality('anti_scan_compartment')).toBe(
+      ANTI_SCAN_SCAN_READOUT_PREFIX
+    )
   })
 
   it('appends counter-detection peel suffix when layers were stripped', () => {

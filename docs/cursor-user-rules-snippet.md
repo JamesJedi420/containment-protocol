@@ -5,7 +5,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 1. **Standing workflow** (this file, section below)
 2. **Implementation lite** — full block in `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding sessions)
 3. **Pre-ship audit** — `docs/cursor-pre-ship-audit-user-rules-snippet.md` (six passes + validation before commit/merge)
-4. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md` (after commit + Linear; plan next issue only)
+4. **Session closeout** — `docs/cursor-session-closeout-user-rules-snippet.md` (phase A after PR open: no next-issue plan; phase B after merge: next-issue plan only)
 5. **Backlog hygiene** — on demand only: `docs/cursor-backlog-hygiene-user-rules-snippet.md`
 
 ---
@@ -22,7 +22,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
 - **Implementation lite:** `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **pre-ship audit**, **ship loop**, PR mapping, Linear).
 - **Pre-ship audit:** before commit/merge — six passes until clean; `docs/agent-pre-ship-audit.md`.
-- **Session closeout:** after current slice is committed and Linear updated, **do not implement the next issue** — next-issue plan only; final reply **only** per `docs/agent-session-closeout.md`.
+- **Session closeout:** phase A after PR open (closeout only, **no** next-issue plan); phase B after merge (next-issue plan only). Final reply **only** per `docs/agent-session-closeout.md`.
 - **Backlog hygiene:** remind me to use the block from `docs/cursor-backlog-hygiene-user-rules-snippet.md` when running hygiene or grooming passes (not implementation).
 
 ---

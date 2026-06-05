@@ -14,6 +14,13 @@ import {
   type InformationIntakeReportsMap,
   type IntakeSourceClass,
 } from './informationIntakeReport'
+import {
+  buildWeeklyIntakeCaseOutcomeMetadata,
+  selectWeeklyIntakeContradictionCueToken,
+  selectWeeklyIntakeContradictionDisputeToken,
+  selectWeeklyIntakeCorroborationChannelToken,
+  selectWeeklyIntakeCorroborationTraceToken,
+} from './informationIntakeWeeklyNarrativeTemplates'
 import type { CaseInstance } from './models'
 
 type WeeklyIntakeSyntheticEvent =
@@ -22,7 +29,14 @@ type WeeklyIntakeSyntheticEvent =
 
 type WeeklyCorroborationCaseContext = Pick<
   CaseInstance,
-  'id' | 'templateId' | 'title' | 'status' | 'tags' | 'requiredTags' | 'preferredTags'
+  | 'id'
+  | 'templateId'
+  | 'title'
+  | 'status'
+  | 'stage'
+  | 'tags'
+  | 'requiredTags'
+  | 'preferredTags'
 >
 
 export function buildWeeklyIntakeSyntheticEventId(
@@ -148,13 +162,70 @@ function resolveCorroborationSourceClass(
   }
 }
 
+function buildWeeklyContradictionSourceRef(
+  normalizedTopic: string,
+  caseSegment: string,
+  report: InformationIntakeReportRecord,
+  week: number,
+  hasLinkedCases: boolean,
+  linkedCaseIds: readonly string[],
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[]
+): string {
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
+  const dispute = selectWeeklyIntakeContradictionDisputeToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: 0,
+  })
+  const sourceCue = selectWeeklyIntakeContradictionCueToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: report.topicRef.length,
+  })
+  return `audit:weekly-intake:${normalizedTopic}:${caseSegment}:dispute-${dispute}:cue-${sourceCue}`
+}
+
+function buildWeeklyCorroborationSourceRef(
+  normalizedTopic: string,
+  caseSegment: string,
+  report: InformationIntakeReportRecord,
+  week: number,
+  hasLinkedCases: boolean,
+  linkedCaseIds: readonly string[],
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[]
+): string {
+  const metadata = buildWeeklyIntakeCaseOutcomeMetadata(linkedCaseIds, outcomeCases)
+  const trace = selectWeeklyIntakeCorroborationTraceToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: 1,
+  })
+  const channel = selectWeeklyIntakeCorroborationChannelToken({
+    metadata,
+    hasLinkedCases,
+    reportId: report.id,
+    week,
+    offset: report.topicRef.length + 1,
+  })
+  return `source:weekly-intake:${normalizedTopic}:${caseSegment}:trace-${trace}:channel-${channel}`
+}
+
 function resolveCaseTopicLinkedWeeklySyntheticEvent(
   report: InformationIntakeReportRecord,
   week: number,
-  cases: readonly WeeklyCorroborationCaseContext[]
+  linkingCases: readonly WeeklyCorroborationCaseContext[],
+  outcomeCases: readonly WeeklyCorroborationCaseContext[] = linkingCases
 ): WeeklyIntakeSyntheticEvent | null {
   const normalizedWeek = normalizeWeek(week)
-  const linkedCaseIds = getMatchingCaseIds(report, cases)
+  const linkedCaseIds = getMatchingCaseIds(report, linkingCases)
   const hasLinkedCases = linkedCaseIds.length > 0
   const phase = (normalizedWeek + stableOrdinalFromId(report.id) + linkedCaseIds.length) % 6
   const normalizedTopic = normalizeToken(report.topicRef)
@@ -166,7 +237,16 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'contradiction'),
         week: normalizedWeek,
-        sourceRef: `audit:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyContradictionSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases,
+          linkedCaseIds,
+          linkingCases,
+          outcomeCases
+        ),
         severity: hasLinkedCases ? 'minor' : 'major',
       },
     }
@@ -193,7 +273,16 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
         week: normalizedWeek,
-        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyCorroborationSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases,
+          linkedCaseIds,
+          linkingCases,
+          outcomeCases
+        ),
         sourceClass,
         weight: baseWeight,
       },
@@ -206,7 +295,16 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
       event: {
         eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
         week: normalizedWeek,
-        sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+        sourceRef: buildWeeklyCorroborationSourceRef(
+          normalizedTopic,
+          caseSegment,
+          report,
+          normalizedWeek,
+          hasLinkedCases,
+          linkedCaseIds,
+          linkingCases,
+          outcomeCases
+        ),
         sourceClass: 'technical_trace',
         weight: 0.22,
       },
@@ -218,7 +316,16 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
     event: {
       eventId: buildWeeklyIntakeSyntheticEventId(report.id, normalizedWeek, 'corroboration'),
       week: normalizedWeek,
-      sourceRef: `source:weekly-intake:${normalizedTopic}:${caseSegment}`,
+      sourceRef: buildWeeklyCorroborationSourceRef(
+        normalizedTopic,
+        caseSegment,
+        report,
+        normalizedWeek,
+        hasLinkedCases,
+        linkedCaseIds,
+        linkingCases,
+        outcomeCases
+      ),
       sourceClass: resolveCorroborationSourceClass(report.initialSourceClass, hasLinkedCases),
       weight: hasLinkedCases ? 0.16 : 0.12,
     },
@@ -232,10 +339,12 @@ function resolveCaseTopicLinkedWeeklySyntheticEvent(
 export function applyWeeklyIntakeCorroborationTick(
   reports: InformationIntakeReportsMap | null | undefined,
   week: number,
-  casesById?: Record<string, WeeklyCorroborationCaseContext> | null
+  casesById?: Record<string, WeeklyCorroborationCaseContext> | null,
+  outcomeCasesById?: Record<string, WeeklyCorroborationCaseContext> | null
 ): InformationIntakeReportsMap {
   const safeReports = reports ?? {}
-  const cases = Object.values(casesById ?? {})
+  const linkingCases = Object.values(casesById ?? {})
+  const outcomeCases = Object.values(outcomeCasesById ?? casesById ?? {})
   const reportIds = Object.keys(safeReports)
   if (reportIds.length === 0) {
     return safeReports
@@ -249,7 +358,12 @@ export function applyWeeklyIntakeCorroborationTick(
       continue
     }
 
-    const synthetic = resolveCaseTopicLinkedWeeklySyntheticEvent(report, week, cases)
+    const synthetic = resolveCaseTopicLinkedWeeklySyntheticEvent(
+      report,
+      week,
+      linkingCases,
+      outcomeCases
+    )
     if (!synthetic) {
       continue
     }

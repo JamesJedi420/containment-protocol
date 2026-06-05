@@ -11,9 +11,16 @@ import {
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
   acknowledgeLicensedHandlingDoctrine,
+  fulfillPendingProcurementBacklogAtWeekClose,
+  placeDelayedMarketOrder,
   purchaseMarketInventory,
+  redeemFactionFavorProcurement,
   sellMarketInventory,
 } from '../domain/sim/market'
+import { getCanonicalFundingState } from '../domain/funding'
+import { FUNDING_CALIBRATION } from '../domain/sim/calibration'
+import { getProcurementScreenView, getMarketListings } from '../features/market/marketView'
+import { assessFactionFavorExchangeProcurement } from '../domain/market'
 import { queueFabrication } from '../domain/sim/production'
 
 describe('market procurement simulation', () => {
@@ -96,9 +103,11 @@ describe('market procurement simulation', () => {
     const state = createStartingState()
     const listing = getProcurementListings(state).find(
       (candidate) =>
-        candidate.itemId === 'field_plate' &&
+        candidate.itemId === 'medkits' &&
         candidate.allocationStatus.purchaseAvailable &&
-        candidate.availableBundles > 0
+        candidate.availableBundles > 0 &&
+        !candidate.delayedFulfillmentWeeks &&
+        candidate.resourceStatuses.length === 1
     )
 
     expect(listing).toBeDefined()
@@ -305,37 +314,37 @@ describe('market procurement simulation', () => {
 
   it('makes one procurement use unavailable when supplier attention is committed elsewhere', () => {
     const state = createStartingState()
-    const fieldPlate = getProcurementListings(state).find(
-      (candidate) => candidate.itemId === 'field_plate'
+    const emfSensors = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'emf_sensors'
     )
 
-    expect(fieldPlate).toBeDefined()
+    expect(emfSensors).toBeDefined()
 
-    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
-    const wardSealBatch = getProcurementListings(afterFieldPlate).find(
+    const afterEmfSensors = purchaseMarketInventory(state, emfSensors!.id, 1)
+    const wardSealBatch = getProcurementListings(afterEmfSensors).find(
       (candidate) => candidate.id === 'ward-seals'
     )
 
     expect(wardSealBatch).toBeDefined()
     expect(wardSealBatch!.allocationStatus.state).toBe('committed_elsewhere')
     expect(wardSealBatch!.allocationStatus.purchaseAvailable).toBe(false)
-    expect(wardSealBatch!.allocationStatus.displacedAlternativeUse).toBe(fieldPlate!.itemName)
+    expect(wardSealBatch!.allocationStatus.displacedAlternativeUse).toBe(emfSensors!.itemName)
 
-    const blocked = purchaseMarketInventory(afterFieldPlate, wardSealBatch!.id, 1)
+    const blocked = purchaseMarketInventory(afterEmfSensors, wardSealBatch!.id, 1)
 
-    expect(blocked).toBe(afterFieldPlate)
+    expect(blocked).toBe(afterEmfSensors)
   })
 
   it('uses a degraded substitute when agency supplier attention is displaced', () => {
     const state = createStartingState()
-    const fieldPlate = getProcurementListings(state).find(
-      (candidate) => candidate.itemId === 'field_plate'
+    const emfSensors = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'emf_sensors'
     )
 
-    expect(fieldPlate).toBeDefined()
+    expect(emfSensors).toBeDefined()
 
-    const afterFieldPlate = purchaseMarketInventory(state, fieldPlate!.id, 1)
-    const substitutedHazmat = getProcurementListings(afterFieldPlate).find(
+    const afterEmfSensors = purchaseMarketInventory(state, emfSensors!.id, 1)
+    const substitutedHazmat = getProcurementListings(afterEmfSensors).find(
       (candidate) => candidate.itemId === 'hazmat_suit'
     )
 
@@ -351,11 +360,11 @@ describe('market procurement simulation', () => {
       substitutedHazmat!.allocationStatus.substitution!.unitPrice
     )
 
-    const afterSubstitution = purchaseMarketInventory(afterFieldPlate, substitutedHazmat!.id, 1)
+    const afterSubstitution = purchaseMarketInventory(afterEmfSensors, substitutedHazmat!.id, 1)
     const substitutionEvent = afterSubstitution.events.at(-1)
 
     expect(afterSubstitution.inventory.hazmat_suit).toBe(
-      (afterFieldPlate.inventory.hazmat_suit ?? 0) + substitutedHazmat!.bundleQuantity
+      (afterEmfSensors.inventory.hazmat_suit ?? 0) + substitutedHazmat!.bundleQuantity
     )
     expect(substitutionEvent).toMatchObject({
       type: 'market.transaction_recorded',
@@ -364,7 +373,7 @@ describe('market procurement simulation', () => {
         totalPrice: substitutedHazmat!.buyPrice,
         allocation: {
           source: 'gray_market_broker',
-          displacedAlternativeUse: fieldPlate!.itemName,
+          displacedAlternativeUse: emfSensors!.itemName,
           substitutionStatus: 'degraded_substitute',
           delayWeeks: 1,
         },
@@ -594,6 +603,177 @@ describe('market procurement simulation', () => {
     expect(marketTransactions[0]!.payload.transactionId).toMatch(
       new RegExp(`^market-${state.week}-${state.market.week}-\\d+$`)
     )
+  })
+})
+
+describe('delayed supplier fulfillment (SPE-2319)', () => {
+  const listingId = 'gear:field_plate'
+
+  it('places pending backlog entry, deducts funding, and does not grant inventory immediately', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)
+
+    expect(listing).toBeDefined()
+    expect(listing!.delayedFulfillmentWeeks).toBe(
+      FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
+    )
+
+    const ordered = placeDelayedMarketOrder(state, listingId, 1)
+    const fundingState = getCanonicalFundingState(ordered)
+
+    expect(ordered.funding).toBe(state.funding - listing!.buyPrice)
+    expect(ordered.inventory.field_plate ?? 0).toBe(state.inventory.field_plate ?? 0)
+    expect(fundingState.procurementBacklog).toHaveLength(1)
+    expect(fundingState.procurementBacklog[0]).toMatchObject({
+      status: 'pending',
+      itemId: 'field_plate',
+      listingId,
+      quantity: listing!.bundleQuantity,
+      requestedWeek: state.week,
+      delayWeeks: FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks,
+    })
+    expect(ordered.events.at(-1)).toMatchObject({
+      type: 'market.transaction_recorded',
+      payload: {
+        action: 'order',
+        listingId,
+        totalPrice: listing!.buyPrice,
+      },
+    })
+  })
+
+  it('blocks instant purchase for delayed listings', () => {
+    const state = createStartingState()
+    const blocked = purchaseMarketInventory(state, listingId, 1)
+
+    expect(blocked).toBe(state)
+    expect(blocked.inventory.field_plate ?? 0).toBe(state.inventory.field_plate ?? 0)
+  })
+
+  it('fulfills pending backlog directly when closed week reaches ETA', () => {
+    const state = createStartingState()
+    const ordered = placeDelayedMarketOrder(state, listingId, 1)
+
+    const fulfilled = fulfillPendingProcurementBacklogAtWeekClose(ordered, 2)
+
+    expect(getCanonicalFundingState(fulfilled).procurementBacklog[0]?.status).toBe('fulfilled')
+    expect(fulfilled.inventory.field_plate).toBe(1)
+  })
+
+  it('fulfills backlog inventory after procurement delay on week-close without double-spend', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)!
+
+    const ordered = placeDelayedMarketOrder(state, listingId, 1)
+    const fundingAfterOrder = ordered.funding
+
+    const afterFirstClose = advanceWeek(ordered)
+    expect(afterFirstClose.inventory.field_plate ?? 0).toBe(0)
+    expect(getCanonicalFundingState(afterFirstClose).procurementBacklog[0]?.status).toBe('pending')
+
+    const afterSecondClose = advanceWeek(afterFirstClose)
+    const fulfilledEntry = getCanonicalFundingState(afterSecondClose).procurementBacklog.find(
+      (entry) => entry.itemId === 'field_plate'
+    )
+
+    expect(fulfilledEntry?.status).toBe('fulfilled')
+    expect(afterSecondClose.inventory.field_plate).toBe(
+      (state.inventory.field_plate ?? 0) + listing.bundleQuantity
+    )
+    expect(ordered.funding).toBe(fundingAfterOrder)
+    const orderExpenseEntries = getCanonicalFundingState(
+      afterSecondClose
+    ).fundingHistory.filter(
+      (entry) => entry.reason === 'market_transaction' && entry.delta < 0
+    )
+    expect(orderExpenseEntries).toHaveLength(1)
+    expect(orderExpenseEntries[0]?.delta).toBe(-listing.buyPrice)
+    expect(
+      afterSecondClose.events.some(
+        (event) =>
+          event.type === 'market.transaction_recorded' && event.payload.action === 'fulfill'
+      )
+    ).toBe(true)
+  })
+})
+
+describe('market view delayed procurement (SPE-2319)', () => {
+  it('shows order CTA and backlog ETA for delayed field plate listing', () => {
+    const state = createStartingState()
+    const listing = getMarketListings(state).find((candidate) => candidate.id === 'gear:field_plate')
+
+    expect(listing).toBeDefined()
+    expect(listing!.canBuyOne).toBe(false)
+    expect(listing!.canOrderOne).toBe(true)
+    expect(listing!.canAffordOne).toBe(true)
+    expect(listing!.buyBlockedReason).toMatch(/instant exchange unavailable/i)
+
+    const ordered = placeDelayedMarketOrder(state, 'gear:field_plate', 1)
+    const screen = getProcurementScreenView(ordered, { q: '', category: 'all', sort: 'recommended' })
+
+    expect(screen.backlogRows).toHaveLength(1)
+    expect(screen.backlogRows[0]?.detail).toMatch(/ETA week/)
+    expect(screen.backlogRows[0]?.statusLabel).toBe('Pending delivery')
+  })
+})
+
+describe('faction favor exchange (SPE-28)', () => {
+  const listingId = 'gear:containment_staff'
+
+  it('blocks cash purchase for rare containment staff even with surplus funding', () => {
+    const state = {
+      ...createStartingState(),
+      funding: 9999,
+      agency: {
+        ...createStartingState().agency!,
+        funding: 9999,
+      },
+    }
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)
+
+    expect(listing).toBeDefined()
+    expect(listing!.cashPurchaseAllowed).toBe(false)
+    expect(listing!.acquisitionClass).toBe('rare')
+    expect(listing!.accessChannel).toBe('faction_favor_exchange')
+    expect(state.funding).toBeGreaterThanOrEqual(listing!.buyPrice)
+
+    const cashAttempt = purchaseMarketInventory(state, listingId, 1)
+
+    expect(cashAttempt.funding).toBe(state.funding)
+    expect(cashAttempt.inventory.containment_staff ?? 0).toBe(state.inventory.containment_staff ?? 0)
+  })
+
+  it('redeems open corporate_supply salvage favor without spending funding', () => {
+    const state = createStartingState()
+    const listing = getProcurementListings(state).find((candidate) => candidate.id === listingId)
+
+    expect(listing).toBeDefined()
+    expect(assessFactionFavorExchangeProcurement(state, listingId).eligible).toBe(true)
+
+    const redeemed = redeemFactionFavorProcurement(state, listingId, 1)
+
+    expect(redeemed.funding).toBe(state.funding)
+    expect(redeemed.inventory.containment_staff).toBe(
+      (state.inventory.containment_staff ?? 0) + listing!.bundleQuantity
+    )
+    expect(redeemed.factions?.corporate_supply?.availableFavors ?? []).toHaveLength(0)
+
+    const event = redeemed.events.find((entry) => entry.type === 'market.transaction_recorded')
+    expect(event?.payload.action).toBe('favor_exchange')
+    expect(event?.payload.totalPrice).toBe(0)
+    expect(event?.payload.favorExchangeFavorId).toBe('corporate-supply-salvage-credit')
+  })
+
+  it('keeps access-blocker separate from budget-blocker on standard listings', () => {
+    const state = createStartingState()
+    const standardListing = getProcurementListings(state).find(
+      (candidate) => candidate.id === 'med-kits'
+    )
+
+    expect(standardListing).toBeDefined()
+    expect(standardListing!.cashPurchaseAllowed).toBe(true)
+    expect(standardListing!.accessAvailable).toBe(true)
+    expect(state.funding).toBeGreaterThanOrEqual(standardListing!.buyPrice)
   })
 })
 

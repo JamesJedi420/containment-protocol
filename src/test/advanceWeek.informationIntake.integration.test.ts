@@ -120,6 +120,8 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     if (corroborationEvent) {
       expect(corroborationEvent.sourceRef).toContain(linkedCase.id)
       expect(corroborationEvent.sourceRef).toContain('weekly-intake')
+      expect(corroborationEvent.sourceRef).toContain(':trace-')
+      expect(corroborationEvent.sourceRef).toContain(':channel-')
       return
     }
 
@@ -131,6 +133,56 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     expect(contradictionEvent).toBeDefined()
     expect(contradictionEvent?.sourceRef).toContain(linkedCase.id)
     expect(contradictionEvent?.sourceRef).toContain('weekly-intake')
+    expect(contradictionEvent?.sourceRef).toContain(':dispute-')
+    expect(contradictionEvent?.sourceRef).toContain(':cue-')
+  })
+
+  it('uses linked case stage and status metadata in corroboration narrative tokens', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const linkedCase = Object.values(state.cases)[0]
+    linkedCase.stage = 6
+    linkedCase.status = 'in_progress'
+    linkedCase.tags = ['occult', 'investigation']
+    const week = state.week
+
+    const linkedReport = createInformationIntakeReport({
+      id: 'intake:metadata-linked-case',
+      label: 'Metadata-linked corroboration probe',
+      topicRef: linkedCase.id,
+      initialSourceClass: 'formal_alert',
+      credibility: 'high',
+      plausibility: 'plausible',
+      rumorRisk: 'low',
+    })
+
+    state.informationIntakeReports = {
+      [linkedReport.id]: linkedReport,
+    }
+
+    const nextState = advanceWeek(state)
+    const nextLinkedReport = nextState.informationIntakeReports?.[linkedReport.id]
+    expect(nextLinkedReport).toBeDefined()
+
+    const corroborationEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'corroboration')
+    const corroborationEvent = nextLinkedReport?.corroborationHistory.find(
+      (event) => event.eventId === corroborationEventId
+    )
+
+    if (corroborationEvent) {
+      expect(corroborationEvent.sourceRef).toMatch(/:trace-(deep-corroboration|multi-source-lock|escalation-confirm)/)
+      expect(corroborationEvent.sourceRef).toMatch(
+        /:channel-(active-case-sync|field-routing|priority-channel|topic-occult|topic-investigation)/
+      )
+    } else {
+      const contradictionEventId = buildWeeklyIntakeSyntheticEventId(linkedReport.id, week, 'contradiction')
+      const contradictionEvent = nextLinkedReport?.contradictionHistory.find(
+        (event) => event.eventId === contradictionEventId
+      )
+      expect(contradictionEvent?.sourceRef).toMatch(
+        /:dispute-(escalation-drift|conflict-window|witness-mismatch)/
+      )
+    }
   })
 
   it('treats null or undefined report maps as empty without throwing', () => {
@@ -148,6 +200,47 @@ describe('advanceWeek information intake corroboration integration (SPE-854 slic
     const second = applyWeeklyIntakeCorroborationTick(first, week)
 
     expect(second).toEqual(first)
+  })
+
+  it('surfaces weekly intake verification narratives in the weekly report notes', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+
+    state.informationIntakeReports = {
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+
+    expect(weeklyReport).toBeDefined()
+    const intakeNotes =
+      weeklyReport?.notes.filter((note) => note.content.includes('Intake verification —')) ?? []
+
+    expect(intakeNotes.length).toBeGreaterThan(0)
+
+    const formalNote = intakeNotes.find((note) =>
+      note.content.includes(FORMAL_ALERT_PARTIAL_FIXTURE.label)
+    )
+    expect(formalNote).toBeDefined()
+    expect(formalNote?.type).toBe('information_intake.verification')
+    expect(formalNote?.content).toMatch(/corroboration \(.+; .+\)\./)
+
+    const nextLinkedReport = nextState.informationIntakeReports?.[FORMAL_ALERT_PARTIAL_FIXTURE.id]
+    const corroborationEvent = nextLinkedReport?.corroborationHistory.find((event) =>
+      event.eventId.startsWith('weekly-intake:')
+    )
+    expect(corroborationEvent).toBeDefined()
+    if (corroborationEvent) {
+      const traceMatch = corroborationEvent.sourceRef.match(/:trace-([^:]+)/)
+      const channelMatch = corroborationEvent.sourceRef.match(/:channel-([^:]+)/)
+      if (traceMatch?.[1]) {
+        expect(formalNote?.content).toContain(traceMatch[1].replace(/-/g, ' '))
+      }
+      if (channelMatch?.[1]) {
+        expect(formalNote?.content).toContain(channelMatch[1].replace(/-/g, ' '))
+      }
+    }
   })
 
   it('shifts topic intake coverage band after weekly corroboration on formal alert', () => {

@@ -21,6 +21,7 @@ import {
   resolveAuthoritySameSourceConflicts,
 } from '../domain/civicConsequenceNetwork'
 import { SIM_NOTES } from '../data/copy'
+import { computeWeeklyOperatingCost } from '../domain/funding'
 import type { Agent, DomainStats, OperationEvent, RuntimeQueuedEvent } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
@@ -1267,8 +1268,10 @@ describe('advanceWeek', () => {
     }
 
     const next = advanceWeek(state)
+    const operatingCost = computeWeeklyOperatingCost(state, state.week)
 
-    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(false)
+    expect(operatingCost).toBeGreaterThan(0)
+    expect(next.events.some((event) => event.type === 'agency.containment_updated')).toBe(true)
   })
 
   it('emits post-week case snapshots and enriched team status', () => {
@@ -2753,8 +2756,16 @@ describe('advanceWeek', () => {
     const rewardBreakdown = next.reports[0].caseSnapshots?.['case-001']?.rewardBreakdown
 
     expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
+    const operatingCost = computeWeeklyOperatingCost(state, state.week)
+
     expect(next.funding).toBe(
-      state.funding + state.config.fundingBasePerWeek + (rewardBreakdown?.fundingDelta ?? 0)
+      Math.max(
+        0,
+        state.funding +
+          state.config.fundingBasePerWeek +
+          (rewardBreakdown?.fundingDelta ?? 0) -
+          operatingCost
+      )
     )
     expect(next.containmentRating).toBe(0)
   })

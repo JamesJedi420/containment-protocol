@@ -181,6 +181,22 @@ export const FUNDING_CALIBRATION = {
     recentPenaltyCountThreshold: 4,
     maxPressure: 4,
   },
+  /** SPE-28 / SPE-2319: weeks from order placement until backlog inventory is granted on week-close. */
+  procurementDelayedFulfillmentWeeks: 1,
+  /** SPE-28: deterministic payroll + facility upkeep charged once per closed week in advanceWeek. */
+  weeklyOperatingCost: {
+    payrollPerAgent: 4,
+    payrollPerSupportRole: 2,
+    facilityUpkeepBase: 8,
+    upkeepSpikeEveryWeeks: 4,
+    upkeepSpikeAmount: 12,
+  },
+  /** SPE-2320: inventory carrying cost charged once per closed week in advanceWeek. */
+  weeklyInventoryHoldingCost: {
+    /** Stock at or below this level incurs no carrying fee (baseline working inventory). */
+    billableStockThreshold: 50,
+    costPerStockUnit: 1,
+  },
 } as const
 
 export const ATTRITION_CALIBRATION = {

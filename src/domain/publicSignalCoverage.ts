@@ -541,6 +541,42 @@ function mergeStructuredReasons(
   return [...new Set(merged)].sort((left, right) => left.localeCompare(right))
 }
 
+export function evaluateTopicIntakeCoverageFromLinkedReports(
+  topicId: string,
+  linkedReports: readonly InformationIntakeReportRecord[],
+  input: Pick<TopicIntakeCoverageRequest, 'districtId' | 'crawlerReachBand' | 'inferenceModelBand'> = {}
+): TopicIntakeCoverageResult {
+  const normalizedTopicId = normalizeToken(topicId) || '(unknown-topic)'
+  const intakeSummary = normalizeIntakeSummaryTopicRef(
+    summarizeMixedSourceIntake(linkedReports),
+    normalizedTopicId
+  )
+  const projectedChannelFlags = projectChannelFlagsFromIntakeReports(linkedReports)
+
+  const crawlerReachBand =
+    input.crawlerReachBand ??
+    deriveCrawlerReachBandFromIntake({ projected: projectedChannelFlags, intakeSummary })
+  const inferenceModelBand =
+    input.inferenceModelBand ?? deriveInferenceModelBandFromIntake(intakeSummary)
+
+  const coverage = evaluatePublicSignalCoverage({
+    topicId: normalizedTopicId,
+    districtId: input.districtId,
+    institutionalChannels: projectedChannelFlags.institutionalChannels,
+    publicChannels: projectedChannelFlags.publicChannels,
+    crawlerReachBand,
+    inferenceModelBand,
+  })
+
+  return {
+    ...coverage,
+    topicId: normalizedTopicId,
+    structuredReasons: mergeStructuredReasons(coverage.structuredReasons, intakeSummary.structuredReasons),
+    intakeSummary,
+    projectedChannelFlags,
+  }
+}
+
 export function evaluateTopicIntakeCoverage(
   input: TopicIntakeCoverageRequest = {}
 ): TopicIntakeCoverageResult {
@@ -552,34 +588,12 @@ export function evaluateTopicIntakeCoverage(
     '(unknown-topic)'
 
   const topicReports = resolveTopicReports(input.reports, topicId)
-  const intakeSummary = normalizeIntakeSummaryTopicRef(
-    summarizeMixedSourceIntake(topicReports),
-    topicId
-  )
-  const projectedChannelFlags = projectChannelFlagsFromIntakeReports(topicReports)
 
-  const crawlerReachBand =
-    input.crawlerReachBand ??
-    deriveCrawlerReachBandFromIntake({ projected: projectedChannelFlags, intakeSummary })
-  const inferenceModelBand =
-    input.inferenceModelBand ?? deriveInferenceModelBandFromIntake(intakeSummary)
-
-  const coverage = evaluatePublicSignalCoverage({
-    topicId,
+  return evaluateTopicIntakeCoverageFromLinkedReports(topicId, topicReports, {
     districtId: input.districtId,
-    institutionalChannels: projectedChannelFlags.institutionalChannels,
-    publicChannels: projectedChannelFlags.publicChannels,
-    crawlerReachBand,
-    inferenceModelBand,
+    crawlerReachBand: input.crawlerReachBand,
+    inferenceModelBand: input.inferenceModelBand,
   })
-
-  return {
-    ...coverage,
-    topicId,
-    structuredReasons: mergeStructuredReasons(coverage.structuredReasons, intakeSummary.structuredReasons),
-    intakeSummary,
-    projectedChannelFlags,
-  }
 }
 
 // ---------------------------------------------------------------------------

@@ -150,6 +150,8 @@ export function tellReadoutPrefixForModality(modality: HiddenStateModalityKind):
       return SIGNATURE_MASK_TELL_READOUT_PREFIX
     case 'false_detection_output':
     case 'glamour_overlay':
+    case 'out_of_phase_presence':
+    case 'anti_scan_compartment':
     case 'none':
       return null
     default: {

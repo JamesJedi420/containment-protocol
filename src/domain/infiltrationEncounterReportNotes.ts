@@ -33,6 +33,31 @@ export const INFILTRATION_STAGE_LABELS: Record<InfiltrationStage, string> = {
   violent: 'violent escalation',
 }
 
+/** Deterministic operational detail per weekly probe action (report-facing). */
+export const INFILTRATION_PROBE_ENCOUNTER_DETAILS: Record<InfiltrationProbeAction, string> = {
+  probe_access: 'Operators exercised badge chains and restricted corridors.',
+  probe_route: 'Operators mapped patrol gaps and service routes.',
+  cleanup: 'Operators burned back-channel contacts to reduce scrutiny.',
+}
+
+/** Observer pressure when infiltration stage is no longer routine probing. */
+export const INFILTRATION_STAGE_OBSERVER_CLAUSES: Record<
+  Exclude<InfiltrationStage, 'probing'>,
+  string
+> = {
+  exposed: 'Local observers treat the claimed role as doubtful.',
+  violent: 'Site security posture shifted toward force response.',
+}
+
+/** Role-specific observer friction when cover posture is active. */
+export const INFILTRATION_COVER_ROLE_OBSERVER_FRICTION: Record<InfiltrationCoverRole, string> = {
+  uniform_guard: 'Checkpoint staff compare badge sequences against shift rosters.',
+  civilian_staff: 'Supervisors cross-check staff badges against room assignments.',
+  courier: 'Receiving clerks verify delivery manifests against courier credentials.',
+  maintenance: 'Facilities leads question tool manifests and work-order timing.',
+  official_inspector: 'Site liaisons demand inspection paperwork before granting access.',
+}
+
 export type InfiltrationProbeActionSource = 'override' | 'authored' | 'heuristic'
 
 export interface InfiltrationEncounterReportContext {
@@ -145,6 +170,26 @@ function formatCoverClause(context: InfiltrationEncounterReportContext) {
   return ` Cover posture: ${INFILTRATION_COVER_ROLE_LABELS[context.coverRole]}.`
 }
 
+function formatProbeEncounterDetailClause(context: InfiltrationEncounterReportContext) {
+  return ` ${INFILTRATION_PROBE_ENCOUNTER_DETAILS[context.probeAction]}`
+}
+
+function formatCoverRoleFrictionClause(context: InfiltrationEncounterReportContext) {
+  if (context.coverRole === undefined) {
+    return ''
+  }
+
+  return ` ${INFILTRATION_COVER_ROLE_OBSERVER_FRICTION[context.coverRole]}`
+}
+
+function formatStageObserverClause(context: InfiltrationEncounterReportContext) {
+  if (context.stage === 'probing') {
+    return ''
+  }
+
+  return ` ${INFILTRATION_STAGE_OBSERVER_CLAUSES[context.stage]}`
+}
+
 function formatLeaveBehindClause(context: InfiltrationEncounterReportContext) {
   if (!context.leaveBehindLabel) {
     return ''
@@ -163,8 +208,11 @@ export function formatInfiltrationWeeklyEncounterSummary(
 ): string {
   return (
     formatProbeActionClause(context) +
+    formatProbeEncounterDetailClause(context) +
     formatCoverClause(context) +
+    formatCoverRoleFrictionClause(context) +
     formatLeaveBehindClause(context) +
+    formatStageObserverClause(context) +
     formatTrackClause(context)
   )
 }
@@ -175,7 +223,8 @@ export function enrichInfiltrationThresholdSummary(
   context: InfiltrationEncounterReportContext
 ): string {
   const prepLead = formatProbeActionClause(context).replace(/\.$/, '')
-  return `${prepLead}; ${baseSummary}${formatCoverClause(context)}${formatLeaveBehindClause(context)}${formatTrackClause(context)}`
+  const encounterDetail = formatProbeEncounterDetailClause(context).trim().replace(/\.$/, '')
+  return `${prepLead}; ${encounterDetail}; ${baseSummary}${formatCoverClause(context)}${formatCoverRoleFrictionClause(context)}${formatLeaveBehindClause(context)}${formatStageObserverClause(context)}${formatTrackClause(context)}`
 }
 
 export function formatInfiltrationLeaveBehindTradeoffSummary(
@@ -224,6 +273,35 @@ export function buildInfiltrationEncounterEventPayload(input: {
 /** True when weekly probe ticks apply (hidden + infiltration-family tags). */
 export function shouldEmitInfiltrationWeeklyEncounterNote(caseData: CaseInstance) {
   return isInfiltrationProbeEligible(caseData)
+}
+
+/**
+ * Prep-panel encounter preview bullets — same constants as weekly report copy,
+ * without post-tick or threshold-prefixed sentences.
+ */
+export function buildInfiltrationPrepEncounterNotes(
+  caseData: CaseInstance
+): readonly string[] {
+  const context = buildInfiltrationEncounterReportContext(caseData)
+  if (context === undefined) {
+    return []
+  }
+
+  const notes: string[] = [INFILTRATION_PROBE_ENCOUNTER_DETAILS[context.probeAction]]
+
+  if (context.coverRole !== undefined) {
+    notes.push(INFILTRATION_COVER_ROLE_OBSERVER_FRICTION[context.coverRole])
+  }
+
+  if (context.stage !== 'probing') {
+    notes.push(INFILTRATION_STAGE_OBSERVER_CLAUSES[context.stage])
+  }
+
+  if (context.leaveBehindLabel) {
+    notes.push(`Staged leave-behind: ${context.leaveBehindLabel}.`)
+  }
+
+  return notes
 }
 
 /** Context after a probe tick — uses post-tick tracks and stage on the merged case. */

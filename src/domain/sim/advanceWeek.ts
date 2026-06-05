@@ -262,7 +262,11 @@ import {
   type AuthoredCivicAuthoritySourceInput,
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
+import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
+import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
 import { decayAccessPackets, type CivicAccessPacket } from '../civicAccessChannel'
@@ -271,9 +275,16 @@ import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import {
+  applyWeeklyInventoryHoldingCostToFundingState,
+  applyWeeklyOperatingCostToFundingState,
+  computeWeeklyInventoryHoldingCost,
+  computeWeeklyOperatingCost,
   createInitialFundingState,
+  hasWeeklyInventoryHoldingCostForWeek,
+  hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
+import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
 import { finalizeMissionResultsFromDrafts } from './missionFinalizationPipeline'
@@ -4138,7 +4149,36 @@ function updateAgencyMetrics(
   const containmentDelta =
     computeContainmentDelta(report, context.nextState.config, context.rewardByCaseId) +
     lockdownPenalty
-  const nextFunding = context.nextState.funding + fundingDelta
+  const closedWeek = context.sourceState.week
+
+  let prevAgency = context.nextState.agency
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = context.sourceState.agency
+  }
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = {
+      containmentRating: 0,
+      clearanceLevel: 1,
+      funding: 0,
+      supportAvailable: 0,
+    }
+  }
+  prevAgency = canonicalizeAgencyState(prevAgency)
+
+  const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
+    ? 0
+    : computeWeeklyOperatingCost(context.nextState, closedWeek)
+  const inventoryHoldingCost = hasWeeklyInventoryHoldingCostForWeek(
+    prevAgency.fundingState,
+    closedWeek
+  )
+    ? 0
+    : computeWeeklyInventoryHoldingCost(context.nextState, closedWeek)
+  const nextFunding = Math.max(
+    0,
+    context.nextState.funding + fundingDelta - operatingCost - inventoryHoldingCost
+  )
+
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4153,6 +4193,65 @@ function updateAgencyMetrics(
     cumulativeScore,
     context.nextState.config.clearanceThresholds
   )
+
+  if (context.selectedDirectiveId !== null) {
+    const definition = getWeeklyDirectiveDefinition(context.selectedDirectiveId)
+    context.eventDrafts.push({
+      type: 'directive.applied',
+      sourceSystem: 'system',
+      payload: {
+        week: report.week,
+        directiveId: context.selectedDirectiveId,
+        directiveLabel: definition?.label ?? context.selectedDirectiveId,
+      },
+    })
+  }
+
+  const activeCaseCount = Object.values(context.nextState.cases).filter(
+    (currentCase) => currentCase.status !== 'resolved'
+  ).length
+  const allResolved = activeCaseCount === 0
+  const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
+
+  const baseFundingState =
+    prevAgency.fundingState ??
+    createInitialFundingState(
+      context.nextState.config.fundingBasePerWeek,
+      context.nextState.config.fundingPerResolution,
+      context.nextState.config.fundingPenaltyPerFail,
+      context.nextState.config.fundingPenaltyPerUnresolved,
+      nextFunding
+    )
+  const normalizedFundingState = normalizeFundingState(
+    nextFunding,
+    context.nextState.config,
+    baseFundingState,
+    closedWeek
+  )
+  const { state: fundingStateAfterOperatingCost } = applyWeeklyOperatingCostToFundingState(
+    normalizedFundingState,
+    context.nextState,
+    closedWeek
+  )
+  const { state: fundingStateAfterHoldingCost } = applyWeeklyInventoryHoldingCostToFundingState(
+    fundingStateAfterOperatingCost,
+    context.nextState,
+    closedWeek
+  )
+  const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
+    {
+      ...context.nextState,
+      funding: nextFunding,
+      agency: {
+        ...prevAgency,
+        funding: nextFunding,
+        fundingState: fundingStateAfterHoldingCost,
+      },
+    },
+    closedWeek
+  )
+  const fundingStateAfterBacklog =
+    stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterHoldingCost
 
   if (
     nextFunding !== context.nextState.funding ||
@@ -4176,43 +4275,12 @@ function updateAgencyMetrics(
     })
   }
 
-  if (context.selectedDirectiveId !== null) {
-    const definition = getWeeklyDirectiveDefinition(context.selectedDirectiveId)
-    context.eventDrafts.push({
-      type: 'directive.applied',
-      sourceSystem: 'system',
-      payload: {
-        week: report.week,
-        directiveId: context.selectedDirectiveId,
-        directiveLabel: definition?.label ?? context.selectedDirectiveId,
-      },
-    })
-  }
-
-  const activeCaseCount = Object.values(context.nextState.cases).filter(
-    (currentCase) => currentCase.status !== 'resolved'
-  ).length
-  const allResolved = activeCaseCount === 0
-  const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
-
-  let prevAgency = context.nextState.agency
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = context.sourceState.agency
-  }
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = {
-      containmentRating: 0,
-      clearanceLevel: 1,
-      funding: 0,
-      supportAvailable: 0,
-    }
-  }
-  prevAgency = canonicalizeAgencyState(prevAgency)
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
     funding: nextFunding,
+    fundingState: fundingStateAfterBacklog,
   }
   return {
     weekScore,
@@ -4230,6 +4298,8 @@ function updateAgencyMetrics(
           ? GAME_OVER_REASONS.capExceeded
           : undefined,
       funding: nextFunding,
+      inventory: stateAfterBacklogFulfillment.inventory,
+      events: stateAfterBacklogFulfillment.events,
       containmentRating: nextContainmentRating,
       clearanceLevel: nextClearanceLevel,
       agency: nextAgency,
@@ -4453,10 +4523,60 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
   const priorIntakeReports = inputWeeklyState.informationIntakeReports ?? {}
   if (Object.keys(priorIntakeReports).length > 0) {
-    outputWeeklyState.informationIntakeReports = applyWeeklyIntakeCorroborationTick(
+    const nextIntakeReports = applyWeeklyIntakeCorroborationTick(
       priorIntakeReports,
       intakeCorroborationWeek,
-      inputWeeklyState.cases
+      inputWeeklyState.cases,
+      outputWeeklyState.cases
+    )
+    outputWeeklyState.informationIntakeReports = nextIntakeReports
+
+    // SPE-854 slice 7: project weekly intake verification narratives into report notes.
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const intakeVerificationNotes = buildWeeklyIntakeVerificationReportNotes({
+      priorReports: priorIntakeReports,
+      nextReports: nextIntakeReports,
+      week: intakeCorroborationWeek,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+      casesById: outputWeeklyState.cases,
+    })
+    if (intakeVerificationNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...intakeVerificationNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2105 slice 3: expire extranormal monitoring windows and advance monitor_only closure.
+  const currentExtranormalEvents = outputWeeklyState.extranormalEventRecords ?? {}
+  if (Object.keys(currentExtranormalEvents).length > 0) {
+    outputWeeklyState.extranormalEventRecords = applyWeeklyExtranormalEventMonitoringTick(
+      currentExtranormalEvents,
+      result.week
+    )
+  }
+
+  // SPE-2104 slice 3: advance intake disposition when custody review due week is reached.
+  const currentMinorAnomalyItems = outputWeeklyState.minorAnomalyItemRecords ?? {}
+  if (Object.keys(currentMinorAnomalyItems).length > 0) {
+    outputWeeklyState.minorAnomalyItemRecords = applyWeeklyMinorAnomalyItemDispositionTick(
+      currentMinorAnomalyItems,
+      result.week
+    )
+  }
+
+  // SPE-2106 slice 3: advance site lifecycle when monitoring cadence due week is reached.
+  const currentUnexplainedLocations = outputWeeklyState.unexplainedLocationRecords ?? {}
+  if (Object.keys(currentUnexplainedLocations).length > 0) {
+    outputWeeklyState.unexplainedLocationRecords = applyWeeklyUnexplainedLocationLifecycleTick(
+      currentUnexplainedLocations,
+      result.week
     )
   }
 

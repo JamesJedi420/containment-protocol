@@ -275,7 +275,10 @@ import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
 import {
+  applyWeeklyOperatingCostToFundingState,
+  computeWeeklyOperatingCost,
   createInitialFundingState,
+  hasWeeklyOperatingCostForWeek,
   normalizeFundingState,
 } from '../funding'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
@@ -4142,7 +4145,27 @@ function updateAgencyMetrics(
   const containmentDelta =
     computeContainmentDelta(report, context.nextState.config, context.rewardByCaseId) +
     lockdownPenalty
-  const nextFunding = context.nextState.funding + fundingDelta
+  const closedWeek = context.sourceState.week
+
+  let prevAgency = context.nextState.agency
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = context.sourceState.agency
+  }
+  if (!prevAgency || Object.keys(prevAgency).length === 0) {
+    prevAgency = {
+      containmentRating: 0,
+      clearanceLevel: 1,
+      funding: 0,
+      supportAvailable: 0,
+    }
+  }
+  prevAgency = canonicalizeAgencyState(prevAgency)
+
+  const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
+    ? 0
+    : computeWeeklyOperatingCost(context.nextState, closedWeek)
+
+  const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4199,24 +4222,33 @@ function updateAgencyMetrics(
   const allResolved = activeCaseCount === 0
   const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
 
-  let prevAgency = context.nextState.agency
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = context.sourceState.agency
-  }
-  if (!prevAgency || Object.keys(prevAgency).length === 0) {
-    prevAgency = {
-      containmentRating: 0,
-      clearanceLevel: 1,
-      funding: 0,
-      supportAvailable: 0,
-    }
-  }
-  prevAgency = canonicalizeAgencyState(prevAgency)
+  const baseFundingState =
+    prevAgency.fundingState ??
+    createInitialFundingState(
+      context.nextState.config.fundingBasePerWeek,
+      context.nextState.config.fundingPerResolution,
+      context.nextState.config.fundingPenaltyPerFail,
+      context.nextState.config.fundingPenaltyPerUnresolved,
+      nextFunding
+    )
+  const normalizedFundingState = normalizeFundingState(
+    nextFunding,
+    context.nextState.config,
+    baseFundingState,
+    closedWeek
+  )
+  const { state: fundingStateAfterOperatingCost } = applyWeeklyOperatingCostToFundingState(
+    normalizedFundingState,
+    context.nextState,
+    closedWeek
+  )
+
   const nextAgency = {
     ...prevAgency,
     containmentRating: nextContainmentRating,
     clearanceLevel: nextClearanceLevel,
     funding: nextFunding,
+    fundingState: fundingStateAfterOperatingCost,
   }
   return {
     weekScore,

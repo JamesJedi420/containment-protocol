@@ -1881,6 +1881,7 @@ export type FundingCategory =
   | 'unresolved_penalty'
   | 'market_transaction'
   | 'facility_upgrade'
+  | 'operating_cost'
   | (string & {})
 
 export interface FundingHistoryRecord {

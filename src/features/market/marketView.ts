@@ -549,6 +549,9 @@ function buildProcurementBudgetSummary(
         fundingPressure.pendingProcurementRequestIds.length > 0
           ? `${pluralize(fundingPressure.pendingProcurementRequestIds.length, 'backlog entry')} are already consuming supplier attention.`
           : '',
+        fundingPressure.reasonCodes.includes('weekly-operating-cost')
+          ? 'Payroll and facility upkeep were charged at week close, tightening procurement headroom.'
+          : '',
       ],
       4
     ),

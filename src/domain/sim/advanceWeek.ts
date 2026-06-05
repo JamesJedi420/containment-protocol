@@ -274,7 +274,13 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
-import { applyWeeklyOperatingCostToFundingState, createInitialFundingState, normalizeFundingState } from '../funding'
+import {
+  applyWeeklyOperatingCostToFundingState,
+  computeWeeklyOperatingCost,
+  createInitialFundingState,
+  hasWeeklyOperatingCostForWeek,
+  normalizeFundingState,
+} from '../funding'
 import { fulfillPendingProcurementBacklogAtWeekClose } from './market'
 import { FRONT_BUSINESS_CALIBRATION } from './calibration'
 import { getCourierShellRiskBreakdown, resolveCourierShellFrontWeekly } from './frontBusiness'
@@ -4156,6 +4162,11 @@ function updateAgencyMetrics(
   }
   prevAgency = canonicalizeAgencyState(prevAgency)
 
+  const operatingCost = hasWeeklyOperatingCostForWeek(prevAgency.fundingState, closedWeek)
+    ? 0
+    : computeWeeklyOperatingCost(context.nextState, closedWeek)
+  const nextFunding = Math.max(0, context.nextState.funding + fundingDelta - operatingCost)
+
   const nextContainmentRating = clamp(
     context.nextState.containmentRating + containmentDelta,
     0,
@@ -4190,7 +4201,6 @@ function updateAgencyMetrics(
   const allResolved = activeCaseCount === 0
   const capacityExceeded = activeCaseCount > context.nextState.config.maxActiveCases
 
-  const fundingBeforeOperatingCost = Math.max(0, context.nextState.funding + fundingDelta)
   const baseFundingState =
     prevAgency.fundingState ??
     createInitialFundingState(
@@ -4198,10 +4208,10 @@ function updateAgencyMetrics(
       context.nextState.config.fundingPerResolution,
       context.nextState.config.fundingPenaltyPerFail,
       context.nextState.config.fundingPenaltyPerUnresolved,
-      fundingBeforeOperatingCost
+      nextFunding
     )
   const normalizedFundingState = normalizeFundingState(
-    fundingBeforeOperatingCost,
+    nextFunding,
     context.nextState.config,
     baseFundingState,
     closedWeek
@@ -4214,10 +4224,10 @@ function updateAgencyMetrics(
   const stateAfterBacklogFulfillment = fulfillPendingProcurementBacklogAtWeekClose(
     {
       ...context.nextState,
-      funding: fundingStateAfterOperatingCost.funding,
+      funding: nextFunding,
       agency: {
         ...prevAgency,
-        funding: fundingStateAfterOperatingCost.funding,
+        funding: nextFunding,
         fundingState: fundingStateAfterOperatingCost,
       },
     },
@@ -4225,7 +4235,6 @@ function updateAgencyMetrics(
   )
   const fundingStateAfterBacklog =
     stateAfterBacklogFulfillment.agency?.fundingState ?? fundingStateAfterOperatingCost
-  const nextFunding = fundingStateAfterBacklog.funding
 
   if (
     nextFunding !== context.nextState.funding ||

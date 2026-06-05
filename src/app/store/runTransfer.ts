@@ -7655,6 +7655,15 @@ function sanitizeOperationEvents(
               ...(listingResourceStatuses ? { listingResourceStatuses } : {}),
               ...(allocation ? { allocation } : {}),
               ...(allocations ? { allocations } : {}),
+              ...(typeof payload.favorExchangeFactionId === 'string'
+                ? { favorExchangeFactionId: payload.favorExchangeFactionId }
+                : {}),
+              ...(typeof payload.favorExchangeFavorId === 'string'
+                ? { favorExchangeFavorId: payload.favorExchangeFavorId }
+                : {}),
+              ...(typeof payload.favorExchangeLabel === 'string'
+                ? { favorExchangeLabel: payload.favorExchangeLabel }
+                : {}),
             }),
           })
         )

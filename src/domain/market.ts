@@ -18,7 +18,7 @@ import {
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 
-export type ProcurementTransactionAction = 'buy' | 'sell'
+export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
 export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
 export type ProcurementAccessChannel =
@@ -122,6 +122,7 @@ export interface ProcurementListing {
   accessAvailable: boolean
   accessBlockedReason?: string
   cashPurchaseAllowed: boolean
+  favorRedeemAvailable: boolean
   favorExchange?: FactionFavorExchangeProcurementRule
   totalAvailability: number
   remainingAvailability: number
@@ -524,14 +525,13 @@ function assessProcurementAccess(
     accessDetails.push(favorAssessment.detail)
   }
 
-  const ruleBlockedReason =
+  const clearanceBlocked =
     typeof rule.requiredClearanceLevel === 'number' && clearanceLevel < rule.requiredClearanceLevel
-      ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
-      : favorExchange
-        ? favorExchange.details[1]
-        : undefined
-  const accessBlockedReason = marketPacket.blockedReason ?? ruleBlockedReason
+  const accessBlockedReason = clearanceBlocked
+    ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
+    : marketPacket.blockedReason
   const cashPurchaseAllowed = rule.accessChannel !== 'faction_favor_exchange'
+  const channelAvailable = marketPacket.available && accessBlockedReason === undefined
 
   return {
     acquisitionClass: rule.acquisitionClass,
@@ -540,8 +540,8 @@ function assessProcurementAccess(
     accessDetails,
     cashPurchaseAllowed,
     ...(favorExchange ? { favorExchange } : {}),
-    accessAvailable:
-      cashPurchaseAllowed && marketPacket.available && accessBlockedReason === undefined,
+    accessAvailable: cashPurchaseAllowed && channelAvailable,
+    favorRedeemAvailable: Boolean(favorExchange && channelAvailable),
     ...(accessBlockedReason ? { accessBlockedReason } : {}),
   }
 }

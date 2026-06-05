@@ -114,7 +114,7 @@ export function redeemFactionFavorProcurement(
   }
 
   const favorAssessment = assessFactionFavorExchangeProcurement(state, listingId)
-  if (!favorAssessment.eligible) {
+  if (!favorAssessment.eligible || !listing.favorRedeemAvailable) {
     return ensureNormalizedGameState(state)
   }
 

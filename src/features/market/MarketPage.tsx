@@ -44,6 +44,7 @@ export default function MarketPage() {
   const {
     game,
     purchaseMarketInventory,
+    redeemFactionFavorProcurement,
     sellMarketInventory,
     acknowledgeLicensedHandlingDoctrine,
     invokeEmergencyGrayMarketWaiver,
@@ -423,22 +424,45 @@ export default function MarketPage() {
               ) : null}
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  disabled={!listing.canBuyOne}
-                  onClick={() => purchaseMarketInventory(listing.id, 1)}
-                >
-                  {MARKET_UI_TEXT.buyOne}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost"
-                  disabled={!listing.canBuyThree}
-                  onClick={() => purchaseMarketInventory(listing.id, 3)}
-                >
-                  {MARKET_UI_TEXT.buyThree}
-                </button>
+                {!listing.cashPurchaseAllowed && listing.favorExchange ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={!listing.canRedeemFavorOne}
+                      onClick={() => redeemFactionFavorProcurement(listing.id, 1)}
+                    >
+                      {MARKET_UI_TEXT.redeemFavorOne}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={!listing.canRedeemFavorThree}
+                      onClick={() => redeemFactionFavorProcurement(listing.id, 3)}
+                    >
+                      {MARKET_UI_TEXT.redeemFavorThree}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      disabled={!listing.canBuyOne}
+                      onClick={() => purchaseMarketInventory(listing.id, 1)}
+                    >
+                      {MARKET_UI_TEXT.buyOne}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-ghost"
+                      disabled={!listing.canBuyThree}
+                      onClick={() => purchaseMarketInventory(listing.id, 3)}
+                    >
+                      {MARKET_UI_TEXT.buyThree}
+                    </button>
+                  </>
+                )}
                 <button
                   type="button"
                   className="btn btn-sm btn-ghost"

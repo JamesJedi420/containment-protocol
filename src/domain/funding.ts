@@ -492,7 +492,11 @@ export function applyWeeklyOperatingCostToFundingState(
   }
 }
 
-export function sumInventoryStock(inventory: GameState['inventory']): number {
+export function sumInventoryStock(inventory: GameState['inventory'] | undefined): number {
+  if (!inventory) {
+    return 0
+  }
+
   return Object.values(inventory).reduce(
     (sum, quantity) =>
       sum + Math.max(0, Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)),

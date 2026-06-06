@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2342](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2342 — Contained-person therapeutic care registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2342) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2551 @ `82c20bc5` |
 | **Parent** | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) — Contained-person therapeutic care schedule registry; umbrella [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) |
 | **Branch** | `spe-2115-contained-person-therapeutic-care-persistence-slice-2`                                        |
 | **Base `main` SHA** | `96f1c9be`                                                                                          |
@@ -34,12 +34,12 @@ Persist validated `TherapeuticCareScheduleRecord` entries on `GameState` with sa
 
 ## Acceptance
 
-- [ ] Valid fixture round-trips through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate
-- [ ] Franchise/branded token guards preserved on hydrate
-- [ ] Nested staffAssigneeRefs byte-stable after round-trip
-- [ ] Warning-only records persist
-- [ ] `npm run lint` + targeted tests green
+- [x] Valid fixture round-trips through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate
+- [x] Franchise/branded token guards preserved on hydrate
+- [x] Nested staffAssigneeRefs byte-stable after round-trip
+- [x] Warning-only records persist
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

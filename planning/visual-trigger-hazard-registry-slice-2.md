@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2336](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2336 — Visual-trigger hazard registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2336) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2539 @ `6f3750fd` |
 | **Parent** | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) — Visual-trigger hazard registry; umbrella [SPE-947](https://linear.app/spectranoir/issue/SPE-947) |
 | **Branch** | `spe-2111-visual-trigger-hazard-registry-persistence-slice-2`                                        |
 | **Base `main` SHA** | `ccb4fdff`                                                                                          |
@@ -34,11 +34,11 @@ Persist validated `VisualTriggerHazardRecord` entries on `GameState` with saniti
 
 ## Acceptance
 
-- [ ] Valid fixture round-trips through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate
-- [ ] Franchise/branded token guards preserved on hydrate
-- [ ] Nested hazardous media / target refs byte-stable after round-trip
-- [ ] `npm run lint` + targeted tests green
+- [x] Valid fixture round-trips through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate
+- [x] Franchise/branded token guards preserved on hydrate
+- [x] Nested hazardous media / target refs byte-stable after round-trip
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

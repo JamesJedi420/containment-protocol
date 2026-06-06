@@ -17,6 +17,7 @@ import {
 } from './equipment'
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
+import { getCanonicalFundingState, sumInventoryStock } from './funding'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
 export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
@@ -131,6 +132,20 @@ export interface ProcurementListing {
   remainingAvailability: number
   availableBundles: number
   inventoryStock: number
+  shortagePressureDetail?: ProcurementShortagePressureDetail
+}
+
+export type ProcurementShortagePressureReason = 'high-agency-stock' | 'funding-strain'
+
+export interface ProcurementShortagePressureAssessment {
+  active: boolean
+  reasons: ProcurementShortagePressureReason[]
+}
+
+export interface ProcurementShortagePressureDetail {
+  active: boolean
+  reasons: ProcurementShortagePressureReason[]
+  availabilityPenaltyBundles: number
 }
 
 export interface ProcurementTransactionView {
@@ -969,6 +984,57 @@ function buildAllocationStatus(
   }
 }
 
+export function assessProcurementShortagePressure(
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week' | 'inventory'>
+): ProcurementShortagePressureAssessment {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+  const reasons: ProcurementShortagePressureReason[] = []
+
+  if (sumInventoryStock(game.inventory) > cal.stockThreshold) {
+    reasons.push('high-agency-stock')
+  }
+
+  const fundingState = getCanonicalFundingState(game)
+  const staleProcurementBacklog = fundingState.procurementBacklog.some(
+    (entry) =>
+      entry.status === 'pending' &&
+      game.week - entry.requestedWeek > FUNDING_CALIBRATION.budgetPressure.staleBacklogWeeks
+  )
+  if (
+    fundingState.budgetPressure >= cal.budgetPressureThreshold ||
+    staleProcurementBacklog
+  ) {
+    reasons.push('funding-strain')
+  }
+
+  return {
+    active: reasons.length > 0,
+    reasons,
+  }
+}
+
+export function applyShortagePressureToBundleAvailability(
+  definition: Pick<ProcurementListingDefinition, 'id'>,
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week' | 'inventory'>,
+  bundleAvailability: number
+): number {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+
+  if (definition.id !== cal.listingId) {
+    return bundleAvailability
+  }
+
+  const assessment = assessProcurementShortagePressure(game)
+  if (!assessment.active) {
+    return bundleAvailability
+  }
+
+  return Math.max(
+    cal.minBundles,
+    bundleAvailability - cal.availabilityPenaltyBundles
+  )
+}
+
 function getBaseAvailability(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -988,9 +1054,14 @@ function getBaseAvailability(
       featuredBonus
   )
 
-  const adjustedBundleAvailability = marketPacket.available
+  const packetAdjustedBundleAvailability = marketPacket.available
     ? Math.max(0, Math.floor(bundleAvailability * marketPacket.availabilityMultiplier))
     : 0
+  const adjustedBundleAvailability = applyShortagePressureToBundleAvailability(
+    definition,
+    game,
+    packetAdjustedBundleAvailability
+  )
 
   return adjustedBundleAvailability * definition.bundleQuantity
 }
@@ -1060,6 +1131,8 @@ function buildListing(
         : undefined
       : undefined
   const featured = definition.recipeId === game.market.featuredRecipeId
+  const shortageAssessment = assessProcurementShortagePressure(game)
+  const shortageCalibration = FUNDING_CALIBRATION.procurementShortagePressure
   const totalAvailability = getBaseAvailability(definition, game, marketPacket)
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
@@ -1089,6 +1162,15 @@ function buildListing(
     remainingAvailability,
     availableBundles: Math.floor(remainingAvailability / definition.bundleQuantity),
     inventoryStock: game.inventory[definition.itemId] ?? 0,
+    ...(definition.id === shortageCalibration.listingId && shortageAssessment.active
+      ? {
+          shortagePressureDetail: {
+            active: true,
+            reasons: shortageAssessment.reasons,
+            availabilityPenaltyBundles: shortageCalibration.availabilityPenaltyBundles,
+          },
+        }
+      : {}),
   }
 }
 

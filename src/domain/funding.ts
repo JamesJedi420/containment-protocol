@@ -492,11 +492,30 @@ export function applyWeeklyOperatingCostToFundingState(
   }
 }
 
-function sumInventoryStock(inventory: GameState['inventory']): number {
+export function sumInventoryStock(inventory: GameState['inventory'] | undefined): number {
+  if (!inventory) {
+    return 0
+  }
+
   return Object.values(inventory).reduce(
     (sum, quantity) =>
       sum + Math.max(0, Math.trunc(typeof quantity === 'number' && Number.isFinite(quantity) ? quantity : 0)),
     0
+  )
+}
+
+/** SPE-2321: mirrors assessProcurementShortagePressure in market.ts (avoid circular import). */
+function hasVendorShortagePressureSignals(
+  game: Pick<GameState, 'inventory'>,
+  fundingState: FundingState,
+  staleProcurementRequestIds: readonly string[]
+): boolean {
+  const cal = FUNDING_CALIBRATION.procurementShortagePressure
+
+  return (
+    sumInventoryStock(game.inventory) > cal.stockThreshold ||
+    fundingState.budgetPressure >= cal.budgetPressureThreshold ||
+    staleProcurementRequestIds.length > 0
   )
 }
 
@@ -768,7 +787,7 @@ export function getCanonicalFundingState(
 }
 
 export function assessFundingPressure(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week'>
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week' | 'inventory'>
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)
   const pendingProcurementRequestIds = fundingState.procurementBacklog
@@ -857,6 +876,9 @@ export function assessFundingPressure(
       staleProcurementRequestIds.length > 0 ? 'stale-procurement-backlog' : '',
       operatingCostSignalsProcurementTiming ? 'weekly-operating-cost' : '',
       holdingCostSignalsProcurementTiming ? 'weekly-inventory-holding-cost' : '',
+      hasVendorShortagePressureSignals(game, fundingState, staleProcurementRequestIds)
+        ? 'vendor-shortage-pressure'
+        : '',
     ]),
   }
 }

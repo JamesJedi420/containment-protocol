@@ -557,6 +557,9 @@ function buildProcurementDetailView(
           status.substitution ? `Substitution: ${status.substitution.summary}` : ''
         ),
         `Current stock on hand: ${listing.inventoryStock}.`,
+        listing.shortagePressureDetail?.active
+          ? `Vendor shortage: supplier trimmed ${listing.shortagePressureDetail.availabilityPenaltyBundles} bundle${listing.shortagePressureDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.shortagePressureDetail.reasons.join(', ')}).`
+          : '',
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
           ? `This week: ${selectedTransactions
@@ -580,7 +583,9 @@ function buildProcurementDetailView(
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
-          ? 'Current-week supplier availability is exhausted for this listing.'
+          ? listing.shortagePressureDetail?.active
+            ? 'Vendor shortage pressure exhausted supplier bundles while funding still covers the line.'
+            : 'Current-week supplier availability is exhausted for this listing.'
           : '',
         typeof listing.fabricationCost === 'number'
           ? 'Fabrication remains the slower but stable fallback if supplier stock collapses.'
@@ -640,6 +645,9 @@ function buildProcurementBudgetSummary(
           : '',
         fundingPressure.reasonCodes.includes('weekly-inventory-holding-cost')
           ? 'Inventory carrying costs were charged at week close, tightening procurement headroom.'
+          : '',
+        fundingPressure.reasonCodes.includes('vendor-shortage-pressure')
+          ? 'Vendor shortage pressure is rationing agency-roster supplier bundles (availability, not quoted price or carrying fees).'
           : '',
         game.factions?.corporate_supply?.availableFavors?.some(
           (favor) => favor.id === 'corporate-supply-salvage-credit'

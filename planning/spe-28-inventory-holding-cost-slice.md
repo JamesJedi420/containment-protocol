@@ -45,7 +45,7 @@ Add a deterministic weekly inventory holding fee at week-close so stocked units 
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Shortage pressure (vendor-managed stock distortion) | SPE-28 child after holding cost | Separate mechanic; needs vendor stock model |
+| Shortage pressure (vendor-managed stock distortion) | [SPE-2321](https://linear.app/spectranoir/issue/SPE-2321) | Shipped as read-time roster listing penalty (sibling slice) |
 | Corruption routing on procurement outcomes | SPE-28 child | `compromisedAuthority.ts` is patrol/custody-focused; needs procurement bridge |
 | Service-boon / callable-obligation rewards | SPE-28 child | `availableFavors` exists but obligation semantics + UI are larger |
 | Barter / recovery channel variants | SPE-28 child | Multi-system: missions → inventory → market |

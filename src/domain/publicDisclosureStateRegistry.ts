@@ -826,6 +826,249 @@ export function projectDisclosureRegionalView(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2109 slice 2)
+// ---------------------------------------------------------------------------
+
+export type PublicDisclosureRecordsMap = Record<
+  PublicDisclosureStateId,
+  PublicDisclosureRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parseTrustByRegion(value: unknown): readonly RegionalTrustScore[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const scores: RegionalTrustScore[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const regionRef = normalizeToken(entry.regionRef)
+    const trustScore = entry.trustScore
+    if (!regionRef || !isValidUnitScore(trustScore)) {
+      continue
+    }
+
+    scores.push({ regionRef, trustScore })
+  }
+
+  return scores
+}
+
+function parseTransitionHistory(
+  value: unknown
+): readonly PublicDisclosureTransitionHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const history: PublicDisclosureTransitionHistoryEntry[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const fromAwarenessLevel = entry.fromAwarenessLevel
+    const toAwarenessLevel = entry.toAwarenessLevel
+    const week = entry.week
+    if (
+      typeof fromAwarenessLevel !== 'string' ||
+      !isAwarenessLevel(fromAwarenessLevel) ||
+      typeof toAwarenessLevel !== 'string' ||
+      !isAwarenessLevel(toAwarenessLevel) ||
+      !isFiniteWeek(week)
+    ) {
+      continue
+    }
+
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0
+        ? entry.note.trim()
+        : undefined
+    const falloutPhase =
+      typeof entry.falloutPhase === 'string' && isFalloutPhase(entry.falloutPhase)
+        ? entry.falloutPhase
+        : undefined
+
+    history.push({
+      fromAwarenessLevel,
+      toAwarenessLevel,
+      week,
+      ...(note ? { note } : {}),
+      ...(falloutPhase ? { falloutPhase } : {}),
+    })
+  }
+
+  return history
+}
+
+function parseNormalizationInputs(value: unknown): readonly NormalizationInput[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const inputs: NormalizationInput[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const kind = entry.kind
+    const descriptor = normalizeToken(entry.descriptor)
+    if (typeof kind !== 'string' || !isNormalizationInputKind(kind) || !descriptor) {
+      continue
+    }
+
+    const ref = normalizeToken(entry.ref ?? '') || undefined
+    inputs.push(ref ? { kind, descriptor, ref } : { kind, descriptor })
+  }
+
+  return inputs
+}
+
+function parseLinkedContractOutcomes(
+  value: unknown
+): readonly LinkedContractOutcomeHook[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const hooks: LinkedContractOutcomeHook[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const contractRef = normalizeToken(entry.contractRef)
+    if (!contractRef) {
+      continue
+    }
+
+    hooks.push({
+      contractRef,
+      ...(entry.operationalSuccess === true ? { operationalSuccess: true } : {}),
+      ...(entry.secrecyFailure === true ? { secrecyFailure: true } : {}),
+    })
+  }
+
+  return hooks
+}
+
+function sanitizePublicDisclosureRecordEntry(value: unknown): PublicDisclosureRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const awarenessLevel = value.awarenessLevel
+  const falloutPhase = value.falloutPhase
+
+  if (
+    !id ||
+    !label ||
+    typeof awarenessLevel !== 'string' ||
+    !isAwarenessLevel(awarenessLevel) ||
+    typeof falloutPhase !== 'string' ||
+    !isFalloutPhase(falloutPhase)
+  ) {
+    return null
+  }
+
+  const trustByRegion = parseTrustByRegion(value.trustByRegion)
+  const transitionHistory = parseTransitionHistory(value.transitionHistory)
+  const normalizationInputs = parseNormalizationInputs(value.normalizationInputs)
+  const linkedContractOutcomes = parseLinkedContractOutcomes(value.linkedContractOutcomes)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const campaignObjectivePivot =
+    typeof value.campaignObjectivePivot === 'string' ? value.campaignObjectivePivot : undefined
+  const coverCapacityFailureJustificationRef =
+    normalizeToken(value.coverCapacityFailureJustificationRef ?? '') || undefined
+  const oversightPressure = value.oversightPressure
+  const confidence = value.confidence
+  const coverCapacityFailure = value.coverCapacityFailure === true ? true : undefined
+
+  const record: PublicDisclosureRecord = {
+    id,
+    label,
+    awarenessLevel,
+    falloutPhase,
+    ...(summary ? { summary } : {}),
+    ...(trustByRegion.length > 0 ? { trustByRegion } : {}),
+    ...(isValidUnitScore(oversightPressure) ? { oversightPressure } : {}),
+    ...(coverCapacityFailure ? { coverCapacityFailure } : {}),
+    ...(coverCapacityFailureJustificationRef ? { coverCapacityFailureJustificationRef } : {}),
+    ...(campaignObjectivePivot && isCampaignObjectivePivot(campaignObjectivePivot)
+      ? { campaignObjectivePivot }
+      : {}),
+    ...(transitionHistory.length > 0 ? { transitionHistory } : {}),
+    ...(normalizationInputs.length > 0 ? { normalizationInputs } : {}),
+    ...(linkedContractOutcomes.length > 0 ? { linkedContractOutcomes } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validatePublicDisclosureRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizePublicDisclosureRecords(
+  value: unknown,
+  fallback: PublicDisclosureRecordsMap = {}
+): PublicDisclosureRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: PublicDisclosureRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizePublicDisclosureRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: PublicDisclosureRecord): PublicDisclosureRecord {
   return Object.freeze({ ...record })
 }

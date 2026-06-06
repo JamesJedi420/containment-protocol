@@ -506,22 +506,16 @@ export function sumInventoryStock(inventory: GameState['inventory'] | undefined)
 
 /** SPE-2321: mirrors assessProcurementShortagePressure in market.ts (avoid circular import). */
 function hasVendorShortagePressureSignals(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'week' | 'inventory'>
+  game: Pick<GameState, 'inventory'>,
+  fundingState: FundingState,
+  staleProcurementRequestIds: readonly string[]
 ): boolean {
   const cal = FUNDING_CALIBRATION.procurementShortagePressure
-  if (sumInventoryStock(game.inventory) > cal.stockThreshold) {
-    return true
-  }
-
-  const fundingState = getCanonicalFundingState(game)
-  const staleProcurementBacklog = fundingState.procurementBacklog.some(
-    (entry) =>
-      entry.status === 'pending' &&
-      game.week - entry.requestedWeek > FUNDING_CALIBRATION.budgetPressure.staleBacklogWeeks
-  )
 
   return (
-    fundingState.budgetPressure >= cal.budgetPressureThreshold || staleProcurementBacklog
+    sumInventoryStock(game.inventory) > cal.stockThreshold ||
+    fundingState.budgetPressure >= cal.budgetPressureThreshold ||
+    staleProcurementRequestIds.length > 0
   )
 }
 
@@ -793,7 +787,7 @@ export function getCanonicalFundingState(
 }
 
 export function assessFundingPressure(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week'>
+  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week' | 'inventory'>
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)
   const pendingProcurementRequestIds = fundingState.procurementBacklog
@@ -882,7 +876,9 @@ export function assessFundingPressure(
       staleProcurementRequestIds.length > 0 ? 'stale-procurement-backlog' : '',
       operatingCostSignalsProcurementTiming ? 'weekly-operating-cost' : '',
       holdingCostSignalsProcurementTiming ? 'weekly-inventory-holding-cost' : '',
-      hasVendorShortagePressureSignals(game) ? 'vendor-shortage-pressure' : '',
+      hasVendorShortagePressureSignals(game, fundingState, staleProcurementRequestIds)
+        ? 'vendor-shortage-pressure'
+        : '',
     ]),
   }
 }

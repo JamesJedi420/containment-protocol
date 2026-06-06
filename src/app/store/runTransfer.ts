@@ -272,7 +272,7 @@ const RECRUIT_CATEGORIES = [
 const STAT_KEYS = ['combat', 'investigation', 'utility', 'social'] as const
 const EXACT_POTENTIAL_TIERS = ['F', 'D', 'C', 'B', 'A', 'S'] as const
 const SCOUT_CONFIDENCES = ['low', 'medium', 'high', 'confirmed'] as const
-const MARKET_TRANSACTION_ACTIONS = ['buy', 'sell', 'favor_exchange'] as const
+const MARKET_TRANSACTION_ACTIONS = ['buy', 'sell', 'favor_exchange', 'callable_obligation'] as const
 const MARKET_TRANSACTION_CATEGORIES = ['equipment', 'component', 'material'] as const
 const MARKET_TRANSACTION_RESOURCE_CLASSES = [
   'supplier_attention_slot',
@@ -7663,6 +7663,15 @@ function sanitizeOperationEvents(
                 : {}),
               ...(typeof payload.favorExchangeLabel === 'string'
                 ? { favorExchangeLabel: payload.favorExchangeLabel }
+                : {}),
+              ...(typeof payload.callableObligationFactionId === 'string'
+                ? { callableObligationFactionId: payload.callableObligationFactionId }
+                : {}),
+              ...(typeof payload.callableObligationFavorId === 'string'
+                ? { callableObligationFavorId: payload.callableObligationFavorId }
+                : {}),
+              ...(typeof payload.callableObligationLabel === 'string'
+                ? { callableObligationLabel: payload.callableObligationLabel }
                 : {}),
             }),
           })

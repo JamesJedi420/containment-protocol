@@ -7,6 +7,7 @@ import {
 import { inventoryItemLabels } from '../../data/production'
 import { assessFundingPressure, getCanonicalFundingState } from '../../domain/funding'
 import {
+  assessCallableObligationProcurement,
   assessFactionFavorExchangeProcurement,
   getAvailableMarketCategories,
   getCurrentMarketTransactions,
@@ -49,6 +50,8 @@ export interface MarketListingView extends ProcurementListing {
   canOrderThree: boolean
   canRedeemFavorOne: boolean
   canRedeemFavorThree: boolean
+  canCallObligationOne: boolean
+  canCallObligationThree: boolean
   canAffordOne: boolean
   canAffordThree: boolean
   canSellOne: boolean
@@ -266,6 +269,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
   const canSellThree = listing.inventoryStock >= listing.bundleQuantity * 3
   const favorAssessment =
     listing.favorExchange && assessFactionFavorExchangeProcurement(game, listing.id)
+  const obligationAssessment =
+    listing.callableObligation && assessCallableObligationProcurement(game, listing.id)
   const favorResourcesReady = listing.resourceStatuses.every((status) => status.purchaseAvailable)
   const canRedeemFavorOne =
     !listing.cashPurchaseAllowed &&
@@ -278,6 +283,23 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     canRedeemFavorOne &&
     !listing.resourceStatuses.some((status) => status.substitution) &&
     listing.availableBundles >= 3
+  const canCallObligationOne =
+    listing.cashPurchaseAllowed &&
+    Boolean(listing.callableObligation) &&
+    listing.accessAvailable &&
+    obligationAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 1 &&
+    !canAffordOne
+  const canCallObligationThree =
+    listing.cashPurchaseAllowed &&
+    Boolean(listing.callableObligation) &&
+    listing.accessAvailable &&
+    obligationAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 3 &&
+    !listing.resourceStatuses.some((status) => status.substitution) &&
+    !canAffordThree
 
   const budgetBlockedReason =
     listing.cashPurchaseAllowed && !canAffordOne
@@ -313,6 +335,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     )?.blockerReason
   } else if (availabilityBlockedReason) {
     buyBlockedReason = availabilityBlockedReason
+  } else if (budgetBlockedReason && obligationAssessment?.eligible) {
+    buyBlockedReason = `${listing.callableObligation!.obligationLabel} ready — call obligation instead of cash purchase.`
   } else if (budgetBlockedReason) {
     buyBlockedReason = budgetBlockedReason
   }
@@ -330,6 +354,8 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     canOrderThree,
     canRedeemFavorOne,
     canRedeemFavorThree,
+    canCallObligationOne,
+    canCallObligationThree,
     canAffordOne,
     canAffordThree,
     canSellOne,
@@ -563,6 +589,11 @@ function buildProcurementDetailView(
         listing.corruptionRoutingDetail?.active
           ? `Office-mediated diversion: ${listing.corruptionRoutingDetail.officialRole ?? 'compromised office'} rerouted ${listing.corruptionRoutingDetail.availabilityPenaltyBundles} roster bundle${listing.corruptionRoutingDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.corruptionRoutingDetail.reasons.join(', ')}${listing.corruptionRoutingDetail.benefittingFactionId ? `; favors ${listing.corruptionRoutingDetail.benefittingFactionId}` : ''}).`
           : '',
+        listing.callableObligationDetail?.active
+          ? `Callable obligation: ${listing.callableObligationDetail.obligationLabel} from ${listing.callableObligationDetail.factionId} can substitute cash when funding is tight.`
+          : listing.callableObligationDetail
+            ? listing.callableObligationDetail.detail
+            : '',
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
           ? `This week: ${selectedTransactions
@@ -656,6 +687,9 @@ function buildProcurementBudgetSummary(
           : '',
         fundingPressure.reasonCodes.includes('compromised-authority-procurement-diversion')
           ? 'Compromised authority is diverting office-mediated supplier roster attention (availability, not quoted price, carrying fees, or vendor shortage).'
+          : '',
+        fundingPressure.reasonCodes.includes('callable-obligation-procurement-leverage')
+          ? 'Open institutions research lab boon can substitute cash on occult reagent procurement when funding is tight.'
           : '',
         game.factions?.corporate_supply?.availableFavors?.some(
           (favor) => favor.id === 'corporate-supply-salvage-credit'

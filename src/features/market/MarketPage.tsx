@@ -46,6 +46,7 @@ export default function MarketPage() {
     purchaseMarketInventory,
     placeDelayedMarketOrder,
     redeemFactionFavorProcurement,
+    callCallableObligationProcurement,
     sellMarketInventory,
     acknowledgeLicensedHandlingDoctrine,
     invokeEmergencyGrayMarketWaiver,
@@ -465,6 +466,27 @@ export default function MarketPage() {
                   </>
                 ) : (
                   <>
+                    {listing.callableObligation &&
+                    (listing.canCallObligationOne || listing.canCallObligationThree) ? (
+                      <>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          disabled={!listing.canCallObligationOne}
+                          onClick={() => callCallableObligationProcurement(listing.id, 1)}
+                        >
+                          {MARKET_UI_TEXT.callObligationOne}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-ghost"
+                          disabled={!listing.canCallObligationThree}
+                          onClick={() => callCallableObligationProcurement(listing.id, 3)}
+                        >
+                          {MARKET_UI_TEXT.callObligationThree}
+                        </button>
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       className="btn btn-sm"

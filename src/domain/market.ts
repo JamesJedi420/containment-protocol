@@ -24,7 +24,13 @@ import {
 } from './sim/compromisedAuthority'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
-export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
+export type ProcurementTransactionAction =
+  | 'buy'
+  | 'sell'
+  | 'favor_exchange'
+  | 'callable_obligation'
+  | 'order'
+  | 'fulfill'
 export type ProcurementListingSource = 'recipe' | 'material' | 'direct_equipment'
 export type ProcurementAcquisitionClass = 'standard' | 'restricted' | 'rare'
 export type ProcurementAccessChannel =
@@ -138,6 +144,8 @@ export interface ProcurementListing {
   inventoryStock: number
   shortagePressureDetail?: ProcurementShortagePressureDetail
   corruptionRoutingDetail?: ProcurementCorruptionRoutingDetail
+  callableObligation?: CallableObligationProcurementRule
+  callableObligationDetail?: CallableObligationProcurementDetail
 }
 
 export interface ProcurementCorruptionRoutingDetail {
@@ -259,6 +267,32 @@ export interface FactionFavorExchangeAssessment {
   detail: string
 }
 
+export interface CallableObligationProcurementRule {
+  factionId: string
+  favorId: string
+  obligationLabel: string
+  details: string[]
+}
+
+export interface CallableObligationProcurementAssessment {
+  listingId: string
+  eligible: boolean
+  reasonCode:
+    | 'callable-obligation-ready'
+    | 'callable-obligation-missing'
+    | 'not-callable-obligation-listing'
+  detail: string
+}
+
+export interface CallableObligationProcurementDetail {
+  active: boolean
+  obligationLabel: string
+  factionId: string
+  favorId: string
+  reasonCode: CallableObligationProcurementAssessment['reasonCode']
+  detail: string
+}
+
 const FAVOR_EXCHANGE_PROCUREMENT_RULES: Record<string, FactionFavorExchangeProcurementRule> = {
   'gear:containment_staff': {
     factionId: 'corporate_supply',
@@ -267,6 +301,18 @@ const FAVOR_EXCHANGE_PROCUREMENT_RULES: Record<string, FactionFavorExchangeProcu
     details: [
       'Rare containment gear circulates only through supplier salvage credit.',
       'Cash purchase is blocked; redeem the open corporate_supply favor instead.',
+    ],
+  },
+}
+
+const CALLABLE_OBLIGATION_PROCUREMENT_RULES: Record<string, CallableObligationProcurementRule> = {
+  'material:occult_reagents': {
+    factionId: 'institutions',
+    favorId: 'institutions-lab-access-boon',
+    obligationLabel: 'Research lab access boon',
+    details: [
+      'Institutional lab channels honor callable research obligations on occult reagent lines.',
+      'When funding is tight, call the open institutions boon instead of cash purchase.',
     ],
   },
 }
@@ -548,6 +594,41 @@ export function assessFactionFavorExchangeProcurement(
   }
 }
 
+export function getCallableObligationProcurementRule(listingId: string) {
+  return CALLABLE_OBLIGATION_PROCUREMENT_RULES[listingId]
+}
+
+export function assessCallableObligationProcurement(
+  game: Pick<GameState, 'factions'>,
+  listingId: string
+): CallableObligationProcurementAssessment {
+  const rule = getCallableObligationProcurementRule(listingId)
+  if (!rule) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'not-callable-obligation-listing',
+      detail: 'Listing is not configured for callable obligation procurement.',
+    }
+  }
+
+  if (!hasOpenFactionFavor(game, rule.factionId, rule.favorId)) {
+    return {
+      listingId,
+      eligible: false,
+      reasonCode: 'callable-obligation-missing',
+      detail: `${rule.obligationLabel} required from ${rule.factionId}; no open obligation is available.`,
+    }
+  }
+
+  return {
+    listingId,
+    eligible: true,
+    reasonCode: 'callable-obligation-ready',
+    detail: `${rule.obligationLabel} from ${rule.factionId} can substitute cash on this listing without spending funding.`,
+  }
+}
+
 function assessProcurementAccess(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -555,6 +636,7 @@ function assessProcurementAccess(
 ) {
   const rule = PROCUREMENT_ACCESS_RULES[definition.id] ?? DEFAULT_PROCUREMENT_ACCESS
   const favorExchange = getFactionFavorExchangeProcurementRule(definition.id)
+  const callableObligation = getCallableObligationProcurementRule(definition.id)
   const clearanceLevel = getClearanceLevel(game)
   const accessDetails = [...marketPacket.knownDistortions, ...rule.details]
 
@@ -565,6 +647,11 @@ function assessProcurementAccess(
   if (favorExchange) {
     const favorAssessment = assessFactionFavorExchangeProcurement(game, definition.id)
     accessDetails.push(favorAssessment.detail)
+  }
+
+  if (callableObligation) {
+    const obligationAssessment = assessCallableObligationProcurement(game, definition.id)
+    accessDetails.push(obligationAssessment.detail)
   }
 
   const clearanceBlocked =
@@ -582,6 +669,7 @@ function assessProcurementAccess(
     accessDetails,
     cashPurchaseAllowed,
     ...(favorExchange ? { favorExchange } : {}),
+    ...(callableObligation ? { callableObligation } : {}),
     accessAvailable: cashPurchaseAllowed && channelAvailable,
     favorRedeemAvailable: Boolean(favorExchange && channelAvailable),
     ...(accessBlockedReason ? { accessBlockedReason } : {}),
@@ -667,6 +755,7 @@ function getListingTransactionTotalsForWeek(
     switch (event.payload.action) {
       case 'buy':
       case 'favor_exchange':
+      case 'callable_obligation':
         boughtByListingId[listingId] = (boughtByListingId[listingId] ?? 0) + quantity
         break
       case 'sell':
@@ -691,7 +780,9 @@ function getCurrentSupplierAttentionAllocations(
     .filter((event) => isMarketTransactionEvent(event))
     .filter(
       (event) =>
-        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
         event.payload.marketWeek === marketWeek
     )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
@@ -784,7 +875,9 @@ function getCurrentReagentStockAllocations(
     .filter((event) => isMarketTransactionEvent(event))
     .filter(
       (event) =>
-        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
         event.payload.marketWeek === marketWeek
     )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
@@ -866,7 +959,9 @@ function getCurrentLicensedHandlingAllocations(
     .filter((event) => isMarketTransactionEvent(event))
     .filter(
       (event) =>
-        (event.payload.action === 'buy' || event.payload.action === 'favor_exchange') &&
+        (event.payload.action === 'buy' ||
+          event.payload.action === 'favor_exchange' ||
+          event.payload.action === 'callable_obligation') &&
         event.payload.marketWeek === marketWeek
     )
     .flatMap((event) => getMarketTransactionAllocationPackets(event))
@@ -1181,6 +1276,9 @@ function buildListing(
   const shortageCalibration = FUNDING_CALIBRATION.procurementShortagePressure
   const corruptionAssessment = assessProcurementCorruptionRouting(game)
   const corruptionCalibration = FUNDING_CALIBRATION.procurementCorruptionRouting
+  const obligationAssessment = assessCallableObligationProcurement(game, definition.id)
+  const obligationCalibration = FUNDING_CALIBRATION.procurementCallableObligation
+  const callableObligation = getCallableObligationProcurementRule(definition.id)
   const totalAvailability = getBaseAvailability(definition, game, marketPacket)
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
@@ -1231,6 +1329,18 @@ function buildListing(
             ...(corruptionAssessment.benefittingFactionId
               ? { benefittingFactionId: corruptionAssessment.benefittingFactionId }
               : {}),
+          },
+        }
+      : {}),
+    ...(definition.id === obligationCalibration.listingId && callableObligation
+      ? {
+          callableObligationDetail: {
+            active: obligationAssessment.eligible,
+            obligationLabel: callableObligation.obligationLabel,
+            factionId: callableObligation.factionId,
+            favorId: callableObligation.favorId,
+            reasonCode: obligationAssessment.reasonCode,
+            detail: obligationAssessment.detail,
           },
         }
       : {}),

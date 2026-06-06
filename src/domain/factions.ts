@@ -254,6 +254,12 @@ export function createInitialFactionState(): NonNullable<GameState['factions']> 
       },
     }),
     institutions: createFactionRuntimeState('institutions', {
+      availableFavors: [
+        {
+          id: 'institutions-lab-access-boon',
+          label: 'Research lab access boon',
+        },
+      ],
       contacts: [
         createContact({
           id: 'institutions-halden',

@@ -1,6 +1,7 @@
 import { appendOperationEventDrafts } from '../events'
 import type { FundingState, GameState } from '../models'
 import {
+  assessCallableObligationProcurement,
   assessFactionFavorExchangeProcurement,
   buildProcurementAllocationPackets,
   getProcurementListing,
@@ -233,6 +234,105 @@ export function redeemFactionFavorProcurement(
             favorExchangeFactionId: factionId,
             favorExchangeFavorId: favorId,
             favorExchangeLabel: listing.favorExchange.exchangeLabel,
+          },
+        },
+      ]
+    )
+  )
+}
+
+/** SPE-2323: call open faction obligation to acquire a cash listing without spending funding. */
+export function callCallableObligationProcurement(
+  state: GameState,
+  listingId: string,
+  bundles = 1
+): GameState {
+  const listing = getProcurementListing(state, listingId)
+
+  if (!listing?.callableObligation || !listing.cashPurchaseAllowed) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const obligationAssessment = assessCallableObligationProcurement(state, listingId)
+  if (!obligationAssessment.eligible || !listing.accessAvailable) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const normalizedBundles = Math.max(1, Math.trunc(bundles))
+  const quantity = normalizedBundles * listing.bundleQuantity
+  const fundingState = getCanonicalFundingState(state)
+  const totalPrice = normalizedBundles * listing.buyPrice
+
+  if (totalPrice <= fundingState.funding) {
+    return ensureNormalizedGameState(state)
+  }
+
+  if (
+    !listing.resourceStatuses.every((status) => status.purchaseAvailable) ||
+    (listing.resourceStatuses.some((status) => status.substitution) && normalizedBundles > 1) ||
+    normalizedBundles > listing.availableBundles
+  ) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const { factionId, favorId, obligationLabel } = listing.callableObligation
+  const runtime = state.factions?.[factionId]
+  if (!runtime) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const nextFavors = (runtime.availableFavors ?? []).filter((favor) => favor.id !== favorId)
+  if (nextFavors.length === (runtime.availableFavors ?? []).length) {
+    return ensureNormalizedGameState(state)
+  }
+
+  const nextInventory = {
+    ...state.inventory,
+    [listing.itemId]: (state.inventory[listing.itemId] ?? 0) + quantity,
+  }
+  const transactionId = nextTransactionId(state)
+  const allocations = buildProcurementAllocationPackets({
+    listing,
+    transactionId,
+    quantity,
+  })
+
+  return normalizeGameState(
+    appendOperationEventDrafts(
+      {
+        ...state,
+        inventory: nextInventory,
+        factions: {
+          ...state.factions,
+          [factionId]: {
+            ...runtime,
+            availableFavors: nextFavors,
+          },
+        },
+      },
+      [
+        {
+          type: 'market.transaction_recorded',
+          sourceSystem: 'production',
+          payload: {
+            week: state.week,
+            marketWeek: state.market.week,
+            transactionId,
+            action: 'callable_obligation',
+            listingId: listing.id,
+            itemId: listing.itemId,
+            itemName: listing.itemName,
+            category: listing.category,
+            quantity,
+            bundleCount: normalizedBundles,
+            unitPrice: 0,
+            totalPrice: 0,
+            remainingAvailability: Math.max(0, listing.remainingAvailability - quantity),
+            allocation: allocations[0]!,
+            allocations,
+            callableObligationFactionId: factionId,
+            callableObligationFavorId: favorId,
+            callableObligationLabel: obligationLabel,
           },
         },
       ]

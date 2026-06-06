@@ -378,6 +378,69 @@ describe('marketView', () => {
     expect(view.budgetSummary.details.join(' ')).toMatch(/Inventory carrying costs/i)
   })
 
+  it('surfaces callable obligation leverage in budget summary and listing blockers when funding is tight', () => {
+    const baseline = createStartingState()
+    const listing = getProcurementListings(baseline).find(
+      (entry) => entry.id === 'material:occult_reagents'
+    )
+
+    expect(listing).toBeDefined()
+    const game = {
+      ...baseline,
+      funding: Math.max(0, listing!.buyPrice - 1),
+      agency: {
+        ...baseline.agency!,
+        funding: Math.max(0, listing!.buyPrice - 1),
+      },
+    }
+
+    expect(assessFundingPressure(game).reasonCodes).toContain(
+      'callable-obligation-procurement-leverage'
+    )
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/research lab boon/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(false)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(listingView?.canCallObligationOne).toBe(true)
+    expect(listingView?.buyBlockedReason).toMatch(/call obligation instead of cash purchase/i)
+    expect(view.selectedDetail?.acquisitionDetails.join(' ')).toMatch(/Callable obligation/i)
+  })
+
+  it('allows 3-bundle obligation call when one bundle is affordable but three are not', () => {
+    const baseline = createStartingState()
+    const listing = getProcurementListings(baseline).find(
+      (entry) => entry.id === 'material:occult_reagents'
+    )
+
+    expect(listing).toBeDefined()
+    const game = {
+      ...baseline,
+      funding: listing!.buyPrice * 2,
+      agency: {
+        ...baseline.agency!,
+        funding: listing!.buyPrice * 2,
+      },
+    }
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canAffordThree).toBe(false)
+    expect(listingView?.canCallObligationOne).toBe(false)
+    expect(listingView?.canCallObligationThree).toBe(true)
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

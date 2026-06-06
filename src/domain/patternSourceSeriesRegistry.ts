@@ -981,6 +981,238 @@ export function projectSeriesProcessingQueue(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-2110 slice 2)
+// ---------------------------------------------------------------------------
+
+export type PatternSourceSeriesRecordsMap = Record<
+  PatternSourceSeriesId,
+  PatternSourceSeriesRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parseEditorialStatusList(value: unknown): readonly EditorialStatus[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const statuses: EditorialStatus[] = []
+
+  for (const entry of value) {
+    if (typeof entry === 'string' && isEditorialStatus(entry)) {
+      statuses.push(entry)
+    }
+  }
+
+  return statuses
+}
+
+function parseProcessingHistoryList(value: unknown): readonly ProcessingStatus[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const history: ProcessingStatus[] = []
+
+  for (const entry of value) {
+    if (typeof entry === 'string' && isProcessingStatus(entry)) {
+      history.push(entry)
+    }
+  }
+
+  return history
+}
+
+function parseBlurbDomainHintsList(value: unknown): readonly BlurbDomainHint[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const hints: BlurbDomainHint[] = []
+
+  for (const entry of value) {
+    if (typeof entry === 'string' && isBlurbDomainHint(entry)) {
+      hints.push(entry)
+    }
+  }
+
+  return hints
+}
+
+function parseLinkedClusterIds(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const clusterIds: string[] = []
+
+  for (const entry of value) {
+    const clusterId = normalizeToken(entry)
+    if (clusterId) {
+      clusterIds.push(clusterId)
+    }
+  }
+
+  return clusterIds
+}
+
+function parseAdaptation(value: unknown): SourceAdaptationMetadata | undefined {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const normalizationState =
+    typeof value.normalizationState === 'string' &&
+    isSourceNormalizationState(value.normalizationState)
+      ? value.normalizationState
+      : undefined
+
+  const expressionRiskFlags: ExpressionRiskFlag[] = []
+  if (Array.isArray(value.expressionRiskFlags)) {
+    for (const flag of value.expressionRiskFlags) {
+      if (typeof flag === 'string' && isExpressionRiskFlag(flag)) {
+        expressionRiskFlags.push(flag)
+      }
+    }
+  }
+
+  const normalizationNote =
+    typeof value.normalizationNote === 'string' && value.normalizationNote.trim().length > 0
+      ? value.normalizationNote.trim()
+      : undefined
+
+  if (!normalizationState && expressionRiskFlags.length === 0 && !normalizationNote) {
+    return undefined
+  }
+
+  return {
+    ...(normalizationState ? { normalizationState } : {}),
+    ...(expressionRiskFlags.length > 0 ? { expressionRiskFlags } : {}),
+    ...(normalizationNote ? { normalizationNote } : {}),
+  }
+}
+
+function sanitizePatternSourceSeriesRecordEntry(
+  value: unknown
+): PatternSourceSeriesRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const slug = normalizeToken(value.slug)
+  const title = normalizeToken(value.title)
+  const sourceFamily = value.sourceFamily
+  const publicationOrder = normalizeToken(value.publicationOrder)
+  const processingStatus = value.processingStatus
+  const readinessScore = value.readinessScore
+
+  if (
+    !id ||
+    !slug ||
+    !title ||
+    typeof sourceFamily !== 'string' ||
+    !isSourceFamily(sourceFamily) ||
+    !isValidPublicationOrder(publicationOrder) ||
+    typeof processingStatus !== 'string' ||
+    !isProcessingStatus(processingStatus) ||
+    !isValidUnitScore(readinessScore)
+  ) {
+    return null
+  }
+
+  const editorialStatus = parseEditorialStatusList(value.editorialStatus)
+  const processingHistory = parseProcessingHistoryList(value.processingHistory)
+  const blurbDomainHints = parseBlurbDomainHintsList(value.blurbDomainHints)
+  const linkedClusterIds = parseLinkedClusterIds(value.linkedClusterIds)
+  const adaptation = parseAdaptation(value.adaptation)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const descriptionStub =
+    typeof value.descriptionStub === 'string' && value.descriptionStub.trim().length > 0
+      ? value.descriptionStub.trim()
+      : undefined
+  const dedicatedTag =
+    typeof value.dedicatedTag === 'string' && value.dedicatedTag.trim().length > 0
+      ? value.dedicatedTag.trim()
+      : undefined
+  const crossClusterReinforcementRef =
+    normalizeToken(value.crossClusterReinforcementRef ?? '') || undefined
+  const confidence = value.confidence
+  const implementationPriorityByPublicationOrder =
+    value.implementationPriorityByPublicationOrder === true ? true : undefined
+
+  const record: PatternSourceSeriesRecord = {
+    id,
+    slug,
+    title,
+    sourceFamily,
+    publicationOrder,
+    processingStatus,
+    readinessScore,
+    ...(descriptionStub ? { descriptionStub } : {}),
+    ...(editorialStatus.length > 0 ? { editorialStatus } : {}),
+    ...(dedicatedTag ? { dedicatedTag } : {}),
+    ...(processingHistory.length > 0 ? { processingHistory } : {}),
+    ...(blurbDomainHints.length > 0 ? { blurbDomainHints } : {}),
+    ...(linkedClusterIds.length > 0 ? { linkedClusterIds } : {}),
+    ...(crossClusterReinforcementRef ? { crossClusterReinforcementRef } : {}),
+    ...(adaptation ? { adaptation } : {}),
+    ...(implementationPriorityByPublicationOrder
+      ? { implementationPriorityByPublicationOrder }
+      : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validatePatternSourceSeriesRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizePatternSourceSeriesRecords(
+  value: unknown,
+  fallback: PatternSourceSeriesRecordsMap = {}
+): PatternSourceSeriesRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: PatternSourceSeriesRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizePatternSourceSeriesRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 /** series_hub with open_entry + completed editorial metadata coexisting. */
 export const SERIES_HUB_OPEN_ENTRY_FIXTURE: PatternSourceSeriesRecord = defineRecord({
   id: 'pattern-series:facility-crisis-hub',

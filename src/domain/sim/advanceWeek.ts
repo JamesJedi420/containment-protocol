@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
@@ -4608,6 +4609,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPatternSourceSeriesRecords,
       result.week
     )
+  }
+
+  // SPE-2122 slice 3: decay registration backlog on persisted population emergence records.
+  const currentMassAnomalousPopulationEmergenceRecords =
+    outputWeeklyState.massAnomalousPopulationEmergenceRecords ?? {}
+  if (Object.keys(currentMassAnomalousPopulationEmergenceRecords).length > 0) {
+    outputWeeklyState.massAnomalousPopulationEmergenceRecords =
+      applyWeeklyPopulationEmergenceGovernanceTick(
+        currentMassAnomalousPopulationEmergenceRecords,
+        result.week
+      )
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2345](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2345 — Contained-person integrated health bundle therapeutic care wire-up (slice 5)](https://linear.app/spectranoir/issue/SPE-2345) |
-| **Status** | **Ready for PR** |
+| **Status** | **Shipped** — PR #2557 @ `13789b0e` |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — integrated health bundle umbrella; [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) registry anchor (slice 1–4 shipped) stays Done |
 | **Branch** | `spe-1889-contained-person-health-bundle-wire-up-slice-5`                                                  |
 | **Base `main` SHA** | `277a02b2`                                                                                          |

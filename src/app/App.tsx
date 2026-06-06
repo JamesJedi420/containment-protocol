@@ -81,6 +81,9 @@ const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpP
 const PatternSourceSeriesMirrorRoute = createRouteComponent(
   () => import('../features/operations/PatternSourceSeriesMirrorPage')
 )
+const SelfCensoringInformationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/SelfCensoringInformationMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -131,6 +134,10 @@ export default function App() {
         <Route
           path="pattern-source-series"
           element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
+        />
+        <Route
+          path="self-censoring-information"
+          element={renderLazyRoute(SelfCensoringInformationMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

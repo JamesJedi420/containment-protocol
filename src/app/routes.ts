@@ -30,6 +30,7 @@ export const APP_ROUTES = {
   publicDisclosureState: '/public-disclosure-state',
   massAnomalousPopulationEmergence: '/mass-anomalous-population-emergence',
   visualTriggerHazard: '/visual-trigger-hazard',
+  entityWelfareReclassification: '/entity-welfare-reclassification',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

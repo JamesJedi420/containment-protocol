@@ -871,6 +871,38 @@ export const INTEL_UI_TEXT: Record<string, string> = {
   dominantStats: 'Dominant stats',
 }
 
+export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Pattern source series intake',
+  pageSubtitle:
+    'Read-only operations view over persisted intake records and readiness-ranked processing queue.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  queueEligibleLabel: 'Queue entries',
+  pipelineActiveLabel: 'Pipeline active',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Queue rank follows readiness and CP utility — publication date is a tie-breaker only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No intake records',
+  emptyBody:
+    'Persisted pattern source series records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  queueHeading: 'Processing queue projection',
+  queueSubtitle: 'Ranked by readiness score and CP utility, not publication recency.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle: 'Queue rank column reflects projection rank; raw fields come from hydrated GameState.',
+  emptyQueueBody: 'No records currently qualify for queue projection at default policy thresholds.',
+  rankColumn: 'Rank',
+  queueRankColumn: 'Queue rank',
+  titleColumn: 'Title',
+  readinessColumn: 'Readiness',
+  utilityColumn: 'CP utility',
+  statusColumn: 'Processing status',
+  familyColumn: 'Source family',
+  publicationColumn: 'Publication order',
+  editorialColumn: 'Editorial status',
+  domainsColumn: 'Domain hints',
+}
+
 export const RUN_TRANSFER_TEXT: Record<string, string> = {
   panelSubtitle:
     'Export the current run, import a prior run payload, or start fresh from the current balance setup.',

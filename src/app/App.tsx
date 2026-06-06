@@ -78,6 +78,9 @@ const AgencyRoute = createRouteComponent(() =>
   }))
 )
 const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpPlaceholderPage'))
+const PatternSourceSeriesMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PatternSourceSeriesMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -125,6 +128,10 @@ export default function App() {
           <Route index element={renderLazyRoute(IntelPage)} />
           <Route path=":templateId" element={renderLazyRoute(IntelDetailPage)} />
         </Route>
+        <Route
+          path="pattern-source-series"
+          element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
+        />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>
     </Routes>

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2339](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2339 — Entity welfare reclassification registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2339) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2545 @ `44967537` |
 | **Parent** | [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) — Entity welfare reclassification registry; umbrella [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) |
 | **Branch** | `spe-2114-entity-welfare-reclassification-persistence-slice-2`                                        |
 | **Base `main` SHA** | `b2129bd1`                                                                                          |
@@ -34,12 +34,12 @@ Persist validated `EntityWelfareReclassificationRecord` entries on `GameState` w
 
 ## Acceptance
 
-- [ ] Valid fixture round-trips through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate
-- [ ] Franchise/branded token guards preserved on hydrate
-- [ ] Nested review/evidence refs byte-stable after round-trip
-- [ ] Warning-only records persist
-- [ ] `npm run lint` + targeted tests green
+- [x] Valid fixture round-trips through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate
+- [x] Franchise/branded token guards preserved on hydrate
+- [x] Nested review/evidence refs byte-stable after round-trip
+- [x] Warning-only records persist
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

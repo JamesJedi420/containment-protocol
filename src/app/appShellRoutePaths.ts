@@ -23,6 +23,8 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'report',
   'intel',
   'pattern-source-series',
+  'self-censoring-information',
+  'public-disclosure-state',
 ] as const
 
 export function navPathToShellSegment(path: string): string {

@@ -778,6 +778,11 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.selfCensoringInformation,
       description: 'Review retention timers, rediscovery loops, and negative-fact posture.',
     },
+    {
+      label: 'Open public disclosure mirror',
+      href: APP_ROUTES.publicDisclosureState,
+      description: 'Review awareness levels, fallout phases, and regional trust projections.',
+    },
   ]
 }
 

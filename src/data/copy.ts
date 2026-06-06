@@ -903,6 +903,38 @@ export const SELF_CENSORING_INFORMATION_MIRROR_UI_TEXT: Record<string, string> =
   redactedSuffix: 'Partial redaction',
 }
 
+export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Public disclosure state registry',
+  pageSubtitle:
+    'Read-only operations view over persisted post-secrecy campaign records and regional trust projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  disclosureActiveLabel: 'Disclosure active',
+  normalizationInputLabel: 'Normalization inputs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Awareness, fallout, and regional trust mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No public disclosure records',
+  emptyBody:
+    'Persisted public disclosure records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Regional trust comes from disclosure regional projection; transition history displays scheduled awareness steps as stored.',
+  labelColumn: 'Label',
+  awarenessColumn: 'Awareness',
+  falloutColumn: 'Fallout phase',
+  regionalTrustColumn: 'Regional trust',
+  oversightColumn: 'Oversight pressure',
+  transitionColumn: 'Transition history',
+  normalizationColumn: 'Normalization / contracts',
+  confidenceColumn: 'Confidence',
+  campaignPivotPrefix: 'Campaign pivot:',
+  coverCapacityFailureSuffix: 'Cover capacity failure declared',
+  linkedContractSuffix: 'linked contract hook(s)',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

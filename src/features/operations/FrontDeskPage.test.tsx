@@ -5,10 +5,13 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
+import { getCanonicalFundingState, placeProcurementOrder } from '../../domain/funding'
+import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
+import { normalizeGameState } from '../../domain/teamSimulation'
 import FrontDeskPage from './FrontDeskPage'
 import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
-import type { OperationEvent } from '../../domain/events/types'
+import type { GameState, OperationEvent } from '../../domain/models'
 
 function renderFrontDesk() {
   return render(
@@ -25,6 +28,49 @@ function renderFrontDesk() {
   )
 }
 
+function withProcurementBacklog(game: GameState, requestedWeek: number): GameState {
+  const listing = getProcurementListings(game).find((candidate) => candidate.accessAvailable)
+  if (!listing) {
+    throw new Error('Expected at least one accessible procurement listing.')
+  }
+
+  const fundingState = placeProcurementOrder(getCanonicalFundingState(game), {
+    requestId: `test-procurement-${requestedWeek}`,
+    itemId: listing.itemId,
+    quantity: listing.bundleQuantity,
+    requestedWeek,
+    cost: 1,
+  })
+
+  return normalizeGameState({
+    ...game,
+    agency: {
+      ...game.agency!,
+      fundingState,
+    },
+  })
+}
+
+function withLostAgents(game: GameState, count: number): GameState {
+  const agents = { ...game.agents }
+  for (const agentId of Object.keys(agents).slice(0, count)) {
+    agents[agentId] = {
+      ...agents[agentId]!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: ['test-loss'],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+  }
+
+  return normalizeGameState({
+    ...game,
+    agents,
+  })
+}
+
 describe('FrontDeskPage', () => {
   beforeEach(() => {
     useGameStore.persist.clearStorage()
@@ -36,9 +82,13 @@ describe('FrontDeskPage', () => {
     renderFrontDesk()
 
     expect(screen.getByRole('region', { name: /operations hub overview/i })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: /operations \/ assignments \/ queues/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: /operations \/ assignments \/ queues/i })
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /current campaign state/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /campaign profile and rules ledger/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: /campaign profile and rules ledger/i })
+    ).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /active pressures/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /recent reports \/ events/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /immediate attention/i })).toBeInTheDocument()
@@ -46,9 +96,13 @@ describe('FrontDeskPage', () => {
     expect(screen.getByRole('heading', { name: /procurement snapshot/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /agency standing/i })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /latest report/i })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: /courier network capacity opportunity/i })).toBeInTheDocument()
     expect(
-      screen.getByText(/core loop prompt: finish triage and prep, then advance week to publish the next report\./i)
+      screen.getByRole('region', { name: /courier network capacity opportunity/i })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        /core loop prompt: finish triage and prep, then advance week to publish the next report\./i
+      )
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: /weekly reports/i }))
@@ -58,7 +112,9 @@ describe('FrontDeskPage', () => {
   it('reflects live canonical state and degrades cleanly when optional data is missing', async () => {
     renderFrontDesk()
 
-    expect(screen.getByText(/no reports yet\. advance a week to begin the run\./i)).toBeInTheDocument()
+    expect(
+      screen.getByText(/no reports yet\. advance a week to begin the run\./i)
+    ).toBeInTheDocument()
     expect(screen.getByText(/no recent reports or events are available yet\./i)).toBeInTheDocument()
 
     const next = createStartingState()
@@ -98,7 +154,9 @@ describe('FrontDeskPage', () => {
     await waitFor(() => {
       expect(screen.getByText(/1 program in the academy queue\./i)).toBeInTheDocument()
       expect(screen.getByRole('link', { name: /^week 1$/i })).toBeInTheDocument()
-      expect(screen.getByText(/1 resolved, 0 unresolved triggers, 0 spawned cases/i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/1 resolved, 0 unresolved triggers, 0 spawned cases/i)
+      ).toBeInTheDocument()
     })
   })
 
@@ -108,7 +166,9 @@ describe('FrontDeskPage', () => {
     act(() => {
       useGameStore.setState({ game: cleared })
     })
-    expect(screen.queryByRole('region', { name: /courier network capacity opportunity/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: /courier network capacity opportunity/i })
+    ).not.toBeInTheDocument()
   })
 
   it('links logistics opportunity drill-ins to markets and agency routes', async () => {
@@ -119,6 +179,42 @@ describe('FrontDeskPage', () => {
     expect(screen.getByText(/markets home/i)).toBeInTheDocument()
   })
 
+  it('renders procurement pressure opportunity and links to markets', async () => {
+    const user = userEvent.setup()
+    const game = withProcurementBacklog({ ...createStartingState(), week: 99 }, 1)
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /procurement pressure opportunity/i })
+    expect(
+      within(opportunity).getByText(/procurement backlog needs attention/i)
+    ).toBeInTheDocument()
+    expect(within(opportunity).getByText(/stale backlog/i)).toBeInTheDocument()
+
+    await user.click(within(opportunity).getByRole('link', { name: /open procurement/i }))
+    expect(screen.getByText(/markets home/i)).toBeInTheDocument()
+  })
+
+  it('renders staffing readiness opportunity and links to teams', async () => {
+    const user = userEvent.setup()
+    const game = withLostAgents(createStartingState(), 2)
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /staffing readiness opportunity/i })
+    expect(
+      within(opportunity).getByText(/staffing gap is pressuring readiness/i)
+    ).toBeInTheDocument()
+    expect(within(opportunity).getByText(/2 staffing gaps/i)).toBeInTheDocument()
+
+    await user.click(within(opportunity).getByRole('link', { name: /open teams/i }))
+    expect(screen.getByText(/teams home/i)).toBeInTheDocument()
+  })
+
   it('logs the selected front-desk routes once per route signature', async () => {
     const { rerender } = renderFrontDesk()
 
@@ -127,9 +223,9 @@ describe('FrontDeskPage', () => {
       expect(entries.some((entry) => entry.type === 'route.selected')).toBe(true)
     })
 
-    const initialRouteLogCount = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).filter(
-      (entry) => entry.type === 'route.selected'
-    ).length
+    const initialRouteLogCount = (
+      useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []
+    ).filter((entry) => entry.type === 'route.selected').length
 
     rerender(
       <MemoryRouter initialEntries={['/']}>

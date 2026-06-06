@@ -18,10 +18,12 @@ import { buildFactionStates } from '../../domain/factions'
 import {
   assessFundingPressure,
   getCanonicalFundingState,
+  getProcurementBacklog,
 } from '../../domain/funding'
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
 import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
 import type { GameState } from '../../domain/models'
+import { getProcurementListings } from '../../domain/market'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
@@ -34,6 +36,7 @@ import {
 import { buildEventFeedView } from '../dashboard/eventFeedView'
 import {
   getOperationsReportView,
+  type OperationsReportView,
   type WeakestLinkOutcomeReportItemView,
 } from '../report/operationsReportView'
 import {
@@ -42,10 +45,7 @@ import {
   buildSpecialRecruitOpportunityChoices,
   buildWeeklyReportTutorialChoices,
 } from './frontDeskChoices'
-import {
-  FRONT_DESK_TRIGGER_IDS,
-  getEligibleFrontDeskSceneTriggerIdSet,
-} from './frontDeskTriggers'
+import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
@@ -167,6 +167,33 @@ export interface FrontDeskCourierCapacityOpportunityView {
   guidanceNote: string
 }
 
+/** SPE-31: deterministic hub opportunity derived from canonical procurement pressure only. */
+export interface FrontDeskProcurementPressureOpportunityView {
+  id: 'procurement-pressure'
+  title: string
+  summary: string
+  severityLabel: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref?: string
+  secondaryLinkLabel?: string
+}
+
+/** SPE-31: deterministic hub opportunity derived from existing staffing/readiness pressure only. */
+export interface FrontDeskStaffingReadinessOpportunityView {
+  id: 'staffing-readiness-pressure'
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  href: string
+  linkLabel: string
+  secondaryHref?: string
+  secondaryLinkLabel?: string
+}
+
 /** SPE-1734: Bounded player-facing readout of the canonical campaign ledger. */
 export interface FrontDeskCampaignRulesSummaryView {
   title: string
@@ -197,6 +224,8 @@ export interface FrontDeskHubView {
   standingSummary: FrontDeskStandingSummaryView
   latestReport: FrontDeskLatestReportView | null
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
+  procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
+  staffingReadinessOpportunity: FrontDeskStaffingReadinessOpportunityView | null
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
@@ -255,7 +284,9 @@ function buildDirectorMessage(
           {
             id: 'recent-clean-report',
             test: () =>
-              Boolean(recent && recent.resolvedCases.length >= 2 && recent.failedCases.length === 0),
+              Boolean(
+                recent && recent.resolvedCases.length >= 2 && recent.failedCases.length === 0
+              ),
           },
         ],
       },
@@ -322,8 +353,7 @@ function buildWeeklyReportNotice(
       value: {
         id: 'weekly-report-tutorial',
         title: 'Weekly report orientation',
-        body:
-          'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
+        body: 'The weekly report is your canonical after-action ledger. Review it first, then set assignments and supply priorities from the same picture.',
         tone: 'info',
         actionTarget: 'report',
         actionLabel: 'Open report',
@@ -340,8 +370,7 @@ function buildWeeklyReportNotice(
       value: {
         id: 'weekly-report-returning',
         title: 'Weekly report on quiet cadence',
-        body:
-          'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
+        body: 'Tutorial prompts are now retired. Keep a steady report-review rhythm to catch drift before it compounds.',
         tone: 'info',
         actionTarget: 'report',
         actionLabel: 'Open report',
@@ -357,8 +386,7 @@ function buildWeeklyReportNotice(
       value: {
         id: 'weekly-report-returning',
         title: 'Weekly report ready',
-        body:
-          'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
+        body: 'A queued front-desk follow-up is pending. Review the latest dossier first to anchor your response in current state changes.',
         tone: 'info',
         actionTarget: 'report',
         actionLabel: 'Review dossier',
@@ -369,8 +397,7 @@ function buildWeeklyReportNotice(
       value: {
         id: 'weekly-report-returning',
         title: 'Weekly report ready',
-        body:
-          'The latest dossier is ready for review. Check it before you commit teams so you can react to last week\'s fatigue, fallout, and unlocked follow-ups.',
+        body: "The latest dossier is ready for review. Check it before you commit teams so you can react to last week's fatigue, fallout, and unlocked follow-ups.",
         tone: 'info',
         actionTarget: 'report',
         actionLabel: 'Review dossier',
@@ -378,12 +405,14 @@ function buildWeeklyReportNotice(
     },
   ]
 
-  return selectAuthoredBranch(game, routes, context)?.value ?? {
-    id: 'weekly-report-returning',
-    title: 'Weekly report ready',
-    body: 'The latest dossier is ready for review.',
-    tone: 'info',
-  }
+  return (
+    selectAuthoredBranch(game, routes, context)?.value ?? {
+      id: 'weekly-report-returning',
+      title: 'Weekly report ready',
+      body: 'The latest dossier is ready for review.',
+      tone: 'info',
+    }
+  )
 }
 
 function buildBreachFollowUpNotice(
@@ -395,92 +424,90 @@ function buildBreachFollowUpNotice(
     selectAuthoredBranch<FrontDeskNoticeView | null>(
       game,
       [
-      {
-        id: 'breach-follow-up-queued',
-        when: {
-          followUps: {
-            anyOf: [
-              'containment.breach.followup.cautious-brief',
-              'containment.breach.followup.aggressive-brief',
-            ],
+        {
+          id: 'breach-follow-up-queued',
+          when: {
+            followUps: {
+              anyOf: [
+                'containment.breach.followup.cautious-brief',
+                'containment.breach.followup.aggressive-brief',
+              ],
+            },
+          },
+          value: {
+            id: 'breach-follow-up-queued',
+            title: 'Breach follow-up queued for command review',
+            body: 'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
+            tone: 'warning',
+            actionTarget: 'cases',
+            actionLabel: 'Review queued follow-up',
           },
         },
-        value: {
-          id: 'breach-follow-up-queued',
-          title: 'Breach follow-up queued for command review',
-          body:
-            'A command-selected breach brief is queued. Review cases and execute before threat momentum shifts again.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review queued follow-up',
-        },
-      },
-      {
-        id: 'breach-follow-up-cautious-brief',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-cautious-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpCautiousBrief),
-            },
-          ],
-        },
-        value: {
+        {
           id: 'breach-follow-up-cautious-brief',
-          title: 'Cautious breach posture logged',
-          body:
-            'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
+          when: {
+            predicates: [
+              {
+                id: 'breach-follow-up-cautious-trigger-eligible',
+                test: () =>
+                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpCautiousBrief),
+              },
+            ],
+          },
+          value: {
+            id: 'breach-follow-up-cautious-brief',
+            title: 'Cautious breach posture logged',
+            body: 'The follow-up plan is now weighted toward containment discipline, recovery tempo, and reducing avoidable exposure.',
+            tone: 'warning',
+            actionTarget: 'cases',
+            actionLabel: 'Review cases',
+          },
         },
-      },
-      {
-        id: 'breach-follow-up-aggressive-brief',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-aggressive-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpAggressiveBrief),
-            },
-          ],
-        },
-        value: {
+        {
           id: 'breach-follow-up-aggressive-brief',
-          title: 'Aggressive breach posture logged',
-          body:
-            'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
-          tone: 'danger',
-          actionTarget: 'cases',
-          actionLabel: 'Review cases',
+          when: {
+            predicates: [
+              {
+                id: 'breach-follow-up-aggressive-trigger-eligible',
+                test: () =>
+                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpAggressiveBrief),
+              },
+            ],
+          },
+          value: {
+            id: 'breach-follow-up-aggressive-brief',
+            title: 'Aggressive breach posture logged',
+            body: 'A high-tempo response has been authorized. Expect faster movement, sharper exposure risk, and tighter recovery margins.',
+            tone: 'danger',
+            actionTarget: 'cases',
+            actionLabel: 'Review cases',
+          },
         },
-      },
-      {
-        id: 'breach-follow-up-open',
-        when: {
-          predicates: [
-            {
-              id: 'breach-follow-up-open-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpOpen),
-            },
-          ],
-        },
-        value: {
+        {
           id: 'breach-follow-up-open',
-          title: 'Containment breach follow-up available',
-          body:
-            'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
-          tone: 'warning',
-          actionTarget: 'cases',
-          actionLabel: 'Inspect cases',
-          choices: buildBreachFollowUpChoices(),
+          when: {
+            predicates: [
+              {
+                id: 'breach-follow-up-open-trigger-eligible',
+                test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.breachFollowUpOpen),
+              },
+            ],
+          },
+          value: {
+            id: 'breach-follow-up-open',
+            title: 'Containment breach follow-up available',
+            body: 'A follow-up operation is now authorized. Review open cases before the lead cools and the breach window closes.',
+            tone: 'warning',
+            actionTarget: 'cases',
+            actionLabel: 'Inspect cases',
+            choices: buildBreachFollowUpChoices(),
+          },
         },
-      },
-      {
-        id: 'breach-follow-up-none',
-        value: null,
-      },
-    ],
+        {
+          id: 'breach-follow-up-none',
+          value: null,
+        },
+      ],
       context
     )?.value ?? null
   )
@@ -491,62 +518,64 @@ function buildHostileFactionNotice(
   hostileFaction: ReturnType<typeof buildFactionStates>[number] | undefined,
   context: AuthoredBranchContext
 ): FrontDeskNoticeView | null {
-
   return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(game, [
-      {
-        id: 'hostile-faction-response',
-        when: {
-          flags: hostileFaction
+    selectAuthoredBranch<FrontDeskNoticeView | null>(
+      game,
+      [
+        {
+          id: 'hostile-faction-response',
+          when: {
+            flags: hostileFaction
+              ? {
+                  allFlags: [
+                    {
+                      flagId: `faction.${hostileFaction.id}.frontdesk-response`,
+                      equals: 'containment',
+                    },
+                  ],
+                }
+              : undefined,
+          },
+          value: hostileFaction
             ? {
-                allFlags: [
-                  {
-                    flagId: `faction.${hostileFaction.id}.frontdesk-response`,
-                    equals: 'containment',
-                  },
-                ],
+                id: 'hostile-faction-response',
+                title: `${hostileFaction.label} response posture set`,
+                body: 'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
+                tone: 'warning',
+                actionTarget: 'factions',
+                actionLabel: 'Review standing',
               }
-            : undefined,
+            : null,
         },
-        value: hostileFaction
-          ? {
-              id: 'hostile-faction-response',
-              title: `${hostileFaction.label} response posture set`,
-              body:
-                'Counter-intelligence posture is active. Keep watch for retaliation pressure, infiltration signals, and supply-line friction.',
-              tone: 'warning',
-              actionTarget: 'factions',
-              actionLabel: 'Review standing',
-            }
-          : null,
-      },
-      {
-        id: 'hostile-faction-alert',
-        when: {
-          predicates: [
-            {
-              id: 'hostile-faction-present',
-              test: () => Boolean(hostileFaction),
-            },
-          ],
+        {
+          id: 'hostile-faction-alert',
+          when: {
+            predicates: [
+              {
+                id: 'hostile-faction-present',
+                test: () => Boolean(hostileFaction),
+              },
+            ],
+          },
+          value: hostileFaction
+            ? {
+                id: 'hostile-faction-alert',
+                title: `${hostileFaction.label} pressure rising`,
+                body: hostileFaction.feedback,
+                tone: 'warning',
+                actionTarget: 'factions',
+                actionLabel: 'Review standing',
+                choices: buildHostileFactionResponseChoices(hostileFaction),
+              }
+            : null,
         },
-        value: hostileFaction
-          ? {
-              id: 'hostile-faction-alert',
-              title: `${hostileFaction.label} pressure rising`,
-              body: hostileFaction.feedback,
-              tone: 'warning',
-              actionTarget: 'factions',
-              actionLabel: 'Review standing',
-              choices: buildHostileFactionResponseChoices(hostileFaction),
-            }
-          : null,
-      },
-      {
-        id: 'hostile-faction-none',
-        value: null,
-      },
-    ], context)?.value ?? null
+        {
+          id: 'hostile-faction-none',
+          value: null,
+        },
+      ],
+      context
+    )?.value ?? null
   )
 }
 
@@ -563,36 +592,41 @@ function buildSpecialRecruitNotice(
   )
 
   return (
-    selectAuthoredBranch<FrontDeskNoticeView | null>(game, [
-      {
-        id: 'special-recruit-opportunity',
-        when: {
-          predicates: [
-            {
-              id: 'special-recruit-trigger-eligible',
-              test: () => eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity),
-            },
-          ],
+    selectAuthoredBranch<FrontDeskNoticeView | null>(
+      game,
+      [
+        {
+          id: 'special-recruit-opportunity',
+          when: {
+            predicates: [
+              {
+                id: 'special-recruit-trigger-eligible',
+                test: () =>
+                  eligibleTriggerIds.has(FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity),
+              },
+            ],
+          },
+          value: specialRecruit
+            ? {
+                id: 'special-recruit-opportunity',
+                title: `Special recruit opportunity: ${specialRecruit.name}`,
+                body:
+                  specialRecruit.sourceSummary ??
+                  `${specialRecruit.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
+                tone: 'success',
+                actionTarget: 'recruitment',
+                actionLabel: 'Open recruitment',
+                choices: buildSpecialRecruitOpportunityChoices(specialRecruit),
+              }
+            : null,
         },
-        value: specialRecruit
-          ? {
-              id: 'special-recruit-opportunity',
-              title: `Special recruit opportunity: ${specialRecruit.name}`,
-              body:
-                specialRecruit.sourceSummary ??
-                `${specialRecruit.name} arrived through a trusted outside channel and may not stay in the pool for long.`,
-              tone: 'success',
-              actionTarget: 'recruitment',
-              actionLabel: 'Open recruitment',
-              choices: buildSpecialRecruitOpportunityChoices(specialRecruit),
-            }
-          : null,
-      },
-      {
-        id: 'special-recruit-none',
-        value: null,
-      },
-    ], context)?.value ?? null
+        {
+          id: 'special-recruit-none',
+          value: null,
+        },
+      ],
+      context
+    )?.value ?? null
   )
 }
 
@@ -787,7 +821,9 @@ function buildQueueCards(
   const blockedMissionCount = operationsReport.missionRouting.filter(
     (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
   ).length
-  const pendingBacklog = fundingState.procurementBacklog.filter((entry) => entry.status === 'pending')
+  const pendingBacklog = fundingState.procurementBacklog.filter(
+    (entry) => entry.status === 'pending'
+  )
 
   return [
     {
@@ -806,7 +842,9 @@ function buildQueueCards(
           ? reconLeads.map((candidate) => {
               const stage = candidate.scoutReport?.stage ?? 1
               const tier =
-                candidate.scoutReport?.confirmedTier ?? candidate.scoutReport?.projectedTier ?? 'unknown'
+                candidate.scoutReport?.confirmedTier ??
+                candidate.scoutReport?.projectedTier ??
+                'unknown'
               const confidence = candidate.scoutReport?.confidence
                 ? candidate.scoutReport.confidence === 'confirmed'
                   ? 'confirmed intel'
@@ -837,7 +875,9 @@ function buildQueueCards(
         game.trainingQueue.length > 0
           ? game.trainingQueue
               .slice(0, MAX_QUEUE_DETAILS)
-              .map((entry) => `${entry.agentName}: ${entry.trainingName} / ${entry.remainingWeeks}w`)
+              .map(
+                (entry) => `${entry.agentName}: ${entry.trainingName} / ${entry.remainingWeeks}w`
+              )
           : ['No academy queue entries are active.'],
     },
     {
@@ -868,10 +908,16 @@ function buildQueueCards(
         [
           ...pendingBacklog
             .slice(0, 2)
-            .map((entry) => `${entry.itemId}: supplier handoff pending from week ${entry.requestedWeek}`),
+            .map(
+              (entry) =>
+                `${entry.itemId}: supplier handoff pending from week ${entry.requestedWeek}`
+            ),
           ...game.productionQueue
             .slice(0, 2)
-            .map((entry) => `${entry.outputItemName}: fabrication completes in ${entry.remainingWeeks}w`),
+            .map(
+              (entry) =>
+                `${entry.outputItemName}: fabrication completes in ${entry.remainingWeeks}w`
+            ),
           fundingPressure.staleProcurementRequestIds.length > 0
             ? `${pluralize(
                 fundingPressure.staleProcurementRequestIds.length,
@@ -958,7 +1004,8 @@ function buildAttentionItems(
   }))
 
   const debriefAttention =
-    operationsReport.contractDebrief.attentionSummary && operationsReport.contractDebrief.records.length > 0
+    operationsReport.contractDebrief.attentionSummary &&
+    operationsReport.contractDebrief.records.length > 0
       ? [
           {
             id: 'debrief:latest',
@@ -994,7 +1041,9 @@ function buildAttentionItems(
     }))
 
   const routingItems = operationsReport.missionRouting
-    .filter((entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred')
+    .filter(
+      (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
+    )
     .map((entry) => ({
       id: `routing:${entry.missionId}`,
       title: `${entry.routingStateLabel}: ${entry.missionTitle}`,
@@ -1077,7 +1126,9 @@ function buildTeamStatusViews(game: GameState): FrontDeskTeamStatusView[] {
 function buildProcurementSnapshot(game: GameState): FrontDeskProcurementSnapshotView {
   const fundingPressure = assessFundingPressure(game)
   const fundingState = getCanonicalFundingState(game)
-  const pendingBacklog = fundingState.procurementBacklog.filter((entry) => entry.status === 'pending')
+  const pendingBacklog = fundingState.procurementBacklog.filter(
+    (entry) => entry.status === 'pending'
+  )
 
   return {
     summary:
@@ -1129,7 +1180,8 @@ function buildStandingSummary(game: GameState): FrontDeskStandingSummaryView {
       faction.reputationTier === 'allied'
   )
   const activeContacts = factions.reduce(
-    (sum, faction) => sum + faction.contacts.filter((contact) => contact.status === 'active').length,
+    (sum, faction) =>
+      sum + faction.contacts.filter((contact) => contact.status === 'active').length,
     0
   )
   const hiddenEffects = factions.reduce((sum, faction) => sum + faction.hiddenModifierCount, 0)
@@ -1210,7 +1262,7 @@ function buildLatestReportView(game: GameState): FrontDeskLatestReportView | nul
 }
 
 export function buildCourierNetworkCapacityOpportunityCard(
-  report: CapabilityGapReport,
+  report: CapabilityGapReport
 ): FrontDeskCourierCapacityOpportunityView | null {
   if (!report.unresolved || report.gapKind === 'none') {
     return null
@@ -1251,6 +1303,164 @@ export function buildCourierNetworkCapacityOpportunityCard(
   }
 
   return null
+}
+
+export function buildProcurementPressureOpportunityCard(
+  game: GameState
+): FrontDeskProcurementPressureOpportunityView | null {
+  const fundingPressure = assessFundingPressure(game)
+  const fundingState = getCanonicalFundingState(game)
+  const backlog = getProcurementBacklog(fundingState)
+  const pendingBacklog = backlog.filter((entry) => entry.status === 'pending')
+  const staleRequestIds = new Set(fundingPressure.staleProcurementRequestIds)
+  const staleBacklog = pendingBacklog.filter((entry) => staleRequestIds.has(entry.requestId))
+  const activeFabrication = game.productionQueue
+
+  if (
+    staleBacklog.length === 0 &&
+    pendingBacklog.length === 0 &&
+    activeFabrication.length === 0 &&
+    !fundingPressure.constrained &&
+    !fundingPressure.severeConstraint
+  ) {
+    return null
+  }
+
+  const listingsByItemId = new Map(
+    getProcurementListings(game).map((listing) => [listing.itemId, listing.itemName])
+  )
+  const formatBacklogEntry = (entry: (typeof pendingBacklog)[number]) =>
+    listingsByItemId.get(entry.itemId) ?? entry.itemId
+  const tone: FrontDeskNoticeTone =
+    staleBacklog.length > 0 || fundingPressure.severeConstraint ? 'danger' : 'warning'
+  const severityLabel =
+    staleBacklog.length > 0
+      ? 'Stale backlog'
+      : fundingPressure.severeConstraint
+        ? 'Severe pressure'
+        : fundingPressure.constrained
+          ? 'Budget pressure'
+          : 'Queued'
+
+  return {
+    id: 'procurement-pressure',
+    title:
+      staleBacklog.length > 0
+        ? 'Procurement backlog needs attention'
+        : fundingPressure.constrained
+          ? 'Procurement pressure is constraining operations'
+          : 'Procurement queue has open follow-through',
+    summary: `${pluralize(pendingBacklog.length, 'supplier request')} pending, ${pluralize(
+      staleBacklog.length,
+      'stale request'
+    )}, ${pluralize(activeFabrication.length, 'fabrication order')} active. Budget pressure ${
+      fundingPressure.budgetPressure
+    }/4.`,
+    severityLabel,
+    tone,
+    details: uniqueBounded(
+      [
+        staleBacklog.length > 0
+          ? `${staleBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} have exceeded the expected supplier handoff window.`
+          : '',
+        pendingBacklog.length > 0
+          ? `${pendingBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} remain in the procurement backlog.`
+          : '',
+        activeFabrication.length > 0
+          ? `${activeFabrication[0]!.outputItemName} is the next fabrication completion.`
+          : '',
+        fundingPressure.constrained
+          ? `Funding signal: ${fundingPressure.reasonCodes[0] ?? `budget-pressure:${fundingPressure.budgetPressure}`}.`
+          : '',
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.marketsSuppliers,
+    primaryLinkLabel: 'Open procurement',
+    ...(activeFabrication.length > 0
+      ? {
+          secondaryHref: APP_ROUTES.fabrication,
+          secondaryLinkLabel: 'Open fabrication',
+        }
+      : {}),
+  }
+}
+
+export function buildStaffingReadinessOpportunityCard(
+  game: GameState,
+  operationsReport: OperationsReportView = getOperationsReportView(game)
+): FrontDeskStaffingReadinessOpportunityView | null {
+  const attritionPressure = assessAttritionPressure(game)
+  const hardBlockedReadiness = operationsReport.deploymentReadiness.filter(
+    (entry) => entry.hardBlockers.length > 0
+  )
+  const blockedOrDeferredRouting = operationsReport.missionRouting.filter(
+    (entry) => entry.routingStateLabel === 'Blocked' || entry.routingStateLabel === 'Deferred'
+  )
+
+  if (
+    attritionPressure.staffingGap === 0 &&
+    hardBlockedReadiness.length === 0 &&
+    blockedOrDeferredRouting.length === 0
+  ) {
+    return null
+  }
+
+  const blockedRoutingCount = blockedOrDeferredRouting.filter(
+    (entry) => entry.routingStateLabel === 'Blocked'
+  ).length
+  const tone: FrontDeskNoticeTone =
+    attritionPressure.severeConstraint || hardBlockedReadiness.length > 0 || blockedRoutingCount > 0
+      ? 'danger'
+      : 'warning'
+  const leadReadiness = hardBlockedReadiness[0]
+  const leadRouting = blockedOrDeferredRouting[0]
+
+  return {
+    id: 'staffing-readiness-pressure',
+    title:
+      attritionPressure.staffingGap > 0
+        ? 'Staffing gap is pressuring readiness'
+        : hardBlockedReadiness.length > 0
+          ? 'Readiness blockers need team review'
+          : 'Mission routing is deferred by readiness pressure',
+    summary: `${pluralize(attritionPressure.staffingGap, 'staffing gap')}, ${pluralize(
+      hardBlockedReadiness.length,
+      'hard-blocked team pairing'
+    )}, ${pluralize(blockedOrDeferredRouting.length, 'blocked or deferred mission')}.`,
+    tone,
+    details: uniqueBounded(
+      [
+        attritionPressure.staffingGap > 0
+          ? `${pluralize(attritionPressure.staffingGap, 'operative')} need replacement coverage before the roster is fully staffed.`
+          : '',
+        leadReadiness
+          ? `${leadReadiness.teamName} -> ${leadReadiness.missionTitle}: ${leadReadiness.hardBlockers.join(', ')}.`
+          : '',
+        leadRouting
+          ? `${leadRouting.routingStateLabel}: ${leadRouting.missionTitle} / ${leadRouting.dominantFactorLabel}.`
+          : '',
+        attritionPressure.reasonCodes[0]
+          ? `Attrition signal: ${attritionPressure.reasonCodes[0]}.`
+          : '',
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    href: APP_ROUTES.teams,
+    linkLabel: 'Open teams',
+    ...(attritionPressure.staffingGap > 0
+      ? {
+          secondaryHref: APP_ROUTES.recruitment,
+          secondaryLinkLabel: 'Open recruitment',
+        }
+      : {}),
+  }
 }
 
 export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
@@ -1307,8 +1517,10 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     standingSummary: buildStandingSummary(game),
     latestReport: buildLatestReportView(game),
     courierCapacityOpportunity: buildCourierNetworkCapacityOpportunityCard(
-      buildCourierNetworkCapacityGapReport(game),
+      buildCourierNetworkCapacityGapReport(game)
     ),
+    procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
+    staffingReadinessOpportunity: buildStaffingReadinessOpportunityCard(game, operationsReport),
     campaignRulesSummary: {
       title: 'Campaign profile & rules ledger',
       headline: rulesSummary.headline,

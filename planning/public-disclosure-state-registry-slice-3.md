@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2326](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2326 — Public disclosure registry weekly progression hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2326) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2519 @ `66c2a14c`                                                                        |
 | **Parent** | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) — registry anchor (slice 1–2 shipped); umbrella [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) stays open |
 | **Branch** | `spe-2109-public-disclosure-weekly-hook-slice-3`                                                           |
 | **Base `main` SHA** | `f18ce9d6`                                                                                          |

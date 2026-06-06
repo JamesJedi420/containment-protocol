@@ -201,6 +201,7 @@ import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureSt
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
+import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
 import {
   buildCandidateEvaluation,
@@ -8429,6 +8430,10 @@ export function hydrateGame(
     game.entityWelfareReclassificationRecords,
     fallback.entityWelfareReclassificationRecords ?? {}
   )
+  const containedPersonTherapeuticCareRecords = sanitizeTherapeuticCareScheduleRecords(
+    game.containedPersonTherapeuticCareRecords,
+    fallback.containedPersonTherapeuticCareRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8555,6 +8560,7 @@ export function hydrateGame(
       massAnomalousPopulationEmergenceRecords,
       visualTriggerHazardRecords,
       entityWelfareReclassificationRecords,
+      containedPersonTherapeuticCareRecords,
       candidates,
       recruitmentPool,
       teams,

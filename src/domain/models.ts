@@ -252,6 +252,7 @@ import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
+import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
@@ -2608,6 +2609,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   entityWelfareReclassificationRecords?: Record<string, EntityWelfareReclassificationRecord>
+
+  /**
+   * SPE-2115 slice 2: persisted contained-person therapeutic care schedule records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  containedPersonTherapeuticCareRecords?: Record<string, TherapeuticCareScheduleRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

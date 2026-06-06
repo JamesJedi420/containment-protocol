@@ -587,3 +587,118 @@ export const MISSED_STREAK_ELEVATED_RISK_FIXTURE: TherapeuticCareScheduleRecord 
   containmentDependency: true,
   confidence: 0.71,
 })
+
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+export type TherapeuticCareScheduleRecordsMap = Record<
+  TherapeuticCareScheduleId,
+  TherapeuticCareScheduleRecord
+>
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizeTherapeuticCareScheduleRecordEntry(
+  value: unknown
+): TherapeuticCareScheduleRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const subjectRef = normalizeToken(value.subjectRef)
+  const careMode = value.careMode
+  const cadence = value.cadence
+  const channelState = value.channelState
+  const missedSessionStreak = value.missedSessionStreak
+
+  if (
+    !id ||
+    !label ||
+    !subjectRef ||
+    typeof careMode !== 'string' ||
+    !isCareMode(careMode) ||
+    typeof cadence !== 'string' ||
+    !isCareCadence(cadence) ||
+    typeof channelState !== 'string' ||
+    !isChannelState(channelState) ||
+    !isNonNegativeInteger(missedSessionStreak)
+  ) {
+    return null
+  }
+
+  const staffAssigneeRefs = parseStringList(value.staffAssigneeRefs)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const suspensionCauseRef = normalizeToken(value.suspensionCauseRef ?? '') || undefined
+  const confidence = value.confidence
+  const containmentDependency =
+    typeof value.containmentDependency === 'boolean' ? value.containmentDependency : undefined
+
+  const record: TherapeuticCareScheduleRecord = {
+    id,
+    label,
+    subjectRef,
+    careMode,
+    cadence,
+    channelState,
+    missedSessionStreak,
+    ...(summary ? { summary } : {}),
+    ...(staffAssigneeRefs.length > 0 ? { staffAssigneeRefs } : {}),
+    ...(containmentDependency !== undefined ? { containmentDependency } : {}),
+    ...(suspensionCauseRef ? { suspensionCauseRef } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateTherapeuticCareScheduleRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeTherapeuticCareScheduleRecords(
+  value: unknown,
+  fallback: TherapeuticCareScheduleRecordsMap = {}
+): TherapeuticCareScheduleRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: TherapeuticCareScheduleRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeTherapeuticCareScheduleRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}

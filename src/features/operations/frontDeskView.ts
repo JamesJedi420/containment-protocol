@@ -768,6 +768,11 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: shell.weeklyReportHref,
       description: 'Open the current or latest weekly report.',
     },
+    {
+      label: 'Open series intake mirror',
+      href: APP_ROUTES.patternSourceSeries,
+      description: 'Review pattern source series queue rank and processing posture.',
+    },
   ]
 }
 

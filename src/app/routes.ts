@@ -25,6 +25,7 @@ export const APP_ROUTES = {
   reportDetail: (week: number | string) => `/report/${week}`,
   intel: '/intel',
   intelDetail: (templateId: string) => `/intel/${encodeURIComponent(templateId)}`,
+  patternSourceSeries: '/pattern-source-series',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

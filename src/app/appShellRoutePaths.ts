@@ -22,6 +22,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'help',
   'report',
   'intel',
+  'pattern-source-series',
 ] as const
 
 export function navPathToShellSegment(path: string): string {

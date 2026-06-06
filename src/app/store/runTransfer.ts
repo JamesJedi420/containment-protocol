@@ -200,6 +200,7 @@ import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensor
 import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
+import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8419,6 +8420,10 @@ export function hydrateGame(
       game.massAnomalousPopulationEmergenceRecords,
       fallback.massAnomalousPopulationEmergenceRecords ?? {}
     )
+  const visualTriggerHazardRecords = sanitizeVisualTriggerHazardRecords(
+    game.visualTriggerHazardRecords,
+    fallback.visualTriggerHazardRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8543,6 +8548,7 @@ export function hydrateGame(
       publicDisclosureRecords,
       patternSourceSeriesRecords,
       massAnomalousPopulationEmergenceRecords,
+      visualTriggerHazardRecords,
       candidates,
       recruitmentPool,
       teams,

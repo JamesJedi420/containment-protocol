@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2327](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2327 — Pattern source series registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2327) |
-| **Status** | **In progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2521 @ `0f67c210`                                                                        |
 | **Parent** | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) — Pattern source series intake registry; umbrella [SPE-75](https://linear.app/spectranoir/issue/SPE-75) |
 | **Branch** | `spe-2110-pattern-source-series-persistence-slice-2`                                                     |
 | **Base `main` SHA** | `283fb1c8`                                                                                          |

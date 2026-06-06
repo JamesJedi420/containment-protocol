@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2333](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2333 — Mass anomalous population emergence registry weekly governance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2333) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2533 @ `832cbfa5` |
 | **Parent** | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) — registry anchor (slice 1–2 shipped); umbrella [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) stays open |
 | **Branch** | `spe-2122-mass-anomalous-population-emergence-weekly-hook-slice-3`                                         |
 | **Base `main` SHA** | `ce173c80`                                                                                          |

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2328](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2328 — Pattern source series registry weekly intake advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2328) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2523 @ `37619b71`                                                                        |
 | **Parent** | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) — registry anchor (slice 1–2 shipped); umbrella [SPE-75](https://linear.app/spectranoir/issue/SPE-75) stays open |
 | **Branch** | `spe-2110-pattern-source-series-weekly-hook-slice-3`                                                       |
 | **Base `main` SHA** | `64103720`                                                                                          |

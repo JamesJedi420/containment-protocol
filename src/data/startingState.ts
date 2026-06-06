@@ -50,6 +50,7 @@ const startingStateTemplate: GameState = {
   visualTriggerHazardRecords: {},
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},
+  containedPersonIntegratedHealthBundles: {},
   factions: createInitialFactionState(),
 
   agency: {

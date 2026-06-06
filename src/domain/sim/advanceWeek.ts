@@ -268,6 +268,8 @@ import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPo
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
+import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
+import { composeTherapeuticCareIntoIntegratedHealthBundles } from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -4654,6 +4656,24 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentTherapeuticCareRecords,
       result.week
     )
+  }
+
+  // SPE-1889 slice 5: wire therapeutic-care records into integrated health bundles.
+  const therapeuticCareRecordsForBundleCompose =
+    outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
+  const currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const hasTherapeuticCareRecords =
+    Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
+  const hasIntegratedHealthBundles = Object.keys(currentIntegratedHealthBundles).length > 0
+  if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
+    const derivedTherapeuticCareBundleFragments = deriveTherapeuticCareBundleFragmentsFromRecords(
+      therapeuticCareRecordsForBundleCompose
+    )
+    outputWeeklyState.containedPersonIntegratedHealthBundles =
+      composeTherapeuticCareIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedTherapeuticCareBundleFragments
+      )
   }
 
   // SPE-2122 slice 5: wire population-emergence-derived normalization inputs into disclosure records.

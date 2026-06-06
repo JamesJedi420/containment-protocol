@@ -16,7 +16,7 @@
 2. **Start a new agent chat** before the next slice—not the thread that opened or babysat the merged PR.
 3. First message: Linear issue, `planning/…-slice.md`, new branch name, confirm current `main` commit.
 
-Agents: when merge is complete, remind the user to sync `main` and **start a new agent** for the next task.
+Agents: when merge is complete, sync `main` in-session, then remind the user to **start a new agent** for the next task.
 
 ### Linear — mandatory (every session, every agent)
 
@@ -30,6 +30,7 @@ Linear is the system of record for issue state and closure. **Do not** skip Line
 | **Harvest / triage closure** | Follow **`docs/harvest-candidate-triage-agent.md`**. Post **rich** owner comments (mechanic, repo anchor, ownership, boundary, fold-in vs child reasoning) per **`docs/harvest-fold-in-linear-comments.md`** — not one-line notes; mirror table must match. Owner-map QA: **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session — not "table only." |
 | **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete (`docs/cursor-implementation-lite-user-rules-snippet.md` ship loop; tracked rule `.cursor/rules/implementation-lite.mdc`). |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
+| **Babysit → merge** | Same session: watch CI until green, fix in-boundary failures, merge PR; then `git checkout main` && `git pull origin main`. |
 | **On merge** | Slice issue **Done**; parent **Done** only if full parent scope shipped, else parent **Backlog**. |
 | **After merge** | Short Linear comment: PR URL + what shipped. |
 

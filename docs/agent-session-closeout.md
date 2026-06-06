@@ -6,18 +6,24 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` (`Session closeout`). Past
 
 ---
 
-## Two phases (order matters)
+## Session order (mandatory)
+
+1. Pre-ship audit → commit → push → open PR → Linear PR comment (slice **In Progress**).
+2. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable.
+3. **`git checkout main` && `git pull origin main`** — agent syncs local `main` before closeout.
+4. Linear slice **Done** + merge comment.
+5. **Phase B closeout** — next-issue plan only; **do not** code the next issue.
+
+**Next-issue plan is phase B only** — after merge and local `main` sync, not while the PR is open.
+
+## Two phases (closeout format)
 
 | Phase | When | Agent does | Agent does **not** |
 | ----- | ---- | ---------- | ------------------- |
-| **A — PR opened** | Commit + push + PR + Linear PR comment; slice **In Progress** | Pre-ship closeout (status, changes, audit, validation, deferred, PR URL) | Next-issue plan; mark slice **Done** |
-| **B — After merge** | PR merged; slice **Done** + merge comment on Linear | Next-issue implementation plan only (research) | Code the next issue in the merge/babysit thread |
+| **A — Babysit blocked** | PR open; merge cannot complete in-session | Interim status, PR URL, CI/blocker | Next-issue plan; mark slice **Done** |
+| **B — After merge** | PR merged; slice **Done**; local `main` synced | Next-issue implementation plan only (research) | Code the next issue in this thread |
 
-**Next-issue plan is phase B only** — after merge on `main`, not when the PR is first opened.
-
-Phase A reminder for the human: merge the PR, then `git checkout main` && `git pull`, then **new agent chat** for phase B (or the next slice).
-
-Phase B reminder: new chat with Linear URL, slice doc, branch name, and current `main` SHA.
+Phase B reminder: **new agent chat** for the next slice (Linear URL, slice doc, branch name, `main` SHA) — even though this session already ran `checkout main`.
 
 ---
 
@@ -79,9 +85,9 @@ Tracked rule: `.cursor/rules/implementation-lite.mdc` § Deferred work recording
 
 Return **only** the structure for the current phase (no extra sections, no preamble).
 
-### Phase A — PR opened (implementation session end)
+### Phase A — PR open, babysit blocked (interim only)
 
-Use when the slice is committed, pushed, PR is open, and Linear has the PR link (slice stays **In Progress** until merge).
+Use when the slice is committed, pushed, PR is open, and babysit/merge cannot finish in-session (external blocker or explicit **do not merge**).
 
 ```text
 Current issue status:
@@ -114,7 +120,7 @@ Next issue implementation plan:
 
 ### Phase B — After merge
 
-Use when the PR is **merged**, the slice issue is **Done**, and the merge comment is on Linear.
+Use when the PR is **merged**, the slice issue is **Done**, the merge comment is on Linear, and the agent has run **`git checkout main` && `git pull origin main`**.
 
 ```text
 Merge closeout:
@@ -134,7 +140,7 @@ Next issue implementation plan:
 - Implementation sequence:
 
 Handoff:
-- Remind: git checkout main && git pull; new agent chat with Linear URL, slice doc, branch name, main SHA.
+- Agent already synced main in-session; remind human: new agent chat with Linear URL, slice doc, branch name, main SHA.
 ```
 
 Fill every subsection for the active phase. Use `none` only when truly empty. **Phase A:** **Audit passes** summarize the six pre-ship passes from `docs/agent-pre-ship-audit.md`. **Phase B:** skip audit/validation unless re-run for merge fixes — focus on the next-issue plan.

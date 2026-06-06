@@ -100,10 +100,12 @@ Run the ship loop only **after** pre-ship audit completion criteria are met:
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
 4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
+5. **Babysit → merge (same session, mandatory):** after the PR opens, babysit until CI is clean and the PR is mergeable — triage review comments, fix in-boundary failures, push, re-watch `gh pr checks` until green. Then **merge** the PR (`gh pr merge`). Do **not** end the session or write a next-issue plan while the PR is still open.
+6. **Sync `main`:** `git checkout main` && `git pull origin main`. Confirm the merge commit is on local `main`.
 
-Do **not** end an implementation session with only local files, uncommitted work, or "say if you want a PR."
+Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."
 
-**Exceptions** (honor explicit user words only): "no commit," "no PR," "local only," "plan only," or "do not push."
+**Exceptions** (honor explicit user words only): "no commit," "no PR," "local only," "plan only," "do not push," or "do not merge."
 
 Repo ship loop overrides a generic "commit only when asked" preference for Containment Protocol **implementation** sessions on a named slice branch.
 
@@ -135,19 +137,19 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ## Session closeout (mandatory)
 
-Two phases — **do not** produce the next-issue plan when the PR is only open.
+**Order:** ship loop → babysit CI → merge → `checkout main` && pull → **then** closeout. **Do not** produce a next-issue plan until merge and local `main` sync are complete.
 
-### Phase A — PR opened (end of implementation session)
+### Phase A — PR open, babysit blocked (interim only)
 
-After **commit**, **push**, **PR opened**, and **Linear** updated (PR URL on slice issue; slice **In Progress**):
+Use only when babysit cannot finish in-session (external blocker, merge policy, or explicit user **do not merge**):
 
-1. **Do not** implement the next issue in this session.
-2. **Do not** prepare a next-issue implementation plan yet.
-3. Return the **phase A** final response in `docs/agent-session-closeout.md` (no `Next issue implementation plan` content except the deferral line).
+1. Report blocker, PR URL, and CI status.
+2. **Do not** prepare a next-issue implementation plan.
+3. Return the **phase A** structure in `docs/agent-session-closeout.md`.
 
-### Phase B — After merge
+### Phase B — After merge (normal session end)
 
-After the PR is **merged**, slice issue **Done**, and merge comment on Linear:
+After **PR merged**, slice issue **Done**, merge comment on Linear, and **`git checkout main` && `git pull`**:
 
 1. **Do not** implement the next issue unless the user explicitly asks in that session.
 2. **Do** prepare a **next-issue implementation plan** only (see `docs/agent-session-closeout.md`).
@@ -157,4 +159,4 @@ Next-issue plan must cover: issue ID/title; smallest boundary; files to inspect;
 
 Closeout rules: do not expand the current issue; do not mark Done until merge when the full child boundary is satisfied; keep parent open for child-only slices; prefer small deterministic testable changes; preserve mistaken records and later corrections (no silent overwrite).
 
-After **merge** (phase B): remind the human: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.
+After **merge** (phase B): remind the human to **start a new agent chat** with Linear URL, slice doc, branch name, and current `main` SHA (agent already synced `main` in-session).

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2341](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2341 — Entity welfare reclassification registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2341) |
-| **Status** | **In Progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2549 @ `a166096e`                                                                        |
 | **Parent** | [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) — registry anchor (slice 1–3 shipped); umbrella [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays open |
 | **Branch** | `spe-2114-entity-welfare-reclassification-mirror-ui-slice-4`                                             |
 | **Base `main` SHA** | `50d932c7`                                                                                          |

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2338](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2338 — Visual-trigger hazard registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2338) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2543 @ `6acfa202`                                                                        |
 | **Parent** | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) — registry anchor (slice 1–3 shipped); umbrella [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays open |
 | **Branch** | `spe-2111-visual-trigger-hazard-mirror-ui-slice-4`                                                         |
 | **Base `main` SHA** | `36b18928`                                                                                          |

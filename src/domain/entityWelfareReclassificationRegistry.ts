@@ -759,6 +759,164 @@ export function projectReclassificationPressure(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+export type EntityWelfareReclassificationRecordsMap = Record<
+  EntityWelfareReclassificationId,
+  EntityWelfareReclassificationRecord
+>
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parseTransitionHistoryList(
+  value: unknown
+): readonly ReclassificationTransitionHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const entries: ReclassificationTransitionHistoryEntry[] = []
+
+  for (const entry of value) {
+    if (!isPlainRecord(entry)) {
+      continue
+    }
+
+    const fromState = entry.fromState
+    const toState = entry.toState
+    const week = entry.week
+    const reviewGate = entry.reviewGate
+    const reviewArtifactRef = normalizeToken(entry.reviewArtifactRef ?? '')
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0
+        ? entry.note.trim()
+        : undefined
+
+    if (
+      !isReclassificationState(fromState) ||
+      !isReclassificationState(toState) ||
+      !isFiniteWeek(week)
+    ) {
+      continue
+    }
+
+    entries.push({
+      fromState,
+      toState,
+      week,
+      ...(typeof reviewGate === 'string' && isReviewGate(reviewGate) ? { reviewGate } : {}),
+      ...(reviewArtifactRef ? { reviewArtifactRef } : {}),
+      ...(note ? { note } : {}),
+    })
+  }
+
+  return entries
+}
+
+function sanitizeEntityWelfareReclassificationRecordEntry(
+  value: unknown
+): EntityWelfareReclassificationRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const priorThreatLabel = normalizeToken(value.priorThreatLabel)
+  const proposedDisposition = value.proposedDisposition
+  const reclassificationState = value.reclassificationState
+
+  if (
+    !id ||
+    !label ||
+    !priorThreatLabel ||
+    typeof proposedDisposition !== 'string' ||
+    !isProposedDisposition(proposedDisposition) ||
+    typeof reclassificationState !== 'string' ||
+    !isReclassificationState(reclassificationState)
+  ) {
+    return null
+  }
+
+  const evidenceBundleRefs = parseStringList(value.evidenceBundleRefs)
+  const containmentRevisionRefs = parseStringList(value.containmentRevisionRefs)
+  const transitionHistory = parseTransitionHistoryList(value.transitionHistory)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const welfareDebtRef = normalizeToken(value.welfareDebtRef ?? '') || undefined
+  const reviewGate = value.reviewGate
+  const reviewArtifactRef = normalizeToken(value.reviewArtifactRef ?? '') || undefined
+  const confidence = value.confidence
+
+  const record: EntityWelfareReclassificationRecord = {
+    id,
+    label,
+    priorThreatLabel,
+    proposedDisposition,
+    reclassificationState,
+    ...(summary ? { summary } : {}),
+    ...(welfareDebtRef ? { welfareDebtRef } : {}),
+    ...(typeof reviewGate === 'string' && isReviewGate(reviewGate) ? { reviewGate } : {}),
+    ...(reviewArtifactRef ? { reviewArtifactRef } : {}),
+    ...(evidenceBundleRefs.length > 0 ? { evidenceBundleRefs } : {}),
+    ...(containmentRevisionRefs.length > 0 ? { containmentRevisionRefs } : {}),
+    ...(transitionHistory.length > 0 ? { transitionHistory } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateEntityWelfareReclassificationRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeEntityWelfareReclassificationRecords(
+  value: unknown,
+  fallback: EntityWelfareReclassificationRecordsMap = {}
+): EntityWelfareReclassificationRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: EntityWelfareReclassificationRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeEntityWelfareReclassificationRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: EntityWelfareReclassificationRecord): EntityWelfareReclassificationRecord {
   return Object.freeze({ ...record })
 }

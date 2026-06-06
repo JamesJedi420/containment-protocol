@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2330](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2330 — Self-censoring information registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2330) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2527 @ `b74226ae`                                                                        |
 | **Parent** | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) — registry anchor (slice 1–3 shipped); umbrella [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) stays open |
 | **Branch** | `spe-2108-self-censoring-information-mirror-ui-slice-4`                                                    |
 | **Base `main` SHA** | `40b1e38f`                                                                                          |
@@ -42,11 +42,11 @@ Read-only planning/operations mirror over persisted `selfCensoringInformationRec
 
 ## Acceptance
 
-- [ ] Empty `selfCensoringInformationRecords` map renders empty state without throw
-- [ ] Records table shows negative facts, retention timer, and rediscovery loop from persisted fields
-- [ ] Contradiction signals projected without re-validating dropped records
-- [ ] Front Desk quick link routes to mirror page
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty `selfCensoringInformationRecords` map renders empty state without throw
+- [x] Records table shows negative facts, retention timer, and rediscovery loop from persisted fields
+- [x] Contradiction signals projected without re-validating dropped records
+- [x] Front Desk quick link routes to mirror page
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

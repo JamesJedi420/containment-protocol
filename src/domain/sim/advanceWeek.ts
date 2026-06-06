@@ -263,8 +263,10 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../massAnomalousPopulationEmergenceNormalizationInputs'
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
+import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
@@ -4619,6 +4621,22 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       applyWeeklyPopulationEmergenceGovernanceTick(
         currentMassAnomalousPopulationEmergenceRecords,
         result.week
+      )
+  }
+
+  // SPE-2122 slice 5: wire population-emergence-derived normalization inputs into disclosure records.
+  const currentDisclosureRecordsForCompose = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (Object.keys(currentDisclosureRecordsForCompose).length > 0) {
+    const derivedPopulationEmergenceNormalizationInputs =
+      deriveNormalizationInputsFromPopulationEmergenceRecords(
+        outputWeeklyState.massAnomalousPopulationEmergenceRecords,
+        { week: result.week }
+      )
+
+    outputWeeklyState.publicDisclosureRecords =
+      composePopulationEmergenceNormalizationIntoDisclosureRecords(
+        currentDisclosureRecordsForCompose,
+        derivedPopulationEmergenceNormalizationInputs
       )
   }
 

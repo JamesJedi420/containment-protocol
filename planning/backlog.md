@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `b74226ae` (post–SPE-2330 merge, PR #2527). [SPE-2330](https://linear.app/spectranoir/issue/SPE-2330) **Done** — self-censoring information planning mirror UI shipped. Pick next compendium/registry slice from active queue.
+On `main` @ `60da9665`. [SPE-2334](https://linear.app/spectranoir/issue/SPE-2334) **Done** — mass anomalous population emergence planning mirror UI shipped (PR #2535). Next: [SPE-2335](https://linear.app/spectranoir/issue/SPE-2335) normalization inputs wire-up (`planning/mass-anomalous-population-emergence-registry-slice-5.md`).
 
 ## Blocked / waiting
 

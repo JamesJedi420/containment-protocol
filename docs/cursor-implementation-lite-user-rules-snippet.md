@@ -63,10 +63,12 @@ Run only **after** pre-ship audit passes:
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
 4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment).
+5. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable. Do **not** end the session or write a next-issue plan while the PR is still open.
+6. **Sync `main`:** `git checkout main` && `git pull origin main`.
 
-Do **not** end an implementation session with only local files, uncommitted work, or "say if you want a PR."
+Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."
 
-**Exceptions** (explicit user words only): "no commit," "no PR," "local only," "plan only," or "do not push."
+**Exceptions** (explicit user words only): "no commit," "no PR," "local only," "plan only," "do not push," or "do not merge."
 
 Repo ship loop overrides a generic "commit only when asked" preference for Containment Protocol **implementation** sessions on a named slice branch.
 
@@ -98,4 +100,4 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ### Session closeout (mandatory)
 
-**Phase A (PR open):** after commit, push, PR, and Linear PR comment — closeout only; **no** next-issue plan. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
+**Order:** ship loop → babysit CI → merge → `checkout main` && pull → closeout. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. **Phase A (interim):** only when babysit/merge is blocked in-session. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.

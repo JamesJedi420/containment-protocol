@@ -4,17 +4,17 @@ Paste into **Cursor → Settings → Rules → User Rules** (or merge into your 
 
 ---
 
-## Phase A — PR opened (implementation session end)
+## Phase A — PR open, babysit blocked (interim only)
 
-After commit, push, PR opened, and Linear updated (PR URL on slice; slice **In Progress**):
+When commit, push, and PR are done but babysit/merge **cannot** finish in-session (blocker or explicit **do not merge**):
 
 Do not implement the next issue. **Do not** write a next-issue plan yet.
 
-End the session using **only** the **phase A** structure in `docs/agent-session-closeout.md` (status → changes → audit passes → validation → deferred → PR URL). Under **Next issue implementation plan**, write only: deferred until after merge.
+End using the **phase A** structure in `docs/agent-session-closeout.md`.
 
-## Phase B — After merge
+## Phase B — After merge (normal session end)
 
-After the PR is **merged**, slice **Done**, and merge comment on Linear:
+After babysit → merge, slice **Done**, merge comment on Linear, and **`git checkout main` && `git pull origin main`**:
 
 Do not implement the next issue unless the user explicitly asks. Prepare a **next-issue implementation plan** only.
 
@@ -22,7 +22,7 @@ Next-issue plan must include: (1) issue ID and title, (2) smallest correct bound
 
 End with the **phase B** structure in `docs/agent-session-closeout.md` (merge closeout → next-issue plan → handoff).
 
-Remind: `git checkout main` && `git pull`, then **new agent chat** with Linear URL, slice doc, branch name, and `main` SHA.
+Remind: agent already synced `main` in-session; **new agent chat** for the next slice with Linear URL, slice doc, branch name, and `main` SHA.
 
 ---
 

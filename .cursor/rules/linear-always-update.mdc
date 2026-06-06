@@ -17,6 +17,7 @@ Linear is the **system of record** for issue state, scope, and closure. GitHub P
 | **During work** | Harvest triage: **`docs/harvest-candidate-triage-agent.md`**; owner comments with full mechanic + boundary + fold-in vs child reasoning (**`docs/harvest-fold-in-linear-comments.md`**, not one-liners); owner map QA **`docs/harvest-mirror-owner-map-qa.md`**; SPE-2110 intake same session; comment on slice issue when scope or blockers change materially. |
 | **Slice ready** | **Commit**, **push**, and **open PR** on the named branch before claiming the slice complete locally (`implementation-lite.mdc` ship loop). |
 | **PR opened** | Link the **slice** issue in the PR body (not only the parent epic); comment PR URL on the slice issue. |
+| **Babysit → merge** | Same session: babysit CI until green, merge PR, then `git checkout main` && `git pull origin main` (`implementation-lite.mdc`). |
 | **PR merged** | Set slice issue **Done**; parent **Done** only if full parent scope shipped, else return parent to **Backlog**. |
 | **After merge** | Short comment on the slice issue: PR URL + what shipped. |
 

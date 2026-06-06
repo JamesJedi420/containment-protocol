@@ -337,6 +337,8 @@ export const MARKET_UI_TEXT = {
   delayedDeliveryBlocked: 'Supplier delivery only — instant exchange unavailable for this line.',
   redeemFavorOne: 'Redeem favor (1 bundle)',
   redeemFavorThree: 'Redeem favor (3 bundles)',
+  callObligationOne: 'Call obligation (1 bundle)',
+  callObligationThree: 'Call obligation (3 bundles)',
   sellOne: 'Sell 1 bundle',
   sellThree: 'Sell 3 bundles',
   noListings: 'No listings match the current filters.',

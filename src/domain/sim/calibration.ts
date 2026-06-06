@@ -217,6 +217,8 @@ export const FUNDING_CALIBRATION = {
   /** SPE-2323: callable obligation substitutes cash on one canonical roster listing. */
   procurementCallableObligation: {
     listingId: 'material:occult_reagents',
+    factionId: 'institutions',
+    favorId: 'institutions-lab-access-boon',
   },
 } as const
 

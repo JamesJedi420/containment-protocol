@@ -7664,6 +7664,15 @@ function sanitizeOperationEvents(
               ...(typeof payload.favorExchangeLabel === 'string'
                 ? { favorExchangeLabel: payload.favorExchangeLabel }
                 : {}),
+              ...(typeof payload.callableObligationFactionId === 'string'
+                ? { callableObligationFactionId: payload.callableObligationFactionId }
+                : {}),
+              ...(typeof payload.callableObligationFavorId === 'string'
+                ? { callableObligationFavorId: payload.callableObligationFavorId }
+                : {}),
+              ...(typeof payload.callableObligationLabel === 'string'
+                ? { callableObligationLabel: payload.callableObligationLabel }
+                : {}),
             }),
           })
         )

@@ -418,6 +418,29 @@ describe('marketView', () => {
     expect(view.selectedDetail?.acquisitionDetails.join(' ')).toMatch(/Callable obligation/i)
   })
 
+  it('allows 3-bundle obligation call when one bundle is affordable but three are not', () => {
+    const baseline = createStartingState()
+    const listing = getProcurementListings(baseline).find(
+      (entry) => entry.id === 'material:occult_reagents'
+    )
+
+    expect(listing).toBeDefined()
+    const game = {
+      ...baseline,
+      funding: listing!.buyPrice * 2,
+      agency: {
+        ...baseline.agency!,
+        funding: listing!.buyPrice * 2,
+      },
+    }
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canAffordThree).toBe(false)
+    expect(listingView?.canCallObligationOne).toBe(false)
+    expect(listingView?.canCallObligationThree).toBe(true)
+  })
+
   it('normalizes invalid market query params to defaults', () => {
     const params = new URLSearchParams('q=%20%20%20&category=invalid&sort=broken')
     const filters = readMarketFilters(params)

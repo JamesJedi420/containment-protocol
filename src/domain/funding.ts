@@ -17,7 +17,6 @@ import type {
   ProcurementBacklogEntry,
   SupportStaffSummary,
 } from './models'
-import { assessCallableObligationProcurement } from './market'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
 
@@ -524,9 +523,10 @@ function hasVendorShortagePressureSignals(
 function hasCallableObligationProcurementLeverageSignals(
   game: Pick<GameState, 'factions'>
 ): boolean {
-  const listingId = FUNDING_CALIBRATION.procurementCallableObligation.listingId
+  const cal = FUNDING_CALIBRATION.procurementCallableObligation
+  const favors = game.factions?.[cal.factionId]?.availableFavors ?? []
 
-  return assessCallableObligationProcurement(game, listingId).eligible
+  return favors.some((favor) => favor.id === cal.favorId)
 }
 
 /** SPE-2320: stocked inventory carrying fee for the week being closed (deterministic, no simulator). */

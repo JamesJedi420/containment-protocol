@@ -46,7 +46,7 @@ Obligation call requires budget-blocked state (`totalPrice > funding`). Cash pur
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
 | Barter / recovery channel variants | SPE-28 child | Multi-system |
-| MarketPage CTA for obligation call | SPE-28 follow-up | Domain hook + copy sufficient for slice |
+| MarketPage CTA for obligation call | — | Shipped in babysit pass |
 | Full merchant / cashflow simulator | — | Explicit non-goal |
 
 ## Sibling slices (do not regress)

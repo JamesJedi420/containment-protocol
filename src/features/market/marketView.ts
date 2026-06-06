@@ -292,9 +292,14 @@ function buildListingView(listing: ProcurementListing, game: GameState): MarketL
     listing.availableBundles >= 1 &&
     !canAffordOne
   const canCallObligationThree =
-    canCallObligationOne &&
+    listing.cashPurchaseAllowed &&
+    Boolean(listing.callableObligation) &&
+    listing.accessAvailable &&
+    obligationAssessment?.eligible === true &&
+    favorResourcesReady &&
+    listing.availableBundles >= 3 &&
     !listing.resourceStatuses.some((status) => status.substitution) &&
-    listing.availableBundles >= 3
+    !canAffordThree
 
   const budgetBlockedReason =
     listing.cashPurchaseAllowed && !canAffordOne

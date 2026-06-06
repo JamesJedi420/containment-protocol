@@ -265,6 +265,7 @@ import {
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
 import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../massAnomalousPopulationEmergenceNormalizationInputs'
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
+import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
@@ -4621,6 +4622,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.massAnomalousPopulationEmergenceRecords =
       applyWeeklyPopulationEmergenceGovernanceTick(
         currentMassAnomalousPopulationEmergenceRecords,
+        result.week
+      )
+  }
+
+  // SPE-2114 slice 3: scheduled reclassification-state transitions on entity welfare records.
+  const currentEntityWelfareReclassificationRecords =
+    outputWeeklyState.entityWelfareReclassificationRecords ?? {}
+  if (Object.keys(currentEntityWelfareReclassificationRecords).length > 0) {
+    outputWeeklyState.entityWelfareReclassificationRecords =
+      applyWeeklyEntityWelfareReclassificationTick(
+        currentEntityWelfareReclassificationRecords,
         result.week
       )
   }

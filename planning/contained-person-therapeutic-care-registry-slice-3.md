@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2343](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2343 — Contained-person therapeutic care registry weekly orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2343) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2553 @ `6a7fc8b8`                                                                                            |
 | **Parent** | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) — registry anchor (slice 1–2 shipped); umbrella [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) stays open |
 | **Branch** | `spe-2115-contained-person-therapeutic-care-weekly-hook-slice-3`                                           |
 | **Base `main` SHA** | `e0d4d6bb`                                                                                          |

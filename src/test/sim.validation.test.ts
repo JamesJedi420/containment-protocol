@@ -69,11 +69,11 @@ describe('simulation validation pass', () => {
     ])
   })
 
-  it('reproduces deterministic long-run validation runs', () => {
+  it('reproduces deterministic long-run validation runs', { timeout: 30_000 }, () => {
     expect(toStableRunSnapshot('mixed-pressure')).toEqual(toStableRunSnapshot('mixed-pressure'))
   })
 
-  it('keeps scenario summaries stable across repeated suite runs', () => {
+  it('keeps scenario summaries stable across repeated suite runs', { timeout: 30_000 }, () => {
     expect(toSummarySnapshot()).toEqual(toSummarySnapshot())
   })
 

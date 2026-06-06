@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
@@ -4586,6 +4587,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentSelfCensoringInformation).length > 0) {
     outputWeeklyState.selfCensoringInformationRecords = applyWeeklySelfCensoringInformationTick(
       currentSelfCensoringInformation,
+      result.week
+    )
+  }
+
+  // SPE-2109 slice 3: apply scheduled public-disclosure awareness/fallout transitions.
+  const currentPublicDisclosureRecords = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (Object.keys(currentPublicDisclosureRecords).length > 0) {
+    outputWeeklyState.publicDisclosureRecords = applyWeeklyPublicDisclosureProgressionTick(
+      currentPublicDisclosureRecords,
       result.week
     )
   }

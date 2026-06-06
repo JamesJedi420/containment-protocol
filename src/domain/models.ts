@@ -250,6 +250,7 @@ import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
+import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2587,6 +2588,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   patternSourceSeriesRecords?: Record<string, PatternSourceSeriesRecord>
+
+  /**
+   * SPE-2122 slice 2: persisted mass anomalous population emergence records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  massAnomalousPopulationEmergenceRecords?: Record<string, PopulationEmergenceRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2346](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2346 — Contained-person integrated health bundle planning mirror UI (slice 6)](https://linear.app/spectranoir/issue/SPE-2346) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2559 @ `95d089e7`                                                                        |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — integrated health bundle umbrella; [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) registry anchor (slice 1–4 shipped) stays Done |
 | **Branch** | `spe-1889-integrated-health-bundle-mirror-ui-slice-6`                                                      |
 | **Base `main` SHA** | `e917c547`                                                                                          |
@@ -45,11 +45,11 @@ Read-only planning/operations mirror over persisted `containedPersonIntegratedHe
 
 ## Acceptance
 
-- [ ] Empty `containedPersonIntegratedHealthBundles` map renders empty state without throw
-- [ ] Records table shows mental-state band, humane-care risk, and wired schedule links
-- [ ] Critical mental state and lockdown escalation links display distinctly in summary
-- [ ] Front Desk quick link routes to mirror page
-- [ ] `npm run lint` + targeted tests + slice 5 wire-up regression green
+- [x] Empty `containedPersonIntegratedHealthBundles` map renders empty state without throw
+- [x] Records table shows mental-state band, humane-care risk, and wired schedule links
+- [x] Critical mental state and lockdown escalation links display distinctly in summary
+- [x] Front Desk quick link routes to mirror page
+- [x] `npm run lint` + targeted tests + slice 5 wire-up regression green
 
 ## File touch list (expected)
 

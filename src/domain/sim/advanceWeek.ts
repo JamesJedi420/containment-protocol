@@ -265,6 +265,7 @@ import {
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
 import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../massAnomalousPopulationEmergenceNormalizationInputs'
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
+import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -4622,6 +4623,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         currentMassAnomalousPopulationEmergenceRecords,
         result.week
       )
+  }
+
+  // SPE-2111 slice 3: disposal compliance, scheduled awareness-band, and occlusion pursuit on visual-trigger hazards.
+  const currentVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  if (Object.keys(currentVisualTriggerHazardRecords).length > 0) {
+    outputWeeklyState.visualTriggerHazardRecords = applyWeeklyVisualTriggerHazardTick(
+      currentVisualTriggerHazardRecords,
+      result.week
+    )
   }
 
   // SPE-2122 slice 5: wire population-emergence-derived normalization inputs into disclosure records.

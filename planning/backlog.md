@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `61a23c04` (post–SPE-2323 merge). [SPE-2324](https://linear.app/spectranoir/issue/SPE-2324) **In Progress** — self-censoring information registry weekly retention/rediscovery hook (slice 3); see `planning/self-censoring-information-registry-slice-3.md`.
+On `main` @ `1b746eb0` (post–SPE-2324 merge, PR #2515). [SPE-2324](https://linear.app/spectranoir/issue/SPE-2324) **Done** — self-censoring weekly retention/rediscovery hook shipped. Pick next compendium/registry slice from active queue.
 
 ## Blocked / waiting
 
@@ -143,6 +143,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `minor-anomaly-item-registry-slice-3.md`                  | **Shipped**    | SPE-2316 / PR #2496 — weekly disposition/custody advance hook for SPE-2104.                                                                         |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |
 | `self-censoring-information-registry-slice-2.md`          | **Shipped**    | SPE-2318 / PR #2500; `selfCensoringInformationRecords` GameState persistence.                                                                        |
+| `self-censoring-information-registry-slice-3.md`          | **Shipped**    | SPE-2324 / PR #2515; weekly retention-decay expiry + rediscovery due-week advance hook.                                                              |
 | `public-disclosure-state-registry-slice-1.md`             | **Shipped**    | SPE-2109 / PR #2430; awareness levels, fallout timeline, regional trust — post-secrecy campaign slice 1.                                              |
 | `pattern-source-series-registry-slice-1.md`               | **Shipped**    | SPE-2110 / PR #2431; series-hub intake metadata and processing queue projection.                                                                      |
 | `visual-trigger-hazard-registry-slice-1.md`               | **Shipped**    | SPE-2111 / PR #2432; pursuit state, hazardous media, exposure targets.                                                                                |

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2324](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2324 — Self-censoring registry weekly retention/rediscovery hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2324) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2515 @ `1b746eb0`                                                                        |
 | **Parent** | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) — registry anchor (slice 1–2 shipped); umbrella [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) stays open |
 | **Branch** | `spe-2108-self-censoring-weekly-hook-slice-3`                                                              |
 | **Base `main` SHA** | `61a23c04`                                                                                          |
@@ -33,13 +33,13 @@ Wire persisted `selfCensoringInformationRecords` into `advanceWeek` so `retentio
 
 ## Acceptance
 
-- [ ] Empty `selfCensoringInformationRecords` map is a no-op without throw
-- [ ] `retentionDecayTimer` decrements each week; cleared when countdown reaches expiry
-- [ ] `rediscoveryLoop` unchanged while `week < lastAlarmWeek`
-- [ ] When `week >= lastAlarmWeek`, `loopCount` decrements and `lastAlarmWeek` clears; alarm refs clear when loop completes
-- [ ] Re-applying tick for same post-advance week is idempotent
-- [ ] Invalid post-tick record must not mutate source record
-- [ ] `npm run lint` + targeted tests + persistence regression green
+- [x] Empty `selfCensoringInformationRecords` map is a no-op without throw
+- [x] `retentionDecayTimer` decrements each week; cleared when countdown reaches expiry
+- [x] `rediscoveryLoop` unchanged while `week < lastAlarmWeek`
+- [x] When `week >= lastAlarmWeek`, `loopCount` decrements and `lastAlarmWeek` clears; alarm refs clear when loop completes
+- [x] Re-applying tick for same post-advance week is idempotent
+- [x] Invalid post-tick record must not mutate source record
+- [x] `npm run lint` + targeted tests + persistence regression green
 
 ## File touch list (expected)
 

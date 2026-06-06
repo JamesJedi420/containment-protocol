@@ -5,6 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2122](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2332 — Mass anomalous population emergence registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2332) |
+| **Status** | **Shipped** — PR #2531 @ `8a84c519` |
 | **Parent** | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) — Mass anomalous population emergence registry; umbrella [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) |
 | **Branch** | `spe-2122-mass-anomalous-population-emergence-persistence-slice-2`                                        |
 | **Base `main` SHA** | `a5e6e4dc`                                                                                          |

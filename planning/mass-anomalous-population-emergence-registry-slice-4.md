@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2334](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2334 — Mass anomalous population emergence registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2334) |
-| **Status** | **In progress** — implementation on branch `spe-2122-mass-anomalous-population-emergence-mirror-ui-slice-4` |
+| **Status** | **Shipped** — PR #2535 @ `56570d35` |
 | **Parent** | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) — registry anchor (slice 1–3 shipped); umbrella [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) stays open |
 | **Branch** | `spe-2122-mass-anomalous-population-emergence-mirror-ui-slice-4`                                           |
 | **Base `main` SHA** | `358f9fde`                                                                                          |

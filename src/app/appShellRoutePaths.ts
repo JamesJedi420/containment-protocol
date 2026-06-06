@@ -26,6 +26,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'self-censoring-information',
   'public-disclosure-state',
   'mass-anomalous-population-emergence',
+  'visual-trigger-hazard',
 ] as const
 
 export function navPathToShellSegment(path: string): string {

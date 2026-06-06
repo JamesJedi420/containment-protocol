@@ -248,6 +248,7 @@ import type { ExtranormalEventRecord } from './extranormalEventRegistry'
 import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
 import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
+import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2573,6 +2574,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   selfCensoringInformationRecords?: Record<string, SelfCensoringInformationRecord>
+
+  /**
+   * SPE-2109 slice 2: persisted public disclosure records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  publicDisclosureRecords?: Record<string, PublicDisclosureRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

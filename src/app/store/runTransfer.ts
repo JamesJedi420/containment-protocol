@@ -197,6 +197,7 @@ import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRe
 import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
+import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8403,6 +8404,10 @@ export function hydrateGame(
     game.selfCensoringInformationRecords,
     fallback.selfCensoringInformationRecords ?? {}
   )
+  const publicDisclosureRecords = sanitizePublicDisclosureRecords(
+    game.publicDisclosureRecords,
+    fallback.publicDisclosureRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8524,6 +8529,7 @@ export function hydrateGame(
       unexplainedLocationRecords,
       minorAnomalyItemRecords,
       selfCensoringInformationRecords,
+      publicDisclosureRecords,
       candidates,
       recruitmentPool,
       teams,

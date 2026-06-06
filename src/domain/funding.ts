@@ -17,6 +17,7 @@ import type {
   ProcurementBacklogEntry,
   SupportStaffSummary,
 } from './models'
+import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
 const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
@@ -787,7 +788,10 @@ export function getCanonicalFundingState(
 }
 
 export function assessFundingPressure(
-  game: Pick<GameState, 'agency' | 'config' | 'funding' | 'supportStaff' | 'week' | 'inventory'>
+  game: Pick<
+    GameState,
+    'agency' | 'config' | 'funding' | 'supportStaff' | 'week' | 'inventory' | 'compromisedAuthority'
+  >
 ): FundingPressureAssessment {
   const fundingState = getCanonicalFundingState(game)
   const pendingProcurementRequestIds = fundingState.procurementBacklog
@@ -878,6 +882,9 @@ export function assessFundingPressure(
       holdingCostSignalsProcurementTiming ? 'weekly-inventory-holding-cost' : '',
       hasVendorShortagePressureSignals(game, fundingState, staleProcurementRequestIds)
         ? 'vendor-shortage-pressure'
+        : '',
+      hasCompromisedAuthorityProcurementDiversionSignals(game)
+        ? 'compromised-authority-procurement-diversion'
         : '',
     ]),
   }

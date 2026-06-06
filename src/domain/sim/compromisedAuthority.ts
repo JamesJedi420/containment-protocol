@@ -17,6 +17,7 @@ import type {
   CompromisedResponseOverride,
   CorruptionDepth,
   FactionRuntimeState,
+  GameState,
 } from '../models'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -118,6 +119,63 @@ const TIER_ORDER: BeliefTier[] = ['clear', 'uncertain', 'suspected', 'condemned'
 function escalateTier(tier: BeliefTier): BeliefTier {
   const idx = TIER_ORDER.indexOf(tier)
   return TIER_ORDER[Math.min(idx + 1, TIER_ORDER.length - 1)]
+}
+
+// ---------------------------------------------------------------------------
+// Procurement diversion (SPE-2322)
+// ---------------------------------------------------------------------------
+
+const OFFICE_MEDIATED_DIVERSION_ROLES = new Set<CompromisedOfficialRole>([
+  'magistrate',
+  'watchCommander',
+])
+
+export type ProcurementCorruptionRoutingReason = 'office-mediated-diversion'
+
+export interface ProcurementCorruptionRoutingAssessment {
+  active: boolean
+  reasons: ProcurementCorruptionRoutingReason[]
+  officialRole?: CompromisedOfficialRole
+  benefittingFactionId?: string
+}
+
+/**
+ * Office-mediated diversion: compromised office holder distorts evidence routing,
+ * which diverts supplier roster attention away from one calibrated listing.
+ */
+export function assessCompromisedAuthorityProcurementDiversion(
+  game: Pick<GameState, 'compromisedAuthority'>
+): ProcurementCorruptionRoutingAssessment {
+  const authority = game.compromisedAuthority
+  if (!authority) {
+    return { active: false, reasons: [] }
+  }
+
+  const reasons: ProcurementCorruptionRoutingReason[] = []
+  if (
+    OFFICE_MEDIATED_DIVERSION_ROLES.has(authority.officialRole) &&
+    authority.distortedCategories.includes('evidence')
+  ) {
+    reasons.push('office-mediated-diversion')
+  }
+
+  return {
+    active: reasons.length > 0,
+    reasons,
+    ...(reasons.length > 0
+      ? {
+          officialRole: authority.officialRole,
+          benefittingFactionId: authority.benefittingFactionId,
+        }
+      : {}),
+  }
+}
+
+/** Lightweight signal for funding.ts (avoid importing market). */
+export function hasCompromisedAuthorityProcurementDiversionSignals(
+  game: Pick<GameState, 'compromisedAuthority'>
+): boolean {
+  return assessCompromisedAuthorityProcurementDiversion(game).active
 }
 
 // ---------------------------------------------------------------------------

@@ -293,6 +293,45 @@ describe('marketView', () => {
     expect(view.selectedDetail?.blockerDetails.join(' ')).toMatch(/Vendor shortage pressure/i)
   })
 
+  it('surfaces compromised-authority procurement diversion in budget summary and listing blockers', () => {
+    const game = {
+      ...createStartingState(),
+      compromisedAuthority: {
+        officialRole: 'watchCommander' as const,
+        benefittingFactionId: 'corporate_supply',
+        distortedCategories: ['evidence' as const],
+        corruptionDepth: 'embedded_control' as const,
+        patrolAnomalyCount: 0,
+      },
+    }
+    const listing = getProcurementListings(game).find(
+      (entry) => entry.id === 'material:electronic_parts'
+    )
+
+    expect(listing).toBeDefined()
+    expect(assessFundingPressure(game).reasonCodes).toContain(
+      'compromised-authority-procurement-diversion'
+    )
+
+    const view = getProcurementScreenView(
+      game,
+      {
+        q: '',
+        category: 'all',
+        sort: 'recommended',
+      },
+      listing!.id
+    )
+
+    expect(view.budgetSummary.details.join(' ')).toMatch(/Compromised authority is diverting/i)
+
+    const listingView = getMarketListings(game).find((entry) => entry.id === listing!.id)
+    expect(listingView?.canAffordOne).toBe(true)
+    expect(listingView?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.canBuyOne).toBe(false)
+    expect(view.selectedDetail?.blockerDetails.join(' ')).toMatch(/Compromised authority diverted/i)
+  })
+
   it('surfaces inventory holding cost in procurement budget summary when stock tightens headroom', () => {
     const game = createStartingState()
     const fundingState = normalizeFundingState(

@@ -207,6 +207,13 @@ export const FUNDING_CALIBRATION = {
     availabilityPenaltyBundles: 12,
     minBundles: 0,
   },
+  /** SPE-2322: read-time office-mediated diversion on one canonical roster listing. */
+  procurementCorruptionRouting: {
+    listingId: 'material:electronic_parts',
+    /** Subtracted from derived bundle availability when compromised-authority diversion is active. */
+    availabilityPenaltyBundles: 12,
+    minBundles: 0,
+  },
 } as const
 
 export const ATTRITION_CALIBRATION = {

@@ -18,10 +18,12 @@ import { buildFactionStates } from '../../domain/factions'
 import {
   assessFundingPressure,
   getCanonicalFundingState,
+  getProcurementBacklog,
 } from '../../domain/funding'
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
 import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
 import type { GameState } from '../../domain/models'
+import { getProcurementListings } from '../../domain/market'
 import { buildDeployedRecoveryLegibilityForCase } from '../../domain/sim/expeditionRecoveryNode'
 import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import { getTeamMemberIds } from '../../domain/teamSimulation'
@@ -167,6 +169,20 @@ export interface FrontDeskCourierCapacityOpportunityView {
   guidanceNote: string
 }
 
+/** SPE-31: deterministic hub opportunity derived from canonical procurement pressure only. */
+export interface FrontDeskProcurementPressureOpportunityView {
+  id: 'procurement-pressure'
+  title: string
+  summary: string
+  severityLabel: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref?: string
+  secondaryLinkLabel?: string
+}
+
 /** SPE-1734: Bounded player-facing readout of the canonical campaign ledger. */
 export interface FrontDeskCampaignRulesSummaryView {
   title: string
@@ -197,6 +213,7 @@ export interface FrontDeskHubView {
   standingSummary: FrontDeskStandingSummaryView
   latestReport: FrontDeskLatestReportView | null
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
+  procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
@@ -1253,6 +1270,93 @@ export function buildCourierNetworkCapacityOpportunityCard(
   return null
 }
 
+export function buildProcurementPressureOpportunityCard(
+  game: GameState
+): FrontDeskProcurementPressureOpportunityView | null {
+  const fundingPressure = assessFundingPressure(game)
+  const fundingState = getCanonicalFundingState(game)
+  const backlog = getProcurementBacklog(fundingState)
+  const pendingBacklog = backlog.filter((entry) => entry.status === 'pending')
+  const staleRequestIds = new Set(fundingPressure.staleProcurementRequestIds)
+  const staleBacklog = pendingBacklog.filter((entry) => staleRequestIds.has(entry.requestId))
+  const activeFabrication = game.productionQueue
+
+  if (
+    staleBacklog.length === 0 &&
+    pendingBacklog.length === 0 &&
+    activeFabrication.length === 0 &&
+    !fundingPressure.constrained &&
+    !fundingPressure.severeConstraint
+  ) {
+    return null
+  }
+
+  const listingsByItemId = new Map(
+    getProcurementListings(game).map((listing) => [listing.itemId, listing.itemName])
+  )
+  const formatBacklogEntry = (entry: (typeof pendingBacklog)[number]) =>
+    listingsByItemId.get(entry.itemId) ?? entry.itemId
+  const tone: FrontDeskNoticeTone =
+    staleBacklog.length > 0 || fundingPressure.severeConstraint ? 'danger' : 'warning'
+  const severityLabel =
+    staleBacklog.length > 0
+      ? 'Stale backlog'
+      : fundingPressure.severeConstraint
+        ? 'Severe pressure'
+        : fundingPressure.constrained
+          ? 'Budget pressure'
+          : 'Queued'
+
+  return {
+    id: 'procurement-pressure',
+    title:
+      staleBacklog.length > 0
+        ? 'Procurement backlog needs attention'
+        : fundingPressure.constrained
+          ? 'Procurement pressure is constraining operations'
+          : 'Procurement queue has open follow-through',
+    summary: `${pluralize(pendingBacklog.length, 'supplier request')} pending, ${pluralize(
+      staleBacklog.length,
+      'stale request'
+    )}, ${pluralize(activeFabrication.length, 'fabrication order')} active. Budget pressure ${
+      fundingPressure.budgetPressure
+    }/4.`,
+    severityLabel,
+    tone,
+    details: uniqueBounded(
+      [
+        staleBacklog.length > 0
+          ? `${staleBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} have exceeded the expected supplier handoff window.`
+          : '',
+        pendingBacklog.length > 0
+          ? `${pendingBacklog
+              .slice(0, 2)
+              .map(formatBacklogEntry)
+              .join(', ')} remain in the procurement backlog.`
+          : '',
+        activeFabrication.length > 0
+          ? `${activeFabrication[0]!.outputItemName} is the next fabrication completion.`
+          : '',
+        fundingPressure.constrained
+          ? `Funding signal: ${fundingPressure.reasonCodes[0] ?? `budget-pressure:${fundingPressure.budgetPressure}`}.`
+          : '',
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.marketsSuppliers,
+    primaryLinkLabel: 'Open procurement',
+    ...(activeFabrication.length > 0
+      ? {
+          secondaryHref: APP_ROUTES.fabrication,
+          secondaryLinkLabel: 'Open fabrication',
+        }
+      : {}),
+  }
+}
+
 export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const shell = buildShellStatusBarView(game)
   const agency = buildAgencySummary(game)
@@ -1309,6 +1413,7 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     courierCapacityOpportunity: buildCourierNetworkCapacityOpportunityCard(
       buildCourierNetworkCapacityGapReport(game),
     ),
+    procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
     campaignRulesSummary: {
       title: 'Campaign profile & rules ledger',
       headline: rulesSummary.headline,

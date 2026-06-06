@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import { getCanonicalFundingState, placeProcurementOrder } from '../domain/funding'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { assignTeam } from '../domain/sim/assign'
 import { applyAuthoredChoice } from '../domain/choiceSystem'
@@ -12,8 +13,10 @@ import {
 } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
+import { getProcurementListings } from '../domain/market'
 import {
   buildCourierNetworkCapacityOpportunityCard,
+  buildProcurementPressureOpportunityCard,
   getFrontDeskBriefingView,
   getFrontDeskHubView,
 } from '../features/operations/frontDeskView'
@@ -49,6 +52,29 @@ function createSponsoredCandidate(): Candidate {
       traits: ['disciplined'],
     },
   }
+}
+
+function withProcurementBacklog(game: GameState, requestedWeek: number): GameState {
+  const listing = getProcurementListings(game).find((candidate) => candidate.accessAvailable)
+  if (!listing) {
+    throw new Error('Expected at least one accessible procurement listing.')
+  }
+
+  const fundingState = placeProcurementOrder(getCanonicalFundingState(game), {
+    requestId: `test-procurement-${requestedWeek}`,
+    itemId: listing.itemId,
+    quantity: listing.bundleQuantity,
+    requestedWeek,
+    cost: 1,
+  })
+
+  return normalizeGameState({
+    ...game,
+    agency: {
+      ...game.agency!,
+      fundingState,
+    },
+  })
 }
 
 describe('frontDeskView', () => {
@@ -212,6 +238,40 @@ describe('frontDeskView', () => {
 })
 
 describe('SPE-31a hub courier capacity opportunity card', () => {
+  it('returns no procurement pressure opportunity when procurement lanes are clear', () => {
+    expect(buildProcurementPressureOpportunityCard(createStartingState())).toBeNull()
+    expect(getFrontDeskHubView(createStartingState()).procurementPressureOpportunity).toBeNull()
+  })
+
+  it('returns a deterministic warning card for pending procurement backlog', () => {
+    const game = withProcurementBacklog(createStartingState(), 1)
+    const card = buildProcurementPressureOpportunityCard(game)
+
+    expect(card).toMatchObject({
+      id: 'procurement-pressure',
+      tone: 'warning',
+      severityLabel: 'Queued',
+      primaryHref: '/markets-suppliers',
+      primaryLinkLabel: 'Open procurement',
+    })
+    expect(card?.summary).toContain('1 supplier request pending')
+    expect(card?.details.join(' ')).toMatch(/remain in the procurement backlog/i)
+  })
+
+  it('returns a deterministic danger card for stale procurement backlog', () => {
+    const game = withProcurementBacklog({ ...createStartingState(), week: 99 }, 1)
+    const card = getFrontDeskHubView(game).procurementPressureOpportunity
+
+    expect(card).toMatchObject({
+      id: 'procurement-pressure',
+      tone: 'danger',
+      severityLabel: 'Stale backlog',
+      primaryHref: '/markets-suppliers',
+    })
+    expect(card?.summary).toContain('1 stale request')
+    expect(card?.details.join(' ')).toMatch(/expected supplier handoff window/i)
+  })
+
   it('returns null when the courier gap report has no unresolved gap', () => {
     const opened = openCourierShellFront(withPaidCourierAndFunding(createStartingState(), 12000))
     const report = buildCourierNetworkCapacityGapReport(opened)

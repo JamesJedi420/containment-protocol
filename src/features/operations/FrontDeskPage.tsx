@@ -412,6 +412,51 @@ export default function FrontDeskPage() {
             </section>
           ) : null}
 
+          {view.procurementPressureOpportunity ? (
+            <section className="panel space-y-3" aria-label="Procurement pressure opportunity">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Procurement opportunity</h2>
+                  <p className="text-xs opacity-60">Supplier and fabrication pressure summary.</p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.procurementPressureOpportunity.tone)}`}
+                >
+                  {view.procurementPressureOpportunity.severityLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.procurementPressureOpportunity.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.procurementPressureOpportunity.title}</p>
+                <p className="text-sm opacity-80">{view.procurementPressureOpportunity.summary}</p>
+                {view.procurementPressureOpportunity.details.length > 0 ? (
+                  <ul className="space-y-1 text-sm opacity-70">
+                    {view.procurementPressureOpportunity.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.procurementPressureOpportunity.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.procurementPressureOpportunity.primaryLinkLabel}
+                  </Link>
+                  {view.procurementPressureOpportunity.secondaryHref ? (
+                    <Link
+                      to={view.procurementPressureOpportunity.secondaryHref}
+                      className="opacity-70 hover:opacity-100"
+                    >
+                      {view.procurementPressureOpportunity.secondaryLinkLabel ?? 'Open'}
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel space-y-3" aria-label="Active pressures">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">

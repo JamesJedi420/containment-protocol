@@ -5,10 +5,13 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
+import { getCanonicalFundingState, placeProcurementOrder } from '../../domain/funding'
+import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
+import { normalizeGameState } from '../../domain/teamSimulation'
 import FrontDeskPage from './FrontDeskPage'
 import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
-import type { OperationEvent } from '../../domain/events/types'
+import type { GameState, OperationEvent } from '../../domain/models'
 
 function renderFrontDesk() {
   return render(
@@ -23,6 +26,29 @@ function renderFrontDesk() {
       </Routes>
     </MemoryRouter>
   )
+}
+
+function withProcurementBacklog(game: GameState, requestedWeek: number): GameState {
+  const listing = getProcurementListings(game).find((candidate) => candidate.accessAvailable)
+  if (!listing) {
+    throw new Error('Expected at least one accessible procurement listing.')
+  }
+
+  const fundingState = placeProcurementOrder(getCanonicalFundingState(game), {
+    requestId: `test-procurement-${requestedWeek}`,
+    itemId: listing.itemId,
+    quantity: listing.bundleQuantity,
+    requestedWeek,
+    cost: 1,
+  })
+
+  return normalizeGameState({
+    ...game,
+    agency: {
+      ...game.agency!,
+      fundingState,
+    },
+  })
 }
 
 describe('FrontDeskPage', () => {
@@ -116,6 +142,22 @@ describe('FrontDeskPage', () => {
     renderFrontDesk()
 
     await user.click(screen.getByRole('link', { name: /review procurement backlog/i }))
+    expect(screen.getByText(/markets home/i)).toBeInTheDocument()
+  })
+
+  it('renders procurement pressure opportunity and links to markets', async () => {
+    const user = userEvent.setup()
+    const game = withProcurementBacklog({ ...createStartingState(), week: 99 }, 1)
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /procurement pressure opportunity/i })
+    expect(within(opportunity).getByText(/procurement backlog needs attention/i)).toBeInTheDocument()
+    expect(within(opportunity).getByText(/stale backlog/i)).toBeInTheDocument()
+
+    await user.click(within(opportunity).getByRole('link', { name: /open procurement/i }))
     expect(screen.getByText(/markets home/i)).toBeInTheDocument()
   })
 

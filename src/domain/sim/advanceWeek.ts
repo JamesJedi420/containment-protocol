@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
@@ -4596,6 +4597,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentPublicDisclosureRecords).length > 0) {
     outputWeeklyState.publicDisclosureRecords = applyWeeklyPublicDisclosureProgressionTick(
       currentPublicDisclosureRecords,
+      result.week
+    )
+  }
+
+  // SPE-2110 slice 3: advance readiness-gated pattern-source intake processing pipeline.
+  const currentPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
+  if (Object.keys(currentPatternSourceSeriesRecords).length > 0) {
+    outputWeeklyState.patternSourceSeriesRecords = applyWeeklyPatternSourceSeriesIntakeTick(
+      currentPatternSourceSeriesRecords,
       result.week
     )
   }

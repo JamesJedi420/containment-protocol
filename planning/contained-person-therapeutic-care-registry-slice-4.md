@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2344](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2344 — Contained-person therapeutic care registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2344) |
-| **Status** | **In Progress** — branch `spe-2115-contained-person-therapeutic-care-mirror-ui-slice-4` |
+| **Status** | **Shipped** — PR #2555 @ `8ca21f95`                                                                        |
 | **Parent** | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) — registry anchor (slice 1–3 shipped); umbrella [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) stays open |
 | **Branch** | `spe-2115-contained-person-therapeutic-care-mirror-ui-slice-4`                                           |
 | **Base `main` SHA** | `21d162b0`                                                                                          |

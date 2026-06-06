@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2331](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2331 — Public disclosure state registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2331) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2529 @ `6fa361b3`                                                                        |
 | **Parent** | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) — registry anchor (slice 1–3 shipped); umbrella [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) stays open |
 | **Branch** | `spe-2109-public-disclosure-state-mirror-ui-slice-4`                                                       |
 | **Base `main` SHA** | `e4ca76a3`                                                                                          |

@@ -968,6 +968,40 @@ export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, 
   redactedSuffix: 'Partial redaction',
 }
 
+export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Entity welfare reclassification registry',
+  pageSubtitle:
+    'Read-only operations view over persisted entity welfare reclassification records and read-time pressure projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  pendingCountLabel: 'Pending review',
+  terminalCountLabel: 'Terminal decisions',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Disposition, review gates, and reclassification pressure mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No entity welfare reclassification records',
+  emptyBody:
+    'Persisted entity welfare reclassification records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Pressure forecasts come from reclassification projection at read time; pending and terminal states display as stored.',
+  labelColumn: 'Label',
+  dispositionColumn: 'Disposition / state',
+  pressureColumn: 'Reclassification pressure',
+  reviewColumn: 'Evidence / history',
+  confidenceColumn: 'Confidence',
+  priorThreatPrefix: 'Prior threat:',
+  reviewGatePrefix: 'Review gate:',
+  welfareDebtLinkedSuffix: 'Welfare debt linked',
+  staffMoralePrefix: 'Staff morale:',
+  liabilityPrefix: 'Liability:',
+  publicRiskPrefix: 'Public risk:',
+  containmentRevisionPrefix: 'Containment revision:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Visual trigger hazard registry',

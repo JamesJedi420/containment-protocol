@@ -795,6 +795,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review disposal compliance, exposure-chain risk, and awareness escalation projections.',
     },
+    {
+      label: 'Open entity welfare reclassification mirror',
+      href: APP_ROUTES.entityWelfareReclassification,
+      description:
+        'Review disposition review posture, reclassification pressure forecasts, and pending vs terminal states.',
+    },
   ]
 }
 

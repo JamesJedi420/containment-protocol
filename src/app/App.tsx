@@ -93,6 +93,9 @@ const MassAnomalousPopulationEmergenceMirrorRoute = createRouteComponent(
 const VisualTriggerHazardMirrorRoute = createRouteComponent(
   () => import('../features/operations/VisualTriggerHazardMirrorPage')
 )
+const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -159,6 +162,10 @@ export default function App() {
         <Route
           path="visual-trigger-hazard"
           element={renderLazyRoute(VisualTriggerHazardMirrorRoute)}
+        />
+        <Route
+          path="entity-welfare-reclassification"
+          element={renderLazyRoute(EntityWelfareReclassificationMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

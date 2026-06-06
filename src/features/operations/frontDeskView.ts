@@ -783,6 +783,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.publicDisclosureState,
       description: 'Review awareness levels, fallout phases, and regional trust projections.',
     },
+    {
+      label: 'Open population emergence mirror',
+      href: APP_ROUTES.massAnomalousPopulationEmergence,
+      description:
+        'Review registration backlog, triage lanes, and governance-surge projections.',
+    },
   ]
 }
 

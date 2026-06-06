@@ -87,6 +87,9 @@ const SelfCensoringInformationMirrorRoute = createRouteComponent(
 const PublicDisclosureMirrorRoute = createRouteComponent(
   () => import('../features/operations/PublicDisclosureMirrorPage')
 )
+const MassAnomalousPopulationEmergenceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/MassAnomalousPopulationEmergenceMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -145,6 +148,10 @@ export default function App() {
         <Route
           path="public-disclosure-state"
           element={renderLazyRoute(PublicDisclosureMirrorRoute)}
+        />
+        <Route
+          path="mass-anomalous-population-emergence"
+          element={renderLazyRoute(MassAnomalousPopulationEmergenceMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

@@ -935,6 +935,39 @@ export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Mass anomalous population emergence registry',
+  pageSubtitle:
+    'Read-only operations view over persisted population emergence records and governance-surge projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  registrationBacklogActiveLabel: 'Registration backlog active',
+  collapsedMasqueradeLabel: 'Collapsed masquerade',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Magnitude, backlog, triage lanes, and governance surge mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No mass anomalous population emergence records',
+  emptyBody:
+    'Persisted population emergence records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Governance surge band comes from week-drift projection; education burden may elevate under collapsed masquerade.',
+  labelColumn: 'Label',
+  magnitudeColumn: 'Magnitude',
+  backlogColumn: 'Registration backlog',
+  governanceColumn: 'Governance / surge refs',
+  triageColumn: 'Triage / rights review',
+  educationColumn: 'Education burden',
+  surgeColumn: 'Governance surge',
+  confidenceColumn: 'Confidence',
+  populationEstimatePrefix: 'Population estimate:',
+  backlogWeeksSuffix: 'weeks remaining',
+  rightsReviewPrefix: 'Rights review:',
+  effectiveEducationPrefix: 'Effective:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

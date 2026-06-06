@@ -871,6 +871,38 @@ export const INTEL_UI_TEXT: Record<string, string> = {
   dominantStats: 'Dominant stats',
 }
 
+export const SELF_CENSORING_INFORMATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Self-censoring information registry',
+  pageSubtitle:
+    'Read-only operations view over persisted cognitive-hazard intake records and contradiction projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  retentionActiveLabel: 'Retention timers active',
+  rediscoveryActiveLabel: 'Rediscovery loops active',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Negative facts and rediscovery loops mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No self-censoring information records',
+  emptyBody:
+    'Persisted self-censoring information records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Contradiction signals come from dossier projection; negative facts display unverified absence predicates as stored.',
+  labelColumn: 'Label',
+  resistanceColumn: 'Propagation resistance',
+  negativeFactsColumn: 'Negative facts',
+  retentionColumn: 'Retention timer',
+  rediscoveryColumn: 'Rediscovery loop',
+  failureModeColumn: 'Failure / archive',
+  contradictionColumn: 'Contradiction signals',
+  confidenceColumn: 'Confidence',
+  parentCasePrefix: 'Parent case:',
+  lastAlarmPrefix: 'Last alarm:',
+  warningRefSuffix: 'forgotten warning ref(s)',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

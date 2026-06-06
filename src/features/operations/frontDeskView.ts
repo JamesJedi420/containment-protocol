@@ -773,6 +773,11 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.patternSourceSeries,
       description: 'Review pattern source series queue rank and processing posture.',
     },
+    {
+      label: 'Open self-censoring information mirror',
+      href: APP_ROUTES.selfCensoringInformation,
+      description: 'Review retention timers, rediscovery loops, and negative-fact posture.',
+    },
   ]
 }
 

@@ -44,7 +44,7 @@ High stock uses `stockThreshold: 60` (holding cost bills above 50). Penalty stac
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Corruption routing on procurement outcomes | SPE-28 child | `compromisedAuthority.ts` is patrol/custody-focused |
+| Corruption routing on procurement outcomes | [SPE-2322](https://linear.app/spectranoir/issue/SPE-2322) | Shipped as read-time roster diversion on `material:electronic_parts` |
 | Service-boon / callable-obligation rewards | SPE-28 child | Obligation semantics + UI are larger |
 | Barter / recovery channel variants | SPE-28 child | Multi-system |
 | Full merchant / cashflow simulator | — | Explicit non-goal |

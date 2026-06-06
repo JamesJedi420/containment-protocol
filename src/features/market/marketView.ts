@@ -560,6 +560,9 @@ function buildProcurementDetailView(
         listing.shortagePressureDetail?.active
           ? `Vendor shortage: supplier trimmed ${listing.shortagePressureDetail.availabilityPenaltyBundles} bundle${listing.shortagePressureDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.shortagePressureDetail.reasons.join(', ')}).`
           : '',
+        listing.corruptionRoutingDetail?.active
+          ? `Office-mediated diversion: ${listing.corruptionRoutingDetail.officialRole ?? 'compromised office'} rerouted ${listing.corruptionRoutingDetail.availabilityPenaltyBundles} roster bundle${listing.corruptionRoutingDetail.availabilityPenaltyBundles === 1 ? '' : 's'} (${listing.corruptionRoutingDetail.reasons.join(', ')}${listing.corruptionRoutingDetail.benefittingFactionId ? `; favors ${listing.corruptionRoutingDetail.benefittingFactionId}` : ''}).`
+          : '',
         `Market pressure: ${listing.pressureLabel}.`,
         selectedTransactions.length > 0
           ? `This week: ${selectedTransactions
@@ -583,9 +586,11 @@ function buildProcurementDetailView(
         listing.buyBlockedReason ?? '',
         listing.sellBlockedReason ?? '',
         listing.availableBundles < 1
-          ? listing.shortagePressureDetail?.active
-            ? 'Vendor shortage pressure exhausted supplier bundles while funding still covers the line.'
-            : 'Current-week supplier availability is exhausted for this listing.'
+          ? listing.corruptionRoutingDetail?.active
+            ? 'Compromised authority diverted roster bundles while funding still covers the line.'
+            : listing.shortagePressureDetail?.active
+              ? 'Vendor shortage pressure exhausted supplier bundles while funding still covers the line.'
+              : 'Current-week supplier availability is exhausted for this listing.'
           : '',
         typeof listing.fabricationCost === 'number'
           ? 'Fabrication remains the slower but stable fallback if supplier stock collapses.'
@@ -648,6 +653,9 @@ function buildProcurementBudgetSummary(
           : '',
         fundingPressure.reasonCodes.includes('vendor-shortage-pressure')
           ? 'Vendor shortage pressure is rationing agency-roster supplier bundles (availability, not quoted price or carrying fees).'
+          : '',
+        fundingPressure.reasonCodes.includes('compromised-authority-procurement-diversion')
+          ? 'Compromised authority is diverting office-mediated supplier roster attention (availability, not quoted price, carrying fees, or vendor shortage).'
           : '',
         game.factions?.corporate_supply?.availableFavors?.some(
           (favor) => favor.id === 'corporate-supply-salvage-credit'

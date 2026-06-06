@@ -18,6 +18,10 @@ import {
 import type { MarketTransactionListingResourceStatus } from './events/types'
 import type { GameState, MarketPressure, MarketState, OperationEvent } from './models'
 import { getCanonicalFundingState, sumInventoryStock } from './funding'
+import {
+  assessCompromisedAuthorityProcurementDiversion,
+  type ProcurementCorruptionRoutingReason,
+} from './sim/compromisedAuthority'
 import { FUNDING_CALIBRATION } from './sim/calibration'
 
 export type ProcurementTransactionAction = 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
@@ -133,6 +137,15 @@ export interface ProcurementListing {
   availableBundles: number
   inventoryStock: number
   shortagePressureDetail?: ProcurementShortagePressureDetail
+  corruptionRoutingDetail?: ProcurementCorruptionRoutingDetail
+}
+
+export interface ProcurementCorruptionRoutingDetail {
+  active: boolean
+  reasons: ProcurementCorruptionRoutingReason[]
+  availabilityPenaltyBundles: number
+  officialRole?: string
+  benefittingFactionId?: string
 }
 
 export type ProcurementShortagePressureReason = 'high-agency-stock' | 'funding-strain'
@@ -1035,6 +1048,34 @@ export function applyShortagePressureToBundleAvailability(
   )
 }
 
+export function assessProcurementCorruptionRouting(
+  game: Pick<GameState, 'compromisedAuthority'>
+) {
+  return assessCompromisedAuthorityProcurementDiversion(game)
+}
+
+export function applyCorruptionRoutingToBundleAvailability(
+  definition: Pick<ProcurementListingDefinition, 'id'>,
+  game: Pick<GameState, 'compromisedAuthority'>,
+  bundleAvailability: number
+): number {
+  const cal = FUNDING_CALIBRATION.procurementCorruptionRouting
+
+  if (definition.id !== cal.listingId) {
+    return bundleAvailability
+  }
+
+  const assessment = assessProcurementCorruptionRouting(game)
+  if (!assessment.active) {
+    return bundleAvailability
+  }
+
+  return Math.max(
+    cal.minBundles,
+    bundleAvailability - cal.availabilityPenaltyBundles
+  )
+}
+
 function getBaseAvailability(
   definition: ProcurementListingDefinition,
   game: GameState,
@@ -1057,10 +1098,15 @@ function getBaseAvailability(
   const packetAdjustedBundleAvailability = marketPacket.available
     ? Math.max(0, Math.floor(bundleAvailability * marketPacket.availabilityMultiplier))
     : 0
-  const adjustedBundleAvailability = applyShortagePressureToBundleAvailability(
+  const shortageAdjustedBundleAvailability = applyShortagePressureToBundleAvailability(
     definition,
     game,
     packetAdjustedBundleAvailability
+  )
+  const adjustedBundleAvailability = applyCorruptionRoutingToBundleAvailability(
+    definition,
+    game,
+    shortageAdjustedBundleAvailability
   )
 
   return adjustedBundleAvailability * definition.bundleQuantity
@@ -1133,6 +1179,8 @@ function buildListing(
   const featured = definition.recipeId === game.market.featuredRecipeId
   const shortageAssessment = assessProcurementShortagePressure(game)
   const shortageCalibration = FUNDING_CALIBRATION.procurementShortagePressure
+  const corruptionAssessment = assessProcurementCorruptionRouting(game)
+  const corruptionCalibration = FUNDING_CALIBRATION.procurementCorruptionRouting
   const totalAvailability = getBaseAvailability(definition, game, marketPacket)
   const bought = transactionTotals.boughtByListingId[definition.id] ?? 0
   const sold = transactionTotals.soldByListingId[definition.id] ?? 0
@@ -1168,6 +1216,21 @@ function buildListing(
             active: true,
             reasons: shortageAssessment.reasons,
             availabilityPenaltyBundles: shortageCalibration.availabilityPenaltyBundles,
+          },
+        }
+      : {}),
+    ...(definition.id === corruptionCalibration.listingId && corruptionAssessment.active
+      ? {
+          corruptionRoutingDetail: {
+            active: true,
+            reasons: corruptionAssessment.reasons,
+            availabilityPenaltyBundles: corruptionCalibration.availabilityPenaltyBundles,
+            ...(corruptionAssessment.officialRole
+              ? { officialRole: corruptionAssessment.officialRole }
+              : {}),
+            ...(corruptionAssessment.benefittingFactionId
+              ? { benefittingFactionId: corruptionAssessment.benefittingFactionId }
+              : {}),
           },
         }
       : {}),

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2340](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2340 — Entity welfare reclassification registry weekly orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2340) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2547 @ `222019e0`                                                                        |
 | **Parent** | [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) — registry anchor (slice 1–2 shipped); umbrella [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays open |
 | **Branch** | `spe-2114-entity-welfare-reclassification-weekly-hook-slice-3`                                             |
 | **Base `main` SHA** | `c41de040`                                                                                          |

@@ -968,6 +968,37 @@ export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, 
   redactedSuffix: 'Partial redaction',
 }
 
+export const CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Contained person integrated health bundles',
+  pageSubtitle:
+    'Read-only operations view over persisted integrated health bundles, therapeutic care schedule links, and mental-state markers.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalBundlesLabel: 'Persisted bundles',
+  criticalMentalStateLabel: 'Critical mental state',
+  distressedMentalStateLabel: 'Distressed mental state',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Mental-state bands, humane-care risk, and wired schedule links mirror hydrated GameState only. Invalid bundles dropped on hydrate are not shown here.',
+  emptyTitle: 'No contained person integrated health bundles',
+  emptyBody:
+    'Persisted integrated health bundles will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted bundles',
+  recordsSubtitle:
+    'Therapeutic care schedule links reflect upstream wired projections; they are read-time routing aids, not objective truth.',
+  labelColumn: 'Label',
+  mentalStateColumn: 'Mental state',
+  humaneCareColumn: 'Humane care',
+  scheduleLinksColumn: 'Therapeutic care links',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  humaneCareRiskPrefix: 'Risk score:',
+  complianceRiskPrefix: 'Compliance risk:',
+  lockdownEscalationSuffix: 'Lockdown escalation likely',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Contained person therapeutic care registry',

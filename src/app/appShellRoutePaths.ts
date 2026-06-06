@@ -29,6 +29,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'visual-trigger-hazard',
   'entity-welfare-reclassification',
   'contained-person-therapeutic-care',
+  'contained-person-integrated-health-bundle',
 ] as const
 
 export function navPathToShellSegment(path: string): string {

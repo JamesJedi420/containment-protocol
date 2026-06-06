@@ -267,6 +267,7 @@ import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../mass
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
+import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -4642,6 +4643,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentVisualTriggerHazardRecords).length > 0) {
     outputWeeklyState.visualTriggerHazardRecords = applyWeeklyVisualTriggerHazardTick(
       currentVisualTriggerHazardRecords,
+      result.week
+    )
+  }
+
+  // SPE-2115 slice 3: cadence-based missed-session streak and channel degradation on therapeutic care records.
+  const currentTherapeuticCareRecords = outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
+  if (Object.keys(currentTherapeuticCareRecords).length > 0) {
+    outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
+      currentTherapeuticCareRecords,
       result.week
     )
   }

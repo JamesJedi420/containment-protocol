@@ -47,6 +47,7 @@ const startingStateTemplate: GameState = {
   publicDisclosureRecords: {},
   patternSourceSeriesRecords: {},
   massAnomalousPopulationEmergenceRecords: {},
+  visualTriggerHazardRecords: {},
   factions: createInitialFactionState(),
 
   agency: {

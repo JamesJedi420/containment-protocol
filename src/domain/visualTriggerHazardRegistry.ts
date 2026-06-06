@@ -3,7 +3,7 @@
  *
  * Pure deterministic registry for anomalies whose hazardous feature propagates through
  * sight, recordings, and derivative media — plus exposure-created pursuit targets —
- * distinct from jump-scare chase logic and GameState persistence.
+ * distinct from jump-scare chase logic; GameState persistence in slice 2 (SPE-2336).
  */
 
 // ---------------------------------------------------------------------------
@@ -1269,6 +1269,243 @@ export function projectExposureChainRisk(
     requiredCountermeasures,
     escalationBand,
   })
+}
+
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+export type VisualTriggerHazardRecordsMap = Record<
+  VisualTriggerHazardId,
+  VisualTriggerHazardRecord
+>
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parsePresentationMismatchProfile(value: unknown): PresentationMismatchProfile | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined
+  }
+
+  const limbProportionDrift = value.limbProportionDrift
+  const featureOcclusion = value.featureOcclusion
+  const nonstandardMovement = value.nonstandardMovement
+  const cameraSpecificReveal = value.cameraSpecificReveal
+
+  const profile: PresentationMismatchProfile = {
+    ...(isValidUnitScore(limbProportionDrift) ? { limbProportionDrift } : {}),
+    ...(isValidUnitScore(featureOcclusion) ? { featureOcclusion } : {}),
+    ...(isValidUnitScore(nonstandardMovement) ? { nonstandardMovement } : {}),
+    ...(isValidUnitScore(cameraSpecificReveal) ? { cameraSpecificReveal } : {}),
+  }
+
+  return Object.keys(profile).length > 0 ? profile : undefined
+}
+
+function parseMediaAccessHistory(value: unknown): readonly MediaAccessHistoryEntry[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const entries: MediaAccessHistoryEntry[] = []
+
+  for (const entry of value) {
+    if (!isPlainRecord(entry)) {
+      continue
+    }
+
+    const week = entry.week
+    const actorRef = normalizeToken(entry.actorRef)
+    const action = normalizeToken(entry.action)
+
+    if (!isFiniteWeek(week) || !actorRef || !action) {
+      continue
+    }
+
+    entries.push({ week, actorRef, action })
+  }
+
+  return entries
+}
+
+function parseHazardousMediaInstances(value: unknown): readonly HazardousMediaInstance[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const instances: HazardousMediaInstance[] = []
+
+  for (const entry of value) {
+    if (!isPlainRecord(entry)) {
+      continue
+    }
+
+    const mediaInstanceId = normalizeToken(entry.mediaInstanceId)
+    const custody = entry.custody
+    const deletionStatus = entry.deletionStatus
+    const storageScope = entry.storageScope
+    const sweepStatus = entry.sweepStatus
+    const disposalDeadlineWeek = entry.disposalDeadlineWeek
+
+    if (
+      !mediaInstanceId ||
+      typeof custody !== 'string' ||
+      !isMediaCustody(custody) ||
+      typeof deletionStatus !== 'string' ||
+      !isMediaDeletionStatus(deletionStatus) ||
+      typeof storageScope !== 'string' ||
+      !isMediaStorageScope(storageScope) ||
+      typeof sweepStatus !== 'string' ||
+      !isMediaSweepStatus(sweepStatus) ||
+      !isFiniteWeek(disposalDeadlineWeek)
+    ) {
+      continue
+    }
+
+    const accessHistory = parseMediaAccessHistory(entry.accessHistory)
+    const copyRepostChainRefs = parseStringList(entry.copyRepostChainRefs)
+    const derivativeHazardProfile = entry.derivativeHazardProfile
+
+    instances.push({
+      mediaInstanceId,
+      custody,
+      deletionStatus,
+      storageScope,
+      sweepStatus,
+      disposalDeadlineWeek,
+      ...(accessHistory.length > 0 ? { accessHistory } : {}),
+      ...(copyRepostChainRefs.length > 0 ? { copyRepostChainRefs } : {}),
+      ...(typeof derivativeHazardProfile === 'string' &&
+      isDerivativeHazardProfile(derivativeHazardProfile)
+        ? { derivativeHazardProfile }
+        : {}),
+    })
+  }
+
+  return instances
+}
+
+function sanitizeVisualTriggerHazardRecordEntry(
+  value: unknown
+): VisualTriggerHazardRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const triggerMedium = value.triggerMedium
+  const awarenessRequirement = value.awarenessRequirement
+  const derivativeHazardProfile = value.derivativeHazardProfile
+  const pursuitState = value.pursuitState
+  const occlusionState = value.occlusionState
+
+  if (
+    !id ||
+    !label ||
+    typeof triggerMedium !== 'string' ||
+    !isTriggerMedium(triggerMedium) ||
+    typeof awarenessRequirement !== 'string' ||
+    !isAwarenessRequirement(awarenessRequirement) ||
+    typeof derivativeHazardProfile !== 'string' ||
+    !isDerivativeHazardProfile(derivativeHazardProfile) ||
+    typeof pursuitState !== 'string' ||
+    !isPursuitState(pursuitState) ||
+    typeof occlusionState !== 'string' ||
+    !isOcclusionState(occlusionState)
+  ) {
+    return null
+  }
+
+  const targetInstanceIds = parseStringList(value.targetInstanceIds)
+  const hazardousMediaInstances = parseHazardousMediaInstances(value.hazardousMediaInstances)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const presentationMismatchProfile = parsePresentationMismatchProfile(
+    value.presentationMismatchProfile
+  )
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const filterFailureMode =
+    typeof value.filterFailureMode === 'string' && value.filterFailureMode.trim().length > 0
+      ? value.filterFailureMode.trim()
+      : undefined
+  const observerAwarenessBand = value.observerAwarenessBand
+  const filterLatencyWeeks = value.filterLatencyWeeks
+  const exposurePathWeeks = value.exposurePathWeeks
+  const confidence = value.confidence
+  const latentActivation = value.latentActivation === true ? true : undefined
+
+  const record: VisualTriggerHazardRecord = {
+    id,
+    label,
+    triggerMedium,
+    awarenessRequirement,
+    derivativeHazardProfile,
+    pursuitState,
+    occlusionState,
+    ...(summary ? { summary } : {}),
+    ...(targetInstanceIds.length > 0 ? { targetInstanceIds } : {}),
+    ...(latentActivation ? { latentActivation } : {}),
+    ...(presentationMismatchProfile ? { presentationMismatchProfile } : {}),
+    ...(hazardousMediaInstances.length > 0 ? { hazardousMediaInstances } : {}),
+    ...(typeof observerAwarenessBand === 'string' &&
+    isObserverAwarenessBand(observerAwarenessBand)
+      ? { observerAwarenessBand }
+      : {}),
+    ...(isFiniteWeek(filterLatencyWeeks) ? { filterLatencyWeeks } : {}),
+    ...(isFiniteWeek(exposurePathWeeks) ? { exposurePathWeeks } : {}),
+    ...(filterFailureMode ? { filterFailureMode } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateVisualTriggerHazardRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeVisualTriggerHazardRecords(
+  value: unknown,
+  fallback: VisualTriggerHazardRecordsMap = {}
+): VisualTriggerHazardRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: VisualTriggerHazardRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeVisualTriggerHazardRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
 }
 
 /** background_fragment trigger with years-later latent activation. */

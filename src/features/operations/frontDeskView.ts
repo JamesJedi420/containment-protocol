@@ -807,6 +807,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
     },
+    {
+      label: 'Open contained person integrated health bundle mirror',
+      href: APP_ROUTES.containedPersonIntegratedHealthBundle,
+      description:
+        'Review mental-state bands, humane-care risk, and wired therapeutic care schedule links.',
+    },
   ]
 }
 

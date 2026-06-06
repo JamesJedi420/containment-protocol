@@ -99,6 +99,9 @@ const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
 const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonTherapeuticCareMirrorPage')
 )
+const ContainedPersonIntegratedHealthBundleMirrorRoute = createRouteComponent(
+  () => import('../features/operations/ContainedPersonIntegratedHealthBundleMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -173,6 +176,10 @@ export default function App() {
         <Route
           path="contained-person-therapeutic-care"
           element={renderLazyRoute(ContainedPersonTherapeuticCareMirrorRoute)}
+        />
+        <Route
+          path="contained-person-integrated-health-bundle"
+          element={renderLazyRoute(ContainedPersonIntegratedHealthBundleMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

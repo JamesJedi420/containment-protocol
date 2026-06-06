@@ -249,6 +249,7 @@ import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
 import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
+import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2580,6 +2581,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   publicDisclosureRecords?: Record<string, PublicDisclosureRecord>
+
+  /**
+   * SPE-2110 slice 2: persisted pattern source series records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  patternSourceSeriesRecords?: Record<string, PatternSourceSeriesRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

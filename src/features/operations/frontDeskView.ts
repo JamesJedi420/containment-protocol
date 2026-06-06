@@ -801,6 +801,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review disposition review posture, reclassification pressure forecasts, and pending vs terminal states.',
     },
+    {
+      label: 'Open contained person therapeutic care mirror',
+      href: APP_ROUTES.containedPersonTherapeuticCare,
+      description:
+        'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
+    },
   ]
 }
 

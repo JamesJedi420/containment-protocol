@@ -968,6 +968,40 @@ export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, 
   redactedSuffix: 'Partial redaction',
 }
 
+export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Contained person therapeutic care registry',
+  pageSubtitle:
+    'Read-only operations view over persisted therapeutic care schedule records and read-time compliance risk projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  degradedChannelLabel: 'Degraded channels',
+  suspendedChannelLabel: 'Suspended channels',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Care cadence, channel posture, and compliance risk mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No contained person therapeutic care records',
+  emptyBody:
+    'Persisted therapeutic care schedule records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Compliance risk and lockdown escalation projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  scheduleColumn: 'Care schedule',
+  channelColumn: 'Channel posture',
+  complianceColumn: 'Compliance risk',
+  staffColumn: 'Staff assignees',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  containmentDependencySuffix: 'Containment dependency',
+  missedStreakPrefix: 'Missed streak:',
+  suspensionCausePrefix: 'Suspension cause:',
+  complianceRiskPrefix: 'Risk score:',
+  lockdownEscalationSuffix: 'Lockdown escalation likely',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Entity welfare reclassification registry',

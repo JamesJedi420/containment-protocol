@@ -199,6 +199,7 @@ import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRe
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
 import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
+import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
@@ -8413,6 +8414,11 @@ export function hydrateGame(
     game.patternSourceSeriesRecords,
     fallback.patternSourceSeriesRecords ?? {}
   )
+  const massAnomalousPopulationEmergenceRecords =
+    sanitizeMassAnomalousPopulationEmergenceRecords(
+      game.massAnomalousPopulationEmergenceRecords,
+      fallback.massAnomalousPopulationEmergenceRecords ?? {}
+    )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8536,6 +8542,7 @@ export function hydrateGame(
       selfCensoringInformationRecords,
       publicDisclosureRecords,
       patternSourceSeriesRecords,
+      massAnomalousPopulationEmergenceRecords,
       candidates,
       recruitmentPool,
       teams,

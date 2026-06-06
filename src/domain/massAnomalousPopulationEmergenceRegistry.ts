@@ -884,6 +884,124 @@ export function projectGovernanceSurge(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+export type MassAnomalousPopulationEmergenceRecordsMap = Record<
+  PopulationEmergenceId,
+  PopulationEmergenceRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizePopulationEmergenceRecordEntry(value: unknown): PopulationEmergenceRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const emergenceMagnitudeBand = value.emergenceMagnitudeBand
+  const governanceMode = value.governanceMode
+
+  if (
+    !id ||
+    !label ||
+    typeof emergenceMagnitudeBand !== 'string' ||
+    !isEmergenceMagnitudeBand(emergenceMagnitudeBand) ||
+    typeof governanceMode !== 'string' ||
+    !isGovernanceMode(governanceMode)
+  ) {
+    return null
+  }
+
+  const triageLanes = parseStringList(value.triageLanes)
+  const rightsReviewQueueRefs = parseStringList(value.rightsReviewQueueRefs)
+  const securitySurgeRefs = parseStringList(value.securitySurgeRefs)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const newlyAnomalousCountEstimate = value.newlyAnomalousCountEstimate
+  const registrationBacklogWeeks = value.registrationBacklogWeeks
+  const publicEducationBurden = value.publicEducationBurden
+  const confidence = value.confidence
+
+  const record: PopulationEmergenceRecord = {
+    id,
+    label,
+    emergenceMagnitudeBand,
+    governanceMode,
+    triageLanes,
+    newlyAnomalousCountEstimate:
+      typeof newlyAnomalousCountEstimate === 'number' &&
+      Number.isFinite(newlyAnomalousCountEstimate)
+        ? newlyAnomalousCountEstimate
+        : 0,
+    registrationBacklogWeeks:
+      typeof registrationBacklogWeeks === 'number' && Number.isFinite(registrationBacklogWeeks)
+        ? registrationBacklogWeeks
+        : 0,
+    publicEducationBurden:
+      typeof publicEducationBurden === 'number' && Number.isFinite(publicEducationBurden)
+        ? publicEducationBurden
+        : 0,
+    ...(summary ? { summary } : {}),
+    ...(rightsReviewQueueRefs.length > 0 ? { rightsReviewQueueRefs } : {}),
+    ...(securitySurgeRefs.length > 0 ? { securitySurgeRefs } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validatePopulationEmergenceRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeMassAnomalousPopulationEmergenceRecords(
+  value: unknown,
+  fallback: MassAnomalousPopulationEmergenceRecordsMap = {}
+): MassAnomalousPopulationEmergenceRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: MassAnomalousPopulationEmergenceRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizePopulationEmergenceRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: PopulationEmergenceRecord): PopulationEmergenceRecord {
   return Object.freeze({ ...record })
 }

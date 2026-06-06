@@ -968,6 +968,41 @@ export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, 
   redactedSuffix: 'Partial redaction',
 }
 
+export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Visual trigger hazard registry',
+  pageSubtitle:
+    'Read-only operations view over persisted visual-trigger hazard records and read-time compliance, exposure, and awareness projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  activePursuitLabel: 'Active pursuit',
+  disposalCompliancePendingLabel: 'Disposal compliance pending',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Disposal compliance, exposure-chain risk, and awareness escalation mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No visual trigger hazard records',
+  emptyBody:
+    'Persisted visual trigger hazard records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Compliance posture uses current campaign week; exposure and awareness projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  triggerColumn: 'Trigger / derivative',
+  pursuitColumn: 'Pursuit posture',
+  disposalColumn: 'Disposal compliance',
+  exposureColumn: 'Exposure chain',
+  awarenessColumn: 'Awareness escalation',
+  confidenceColumn: 'Confidence',
+  targetPrefix: 'Targets:',
+  projectedPursuitPrefix: 'Projected:',
+  pursuitPressurePrefix: 'Pressure:',
+  pendingMediaPrefix: 'Pending media:',
+  broadcastRiskPrefix: 'Broadcast risk:',
+  manifestationRiskPrefix: 'Manifestation:',
+  dreamIntrusionSuffix: 'Dream intrusion flagged',
+  validationWarningPrefix: 'Validation warnings:',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

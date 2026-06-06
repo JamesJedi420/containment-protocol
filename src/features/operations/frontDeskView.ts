@@ -789,6 +789,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review registration backlog, triage lanes, and governance-surge projections.',
     },
+    {
+      label: 'Open visual trigger hazard mirror',
+      href: APP_ROUTES.visualTriggerHazard,
+      description:
+        'Review disposal compliance, exposure-chain risk, and awareness escalation projections.',
+    },
   ]
 }
 

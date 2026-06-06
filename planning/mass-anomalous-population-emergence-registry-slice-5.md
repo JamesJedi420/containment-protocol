@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2335](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2335 — Mass anomalous population emergence normalization inputs wire-up (slice 5)](https://linear.app/spectranoir/issue/SPE-2335) |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2537 @ `f92c90d0` |
 | **Parent** | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) — registry anchor (slice 1–4 shipped); umbrella [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) stays open |
 | **Branch** | `spe-2122-mass-anomalous-population-emergence-normalization-wire-slice-5`                                  |
 | **Base `main` SHA** | `60da9665`                                                                                          |

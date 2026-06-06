@@ -45,7 +45,7 @@ Office-mediated diversion requires `magistrate` or `watchCommander` role with `e
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Service-boon / callable-obligation rewards | SPE-28 child | Obligation semantics + UI are larger |
+| Service-boon / callable-obligation rewards | [SPE-2323](https://linear.app/spectranoir/issue/SPE-2323) | Shipped as obligation substitution on `material:occult_reagents` |
 | Barter / recovery channel variants | SPE-28 child | Multi-system |
 | Full merchant / cashflow simulator | — | Explicit non-goal |
 

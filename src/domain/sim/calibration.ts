@@ -214,6 +214,10 @@ export const FUNDING_CALIBRATION = {
     availabilityPenaltyBundles: 12,
     minBundles: 0,
   },
+  /** SPE-2323: callable obligation substitutes cash on one canonical roster listing. */
+  procurementCallableObligation: {
+    listingId: 'material:occult_reagents',
+  },
 } as const
 
 export const ATTRITION_CALIBRATION = {

@@ -411,7 +411,7 @@ export interface OperationEventPayloadMap {
     week: number
     marketWeek: number
     transactionId: string
-    action: 'buy' | 'sell' | 'favor_exchange' | 'order' | 'fulfill'
+    action: 'buy' | 'sell' | 'favor_exchange' | 'callable_obligation' | 'order' | 'fulfill'
     listingId: string
     itemId: string
     itemName: string
@@ -424,6 +424,9 @@ export interface OperationEventPayloadMap {
     favorExchangeFactionId?: string
     favorExchangeFavorId?: string
     favorExchangeLabel?: string
+    callableObligationFactionId?: string
+    callableObligationFavorId?: string
+    callableObligationLabel?: string
     listingResourceStatuses?: readonly MarketTransactionListingResourceStatus[]
     allocation?: {
       allocationId: string

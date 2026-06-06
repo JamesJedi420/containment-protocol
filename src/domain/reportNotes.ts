@@ -519,7 +519,9 @@ function buildReflectedReportNote(draft: AnyOperationEventDraft): {
         content:
           draft.payload.action === 'favor_exchange'
             ? `Market favor exchange: ${draft.payload.quantity}x ${draft.payload.itemName} via ${draft.payload.favorExchangeLabel ?? 'faction favor'} (no funding spent).`
-            : `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
+            : draft.payload.action === 'callable_obligation'
+              ? `Market callable obligation: ${draft.payload.quantity}x ${draft.payload.itemName} via ${draft.payload.callableObligationLabel ?? 'faction obligation'} (no funding spent).`
+              : `Market ${draft.payload.action === 'buy' ? 'purchase' : 'sale'}: ${draft.payload.quantity}x ${draft.payload.itemName} for $${draft.payload.totalPrice}.`,
         type: 'market.transaction_recorded',
         metadata: {
           action: draft.payload.action,

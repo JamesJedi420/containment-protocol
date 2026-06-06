@@ -17,8 +17,9 @@ import type {
   ProcurementBacklogEntry,
   SupportStaffSummary,
 } from './models'
-import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
+import { assessCallableObligationProcurement } from './market'
 import { FUNDING_CALIBRATION } from './sim/calibration'
+import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
 
 const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
 
@@ -520,6 +521,14 @@ function hasVendorShortagePressureSignals(
   )
 }
 
+function hasCallableObligationProcurementLeverageSignals(
+  game: Pick<GameState, 'factions'>
+): boolean {
+  const listingId = FUNDING_CALIBRATION.procurementCallableObligation.listingId
+
+  return assessCallableObligationProcurement(game, listingId).eligible
+}
+
 /** SPE-2320: stocked inventory carrying fee for the week being closed (deterministic, no simulator). */
 export function computeWeeklyInventoryHoldingCost(
   game: Pick<GameState, 'inventory'>,
@@ -885,6 +894,9 @@ export function assessFundingPressure(
         : '',
       hasCompromisedAuthorityProcurementDiversionSignals(game)
         ? 'compromised-authority-procurement-diversion'
+        : '',
+      hasCallableObligationProcurementLeverageSignals(game)
+        ? 'callable-obligation-procurement-leverage'
         : '',
     ]),
   }

@@ -57,7 +57,11 @@ function buildTransactionSummary(game: GameState): EconomyTransactionSummary {
 
   return transactions.reduce<EconomyTransactionSummary>(
     (summary, transaction) => {
-      if (transaction.action === 'buy' || transaction.action === 'favor_exchange') {
+      if (
+        transaction.action === 'buy' ||
+        transaction.action === 'favor_exchange' ||
+        transaction.action === 'callable_obligation'
+      ) {
         summary.purchases += transaction.totalPrice
         summary.netFunding -= transaction.totalPrice
       } else {

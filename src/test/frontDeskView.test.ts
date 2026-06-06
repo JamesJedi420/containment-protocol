@@ -8,18 +8,18 @@ import { buildCourierNetworkCapacityGapReport } from '../domain/capabilityGap'
 import { consumeOneShotContent, setPersistentFlag } from '../domain/flagSystem'
 import type { Candidate } from '../domain/recruitment/types'
 import type { CourierShellFrontState, GameState } from '../domain/models'
-import {
-  OFF_BOOKS_COURIER_LOCKOUT_TAG,
-} from '../domain/sim/downtimeSideWork'
+import { OFF_BOOKS_COURIER_LOCKOUT_TAG } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
 import { getProcurementListings } from '../domain/market'
 import {
   buildCourierNetworkCapacityOpportunityCard,
   buildProcurementPressureOpportunityCard,
+  buildStaffingReadinessOpportunityCard,
   getFrontDeskBriefingView,
   getFrontDeskHubView,
 } from '../features/operations/frontDeskView'
+import { getOperationsReportView } from '../features/report/operationsReportView'
 import {
   FRONT_DESK_TRIGGER_IDS,
   getEligibleFrontDeskSceneTriggerIds,
@@ -74,6 +74,26 @@ function withProcurementBacklog(game: GameState, requestedWeek: number): GameSta
       ...game.agency!,
       fundingState,
     },
+  })
+}
+
+function withLostAgents(game: GameState, count: number): GameState {
+  const agents = { ...game.agents }
+  for (const agentId of Object.keys(agents).slice(0, count)) {
+    agents[agentId] = {
+      ...agents[agentId]!,
+      attritionState: {
+        attritionStatus: 'lost',
+        lossReasonCodes: ['test-loss'],
+        replacementPriority: 1,
+        retentionPressure: 0,
+      },
+    }
+  }
+
+  return normalizeGameState({
+    ...game,
+    agents,
   })
 }
 
@@ -160,7 +180,11 @@ describe('frontDeskView', () => {
     let state = createStartingState()
     state = setPersistentFlag(state, 'containment.breach.followup_unlocked', true)
 
-    expect(getFrontDeskBriefingView(state).notices.some((notice) => notice.id === 'breach-follow-up-open')).toBe(true)
+    expect(
+      getFrontDeskBriefingView(state).notices.some(
+        (notice) => notice.id === 'breach-follow-up-open'
+      )
+    ).toBe(true)
 
     state = consumeOneShotContent(
       state,
@@ -168,14 +192,22 @@ describe('frontDeskView', () => {
       'frontdesk_notice'
     ).state
 
-    expect(getFrontDeskBriefingView(state).notices.some((notice) => notice.id === 'breach-follow-up-open')).toBe(false)
+    expect(
+      getFrontDeskBriefingView(state).notices.some(
+        (notice) => notice.id === 'breach-follow-up-open'
+      )
+    ).toBe(false)
   })
 
   it('shows a hostile-faction notice when the strategic layer turns adversarial', () => {
     const state = createStartingState()
     state.factions!.occult_networks.reputation = -80
 
-    expect(getFrontDeskBriefingView(state).notices.some((notice) => notice.id === 'hostile-faction-alert')).toBe(true)
+    expect(
+      getFrontDeskBriefingView(state).notices.some(
+        (notice) => notice.id === 'hostile-faction-alert'
+      )
+    ).toBe(true)
   })
 
   it('threads faction posture into the campaign standing summary without duplicating simulation logic', () => {
@@ -185,11 +217,13 @@ describe('frontDeskView', () => {
     const hub = getFrontDeskHubView(state)
 
     expect(hub.standingSummary.summary).toContain('Occult Networks')
+    expect(hub.standingSummary.details.some((detail) => /hostile pressure:/i.test(detail))).toBe(
+      true
+    )
     expect(
-      hub.standingSummary.details.some((detail) => /hostile pressure:/i.test(detail))
-    ).toBe(true)
-    expect(
-      hub.standingSummary.details.some((detail) => /hidden faction effects remain unresolved/i.test(detail))
+      hub.standingSummary.details.some((detail) =>
+        /hidden faction effects remain unresolved/i.test(detail)
+      )
     ).toBe(true)
     expect(hub.standingSummary.links.some((link) => link.href === '/factions')).toBe(true)
   })
@@ -206,7 +240,11 @@ describe('frontDeskView', () => {
     const state = createStartingState()
     state.candidates = [createSponsoredCandidate()]
 
-    expect(getFrontDeskBriefingView(state).notices.some((notice) => notice.id === 'special-recruit-opportunity')).toBe(true)
+    expect(
+      getFrontDeskBriefingView(state).notices.some(
+        (notice) => notice.id === 'special-recruit-opportunity'
+      )
+    ).toBe(true)
   })
 
   it('hides special recruit notices after a consuming choice spends the one-shot', () => {
@@ -272,6 +310,70 @@ describe('SPE-31a hub courier capacity opportunity card', () => {
     expect(card?.details.join(' ')).toMatch(/expected supplier handoff window/i)
   })
 
+  it('returns no staffing readiness opportunity when staffing and readiness pressure are clear', () => {
+    expect(buildStaffingReadinessOpportunityCard(createStartingState())).toBeNull()
+    expect(getFrontDeskHubView(createStartingState()).staffingReadinessOpportunity).toBeNull()
+  })
+
+  it('returns a deterministic danger staffing readiness card for a staffing gap with readiness blockers', () => {
+    const game = withLostAgents(createStartingState(), 1)
+    const card = buildStaffingReadinessOpportunityCard(game)
+
+    expect(card).toMatchObject({
+      id: 'staffing-readiness-pressure',
+      tone: 'danger',
+      href: '/teams',
+      linkLabel: 'Open teams',
+      secondaryHref: '/recruitment',
+      secondaryLinkLabel: 'Open recruitment',
+    })
+    expect(card?.summary).toContain('1 staffing gap')
+    expect(card?.details.join(' ')).toMatch(/replacement coverage/i)
+  })
+
+  it('returns a deterministic danger staffing readiness card for severe staffing pressure', () => {
+    const game = withLostAgents(createStartingState(), 2)
+    const card = getFrontDeskHubView(game).staffingReadinessOpportunity
+
+    expect(card).toMatchObject({
+      id: 'staffing-readiness-pressure',
+      tone: 'danger',
+      href: '/teams',
+    })
+    expect(card?.summary).toContain('2 staffing gaps')
+  })
+
+  it('surfaces blocked or deferred routing from the existing operations report without mutating state', () => {
+    const game = createStartingState()
+    const report = {
+      ...getOperationsReportView(game),
+      missionRouting: [
+        {
+          missionId: 'case-001',
+          missionTitle: 'Test Mission',
+          priorityLabel: 'High',
+          routingStateLabel: 'Deferred',
+          summary: 'Deferred by readiness pressure.',
+          dominantFactorLabel: 'No Eligible Teams',
+          highlights: [],
+          details: [],
+        },
+      ],
+      deploymentReadiness: [],
+    }
+    const frozen = structuredClone(game)
+    const card = buildStaffingReadinessOpportunityCard(game, report)
+
+    expect(card).toMatchObject({
+      id: 'staffing-readiness-pressure',
+      tone: 'warning',
+      title: 'Mission routing is deferred by readiness pressure',
+      href: '/teams',
+    })
+    expect(card?.details.join(' ')).toContain('Deferred: Test Mission')
+    expect(game).toEqual(frozen)
+  })
+
   it('returns null when the courier gap report has no unresolved gap', () => {
     const opened = openCourierShellFront(withPaidCourierAndFunding(createStartingState(), 12000))
     const report = buildCourierNetworkCapacityGapReport(opened)
@@ -280,7 +382,9 @@ describe('SPE-31a hub courier capacity opportunity card', () => {
 
   it('returns a danger card for below-required gaps with mitigation labels', () => {
     const game = withPaidCourierAndFunding(createStartingState(), 9000)
-    const card = buildCourierNetworkCapacityOpportunityCard(buildCourierNetworkCapacityGapReport(game))
+    const card = buildCourierNetworkCapacityOpportunityCard(
+      buildCourierNetworkCapacityGapReport(game)
+    )
     expect(card).not.toBeNull()
     expect(card!.tone).toBe('danger')
     expect(card!.gapKindLabel).toBe('Below immediate floor')
@@ -309,7 +413,7 @@ describe('SPE-31a hub courier capacity opportunity card', () => {
       },
     })
     const card = buildCourierNetworkCapacityOpportunityCard(
-      buildCourierNetworkCapacityGapReport(strainedWithLockout),
+      buildCourierNetworkCapacityGapReport(strainedWithLockout)
     )
     expect(card).not.toBeNull()
     expect(card!.tone).toBe('warning')

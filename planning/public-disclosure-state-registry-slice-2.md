@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2325](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2325 — Public disclosure state registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2325) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2517 @ `ff0955a1`                                                                        |
 | **Parent** | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) — Public disclosure state registry; umbrella [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) |
 | **Branch** | `spe-2109-public-disclosure-state-registry-persistence-slice-2`                                            |
 | **Base `main` SHA** | `f6c08c6e`                                                                                          |
@@ -34,10 +34,10 @@ Persist validated `PublicDisclosureRecord` entries on `GameState` with sanitize/
 
 ## Acceptance
 
-- [ ] Valid fixture round-trips through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate
-- [ ] `transitionHistory` / `trustByRegion` byte-stable after round-trip
-- [ ] `npm run lint` + targeted tests green
+- [x] Valid fixture round-trips through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate
+- [x] `transitionHistory` / `trustByRegion` byte-stable after round-trip
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

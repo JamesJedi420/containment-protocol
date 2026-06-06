@@ -84,6 +84,9 @@ const PatternSourceSeriesMirrorRoute = createRouteComponent(
 const SelfCensoringInformationMirrorRoute = createRouteComponent(
   () => import('../features/operations/SelfCensoringInformationMirrorPage')
 )
+const PublicDisclosureMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PublicDisclosureMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -138,6 +141,10 @@ export default function App() {
         <Route
           path="self-censoring-information"
           element={renderLazyRoute(SelfCensoringInformationMirrorRoute)}
+        />
+        <Route
+          path="public-disclosure-state"
+          element={renderLazyRoute(PublicDisclosureMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

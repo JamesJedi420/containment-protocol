@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2329](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2329 — Pattern source series planning mirror dashboard UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2329) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2525 @ `7ef8f306`                                                                        |
 | **Parent** | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) — registry anchor (slice 1–3 shipped); umbrella [SPE-75](https://linear.app/spectranoir/issue/SPE-75) stays open |
 | **Branch** | `spe-2110-pattern-source-series-mirror-ui-slice-4`                                                         |
 | **Base `main` SHA** | `440fd6ea`                                                                                          |

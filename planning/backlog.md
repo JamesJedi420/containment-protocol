@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-On `main` @ `9cd48aeb` (post–SPE-2318 merge, PR #2500). [SPE-2318](https://linear.app/spectranoir/issue/SPE-2318) **Done** — `selfCensoringInformationRecords` persistence shipped. Pick next compendium/registry slice from active queue.
+On `main` @ `61a23c04` (post–SPE-2323 merge). [SPE-2324](https://linear.app/spectranoir/issue/SPE-2324) **In Progress** — self-censoring information registry weekly retention/rediscovery hook (slice 3); see `planning/self-censoring-information-registry-slice-3.md`.
 
 ## Blocked / waiting
 

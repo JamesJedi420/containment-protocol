@@ -263,6 +263,7 @@ import {
   type CompactCivicAuthorityConsequencePacket,
 } from '../civicConsequenceNetwork'
 import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWeeklyMonitoring'
+import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
@@ -4576,6 +4577,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentUnexplainedLocations).length > 0) {
     outputWeeklyState.unexplainedLocationRecords = applyWeeklyUnexplainedLocationLifecycleTick(
       currentUnexplainedLocations,
+      result.week
+    )
+  }
+
+  // SPE-2108 slice 3: expire retention decay timers and advance rediscovery due-week loops.
+  const currentSelfCensoringInformation = outputWeeklyState.selfCensoringInformationRecords ?? {}
+  if (Object.keys(currentSelfCensoringInformation).length > 0) {
+    outputWeeklyState.selfCensoringInformationRecords = applyWeeklySelfCensoringInformationTick(
+      currentSelfCensoringInformation,
       result.week
     )
   }

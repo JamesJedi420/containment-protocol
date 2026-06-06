@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2334](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2334 — Mass anomalous population emergence registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2334) |
-| **Status** | **Planned** — base `main` @ `358f9fde`                                                                     |
+| **Status** | **In progress** — implementation on branch `spe-2122-mass-anomalous-population-emergence-mirror-ui-slice-4` |
 | **Parent** | [SPE-2122](https://linear.app/spectranoir/issue/SPE-2122) — registry anchor (slice 1–3 shipped); umbrella [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) stays open |
 | **Branch** | `spe-2122-mass-anomalous-population-emergence-mirror-ui-slice-4`                                           |
 | **Base `main` SHA** | `358f9fde`                                                                                          |
@@ -43,11 +43,11 @@ Read-only planning/operations mirror over persisted `massAnomalousPopulationEmer
 
 ## Acceptance
 
-- [ ] Empty `massAnomalousPopulationEmergenceRecords` map renders empty state without throw
-- [ ] Records table shows magnitude band, registration backlog, governance mode, triage lanes, and education burden from persisted fields
-- [ ] Governance surge band and triage lane symptoms projected without re-validating dropped records
-- [ ] Front Desk quick link routes to mirror page
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty `massAnomalousPopulationEmergenceRecords` map renders empty state without throw
+- [x] Records table shows magnitude band, registration backlog, governance mode, triage lanes, and education burden from persisted fields
+- [x] Governance surge band and triage lane symptoms projected without re-validating dropped records
+- [x] Front Desk quick link routes to mirror page
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

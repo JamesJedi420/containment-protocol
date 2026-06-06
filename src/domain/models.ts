@@ -251,6 +251,7 @@ import type { SelfCensoringInformationRecord } from './selfCensoringInformationR
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
+import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
@@ -2601,6 +2602,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   visualTriggerHazardRecords?: Record<string, VisualTriggerHazardRecord>
+
+  /**
+   * SPE-2114 slice 2: persisted entity welfare reclassification records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  entityWelfareReclassificationRecords?: Record<string, EntityWelfareReclassificationRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

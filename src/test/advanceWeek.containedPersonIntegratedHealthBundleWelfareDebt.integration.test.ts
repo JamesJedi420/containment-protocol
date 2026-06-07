@@ -49,7 +49,7 @@ describe('advanceWeek contained-person integrated health bundle welfare-debt int
 
     const restraintBundle = bundles[COERCIVE_RESTRAINT_LEDGER_FIXTURE.subjectRef]
     expect(restraintBundle?.welfareDebtAccountingLinks?.[0]?.severityBand).toBe('high')
-    expect(restraintBundle?.welfareDebtAccountingLinks?.[0]?.mitigationState).toBe('unresolved')
+    expect(restraintBundle?.welfareDebtAccountingLinks?.[0]?.mitigationState).toBe('acknowledged')
   })
 
   it('matches standalone derive + compose output for the same hydrated welfare-debt map', () => {

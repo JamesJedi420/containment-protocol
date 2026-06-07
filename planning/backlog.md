@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Intake registry follow-up (next)** — pick next compendium/registry slice from `planning/backlog.md` (intake cross-link, sibling registry persistence, or SPE-1464 branch validation).
+1. **Intake registry follow-up (next)** — sibling registry cross-links (minor-item, unexplained-location) or sibling registry persistence (naming-hazard slice 2); SPE-1464 branch validation optional.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). [SPE-2351](https://linear.app/spectranoir/issue/SPE-2351) **Done** — welfare-debt accounting planning mirror UI shipped (PR #2570). [SPE-2352](https://linear.app/spectranoir/issue/SPE-2352) **Done** — welfare-debt accounting weekly orchestration hook shipped (PR #2572); see `planning/welfare-debt-accounting-registry-slice-3.md`. [SPE-2353](https://linear.app/spectranoir/issue/SPE-2353) **In Progress** — welfare-debt ledger summary audit output (slice 4); see `planning/welfare-debt-accounting-registry-slice-4.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open for coercive-protocol wire-up (SPE-1882) after slice 4 ships.
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **In Progress** — intake ↔ extranormal event cross-link compose (slice 1); see `planning/information-intake-extranormal-cross-link-slice-1.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open for coercive-protocol wire-up (SPE-1882) after welfare-debt wave.
 
 ## Blocked / waiting
 
@@ -190,6 +190,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-weekly-hook-slice-9.md`                  | **Shipped**    | SPE-2300 / PR #2463; dynamic intake narrative templates from case outcome metadata under SPE-854.                                                    |
 | `information-intake-parent-integration-slice-1.md`           | **Shipped**    | SPE-2301 / PR #2465; mixed-source intake → mission triage/routing under SPE-854.                                                                    |
 | `information-intake-parent-integration-slice-2.md`           | **Shipped**    | SPE-2304 / PR #2471; mission routing hydrate intake-linked triage refresh under SPE-854.                                                            |
+| `information-intake-extranormal-cross-link-slice-1.md`       | **In progress** | SPE-2354; intake ↔ extranormal event cross-link compose @ `7ec285e8`.                                                                                |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

@@ -168,6 +168,8 @@ export interface ExtranormalEventRecord {
   readonly escalatedCaseRef?: string
   readonly observerClassTags?: readonly string[]
   readonly themeRef?: string
+  /** Shared intake topic anchor for cross-link compose with `informationIntakeReports`. */
+  readonly intakeTopicRef?: string
   readonly dangerProfileRef?: string
   readonly procedurePatternRefs?: readonly string[]
   readonly locationTag?: string
@@ -807,6 +809,7 @@ function sanitizeExtranormalEventRecordEntry(value: unknown): ExtranormalEventRe
   const closureState = typeof value.closureState === 'string' ? value.closureState : undefined
   const escalatedCaseRef = normalizeToken(value.escalatedCaseRef ?? '') || undefined
   const themeRef = normalizeToken(value.themeRef ?? '') || undefined
+  const intakeTopicRef = normalizeToken(value.intakeTopicRef ?? '') || undefined
   const dangerProfileRef = normalizeToken(value.dangerProfileRef ?? '') || undefined
   const locationTag = normalizeToken(value.locationTag ?? '') || undefined
   const summary = typeof value.summary === 'string' && value.summary.trim().length > 0 ? value.summary.trim() : undefined
@@ -838,6 +841,7 @@ function sanitizeExtranormalEventRecordEntry(value: unknown): ExtranormalEventRe
     ...(escalatedCaseRef ? { escalatedCaseRef } : {}),
     ...(observerClassTags.length > 0 ? { observerClassTags } : {}),
     ...(themeRef ? { themeRef } : {}),
+    ...(intakeTopicRef ? { intakeTopicRef } : {}),
     ...(dangerProfileRef ? { dangerProfileRef } : {}),
     ...(procedurePatternRefs.length > 0 ? { procedurePatternRefs } : {}),
     ...(locationTag ? { locationTag } : {}),
@@ -927,6 +931,7 @@ export const BRIEF_COVER_UP_EVENT_WITH_CLUSTER: ExtranormalEventRecord = defineE
   similarEventCluster: [{ eventId: 'event:brief-canal-shimmer', confidence: 0.39 }],
   observerClassTags: ['civilian-witness'],
   themeRef: 'theme:luminous-water-disturbance',
+  intakeTopicRef: 'topic:canal-bridge-incident',
   dangerProfileRef: 'danger:low-transient-glow',
   procedurePatternRefs: ['procedure:cover-story-monitoring'],
 })

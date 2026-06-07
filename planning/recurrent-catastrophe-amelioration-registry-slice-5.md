@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2370](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2370 — Recurrent catastrophe post-incident review ref wire-up (slice 5)](https://linear.app/spectranoir/issue/SPE-2370) |
-| **Status** | **Ready for ship**                                                                                         |
+| **Status** | **Shipped** — PR #2608 @ `4528e659`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Anchor** | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) — Recurrent catastrophe amelioration registry    |
 | **Branch** | `spe-868-recurrent-catastrophe-review-wire-up`                                                             |

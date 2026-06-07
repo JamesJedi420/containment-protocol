@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **In Progress** — intake ↔ extranormal event cross-link compose (slice 1); see `planning/information-intake-extranormal-cross-link-slice-1.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open for coercive-protocol wire-up (SPE-1882) after welfare-debt wave.
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **Done** — intake ↔ extranormal event cross-link compose shipped (PR #2576); see `planning/information-intake-extranormal-cross-link-slice-1.md`. **Next:** sibling cross-link (minor-item or unexplained-location) or naming-hazard registry persistence (slice 2).
 
 ## Blocked / waiting
 
@@ -190,7 +190,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-weekly-hook-slice-9.md`                  | **Shipped**    | SPE-2300 / PR #2463; dynamic intake narrative templates from case outcome metadata under SPE-854.                                                    |
 | `information-intake-parent-integration-slice-1.md`           | **Shipped**    | SPE-2301 / PR #2465; mixed-source intake → mission triage/routing under SPE-854.                                                                    |
 | `information-intake-parent-integration-slice-2.md`           | **Shipped**    | SPE-2304 / PR #2471; mission routing hydrate intake-linked triage refresh under SPE-854.                                                            |
-| `information-intake-extranormal-cross-link-slice-1.md`       | **In progress** | SPE-2354; intake ↔ extranormal event cross-link compose @ `7ec285e8`.                                                                                |
+| `information-intake-extranormal-cross-link-slice-1.md`       | **Shipped**    | SPE-2354 / PR #2576; intake ↔ extranormal event cross-link compose @ `bd38d2ee`.                                                                     |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

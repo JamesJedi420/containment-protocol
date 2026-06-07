@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2354](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2354 — Intake report ↔ extranormal event cross-link compose (slice 1)](https://linear.app/spectranoir/issue/SPE-2354) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2576 @ `bd38d2ee`                                                                 |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine (Done); registry anchor [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) |
 | **Branch** | `spe-854-intake-extranormal-cross-link-slice-1`                                                            |
 | **Base `main` SHA** | `7ec285e8`                                                                                          |

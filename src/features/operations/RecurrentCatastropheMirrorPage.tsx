@@ -4,6 +4,7 @@ import { APP_ROUTES } from '../../app/routes'
 import { useGameStore } from '../../app/store/gameStore'
 import { RECURRENT_CATASTROPHE_MIRROR_UI_TEXT } from '../../data/copy'
 import { getRecurrentCatastropheMirrorView } from './recurrentCatastropheMirrorView'
+import { getRecurrentCatastrophePostIncidentReviewLinksView } from './recurrentCatastrophePostIncidentReviewLinksView'
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
@@ -17,6 +18,17 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export default function RecurrentCatastropheMirrorPage() {
   const { game } = useGameStore()
   const view = useMemo(() => getRecurrentCatastropheMirrorView(game), [game])
+  const linksView = useMemo(
+    () => getRecurrentCatastrophePostIncidentReviewLinksView(game),
+    [game]
+  )
+  const linksByRecordId = useMemo(() => {
+    const map = new Map<string, (typeof linksView.records)[number]>()
+    for (const record of linksView.records) {
+      map.set(record.recordId, record)
+    }
+    return map
+  }, [linksView])
 
   return (
     <section className="space-y-4" aria-label="Recurrent catastrophe amelioration registry mirror">
@@ -36,7 +48,7 @@ export default function RecurrentCatastropheMirrorPage() {
           </Link>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <StatCard
             label={RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.totalRecordsLabel}
             value={String(view.summary.totalRecords)}
@@ -48,6 +60,14 @@ export default function RecurrentCatastropheMirrorPage() {
           <StatCard
             label={RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.criticalSeverityLabel}
             value={String(view.summary.criticalSeverityCount)}
+          />
+          <StatCard
+            label={RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.linkedReviewsLabel}
+            value={String(linksView.summary.totalLinkedReviews)}
+          />
+          <StatCard
+            label={RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.unresolvedReviewRefsLabel}
+            value={String(linksView.summary.totalUnresolvedReviewRefs)}
           />
           <StatCard
             label={RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.weekLabel}
@@ -85,11 +105,17 @@ export default function RecurrentCatastropheMirrorPage() {
                   <th className="px-2 py-2">{RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.preventionColumn}</th>
                   <th className="px-2 py-2">{RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.recurrenceColumn}</th>
                   <th className="px-2 py-2">{RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.riskColumn}</th>
+                  <th className="px-2 py-2">
+                    {RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.reviewLinksColumn}
+                  </th>
                   <th className="px-2 py-2">{RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.confidenceColumn}</th>
                 </tr>
               </thead>
               <tbody>
-                {view.records.map((record) => (
+                {view.records.map((record) => {
+                  const linkRecord = linksByRecordId.get(record.id)
+
+                  return (
                   <tr key={record.id} className="border-b border-white/5 align-top">
                     <td className="px-2 py-2">
                       <p className="font-medium">{record.label}</p>
@@ -159,9 +185,40 @@ export default function RecurrentCatastropheMirrorPage() {
                         </p>
                       ) : null}
                     </td>
+                    <td className="px-2 py-2">
+                      {linkRecord && linkRecord.reviewLinks.length > 0 ? (
+                        linkRecord.reviewLinks.map((link) => (
+                          <div key={link.reviewRefLabel} className="mb-2 last:mb-0">
+                            <p className="text-xs opacity-55">{link.reviewRefLabel}</p>
+                            <p>{link.reviewRouteLabel}</p>
+                            <p className="text-xs opacity-55">{link.closureOutcomeLabel}</p>
+                            {link.redacted ? (
+                              <p className="text-xs opacity-45">
+                                {RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.redactedSuffix}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs opacity-45">—</p>
+                      )}
+                      {linkRecord && linkRecord.unresolvedReviewRefLabels.length > 0 ? (
+                        <p className="text-xs text-amber-200/80">
+                          {RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.unresolvedReviewRefPrefix}{' '}
+                          {linkRecord.unresolvedReviewRefLabels.join('; ')}
+                        </p>
+                      ) : null}
+                      {linkRecord && linkRecord.reviewRefValidationWarningLabels.length > 0 ? (
+                        <p className="text-xs text-amber-200/80">
+                          {RECURRENT_CATASTROPHE_MIRROR_UI_TEXT.validationWarningPrefix}{' '}
+                          {linkRecord.reviewRefValidationWarningLabels.length}
+                        </p>
+                      ) : null}
+                    </td>
                     <td className="px-2 py-2">{record.confidenceLabel}</td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

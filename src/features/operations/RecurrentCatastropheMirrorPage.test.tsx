@@ -67,4 +67,41 @@ describe('RecurrentCatastropheMirrorPage (SPE-2117 slice 4)', () => {
       '/'
     )
   })
+
+  it('renders linked review route and closure columns when review refs resolve', () => {
+    const game = createStartingState()
+    game.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted recurrent catastrophe amelioration records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent('review:cycle-3-closeout')
+    expect(recordsRegion).toHaveTextContent('Internal Command')
+    expect(recordsRegion).toHaveTextContent('Contained')
+    expect(screen.getByText(/linked reviews/i)).toBeInTheDocument()
+  })
+
+  it('renders unresolved review refs when postIncidentReviewRecords is empty', () => {
+    const game = createStartingState()
+    game.postIncidentReviewRecords = {}
+    game.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted recurrent catastrophe amelioration records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent('review:cycle-3-closeout')
+    expect(recordsRegion).toHaveTextContent(/unresolved review ref:/i)
+  })
 })

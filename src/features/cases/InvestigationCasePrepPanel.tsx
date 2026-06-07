@@ -60,6 +60,30 @@ export function InvestigationCasePrepPanel({
         </>
       )}
 
+      {view.namingHazardDescriptors.length > 0 ? (
+        <section className="space-y-2" aria-label="Naming-hazard descriptor labels">
+          <p className="text-xs uppercase tracking-wide opacity-50">Naming-hazard descriptors</p>
+          <ul className="space-y-2">
+            {view.namingHazardDescriptors.map((descriptor) => (
+              <li
+                key={descriptor.descriptorId}
+                className="rounded border border-indigo-400/25 bg-indigo-500/6 px-3 py-2 text-sm"
+              >
+                <p className="font-medium">{descriptor.safeLabel}</p>
+                {descriptor.summary ? (
+                  <p className="text-xs opacity-70">{descriptor.summary}</p>
+                ) : null}
+                <p className="text-xs opacity-60">
+                  {descriptor.topicRef}
+                  {descriptor.usedGridFallback ? ' / grid fallback' : ''}
+                  {descriptor.redacted ? ' / redacted' : ''}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       {view.custodyMarkers.length > 0 ? (
         <section className="space-y-2" aria-label="Investigation custody strain">
           <p className="text-xs uppercase tracking-wide opacity-50">Custody strain markers</p>

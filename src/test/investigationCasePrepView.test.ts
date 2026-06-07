@@ -7,6 +7,7 @@ import {
   grantInvestigationQuestionBudget,
 } from '../domain/investigationEconomy'
 import { createStarterCase } from '../domain/templates/startingCases'
+import { CANAL_BRIDGE_NAMING_HAZARD_FIXTURE } from '../domain/namingHazardDescriptorRegistry'
 import {
   buildInvestigationCasePrepView,
   canAskInvestigationQuestionOnCase,
@@ -116,5 +117,24 @@ describe('investigationCasePrepView', () => {
     expect(view.custodyMarkers[0]?.ref).toBe('custody:chain-seal')
     expect(view.forensic.budget.custodyLossBurden).toBe(2)
     expect(view.forensic.budget.remaining).toBe(1)
+  })
+
+  it('surfaces safe naming-hazard descriptor labels for linked intake topics', () => {
+    const game = createStartingState()
+    game.cases['case-investigation-prep'] = {
+      ...createInProgressCase(),
+      tags: ['topic:canal-bridge-incident'],
+    }
+    game.namingHazardDescriptorRecords = {
+      [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+    }
+
+    const view = buildInvestigationCasePrepView(game.cases['case-investigation-prep']!, game)
+
+    expect(view.namingHazardDescriptors).toHaveLength(1)
+    expect(view.namingHazardDescriptors[0]?.safeLabel).toBe('East canal approach lane')
+    expect(view.namingHazardDescriptors[0]?.safeLabel).not.toBe(
+      CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.label
+    )
   })
 })

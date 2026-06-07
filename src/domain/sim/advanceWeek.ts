@@ -286,6 +286,7 @@ import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureW
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
+import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4681,6 +4682,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentWelfareDebtAccountingRecords).length > 0) {
     outputWeeklyState.welfareDebtAccountingRecords = applyWeeklyWelfareDebtAccountingTick(
       currentWelfareDebtAccountingRecords,
+      result.week
+    )
+  }
+
+  // SPE-2117 slice 3: cadence-due recurrenceCount and lastOccurrenceWeek advance on recurrent catastrophes.
+  const currentRecurrentCatastropheRecords = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  if (Object.keys(currentRecurrentCatastropheRecords).length > 0) {
+    outputWeeklyState.recurrentCatastropheRecords = applyWeeklyRecurrentCatastropheTick(
+      currentRecurrentCatastropheRecords,
       result.week
     )
   }

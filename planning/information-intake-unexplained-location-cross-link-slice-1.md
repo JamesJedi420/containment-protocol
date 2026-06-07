@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2356](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2356 — Intake report ↔ unexplained location cross-link compose (slice 1)](https://linear.app/spectranoir/issue/SPE-2356) |
-| **Status** | In Progress — PR pending                                                                                   |
+| **Status** | **Shipped** — PR #2580 @ `6d4b721b`                                                                        |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine (Done); registry anchor [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) |
 | **Branch** | `spe-854-intake-unexplained-location-cross-link-slice-1`                                                   |
 | **Base `main` SHA** | `69502dc8`                                                                                          |

@@ -237,12 +237,18 @@ function createCasesCoverageGame() {
 
   game.teams['t_nightwatch'] = {
     ...game.teams['t_nightwatch'],
-    assignedCaseId: 'case-002',
+    status: {
+      ...(game.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-002',
+    },
   }
 
   game.teams['t_greentape'] = {
     ...game.teams['t_greentape'],
-    assignedCaseId: 'case-001',
+    status: {
+      ...(game.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-001',
+    },
   }
 
   return game

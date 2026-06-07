@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { type CaseInstance } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 
 function createControlledRaidState() {
   const state = createStartingState()
@@ -62,8 +63,14 @@ describe('Raid Coordination Hardening', () => {
     const state = createControlledRaidState()
     state.cases['raid-test'] = createRaidCase('raid-test', { title: 'Test Raid' })
 
-    state.teams['t_nightwatch'].assignedCaseId = 'raid-test'
-    state.teams['t_greentape'].assignedCaseId = 'raid-test'
+    state.teams['t_nightwatch'].status = {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'raid-test',
+    }
+    state.teams['t_greentape'].status = {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'raid-test',
+    }
 
     const before = structuredClone(state)
     const next = advanceWeek(state)
@@ -94,8 +101,14 @@ describe('Raid Coordination Hardening', () => {
       weeksRemaining: 5,
     })
 
-    state.teams['t_nightwatch'].assignedCaseId = 'long-raid'
-    state.teams['t_greentape'].assignedCaseId = 'long-raid'
+    state.teams['t_nightwatch'].status = {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'long-raid',
+    }
+    state.teams['t_greentape'].status = {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'long-raid',
+    }
 
     // Advance 3 weeks and verify no crashes
     for (let i = 0; i < 3; i++) {

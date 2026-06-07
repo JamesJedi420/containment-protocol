@@ -726,7 +726,6 @@ function releaseTeams(teams: GameState['teams'], releasedTeamIds: string[]): Gam
       releasedTeamIds.includes(id)
         ? {
             ...team,
-            assignedCaseId: undefined,
             status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
           }
         : team,

@@ -30,6 +30,7 @@ import type {
   MissionTriageDisposition,
   Team,
 } from './models'
+import { getTeamAssignedCaseId } from './teamSimulation'
 
 const MISSION_TRIAGE_THRESHOLDS = {
   critical: 80,
@@ -348,7 +349,7 @@ function buildMissionRoutingCandidate(
   const avgFatigue = members.length > 0
     ? Math.round(members.reduce((sum, member) => sum + member.fatigue, 0) / members.length)
     : 100
-  const assignedCaseId = team.status?.assignedCaseId ?? team.assignedCaseId ?? null
+  const assignedCaseId = getTeamAssignedCaseId(team)
 
   const blockerCodes = uniqueSortedStrings([
     ...eligibility.hardBlockers,

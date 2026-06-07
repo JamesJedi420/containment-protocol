@@ -20,6 +20,7 @@ import { getTrainingProgram } from '../data/training'
 import { getCertificationDefinitions } from './sim/training-compat'
 import { buildTeamCompositionState } from './teamComposition'
 import { buildTeamDeploymentReadinessState } from './deploymentReadiness'
+import { getTeamAssignedCaseId } from './teamSimulation'
 import { normalizeMissionRoutingState, routeMission, triageMission } from './missionIntakeRouting'
 import { getCandidateFunnelStage, normalizeCandidateHireStatus } from './recruitment'
 import { assessResearchRequirements } from './research'
@@ -1267,9 +1268,10 @@ export function analyzeRuntimeStability(state: GameState): StabilityReport {
       recoveryIds.add('review-frontdesk-fallback-routing')
     }
 
+    const teamAssignedCaseId = getTeamAssignedCaseId(team)
     if (
-      (team.status?.state === 'recovering' && (team.status?.assignedCaseId ?? team.assignedCaseId)) ||
-      (team.status?.state === 'ready' && (team.status?.assignedCaseId ?? team.assignedCaseId) && recomputedReadiness.hardBlockers.includes('capacity-locked'))
+      (team.status?.state === 'recovering' && teamAssignedCaseId) ||
+      (team.status?.state === 'ready' && teamAssignedCaseId && recomputedReadiness.hardBlockers.includes('capacity-locked'))
     ) {
       pushIssue(issues, {
         id: `deployment.impossible-team-status.${team.id}`,

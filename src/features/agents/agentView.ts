@@ -318,7 +318,8 @@ export function getAgentView(game: GameState, agentId: string): AgentView | unde
     getTeamMemberIds(team).includes(agentId)
   )
   const team = getAgentTeamContext(game, agentId)
-  const assignedCase = team?.assignedCaseId ? game.cases[team.assignedCaseId] : undefined
+  const assignedCaseId = team?.assignedCaseId
+  const assignedCase = assignedCaseId ? game.cases[assignedCaseId] : undefined
   const trainingEntry = game.trainingQueue.find((entry) => entry.agentId === agentId)
   const materialized = buildMaterializedAgentState(
     game,

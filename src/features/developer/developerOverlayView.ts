@@ -19,6 +19,7 @@ import {
 } from '../../domain/teamComposition'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
 import { analyzeRuntimeStability } from '../../domain/stabilityLayer'
+import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
   explainDeploymentReadiness,
   explainMissionRouting,
@@ -313,7 +314,7 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     .sort((left, right) => left.teamId.localeCompare(right.teamId))
   const deploymentSummaries = Object.values(game.teams)
     .map((team) => {
-      const assignedCaseId = team.status?.assignedCaseId ?? team.assignedCaseId
+      const assignedCaseId = getTeamAssignedCaseId(team)
       const caseDeploymentCarryInByAgentId =
         assignedCaseId && game.cases[assignedCaseId]
           ? (game.cases[assignedCaseId].deploymentCarryInByAgentId ?? null)

@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import { assignTeam } from '../domain/sim/assign'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { resolveCase } from '../domain/sim/resolve'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 
 const FORBIDDEN_PLAYBACK_FIELDS = [
   'animationQueue',
@@ -48,14 +49,17 @@ describe('case resolution abstraction', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: {
+        ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
     }
 
     const next = advanceWeek(state)
     const report = next.reports.at(-1)
 
     expect(next.cases['case-001'].status).toBe('resolved')
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
     expect(report).toMatchObject({
       resolvedCases: ['case-001'],
       notes: expect.any(Array),

@@ -52,7 +52,6 @@ export function createWeeklyMvpLoopProofFixture(): WeeklyMvpLoopProofFixture {
   }
 
   for (const team of Object.values(state.teams)) {
-    team.assignedCaseId = undefined
     if (team.status) {
       team.status = { ...team.status, assignedCaseId: null }
     }

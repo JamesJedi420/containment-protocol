@@ -2,6 +2,21 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { getCaseAssignmentInsights } from '../features/cases/caseInsights'
 
+function assignTeamToCase(
+  game: ReturnType<typeof createStartingState>,
+  teamId: string,
+  caseId: string
+) {
+  game.teams[teamId] = {
+    ...game.teams[teamId],
+    status: {
+      ...(game.teams[teamId].status ?? { state: 'deployed', assignedCaseId: null }),
+      state: 'deployed',
+      assignedCaseId: caseId,
+    },
+  }
+}
+
 describe('getCaseAssignmentInsights', () => {
   it('blocks teams when case is resolved', () => {
     const game = createStartingState()
@@ -23,10 +38,7 @@ describe('getCaseAssignmentInsights', () => {
     const currentCase = game.cases['case-001']
 
     // Assign t_nightwatch to a different case
-    game.teams['t_nightwatch'] = {
-      ...game.teams['t_nightwatch'],
-      assignedCaseId: 'case-002',
-    }
+    assignTeamToCase(game, 't_nightwatch', 'case-002')
 
     const insights = getCaseAssignmentInsights(currentCase, game)
     const blockedNightwatch = insights.blockedTeams.find((view) => view.team.id === 't_nightwatch')
@@ -190,10 +202,7 @@ describe('getCaseAssignmentInsights', () => {
       raid: { minTeams: 1, maxTeams: 3 },
       assignedTeamIds: ['t_nightwatch'],
     }
-    game.teams['t_nightwatch'] = {
-      ...game.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(game, 't_nightwatch', 'case-001')
 
     const insights = getCaseAssignmentInsights(game.cases['case-001'], game)
 

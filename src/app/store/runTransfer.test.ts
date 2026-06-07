@@ -1639,7 +1639,6 @@ describe('runTransfer helpers', () => {
     )
 
     expect(teams[teamId]?.status?.assignedCaseId).toBe(caseCanonical)
-    expect(teams[teamId]?.assignedCaseId).toBe(caseCanonical)
   })
 
   it('sanitizeTeamsMap recomposes compositionState from live roster (315)', () => {
@@ -5331,7 +5330,6 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.teams[teamId]?.status?.assignedCaseId).toBe(caseCanonical)
-      expect(hydrated.teams[teamId]?.assignedCaseId).toBe(caseCanonical)
 
       const danglingTeamId = 't_dangling_assignment'
       const danglingHydrated = hydrateGame({
@@ -5348,7 +5346,6 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(danglingHydrated.teams[danglingTeamId]?.status?.assignedCaseId).toBeNull()
-      expect(danglingHydrated.teams[danglingTeamId]?.assignedCaseId).toBeUndefined()
     })
 
     it('413 recomputes team status state via resolveTeamStatus for invalid persisted states', () => {
@@ -12572,7 +12569,6 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(aligned.cases[caseId]?.assignedTeamIds).toEqual([teamId])
       expect(aligned.teams[teamId]?.status?.assignedCaseId).toBe(caseId)
-      expect(aligned.teams[teamId]?.assignedCaseId).toBe(caseId)
 
       const danglingTeam = hydrateGame(
         {
@@ -12601,7 +12597,6 @@ describe('runTransfer import sanitization (326-332)', () => {
       )
 
       expect(danglingTeam.teams[teamId]?.status?.assignedCaseId).toBeNull()
-      expect(danglingTeam.teams[teamId]?.assignedCaseId).toBeUndefined()
       expect(danglingTeam.teams[teamId]?.status?.state).toBe('ready')
     })
 

@@ -46,11 +46,16 @@ describe('reportTeamStatus (SPE-99)', () => {
     }
     const sourceTeam: Team = {
       ...shell.teams.t_nightwatch,
-      assignedCaseId: 'case_exp',
+      status: {
+        ...(shell.teams.t_nightwatch.status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case_exp',
+      },
     }
     const releasedTeam: Team = {
       ...shell.teams.t_nightwatch,
-      assignedCaseId: undefined,
+      status: shell.teams.t_nightwatch.status
+        ? { ...shell.teams.t_nightwatch.status, assignedCaseId: null }
+        : { state: 'ready', assignedCaseId: null },
     }
 
     const entry = buildReportTeamStatusEntry(

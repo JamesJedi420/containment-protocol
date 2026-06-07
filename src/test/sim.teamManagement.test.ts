@@ -1,6 +1,21 @@
 // cspell:words editability greentape sato
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+
+function assignTeamToCase(
+  state: ReturnType<typeof createStartingState>,
+  teamId: string,
+  caseId: string
+) {
+  state.teams[teamId] = {
+    ...state.teams[teamId],
+    status: {
+      ...(state.teams[teamId].status ?? { state: 'deployed', assignedCaseId: null }),
+      state: 'deployed',
+      assignedCaseId: caseId,
+    },
+  }
+}
 import { assignTeam } from '../domain/sim/assign'
 import {
   createTeam,
@@ -102,10 +117,7 @@ describe('renameTeam', () => {
   it('returns unchanged state when the team is deployed to a case', () => {
     const state = createStartingState()
     // mark the team as deployed
-    state.teams[ALPHA_TEAM] = {
-      ...state.teams[ALPHA_TEAM],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(state, ALPHA_TEAM, 'case-001')
     const next = renameTeam(state, ALPHA_TEAM, 'Deployed Rename')
 
     expect(next.teams[ALPHA_TEAM].name).toBe(state.teams[ALPHA_TEAM].name)
@@ -266,10 +278,7 @@ describe('getTeamEditability', () => {
 
   it('returns non-editable with case title when deployed', () => {
     const state = createStartingState()
-    state.teams[ALPHA_TEAM] = {
-      ...state.teams[ALPHA_TEAM],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(state, ALPHA_TEAM, 'case-001')
     const result = getTeamEditability(state.teams[ALPHA_TEAM], state.cases)
     expect(result.editable).toBe(false)
     expect(result.reason).toMatch(/deployed/i)
@@ -277,10 +286,7 @@ describe('getTeamEditability', () => {
 
   it('returns editable when assigned case pointer is orphaned', () => {
     const state = createStartingState()
-    state.teams[ALPHA_TEAM] = {
-      ...state.teams[ALPHA_TEAM],
-      assignedCaseId: 'missing-case',
-    }
+    assignTeamToCase(state, ALPHA_TEAM, 'missing-case')
 
     const result = getTeamEditability(state.teams[ALPHA_TEAM], state.cases)
     expect(result.editable).toBe(true)
@@ -305,10 +311,7 @@ describe('getTeamMoveEligibility', () => {
 
   it('blocks move when the target team is deployed', () => {
     const state = createStartingState()
-    state.teams[ALPHA_TEAM] = {
-      ...state.teams[ALPHA_TEAM],
-      assignedCaseId: 'case-001',
-    }
+    assignTeamToCase(state, ALPHA_TEAM, 'case-001')
     const result = getTeamMoveEligibility(state, BRAVO_AGENT, ALPHA_TEAM)
     expect(result.allowed).toBe(false)
     expect(result.reasons.some((r) => /target team/i.test(r))).toBe(true)

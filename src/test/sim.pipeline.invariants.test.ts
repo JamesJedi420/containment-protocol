@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { Agent, CaseInstance, Team } from '../domain/models'
 import { createSeededRng } from '../domain/math'
-import { normalizeGameState } from '../domain/teamSimulation'
+import { getTeamAssignedCaseId, normalizeGameState } from '../domain/teamSimulation'
 import { getCaseAssignmentInsights } from '../features/cases/caseInsights'
 import { getTeamAssignableCaseViews } from '../features/teams/teamInsights'
 import {
@@ -200,7 +200,6 @@ function makeDirtyTeamState() {
       state: 'ready',
       assignedCaseId: null,
     },
-    assignedCaseId: undefined,
   }
 
   return state
@@ -331,7 +330,7 @@ function makeMixedEventStateForOrdering(seed: number) {
       agentIds: ['agent-strong'],
       leaderId: 'agent-strong',
       tags: [],
-      assignedCaseId: 'case-success',
+      status: { state: 'deployed', assignedCaseId: 'case-success' },
     },
     'team-weak': {
       id: 'team-weak',
@@ -340,7 +339,7 @@ function makeMixedEventStateForOrdering(seed: number) {
       agentIds: ['agent-weak'],
       leaderId: 'agent-weak',
       tags: [],
-      assignedCaseId: 'case-fail',
+      status: { state: 'deployed', assignedCaseId: 'case-fail' },
     },
   }
 
@@ -1013,14 +1012,16 @@ describe('stale derived fields', () => {
     }
     state.teams['t_greentape'] = {
       ...state.teams['t_greentape'],
-      assignedCaseId: 'missing-case',
+      status: {
+        ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'missing-case',
+      },
     }
 
     const next = normalizeGameState(state)
 
     expect(next.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(next.teams['t_greentape'].assignedCaseId).toBeUndefined()
-    expect(next.teams['t_greentape'].status?.assignedCaseId ?? null).toBeNull()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
   })
 
   it('every team-mutating domain mutator emits already-normalized team state', () => {

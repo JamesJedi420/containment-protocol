@@ -144,7 +144,10 @@ describe('field base staging (SPE-1654)', () => {
         },
         [deployedTeamId]: {
           ...shell.teams[deployedTeamId]!,
-          assignedCaseId: 'case_exp',
+          status: {
+            ...(shell.teams[deployedTeamId]!.status ?? { state: 'deployed', assignedCaseId: null }),
+            assignedCaseId: 'case_exp',
+          },
         },
       },
       agents: {
@@ -231,7 +234,10 @@ describe('field base staging (SPE-1654)', () => {
         },
         [deployedTeamId]: {
           ...shell.teams[deployedTeamId]!,
-          assignedCaseId: 'case_exp',
+          status: {
+            ...(shell.teams[deployedTeamId]!.status ?? { state: 'deployed', assignedCaseId: null }),
+            assignedCaseId: 'case_exp',
+          },
         },
       },
       agents: {

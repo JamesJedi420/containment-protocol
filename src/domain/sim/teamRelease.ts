@@ -16,7 +16,6 @@ export function releaseTeamsFromCases(
       releasedTeamIdSet.has(id)
         ? {
             ...team,
-            assignedCaseId: undefined,
             status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
           }
         : team,

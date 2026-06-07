@@ -659,6 +659,194 @@ export function projectSafeLabel(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence / hydration (SPE-2116 slice 2)
+// ---------------------------------------------------------------------------
+
+export type NamingHazardDescriptorRecordsMap = Record<
+  NamingHazardDescriptorId,
+  NamingHazardDescriptorRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function uniqueSorted(values: readonly string[]) {
+  return [...new Set(values)].sort((left, right) => left.localeCompare(right))
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return uniqueSorted(
+    value.filter((entry): entry is string => typeof entry === 'string').map((entry) => entry)
+  )
+}
+
+function parseReferenceConstraints(value: unknown): readonly ReferenceConstraint[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const constraints: ReferenceConstraint[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !isReferenceConstraint(entry) || seen.has(entry)) {
+      continue
+    }
+
+    seen.add(entry)
+    constraints.push(entry)
+  }
+
+  return constraints
+}
+
+/** Preserves source order for byte-stable descriptorIndex projection after round-trip. */
+function parseSafeDescriptorPool(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const pool: string[] = []
+
+  for (const entry of value) {
+    if (typeof entry !== 'string') {
+      continue
+    }
+
+    pool.push(entry)
+  }
+
+  return pool
+}
+
+function parseCompulsivePhraseWatchlist(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const phrases: string[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (typeof entry !== 'string') {
+      continue
+    }
+
+    const token = normalizeToken(entry)
+    if (!token) {
+      continue
+    }
+
+    const key = token.toLocaleLowerCase()
+    if (seen.has(key)) {
+      continue
+    }
+
+    seen.add(key)
+    phrases.push(token)
+  }
+
+  return phrases
+}
+
+function isValidConfidence(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+}
+
+function sanitizeNamingHazardDescriptorRecordEntry(
+  value: unknown
+): NamingHazardDescriptorRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const uiSubstitutionPolicy =
+    typeof value.uiSubstitutionPolicy === 'string' ? value.uiSubstitutionPolicy : ''
+  const mapLabelMode = typeof value.mapLabelMode === 'string' ? value.mapLabelMode : ''
+  const safeDescriptorPool = parseSafeDescriptorPool(value.safeDescriptorPool)
+  const trueNameForbidden = value.trueNameForbidden === true
+
+  if (
+    !id ||
+    !label ||
+    !isUiSubstitutionPolicy(uiSubstitutionPolicy) ||
+    !isMapLabelMode(mapLabelMode)
+  ) {
+    return null
+  }
+
+  const referenceConstraints = parseReferenceConstraints(value.referenceConstraints)
+  const compulsivePhraseWatchlist = parseCompulsivePhraseWatchlist(value.compulsivePhraseWatchlist)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const briefingTemplateSnippet =
+    typeof value.briefingTemplateSnippet === 'string' &&
+    value.briefingTemplateSnippet.trim().length > 0
+      ? value.briefingTemplateSnippet.trim()
+      : undefined
+  const confidence = value.confidence
+
+  const record: NamingHazardDescriptorRecord = {
+    id,
+    label,
+    trueNameForbidden,
+    safeDescriptorPool,
+    uiSubstitutionPolicy,
+    mapLabelMode,
+    ...(summary ? { summary } : {}),
+    ...(referenceConstraints.length > 0 ? { referenceConstraints } : {}),
+    ...(compulsivePhraseWatchlist.length > 0 ? { compulsivePhraseWatchlist } : {}),
+    ...(briefingTemplateSnippet ? { briefingTemplateSnippet } : {}),
+    ...(isValidConfidence(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateNamingHazardDescriptorRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeNamingHazardDescriptorRecords(
+  value: unknown,
+  fallback: NamingHazardDescriptorRecordsMap = {}
+): NamingHazardDescriptorRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: NamingHazardDescriptorRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeNamingHazardDescriptorRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: NamingHazardDescriptorRecord): NamingHazardDescriptorRecord {
   return Object.freeze({ ...record })
 }

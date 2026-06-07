@@ -193,6 +193,7 @@ import { getKnowledgeKey } from '../../domain/knowledge'
 import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import { sanitizeInformationIntakeReports } from '../../domain/informationIntakeReport'
 import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRegistry'
+import { sanitizeNamingHazardDescriptorRecords } from '../../domain/namingHazardDescriptorRegistry'
 import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
@@ -8413,6 +8414,10 @@ export function hydrateGame(
     game.minorAnomalyItemRecords,
     fallback.minorAnomalyItemRecords ?? {}
   )
+  const namingHazardDescriptorRecords = sanitizeNamingHazardDescriptorRecords(
+    game.namingHazardDescriptorRecords,
+    fallback.namingHazardDescriptorRecords ?? {}
+  )
   const selfCensoringInformationRecords = sanitizeSelfCensoringInformationRecords(
     game.selfCensoringInformationRecords,
     fallback.selfCensoringInformationRecords ?? {}
@@ -8578,6 +8583,7 @@ export function hydrateGame(
       extranormalEventRecords,
       unexplainedLocationRecords,
       minorAnomalyItemRecords,
+      namingHazardDescriptorRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,
       patternSourceSeriesRecords,

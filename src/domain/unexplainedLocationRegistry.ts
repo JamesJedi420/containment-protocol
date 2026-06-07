@@ -175,6 +175,7 @@ export interface UnexplainedLocationRecord {
   readonly neutralizationAuthorizationRef?: string
   readonly mapLayerPolicy?: string
   readonly locationTag?: string
+  readonly intakeTopicRef?: string
   readonly statusHistory?: readonly UnexplainedLocationStatusHistoryEntry[]
   readonly updateLedger?: readonly UnexplainedLocationUpdateLedgerEntry[]
 }
@@ -910,6 +911,7 @@ function sanitizeUnexplainedLocationRecordEntry(value: unknown): UnexplainedLoca
   const coverStoryCode = normalizeToken(value.coverStoryCode ?? '') || undefined
   const mapLayerPolicy = normalizeToken(value.mapLayerPolicy ?? '') || undefined
   const locationTag = normalizeToken(value.locationTag ?? '') || undefined
+  const intakeTopicRef = normalizeToken(value.intakeTopicRef ?? '') || undefined
   const neutralizationAuthorizationRef =
     normalizeToken(value.neutralizationAuthorizationRef ?? '') || undefined
 
@@ -946,6 +948,7 @@ function sanitizeUnexplainedLocationRecordEntry(value: unknown): UnexplainedLoca
     ...(neutralizationAuthorizationRef ? { neutralizationAuthorizationRef } : {}),
     ...(mapLayerPolicy ? { mapLayerPolicy } : {}),
     ...(locationTag ? { locationTag } : {}),
+    ...(intakeTopicRef ? { intakeTopicRef } : {}),
     ...(statusHistory.length > 0 ? { statusHistory } : {}),
     ...(updateLedger.length > 0 ? { updateLedger } : {}),
   }
@@ -1039,4 +1042,26 @@ export const LIFECYCLE_CHAIN_LOCATION_FIXTURE: UnexplainedLocationRecord = defin
     { fromState: 'active', toState: 'utility_use', week: 14, note: 'Repurposed under utility cover.' },
     { fromState: 'utility_use', toState: 'archived', week: 52, note: 'Monitoring cadence retired.' },
   ],
+})
+
+/** Canal-bridge intake grid linked to mixed-source intake via intakeTopicRef. */
+export const CANAL_BRIDGE_LOCATION_FIXTURE: UnexplainedLocationRecord = defineLocation({
+  id: 'location:canal-bridge-intake-grid',
+  label: 'East canal bridge intake grid',
+  descriptionStub: 'Low-threat spatial drift zone near east canal lock intake hardware.',
+  effectGeometry: 'building',
+  effectDomainTags: ['spatial', 'environmental'],
+  populationSelectors: [{ kind: 'location', value: 'east-canal-locker' }],
+  discoveryWeek: 11,
+  containmentWeek: 13,
+  securityControlTags: ['physical_exclusion', 'sensor_monitoring', 'public_cover'],
+  coverStoryCode: 'municipal-canal-maintenance',
+  monitoringCadenceWeeks: 8,
+  lifecycleState: 'active',
+  latentSeverityScore: 16,
+  accessProbability: 0.22,
+  lowPriority: true,
+  confidence: 0.49,
+  locationTag: 'site:east-canal-locker',
+  intakeTopicRef: 'topic:canal-bridge-incident',
 })

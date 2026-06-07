@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
+  CANAL_BRIDGE_LOCATION_FIXTURE,
   LIFECYCLE_CHAIN_LOCATION_FIXTURE,
   REMOTE_MONITOR_SITE_FIXTURE,
   sanitizeUnexplainedLocationRecords,
@@ -66,6 +67,24 @@ describe('unexplainedLocationRegistry persistence (SPE-2106 slice 2)', () => {
     expect(sanitized.invalidLifecycle).toBeUndefined()
     expect(sanitized.duplicate).toBeUndefined()
     expect(Object.keys(sanitized)).toHaveLength(2)
+  })
+
+  it('preserves optional intakeTopicRef through sanitize and save/load round-trip', () => {
+    const sanitized = sanitizeUnexplainedLocationRecords({
+      canalBridge: CANAL_BRIDGE_LOCATION_FIXTURE,
+    })
+
+    expect(sanitized[CANAL_BRIDGE_LOCATION_FIXTURE.id]?.intakeTopicRef).toBe(
+      'topic:canal-bridge-incident'
+    )
+
+    const state = createStartingState()
+    state.unexplainedLocationRecords = sanitized
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(
+      loaded.unexplainedLocationRecords?.[CANAL_BRIDGE_LOCATION_FIXTURE.id]?.intakeTopicRef
+    ).toBe('topic:canal-bridge-incident')
   })
 
   it('round-trips fixture locations with statusHistory byte-stable through save/load', () => {

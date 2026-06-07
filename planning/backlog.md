@@ -16,13 +16,13 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-1. **Intake registry follow-up (next)** — sibling registry cross-links (minor-item, unexplained-location) or sibling registry persistence (naming-hazard slice 2); SPE-1464 branch validation optional.
+1. **Naming-hazard descriptor registry persistence (slice 2)** — sibling registry persistence path; follow `planning/extranormal-event-registry-slice-2.md` pattern on `namingHazardDescriptorRegistry.ts`; SPE-1464 branch validation optional.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **Done** — intake ↔ extranormal event cross-link compose shipped (PR #2576). [SPE-2355](https://linear.app/spectranoir/issue/SPE-2355) **Done** — intake ↔ minor anomaly item cross-link compose shipped (PR #2578); see `planning/information-intake-minor-anomaly-cross-link-slice-1.md`. **Next:** unexplained-location cross-link or naming-hazard registry persistence (slice 2).
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **Done** — intake ↔ extranormal event cross-link compose shipped (PR #2576). [SPE-2355](https://linear.app/spectranoir/issue/SPE-2355) **Done** — intake ↔ minor anomaly item cross-link compose shipped (PR #2578). [SPE-2356](https://linear.app/spectranoir/issue/SPE-2356) **In Progress** — intake ↔ unexplained location cross-link compose; see `planning/information-intake-unexplained-location-cross-link-slice-1.md`. **Next:** naming-hazard registry persistence (slice 2) or SPE-1464 branch validation.
 
 ## Blocked / waiting
 

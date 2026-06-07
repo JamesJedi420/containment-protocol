@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-2116](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2357 — Naming-hazard descriptor registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2357) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2582 @ `ef905426`                                                                        |
 | **Parent** | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) — Self-censoring information registry; registry anchor [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) |
 | **Branch** | `spe-2116-naming-hazard-descriptor-registry-persistence-slice-2`                                           |
 | **Base `main` SHA** | `8bb2760f`                                                                                          |
@@ -34,9 +34,9 @@ Persist validated `NamingHazardDescriptorRecord` entries on `GameState` with san
 
 ## Acceptance
 
-- [ ] Valid fixture round-trips through serialize/import with byte-stable `safeDescriptorPool` ordering
-- [ ] Invalid/duplicate-id/franchise-token entries dropped safely on hydrate
-- [ ] `npm run lint` + targeted tests + relevant save/hydration tests green
+- [x] Valid fixture round-trips through serialize/import with byte-stable `safeDescriptorPool` ordering
+- [x] Invalid/duplicate-id/franchise-token entries dropped safely on hydrate
+- [x] `npm run lint` + targeted tests + relevant save/hydration tests green
 
 ## File touch list (expected)
 

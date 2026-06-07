@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2373](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2373 — Post-incident review registry weekly retrospective creation hook (slice 4)](https://linear.app/spectranoir/issue/SPE-2373) |
-| **Status** | Ready for PR                                                                                               |
+| **Status** | **Shipped** — PR #2614 @ `7ff7f552`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-post-incident-review-weekly-hook-slice-4`                                                         |
 | **Base `main` SHA** | `4a5cb838`                                                                                          |

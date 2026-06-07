@@ -71,7 +71,7 @@ Read-only planning/operations mirror over persisted `postIncidentReviewRecords` 
 | SPE-1310 parent closure | SPE-1310 | Registry slices do not satisfy full parent acceptance |
 | Case lifecycle transitions on compliance breach | SPE-1310 | Mirror display only in slice 3 |
 | Full SPE-868 retrospective engine | SPE-868 | Stub registry + mirror only; parent stays open |
-| advanceWeek retrospective creation hook | SPE-868 follow-up | Mirror must land before orchestration |
+| advanceWeek retrospective creation hook | SPE-2373 / PR #2614 | Shipped in slice 4 |
 | Wire slice 5 compose call sites to `game.postIncidentReviewRecords` | SPE-868 follow-up | Out of mirror-only boundary |
 
 ## See also

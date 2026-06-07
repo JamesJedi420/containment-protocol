@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2366](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2366 — Rule-document compliance containment registry weekly compliance-decay advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2366) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2601 @ `d2280089`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) — Rule-document compliance containment registry  |
 | **Branch** | `spe-2123-rule-document-compliance-weekly-hook-slice-3`                                                    |
@@ -48,15 +48,15 @@ Wire persisted `ruleDocumentComplianceRecords` into `advanceWeek` so weekly simu
 
 ## Acceptance
 
-- [ ] Empty `ruleDocumentComplianceRecords` map is a no-op without throw
-- [ ] Records unchanged while projected decay band is `stable`
-- [ ] `elevated` band advances `compliant` / `unknown` to `drifting`
-- [ ] `critical` band advances to `breach` when `breachConsequence` is declared
-- [ ] `breach` records and redacted projection inputs byte-stable through tick
-- [ ] Warnings-only records still tick when band warrants
-- [ ] Re-applying tick after advance is idempotent for the same week
-- [ ] Invalid post-mutation records revert to prior record
-- [ ] `npm run lint` + targeted tests + slice-1/2 regression green
+- [x] Empty `ruleDocumentComplianceRecords` map is a no-op without throw
+- [x] Records unchanged while projected decay band is `stable`
+- [x] `elevated` band advances `compliant` / `unknown` to `drifting`
+- [x] `critical` band advances to `breach` when `breachConsequence` is declared
+- [x] `breach` records and redacted projection inputs byte-stable through tick
+- [x] Warnings-only records still tick when band warrants
+- [x] Re-applying tick after advance is idempotent for the same week
+- [x] Invalid post-mutation records revert to prior record
+- [x] `npm run lint` + targeted tests + slice-1/2 regression green
 
 ## File touch list (expected)
 

@@ -658,3 +658,246 @@ export function sanitizeWelfareDebtAccountingRecords(
 
   return Object.keys(next).length > 0 ? next : fallback
 }
+
+// ---------------------------------------------------------------------------
+// Weekly orchestration (SPE-1888 slice 3)
+// ---------------------------------------------------------------------------
+
+/** Containment benefit below this threshold triggers legitimacy escalation and severity drift. */
+const CONTAINMENT_BENEFIT_ESCALATION_THRESHOLD = 0.55
+
+const TERMINAL_MITIGATION_STATES = new Set<WelfareDebtMitigationState>([
+  'mitigated',
+  'waived',
+  'denied',
+])
+
+const HIGH_PRESSURE_DEBT_CATEGORIES = new Set<WelfareDebtCategory>([
+  'harmful_restraint',
+  'coerced_medication',
+  'punitive_handling',
+  'high_risk_personnel_sourcing',
+])
+
+const MEDIUM_PRESSURE_DEBT_CATEGORIES = new Set<WelfareDebtCategory>([
+  'forced_isolation',
+  'coercive_interview',
+  'privilege_deprivation',
+])
+
+const REVIEW_CADENCE_WEEK_INTERVAL: Readonly<Record<WelfareDebtCategory, number>> = {
+  harmful_restraint: 1,
+  coerced_medication: 1,
+  punitive_handling: 1,
+  high_risk_personnel_sourcing: 1,
+  forced_isolation: 2,
+  coercive_interview: 2,
+  privilege_deprivation: 2,
+  coerced_participation: 4,
+}
+
+function normalizeWeek(week: number): number {
+  if (!Number.isFinite(week)) {
+    return 1
+  }
+
+  return Math.max(1, Math.trunc(week))
+}
+
+function freezeWelfareDebtRecord(record: WelfareDebtAccountingRecord): WelfareDebtAccountingRecord {
+  return Object.freeze({ ...record })
+}
+
+function hasLowContainmentBenefit(record: WelfareDebtAccountingRecord): boolean {
+  const score = record.containmentBenefitScore
+  if (score === undefined) {
+    return HIGH_SEVERITY_BANDS.has(record.severityBand)
+  }
+
+  return isValidUnitScore(score) && score < CONTAINMENT_BENEFIT_ESCALATION_THRESHOLD
+}
+
+function isHighPressureDebtCategory(category: WelfareDebtCategory): boolean {
+  return HIGH_PRESSURE_DEBT_CATEGORIES.has(category)
+}
+
+/** Whether the simulation week is a welfare-review due week for the declared debt category. */
+export function isWelfareDebtReviewDueWeek(week: number, debtCategory: WelfareDebtCategory): boolean {
+  const normalizedWeek = normalizeWeek(week)
+  const interval = REVIEW_CADENCE_WEEK_INTERVAL[debtCategory]
+  return normalizedWeek % interval === 0
+}
+
+/** Next severity band on the ladder; undefined when already critical or invalid. */
+export function resolveNextWelfareDebtSeverityBand(
+  severityBand: WelfareDebtSeverityBand
+): WelfareDebtSeverityBand | undefined {
+  const index = WELFARE_DEBT_SEVERITY_BANDS.indexOf(severityBand)
+  if (index < 0 || index >= WELFARE_DEBT_SEVERITY_BANDS.length - 1) {
+    return undefined
+  }
+
+  return WELFARE_DEBT_SEVERITY_BANDS[index + 1]
+}
+
+function applyMitigationAcknowledgmentStep(
+  record: WelfareDebtAccountingRecord,
+  week: number
+): WelfareDebtAccountingRecord {
+  if (record.mitigationState !== 'unresolved') {
+    return record
+  }
+
+  if (!isWelfareDebtReviewDueWeek(week, record.debtCategory)) {
+    return record
+  }
+
+  if (!normalizeToken(record.reviewOwnerLabel)) {
+    return record
+  }
+
+  return {
+    ...record,
+    mitigationState: 'acknowledged',
+  }
+}
+
+function applyLegitimacyEscalationStep(
+  record: WelfareDebtAccountingRecord,
+  week: number
+): WelfareDebtAccountingRecord {
+  if (record.mitigationState !== 'acknowledged') {
+    return record
+  }
+
+  if (!isWelfareDebtReviewDueWeek(week, record.debtCategory)) {
+    return record
+  }
+
+  if (!isHighPressureDebtCategory(record.debtCategory) || !hasLowContainmentBenefit(record)) {
+    return record
+  }
+
+  return {
+    ...record,
+    mitigationState: 'escalated',
+  }
+}
+
+function applySeverityDriftStep(
+  record: WelfareDebtAccountingRecord,
+  week: number
+): WelfareDebtAccountingRecord {
+  if (
+    TERMINAL_MITIGATION_STATES.has(record.mitigationState) ||
+    record.mitigationState === 'escalated'
+  ) {
+    return record
+  }
+
+  if (!isWelfareDebtReviewDueWeek(week, record.debtCategory)) {
+    return record
+  }
+
+  if (!isHighPressureDebtCategory(record.debtCategory) && !MEDIUM_PRESSURE_DEBT_CATEGORIES.has(record.debtCategory)) {
+    return record
+  }
+
+  if (!hasLowContainmentBenefit(record)) {
+    return record
+  }
+
+  const nextSeverityBand = resolveNextWelfareDebtSeverityBand(record.severityBand)
+  if (!nextSeverityBand || nextSeverityBand === record.severityBand) {
+    return record
+  }
+
+  return {
+    ...record,
+    severityBand: nextSeverityBand,
+  }
+}
+
+function buildWeeklyAdvanceCandidate(
+  record: WelfareDebtAccountingRecord,
+  week: number
+): WelfareDebtAccountingRecord | undefined {
+  if (TERMINAL_MITIGATION_STATES.has(record.mitigationState)) {
+    return undefined
+  }
+
+  let current = record
+
+  const afterAcknowledgment = applyMitigationAcknowledgmentStep(current, week)
+  if (afterAcknowledgment !== current) {
+    current = afterAcknowledgment
+  }
+
+  const afterSeverityDrift = applySeverityDriftStep(current, week)
+  if (afterSeverityDrift !== current) {
+    current = afterSeverityDrift
+  }
+
+  const afterEscalation = applyLegitimacyEscalationStep(current, week)
+  if (afterEscalation !== current) {
+    current = afterEscalation
+  }
+
+  return current === record ? undefined : current
+}
+
+/**
+ * Advances one record for the simulation week: review acknowledgment, legitimacy escalation,
+ * and severity drift derived from coercive-procedure category inputs. Returns the same
+ * reference when no bounded field changes.
+ */
+export function advanceWelfareDebtAccountingRecordForWeek(
+  record: WelfareDebtAccountingRecord,
+  week: number
+): WelfareDebtAccountingRecord {
+  const normalizedWeek = normalizeWeek(week)
+  const candidate = buildWeeklyAdvanceCandidate(record, normalizedWeek)
+  if (!candidate) {
+    return record
+  }
+
+  if (!validateWelfareDebtAccountingRecord(candidate).valid) {
+    return record
+  }
+
+  return freezeWelfareDebtRecord(candidate)
+}
+
+/**
+ * Applies one weekly orchestration pass over persisted welfare-debt accounting records.
+ * Empty map is a no-op. Re-applying after advance is idempotent for the same week.
+ */
+export function applyWeeklyWelfareDebtAccountingTick(
+  records: WelfareDebtAccountingRecordsMap | null | undefined,
+  week: number
+): WelfareDebtAccountingRecordsMap {
+  const safeRecords = records ?? {}
+  const recordIds = Object.keys(safeRecords)
+  if (recordIds.length === 0) {
+    return safeRecords
+  }
+
+  const normalizedWeek = normalizeWeek(week)
+  const next: WelfareDebtAccountingRecordsMap = { ...safeRecords }
+  let changed = false
+
+  for (const recordId of recordIds.sort((left, right) => left.localeCompare(right))) {
+    const record = safeRecords[recordId]
+    if (!record) {
+      continue
+    }
+
+    const advanced = advanceWelfareDebtAccountingRecordForWeek(record, normalizedWeek)
+    if (advanced !== record) {
+      next[recordId] = advanced
+      changed = true
+    }
+  }
+
+  return changed ? next : safeRecords
+}

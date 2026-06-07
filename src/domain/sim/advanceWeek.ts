@@ -268,6 +268,7 @@ import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPo
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
+import { applyWeeklyWelfareDebtAccountingTick } from '../welfareDebtAccountingRegistry'
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
 import { deriveCustodyStatusBundleFragmentsFromRecords } from '../containedPersonCustodyStatusHealthBundleLinks'
 import { deriveMedicationRegimenBundleFragmentsFromRecords } from '../containedPersonMedicationRegimenHealthBundleLinks'
@@ -4661,6 +4662,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentTherapeuticCareRecords).length > 0) {
     outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
       currentTherapeuticCareRecords,
+      result.week
+    )
+  }
+
+  // SPE-1888 slice 3: mitigation-state transitions and severity drift on welfare-debt accounting records.
+  const currentWelfareDebtAccountingRecords = outputWeeklyState.welfareDebtAccountingRecords ?? {}
+  if (Object.keys(currentWelfareDebtAccountingRecords).length > 0) {
+    outputWeeklyState.welfareDebtAccountingRecords = applyWeeklyWelfareDebtAccountingTick(
+      currentWelfareDebtAccountingRecords,
       result.week
     )
   }

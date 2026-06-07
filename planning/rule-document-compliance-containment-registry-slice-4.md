@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2368](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2368 — Rule-document compliance containment registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2368) |
-| **Status** | **Shipped** — PR pending merge                                                                               |
+| **Status** | **Shipped** — PR #2604 @ `8b4bf2e5`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) — Rule-document compliance containment registry  |
 | **Branch** | `spe-2123-rule-document-compliance-mirror-ui-slice-4`                                                      |

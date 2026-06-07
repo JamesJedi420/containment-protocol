@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2372](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2372 — Post-incident review registry planning mirror UI (slice 3)](https://linear.app/spectranoir/issue/SPE-2372) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2612 @ `642ae29e`                                                                 |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-post-incident-review-mirror-ui-slice-3`                                                         |
 | **Base `main` SHA** | `18c81f42`                                                                                          |

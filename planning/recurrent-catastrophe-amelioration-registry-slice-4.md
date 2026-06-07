@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2369](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2369 — Recurrent catastrophe amelioration registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2369) |
-| **Status** | **In Progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2606 @ `7f31d0f0`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) — Recurrent catastrophe amelioration registry    |
 | **Branch** | `spe-2117-recurrent-catastrophe-mirror-ui-slice-4`                                                         |

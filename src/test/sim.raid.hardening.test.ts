@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { type CaseInstance } from '../domain/models'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 
 function createControlledRaidState() {
   const state = createStartingState()

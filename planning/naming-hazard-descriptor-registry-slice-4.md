@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-2116](https://linear.app/
 | **Linear** | [SPE-2360 — Naming-hazard descriptor registry weekly orchestration hook (slice 4)](https://linear.app/spectranoir/issue/SPE-2360)                             |
 | **Parent** | [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) — registry anchor; umbrella [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) stays open |
 | **Branch** | `spe-2116-naming-hazard-weekly-hook-slice-4`                                                               |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2588 @ `8e0f5d0a`                                                                                            |
 | **Base `main` SHA** | `37d3d2bb`                                                                                          |
 
 ## Goal

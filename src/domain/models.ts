@@ -248,6 +248,7 @@ import type { ExtranormalEventRecord } from './extranormalEventRegistry'
 import type { UnexplainedLocationRecord } from './unexplainedLocationRegistry'
 import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { NamingHazardDescriptorRecord } from './namingHazardDescriptorRegistry'
+import type { RecurrentCatastropheRecord } from './recurrentCatastropheAmeliorationRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
@@ -2581,6 +2582,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   namingHazardDescriptorRecords?: Record<string, NamingHazardDescriptorRecord>
+
+  /**
+   * SPE-2117 slice 2: persisted recurrent catastrophe amelioration records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  recurrentCatastropheRecords?: Record<string, RecurrentCatastropheRecord>
 
   /**
    * SPE-2108 slice 2: persisted self-censoring information records (keyed by record id).

@@ -732,6 +732,153 @@ export function projectNextRecurrenceRisk(
   })
 }
 
+// ---------------------------------------------------------------------------
+// Persistence / hydration (SPE-2117 slice 2)
+// ---------------------------------------------------------------------------
+
+export type RecurrentCatastropheRecordsMap = Record<
+  RecurrentCatastropheId,
+  RecurrentCatastropheRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringRefList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((item): item is string => typeof item === 'string')
+}
+
+function parseAmeliorationTacticEntries(value: unknown): readonly ActiveAmeliorationTactic[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tactics: ActiveAmeliorationTactic[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const tactic = typeof entry.tactic === 'string' ? entry.tactic : ''
+    if (!isAmeliorationTactic(tactic) || seen.has(tactic)) {
+      continue
+    }
+
+    seen.add(tactic)
+    tactics.push({ tactic, active: entry.active === true })
+  }
+
+  return tactics
+}
+
+function parsePreventionTacticEntries(value: unknown): readonly ActivePreventionTactic[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const tactics: ActivePreventionTactic[] = []
+  const seen = new Set<string>()
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const tactic = typeof entry.tactic === 'string' ? entry.tactic : ''
+    if (!isPreventionTactic(tactic) || seen.has(tactic)) {
+      continue
+    }
+
+    seen.add(tactic)
+    tactics.push({ tactic, active: entry.active === true })
+  }
+
+  return tactics
+}
+
+function sanitizeRecurrentCatastropheRecordEntry(value: unknown): RecurrentCatastropheRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const recurrenceCadence =
+    typeof value.recurrenceCadence === 'string' ? value.recurrenceCadence : ''
+  const failureMode = typeof value.failureMode === 'string' ? value.failureMode : ''
+  const preventionCeiling =
+    typeof value.preventionCeiling === 'string' ? value.preventionCeiling : ''
+  const ameliorationTactics = parseAmeliorationTacticEntries(value.ameliorationTactics)
+  const preventionTactics = parsePreventionTacticEntries(value.preventionTactics)
+  const recurrenceCount = value.recurrenceCount
+  const lastOccurrenceWeek = value.lastOccurrenceWeek
+  const damageLedgerRefs = parseStringRefList(value.damageLedgerRefs)
+  const postIncidentReviewRefs = parseStringRefList(value.postIncidentReviewRefs)
+  const unknownFields = asStringArray(value.unknownFields)
+  const redactedFields = asStringArray(value.redactedFields)
+  const confidence = value.confidence
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+
+  const record: RecurrentCatastropheRecord = {
+    id,
+    label,
+    recurrenceCadence: recurrenceCadence as RecurrenceCadence,
+    failureMode: failureMode as CatastropheFailureMode,
+    preventionCeiling: preventionCeiling as PreventionCeiling,
+    ameliorationTactics,
+    recurrenceCount: typeof recurrenceCount === 'number' ? recurrenceCount : Number.NaN,
+    ...(summary ? { summary } : {}),
+    ...(preventionTactics.length > 0 ? { preventionTactics } : {}),
+    ...(isNonNegativeInteger(lastOccurrenceWeek) ? { lastOccurrenceWeek } : {}),
+    ...(damageLedgerRefs.length > 0 ? { damageLedgerRefs } : {}),
+    ...(postIncidentReviewRefs.length > 0 ? { postIncidentReviewRefs } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateRecurrentCatastropheRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeRecurrentCatastropheRecords(
+  value: unknown,
+  fallback: RecurrentCatastropheRecordsMap = {}
+): RecurrentCatastropheRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: RecurrentCatastropheRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeRecurrentCatastropheRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: RecurrentCatastropheRecord): RecurrentCatastropheRecord {
   return Object.freeze({ ...record })
 }

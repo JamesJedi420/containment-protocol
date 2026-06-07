@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2363](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2363 — Recurrent catastrophe amelioration registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2363) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2595 @ `2d3049d8`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) — Recurrent catastrophe amelioration registry slice 1 |
 | **Branch** | `spe-2117-recurrent-catastrophe-persistence-slice-2`                                                     |
@@ -36,10 +36,10 @@ Persist validated `RecurrentCatastropheRecord` entries on `GameState` with sanit
 
 ## Acceptance
 
-- [ ] Valid fixtures round-trip through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate (including `active_prevention_when_ceiling_impossible`)
-- [ ] Warnings-only records persist through sanitize
-- [ ] `npm run lint` + targeted tests + slice-1 regression green
+- [x] Valid fixtures round-trip through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate (including `active_prevention_when_ceiling_impossible`)
+- [x] Warnings-only records persist through sanitize
+- [x] `npm run lint` + targeted tests + slice-1 regression green
 
 ## File touch list (expected)
 

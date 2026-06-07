@@ -1,6 +1,7 @@
 import type { GameState } from '../../domain/models'
 import {
   projectWelfareDebtAccounting,
+  summarizeWelfareDebtAccountingRecords,
   validateWelfareDebtAccountingRecord,
   type WelfareDebtAccountingRecord,
 } from '../../domain/welfareDebtAccountingRegistry'
@@ -103,34 +104,17 @@ export function getWelfareDebtAccountingMirrorView(
 ): WelfareDebtAccountingMirrorView {
   const records = listPersistedRecords(game)
   const week = game.week
+  const ledgerSummary = summarizeWelfareDebtAccountingRecords(game.welfareDebtAccountingRecords)
 
-  let unresolvedCount = 0
-  let escalatedCount = 0
-  let mitigatedCount = 0
-
-  const recordViews = records.map((record) => {
-    if (record.mitigationState === 'unresolved') {
-      unresolvedCount += 1
-    }
-
-    if (record.mitigationState === 'escalated') {
-      escalatedCount += 1
-    }
-
-    if (record.mitigationState === 'mitigated') {
-      mitigatedCount += 1
-    }
-
-    return toRecordView(record)
-  })
+  const recordViews = records.map((record) => toRecordView(record))
 
   return Object.freeze({
     isEmpty: records.length === 0,
     summary: Object.freeze({
-      totalRecords: records.length,
-      unresolvedCount,
-      escalatedCount,
-      mitigatedCount,
+      totalRecords: ledgerSummary.totalRecords,
+      unresolvedCount: ledgerSummary.unresolvedCount,
+      escalatedCount: ledgerSummary.escalatedCount,
+      mitigatedCount: ledgerSummary.mitigatedCount,
       week,
     }),
     records: Object.freeze(recordViews),

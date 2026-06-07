@@ -901,3 +901,225 @@ export function applyWeeklyWelfareDebtAccountingTick(
 
   return changed ? next : safeRecords
 }
+
+// ---------------------------------------------------------------------------
+// Ledger summary audit (SPE-1888 slice 4)
+// ---------------------------------------------------------------------------
+
+export interface WelfareDebtCategorySummary {
+  readonly category: WelfareDebtCategory
+  readonly count: number
+}
+
+export interface WelfareDebtAccountingLedgerSummary {
+  readonly totalRecords: number
+  readonly unresolvedCount: number
+  readonly escalatedCount: number
+  readonly mitigatedCount: number
+  readonly acknowledgedCount: number
+  readonly waivedCount: number
+  readonly deniedCount: number
+  readonly warningOnlyCount: number
+  readonly categoryBreakdown: readonly WelfareDebtCategorySummary[]
+}
+
+export interface WelfareDebtAccountingLedgerAuditInput {
+  readonly records: WelfareDebtAccountingRecordsMap | null | undefined
+  readonly week?: number
+  readonly auditId?: string
+}
+
+export interface WelfareDebtAccountingLedgerAuditReport {
+  readonly auditId: string
+  readonly week: number | null
+  readonly isEmpty: boolean
+  readonly summary: WelfareDebtAccountingLedgerSummary
+  readonly lines: readonly string[]
+}
+
+function listPersistedWelfareDebtAccountingRecords(
+  records: WelfareDebtAccountingRecordsMap | null | undefined
+): readonly WelfareDebtAccountingRecord[] {
+  const safeRecords = records ?? {}
+
+  return Object.freeze(
+    Object.values(safeRecords).sort((left, right) => left.id.localeCompare(right.id))
+  )
+}
+
+function emptyCategoryBreakdown(): readonly WelfareDebtCategorySummary[] {
+  return Object.freeze(
+    WELFARE_DEBT_CATEGORIES.map((category) => Object.freeze({ category, count: 0 }))
+  )
+}
+
+function emptyLedgerSummary(): WelfareDebtAccountingLedgerSummary {
+  return Object.freeze({
+    totalRecords: 0,
+    unresolvedCount: 0,
+    escalatedCount: 0,
+    mitigatedCount: 0,
+    acknowledgedCount: 0,
+    waivedCount: 0,
+    deniedCount: 0,
+    warningOnlyCount: 0,
+    categoryBreakdown: emptyCategoryBreakdown(),
+  })
+}
+
+function isWarningOnlyRecord(record: WelfareDebtAccountingRecord): boolean {
+  const validation = validateWelfareDebtAccountingRecord(record)
+  if (!validation.valid) {
+    return false
+  }
+
+  return validation.issues.some((issue) => issue.severity === 'warning')
+}
+
+/**
+ * Deterministic summary projection over hydrated `welfareDebtAccountingRecords`.
+ * Does not re-sanitize or surface invalid hydrate drops.
+ */
+export function summarizeWelfareDebtAccountingRecords(
+  records: WelfareDebtAccountingRecordsMap | null | undefined
+): WelfareDebtAccountingLedgerSummary {
+  const persisted = listPersistedWelfareDebtAccountingRecords(records)
+  if (persisted.length === 0) {
+    return emptyLedgerSummary()
+  }
+
+  const categoryCounts = new Map<WelfareDebtCategory, number>(
+    WELFARE_DEBT_CATEGORIES.map((category) => [category, 0])
+  )
+
+  let unresolvedCount = 0
+  let escalatedCount = 0
+  let mitigatedCount = 0
+  let acknowledgedCount = 0
+  let waivedCount = 0
+  let deniedCount = 0
+  let warningOnlyCount = 0
+
+  for (const record of persisted) {
+    categoryCounts.set(
+      record.debtCategory,
+      (categoryCounts.get(record.debtCategory) ?? 0) + 1
+    )
+
+    switch (record.mitigationState) {
+      case 'unresolved':
+        unresolvedCount += 1
+        break
+      case 'escalated':
+        escalatedCount += 1
+        break
+      case 'mitigated':
+        mitigatedCount += 1
+        break
+      case 'acknowledged':
+        acknowledgedCount += 1
+        break
+      case 'waived':
+        waivedCount += 1
+        break
+      case 'denied':
+        deniedCount += 1
+        break
+      default:
+        break
+    }
+
+    if (isWarningOnlyRecord(record)) {
+      warningOnlyCount += 1
+    }
+  }
+
+  const categoryBreakdown = Object.freeze(
+    WELFARE_DEBT_CATEGORIES.map((category) =>
+      Object.freeze({
+        category,
+        count: categoryCounts.get(category) ?? 0,
+      })
+    )
+  )
+
+  return Object.freeze({
+    totalRecords: persisted.length,
+    unresolvedCount,
+    escalatedCount,
+    mitigatedCount,
+    acknowledgedCount,
+    waivedCount,
+    deniedCount,
+    warningOnlyCount,
+    categoryBreakdown,
+  })
+}
+
+function resolveLedgerAuditId(auditId: string | undefined): string {
+  const normalized = typeof auditId === 'string' ? auditId.trim() : ''
+  return normalized.length > 0 ? normalized : 'welfare-debt-ledger'
+}
+
+function resolveLedgerAuditWeek(week: number | undefined): number | null {
+  if (week === undefined || !Number.isFinite(week)) {
+    return null
+  }
+
+  return Math.max(1, Math.trunc(week))
+}
+
+function formatCategoryBreakdownLine(
+  breakdown: readonly WelfareDebtCategorySummary[]
+): string {
+  const parts = breakdown
+    .filter((entry) => entry.count > 0)
+    .map((entry) => `${entry.category}=${entry.count}`)
+
+  return parts.length > 0 ? parts.join(', ') : 'none'
+}
+
+function formatWelfareDebtAccountingLedgerAuditLines(
+  auditId: string,
+  week: number | null,
+  summary: WelfareDebtAccountingLedgerSummary
+): readonly string[] {
+  const weekLine = week !== null ? `Week: ${week}` : 'Week: —'
+  const totals = [
+    `Records: ${summary.totalRecords}`,
+    `unresolved=${summary.unresolvedCount}`,
+    `escalated=${summary.escalatedCount}`,
+    `mitigated=${summary.mitigatedCount}`,
+    `acknowledged=${summary.acknowledgedCount}`,
+    `waived=${summary.waivedCount}`,
+    `denied=${summary.deniedCount}`,
+    `warningOnly=${summary.warningOnlyCount}`,
+  ].join('; ')
+
+  return Object.freeze([
+    `Welfare-debt ledger audit: ${auditId}`,
+    weekLine,
+    totals,
+    `Categories: ${formatCategoryBreakdownLine(summary.categoryBreakdown)}`,
+  ])
+}
+
+/**
+ * Export-only ledger audit report for agent routing over persisted welfare-debt records.
+ * Hydrated truth only — does not re-validate or surface dropped invalid entries.
+ */
+export function buildWelfareDebtAccountingLedgerAuditReport(
+  input: WelfareDebtAccountingLedgerAuditInput
+): WelfareDebtAccountingLedgerAuditReport {
+  const auditId = resolveLedgerAuditId(input.auditId)
+  const week = resolveLedgerAuditWeek(input.week)
+  const summary = summarizeWelfareDebtAccountingRecords(input.records)
+
+  return Object.freeze({
+    auditId,
+    week,
+    isEmpty: summary.totalRecords === 0,
+    summary,
+    lines: formatWelfareDebtAccountingLedgerAuditLines(auditId, week, summary),
+  })
+}

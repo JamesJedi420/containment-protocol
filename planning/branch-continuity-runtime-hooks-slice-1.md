@@ -7,7 +7,7 @@ One-page implementation plan. Optional follow-on from [SPE-2361](https://linear.
 | **Linear** | [SPE-2362 — Branch continuity runtime validation hooks (optional follow-on)](https://linear.app/spectranoir/issue/SPE-2362) |
 | **Parent** | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) — substrate Done; parent stays **Done**        |
 | **Branch** | `spe-2362-branch-continuity-runtime-hooks-slice-1`                                                         |
-| **Status** | **Shipped** — PR pending                                                                                                |
+| **Status** | **Shipped** — PR #2592 @ `5d5bc297`                                                                                |
 | **Base `main` SHA** | `0b28e830`                                                                                          |
 
 ## Goal

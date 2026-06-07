@@ -195,6 +195,7 @@ import { sanitizeInformationIntakeReports } from '../../domain/informationIntake
 import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRegistry'
 import { sanitizeNamingHazardDescriptorRecords } from '../../domain/namingHazardDescriptorRegistry'
 import { sanitizeRecurrentCatastropheRecords } from '../../domain/recurrentCatastropheAmeliorationRegistry'
+import { sanitizePostIncidentReviewRecords } from '../../domain/postIncidentReviewRegistry'
 import { sanitizeRuleDocumentComplianceRecords } from '../../domain/ruleDocumentComplianceContainmentRegistry'
 import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
@@ -8424,6 +8425,10 @@ export function hydrateGame(
     game.recurrentCatastropheRecords,
     fallback.recurrentCatastropheRecords ?? {}
   )
+  const postIncidentReviewRecords = sanitizePostIncidentReviewRecords(
+    game.postIncidentReviewRecords,
+    fallback.postIncidentReviewRecords ?? {}
+  )
   const ruleDocumentComplianceRecords = sanitizeRuleDocumentComplianceRecords(
     game.ruleDocumentComplianceRecords,
     fallback.ruleDocumentComplianceRecords ?? {}
@@ -8595,6 +8600,7 @@ export function hydrateGame(
       minorAnomalyItemRecords,
       namingHazardDescriptorRecords,
       recurrentCatastropheRecords,
+      postIncidentReviewRecords,
       ruleDocumentComplianceRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,

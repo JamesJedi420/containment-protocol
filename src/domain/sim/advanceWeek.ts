@@ -269,8 +269,10 @@ import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareRe
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
+import { deriveCustodyStatusBundleFragmentsFromRecords } from '../containedPersonCustodyStatusHealthBundleLinks'
 import { deriveMedicationRegimenBundleFragmentsFromRecords } from '../containedPersonMedicationRegimenHealthBundleLinks'
 import {
+  composeCustodyStatusIntoIntegratedHealthBundles,
   composeMedicationRegimenIntoIntegratedHealthBundles,
   composeTherapeuticCareIntoIntegratedHealthBundles,
 } from '../containedPersonIntegratedHealthBundleCompose'
@@ -4666,13 +4668,21 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
   const medicationRegimenRecordsForBundleCompose =
     outputWeeklyState.containedPersonMedicationRegimenRecords ?? {}
+  const custodyStatusRecordsForBundleCompose =
+    outputWeeklyState.containedPersonCustodyStatusRecords ?? {}
   let currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
   const hasTherapeuticCareRecords =
     Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
   const hasMedicationRegimenRecords =
     Object.keys(medicationRegimenRecordsForBundleCompose).length > 0
+  const hasCustodyStatusRecords = Object.keys(custodyStatusRecordsForBundleCompose).length > 0
   const hasIntegratedHealthBundles = Object.keys(currentIntegratedHealthBundles).length > 0
-  if (hasTherapeuticCareRecords || hasMedicationRegimenRecords || hasIntegratedHealthBundles) {
+  if (
+    hasTherapeuticCareRecords ||
+    hasMedicationRegimenRecords ||
+    hasCustodyStatusRecords ||
+    hasIntegratedHealthBundles
+  ) {
     if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
       const derivedTherapeuticCareBundleFragments = deriveTherapeuticCareBundleFragmentsFromRecords(
         therapeuticCareRecordsForBundleCompose
@@ -4689,6 +4699,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentIntegratedHealthBundles = composeMedicationRegimenIntoIntegratedHealthBundles(
         currentIntegratedHealthBundles,
         derivedMedicationRegimenBundleFragments
+      )
+    }
+
+    if (hasCustodyStatusRecords || hasIntegratedHealthBundles) {
+      const derivedCustodyStatusBundleFragments = deriveCustodyStatusBundleFragmentsFromRecords(
+        custodyStatusRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeCustodyStatusIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedCustodyStatusBundleFragments
       )
     }
 

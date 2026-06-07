@@ -51,6 +51,7 @@ const startingStateTemplate: GameState = {
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},
   containedPersonMedicationRegimenRecords: {},
+  containedPersonCustodyStatusRecords: {},
   containedPersonIntegratedHealthBundles: {},
   factions: createInitialFactionState(),
 

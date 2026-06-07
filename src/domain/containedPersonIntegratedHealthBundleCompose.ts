@@ -1,5 +1,5 @@
 /**
- * SPE-1889 slice 5 + slice 8: compose upstream-derived fragments into persisted
+ * SPE-1889 slice 5 + slice 8 + slice 9: compose upstream-derived fragments into persisted
  * contained-person integrated health bundles.
  *
  * Pure deterministic merge — strips prior wired links by ref prefix, preserves
@@ -10,9 +10,14 @@ import {
   validateContainedPersonIntegratedHealthBundle,
   type ContainedPersonIntegratedHealthBundle,
   type ContainedPersonIntegratedHealthBundleRecordsMap,
+  type CustodyStatusLink,
   type MedicationRegimenLink,
   type TherapeuticCareScheduleLink,
 } from './containedPersonIntegratedHealthBundleRegistry'
+import {
+  CUSTODY_STATUS_WIRED_REF_PREFIX,
+  type DerivedCustodyStatusBundleFragment,
+} from './containedPersonCustodyStatusHealthBundleLinks'
 import {
   MEDICATION_REGIMEN_WIRED_REF_PREFIX,
   type DerivedMedicationRegimenBundleFragment,
@@ -66,13 +71,22 @@ function hasAuthoredMedicationRegimenLinks(bundle: ContainedPersonIntegratedHeal
   return (bundle.medicationRegimenLinks ?? []).some((link) => !isWiredMedicationRegimenLink(link))
 }
 
+function isWiredCustodyStatusLink(link: CustodyStatusLink): boolean {
+  const wiredRef = typeof link.wiredRef === 'string' ? link.wiredRef.trim() : ''
+  return wiredRef.startsWith(CUSTODY_STATUS_WIRED_REF_PREFIX)
+}
+
+function hasAuthoredCustodyStatusLinks(bundle: ContainedPersonIntegratedHealthBundle): boolean {
+  return (bundle.custodyStatusLinks ?? []).some((link) => !isWiredCustodyStatusLink(link))
+}
+
 function bundleHasAuthoredFields(bundle: ContainedPersonIntegratedHealthBundle): boolean {
   return (
     bundle.confidence !== undefined ||
     (bundle.unknownFields?.length ?? 0) > 0 ||
     (bundle.redactedFields?.length ?? 0) > 0 ||
     hasAuthoredMedicationRegimenLinks(bundle) ||
-    (bundle.custodyStatusLinks?.length ?? 0) > 0 ||
+    hasAuthoredCustodyStatusLinks(bundle) ||
     (bundle.welfareDebtAccountingLinks?.length ?? 0) > 0 ||
     (bundle.therapeuticCareScheduleLinks ?? []).some((link) => !isWiredTherapeuticCareLink(link))
   )
@@ -374,6 +388,181 @@ export function composeMedicationRegimenIntoIntegratedHealthBundles(
     }
 
     const stripped = stripWiredMedicationLinksFromBundle(existing)
+    if (stripped === undefined) {
+      delete next[subjectRef]
+      changed = true
+      continue
+    }
+
+    if (stripped !== existing) {
+      next[subjectRef] = stripped
+      changed = true
+    }
+  }
+
+  return changed ? next : safeBundles
+}
+
+function sortCustodyStatusLinks(
+  links: readonly CustodyStatusLink[]
+): readonly CustodyStatusLink[] {
+  return Object.freeze(
+    [...links].sort((left, right) => {
+      const custodyCompare = left.custodyRef.localeCompare(right.custodyRef)
+      if (custodyCompare !== 0) {
+        return custodyCompare
+      }
+
+      return left.wiredRef.localeCompare(right.wiredRef)
+    })
+  )
+}
+
+function mergeCustodyStatusLinks(
+  existing: readonly CustodyStatusLink[] | undefined,
+  derived: readonly CustodyStatusLink[]
+): readonly CustodyStatusLink[] {
+  const preserved = (existing ?? []).filter((link) => !isWiredCustodyStatusLink(link))
+  return sortCustodyStatusLinks([...preserved, ...derived])
+}
+
+function composeBundleWithCustodyFragment(
+  existing: ContainedPersonIntegratedHealthBundle | undefined,
+  fragment: DerivedCustodyStatusBundleFragment
+): ContainedPersonIntegratedHealthBundle {
+  const mergedLinks = mergeCustodyStatusLinks(
+    existing?.custodyStatusLinks,
+    fragment.custodyStatusLinks
+  )
+
+  const candidate: ContainedPersonIntegratedHealthBundle = {
+    id: fragment.subjectRef,
+    label: existing?.label ?? fragment.label,
+    subjectRef: fragment.subjectRef,
+    custodyStatusLinks: mergedLinks,
+    ...(existing?.therapeuticCareScheduleLinks
+      ? { therapeuticCareScheduleLinks: existing.therapeuticCareScheduleLinks }
+      : {}),
+    ...(existing?.medicationRegimenLinks
+      ? { medicationRegimenLinks: existing.medicationRegimenLinks }
+      : {}),
+    ...(existing?.welfareDebtAccountingLinks
+      ? { welfareDebtAccountingLinks: existing.welfareDebtAccountingLinks }
+      : {}),
+    ...(existing?.mentalStateBand !== undefined ? { mentalStateBand: existing.mentalStateBand } : {}),
+    ...(existing?.humaneCareRiskScore !== undefined
+      ? { humaneCareRiskScore: existing.humaneCareRiskScore }
+      : {}),
+    ...(existing?.confidence !== undefined ? { confidence: existing.confidence } : {}),
+    ...(existing?.unknownFields ? { unknownFields: existing.unknownFields } : {}),
+    ...(existing?.redactedFields ? { redactedFields: existing.redactedFields } : {}),
+  }
+
+  if (!validateContainedPersonIntegratedHealthBundle(candidate).valid) {
+    return existing ?? candidate
+  }
+
+  return Object.freeze(candidate)
+}
+
+function stripWiredCustodyLinksFromBundle(
+  bundle: ContainedPersonIntegratedHealthBundle
+): ContainedPersonIntegratedHealthBundle | undefined {
+  const preservedLinks = (bundle.custodyStatusLinks ?? []).filter(
+    (link) => !isWiredCustodyStatusLink(link)
+  )
+
+  const candidateWithoutWiredCustody: ContainedPersonIntegratedHealthBundle = {
+    id: bundle.id,
+    label: bundle.label,
+    subjectRef: bundle.subjectRef,
+    ...(preservedLinks.length > 0
+      ? { custodyStatusLinks: sortCustodyStatusLinks(preservedLinks) }
+      : {}),
+    ...(bundle.therapeuticCareScheduleLinks
+      ? { therapeuticCareScheduleLinks: bundle.therapeuticCareScheduleLinks }
+      : {}),
+    ...(bundle.medicationRegimenLinks
+      ? { medicationRegimenLinks: bundle.medicationRegimenLinks }
+      : {}),
+    ...(bundle.welfareDebtAccountingLinks
+      ? { welfareDebtAccountingLinks: bundle.welfareDebtAccountingLinks }
+      : {}),
+    ...(bundle.mentalStateBand !== undefined ? { mentalStateBand: bundle.mentalStateBand } : {}),
+    ...(bundle.humaneCareRiskScore !== undefined
+      ? { humaneCareRiskScore: bundle.humaneCareRiskScore }
+      : {}),
+    ...(bundle.confidence !== undefined ? { confidence: bundle.confidence } : {}),
+    ...(bundle.unknownFields ? { unknownFields: bundle.unknownFields } : {}),
+    ...(bundle.redactedFields ? { redactedFields: bundle.redactedFields } : {}),
+  }
+
+  if (
+    preservedLinks.length === 0 &&
+    !bundleHasAuthoredFields(candidateWithoutWiredCustody) &&
+    (candidateWithoutWiredCustody.therapeuticCareScheduleLinks?.length ?? 0) === 0 &&
+    (candidateWithoutWiredCustody.medicationRegimenLinks?.length ?? 0) === 0 &&
+    candidateWithoutWiredCustody.mentalStateBand === undefined &&
+    candidateWithoutWiredCustody.humaneCareRiskScore === undefined
+  ) {
+    return undefined
+  }
+
+  if (!validateContainedPersonIntegratedHealthBundle(candidateWithoutWiredCustody).valid) {
+    return bundle
+  }
+
+  return Object.freeze(candidateWithoutWiredCustody)
+}
+
+/**
+ * Merges custody-status-derived bundle fragments into persisted integrated health bundles.
+ * Empty bundle map with empty fragments is a no-op without throw.
+ */
+export function composeCustodyStatusIntoIntegratedHealthBundles(
+  bundles: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined,
+  fragments: readonly DerivedCustodyStatusBundleFragment[]
+): ContainedPersonIntegratedHealthBundleRecordsMap {
+  const safeBundles = bundles ?? {}
+  const fragmentBySubject = new Map(
+    fragments.map((fragment) => [fragment.subjectRef, fragment] as const)
+  )
+  const subjectRefs = new Set([
+    ...Object.keys(safeBundles),
+    ...fragments.map((fragment) => fragment.subjectRef),
+  ])
+
+  if (subjectRefs.size === 0) {
+    return safeBundles
+  }
+
+  const next: ContainedPersonIntegratedHealthBundleRecordsMap = { ...safeBundles }
+  let changed = false
+
+  for (const subjectRef of [...subjectRefs].sort((left, right) => left.localeCompare(right))) {
+    const existing = safeBundles[subjectRef]
+    const fragment = fragmentBySubject.get(subjectRef)
+
+    if (fragment) {
+      const composed = composeBundleWithCustodyFragment(existing, fragment)
+      if (!existing || !bundlesDeepEqual(existing, composed)) {
+        next[subjectRef] = composed
+        changed = true
+      }
+      continue
+    }
+
+    if (!existing) {
+      continue
+    }
+
+    const hasWiredCustodyLinks = (existing.custodyStatusLinks ?? []).some(isWiredCustodyStatusLink)
+
+    if (!hasWiredCustodyLinks) {
+      continue
+    }
+
+    const stripped = stripWiredCustodyLinksFromBundle(existing)
     if (stripped === undefined) {
       delete next[subjectRef]
       changed = true

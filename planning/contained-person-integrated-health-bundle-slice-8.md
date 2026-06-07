@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-2348 (child under [SPE-1889](https://l
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2348 — Contained-person integrated health bundle medication regimen wire-up (slice 8)](https://linear.app/spectranoir/issue/SPE-2348) |
-| **Status** | **In Progress** — PR pending @ `22b17783` base                                                                 |
+| **Status** | **Shipped** — PR #2564 @ `4ef9056d` |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — integrated health bundle umbrella stays open |
 | **Branch** | `spe-1889-integrated-health-bundle-medication-wire-up-slice-8`                                                  |
 | **Base `main` SHA** | `22b17783`                                                                                          |

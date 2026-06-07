@@ -287,6 +287,7 @@ import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInforma
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewCreationTick } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4692,6 +4693,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentRecurrentCatastropheRecords).length > 0) {
     outputWeeklyState.recurrentCatastropheRecords = applyWeeklyRecurrentCatastropheTick(
       currentRecurrentCatastropheRecords,
+      result.week
+    )
+  }
+
+  // SPE-868 slice 4: retrospective creation for qualifying recurrence closeout refs.
+  const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
+  const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  if (Object.keys(recurrentCatastrophesForReviewCreation).length > 0) {
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewCreationTick(
+      currentPostIncidentReviewRecords,
+      recurrentCatastrophesForReviewCreation,
       result.week
     )
   }

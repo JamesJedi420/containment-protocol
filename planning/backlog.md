@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). [SPE-2351](https://linear.app/spectranoir/issue/SPE-2351) **Done** — welfare-debt accounting planning mirror UI shipped (PR #2570). [SPE-2352](https://linear.app/spectranoir/issue/SPE-2352) **Done** — welfare-debt accounting weekly orchestration hook shipped (PR #2572); see `planning/welfare-debt-accounting-registry-slice-3.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open — next: ledger summary audit or intake registry follow-up per active queue below.
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). [SPE-2351](https://linear.app/spectranoir/issue/SPE-2351) **Done** — welfare-debt accounting planning mirror UI shipped (PR #2570). [SPE-2352](https://linear.app/spectranoir/issue/SPE-2352) **Done** — welfare-debt accounting weekly orchestration hook shipped (PR #2572); see `planning/welfare-debt-accounting-registry-slice-3.md`. [SPE-2353](https://linear.app/spectranoir/issue/SPE-2353) **In Progress** — welfare-debt ledger summary audit output (slice 4); see `planning/welfare-debt-accounting-registry-slice-4.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open for coercive-protocol wire-up (SPE-1882) after slice 4 ships.
 
 ## Blocked / waiting
 

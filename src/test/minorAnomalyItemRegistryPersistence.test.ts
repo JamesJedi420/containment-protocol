@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
+  CANAL_BRIDGE_MINOR_ITEM_FIXTURE,
   DISPOSITION_CHAIN_ITEM_FIXTURE,
   FALSE_POSITIVE_ITEM_FIXTURE,
   sanitizeMinorAnomalyItemRecords,
@@ -103,6 +104,24 @@ describe('minorAnomalyItemRegistry persistence (SPE-2104 slice 2)', () => {
       statusHistory: [{ fromDisposition: 'recovered', toDisposition: 'stored', week: 4 }],
     })
     expect(Object.keys(sanitized)).toHaveLength(3)
+  })
+
+  it('preserves optional intakeTopicRef through sanitize and save/load round-trip', () => {
+    const sanitized = sanitizeMinorAnomalyItemRecords({
+      canalBridge: CANAL_BRIDGE_MINOR_ITEM_FIXTURE,
+    })
+
+    expect(sanitized[CANAL_BRIDGE_MINOR_ITEM_FIXTURE.id]?.intakeTopicRef).toBe(
+      'topic:canal-bridge-incident'
+    )
+
+    const state = createStartingState()
+    state.minorAnomalyItemRecords = sanitized
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.minorAnomalyItemRecords?.[CANAL_BRIDGE_MINOR_ITEM_FIXTURE.id]?.intakeTopicRef).toBe(
+      'topic:canal-bridge-incident'
+    )
   })
 
   it('round-trips fixture items with statusHistory and investigationRef byte-stable through save/load', () => {

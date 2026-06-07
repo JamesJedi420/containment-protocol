@@ -255,6 +255,7 @@ import type { EntityWelfareReclassificationRecord } from './entityWelfareReclass
 import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
 import type { CustodyStatusRecord } from './containedPersonCustodyStatusRegistry'
 import type { MedicationRegimenRecord } from './containedPersonMedicationRegimenRegistry'
+import type { WelfareDebtAccountingRecord } from './welfareDebtAccountingRegistry'
 import type { ContainedPersonIntegratedHealthBundle } from './containedPersonIntegratedHealthBundleRegistry'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
 import type { SquadMetadata } from './squadMetadata'
@@ -2627,6 +2628,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   containedPersonCustodyStatusRecords?: Record<string, CustodyStatusRecord>
+
+  /**
+   * SPE-1888 slice 1: persisted welfare-debt accounting records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  welfareDebtAccountingRecords?: Record<string, WelfareDebtAccountingRecord>
 
   /**
    * SPE-1889 slice 5: persisted contained-person integrated health bundles (keyed by subject ref).

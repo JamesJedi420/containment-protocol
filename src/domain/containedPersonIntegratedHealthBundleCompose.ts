@@ -1,5 +1,5 @@
 /**
- * SPE-1889 slice 5 + slice 8 + slice 9: compose upstream-derived fragments into persisted
+ * SPE-1889 slice 5 + slice 8 + slice 9 + slice 10: compose upstream-derived fragments into persisted
  * contained-person integrated health bundles.
  *
  * Pure deterministic merge — strips prior wired links by ref prefix, preserves
@@ -13,6 +13,7 @@ import {
   type CustodyStatusLink,
   type MedicationRegimenLink,
   type TherapeuticCareScheduleLink,
+  type WelfareDebtAccountingLink,
 } from './containedPersonIntegratedHealthBundleRegistry'
 import {
   CUSTODY_STATUS_WIRED_REF_PREFIX,
@@ -26,6 +27,10 @@ import {
   THERAPEUTIC_CARE_WIRED_REF_PREFIX,
   type DerivedTherapeuticCareBundleFragment,
 } from './containedPersonTherapeuticCareHealthBundleLinks'
+import {
+  WELFARE_DEBT_WIRED_REF_PREFIX,
+  type DerivedWelfareDebtBundleFragment,
+} from './welfareDebtAccountingHealthBundleLinks'
 
 function isWiredTherapeuticCareLink(link: TherapeuticCareScheduleLink): boolean {
   const wiredRef = typeof link.wiredRef === 'string' ? link.wiredRef.trim() : ''
@@ -80,6 +85,15 @@ function hasAuthoredCustodyStatusLinks(bundle: ContainedPersonIntegratedHealthBu
   return (bundle.custodyStatusLinks ?? []).some((link) => !isWiredCustodyStatusLink(link))
 }
 
+function isWiredWelfareDebtLink(link: WelfareDebtAccountingLink): boolean {
+  const wiredRef = typeof link.wiredRef === 'string' ? link.wiredRef.trim() : ''
+  return wiredRef.startsWith(WELFARE_DEBT_WIRED_REF_PREFIX)
+}
+
+function hasAuthoredWelfareDebtLinks(bundle: ContainedPersonIntegratedHealthBundle): boolean {
+  return (bundle.welfareDebtAccountingLinks ?? []).some((link) => !isWiredWelfareDebtLink(link))
+}
+
 function bundleHasAuthoredFields(bundle: ContainedPersonIntegratedHealthBundle): boolean {
   return (
     bundle.confidence !== undefined ||
@@ -87,7 +101,7 @@ function bundleHasAuthoredFields(bundle: ContainedPersonIntegratedHealthBundle):
     (bundle.redactedFields?.length ?? 0) > 0 ||
     hasAuthoredMedicationRegimenLinks(bundle) ||
     hasAuthoredCustodyStatusLinks(bundle) ||
-    (bundle.welfareDebtAccountingLinks?.length ?? 0) > 0 ||
+    hasAuthoredWelfareDebtLinks(bundle) ||
     (bundle.therapeuticCareScheduleLinks ?? []).some((link) => !isWiredTherapeuticCareLink(link))
   )
 }
@@ -563,6 +577,180 @@ export function composeCustodyStatusIntoIntegratedHealthBundles(
     }
 
     const stripped = stripWiredCustodyLinksFromBundle(existing)
+    if (stripped === undefined) {
+      delete next[subjectRef]
+      changed = true
+      continue
+    }
+
+    if (stripped !== existing) {
+      next[subjectRef] = stripped
+      changed = true
+    }
+  }
+
+  return changed ? next : safeBundles
+}
+
+function sortWelfareDebtAccountingLinks(
+  links: readonly WelfareDebtAccountingLink[]
+): readonly WelfareDebtAccountingLink[] {
+  return Object.freeze(
+    [...links].sort((left, right) => {
+      const debtCompare = left.debtRef.localeCompare(right.debtRef)
+      if (debtCompare !== 0) {
+        return debtCompare
+      }
+
+      return left.wiredRef.localeCompare(right.wiredRef)
+    })
+  )
+}
+
+function mergeWelfareDebtAccountingLinks(
+  existing: readonly WelfareDebtAccountingLink[] | undefined,
+  derived: readonly WelfareDebtAccountingLink[]
+): readonly WelfareDebtAccountingLink[] {
+  const preserved = (existing ?? []).filter((link) => !isWiredWelfareDebtLink(link))
+  return sortWelfareDebtAccountingLinks([...preserved, ...derived])
+}
+
+function composeBundleWithWelfareDebtFragment(
+  existing: ContainedPersonIntegratedHealthBundle | undefined,
+  fragment: DerivedWelfareDebtBundleFragment
+): ContainedPersonIntegratedHealthBundle {
+  const mergedLinks = mergeWelfareDebtAccountingLinks(
+    existing?.welfareDebtAccountingLinks,
+    fragment.welfareDebtAccountingLinks
+  )
+
+  const candidate: ContainedPersonIntegratedHealthBundle = {
+    id: fragment.subjectRef,
+    label: existing?.label ?? fragment.label,
+    subjectRef: fragment.subjectRef,
+    welfareDebtAccountingLinks: mergedLinks,
+    ...(existing?.therapeuticCareScheduleLinks
+      ? { therapeuticCareScheduleLinks: existing.therapeuticCareScheduleLinks }
+      : {}),
+    ...(existing?.medicationRegimenLinks
+      ? { medicationRegimenLinks: existing.medicationRegimenLinks }
+      : {}),
+    ...(existing?.custodyStatusLinks ? { custodyStatusLinks: existing.custodyStatusLinks } : {}),
+    ...(existing?.mentalStateBand !== undefined ? { mentalStateBand: existing.mentalStateBand } : {}),
+    ...(existing?.humaneCareRiskScore !== undefined
+      ? { humaneCareRiskScore: existing.humaneCareRiskScore }
+      : {}),
+    ...(existing?.confidence !== undefined ? { confidence: existing.confidence } : {}),
+    ...(existing?.unknownFields ? { unknownFields: existing.unknownFields } : {}),
+    ...(existing?.redactedFields ? { redactedFields: existing.redactedFields } : {}),
+  }
+
+  if (!validateContainedPersonIntegratedHealthBundle(candidate).valid) {
+    return existing ?? candidate
+  }
+
+  return Object.freeze(candidate)
+}
+
+function stripWiredWelfareDebtLinksFromBundle(
+  bundle: ContainedPersonIntegratedHealthBundle
+): ContainedPersonIntegratedHealthBundle | undefined {
+  const preservedLinks = (bundle.welfareDebtAccountingLinks ?? []).filter(
+    (link) => !isWiredWelfareDebtLink(link)
+  )
+
+  const candidateWithoutWiredWelfareDebt: ContainedPersonIntegratedHealthBundle = {
+    id: bundle.id,
+    label: bundle.label,
+    subjectRef: bundle.subjectRef,
+    ...(preservedLinks.length > 0
+      ? { welfareDebtAccountingLinks: sortWelfareDebtAccountingLinks(preservedLinks) }
+      : {}),
+    ...(bundle.therapeuticCareScheduleLinks
+      ? { therapeuticCareScheduleLinks: bundle.therapeuticCareScheduleLinks }
+      : {}),
+    ...(bundle.medicationRegimenLinks
+      ? { medicationRegimenLinks: bundle.medicationRegimenLinks }
+      : {}),
+    ...(bundle.custodyStatusLinks ? { custodyStatusLinks: bundle.custodyStatusLinks } : {}),
+    ...(bundle.mentalStateBand !== undefined ? { mentalStateBand: bundle.mentalStateBand } : {}),
+    ...(bundle.humaneCareRiskScore !== undefined
+      ? { humaneCareRiskScore: bundle.humaneCareRiskScore }
+      : {}),
+    ...(bundle.confidence !== undefined ? { confidence: bundle.confidence } : {}),
+    ...(bundle.unknownFields ? { unknownFields: bundle.unknownFields } : {}),
+    ...(bundle.redactedFields ? { redactedFields: bundle.redactedFields } : {}),
+  }
+
+  if (
+    preservedLinks.length === 0 &&
+    !bundleHasAuthoredFields(candidateWithoutWiredWelfareDebt) &&
+    (candidateWithoutWiredWelfareDebt.therapeuticCareScheduleLinks?.length ?? 0) === 0 &&
+    (candidateWithoutWiredWelfareDebt.medicationRegimenLinks?.length ?? 0) === 0 &&
+    (candidateWithoutWiredWelfareDebt.custodyStatusLinks?.length ?? 0) === 0 &&
+    candidateWithoutWiredWelfareDebt.mentalStateBand === undefined &&
+    candidateWithoutWiredWelfareDebt.humaneCareRiskScore === undefined
+  ) {
+    return undefined
+  }
+
+  if (!validateContainedPersonIntegratedHealthBundle(candidateWithoutWiredWelfareDebt).valid) {
+    return bundle
+  }
+
+  return Object.freeze(candidateWithoutWiredWelfareDebt)
+}
+
+/**
+ * Merges welfare-debt-derived bundle fragments into persisted integrated health bundles.
+ * Empty bundle map with empty fragments is a no-op without throw.
+ */
+export function composeWelfareDebtIntoIntegratedHealthBundles(
+  bundles: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined,
+  fragments: readonly DerivedWelfareDebtBundleFragment[]
+): ContainedPersonIntegratedHealthBundleRecordsMap {
+  const safeBundles = bundles ?? {}
+  const fragmentBySubject = new Map(
+    fragments.map((fragment) => [fragment.subjectRef, fragment] as const)
+  )
+  const subjectRefs = new Set([
+    ...Object.keys(safeBundles),
+    ...fragments.map((fragment) => fragment.subjectRef),
+  ])
+
+  if (subjectRefs.size === 0) {
+    return safeBundles
+  }
+
+  const next: ContainedPersonIntegratedHealthBundleRecordsMap = { ...safeBundles }
+  let changed = false
+
+  for (const subjectRef of [...subjectRefs].sort((left, right) => left.localeCompare(right))) {
+    const existing = safeBundles[subjectRef]
+    const fragment = fragmentBySubject.get(subjectRef)
+
+    if (fragment) {
+      const composed = composeBundleWithWelfareDebtFragment(existing, fragment)
+      if (!existing || !bundlesDeepEqual(existing, composed)) {
+        next[subjectRef] = composed
+        changed = true
+      }
+      continue
+    }
+
+    if (!existing) {
+      continue
+    }
+
+    const hasWiredWelfareDebtLinks = (existing.welfareDebtAccountingLinks ?? []).some(
+      isWiredWelfareDebtLink
+    )
+
+    if (!hasWiredWelfareDebtLinks) {
+      continue
+    }
+
+    const stripped = stripWiredWelfareDebtLinksFromBundle(existing)
     if (stripped === undefined) {
       delete next[subjectRef]
       changed = true

@@ -52,6 +52,7 @@ const startingStateTemplate: GameState = {
   containedPersonTherapeuticCareRecords: {},
   containedPersonMedicationRegimenRecords: {},
   containedPersonCustodyStatusRecords: {},
+  welfareDebtAccountingRecords: {},
   containedPersonIntegratedHealthBundles: {},
   factions: createInitialFactionState(),
 

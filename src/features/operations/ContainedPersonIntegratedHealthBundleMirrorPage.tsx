@@ -48,8 +48,20 @@ export default function ContainedPersonIntegratedHealthBundleMirrorPage() {
             value={String(view.summary.criticalMentalStateCount)}
           />
           <StatCard
+            label={CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.coercedMedicationLabel}
+            value={String(view.summary.coercedMedicationLinkCount)}
+          />
+          <StatCard
+            label={CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.unresolvedWelfareDebtLabel}
+            value={String(view.summary.unresolvedWelfareDebtLinkCount)}
+          />
+          <StatCard
             label={CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.distressedMentalStateLabel}
             value={String(view.summary.distressedMentalStateCount)}
+          />
+          <StatCard
+            label={CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.rightsReviewPendingLabel}
+            value={String(view.summary.rightsReviewPendingCount)}
           />
           <StatCard
             label={CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.weekLabel}
@@ -103,6 +115,15 @@ export default function ContainedPersonIntegratedHealthBundleMirrorPage() {
                     {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.scheduleLinksColumn}
                   </th>
                   <th className="px-2 py-2">
+                    {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.medicationLinksColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.custodyLinksColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.welfareDebtLinksColumn}
+                  </th>
+                  <th className="px-2 py-2">
                     {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.confidenceColumn}
                   </th>
                 </tr>
@@ -143,6 +164,64 @@ export default function ContainedPersonIntegratedHealthBundleMirrorPage() {
                                 {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.lockdownEscalationSuffix}
                               </p>
                             ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs opacity-45">—</p>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.medicationRegimenLinks.length > 0 ? (
+                        record.medicationRegimenLinks.map((link) => (
+                          <div key={link.regimenRefLabel} className="mb-2 last:mb-0">
+                            <p className="text-xs opacity-55">{link.regimenRefLabel}</p>
+                            <p>{link.consentStatusLabel}</p>
+                            <p className="text-xs opacity-55">{link.deliveryVectorLabel}</p>
+                            <p className="text-xs opacity-45">
+                              {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.interactionRiskPrefix}{' '}
+                              {link.interactionRiskScoreLabel}
+                            </p>
+                            {link.adverseReactionFlagLabel !== '—' ? (
+                              <p className="text-xs opacity-45">
+                                {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.adverseReactionSuffix}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs opacity-45">—</p>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.custodyStatusLinks.length > 0 ? (
+                        record.custodyStatusLinks.map((link) => (
+                          <div key={link.custodyRefLabel} className="mb-2 last:mb-0">
+                            <p className="text-xs opacity-55">{link.custodyRefLabel}</p>
+                            <p>{link.custodyStageLabel}</p>
+                            <p className="text-xs opacity-55">{link.formerRoleCategoryLabel}</p>
+                            <p className="text-xs opacity-45">{link.restrictionLevelLabel}</p>
+                            {link.rightsReviewPendingLabel !== '—' ? (
+                              <p className="text-xs opacity-45">
+                                {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.rightsReviewPendingSuffix}
+                              </p>
+                            ) : null}
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs opacity-45">—</p>
+                      )}
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.welfareDebtAccountingLinks.length > 0 ? (
+                        record.welfareDebtAccountingLinks.map((link) => (
+                          <div key={link.debtRefLabel} className="mb-2 last:mb-0">
+                            <p className="text-xs opacity-55">{link.debtRefLabel}</p>
+                            <p>{link.severityBandLabel}</p>
+                            <p className="text-xs opacity-55">{link.mitigationStateLabel}</p>
+                            <p className="text-xs opacity-45">
+                              {CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT.containmentBenefitPrefix}{' '}
+                              {link.containmentBenefitScoreLabel}
+                            </p>
                           </div>
                         ))
                       ) : (

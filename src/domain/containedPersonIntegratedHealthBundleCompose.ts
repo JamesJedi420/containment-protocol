@@ -57,6 +57,9 @@ function bundleHasAuthoredFields(bundle: ContainedPersonIntegratedHealthBundle):
     bundle.confidence !== undefined ||
     (bundle.unknownFields?.length ?? 0) > 0 ||
     (bundle.redactedFields?.length ?? 0) > 0 ||
+    (bundle.medicationRegimenLinks?.length ?? 0) > 0 ||
+    (bundle.custodyStatusLinks?.length ?? 0) > 0 ||
+    (bundle.welfareDebtAccountingLinks?.length ?? 0) > 0 ||
     (bundle.therapeuticCareScheduleLinks ?? []).some((link) => !isWiredTherapeuticCareLink(link))
   )
 }
@@ -77,6 +80,13 @@ function composeBundleWithFragment(
     therapeuticCareScheduleLinks: mergedLinks,
     mentalStateBand: fragment.mentalStateBand,
     humaneCareRiskScore: fragment.humaneCareRiskScore,
+    ...(existing?.medicationRegimenLinks
+      ? { medicationRegimenLinks: existing.medicationRegimenLinks }
+      : {}),
+    ...(existing?.custodyStatusLinks ? { custodyStatusLinks: existing.custodyStatusLinks } : {}),
+    ...(existing?.welfareDebtAccountingLinks
+      ? { welfareDebtAccountingLinks: existing.welfareDebtAccountingLinks }
+      : {}),
     ...(existing?.confidence !== undefined ? { confidence: existing.confidence } : {}),
     ...(existing?.unknownFields ? { unknownFields: existing.unknownFields } : {}),
     ...(existing?.redactedFields ? { redactedFields: existing.redactedFields } : {}),
@@ -106,6 +116,13 @@ function stripWiredFieldsFromBundle(
     subjectRef: bundle.subjectRef,
     ...(preservedLinks.length > 0
       ? { therapeuticCareScheduleLinks: sortTherapeuticCareScheduleLinks(preservedLinks) }
+      : {}),
+    ...(bundle.medicationRegimenLinks
+      ? { medicationRegimenLinks: bundle.medicationRegimenLinks }
+      : {}),
+    ...(bundle.custodyStatusLinks ? { custodyStatusLinks: bundle.custodyStatusLinks } : {}),
+    ...(bundle.welfareDebtAccountingLinks
+      ? { welfareDebtAccountingLinks: bundle.welfareDebtAccountingLinks }
       : {}),
     ...(bundle.confidence !== undefined ? { confidence: bundle.confidence } : {}),
     ...(bundle.unknownFields ? { unknownFields: bundle.unknownFields } : {}),

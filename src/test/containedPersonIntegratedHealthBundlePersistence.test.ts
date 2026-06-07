@@ -6,6 +6,7 @@ import {
   WEEKLY_PSYCH_SCREENING_FIXTURE,
 } from '../domain/containedPersonTherapeuticCareRegistry'
 import {
+  INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
   sanitizeContainedPersonIntegratedHealthBundles,
   type ContainedPersonIntegratedHealthBundle,
 } from '../domain/containedPersonIntegratedHealthBundleRegistry'
@@ -64,5 +65,34 @@ describe('containedPersonIntegratedHealthBundle persistence (SPE-1889 slice 5)',
     expect(hydrated).toEqual({
       [validBundle.id]: validBundle,
     })
+  })
+
+  it('round-trips optional medication, custody, and welfare-debt link fields', () => {
+    const state = createStartingState()
+    state.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.containedPersonIntegratedHealthBundles).toEqual(
+      state.containedPersonIntegratedHealthBundles
+    )
+    expect(
+      loaded.containedPersonIntegratedHealthBundles?.[
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id
+      ]?.medicationRegimenLinks
+    ).toHaveLength(1)
+    expect(
+      loaded.containedPersonIntegratedHealthBundles?.[
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id
+      ]?.custodyStatusLinks
+    ).toHaveLength(1)
+    expect(
+      loaded.containedPersonIntegratedHealthBundles?.[
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id
+      ]?.welfareDebtAccountingLinks
+    ).toHaveLength(1)
   })
 })

@@ -5,6 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import {
+  INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+} from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import {
   MISSED_STREAK_ELEVATED_RISK_FIXTURE,
   WEEKLY_PSYCH_SCREENING_FIXTURE,
 } from '../../domain/containedPersonTherapeuticCareRegistry'
@@ -72,5 +75,25 @@ describe('ContainedPersonIntegratedHealthBundleMirrorPage (SPE-1889 slice 6)', (
       'href',
       '/'
     )
+  })
+
+  it('renders medication, custody, and welfare-debt link columns when field links are hydrated', () => {
+    const game = createStartingState()
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted contained person integrated health bundles/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent('Compelled')
+    expect(recordsRegion).toHaveTextContent('Contained Person')
+    expect(recordsRegion).toHaveTextContent('Unresolved')
+    expect(recordsRegion).toHaveTextContent('Rights review pending')
   })
 })

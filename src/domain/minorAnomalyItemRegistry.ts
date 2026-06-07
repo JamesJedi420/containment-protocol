@@ -89,6 +89,8 @@ export interface MinorAnomalyRecord {
   readonly investigationRef?: string
   readonly publicDisruptionRef?: string
   readonly staffNoteProvenance?: readonly StaffNoteProvenanceHook[]
+  /** Shared intake topic anchor for cross-link compose with `informationIntakeReports`. */
+  readonly intakeTopicRef?: string
 }
 
 // ---------------------------------------------------------------------------
@@ -656,6 +658,7 @@ function sanitizeMinorAnomalyItemRecordEntry(value: unknown): MinorAnomalyRecord
     normalizeToken(value.destructionAuthorizationRef ?? '') || undefined
   const investigationRef = normalizeToken(value.investigationRef ?? '') || undefined
   const publicDisruptionRef = normalizeToken(value.publicDisruptionRef ?? '') || undefined
+  const intakeTopicRef = normalizeToken(value.intakeTopicRef ?? '') || undefined
   const lowValue = value.lowValue === true ? true : undefined
   const confidence = value.confidence
 
@@ -677,6 +680,7 @@ function sanitizeMinorAnomalyItemRecordEntry(value: unknown): MinorAnomalyRecord
     ...(destructionAuthorizationRef ? { destructionAuthorizationRef } : {}),
     ...(investigationRef ? { investigationRef } : {}),
     ...(publicDisruptionRef ? { publicDisruptionRef } : {}),
+    ...(intakeTopicRef ? { intakeTopicRef } : {}),
     ...(staffNoteProvenance.length > 0 ? { staffNoteProvenance } : {}),
   }
 
@@ -733,6 +737,20 @@ export const DISPOSITION_CHAIN_ITEM_FIXTURE: MinorAnomalyRecord = defineItem({
     { fromDisposition: 'recovered', toDisposition: 'stored', week: 9, note: 'Logged in low-priority vault.' },
     { fromDisposition: 'stored', toDisposition: 'staff_use', week: 22, note: 'Issued for calibration drills.' },
   ],
+})
+
+/** Canal-bridge residue vial linked to mixed-source intake via intakeTopicRef. */
+export const CANAL_BRIDGE_MINOR_ITEM_FIXTURE: MinorAnomalyRecord = defineItem({
+  id: 'item:canal-residue-vial',
+  label: 'Canal residue vial',
+  descriptionStub: 'Low-priority residue sample recovered near east canal intake grid.',
+  recoverySiteRef: 'site:east-canal-locker',
+  currentCustodyRef: 'custody:field-locker-7',
+  disposition: 'recovered',
+  latentRiskScore: 9,
+  lowValue: true,
+  confidence: 0.44,
+  intakeTopicRef: 'topic:canal-bridge-incident',
 })
 
 /** False-positive return closed with investigation ref. */

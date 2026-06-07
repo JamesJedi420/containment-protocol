@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-2349 (child under [SPE-1889](https://l
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2349 — Contained-person integrated health bundle custody status wire-up (slice 9)](https://linear.app/spectranoir/issue/SPE-2349) |
-| **Status** | **In progress** — branch `spe-1889-integrated-health-bundle-custody-wire-up-slice-9` @ `4ef9056d` base |
+| **Status** | **Shipped** — PR #2566 @ `99a96d3b` |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — integrated health bundle umbrella stays open |
 | **Branch** | `spe-1889-integrated-health-bundle-custody-wire-up-slice-9`                                                  |
 | **Base `main` SHA** | `4ef9056d`                                                                                          |

@@ -16,11 +16,21 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
+1. **[SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) recurrent catastrophe amelioration registry — GameState persistence (slice 2)** — mirrors SPE-2312 / SPE-2313 persistence pattern; parent [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stays open; owner creates Linear child when starting.
+2. **[SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) rule-document compliance containment registry — GameState persistence (slice 2)** — sibling persistence slice under SPE-1310; weekly orchestration deferred to slice 3+.
+3. **Branch continuity stability-audit category (optional [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) follow-on)** — read-only `analyzeRuntimeStability` category when explicit nodes supplied via `buildBranchContinuityRuntimeAuditSnapshot` adapter; no new warning classes, GameState keys, or player UI; deferred from [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362).
+
+Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates). Dedicated exploit-access content remains **deferred** until a scoped slice owner exists (validator substrate shipped).
 
 ## Recommended next step (agent handoff)
 
-[SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime validation hooks ships read-only dev-overlay surfacing for branch continuity audits ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) parent stays Done). Pick from `planning/scope-discipline-grooming-pass.md` §14 when a registry/slice owner exists, or backlog grooming for dedicated exploit-access content. Mission triage expansion remains **blocked**.
+**On `main` @ `11d57c13`.** [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime hooks **Done** (PR #2592); [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) parent stays **Done**.
+
+**Recommended next implementation (owner creates Linear child when starting):** **SPE-2117 recurrent catastrophe amelioration registry GameState persistence (slice 2)** — follow `planning/extranormal-event-registry-slice-2.md` / SPE-2312 pattern against `src/domain/recurrentCatastropheAmeliorationRegistry.ts`; branch `spe-2117-recurrent-catastrophe-persistence-slice-2`.
+
+**Alternate (same §14 pass):** branch-continuity stability-audit category under SPE-1464 — read-only `stabilityLayer.ts` integration via explicit-node adapter only; see [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) deferred row in `planning/branch-continuity-runtime-hooks-slice-1.md`.
+
+Mission triage expansion remains **blocked**.
 
 ## Blocked / waiting
 
@@ -169,7 +179,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `contained-person-integrated-health-bundle-slice-6.md`  | **Shipped**    | SPE-2346 / PR #2559; planning mirror UI over `containedPersonIntegratedHealthBundles` @ `95d089e7`.                                                    |
 | `contained-person-integrated-health-bundle-slice-7.md`  | **Shipped**    | SPE-2347; medication/custody/welfare-debt mirror field groups on integrated health bundles @ `81d6a55e`.                                               |
 | `contained-person-integrated-health-bundle-slice-8.md`  | **Shipped**    | SPE-2348 / PR #2564; medication regimen derive/compose wire-up + SPE-1886 slice 1 registry @ `4ef9056d`.                                                |
-| `contained-person-integrated-health-bundle-slice-9.md`  | **In progress** | SPE-2349; custody status derive/compose wire-up + SPE-1892 slice 1 registry @ `4ef9056d` base.                                                         |
+| `contained-person-integrated-health-bundle-slice-9.md`  | **Shipped**    | SPE-2349 / PR #2566; custody status derive/compose wire-up + SPE-1892 slice 1 registry @ `99a96d3b`.                                                    |
+| `branch-continuity-runtime-hooks-slice-1.md`            | **Shipped**    | SPE-2362 / PR #2592; dev-overlay read-only branch continuity audit seam @ `5d5bc297`.                                                                  |
 | `naming-hazard-descriptor-registry-slice-1.md`            | **Shipped**    | SPE-2116 / PR #2435; safe labels, reference constraints, map/briefing projection.                                                                     |
 | `naming-hazard-descriptor-registry-slice-2.md`            | **Shipped**    | SPE-2357 / PR #2582; `namingHazardDescriptorRecords` GameState persistence @ `ef905426`.                                                              |
 | `naming-hazard-descriptor-registry-slice-3.md`            | **Shipped**    | SPE-2359 / PR #2586; investigation case-prep safe-label substitution via `projectSafeLabel` + intake topic cross-link routing @ `1df0b0fa`.              |

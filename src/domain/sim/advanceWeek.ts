@@ -287,6 +287,7 @@ import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInforma
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
+import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4691,6 +4692,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentRecurrentCatastropheRecords).length > 0) {
     outputWeeklyState.recurrentCatastropheRecords = applyWeeklyRecurrentCatastropheTick(
       currentRecurrentCatastropheRecords,
+      result.week
+    )
+  }
+
+  // SPE-2123 slice 3: compliance-decay band state transitions on rule-document compliance records.
+  const currentRuleDocumentComplianceRecords = outputWeeklyState.ruleDocumentComplianceRecords ?? {}
+  if (Object.keys(currentRuleDocumentComplianceRecords).length > 0) {
+    outputWeeklyState.ruleDocumentComplianceRecords = applyWeeklyRuleDocumentComplianceTick(
+      currentRuleDocumentComplianceRecords,
       result.week
     )
   }

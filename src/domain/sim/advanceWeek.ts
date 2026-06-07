@@ -269,7 +269,11 @@ import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareRe
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
-import { composeTherapeuticCareIntoIntegratedHealthBundles } from '../containedPersonIntegratedHealthBundleCompose'
+import { deriveMedicationRegimenBundleFragmentsFromRecords } from '../containedPersonMedicationRegimenHealthBundleLinks'
+import {
+  composeMedicationRegimenIntoIntegratedHealthBundles,
+  composeTherapeuticCareIntoIntegratedHealthBundles,
+} from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -4660,19 +4664,35 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   // SPE-1889 slice 5: wire therapeutic-care records into integrated health bundles.
   const therapeuticCareRecordsForBundleCompose =
     outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
-  const currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const medicationRegimenRecordsForBundleCompose =
+    outputWeeklyState.containedPersonMedicationRegimenRecords ?? {}
+  let currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
   const hasTherapeuticCareRecords =
     Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
+  const hasMedicationRegimenRecords =
+    Object.keys(medicationRegimenRecordsForBundleCompose).length > 0
   const hasIntegratedHealthBundles = Object.keys(currentIntegratedHealthBundles).length > 0
-  if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
-    const derivedTherapeuticCareBundleFragments = deriveTherapeuticCareBundleFragmentsFromRecords(
-      therapeuticCareRecordsForBundleCompose
-    )
-    outputWeeklyState.containedPersonIntegratedHealthBundles =
-      composeTherapeuticCareIntoIntegratedHealthBundles(
+  if (hasTherapeuticCareRecords || hasMedicationRegimenRecords || hasIntegratedHealthBundles) {
+    if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
+      const derivedTherapeuticCareBundleFragments = deriveTherapeuticCareBundleFragmentsFromRecords(
+        therapeuticCareRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeTherapeuticCareIntoIntegratedHealthBundles(
         currentIntegratedHealthBundles,
         derivedTherapeuticCareBundleFragments
       )
+    }
+
+    if (hasMedicationRegimenRecords || hasIntegratedHealthBundles) {
+      const derivedMedicationRegimenBundleFragments =
+        deriveMedicationRegimenBundleFragmentsFromRecords(medicationRegimenRecordsForBundleCompose)
+      currentIntegratedHealthBundles = composeMedicationRegimenIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedMedicationRegimenBundleFragments
+      )
+    }
+
+    outputWeeklyState.containedPersonIntegratedHealthBundles = currentIntegratedHealthBundles
   }
 
   // SPE-2122 slice 5: wire population-emergence-derived normalization inputs into disclosure records.

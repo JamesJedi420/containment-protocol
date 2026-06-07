@@ -831,6 +831,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review recurrence cadence, prevention ceilings, amelioration posture, and next-recurrence risk projections.',
     },
+    {
+      label: 'Open post-incident review mirror',
+      href: APP_ROUTES.postIncidentReview,
+      description:
+        'Review retrospective routes, closure outcomes, milestone spans, procedure adherence, and recurrence flags.',
+    },
   ]
 }
 

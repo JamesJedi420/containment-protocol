@@ -15,7 +15,7 @@ import {
   buildTeamWeakestLinkSummary,
   validateTeamComposition,
 } from './teamComposition'
-import { getTeamMemberIds } from './teamSimulation'
+import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -338,8 +338,8 @@ export function evaluateDeploymentEligibility(
     missionRoutingState === 'blocked' || missionRoutingState === 'deferred'
       ? 'routing-state-blocked'
       : '',
-    (team.status?.assignedCaseId ?? team.assignedCaseId) &&
-    (team.status?.assignedCaseId ?? team.assignedCaseId) !== missionId
+    getTeamAssignedCaseId(team) &&
+    getTeamAssignedCaseId(team) !== missionId
       ? 'capacity-locked'
       : '',
   ]) as DeploymentHardBlockerCode[]
@@ -400,8 +400,7 @@ export function buildTeamDeploymentReadinessState(
   const team = state.teams[teamId]
   const members = team ? getTeamMembers(team, state.agents) : []
   const effectiveMissionId =
-    missionId ??
-    (team?.status?.assignedCaseId ?? team?.assignedCaseId ?? Object.keys(state.cases)[0] ?? '')
+    missionId ?? (team ? getTeamAssignedCaseId(team) : null) ?? Object.keys(state.cases)[0] ?? ''
   const effectiveMission = state.cases[effectiveMissionId]
   const missionValidation =
     team && effectiveMission

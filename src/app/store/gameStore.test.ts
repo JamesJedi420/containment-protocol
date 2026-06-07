@@ -13,6 +13,7 @@ import { buildWeeklyReportTutorialChoices } from '../../features/operations/fron
 import type { AgentData, Candidate } from '../../domain/models'
 import { advanceWeek as advanceWeekDomain } from '../../domain/sim/advanceWeek'
 import { assignTeam, unassignTeam } from '../../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import { hireCandidate as hireCandidateDomain } from '../../domain/sim/hire'
 import { scoutCandidate as scoutCandidateDomain } from '../../domain/sim/recruitmentScouting'
 import {
@@ -246,12 +247,12 @@ describe('gameStore', () => {
     useGameStore.getState().assign('case-001', 't_nightwatch')
 
     expect(useGameStore.getState().game.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(useGameStore.getState().game.teams['t_nightwatch'].assignedCaseId).toBe('case-001')
+    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBe('case-001')
 
     useGameStore.getState().unassign('case-001', 't_nightwatch')
 
     expect(useGameStore.getState().game.cases['case-001'].assignedTeamIds).toEqual([])
-    expect(useGameStore.getState().game.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBeNull()
   })
 
   it('advances the simulation and appends a report', () => {

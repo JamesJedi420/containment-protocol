@@ -8,6 +8,7 @@ import {
 } from '../domain/sim/advanceWeek'
 import { refreshContractBoard, getContractOffers, launchContract } from '../domain/contracts'
 import { assignTeam, launchMajorIncident } from '../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 import { queueFabrication } from '../domain/sim/production'
 import { computeTeamScore } from '../domain/sim/scoring'
 import { buildAgencyProtocolState } from '../domain/protocols'
@@ -132,9 +133,9 @@ it('keeps launched major incident teams locked while weeks remain', () => {
 
   expect(next.cases['major-incident'].status).toBe('in_progress')
   expect(next.cases['major-incident'].weeksRemaining).toBeGreaterThan(0)
-  expect(next.teams['team-alpha'].assignedCaseId).toBe('major-incident')
-  expect(next.teams['team-bravo'].assignedCaseId).toBe('major-incident')
-  expect(next.teams['team-charlie'].assignedCaseId).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-alpha'])).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-bravo'])).toBe('major-incident')
+  expect(getTeamAssignedCaseId(next.teams['team-charlie'])).toBe('major-incident')
 })
 
 function getPressureThresholdSpawnEvent(events: OperationEvent[]) {
@@ -315,11 +316,17 @@ function makeAggregateBattleIntegrationState() {
   }
   state.teams['t_nightwatch'] = {
     ...state.teams['t_nightwatch'],
-    assignedCaseId: 'case-raid-battle',
+    status: {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-raid-battle',
+    },
   }
   state.teams['t_greentape'] = {
     ...state.teams['t_greentape'],
-    assignedCaseId: 'case-raid-battle',
+    status: {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-raid-battle',
+    },
   }
 
   for (const agentId of state.teams['t_nightwatch'].agentIds) {
@@ -395,11 +402,17 @@ function makeParallelObjectiveAggregateBattleState() {
   }
   state.teams['t_nightwatch'] = {
     ...state.teams['t_nightwatch'],
-    assignedCaseId: 'case-ritual-battle',
+    status: {
+      ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-ritual-battle',
+    },
   }
   state.teams['t_greentape'] = {
     ...state.teams['t_greentape'],
-    assignedCaseId: 'case-ritual-battle',
+    status: {
+      ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-ritual-battle',
+    },
   }
 
   for (const agentId of state.teams['t_nightwatch'].agentIds) {
@@ -1429,17 +1442,23 @@ describe('advanceWeek', () => {
     }
     state.teams['t_nightwatch'] = {
       ...state.teams['t_nightwatch'],
-      assignedCaseId: 'case-001',
+      status: {
+        ...(state.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
     }
     state.teams['t_greentape'] = {
       ...state.teams['t_greentape'],
-      assignedCaseId: 'case-001',
+      status: {
+        ...(state.teams['t_greentape'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
     }
 
     const next = advanceWeek(state)
 
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
-    expect(next.teams['t_greentape'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(next.teams['t_greentape'])).toBeNull()
     expect(next.teams['t_greentape'].status?.assignedCaseId ?? null).toBeNull()
   })
 
@@ -1772,7 +1791,7 @@ describe('advanceWeek', () => {
     const next = advanceWeek(state)
 
     expect(next.cases['case-001'].deadlineRemaining).toBe(2)
-    expect(next.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(next.teams['t_nightwatch'])).toBeNull()
     expect(next.teams['t_nightwatch'].status?.assignedCaseId ?? null).toBeNull()
   })
 
@@ -2627,8 +2646,20 @@ describe('advanceWeek', () => {
       preferredTags: [],
       raid: { minTeams: 2, maxTeams: 2 },
     }
-    base.teams['t_nightwatch'] = { ...base.teams['t_nightwatch'], assignedCaseId: raidCaseId }
-    base.teams['team-x'] = { ...base.teams['team-x'], assignedCaseId: raidCaseId }
+    base.teams['t_nightwatch'] = {
+      ...base.teams['t_nightwatch'],
+      status: {
+        ...(base.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: raidCaseId,
+      },
+    }
+    base.teams['team-x'] = {
+      ...base.teams['team-x'],
+      status: {
+        ...(base.teams['team-x'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: raidCaseId,
+      },
+    }
 
     const nextA = advanceWeek(structuredClone(base))
     const nextB = advanceWeek(structuredClone(base))
@@ -2636,8 +2667,8 @@ describe('advanceWeek', () => {
     // Deterministic across runs
     expect(nextA.cases[raidCaseId]).toEqual(nextB.cases[raidCaseId])
     expect(nextA.reports[0].resolvedCases).toEqual(['raid-test'])
-    expect(nextA.teams['t_nightwatch'].assignedCaseId).toBeUndefined()
-    expect(nextA.teams['team-x'].assignedCaseId).toBeUndefined()
+    expect(getTeamAssignedCaseId(nextA.teams['t_nightwatch'])).toBeNull()
+    expect(getTeamAssignedCaseId(nextA.teams['team-x'])).toBeNull()
     expect(nextA.agents['a_ava'].assignment?.state).toBe('idle')
     expect(nextA.agents['agent-x'].assignment?.state).toBe('idle')
     expect(

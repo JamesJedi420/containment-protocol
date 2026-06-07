@@ -94,7 +94,6 @@ import { sanitizePersistedFieldBasePacket } from '../../domain/fieldBaseStaging'
 import { FACTION_DEFINITIONS, getFactionDefinition, getFactionReputationTier } from '../../domain/factions'
 import { buildTeamCompositionState } from '../../domain/teamComposition'
 import {
-  getTeamAssignedCaseId,
   getTeamMemberIds,
   syncTeamSimulationTeam,
 } from '../../domain/teamSimulation'
@@ -3327,6 +3326,23 @@ function sanitizeTeamRecoveryPressure(value: unknown): number | undefined {
   return clamped > 0 ? clamped : undefined
 }
 
+/** Hydration: prefer status.assignedCaseId; fall back to legacy top-level save field. */
+function resolveHydratedTeamAssignedCaseId(
+  statusRecord: Record<string, unknown> | undefined,
+  legacyAssignedCaseId: unknown
+): Id | null {
+  if (statusRecord) {
+    if (typeof statusRecord.assignedCaseId === 'string') {
+      return statusRecord.assignedCaseId
+    }
+    if (statusRecord.assignedCaseId === null) {
+      return null
+    }
+  }
+
+  return typeof legacyAssignedCaseId === 'string' ? legacyAssignedCaseId : null
+}
+
 /** Hydration 412: team assignment must exist on the case roster mirror. */
 function reconcileTeamAssignedCaseId(
   teamId: string,
@@ -3379,23 +3395,10 @@ export function sanitizeTeamsMap(
     const category = sanitizeTeamCategoryField(reconciledEntry.category)
 
     const statusRecord = isRecord(reconciledEntry.status) ? reconciledEntry.status : undefined
-    const rawAssignedCaseId = getTeamAssignedCaseId({
-      status: statusRecord
-        ? {
-            state: sanitizeTeamStateKind(statusRecord.state, 'ready'),
-            assignedCaseId:
-              typeof statusRecord.assignedCaseId === 'string'
-                ? statusRecord.assignedCaseId
-                : statusRecord.assignedCaseId === null
-                  ? null
-                  : null,
-          }
-        : undefined,
-      assignedCaseId:
-        typeof reconciledEntry.assignedCaseId === 'string'
-          ? reconciledEntry.assignedCaseId
-          : undefined,
-    })
+    const rawAssignedCaseId = resolveHydratedTeamAssignedCaseId(
+      statusRecord,
+      reconciledEntry.assignedCaseId
+    )
     const assignedCaseId = reconcileTeamAssignedCaseId(teamId, rawAssignedCaseId, cases)
     const recoveryPressure = sanitizeTeamRecoveryPressure(reconciledEntry.recoveryPressure)
 
@@ -3411,7 +3414,6 @@ export function sanitizeTeamsMap(
       leaderId,
       tags: sanitizeTagList(reconciledEntry.tags),
       ...(category !== undefined ? { category } : {}),
-      assignedCaseId,
       status: resolveTeamStatus({
         currentState: sanitizeTeamStateKind(
           statusRecord?.state,
@@ -3437,6 +3439,8 @@ export function sanitizeTeamsMap(
     if (recoveryPressure === undefined) {
       delete teamWithoutComposition.recoveryPressure
     }
+
+    delete (teamWithoutComposition as Record<string, unknown>).assignedCaseId
 
     const synced = syncTeamSimulationTeam(teamWithoutComposition, agents, cases)
     const teamsForComposition = {

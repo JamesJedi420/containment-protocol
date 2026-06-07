@@ -661,7 +661,7 @@ export interface TeamSynergyProfile {
 export interface TeamStatus {
   /** Current FSM state for the squad. */
   state: TeamState
-  /** Canonical assignment pointer mirrored to the legacy team field. */
+  /** Canonical assignment pointer for the team's active case. */
   assignedCaseId?: Id | null
 }
 
@@ -1157,9 +1157,6 @@ export interface Team {
    * Runtime state mirrors this from `memberIds`.
    */
   agentIds: Id[]
-
-  /** Legacy compatibility alias mirrored from `status.assignedCaseId`. */
-  assignedCaseId?: Id
 
   /** Optional equipment tags (e.g., "van", "lab-kit"). */
   tags: string[]

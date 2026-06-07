@@ -32,6 +32,7 @@ import {
   resolveCase,
 } from '../domain/sim/resolve'
 import { assignTeam } from '../domain/sim/assign'
+import { getTeamAssignedCaseId } from '../domain/teamSimulation'
 import { getTeamEditability, getTeamMoveEligibility } from '../domain/sim/teamManagement'
 import { validateTeamIds } from '../domain/validateTeam'
 import type { CaseInstance, GameState, Id, Team } from '../domain/models'
@@ -258,7 +259,7 @@ describe('Selector Parity: Mutation vs Preview Blocking', () => {
 
     const next = assignTeam(game, caseEntry.id, team.id)
     expect(next.cases[caseEntry.id].assignedTeamIds).not.toContain(team.id)
-    expect(next.teams[team.id].assignedCaseId).not.toBe(caseEntry.id)
+    expect(getTeamAssignedCaseId(next.teams[team.id])).not.toBe(caseEntry.id)
   })
 
   it('blocked preview → assignTeam rejects (already-committed)', () => {
@@ -311,7 +312,7 @@ describe('Selector Parity: Mutation vs Preview Blocking', () => {
 
     const next = assignTeam(game, caseEntry.id, team.id)
     expect(next.cases[caseEntry.id].assignedTeamIds).toContain(team.id)
-    expect(next.teams[team.id].assignedCaseId).toBe(caseEntry.id)
+    expect(getTeamAssignedCaseId(next.teams[team.id])).toBe(caseEntry.id)
   })
 
   it('blocked by role requirement → assignTeam rejects', () => {

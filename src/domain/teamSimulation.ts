@@ -645,18 +645,8 @@ export function getUniqueTeamMembers(
     .filter((agent): agent is Agent => Boolean(agent))
 }
 
-export function getTeamAssignedCaseId(team: Pick<Team, 'status' | 'assignedCaseId'>): Id | null {
-  const statusAssignedCaseId = team.status?.assignedCaseId ?? null
-
-  if (statusAssignedCaseId !== null) {
-    return statusAssignedCaseId
-  }
-
-  if (Object.prototype.hasOwnProperty.call(team, 'assignedCaseId')) {
-    return team.assignedCaseId ?? null
-  }
-
-  return null
+export function getTeamAssignedCaseId(team: Pick<Team, 'status'>): Id | null {
+  return team.status?.assignedCaseId ?? null
 }
 
 export function getTeamLeaderId(
@@ -907,7 +897,6 @@ export function syncTeamSimulationTeam(
       memberCount: memberIds.length,
     }),
     agentIds: memberIds,
-    assignedCaseId: assignedCaseId ?? undefined,
   }
 }
 
@@ -957,13 +946,10 @@ function normalizeCaseQueueMirror(state: GameState): NonNullable<GameState['case
 
 function hasTeamMirrorParity(team: Team) {
   const memberIds = getTeamMemberIds(team)
-  const statusAssignedCaseId = team.status?.assignedCaseId ?? null
-  const assignedCaseMirror = team.assignedCaseId ?? null
 
   return (
     areIdListsEqual(team.memberIds, memberIds) &&
-    areIdListsEqual(team.agentIds, memberIds) &&
-    statusAssignedCaseId === assignedCaseMirror
+    areIdListsEqual(team.agentIds, memberIds)
   )
 }
 
@@ -1019,7 +1005,6 @@ function clearDanglingTeamCasePointers(
         teamId,
         {
           ...team,
-          assignedCaseId: undefined,
           status: team.status ? { ...team.status, assignedCaseId: null } : team.status,
         },
       ]

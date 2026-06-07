@@ -245,7 +245,7 @@ describe('expeditionRecoveryNode (SPE-99)', () => {
         name: 'T',
         agentIds: ['a1', 'a2'],
         tags: [],
-        assignedCaseId: 'case-s',
+        status: { state: 'deployed', assignedCaseId: 'case-s' },
       },
     }
     const cases: GameState['cases'] = { 'case-s': caseWithSanctuary }

@@ -8,7 +8,7 @@ import {
   type MissionPriorityBand,
   type WeeklyDirectiveId,
 } from '../models'
-import { normalizeGameState } from '../teamSimulation'
+import { getTeamAssignedCaseId, normalizeGameState } from '../teamSimulation'
 import { advanceWeek } from './advanceWeek'
 import { assignTeam } from './assign'
 
@@ -504,7 +504,7 @@ function compareMissionIds(state: GameState, leftId: string, rightId: string) {
 
 function isTeamAssignable(state: GameState, teamId: string, missionId: string) {
   const team = state.teams[teamId]
-  const assignedCaseId = team?.status?.assignedCaseId ?? team?.assignedCaseId ?? null
+  const assignedCaseId = team ? getTeamAssignedCaseId(team) : null
 
   return Boolean(team) && (!assignedCaseId || assignedCaseId === missionId)
 }

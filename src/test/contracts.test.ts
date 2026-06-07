@@ -12,7 +12,7 @@ import {
   sanitizeContractSystemState,
 } from '../domain/contracts'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { syncTeamSimulationState } from '../domain/teamSimulation'
+import { getTeamAssignedCaseId, syncTeamSimulationState } from '../domain/teamSimulation'
 import type { AgentRole, ContractOffer } from '../domain/models'
 
 const RECON_FAVORABLE_ROLES = ['hunter', 'tech', 'investigator'] satisfies AgentRole[]
@@ -108,13 +108,13 @@ describe('contract system', () => {
     expect(activeCase).toBeDefined()
     expect(activeCase?.status).toBe('in_progress')
     expect(activeCase?.weeksRemaining).toBe(offer.durationWeeks)
-    expect(launched.teams['t_nightwatch'].assignedCaseId).toBe(activeCase?.id)
+    expect(getTeamAssignedCaseId(launched.teams['t_nightwatch'])).toBe(activeCase?.id)
 
     const afterOneWeek = advanceWeek(launched)
 
     expect(afterOneWeek.cases[activeCase!.id]?.status).toBe('in_progress')
     expect(afterOneWeek.cases[activeCase!.id]?.weeksRemaining).toBe(offer.durationWeeks - 1)
-    expect(afterOneWeek.teams['t_nightwatch'].assignedCaseId).toBe(activeCase!.id)
+    expect(getTeamAssignedCaseId(afterOneWeek.teams['t_nightwatch'])).toBe(activeCase!.id)
   })
 
   it('multi-stage contract chains unlock after successful completion', () => {

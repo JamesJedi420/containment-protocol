@@ -14,6 +14,7 @@ import {
   type ValidationPressureSource,
 } from './sim/validation'
 import { WEAKEST_LINK_CALIBRATION } from './sim/calibration'
+import { getTeamAssignedCaseId } from './teamSimulation'
 import type {
   WeakestLinkMissionResolutionResult,
   WeakestLinkPenaltyBucket,
@@ -434,7 +435,7 @@ export function explainDeploymentReadiness(
   const team = state.teams[teamId]
   const effectiveMissionId =
     missionId ??
-    (team?.status?.assignedCaseId ?? team?.assignedCaseId ?? Object.keys(state.cases)[0] ?? '')
+    (team ? getTeamAssignedCaseId(team) : null) ?? Object.keys(state.cases)[0] ?? ''
   const mission = state.cases[effectiveMissionId]
 
   if (!team || !mission) {

@@ -15,6 +15,7 @@ import {
   type ValidationIssue,
 } from './models'
 import { getAgentCoverageRoles } from './validateTeam'
+import { getTeamAssignedCaseId } from './teamSimulation'
 
 export interface TeamCompositionValidationResult {
   valid: boolean
@@ -77,20 +78,6 @@ function getTeamMembers(team: Pick<Team, 'memberIds' | 'agentIds'>, agentsById: 
   return getTeamMemberIds(team)
     .map((agentId) => agentsById[agentId])
     .filter((agent): agent is Agent => Boolean(agent))
-}
-
-function getTeamAssignedCaseId(team: Pick<Team, 'status' | 'assignedCaseId'>): Id | null {
-  const statusAssignedCaseId = team.status?.assignedCaseId ?? null
-
-  if (statusAssignedCaseId !== null) {
-    return statusAssignedCaseId
-  }
-
-  if (Object.prototype.hasOwnProperty.call(team, 'assignedCaseId')) {
-    return team.assignedCaseId ?? null
-  }
-
-  return null
 }
 
 function average(values: number[]) {

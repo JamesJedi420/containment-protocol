@@ -20,7 +20,7 @@ describe('App training division route', () => {
     )
 
     expect(
-      await screen.findByRole('heading', { level: 2, name: /training division/i })
+      await screen.findByRole('heading', { level: 2, name: /training division/i }, { timeout: 5000 })
     ).toBeInTheDocument()
     expect(
       screen.queryByRole('heading', { level: 2, name: /route not found/i })

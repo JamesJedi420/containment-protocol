@@ -7,6 +7,7 @@ One-page implementation plan. Linear: child under [SPE-2116](https://linear.app/
 | **Linear** | [SPE-2359 — Naming-hazard descriptor registry investigation UI substitution (slice 3)](https://linear.app/spectranoir/issue/SPE-2359) |
 | **Parent** | [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) — registry anchor; umbrella [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) stays open |
 | **Branch** | `spe-2116-naming-hazard-ui-substitution-slice-3`                                                           |
+| **Status** | **Shipped** — PR #2586 @ `1df0b0fa`                                                                        |
 | **Base `main` SHA** | `5801844c`                                                                                          |
 
 ## Goal

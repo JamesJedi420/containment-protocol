@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2365](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2365 — Rule-document compliance containment registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2365) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2599 @ `de7d8501`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) — Rule-document compliance containment registry slice 1 |
 | **Branch** | `spe-2123-rule-document-compliance-persistence-slice-2`                                                    |
@@ -36,10 +36,10 @@ Persist validated `RuleDocumentComplianceRecord` entries on `GameState` with san
 
 ## Acceptance
 
-- [ ] Valid fixtures round-trip through serialize/import
-- [ ] Invalid/duplicate-id entries dropped safely on hydrate (including `breach_without_breach_consequence`)
-- [ ] Warnings-only records persist through sanitize
-- [ ] `npm run lint` + targeted tests + slice-1 regression green
+- [x] Valid fixtures round-trip through serialize/import
+- [x] Invalid/duplicate-id entries dropped safely on hydrate (including `breach_without_breach_consequence`)
+- [x] Warnings-only records persist through sanitize
+- [x] `npm run lint` + targeted tests + slice-1 regression green
 
 ## File touch list (expected)
 

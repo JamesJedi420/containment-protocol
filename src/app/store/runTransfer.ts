@@ -202,6 +202,7 @@ import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/ma
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
+import { sanitizeWelfareDebtAccountingRecords } from '../../domain/welfareDebtAccountingRegistry'
 import { sanitizeMedicationRegimenRecords } from '../../domain/containedPersonMedicationRegimenRegistry'
 import { sanitizeContainedPersonIntegratedHealthBundles } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
@@ -8449,6 +8450,10 @@ export function hydrateGame(
     game.containedPersonCustodyStatusRecords,
     fallback.containedPersonCustodyStatusRecords ?? {}
   )
+  const welfareDebtAccountingRecords = sanitizeWelfareDebtAccountingRecords(
+    game.welfareDebtAccountingRecords,
+    fallback.welfareDebtAccountingRecords ?? {}
+  )
   const containedPersonIntegratedHealthBundles = sanitizeContainedPersonIntegratedHealthBundles(
     game.containedPersonIntegratedHealthBundles,
     fallback.containedPersonIntegratedHealthBundles ?? {}
@@ -8582,6 +8587,7 @@ export function hydrateGame(
       containedPersonTherapeuticCareRecords,
       containedPersonMedicationRegimenRecords,
       containedPersonCustodyStatusRecords,
+      welfareDebtAccountingRecords,
       containedPersonIntegratedHealthBundles,
       candidates,
       recruitmentPool,

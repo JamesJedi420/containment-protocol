@@ -271,10 +271,12 @@ import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCar
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
 import { deriveCustodyStatusBundleFragmentsFromRecords } from '../containedPersonCustodyStatusHealthBundleLinks'
 import { deriveMedicationRegimenBundleFragmentsFromRecords } from '../containedPersonMedicationRegimenHealthBundleLinks'
+import { deriveWelfareDebtBundleFragmentsFromRecords } from '../welfareDebtAccountingHealthBundleLinks'
 import {
   composeCustodyStatusIntoIntegratedHealthBundles,
   composeMedicationRegimenIntoIntegratedHealthBundles,
   composeTherapeuticCareIntoIntegratedHealthBundles,
+  composeWelfareDebtIntoIntegratedHealthBundles,
 } from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
@@ -4670,17 +4672,22 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.containedPersonMedicationRegimenRecords ?? {}
   const custodyStatusRecordsForBundleCompose =
     outputWeeklyState.containedPersonCustodyStatusRecords ?? {}
+  const welfareDebtAccountingRecordsForBundleCompose =
+    outputWeeklyState.welfareDebtAccountingRecords ?? {}
   let currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
   const hasTherapeuticCareRecords =
     Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
   const hasMedicationRegimenRecords =
     Object.keys(medicationRegimenRecordsForBundleCompose).length > 0
   const hasCustodyStatusRecords = Object.keys(custodyStatusRecordsForBundleCompose).length > 0
+  const hasWelfareDebtAccountingRecords =
+    Object.keys(welfareDebtAccountingRecordsForBundleCompose).length > 0
   const hasIntegratedHealthBundles = Object.keys(currentIntegratedHealthBundles).length > 0
   if (
     hasTherapeuticCareRecords ||
     hasMedicationRegimenRecords ||
     hasCustodyStatusRecords ||
+    hasWelfareDebtAccountingRecords ||
     hasIntegratedHealthBundles
   ) {
     if (hasTherapeuticCareRecords || hasIntegratedHealthBundles) {
@@ -4709,6 +4716,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentIntegratedHealthBundles = composeCustodyStatusIntoIntegratedHealthBundles(
         currentIntegratedHealthBundles,
         derivedCustodyStatusBundleFragments
+      )
+    }
+
+    if (hasWelfareDebtAccountingRecords || hasIntegratedHealthBundles) {
+      const derivedWelfareDebtBundleFragments = deriveWelfareDebtBundleFragmentsFromRecords(
+        welfareDebtAccountingRecordsForBundleCompose
+      )
+      currentIntegratedHealthBundles = composeWelfareDebtIntoIntegratedHealthBundles(
+        currentIntegratedHealthBundles,
+        derivedWelfareDebtBundleFragments
       )
     }
 

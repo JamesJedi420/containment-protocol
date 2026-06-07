@@ -33,6 +33,7 @@ export const APP_ROUTES = {
   entityWelfareReclassification: '/entity-welfare-reclassification',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
+  welfareDebtAccounting: '/welfare-debt-accounting',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

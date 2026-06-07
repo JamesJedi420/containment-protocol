@@ -30,6 +30,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'entity-welfare-reclassification',
   'contained-person-therapeutic-care',
   'contained-person-integrated-health-bundle',
+  'welfare-debt-accounting',
 ] as const
 
 export function navPathToShellSegment(path: string): string {

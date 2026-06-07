@@ -813,6 +813,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review mental-state bands, humane-care risk, and wired therapeutic care schedule links.',
     },
+    {
+      label: 'Open welfare debt accounting mirror',
+      href: APP_ROUTES.welfareDebtAccounting,
+      description:
+        'Review coercive-procedure welfare debt severity, mitigation state, and containment benefit projections.',
+    },
   ]
 }
 

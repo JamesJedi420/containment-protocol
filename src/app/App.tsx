@@ -102,6 +102,9 @@ const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
 const ContainedPersonIntegratedHealthBundleMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonIntegratedHealthBundleMirrorPage')
 )
+const WelfareDebtAccountingMirrorRoute = createRouteComponent(
+  () => import('../features/operations/WelfareDebtAccountingMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -180,6 +183,10 @@ export default function App() {
         <Route
           path="contained-person-integrated-health-bundle"
           element={renderLazyRoute(ContainedPersonIntegratedHealthBundleMirrorRoute)}
+        />
+        <Route
+          path="welfare-debt-accounting"
+          element={renderLazyRoute(WelfareDebtAccountingMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

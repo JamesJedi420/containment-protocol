@@ -935,6 +935,42 @@ export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const RECURRENT_CATASTROPHE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Recurrent catastrophe amelioration registry',
+  pageSubtitle:
+    'Read-only operations view over persisted recurrence-cycle records and next-recurrence risk projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  impossiblePreventionLabel: 'Impossible prevention ceiling',
+  criticalSeverityLabel: 'Critical severity band',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Cadence, amelioration posture, and severity bands mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No recurrent catastrophe amelioration records',
+  emptyBody:
+    'Persisted recurrent catastrophe records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Severity bands and risk scores come from next-recurrence risk projection at the current simulation week.',
+  labelColumn: 'Label',
+  cadenceColumn: 'Cadence / amelioration',
+  preventionColumn: 'Prevention ceiling',
+  recurrenceColumn: 'Recurrence history',
+  riskColumn: 'Risk projection',
+  confidenceColumn: 'Confidence',
+  failureModePrefix: 'Failure mode:',
+  ameliorationPrefix: 'Active amelioration:',
+  preventionTacticPrefix: 'Active prevention:',
+  lastOccurrencePrefix: 'Last occurrence:',
+  damageLedgerPrefix: 'Damage ledger:',
+  reviewRefPrefix: 'Post-incident review:',
+  riskScorePrefix: 'Risk score:',
+  activeAmeliorationCountPrefix: 'Active amelioration count:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Rule document compliance registry',

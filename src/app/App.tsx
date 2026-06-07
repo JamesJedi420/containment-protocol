@@ -108,6 +108,9 @@ const WelfareDebtAccountingMirrorRoute = createRouteComponent(
 const RuleDocumentComplianceMirrorRoute = createRouteComponent(
   () => import('../features/operations/RuleDocumentComplianceMirrorPage')
 )
+const RecurrentCatastropheMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RecurrentCatastropheMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -194,6 +197,10 @@ export default function App() {
         <Route
           path="rule-document-compliance"
           element={renderLazyRoute(RuleDocumentComplianceMirrorRoute)}
+        />
+        <Route
+          path="recurrent-catastrophe-amelioration"
+          element={renderLazyRoute(RecurrentCatastropheMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

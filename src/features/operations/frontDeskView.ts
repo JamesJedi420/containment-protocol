@@ -825,6 +825,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review written-conduct binding posture, compliance decay bands, and revision audit symptoms.',
     },
+    {
+      label: 'Open recurrent catastrophe amelioration mirror',
+      href: APP_ROUTES.recurrentCatastropheAmelioration,
+      description:
+        'Review recurrence cadence, prevention ceilings, amelioration posture, and next-recurrence risk projections.',
+    },
   ]
 }
 

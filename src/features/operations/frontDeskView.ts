@@ -819,6 +819,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review coercive-procedure welfare debt severity, mitigation state, and containment benefit projections.',
     },
+    {
+      label: 'Open rule document compliance mirror',
+      href: APP_ROUTES.ruleDocumentCompliance,
+      description:
+        'Review written-conduct binding posture, compliance decay bands, and revision audit symptoms.',
+    },
   ]
 }
 

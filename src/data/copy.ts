@@ -935,6 +935,39 @@ export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Rule document compliance registry',
+  pageSubtitle:
+    'Read-only operations view over persisted written-conduct binding records and compliance decay projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  breachCountLabel: 'Breach state',
+  criticalBandLabel: 'Critical decay band',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Binding posture, decay bands, and audit symptoms mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No rule document compliance records',
+  emptyBody:
+    'Persisted rule document compliance records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Decay bands and audit symptoms come from compliance decay projection at the current simulation week.',
+  labelColumn: 'Label',
+  bindingColumn: 'Binding',
+  complianceColumn: 'Compliance',
+  decayColumn: 'Decay band',
+  auditColumn: 'Audit symptoms',
+  confidenceColumn: 'Confidence',
+  documentRefPrefix: 'Document:',
+  physicalCopyPrefix: 'Physical copy:',
+  auditorPrefix: 'Auditors:',
+  breachConsequencePrefix: 'Breach consequence:',
+  driftProbabilityPrefix: 'Drift/week:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Mass anomalous population emergence registry',

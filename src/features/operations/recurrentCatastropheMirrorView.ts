@@ -6,6 +6,7 @@ import {
   type ActivePreventionTactic,
   type RecurrentCatastropheRecord,
 } from '../../domain/recurrentCatastropheAmeliorationRegistry'
+import { validateRecurrentCatastrophePostIncidentReviewRefs } from '../../domain/recurrentCatastrophePostIncidentReviewLinks'
 
 export interface RecurrentCatastropheMirrorRecordView {
   id: string
@@ -102,15 +103,25 @@ function formatActiveTacticLabels<T extends { tactic: string; active: boolean }>
 
 function toRecordView(
   record: RecurrentCatastropheRecord,
-  week: number
+  week: number,
+  reviewRecords: GameState['postIncidentReviewRecords']
 ): RecurrentCatastropheMirrorRecordView {
   const projection = projectNextRecurrenceRisk(record, { currentWeek: week })
   const validation = validateRecurrentCatastropheRecord(record)
+  const reviewRefValidation = validateRecurrentCatastrophePostIncidentReviewRefs(
+    record,
+    reviewRecords
+  )
 
   const validationWarningLabels = Object.freeze(
-    validation.issues
-      .filter((issue) => issue.severity === 'warning')
-      .map((issue) => issue.detail)
+    [
+      ...validation.issues
+        .filter((issue) => issue.severity === 'warning')
+        .map((issue) => issue.detail),
+      ...reviewRefValidation.issues
+        .filter((issue) => issue.severity === 'warning')
+        .map((issue) => issue.detail),
+    ].sort((left, right) => left.localeCompare(right))
   )
 
   const summaryLabel = record.summary?.trim() ? record.summary : '—'
@@ -149,6 +160,7 @@ export function getRecurrentCatastropheMirrorView(
 ): RecurrentCatastropheMirrorView {
   const records = listPersistedRecords(game)
   const week = game.week
+  const reviewRecords = game.postIncidentReviewRecords
 
   let impossiblePreventionCount = 0
   let criticalSeverityCount = 0
@@ -163,7 +175,7 @@ export function getRecurrentCatastropheMirrorView(
       criticalSeverityCount += 1
     }
 
-    return toRecordView(record, week)
+    return toRecordView(record, week, reviewRecords)
   })
 
   return Object.freeze({

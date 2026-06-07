@@ -74,8 +74,10 @@ describe('recurrentCatastropheMirrorView (SPE-2117 slice 4)', () => {
     const view = getRecurrentCatastropheMirrorView(game)
     const record = view.records[0]
 
-    expect(record?.validationWarningLabels.length).toBe(1)
-    expect(record?.validationWarningLabels[0]).toContain('recurrenceCount')
+    expect(record?.validationWarningLabels.length).toBeGreaterThanOrEqual(1)
+    expect(record?.validationWarningLabels.some((label) => label.includes('recurrenceCount'))).toBe(
+      true
+    )
   })
 
   it('renders redacted projection fields as legibility gaps', () => {
@@ -115,6 +117,21 @@ describe('recurrentCatastropheMirrorView (SPE-2117 slice 4)', () => {
   it('formats enum labels for CP-neutral UI copy', () => {
     expect(formatRecurrentCatastropheEnumLabel('effect_dampening')).toBe('Effect Dampening')
     expect(formatRecurrentCatastropheEnumLabel('cost_prohibitive')).toBe('Cost Prohibitive')
+  })
+
+  it('surfaces review ref validation warnings from persisted postIncidentReviewRecords', () => {
+    const game = createStartingState()
+    game.postIncidentReviewRecords = {}
+    game.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+    }
+
+    const view = getRecurrentCatastropheMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.validationWarningLabels.some((label) => label.includes('does not resolve'))).toBe(
+      true
+    )
   })
 
   it('is byte-stable for repeated mirror builds', () => {

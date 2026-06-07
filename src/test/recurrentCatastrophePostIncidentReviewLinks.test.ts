@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
 import {
   POST_INCIDENT_REVIEW_STUB_REGISTRY,
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
@@ -14,6 +15,18 @@ import {
   resolveRecurrentCatastrophePostIncidentReviewLinks,
   validateRecurrentCatastrophePostIncidentReviewRefs,
 } from '../domain/recurrentCatastrophePostIncidentReviewLinks'
+import { advanceWeek } from '../domain/sim/advanceWeek'
+import { getRecurrentCatastrophePostIncidentReviewLinksView } from '../features/operations/recurrentCatastrophePostIncidentReviewLinksView'
+
+function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
+  for (const currentCase of Object.values(state.cases)) {
+    currentCase.status = 'open'
+    currentCase.assignedTeamIds = []
+    currentCase.requiredTags = []
+    currentCase.preferredTags = []
+    currentCase.weeksRemaining = undefined
+  }
+}
 
 function baseRecord(
   overrides: Partial<RecurrentCatastropheRecord> = {}
@@ -121,6 +134,34 @@ describe('recurrentCatastrophePostIncidentReviewLinks (SPE-868 slice 5)', () => 
     expect(summaries[0]?.recordId).toBe(RECURRENCE_DAMAGE_LEDGER_FIXTURE.id)
     expect(summaries[0]?.linkedReviewCount).toBe(1)
     expect(summaries[0]?.unresolvedReviewRefs).toEqual([])
+  })
+
+  it('compose view matches domain compose over GameState post slice 4 tick', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 52
+    state.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: {
+        ...RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+        postIncidentReviewRefs: ['review:cycle-3-closeout', 'review:cycle-4-closeout'],
+      },
+    }
+
+    const nextState = advanceWeek(state)
+    const view = getRecurrentCatastrophePostIncidentReviewLinksView(nextState)
+    const domainSummaries = composeRecurrentCatastrophePostIncidentReviewLinks(
+      nextState.recurrentCatastropheRecords,
+      nextState.postIncidentReviewRecords
+    )
+
+    expect(view.summary.totalRecords).toBe(domainSummaries.length)
+    expect(view.summary.totalLinkedReviews).toBe(
+      domainSummaries.reduce((total, summary) => total + summary.linkedReviewCount, 0)
+    )
+    expect(view.records[0]?.reviewLinks.map((link) => link.reviewRefLabel)).toEqual([
+      'review:cycle-3-closeout',
+      'review:cycle-4-closeout',
+    ])
   })
 
   it('does not change slice 1 recurrent catastrophe validation contract', () => {

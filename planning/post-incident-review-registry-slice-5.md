@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2374](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2374 — Post-incident review registry compose wire-up (slice 5)](https://linear.app/spectranoir/issue/SPE-2374) |
-| **Status** | **In progress** — branch `spe-868-post-incident-review-compose-wire-up-slice-5` @ `3ea18a60`             |
+| **Status** | **Shipped** — PR #2616 @ `b90d1389`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-post-incident-review-compose-wire-up-slice-5`                                                     |
 | **Base `main` SHA** | `3ea18a60`                                                                                          |

@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import { hydrateGame } from '../app/store/runTransfer'
 import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import {
+  CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
   COMPULSIVE_PHRASE_BRIEFING_FIXTURE,
   DESCRIPTOR_ONLY_GRID_FALLBACK_FIXTURE,
   sanitizeNamingHazardDescriptorRecords,
@@ -99,6 +100,24 @@ describe('namingHazardDescriptorRegistry persistence (SPE-2116 slice 2)', () => 
       loaded.namingHazardDescriptorRecords?.[DESCRIPTOR_ONLY_GRID_FALLBACK_FIXTURE.id]
         ?.safeDescriptorPool
     ).toEqual([...poolOrder])
+  })
+
+  it('preserves optional intakeTopicRef through sanitize and save/load round-trip', () => {
+    const sanitized = sanitizeNamingHazardDescriptorRecords({
+      canal: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+    })
+
+    expect(sanitized[CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]?.intakeTopicRef).toBe(
+      'topic:canal-bridge-incident'
+    )
+
+    const state = createStartingState()
+    state.namingHazardDescriptorRecords = sanitized
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(
+      loaded.namingHazardDescriptorRecords?.[CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]?.intakeTopicRef
+    ).toBe('topic:canal-bridge-incident')
   })
 
   it('round-trips fixture records byte-stable through save/load', () => {

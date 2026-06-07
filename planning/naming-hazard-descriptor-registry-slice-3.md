@@ -57,7 +57,7 @@ Wire `projectSafeLabel` into investigation case-prep surfaces for persisted `nam
 | Cross-link surfacing in triage/report notes | SPE-854 / UX owner | Out of investigation-prep boundary |
 | SPE-1464 runtime validation hooks | SPE-1464 | Optional backlog follow-up |
 | Bundle compose chain integration | SPE-854 / SPE-2108 follow-up | Out of slice 3 boundary |
-| Weekly orchestration hook | SPE-2116 slice 4+ | UI substitution only this slice |
+| Weekly orchestration hook | SPE-2360 / slice 4 | Shipped in slice 4 (`planning/naming-hazard-descriptor-registry-slice-4.md`) |
 
 ## See also
 

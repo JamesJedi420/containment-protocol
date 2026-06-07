@@ -267,6 +267,7 @@ import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../mass
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
+import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyWelfareDebtAccountingTick } from '../welfareDebtAccountingRegistry'
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
@@ -4653,6 +4654,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentVisualTriggerHazardRecords).length > 0) {
     outputWeeklyState.visualTriggerHazardRecords = applyWeeklyVisualTriggerHazardTick(
       currentVisualTriggerHazardRecords,
+      result.week
+    )
+  }
+
+  // SPE-2116 slice 4: substitution-policy hardening and confidence erosion on naming-hazard descriptors.
+  const currentNamingHazardDescriptors = outputWeeklyState.namingHazardDescriptorRecords ?? {}
+  if (Object.keys(currentNamingHazardDescriptors).length > 0) {
+    outputWeeklyState.namingHazardDescriptorRecords = applyWeeklyNamingHazardDescriptorTick(
+      currentNamingHazardDescriptors,
       result.week
     )
   }

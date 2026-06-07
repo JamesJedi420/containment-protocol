@@ -1,3 +1,8 @@
+import {
+  buildBranchContinuityRuntimeAuditSnapshot,
+  type BranchContinuityRuntimeAuditSnapshot,
+} from '../../domain/branchContinuityRuntimeHooks'
+import type { AuthoredBranchContinuityNode } from '../../domain/branchContinuityAuthoring'
 import { buildDeveloperLogSnapshot } from '../../domain/developerLog'
 import { listQueuedRuntimeEvents } from '../../domain/eventQueue'
 import { buildFlagSystemSnapshot } from '../../domain/flagSystem'
@@ -38,6 +43,11 @@ import {
 } from '../../domain/capabilityGap'
 
 export const DEVELOPER_OVERLAY_FLAG = 'developerOverlay'
+
+export interface DeveloperOverlayBuildOptions {
+  /** Explicit supplied-node adapter path only — no automatic authored-graph import. */
+  branchContinuityAuthoredNodes?: readonly AuthoredBranchContinuityNode[]
+}
 
 export interface DeveloperOverlaySnapshot {
   location: {
@@ -256,6 +266,8 @@ export interface DeveloperOverlaySnapshot {
   courierShellBudgetPressureDebt: number | null
   /** SPE-823a: read-only courier network capacity gap (derived; not persisted). */
   courierNetworkCapacityGap: CapabilityGapReport
+  /** SPE-2362: read-only branch continuity audit surfacing (inactive unless explicit nodes supplied). */
+  branchContinuityAudit: BranchContinuityRuntimeAuditSnapshot
 }
 
 /**
@@ -263,7 +275,10 @@ export interface DeveloperOverlaySnapshot {
  * This reuses the canonical runtime/flag/view helpers instead of duplicating
  * logic inside the overlay component.
  */
-export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlaySnapshot {
+export function buildDeveloperOverlaySnapshot(
+  game: GameState,
+  options: DeveloperOverlayBuildOptions = {}
+): DeveloperOverlaySnapshot {
   const facilityDebug = game.facilityState
     ? Object.values(game.facilityState.facilities).map((facility) => {
         const compatFacility = facility as typeof facility & {
@@ -336,6 +351,10 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     .map((missionId) => missionRouting.missions[missionId])
     .filter((mission): mission is NonNullable<typeof missionRouting.missions[string]> => Boolean(mission))
   const stability = analyzeRuntimeStability(game)
+  const branchContinuityAudit = buildBranchContinuityRuntimeAuditSnapshot({
+    game,
+    authoredNodes: options.branchContinuityAuthoredNodes ?? [],
+  })
   const pressure = explainWeeklyPressureState(game)
   const latestWeakestLinks = Object.values(game.reports.at(-1)?.caseSnapshots ?? {})
     .filter((snapshot) => snapshot.missionResult?.weakestLink)
@@ -623,5 +642,6 @@ export function buildDeveloperOverlaySnapshot(game: GameState): DeveloperOverlay
     courierShellFront: game.agency?.courierShellFront ?? null,
     courierShellBudgetPressureDebt: game.agency?.fundingState?.courierShellBudgetPressureDebt ?? null,
     courierNetworkCapacityGap: buildCourierNetworkCapacityGapReport(game),
+    branchContinuityAudit,
   }
 }

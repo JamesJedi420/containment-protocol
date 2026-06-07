@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2364](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2364 — Recurrent catastrophe amelioration registry weekly recurrence advance hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2364) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2597 @ `2d9c1beb`                                                                        |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Case / facility lifecycle (stays open)         |
 | **Anchor** | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) — Recurrent catastrophe amelioration registry    |
 | **Branch** | `spe-2117-recurrent-catastrophe-weekly-hook-slice-3`                                                     |
@@ -44,14 +44,14 @@ Wire persisted `recurrentCatastropheRecords` into `advanceWeek` so cadence-due r
 
 ## Acceptance
 
-- [ ] Empty `recurrentCatastropheRecords` map is a no-op without throw
-- [ ] Records unchanged while `week < recurrenceDueWeek`
-- [ ] Cadence-due records advance `recurrenceCount` and `lastOccurrenceWeek` when `week >= dueWeek`
-- [ ] `preventionCeiling: impossible` records do not gain active prevention tactics on tick
-- [ ] Warnings-only records still tick when cadence due
-- [ ] `irregular` cadence interval (8 weeks) handled deterministically
-- [ ] Re-applying tick after advance is idempotent for the same week
-- [ ] `npm run lint` + targeted tests + persistence regression green
+- [x] Empty `recurrentCatastropheRecords` map is a no-op without throw
+- [x] Records unchanged while `week < recurrenceDueWeek`
+- [x] Cadence-due records advance `recurrenceCount` and `lastOccurrenceWeek` when `week >= dueWeek`
+- [x] `preventionCeiling: impossible` records do not gain active prevention tactics on tick
+- [x] Warnings-only records still tick when cadence due
+- [x] `irregular` cadence interval (8 weeks) handled deterministically
+- [x] Re-applying tick after advance is idempotent for the same week
+- [x] `npm run lint` + targeted tests + persistence regression green
 
 ## File touch list (expected)
 

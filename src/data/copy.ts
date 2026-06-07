@@ -1043,6 +1043,38 @@ export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, st
   redactedSuffix: 'Partial redaction',
 }
 
+export const WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Welfare debt accounting registry',
+  pageSubtitle:
+    'Read-only operations view over persisted welfare-debt accounting records and read-time containment benefit projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  unresolvedCountLabel: 'Unresolved debt',
+  escalatedCountLabel: 'Escalated debt',
+  mitigatedCountLabel: 'Mitigated debt',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Severity bands, mitigation states, and containment benefit scores mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No welfare debt accounting records',
+  emptyBody:
+    'Persisted welfare-debt accounting records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Containment benefit scores come from welfare-debt accounting projection at read time; unresolved and escalated states display as stored.',
+  labelColumn: 'Label',
+  debtColumn: 'Debt category / severity',
+  procedureColumn: 'Source procedure',
+  reviewColumn: 'Review / mitigation',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  containmentBenefitPrefix: 'Containment benefit:',
+  reviewOwnerPrefix: 'Review owner:',
+  mitigationPathPrefix: 'Mitigation path:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Entity welfare reclassification registry',

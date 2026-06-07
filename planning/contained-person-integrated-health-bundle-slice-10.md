@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-2350 (child under [SPE-1889](https://l
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2350 — Contained-person integrated health bundle welfare-debt wire-up (slice 10)](https://linear.app/spectranoir/issue/SPE-2350) |
-| **Status** | **In progress** — branch `spe-1889-integrated-health-bundle-welfare-debt-wire-up-slice-10` @ `99a96d3b` base |
+| **Status** | **Shipped** — PR #2568 @ `5da1b7f3` |
 | **Parent** | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) — integrated health bundle umbrella stays open |
 | **Branch** | `spe-1889-integrated-health-bundle-welfare-debt-wire-up-slice-10`                                                  |
 | **Base `main` SHA** | `99a96d3b`                                                                                          |

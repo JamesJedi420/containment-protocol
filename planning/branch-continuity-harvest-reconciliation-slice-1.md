@@ -7,7 +7,7 @@ One-page implementation plan. Parent [SPE-1464](https://linear.app/spectranoir/i
 | **Linear** | [SPE-2361 — Branch continuity harvest reconciliation closure (slice 1)](https://linear.app/spectranoir/issue/SPE-2361) |
 | **Parent** | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) — substrate Done; runtime hooks deferred to [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) |
 | **Branch** | `spe-1464-branch-continuity-harvest-reconciliation-slice-1`                                                |
-| **Status** | In progress (pre-PR)                                                                                       |
+| **Status** | **Shipped** — PR #2591 @ `4060efd1`                                                                                |
 | **Base `main` SHA** | `1b5c164845d59c1b37dfb95786aeb582b5809a28`                                                          |
 
 ## Goal

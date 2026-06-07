@@ -971,6 +971,41 @@ export const RECURRENT_CATASTROPHE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident review registry',
+  pageSubtitle:
+    'Read-only operations view over persisted retrospective records and review summary projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  externalAuditRouteLabel: 'External audit route',
+  recurrenceObservedLabel: 'Recurrence observed',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Review routes, closure outcomes, and milestone spans mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident review records',
+  emptyBody:
+    'Persisted post-incident review records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Milestone spans, adherence scores, and recurrence flags come from review summary projection.',
+  labelColumn: 'Label',
+  routeColumn: 'Review route',
+  closureColumn: 'Closure outcome',
+  milestoneColumn: 'Milestone timings',
+  adherenceColumn: 'Procedure adherence',
+  recurrenceColumn: 'Recurrence observed',
+  confidenceColumn: 'Confidence',
+  milestoneSpanPrefix: 'Span (weeks):',
+  discoveryPrefix: 'Discovery:',
+  responsePrefix: 'Response:',
+  containmentPrefix: 'Containment:',
+  recoveryPrefix: 'Recovery:',
+  reportingPrefix: 'Reporting:',
+  unknownFieldsPrefix: 'Unknown fields:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Rule document compliance registry',

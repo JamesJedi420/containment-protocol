@@ -111,6 +111,9 @@ const RuleDocumentComplianceMirrorRoute = createRouteComponent(
 const RecurrentCatastropheMirrorRoute = createRouteComponent(
   () => import('../features/operations/RecurrentCatastropheMirrorPage')
 )
+const PostIncidentReviewMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -201,6 +204,10 @@ export default function App() {
         <Route
           path="recurrent-catastrophe-amelioration"
           element={renderLazyRoute(RecurrentCatastropheMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review"
+          element={renderLazyRoute(PostIncidentReviewMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

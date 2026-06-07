@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import {
+  INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+} from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import {
   MISSED_STREAK_ELEVATED_RISK_FIXTURE,
   WEEKLY_PSYCH_SCREENING_FIXTURE,
 } from '../../domain/containedPersonTherapeuticCareRegistry'
@@ -86,5 +89,44 @@ describe('containedPersonIntegratedHealthBundleMirrorView (SPE-1889 slice 6)', (
   it('formats enum labels for CP-neutral UI copy', () => {
     expect(formatIntegratedHealthBundleEnumLabel('psych_screening')).toBe('Psych Screening')
     expect(formatIntegratedHealthBundleEnumLabel('critical')).toBe('Critical')
+    expect(formatIntegratedHealthBundleEnumLabel('compelled')).toBe('Compelled')
+    expect(formatIntegratedHealthBundleEnumLabel('contained_person')).toBe('Contained Person')
+    expect(formatIntegratedHealthBundleEnumLabel('unresolved')).toBe('Unresolved')
+  })
+
+  it('mirrors medication, custody, and welfare-debt link groups from hydrated bundles', () => {
+    const game = createStartingState()
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+    }
+
+    const view = getContainedPersonIntegratedHealthBundleMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.medicationRegimenLinks).toHaveLength(1)
+    expect(record?.medicationRegimenLinks[0]?.consentStatusLabel).toBe('Compelled')
+    expect(record?.custodyStatusLinks).toHaveLength(1)
+    expect(record?.custodyStatusLinks[0]?.rightsReviewPendingLabel).toBe('Yes')
+    expect(record?.welfareDebtAccountingLinks).toHaveLength(1)
+    expect(record?.welfareDebtAccountingLinks[0]?.mitigationStateLabel).toBe('Unresolved')
+    expect(view.summary.coercedMedicationLinkCount).toBe(1)
+    expect(view.summary.rightsReviewPendingCount).toBe(1)
+    expect(view.summary.unresolvedWelfareDebtLinkCount).toBe(1)
+  })
+
+  it('shows dashes for missing link groups on partial bundle rows', () => {
+    const game = createStartingState()
+    game.containedPersonIntegratedHealthBundles = composedBundlesFromFixtures()
+
+    const view = getContainedPersonIntegratedHealthBundleMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.medicationRegimenLinks).toEqual([])
+    expect(record?.custodyStatusLinks).toEqual([])
+    expect(record?.welfareDebtAccountingLinks).toEqual([])
+    expect(view.summary.coercedMedicationLinkCount).toBe(0)
+    expect(view.summary.rightsReviewPendingCount).toBe(0)
+    expect(view.summary.unresolvedWelfareDebtLinkCount).toBe(0)
   })
 })

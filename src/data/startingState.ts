@@ -45,6 +45,7 @@ const startingStateTemplate: GameState = {
   minorAnomalyItemRecords: {},
   namingHazardDescriptorRecords: {},
   recurrentCatastropheRecords: {},
+  ruleDocumentComplianceRecords: {},
   selfCensoringInformationRecords: {},
   publicDisclosureRecords: {},
   patternSourceSeriesRecords: {},

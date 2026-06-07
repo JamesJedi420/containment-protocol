@@ -63,6 +63,8 @@ export interface NamingHazardDescriptorRecord {
   readonly id: NamingHazardDescriptorId
   readonly label: string
   readonly summary?: string
+  /** Optional intake topic anchor for cross-link compose with information intake reports. */
+  readonly intakeTopicRef?: string
   readonly trueNameForbidden: boolean
   readonly safeDescriptorPool: readonly string[]
   readonly referenceConstraints?: readonly ReferenceConstraint[]
@@ -783,6 +785,7 @@ function sanitizeNamingHazardDescriptorRecordEntry(
     return null
   }
 
+  const intakeTopicRef = normalizeToken(value.intakeTopicRef ?? '') || undefined
   const referenceConstraints = parseReferenceConstraints(value.referenceConstraints)
   const compulsivePhraseWatchlist = parseCompulsivePhraseWatchlist(value.compulsivePhraseWatchlist)
   const unknownFields = parseStringList(value.unknownFields)
@@ -807,6 +810,7 @@ function sanitizeNamingHazardDescriptorRecordEntry(
     uiSubstitutionPolicy,
     mapLabelMode,
     ...(summary ? { summary } : {}),
+    ...(intakeTopicRef ? { intakeTopicRef } : {}),
     ...(referenceConstraints.length > 0 ? { referenceConstraints } : {}),
     ...(compulsivePhraseWatchlist.length > 0 ? { compulsivePhraseWatchlist } : {}),
     ...(briefingTemplateSnippet ? { briefingTemplateSnippet } : {}),
@@ -862,6 +866,20 @@ export const DESCRIPTOR_ONLY_GRID_FALLBACK_FIXTURE: NamingHazardDescriptorRecord
   uiSubstitutionPolicy: 'pool_with_grid_fallback',
   mapLabelMode: 'descriptor_only',
   confidence: 0.84,
+})
+
+/** Canal-bridge intake landmark linked to mixed-source intake via intakeTopicRef. */
+export const CANAL_BRIDGE_NAMING_HAZARD_FIXTURE: NamingHazardDescriptorRecord = defineRecord({
+  id: 'naming-hazard:canal-bridge-approach',
+  label: 'East canal bridge approach naming hazard',
+  summary: 'Landmark near east canal lock intake cannot be safely named during mixed-source intake.',
+  trueNameForbidden: true,
+  safeDescriptorPool: ['East canal approach lane', 'Lock intake grid sector'],
+  referenceConstraints: ['no_proper_nouns', 'no_designations'],
+  uiSubstitutionPolicy: 'pool_descriptor',
+  mapLabelMode: 'descriptor_only',
+  confidence: 0.47,
+  intakeTopicRef: 'topic:canal-bridge-incident',
 })
 
 /** Compulsive phrase risk with briefing template lint. */

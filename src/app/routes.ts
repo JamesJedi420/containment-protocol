@@ -34,6 +34,7 @@ export const APP_ROUTES = {
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
   welfareDebtAccounting: '/welfare-debt-accounting',
+  ruleDocumentCompliance: '/rule-document-compliance',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

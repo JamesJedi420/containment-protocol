@@ -105,6 +105,9 @@ const ContainedPersonIntegratedHealthBundleMirrorRoute = createRouteComponent(
 const WelfareDebtAccountingMirrorRoute = createRouteComponent(
   () => import('../features/operations/WelfareDebtAccountingMirrorPage')
 )
+const RuleDocumentComplianceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RuleDocumentComplianceMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -187,6 +190,10 @@ export default function App() {
         <Route
           path="welfare-debt-accounting"
           element={renderLazyRoute(WelfareDebtAccountingMirrorRoute)}
+        />
+        <Route
+          path="rule-document-compliance"
+          element={renderLazyRoute(RuleDocumentComplianceMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

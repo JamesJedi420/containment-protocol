@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2351](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2351 — Welfare-debt accounting registry planning mirror UI (slice 2)](https://linear.app/spectranoir/issue/SPE-2351) |
-| **Status** | **Shipped** — pending PR |
+| **Status** | **Shipped** — PR #2570 @ `96ad05ba` |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — welfare-debt accounting umbrella stays open |
 | **Branch** | `spe-1888-welfare-debt-accounting-mirror-ui-slice-2`                                                     |
 | **Base `main` SHA** | `67d7214e`                                                                                          |

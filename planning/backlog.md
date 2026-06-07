@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). [SPE-2351](https://linear.app/spectranoir/issue/SPE-2351) **In progress** — welfare-debt accounting planning mirror UI; see `planning/welfare-debt-accounting-registry-slice-2.md`. Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open.
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). [SPE-2351](https://linear.app/spectranoir/issue/SPE-2351) **Done** — welfare-debt accounting planning mirror UI shipped (PR #2570). Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) stays open — next: slice 3 weekly orchestration hook or intake registry follow-up per active queue below.
 
 ## Blocked / waiting
 

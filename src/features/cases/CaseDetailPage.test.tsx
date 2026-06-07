@@ -12,6 +12,7 @@ import {
 } from '../../domain/investigationEconomy'
 import { copyInfiltrationProbePlan } from '../../domain/infiltrationProbe'
 import { createStarterCase } from '../../domain/templates/startingCases'
+import { CANAL_BRIDGE_NAMING_HAZARD_FIXTURE } from '../../domain/namingHazardDescriptorRegistry'
 import { caseTemplateMap } from '../../domain/templates/caseTemplates'
 import CaseDetailPage from './CaseDetailPage'
 
@@ -320,6 +321,38 @@ it('shows investigation prep empty state when no budget is granted yet', () => {
 
   expect(within(panel).getByText(/no investigation budget on this case yet/i)).toBeInTheDocument()
   expect(within(panel).queryByRole('region', { name: /forensic inquiry/i })).not.toBeInTheDocument()
+})
+
+it('shows safe naming-hazard descriptor labels in investigation prep', () => {
+  const game = createStartingState()
+
+  game.cases['case-investigation-ui'] = {
+    ...createStarterCase({ id: 'case-investigation-ui', templateId: 'ops-003' }),
+    title: 'Canal Bridge Investigation',
+    status: 'in_progress',
+    weeksRemaining: 2,
+    assignedTeamIds: [],
+    requiredTags: [],
+    preferredTags: [],
+    tags: ['topic:canal-bridge-incident'],
+  }
+  game.namingHazardDescriptorRecords = {
+    [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+  }
+
+  useGameStore.setState({ game })
+  renderCaseDetail('/cases/case-investigation-ui')
+
+  const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
+  const panel = within(weeklyPrep).getByRole('group', { name: /investigation question prep/i })
+  const descriptorSection = within(panel).getByRole('region', {
+    name: /naming-hazard descriptor labels/i,
+  })
+
+  expect(within(descriptorSection).getByText(/east canal approach lane/i)).toBeInTheDocument()
+  expect(
+    within(descriptorSection).queryByText(CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.label)
+  ).not.toBeInTheDocument()
 })
 
 it('hides investigation question prep when the case is not in progress', () => {

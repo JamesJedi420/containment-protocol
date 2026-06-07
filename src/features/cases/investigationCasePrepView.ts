@@ -6,7 +6,13 @@ import {
   readInvestigationBudget,
   type InvestigationQuestionDomain,
 } from '../../domain/investigationEconomy'
+import {
+  buildInvestigationNamingHazardDescriptorViews,
+  type InvestigationNamingHazardDescriptorView,
+} from '../../domain/investigationNamingHazardSubstitution'
 import type { CaseInstance, GameState } from '../../domain/models'
+
+export type { InvestigationNamingHazardDescriptorView }
 
 export interface InvestigationBudgetView {
   readonly granted: number
@@ -44,6 +50,7 @@ export interface InvestigationCasePrepView {
   readonly forensic: InvestigationDomainPrepView
   readonly tactical: InvestigationDomainPrepView
   readonly custodyMarkers: readonly InvestigationCustodyMarkerView[]
+  readonly namingHazardDescriptors: readonly InvestigationNamingHazardDescriptorView[]
 }
 
 export function canShowInvestigationCasePrepOnCase(caseData: CaseInstance) {
@@ -124,6 +131,7 @@ export function buildInvestigationCasePrepView(
       forensic: EMPTY_DOMAIN_VIEW,
       tactical: { ...EMPTY_DOMAIN_VIEW, domain: 'tactical', domainLabel: 'Tactical read' },
       custodyMarkers: [],
+      namingHazardDescriptors: [],
     }
   }
 
@@ -139,5 +147,6 @@ export function buildInvestigationCasePrepView(
     forensic: buildDomainPrepView(game, caseId, 'forensic'),
     tactical: buildDomainPrepView(game, caseId, 'tactical'),
     custodyMarkers,
+    namingHazardDescriptors: buildInvestigationNamingHazardDescriptorViews(game, caseData),
   }
 }

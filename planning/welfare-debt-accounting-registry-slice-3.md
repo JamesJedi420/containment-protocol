@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2352](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2352 — Welfare-debt accounting registry weekly orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2352) |
-| **Status** | **In progress** — branch `spe-1888-welfare-debt-accounting-weekly-tick-slice-3`                            |
+| **Status** | **Shipped** — PR #2572 @ `5673423c`                                                                        |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — welfare-debt accounting umbrella stays open    |
 | **Branch** | `spe-1888-welfare-debt-accounting-weekly-tick-slice-3`                                                     |
 | **Base `main` SHA** | `368e9b3a`                                                                                          |

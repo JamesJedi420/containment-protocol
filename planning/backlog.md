@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **Done** — intake ↔ extranormal event cross-link compose shipped (PR #2576). [SPE-2355](https://linear.app/spectranoir/issue/SPE-2355) **In Progress** — intake ↔ minor anomaly item cross-link compose; see `planning/information-intake-minor-anomaly-cross-link-slice-1.md`. **Next:** unexplained-location cross-link or naming-hazard registry persistence (slice 2).
+Integrated health bundle wire-up slices 5–10 shipped (SPE-2345–SPE-2350 / PR #2557–#2568). Welfare-debt accounting slices 1–4 shipped (SPE-2350–SPE-2353 / PR #2568–#2574). [SPE-2354](https://linear.app/spectranoir/issue/SPE-2354) **Done** — intake ↔ extranormal event cross-link compose shipped (PR #2576). [SPE-2355](https://linear.app/spectranoir/issue/SPE-2355) **Done** — intake ↔ minor anomaly item cross-link compose shipped (PR #2578); see `planning/information-intake-minor-anomaly-cross-link-slice-1.md`. **Next:** unexplained-location cross-link or naming-hazard registry persistence (slice 2).
 
 ## Blocked / waiting
 
@@ -191,7 +191,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-parent-integration-slice-1.md`           | **Shipped**    | SPE-2301 / PR #2465; mixed-source intake → mission triage/routing under SPE-854.                                                                    |
 | `information-intake-parent-integration-slice-2.md`           | **Shipped**    | SPE-2304 / PR #2471; mission routing hydrate intake-linked triage refresh under SPE-854.                                                            |
 | `information-intake-extranormal-cross-link-slice-1.md`       | **Shipped**    | SPE-2354 / PR #2576; intake ↔ extranormal event cross-link compose @ `bd38d2ee`.                                                                     |
-| `information-intake-minor-anomaly-cross-link-slice-1.md`     | **In Progress**| SPE-2355; intake ↔ minor anomaly item cross-link compose @ `72eef839`.                                                                               |
+| `information-intake-minor-anomaly-cross-link-slice-1.md`     | **Shipped**    | SPE-2355 / PR #2578; intake ↔ minor anomaly item cross-link compose @ `8feafcec`.                                                                  |
 | `reveal-payload-slice-1.md` … `reveal-payload-slice-5.md` | **Shipped**    | SPE-781 slices 1–5; sequential stack.                                                                                                               |
 | `stealth-leave-behind-tradeoff-selection-slice-5.md`      | **Shipped**    | SPE-2247 / PR #2323.                                                                                                                                |
 

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2358](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2358 — Intake report ↔ naming-hazard descriptor cross-link compose (slice 1)](https://linear.app/spectranoir/issue/SPE-2358) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2584 @ `4accd1be`                                                                        |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine (Done); registry anchor [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) / [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) |
 | **Branch** | `spe-2358-intake-naming-hazard-cross-link-slice-1`                                                         |
 | **Base `main` SHA** | `951fd9eb`                                                                                          |
@@ -43,12 +43,12 @@ Deterministic compose helper linking persisted `informationIntakeReports` to `na
 
 ## Acceptance
 
-- [ ] Empty maps return zeroed summary without throw
-- [ ] `intakeTopicRef` match links canal-bridge intake trio to linked naming-hazard descriptor
-- [ ] Warning-only hydrated descriptors included in linked summary
-- [ ] Byte-stable ordering on repeated compose
-- [ ] No re-surfacing of invalid hydrate drops
-- [ ] `npm run lint` + targeted tests + naming-hazard persistence regression green
+- [x] Empty maps return zeroed summary without throw
+- [x] `intakeTopicRef` match links canal-bridge intake trio to linked naming-hazard descriptor
+- [x] Warning-only hydrated descriptors included in linked summary
+- [x] Byte-stable ordering on repeated compose
+- [x] No re-surfacing of invalid hydrate drops
+- [x] `npm run lint` + targeted tests + naming-hazard persistence regression green
 
 ## File touch list (expected)
 

@@ -117,6 +117,9 @@ const PostIncidentReviewMirrorRoute = createRouteComponent(
 const PostIncidentReviewRecommendationMirrorRoute = createRouteComponent(
   () => import('../features/operations/PostIncidentReviewRecommendationMirrorPage')
 )
+const PostIncidentReviewRecommendationActionMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewRecommendationActionMirrorPage')
+)
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
     default: function NotFoundRoute() {
@@ -215,6 +218,10 @@ export default function App() {
         <Route
           path="post-incident-review-recommendations"
           element={renderLazyRoute(PostIncidentReviewRecommendationMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review-recommendation-actions"
+          element={renderLazyRoute(PostIncidentReviewRecommendationActionMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

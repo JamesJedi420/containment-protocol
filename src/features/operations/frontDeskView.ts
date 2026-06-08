@@ -843,6 +843,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review follow-on recommendation stubs linked to orchestration-created post-incident reviews.',
     },
+    {
+      label: 'Open post-incident recommendation action mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendationActions,
+      description:
+        'Review follow-on action stubs linked to persisted recommendation and qualifying review records.',
+    },
   ]
 }
 

@@ -69,6 +69,13 @@ function expectRedactedMilestoneMirrorLabels(
   expect(record?.milestoneSpanWeeksLabel).toBe('—')
 }
 
+function expectRedactedScoreMirrorLabels(
+  record: PostIncidentReviewMirrorRecordView | undefined
+): void {
+  expect(record?.procedureAdherenceScoreLabel).toBe('—')
+  expect(record?.confidenceLabel).toBe('—')
+}
+
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
     currentCase.status = 'open'
@@ -370,6 +377,44 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     )
   })
 
+  it('renders redacted score mirror labels on qualifying case closeout path (SPE-868 slice 25)', () => {
+    const state = makeQualifyingResolvedCaseState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']
+
+    expect(created?.procedureAdherenceScore).toBe(0.68)
+    expect(created?.confidence).toBe(0.72)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(nextState)
+    const beforeRecord = beforeMirror.qualifyingIncidentRecords[0]
+
+    expect(beforeRecord?.procedureAdherenceScoreLabel).toBe('0.68')
+    expect(beforeRecord?.confidenceLabel).toBe('0.72')
+    expect(beforeRecord?.redacted).toBe(false)
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:case-case-001-closeout': {
+        ...created!,
+        redactedFields: ['procedureAdherenceScore', 'confidence'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.qualifyingIncidentRecords[0]
+
+    expectRedactedScoreMirrorLabels(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.procedureAdherenceScoreLabel).not.toBe('0.68')
+    expect(mirrorRecord?.confidenceLabel).not.toBe('0.72')
+    expectMilestoneMirrorLabels(
+      mirrorRecord,
+      created!.milestoneTimings!,
+      projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
+    )
+  })
+
   it('does not create a review when a non-qualifying case resolves', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -654,6 +699,52 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(mirrorRecord?.discoveryWeekLabel).not.toBe(
       formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
     )
+  })
+
+  it('renders redacted score mirror labels on near-catastrophe path (SPE-868 slice 25)', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+
+    expect(created?.procedureAdherenceScore).toBe(0.55)
+    expect(created?.confidence).toBe(0.61)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(nextState)
+    const beforeRecord = beforeMirror.qualifyingIncidentRecords[0]
+
+    expect(beforeRecord?.procedureAdherenceScoreLabel).toBe('0.55')
+    expect(beforeRecord?.confidenceLabel).toBe('0.61')
+    expect(beforeRecord?.redacted).toBe(false)
+    expect(beforeRecord?.discoveryWeekLabel).toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
+    )
+    expect(beforeRecord?.containmentWeekLabel).toBe('—')
+    expect(beforeRecord?.recoveryWeekLabel).toBe('—')
+    expect(beforeRecord?.reportingWeekLabel).toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.reportingWeek)
+    )
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:near-catastrophe-case-001': {
+        ...created!,
+        redactedFields: ['procedureAdherenceScore', 'confidence'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.qualifyingIncidentRecords[0]
+
+    expectRedactedScoreMirrorLabels(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.procedureAdherenceScoreLabel).not.toBe('0.55')
+    expect(mirrorRecord?.confidenceLabel).not.toBe('0.61')
+    expect(mirrorRecord?.discoveryWeekLabel).toBe(beforeRecord?.discoveryWeekLabel)
+    expect(mirrorRecord?.responseWeekLabel).toBe(beforeRecord?.responseWeekLabel)
+    expect(mirrorRecord?.containmentWeekLabel).toBe('—')
+    expect(mirrorRecord?.recoveryWeekLabel).toBe('—')
+    expect(mirrorRecord?.reportingWeekLabel).toBe(beforeRecord?.reportingWeekLabel)
   })
 
   it('does not create a near-catastrophe review when escalation stays below the threshold', () => {
@@ -1195,5 +1286,93 @@ describe('advanceWeek post-incident recommendation action mirror integration (SP
       reviewRefLabel: 'review:near-catastrophe-case-001',
     })
     expect(record?.linkedQualifyingReview).toBeNull()
+  })
+})
+
+describe('advanceWeek post-incident review redacted score mirror integration (SPE-868 slice 25)', () => {
+  it('redacts score mirror labels on both qualifying rows in dual-path week without duplicating on re-advance', () => {
+    const state = makeDualPathCloseoutAndNearCatastropheState()
+
+    const once = advanceWeek(state)
+    const closeout = once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+    const nearCatastrophe = once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
+
+    expect(closeout?.procedureAdherenceScore).toBe(0.68)
+    expect(closeout?.confidence).toBe(0.72)
+    expect(nearCatastrophe?.procedureAdherenceScore).toBe(0.55)
+    expect(nearCatastrophe?.confidence).toBe(0.61)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(once)
+
+    expect(beforeMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(beforeMirror.summary.qualifyingNearCatastropheCount).toBe(1)
+    expect(beforeMirror.qualifyingIncidentRecords).toHaveLength(2)
+
+    const closeoutMirror = beforeMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:case-case-001-closeout'
+    )
+    const nearMirror = beforeMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:near-catastrophe-case-002'
+    )
+
+    expect(closeoutMirror?.procedureAdherenceScoreLabel).toBe('0.68')
+    expect(closeoutMirror?.confidenceLabel).toBe('0.72')
+    expect(nearMirror?.procedureAdherenceScoreLabel).toBe('0.55')
+    expect(nearMirror?.confidenceLabel).toBe('0.61')
+
+    once.postIncidentReviewRecords = {
+      ...once.postIncidentReviewRecords,
+      'review:case-case-001-closeout': {
+        ...closeout!,
+        redactedFields: ['procedureAdherenceScore', 'confidence'],
+      },
+      'review:near-catastrophe-case-002': {
+        ...nearCatastrophe!,
+        redactedFields: ['procedureAdherenceScore', 'confidence'],
+      },
+    }
+
+    const redactedMirror = getPostIncidentReviewMirrorView(once)
+    const redactedCloseout = redactedMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:case-case-001-closeout'
+    )
+    const redactedNear = redactedMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:near-catastrophe-case-002'
+    )
+
+    expectRedactedScoreMirrorLabels(redactedCloseout)
+    expectRedactedScoreMirrorLabels(redactedNear)
+    expect(redactedCloseout?.redacted).toBe(true)
+    expect(redactedNear?.redacted).toBe(true)
+    expectMilestoneMirrorLabels(
+      redactedCloseout,
+      closeout!.milestoneTimings!,
+      projectPostIncidentReviewSummary(closeout!).milestoneSpanWeeks
+    )
+    expectMilestoneMirrorLabels(
+      redactedNear,
+      nearCatastrophe!.milestoneTimings!,
+      projectPostIncidentReviewSummary(nearCatastrophe!).milestoneSpanWeeks
+    )
+
+    const redactedCloseoutRecord =
+      once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+    const redactedNearRecord =
+      once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
+
+    const twice = advanceWeek(once)
+
+    expect(twice.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBe(
+      redactedCloseoutRecord
+    )
+    expect(twice.postIncidentReviewRecords?.['review:near-catastrophe-case-002']).toBe(
+      redactedNearRecord
+    )
+
+    const twiceMirror = getPostIncidentReviewMirrorView(twice)
+
+    expect(twiceMirror.qualifyingIncidentRecords).toHaveLength(2)
+    expect(twiceMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(twiceMirror.summary.qualifyingNearCatastropheCount).toBe(1)
   })
 })

@@ -38,6 +38,13 @@ function stateWithFollowOnTrainingEnqueueReady<T extends ReturnType<typeof creat
   }
 }
 
+function stateWithRecommendationActionReady<T extends ReturnType<typeof createStartingState>>(state: T): T {
+  return {
+    ...state,
+    academyTier: 1,
+  }
+}
+
 describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () => {
   it('is a no-op for an empty recurrent catastrophe map without throwing', () => {
     const state = createStartingState()
@@ -315,6 +322,10 @@ function makeNearCatastropheDeadlineEscalationState() {
   return state
 }
 
+function makeNearCatastropheDeadlineEscalationStateWithRecommendationActionReady() {
+  return stateWithRecommendationActionReady(makeNearCatastropheDeadlineEscalationState())
+}
+
 function makeNonQualifyingDeadlineEscalationState() {
   const state = createStartingState()
   state.recurrentCatastropheRecords = {}
@@ -356,6 +367,10 @@ function makeDualNearCatastropheDeadlineEscalationState() {
   }
 
   return state
+}
+
+function makeDualNearCatastropheDeadlineEscalationStateWithRecommendationActionReady() {
+  return stateWithRecommendationActionReady(makeDualNearCatastropheDeadlineEscalationState())
 }
 
 function makeDualPathCloseoutAndNearCatastropheState() {
@@ -753,5 +768,88 @@ describe('advanceWeek post-incident recommendation mirror integration (SPE-868 s
     expect(mirrorView.summary.totalRecords).toBe(2)
     expect(mirrorView.summary.linkedQualifyingReviewCount).toBe(2)
     expect(mirrorView.linkedQualifyingRecords).toHaveLength(2)
+  })
+})
+
+describe('advanceWeek post-incident recommendation action integration (SPE-868 slice 17)', () => {
+  it('leaves recommendation action registry empty on a quiet week', () => {
+    const state = stateWithRecommendationActionReady(createStartingState())
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.postIncidentReviewRecommendationActionRecords ?? {}).toEqual({})
+  })
+
+  it('materializes action stub linked to recommendation after near-catastrophe advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationStateWithRecommendationActionReady()
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-001',
+      stubSuffix: 'near-catastrophe-case-001',
+    })
+    expect(nextState.postIncidentReviewRecommendationActionRecords?.['action:near-catastrophe-case-001']).toMatchObject({
+      recommendationRef: 'recommendation:near-catastrophe-case-001',
+      reviewRef: 'review:near-catastrophe-case-001',
+      actionToken: 'follow_on:action-stub:near-catastrophe-case-001',
+      orchestrationWeek: nextState.week,
+    })
+    expect(nextState.trainingQueue).toHaveLength(0)
+  })
+
+  it('does not materialize recommendation actions when academy tier blocks institutional follow-through', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+    state.academyTier = 0
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toBeDefined()
+    expect(nextState.postIncidentReviewRecommendationActionRecords ?? {}).toEqual({})
+  })
+
+  it('only appends recommendation action on dual-path tick when closeout uses training-ref', () => {
+    const state = makeDualPathCloseoutAndNearCatastropheState()
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.trainingQueue).toHaveLength(1)
+    expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
+    expect(Object.keys(nextState.postIncidentReviewRecommendationRecords ?? {})).toEqual([
+      'recommendation:near-catastrophe-case-002',
+    ])
+    expect(Object.keys(nextState.postIncidentReviewRecommendationActionRecords ?? {})).toEqual([
+      'action:near-catastrophe-case-002',
+    ])
+    expect(
+      nextState.postIncidentReviewRecommendationActionRecords?.['action:case-case-001-closeout']
+    ).toBeUndefined()
+  })
+
+  it('does not duplicate recommendation action records on re-advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationStateWithRecommendationActionReady()
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+
+    expect(twice.postIncidentReviewRecommendationActionRecords).toBe(
+      once.postIncidentReviewRecommendationActionRecords
+    )
+    expect(Object.keys(twice.postIncidentReviewRecommendationActionRecords ?? {})).toHaveLength(1)
+  })
+
+  it('orders recommendation action records by stable id when multiple qualify', () => {
+    const state = makeDualNearCatastropheDeadlineEscalationStateWithRecommendationActionReady()
+
+    const nextState = advanceWeek(state)
+    const actionIds = Object.keys(nextState.postIncidentReviewRecommendationActionRecords ?? {})
+
+    expect(actionIds).toEqual([
+      'action:near-catastrophe-case-001',
+      'action:near-catastrophe-case-002',
+    ])
+    expect(actionIds).toEqual([...actionIds].sort((left, right) => left.localeCompare(right)))
   })
 })

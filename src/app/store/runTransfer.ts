@@ -196,6 +196,7 @@ import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRe
 import { sanitizeNamingHazardDescriptorRecords } from '../../domain/namingHazardDescriptorRegistry'
 import { sanitizeRecurrentCatastropheRecords } from '../../domain/recurrentCatastropheAmeliorationRegistry'
 import { sanitizePostIncidentReviewRecords } from '../../domain/postIncidentReviewRegistry'
+import { sanitizePostIncidentReviewRecommendationActionRecords } from '../../domain/postIncidentReviewRecommendationActionRegistry'
 import { sanitizePostIncidentReviewRecommendationRecords } from '../../domain/postIncidentReviewRecommendationRegistry'
 import { sanitizeRuleDocumentComplianceRecords } from '../../domain/ruleDocumentComplianceContainmentRegistry'
 import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
@@ -8442,6 +8443,11 @@ export function hydrateGame(
     game.postIncidentReviewRecommendationRecords,
     fallback.postIncidentReviewRecommendationRecords ?? {}
   )
+  const postIncidentReviewRecommendationActionRecords =
+    sanitizePostIncidentReviewRecommendationActionRecords(
+      game.postIncidentReviewRecommendationActionRecords,
+      fallback.postIncidentReviewRecommendationActionRecords ?? {}
+    )
   const ruleDocumentComplianceRecords = sanitizeRuleDocumentComplianceRecords(
     game.ruleDocumentComplianceRecords,
     fallback.ruleDocumentComplianceRecords ?? {}
@@ -8615,6 +8621,7 @@ export function hydrateGame(
       recurrentCatastropheRecords,
       postIncidentReviewRecords,
       postIncidentReviewRecommendationRecords,
+      postIncidentReviewRecommendationActionRecords,
       ruleDocumentComplianceRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,

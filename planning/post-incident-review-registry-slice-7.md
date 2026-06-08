@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2376](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2376 — Qualifying incident retrospective creation hook (slice 7)](https://linear.app/spectranoir/issue/SPE-2376) |
-| **Status** | **In progress** — branch `spe-868-qualifying-incident-retrospective-slice-7`                             |
+| **Status** | **Shipped** — PR #2620 @ `f02c4711`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-qualifying-incident-retrospective-slice-7`                                                        |
 | **Base `main` SHA** | `3a255a0a`                                                                                          |
@@ -49,12 +49,12 @@ Extend weekly post-incident review orchestration to create `PostIncidentReviewRe
 
 ## Acceptance
 
-- [ ] Qualifying resolved cases materialize `review:case-{id}-closeout` records
-- [ ] Near-catastrophe threshold events materialize `review:near-catastrophe-{id}` records
-- [ ] Re-tick same week is idempotent; non-qualifying cases do not create reviews
-- [ ] Existing recurrence closeout behavior unchanged
-- [ ] Slice 5/6 compose + mirror regressions green
-- [ ] `npm run lint` + targeted tests green
+- [x] Qualifying resolved cases materialize `review:case-{id}-closeout` records
+- [x] Near-catastrophe threshold events materialize `review:near-catastrophe-{id}` records
+- [x] Re-tick same week is idempotent; non-qualifying cases do not create reviews
+- [x] Existing recurrence closeout behavior unchanged
+- [x] Slice 5/6 compose + mirror regressions green
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

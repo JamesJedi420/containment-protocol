@@ -93,6 +93,7 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(nextState.trainingQueue).toHaveLength(1)
     expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
     expect(nextState.trainingQueue[0]?.agentId).toBe('a_ava')
+    expect(nextState.postIncidentReviewRecommendationRecords).toEqual({})
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
       weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
@@ -393,6 +394,12 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(followOnNotes[0]?.type).toBe('post_incident_review.follow_on')
     expect(followOnNotes[0]?.content).toContain('recommendation stub (near catastrophe case 001)')
     expect(nextState.trainingQueue).toHaveLength(0)
+    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-001',
+      stubSuffix: 'near-catastrophe-case-001',
+      followOnToken: 'follow_on:recommendation-stub:near-catastrophe-case-001',
+      orchestrationWeek: nextState.week,
+    })
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -430,6 +437,9 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
 
     expect(created).toBeDefined()
     expect(twice.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toBe(created)
+    expect(twice.postIncidentReviewRecommendationRecords).toEqual(
+      once.postIncidentReviewRecommendationRecords
+    )
   })
 
   it('orders qualifying near-catastrophe mirror rows by stable record id', () => {
@@ -554,5 +564,41 @@ describe('advanceWeek post-incident follow-on training enqueue integration (SPE-
 
     expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeDefined()
     expect(nextState.trainingQueue).toHaveLength(0)
+    expect(nextState.postIncidentReviewRecommendationRecords).toEqual({})
+  })
+})
+
+describe('advanceWeek post-incident recommendation registry integration (SPE-868 slice 14)', () => {
+  it('leaves recommendation registry empty on a quiet week', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.postIncidentReviewRecommendationRecords ?? {}).toEqual({})
+  })
+
+  it('persists recommendation stub for near-catastrophe without enqueueing training', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.trainingQueue).toHaveLength(0)
+    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-001',
+      followOnToken: 'follow_on:recommendation-stub:near-catastrophe-case-001',
+    })
+  })
+
+  it('does not duplicate recommendation records on re-advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+
+    expect(twice.postIncidentReviewRecommendationRecords).toEqual(
+      once.postIncidentReviewRecommendationRecords
+    )
   })
 })

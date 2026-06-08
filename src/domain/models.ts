@@ -250,6 +250,7 @@ import type { MinorAnomalyRecord } from './minorAnomalyItemRegistry'
 import type { NamingHazardDescriptorRecord } from './namingHazardDescriptorRegistry'
 import type { RecurrentCatastropheRecord } from './recurrentCatastropheAmeliorationRegistry'
 import type { PostIncidentReviewRecord } from './postIncidentReviewRegistry'
+import type { PostIncidentReviewRecommendationRecord } from './postIncidentReviewRecommendationRegistry'
 import type { RuleDocumentComplianceRecord } from './ruleDocumentComplianceContainmentRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
@@ -2597,6 +2598,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   postIncidentReviewRecords?: Record<string, PostIncidentReviewRecord>
+
+  /**
+   * SPE-868 slice 14: persisted follow-on recommendation-stub records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  postIncidentReviewRecommendationRecords?: Record<string, PostIncidentReviewRecommendationRecord>
 
   /**
    * SPE-2123 slice 2: persisted rule-document compliance records (keyed by record id).

@@ -1020,6 +1020,36 @@ export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on recommendation stubs from orchestration-created reviews.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Recommendation ids, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation records',
+  emptyBody:
+    'Persisted recommendation records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Recommendations whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle: 'Follow-on stub tokens materialized from review unknownFields during weekly advance.',
+  labelColumn: 'Label',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  followOnTokenColumn: 'Follow-on token',
+  openReviewMirrorLabel: 'Open review mirror',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
 export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Rule document compliance registry',

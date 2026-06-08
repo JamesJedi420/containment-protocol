@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2380](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2380 — Weekly post-incident follow-on report notes (slice 11)](https://linear.app/spectranoir/issue/SPE-2380) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2628 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-follow-on-report-notes-slice-11`                                                           |
 | **Base `main` SHA** | `cea7de00`                                                                                          |
@@ -45,11 +45,11 @@ Project newly appended follow-on artifact tokens into deterministic weekly repor
 
 ## Acceptance
 
-- [ ] Qualifying draft → one follow-on report note with training-ref content
-- [ ] Near-catastrophe path → recommendation-stub note content
-- [ ] `advanceWeek` recurrence closeout path surfaces follow-on note
-- [ ] Re-advance idempotent; stub registry unchanged; non-qualifying negative case
-- [ ] Slice 4/7/8/9/10 regressions green; `npm run lint` green
+- [x] Qualifying draft → one follow-on report note with training-ref content
+- [x] Near-catastrophe path → recommendation-stub note content
+- [x] `advanceWeek` recurrence closeout path surfaces follow-on note
+- [x] Re-advance idempotent; stub registry unchanged; non-qualifying negative case
+- [x] Slice 4/7/8/9/10 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

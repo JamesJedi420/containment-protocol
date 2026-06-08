@@ -5,6 +5,8 @@ import {
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
   sanitizePostIncidentReviewRecords,
 } from '../../domain/postIncidentReviewRegistry'
+import { buildQualifyingIncidentReviewRecordForDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
+import type { QualifyingIncidentReviewDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
 import {
   formatPostIncidentReviewEnumLabel,
   getPostIncidentReviewMirrorView,
@@ -18,7 +20,11 @@ describe('postIncidentReviewMirrorView (SPE-868 slice 3)', () => {
     const view = getPostIncidentReviewMirrorView(game)
 
     expect(view.isEmpty).toBe(true)
+    expect(view.hasQualifyingIncidentRecords).toBe(false)
     expect(view.summary.totalRecords).toBe(0)
+    expect(view.summary.qualifyingCaseCloseoutCount).toBe(0)
+    expect(view.summary.stubFixtureCount).toBe(0)
+    expect(view.qualifyingIncidentRecords).toEqual([])
     expect(view.records).toEqual([])
   })
 
@@ -42,7 +48,13 @@ describe('postIncidentReviewMirrorView (SPE-868 slice 3)', () => {
     expect(view.summary.totalRecords).toBe(2)
     expect(view.summary.externalAuditRouteCount).toBe(1)
     expect(view.summary.recurrenceObservedCount).toBe(1)
+    expect(view.summary.qualifyingCaseCloseoutCount).toBe(0)
+    expect(view.summary.stubFixtureCount).toBe(2)
     expect(view.summary.week).toBe(42)
+    expect(view.hasQualifyingIncidentRecords).toBe(false)
+    expect(closeout?.sourceGroup).toBe('stub_fixture')
+    expect(closeout?.sourceLabel).toBe('Stub fixture')
+    expect(audit?.sourceGroup).toBe('stub_fixture')
     expect(closeout?.reviewRouteLabel).toBe('Internal Command')
     expect(closeout?.closureOutcomeLabel).toBe('Contained')
     expect(closeout?.milestoneSpanWeeksLabel).toBe('4')
@@ -98,6 +110,74 @@ describe('postIncidentReviewMirrorView (SPE-868 slice 3)', () => {
     expect(formatPostIncidentReviewEnumLabel('administratively_cleared')).toBe(
       'Administratively Cleared'
     )
+  })
+
+  it('groups orchestration-created qualifying incident reviews separately from stub fixtures', () => {
+    const resolvedDraft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:case-case-major-closeout',
+      caseId: 'case-major',
+      caseTitle: 'District breach',
+      trigger: 'case_resolved',
+      stage: 4,
+      kind: 'standard',
+      anchorWeek: 12,
+    }
+    const nearCatastropheDraft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:near-catastrophe-case-raid',
+      caseId: 'case-raid',
+      caseTitle: 'Raid conversion',
+      trigger: 'near_catastrophe_threshold',
+      stage: 4,
+      kind: 'raid',
+      anchorWeek: 12,
+    }
+    const caseCloseout = buildQualifyingIncidentReviewRecordForDraft(resolvedDraft, 12)
+    const nearCatastrophe = buildQualifyingIncidentReviewRecordForDraft(nearCatastropheDraft, 12)
+
+    const game = createStartingState()
+    game.week = 12
+    game.postIncidentReviewRecords = {
+      [RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]: RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
+      ...(caseCloseout ? { [caseCloseout.id]: caseCloseout } : {}),
+      ...(nearCatastrophe ? { [nearCatastrophe.id]: nearCatastrophe } : {}),
+    }
+
+    const view = getPostIncidentReviewMirrorView(game)
+    const qualifyingIds = view.qualifyingIncidentRecords.map((record) => record.id)
+
+    expect(view.hasQualifyingIncidentRecords).toBe(true)
+    expect(view.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(view.summary.qualifyingNearCatastropheCount).toBe(1)
+    expect(view.summary.orchestrationCreatedCount).toBe(2)
+    expect(view.summary.stubFixtureCount).toBe(1)
+    expect(qualifyingIds).toEqual([
+      'review:case-case-major-closeout',
+      'review:near-catastrophe-case-raid',
+    ])
+    expect(view.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Qualifying case closeout')
+    expect(view.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-major')
+    expect(view.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe('W12')
+    expect(view.qualifyingIncidentRecords[1]?.sourceLabel).toBe('Near-catastrophe threshold')
+    expect(view.qualifyingIncidentRecords[1]?.linkedCaseIdLabel).toBe('case-raid')
+  })
+
+  it('does not classify qualifying ref patterns without orchestration week token', () => {
+    const game = createStartingState()
+    game.postIncidentReviewRecords = {
+      'review:case-manual-closeout': {
+        id: 'review:case-manual-closeout',
+        label: 'Manual case closeout review',
+        reviewRoute: 'internal_command',
+        closureOutcome: 'contained',
+      },
+    }
+
+    const view = getPostIncidentReviewMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.hasQualifyingIncidentRecords).toBe(false)
+    expect(record?.sourceGroup).toBe('other_persisted')
+    expect(record?.orchestrationWeekLabel).toBe('—')
   })
 
   it('is byte-stable for repeated mirror builds', () => {

@@ -20,7 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-[SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime validation hooks ships read-only dev-overlay surfacing for branch continuity audits ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) parent stays Done). Pick from `planning/scope-discipline-grooming-pass.md` §14 when a registry/slice owner exists, or backlog grooming for dedicated exploit-access content. Mission triage expansion remains **blocked**.
+**Groom then implement** the next [SPE-868](https://linear.app/spectranoir/issue/SPE-868) child (slice 24 — no Linear child yet). Likely boundary: extend redacted `milestoneTimings` mirror label integration tests to qualifying case-closeout (slice 7) and near-catastrophe (slice 9) `advanceWeek` paths, following shipped slice 23 pattern (`planning/post-incident-review-registry-slice-23.md`). Parent [SPE-868](https://linear.app/spectranoir/issue/SPE-868) stays open. Alternative: backlog grooming for dedicated exploit-access content ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) harvest deferral). Mission triage expansion remains **blocked**.
+
+**Base `main` SHA:** `c9c2355d`
 
 ## Blocked / waiting
 

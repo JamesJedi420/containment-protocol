@@ -61,7 +61,7 @@ describe('postIncidentReviewFollowOnWeeklyReportNotes (SPE-868 slice 11)', () =>
     })
 
     expect(notes).toHaveLength(1)
-    expect(notes[0]?.type).toBe('system.week_delta')
+    expect(notes[0]?.type).toBe('post_incident_review.follow_on')
     expect(notes[0]?.content).toBe(
       'Post-incident follow-on — Qualifying incident closeout review — District breach: training reference (threat assessment).'
     )

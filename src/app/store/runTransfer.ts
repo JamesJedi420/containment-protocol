@@ -340,6 +340,7 @@ export const REPORT_NOTE_TYPES = [
   'hub.rumor',
   'system.equipment_recovered',
   'information_intake.verification',
+  'post_incident_review.follow_on',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -602,6 +603,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'reportLabel',
     'eventKind',
     'verificationStatus',
+    'week',
+  ],
+  'post_incident_review.follow_on': [
+    'reviewRef',
+    'reviewLabel',
+    'followOnKind',
+    'followOnToken',
     'week',
   ],
 }

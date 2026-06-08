@@ -109,7 +109,7 @@ export function buildWeeklyPostIncidentReviewFollowOnReportNotes(input: {
         input.week,
         sequence,
         input.baseTimestamp,
-        'system.week_delta',
+        'post_incident_review.follow_on',
         {
           reviewRef,
           reviewLabel: record.label,

@@ -3,7 +3,9 @@ import { createStartingState } from '../data/startingState'
 import type { CaseInstance } from '../domain/models'
 import {
   derivePostIncidentMilestoneTimings,
+  projectPostIncidentReviewSummary,
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
+  type PostIncidentMilestoneTimings,
 } from '../domain/postIncidentReviewRegistry'
 import {
   RECURRENCE_DAMAGE_LEDGER_FIXTURE,
@@ -15,10 +17,46 @@ import {
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../domain/postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
-import { getPostIncidentReviewMirrorView } from '../features/operations/postIncidentReviewMirrorView'
+import {
+  getPostIncidentReviewMirrorView,
+  type PostIncidentReviewMirrorRecordView,
+} from '../features/operations/postIncidentReviewMirrorView'
 import { getPostIncidentReviewRecommendationActionMirrorView } from '../features/operations/postIncidentReviewRecommendationActionMirrorView'
 import { getPostIncidentReviewRecommendationMirrorView } from '../features/operations/postIncidentReviewRecommendationMirrorView'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
+
+function formatExpectedMilestoneWeekLabel(week: number | undefined): string {
+  if (week === undefined) {
+    return '—'
+  }
+
+  return `W${week}`
+}
+
+function expectMilestoneMirrorLabels(
+  record: PostIncidentReviewMirrorRecordView | undefined,
+  milestoneTimings: PostIncidentMilestoneTimings,
+  milestoneSpanWeeks: number | null
+): void {
+  expect(record?.discoveryWeekLabel).toBe(
+    formatExpectedMilestoneWeekLabel(milestoneTimings.discoveryWeek)
+  )
+  expect(record?.responseWeekLabel).toBe(
+    formatExpectedMilestoneWeekLabel(milestoneTimings.responseWeek)
+  )
+  expect(record?.containmentWeekLabel).toBe(
+    formatExpectedMilestoneWeekLabel(milestoneTimings.containmentWeek)
+  )
+  expect(record?.recoveryWeekLabel).toBe(
+    formatExpectedMilestoneWeekLabel(milestoneTimings.recoveryWeek)
+  )
+  expect(record?.reportingWeekLabel).toBe(
+    formatExpectedMilestoneWeekLabel(milestoneTimings.reportingWeek)
+  )
+  expect(record?.milestoneSpanWeeksLabel).toBe(
+    milestoneSpanWeeks === null ? '—' : String(milestoneSpanWeeks)
+  )
+}
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -114,6 +152,17 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(followOnNotes[0]?.content).toContain('training reference (threat assessment)')
     expect(nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]).toEqual(
       RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE
+    )
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const cycleMirrorRecord = mirrorView.records.find(
+      (record) => record.id === 'review:cycle-4-closeout'
+    )
+
+    expectMilestoneMirrorLabels(
+      cycleMirrorRecord,
+      created!.milestoneTimings!,
+      projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
   })
 
@@ -240,6 +289,11 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
     expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(
       `W${nextState.week}`
+    )
+    expectMilestoneMirrorLabels(
+      mirrorView.qualifyingIncidentRecords[0],
+      created!.milestoneTimings!,
+      projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
   })
 
@@ -479,6 +533,11 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
     expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(
       `W${nextState.week}`
+    )
+    expectMilestoneMirrorLabels(
+      mirrorView.qualifyingIncidentRecords[0],
+      created!.milestoneTimings!,
+      projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
   })
 

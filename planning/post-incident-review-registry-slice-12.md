@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2381](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2381 — Dedicated post-incident follow-on report note type (slice 12)](https://linear.app/spectranoir/issue/SPE-2381) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2630 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-follow-on-report-note-type-slice-12`                                                       |
 | **Base `main` SHA** | `f8fab0bd`                                                                                          |
@@ -35,9 +35,9 @@ Add dedicated `post_incident_review.follow_on` report note type with UI categori
 
 ## Acceptance
 
-- [ ] Follow-on notes use `post_incident_review.follow_on` with bounded metadata
-- [ ] Audit registry, `REPORT_NOTE_TYPES`, and `reportNoteView` stay aligned (40 types)
-- [ ] `npm run test:run -- src/test/reportNoteTypeAudit.test.ts src/features/report/reportNoteView.test.ts src/test/postIncidentReviewFollowOnWeeklyReportNotes.test.ts src/test/advanceWeek.postIncidentReview.integration.test.ts` and `npm run lint` pass
+- [x] Follow-on notes use `post_incident_review.follow_on` with bounded metadata
+- [x] Audit registry, `REPORT_NOTE_TYPES`, and `reportNoteView` stay aligned (40 types)
+- [x] `npm run test:run -- src/test/reportNoteTypeAudit.test.ts src/features/report/reportNoteView.test.ts src/test/postIncidentReviewFollowOnWeeklyReportNotes.test.ts src/test/advanceWeek.postIncidentReview.integration.test.ts` and `npm run lint` pass
 
 ## File touch list (expected)
 

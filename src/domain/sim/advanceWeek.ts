@@ -288,6 +288,7 @@ import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemW
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
 import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
 import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
@@ -4702,6 +4703,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
   // SPE-868 slice 4/7: retrospective creation for recurrence closeout refs and qualifying incidents.
   const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
+  const currentPostIncidentReviewRecommendationRecords =
+    outputWeeklyState.postIncidentReviewRecommendationRecords ?? {}
   const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
   const qualifyingIncidentReviewDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
     context.eventDrafts,
@@ -4722,6 +4725,12 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPostIncidentReviewRecords,
       outputWeeklyState.postIncidentReviewRecords
     )
+    outputWeeklyState.postIncidentReviewRecommendationRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick(
+        currentPostIncidentReviewRecommendationRecords,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
 
     const stateAfterFollowOnTrainingEnqueue = applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
       outputWeeklyState,

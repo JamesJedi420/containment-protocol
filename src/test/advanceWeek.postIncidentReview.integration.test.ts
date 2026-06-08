@@ -6,8 +6,12 @@ import {
 import {
   RECURRENCE_DAMAGE_LEDGER_FIXTURE,
 } from '../domain/recurrentCatastropheAmeliorationRegistry'
+import { assignTeam } from '../domain/sim/assign'
 import { advanceWeek } from '../domain/sim/advanceWeek'
-import { applyWeeklyPostIncidentReviewCreationTick } from '../domain/postIncidentReviewWeeklyOrchestration'
+import {
+  applyWeeklyPostIncidentReviewCreationTick,
+  resolveQualifyingIncidentReviewDraftsFromEventDrafts,
+} from '../domain/postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -17,6 +21,8 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
     currentCase.requiredTags = []
     currentCase.preferredTags = []
     currentCase.weeksRemaining = undefined
+    currentCase.stage = 1
+    currentCase.deadlineRemaining = Math.max(currentCase.deadlineWeeks, 4)
   }
 }
 
@@ -91,13 +97,115 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       state.recurrentCatastropheRecords,
       nextState.week
     )
+    const qualifyingDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
+      nextState.events
+        .filter((event) => event.week === state.week)
+        .map((event) => ({
+          type: event.type,
+          sourceSystem: event.sourceSystem,
+          payload: event.payload,
+        })),
+      state.cases,
+      nextState.week
+    )
     const directReviewTick = applyWeeklyPostIncidentReviewCreationTick(
       state.postIncidentReviewRecords,
       directRecurrenceTick,
-      nextState.week
+      nextState.week,
+      qualifyingDrafts
     )
 
     expect(nextState.recurrentCatastropheRecords).toEqual(directRecurrenceTick)
     expect(nextState.postIncidentReviewRecords).toEqual(directReviewTick)
+  })
+})
+
+function makeQualifyingResolvedCaseState() {
+  const state = createStartingState()
+  state.rngSeed = 211
+  state.rngState = 211
+  state.recurrentCatastropheRecords = {}
+
+  for (const currentCase of Object.values(state.cases)) {
+    if (currentCase.id !== 'case-001') {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.stage = 1
+      currentCase.deadlineRemaining = Math.max(currentCase.deadlineWeeks, 4)
+    }
+  }
+
+  state.cases['case-001'] = {
+    ...state.cases['case-001'],
+    status: 'in_progress',
+    stage: 4,
+    weeksRemaining: 1,
+    difficulty: { combat: 1, investigation: 0, utility: 0, social: 0 },
+    weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
+  }
+
+  const assigned = assignTeam(state, 'case-001', 't_nightwatch')
+  assigned.teams['t_nightwatch'] = {
+    ...assigned.teams['t_nightwatch'],
+    status: {
+      ...(assigned.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-001',
+    },
+  }
+
+  return assigned
+}
+
+describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)', () => {
+  it('creates a qualifying case closeout review when a major incident resolves', () => {
+    const state = makeQualifyingResolvedCaseState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']
+
+    expect(nextState.cases['case-001'].status).toBe('resolved')
+    expect(created?.label).toBe(
+      'Qualifying incident closeout review — ' + state.cases['case-001'].title
+    )
+    expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
+    expect(created?.unknownFields).toEqual([`orchestration_week:${nextState.week}`])
+  })
+
+  it('does not create a review when a non-qualifying case resolves', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      status: 'in_progress',
+      stage: 1,
+      weeksRemaining: 1,
+      difficulty: { combat: 1, investigation: 0, utility: 0, social: 0 },
+      weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
+    }
+    const assigned = assignTeam(state, 'case-001', 't_nightwatch')
+    assigned.teams['t_nightwatch'] = {
+      ...assigned.teams['t_nightwatch'],
+      status: {
+        ...(assigned.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
+    }
+
+    const nextState = advanceWeek(assigned)
+
+    expect(nextState.cases['case-001'].status).toBe('resolved')
+    expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeUndefined()
+  })
+
+  it('does not duplicate qualifying case closeout reviews on re-advance', () => {
+    const state = makeQualifyingResolvedCaseState()
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+    const created = once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+
+    expect(created).toBeDefined()
+    expect(twice.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBe(created)
   })
 })

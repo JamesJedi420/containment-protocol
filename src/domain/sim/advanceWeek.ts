@@ -288,6 +288,7 @@ import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemW
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick } from '../postIncidentReviewFollowOnRecommendationAction'
 import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
 import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
 import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
@@ -4705,6 +4706,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
   const currentPostIncidentReviewRecommendationRecords =
     outputWeeklyState.postIncidentReviewRecommendationRecords ?? {}
+  const currentPostIncidentReviewRecommendationActionRecords =
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords ?? {}
   const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
   const qualifyingIncidentReviewDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
     context.eventDrafts,
@@ -4730,6 +4733,13 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         currentPostIncidentReviewRecommendationRecords,
         currentPostIncidentReviewRecords,
         outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick(
+        outputWeeklyState,
+        currentPostIncidentReviewRecommendationActionRecords,
+        currentPostIncidentReviewRecommendationRecords,
+        outputWeeklyState.postIncidentReviewRecommendationRecords
       )
 
     const stateAfterFollowOnTrainingEnqueue = applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2395](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2395 — Audit-cycle recurrence / compliance adequacy mirror labels on qualifying advanceWeek paths (slice 26)](https://linear.app/spectranoir/issue/SPE-2395) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — SPE-2395 / PR #2659 @ `3bf776ea`                                                                  |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-audit-cycle-recurrence-slice-26`                                                                  |
 | **Base `main` SHA** | `3f05ac58`                                                                                          |

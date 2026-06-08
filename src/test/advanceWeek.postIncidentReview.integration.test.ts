@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import type { CaseInstance } from '../domain/models'
 import {
+  derivePostIncidentMilestoneTimings,
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
 } from '../domain/postIncidentReviewRegistry'
 import {
@@ -208,7 +209,9 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     expect(created?.label).toBe(
       'Qualifying incident closeout review — ' + state.cases['case-001'].title
     )
-    expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
+    expect(created?.milestoneTimings).toEqual(
+      derivePostIncidentMilestoneTimings('case_closeout', nextState.week)
+    )
     expect(created?.unknownFields).toEqual([
       'follow_on:training-ref:threat-assessment',
       `orchestration_week:${nextState.week}`,

@@ -49,6 +49,16 @@ export interface PostIncidentMilestoneTimings {
   readonly reportingWeek?: number
 }
 
+/** Deterministic milestone span profile for retrospective creation ticks. */
+export type PostIncidentMilestoneTimingProfile =
+  | 'cycle_closeout'
+  | 'case_closeout'
+  | 'near_catastrophe'
+  | 'reporting_only'
+
+export const POST_INCIDENT_MILESTONE_TIMING_PROFILES: readonly PostIncidentMilestoneTimingProfile[] =
+  ['cycle_closeout', 'case_closeout', 'near_catastrophe', 'reporting_only'] as const
+
 // ---------------------------------------------------------------------------
 // Records
 // ---------------------------------------------------------------------------
@@ -191,6 +201,55 @@ function isValidUnitScore(value: unknown): value is number {
 
 function isNonNegativeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+}
+
+function normalizeMilestoneAnchorWeek(week: number): number {
+  if (!Number.isFinite(week)) {
+    return 1
+  }
+
+  return Math.max(1, Math.trunc(week))
+}
+
+/**
+ * Derives deterministic milestone week intervals from an anchor reporting week.
+ * Partial profiles omit milestones when the incident lifecycle lacks full events.
+ */
+export function derivePostIncidentMilestoneTimings(
+  profile: PostIncidentMilestoneTimingProfile,
+  anchorWeek: number
+): PostIncidentMilestoneTimings {
+  const week = normalizeMilestoneAnchorWeek(anchorWeek)
+
+  switch (profile) {
+    case 'cycle_closeout':
+      return {
+        discoveryWeek: Math.max(0, week - 4),
+        responseWeek: Math.max(0, week - 3),
+        containmentWeek: Math.max(0, week - 2),
+        recoveryWeek: Math.max(0, week - 1),
+        reportingWeek: week,
+      }
+    case 'case_closeout':
+      return {
+        discoveryWeek: Math.max(0, week - 3),
+        responseWeek: Math.max(0, week - 2),
+        containmentWeek: Math.max(0, week - 1),
+        reportingWeek: week,
+      }
+    case 'near_catastrophe':
+      return {
+        discoveryWeek: Math.max(0, week - 2),
+        responseWeek: Math.max(0, week - 1),
+        reportingWeek: week,
+      }
+    case 'reporting_only':
+      return { reportingWeek: week }
+    default: {
+      const exhaustive: never = profile
+      return exhaustive
+    }
+  }
 }
 
 function freezeValidationResult(

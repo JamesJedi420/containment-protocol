@@ -16,6 +16,7 @@ import {
 } from './recurrentCatastropheAmeliorationRegistry'
 import {
   BRANDED_OBJECT_NUMBER_PATTERN,
+  derivePostIncidentMilestoneTimings,
   FRANCHISE_TOKEN_PATTERN,
   validatePostIncidentReviewRecord,
   type PostIncidentReviewRecord,
@@ -89,39 +90,6 @@ function parseCycleCloseoutNumber(reviewRef: string): number | undefined {
   }
 
   return cycleNumber
-}
-
-function buildCycleCloseoutMilestoneTimings(anchorWeek: number) {
-  const week = normalizeWeek(anchorWeek)
-
-  return {
-    discoveryWeek: Math.max(0, week - 4),
-    responseWeek: Math.max(0, week - 3),
-    containmentWeek: Math.max(0, week - 2),
-    recoveryWeek: Math.max(0, week - 1),
-    reportingWeek: week,
-  }
-}
-
-function buildCaseCloseoutMilestoneTimings(anchorWeek: number) {
-  const week = normalizeWeek(anchorWeek)
-
-  return {
-    discoveryWeek: Math.max(0, week - 3),
-    responseWeek: Math.max(0, week - 2),
-    containmentWeek: Math.max(0, week - 1),
-    reportingWeek: week,
-  }
-}
-
-function buildNearCatastropheMilestoneTimings(anchorWeek: number) {
-  const week = normalizeWeek(anchorWeek)
-
-  return {
-    discoveryWeek: Math.max(0, week - 2),
-    responseWeek: Math.max(0, week - 1),
-    reportingWeek: week,
-  }
 }
 
 function isNearCatastropheQualifyingSnapshot(snapshot: NearCatastropheQualifyingSnapshot): boolean {
@@ -299,7 +267,7 @@ export function buildQualifyingIncidentReviewRecordForDraft(
           summary: 'Structured retrospective after qualifying incident resolution.',
           reviewRoute: 'internal_command',
           closureOutcome: 'contained',
-          milestoneTimings: buildCaseCloseoutMilestoneTimings(anchorWeek),
+          milestoneTimings: derivePostIncidentMilestoneTimings('case_closeout', anchorWeek),
           procedureAdherenceScore: 0.68,
           recurrenceObserved: false,
           confidence: 0.72,
@@ -311,7 +279,7 @@ export function buildQualifyingIncidentReviewRecordForDraft(
           summary: 'Structured retrospective triggered by near-catastrophe escalation threshold.',
           reviewRoute: 'external_audit',
           closureOutcome: 'administratively_cleared',
-          milestoneTimings: buildNearCatastropheMilestoneTimings(anchorWeek),
+          milestoneTimings: derivePostIncidentMilestoneTimings('near_catastrophe', anchorWeek),
           procedureAdherenceScore: 0.55,
           recurrenceObserved: false,
           confidence: 0.61,
@@ -407,7 +375,7 @@ export function buildPostIncidentReviewRecordForRef(
           summary: 'Structured retrospective after seasonal cascade recurrence recovery.',
           reviewRoute: 'internal_command',
           closureOutcome: 'contained',
-          milestoneTimings: buildCycleCloseoutMilestoneTimings(anchorWeek),
+          milestoneTimings: derivePostIncidentMilestoneTimings('cycle_closeout', anchorWeek),
           procedureAdherenceScore: 0.71,
           recurrenceObserved: true,
           confidence: 0.74,
@@ -419,7 +387,7 @@ export function buildPostIncidentReviewRecordForRef(
           summary: 'Structured retrospective pending formal milestone capture.',
           reviewRoute: 'internal_command',
           closureOutcome: 'contained',
-          milestoneTimings: { reportingWeek: anchorWeek },
+          milestoneTimings: derivePostIncidentMilestoneTimings('reporting_only', anchorWeek),
           procedureAdherenceScore: 0.5,
           recurrenceObserved: true,
           confidence: 0.5,

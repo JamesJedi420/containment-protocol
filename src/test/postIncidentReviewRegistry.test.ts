@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
+  derivePostIncidentMilestoneTimings,
   EXTERNAL_AUDIT_CLEARED_REVIEW_FIXTURE,
+  POST_INCIDENT_MILESTONE_TIMING_PROFILES,
   POST_INCIDENT_REVIEW_ROUTES,
   POST_INCIDENT_CLOSURE_OUTCOMES,
   POST_INCIDENT_REVIEW_STUB_REGISTRY,
@@ -98,6 +100,70 @@ describe('postIncidentReviewRegistry (SPE-868 slice 5)', () => {
   it('returns byte-stable validation results on repeated calls', () => {
     const first = validatePostIncidentReviewRecord(RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE)
     const second = validatePostIncidentReviewRecord(RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE)
+
+    expect(first).toEqual(second)
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('derivePostIncidentMilestoneTimings (SPE-868 slice 20)', () => {
+  it('exports stable milestone timing profile catalog', () => {
+    expect(POST_INCIDENT_MILESTONE_TIMING_PROFILES).toEqual([
+      'cycle_closeout',
+      'case_closeout',
+      'near_catastrophe',
+      'reporting_only',
+    ])
+  })
+
+  it('derives full five-milestone cycle closeout intervals from anchor week', () => {
+    expect(derivePostIncidentMilestoneTimings('cycle_closeout', 53)).toEqual({
+      discoveryWeek: 49,
+      responseWeek: 50,
+      containmentWeek: 51,
+      recoveryWeek: 52,
+      reportingWeek: 53,
+    })
+  })
+
+  it('derives four-milestone case closeout intervals without recovery', () => {
+    expect(derivePostIncidentMilestoneTimings('case_closeout', 12)).toEqual({
+      discoveryWeek: 9,
+      responseWeek: 10,
+      containmentWeek: 11,
+      reportingWeek: 12,
+    })
+  })
+
+  it('derives three-milestone near-catastrophe intervals without containment or recovery', () => {
+    expect(derivePostIncidentMilestoneTimings('near_catastrophe', 12)).toEqual({
+      discoveryWeek: 10,
+      responseWeek: 11,
+      reportingWeek: 12,
+    })
+  })
+
+  it('derives reporting-only stub when lifecycle events are unknown', () => {
+    expect(derivePostIncidentMilestoneTimings('reporting_only', 12)).toEqual({
+      reportingWeek: 12,
+    })
+  })
+
+  it('clamps sub-one anchor weeks and non-finite inputs to week 1', () => {
+    expect(derivePostIncidentMilestoneTimings('case_closeout', 0)).toEqual({
+      discoveryWeek: 0,
+      responseWeek: 0,
+      containmentWeek: 0,
+      reportingWeek: 1,
+    })
+    expect(derivePostIncidentMilestoneTimings('reporting_only', Number.NaN)).toEqual({
+      reportingWeek: 1,
+    })
+  })
+
+  it('returns byte-stable milestone timings on repeated calls', () => {
+    const first = derivePostIncidentMilestoneTimings('cycle_closeout', 42)
+    const second = derivePostIncidentMilestoneTimings('cycle_closeout', 42)
 
     expect(first).toEqual(second)
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))

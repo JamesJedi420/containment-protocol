@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2388](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2388 — Recommendation action mirror advanceWeek integration (slice 19)](https://linear.app/spectranoir/issue/SPE-2388) |
-| **Status** | **Ready for PR**                                                                                         |
+| **Status** | **Shipped** — PR #2644 @ merge pending                                                                   |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-recommendation-action-mirror-integration-slice-19`                                       |
 | **Base `main` SHA** | `fa38ea64`                                                                                          |

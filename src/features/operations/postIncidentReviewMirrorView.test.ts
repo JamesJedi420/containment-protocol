@@ -82,9 +82,60 @@ describe('postIncidentReviewMirrorView (SPE-868 slice 3)', () => {
 
     expect(record?.milestoneSpanWeeksLabel).toBe('—')
     expect(record?.discoveryWeekLabel).toBe('—')
+    expect(record?.responseWeekLabel).toBe('—')
+    expect(record?.containmentWeekLabel).toBe('—')
+    expect(record?.recoveryWeekLabel).toBe('—')
+    expect(record?.reportingWeekLabel).toBe('—')
     expect(record?.procedureAdherenceScoreLabel).toBe('—')
     expect(record?.confidenceLabel).toBe('—')
     expect(record?.redacted).toBe(true)
+  })
+
+  it('distinguishes redacted full milestoneTimings from partial missing fields (SPE-868 slice 23)', () => {
+    const nearCatastropheDraft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:near-catastrophe-case-raid',
+      caseId: 'case-raid',
+      caseTitle: 'Raid conversion',
+      trigger: 'near_catastrophe_threshold',
+      stage: 4,
+      kind: 'raid',
+      anchorWeek: 12,
+    }
+    const partialNearCatastrophe = buildQualifyingIncidentReviewRecordForDraft(
+      nearCatastropheDraft,
+      12
+    )
+
+    const game = createStartingState()
+    game.postIncidentReviewRecords = {
+      [RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]: {
+        ...RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
+        redactedFields: ['milestoneTimings'],
+      },
+      ...(partialNearCatastrophe ? { [partialNearCatastrophe.id]: partialNearCatastrophe } : {}),
+    }
+
+    const view = getPostIncidentReviewMirrorView(game)
+    const redacted = view.records.find(
+      (record) => record.id === RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id
+    )
+    const partial = view.records.find((record) => record.id === partialNearCatastrophe?.id)
+
+    expect(redacted?.discoveryWeekLabel).toBe('—')
+    expect(redacted?.responseWeekLabel).toBe('—')
+    expect(redacted?.containmentWeekLabel).toBe('—')
+    expect(redacted?.recoveryWeekLabel).toBe('—')
+    expect(redacted?.reportingWeekLabel).toBe('—')
+    expect(redacted?.milestoneSpanWeeksLabel).toBe('—')
+    expect(redacted?.redacted).toBe(true)
+
+    expect(partial?.discoveryWeekLabel).toBe('W10')
+    expect(partial?.responseWeekLabel).toBe('W11')
+    expect(partial?.containmentWeekLabel).toBe('—')
+    expect(partial?.recoveryWeekLabel).toBe('—')
+    expect(partial?.reportingWeekLabel).toBe('W12')
+    expect(partial?.milestoneSpanWeeksLabel).toBe('2')
+    expect(partial?.redacted).toBe(false)
   })
 
   it('does not surface invalid records dropped on hydrate', () => {

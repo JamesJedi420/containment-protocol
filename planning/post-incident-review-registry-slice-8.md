@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2377](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2377 — Post-incident review mirror qualifying incident surfacing (slice 8)](https://linear.app/spectranoir/issue/SPE-2377) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2622 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-qualifying-incident-mirror-slice-8`                                                               |
 | **Base `main` SHA** | `f7d21218`                                                                                          |
@@ -47,13 +47,13 @@ Extend `getPostIncidentReviewMirrorView` and `PostIncidentReviewMirrorPage` to f
 
 ## Acceptance
 
-- [ ] Empty map renders empty state without throw
-- [ ] Orchestration-created `review:case-*-closeout` appears in qualifying incident group with case closeout source label
-- [ ] Orchestration-created `review:near-catastrophe-*` appears in qualifying incident group with near-catastrophe source label
-- [ ] Stub fixtures classify as stub fixture, not qualifying orchestration
-- [ ] `advanceWeek` integration asserts mirror view after qualifying case resolution
-- [ ] Byte-stable mirror builds; slice 3/5/7 regressions green
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty map renders empty state without throw
+- [x] Orchestration-created `review:case-*-closeout` appears in qualifying incident group with case closeout source label
+- [x] Orchestration-created `review:near-catastrophe-*` appears in qualifying incident group with near-catastrophe source label
+- [x] Stub fixtures classify as stub fixture, not qualifying orchestration
+- [x] `advanceWeek` integration asserts mirror view after qualifying case resolution
+- [x] Byte-stable mirror builds; slice 3/5/7 regressions green
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

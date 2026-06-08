@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2382](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2382 — Post-incident follow-on training queue enqueue (slice 13)](https://linear.app/spectranoir/issue/SPE-2382) |
-| **Status** | **In Progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2632 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-follow-on-training-enqueue-slice-13`                                                       |
 | **Base `main` SHA** | `210d70c1`                                                                                          |

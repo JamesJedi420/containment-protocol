@@ -29,6 +29,14 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
+function stateWithFollowOnTrainingEnqueueReady<T extends ReturnType<typeof createStartingState>>(state: T): T {
+  return {
+    ...state,
+    academyTier: 1,
+    funding: Math.max(state.funding, 200),
+  }
+}
+
 describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () => {
   it('is a no-op for an empty recurrent catastrophe map without throwing', () => {
     const state = createStartingState()
@@ -58,7 +66,7 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
   })
 
   it('creates cycle-4 closeout review when advanceWeek reaches recurrence due week', () => {
-    const state = createStartingState()
+    const state = stateWithFollowOnTrainingEnqueueReady(createStartingState())
     freezeCasesForQuietWeek(state)
     state.week = 52
     state.recurrentCatastropheRecords = {
@@ -82,6 +90,9 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       'follow_on:training-ref:threat-assessment',
       'orchestration_week:53',
     ])
+    expect(nextState.trainingQueue).toHaveLength(1)
+    expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
+    expect(nextState.trainingQueue[0]?.agentId).toBe('a_ava')
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
       weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
@@ -141,7 +152,7 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
 })
 
 function makeQualifyingResolvedCaseState() {
-  const state = createStartingState()
+  const state = stateWithFollowOnTrainingEnqueueReady(createStartingState())
   state.rngSeed = 211
   state.rngState = 211
   state.recurrentCatastropheRecords = {}
@@ -192,6 +203,9 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
       'follow_on:training-ref:threat-assessment',
       `orchestration_week:${nextState.week}`,
     ])
+    expect(nextState.trainingQueue).toHaveLength(1)
+    expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
+    expect(nextState.trainingQueue[0]?.agentId).toBe('a_ava')
 
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
     const followOnNotes =
@@ -259,6 +273,9 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
       twiceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
     expect(onceFollowOnNotes).toHaveLength(1)
     expect(twiceFollowOnNotes).toHaveLength(0)
+    expect(once.trainingQueue).toHaveLength(1)
+    expect(twice.trainingQueue).toHaveLength(1)
+    expect(twice.trainingQueue[0]?.id).toBe(once.trainingQueue[0]?.id)
   })
 })
 
@@ -375,6 +392,7 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(followOnNotes).toHaveLength(1)
     expect(followOnNotes[0]?.type).toBe('post_incident_review.follow_on')
     expect(followOnNotes[0]?.content).toContain('recommendation stub (near catastrophe case 001)')
+    expect(nextState.trainingQueue).toHaveLength(0)
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -507,5 +525,34 @@ describe('advanceWeek post-incident review follow-on artifact integration (SPE-8
     const followOnNotes =
       weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
     expect(followOnNotes).toHaveLength(0)
+  })
+})
+
+describe('advanceWeek post-incident follow-on training enqueue integration (SPE-868 slice 13)', () => {
+  it('enqueues threat assessment when qualifying case closeout materializes', () => {
+    const state = makeQualifyingResolvedCaseState()
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.trainingQueue).toHaveLength(1)
+    expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
+    expect(nextState.trainingQueue[0]?.agentId).toBe('a_ava')
+    expect(
+      nextState.events.some(
+        (event) =>
+          event.type === 'agent.training_started' &&
+          event.payload.trainingId === 'threat-assessment'
+      )
+    ).toBe(true)
+  })
+
+  it('does not enqueue follow-on training when academy tier blocks the referenced program', () => {
+    const state = makeQualifyingResolvedCaseState()
+    state.academyTier = 0
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeDefined()
+    expect(nextState.trainingQueue).toHaveLength(0)
   })
 })

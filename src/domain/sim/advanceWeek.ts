@@ -288,6 +288,7 @@ import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemW
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
 import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
@@ -4721,6 +4722,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPostIncidentReviewRecords,
       outputWeeklyState.postIncidentReviewRecords
     )
+
+    const stateAfterFollowOnTrainingEnqueue = applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
+      outputWeeklyState,
+      currentPostIncidentReviewRecords,
+      outputWeeklyState.postIncidentReviewRecords
+    )
+    outputWeeklyState.trainingQueue = stateAfterFollowOnTrainingEnqueue.trainingQueue
+    outputWeeklyState.agents = stateAfterFollowOnTrainingEnqueue.agents
+    outputWeeklyState.funding = stateAfterFollowOnTrainingEnqueue.funding
+    outputWeeklyState.events = stateAfterFollowOnTrainingEnqueue.events
 
     // SPE-868 slice 11: project follow-on artifact narratives into weekly report notes.
     const lastWeeklyReportForFollowOn = result.reports[result.reports.length - 1]

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
+import type { CaseInstance } from '../domain/models'
 import {
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
 } from '../domain/postIncidentReviewRegistry'
@@ -100,7 +101,12 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     )
     const qualifyingDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
       nextState.events
-        .filter((event) => event.week === state.week)
+        .filter(
+          (event) =>
+            'week' in event.payload &&
+            typeof event.payload.week === 'number' &&
+            event.payload.week === state.week
+        )
         .map((event) => ({
           type: event.type,
           sourceSystem: event.sourceSystem,
@@ -175,6 +181,7 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
 
     expect(mirrorView.hasQualifyingIncidentRecords).toBe(true)
     expect(mirrorView.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(0)
     expect(mirrorView.qualifyingIncidentRecords[0]?.id).toBe('review:case-case-001-closeout')
     expect(mirrorView.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Qualifying case closeout')
     expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
@@ -219,5 +226,195 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
 
     expect(created).toBeDefined()
     expect(twice.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBe(created)
+  })
+})
+
+function suppressCaseSpawns(caseInstance: CaseInstance): CaseInstance {
+  return {
+    ...caseInstance,
+    onFail: {
+      ...caseInstance.onFail,
+      spawnCount: { min: 0, max: 0 },
+      spawnTemplateIds: [],
+    },
+    onUnresolved: {
+      ...caseInstance.onUnresolved,
+      spawnCount: { min: 0, max: 0 },
+      spawnTemplateIds: [],
+    },
+  }
+}
+
+function makeNearCatastropheDeadlineEscalationState() {
+  const state = createStartingState()
+  state.rngSeed = 313
+  state.rngState = 313
+  state.recurrentCatastropheRecords = {}
+  freezeCasesForQuietWeek(state)
+
+  state.cases['case-001'] = suppressCaseSpawns({
+    ...state.cases['case-001'],
+    status: 'open',
+    assignedTeamIds: [],
+    stage: 1,
+    deadlineRemaining: 1,
+  })
+
+  return state
+}
+
+function makeNonQualifyingDeadlineEscalationState() {
+  const state = createStartingState()
+  state.recurrentCatastropheRecords = {}
+  freezeCasesForQuietWeek(state)
+
+  state.cases['case-001'] = suppressCaseSpawns({
+    ...state.cases['case-001'],
+    status: 'open',
+    assignedTeamIds: [],
+    stage: 1,
+    deadlineRemaining: 1,
+    onUnresolved: {
+      ...state.cases['case-001'].onUnresolved,
+      stageDelta: 1,
+      deadlineResetWeeks: 4,
+      spawnCount: { min: 0, max: 0 },
+      spawnTemplateIds: [],
+    },
+  })
+
+  return state
+}
+
+function makeDualNearCatastropheDeadlineEscalationState() {
+  const state = createStartingState()
+  state.rngSeed = 314
+  state.rngState = 314
+  state.recurrentCatastropheRecords = {}
+  freezeCasesForQuietWeek(state)
+
+  for (const caseId of ['case-001', 'case-002'] as const) {
+    state.cases[caseId] = suppressCaseSpawns({
+      ...state.cases[caseId],
+      status: 'open',
+      assignedTeamIds: [],
+      stage: 1,
+      deadlineRemaining: 1,
+    })
+  }
+
+  return state
+}
+
+describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', () => {
+  it('creates a near-catastrophe review when deadline escalation crosses the threshold', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+
+    expect(nextState.cases['case-001'].kind).toBe('raid')
+    expect(nextState.cases['case-001'].stage).toBeGreaterThanOrEqual(3)
+    expect(
+      nextState.events.some(
+        (event) => event.type === 'case.escalated' && event.payload.caseId === 'case-001'
+      )
+    ).toBe(true)
+    expect(
+      nextState.events.some(
+        (event) => event.type === 'case.raid_converted' && event.payload.caseId === 'case-001'
+      )
+    ).toBe(true)
+    expect(created?.label).toBe(
+      'Near-catastrophe threshold review — ' + state.cases['case-001'].title
+    )
+    expect(created?.reviewRoute).toBe('external_audit')
+    expect(created?.closureOutcome).toBe('administratively_cleared')
+    expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
+    expect(created?.unknownFields).toEqual([`orchestration_week:${nextState.week}`])
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+
+    expect(mirrorView.hasQualifyingIncidentRecords).toBe(true)
+    expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(1)
+    expect(mirrorView.summary.qualifyingCaseCloseoutCount).toBe(0)
+    expect(mirrorView.qualifyingIncidentRecords[0]?.id).toBe('review:near-catastrophe-case-001')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Near-catastrophe threshold')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(
+      `W${nextState.week}`
+    )
+  })
+
+  it('does not create a near-catastrophe review when escalation stays below the threshold', () => {
+    const state = makeNonQualifyingDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.cases['case-001'].stage).toBe(2)
+    expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toBeUndefined()
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+
+    expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(0)
+    expect(mirrorView.summary.qualifyingCaseCloseoutCount).toBe(0)
+  })
+
+  it('does not duplicate near-catastrophe reviews on re-advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+    const created = once.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+
+    expect(created).toBeDefined()
+    expect(twice.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toBe(created)
+  })
+
+  it('orders qualifying near-catastrophe mirror rows by stable record id', () => {
+    const state = makeDualNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const qualifyingIds = mirrorView.qualifyingIncidentRecords.map((record) => record.id)
+
+    expect(qualifyingIds).toEqual([
+      'review:near-catastrophe-case-001',
+      'review:near-catastrophe-case-002',
+    ])
+    expect(qualifyingIds).toEqual([...qualifyingIds].sort((left, right) => left.localeCompare(right)))
+    expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(2)
+  })
+
+  it('matches direct review creation for near-catastrophe escalation week', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const qualifyingDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
+      nextState.events
+        .filter(
+          (event) =>
+            'week' in event.payload &&
+            typeof event.payload.week === 'number' &&
+            event.payload.week === state.week
+        )
+        .map((event) => ({
+          type: event.type,
+          sourceSystem: event.sourceSystem,
+          payload: event.payload,
+        })),
+      state.cases,
+      nextState.week
+    )
+    const directReviewTick = applyWeeklyPostIncidentReviewCreationTick(
+      state.postIncidentReviewRecords,
+      state.recurrentCatastropheRecords,
+      nextState.week,
+      qualifyingDrafts
+    )
+
+    expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toEqual(
+      directReviewTick['review:near-catastrophe-case-001']
+    )
   })
 })

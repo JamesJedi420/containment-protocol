@@ -984,16 +984,26 @@ export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
   totalRecordsLabel: 'Persisted records',
   externalAuditRouteLabel: 'External audit route',
   recurrenceObservedLabel: 'Recurrence observed',
+  qualifyingCaseCloseoutLabel: 'Qualifying case closeouts',
+  qualifyingNearCatastropheLabel: 'Near-catastrophe reviews',
+  orchestrationCreatedLabel: 'Orchestration-created',
+  stubFixtureLabel: 'Stub fixtures',
   weekLabel: 'Campaign week',
   readOnlyNote:
     'Review routes, closure outcomes, and milestone spans mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
   emptyTitle: 'No post-incident review records',
   emptyBody:
     'Persisted post-incident review records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  qualifyingRecordsHeading: 'Qualifying incident reviews',
+  qualifyingRecordsSubtitle:
+    'Orchestration-created case closeout and near-catastrophe threshold retrospectives from weekly advance.',
   recordsHeading: 'Persisted records',
   recordsSubtitle:
     'Milestone spans, adherence scores, and recurrence flags come from review summary projection.',
   labelColumn: 'Label',
+  sourceColumn: 'Source',
+  caseIdColumn: 'Linked case',
+  orchestrationWeekColumn: 'Orchestration week',
   routeColumn: 'Review route',
   closureColumn: 'Closure outcome',
   milestoneColumn: 'Milestone timings',

@@ -8,6 +8,8 @@ import {
   EXTERNAL_AUDIT_CLEARED_REVIEW_FIXTURE,
   RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
 } from '../../domain/postIncidentReviewRegistry'
+import { buildQualifyingIncidentReviewRecordForDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
+import type { QualifyingIncidentReviewDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
 import { useGameStore } from '../../app/store/gameStore'
 import PostIncidentReviewMirrorPage from './PostIncidentReviewMirrorPage'
 
@@ -67,5 +69,35 @@ describe('PostIncidentReviewMirrorPage (SPE-868 slice 3)', () => {
       'href',
       '/'
     )
+  })
+
+  it('renders qualifying incident review section for orchestration-created records', () => {
+    const draft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:case-case-major-closeout',
+      caseId: 'case-major',
+      caseTitle: 'District breach',
+      trigger: 'case_resolved',
+      stage: 4,
+      kind: 'standard',
+      anchorWeek: 12,
+    }
+    const created = buildQualifyingIncidentReviewRecordForDraft(draft, 12)
+    const game = createStartingState()
+    game.postIncidentReviewRecords = {
+      ...(created ? { [created.id]: created } : {}),
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const qualifyingRegion = screen.getByRole('region', {
+      name: /qualifying incident review records/i,
+    })
+
+    expect(qualifyingRegion).toBeInTheDocument()
+    expect(qualifyingRegion).toHaveTextContent('Qualifying case closeout')
+    expect(qualifyingRegion).toHaveTextContent('case-major')
+    expect(qualifyingRegion).toHaveTextContent('W12')
+    expect(qualifyingRegion).toHaveTextContent('Qualifying incident closeout review — District breach')
   })
 })

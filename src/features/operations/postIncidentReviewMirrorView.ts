@@ -1,13 +1,30 @@
 import type { GameState } from '../../domain/models'
 import {
+  POST_INCIDENT_REVIEW_STUB_REGISTRY,
   projectPostIncidentReviewSummary,
   type PostIncidentReviewRecord,
 } from '../../domain/postIncidentReviewRegistry'
+
+const CASE_CLOSEOUT_REVIEW_REF_PATTERN = /^review:case-([a-zA-Z0-9_-]+)-closeout$/
+const NEAR_CATASTROPHE_REVIEW_REF_PATTERN = /^review:near-catastrophe-([a-zA-Z0-9_-]+)$/
+const CYCLE_CLOSEOUT_REVIEW_REF_PATTERN = /^review:cycle-(\d+)-closeout$/
+const ORCHESTRATION_WEEK_TOKEN_PREFIX = 'orchestration_week:'
+
+export type PostIncidentReviewMirrorRecordSourceGroup =
+  | 'qualifying_case_closeout'
+  | 'qualifying_near_catastrophe'
+  | 'recurrence_cycle_orchestration'
+  | 'stub_fixture'
+  | 'other_persisted'
 
 export interface PostIncidentReviewMirrorRecordView {
   id: string
   label: string
   summaryLabel: string
+  sourceGroup: PostIncidentReviewMirrorRecordSourceGroup
+  sourceLabel: string
+  linkedCaseIdLabel: string
+  orchestrationWeekLabel: string
   reviewRouteLabel: string
   closureOutcomeLabel: string
   milestoneSpanWeeksLabel: string
@@ -27,12 +44,18 @@ export interface PostIncidentReviewMirrorSummaryView {
   totalRecords: number
   externalAuditRouteCount: number
   recurrenceObservedCount: number
+  qualifyingCaseCloseoutCount: number
+  qualifyingNearCatastropheCount: number
+  orchestrationCreatedCount: number
+  stubFixtureCount: number
   week: number
 }
 
 export interface PostIncidentReviewMirrorView {
   isEmpty: boolean
+  hasQualifyingIncidentRecords: boolean
   summary: PostIncidentReviewMirrorSummaryView
+  qualifyingIncidentRecords: readonly PostIncidentReviewMirrorRecordView[]
   records: readonly PostIncidentReviewMirrorRecordView[]
 }
 
@@ -46,6 +69,80 @@ export function formatPostIncidentReviewEnumLabel(value: string): string {
 function listPersistedRecords(game: GameState): PostIncidentReviewRecord[] {
   const map = game.postIncidentReviewRecords ?? {}
   return Object.values(map).sort((left, right) => left.id.localeCompare(right.id))
+}
+
+function extractOrchestrationWeek(record: PostIncidentReviewRecord): number | undefined {
+  for (const field of record.unknownFields ?? []) {
+    if (!field.startsWith(ORCHESTRATION_WEEK_TOKEN_PREFIX)) {
+      continue
+    }
+
+    const week = Number.parseInt(field.slice(ORCHESTRATION_WEEK_TOKEN_PREFIX.length), 10)
+    if (Number.isFinite(week) && week >= 1 && week === Math.trunc(week)) {
+      return week
+    }
+  }
+
+  return undefined
+}
+
+function isOrchestrationCreated(record: PostIncidentReviewRecord): boolean {
+  return extractOrchestrationWeek(record) !== undefined
+}
+
+function extractLinkedCaseId(recordId: string): string {
+  const caseCloseoutMatch = CASE_CLOSEOUT_REVIEW_REF_PATTERN.exec(recordId)
+  if (caseCloseoutMatch?.[1]) {
+    return caseCloseoutMatch[1]
+  }
+
+  const nearCatastropheMatch = NEAR_CATASTROPHE_REVIEW_REF_PATTERN.exec(recordId)
+  if (nearCatastropheMatch?.[1]) {
+    return nearCatastropheMatch[1]
+  }
+
+  return ''
+}
+
+function classifySourceGroup(record: PostIncidentReviewRecord): PostIncidentReviewMirrorRecordSourceGroup {
+  if (CASE_CLOSEOUT_REVIEW_REF_PATTERN.test(record.id)) {
+    return isOrchestrationCreated(record) ? 'qualifying_case_closeout' : 'other_persisted'
+  }
+
+  if (NEAR_CATASTROPHE_REVIEW_REF_PATTERN.test(record.id)) {
+    return isOrchestrationCreated(record) ? 'qualifying_near_catastrophe' : 'other_persisted'
+  }
+
+  if (CYCLE_CLOSEOUT_REVIEW_REF_PATTERN.test(record.id) && isOrchestrationCreated(record)) {
+    return 'recurrence_cycle_orchestration'
+  }
+
+  if (POST_INCIDENT_REVIEW_STUB_REGISTRY[record.id] && !isOrchestrationCreated(record)) {
+    return 'stub_fixture'
+  }
+
+  return 'other_persisted'
+}
+
+function sourceGroupLabel(group: PostIncidentReviewMirrorRecordSourceGroup): string {
+  switch (group) {
+    case 'qualifying_case_closeout':
+      return 'Qualifying case closeout'
+    case 'qualifying_near_catastrophe':
+      return 'Near-catastrophe threshold'
+    case 'recurrence_cycle_orchestration':
+      return 'Recurrence cycle closeout'
+    case 'stub_fixture':
+      return 'Stub fixture'
+    case 'other_persisted':
+      return 'Other persisted'
+  }
+}
+
+function isQualifyingIncidentSourceGroup(
+  group: PostIncidentReviewMirrorRecordSourceGroup
+): boolean {
+  return group === 'qualifying_case_closeout' || group === 'qualifying_near_catastrophe'
 }
 
 function formatConfidence(value: number | null | undefined): string {
@@ -103,6 +200,9 @@ function formatMilestoneWeek(
 function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirrorRecordView {
   const projection = projectPostIncidentReviewSummary(record)
   const milestoneTimingsRedacted = (record.redactedFields ?? []).includes('milestoneTimings')
+  const sourceGroup = classifySourceGroup(record)
+  const orchestrationWeek = extractOrchestrationWeek(record)
+  const linkedCaseId = extractLinkedCaseId(record.id)
 
   const summaryLabel = record.summary?.trim() ? record.summary : '—'
 
@@ -110,6 +210,10 @@ function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirro
     id: record.id,
     label: record.label,
     summaryLabel,
+    sourceGroup,
+    sourceLabel: sourceGroupLabel(sourceGroup),
+    linkedCaseIdLabel: linkedCaseId || '—',
+    orchestrationWeekLabel: orchestrationWeek === undefined ? '—' : `W${orchestrationWeek}`,
     reviewRouteLabel: formatPostIncidentReviewEnumLabel(projection.reviewRoute),
     closureOutcomeLabel: formatPostIncidentReviewEnumLabel(projection.closureOutcome),
     milestoneSpanWeeksLabel: formatMilestoneSpanWeeks(projection.milestoneSpanWeeks),
@@ -133,9 +237,14 @@ export function getPostIncidentReviewMirrorView(game: GameState): PostIncidentRe
 
   let externalAuditRouteCount = 0
   let recurrenceObservedCount = 0
+  let qualifyingCaseCloseoutCount = 0
+  let qualifyingNearCatastropheCount = 0
+  let orchestrationCreatedCount = 0
+  let stubFixtureCount = 0
 
   const recordViews = records.map((record) => {
     const projection = projectPostIncidentReviewSummary(record)
+    const recordView = toRecordView(record)
 
     if (projection.reviewRoute === 'external_audit') {
       externalAuditRouteCount += 1
@@ -145,17 +254,43 @@ export function getPostIncidentReviewMirrorView(game: GameState): PostIncidentRe
       recurrenceObservedCount += 1
     }
 
-    return toRecordView(record)
+    if (recordView.sourceGroup === 'qualifying_case_closeout') {
+      qualifyingCaseCloseoutCount += 1
+    }
+
+    if (recordView.sourceGroup === 'qualifying_near_catastrophe') {
+      qualifyingNearCatastropheCount += 1
+    }
+
+    if (isOrchestrationCreated(record)) {
+      orchestrationCreatedCount += 1
+    }
+
+    if (recordView.sourceGroup === 'stub_fixture') {
+      stubFixtureCount += 1
+    }
+
+    return recordView
   })
+
+  const qualifyingIncidentRecords = Object.freeze(
+    recordViews.filter((record) => isQualifyingIncidentSourceGroup(record.sourceGroup))
+  )
 
   return Object.freeze({
     isEmpty: records.length === 0,
+    hasQualifyingIncidentRecords: qualifyingIncidentRecords.length > 0,
     summary: Object.freeze({
       totalRecords: records.length,
       externalAuditRouteCount,
       recurrenceObservedCount,
+      qualifyingCaseCloseoutCount,
+      qualifyingNearCatastropheCount,
+      orchestrationCreatedCount,
+      stubFixtureCount,
       week,
     }),
+    qualifyingIncidentRecords,
     records: Object.freeze(recordViews),
   })
 }

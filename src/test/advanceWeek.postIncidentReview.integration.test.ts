@@ -12,6 +12,7 @@ import {
   applyWeeklyPostIncidentReviewCreationTick,
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../domain/postIncidentReviewWeeklyOrchestration'
+import { getPostIncidentReviewMirrorView } from '../features/operations/postIncidentReviewMirrorView'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -169,6 +170,17 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     )
     expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
     expect(created?.unknownFields).toEqual([`orchestration_week:${nextState.week}`])
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+
+    expect(mirrorView.hasQualifyingIncidentRecords).toBe(true)
+    expect(mirrorView.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(mirrorView.qualifyingIncidentRecords[0]?.id).toBe('review:case-case-001-closeout')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Qualifying case closeout')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(
+      `W${nextState.week}`
+    )
   })
 
   it('does not create a review when a non-qualifying case resolves', () => {

@@ -837,6 +837,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description:
         'Review retrospective routes, closure outcomes, milestone spans, procedure adherence, and recurrence flags.',
     },
+    {
+      label: 'Open post-incident recommendation mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendations,
+      description:
+        'Review follow-on recommendation stubs linked to orchestration-created post-incident reviews.',
+    },
   ]
 }
 

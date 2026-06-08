@@ -37,6 +37,7 @@ export const APP_ROUTES = {
   ruleDocumentCompliance: '/rule-document-compliance',
   recurrentCatastropheAmelioration: '/recurrent-catastrophe-amelioration',
   postIncidentReview: '/post-incident-review',
+  postIncidentReviewRecommendations: '/post-incident-review-recommendations',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

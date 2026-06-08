@@ -18,6 +18,7 @@ import {
 } from '../domain/postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
 import {
+  formatPostIncidentReviewEnumLabel,
   getPostIncidentReviewMirrorView,
   type PostIncidentReviewMirrorRecordView,
 } from '../features/operations/postIncidentReviewMirrorView'
@@ -74,6 +75,25 @@ function expectRedactedScoreMirrorLabels(
 ): void {
   expect(record?.procedureAdherenceScoreLabel).toBe('—')
   expect(record?.confidenceLabel).toBe('—')
+}
+
+function expectRecurrenceComplianceMirrorLabels(
+  record: PostIncidentReviewMirrorRecordView | undefined,
+  expected: {
+    reviewRouteLabel: string
+    closureOutcomeLabel: string
+    recurrenceObservedLabel: string
+  }
+): void {
+  expect(record?.reviewRouteLabel).toBe(expected.reviewRouteLabel)
+  expect(record?.closureOutcomeLabel).toBe(expected.closureOutcomeLabel)
+  expect(record?.recurrenceObservedLabel).toBe(expected.recurrenceObservedLabel)
+}
+
+function expectRedactedRecurrenceObservedMirrorLabel(
+  record: PostIncidentReviewMirrorRecordView | undefined
+): void {
+  expect(record?.recurrenceObservedLabel).toBe('—')
 }
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -182,6 +202,14 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       created!.milestoneTimings!,
       projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
+    expectRecurrenceComplianceMirrorLabels(cycleMirrorRecord, {
+      reviewRouteLabel: 'Internal Command',
+      closureOutcomeLabel: 'Contained',
+      recurrenceObservedLabel: 'Yes',
+    })
+    expect(created?.recurrenceObserved).toBe(true)
+    expect(mirrorView.summary.recurrenceObservedCount).toBe(2)
+    expect(mirrorView.summary.externalAuditRouteCount).toBe(1)
   })
 
   it('renders redacted milestoneTimings mirror labels on cycle-4 closeout path (SPE-868 slice 23)', () => {
@@ -349,6 +377,14 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
       created!.milestoneTimings!,
       projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
+    expectRecurrenceComplianceMirrorLabels(mirrorView.qualifyingIncidentRecords[0], {
+      reviewRouteLabel: 'Internal Command',
+      closureOutcomeLabel: 'Contained',
+      recurrenceObservedLabel: 'No',
+    })
+    expect(created?.recurrenceObserved).toBe(false)
+    expect(mirrorView.summary.recurrenceObservedCount).toBe(1)
+    expect(mirrorView.summary.externalAuditRouteCount).toBe(1)
   })
 
   it('renders redacted milestoneTimings mirror labels on qualifying case closeout path (SPE-868 slice 24)', () => {
@@ -657,6 +693,14 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       created!.milestoneTimings!,
       projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
     )
+    expectRecurrenceComplianceMirrorLabels(mirrorView.qualifyingIncidentRecords[0], {
+      reviewRouteLabel: 'External Audit',
+      closureOutcomeLabel: 'Administratively Cleared',
+      recurrenceObservedLabel: 'No',
+    })
+    expect(created?.recurrenceObserved).toBe(false)
+    expect(mirrorView.summary.recurrenceObservedCount).toBe(1)
+    expect(mirrorView.summary.externalAuditRouteCount).toBe(2)
   })
 
   it('renders redacted milestoneTimings mirror labels on near-catastrophe path (SPE-868 slice 24)', () => {
@@ -1374,5 +1418,139 @@ describe('advanceWeek post-incident review redacted score mirror integration (SP
     expect(twiceMirror.qualifyingIncidentRecords).toHaveLength(2)
     expect(twiceMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
     expect(twiceMirror.summary.qualifyingNearCatastropheCount).toBe(1)
+  })
+})
+
+describe('advanceWeek post-incident review recurrence compliance mirror integration (SPE-868 slice 26)', () => {
+  it('renders redacted recurrenceObserved mirror label on cycle-4 closeout path', () => {
+    const state = stateWithFollowOnTrainingEnqueueReady(createStartingState())
+    freezeCasesForQuietWeek(state)
+    state.week = 52
+    state.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: {
+        ...RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+        postIncidentReviewRefs: ['review:cycle-3-closeout', 'review:cycle-4-closeout'],
+      },
+    }
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:cycle-4-closeout']
+
+    expect(created?.recurrenceObserved).toBe(true)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(nextState)
+    const beforeRecord = beforeMirror.records.find(
+      (record) => record.id === 'review:cycle-4-closeout'
+    )
+
+    expect(beforeRecord?.recurrenceObservedLabel).toBe('Yes')
+    expect(beforeRecord?.redacted).toBe(false)
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:cycle-4-closeout': {
+        ...created!,
+        redactedFields: ['recurrenceObserved'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.records.find((record) => record.id === 'review:cycle-4-closeout')
+
+    expectRedactedRecurrenceObservedMirrorLabel(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.recurrenceObservedLabel).not.toBe('Yes')
+    expect(mirrorRecord?.reviewRouteLabel).toBe('Internal Command')
+    expect(mirrorRecord?.closureOutcomeLabel).toBe('Contained')
+    expect(mirrorView.summary.recurrenceObservedCount).toBe(1)
+  })
+
+  it('renders redacted recurrenceObserved mirror label on near-catastrophe path', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+
+    expect(created?.recurrenceObserved).toBe(false)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(nextState)
+    const beforeRecord = beforeMirror.qualifyingIncidentRecords[0]
+
+    expect(beforeRecord?.recurrenceObservedLabel).toBe('No')
+    expect(beforeRecord?.reviewRouteLabel).toBe('External Audit')
+    expect(beforeRecord?.closureOutcomeLabel).toBe('Administratively Cleared')
+    expect(beforeRecord?.redacted).toBe(false)
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:near-catastrophe-case-001': {
+        ...created!,
+        redactedFields: ['recurrenceObserved'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.qualifyingIncidentRecords[0]
+
+    expectRedactedRecurrenceObservedMirrorLabel(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.recurrenceObservedLabel).not.toBe('No')
+    expect(mirrorRecord?.reviewRouteLabel).toBe('External Audit')
+    expect(mirrorRecord?.closureOutcomeLabel).toBe('Administratively Cleared')
+    expect(mirrorView.summary.recurrenceObservedCount).toBe(1)
+    expect(mirrorView.summary.externalAuditRouteCount).toBe(2)
+  })
+
+  it('mirrors independent recurrence and compliance labels on dual-path week without duplicating on re-advance', () => {
+    const state = makeDualPathCloseoutAndNearCatastropheState()
+
+    const once = advanceWeek(state)
+    const closeout = once.postIncidentReviewRecords?.['review:case-case-001-closeout']
+    const nearCatastrophe = once.postIncidentReviewRecords?.['review:near-catastrophe-case-002']
+
+    expect(closeout?.recurrenceObserved).toBe(false)
+    expect(nearCatastrophe?.recurrenceObserved).toBe(false)
+
+    const beforeMirror = getPostIncidentReviewMirrorView(once)
+
+    expect(beforeMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(beforeMirror.summary.qualifyingNearCatastropheCount).toBe(1)
+    expect(beforeMirror.summary.recurrenceObservedCount).toBe(1)
+    expect(beforeMirror.summary.externalAuditRouteCount).toBe(2)
+    expect(beforeMirror.qualifyingIncidentRecords).toHaveLength(2)
+
+    const closeoutMirror = beforeMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:case-case-001-closeout'
+    )
+    const nearMirror = beforeMirror.qualifyingIncidentRecords.find(
+      (record) => record.id === 'review:near-catastrophe-case-002'
+    )
+
+    expectRecurrenceComplianceMirrorLabels(closeoutMirror, {
+      reviewRouteLabel: 'Internal Command',
+      closureOutcomeLabel: 'Contained',
+      recurrenceObservedLabel: 'No',
+    })
+    expectRecurrenceComplianceMirrorLabels(nearMirror, {
+      reviewRouteLabel: 'External Audit',
+      closureOutcomeLabel: 'Administratively Cleared',
+      recurrenceObservedLabel: 'No',
+    })
+    expect(formatPostIncidentReviewEnumLabel('external_audit')).toBe('External Audit')
+
+    const twice = advanceWeek(once)
+
+    expect(twice.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBe(closeout)
+    expect(twice.postIncidentReviewRecords?.['review:near-catastrophe-case-002']).toBe(
+      nearCatastrophe
+    )
+
+    const twiceMirror = getPostIncidentReviewMirrorView(twice)
+
+    expect(twiceMirror.qualifyingIncidentRecords).toHaveLength(2)
+    expect(twiceMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
+    expect(twiceMirror.summary.qualifyingNearCatastropheCount).toBe(1)
+    expect(twiceMirror.summary.recurrenceObservedCount).toBe(1)
+    expect(twiceMirror.summary.externalAuditRouteCount).toBe(2)
   })
 })

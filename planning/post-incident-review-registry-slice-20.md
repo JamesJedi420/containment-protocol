@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2389](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2389 — Milestone timing capture beyond reportingWeek (slice 20)](https://linear.app/spectranoir/issue/SPE-2389) |
-| **Status** | **Shipped** — PR #2646 @ merge pending                                                                   |
+| **Status** | **Shipped** — PR #2646 @ `8cfe85bc`                                                                      |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-milestone-timing-capture-slice-20`                                                         |
 | **Base `main` SHA** | `bb40af3c`                                                                                          |

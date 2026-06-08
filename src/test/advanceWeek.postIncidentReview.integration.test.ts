@@ -82,6 +82,11 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       'follow_on:training-ref:threat-assessment',
       'orchestration_week:53',
     ])
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const followOnNotes =
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    expect(followOnNotes).toHaveLength(1)
+    expect(followOnNotes[0]?.content).toContain('training reference (threat assessment)')
     expect(nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]).toEqual(
       RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE
     )
@@ -187,6 +192,13 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
       `orchestration_week:${nextState.week}`,
     ])
 
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const followOnNotes =
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    expect(followOnNotes).toHaveLength(1)
+    expect(followOnNotes[0]?.content).toContain(created?.label ?? '')
+    expect(followOnNotes[0]?.content).toContain('training reference (threat assessment)')
+
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
     expect(mirrorView.hasQualifyingIncidentRecords).toBe(true)
@@ -236,6 +248,15 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
 
     expect(created).toBeDefined()
     expect(twice.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBe(created)
+
+    const onceReport = once.reports[once.reports.length - 1]
+    const twiceReport = twice.reports[twice.reports.length - 1]
+    const onceFollowOnNotes =
+      onceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    const twiceFollowOnNotes =
+      twiceReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    expect(onceFollowOnNotes).toHaveLength(1)
+    expect(twiceFollowOnNotes).toHaveLength(0)
   })
 })
 
@@ -345,6 +366,12 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       'follow_on:recommendation-stub:near-catastrophe-case-001',
       `orchestration_week:${nextState.week}`,
     ])
+
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const followOnNotes =
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    expect(followOnNotes).toHaveLength(1)
+    expect(followOnNotes[0]?.content).toContain('recommendation stub (near catastrophe case 001)')
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -472,5 +499,10 @@ describe('advanceWeek post-incident review follow-on artifact integration (SPE-8
     const nextState = advanceWeek(assigned)
 
     expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeUndefined()
+
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const followOnNotes =
+      weeklyReport?.notes.filter((note) => note.content.startsWith('Post-incident follow-on —')) ?? []
+    expect(followOnNotes).toHaveLength(0)
   })
 })

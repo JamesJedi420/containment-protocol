@@ -288,6 +288,7 @@ import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemW
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
@@ -4720,6 +4721,26 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPostIncidentReviewRecords,
       outputWeeklyState.postIncidentReviewRecords
     )
+
+    // SPE-868 slice 11: project follow-on artifact narratives into weekly report notes.
+    const lastWeeklyReportForFollowOn = result.reports[result.reports.length - 1]
+    const followOnReportNotes = buildWeeklyPostIncidentReviewFollowOnReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReportForFollowOn?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (followOnReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...followOnReportNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2123 slice 3: compliance-decay band state transitions on rule-document compliance records.

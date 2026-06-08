@@ -60,6 +60,18 @@ describe('postIncidentReviewRegistry (SPE-868 slice 5)', () => {
     expect(projection.redacted).toBe(true)
   })
 
+  it('redacts reviewRoute and closureOutcome when redactedFields includes them', () => {
+    const projection = projectPostIncidentReviewSummary({
+      ...RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE,
+      redactedFields: ['reviewRoute', 'closureOutcome'],
+    })
+
+    expect(projection.reviewRoute).toBeNull()
+    expect(projection.closureOutcome).toBeNull()
+    expect(projection.redacted).toBe(true)
+    expect(projection.recurrenceObserved).toBe(true)
+  })
+
   it('errors on franchise token in review label', () => {
     const result = validatePostIncidentReviewRecord(
       baseRecord({

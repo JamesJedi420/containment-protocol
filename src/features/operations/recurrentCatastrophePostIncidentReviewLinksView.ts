@@ -4,7 +4,7 @@ import {
   validateRecurrentCatastrophePostIncidentReviewRefs,
   type RecurrentCatastrophePostIncidentReviewLinkSummary,
 } from '../../domain/recurrentCatastrophePostIncidentReviewLinks'
-import { formatPostIncidentReviewEnumLabel } from './postIncidentReviewMirrorView'
+import { formatOptionalPostIncidentReviewEnumLabel } from './postIncidentReviewMirrorView'
 
 export interface RecurrentCatastrophePostIncidentReviewLinkRecordView {
   recordId: string
@@ -79,8 +79,8 @@ function toLinkItemView(
   return Object.freeze({
     reviewRefLabel: link.reviewRef,
     reviewIdLabel: link.reviewId,
-    reviewRouteLabel: formatPostIncidentReviewEnumLabel(summary.reviewRoute),
-    closureOutcomeLabel: formatPostIncidentReviewEnumLabel(summary.closureOutcome),
+    reviewRouteLabel: formatOptionalPostIncidentReviewEnumLabel(summary.reviewRoute),
+    closureOutcomeLabel: formatOptionalPostIncidentReviewEnumLabel(summary.closureOutcome),
     milestoneSpanWeeksLabel: formatMilestoneSpanWeeks(summary.milestoneSpanWeeks),
     recurrenceObservedLabel: formatRecurrenceObserved(summary.recurrenceObserved),
     procedureAdherenceScoreLabel: formatUnitScore(summary.procedureAdherenceScore),

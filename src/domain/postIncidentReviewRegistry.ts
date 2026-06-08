@@ -120,8 +120,8 @@ export interface PostIncidentReviewSummaryProjectionPolicy {
 export interface PostIncidentReviewSummaryProjection {
   readonly reviewId: PostIncidentReviewId
   readonly label: string
-  readonly reviewRoute: PostIncidentReviewRoute
-  readonly closureOutcome: PostIncidentClosureOutcome
+  readonly reviewRoute: PostIncidentReviewRoute | null
+  readonly closureOutcome: PostIncidentClosureOutcome | null
   readonly milestoneSpanWeeks: number | null
   readonly procedureAdherenceScore: number | null
   readonly recurrenceObserved: boolean | null
@@ -436,6 +436,42 @@ function resolveRecurrenceObserved(
   return typeof record.recurrenceObserved === 'boolean' ? record.recurrenceObserved : null
 }
 
+function resolveReviewRoute(
+  record: PostIncidentReviewRecord,
+  policy: PostIncidentReviewSummaryProjectionPolicy
+): PostIncidentReviewRoute | null {
+  const redactedFields = new Set(asStringArray(record.redactedFields))
+  const unknownFields = asStringArray(record.unknownFields)
+
+  if (
+    redactedFields.has('reviewRoute') ||
+    (policy.redactUnknown === true && unknownFields.includes('reviewRoute'))
+  ) {
+    return null
+  }
+
+  return isPostIncidentReviewRoute(record.reviewRoute) ? record.reviewRoute : 'internal_command'
+}
+
+function resolveClosureOutcome(
+  record: PostIncidentReviewRecord,
+  policy: PostIncidentReviewSummaryProjectionPolicy
+): PostIncidentClosureOutcome | null {
+  const redactedFields = new Set(asStringArray(record.redactedFields))
+  const unknownFields = asStringArray(record.unknownFields)
+
+  if (
+    redactedFields.has('closureOutcome') ||
+    (policy.redactUnknown === true && unknownFields.includes('closureOutcome'))
+  ) {
+    return null
+  }
+
+  return isPostIncidentClosureOutcome(record.closureOutcome)
+    ? record.closureOutcome
+    : 'contained'
+}
+
 // ---------------------------------------------------------------------------
 // Type guards
 // ---------------------------------------------------------------------------
@@ -546,28 +582,30 @@ export function projectPostIncidentReviewSummary(
   const milestoneSpanWeeks = resolveMilestoneSpanWeeks(record, policy)
   const procedureAdherenceScore = resolveProcedureAdherenceScore(record, policy)
   const recurrenceObserved = resolveRecurrenceObserved(record, policy)
+  const reviewRoute = resolveReviewRoute(record, policy)
+  const closureOutcome = resolveClosureOutcome(record, policy)
 
   const redacted =
     redactedFields.has('milestoneTimings') ||
     redactedFields.has('procedureAdherenceScore') ||
     redactedFields.has('recurrenceObserved') ||
+    redactedFields.has('reviewRoute') ||
+    redactedFields.has('closureOutcome') ||
     redactedFields.has('confidence') ||
     (policy.redactUnknown === true &&
       (unknownFields.includes('milestoneTimings') ||
         unknownFields.includes('procedureAdherenceScore') ||
         unknownFields.includes('recurrenceObserved') ||
+        unknownFields.includes('reviewRoute') ||
+        unknownFields.includes('closureOutcome') ||
         unknownFields.includes('confidence'))) ||
     (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
 
   return Object.freeze({
     reviewId,
     label: normalizeToken(record.label) || '(unknown)',
-    reviewRoute: isPostIncidentReviewRoute(record.reviewRoute)
-      ? record.reviewRoute
-      : 'internal_command',
-    closureOutcome: isPostIncidentClosureOutcome(record.closureOutcome)
-      ? record.closureOutcome
-      : 'contained',
+    reviewRoute,
+    closureOutcome,
     milestoneSpanWeeks,
     procedureAdherenceScore,
     recurrenceObserved,

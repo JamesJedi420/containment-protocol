@@ -66,6 +66,14 @@ export function formatPostIncidentReviewEnumLabel(value: string): string {
     .join(' ')
 }
 
+export function formatOptionalPostIncidentReviewEnumLabel(value: string | null): string {
+  if (value === null) {
+    return '—'
+  }
+
+  return formatPostIncidentReviewEnumLabel(value)
+}
+
 function listPersistedRecords(game: GameState): PostIncidentReviewRecord[] {
   const map = game.postIncidentReviewRecords ?? {}
   return Object.values(map).sort((left, right) => left.id.localeCompare(right.id))
@@ -214,8 +222,8 @@ function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirro
     sourceLabel: sourceGroupLabel(sourceGroup),
     linkedCaseIdLabel: linkedCaseId || '—',
     orchestrationWeekLabel: orchestrationWeek === undefined ? '—' : `W${orchestrationWeek}`,
-    reviewRouteLabel: formatPostIncidentReviewEnumLabel(projection.reviewRoute),
-    closureOutcomeLabel: formatPostIncidentReviewEnumLabel(projection.closureOutcome),
+    reviewRouteLabel: formatOptionalPostIncidentReviewEnumLabel(projection.reviewRoute),
+    closureOutcomeLabel: formatOptionalPostIncidentReviewEnumLabel(projection.closureOutcome),
     milestoneSpanWeeksLabel: formatMilestoneSpanWeeks(projection.milestoneSpanWeeks),
     discoveryWeekLabel: formatMilestoneWeek(record, 'discoveryWeek', milestoneTimingsRedacted),
     responseWeekLabel: formatMilestoneWeek(record, 'responseWeek', milestoneTimingsRedacted),

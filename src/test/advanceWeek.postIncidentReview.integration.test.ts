@@ -15,6 +15,7 @@ import {
 } from '../domain/postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
 import { getPostIncidentReviewMirrorView } from '../features/operations/postIncidentReviewMirrorView'
+import { getPostIncidentReviewRecommendationMirrorView } from '../features/operations/postIncidentReviewRecommendationMirrorView'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -357,6 +358,50 @@ function makeDualNearCatastropheDeadlineEscalationState() {
   return state
 }
 
+function makeDualPathCloseoutAndNearCatastropheState() {
+  const state = stateWithFollowOnTrainingEnqueueReady(createStartingState())
+  state.rngSeed = 315
+  state.rngState = 315
+  state.recurrentCatastropheRecords = {}
+
+  for (const currentCase of Object.values(state.cases)) {
+    if (currentCase.id !== 'case-001' && currentCase.id !== 'case-002') {
+      currentCase.status = 'open'
+      currentCase.assignedTeamIds = []
+      currentCase.stage = 1
+      currentCase.deadlineRemaining = Math.max(currentCase.deadlineWeeks, 4)
+    }
+  }
+
+  state.cases['case-001'] = {
+    ...state.cases['case-001'],
+    status: 'in_progress',
+    stage: 4,
+    weeksRemaining: 1,
+    difficulty: { combat: 1, investigation: 0, utility: 0, social: 0 },
+    weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
+  }
+
+  state.cases['case-002'] = suppressCaseSpawns({
+    ...state.cases['case-002'],
+    status: 'open',
+    assignedTeamIds: [],
+    stage: 1,
+    deadlineRemaining: 1,
+  })
+
+  const assigned = assignTeam(state, 'case-001', 't_nightwatch')
+  assigned.teams['t_nightwatch'] = {
+    ...assigned.teams['t_nightwatch'],
+    status: {
+      ...(assigned.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+      assignedCaseId: 'case-001',
+    },
+  }
+
+  return assigned
+}
+
 describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', () => {
   it('creates a near-catastrophe review when deadline escalation crosses the threshold', () => {
     const state = makeNearCatastropheDeadlineEscalationState()
@@ -600,5 +645,113 @@ describe('advanceWeek post-incident recommendation registry integration (SPE-868
     expect(twice.postIncidentReviewRecommendationRecords).toEqual(
       once.postIncidentReviewRecommendationRecords
     )
+  })
+})
+
+describe('advanceWeek post-incident recommendation mirror integration (SPE-868 slice 16)', () => {
+  it('returns empty recommendation mirror before qualifying reviews materialize', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+
+    const mirrorView = getPostIncidentReviewRecommendationMirrorView(state)
+
+    expect(mirrorView.isEmpty).toBe(true)
+    expect(mirrorView.hasLinkedQualifyingReviews).toBe(false)
+    expect(mirrorView.summary.totalRecords).toBe(0)
+    expect(mirrorView.summary.linkedQualifyingReviewCount).toBe(0)
+    expect(mirrorView.linkedQualifyingRecords).toEqual([])
+    expect(mirrorView.records).toEqual([])
+  })
+
+  it('mirrors linked qualifying rows after near-catastrophe advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const mirrorView = getPostIncidentReviewRecommendationMirrorView(nextState)
+    const record = mirrorView.records[0]
+
+    expect(nextState.postIncidentReviewRecommendationRecords?.['recommendation:near-catastrophe-case-001']).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-001',
+      stubSuffix: 'near-catastrophe-case-001',
+      orchestrationWeek: nextState.week,
+    })
+    expect(mirrorView.isEmpty).toBe(false)
+    expect(mirrorView.hasLinkedQualifyingReviews).toBe(true)
+    expect(mirrorView.summary.totalRecords).toBe(1)
+    expect(mirrorView.summary.linkedQualifyingReviewCount).toBe(1)
+    expect(mirrorView.linkedQualifyingRecords).toHaveLength(1)
+    expect(record?.id).toBe('recommendation:near-catastrophe-case-001')
+    expect(record?.reviewRefLabel).toBe('review:near-catastrophe-case-001')
+    expect(record?.stubSuffixLabel).toBe('near-catastrophe-case-001')
+    expect(record?.orchestrationWeekLabel).toBe(`W${nextState.week}`)
+    expect(record?.linkedQualifyingReview).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-001',
+      sourceLabel: 'Near-catastrophe threshold',
+      linkedCaseIdLabel: 'case-001',
+      orchestrationWeekLabel: `W${nextState.week}`,
+    })
+  })
+
+  it('only appends recommendation registry on dual-path tick when closeout uses training-ref', () => {
+    const state = makeDualPathCloseoutAndNearCatastropheState()
+
+    const nextState = advanceWeek(state)
+    const mirrorView = getPostIncidentReviewRecommendationMirrorView(nextState)
+
+    expect(nextState.cases['case-001'].status).toBe('resolved')
+    expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeDefined()
+    expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-002']).toBeDefined()
+    expect(nextState.trainingQueue).toHaveLength(1)
+    expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
+    expect(Object.keys(nextState.postIncidentReviewRecommendationRecords ?? {})).toEqual([
+      'recommendation:near-catastrophe-case-002',
+    ])
+    expect(
+      nextState.postIncidentReviewRecommendationRecords?.['recommendation:case-case-001-closeout']
+    ).toBeUndefined()
+    expect(mirrorView.summary.totalRecords).toBe(1)
+    expect(mirrorView.summary.linkedQualifyingReviewCount).toBe(1)
+    expect(mirrorView.records[0]?.linkedQualifyingReview).toMatchObject({
+      reviewRef: 'review:near-catastrophe-case-002',
+      linkedCaseIdLabel: 'case-002',
+      sourceLabel: 'Near-catastrophe threshold',
+    })
+  })
+
+  it('does not duplicate recommendation mirror rows on re-advance', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+    const onceMirror = getPostIncidentReviewRecommendationMirrorView(once)
+    const twiceMirror = getPostIncidentReviewRecommendationMirrorView(twice)
+
+    expect(twiceMirror.records).toEqual(onceMirror.records)
+    expect(twiceMirror.linkedQualifyingRecords).toEqual(onceMirror.linkedQualifyingRecords)
+    expect(twiceMirror.summary.totalRecords).toBe(onceMirror.summary.totalRecords)
+    expect(twiceMirror.summary.linkedQualifyingReviewCount).toBe(
+      onceMirror.summary.linkedQualifyingReviewCount
+    )
+    expect(twiceMirror.summary.week).toBe(once.week + 1)
+  })
+
+  it('orders recommendation mirror rows by stable record id when multiple qualify', () => {
+    const state = makeDualNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const mirrorView = getPostIncidentReviewRecommendationMirrorView(nextState)
+    const recommendationIds = mirrorView.records.map((record) => record.id)
+
+    expect(recommendationIds).toEqual([
+      'recommendation:near-catastrophe-case-001',
+      'recommendation:near-catastrophe-case-002',
+    ])
+    expect(recommendationIds).toEqual(
+      [...recommendationIds].sort((left, right) => left.localeCompare(right))
+    )
+    expect(mirrorView.summary.totalRecords).toBe(2)
+    expect(mirrorView.summary.linkedQualifyingReviewCount).toBe(2)
+    expect(mirrorView.linkedQualifyingRecords).toHaveLength(2)
   })
 })

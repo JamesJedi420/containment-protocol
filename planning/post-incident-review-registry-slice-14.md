@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2383](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2383 — Post-incident recommendation record registry persistence (slice 14)](https://linear.app/spectranoir/issue/SPE-2383) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2634 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (do not re-close) |
 | **Branch** | `spe-868-review-follow-on-recommendation-registry-slice-14`                                                |
 | **Base `main` SHA** | `1d6066fd`                                                                                          |
@@ -47,10 +47,10 @@ When orchestration-created reviews materialize with `follow_on:recommendation-st
 
 ## Acceptance
 
-- [ ] Near-catastrophe review → one `recommendation:<suffix>` registry entry
-- [ ] Re-advance idempotent; stub registry unchanged; training-ref path skips recommendation append
-- [ ] `advanceWeek` near-catastrophe + recurrence closeout integration expectations
-- [ ] Slice 10/11/12/13 regressions green; `npm run lint` green
+- [x] Near-catastrophe review → one `recommendation:<suffix>` registry entry
+- [x] Re-advance idempotent; stub registry unchanged; training-ref path skips recommendation append
+- [x] `advanceWeek` near-catastrophe + recurrence closeout integration expectations
+- [x] Slice 10/11/12/13 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

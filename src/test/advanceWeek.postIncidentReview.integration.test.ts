@@ -13,6 +13,7 @@ import {
   applyWeeklyPostIncidentReviewCreationTick,
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../domain/postIncidentReviewWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
 import { getPostIncidentReviewMirrorView } from '../features/operations/postIncidentReviewMirrorView'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
 
@@ -77,7 +78,10 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(catastrophe?.lastOccurrenceWeek).toBe(53)
     expect(created?.label).toBe('Manifestation cascade cycle 4 closeout review')
     expect(created?.milestoneTimings?.reportingWeek).toBe(53)
-    expect(created?.unknownFields).toEqual(['orchestration_week:53'])
+    expect(created?.unknownFields).toEqual([
+      'follow_on:training-ref:threat-assessment',
+      'orchestration_week:53',
+    ])
     expect(nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]).toEqual(
       RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE
     )
@@ -115,11 +119,14 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       state.cases,
       nextState.week
     )
-    const directReviewTick = applyWeeklyPostIncidentReviewCreationTick(
+    const directReviewTick = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
       state.postIncidentReviewRecords,
-      directRecurrenceTick,
-      nextState.week,
-      qualifyingDrafts
+      applyWeeklyPostIncidentReviewCreationTick(
+        state.postIncidentReviewRecords,
+        directRecurrenceTick,
+        nextState.week,
+        qualifyingDrafts
+      )
     )
 
     expect(nextState.recurrentCatastropheRecords).toEqual(directRecurrenceTick)
@@ -175,7 +182,10 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
       'Qualifying incident closeout review — ' + state.cases['case-001'].title
     )
     expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
-    expect(created?.unknownFields).toEqual([`orchestration_week:${nextState.week}`])
+    expect(created?.unknownFields).toEqual([
+      'follow_on:training-ref:threat-assessment',
+      `orchestration_week:${nextState.week}`,
+    ])
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -331,7 +341,10 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(created?.reviewRoute).toBe('external_audit')
     expect(created?.closureOutcome).toBe('administratively_cleared')
     expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
-    expect(created?.unknownFields).toEqual([`orchestration_week:${nextState.week}`])
+    expect(created?.unknownFields).toEqual([
+      'follow_on:recommendation-stub:near-catastrophe-case-001',
+      `orchestration_week:${nextState.week}`,
+    ])
 
     const mirrorView = getPostIncidentReviewMirrorView(nextState)
 
@@ -406,15 +419,58 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       state.cases,
       nextState.week
     )
-    const directReviewTick = applyWeeklyPostIncidentReviewCreationTick(
+    const directReviewTick = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
       state.postIncidentReviewRecords,
-      state.recurrentCatastropheRecords,
-      nextState.week,
-      qualifyingDrafts
+      applyWeeklyPostIncidentReviewCreationTick(
+        state.postIncidentReviewRecords,
+        state.recurrentCatastropheRecords,
+        nextState.week,
+        qualifyingDrafts
+      )
     )
 
     expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toEqual(
       directReviewTick['review:near-catastrophe-case-001']
     )
+  })
+})
+
+describe('advanceWeek post-incident review follow-on artifact integration (SPE-868 slice 10)', () => {
+  it('leaves stub registry reviews without follow-on artifacts on a quiet week', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+
+    const nextState = advanceWeek(state)
+
+    expect(
+      nextState.postIncidentReviewRecords?.[RECURRENCE_CYCLE_CLOSEOUT_REVIEW_FIXTURE.id]?.unknownFields
+    ).toBeUndefined()
+  })
+
+  it('does not append follow-on artifacts when no qualifying review materializes', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.recurrentCatastropheRecords = {}
+    state.cases['case-001'] = {
+      ...state.cases['case-001'],
+      status: 'in_progress',
+      stage: 1,
+      weeksRemaining: 1,
+      difficulty: { combat: 1, investigation: 0, utility: 0, social: 0 },
+      weights: { combat: 1, investigation: 0, utility: 0, social: 0 },
+    }
+    const assigned = assignTeam(state, 'case-001', 't_nightwatch')
+    assigned.teams['t_nightwatch'] = {
+      ...assigned.teams['t_nightwatch'],
+      status: {
+        ...(assigned.teams['t_nightwatch'].status ?? { state: 'deployed', assignedCaseId: null }),
+        assignedCaseId: 'case-001',
+      },
+    }
+
+    const nextState = advanceWeek(assigned)
+
+    expect(nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']).toBeUndefined()
   })
 })

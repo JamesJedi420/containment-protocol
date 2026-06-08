@@ -287,6 +287,7 @@ import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInforma
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
@@ -4714,6 +4715,10 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       recurrentCatastrophesForReviewCreation,
       result.week,
       qualifyingIncidentReviewDrafts
+    )
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
+      currentPostIncidentReviewRecords,
+      outputWeeklyState.postIncidentReviewRecords
     )
   }
 

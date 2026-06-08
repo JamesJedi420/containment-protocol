@@ -344,6 +344,32 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     )
   })
 
+  it('renders redacted milestoneTimings mirror labels on qualifying case closeout path (SPE-868 slice 24)', () => {
+    const state = makeQualifyingResolvedCaseState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:case-case-001-closeout']
+
+    expect(created?.milestoneTimings).toBeDefined()
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:case-case-001-closeout': {
+        ...created!,
+        redactedFields: ['milestoneTimings'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.qualifyingIncidentRecords[0]
+
+    expectRedactedMilestoneMirrorLabels(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.discoveryWeekLabel).not.toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
+    )
+  })
+
   it('does not create a review when a non-qualifying case resolves', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -585,6 +611,48 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       mirrorView.qualifyingIncidentRecords[0],
       created!.milestoneTimings!,
       projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
+    )
+  })
+
+  it('renders redacted milestoneTimings mirror labels on near-catastrophe path (SPE-868 slice 24)', () => {
+    const state = makeNearCatastropheDeadlineEscalationState()
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']
+
+    expect(created?.milestoneTimings).toBeDefined()
+
+    const beforeMirror = getPostIncidentReviewMirrorView(nextState)
+    const beforeRecord = beforeMirror.qualifyingIncidentRecords[0]
+
+    expect(beforeRecord?.discoveryWeekLabel).toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
+    )
+    expect(beforeRecord?.responseWeekLabel).toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.responseWeek)
+    )
+    expect(beforeRecord?.containmentWeekLabel).toBe('—')
+    expect(beforeRecord?.recoveryWeekLabel).toBe('—')
+    expect(beforeRecord?.reportingWeekLabel).toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.reportingWeek)
+    )
+    expect(beforeRecord?.redacted).toBe(false)
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:near-catastrophe-case-001': {
+        ...created!,
+        redactedFields: ['milestoneTimings'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const mirrorRecord = mirrorView.qualifyingIncidentRecords[0]
+
+    expectRedactedMilestoneMirrorLabels(mirrorRecord)
+    expect(mirrorRecord?.redacted).toBe(true)
+    expect(mirrorRecord?.discoveryWeekLabel).not.toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
     )
   })
 

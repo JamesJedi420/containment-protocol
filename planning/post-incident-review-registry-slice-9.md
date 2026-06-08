@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2378](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2378 — Near-catastrophe advanceWeek mirror integration (slice 9)](https://linear.app/spectranoir/issue/SPE-2378) |
-| **Status** | **In Progress** — pending PR merge                                                                                            |
+| **Status** | **Shipped** — PR #2624 @ merge                                                                               |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-near-catastrophe-mirror-integration-slice-9`                                                      |
 | **Base `main` SHA** | `60d1f40f`                                                                                          |

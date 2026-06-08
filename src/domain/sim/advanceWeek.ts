@@ -287,7 +287,7 @@ import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInforma
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
-import { applyWeeklyPostIncidentReviewCreationTick } from '../postIncidentReviewWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4697,14 +4697,23 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     )
   }
 
-  // SPE-868 slice 4: retrospective creation for qualifying recurrence closeout refs.
+  // SPE-868 slice 4/7: retrospective creation for recurrence closeout refs and qualifying incidents.
   const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
   const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
-  if (Object.keys(recurrentCatastrophesForReviewCreation).length > 0) {
+  const qualifyingIncidentReviewDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
+    context.eventDrafts,
+    sourceState.cases,
+    result.week
+  )
+  if (
+    Object.keys(recurrentCatastrophesForReviewCreation).length > 0 ||
+    qualifyingIncidentReviewDrafts.length > 0
+  ) {
     outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewCreationTick(
       currentPostIncidentReviewRecords,
       recurrentCatastrophesForReviewCreation,
-      result.week
+      result.week,
+      qualifyingIncidentReviewDrafts
     )
   }
 

@@ -58,6 +58,17 @@ function expectMilestoneMirrorLabels(
   )
 }
 
+function expectRedactedMilestoneMirrorLabels(
+  record: PostIncidentReviewMirrorRecordView | undefined
+): void {
+  expect(record?.discoveryWeekLabel).toBe('—')
+  expect(record?.responseWeekLabel).toBe('—')
+  expect(record?.containmentWeekLabel).toBe('—')
+  expect(record?.recoveryWeekLabel).toBe('—')
+  expect(record?.reportingWeekLabel).toBe('—')
+  expect(record?.milestoneSpanWeeksLabel).toBe('—')
+}
+
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
     currentCase.status = 'open'
@@ -163,6 +174,42 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       cycleMirrorRecord,
       created!.milestoneTimings!,
       projectPostIncidentReviewSummary(created!).milestoneSpanWeeks
+    )
+  })
+
+  it('renders redacted milestoneTimings mirror labels on cycle-4 closeout path (SPE-868 slice 23)', () => {
+    const state = stateWithFollowOnTrainingEnqueueReady(createStartingState())
+    freezeCasesForQuietWeek(state)
+    state.week = 52
+    state.recurrentCatastropheRecords = {
+      [RECURRENCE_DAMAGE_LEDGER_FIXTURE.id]: {
+        ...RECURRENCE_DAMAGE_LEDGER_FIXTURE,
+        postIncidentReviewRefs: ['review:cycle-3-closeout', 'review:cycle-4-closeout'],
+      },
+    }
+
+    const nextState = advanceWeek(state)
+    const created = nextState.postIncidentReviewRecords?.['review:cycle-4-closeout']
+
+    expect(created?.milestoneTimings).toBeDefined()
+
+    nextState.postIncidentReviewRecords = {
+      ...nextState.postIncidentReviewRecords,
+      'review:cycle-4-closeout': {
+        ...created!,
+        redactedFields: ['milestoneTimings'],
+      },
+    }
+
+    const mirrorView = getPostIncidentReviewMirrorView(nextState)
+    const cycleMirrorRecord = mirrorView.records.find(
+      (record) => record.id === 'review:cycle-4-closeout'
+    )
+
+    expectRedactedMilestoneMirrorLabels(cycleMirrorRecord)
+    expect(cycleMirrorRecord?.redacted).toBe(true)
+    expect(cycleMirrorRecord?.discoveryWeekLabel).not.toBe(
+      formatExpectedMilestoneWeekLabel(created!.milestoneTimings!.discoveryWeek)
     )
   })
 

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2389](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2389 — Milestone timing capture beyond reportingWeek (slice 20)](https://linear.app/spectranoir/issue/SPE-2389) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2646 @ merge pending                                                                   |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-milestone-timing-capture-slice-20`                                                         |
 | **Base `main` SHA** | `bb40af3c`                                                                                          |
@@ -52,11 +52,11 @@ Extend qualifying review records with distinct milestone intervals (discovery / 
 
 ## Acceptance
 
-- [ ] Registry exports deterministic milestone derivation for cycle closeout, case closeout, and near-catastrophe profiles
-- [ ] Creation tick uses registry derivation (no duplicate private builders)
-- [ ] Domain unit tests cover all three profiles + partial-milestone edge cases
-- [ ] `advanceWeek` integration asserts full milestone intervals on qualifying case closeout path
-- [ ] Re-advance idempotent; slice 7/9 regressions green; `npm run lint` green
+- [x] Registry exports deterministic milestone derivation for cycle closeout, case closeout, and near-catastrophe profiles
+- [x] Creation tick uses registry derivation (no duplicate private builders)
+- [x] Domain unit tests cover all three profiles + partial-milestone edge cases
+- [x] `advanceWeek` integration asserts full milestone intervals on qualifying case closeout path
+- [x] Re-advance idempotent; slice 7/9 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

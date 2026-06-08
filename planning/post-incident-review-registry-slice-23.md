@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2392](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2392 — Post-incident review redacted milestoneTimings mirror label integration (slice 23)](https://linear.app/spectranoir/issue/SPE-2392) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2653 @ `24eb391a`                                                                                            |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-milestone-redaction-mirror-slice-23`                                                       |
 | **Base `main` SHA** | `46214587`                                                                                          |
@@ -49,10 +49,10 @@ Extend integration or mirror unit tests to assert em-dash milestone labels when 
 
 ## Acceptance
 
-- [ ] Redacted `milestoneTimings` mirror labels assert em-dash on unit fixture and cycle-4 path
-- [ ] Span label redacts when `milestoneTimings` redacted
-- [ ] Redacted full profile distinguished from partial missing-milestone profile
-- [ ] Slice 22 regressions green; `npm run lint` green
+- [x] Redacted `milestoneTimings` mirror labels assert em-dash on unit fixture and cycle-4 path
+- [x] Span label redacts when `milestoneTimings` redacted
+- [x] Redacted full profile distinguished from partial missing-milestone profile
+- [x] Slice 22 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

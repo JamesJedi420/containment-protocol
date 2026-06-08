@@ -95,7 +95,9 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(catastrophe?.recurrenceCount).toBe(4)
     expect(catastrophe?.lastOccurrenceWeek).toBe(53)
     expect(created?.label).toBe('Manifestation cascade cycle 4 closeout review')
-    expect(created?.milestoneTimings?.reportingWeek).toBe(53)
+    expect(created?.milestoneTimings).toEqual(
+      derivePostIncidentMilestoneTimings('cycle_closeout', nextState.week)
+    )
     expect(created?.unknownFields).toEqual([
       'follow_on:training-ref:threat-assessment',
       'orchestration_week:53',
@@ -445,7 +447,9 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     )
     expect(created?.reviewRoute).toBe('external_audit')
     expect(created?.closureOutcome).toBe('administratively_cleared')
-    expect(created?.milestoneTimings?.reportingWeek).toBe(nextState.week)
+    expect(created?.milestoneTimings).toEqual(
+      derivePostIncidentMilestoneTimings('near_catastrophe', nextState.week)
+    )
     expect(created?.unknownFields).toEqual([
       'follow_on:recommendation-stub:near-catastrophe-case-001',
       `orchestration_week:${nextState.week}`,

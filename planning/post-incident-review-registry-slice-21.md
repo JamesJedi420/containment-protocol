@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2390](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2390 — Near-catastrophe + cycle closeout milestone integration (slice 21)](https://linear.app/spectranoir/issue/SPE-2390) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2648 @ `8e0d0207`                                                                      |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-milestone-integration-slice-21`                                                            |
 | **Base `main` SHA** | `1c0bb3cf`                                                                                          |
@@ -50,9 +50,9 @@ Extend `advanceWeek.postIncidentReview.integration.test.ts` to assert full `mile
 
 ## Acceptance
 
-- [ ] Cycle-4 closeout path asserts full 5-milestone profile via registry derivation
-- [ ] Near-catastrophe path asserts full 3-milestone profile via registry derivation
-- [ ] Slice 20/7/9 regressions green; `npm run lint` green
+- [x] Cycle-4 closeout path asserts full 5-milestone profile via registry derivation
+- [x] Near-catastrophe path asserts full 3-milestone profile via registry derivation
+- [x] Slice 20/7/9 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

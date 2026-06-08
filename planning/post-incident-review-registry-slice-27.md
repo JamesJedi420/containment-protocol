@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2396](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2396 — Post-incident review redacted reviewRoute/closureOutcome mirror labels on qualifying advanceWeek paths (slice 27)](https://linear.app/spectranoir/issue/SPE-2396) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — SPE-2396 / PR #2661 @ `1fe6f323`                                                                  |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-route-redaction-slice-27`                                                                  |
 | **Base `main` SHA** | `829ce083`                                                                                          |

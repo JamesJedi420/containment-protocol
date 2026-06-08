@@ -1509,6 +1509,7 @@ export type ReportNoteType =
   | 'hub.rumor'
   | 'system.equipment_recovered'
   | 'information_intake.verification'
+  | 'post_incident_review.follow_on'
 
 export type ReportNoteMetadataValue =
   | string

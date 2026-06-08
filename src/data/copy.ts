@@ -1020,6 +1020,41 @@ export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_ACTION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation action registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on action stubs linked to recommendation and qualifying review records.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedRecommendationLabel: 'Linked recommendations',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Action ids, recommendation refs, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation action records',
+  emptyBody:
+    'Persisted action records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Actions whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Follow-on action-stub tokens materialized from recommendation registry entries during weekly advance.',
+  labelColumn: 'Label',
+  recommendationRefColumn: 'Recommendation ref',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  actionTokenColumn: 'Action token',
+  openReviewMirrorLabel: 'Open review mirror',
+  openRecommendationMirrorLabel: 'Open recommendation mirror',
+  linkedRecommendationPrefix: 'Linked recommendation:',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
 export const POST_INCIDENT_REVIEW_RECOMMENDATION_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Post-incident recommendation registry',

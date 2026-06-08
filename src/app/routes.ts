@@ -38,6 +38,7 @@ export const APP_ROUTES = {
   recurrentCatastropheAmelioration: '/recurrent-catastrophe-amelioration',
   postIncidentReview: '/post-incident-review',
   postIncidentReviewRecommendations: '/post-incident-review-recommendations',
+  postIncidentReviewRecommendationActions: '/post-incident-review-recommendation-actions',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

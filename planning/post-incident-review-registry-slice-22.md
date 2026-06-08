@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2391](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2391 — Post-incident review mirror milestone label integration (slice 22)](https://linear.app/spectranoir/issue/SPE-2391) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2651 @ `bf234197`                                                                      |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (stays open) |
 | **Branch** | `spe-868-review-milestone-mirror-slice-22`                                                                 |
 | **Base `main` SHA** | `3d01d429`                                                                                          |
@@ -50,10 +50,10 @@ Extend `advanceWeek.postIncidentReview.integration.test.ts` to assert mirror mil
 
 ## Acceptance
 
-- [ ] Case closeout path asserts milestone mirror labels via `getPostIncidentReviewMirrorView`
-- [ ] Cycle-4 closeout path asserts milestone mirror labels via `getPostIncidentReviewMirrorView`
-- [ ] Near-catastrophe path asserts partial milestone mirror labels (containment/recovery `—`)
-- [ ] Slice 21 regressions green; `npm run lint` green
+- [x] Case closeout path asserts milestone mirror labels via `getPostIncidentReviewMirrorView`
+- [x] Cycle-4 closeout path asserts milestone mirror labels via `getPostIncidentReviewMirrorView`
+- [x] Near-catastrophe path asserts partial milestone mirror labels (containment/recovery `—`)
+- [x] Slice 21 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

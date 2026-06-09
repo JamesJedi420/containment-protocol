@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2406](https://linear.app/spectranoir/
 | **Linear** | [SPE-2406 — Intake ↔ naming-hazard cross-link surfacing in triage/report notes (slice 1)](https://linear.app/spectranoir/issue/SPE-2406) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Done; registry anchor [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) / [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) |
 | **Branch** | `spe-854-naming-hazard-cross-link-surfacing-slice-1`                                                       |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2681 @ `3841b71a`                                                                        |
 | **Base `main` SHA** | `49025251`                                                                                          |
 
 ## Goal

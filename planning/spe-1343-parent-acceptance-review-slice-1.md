@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1343](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2401 — SPE-1343 parent acceptance review (grooming slice 1)](https://linear.app/spectranoir/issue/SPE-2401) |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split; stays **Backlog** |
 | **Branch** | `spe-1343-parent-acceptance-review-slice-1`                                                                |
-| **Status** | **Shipped** — SPE-2401 (PR #2671) @ `1b2e1efa`                                                         |
+| **Status** | **Shipped** — SPE-2401 (PR #2671) @ `8cf2b869`                                                         |
 | **Base `main` SHA** | `f8dfc53e`                                                                                          |
 
 ## Goal

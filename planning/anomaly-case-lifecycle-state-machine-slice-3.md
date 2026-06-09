@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2411](https://linear.app/spectranoir/
 | **Linear** | [SPE-2411 — advanceWeek lifecycle transition tick (slice 3)](https://linear.app/spectranoir/issue/SPE-2411) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine; stays **Backlog** until remaining AC gaps close |
 | **Branch** | `spe-1310-anomaly-case-lifecycle-state-machine-slice-3`                                                    |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — SPE-2411 (PR #2690) @ `aa960b5d`                                                             |
 | **Base `main` SHA** | `6e4e4e33`                                                                                          |
 
 ## Goal
@@ -45,11 +45,11 @@ Invalid events preserve the current stage. Cases without `lifecycleStage` are un
 
 ## Acceptance
 
-- [ ] Lead case advances to `confirmation` when linked intake credibility review passes through `advanceWeek`
-- [ ] Confirmation case advances to `containment` on extranormal anomaly-confirmation hook
-- [ ] Cases without `lifecycleStage` remain unchanged after `advanceWeek`
-- [ ] Invalid transitions preserve stage
-- [ ] `npm run lint` + targeted tests green
+- [x] Lead case advances to `confirmation` when linked intake credibility review passes through `advanceWeek`
+- [x] Confirmation case advances to `containment` on extranormal anomaly-confirmation hook
+- [x] Cases without `lifecycleStage` remain unchanged after `advanceWeek`
+- [x] Invalid transitions preserve stage
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

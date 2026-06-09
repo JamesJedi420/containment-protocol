@@ -7,6 +7,15 @@ import {
 } from '../../domain/postIncidentReviewRegistry'
 import { buildQualifyingIncidentReviewRecordForDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
 import type { QualifyingIncidentReviewDraft } from '../../domain/postIncidentReviewWeeklyOrchestration'
+import { applyFundingIncome, createInitialFundingState } from '../../domain/funding'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../../domain/postIncidentReviewCloseoutRewardBranch'
+import {
+  CLOSEOUT_REWARD_BRANCH_PAYOUT_SOURCE_PREFIX,
+  CLOSEOUT_REWARD_BRANCH_TRAINING_CREDIT_SOURCE_PREFIX,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+} from '../../domain/postIncidentReviewCloseoutRewardBranchPayout'
+import { POST_INCIDENT_REVIEW_STUB_REGISTRY } from '../../domain/postIncidentReviewRegistry'
 import {
   formatPostIncidentReviewEnumLabel,
   getPostIncidentReviewMirrorView,
@@ -229,6 +238,83 @@ describe('postIncidentReviewMirrorView (SPE-868 slice 3)', () => {
     expect(view.hasQualifyingIncidentRecords).toBe(false)
     expect(record?.sourceGroup).toBe('other_persisted')
     expect(record?.orchestrationWeekLabel).toBe('—')
+  })
+
+  it('surfaces closeout reward payout line labels from funding history (SPE-868 slice 30)', () => {
+    const resolvedDraft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:case-case-major-closeout',
+      caseId: 'case-major',
+      caseTitle: 'District breach',
+      trigger: 'case_resolved',
+      stage: 4,
+      kind: 'standard',
+      anchorWeek: 12,
+    }
+    const prior = { ...POST_INCIDENT_REVIEW_STUB_REGISTRY }
+    const created = buildQualifyingIncidentReviewRecordForDraft(resolvedDraft, 12)
+    const withRewardBranch = created
+      ? applyWeeklyPostIncidentReviewCloseoutRewardBranchTick(prior, {
+          ...prior,
+          [created.id]: created,
+        })
+      : prior
+    const caseCloseout = withRewardBranch[resolvedDraft.reviewRef]
+
+    const game = createStartingState()
+    game.week = 12
+    game.postIncidentReviewRecords = caseCloseout
+      ? { [caseCloseout.id]: caseCloseout }
+      : {}
+
+    let fundingState = createInitialFundingState(0, 0, 0, 0, 0)
+    fundingState = applyFundingIncome(
+      fundingState,
+      6,
+      POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+      12,
+      `${CLOSEOUT_REWARD_BRANCH_PAYOUT_SOURCE_PREFIX}${caseCloseout?.id ?? ''}`
+    )
+    fundingState = applyFundingIncome(
+      fundingState,
+      3,
+      POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+      12,
+      `${CLOSEOUT_REWARD_BRANCH_TRAINING_CREDIT_SOURCE_PREFIX}${caseCloseout?.id ?? ''}`
+    )
+    game.agency = {
+      ...game.agency!,
+      fundingState,
+    }
+
+    const view = getPostIncidentReviewMirrorView(game)
+    const record = view.qualifyingIncidentRecords[0]
+
+    expect(record?.closeoutRewardPayoutLineLabels).toEqual([
+      'Funding credit — Containment Priority',
+      'Training credit — Containment Priority',
+    ])
+  })
+
+  it('returns empty payout line labels when funding history has no closeout reward entries', () => {
+    const resolvedDraft: QualifyingIncidentReviewDraft = {
+      reviewRef: 'review:case-case-major-closeout',
+      caseId: 'case-major',
+      caseTitle: 'District breach',
+      trigger: 'case_resolved',
+      stage: 4,
+      kind: 'standard',
+      anchorWeek: 12,
+    }
+    const caseCloseout = buildQualifyingIncidentReviewRecordForDraft(resolvedDraft, 12)
+
+    const game = createStartingState()
+    game.postIncidentReviewRecords = caseCloseout
+      ? { [caseCloseout.id]: caseCloseout }
+      : {}
+
+    const view = getPostIncidentReviewMirrorView(game)
+
+    expect(view.qualifyingIncidentRecords[0]?.closeoutRewardPayoutLineLabels).toEqual([])
   })
 
   it('is byte-stable for repeated mirror builds', () => {

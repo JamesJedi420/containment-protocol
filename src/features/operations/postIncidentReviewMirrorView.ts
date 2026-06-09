@@ -1,8 +1,9 @@
-import type { GameState } from '../../domain/models'
+import type { FundingState, GameState } from '../../domain/models'
 import {
   derivePostIncidentCloseoutRewardBranch,
   type PostIncidentCloseoutRewardBranch,
 } from '../../domain/postIncidentReviewCloseoutRewardBranch'
+import { deriveCloseoutRewardPayoutLineLabelsForReview } from '../../domain/postIncidentReviewCloseoutRewardPayoutSurfacing'
 import {
   POST_INCIDENT_REVIEW_STUB_REGISTRY,
   projectPostIncidentReviewSummary,
@@ -40,6 +41,7 @@ export interface PostIncidentReviewMirrorRecordView {
   procedureAdherenceScoreLabel: string
   recurrenceObservedLabel: string
   closeoutRewardBranchLabel: string
+  closeoutRewardPayoutLineLabels: readonly string[]
   confidenceLabel: string
   unknownFieldLabels: readonly string[]
   redacted: boolean
@@ -220,7 +222,10 @@ function formatMilestoneWeek(
   return formatWeek(record.milestoneTimings?.[field])
 }
 
-function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirrorRecordView {
+function toRecordView(
+  record: PostIncidentReviewRecord,
+  fundingState: FundingState | undefined
+): PostIncidentReviewMirrorRecordView {
   const projection = projectPostIncidentReviewSummary(record)
   const milestoneTimingsRedacted = (record.redactedFields ?? []).includes('milestoneTimings')
   const sourceGroup = classifySourceGroup(record)
@@ -250,6 +255,9 @@ function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirro
     closeoutRewardBranchLabel: formatCloseoutRewardBranchLabel(
       derivePostIncidentCloseoutRewardBranch(record)
     ),
+    closeoutRewardPayoutLineLabels: Object.freeze(
+      deriveCloseoutRewardPayoutLineLabelsForReview(record, fundingState)
+    ),
     confidenceLabel: formatConfidence(projection.confidence),
     unknownFieldLabels: Object.freeze([...projection.unknownFields]),
     redacted: projection.redacted,
@@ -260,6 +268,7 @@ function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirro
 export function getPostIncidentReviewMirrorView(game: GameState): PostIncidentReviewMirrorView {
   const records = listPersistedRecords(game)
   const week = game.week
+  const fundingState = game.agency?.fundingState
 
   let externalAuditRouteCount = 0
   let recurrenceObservedCount = 0
@@ -270,7 +279,7 @@ export function getPostIncidentReviewMirrorView(game: GameState): PostIncidentRe
 
   const recordViews = records.map((record) => {
     const projection = projectPostIncidentReviewSummary(record)
-    const recordView = toRecordView(record)
+    const recordView = toRecordView(record, fundingState)
 
     if (projection.reviewRoute === 'external_audit') {
       externalAuditRouteCount += 1

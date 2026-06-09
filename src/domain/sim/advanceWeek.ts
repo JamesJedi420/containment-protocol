@@ -294,6 +294,7 @@ import { applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick } from '.
 import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
 import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
 import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
+import { buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes } from '../postIncidentReviewCloseoutRewardPayoutSurfacing'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
@@ -4818,6 +4819,28 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...followOnReportNotes],
+      }
+      result.reports = reports
+    }
+
+    // SPE-868 slice 30: project closeout reward payout lines into weekly report notes.
+    const lastWeeklyReportForPayout = result.reports[result.reports.length - 1]
+    const payoutReportNotes = buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      nextFundingState: stateAfterCloseoutRewardBranchPayout.agency?.fundingState,
+      week: result.week,
+      sequenceStart:
+        (lastWeeklyReportForPayout?.notes?.length ?? 0) + followOnReportNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (payoutReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...payoutReportNotes],
       }
       result.reports = reports
     }

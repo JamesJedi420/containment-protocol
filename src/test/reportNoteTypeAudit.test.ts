@@ -63,6 +63,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'postIncidentReviewFollowOnWeeklyReportNotes',
     category: 'post_incident_review',
   },
+  'post_incident_review.closeout_reward_payout': {
+    status: 'active',
+    producer: 'postIncidentReviewCloseoutRewardPayoutSurfacing',
+    category: 'post_incident_review',
+  },
 } as const satisfies Record<
   ReportNoteType,
   { status: 'active' | 'future-reserved' | 'stale'; producer: string; category: string }
@@ -74,7 +79,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(41)
+    expect(entries).toHaveLength(42)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

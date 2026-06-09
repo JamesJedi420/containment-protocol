@@ -1513,6 +1513,7 @@ export type ReportNoteType =
   | 'information_intake.verification'
   | 'information_intake.naming_hazard_cross_link'
   | 'post_incident_review.follow_on'
+  | 'post_incident_review.closeout_reward_payout'
 
 export type ReportNoteMetadataValue =
   | string

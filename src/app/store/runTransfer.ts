@@ -344,6 +344,7 @@ export const REPORT_NOTE_TYPES = [
   'information_intake.verification',
   'information_intake.naming_hazard_cross_link',
   'post_incident_review.follow_on',
+  'post_incident_review.closeout_reward_payout',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -620,6 +621,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'reviewLabel',
     'followOnKind',
     'followOnToken',
+    'week',
+  ],
+  'post_incident_review.closeout_reward_payout': [
+    'reviewRef',
+    'reviewLabel',
+    'rewardBranch',
+    'payoutKinds',
     'week',
   ],
 }

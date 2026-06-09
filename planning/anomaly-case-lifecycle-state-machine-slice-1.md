@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2409](https://linear.app/spectranoir/
 | **Linear** | [SPE-2409 — Anomaly case lifecycle state machine — named stages and transition graph (slice 1)](https://linear.app/spectranoir/issue/SPE-2409) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine; stays **Backlog** |
 | **Branch** | `spe-1310-anomaly-case-lifecycle-state-machine-slice-1`                                                    |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — SPE-2409 (PR #2687) @ `c10168c3`                                                         |
 | **Base `main` SHA** | `e41ef4ca`                                                                                          |
 
 ## Goal

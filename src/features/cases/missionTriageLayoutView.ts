@@ -175,6 +175,15 @@ export function buildMissionTriageListRowChips(
     })
   }
 
+  for (const marker of view.closeoutRewardPayoutSignals.markers) {
+    pushListRowChip(chips, {
+      id: marker.id,
+      label: marker.label,
+      className: marker.className,
+      title: marker.title,
+    })
+  }
+
   return chips
 }
 

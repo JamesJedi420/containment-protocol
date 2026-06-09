@@ -76,8 +76,8 @@ Kind: `case`
 Recommended difficulty:
 
 ```ts
-difficulty: { combat: 8, investigation: 42, utility: 32, social: 38 }
-weights: { combat: 0.05, investigation: 0.45, utility: 0.25, social: 0.25 }
+difficulty: { combat: 8, investigation: 42, utility: 32, social: 38 },
+weights: { combat: 0.05, investigation: 0.45, utility: 0.25, social: 0.25 },
 ```
 
 Tags:
@@ -107,7 +107,7 @@ A parish storage audit found three antique mechanical carolers listed in pageant
 
 ## Observable problem
 
-- antique caroler set appears in parish inventory without a clean acquisition record
+- antique mechanical caroler set appears in parish inventory without a clean acquisition record
 - after-hours singing is confirmed on two independent recordings
 - the mother figure enters late on every hymn sequence
 - sleeve damage on the child figure increases between inspections
@@ -116,7 +116,7 @@ A parish storage audit found three antique mechanical carolers listed in pageant
 
 - public display window will increase civilian exposure
 - restoration handling may activate the set outside controlled conditions
-- parish staff are already normalizing the anomaly as old mechanical failure
+- parish staff are normalizing the anomaly as old mechanical failure
 
 ## Uncertainty / anomalies
 
@@ -157,37 +157,21 @@ If resolved cleanly:
 
 ## Registry candidates
 
-### Minor anomaly item
+Registry fixture implementation must use the actual supported registry schemas. The content below is conceptual source material for future `descriptionStub` / summary fields, not a field-by-field schema proposal.
+
+### Minor anomaly item concept
 
 Label: `The Whitlock Carolers`
 
-Category: mechanical / devotional artifact
+Description-stub candidate: Antique mechanical devotional figures that activate during Advent-associated preparation windows, preserve or reproduce family-linked vocal patterns, resist disassembly through timing drift and pressure marks, and create contamination risk through repeated listening.
 
-Known behavior:
+Handling-note candidate: Inspection should avoid singing along, isolate the figures from hymnals and pageant audio systems, and photograph hands, mouth hinges, and the child figure's sleeve before and after custody transfer.
 
-- activates during Advent-associated preparation windows
-- preserves or reproduces family-linked vocal patterns
-- resists disassembly by increasing timing drift and pressure marks
-- generates contamination risk through repeated listening
-
-Safe handling:
-
-- avoid singing along during inspection
-- keep figures separated from hymnals, pageant costumes, and public church audio systems
-- photograph hands, mouth hinges, and child figure sleeve before and after handling
-- preserve custody logs even when figures appear inert
-
-### Unexplained location
+### Unexplained location concept
 
 Label: `St. Bartholomew's parish store`
 
-Category: church storage / seasonal display site
-
-Known behavior:
-
-- storage room reports after-hours choral audio without power draw
-- inventory records add older pageant references after review
-- local witnesses disagree on when the figures first entered parish custody
+Description-stub candidate: Church storage room with after-hours choral audio, inventory records that add older pageant references after review, and inconsistent witness accounts about when the carolers first entered parish custody.
 
 ## Integration notes
 

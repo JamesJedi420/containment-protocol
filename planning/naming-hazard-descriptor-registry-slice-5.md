@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2405](https://linear.app/spectranoir/
 | **Linear** | [SPE-2405 — Naming-hazard descriptor registry planning mirror UI (slice 5)](https://linear.app/spectranoir/issue/SPE-2405) |
 | **Parent** | [SPE-2116](https://linear.app/spectranoir/issue/SPE-2116) — registry anchor; umbrella [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) stays open |
 | **Branch** | `spe-2116-naming-hazard-mirror-ui-slice-5`                                                                 |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2679 @ `b6841df1`                                                                        |
 | **Base `main` SHA** | `a550df90`                                                                                          |
 
 ## Goal

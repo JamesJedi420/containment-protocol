@@ -71,7 +71,7 @@ Surface read-only closeout reward payout lines in post-incident mirror and weekl
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Mission triage payout UI | SPE-868 follow-up | Mirror/report read-only labels only this slice |
+| Mission triage payout UI | SPE-2408 (slice 31) | Shipped PR #2685 |
 | SPE-1310 parent closure | SPE-1310 | Registry slices do not satisfy full parent acceptance |
 
 ## See also

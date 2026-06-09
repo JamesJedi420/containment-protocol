@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2408](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2408 — Mission triage closeout reward payout UI (slice 31)](https://linear.app/spectranoir/issue/SPE-2408) |
-| **Status** | In progress                                                                                                |
+| **Status** | **Shipped** — PR #2685 @ `2884509c`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (**Done** on Linear; owner-choice deferred slice) |
 | **Branch** | `spe-868-mission-triage-closeout-payout-ui-slice-31`                                                       |
 | **Base `main` SHA** | `3067179b`                                                                                          |

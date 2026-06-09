@@ -57,6 +57,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'hub.opportunity': 'system',
   'hub.rumor': 'system',
   'information_intake.verification': 'information_intake',
+  'information_intake.naming_hazard_cross_link': 'information_intake',
   'post_incident_review.follow_on': 'post_incident_review',
 } satisfies Record<ReportNoteType, ReportNoteCategory>
 

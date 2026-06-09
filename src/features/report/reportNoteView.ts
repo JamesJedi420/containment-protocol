@@ -17,7 +17,10 @@ export const REPORT_NOTE_CATEGORY_LABELS: Record<ReportNoteCategory, string> = {
   uncategorized: 'Uncategorized',
 }
 
-const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = ['information_intake.verification']
+const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
+  'information_intake.verification',
+  'information_intake.naming_hazard_cross_link',
+]
 
 const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = ['post_incident_review.follow_on']
 

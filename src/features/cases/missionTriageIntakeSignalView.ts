@@ -1,3 +1,4 @@
+import { listMissionIntakeNamingHazardCrossLinkSummaries } from '../../domain/informationIntakeNamingHazardCrossLinkSurfacing'
 import { deriveMissionIntakeInformationSignals } from '../../domain/missionIntakeInformationRouting'
 import type { CaseInstance, GameState } from '../../domain/models'
 
@@ -21,6 +22,7 @@ const INTAKE_REASON_PRIORITY: readonly string[] = [
   'intake-rumor-separated',
   'intake-verification-corroborated',
   'intake-linked-reports',
+  'intake-naming-hazard-cross-link',
 ]
 
 const INTAKE_REASON_PRIORITY_INDEX = new Map(
@@ -68,6 +70,8 @@ function intakeChipLabel(reasonCode: string): string {
       return 'Intake: corroborated'
     case 'intake-linked-reports':
       return 'Intake: linked'
+    case 'intake-naming-hazard-cross-link':
+      return 'Intake: naming hazard'
     default:
       if (reasonCode.startsWith('intake-coverage-')) {
         return 'Intake: coverage gap'
@@ -95,6 +99,8 @@ function intakeChipTitle(reasonCode: string, linkedReportCount: number): string 
       return 'Dominant linked intake verification is corroborated or escalated.'
     case 'intake-linked-reports':
       return `${linkedReportCount} information intake report${linkedReportCount === 1 ? '' : 's'} linked to this mission.`
+    case 'intake-naming-hazard-cross-link':
+      return 'Linked intake reports share topic refs with naming-hazard descriptors.'
     default:
       if (reasonCode.startsWith('intake-coverage-')) {
         return 'Linked intake coverage band adjusts triage priority.'
@@ -113,6 +119,7 @@ function intakeChipClassName(reasonCode: string): string {
     case 'intake-incomplete':
       return MARKER_STYLES.incomplete
     case 'intake-linked-reports':
+    case 'intake-naming-hazard-cross-link':
       return MARKER_STYLES.linked
     default:
       return MARKER_STYLES.default
@@ -145,22 +152,39 @@ export function buildMissionTriageIntakeSignals(
   }
 
   const signals = deriveMissionIntakeInformationSignals(game, resolvedCase)
-  if (signals.reasonCodes.length === 0) {
+  const crossLinkSummaries = listMissionIntakeNamingHazardCrossLinkSummaries({
+    reports: game.informationIntakeReports,
+    descriptors: game.namingHazardDescriptorRecords,
+    currentCase: resolvedCase,
+  })
+  const reasonCodes = [...signals.reasonCodes]
+  if (crossLinkSummaries.length > 0) {
+    reasonCodes.push('intake-naming-hazard-cross-link')
+  }
+
+  if (reasonCodes.length === 0) {
     return { visible: false, markers: [] }
   }
 
   const markers: MissionTriageIntakeSignalMarker[] = []
 
-  for (const reasonCode of sortedIntakeReasonCodes(signals.reasonCodes)) {
+  for (const reasonCode of sortedIntakeReasonCodes(reasonCodes)) {
     if (markers.length >= MAX_INTAKE_MARKERS) {
       break
     }
+
+    const title =
+      reasonCode === 'intake-naming-hazard-cross-link'
+        ? crossLinkSummaries
+            .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedDescriptorCount})`)
+            .join('; ')
+        : intakeChipTitle(reasonCode, signals.linkedReportCount)
 
     pushMarker(markers, {
       id: reasonCode,
       label: intakeChipLabel(reasonCode),
       className: intakeChipClassName(reasonCode),
-      title: intakeChipTitle(reasonCode, signals.linkedReportCount),
+      title,
     })
   }
 

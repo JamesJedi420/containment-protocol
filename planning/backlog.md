@@ -27,7 +27,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 Mission triage expansion remains **blocked**.
 
-**Base `main` SHA:** `f8dfc53e`
+**Base `main` SHA:** `c5202e81`
 
 **Recently groomed:** [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) stays **Backlog** — [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) child + [SPE-2325](https://linear.app/spectranoir/issue/SPE-2325)–[SPE-2331](https://linear.app/spectranoir/issue/SPE-2331) **Done** (slices 1–4 / PR #2430 / #2517 / #2519 / #2529); truth-layer split AC not met ([SPE-2401](https://linear.app/spectranoir/issue/SPE-2401) / `planning/spe-1343-parent-acceptance-review-slice-1.md`).
 
@@ -209,7 +209,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
 | `welfare-debt-accounting-registry-slice-4.md`             | **Shipped**    | SPE-2353 / PR #2574; ledger summary audit output @ `1ec3ca12`.                                                                                         |
 | `spe-1888-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2400 / PR #2668; SPE-1888 stays Backlog — registry children Done; procedural debt-creation AC not met @ `eb1ae452`.                                  |
-| `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR TBD; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `f8dfc53e`.                                              |
+| `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR #2671; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `c5202e81`.                                           |
 | `recurrent-catastrophe-amelioration-registry-slice-1.md`  | **Shipped**    | SPE-2117 / PR #2436; recurrence cycles, prevention ceiling, amelioration tactics.                                                                     |
 | `recurrent-catastrophe-amelioration-registry-slice-2.md`  | **Shipped**    | SPE-2363 / PR #2595; `recurrentCatastropheRecords` GameState persistence @ `2d3049d8`.                                                               |
 | `recurrent-catastrophe-amelioration-registry-slice-3.md`  | **Shipped**    | SPE-2364 / PR #2597; weekly recurrence advance hook in `advanceWeek` @ `2d9c1beb`.                                                                  |

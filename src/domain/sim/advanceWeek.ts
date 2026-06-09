@@ -297,6 +297,7 @@ import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postInciden
 import { buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes } from '../postIncidentReviewCloseoutRewardPayoutSurfacing'
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
+import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4582,6 +4583,20 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         notes: [...(lastReport.notes ?? []), ...intakeVerificationNotes],
       }
       result.reports = reports
+    }
+  }
+
+  // SPE-1310 slice 3: apply case lifecycle transitions from weekly intake/registry event sources.
+  const priorCasesForLifecycle = outputWeeklyState.cases ?? {}
+  if (Object.keys(priorCasesForLifecycle).length > 0) {
+    const lifecycleTick = applyWeeklyCaseLifecycleTick(priorCasesForLifecycle, {
+      week: result.week,
+      priorIntakeReports,
+      nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
+      extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
+    })
+    if (lifecycleTick.changed) {
+      outputWeeklyState.cases = lifecycleTick.cases
     }
   }
 

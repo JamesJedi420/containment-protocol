@@ -1,4 +1,5 @@
 import type { BeliefTier, BeliefTrackState } from '../beliefTracks'
+import { CASE_LIFECYCLE_STAGES } from '../caseLifecycleStateMachine'
 import { sanitizePersistedFieldBasePacket, sanitizeFieldBaseQualityBands } from '../fieldBaseStaging'
 import { buildConcealmentActivationTriggersFromAuthored } from '../hiddenStateActivationAuthoring'
 import { buildInfiltrationCoverProfileFromAuthoredRecord } from '../infiltrationCoverAuthoring'
@@ -1272,6 +1273,18 @@ function sanitizeOptionalCaseId(value: unknown, fallback: string | undefined): s
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
+/** SPE-1310 slice 2: accept known lifecycle stages; drop unknown strings without throw. */
+export function sanitizeCaseLifecycleStage(
+  value: unknown,
+  fallback: CaseInstance['lifecycleStage']
+): CaseInstance['lifecycleStage'] | undefined {
+  if (value === undefined) {
+    return fallback
+  }
+
+  return isOneOf(value, CASE_LIFECYCLE_STAGES) ? value : undefined
+}
+
 function sanitizeDeploymentCarryInByAgentId(
   value: unknown,
   context: {
@@ -1521,6 +1534,10 @@ export function normalizeCaseInstance(
     fallback.counterExplanation,
     MAX_CASE_COUNTER_EXPLANATION_LENGTH
   )
+  const lifecycleStage =
+    entry.lifecycleStage !== undefined
+      ? sanitizeCaseLifecycleStage(entry.lifecycleStage, undefined)
+      : undefined
 
   const baseCase: CaseInstance = {
     ...fallback,
@@ -1641,6 +1658,7 @@ export function normalizeCaseInstance(
     ...(stealthLeaveBehindId !== undefined ? { stealthLeaveBehindId } : {}),
     ...(factionId !== undefined ? { factionId } : {}),
     ...(contactId !== undefined ? { contactId } : {}),
+    ...(lifecycleStage !== undefined ? { lifecycleStage } : {}),
     deploymentCarryInByAgentId:
       context.agents === undefined
         ? undefined
@@ -1800,6 +1818,10 @@ export function normalizeCaseInstance(
 
   if (entry.counterDetection !== undefined && sanitizeCounterDetectionField(entry.counterDetection) === undefined) {
     delete (baseCase as { counterDetection?: CaseInstance['counterDetection'] }).counterDetection
+  }
+
+  if (lifecycleStage === undefined) {
+    delete (baseCase as { lifecycleStage?: CaseInstance['lifecycleStage'] }).lifecycleStage
   }
 
   if (!catalogKnown) {

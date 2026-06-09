@@ -1406,6 +1406,9 @@ export interface CaseInstance {
   mapLayer?: import('./siteGeneration/mapMetadata').MapLayerResult
   /** Runtime weird-room state packets attached to this site. Populated by applySiteGenerationToCase. */
   weirdRoomPackets?: WeirdRoomPacket[]
+
+  /** SPE-1310 slice 2: anomaly case lifecycle stage (distinct from operational CaseStatus). */
+  lifecycleStage?: import('./caseLifecycleStateMachine').CaseLifecycleStage
 }
 
 export interface ResolutionOutcome {

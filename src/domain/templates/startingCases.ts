@@ -1,3 +1,4 @@
+import { DEFAULT_CASE_LIFECYCLE_STAGE } from '../caseLifecycleStateMachine'
 import { type CaseInstance } from '../models'
 import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
@@ -111,6 +112,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
         : undefined,
     infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
     infiltrationCoverProfile: copyInfiltrationCoverProfile(template.infiltrationCoverProfile),
+    lifecycleStage: DEFAULT_CASE_LIFECYCLE_STAGE,
   }
 
   return applySiteGenerationToCase({

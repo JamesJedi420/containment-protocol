@@ -20,13 +20,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up (follows shipped slice 1 @ PR #2687). Parent stays **Backlog** until remaining AC gaps close.
+**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 3+ — `advanceWeek` lifecycle tick / intake registry wire-up (follows shipped slice 2). Parent stays **Backlog** until remaining AC gaps close.
 
 Mission triage expansion remains **blocked**.
 
-**Base `main` SHA:** `d400338b`
+**Base `main` SHA:** `9ca9ca68`
 
-**Recently shipped:** [SPE-2409](https://linear.app/spectranoir/issue/SPE-2409) anomaly case lifecycle state machine slice 1 — pure domain transition graph (`lead`→`confirmation`→`containment`↔`revision`) @ PR #2687 / `c10168c3`; see `planning/anomaly-case-lifecycle-state-machine-slice-1.md`.
+**Recently shipped:** [SPE-2410](https://linear.app/spectranoir/issue/SPE-2410) anomaly case lifecycle state machine slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up @ PR (pending) / branch `spe-1310-anomaly-case-lifecycle-state-machine-slice-2`; see `planning/anomaly-case-lifecycle-state-machine-slice-2.md`.
 
 ## Blocked / waiting
 

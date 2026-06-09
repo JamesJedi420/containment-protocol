@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2407](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2407 — Closeout reward payout line surfacing (slice 30)](https://linear.app/spectranoir/issue/SPE-2407) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2683 @ `18d0371f`                                                                        |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (**Done** on Linear; owner-choice deferred slice) |
 | **Branch** | `spe-868-closeout-reward-payout-surfacing-slice-30`                                                        |
 | **Base `main` SHA** | `54738ba3`                                                                                          |
@@ -51,11 +51,11 @@ Surface read-only closeout reward payout lines in post-incident mirror and weekl
 
 ## Acceptance
 
-- [ ] Qualifying closeout payout lines appear on mirror when funding history entries exist
-- [ ] Weekly report notes emit on materialization week with branch + credit kinds (no numeric deltas)
-- [ ] Empty funding history → no payout lines / no notes
-- [ ] Stub fixtures and non-qualifying paths excluded
-- [ ] Slice 28–29 regressions green; `npm run lint` green
+- [x] Qualifying closeout payout lines appear on mirror when funding history entries exist
+- [x] Weekly report notes emit on materialization week with branch + credit kinds (no numeric deltas)
+- [x] Empty funding history → no payout lines / no notes
+- [x] Stub fixtures and non-qualifying paths excluded
+- [x] Slice 28–29 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

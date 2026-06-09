@@ -1,17 +1,23 @@
 /**
- * SPE-1310 slice 3–4: weekly lifecycle transition tick for persisted case lifecycleStage.
+ * SPE-1310 slice 3–5: weekly lifecycle transition tick for persisted case lifecycleStage.
  *
  * Maps deterministic weekly event sources (intake credibility review pass, extranormal
- * anomaly confirmation, rule-document compliance breach/drift, procedure revision recovery)
- * onto the slice-1 transition graph. Cases without lifecycleStage are not auto-initialized;
- * invalid transitions preserve the current stage.
+ * anomaly confirmation, rule-document compliance breach/drift, procedure revision recovery,
+ * presumed-neutralized disposition, adaptation-driven policy-tier upgrade) onto the slice-1
+ * transition graph. Cases without lifecycleStage are not auto-initialized; invalid transitions
+ * preserve the current stage.
  */
 
 import type { CaseLifecycleEvent } from './caseLifecycleStateMachine'
 import {
+  PRESUMED_NEUTRALIZED_BREACH_READINESS_INTERVAL_WEEKS,
+  PRESUMED_NEUTRALIZED_SURVEILLANCE_INTERVAL_WEEKS,
+  containmentPolicyTierRank,
   isValidCaseLifecycleTransition,
   transitionCaseLifecycleStage,
+  upgradeContainmentPolicyTier,
 } from './caseLifecycleStateMachine'
+import type { RecurrentCatastropheRecord, RecurrentCatastropheRecordsMap } from './recurrentCatastropheAmeliorationRegistry'
 import { resolveIntakeExtranormalTopicKeys } from './informationIntakeExtranormalCrossLink'
 import type {
   InformationIntakeReportRecord,
@@ -43,12 +49,15 @@ export interface WeeklyCaseLifecycleTickInput {
   readonly extranormalEventRecords?: ExtranormalEventRecordsMap | null
   readonly priorRuleDocumentComplianceRecords?: RuleDocumentComplianceRecordsMap | null
   readonly nextRuleDocumentComplianceRecords?: RuleDocumentComplianceRecordsMap | null
+  readonly priorRecurrentCatastropheRecords?: RecurrentCatastropheRecordsMap | null
+  readonly nextRecurrentCatastropheRecords?: RecurrentCatastropheRecordsMap | null
 }
 
 export interface WeeklyCaseLifecycleTickResult {
   readonly cases: Record<string, CaseInstance>
   readonly changed: boolean
   readonly appliedEvents: readonly AppliedCaseLifecycleEvent[]
+  readonly appliedDispositions: readonly AppliedCaseLifecycleDisposition[]
 }
 
 export interface AppliedCaseLifecycleEvent {
@@ -56,6 +65,13 @@ export interface AppliedCaseLifecycleEvent {
   readonly event: CaseLifecycleEvent
   readonly fromStage: NonNullable<CaseInstance['lifecycleStage']>
   readonly toStage: NonNullable<CaseInstance['lifecycleStage']>
+}
+
+export interface AppliedCaseLifecycleDisposition {
+  readonly caseId: string
+  readonly kind: 'policy_tier_upgrade'
+  readonly fromTier: NonNullable<CaseInstance['containmentPolicyTier']> | 'standard'
+  readonly toTier: NonNullable<CaseInstance['containmentPolicyTier']>
 }
 
 function normalizeToken(value: string): string {
@@ -238,6 +254,7 @@ export function resolveAnomalyConfirmedCaseIds(
 }
 
 const REVISION_HISTORY_REF_PREFIX = 'revision:'
+const PRESUMED_NEUTRALIZED_REVISION_REF = 'revision:presumed-neutralized'
 
 const COMPLIANCE_STATE_RECOVERY_RANK: Readonly<Record<ComplianceState, number>> = {
   compliant: 3,
@@ -346,6 +363,150 @@ export function didProcedureRevisionRecover(
   return complianceStateImproved(priorRecord.complianceState, nextRecord.complianceState)
 }
 
+function catastropheRecordExplicitlyLinksToCase(
+  record: RecurrentCatastropheRecord,
+  currentCase: WeeklyCaseLifecycleCaseContext
+): boolean {
+  const recordRef = normalizeToken(record.id)
+  if (!recordRef) {
+    return false
+  }
+
+  return (
+    normalizeToken(currentCase.id) === recordRef ||
+    normalizeToken(currentCase.templateId) === recordRef
+  )
+}
+
+/** New presumed-neutralized revision ref while compliance remains compliant (false-clear label). */
+export function didPresumedNeutralizationSignal(
+  priorRecord: RuleDocumentComplianceRecord,
+  nextRecord: RuleDocumentComplianceRecord
+): boolean {
+  if (nextRecord.complianceState !== 'compliant') {
+    return false
+  }
+
+  const priorRefs = new Set(priorRecord.revisionHistoryRefs ?? [])
+
+  return (nextRecord.revisionHistoryRefs ?? []).some(
+    (ref) => ref === PRESUMED_NEUTRALIZED_REVISION_REF && !priorRefs.has(ref)
+  )
+}
+
+export function resolvePresumedNeutralizedCaseIds(
+  priorRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  nextRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  cases: Record<string, CaseInstance>
+): readonly string[] {
+  const safePrior = priorRecords ?? {}
+  const safeNext = nextRecords ?? {}
+  const matched = new Set<string>()
+
+  for (const recordId of Object.keys(safeNext).sort((left, right) => left.localeCompare(right))) {
+    const priorRecord = safePrior[recordId]
+    const nextRecord = safeNext[recordId]
+    if (!priorRecord || !nextRecord) {
+      continue
+    }
+
+    if (!didPresumedNeutralizationSignal(priorRecord, nextRecord)) {
+      continue
+    }
+
+    for (const currentCase of Object.values(cases)) {
+      if (currentCase.status === 'resolved') {
+        continue
+      }
+
+      if (complianceRecordExplicitlyLinksToCase(nextRecord, currentCase)) {
+        matched.add(currentCase.id)
+      }
+    }
+  }
+
+  return [...matched].sort((left, right) => left.localeCompare(right))
+}
+
+/** Recurrence count advance on a linked catastrophe record signals demonstrated adaptation. */
+export function didAdaptationDemonstratedSignal(
+  priorRecord: RecurrentCatastropheRecord,
+  nextRecord: RecurrentCatastropheRecord
+): boolean {
+  return nextRecord.recurrenceCount > priorRecord.recurrenceCount
+}
+
+export function resolveAdaptationDemonstratedCaseIds(
+  priorRecords: RecurrentCatastropheRecordsMap | null | undefined,
+  nextRecords: RecurrentCatastropheRecordsMap | null | undefined,
+  cases: Record<string, CaseInstance>
+): readonly string[] {
+  const safePrior = priorRecords ?? {}
+  const safeNext = nextRecords ?? {}
+  const matched = new Set<string>()
+
+  for (const recordId of Object.keys(safeNext).sort((left, right) => left.localeCompare(right))) {
+    const priorRecord = safePrior[recordId]
+    const nextRecord = safeNext[recordId]
+    if (!priorRecord || !nextRecord) {
+      continue
+    }
+
+    if (!didAdaptationDemonstratedSignal(priorRecord, nextRecord)) {
+      continue
+    }
+
+    for (const currentCase of Object.values(cases)) {
+      if (currentCase.status === 'resolved') {
+        continue
+      }
+
+      if (catastropheRecordExplicitlyLinksToCase(nextRecord, currentCase)) {
+        matched.add(currentCase.id)
+      }
+    }
+  }
+
+  return [...matched].sort((left, right) => left.localeCompare(right))
+}
+
+function normalizeLifecycleWeek(week: number): number {
+  if (!Number.isFinite(week)) {
+    return 1
+  }
+
+  return Math.max(1, Math.trunc(week))
+}
+
+export function applyPresumedNeutralizedSurveillanceClocks(
+  caseData: CaseInstance,
+  week: number
+): CaseInstance {
+  const normalizedWeek = normalizeLifecycleWeek(week)
+
+  return {
+    ...caseData,
+    lifecycleSurveillanceDueWeek:
+      normalizedWeek + PRESUMED_NEUTRALIZED_SURVEILLANCE_INTERVAL_WEEKS,
+    lifecycleBreachReadinessDueWeek:
+      normalizedWeek + PRESUMED_NEUTRALIZED_BREACH_READINESS_INTERVAL_WEEKS,
+  }
+}
+
+export function applyAdaptationPolicyTierUpgrade(caseData: CaseInstance): CaseInstance {
+  const currentTier = caseData.containmentPolicyTier ?? 'standard'
+  const nextTier = upgradeContainmentPolicyTier(currentTier)
+
+  if (containmentPolicyTierRank(nextTier) === containmentPolicyTierRank(currentTier)) {
+    return caseData
+  }
+
+  return {
+    ...caseData,
+    containmentPolicyTier: nextTier,
+  }
+}
+
 export function resolveProcedureRevisedCaseIds(
   priorRecords: RuleDocumentComplianceRecordsMap | null | undefined,
   nextRecords: RuleDocumentComplianceRecordsMap | null | undefined,
@@ -445,7 +606,29 @@ function resolveWeeklyCaseLifecycleEvents(
     appendEvent(caseId, 'procedure_revised')
   }
 
+  for (const caseId of resolvePresumedNeutralizedCaseIds(
+    input.priorRuleDocumentComplianceRecords,
+    input.nextRuleDocumentComplianceRecords,
+    cases
+  )) {
+    appendEvent(caseId, 'presumed_neutralized_entered')
+  }
+
   return eventsByCase
+}
+
+function resolveAdaptationPolicyTierUpgradeCaseIds(
+  cases: Record<string, CaseInstance>,
+  input: WeeklyCaseLifecycleTickInput
+): readonly string[] {
+  return resolveAdaptationDemonstratedCaseIds(
+    input.priorRecurrentCatastropheRecords,
+    input.nextRecurrentCatastropheRecords,
+    cases
+  ).filter((caseId) => {
+    const currentCase = cases[caseId]
+    return currentCase?.lifecycleStage === 'containment'
+  })
 }
 
 /**
@@ -459,18 +642,30 @@ export function applyWeeklyCaseLifecycleTick(
   const safeCases = cases ?? {}
   const caseIds = Object.keys(safeCases)
   if (caseIds.length === 0) {
-    return { cases: safeCases, changed: false, appliedEvents: [] }
+    return {
+      cases: safeCases,
+      changed: false,
+      appliedEvents: [],
+      appliedDispositions: [],
+    }
   }
 
-  void input.week
-
+  const normalizedWeek = normalizeLifecycleWeek(input.week)
   const eventsByCase = resolveWeeklyCaseLifecycleEvents(safeCases, input)
-  if (eventsByCase.size === 0) {
-    return { cases: safeCases, changed: false, appliedEvents: [] }
+  const adaptationCaseIds = resolveAdaptationPolicyTierUpgradeCaseIds(safeCases, input)
+
+  if (eventsByCase.size === 0 && adaptationCaseIds.length === 0) {
+    return {
+      cases: safeCases,
+      changed: false,
+      appliedEvents: [],
+      appliedDispositions: [],
+    }
   }
 
   const nextCases: Record<string, CaseInstance> = { ...safeCases }
   const appliedEvents: AppliedCaseLifecycleEvent[] = []
+  const appliedDispositions: AppliedCaseLifecycleDisposition[] = []
   let changed = false
 
   for (const caseId of [...eventsByCase.keys()].sort((left, right) => left.localeCompare(right))) {
@@ -497,7 +692,10 @@ export function applyWeeklyCaseLifecycleTick(
         })
       }
 
-      workingCase = updatedCase
+      workingCase =
+        updatedCase.lifecycleStage === 'presumed_neutralized'
+          ? applyPresumedNeutralizedSurveillanceClocks(updatedCase, normalizedWeek)
+          : updatedCase
       changed = true
     }
 
@@ -506,9 +704,37 @@ export function applyWeeklyCaseLifecycleTick(
     }
   }
 
+  for (const caseId of adaptationCaseIds) {
+    const currentCase = nextCases[caseId] ?? safeCases[caseId]
+    if (!currentCase || currentCase.lifecycleStage !== 'containment') {
+      continue
+    }
+
+    const fromTier = currentCase.containmentPolicyTier ?? 'standard'
+    const updatedCase = applyAdaptationPolicyTierUpgrade(currentCase)
+    if (updatedCase === currentCase) {
+      continue
+    }
+
+    const toTier = updatedCase.containmentPolicyTier
+    if (toTier === undefined) {
+      continue
+    }
+
+    appliedDispositions.push({
+      caseId,
+      kind: 'policy_tier_upgrade',
+      fromTier,
+      toTier,
+    })
+    nextCases[caseId] = updatedCase
+    changed = true
+  }
+
   return {
     cases: changed ? nextCases : safeCases,
     changed,
     appliedEvents,
+    appliedDispositions,
   }
 }

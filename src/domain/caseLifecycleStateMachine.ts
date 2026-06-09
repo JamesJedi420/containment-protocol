@@ -6,14 +6,63 @@
  * teamStateMachine pattern — no CaseInstance persistence in this slice.
  */
 
-export type CaseLifecycleStage = 'lead' | 'confirmation' | 'containment' | 'revision'
+export type CaseLifecycleStage =
+  | 'lead'
+  | 'confirmation'
+  | 'containment'
+  | 'revision'
+  | 'presumed_neutralized'
 
 export const CASE_LIFECYCLE_STAGES = [
   'lead',
   'confirmation',
   'containment',
   'revision',
+  'presumed_neutralized',
 ] as const satisfies readonly CaseLifecycleStage[]
+
+/** Weeks after disposition entry before the next surveillance obligation is due. */
+export const PRESUMED_NEUTRALIZED_SURVEILLANCE_INTERVAL_WEEKS = 4
+
+/** Weeks after disposition entry before breach-readiness review is due. */
+export const PRESUMED_NEUTRALIZED_BREACH_READINESS_INTERVAL_WEEKS = 8
+
+export type ContainmentPolicyTier = 'standard' | 'elevated' | 'critical'
+
+export const CONTAINMENT_POLICY_TIERS = [
+  'standard',
+  'elevated',
+  'critical',
+] as const satisfies readonly ContainmentPolicyTier[]
+
+const CONTAINMENT_POLICY_TIER_RANK: Readonly<Record<ContainmentPolicyTier, number>> = {
+  standard: 0,
+  elevated: 1,
+  critical: 2,
+}
+
+export function upgradeContainmentPolicyTier(
+  tier: ContainmentPolicyTier | undefined
+): ContainmentPolicyTier {
+  const current = tier ?? 'standard'
+  if (current === 'standard') {
+    return 'elevated'
+  }
+
+  if (current === 'elevated') {
+    return 'critical'
+  }
+
+  return 'critical'
+}
+
+export function isContainmentPolicyTier(value: unknown): value is ContainmentPolicyTier {
+  return typeof value === 'string' && (CONTAINMENT_POLICY_TIERS as readonly string[]).includes(value)
+}
+
+export function containmentPolicyTierRank(tier: ContainmentPolicyTier | undefined): number {
+  return CONTAINMENT_POLICY_TIER_RANK[tier ?? 'standard']
+}
 
 export const DEFAULT_CASE_LIFECYCLE_STAGE: CaseLifecycleStage = 'lead'
 
@@ -22,6 +71,7 @@ export type CaseLifecycleEvent =
   | 'anomaly_confirmed'
   | 'research_invalidation'
   | 'procedure_revised'
+  | 'presumed_neutralized_entered'
 
 export const CASE_LIFECYCLE_TRANSITIONS: Record<
   CaseLifecycleStage,
@@ -35,10 +85,12 @@ export const CASE_LIFECYCLE_TRANSITIONS: Record<
   },
   containment: {
     research_invalidation: 'revision',
+    presumed_neutralized_entered: 'presumed_neutralized',
   },
   revision: {
     procedure_revised: 'containment',
   },
+  presumed_neutralized: {},
 }
 
 export function transitionCaseLifecycleStage(
@@ -94,6 +146,12 @@ export function getCaseLifecycleEventSequence(
 
     if (currentStage === 'containment') {
       return ['research_invalidation']
+    }
+  }
+
+  if (targetStage === 'presumed_neutralized') {
+    if (currentStage === 'containment') {
+      return ['presumed_neutralized_entered']
     }
   }
 

@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import {
+  applyAdaptationPolicyTierUpgrade,
   applyCaseLifecycleEventToCase,
+  applyPresumedNeutralizedSurveillanceClocks,
   applyWeeklyCaseLifecycleTick,
+  didAdaptationDemonstratedSignal,
   didComplianceResearchInvalidationSignal,
   didIntakeCredibilityReviewPass,
+  didPresumedNeutralizationSignal,
   didProcedureRevisionRecover,
+  resolveAdaptationDemonstratedCaseIds,
   resolveAnomalyConfirmedCaseIds,
   resolveCredibilityReviewPassedCaseIds,
+  resolvePresumedNeutralizedCaseIds,
   resolveProcedureRevisedCaseIds,
   resolveResearchInvalidationCaseIds,
 } from '../domain/caseLifecycleWeeklyOrchestration'
+import type { RecurrentCatastropheRecord } from '../domain/recurrentCatastropheAmeliorationRegistry'
 import type { RuleDocumentComplianceRecord } from '../domain/ruleDocumentComplianceContainmentRegistry'
 import { createInformationIntakeReport } from '../domain/informationIntakeReport'
 import type { CaseInstance } from '../domain/models'
@@ -389,5 +396,190 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 4)', () => {
 
     expect(result.changed).toBe(false)
     expect(result.cases[currentCase.id]?.lifecycleStage).toBe('containment')
+  })
+})
+
+describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 5)', () => {
+  function catastropheRecord(
+    overrides: Partial<RecurrentCatastropheRecord> = {}
+  ): RecurrentCatastropheRecord {
+    return {
+      id: 'case:lifecycle-target',
+      label: 'Lifecycle adaptation catastrophe',
+      recurrenceCadence: 'weekly',
+      failureMode: 'manifestation',
+      preventionCeiling: 'impossible',
+      ameliorationTactics: [{ tactic: 'narrative_containment', active: true }],
+      recurrenceCount: 0,
+      lastOccurrenceWeek: 1,
+      ...overrides,
+    }
+  }
+
+  it('applyCaseLifecycleEventToCase advances containment to presumed_neutralized', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const nextCase = applyCaseLifecycleEventToCase(
+      currentCase,
+      'presumed_neutralized_entered'
+    )
+
+    expect(nextCase.lifecycleStage).toBe('presumed_neutralized')
+  })
+
+  it('didPresumedNeutralizationSignal detects new revision:presumed-neutralized ref', () => {
+    const priorRecord = complianceRecord({
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1'],
+    })
+    const nextRecord = complianceRecord({
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+    })
+
+    expect(didPresumedNeutralizationSignal(priorRecord, nextRecord)).toBe(true)
+    expect(
+      didPresumedNeutralizationSignal(nextRecord, {
+        ...nextRecord,
+        revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+      })
+    ).toBe(false)
+  })
+
+  it('resolvePresumedNeutralizedCaseIds requires explicit documentRef case linkage', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const linkedRecord = complianceRecord({
+      id: 'rule-document-compliance:presumed-neutralized',
+      documentRef: currentCase.id,
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1'],
+    })
+
+    const priorRecords = { [linkedRecord.id]: linkedRecord }
+    const nextRecords = {
+      [linkedRecord.id]: {
+        ...linkedRecord,
+        revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+      },
+    }
+
+    expect(
+      resolvePresumedNeutralizedCaseIds(priorRecords, nextRecords, {
+        [currentCase.id]: currentCase,
+      })
+    ).toEqual([currentCase.id])
+  })
+
+  it('applyPresumedNeutralizedSurveillanceClocks sets due weeks from simulation week', () => {
+    const currentCase = makeCase({ lifecycleStage: 'presumed_neutralized' })
+    const nextCase = applyPresumedNeutralizedSurveillanceClocks(currentCase, 10)
+
+    expect(nextCase.lifecycleSurveillanceDueWeek).toBe(14)
+    expect(nextCase.lifecycleBreachReadinessDueWeek).toBe(18)
+  })
+
+  it('didAdaptationDemonstratedSignal detects recurrenceCount advance', () => {
+    const priorRecord = catastropheRecord({ recurrenceCount: 1 })
+    const nextRecord = catastropheRecord({ recurrenceCount: 2 })
+
+    expect(didAdaptationDemonstratedSignal(priorRecord, nextRecord)).toBe(true)
+    expect(didAdaptationDemonstratedSignal(nextRecord, nextRecord)).toBe(false)
+  })
+
+  it('resolveAdaptationDemonstratedCaseIds links catastrophe id to cases', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const record = catastropheRecord({ id: currentCase.templateId, recurrenceCount: 1 })
+    const priorRecords = { [record.id]: record }
+    const nextRecords = {
+      [record.id]: { ...record, recurrenceCount: 2, lastOccurrenceWeek: 2 },
+    }
+
+    expect(
+      resolveAdaptationDemonstratedCaseIds(priorRecords, nextRecords, {
+        [currentCase.id]: currentCase,
+      })
+    ).toEqual([currentCase.id])
+  })
+
+  it('applyAdaptationPolicyTierUpgrade escalates containment policy tier', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const elevated = applyAdaptationPolicyTierUpgrade(currentCase)
+    const critical = applyAdaptationPolicyTierUpgrade({
+      ...currentCase,
+      containmentPolicyTier: 'elevated',
+    })
+
+    expect(elevated.containmentPolicyTier).toBe('elevated')
+    expect(critical.containmentPolicyTier).toBe('critical')
+
+    const criticalCase = {
+      ...currentCase,
+      containmentPolicyTier: 'critical' as const,
+    }
+    expect(applyAdaptationPolicyTierUpgrade(criticalCase)).toBe(criticalCase)
+  })
+
+  it('applyWeeklyCaseLifecycleTick applies presumed_neutralized disposition with clocks', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const record = complianceRecord({
+      id: 'rule-document-compliance:presumed-neutralized-weekly',
+      documentRef: currentCase.id,
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1'],
+    })
+
+    const result = applyWeeklyCaseLifecycleTick(
+      { [currentCase.id]: currentCase },
+      {
+        week: 12,
+        priorRuleDocumentComplianceRecords: { [record.id]: record },
+        nextRuleDocumentComplianceRecords: {
+          [record.id]: {
+            ...record,
+            revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+          },
+        },
+      }
+    )
+
+    expect(result.changed).toBe(true)
+    expect(result.cases[currentCase.id]?.lifecycleStage).toBe('presumed_neutralized')
+    expect(result.cases[currentCase.id]?.lifecycleSurveillanceDueWeek).toBe(16)
+    expect(result.cases[currentCase.id]?.lifecycleBreachReadinessDueWeek).toBe(20)
+    expect(result.appliedEvents).toEqual([
+      {
+        caseId: currentCase.id,
+        event: 'presumed_neutralized_entered',
+        fromStage: 'containment',
+        toStage: 'presumed_neutralized',
+      },
+    ])
+  })
+
+  it('applyWeeklyCaseLifecycleTick upgrades policy tier for adaptation without leaving containment', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const record = catastropheRecord({ id: currentCase.id, recurrenceCount: 1 })
+
+    const result = applyWeeklyCaseLifecycleTick(
+      { [currentCase.id]: currentCase },
+      {
+        week: 3,
+        priorRecurrentCatastropheRecords: { [record.id]: record },
+        nextRecurrentCatastropheRecords: {
+          [record.id]: { ...record, recurrenceCount: 2, lastOccurrenceWeek: 3 },
+        },
+      }
+    )
+
+    expect(result.changed).toBe(true)
+    expect(result.cases[currentCase.id]?.lifecycleStage).toBe('containment')
+    expect(result.cases[currentCase.id]?.containmentPolicyTier).toBe('elevated')
+    expect(result.appliedDispositions).toEqual([
+      {
+        caseId: currentCase.id,
+        kind: 'policy_tier_upgrade',
+        fromTier: 'standard',
+        toTier: 'elevated',
+      },
+    ])
   })
 })

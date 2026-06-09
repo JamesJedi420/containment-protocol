@@ -1409,6 +1409,12 @@ export interface CaseInstance {
 
   /** SPE-1310 slice 2: anomaly case lifecycle stage (distinct from operational CaseStatus). */
   lifecycleStage?: import('./caseLifecycleStateMachine').CaseLifecycleStage
+  /** SPE-1310 slice 5: operational containment policy tier (distinct from institutional disposition label). */
+  containmentPolicyTier?: import('./caseLifecycleStateMachine').ContainmentPolicyTier
+  /** SPE-1310 slice 5: next surveillance obligation due week while in presumed_neutralized. */
+  lifecycleSurveillanceDueWeek?: number
+  /** SPE-1310 slice 5: breach-readiness review due week while in presumed_neutralized. */
+  lifecycleBreachReadinessDueWeek?: number
 }
 
 export interface ResolutionOutcome {

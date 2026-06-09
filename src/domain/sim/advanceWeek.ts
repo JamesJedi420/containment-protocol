@@ -4866,6 +4866,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
       priorRuleDocumentComplianceRecords,
       nextRuleDocumentComplianceRecords: outputWeeklyState.ruleDocumentComplianceRecords,
+      priorRecurrentCatastropheRecords: currentRecurrentCatastropheRecords,
+      nextRecurrentCatastropheRecords: outputWeeklyState.recurrentCatastropheRecords,
     })
     if (lifecycleTick.changed) {
       outputWeeklyState.cases = lifecycleTick.cases

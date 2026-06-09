@@ -10,8 +10,14 @@ import {
 } from '../domain/caseLifecycleStateMachine'
 
 describe('caseLifecycleStateMachine', () => {
-  it('defines the four core simulation stages', () => {
-    expect(CASE_LIFECYCLE_STAGES).toEqual(['lead', 'confirmation', 'containment', 'revision'])
+  it('defines the core simulation stages including presumed_neutralized disposition', () => {
+    expect(CASE_LIFECYCLE_STAGES).toEqual([
+      'lead',
+      'confirmation',
+      'containment',
+      'revision',
+      'presumed_neutralized',
+    ])
     expect(DEFAULT_CASE_LIFECYCLE_STAGE).toBe('lead')
   })
 
@@ -20,6 +26,9 @@ describe('caseLifecycleStateMachine', () => {
     expect(CASE_LIFECYCLE_TRANSITIONS.confirmation.anomaly_confirmed).toBe('containment')
     expect(CASE_LIFECYCLE_TRANSITIONS.containment.research_invalidation).toBe('revision')
     expect(CASE_LIFECYCLE_TRANSITIONS.revision.procedure_revised).toBe('containment')
+    expect(CASE_LIFECYCLE_TRANSITIONS.containment.presumed_neutralized_entered).toBe(
+      'presumed_neutralized'
+    )
   })
 
   it('rejects invalid transitions by preserving the current stage', () => {
@@ -54,5 +63,14 @@ describe('caseLifecycleStateMachine', () => {
     const stage = applyCaseLifecycleEventSequence('revision', ['procedure_revised'])
 
     expect(stage).toBe('containment')
+  })
+
+  it('enters presumed_neutralized from containment on disposition event', () => {
+    expect(getCaseLifecycleEventSequence('containment', 'presumed_neutralized')).toEqual([
+      'presumed_neutralized_entered',
+    ])
+    expect(
+      applyCaseLifecycleEventSequence('containment', ['presumed_neutralized_entered'])
+    ).toBe('presumed_neutralized')
   })
 })

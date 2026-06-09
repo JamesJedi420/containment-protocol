@@ -4,6 +4,7 @@ import { createInformationIntakeReport } from '../domain/informationIntakeReport
 import type { ExtranormalEventRecord } from '../domain/extranormalEventRegistry'
 import { applyWeeklyCaseLifecycleTick } from '../domain/caseLifecycleWeeklyOrchestration'
 import type { RuleDocumentComplianceRecord } from '../domain/ruleDocumentComplianceContainmentRegistry'
+import type { RecurrentCatastropheRecord } from '../domain/recurrentCatastropheAmeliorationRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -196,5 +197,68 @@ describe('advanceWeek case lifecycle integration (SPE-1310 slice 4)', () => {
 
     expect(recoveryTick.changed).toBe(true)
     expect(recoveryTick.cases[targetCase.id]?.lifecycleStage).toBe('containment')
+  })
+})
+
+describe('advanceWeek case lifecycle integration (SPE-1310 slice 5)', () => {
+  it('enters presumed_neutralized with surveillance clocks through advanceWeek lifecycle tick wiring', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+
+    const targetCase = Object.values(state.cases)[0]
+    targetCase.lifecycleStage = 'containment'
+
+    const record = elevatedDriftComplianceRecord(targetCase.id, {
+      id: 'rule-document-compliance:advance-week-presumed-neutralized',
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1'],
+    })
+    const priorRecords = { [record.id]: record }
+    const nextRecords = {
+      [record.id]: {
+        ...record,
+        revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+      },
+    }
+
+    const lifecycleTick = applyWeeklyCaseLifecycleTick(state.cases, {
+      week: state.week,
+      priorRuleDocumentComplianceRecords: priorRecords,
+      nextRuleDocumentComplianceRecords: nextRecords,
+    })
+
+    const updatedCase = lifecycleTick.cases[targetCase.id]
+    expect(updatedCase?.lifecycleStage).toBe('presumed_neutralized')
+    expect(updatedCase?.lifecycleSurveillanceDueWeek).toBe(state.week + 4)
+    expect(updatedCase?.lifecycleBreachReadinessDueWeek).toBe(state.week + 8)
+  })
+
+  it('upgrades containment policy tier when linked catastrophe recurs through advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+
+    const targetCase = Object.values(state.cases)[0]
+    targetCase.lifecycleStage = 'containment'
+
+    const catastrophe: RecurrentCatastropheRecord = {
+      id: targetCase.id,
+      label: 'Advance week adaptation catastrophe',
+      recurrenceCadence: 'weekly',
+      failureMode: 'manifestation',
+      preventionCeiling: 'impossible',
+      ameliorationTactics: [{ tactic: 'narrative_containment', active: true }],
+      recurrenceCount: 0,
+      lastOccurrenceWeek: 1,
+    }
+
+    state.recurrentCatastropheRecords = {
+      [catastrophe.id]: catastrophe,
+    }
+
+    const nextState = advanceWeek(state)
+
+    expect(nextState.cases[targetCase.id]?.lifecycleStage).toBe('containment')
+    expect(nextState.cases[targetCase.id]?.containmentPolicyTier).toBe('elevated')
+    expect(nextState.recurrentCatastropheRecords?.[catastrophe.id]?.recurrenceCount).toBe(1)
   })
 })

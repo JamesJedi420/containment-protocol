@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2403](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2403 — Branching reward logic on qualifying closeout paths (slice 28)](https://linear.app/spectranoir/issue/SPE-2403) |
-| **Status** | **Ready for ship**                                                                                         |
+| **Status** | **Shipped** — PR #2675 @ `da127367`                                                                      |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (**Done** on Linear; owner-choice deferred slice) |
 | **Branch** | `spe-868-branching-reward-slice-28`                                                                        |
 | **Base `main` SHA** | `2355dbc0`                                                                                          |

@@ -16,6 +16,7 @@ import {
   applyWeeklyPostIncidentReviewCreationTick,
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../domain/postIncidentReviewWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../domain/postIncidentReviewCloseoutRewardBranch'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
 import {
   formatPostIncidentReviewEnumLabel,
@@ -25,6 +26,29 @@ import {
 import { getPostIncidentReviewRecommendationActionMirrorView } from '../features/operations/postIncidentReviewRecommendationActionMirrorView'
 import { getPostIncidentReviewRecommendationMirrorView } from '../features/operations/postIncidentReviewRecommendationMirrorView'
 import { applyWeeklyRecurrentCatastropheTick } from '../domain/recurrentCatastropheWeeklyOrchestration'
+import type { PostIncidentReviewRecordsMap } from '../domain/postIncidentReviewRegistry'
+import type { RecurrentCatastropheRecordsMap } from '../domain/recurrentCatastropheAmeliorationRegistry'
+import type { QualifyingIncidentReviewDraft } from '../domain/postIncidentReviewWeeklyOrchestration'
+
+function applyDirectPostIncidentReviewTicks(
+  priorReviews: PostIncidentReviewRecordsMap | undefined,
+  catastrophes: RecurrentCatastropheRecordsMap | undefined,
+  week: number,
+  qualifyingDrafts: readonly QualifyingIncidentReviewDraft[]
+): PostIncidentReviewRecordsMap {
+  const created = applyWeeklyPostIncidentReviewCreationTick(
+    priorReviews,
+    catastrophes,
+    week,
+    qualifyingDrafts
+  )
+  const withRewardBranch = applyWeeklyPostIncidentReviewCloseoutRewardBranchTick(
+    priorReviews,
+    created
+  )
+
+  return applyWeeklyPostIncidentReviewFollowOnArtifactTick(priorReviews, withRewardBranch)
+}
 
 function formatExpectedMilestoneWeekLabel(week: number | undefined): string {
   if (week === undefined) {
@@ -184,6 +208,7 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
     expect(created?.unknownFields).toEqual([
       'follow_on:training-ref:threat-assessment',
       'orchestration_week:53',
+      'reward_branch:recurrence_softening',
     ])
     expect(nextState.trainingQueue).toHaveLength(1)
     expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
@@ -287,14 +312,11 @@ describe('advanceWeek post-incident review integration (SPE-868 slice 4)', () =>
       state.cases,
       nextState.week
     )
-    const directReviewTick = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
+    const directReviewTick = applyDirectPostIncidentReviewTicks(
       state.postIncidentReviewRecords,
-      applyWeeklyPostIncidentReviewCreationTick(
-        state.postIncidentReviewRecords,
-        directRecurrenceTick,
-        nextState.week,
-        qualifyingDrafts
-      )
+      directRecurrenceTick,
+      nextState.week,
+      qualifyingDrafts
     )
 
     expect(nextState.recurrentCatastropheRecords).toEqual(directRecurrenceTick)
@@ -355,6 +377,7 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     expect(created?.unknownFields).toEqual([
       'follow_on:training-ref:threat-assessment',
       `orchestration_week:${nextState.week}`,
+      'reward_branch:containment_priority',
     ])
     expect(nextState.trainingQueue).toHaveLength(1)
     expect(nextState.trainingQueue[0]?.trainingId).toBe('threat-assessment')
@@ -374,6 +397,9 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     expect(mirrorView.summary.qualifyingCaseCloseoutCount).toBe(1)
     expect(mirrorView.summary.qualifyingNearCatastropheCount).toBe(0)
     expect(mirrorView.qualifyingIncidentRecords[0]?.id).toBe('review:case-case-001-closeout')
+    expect(mirrorView.qualifyingIncidentRecords[0]?.closeoutRewardBranchLabel).toBe(
+      'Containment Priority'
+    )
     expect(mirrorView.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Qualifying case closeout')
     expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
     expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(
@@ -668,6 +694,7 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
     expect(created?.unknownFields).toEqual([
       'follow_on:recommendation-stub:near-catastrophe-case-001',
       `orchestration_week:${nextState.week}`,
+      'reward_branch:threshold_mitigation',
     ])
 
     const weeklyReport = nextState.reports[nextState.reports.length - 1]
@@ -861,14 +888,11 @@ describe('advanceWeek near-catastrophe review integration (SPE-868 slice 9)', ()
       state.cases,
       nextState.week
     )
-    const directReviewTick = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
+    const directReviewTick = applyDirectPostIncidentReviewTicks(
       state.postIncidentReviewRecords,
-      applyWeeklyPostIncidentReviewCreationTick(
-        state.postIncidentReviewRecords,
-        state.recurrentCatastropheRecords,
-        nextState.week,
-        qualifyingDrafts
-      )
+      state.recurrentCatastropheRecords,
+      nextState.week,
+      qualifyingDrafts
     )
 
     expect(nextState.postIncidentReviewRecords?.['review:near-catastrophe-case-001']).toEqual(

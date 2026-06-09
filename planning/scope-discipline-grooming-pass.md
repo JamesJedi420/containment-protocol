@@ -4,8 +4,8 @@ One-page audit record. **Docs + Linear hygiene only** — no application code, n
 
 | Field | Value |
 | --- | --- |
-| **Branch** | `jamesdyedbq/docs-scope-discipline-grooming-pass` |
-| **Base `main`** | `17df0ed3685053caabe924b6e9b48d0180a6acce` (June 2026) |
+| **Branch** | `jamesdyedbq/docs-scope-discipline-grooming-pass` (June 2026); post-SPE-2362 refresh on `main` @ `11d57c13` |
+| **Base `main`** | `11d57c13` (June 2026, post SPE-2362 / PR #2592) |
 | **Roadmap anchor** | `planning/roadmap.md` §15, §14 review questions |
 | **Queue authority** | `planning/backlog.md` |
 
@@ -37,7 +37,8 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | Backlog | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 only — defer slice-2+ until MVP loop needs cognitive hazard engine depth |
 | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | Backlog | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) slice 1 only — defer slice-2+ |
 | [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) | Backlog | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) slice 1 only — defer slice-2+ |
-| [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) | Backlog | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117), [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) slice 1 — defer slice-2+ |
+| [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) | Backlog | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117), [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) slice 1 shipped — **next:** persistence slice 2 per active queue |
+| [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) | Done | Substrate + [SPE-2361](https://linear.app/spectranoir/issue/SPE-2361) harvest + [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime hooks shipped — optional stability-audit follow-on only |
 | [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) | Done | Batch-4+ template stacks **deferred** — `planning/infiltration-encounter-content-batch4plus-audit.md` |
 
 ## Phase 3 — Blocked / deferred / active
@@ -59,26 +60,30 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 - New hidden-modality families beyond shipped 1–11 stack
 - SPE-2250 batch-4+ template authoring — see audit gates below
 
-## Phase 4 — Roadmap §14 review (candidates — updated post SPE-2251)
+## Phase 4 — Roadmap §14 review (candidates — updated post SPE-2362)
 
 | Candidate | §14 pass? | Notes |
 | --- | --- | --- |
-| **Extranormal event registry persistence (SPE-2105 slice 2)** | **Yes** | First intake-registry persistence after SPE-2251 harness closure; mirrors SPE-2293 pattern; strengthens loop without new surfaces |
-| Registry slice-2 wave (other parents) | Partial | One registry per PR after SPE-2105 pattern lands |
+| **SPE-2117 recurrent catastrophe registry persistence (slice 2)** | **Yes** | Slice 1 shipped (PR #2436); no `GameState` key yet — mirrors SPE-2312 / SPE-2313 pattern; strengthens loop under [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) |
+| **SPE-2123 rule-document compliance registry persistence (slice 2)** | **Yes** | Slice 1 shipped (PR #2442); sibling persistence slice under SPE-1310; weekly hook deferred to slice 3+ |
+| Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) follow-on) | Partial | Read-only `analyzeRuntimeStability` seam; explicit-node adapter only; deferred from [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) — dev/stability tooling, not player loop |
+| Dedicated exploit-access content | **No** | Validator substrate shipped; defer until scoped slice owner exists |
 | SPE-70 parent Done review | Partial | Hygiene only — no runtime unless owner reopens AC |
 | Mission triage residual | **No** | Blocked — surfaces without loop truth |
 | SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates (audit unchanged) |
 
-## Phase 5 — Backlog outcome (updated June 2026 post SPE-2251 / PR #2486)
+## Phase 5 — Backlog outcome (updated June 2026 post SPE-2362 / PR #2592)
 
 **Recommended next implementation (owner creates Linear child when starting):**
 
-**Extranormal event registry GameState persistence slice 2** — `planning/extranormal-event-registry-slice-2.md`, branch `spe-2105-extranormal-event-registry-persistence-slice-2`, base `main` @ `80f7ffdb`.
+**SPE-2117 recurrent catastrophe amelioration registry GameState persistence (slice 2)** — mirror `planning/extranormal-event-registry-slice-2.md` against `src/domain/recurrentCatastropheAmeliorationRegistry.ts`; branch `spe-2117-recurrent-catastrophe-persistence-slice-2`, base `main` @ `11d57c13`.
+
+**Alternate (same grooming pass):** branch-continuity stability-audit category — read-only `stabilityLayer.ts` category via `buildBranchContinuityRuntimeAuditSnapshot`; owner creates SPE-1464 child when starting; see `planning/branch-continuity-runtime-hooks-slice-1.md` § Deferred.
 
 **Explicitly deferred:**
 
 - SPE-2250 batch-4+ — `planning/infiltration-encounter-content-batch4plus-audit.md` (audit gates still fail)
-- Sibling registry slice-2 (SPE-2106, SPE-2104, SPE-1309+ parents) — after SPE-2105 persistence pattern
+- Dedicated exploit-access content — harvest row 74; validator substrate sufficient until scoped
 - Mission triage full refresh — blocked
 
 ## SPE-2250 revisit gates (unchanged)
@@ -91,10 +96,21 @@ Reopen optional template stack authoring only when **all** are true:
 4. Smallest set: **1–3 templates** per PR.
 5. Not duplicating batch-4 IDs (`INFILTRATION_CONTENT_BATCH_FOUR_TEMPLATE_IDS`).
 
+## Phase 6 — Post SPE-2362 queue refresh (June 2026)
+
+| Artifact | Problem | Action |
+| --- | --- | --- |
+| `planning/backlog.md` § Active queue | Empty after SPE-2362 closure; handoff still cited SPE-2362 as next | Repopulated §14-pass candidates; handoff → SPE-2117 slice 2 @ `11d57c13` |
+| `planning/backlog.md` slice index | `contained-person-integrated-health-bundle-slice-9.md` stale **In progress**; missing `branch-continuity-runtime-hooks-slice-1.md` | Marked SPE-2349 / SPE-2362 **Shipped** |
+| `planning/contained-person-integrated-health-bundle-slice-9.md` | Status still **In progress** | **Shipped** — PR #2566 |
+
+**Branch continuity thread closure:** [SPE-2361](https://linear.app/spectranoir/issue/SPE-2361) harvest reconciliation + [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime hooks both **Done**; [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) parent stays **Done** — do not reopen.
+
 ## Validation (this pass)
 
 - [x] Docs-only diff
 - [x] No `verify:audits-index` / `verify:theme-contracts` required (no `docs/*audit*` or SPE-186+ mirror edits)
+- [x] Active queue + handoff aligned with `main` @ `11d57c13`
 
 ## See also
 

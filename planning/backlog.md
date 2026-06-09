@@ -20,13 +20,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up (follows shipped slice 1 @ PR pending). Parent stays **Backlog** until remaining AC gaps close.
+**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up (follows shipped slice 1 @ PR #2687). Parent stays **Backlog** until remaining AC gaps close.
 
 Mission triage expansion remains **blocked**.
 
-**Base `main` SHA:** `e41ef4ca`
+**Base `main` SHA:** `d400338b`
 
-**Recently shipped:** [SPE-2409](https://linear.app/spectranoir/issue/SPE-2409) anomaly case lifecycle state machine slice 1 — pure domain transition graph (`lead`→`confirmation`→`containment`↔`revision`); see `planning/anomaly-case-lifecycle-state-machine-slice-1.md`.
+**Recently shipped:** [SPE-2409](https://linear.app/spectranoir/issue/SPE-2409) anomaly case lifecycle state machine slice 1 — pure domain transition graph (`lead`→`confirmation`→`containment`↔`revision`) @ PR #2687 / `c10168c3`; see `planning/anomaly-case-lifecycle-state-machine-slice-1.md`.
 
 ## Blocked / waiting
 
@@ -180,6 +180,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `contained-person-integrated-health-bundle-slice-8.md`  | **Shipped**    | SPE-2348 / PR #2564; medication regimen derive/compose wire-up + SPE-1886 slice 1 registry @ `4ef9056d`.                                                |
 | `contained-person-integrated-health-bundle-slice-9.md`  | **Shipped**    | SPE-2349 / PR #2566; custody status derive/compose wire-up + SPE-1892 slice 1 registry @ `4ef9056d`.                                                   |
 | `contained-person-integrated-health-bundle-slice-10.md` | **Shipped**    | SPE-2350 / PR #2568; welfare-debt derive/compose wire-up + SPE-1888 slice 1 registry @ `5da1b7f3`.                                                    |
+| `branch-continuity-runtime-hooks-slice-1.md`            | **Shipped**    | SPE-2362 / PR #2592; dev-overlay read-only branch continuity audit seam @ `5d5bc297`.                                                                  |
 | `naming-hazard-descriptor-registry-slice-1.md`            | **Shipped**    | SPE-2116 / PR #2435; safe labels, reference constraints, map/briefing projection.                                                                     |
 | `naming-hazard-descriptor-registry-slice-2.md`            | **Shipped**    | SPE-2357 / PR #2582; `namingHazardDescriptorRecords` GameState persistence @ `ef905426`.                                                              |
 | `naming-hazard-descriptor-registry-slice-3.md`            | **Shipped**    | SPE-2359 / PR #2586; investigation case-prep safe-label substitution via `projectSafeLabel` + intake topic cross-link routing @ `1df0b0fa`.              |

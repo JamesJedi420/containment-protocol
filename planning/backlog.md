@@ -20,13 +20,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 4+ — `research_invalidation` / `procedure_revised` weekly hooks and remaining parent AC gaps. Parent stays **Backlog** until disposition / policy-tier / institutional-vs-operational split close.
+**Next step:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) slice 5+ — remaining parent AC gaps (`presumed_neutralized`, policy-tier upgrade on adaptation, institutional-vs-operational split). Parent stays **Backlog**.
 
 Mission triage expansion remains **blocked**.
 
-**Base `main` SHA:** `6e4e4e33`
+**Base `main` SHA:** `d79db9c7`
 
-**Recently shipped:** [SPE-2411](https://linear.app/spectranoir/issue/SPE-2411) anomaly case lifecycle state machine slice 3 — `advanceWeek` lifecycle transition tick from intake credibility review + extranormal anomaly confirmation @ `spe-1310-anomaly-case-lifecycle-state-machine-slice-3`; see `planning/anomaly-case-lifecycle-state-machine-slice-3.md`.
+**Recently shipped:** [SPE-2412](https://linear.app/spectranoir/issue/SPE-2412) anomaly case lifecycle state machine slice 4 — `research_invalidation` / `procedure_revised` weekly hooks from rule-document compliance signals @ `spe-1310-anomaly-case-lifecycle-state-machine-slice-4`; see `planning/anomaly-case-lifecycle-state-machine-slice-4.md`.
 
 ## Blocked / waiting
 

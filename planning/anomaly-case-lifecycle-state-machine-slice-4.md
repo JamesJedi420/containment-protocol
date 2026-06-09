@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2412](https://linear.app/spectranoir/
 | **Linear** | [SPE-2412 — research_invalidation / procedure_revised weekly hooks (slice 4)](https://linear.app/spectranoir/issue/SPE-2412) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine; stays **Backlog** until remaining AC gaps close |
 | **Branch** | `spe-1310-anomaly-case-lifecycle-state-machine-slice-4`                                                    |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — SPE-2412 (PR #2693) @ `d79db9c7`                                                             |
 | **Base `main` SHA** | `2950fd5a`                                                                                          |
 
 ## Goal

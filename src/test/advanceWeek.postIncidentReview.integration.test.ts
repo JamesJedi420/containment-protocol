@@ -16,7 +16,16 @@ import {
   applyWeeklyPostIncidentReviewCreationTick,
   resolveQualifyingIncidentReviewDraftsFromEventDrafts,
 } from '../domain/postIncidentReviewWeeklyOrchestration'
-import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../domain/postIncidentReviewCloseoutRewardBranch'
+import {
+  applyWeeklyPostIncidentReviewCloseoutRewardBranchTick,
+  buildCloseoutRewardBranchToken,
+} from '../domain/postIncidentReviewCloseoutRewardBranch'
+import {
+  applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick,
+  getCloseoutRewardBranchPayoutDeltas,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+} from '../domain/postIncidentReviewCloseoutRewardBranchPayout'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../domain/postIncidentReviewFollowOnArtifact'
 import {
   formatPostIncidentReviewEnumLabel,
@@ -1724,5 +1733,63 @@ describe('advanceWeek post-incident review reviewRoute closureOutcome redaction 
     expect(twiceMirror.summary.qualifyingCaseCloseoutCount).toBe(1)
     expect(twiceMirror.summary.qualifyingNearCatastropheCount).toBe(1)
     expect(twiceMirror.summary.externalAuditRouteCount).toBe(1)
+  })
+})
+
+describe('advanceWeek post-incident closeout reward-branch payout integration (SPE-868 slice 29)', () => {
+  it('applies branch-specific funding and training credit deltas on qualifying closeout week', () => {
+    const state = stateWithFollowOnTrainingEnqueueReady(makeQualifyingResolvedCaseState())
+    const nextState = advanceWeek(state)
+    const reviewRef = 'review:case-case-001-closeout'
+    const history = nextState.agency?.fundingState?.fundingHistory ?? []
+
+    const rewardEntry = history.find(
+      (entry) =>
+        entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON && entry.sourceId === `post-incident-closeout-reward:${reviewRef}`
+    )
+    const trainingEntry = history.find(
+      (entry) =>
+        entry.reason === POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON &&
+        entry.sourceId === `post-incident-closeout-training-credit:${reviewRef}`
+    )
+
+    const containmentDeltas = getCloseoutRewardBranchPayoutDeltas('containment_priority')
+    const contestedDeltas = getCloseoutRewardBranchPayoutDeltas('contested_containment')
+
+    expect(rewardEntry?.delta).toBe(containmentDeltas.fundingDelta)
+    expect(trainingEntry?.delta).toBe(containmentDeltas.trainingCreditDelta)
+    expect(containmentDeltas.fundingDelta).toBeGreaterThan(contestedDeltas.fundingDelta)
+    expect(containmentDeltas.trainingCreditDelta).toBeGreaterThan(contestedDeltas.trainingCreditDelta)
+
+    const prior = state.postIncidentReviewRecords ?? {}
+    const contestedRecord = {
+      ...nextState.postIncidentReviewRecords![reviewRef],
+      unknownFields: [
+        'follow_on:training-ref:threat-assessment',
+        `orchestration_week:${nextState.week}`,
+        buildCloseoutRewardBranchToken('contested_containment'),
+      ],
+    }
+    const contestedNext = {
+      ...nextState.postIncidentReviewRecords,
+      'review:case-case-contested-closeout': {
+        ...contestedRecord,
+        id: 'review:case-case-contested-closeout',
+      },
+    }
+    const contestedPayout = applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick(
+      stateWithFollowOnTrainingEnqueueReady(createStartingState()),
+      prior,
+      contestedNext,
+      nextState.week
+    )
+    const contestedReward = contestedPayout.agency?.fundingState?.fundingHistory.find(
+      (entry) =>
+        entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON &&
+        entry.sourceId === 'post-incident-closeout-reward:review:case-case-contested-closeout'
+    )
+
+    expect(contestedReward?.delta).toBe(contestedDeltas.fundingDelta)
+    expect(contestedReward!.delta).toBeLessThan(rewardEntry!.delta!)
   })
 })

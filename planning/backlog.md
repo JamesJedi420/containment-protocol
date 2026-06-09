@@ -26,7 +26,7 @@ Mission triage expansion remains **blocked**.
 
 **Base `main` SHA:** `9ca9ca68`
 
-**Recently shipped:** [SPE-2410](https://linear.app/spectranoir/issue/SPE-2410) anomaly case lifecycle state machine slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up @ PR (pending) / branch `spe-1310-anomaly-case-lifecycle-state-machine-slice-2`; see `planning/anomaly-case-lifecycle-state-machine-slice-2.md`.
+**Recently shipped:** [SPE-2410](https://linear.app/spectranoir/issue/SPE-2410) anomaly case lifecycle state machine slice 2 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up @ PR #2689 / `22baca3d`; see `planning/anomaly-case-lifecycle-state-machine-slice-2.md`.
 
 ## Blocked / waiting
 

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2410](https://linear.app/spectranoir/
 | **Linear** | [SPE-2410 — CaseInstance.lifecycleStage persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2410) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine; stays **Backlog** until remaining AC gaps close |
 | **Branch** | `spe-1310-anomaly-case-lifecycle-state-machine-slice-2`                                                    |
-| **Status** | **In progress** — SPE-2410                                                                                 |
+| **Status** | **Shipped** — SPE-2410 (PR #2689) @ `22baca3d`                                                             |
 | **Base `main` SHA** | `9ca9ca68`                                                                                          |
 
 ## Goal

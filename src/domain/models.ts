@@ -1511,6 +1511,7 @@ export type ReportNoteType =
   | 'hub.rumor'
   | 'system.equipment_recovered'
   | 'information_intake.verification'
+  | 'information_intake.naming_hazard_cross_link'
   | 'post_incident_review.follow_on'
 
 export type ReportNoteMetadataValue =

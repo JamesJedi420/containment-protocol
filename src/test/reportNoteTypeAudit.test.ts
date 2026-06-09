@@ -53,6 +53,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'informationIntakeWeeklyReportNotes',
     category: 'information_intake',
   },
+  'information_intake.naming_hazard_cross_link': {
+    status: 'active',
+    producer: 'informationIntakeNamingHazardCrossLinkWeeklyReportNotes',
+    category: 'information_intake',
+  },
   'post_incident_review.follow_on': {
     status: 'active',
     producer: 'postIncidentReviewFollowOnWeeklyReportNotes',
@@ -69,7 +74,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(40)
+    expect(entries).toHaveLength(41)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

@@ -76,7 +76,7 @@ Read-only planning/operations mirror over persisted `namingHazardDescriptorRecor
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Cross-link surfacing in triage/report notes | SPE-854 / UX owner | Out of mirror UI boundary |
+| Cross-link surfacing in triage/report notes | SPE-2406 | Closed by `planning/naming-hazard-cross-link-surfacing-slice-1.md` |
 | SPE-1464 runtime validation hooks | SPE-1464 | Optional backlog follow-up |
 | Bundle compose chain integration | SPE-854 / SPE-2108 follow-up | Out of slice 5 boundary |
 | Richer monitoring cadence / transition history | SPE-2116 follow-up | Needs new persistence fields |

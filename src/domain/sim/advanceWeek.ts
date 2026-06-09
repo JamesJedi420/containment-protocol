@@ -297,6 +297,7 @@ import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postInciden
 import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
@@ -4675,6 +4676,36 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentNamingHazardDescriptors,
       result.week
     )
+  }
+
+  // SPE-854 / SPE-2406 slice 1: surface intake ↔ naming-hazard cross-link labels in weekly report notes.
+  const nextIntakeReportsForCrossLink = outputWeeklyState.informationIntakeReports ?? {}
+  const nextNamingHazardDescriptorsForCrossLink =
+    outputWeeklyState.namingHazardDescriptorRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextNamingHazardDescriptorsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const crossLinkNotes = buildWeeklyIntakeNamingHazardCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextDescriptors: nextNamingHazardDescriptorsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (crossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...crossLinkNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2115 slice 3: cadence-based missed-session streak and channel degradation on therapeutic care records.

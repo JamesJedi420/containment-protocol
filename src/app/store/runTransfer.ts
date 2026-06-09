@@ -342,6 +342,7 @@ export const REPORT_NOTE_TYPES = [
   'hub.rumor',
   'system.equipment_recovered',
   'information_intake.verification',
+  'information_intake.naming_hazard_cross_link',
   'post_incident_review.follow_on',
 ] as const satisfies readonly ReportNoteType[]
 
@@ -605,6 +606,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'reportLabel',
     'eventKind',
     'verificationStatus',
+    'week',
+  ],
+  'information_intake.naming_hazard_cross_link': [
+    'topicRef',
+    'linkedReportCount',
+    'linkedDescriptorCount',
+    'structuredReasons',
     'week',
   ],
   'post_incident_review.follow_on': [

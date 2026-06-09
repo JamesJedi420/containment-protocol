@@ -1,3 +1,4 @@
+import { formatIntakeReportCrossLinkLabel } from '../../domain/informationIntakeNamingHazardCrossLinkSurfacing'
 import { listIntakeReportsForNamingHazardDescriptor } from '../../domain/informationIntakeNamingHazardCrossLink'
 import type { GameState } from '../../domain/models'
 import {
@@ -98,7 +99,7 @@ function buildCrossLinkLabels(
     record
   )
 
-  return Object.freeze(reports.map((report) => `${report.id} (${report.topicRef})`))
+  return Object.freeze(reports.map((report) => formatIntakeReportCrossLinkLabel(report)))
 }
 
 function toRecordView(

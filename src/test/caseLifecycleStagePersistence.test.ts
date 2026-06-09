@@ -15,7 +15,9 @@ describe('caseLifecycleStage persistence (SPE-1310 slice 2)', () => {
     expect(sanitizeCaseLifecycleStage('confirmation', undefined)).toBe('confirmation')
     expect(sanitizeCaseLifecycleStage('containment', undefined)).toBe('containment')
     expect(sanitizeCaseLifecycleStage('revision', undefined)).toBe('revision')
-    expect(sanitizeCaseLifecycleStage('presumed_neutralized', undefined)).toBeUndefined()
+    expect(sanitizeCaseLifecycleStage('presumed_neutralized', undefined)).toBe(
+      'presumed_neutralized'
+    )
     expect(sanitizeCaseLifecycleStage('bogus', undefined)).toBeUndefined()
     expect(sanitizeCaseLifecycleStage(42, undefined)).toBeUndefined()
     expect(sanitizeCaseLifecycleStage(undefined, 'lead')).toBe('lead')

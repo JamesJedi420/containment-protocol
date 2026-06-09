@@ -1,5 +1,9 @@
 import type { BeliefTier, BeliefTrackState } from '../beliefTracks'
-import { CASE_LIFECYCLE_STAGES } from '../caseLifecycleStateMachine'
+import {
+  CASE_LIFECYCLE_STAGES,
+  CONTAINMENT_POLICY_TIERS,
+  isContainmentPolicyTier,
+} from '../caseLifecycleStateMachine'
 import { sanitizePersistedFieldBasePacket, sanitizeFieldBaseQualityBands } from '../fieldBaseStaging'
 import { buildConcealmentActivationTriggersFromAuthored } from '../hiddenStateActivationAuthoring'
 import { buildInfiltrationCoverProfileFromAuthoredRecord } from '../infiltrationCoverAuthoring'
@@ -1285,6 +1289,38 @@ export function sanitizeCaseLifecycleStage(
   return isOneOf(value, CASE_LIFECYCLE_STAGES) ? value : undefined
 }
 
+/** SPE-1310 slice 5: accept known containment policy tiers; drop unknown strings without throw. */
+export function sanitizeContainmentPolicyTier(
+  value: unknown,
+  fallback: CaseInstance['containmentPolicyTier']
+): CaseInstance['containmentPolicyTier'] | undefined {
+  if (value === undefined) {
+    return fallback
+  }
+
+  return isContainmentPolicyTier(value) && isOneOf(value, CONTAINMENT_POLICY_TIERS) ? value : undefined
+}
+
+function sanitizeLifecycleDueWeekField(
+  value: unknown,
+  fallback: CaseInstance['lifecycleSurveillanceDueWeek']
+): CaseInstance['lifecycleSurveillanceDueWeek'] | undefined {
+  if (value === undefined) {
+    return fallback
+  }
+
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined
+  }
+
+  const truncated = Math.trunc(value)
+  if (truncated < 1) {
+    return undefined
+  }
+
+  return truncated
+}
+
 function sanitizeDeploymentCarryInByAgentId(
   value: unknown,
   context: {
@@ -1538,6 +1574,18 @@ export function normalizeCaseInstance(
     entry.lifecycleStage !== undefined
       ? sanitizeCaseLifecycleStage(entry.lifecycleStage, undefined)
       : undefined
+  const containmentPolicyTier =
+    entry.containmentPolicyTier !== undefined
+      ? sanitizeContainmentPolicyTier(entry.containmentPolicyTier, undefined)
+      : undefined
+  const lifecycleSurveillanceDueWeek =
+    entry.lifecycleSurveillanceDueWeek !== undefined
+      ? sanitizeLifecycleDueWeekField(entry.lifecycleSurveillanceDueWeek, undefined)
+      : undefined
+  const lifecycleBreachReadinessDueWeek =
+    entry.lifecycleBreachReadinessDueWeek !== undefined
+      ? sanitizeLifecycleDueWeekField(entry.lifecycleBreachReadinessDueWeek, undefined)
+      : undefined
 
   const baseCase: CaseInstance = {
     ...fallback,
@@ -1659,6 +1707,11 @@ export function normalizeCaseInstance(
     ...(factionId !== undefined ? { factionId } : {}),
     ...(contactId !== undefined ? { contactId } : {}),
     ...(lifecycleStage !== undefined ? { lifecycleStage } : {}),
+    ...(containmentPolicyTier !== undefined ? { containmentPolicyTier } : {}),
+    ...(lifecycleSurveillanceDueWeek !== undefined ? { lifecycleSurveillanceDueWeek } : {}),
+    ...(lifecycleBreachReadinessDueWeek !== undefined
+      ? { lifecycleBreachReadinessDueWeek }
+      : {}),
     deploymentCarryInByAgentId:
       context.agents === undefined
         ? undefined
@@ -1822,6 +1875,23 @@ export function normalizeCaseInstance(
 
   if (lifecycleStage === undefined) {
     delete (baseCase as { lifecycleStage?: CaseInstance['lifecycleStage'] }).lifecycleStage
+  }
+
+  if (containmentPolicyTier === undefined) {
+    delete (baseCase as { containmentPolicyTier?: CaseInstance['containmentPolicyTier'] })
+      .containmentPolicyTier
+  }
+
+  if (lifecycleSurveillanceDueWeek === undefined) {
+    delete (baseCase as {
+      lifecycleSurveillanceDueWeek?: CaseInstance['lifecycleSurveillanceDueWeek']
+    }).lifecycleSurveillanceDueWeek
+  }
+
+  if (lifecycleBreachReadinessDueWeek === undefined) {
+    delete (baseCase as {
+      lifecycleBreachReadinessDueWeek?: CaseInstance['lifecycleBreachReadinessDueWeek']
+    }).lifecycleBreachReadinessDueWeek
   }
 
   if (!catalogKnown) {

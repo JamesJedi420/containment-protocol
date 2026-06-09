@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1310](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2402 — SPE-1310 parent acceptance review (grooming slice 1)](https://linear.app/spectranoir/issue/SPE-2402) |
 | **Parent** | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) — Anomaly case lifecycle state machine; stays **Backlog** |
 | **Branch** | `spe-1310-parent-acceptance-review-slice-1`                                                                |
-| **Status** | **In progress** — SPE-2402 grooming slice 1 @ `c3fd4371`                                                         |
+| **Status** | **Shipped** — SPE-2402 (PR #2673) @ `936b2576`                                                         |
 | **Base `main` SHA** | `c3fd4371`                                                                                          |
 
 ## Goal

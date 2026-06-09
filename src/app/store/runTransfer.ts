@@ -3581,6 +3581,7 @@ export function resolveKnownCaseTemplateIds(
   return new Set(Object.keys(templates))
 }
 
+/** SPE-1310 slice 2: case lifecycleStage hydrates via normalizeCaseInstance (no fallback backfill). */
 export function sanitizeCasesMap(
   value: unknown,
   teams: GameState['teams'],

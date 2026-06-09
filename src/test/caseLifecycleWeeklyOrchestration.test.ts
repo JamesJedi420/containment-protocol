@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyAdaptationPolicyTierUpgrade,
   applyCaseLifecycleEventToCase,
+  applyLifecycleInstitutionalLabelProjection,
   applyPresumedNeutralizedSurveillanceClocks,
   applyWeeklyCaseLifecycleTick,
   didAdaptationDemonstratedSignal,
@@ -41,6 +42,22 @@ function makeCase(overrides: Partial<CaseInstance> = {}): CaseInstance {
     deadlineWeeks: 8,
     deadlineRemaining: 8,
     assignedTeamIds: [],
+    ...overrides,
+  }
+}
+
+function catastropheRecord(
+  overrides: Partial<RecurrentCatastropheRecord> = {}
+): RecurrentCatastropheRecord {
+  return {
+    id: 'case:lifecycle-target',
+    label: 'Lifecycle adaptation catastrophe',
+    recurrenceCadence: 'weekly',
+    failureMode: 'manifestation',
+    preventionCeiling: 'impossible',
+    ameliorationTactics: [{ tactic: 'narrative_containment', active: true }],
+    recurrenceCount: 0,
+    lastOccurrenceWeek: 1,
     ...overrides,
   }
 }
@@ -378,7 +395,10 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 4)', () => {
   })
 
   it('applyWeeklyCaseLifecycleTick is idempotent when compliance maps are unchanged', () => {
-    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const currentCase = makeCase({
+      lifecycleStage: 'containment',
+      lifecycleInstitutionalLabel: 'active_anomaly_file',
+    })
     const record = complianceRecord({
       documentRef: currentCase.id,
       complianceState: 'drifting',
@@ -400,22 +420,6 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 4)', () => {
 })
 
 describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 5)', () => {
-  function catastropheRecord(
-    overrides: Partial<RecurrentCatastropheRecord> = {}
-  ): RecurrentCatastropheRecord {
-    return {
-      id: 'case:lifecycle-target',
-      label: 'Lifecycle adaptation catastrophe',
-      recurrenceCadence: 'weekly',
-      failureMode: 'manifestation',
-      preventionCeiling: 'impossible',
-      ameliorationTactics: [{ tactic: 'narrative_containment', active: true }],
-      recurrenceCount: 0,
-      lastOccurrenceWeek: 1,
-      ...overrides,
-    }
-  }
-
   it('applyCaseLifecycleEventToCase advances containment to presumed_neutralized', () => {
     const currentCase = makeCase({ lifecycleStage: 'containment' })
     const nextCase = applyCaseLifecycleEventToCase(
@@ -581,5 +585,83 @@ describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 5)', () => {
         toTier: 'elevated',
       },
     ])
+  })
+})
+
+describe('caseLifecycleWeeklyOrchestration (SPE-1310 slice 6)', () => {
+  it('applyLifecycleInstitutionalLabelProjection sets label from lifecycle stage', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const nextCase = applyLifecycleInstitutionalLabelProjection(currentCase)
+
+    expect(nextCase.lifecycleInstitutionalLabel).toBe('active_anomaly_file')
+  })
+
+  it('applyLifecycleInstitutionalLabelProjection ignores containmentPolicyTier', () => {
+    const currentCase = makeCase({
+      lifecycleStage: 'containment',
+      containmentPolicyTier: 'critical',
+    })
+    const nextCase = applyLifecycleInstitutionalLabelProjection(currentCase)
+
+    expect(nextCase.lifecycleInstitutionalLabel).toBe('active_anomaly_file')
+  })
+
+  it('applyWeeklyCaseLifecycleTick projects institutional label on presumed_neutralized entry', () => {
+    const currentCase = makeCase({ lifecycleStage: 'containment' })
+    const record = complianceRecord({
+      id: 'rule-document-compliance:presumed-neutralized-label',
+      documentRef: currentCase.id,
+      complianceState: 'compliant',
+      revisionHistoryRefs: ['revision:procedure-v1'],
+    })
+
+    const result = applyWeeklyCaseLifecycleTick(
+      { [currentCase.id]: currentCase },
+      {
+        week: 5,
+        priorRuleDocumentComplianceRecords: { [record.id]: record },
+        nextRuleDocumentComplianceRecords: {
+          [record.id]: {
+            ...record,
+            revisionHistoryRefs: ['revision:procedure-v1', 'revision:presumed-neutralized'],
+          },
+        },
+      }
+    )
+
+    expect(result.cases[currentCase.id]?.lifecycleInstitutionalLabel).toBe(
+      'presumed_clear_surveillance_obligations'
+    )
+  })
+
+  it('applyWeeklyCaseLifecycleTick keeps institutional label stable on policy-tier upgrade only', () => {
+    const currentCase = makeCase({
+      lifecycleStage: 'containment',
+      lifecycleInstitutionalLabel: 'active_anomaly_file',
+    })
+    const record = catastropheRecord({ id: currentCase.id, recurrenceCount: 1 })
+
+    const result = applyWeeklyCaseLifecycleTick(
+      { [currentCase.id]: currentCase },
+      {
+        week: 3,
+        priorRecurrentCatastropheRecords: { [record.id]: record },
+        nextRecurrentCatastropheRecords: {
+          [record.id]: { ...record, recurrenceCount: 2, lastOccurrenceWeek: 3 },
+        },
+      }
+    )
+
+    expect(result.cases[currentCase.id]?.containmentPolicyTier).toBe('elevated')
+    expect(result.cases[currentCase.id]?.lifecycleInstitutionalLabel).toBe('active_anomaly_file')
+  })
+
+  it('applyWeeklyCaseLifecycleTick backfills institutional label without lifecycle events', () => {
+    const currentCase = makeCase({ lifecycleStage: 'confirmation' })
+
+    const result = applyWeeklyCaseLifecycleTick({ [currentCase.id]: currentCase }, { week: 1 })
+
+    expect(result.changed).toBe(true)
+    expect(result.cases[currentCase.id]?.lifecycleInstitutionalLabel).toBe('credibility_screening')
   })
 })

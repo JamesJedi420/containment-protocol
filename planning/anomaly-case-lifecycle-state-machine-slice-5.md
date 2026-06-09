@@ -64,11 +64,11 @@ Explicit linkage: compliance `documentRef` or catastrophe `id` must equal case `
 | Item | Owner | Why |
 | --- | --- | --- |
 | UI surfacing on mission triage / cases board | Mission triage refresh | Blocked per `ux/mission-triage.md` |
-| Institutional classification vs operational risk tier split | SPE-1310 follow-up | Parent scope constraint; disposition label vs policy tier only partially split |
+| Institutional classification vs operational risk tier split | [SPE-2414](https://linear.app/spectranoir/issue/SPE-2414) slice 6 | Shipped — `lifecycleInstitutionalLabel` + weekly projection hook |
 | Surveillance clock re-arm on weekly tick while in presumed_neutralized | SPE-1310 / SPE-921 | Entry clocks only; recurring surveillance obligations deferred |
 | SPE-921 haunted-site false-clear registry wire-up | SPE-921 | Compliance revision ref is deterministic stand-in |
 | Legacy `CaseStatus` mapping / migration | SPE-1310 follow-up | Preserve mistaken records; map in dedicated slice |
-| Full SPE-1310 parent Done | SPE-1310 | Institutional-vs-operational split remains open |
+| Full SPE-1310 parent Done | SPE-1310 | Institutional-vs-operational split closed in slice 6 |
 
 ## Validation
 

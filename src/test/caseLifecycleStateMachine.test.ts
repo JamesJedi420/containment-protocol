@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CASE_LIFECYCLE_INSTITUTIONAL_LABELS,
   CASE_LIFECYCLE_STAGES,
   CASE_LIFECYCLE_TRANSITIONS,
+  DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL,
   DEFAULT_CASE_LIFECYCLE_STAGE,
   applyCaseLifecycleEventSequence,
   getCaseLifecycleEventSequence,
   isValidCaseLifecycleTransition,
+  projectLifecycleInstitutionalLabel,
   transitionCaseLifecycleStage,
 } from '../domain/caseLifecycleStateMachine'
 
@@ -72,5 +75,33 @@ describe('caseLifecycleStateMachine', () => {
     expect(
       applyCaseLifecycleEventSequence('containment', ['presumed_neutralized_entered'])
     ).toBe('presumed_neutralized')
+  })
+
+  it('defines institutional labels distinct from lifecycle stages and policy tiers', () => {
+    expect(CASE_LIFECYCLE_INSTITUTIONAL_LABELS).toEqual([
+      'preliminary_intake',
+      'credibility_screening',
+      'active_anomaly_file',
+      'procedure_revision_hold',
+      'presumed_clear_surveillance_obligations',
+    ])
+    expect(DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL).toBe('preliminary_intake')
+  })
+
+  it('projectLifecycleInstitutionalLabel maps disposition without using policy tier', () => {
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: 'lead' })).toBe('preliminary_intake')
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: 'confirmation' })).toBe(
+      'credibility_screening'
+    )
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: 'containment' })).toBe(
+      'active_anomaly_file'
+    )
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: 'revision' })).toBe(
+      'procedure_revision_hold'
+    )
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: 'presumed_neutralized' })).toBe(
+      'presumed_clear_surveillance_obligations'
+    )
+    expect(projectLifecycleInstitutionalLabel({ lifecycleStage: undefined })).toBeUndefined()
   })
 })

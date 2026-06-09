@@ -66,6 +66,71 @@ export function containmentPolicyTierRank(tier: ContainmentPolicyTier | undefine
 
 export const DEFAULT_CASE_LIFECYCLE_STAGE: CaseLifecycleStage = 'lead'
 
+/**
+ * SPE-1310 slice 6: institutional filing classification — official case copy
+ * distinct from operational `containmentPolicyTier` and simulation `lifecycleStage`.
+ */
+export type CaseLifecycleInstitutionalLabel =
+  | 'preliminary_intake'
+  | 'credibility_screening'
+  | 'active_anomaly_file'
+  | 'procedure_revision_hold'
+  | 'presumed_clear_surveillance_obligations'
+
+export const CASE_LIFECYCLE_INSTITUTIONAL_LABELS = [
+  'preliminary_intake',
+  'credibility_screening',
+  'active_anomaly_file',
+  'procedure_revision_hold',
+  'presumed_clear_surveillance_obligations',
+] as const satisfies readonly CaseLifecycleInstitutionalLabel[]
+
+export const DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL: CaseLifecycleInstitutionalLabel =
+  'preliminary_intake'
+
+const CASE_LIFECYCLE_STAGE_INSTITUTIONAL_LABEL: Readonly<
+  Record<CaseLifecycleStage, CaseLifecycleInstitutionalLabel>
+> = {
+  lead: 'preliminary_intake',
+  confirmation: 'credibility_screening',
+  containment: 'active_anomaly_file',
+  revision: 'procedure_revision_hold',
+  presumed_neutralized: 'presumed_clear_surveillance_obligations',
+}
+
+export function isCaseLifecycleInstitutionalLabel(
+  value: unknown
+): value is CaseLifecycleInstitutionalLabel {
+  return (
+    typeof value === 'string' &&
+    (CASE_LIFECYCLE_INSTITUTIONAL_LABELS as readonly string[]).includes(value)
+  )
+}
+
+export function formatCaseLifecycleInstitutionalLabel(
+  label: CaseLifecycleInstitutionalLabel
+): string {
+  return label
+    .split('_')
+    .map((part) => (part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(' ')
+}
+
+/**
+ * Projects institutional classification from lifecycle disposition only.
+ * Operational `containmentPolicyTier` does not influence institutional copy.
+ */
+export function projectLifecycleInstitutionalLabel(input: {
+  readonly lifecycleStage?: CaseLifecycleStage
+}): CaseLifecycleInstitutionalLabel | undefined {
+  const stage = input.lifecycleStage
+  if (stage === undefined) {
+    return undefined
+  }
+
+  return CASE_LIFECYCLE_STAGE_INSTITUTIONAL_LABEL[stage]
+}
+
 export type CaseLifecycleEvent =
   | 'credibility_review_passed'
   | 'anomaly_confirmed'

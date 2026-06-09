@@ -1,7 +1,9 @@
 import type { BeliefTier, BeliefTrackState } from '../beliefTracks'
 import {
+  CASE_LIFECYCLE_INSTITUTIONAL_LABELS,
   CASE_LIFECYCLE_STAGES,
   CONTAINMENT_POLICY_TIERS,
+  isCaseLifecycleInstitutionalLabel,
   isContainmentPolicyTier,
 } from '../caseLifecycleStateMachine'
 import { sanitizePersistedFieldBasePacket, sanitizeFieldBaseQualityBands } from '../fieldBaseStaging'
@@ -1301,6 +1303,21 @@ export function sanitizeContainmentPolicyTier(
   return isContainmentPolicyTier(value) && isOneOf(value, CONTAINMENT_POLICY_TIERS) ? value : undefined
 }
 
+/** SPE-1310 slice 6: accept known institutional labels; drop unknown strings without throw. */
+export function sanitizeCaseLifecycleInstitutionalLabel(
+  value: unknown,
+  fallback: CaseInstance['lifecycleInstitutionalLabel']
+): CaseInstance['lifecycleInstitutionalLabel'] | undefined {
+  if (value === undefined) {
+    return fallback
+  }
+
+  return isCaseLifecycleInstitutionalLabel(value) &&
+    isOneOf(value, CASE_LIFECYCLE_INSTITUTIONAL_LABELS)
+    ? value
+    : undefined
+}
+
 function sanitizeLifecycleDueWeekField(
   value: unknown,
   fallback: CaseInstance['lifecycleSurveillanceDueWeek']
@@ -1586,6 +1603,10 @@ export function normalizeCaseInstance(
     entry.lifecycleBreachReadinessDueWeek !== undefined
       ? sanitizeLifecycleDueWeekField(entry.lifecycleBreachReadinessDueWeek, undefined)
       : undefined
+  const lifecycleInstitutionalLabel =
+    entry.lifecycleInstitutionalLabel !== undefined
+      ? sanitizeCaseLifecycleInstitutionalLabel(entry.lifecycleInstitutionalLabel, undefined)
+      : undefined
 
   const baseCase: CaseInstance = {
     ...fallback,
@@ -1712,6 +1733,7 @@ export function normalizeCaseInstance(
     ...(lifecycleBreachReadinessDueWeek !== undefined
       ? { lifecycleBreachReadinessDueWeek }
       : {}),
+    ...(lifecycleInstitutionalLabel !== undefined ? { lifecycleInstitutionalLabel } : {}),
     deploymentCarryInByAgentId:
       context.agents === undefined
         ? undefined
@@ -1892,6 +1914,12 @@ export function normalizeCaseInstance(
     delete (baseCase as {
       lifecycleBreachReadinessDueWeek?: CaseInstance['lifecycleBreachReadinessDueWeek']
     }).lifecycleBreachReadinessDueWeek
+  }
+
+  if (lifecycleInstitutionalLabel === undefined) {
+    delete (baseCase as {
+      lifecycleInstitutionalLabel?: CaseInstance['lifecycleInstitutionalLabel']
+    }).lifecycleInstitutionalLabel
   }
 
   if (!catalogKnown) {

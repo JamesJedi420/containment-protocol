@@ -46,6 +46,8 @@ This spec is for:
 
 **Slice 8 shipped (SPE-2307):** Compact triage list rows also show read-only **information intake** signal chips via `buildMissionTriageIntakeSignals` (reuses `deriveMissionIntakeInformationSignals` / SPE-2301–2304). Plan: `planning/mission-triage-intake-signal-slice.md`.
 
+**Slice 9 shipped (SPE-2408):** Compact triage list rows also show read-only **closeout reward payout** signal chips via `buildMissionTriageCloseoutRewardPayoutSignals` (reuses `deriveCloseoutRewardPayoutLineLabelsForReview` / SPE-868 slice 30). Plan: `planning/post-incident-review-registry-slice-31.md`.
+
 **Still deferred (follow-up slices):**
 
 - Additional triage UX expansion beyond shipped slices 1–7 (compare-top-2 on list, bulk actions, spec §13 visual grouping)

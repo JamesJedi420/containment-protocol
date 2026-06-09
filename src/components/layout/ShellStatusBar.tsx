@@ -38,6 +38,7 @@ export function ShellStatusBar() {
       includeCovertPrepSignals: true as const,
       includeIntakeSignals: true as const,
       includeModalitySignals: true as const,
+      includeCloseoutRewardPayoutSignals: true as const,
     }
     const filters = normalizeCaseListFilters(
       game,

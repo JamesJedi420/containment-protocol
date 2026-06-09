@@ -288,6 +288,7 @@ import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemW
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
 import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
 import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../postIncidentReviewCloseoutRewardBranch'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick } from '../postIncidentReviewCloseoutRewardBranchPayout'
 import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
 import { applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick } from '../postIncidentReviewFollowOnRecommendationAction'
 import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
@@ -4757,6 +4758,18 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.agents = stateAfterFollowOnTrainingEnqueue.agents
     outputWeeklyState.funding = stateAfterFollowOnTrainingEnqueue.funding
     outputWeeklyState.events = stateAfterFollowOnTrainingEnqueue.events
+
+    const stateAfterCloseoutRewardBranchPayout =
+      applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick(
+        stateAfterFollowOnTrainingEnqueue,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords,
+        result.week
+      )
+    outputWeeklyState.funding = stateAfterCloseoutRewardBranchPayout.funding
+    if (stateAfterCloseoutRewardBranchPayout.agency) {
+      outputWeeklyState.agency = stateAfterCloseoutRewardBranchPayout.agency
+    }
 
     // SPE-868 slice 11: project follow-on artifact narratives into weekly report notes.
     const lastWeeklyReportForFollowOn = result.reports[result.reports.length - 1]

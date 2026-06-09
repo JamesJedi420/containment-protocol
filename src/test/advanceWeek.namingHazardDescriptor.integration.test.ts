@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  FORMAL_ALERT_PARTIAL_FIXTURE,
+  IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+  PUBLIC_RUMOR_CONFLICT_FIXTURE,
+} from '../domain/informationIntakeReport'
+import {
   CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
   DESCRIPTOR_ONLY_GRID_FALLBACK_FIXTURE,
 } from '../domain/namingHazardDescriptorRegistry'
+import { getNamingHazardDescriptorMirrorView } from '../features/operations/namingHazardDescriptorMirrorView'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { applyWeeklyNamingHazardDescriptorTick } from '../domain/namingHazardDescriptorWeeklyOrchestration'
 
@@ -64,6 +70,47 @@ describe('advanceWeek naming-hazard descriptor integration (SPE-2116 slice 4)', 
     expect(nextRecord?.uiSubstitutionPolicy).toBe('redacted')
     expect(nextRecord?.mapLabelMode).toBe('redacted')
     expect(nextRecord?.confidence).toBe(DESCRIPTOR_ONLY_GRID_FALLBACK_FIXTURE.confidence)
+  })
+
+  it('surfaces post-tick substitution state in mirror view after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.namingHazardDescriptorRecords = {
+      [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const view = getNamingHazardDescriptorMirrorView(nextState)
+    const record = view.records[0]
+
+    expect(view.summary.orchestratedCount).toBe(1)
+    expect(record?.uiSubstitutionPolicyLabel).toBe('Pool With Grid Fallback')
+    expect(record?.orchestrationWeekLabels).toEqual(['orchestration_week:5'])
+  })
+
+  it('surfaces intake naming-hazard cross-link notes when linked fixtures coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.informationIntakeReports = {
+      [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+      [PUBLIC_RUMOR_CONFLICT_FIXTURE.id]: PUBLIC_RUMOR_CONFLICT_FIXTURE,
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.namingHazardDescriptorRecords = {
+      [CANAL_BRIDGE_NAMING_HAZARD_FIXTURE.id]: CANAL_BRIDGE_NAMING_HAZARD_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const crossLinkNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'information_intake.naming_hazard_cross_link'
+      ) ?? []
+
+    expect(crossLinkNotes.length).toBeGreaterThan(0)
+    expect(crossLinkNotes[0]?.content).toContain('Intake cross-link')
+    expect(crossLinkNotes[0]?.content).toContain('topic:canal-bridge-incident')
   })
 
   it('matches direct tick output for the post-advance week', () => {

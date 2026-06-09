@@ -9,6 +9,7 @@ import { caseTemplateMap, starterCases, starterRoster, starterTeams } from '../d
 import { createStartingPartyCardState } from './partyCards'
 import { createStartingInventory, createStartingMarket } from './production'
 import { startingKnowledge } from './startingKnowledge'
+import { POST_INCIDENT_REVIEW_STUB_REGISTRY } from '../domain/postIncidentReviewRegistry'
 
 const startingStateTemplate: GameState = {
   week: 1,
@@ -44,6 +45,9 @@ const startingStateTemplate: GameState = {
   unexplainedLocationRecords: {},
   minorAnomalyItemRecords: {},
   namingHazardDescriptorRecords: {},
+  recurrentCatastropheRecords: {},
+  postIncidentReviewRecords: { ...POST_INCIDENT_REVIEW_STUB_REGISTRY },
+  ruleDocumentComplianceRecords: {},
   selfCensoringInformationRecords: {},
   publicDisclosureRecords: {},
   patternSourceSeriesRecords: {},

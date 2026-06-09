@@ -752,6 +752,114 @@ export function projectComplianceDecay(
   })
 }
 
+export type RuleDocumentComplianceRecordsMap = Record<
+  RuleDocumentComplianceId,
+  RuleDocumentComplianceRecord
+>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseNonEmptyStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizeRuleDocumentComplianceRecordEntry(
+  value: unknown
+): RuleDocumentComplianceRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const documentRef = normalizeToken(value.documentRef)
+  const bindingStrength = value.bindingStrength
+  const complianceState = value.complianceState
+  const physicalCopyRequired = value.physicalCopyRequired
+
+  if (
+    !id ||
+    !label ||
+    !documentRef ||
+    typeof bindingStrength !== 'string' ||
+    !isBindingStrength(bindingStrength) ||
+    typeof complianceState !== 'string' ||
+    !isComplianceState(complianceState) ||
+    typeof physicalCopyRequired !== 'boolean'
+  ) {
+    return null
+  }
+
+  const breachConsequence = value.breachConsequence
+  const revisionHistoryRefs = parseNonEmptyStringList(value.revisionHistoryRefs)
+  const auditorAssigneeRefs = parseNonEmptyStringList(value.auditorAssigneeRefs)
+  const unknownFields = asStringArray(value.unknownFields)
+  const redactedFields = asStringArray(value.redactedFields)
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const confidence = value.confidence
+
+  const record: RuleDocumentComplianceRecord = {
+    id,
+    label,
+    documentRef,
+    bindingStrength,
+    complianceState,
+    physicalCopyRequired,
+    ...(summary ? { summary } : {}),
+    ...(revisionHistoryRefs.length > 0 ? { revisionHistoryRefs } : {}),
+    ...(typeof breachConsequence === 'string' && isBreachConsequence(breachConsequence)
+      ? { breachConsequence }
+      : {}),
+    ...(auditorAssigneeRefs.length > 0 ? { auditorAssigneeRefs } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateRuleDocumentComplianceRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeRuleDocumentComplianceRecords(
+  value: unknown,
+  fallback: RuleDocumentComplianceRecordsMap = {}
+): RuleDocumentComplianceRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: RuleDocumentComplianceRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeRuleDocumentComplianceRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 function defineRecord(record: RuleDocumentComplianceRecord): RuleDocumentComplianceRecord {
   return Object.freeze({ ...record })
 }

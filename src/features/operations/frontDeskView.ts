@@ -808,6 +808,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
     },
     {
+      label: 'Open naming-hazard descriptor mirror',
+      href: APP_ROUTES.namingHazardDescriptor,
+      description:
+        'Review substitution policy, confidence erosion markers, and intake cross-link labels.',
+    },
+    {
       label: 'Open contained person integrated health bundle mirror',
       href: APP_ROUTES.containedPersonIntegratedHealthBundle,
       description:
@@ -818,6 +824,36 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.welfareDebtAccounting,
       description:
         'Review coercive-procedure welfare debt severity, mitigation state, and containment benefit projections.',
+    },
+    {
+      label: 'Open rule document compliance mirror',
+      href: APP_ROUTES.ruleDocumentCompliance,
+      description:
+        'Review written-conduct binding posture, compliance decay bands, and revision audit symptoms.',
+    },
+    {
+      label: 'Open recurrent catastrophe amelioration mirror',
+      href: APP_ROUTES.recurrentCatastropheAmelioration,
+      description:
+        'Review recurrence cadence, prevention ceilings, amelioration posture, and next-recurrence risk projections.',
+    },
+    {
+      label: 'Open post-incident review mirror',
+      href: APP_ROUTES.postIncidentReview,
+      description:
+        'Review retrospective routes, closure outcomes, milestone spans, procedure adherence, and recurrence flags.',
+    },
+    {
+      label: 'Open post-incident recommendation mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendations,
+      description:
+        'Review follow-on recommendation stubs linked to orchestration-created post-incident reviews.',
+    },
+    {
+      label: 'Open post-incident recommendation action mirror',
+      href: APP_ROUTES.postIncidentReviewRecommendationActions,
+      description:
+        'Review follow-on action stubs linked to persisted recommendation and qualifying review records.',
     },
   ]
 }

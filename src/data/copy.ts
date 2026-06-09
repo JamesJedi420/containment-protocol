@@ -935,6 +935,189 @@ export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const RECURRENT_CATASTROPHE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Recurrent catastrophe amelioration registry',
+  pageSubtitle:
+    'Read-only operations view over persisted recurrence-cycle records and next-recurrence risk projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  impossiblePreventionLabel: 'Impossible prevention ceiling',
+  criticalSeverityLabel: 'Critical severity band',
+  linkedReviewsLabel: 'Linked reviews',
+  unresolvedReviewRefsLabel: 'Unresolved review refs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Cadence, amelioration posture, and severity bands mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No recurrent catastrophe amelioration records',
+  emptyBody:
+    'Persisted recurrent catastrophe records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Severity bands and risk scores come from next-recurrence risk projection at the current simulation week.',
+  labelColumn: 'Label',
+  cadenceColumn: 'Cadence / amelioration',
+  preventionColumn: 'Prevention ceiling',
+  recurrenceColumn: 'Recurrence history',
+  riskColumn: 'Risk projection',
+  reviewLinksColumn: 'Linked review summaries',
+  confidenceColumn: 'Confidence',
+  failureModePrefix: 'Failure mode:',
+  ameliorationPrefix: 'Active amelioration:',
+  preventionTacticPrefix: 'Active prevention:',
+  lastOccurrencePrefix: 'Last occurrence:',
+  damageLedgerPrefix: 'Damage ledger:',
+  reviewRefPrefix: 'Post-incident review:',
+  unresolvedReviewRefPrefix: 'Unresolved review ref:',
+  riskScorePrefix: 'Risk score:',
+  activeAmeliorationCountPrefix: 'Active amelioration count:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const POST_INCIDENT_REVIEW_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident review registry',
+  pageSubtitle:
+    'Read-only operations view over persisted retrospective records and review summary projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  externalAuditRouteLabel: 'External audit route',
+  recurrenceObservedLabel: 'Recurrence observed',
+  qualifyingCaseCloseoutLabel: 'Qualifying case closeouts',
+  qualifyingNearCatastropheLabel: 'Near-catastrophe reviews',
+  orchestrationCreatedLabel: 'Orchestration-created',
+  stubFixtureLabel: 'Stub fixtures',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Review routes, closure outcomes, and milestone spans mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident review records',
+  emptyBody:
+    'Persisted post-incident review records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  qualifyingRecordsHeading: 'Qualifying incident reviews',
+  qualifyingRecordsSubtitle:
+    'Orchestration-created case closeout and near-catastrophe threshold retrospectives from weekly advance.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Milestone spans, adherence scores, and recurrence flags come from review summary projection.',
+  labelColumn: 'Label',
+  sourceColumn: 'Source',
+  caseIdColumn: 'Linked case',
+  orchestrationWeekColumn: 'Orchestration week',
+  routeColumn: 'Review route',
+  closureColumn: 'Closure outcome',
+  milestoneColumn: 'Milestone timings',
+  adherenceColumn: 'Procedure adherence',
+  recurrenceColumn: 'Recurrence observed',
+  confidenceColumn: 'Confidence',
+  milestoneSpanPrefix: 'Span (weeks):',
+  discoveryPrefix: 'Discovery:',
+  responsePrefix: 'Response:',
+  containmentPrefix: 'Containment:',
+  recoveryPrefix: 'Recovery:',
+  reportingPrefix: 'Reporting:',
+  unknownFieldsPrefix: 'Unknown fields:',
+  redactedSuffix: 'Partial redaction',
+}
+
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_ACTION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation action registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on action stubs linked to recommendation and qualifying review records.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedRecommendationLabel: 'Linked recommendations',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Action ids, recommendation refs, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation action records',
+  emptyBody:
+    'Persisted action records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Actions whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Follow-on action-stub tokens materialized from recommendation registry entries during weekly advance.',
+  labelColumn: 'Label',
+  recommendationRefColumn: 'Recommendation ref',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  actionTokenColumn: 'Action token',
+  openReviewMirrorLabel: 'Open review mirror',
+  openRecommendationMirrorLabel: 'Open recommendation mirror',
+  linkedRecommendationPrefix: 'Linked recommendation:',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
+export const POST_INCIDENT_REVIEW_RECOMMENDATION_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Post-incident recommendation registry',
+  pageSubtitle:
+    'Read-only operations view over persisted follow-on recommendation stubs from orchestration-created reviews.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  linkedQualifyingReviewLabel: 'Linked qualifying reviews',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Recommendation ids, review refs, and stub suffixes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No post-incident recommendation records',
+  emptyBody:
+    'Persisted recommendation records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  linkedRecordsHeading: 'Linked qualifying incident reviews',
+  linkedRecordsSubtitle:
+    'Recommendations whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle: 'Follow-on stub tokens materialized from review unknownFields during weekly advance.',
+  labelColumn: 'Label',
+  reviewRefColumn: 'Review ref',
+  linkedReviewColumn: 'Linked review',
+  stubSuffixColumn: 'Stub suffix',
+  orchestrationWeekColumn: 'Orchestration week',
+  followOnTokenColumn: 'Follow-on token',
+  openReviewMirrorLabel: 'Open review mirror',
+  linkedReviewPrefix: 'Linked review:',
+  caseIdPrefix: 'Case:',
+}
+
+export const RULE_DOCUMENT_COMPLIANCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Rule document compliance registry',
+  pageSubtitle:
+    'Read-only operations view over persisted written-conduct binding records and compliance decay projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  breachCountLabel: 'Breach state',
+  criticalBandLabel: 'Critical decay band',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Binding posture, decay bands, and audit symptoms mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No rule document compliance records',
+  emptyBody:
+    'Persisted rule document compliance records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Decay bands and audit symptoms come from compliance decay projection at the current simulation week.',
+  labelColumn: 'Label',
+  bindingColumn: 'Binding',
+  complianceColumn: 'Compliance',
+  decayColumn: 'Decay band',
+  auditColumn: 'Audit symptoms',
+  confidenceColumn: 'Confidence',
+  documentRefPrefix: 'Document:',
+  physicalCopyPrefix: 'Physical copy:',
+  auditorPrefix: 'Auditors:',
+  breachConsequencePrefix: 'Breach consequence:',
+  driftProbabilityPrefix: 'Drift/week:',
+  validationWarningPrefix: 'Validation warning(s):',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const MASS_ANOMALOUS_POPULATION_EMERGENCE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Mass anomalous population emergence registry',
@@ -1007,6 +1190,41 @@ export const CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT: Record<st
   containmentBenefitPrefix: 'Containment benefit:',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
+}
+
+export const NAMING_HAZARD_DESCRIPTOR_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Naming-hazard descriptor registry',
+  pageSubtitle:
+    'Read-only operations view over persisted naming-hazard descriptor records, safe-label projections, and intake cross-links.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  redactedSubstitutionLabel: 'Redacted substitution',
+  crossLinkedLabel: 'Cross-linked records',
+  orchestratedLabel: 'Orchestrated records',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Substitution policy, confidence erosion, and cross-link labels mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No naming-hazard descriptor records',
+  emptyBody:
+    'Persisted naming-hazard descriptor records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Safe briefing and map labels use projectSafeLabel at read time; they are not objective truth.',
+  labelColumn: 'Descriptor',
+  substitutionColumn: 'Substitution state',
+  crossLinkColumn: 'Intake cross-links',
+  orchestrationColumn: 'Weekly orchestration',
+  confidenceColumn: 'Confidence',
+  poolPrefix: 'Pool:',
+  mapModePrefix: 'Map mode:',
+  briefingLabelPrefix: 'Briefing:',
+  mapLabelPrefix: 'Map:',
+  intakeTopicPrefix: 'Topic:',
+  redactedFieldsPrefix: 'Redacted fields:',
+  redactedSuffix: 'Substitution redacted',
+  confidenceRedactedSuffix: 'Confidence redacted',
+  validationWarningPrefix: 'Validation warnings:',
 }
 
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {

@@ -286,7 +286,19 @@ import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureW
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
+import { applyWeeklyRecurrentCatastropheTick } from '../recurrentCatastropheWeeklyOrchestration'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchTick } from '../postIncidentReviewCloseoutRewardBranch'
+import { applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick } from '../postIncidentReviewCloseoutRewardBranchPayout'
+import { applyWeeklyPostIncidentReviewFollowOnArtifactTick } from '../postIncidentReviewFollowOnArtifact'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick } from '../postIncidentReviewFollowOnRecommendationAction'
+import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from '../postIncidentReviewFollowOnRecommendationRegistry'
+import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
+import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
+import { buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes } from '../postIncidentReviewCloseoutRewardPayoutSurfacing'
+import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
+import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
@@ -4667,6 +4679,36 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     )
   }
 
+  // SPE-854 / SPE-2406 slice 1: surface intake ↔ naming-hazard cross-link labels in weekly report notes.
+  const nextIntakeReportsForCrossLink = outputWeeklyState.informationIntakeReports ?? {}
+  const nextNamingHazardDescriptorsForCrossLink =
+    outputWeeklyState.namingHazardDescriptorRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextNamingHazardDescriptorsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const crossLinkNotes = buildWeeklyIntakeNamingHazardCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextDescriptors: nextNamingHazardDescriptorsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (crossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...crossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
   // SPE-2115 slice 3: cadence-based missed-session streak and channel degradation on therapeutic care records.
   const currentTherapeuticCareRecords = outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
   if (Object.keys(currentTherapeuticCareRecords).length > 0) {
@@ -4681,6 +4723,134 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentWelfareDebtAccountingRecords).length > 0) {
     outputWeeklyState.welfareDebtAccountingRecords = applyWeeklyWelfareDebtAccountingTick(
       currentWelfareDebtAccountingRecords,
+      result.week
+    )
+  }
+
+  // SPE-2117 slice 3: cadence-due recurrenceCount and lastOccurrenceWeek advance on recurrent catastrophes.
+  const currentRecurrentCatastropheRecords = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  if (Object.keys(currentRecurrentCatastropheRecords).length > 0) {
+    outputWeeklyState.recurrentCatastropheRecords = applyWeeklyRecurrentCatastropheTick(
+      currentRecurrentCatastropheRecords,
+      result.week
+    )
+  }
+
+  // SPE-868 slice 4/7: retrospective creation for recurrence closeout refs and qualifying incidents.
+  const currentPostIncidentReviewRecords = outputWeeklyState.postIncidentReviewRecords ?? {}
+  const currentPostIncidentReviewRecommendationRecords =
+    outputWeeklyState.postIncidentReviewRecommendationRecords ?? {}
+  const currentPostIncidentReviewRecommendationActionRecords =
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords ?? {}
+  const recurrentCatastrophesForReviewCreation = outputWeeklyState.recurrentCatastropheRecords ?? {}
+  const qualifyingIncidentReviewDrafts = resolveQualifyingIncidentReviewDraftsFromEventDrafts(
+    context.eventDrafts,
+    sourceState.cases,
+    result.week
+  )
+  if (
+    Object.keys(recurrentCatastrophesForReviewCreation).length > 0 ||
+    qualifyingIncidentReviewDrafts.length > 0
+  ) {
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewCreationTick(
+      currentPostIncidentReviewRecords,
+      recurrentCatastrophesForReviewCreation,
+      result.week,
+      qualifyingIncidentReviewDrafts
+    )
+    outputWeeklyState.postIncidentReviewRecords =
+      applyWeeklyPostIncidentReviewCloseoutRewardBranchTick(
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.postIncidentReviewRecords = applyWeeklyPostIncidentReviewFollowOnArtifactTick(
+      currentPostIncidentReviewRecords,
+      outputWeeklyState.postIncidentReviewRecords
+    )
+    outputWeeklyState.postIncidentReviewRecommendationRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick(
+        currentPostIncidentReviewRecommendationRecords,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
+    outputWeeklyState.postIncidentReviewRecommendationActionRecords =
+      applyWeeklyPostIncidentReviewFollowOnRecommendationActionTick(
+        outputWeeklyState,
+        currentPostIncidentReviewRecommendationActionRecords,
+        currentPostIncidentReviewRecommendationRecords,
+        outputWeeklyState.postIncidentReviewRecommendationRecords
+      )
+
+    const stateAfterFollowOnTrainingEnqueue = applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
+      outputWeeklyState,
+      currentPostIncidentReviewRecords,
+      outputWeeklyState.postIncidentReviewRecords
+    )
+    outputWeeklyState.trainingQueue = stateAfterFollowOnTrainingEnqueue.trainingQueue
+    outputWeeklyState.agents = stateAfterFollowOnTrainingEnqueue.agents
+    outputWeeklyState.funding = stateAfterFollowOnTrainingEnqueue.funding
+    outputWeeklyState.events = stateAfterFollowOnTrainingEnqueue.events
+
+    const stateAfterCloseoutRewardBranchPayout =
+      applyWeeklyPostIncidentReviewCloseoutRewardBranchPayoutTick(
+        stateAfterFollowOnTrainingEnqueue,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords,
+        result.week
+      )
+    outputWeeklyState.funding = stateAfterCloseoutRewardBranchPayout.funding
+    if (stateAfterCloseoutRewardBranchPayout.agency) {
+      outputWeeklyState.agency = stateAfterCloseoutRewardBranchPayout.agency
+    }
+
+    // SPE-868 slice 11: project follow-on artifact narratives into weekly report notes.
+    const lastWeeklyReportForFollowOn = result.reports[result.reports.length - 1]
+    const followOnReportNotes = buildWeeklyPostIncidentReviewFollowOnReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReportForFollowOn?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (followOnReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...followOnReportNotes],
+      }
+      result.reports = reports
+    }
+
+    // SPE-868 slice 30: project closeout reward payout lines into weekly report notes.
+    const lastWeeklyReportForPayout = result.reports[result.reports.length - 1]
+    const payoutReportNotes = buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes({
+      priorReviews: currentPostIncidentReviewRecords,
+      nextReviews: outputWeeklyState.postIncidentReviewRecords,
+      nextFundingState: stateAfterCloseoutRewardBranchPayout.agency?.fundingState,
+      week: result.week,
+      sequenceStart:
+        (lastWeeklyReportForPayout?.notes?.length ?? 0) + followOnReportNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+    if (payoutReportNotes.length > 0 && result.reports.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...payoutReportNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-2123 slice 3: compliance-decay band state transitions on rule-document compliance records.
+  const currentRuleDocumentComplianceRecords = outputWeeklyState.ruleDocumentComplianceRecords ?? {}
+  if (Object.keys(currentRuleDocumentComplianceRecords).length > 0) {
+    outputWeeklyState.ruleDocumentComplianceRecords = applyWeeklyRuleDocumentComplianceTick(
+      currentRuleDocumentComplianceRecords,
       result.week
     )
   }

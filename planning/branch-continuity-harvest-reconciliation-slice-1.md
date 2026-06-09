@@ -59,7 +59,7 @@ Close backlog #1 (SCP-9995 harvest reconciliation follow-up) by documenting how 
 | Item | Owner | Why |
 | --- | --- | --- |
 | Runtime validation hooks | [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) | Out of reconciliation boundary; optional dev/audit surfacing |
-| Dedicated exploit-access content slice | Backlog grooming | Validator shipped; still defer unless scoped slice owner exists |
+| Dedicated exploit-access content slice | [SPE-2397](https://linear.app/spectranoir/issue/SPE-2397) — **closed** | Grooming deferral closure; no mechanics slice unless explicitly scoped |
 | Harvest index row for SCP-9995 | — | Backlog § Harvest reconciliation is authoritative; no separate `*-harvest.md` batch doc for this closure |
 
 ## Validation

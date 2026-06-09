@@ -35,6 +35,10 @@ import {
   type MissionTriageIntakeSignals,
 } from './missionTriageIntakeSignalView'
 import {
+  buildMissionTriageCloseoutRewardPayoutSignals,
+  type MissionTriageCloseoutRewardPayoutSignals,
+} from './missionTriageCloseoutRewardPayoutSignalView'
+import {
   buildMissionTriageModalitySignals,
   type MissionTriageModalitySignals,
 } from './missionTriageModalitySignalView'
@@ -93,6 +97,7 @@ export interface CaseListItemView {
   covertPrepSignals: MissionTriageCovertPrepSignals
   intakeSignals: MissionTriageIntakeSignals
   modalitySignals: MissionTriageModalitySignals
+  closeoutRewardPayoutSignals: MissionTriageCloseoutRewardPayoutSignals
   deferralCompare: MissionTriageDeferralCompareView
 }
 
@@ -111,6 +116,7 @@ export interface CaseListItemViewOptions {
   readonly includeCovertPrepSignals?: boolean
   readonly includeIntakeSignals?: boolean
   readonly includeModalitySignals?: boolean
+  readonly includeCloseoutRewardPayoutSignals?: boolean
 }
 
 export function getCaseListItemView(
@@ -220,6 +226,10 @@ export function getCaseListItemView(
     options?.includeModalitySignals === true
       ? buildMissionTriageModalitySignals(currentCase, game, assignedTeams)
       : { visible: false, markers: [] }
+  const closeoutRewardPayoutSignals =
+    options?.includeCloseoutRewardPayoutSignals === true
+      ? buildMissionTriageCloseoutRewardPayoutSignals(currentCase, game)
+      : { visible: false, markers: [] }
 
   return {
     currentCase,
@@ -249,6 +259,7 @@ export function getCaseListItemView(
     covertPrepSignals,
     intakeSignals,
     modalitySignals,
+    closeoutRewardPayoutSignals,
     deferralCompare:
       options?.includeCovertPrepSignals === true
         ? buildMissionTriageDeferralCompareView(currentCase, game, { covertPrepSignals })

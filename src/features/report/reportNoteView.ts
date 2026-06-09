@@ -4,6 +4,7 @@ export type ReportNoteCategory =
   | 'incident_response'
   | 'recruitment'
   | 'information_intake'
+  | 'post_incident_review'
   | 'system'
   | 'uncategorized'
 
@@ -11,11 +12,20 @@ export const REPORT_NOTE_CATEGORY_LABELS: Record<ReportNoteCategory, string> = {
   incident_response: 'Incident response',
   recruitment: 'Recruitment',
   information_intake: 'Information intake',
+  post_incident_review: 'Post-incident review',
   system: 'System',
   uncategorized: 'Uncategorized',
 }
 
-const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = ['information_intake.verification']
+const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
+  'information_intake.verification',
+  'information_intake.naming_hazard_cross_link',
+]
+
+const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = [
+  'post_incident_review.follow_on',
+  'post_incident_review.closeout_reward_payout',
+]
 
 const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.resolved',
@@ -71,6 +81,10 @@ export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {
 
   if (note.type !== undefined && INFORMATION_INTAKE_NOTE_TYPES.includes(note.type)) {
     return 'information_intake'
+  }
+
+  if (note.type !== undefined && POST_INCIDENT_REVIEW_NOTE_TYPES.includes(note.type)) {
+    return 'post_incident_review'
   }
 
   if (note.type !== undefined && SYSTEM_NOTE_TYPES.includes(note.type)) {

@@ -22,7 +22,11 @@ import {
   resolveAuthoritySameSourceConflicts,
 } from '../domain/civicConsequenceNetwork'
 import { SIM_NOTES } from '../data/copy'
-import { computeWeeklyOperatingCost } from '../domain/funding'
+import {
+  computeWeeklyOperatingCost,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+} from '../domain/funding'
 import type { Agent, DomainStats, OperationEvent, RuntimeQueuedEvent } from '../domain/models'
 
 function makeDomainStats(overrides: Partial<DomainStats> = {}): DomainStats {
@@ -2788,16 +2792,23 @@ describe('advanceWeek', () => {
 
     expect(next.reports[0].unresolvedTriggers).toEqual(['case-001'])
     const operatingCost = computeWeeklyOperatingCost(state, state.week)
-
-    expect(next.funding).toBe(
-      Math.max(
-        0,
-        state.funding +
-          state.config.fundingBasePerWeek +
-          (rewardBreakdown?.fundingDelta ?? 0) -
-          operatingCost
+    const closeoutPayoutDelta = (next.agency?.fundingState?.fundingHistory ?? [])
+      .filter(
+        (entry) =>
+          entry.reason === POST_INCIDENT_CLOSEOUT_REWARD_REASON ||
+          entry.reason === POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON
       )
+      .reduce((sum, entry) => sum + entry.delta, 0)
+
+    const baseFunding = Math.max(
+      0,
+      state.funding +
+        state.config.fundingBasePerWeek +
+        (rewardBreakdown?.fundingDelta ?? 0) -
+        operatingCost
     )
+
+    expect(next.funding).toBe(baseFunding + closeoutPayoutDelta)
     expect(next.containmentRating).toBe(0)
   })
 

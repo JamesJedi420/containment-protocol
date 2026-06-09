@@ -57,6 +57,9 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'hub.opportunity': 'system',
   'hub.rumor': 'system',
   'information_intake.verification': 'information_intake',
+  'information_intake.naming_hazard_cross_link': 'information_intake',
+  'post_incident_review.follow_on': 'post_incident_review',
+  'post_incident_review.closeout_reward_payout': 'post_incident_review',
 } satisfies Record<ReportNoteType, ReportNoteCategory>
 
 describe('reportNoteView', () => {
@@ -108,6 +111,7 @@ describe('reportNoteView', () => {
   it('exposes stable category labels', () => {
     expect(REPORT_NOTE_CATEGORY_LABELS.incident_response).toBe('Incident response')
     expect(REPORT_NOTE_CATEGORY_LABELS.information_intake).toBe('Information intake')
+    expect(REPORT_NOTE_CATEGORY_LABELS.post_incident_review).toBe('Post-incident review')
     expect(REPORT_NOTE_CATEGORY_LABELS.system).toBe('System')
   })
 })

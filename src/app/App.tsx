@@ -99,11 +99,29 @@ const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
 const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonTherapeuticCareMirrorPage')
 )
+const NamingHazardDescriptorMirrorRoute = createRouteComponent(
+  () => import('../features/operations/NamingHazardDescriptorMirrorPage')
+)
 const ContainedPersonIntegratedHealthBundleMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonIntegratedHealthBundleMirrorPage')
 )
 const WelfareDebtAccountingMirrorRoute = createRouteComponent(
   () => import('../features/operations/WelfareDebtAccountingMirrorPage')
+)
+const RuleDocumentComplianceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RuleDocumentComplianceMirrorPage')
+)
+const RecurrentCatastropheMirrorRoute = createRouteComponent(
+  () => import('../features/operations/RecurrentCatastropheMirrorPage')
+)
+const PostIncidentReviewMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewMirrorPage')
+)
+const PostIncidentReviewRecommendationMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewRecommendationMirrorPage')
+)
+const PostIncidentReviewRecommendationActionMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PostIncidentReviewRecommendationActionMirrorPage')
 )
 const NotFoundRoute = createRouteComponent(() =>
   import('../features/divisions/SystemBoundaryPage').then((module) => ({
@@ -181,12 +199,36 @@ export default function App() {
           element={renderLazyRoute(ContainedPersonTherapeuticCareMirrorRoute)}
         />
         <Route
+          path="naming-hazard-descriptor"
+          element={renderLazyRoute(NamingHazardDescriptorMirrorRoute)}
+        />
+        <Route
           path="contained-person-integrated-health-bundle"
           element={renderLazyRoute(ContainedPersonIntegratedHealthBundleMirrorRoute)}
         />
         <Route
           path="welfare-debt-accounting"
           element={renderLazyRoute(WelfareDebtAccountingMirrorRoute)}
+        />
+        <Route
+          path="rule-document-compliance"
+          element={renderLazyRoute(RuleDocumentComplianceMirrorRoute)}
+        />
+        <Route
+          path="recurrent-catastrophe-amelioration"
+          element={renderLazyRoute(RecurrentCatastropheMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review"
+          element={renderLazyRoute(PostIncidentReviewMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review-recommendations"
+          element={renderLazyRoute(PostIncidentReviewRecommendationMirrorRoute)}
+        />
+        <Route
+          path="post-incident-review-recommendation-actions"
+          element={renderLazyRoute(PostIncidentReviewRecommendationActionMirrorRoute)}
         />
         <Route path="*" element={renderLazyRoute(NotFoundRoute)} />
       </Route>

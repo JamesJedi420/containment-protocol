@@ -194,6 +194,11 @@ import { sanitizeKnowledgeStateMap } from '../../domain/knowledge/sanitize'
 import { sanitizeInformationIntakeReports } from '../../domain/informationIntakeReport'
 import { sanitizeExtranormalEventRecords } from '../../domain/extranormalEventRegistry'
 import { sanitizeNamingHazardDescriptorRecords } from '../../domain/namingHazardDescriptorRegistry'
+import { sanitizeRecurrentCatastropheRecords } from '../../domain/recurrentCatastropheAmeliorationRegistry'
+import { sanitizePostIncidentReviewRecords } from '../../domain/postIncidentReviewRegistry'
+import { sanitizePostIncidentReviewRecommendationActionRecords } from '../../domain/postIncidentReviewRecommendationActionRegistry'
+import { sanitizePostIncidentReviewRecommendationRecords } from '../../domain/postIncidentReviewRecommendationRegistry'
+import { sanitizeRuleDocumentComplianceRecords } from '../../domain/ruleDocumentComplianceContainmentRegistry'
 import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLocationRegistry'
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
@@ -337,6 +342,9 @@ export const REPORT_NOTE_TYPES = [
   'hub.rumor',
   'system.equipment_recovered',
   'information_intake.verification',
+  'information_intake.naming_hazard_cross_link',
+  'post_incident_review.follow_on',
+  'post_incident_review.closeout_reward_payout',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -599,6 +607,27 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'reportLabel',
     'eventKind',
     'verificationStatus',
+    'week',
+  ],
+  'information_intake.naming_hazard_cross_link': [
+    'topicRef',
+    'linkedReportCount',
+    'linkedDescriptorCount',
+    'structuredReasons',
+    'week',
+  ],
+  'post_incident_review.follow_on': [
+    'reviewRef',
+    'reviewLabel',
+    'followOnKind',
+    'followOnToken',
+    'week',
+  ],
+  'post_incident_review.closeout_reward_payout': [
+    'reviewRef',
+    'reviewLabel',
+    'rewardBranch',
+    'payoutKinds',
     'week',
   ],
 }
@@ -8418,6 +8447,27 @@ export function hydrateGame(
     game.namingHazardDescriptorRecords,
     fallback.namingHazardDescriptorRecords ?? {}
   )
+  const recurrentCatastropheRecords = sanitizeRecurrentCatastropheRecords(
+    game.recurrentCatastropheRecords,
+    fallback.recurrentCatastropheRecords ?? {}
+  )
+  const postIncidentReviewRecords = sanitizePostIncidentReviewRecords(
+    game.postIncidentReviewRecords,
+    fallback.postIncidentReviewRecords ?? {}
+  )
+  const postIncidentReviewRecommendationRecords = sanitizePostIncidentReviewRecommendationRecords(
+    game.postIncidentReviewRecommendationRecords,
+    fallback.postIncidentReviewRecommendationRecords ?? {}
+  )
+  const postIncidentReviewRecommendationActionRecords =
+    sanitizePostIncidentReviewRecommendationActionRecords(
+      game.postIncidentReviewRecommendationActionRecords,
+      fallback.postIncidentReviewRecommendationActionRecords ?? {}
+    )
+  const ruleDocumentComplianceRecords = sanitizeRuleDocumentComplianceRecords(
+    game.ruleDocumentComplianceRecords,
+    fallback.ruleDocumentComplianceRecords ?? {}
+  )
   const selfCensoringInformationRecords = sanitizeSelfCensoringInformationRecords(
     game.selfCensoringInformationRecords,
     fallback.selfCensoringInformationRecords ?? {}
@@ -8584,6 +8634,11 @@ export function hydrateGame(
       unexplainedLocationRecords,
       minorAnomalyItemRecords,
       namingHazardDescriptorRecords,
+      recurrentCatastropheRecords,
+      postIncidentReviewRecords,
+      postIncidentReviewRecommendationRecords,
+      postIncidentReviewRecommendationActionRecords,
+      ruleDocumentComplianceRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,
       patternSourceSeriesRecords,

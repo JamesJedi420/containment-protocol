@@ -32,8 +32,14 @@ export const APP_ROUTES = {
   visualTriggerHazard: '/visual-trigger-hazard',
   entityWelfareReclassification: '/entity-welfare-reclassification',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
+  namingHazardDescriptor: '/naming-hazard-descriptor',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
   welfareDebtAccounting: '/welfare-debt-accounting',
+  ruleDocumentCompliance: '/rule-document-compliance',
+  recurrentCatastropheAmelioration: '/recurrent-catastrophe-amelioration',
+  postIncidentReview: '/post-incident-review',
+  postIncidentReviewRecommendations: '/post-incident-review-recommendations',
+  postIncidentReviewRecommendationActions: '/post-incident-review-recommendation-actions',
 } as const
 
 export const APP_ROUTE_PATTERNS = {

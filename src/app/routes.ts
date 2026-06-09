@@ -32,6 +32,7 @@ export const APP_ROUTES = {
   visualTriggerHazard: '/visual-trigger-hazard',
   entityWelfareReclassification: '/entity-welfare-reclassification',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
+  namingHazardDescriptor: '/naming-hazard-descriptor',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
   welfareDebtAccounting: '/welfare-debt-accounting',
   ruleDocumentCompliance: '/rule-document-compliance',

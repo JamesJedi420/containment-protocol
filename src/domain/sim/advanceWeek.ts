@@ -4586,20 +4586,6 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     }
   }
 
-  // SPE-1310 slice 3: apply case lifecycle transitions from weekly intake/registry event sources.
-  const priorCasesForLifecycle = outputWeeklyState.cases ?? {}
-  if (Object.keys(priorCasesForLifecycle).length > 0) {
-    const lifecycleTick = applyWeeklyCaseLifecycleTick(priorCasesForLifecycle, {
-      week: result.week,
-      priorIntakeReports,
-      nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
-      extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
-    })
-    if (lifecycleTick.changed) {
-      outputWeeklyState.cases = lifecycleTick.cases
-    }
-  }
-
   // SPE-2105 slice 3: expire extranormal monitoring windows and advance monitor_only closure.
   const currentExtranormalEvents = outputWeeklyState.extranormalEventRecords ?? {}
   if (Object.keys(currentExtranormalEvents).length > 0) {
@@ -4862,12 +4848,28 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-2123 slice 3: compliance-decay band state transitions on rule-document compliance records.
-  const currentRuleDocumentComplianceRecords = outputWeeklyState.ruleDocumentComplianceRecords ?? {}
-  if (Object.keys(currentRuleDocumentComplianceRecords).length > 0) {
+  const priorRuleDocumentComplianceRecords = outputWeeklyState.ruleDocumentComplianceRecords ?? {}
+  if (Object.keys(priorRuleDocumentComplianceRecords).length > 0) {
     outputWeeklyState.ruleDocumentComplianceRecords = applyWeeklyRuleDocumentComplianceTick(
-      currentRuleDocumentComplianceRecords,
+      priorRuleDocumentComplianceRecords,
       result.week
     )
+  }
+
+  // SPE-1310 slice 3–4: apply case lifecycle transitions from weekly intake/registry/compliance sources.
+  const priorCasesForLifecycle = outputWeeklyState.cases ?? {}
+  if (Object.keys(priorCasesForLifecycle).length > 0) {
+    const lifecycleTick = applyWeeklyCaseLifecycleTick(priorCasesForLifecycle, {
+      week: result.week,
+      priorIntakeReports,
+      nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
+      extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
+      priorRuleDocumentComplianceRecords,
+      nextRuleDocumentComplianceRecords: outputWeeklyState.ruleDocumentComplianceRecords,
+    })
+    if (lifecycleTick.changed) {
+      outputWeeklyState.cases = lifecycleTick.cases
+    }
   }
 
   // SPE-1889 slice 5: wire therapeutic-care records into integrated health bundles.

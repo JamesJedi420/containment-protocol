@@ -26,7 +26,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 Mission triage expansion remains **blocked**.
 
-**Base `main` SHA:** `c3fd4371`
+**Base `main` SHA:** `4a0cd6ca`
 
 **Recently groomed:** [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) stays **Backlog** — [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117) + [SPE-2363](https://linear.app/spectranoir/issue/SPE-2363)–[SPE-2370](https://linear.app/spectranoir/issue/SPE-2370) and [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) + [SPE-2365](https://linear.app/spectranoir/issue/SPE-2365)–[SPE-2368](https://linear.app/spectranoir/issue/SPE-2368) **Done** (registry slices 1–5 / 1–4); unified case lifecycle state machine AC not met ([SPE-2402](https://linear.app/spectranoir/issue/SPE-2402) / `planning/spe-1310-parent-acceptance-review-slice-1.md`).
 

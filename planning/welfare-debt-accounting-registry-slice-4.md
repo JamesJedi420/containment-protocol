@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2353](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2353 — Welfare-debt accounting registry ledger summary audit output (slice 4)](https://linear.app/spectranoir/issue/SPE-2353) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2574 @ `1ec3ca12`                                                                        |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — ledger summary audit closes deferred slice 2/3 item |
 | **Branch** | `spe-1888-welfare-debt-ledger-summary-audit-slice-4`                                                       |
 | **Base `main` SHA** | `1ec3ca12`                                                                                          |

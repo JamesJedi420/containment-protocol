@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child [SPE-2404](https://linear.app/spectr
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2404 — Reward-branch payout wire-up on qualifying closeout week (slice 29)](https://linear.app/spectranoir/issue/SPE-2404) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2677 @ `51a040f0`                                                                      |
 | **Parent** | [SPE-868](https://linear.app/spectranoir/issue/SPE-868) — Post-incident review and response metrics (**Done** on Linear; owner-choice deferred slice) |
 | **Branch** | `spe-868-reward-branch-payout-slice-29`                                                                    |
 | **Base `main` SHA** | `da694b31`                                                                                          |
@@ -52,11 +52,11 @@ Read `reward_branch:` tokens from orchestration-created reviews and apply bounde
 
 ## Acceptance
 
-- [ ] Orchestration-created reviews with `reward_branch:` token trigger bounded funding delta on materialization week
-- [ ] Training credit delta differs by branch when follow-on training-ref present
-- [ ] `containment_priority` funding delta > `contested_containment` (deterministic)
-- [ ] Re-advance idempotent; stub fixtures excluded
-- [ ] Slice 28 regressions green; `npm run lint` green
+- [x] Orchestration-created reviews with `reward_branch:` token trigger bounded funding delta on materialization week
+- [x] Training credit delta differs by branch when follow-on training-ref present
+- [x] `containment_priority` funding delta > `contested_containment` (deterministic)
+- [x] Re-advance idempotent; stub fixtures excluded
+- [x] Slice 28 regressions green; `npm run lint` green
 
 ## File touch list (expected)
 

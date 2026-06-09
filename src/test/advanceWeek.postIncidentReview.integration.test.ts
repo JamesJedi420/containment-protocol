@@ -409,6 +409,17 @@ describe('advanceWeek qualifying incident review integration (SPE-868 slice 7)',
     expect(mirrorView.qualifyingIncidentRecords[0]?.closeoutRewardBranchLabel).toBe(
       'Containment Priority'
     )
+    expect(mirrorView.qualifyingIncidentRecords[0]?.closeoutRewardPayoutLineLabels).toEqual([
+      'Funding credit — Containment Priority',
+      'Training credit — Containment Priority',
+    ])
+
+    const payoutNotes =
+      weeklyReport?.notes.filter((note) => note.type === 'post_incident_review.closeout_reward_payout') ??
+      []
+    expect(payoutNotes).toHaveLength(1)
+    expect(payoutNotes[0]?.content).toContain('funding credit (containment priority)')
+    expect(payoutNotes[0]?.content).toContain('training credit (containment priority)')
     expect(mirrorView.qualifyingIncidentRecords[0]?.sourceLabel).toBe('Qualifying case closeout')
     expect(mirrorView.qualifyingIncidentRecords[0]?.linkedCaseIdLabel).toBe('case-001')
     expect(mirrorView.qualifyingIncidentRecords[0]?.orchestrationWeekLabel).toBe(

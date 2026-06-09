@@ -22,7 +22,10 @@ const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
   'information_intake.naming_hazard_cross_link',
 ]
 
-const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = ['post_incident_review.follow_on']
+const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = [
+  'post_incident_review.follow_on',
+  'post_incident_review.closeout_reward_payout',
+]
 
 const INCIDENT_NOTE_TYPES: ReportNoteType[] = [
   'case.resolved',

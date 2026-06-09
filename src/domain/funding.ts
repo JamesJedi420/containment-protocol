@@ -666,6 +666,15 @@ export function cancelProcurementOrder(
   }
 }
 
+export const POST_INCIDENT_CLOSEOUT_REWARD_REASON = 'post_incident_closeout_reward'
+export const POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON =
+  'post_incident_closeout_training_credit'
+
+const BUDGET_PRESSURE_HISTORY_EXCLUDED_REASONS = new Set<string>([
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
+])
+
 // --- Budget Pressure Logic ---
 
 export function recomputeBudgetPressure(state: FundingState, currentWeek?: number): FundingState {
@@ -691,8 +700,11 @@ export function recomputeBudgetPressure(state: FundingState, currentWeek?: numbe
   ) {
     pressure += 1
   }
+  const penaltyRelevantHistory = state.fundingHistory.filter(
+    (entry) => !BUDGET_PRESSURE_HISTORY_EXCLUDED_REASONS.has(entry.reason)
+  )
   if (
-    state.fundingHistory
+    penaltyRelevantHistory
       .slice(-FUNDING_CALIBRATION.budgetPressure.recentPenaltyWindow)
       .filter(
         (h) =>

@@ -9,6 +9,8 @@
 import {
   applyFundingIncome,
   createInitialFundingState,
+  POST_INCIDENT_CLOSEOUT_REWARD_REASON,
+  POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON,
   type FundingState,
 } from './funding'
 import type { GameState } from './models'
@@ -26,9 +28,7 @@ export const CLOSEOUT_REWARD_BRANCH_PAYOUT_SOURCE_PREFIX = 'post-incident-closeo
 export const CLOSEOUT_REWARD_BRANCH_TRAINING_CREDIT_SOURCE_PREFIX =
   'post-incident-closeout-training-credit:'
 
-export const POST_INCIDENT_CLOSEOUT_REWARD_REASON = 'post_incident_closeout_reward'
-export const POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON =
-  'post_incident_closeout_training_credit'
+export { POST_INCIDENT_CLOSEOUT_REWARD_REASON, POST_INCIDENT_CLOSEOUT_TRAINING_CREDIT_REASON }
 
 export interface CloseoutRewardBranchPayoutDeltas {
   readonly fundingDelta: number

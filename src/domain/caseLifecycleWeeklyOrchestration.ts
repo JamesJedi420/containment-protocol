@@ -1,9 +1,10 @@
 /**
- * SPE-1310 slice 3: weekly lifecycle transition tick for persisted case lifecycleStage.
+ * SPE-1310 slice 3–4: weekly lifecycle transition tick for persisted case lifecycleStage.
  *
  * Maps deterministic weekly event sources (intake credibility review pass, extranormal
- * anomaly confirmation) onto the slice-1 transition graph. Cases without lifecycleStage
- * are not auto-initialized; invalid transitions preserve the current stage.
+ * anomaly confirmation, rule-document compliance breach/drift, procedure revision recovery)
+ * onto the slice-1 transition graph. Cases without lifecycleStage are not auto-initialized;
+ * invalid transitions preserve the current stage.
  */
 
 import type { CaseLifecycleEvent } from './caseLifecycleStateMachine'
@@ -19,6 +20,11 @@ import type {
 } from './informationIntakeReport'
 import type { ExtranormalEventRecordsMap } from './extranormalEventRegistry'
 import type { CaseInstance } from './models'
+import type {
+  ComplianceState,
+  RuleDocumentComplianceRecord,
+  RuleDocumentComplianceRecordsMap,
+} from './ruleDocumentComplianceContainmentRegistry'
 
 const CREDIBILITY_REVIEW_PASSED_STATUSES: ReadonlySet<InformationVerificationStatus> = new Set([
   'verified',
@@ -35,6 +41,8 @@ export interface WeeklyCaseLifecycleTickInput {
   readonly priorIntakeReports?: InformationIntakeReportsMap | null
   readonly nextIntakeReports?: InformationIntakeReportsMap | null
   readonly extranormalEventRecords?: ExtranormalEventRecordsMap | null
+  readonly priorRuleDocumentComplianceRecords?: RuleDocumentComplianceRecordsMap | null
+  readonly nextRuleDocumentComplianceRecords?: RuleDocumentComplianceRecordsMap | null
 }
 
 export interface WeeklyCaseLifecycleTickResult {
@@ -229,6 +237,149 @@ export function resolveAnomalyConfirmedCaseIds(
   return [...matched].sort((left, right) => left.localeCompare(right))
 }
 
+const REVISION_HISTORY_REF_PREFIX = 'revision:'
+
+const COMPLIANCE_STATE_RECOVERY_RANK: Readonly<Record<ComplianceState, number>> = {
+  compliant: 3,
+  unknown: 2,
+  drifting: 1,
+  breach: 0,
+}
+
+function complianceRecordExplicitlyLinksToCase(
+  record: RuleDocumentComplianceRecord,
+  currentCase: WeeklyCaseLifecycleCaseContext
+): boolean {
+  const documentRef = normalizeToken(record.documentRef)
+  if (!documentRef) {
+    return false
+  }
+
+  return (
+    normalizeToken(currentCase.id) === documentRef ||
+    normalizeToken(currentCase.templateId) === documentRef
+  )
+}
+
+/** First weekly crossing into drifting/breach, or drifting → breach escalation. */
+export function didComplianceResearchInvalidationSignal(
+  priorState: ComplianceState | undefined,
+  nextState: ComplianceState
+): boolean {
+  const priorSignal = priorState === 'drifting' || priorState === 'breach'
+  const nextSignal = nextState === 'drifting' || nextState === 'breach'
+
+  if (!nextSignal) {
+    return false
+  }
+
+  if (!priorSignal) {
+    return true
+  }
+
+  return priorState === 'drifting' && nextState === 'breach'
+}
+
+export function resolveResearchInvalidationCaseIds(
+  priorRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  nextRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  cases: Record<string, CaseInstance>
+): readonly string[] {
+  const safePrior = priorRecords ?? {}
+  const safeNext = nextRecords ?? {}
+  const matched = new Set<string>()
+
+  for (const recordId of Object.keys(safeNext).sort((left, right) => left.localeCompare(right))) {
+    const priorRecord = safePrior[recordId]
+    const nextRecord = safeNext[recordId]
+    if (!nextRecord) {
+      continue
+    }
+
+    if (
+      !didComplianceResearchInvalidationSignal(
+        priorRecord?.complianceState,
+        nextRecord.complianceState
+      )
+    ) {
+      continue
+    }
+
+    for (const currentCase of Object.values(cases)) {
+      if (currentCase.status === 'resolved') {
+        continue
+      }
+
+      if (complianceRecordExplicitlyLinksToCase(nextRecord, currentCase)) {
+        matched.add(currentCase.id)
+      }
+    }
+  }
+
+  return [...matched].sort((left, right) => left.localeCompare(right))
+}
+
+function complianceStateImproved(priorState: ComplianceState, nextState: ComplianceState): boolean {
+  return COMPLIANCE_STATE_RECOVERY_RANK[nextState] > COMPLIANCE_STATE_RECOVERY_RANK[priorState]
+}
+
+function hasNewRevisionHistoryRef(
+  priorRecord: RuleDocumentComplianceRecord,
+  nextRecord: RuleDocumentComplianceRecord
+): boolean {
+  const priorRefs = new Set(priorRecord.revisionHistoryRefs ?? [])
+
+  return (nextRecord.revisionHistoryRefs ?? []).some(
+    (ref) => ref.startsWith(REVISION_HISTORY_REF_PREFIX) && !priorRefs.has(ref)
+  )
+}
+
+/** Registry recovery: new revision ref logged while compliance state improves. */
+export function didProcedureRevisionRecover(
+  priorRecord: RuleDocumentComplianceRecord,
+  nextRecord: RuleDocumentComplianceRecord
+): boolean {
+  if (!hasNewRevisionHistoryRef(priorRecord, nextRecord)) {
+    return false
+  }
+
+  return complianceStateImproved(priorRecord.complianceState, nextRecord.complianceState)
+}
+
+export function resolveProcedureRevisedCaseIds(
+  priorRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  nextRecords: RuleDocumentComplianceRecordsMap | null | undefined,
+  cases: Record<string, CaseInstance>
+): readonly string[] {
+  const safePrior = priorRecords ?? {}
+  const safeNext = nextRecords ?? {}
+  const matched = new Set<string>()
+
+  for (const recordId of Object.keys(safeNext).sort((left, right) => left.localeCompare(right))) {
+    const priorRecord = safePrior[recordId]
+    const nextRecord = safeNext[recordId]
+    if (!priorRecord || !nextRecord) {
+      continue
+    }
+
+    if (!didProcedureRevisionRecover(priorRecord, nextRecord)) {
+      continue
+    }
+
+    for (const currentCase of Object.values(cases)) {
+      if (currentCase.status === 'resolved') {
+        continue
+      }
+
+      if (complianceRecordExplicitlyLinksToCase(nextRecord, currentCase)) {
+        matched.add(currentCase.id)
+      }
+    }
+  }
+
+  return [...matched].sort((left, right) => left.localeCompare(right))
+}
+
 export function applyCaseLifecycleEventToCase(
   caseData: CaseInstance,
   event: CaseLifecycleEvent
@@ -276,6 +427,22 @@ function resolveWeeklyCaseLifecycleEvents(
 
   for (const caseId of resolveAnomalyConfirmedCaseIds(input.extranormalEventRecords, cases)) {
     appendEvent(caseId, 'anomaly_confirmed')
+  }
+
+  for (const caseId of resolveResearchInvalidationCaseIds(
+    input.priorRuleDocumentComplianceRecords,
+    input.nextRuleDocumentComplianceRecords,
+    cases
+  )) {
+    appendEvent(caseId, 'research_invalidation')
+  }
+
+  for (const caseId of resolveProcedureRevisedCaseIds(
+    input.priorRuleDocumentComplianceRecords,
+    input.nextRuleDocumentComplianceRecords,
+    cases
+  )) {
+    appendEvent(caseId, 'procedure_revised')
   }
 
   return eventsByCase

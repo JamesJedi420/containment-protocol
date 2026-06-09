@@ -1,11 +1,12 @@
 /**
- * SPE-1310 slice 3–5: weekly lifecycle transition tick for persisted case lifecycleStage.
+ * SPE-1310 slice 3–6: weekly lifecycle transition tick for persisted case lifecycleStage.
  *
  * Maps deterministic weekly event sources (intake credibility review pass, extranormal
  * anomaly confirmation, rule-document compliance breach/drift, procedure revision recovery,
  * presumed-neutralized disposition, adaptation-driven policy-tier upgrade) onto the slice-1
- * transition graph. Cases without lifecycleStage are not auto-initialized; invalid transitions
- * preserve the current stage.
+ * transition graph. Projects institutional classification labels (slice 6) from lifecycle
+ * disposition only — not from operational containmentPolicyTier. Cases without
+ * lifecycleStage are not auto-initialized; invalid transitions preserve the current stage.
  */
 
 import type { CaseLifecycleEvent } from './caseLifecycleStateMachine'
@@ -14,6 +15,7 @@ import {
   PRESUMED_NEUTRALIZED_SURVEILLANCE_INTERVAL_WEEKS,
   containmentPolicyTierRank,
   isValidCaseLifecycleTransition,
+  projectLifecycleInstitutionalLabel,
   transitionCaseLifecycleStage,
   upgradeContainmentPolicyTier,
 } from './caseLifecycleStateMachine'
@@ -493,6 +495,30 @@ export function applyPresumedNeutralizedSurveillanceClocks(
   }
 }
 
+export function applyLifecycleInstitutionalLabelProjection(
+  caseData: CaseInstance
+): CaseInstance {
+  const projectedLabel = projectLifecycleInstitutionalLabel(caseData)
+  if (projectedLabel === undefined) {
+    if (caseData.lifecycleInstitutionalLabel === undefined) {
+      return caseData
+    }
+
+    const nextCase = { ...caseData }
+    delete nextCase.lifecycleInstitutionalLabel
+    return nextCase
+  }
+
+  if (caseData.lifecycleInstitutionalLabel === projectedLabel) {
+    return caseData
+  }
+
+  return {
+    ...caseData,
+    lifecycleInstitutionalLabel: projectedLabel,
+  }
+}
+
 export function applyAdaptationPolicyTierUpgrade(caseData: CaseInstance): CaseInstance {
   const currentTier = caseData.containmentPolicyTier ?? 'standard'
   const nextTier = upgradeContainmentPolicyTier(currentTier)
@@ -654,15 +680,6 @@ export function applyWeeklyCaseLifecycleTick(
   const eventsByCase = resolveWeeklyCaseLifecycleEvents(safeCases, input)
   const adaptationCaseIds = resolveAdaptationPolicyTierUpgradeCaseIds(safeCases, input)
 
-  if (eventsByCase.size === 0 && adaptationCaseIds.length === 0) {
-    return {
-      cases: safeCases,
-      changed: false,
-      appliedEvents: [],
-      appliedDispositions: [],
-    }
-  }
-
   const nextCases: Record<string, CaseInstance> = { ...safeCases }
   const appliedEvents: AppliedCaseLifecycleEvent[] = []
   const appliedDispositions: AppliedCaseLifecycleDisposition[] = []
@@ -729,6 +746,19 @@ export function applyWeeklyCaseLifecycleTick(
     })
     nextCases[caseId] = updatedCase
     changed = true
+  }
+
+  for (const caseId of Object.keys(nextCases).sort((left, right) => left.localeCompare(right))) {
+    const currentCase = nextCases[caseId]
+    if (!currentCase || currentCase.lifecycleStage === undefined) {
+      continue
+    }
+
+    const projectedCase = applyLifecycleInstitutionalLabelProjection(currentCase)
+    if (projectedCase !== currentCase) {
+      nextCases[caseId] = projectedCase
+      changed = true
+    }
   }
 
   return {

@@ -1,4 +1,7 @@
-import { DEFAULT_CASE_LIFECYCLE_STAGE } from '../caseLifecycleStateMachine'
+import {
+  DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL,
+  DEFAULT_CASE_LIFECYCLE_STAGE,
+} from '../caseLifecycleStateMachine'
 import { type CaseInstance } from '../models'
 import { inferFactionIdFromCaseTags } from '../factions'
 import { createMissionIntelState } from '../intel'
@@ -113,6 +116,7 @@ export function createStarterCase(seed: StarterCaseSeed): CaseInstance {
     infiltrationProbePlan: copyInfiltrationProbePlan(template.infiltrationProbePlan),
     infiltrationCoverProfile: copyInfiltrationCoverProfile(template.infiltrationCoverProfile),
     lifecycleStage: DEFAULT_CASE_LIFECYCLE_STAGE,
+    lifecycleInstitutionalLabel: DEFAULT_CASE_LIFECYCLE_INSTITUTIONAL_LABEL,
   }
 
   return applySiteGenerationToCase({

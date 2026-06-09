@@ -1,5 +1,9 @@
 import type { GameState } from '../../domain/models'
 import {
+  derivePostIncidentCloseoutRewardBranch,
+  type PostIncidentCloseoutRewardBranch,
+} from '../../domain/postIncidentReviewCloseoutRewardBranch'
+import {
   POST_INCIDENT_REVIEW_STUB_REGISTRY,
   projectPostIncidentReviewSummary,
   type PostIncidentReviewRecord,
@@ -35,6 +39,7 @@ export interface PostIncidentReviewMirrorRecordView {
   reportingWeekLabel: string
   procedureAdherenceScoreLabel: string
   recurrenceObservedLabel: string
+  closeoutRewardBranchLabel: string
   confidenceLabel: string
   unknownFieldLabels: readonly string[]
   redacted: boolean
@@ -193,6 +198,16 @@ function formatRecurrenceObserved(value: boolean | null | undefined): string {
   return value ? 'Yes' : 'No'
 }
 
+export function formatCloseoutRewardBranchLabel(
+  branch: PostIncidentCloseoutRewardBranch | undefined
+): string {
+  if (!branch) {
+    return '—'
+  }
+
+  return formatPostIncidentReviewEnumLabel(branch)
+}
+
 function formatMilestoneWeek(
   record: PostIncidentReviewRecord,
   field: keyof NonNullable<PostIncidentReviewRecord['milestoneTimings']>,
@@ -232,6 +247,9 @@ function toRecordView(record: PostIncidentReviewRecord): PostIncidentReviewMirro
     reportingWeekLabel: formatMilestoneWeek(record, 'reportingWeek', milestoneTimingsRedacted),
     procedureAdherenceScoreLabel: formatUnitScore(projection.procedureAdherenceScore),
     recurrenceObservedLabel: formatRecurrenceObserved(projection.recurrenceObserved),
+    closeoutRewardBranchLabel: formatCloseoutRewardBranchLabel(
+      derivePostIncidentCloseoutRewardBranch(record)
+    ),
     confidenceLabel: formatConfidence(projection.confidence),
     unknownFieldLabels: Object.freeze([...projection.unknownFields]),
     redacted: projection.redacted,

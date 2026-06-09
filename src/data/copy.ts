@@ -1192,6 +1192,41 @@ export const CONTAINED_PERSON_INTEGRATED_HEALTH_BUNDLE_MIRROR_UI_TEXT: Record<st
   redactedSuffix: 'Partial redaction',
 }
 
+export const NAMING_HAZARD_DESCRIPTOR_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Naming-hazard descriptor registry',
+  pageSubtitle:
+    'Read-only operations view over persisted naming-hazard descriptor records, safe-label projections, and intake cross-links.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  redactedSubstitutionLabel: 'Redacted substitution',
+  crossLinkedLabel: 'Cross-linked records',
+  orchestratedLabel: 'Orchestrated records',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Substitution policy, confidence erosion, and cross-link labels mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No naming-hazard descriptor records',
+  emptyBody:
+    'Persisted naming-hazard descriptor records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Safe briefing and map labels use projectSafeLabel at read time; they are not objective truth.',
+  labelColumn: 'Descriptor',
+  substitutionColumn: 'Substitution state',
+  crossLinkColumn: 'Intake cross-links',
+  orchestrationColumn: 'Weekly orchestration',
+  confidenceColumn: 'Confidence',
+  poolPrefix: 'Pool:',
+  mapModePrefix: 'Map mode:',
+  briefingLabelPrefix: 'Briefing:',
+  mapLabelPrefix: 'Map:',
+  intakeTopicPrefix: 'Topic:',
+  redactedFieldsPrefix: 'Redacted fields:',
+  redactedSuffix: 'Substitution redacted',
+  confidenceRedactedSuffix: 'Confidence redacted',
+  validationWarningPrefix: 'Validation warnings:',
+}
+
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Contained person therapeutic care registry',

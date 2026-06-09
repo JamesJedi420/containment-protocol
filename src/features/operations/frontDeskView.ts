@@ -808,6 +808,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
     },
     {
+      label: 'Open naming-hazard descriptor mirror',
+      href: APP_ROUTES.namingHazardDescriptor,
+      description:
+        'Review substitution policy, confidence erosion markers, and intake cross-link labels.',
+    },
+    {
       label: 'Open contained person integrated health bundle mirror',
       href: APP_ROUTES.containedPersonIntegratedHealthBundle,
       description:

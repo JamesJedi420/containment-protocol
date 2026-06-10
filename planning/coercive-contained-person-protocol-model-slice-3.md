@@ -5,7 +5,8 @@ One-page implementation plan. Linear: [SPE-2422](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2422 — Coercive contained-person protocol weekly orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2422) |
-| **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–2 shipped)          |
+| **Status** | **Shipped** — PR #2713 @ `cfad608f`                                                                        |
+| **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–3 shipped)          |
 | **Branch** | `spe-1882-coercive-protocol-weekly-hook-slice-3`                                                           |
 | **Base `main` SHA** | `a40cb18f`                                                                                          |
 

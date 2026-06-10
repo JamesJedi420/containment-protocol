@@ -99,6 +99,9 @@ const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
 const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonTherapeuticCareMirrorPage')
 )
+const CoerciveContainedPersonProtocolMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CoerciveContainedPersonProtocolMirrorPage')
+)
 const NamingHazardDescriptorMirrorRoute = createRouteComponent(
   () => import('../features/operations/NamingHazardDescriptorMirrorPage')
 )
@@ -197,6 +200,10 @@ export default function App() {
         <Route
           path="contained-person-therapeutic-care"
           element={renderLazyRoute(ContainedPersonTherapeuticCareMirrorRoute)}
+        />
+        <Route
+          path="coercive-contained-person-protocol"
+          element={renderLazyRoute(CoerciveContainedPersonProtocolMirrorRoute)}
         />
         <Route
           path="naming-hazard-descriptor"

@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) follow-up — persisted projection snapshots or planning mirror UI over coercive protocol records (slice 3 orchestration stub shipped). Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) follow-up — persisted weekly projection snapshots on GameState (alternate to mirror UI; slice 4 mirror shipped) or contradiction-check siblings ([SPE-1897+](https://linear.app/spectranoir/issue/SPE-1897)). Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `cfad608f` (shipped: [SPE-2422](https://linear.app/spectranoir/issue/SPE-2422) coercive protocol weekly orchestration hook slice 3 @ PR #2713)
+**Base `main` SHA:** `5d792229` (in progress: [SPE-2423](https://linear.app/spectranoir/issue/SPE-2423) coercive protocol planning mirror UI slice 4)
 
 **Recently shipped:** [SPE-2422](https://linear.app/spectranoir/issue/SPE-2422) coercive protocol weekly orchestration hook slice 3 @ PR #2713; [SPE-2421](https://linear.app/spectranoir/issue/SPE-2421) coercive protocol GameState persistence slice 2 @ PR #2711; see `planning/coercive-contained-person-protocol-model-slice-3.md`.
 

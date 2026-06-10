@@ -5,6 +5,7 @@ import {
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
   classifyCoerciveProtocolHandlingPosture,
   evaluateCoerciveProtocolContradictionChecks,
+  evaluateComplianceMetricMasksHarmContradictionCheck,
   evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck,
   evaluateRoutineForceAuthorizationContradictionCheck,
   projectCoerciveProtocolRiskReview,
@@ -54,6 +55,7 @@ describe('coerciveContainedPersonProtocolRegistry (SPE-1882 slice 1)', () => {
     expect(review.coercionRiskScore).toBeGreaterThan(0.5)
     expect(review.contradictionRiskFlags).toContain('routine_force_authorization')
     expect(review.contradictionRiskFlags).toContain('generalized_procedure_without_subject_fit')
+    expect(review.contradictionRiskFlags).toContain('compliance_metric_masks_harm')
     expect(review.blocksProcedure).toBe(false)
   })
 
@@ -169,6 +171,7 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
     const skipped = evaluateCoerciveProtocolContradictionChecks(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
 
     expect(triggered.map((check) => check.flag)).toEqual([
+      'compliance_metric_masks_harm',
       'generalized_procedure_without_subject_fit',
       'routine_force_authorization',
     ])
@@ -263,6 +266,89 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
     )
     const second = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882 slice 8)', () => {
+  it('triggers compliance-metric sibling aligned with contradiction risk flags', () => {
+    const review = projectCoerciveProtocolRiskReview(ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE)
+    const check = evaluateComplianceMetricMasksHarmContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(review.contradictionRiskFlags).toContain('compliance_metric_masks_harm')
+    expect(check.triggered).toBe(true)
+    expect(check.flag).toBe('compliance_metric_masks_harm')
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues.length).toBeGreaterThan(0)
+    expect(check.issues.every((issue) => issue.severity === 'warning')).toBe(true)
+    expect(check.issues.map((issue) => issue.code)).toEqual([
+      'compliance_metric_low_consent_confidence',
+      'compliance_metric_masks_care_harm',
+      'compliance_metric_masks_personhood_harm',
+      'compliance_metric_operational_only',
+    ])
+  })
+
+  it('flags voluntary handling contradictions when compliance metrics are operational only', () => {
+    const voluntaryCompliance = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:voluntary-compliance-metric',
+      handlingMode: 'voluntary' as const,
+    }
+    const check = evaluateComplianceMetricMasksHarmContradictionCheck(voluntaryCompliance)
+
+    expect(check.triggered).toBe(true)
+    expect(
+      check.issues.some((issue) => issue.code === 'compliance_metric_contradicts_voluntary_handling')
+    ).toBe(true)
+  })
+
+  it('returns non-triggered no-op when complianceMetricOnly is absent', () => {
+    const check = evaluateComplianceMetricMasksHarmContradictionCheck(
+      EMERGENCY_SEDATION_PROTOCOL_FIXTURE
+    )
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('returns non-triggered no-op when complianceMetricOnly is false', () => {
+    const withoutComplianceMetric = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:without-compliance-metric',
+      complianceMetricOnly: false,
+    }
+    const check = evaluateComplianceMetricMasksHarmContradictionCheck(withoutComplianceMetric)
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('propagates redacted and unknown metadata into sibling output', () => {
+    const redacted = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      redactedFields: ['complianceMetricOnly'],
+      unknownFields: ['personhoodHarmRisk'],
+    }
+    const check = evaluateComplianceMetricMasksHarmContradictionCheck(redacted)
+
+    expect(check.triggered).toBe(true)
+    expect(check.redacted).toBe(true)
+    expect(check.unknownFields).toEqual(['personhoodHarmRisk'])
+  })
+
+  it('returns byte-stable compliance-metric output on repeated calls', () => {
+    const first = evaluateComplianceMetricMasksHarmContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+    const second = evaluateComplianceMetricMasksHarmContradictionCheck(
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
     )
 

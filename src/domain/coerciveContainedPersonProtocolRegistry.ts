@@ -235,9 +235,19 @@ export type CoerciveProtocolGeneralizedSubjectFitContradictionCheckCode =
   | 'generalized_procedure_masks_care_harm'
   | 'generalized_procedure_compliance_metric_only'
 
+export type CoerciveProtocolComplianceMetricContradictionCheckCode =
+  | 'compliance_metric_operational_only'
+  | 'compliance_metric_contradicts_voluntary_handling'
+  | 'compliance_metric_low_consent_confidence'
+  | 'compliance_metric_abusive_without_review_path'
+  | 'compliance_metric_deceptive_without_review_path'
+  | 'compliance_metric_masks_care_harm'
+  | 'compliance_metric_masks_personhood_harm'
+
 export type CoerciveProtocolContradictionCheckCode =
   | CoerciveProtocolRoutineForceContradictionCheckCode
   | CoerciveProtocolGeneralizedSubjectFitContradictionCheckCode
+  | CoerciveProtocolComplianceMetricContradictionCheckCode
 
 export interface CoerciveProtocolContradictionCheckIssue {
   readonly code: CoerciveProtocolContradictionCheckCode
@@ -773,6 +783,7 @@ export function projectContainmentCareTradeoff(
 }
 
 const CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD = 0.35
+const COMPLIANCE_METRIC_ELEVATED_PERSONHOOD_HARM_THRESHOLD = 0.5
 
 const VOLUNTARY_HANDLING_MODES = new Set<CoerciveProtocolHandlingMode>(['voluntary', 'negotiated'])
 
@@ -932,6 +943,111 @@ function buildGeneralizedProcedureWithoutSubjectFitContradictionIssues(
   return issues
 }
 
+function buildComplianceMetricMasksHarmContradictionIssues(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckIssue[] {
+  const issues: CoerciveProtocolContradictionCheckIssue[] = []
+  const id = normalizeToken(record.id)
+  const relatedIds = id ? [id] : undefined
+
+  issues.push({
+    code: 'compliance_metric_operational_only',
+    severity: 'warning',
+    detail: `Coercive protocol record ${id || '(unknown)'} relies on compliance metrics as the sole success measure rather than personhood-preservation outputs.`,
+    relatedIds,
+  })
+
+  if (VOLUNTARY_HANDLING_MODES.has(record.handlingMode)) {
+    issues.push({
+      code: 'compliance_metric_contradicts_voluntary_handling',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} pairs compliance-only metrics with ${record.handlingMode} handling.`,
+      relatedIds,
+    })
+  }
+
+  if (record.consentConfidence <= CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
+    issues.push({
+      code: 'compliance_metric_low_consent_confidence',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} tracks compliance metrics while consent confidence remains low (${record.consentConfidence.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'abusive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+    issues.push({
+      code: 'compliance_metric_abusive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is abusive with compliance-only metrics and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'deceptive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+    issues.push({
+      code: 'compliance_metric_deceptive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is deceptive with compliance-only metrics and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (projectContainmentCareTradeoff(record).stableContainmentDominatesCare) {
+    issues.push({
+      code: 'compliance_metric_masks_care_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} reports containment stability gains that may mask compliance-metric care harm.`,
+      relatedIds,
+    })
+  }
+
+  if (record.personhoodHarmRisk >= COMPLIANCE_METRIC_ELEVATED_PERSONHOOD_HARM_THRESHOLD) {
+    issues.push({
+      code: 'compliance_metric_masks_personhood_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} tracks compliance metrics while personhood harm risk remains elevated (${record.personhoodHarmRisk.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  return issues
+}
+
+export function evaluateComplianceMetricMasksHarmContradictionCheck(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckResult {
+  const flags = collectContradictionRiskFlags(record)
+  const triggered = flags.includes('compliance_metric_masks_harm')
+  const unknownFields = resolveUnknownFields(record)
+  const confidence = resolveConfidence(record)
+  const redacted = isRedacted(record)
+
+  if (!triggered) {
+    return freezeContradictionCheckResult({
+      recordId: record.id,
+      flag: 'compliance_metric_masks_harm',
+      triggered: false,
+      blocksProcedure: false,
+      issues: [],
+      confidence,
+      redacted,
+      unknownFields,
+    })
+  }
+
+  return freezeContradictionCheckResult({
+    recordId: record.id,
+    flag: 'compliance_metric_masks_harm',
+    triggered: true,
+    blocksProcedure: false,
+    issues: buildComplianceMetricMasksHarmContradictionIssues(record),
+    confidence,
+    redacted,
+    unknownFields,
+  })
+}
+
 export function evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
   record: CoerciveProtocolRecord
 ): CoerciveProtocolContradictionCheckResult {
@@ -1004,11 +1120,13 @@ export function evaluateRoutineForceAuthorizationContradictionCheck(
 export function evaluateCoerciveProtocolContradictionChecks(
   record: CoerciveProtocolRecord
 ): readonly CoerciveProtocolContradictionCheckResult[] {
+  const complianceMetricCheck = evaluateComplianceMetricMasksHarmContradictionCheck(record)
   const generalizedSubjectFitCheck =
     evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(record)
   const routineForceCheck = evaluateRoutineForceAuthorizationContradictionCheck(record)
 
   const triggered = [
+    complianceMetricCheck.triggered ? complianceMetricCheck : null,
     generalizedSubjectFitCheck.triggered ? generalizedSubjectFitCheck : null,
     routineForceCheck.triggered ? routineForceCheck : null,
   ].filter((check): check is CoerciveProtocolContradictionCheckResult => check !== null)

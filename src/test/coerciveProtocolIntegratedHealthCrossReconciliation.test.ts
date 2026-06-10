@@ -9,8 +9,13 @@ import {
   composeAllCoerciveProtocolIntegratedHealthReconciliations,
   composeCoerciveProtocolIntegratedHealthReconciliation,
   listCoerciveProtocolsForIntegratedHealthSubject,
+  listSurveillanceInterventionTuningRecordsForSubject,
   resolveIntegratedHealthBundleForSubject,
 } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
+import {
+  SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+  validateSurveillanceInterventionTuningRecord,
+} from '../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
   INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
   INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
@@ -26,12 +31,17 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
     )
 
     expect(summary.links).toEqual([])
+    expect(summary.surveillanceTuningLinks).toEqual([])
     expect(summary.linkedProtocolCount).toBe(0)
     expect(summary.linkedBundleCount).toBe(0)
+    expect(summary.linkedTuningCount).toBe(0)
     expect(summary.protocolRiskReviews).toEqual([])
     expect(summary.triggeredContradictionChecks).toEqual([])
+    expect(summary.surveillanceTuningProjections).toEqual([])
     expect(summary.crossSystemTensionFlags).toEqual([])
     expect(summary.structuredReasons).toContain('link_count:0')
+    expect(summary.structuredReasons).toContain('linked_tuning_count:0')
+    expect(summary.structuredReasons).toContain('tuning:none')
     expect(summary.structuredReasons).toContain('tension:none')
   })
 
@@ -78,6 +88,49 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
       'surveillance_burden_stable_mental_state',
     ])
     expect(summary.structuredReasons).toContain('tension:present')
+    expect(summary.structuredReasons).toContain('tuning:none')
+    expect(summary.linkedTuningCount).toBe(0)
+  })
+
+  it('cross-joins surveillance tuning record with protocol and bundle by subject ref', () => {
+    expect(validateSurveillanceInterventionTuningRecord(SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE).valid).toBe(
+      true
+    )
+
+    const protocols = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    const surveillanceTuningRecords = {
+      [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      surveillanceTuningRecords
+    )
+
+    expect(summary.linkedTuningCount).toBe(1)
+    expect(summary.surveillanceTuningLinks).toHaveLength(1)
+    expect(summary.surveillanceTuningLinks[0]?.matchKind).toBe('subject_ref')
+    expect(summary.surveillanceTuningProjections[0]?.monitoringExceedsContact).toBe(true)
+    expect(summary.surveillanceTuningProjections[0]?.sustainedUnderCollateralStrain).toBe(true)
+    expect(summary.crossSystemTensionFlags).toEqual([
+      'monitoring_substitutes_contact_signal',
+      'surveillance_burden_low_humane_care_risk',
+      'surveillance_burden_no_active_contact_channel',
+      'surveillance_burden_stable_mental_state',
+      'surveillance_tuning_monitoring_exceeds_contact',
+      'surveillance_tuning_sustained_under_collateral_strain',
+    ])
+    expect(summary.structuredReasons).toContain('linked_tuning_count:1')
+    expect(summary.structuredReasons).toContain('tuning:linked')
   })
 
   it('omits links when bundle is missing for a protocol subject', () => {
@@ -121,6 +174,17 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
         ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef
       )?.id
     ).toBe(INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.id)
+
+    const tuningRecords = {
+      [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+    }
+
+    expect(
+      listSurveillanceInterventionTuningRecordsForSubject(
+        tuningRecords,
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef
+      ).map((record) => record.id)
+    ).toEqual([SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id])
   })
 
   it('composeAll returns summaries in subject locale order with byte-stable repeat', () => {

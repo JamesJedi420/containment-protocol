@@ -1,10 +1,11 @@
 /**
- * SPE-1908 / SPE-2428 slice 1: coercive protocol ↔ integrated health bundle
- * cross-system reconciliation compose.
+ * SPE-1908 / SPE-2428 slice 1 + SPE-2430 slice 3: coercive protocol ↔ integrated
+ * health bundle cross-system reconciliation compose.
  *
- * Pure deterministic linkage between persisted coercive protocol records and
- * integrated health bundles via shared subject refs — reuses registry projections
- * only; no new reconciliation engine or hidden truth beyond hydrated maps.
+ * Pure deterministic linkage between persisted coercive protocol records,
+ * integrated health bundles, and surveillance-tuning records via shared subject
+ * refs — reuses registry projections only; no new reconciliation engine or
+ * hidden truth beyond hydrated maps.
  */
 
 import {
@@ -23,6 +24,13 @@ import {
   type MentalStateBand,
   type TherapeuticCareScheduleLink,
 } from './containedPersonIntegratedHealthBundleRegistry'
+import {
+  projectSurveillanceInterventionTuningReview,
+  validateSurveillanceInterventionTuningRecord,
+  type SurveillanceInterventionTuningProjection,
+  type SurveillanceInterventionTuningRecord,
+  type SurveillanceInterventionTuningRecordsMap,
+} from './surveillanceCapacityInterventionTuningRegistry'
 
 export type CoerciveProtocolIntegratedHealthMatchKind = 'subject_ref'
 
@@ -38,14 +46,25 @@ export type CoerciveProtocolCrossSystemTensionFlag =
   | 'surveillance_burden_no_active_contact_channel'
   | 'surveillance_burden_low_humane_care_risk'
   | 'monitoring_substitutes_contact_signal'
+  | 'surveillance_tuning_monitoring_exceeds_contact'
+  | 'surveillance_tuning_sustained_under_collateral_strain'
+
+export interface CoerciveProtocolSurveillanceTuningCrossLink {
+  readonly surveillanceTuningId: string
+  readonly subjectRef: string
+  readonly matchKind: CoerciveProtocolIntegratedHealthMatchKind
+}
 
 export interface CoerciveProtocolIntegratedHealthReconciliationSummary {
   readonly subjectRef: string
   readonly links: readonly CoerciveProtocolIntegratedHealthCrossLink[]
+  readonly surveillanceTuningLinks: readonly CoerciveProtocolSurveillanceTuningCrossLink[]
   readonly linkedProtocolCount: number
   readonly linkedBundleCount: number
+  readonly linkedTuningCount: number
   readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
   readonly triggeredContradictionChecks: readonly CoerciveProtocolContradictionCheckResult[]
+  readonly surveillanceTuningProjections: readonly SurveillanceInterventionTuningProjection[]
   readonly bundleMentalStateBand: MentalStateBand | null
   readonly bundleHumaneCareRiskScore: number | null
   readonly bundleTherapeuticChannelStates: readonly TherapeuticCareScheduleLink['channelState'][]
@@ -67,6 +86,12 @@ function isHydratedIntegratedHealthBundle(
   bundle: ContainedPersonIntegratedHealthBundle
 ): boolean {
   return validateContainedPersonIntegratedHealthBundle(bundle).valid
+}
+
+function isHydratedSurveillanceInterventionTuningRecord(
+  record: SurveillanceInterventionTuningRecord
+): boolean {
+  return validateSurveillanceInterventionTuningRecord(record).valid
 }
 
 function mergeUnknownFields(
@@ -100,6 +125,24 @@ function listHydratedProtocolsForSubject(
       (record) =>
         normalizeToken(record.subjectRef) === normalizedSubjectRef &&
         isHydratedCoerciveProtocolRecord(record)
+    )
+    .sort((left, right) => left.id.localeCompare(right.id))
+}
+
+function listHydratedSurveillanceTuningRecordsForSubject(
+  records: SurveillanceInterventionTuningRecordsMap | undefined,
+  subjectRef: string
+): SurveillanceInterventionTuningRecord[] {
+  const normalizedSubjectRef = normalizeToken(subjectRef)
+  if (!normalizedSubjectRef) {
+    return []
+  }
+
+  return Object.values(records ?? {})
+    .filter(
+      (record) =>
+        normalizeToken(record.subjectRef) === normalizedSubjectRef &&
+        isHydratedSurveillanceInterventionTuningRecord(record)
     )
     .sort((left, right) => left.id.localeCompare(right.id))
 }
@@ -148,7 +191,7 @@ function hasActiveTherapeuticContactChannel(
   )
 }
 
-function collectCrossSystemTensionFlags(input: {
+function collectBundleCrossSystemTensionFlags(input: {
   readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
   readonly bundle: ContainedPersonIntegratedHealthBundle | null
 }): readonly CoerciveProtocolCrossSystemTensionFlag[] {
@@ -180,6 +223,50 @@ function collectCrossSystemTensionFlags(input: {
   return Object.freeze([...new Set(flags)].sort((left, right) => left.localeCompare(right)))
 }
 
+function collectSurveillanceTuningCrossSystemTensionFlags(input: {
+  readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
+  readonly surveillanceTuningProjections: readonly SurveillanceInterventionTuningProjection[]
+}): readonly CoerciveProtocolCrossSystemTensionFlag[] {
+  if (!hasSurveillanceIsolationBurden(input.protocolRiskReviews)) {
+    return Object.freeze([])
+  }
+
+  const flags: CoerciveProtocolCrossSystemTensionFlag[] = []
+
+  for (const projection of input.surveillanceTuningProjections) {
+    if (projection.monitoringExceedsContact) {
+      flags.push('surveillance_tuning_monitoring_exceeds_contact')
+    }
+
+    if (projection.sustainedUnderCollateralStrain) {
+      flags.push('surveillance_tuning_sustained_under_collateral_strain')
+    }
+  }
+
+  return Object.freeze([...new Set(flags)].sort((left, right) => left.localeCompare(right)))
+}
+
+function collectCrossSystemTensionFlags(input: {
+  readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
+  readonly bundle: ContainedPersonIntegratedHealthBundle | null
+  readonly surveillanceTuningProjections: readonly SurveillanceInterventionTuningProjection[]
+}): readonly CoerciveProtocolCrossSystemTensionFlag[] {
+  return Object.freeze(
+    [
+      ...collectBundleCrossSystemTensionFlags({
+        protocolRiskReviews: input.protocolRiskReviews,
+        bundle: input.bundle,
+      }),
+      ...collectSurveillanceTuningCrossSystemTensionFlags({
+        protocolRiskReviews: input.protocolRiskReviews,
+        surveillanceTuningProjections: input.surveillanceTuningProjections,
+      }),
+    ]
+      .filter((flag, index, flags) => flags.indexOf(flag) === index)
+      .sort((left, right) => left.localeCompare(right))
+  )
+}
+
 export function listCoerciveProtocolsForIntegratedHealthSubject(
   protocols: CoerciveProtocolRecordsMap | undefined,
   subjectRef: string
@@ -194,14 +281,26 @@ export function resolveIntegratedHealthBundleForSubject(
   return resolveHydratedBundleForSubject(bundles, subjectRef)
 }
 
+export function listSurveillanceInterventionTuningRecordsForSubject(
+  records: SurveillanceInterventionTuningRecordsMap | undefined,
+  subjectRef: string
+): SurveillanceInterventionTuningRecord[] {
+  return listHydratedSurveillanceTuningRecordsForSubject(records, subjectRef)
+}
+
 export function composeCoerciveProtocolIntegratedHealthReconciliation(
   protocols: CoerciveProtocolRecordsMap | undefined,
   bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined,
-  subjectRef: string
+  subjectRef: string,
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
 ): CoerciveProtocolIntegratedHealthReconciliationSummary {
   const normalizedSubjectRef = normalizeToken(subjectRef) || '(unknown)'
   const protocolRecords = listHydratedProtocolsForSubject(protocols, normalizedSubjectRef)
   const bundle = resolveHydratedBundleForSubject(bundles, normalizedSubjectRef)
+  const tuningRecords = listHydratedSurveillanceTuningRecordsForSubject(
+    surveillanceTuningRecords,
+    normalizedSubjectRef
+  )
 
   const protocolRiskReviews = Object.freeze(
     protocolRecords.map((record) => projectCoerciveProtocolRiskReview(record))
@@ -220,13 +319,28 @@ export function composeCoerciveProtocolIntegratedHealthReconciliation(
       })
   )
 
+  const surveillanceTuningProjections = Object.freeze(
+    tuningRecords.map((record) => projectSurveillanceInterventionTuningReview(record))
+  )
+
   const links: CoerciveProtocolIntegratedHealthCrossLink[] = []
+  const surveillanceTuningLinks: CoerciveProtocolSurveillanceTuningCrossLink[] = []
 
   if (bundle) {
     for (const record of protocolRecords) {
       links.push({
         coerciveProtocolId: record.id,
         integratedHealthBundleId: bundle.id,
+        subjectRef: normalizedSubjectRef,
+        matchKind: 'subject_ref',
+      })
+    }
+  }
+
+  if (bundle && tuningRecords.length > 0) {
+    for (const tuningRecord of tuningRecords) {
+      surveillanceTuningLinks.push({
+        surveillanceTuningId: tuningRecord.id,
         subjectRef: normalizedSubjectRef,
         matchKind: 'subject_ref',
       })
@@ -247,43 +361,63 @@ export function composeCoerciveProtocolIntegratedHealthReconciliation(
     return left.integratedHealthBundleId.localeCompare(right.integratedHealthBundleId)
   })
 
+  surveillanceTuningLinks.sort((left, right) => {
+    const bySubject = left.subjectRef.localeCompare(right.subjectRef)
+    if (bySubject !== 0) {
+      return bySubject
+    }
+
+    return left.surveillanceTuningId.localeCompare(right.surveillanceTuningId)
+  })
+
   const crossSystemTensionFlags = collectCrossSystemTensionFlags({
     protocolRiskReviews,
     bundle,
+    surveillanceTuningProjections,
   })
 
   const linkedProtocolIds = new Set(links.map((link) => link.coerciveProtocolId))
+  const linkedTuningIds = new Set(surveillanceTuningLinks.map((link) => link.surveillanceTuningId))
   const structuredReasons = [
     `subject:${normalizedSubjectRef}`,
     `link_count:${links.length}`,
     `linked_protocol_count:${linkedProtocolIds.size}`,
     `linked_bundle_count:${bundle ? 1 : 0}`,
+    `linked_tuning_count:${linkedTuningIds.size}`,
     `triggered_contradiction_check_count:${triggeredContradictionChecks.length}`,
     `cross_system_tension_count:${crossSystemTensionFlags.length}`,
     links.some((link) => link.matchKind === 'subject_ref') ? 'match:subject_ref' : 'match:none_subject_ref',
+    surveillanceTuningLinks.length > 0 ? 'tuning:linked' : 'tuning:none',
     crossSystemTensionFlags.length > 0 ? 'tension:present' : 'tension:none',
   ].sort((left, right) => left.localeCompare(right))
 
   const redacted =
     protocolRecords.some((record) => (record.redactedFields ?? []).length > 0) ||
     (bundle?.redactedFields ?? []).length > 0 ||
+    tuningRecords.some((record) => (record.redactedFields ?? []).length > 0) ||
     protocolRiskReviews.some((review) => review.redacted) ||
-    triggeredContradictionChecks.some((check) => check.redacted)
+    triggeredContradictionChecks.some((check) => check.redacted) ||
+    surveillanceTuningProjections.some((projection) => projection.redacted)
 
   const unknownFields = mergeUnknownFields(
     ...protocolRecords.map((record) => record.unknownFields),
     bundle?.unknownFields,
+    ...tuningRecords.map((record) => record.unknownFields),
     ...protocolRiskReviews.map((review) => review.unknownFields),
-    ...triggeredContradictionChecks.map((check) => check.unknownFields)
+    ...triggeredContradictionChecks.map((check) => check.unknownFields),
+    ...surveillanceTuningProjections.map((projection) => projection.unknownFields)
   )
 
   return Object.freeze({
     subjectRef: normalizedSubjectRef,
     links: Object.freeze(links),
+    surveillanceTuningLinks: Object.freeze(surveillanceTuningLinks),
     linkedProtocolCount: linkedProtocolIds.size,
     linkedBundleCount: bundle ? 1 : 0,
+    linkedTuningCount: linkedTuningIds.size,
     protocolRiskReviews,
     triggeredContradictionChecks,
+    surveillanceTuningProjections,
     bundleMentalStateBand: bundle?.mentalStateBand ?? null,
     bundleHumaneCareRiskScore: bundle?.humaneCareRiskScore ?? null,
     bundleTherapeuticChannelStates: collectTherapeuticChannelStates(bundle),
@@ -297,7 +431,8 @@ export function composeCoerciveProtocolIntegratedHealthReconciliation(
 /** Compose reconciliation summaries for every subject ref with protocol–bundle links. */
 export function composeAllCoerciveProtocolIntegratedHealthReconciliations(
   protocols: CoerciveProtocolRecordsMap | undefined,
-  bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined
+  bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined,
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
 ): readonly CoerciveProtocolIntegratedHealthReconciliationSummary[] {
   const subjectRefs = new Set<string>()
 
@@ -316,7 +451,12 @@ export function composeAllCoerciveProtocolIntegratedHealthReconciliations(
     [...subjectRefs]
       .sort((left, right) => left.localeCompare(right))
       .map((subjectRef) =>
-        composeCoerciveProtocolIntegratedHealthReconciliation(protocols, bundles, subjectRef)
+        composeCoerciveProtocolIntegratedHealthReconciliation(
+          protocols,
+          bundles,
+          subjectRef,
+          surveillanceTuningRecords
+        )
       )
       .filter((summary) => summary.links.length > 0)
   )

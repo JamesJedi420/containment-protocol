@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1898](https://linear.app/spectranoir/issue/SPE-1898) compliance-metric-masks-harm contradiction-check sibling (next registry flag), or [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation burden sibling. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation burden contradiction-check sibling (last registry flag), or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `3829da87` (shipped: [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7 @ PR #2721)
+**Base `main` SHA:** `d3076377` (shipped: [SPE-1898](https://linear.app/spectranoir/issue/SPE-1898) compliance-metric contradiction-check slice 8 @ PR #2722)
 
-**Recently shipped:** [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7 @ PR #2721; [SPE-2425](https://linear.app/spectranoir/issue/SPE-2425) routine force authorization contradiction-check slice 6 @ PR #2719; see `planning/coercive-contained-person-protocol-model-slice-7.md`.
+**Recently shipped:** [SPE-1898](https://linear.app/spectranoir/issue/SPE-1898) compliance-metric contradiction-check slice 8 @ PR #2722; [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7 @ PR #2721; see `planning/coercive-contained-person-protocol-model-slice-8.md`.
 
 ## Blocked / waiting
 

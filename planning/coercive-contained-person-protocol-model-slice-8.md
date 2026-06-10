@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-1898](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-1898 — Contradiction check: Compliance metric versus personhood damage (slice 8)](https://linear.app/spectranoir/issue/SPE-1898) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2722 @ `d3076377`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–7 shipped)          |
 | **Branch** | `spe-1898-compliance-metric-contradiction-check-slice-8`                                                   |
 | **Base `main` SHA** | `32308116`                                                                                          |

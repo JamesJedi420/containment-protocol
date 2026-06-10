@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** After [SPE-2417](https://linear.app/spectranoir/issue/SPE-2417) merges — [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) privilege-deprivation / personnel-sourcing procedural cases or [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) full protocol model. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** After [SPE-2418](https://linear.app/spectranoir/issue/SPE-2418) merges — [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) full coercive protocol model or [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) parent acceptance re-review. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `6e9ffb3d` (in progress: [SPE-2417](https://linear.app/spectranoir/issue/SPE-2417) slice 5 @ `spe-1888-coercive-procedure-welfare-debt-creation-slice-5`)
+**Base `main` SHA:** `419755f3` (in progress: [SPE-2418](https://linear.app/spectranoir/issue/SPE-2418) slice 6 @ `spe-1888-privilege-deprivation-personnel-sourcing-welfare-debt-slice-6`)
 
-**Recently shipped:** [SPE-2414](https://linear.app/spectranoir/issue/SPE-2414) anomaly case lifecycle slice 6 — `lifecycleInstitutionalLabel` @ PR #2697; see `planning/anomaly-case-lifecycle-state-machine-slice-6.md`.
+**Recently shipped:** [SPE-2417](https://linear.app/spectranoir/issue/SPE-2417) coercive procedure welfare-debt creation hook (slice 5) @ PR #2703; see `planning/welfare-debt-accounting-registry-slice-5.md`.
 
 ## Blocked / waiting
 

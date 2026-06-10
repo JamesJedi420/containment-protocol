@@ -1,5 +1,5 @@
 /**
- * SPE-1888 slice 5: welfare-debt creation on coercive procedure execution.
+ * SPE-1888 slice 5–6: welfare-debt creation on coercive procedure execution.
  *
  * Creates persisted `WelfareDebtAccountingRecord` entries when a coercive procedure
  * executes and containment or security improves. Legitimacy cost is recorded
@@ -54,7 +54,13 @@ const CATEGORY_BASE_SEVERITY: Readonly<Record<WelfareDebtCategory, WelfareDebtSe
 
 const BASELINE_INSECURITY_SCORE = 0.38
 const ELEVATED_CUSTODY_IMPROVEMENT_SCORE = 0.71
+const PRIVILEGE_SUSPENDED_CUSTODY_IMPROVEMENT_SCORE = 0.65
+const COERCED_SOURCING_CUSTODY_IMPROVEMENT_SCORE = 0.7
 const ADVERSE_REACTION_CONTAINMENT_PENALTY = 0.1
+
+function anchorRequiresRegimenCustodyCombo(anchor: CoerciveProcedureAnchor): boolean {
+  return Boolean(anchor.regimenRef && anchor.custodyStatusRef)
+}
 
 function normalizeToken(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
@@ -196,19 +202,40 @@ function resolvePostContainmentScoreFromMedicationRegimen(
   return clampUnitScore(confidence - penalty)
 }
 
+function resolveCustodyImprovementFloor(restrictionLevel: string): number | undefined {
+  switch (restrictionLevel) {
+    case 'elevated':
+      return ELEVATED_CUSTODY_IMPROVEMENT_SCORE
+    case 'privilege_suspended':
+      return PRIVILEGE_SUSPENDED_CUSTODY_IMPROVEMENT_SCORE
+    case 'coerced_sourcing':
+      return COERCED_SOURCING_CUSTODY_IMPROVEMENT_SCORE
+    default:
+      return undefined
+  }
+}
+
 function resolvePostContainmentScoreFromCustodyStatus(
-  custody: CustodyStatusRecord
+  custody: CustodyStatusRecord,
+  anchor: CoerciveProcedureAnchor
 ): number | undefined {
-  if (custody.custodyStage !== 'contained_person') {
+  const expectedStage = anchor.custodyStage
+  if (!expectedStage || custody.custodyStage !== expectedStage) {
     return undefined
   }
 
-  if (normalizeToken(custody.restrictionLevel) !== 'elevated') {
+  const expectedRestrictionLevel = normalizeToken(anchor.custodyRestrictionLevel)
+  if (!expectedRestrictionLevel || normalizeToken(custody.restrictionLevel) !== expectedRestrictionLevel) {
+    return undefined
+  }
+
+  const improvementFloor = resolveCustodyImprovementFloor(expectedRestrictionLevel)
+  if (improvementFloor === undefined) {
     return undefined
   }
 
   const confidence = isValidUnitScore(custody.confidence) ? custody.confidence : 0.5
-  return clampUnitScore(Math.max(confidence, ELEVATED_CUSTODY_IMPROVEMENT_SCORE))
+  return clampUnitScore(Math.max(confidence, improvementFloor))
 }
 
 function pushMedicationRegimenDraft(
@@ -243,13 +270,49 @@ function pushMedicationRegimenDraft(
   })
 }
 
+function pushRegimenCustodyComboDraft(
+  drafts: CoerciveProcedureExecutionDraft[],
+  anchor: CoerciveProcedureAnchor,
+  regimen: MedicationRegimenRecord,
+  custody: CustodyStatusRecord,
+  week: number
+) {
+  const regimenScore = resolvePostContainmentScoreFromMedicationRegimen(regimen)
+  const custodyScore = resolvePostContainmentScoreFromCustodyStatus(custody, anchor)
+  if (regimenScore === undefined || custodyScore === undefined) {
+    return
+  }
+
+  const subjectRef = normalizeToken(regimen.subjectRef)
+  const custodySubjectRef = normalizeToken(custody.subjectRef)
+  if (!subjectRef || subjectRef !== custodySubjectRef) {
+    return
+  }
+
+  const postContainmentScore = clampUnitScore((regimenScore + custodyScore) / 2)
+  const priorContainmentScore = BASELINE_INSECURITY_SCORE
+  if (postContainmentScore <= priorContainmentScore) {
+    return
+  }
+
+  drafts.push({
+    executionKey: buildExecutionKey(anchor.procedureRef, subjectRef),
+    subjectRef,
+    procedureRef: anchor.procedureRef,
+    priorContainmentScore,
+    postContainmentScore,
+    week,
+    adverseReactionFlag: regimen.adverseReactionFlag,
+  })
+}
+
 function pushCustodyStatusDraft(
   drafts: CoerciveProcedureExecutionDraft[],
   anchor: CoerciveProcedureAnchor,
   custody: CustodyStatusRecord,
   week: number
 ) {
-  const postContainmentScore = resolvePostContainmentScoreFromCustodyStatus(custody)
+  const postContainmentScore = resolvePostContainmentScoreFromCustodyStatus(custody, anchor)
   if (postContainmentScore === undefined) {
     return
   }
@@ -284,6 +347,10 @@ export function resolveCoerciveProcedureExecutionDraftsFromMedicationRegimens(
   const drafts: CoerciveProcedureExecutionDraft[] = []
 
   for (const anchor of COERCIVE_PROCEDURE_ANCHORS) {
+    if (anchorRequiresRegimenCustodyCombo(anchor)) {
+      continue
+    }
+
     const regimenRef = anchor.regimenRef
     if (!regimenRef) {
       continue
@@ -312,6 +379,10 @@ export function resolveCoerciveProcedureExecutionDraftsFromCustodyStatus(
   const drafts: CoerciveProcedureExecutionDraft[] = []
 
   for (const anchor of COERCIVE_PROCEDURE_ANCHORS) {
+    if (anchorRequiresRegimenCustodyCombo(anchor)) {
+      continue
+    }
+
     const custodyStatusRef = anchor.custodyStatusRef
     if (!custodyStatusRef) {
       continue
@@ -330,7 +401,43 @@ export function resolveCoerciveProcedureExecutionDraftsFromCustodyStatus(
   )
 }
 
-/** Merge medication-regimen and custody-status derived execution drafts. */
+/** Derive coercive procedure execution drafts from authored regimen + custody combos. */
+export function resolveCoerciveProcedureExecutionDraftsFromRegimenCustodyCombos(
+  regimens: MedicationRegimenRecordsMap | null | undefined,
+  custodyRecords: CustodyStatusRecordsMap | null | undefined,
+  week: number
+): readonly CoerciveProcedureExecutionDraft[] {
+  const safeRegimens = regimens ?? {}
+  const safeRecords = custodyRecords ?? {}
+  const normalizedWeek = normalizeWeek(week)
+  const drafts: CoerciveProcedureExecutionDraft[] = []
+
+  for (const anchor of COERCIVE_PROCEDURE_ANCHORS) {
+    if (!anchorRequiresRegimenCustodyCombo(anchor)) {
+      continue
+    }
+
+    const regimenRef = anchor.regimenRef
+    const custodyStatusRef = anchor.custodyStatusRef
+    if (!regimenRef || !custodyStatusRef) {
+      continue
+    }
+
+    const regimen = safeRegimens[regimenRef]
+    const custody = safeRecords[custodyStatusRef]
+    if (!regimen || !custody) {
+      continue
+    }
+
+    pushRegimenCustodyComboDraft(drafts, anchor, regimen, custody, normalizedWeek)
+  }
+
+  return Object.freeze(
+    drafts.sort((left, right) => left.executionKey.localeCompare(right.executionKey))
+  )
+}
+
+/** Merge medication-regimen, custody-status, and combo derived execution drafts. */
 export function resolveCoerciveProcedureExecutionDrafts(
   regimens: MedicationRegimenRecordsMap | null | undefined,
   custodyRecords: CustodyStatusRecordsMap | null | undefined,
@@ -343,6 +450,14 @@ export function resolveCoerciveProcedureExecutionDrafts(
   }
 
   for (const draft of resolveCoerciveProcedureExecutionDraftsFromCustodyStatus(custodyRecords, week)) {
+    merged.set(draft.executionKey, draft)
+  }
+
+  for (const draft of resolveCoerciveProcedureExecutionDraftsFromRegimenCustodyCombos(
+    regimens,
+    custodyRecords,
+    week
+  )) {
     merged.set(draft.executionKey, draft)
   }
 

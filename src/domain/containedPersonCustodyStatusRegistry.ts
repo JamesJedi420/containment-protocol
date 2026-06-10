@@ -424,6 +424,32 @@ export const HOSTILE_ACTOR_CONTAINED_HOLD_FIXTURE: CustodyStatusRecord = defineR
   confidence: 0.81,
 })
 
+/** Contained-person hold with privilege suspension for interview-compliance enforcement. */
+export const PRIVILEGE_SUSPENDED_CONTAINED_HOLD_FIXTURE: CustodyStatusRecord = defineRecord({
+  id: 'custody-status:privilege-suspended-hold',
+  label: 'Privilege-suspended contained hold',
+  summary: 'Contained-person custody with privilege suspension for interview compliance.',
+  subjectRef: 'subject:cooperative-field-asset-31',
+  custodyStage: 'contained_person',
+  formerRoleCategory: 'uncooperative_witness',
+  restrictionLevel: 'privilege_suspended',
+  rightsReviewPending: true,
+  confidence: 0.68,
+})
+
+/** Temporary holding authorizing coerced high-risk personnel sourcing under screening. */
+export const COERCED_PERSONNEL_SOURCE_HOLD_FIXTURE: CustodyStatusRecord = defineRecord({
+  id: 'custody-status:coerced-personnel-source-hold',
+  label: 'Coerced personnel source hold',
+  summary: 'Temporary holding authorizing high-risk personnel sourcing under compelled screening.',
+  subjectRef: 'subject:cooperative-field-asset-41',
+  custodyStage: 'temporary_holding',
+  formerRoleCategory: 'high_risk_field_asset',
+  restrictionLevel: 'coerced_sourcing',
+  rightsReviewPending: true,
+  confidence: 0.72,
+})
+
 /** Transfer-pending custody with documented destination and rights review. */
 export const TRANSFER_PENDING_REVIEW_FIXTURE: CustodyStatusRecord = defineRecord({
   id: 'custody-status:transfer-pending-review',

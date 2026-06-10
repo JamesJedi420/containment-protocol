@@ -1260,6 +1260,9 @@ export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, s
   coercionRiskPrefix: 'Coercion risk:',
   contradictionCheckPrefix: 'Contradiction checks:',
   contradictionCheckUnknownFieldsPrefix: 'Unknown fields:',
+  crossSystemTensionPrefix: 'Cross-system tension:',
+  integratedHealthLinkedSubjectsLabel: 'Integrated health links',
+  crossSystemTensionSubjectsLabel: 'Cross-system tension subjects',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
 }

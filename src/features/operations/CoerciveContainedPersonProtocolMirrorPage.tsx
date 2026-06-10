@@ -38,7 +38,7 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
           </Link>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           <StatCard
             label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.totalRecordsLabel}
             value={String(view.summary.totalRecords)}
@@ -50,6 +50,16 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
           <StatCard
             label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.abusivePostureLabel}
             value={String(view.summary.abusivePostureCount)}
+          />
+          <StatCard
+            label={
+              COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.integratedHealthLinkedSubjectsLabel
+            }
+            value={String(view.summary.integratedHealthLinkedSubjectCount)}
+          />
+          <StatCard
+            label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.crossSystemTensionSubjectsLabel}
+            value={String(view.summary.crossSystemTensionSubjectCount)}
           />
           <StatCard
             label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.weekLabel}
@@ -193,6 +203,12 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
                             </div>
                           ))}
                         </div>
+                      ) : null}
+                      {record.crossSystemTensionFlagLabels.length > 0 ? (
+                        <p className="mt-1 text-xs opacity-45">
+                          {COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.crossSystemTensionPrefix}{' '}
+                          {record.crossSystemTensionFlagLabels.join('; ')}
+                        </p>
                       ) : null}
                       <p className="text-xs opacity-45">
                         {record.forcePolicyLabel} · {record.refusalHandlingLabel}

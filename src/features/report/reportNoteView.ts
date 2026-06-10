@@ -46,6 +46,7 @@ const RECRUITMENT_NOTE_TYPES: ReportNoteType[] = [
 ]
 
 const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
+  'coercive_protocol.integrated_health_reconciliation',
   'system.week_delta',
   'system.party_cards_drawn',
   'system.equipment_recovered',

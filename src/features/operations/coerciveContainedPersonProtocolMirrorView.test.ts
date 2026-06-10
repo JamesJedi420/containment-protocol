@@ -4,6 +4,7 @@ import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  evaluateCoerciveProtocolContradictionChecks,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
   validateCoerciveProtocolRecord,
@@ -150,5 +151,113 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 4)', () => {
     expect(formatCoerciveProtocolEnumLabel('routine_force_authorization')).toBe(
       'Routine Force Authorization'
     )
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 10)', () => {
+  it('returns empty contradiction check views for no-trigger fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(evaluateCoerciveProtocolContradictionChecks(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)).toEqual(
+      []
+    )
+    expect(record?.contradictionCheckViews).toEqual([])
+  })
+
+  it('surfaces triggered sibling issue detail in deterministic flag order', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(record?.contradictionCheckViews.map((check) => check.flagLabel)).toEqual([
+      'Compliance Metric Masks Harm',
+      'Generalized Procedure Without Subject Fit',
+      'Routine Force Authorization',
+    ])
+    expect(record?.contradictionCheckViews.map((check) => check.issueDetailLabels.length)).toEqual(
+      triggered.map((check) => check.issues.length)
+    )
+    expect(
+      record?.contradictionCheckViews.every(
+        (check, index) =>
+          check.issueDetailLabels.join('\n') ===
+          triggered[index]?.issues.map((issue) => issue.detail).join('\n')
+      )
+    ).toBe(true)
+  })
+
+  it('surfaces single surveillance-isolation sibling for abusive fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+
+    expect(record?.contradictionCheckViews).toHaveLength(1)
+    expect(record?.contradictionCheckViews[0]?.flagLabel).toBe('Surveillance Isolation Burden')
+    expect(record?.contradictionCheckViews[0]?.issueDetailLabels).toEqual(
+      triggered[0]?.issues.map((issue) => issue.detail)
+    )
+  })
+
+  it('propagates redacted and unknown metadata into contradiction check views', () => {
+    const redacted = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      redactedFields: ['forcePolicy'],
+      unknownFields: ['refusalHandling'],
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [redacted.id]: redacted,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.contradictionCheckViews.length).toBeGreaterThan(0)
+    expect(record?.contradictionCheckViews.every((check) => check.redacted)).toBe(true)
+    expect(record?.contradictionCheckViews[0]?.unknownFieldLabels).toEqual(['refusalHandling'])
+  })
+
+  it('surfaces four triggered siblings for quad-flag fixture', () => {
+    const quadFlag = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:quad-flag-contradiction',
+      isolationBurdenScore: 0.72,
+      surveillanceBurdenScore: 0.71,
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [quadFlag.id]: quadFlag,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(record?.contradictionCheckViews.map((check) => check.flagLabel)).toEqual([
+      'Compliance Metric Masks Harm',
+      'Generalized Procedure Without Subject Fit',
+      'Routine Force Authorization',
+      'Surveillance Isolation Burden',
+    ])
   })
 })

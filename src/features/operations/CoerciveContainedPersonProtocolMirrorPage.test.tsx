@@ -7,6 +7,7 @@ import { createStartingState } from '../../data/startingState'
 import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+  evaluateCoerciveProtocolContradictionChecks,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { useGameStore } from '../../app/store/gameStore'
 import CoerciveContainedPersonProtocolMirrorPage from './CoerciveContainedPersonProtocolMirrorPage'
@@ -67,5 +68,27 @@ describe('CoerciveContainedPersonProtocolMirrorPage (SPE-1882 slice 4)', () => {
       'href',
       '/'
     )
+  })
+
+  it('renders contradiction-check sibling issue detail for abusive surveillance fixture', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted coercive contained person protocol records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent(/contradiction checks:/i)
+    expect(recordsRegion).toHaveTextContent(/surveillance isolation burden/i)
+    expect(recordsRegion).toHaveTextContent(triggered[0]?.issues[0]?.detail ?? '')
   })
 })

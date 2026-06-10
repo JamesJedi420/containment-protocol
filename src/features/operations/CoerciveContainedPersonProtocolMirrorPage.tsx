@@ -164,6 +164,36 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
                           {record.contradictionRiskFlagLabels.join('; ')}
                         </p>
                       ) : null}
+                      {record.contradictionCheckViews.length > 0 ? (
+                        <div className="mt-1 space-y-1 text-xs opacity-45">
+                          <p>
+                            {COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.contradictionCheckPrefix}
+                          </p>
+                          {record.contradictionCheckViews.map((check) => (
+                            <div key={check.flagLabel}>
+                              <p className="opacity-55">{check.flagLabel}</p>
+                              {check.issueDetailLabels.map((detail) => (
+                                <p key={detail} className="pl-2 opacity-45">
+                                  {detail}
+                                </p>
+                              ))}
+                              {check.redacted ? (
+                                <p className="pl-2 opacity-45">
+                                  {COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.redactedSuffix}
+                                </p>
+                              ) : null}
+                              {check.unknownFieldLabels.length > 0 ? (
+                                <p className="pl-2 opacity-45">
+                                  {
+                                    COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.contradictionCheckUnknownFieldsPrefix
+                                  }{' '}
+                                  {check.unknownFieldLabels.join(', ')}
+                                </p>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
                       <p className="text-xs opacity-45">
                         {record.forcePolicyLabel} · {record.refusalHandlingLabel}
                       </p>

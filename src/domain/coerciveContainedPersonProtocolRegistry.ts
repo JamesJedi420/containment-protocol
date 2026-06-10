@@ -226,8 +226,21 @@ export type CoerciveProtocolRoutineForceContradictionCheckCode =
   | 'routine_force_undocumented_refusal_override'
   | 'routine_force_masks_care_harm'
 
+export type CoerciveProtocolGeneralizedSubjectFitContradictionCheckCode =
+  | 'generalized_procedure_without_subject_fit_validation'
+  | 'generalized_procedure_contradicts_voluntary_handling'
+  | 'generalized_procedure_low_consent_confidence'
+  | 'generalized_procedure_abusive_without_review_path'
+  | 'generalized_procedure_deceptive_without_review_path'
+  | 'generalized_procedure_masks_care_harm'
+  | 'generalized_procedure_compliance_metric_only'
+
+export type CoerciveProtocolContradictionCheckCode =
+  | CoerciveProtocolRoutineForceContradictionCheckCode
+  | CoerciveProtocolGeneralizedSubjectFitContradictionCheckCode
+
 export interface CoerciveProtocolContradictionCheckIssue {
-  readonly code: CoerciveProtocolRoutineForceContradictionCheckCode
+  readonly code: CoerciveProtocolContradictionCheckCode
   readonly detail: string
   readonly severity: 'warning'
   readonly relatedIds?: readonly string[]
@@ -759,7 +772,7 @@ export function projectContainmentCareTradeoff(
   })
 }
 
-const ROUTINE_FORCE_LOW_CONSENT_CONFIDENCE_THRESHOLD = 0.35
+const CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD = 0.35
 
 const VOLUNTARY_HANDLING_MODES = new Set<CoerciveProtocolHandlingMode>(['voluntary', 'negotiated'])
 
@@ -818,7 +831,7 @@ function buildRoutineForceAuthorizationContradictionIssues(
     })
   }
 
-  if (record.consentConfidence <= ROUTINE_FORCE_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
+  if (record.consentConfidence <= CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
     issues.push({
       code: 'routine_force_low_consent_confidence',
       severity: 'warning',
@@ -846,6 +859,111 @@ function buildRoutineForceAuthorizationContradictionIssues(
   }
 
   return issues
+}
+
+function buildGeneralizedProcedureWithoutSubjectFitContradictionIssues(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckIssue[] {
+  const issues: CoerciveProtocolContradictionCheckIssue[] = []
+  const id = normalizeToken(record.id)
+  const relatedIds = id ? [id] : undefined
+
+  issues.push({
+    code: 'generalized_procedure_without_subject_fit_validation',
+    severity: 'warning',
+    detail: `Coercive protocol record ${id || '(unknown)'} scales a generalized procedure without subject-fit validation artifact.`,
+    relatedIds,
+  })
+
+  if (VOLUNTARY_HANDLING_MODES.has(record.handlingMode)) {
+    issues.push({
+      code: 'generalized_procedure_contradicts_voluntary_handling',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} pairs generalized subject fit with ${record.handlingMode} handling.`,
+      relatedIds,
+    })
+  }
+
+  if (record.consentConfidence <= CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
+    issues.push({
+      code: 'generalized_procedure_low_consent_confidence',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} generalizes procedure use while consent confidence remains low (${record.consentConfidence.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'abusive') {
+    issues.push({
+      code: 'generalized_procedure_abusive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is abusive with generalized subject fit and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'deceptive') {
+    issues.push({
+      code: 'generalized_procedure_deceptive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is deceptive with generalized subject fit and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (projectContainmentCareTradeoff(record).stableContainmentDominatesCare) {
+    issues.push({
+      code: 'generalized_procedure_masks_care_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} reports containment stability gains that may mask generalized-procedure care harm.`,
+      relatedIds,
+    })
+  }
+
+  if (record.complianceMetricOnly === true) {
+    issues.push({
+      code: 'generalized_procedure_compliance_metric_only',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} relies on compliance metrics while generalizing procedure without subject-fit validation.`,
+      relatedIds,
+    })
+  }
+
+  return issues
+}
+
+export function evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckResult {
+  const flags = collectContradictionRiskFlags(record)
+  const triggered = flags.includes('generalized_procedure_without_subject_fit')
+  const unknownFields = resolveUnknownFields(record)
+  const confidence = resolveConfidence(record)
+  const redacted = isRedacted(record)
+
+  if (!triggered) {
+    return freezeContradictionCheckResult({
+      recordId: record.id,
+      flag: 'generalized_procedure_without_subject_fit',
+      triggered: false,
+      blocksProcedure: false,
+      issues: [],
+      confidence,
+      redacted,
+      unknownFields,
+    })
+  }
+
+  return freezeContradictionCheckResult({
+    recordId: record.id,
+    flag: 'generalized_procedure_without_subject_fit',
+    triggered: true,
+    blocksProcedure: false,
+    issues: buildGeneralizedProcedureWithoutSubjectFitContradictionIssues(record),
+    confidence,
+    redacted,
+    unknownFields,
+  })
 }
 
 export function evaluateRoutineForceAuthorizationContradictionCheck(
@@ -886,11 +1004,16 @@ export function evaluateRoutineForceAuthorizationContradictionCheck(
 export function evaluateCoerciveProtocolContradictionChecks(
   record: CoerciveProtocolRecord
 ): readonly CoerciveProtocolContradictionCheckResult[] {
+  const generalizedSubjectFitCheck =
+    evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(record)
   const routineForceCheck = evaluateRoutineForceAuthorizationContradictionCheck(record)
 
-  return Object.freeze(
-    routineForceCheck.triggered ? [routineForceCheck] : []
-  )
+  const triggered = [
+    generalizedSubjectFitCheck.triggered ? generalizedSubjectFitCheck : null,
+    routineForceCheck.triggered ? routineForceCheck : null,
+  ].filter((check): check is CoerciveProtocolContradictionCheckResult => check !== null)
+
+  return Object.freeze(triggered)
 }
 
 function collectContradictionRiskFlags(

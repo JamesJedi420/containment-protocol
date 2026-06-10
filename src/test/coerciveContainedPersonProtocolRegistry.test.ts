@@ -5,6 +5,7 @@ import {
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
   classifyCoerciveProtocolHandlingPosture,
   evaluateCoerciveProtocolContradictionChecks,
+  evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck,
   evaluateRoutineForceAuthorizationContradictionCheck,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
@@ -167,8 +168,10 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
     )
     const skipped = evaluateCoerciveProtocolContradictionChecks(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
 
-    expect(triggered).toHaveLength(1)
-    expect(triggered[0]?.flag).toBe('routine_force_authorization')
+    expect(triggered.map((check) => check.flag)).toEqual([
+      'generalized_procedure_without_subject_fit',
+      'routine_force_authorization',
+    ])
     expect(skipped).toEqual([])
   })
 
@@ -177,6 +180,89 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
     )
     const second = evaluateRoutineForceAuthorizationContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882 slice 7)', () => {
+  it('triggers generalized-subject-fit sibling aligned with contradiction risk flags', () => {
+    const review = projectCoerciveProtocolRiskReview(ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE)
+    const check = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(review.contradictionRiskFlags).toContain('generalized_procedure_without_subject_fit')
+    expect(check.triggered).toBe(true)
+    expect(check.flag).toBe('generalized_procedure_without_subject_fit')
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues.length).toBeGreaterThan(0)
+    expect(check.issues.every((issue) => issue.severity === 'warning')).toBe(true)
+    expect(check.issues.map((issue) => issue.code)).toEqual([
+      'generalized_procedure_compliance_metric_only',
+      'generalized_procedure_low_consent_confidence',
+      'generalized_procedure_masks_care_harm',
+      'generalized_procedure_without_subject_fit_validation',
+    ])
+  })
+
+  it('flags voluntary handling contradictions when subject fit is generalized', () => {
+    const voluntaryGeneralized = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:voluntary-generalized',
+      handlingMode: 'voluntary' as const,
+    }
+    const check = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(voluntaryGeneralized)
+
+    expect(check.triggered).toBe(true)
+    expect(
+      check.issues.some((issue) => issue.code === 'generalized_procedure_contradicts_voluntary_handling')
+    ).toBe(true)
+  })
+
+  it('returns non-triggered no-op when subject-fit validation ref is present', () => {
+    const validatedGeneralized = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:validated-generalized',
+      subjectFitValidationRef: 'review-artifact:generalized-fit-review-31',
+    }
+    const check = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(validatedGeneralized)
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('returns non-triggered no-op for validated subject-fit state', () => {
+    const check = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
+      EMERGENCY_SEDATION_PROTOCOL_FIXTURE
+    )
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('propagates redacted and unknown metadata into sibling output', () => {
+    const redacted = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      redactedFields: ['subjectFitState'],
+      unknownFields: ['subjectFitValidationRef'],
+    }
+    const check = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(redacted)
+
+    expect(check.triggered).toBe(true)
+    expect(check.redacted).toBe(true)
+    expect(check.unknownFields).toEqual(['subjectFitValidationRef'])
+  })
+
+  it('returns byte-stable generalized-subject-fit output on repeated calls', () => {
+    const first = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+    const second = evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
     )
 

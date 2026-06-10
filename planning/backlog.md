@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** [SPE-1898](https://linear.app/spectranoir/issue/SPE-1898) compliance-metric-masks-harm contradiction-check sibling (next registry flag), or [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation burden sibling. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `52688ee1` (in flight: [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7)
+**Base `main` SHA:** `3829da87` (shipped: [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7 @ PR #2721)
 
-**Recently shipped:** [SPE-2425](https://linear.app/spectranoir/issue/SPE-2425) routine force authorization contradiction-check slice 6 @ PR #2719; [SPE-2424](https://linear.app/spectranoir/issue/SPE-2424) coercive protocol weekly projection snapshots slice 5 @ PR #2717; see `planning/coercive-contained-person-protocol-model-slice-6.md`.
+**Recently shipped:** [SPE-2426](https://linear.app/spectranoir/issue/SPE-2426) generalized subject-fit contradiction-check slice 7 @ PR #2721; [SPE-2425](https://linear.app/spectranoir/issue/SPE-2425) routine force authorization contradiction-check slice 6 @ PR #2719; see `planning/coercive-contained-person-protocol-model-slice-7.md`.
 
 ## Blocked / waiting
 

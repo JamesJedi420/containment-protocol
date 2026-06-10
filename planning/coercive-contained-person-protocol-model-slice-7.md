@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2426](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2426 — Coercive protocol generalized subject-fit contradiction check (slice 7)](https://linear.app/spectranoir/issue/SPE-2426) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2721 @ `3829da87`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–6 shipped)          |
 | **Branch** | `spe-1907-generalized-subject-fit-contradiction-check-slice-7`                                             |
 | **Base `main` SHA** | `52688ee1`                                                                                          |

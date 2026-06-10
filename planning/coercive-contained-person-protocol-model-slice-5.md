@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2424](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2424 — Coercive contained-person protocol weekly projection snapshots (slice 5)](https://linear.app/spectranoir/issue/SPE-2424) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2717 @ `5a59dfc2`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–4 shipped)          |
 | **Branch** | `spe-1882-coercive-protocol-projection-snapshots-slice-5`                                                  |
 | **Base `main` SHA** | `25a6e9a1`                                                                                          |

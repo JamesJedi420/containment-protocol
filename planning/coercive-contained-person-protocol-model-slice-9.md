@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-1908](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-1908 — Contradiction check: Surveillance-isolation burden (slice 9)](https://linear.app/spectranoir/issue/SPE-1908) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2723 @ `c7a850bc`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–8 shipped)          |
 | **Branch** | `spe-1908-surveillance-isolation-contradiction-check-slice-9`                                              |
 | **Base `main` SHA** | `f551c384`                                                                                          |

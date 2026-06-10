@@ -8,6 +8,7 @@ import {
   evaluateComplianceMetricMasksHarmContradictionCheck,
   evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck,
   evaluateRoutineForceAuthorizationContradictionCheck,
+  evaluateSurveillanceIsolationBurdenContradictionCheck,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
   validateCoerciveProtocolRecord,
@@ -350,6 +351,119 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
     )
     const second = evaluateComplianceMetricMasksHarmContradictionCheck(
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882 slice 9)', () => {
+  it('triggers surveillance-isolation sibling aligned with contradiction risk flags', () => {
+    const review = projectCoerciveProtocolRiskReview(ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE)
+    const check = evaluateSurveillanceIsolationBurdenContradictionCheck(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+
+    expect(review.contradictionRiskFlags).toContain('surveillance_isolation_burden')
+    expect(review.contradictionRiskFlags).not.toContain('routine_force_authorization')
+    expect(review.contradictionRiskFlags).not.toContain('generalized_procedure_without_subject_fit')
+    expect(review.contradictionRiskFlags).not.toContain('compliance_metric_masks_harm')
+    expect(check.triggered).toBe(true)
+    expect(check.flag).toBe('surveillance_isolation_burden')
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues.length).toBeGreaterThan(0)
+    expect(check.issues.every((issue) => issue.severity === 'warning')).toBe(true)
+    expect(check.issues.map((issue) => issue.code)).toEqual([
+      'surveillance_isolation_abusive_without_review_path',
+      'surveillance_isolation_elevated_burden',
+      'surveillance_isolation_low_consent_confidence',
+      'surveillance_isolation_masks_personhood_harm',
+    ])
+  })
+
+  it('flags voluntary handling contradictions when surveillance-isolation burden is elevated', () => {
+    const voluntarySurveillance = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:voluntary-surveillance-isolation',
+      handlingMode: 'voluntary' as const,
+    }
+    const check = evaluateSurveillanceIsolationBurdenContradictionCheck(voluntarySurveillance)
+
+    expect(check.triggered).toBe(true)
+    expect(
+      check.issues.some(
+        (issue) => issue.code === 'surveillance_isolation_contradicts_voluntary_handling'
+      )
+    ).toBe(true)
+  })
+
+  it('returns non-triggered no-op when isolation burden is below threshold', () => {
+    const check = evaluateSurveillanceIsolationBurdenContradictionCheck(
+      EMERGENCY_SEDATION_PROTOCOL_FIXTURE
+    )
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('returns non-triggered no-op when surveillance burden is below threshold', () => {
+    const belowSurveillanceThreshold = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:below-surveillance-threshold',
+      surveillanceBurdenScore: 0.5,
+    }
+    const check = evaluateSurveillanceIsolationBurdenContradictionCheck(belowSurveillanceThreshold)
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('propagates redacted and unknown metadata into sibling output', () => {
+    const redacted = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      redactedFields: ['isolationBurdenScore'],
+      unknownFields: ['surveillanceBurdenScore'],
+    }
+    const check = evaluateSurveillanceIsolationBurdenContradictionCheck(redacted)
+
+    expect(check.triggered).toBe(true)
+    expect(check.redacted).toBe(true)
+    expect(check.unknownFields).toEqual(['surveillanceBurdenScore'])
+  })
+
+  it('returns surveillance sibling only from aggregator for abusive surveillance fixture', () => {
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+
+    expect(triggered.map((check) => check.flag)).toEqual(['surveillance_isolation_burden'])
+  })
+
+  it('returns four triggered siblings in flag locale order for quad-flag fixture', () => {
+    const quadFlag = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:quad-flag-contradiction',
+      isolationBurdenScore: 0.72,
+      surveillanceBurdenScore: 0.71,
+    }
+    const triggered = evaluateCoerciveProtocolContradictionChecks(quadFlag)
+
+    expect(triggered.map((check) => check.flag)).toEqual([
+      'compliance_metric_masks_harm',
+      'generalized_procedure_without_subject_fit',
+      'routine_force_authorization',
+      'surveillance_isolation_burden',
+    ])
+  })
+
+  it('returns byte-stable surveillance-isolation output on repeated calls', () => {
+    const first = evaluateSurveillanceIsolationBurdenContradictionCheck(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+    const second = evaluateSurveillanceIsolationBurdenContradictionCheck(
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
     )
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))

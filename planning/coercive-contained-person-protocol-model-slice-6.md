@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2425](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2425 — Coercive protocol routine force authorization contradiction check (slice 6)](https://linear.app/spectranoir/issue/SPE-2425) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2719 @ `2110a497`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–5 shipped)          |
 | **Branch** | `spe-1897-routine-force-contradiction-check-slice-6`                                                       |
 | **Base `main` SHA** | `4f3dbc81`                                                                                          |
@@ -45,12 +45,12 @@ Implement the first deterministic contradiction-check sibling for the `routine_f
 
 ## Acceptance
 
-- [ ] Routine-force fixture triggers sibling with sorted warning issues and `blocksProcedure: false`
-- [ ] Proportional/emergency force policies return non-triggered no-op sibling
-- [ ] Sibling trigger aligns with `routine_force_authorization` flag from `collectContradictionRiskFlags`
-- [ ] Redacted/unknown metadata propagates into check output
-- [ ] Repeated evaluation is byte-stable
-- [ ] Slice 1–5 regression + mirror view regression + `npm run lint` green
+- [x] Routine-force fixture triggers sibling with sorted warning issues and `blocksProcedure: false`
+- [x] Proportional/emergency force policies return non-triggered no-op sibling
+- [x] Sibling trigger aligns with `routine_force_authorization` flag from `collectContradictionRiskFlags`
+- [x] Redacted/unknown metadata propagates into check output
+- [x] Repeated evaluation is byte-stable
+- [x] Slice 1–5 regression + mirror view regression + `npm run lint` green
 
 ## File touch list (expected)
 

@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1897+](https://linear.app/spectranoir/issue/SPE-1897) contradiction-check siblings for coercive protocol model, or [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) health-bundle compose for protocol records. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-1907](https://linear.app/spectranoir/issue/SPE-1907) generalized subject-fit contradiction-check sibling (next registry flag), or [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) health-bundle compose for protocol records. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `5a59dfc2` (shipped: [SPE-2424](https://linear.app/spectranoir/issue/SPE-2424) coercive protocol weekly projection snapshots slice 5 @ PR #2717)
+**Base `main` SHA:** `2110a497` (shipped: [SPE-2425](https://linear.app/spectranoir/issue/SPE-2425) routine force authorization contradiction-check slice 6 @ PR #2719)
 
-**Recently shipped:** [SPE-2424](https://linear.app/spectranoir/issue/SPE-2424) coercive protocol weekly projection snapshots slice 5 @ PR #2717; [SPE-2423](https://linear.app/spectranoir/issue/SPE-2423) coercive protocol planning mirror UI slice 4 @ PR #2715; see `planning/coercive-contained-person-protocol-model-slice-5.md`.
+**Recently shipped:** [SPE-2425](https://linear.app/spectranoir/issue/SPE-2425) routine force authorization contradiction-check slice 6 @ PR #2719; [SPE-2424](https://linear.app/spectranoir/issue/SPE-2424) coercive protocol weekly projection snapshots slice 5 @ PR #2717; see `planning/coercive-contained-person-protocol-model-slice-6.md`.
 
 ## Blocked / waiting
 

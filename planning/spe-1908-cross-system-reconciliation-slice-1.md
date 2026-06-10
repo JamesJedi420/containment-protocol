@@ -68,7 +68,7 @@ Deterministic cross-registry compose helper linking persisted coercive protocol 
 | --- | --- | --- |
 | SPE-848 surveillance tuning cross-join | SPE-848 | No runtime registry anchor yet |
 | SPE-1615 psychological resilience cross-join | SPE-1615 | No runtime registry anchor yet |
-| Reconciliation surfacing in mirror / weekly report | SPE-1908 follow-up | Compose-only boundary |
+| Reconciliation surfacing in mirror / weekly report | SPE-2429 | Shipped slice 2 @ PR #2729 |
 | Mirror reads persisted weekly snapshots | SPE-1882 follow-up | Slice 10 deferred row |
 | SPE-1908 parent closure | SPE-1908 | Multi-owner reconciliation AC not met |
 

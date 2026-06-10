@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2431](https://linear.app/spectranoir/
 | **Linear** | [SPE-2431 — Surveillance tuning registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2431) |
 | **Parent** | [SPE-848](https://linear.app/spectranoir/issue/SPE-848) — Surveillance and capacity intervention tuning     |
 | **Branch** | `jamesdyedbq/spe-848-surveillance-tuning-registry-slice-2`                                                 |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2733                                                                                     |
 | **Base `main` SHA** | `94231fb3`                                                                                          |
 
 ## Goal

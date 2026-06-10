@@ -269,6 +269,10 @@ import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareRe
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
+import {
+  applyCoerciveProcedureWelfareDebtCreationTick,
+  resolveCoerciveProcedureExecutionDrafts,
+} from '../coerciveProcedureWelfareDebtCreation'
 import { applyWeeklyWelfareDebtAccountingTick } from '../welfareDebtAccountingRegistry'
 import { deriveTherapeuticCareBundleFragmentsFromRecords } from '../containedPersonTherapeuticCareHealthBundleLinks'
 import { deriveCustodyStatusBundleFragmentsFromRecords } from '../containedPersonCustodyStatusHealthBundleLinks'
@@ -4716,6 +4720,19 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
       currentTherapeuticCareRecords,
       result.week
+    )
+  }
+
+  // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.
+  const coerciveProcedureExecutionDrafts = resolveCoerciveProcedureExecutionDrafts(
+    outputWeeklyState.containedPersonMedicationRegimenRecords,
+    outputWeeklyState.containedPersonCustodyStatusRecords,
+    result.week
+  )
+  if (coerciveProcedureExecutionDrafts.length > 0) {
+    outputWeeklyState.welfareDebtAccountingRecords = applyCoerciveProcedureWelfareDebtCreationTick(
+      outputWeeklyState.welfareDebtAccountingRecords ?? {},
+      coerciveProcedureExecutionDrafts
     )
   }
 

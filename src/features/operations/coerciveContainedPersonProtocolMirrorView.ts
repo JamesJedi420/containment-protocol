@@ -1,11 +1,21 @@
 import type { GameState } from '../../domain/models'
 import {
+  evaluateCoerciveProtocolContradictionChecks,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
   validateCoerciveProtocolRecord,
+  type CoerciveProtocolContradictionCheckResult,
   type CoerciveProtocolContradictionRiskFlag,
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
+
+export interface CoerciveProtocolContradictionCheckMirrorView {
+  flagLabel: string
+  issueDetailLabels: readonly string[]
+  redacted: boolean
+  unknownFieldLabels: readonly string[]
+  confidenceLabel: string
+}
 
 export interface CoerciveContainedPersonProtocolMirrorRecordView {
   id: string
@@ -27,6 +37,7 @@ export interface CoerciveContainedPersonProtocolMirrorRecordView {
   stableContainmentDominatesCareLabel: string
   coercionRiskScoreLabel: string
   contradictionRiskFlagLabels: readonly string[]
+  contradictionCheckViews: readonly CoerciveProtocolContradictionCheckMirrorView[]
   medicationRegimenRefLabel: string
   custodyStatusRefLabel: string
   procedureRefLabel: string
@@ -95,9 +106,22 @@ function sortedUnknownFieldLabels(unknownFields: readonly string[] | undefined):
   return Object.freeze([...(unknownFields ?? [])].sort((left, right) => left.localeCompare(right)))
 }
 
+function toContradictionCheckView(
+  check: CoerciveProtocolContradictionCheckResult
+): CoerciveProtocolContradictionCheckMirrorView {
+  return Object.freeze({
+    flagLabel: formatContradictionRiskFlagLabel(check.flag),
+    issueDetailLabels: Object.freeze(check.issues.map((issue) => issue.detail)),
+    redacted: check.redacted,
+    unknownFieldLabels: sortedUnknownFieldLabels(check.unknownFields),
+    confidenceLabel: formatConfidence(check.confidence),
+  })
+}
+
 function toRecordView(record: CoerciveProtocolRecord): CoerciveContainedPersonProtocolMirrorRecordView {
   const tradeoff = projectContainmentCareTradeoff(record)
   const riskReview = projectCoerciveProtocolRiskReview(record)
+  const contradictionChecks = evaluateCoerciveProtocolContradictionChecks(record)
   const validation = validateCoerciveProtocolRecord(record)
 
   const validationWarningLabels = Object.freeze(
@@ -130,6 +154,7 @@ function toRecordView(record: CoerciveProtocolRecord): CoerciveContainedPersonPr
     contradictionRiskFlagLabels: Object.freeze(
       riskReview.contradictionRiskFlags.map((flag) => formatContradictionRiskFlagLabel(flag))
     ),
+    contradictionCheckViews: Object.freeze(contradictionChecks.map(toContradictionCheckView)),
     medicationRegimenRefLabel: formatOptionalRef(record.medicationRegimenRef),
     custodyStatusRefLabel: formatOptionalRef(record.custodyStatusRef),
     procedureRefLabel: formatOptionalRef(record.procedureRef),

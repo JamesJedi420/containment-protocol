@@ -1258,6 +1258,8 @@ export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, s
   harmRiskPrefix: 'Harm risks:',
   stableContainmentSuffix: 'Stable containment dominates care',
   coercionRiskPrefix: 'Coercion risk:',
+  contradictionCheckPrefix: 'Contradiction checks:',
+  contradictionCheckUnknownFieldsPrefix: 'Unknown fields:',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
 }

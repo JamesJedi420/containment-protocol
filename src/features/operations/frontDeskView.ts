@@ -808,6 +808,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review care cadence, channel posture, missed-session streaks, and compliance risk projections.',
     },
     {
+      label: 'Open coercive contained-person protocol mirror',
+      href: APP_ROUTES.coerciveContainedPersonProtocol,
+      description:
+        'Review handling modes, containment-care tradeoffs, coercion-risk flags, and owner refs.',
+    },
+    {
       label: 'Open naming-hazard descriptor mirror',
       href: APP_ROUTES.namingHazardDescriptor,
       description:

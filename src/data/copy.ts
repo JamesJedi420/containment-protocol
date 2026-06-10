@@ -1227,6 +1227,41 @@ export const NAMING_HAZARD_DESCRIPTOR_MIRROR_UI_TEXT: Record<string, string> = {
   validationWarningPrefix: 'Validation warnings:',
 }
 
+export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Coercive contained-person protocol registry',
+  pageSubtitle:
+    'Read-only operations view over persisted coercive protocol records and read-time containment-care tradeoff plus coercion-risk review projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  stableContainmentLabel: 'Stable containment dominates',
+  abusivePostureLabel: 'Abusive posture',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Handling modes, tradeoff scores, and coercion-risk flags mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No coercive contained person protocol records',
+  emptyBody:
+    'Persisted coercive protocol records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Tradeoff and risk-review projections are read-time only, not objective truth. Owner refs display as stored.',
+  labelColumn: 'Label',
+  handlingColumn: 'Handling posture',
+  tradeoffColumn: 'Containment vs care',
+  riskReviewColumn: 'Coercion risk review',
+  ownerRefsColumn: 'Owner refs',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  subjectFitPrefix: 'Subject fit:',
+  consentPrefix: 'Consent confidence:',
+  stabilityGainPrefix: 'Stability gain:',
+  harmRiskPrefix: 'Harm risks:',
+  stableContainmentSuffix: 'Stable containment dominates care',
+  coercionRiskPrefix: 'Coercion risk:',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Contained person therapeutic care registry',

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2427](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2427 — Mirror contradiction-check sibling detail (slice 10)](https://linear.app/spectranoir/issue/SPE-2427) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2725 @ `4dad2c98`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–9 shipped)          |
 | **Branch** | `spe-1882-mirror-contradiction-check-slice-10`                                                             |
 | **Base `main` SHA** | `4e6f46fe`                                                                                          |
@@ -44,13 +44,13 @@ Surface `evaluateCoerciveProtocolContradictionChecks` read-time output in `coerc
 
 ## Acceptance
 
-- [ ] Records with triggered siblings show flag label + sorted issue detail labels
-- [ ] No-trigger fixture (`EMERGENCY_SEDATION_PROTOCOL_FIXTURE`) has empty `contradictionCheckViews`
-- [ ] Redacted fixture propagates per-check redaction without exposing masked fields
-- [ ] Quad-flag fixture shows four siblings in flag locale order
-- [ ] Mirror page renders sibling issue detail for abusive surveillance fixture
-- [ ] Registry/orchestration regression unchanged
-- [ ] `npm run lint` + targeted tests green
+- [x] Records with triggered siblings show flag label + sorted issue detail labels
+- [x] No-trigger fixture (`EMERGENCY_SEDATION_PROTOCOL_FIXTURE`) has empty `contradictionCheckViews`
+- [x] Redacted fixture propagates per-check redaction without exposing masked fields
+- [x] Quad-flag fixture shows four siblings in flag locale order
+- [x] Mirror page renders sibling issue detail for abusive surveillance fixture
+- [x] Registry/orchestration regression unchanged
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

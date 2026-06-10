@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Broader [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) cross-system reconciliation (condition bundles, surveillance tuning, psychological resilience), [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) mirror UI sibling detail, or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** Broader [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) cross-system reconciliation (condition bundles, surveillance tuning, psychological resilience) or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `c7a850bc` (shipped: [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation contradiction-check slice 9 @ PR #2723)
+**Base `main` SHA:** `4dad2c98` (shipped: [SPE-2427](https://linear.app/spectranoir/issue/SPE-2427) mirror contradiction-check sibling detail slice 10 @ PR #2725)
 
-**Recently shipped:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation contradiction-check slice 9 @ PR #2723; [SPE-1898](https://linear.app/spectranoir/issue/SPE-1898) compliance-metric contradiction-check slice 8 @ PR #2722; see `planning/coercive-contained-person-protocol-model-slice-9.md`.
+**Recently shipped:** [SPE-2427](https://linear.app/spectranoir/issue/SPE-2427) mirror contradiction-check sibling detail slice 10 @ PR #2725; [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation contradiction-check slice 9 @ PR #2723; see `planning/coercive-contained-person-protocol-model-slice-10.md`.
 
 ## Blocked / waiting
 
@@ -176,6 +176,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `coercive-contained-person-protocol-model-slice-1.md`     | **Shipped**    | SPE-2420 / PR #2709; coercive protocol registry schema, validation, tradeoff + risk review projections.                                                |
 | `coercive-contained-person-protocol-model-slice-2.md`     | **Shipped**    | SPE-2421 / PR #2711; `coerciveContainedPersonProtocolRecords` GameState persistence @ `2e660bfa`.                                                     |
 | `coercive-contained-person-protocol-model-slice-3.md`     | **Shipped**    | SPE-2422 / PR #2713; weekly tradeoff + risk projection hook in `advanceWeek` @ `cfad608f`.                                                           |
+| `coercive-contained-person-protocol-model-slice-10.md`    | **Shipped**    | SPE-2427 / PR #2725; mirror surfaces `evaluateCoerciveProtocolContradictionChecks` sibling issue detail @ `4dad2c98`.                               |
 | `contained-person-integrated-health-bundle-slice-6.md`  | **Shipped**    | SPE-2346 / PR #2559; planning mirror UI over `containedPersonIntegratedHealthBundles` @ `95d089e7`.                                                    |
 | `contained-person-integrated-health-bundle-slice-7.md`  | **Shipped**    | SPE-2347; medication/custody/welfare-debt mirror field groups on integrated health bundles @ `81d6a55e`.                                               |
 | `contained-person-integrated-health-bundle-slice-8.md`  | **Shipped**    | SPE-2348 / PR #2564; medication regimen derive/compose wire-up + SPE-1886 slice 1 registry @ `4ef9056d`.                                                |

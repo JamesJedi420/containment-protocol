@@ -476,6 +476,23 @@ export const VOLUNTARY_STABILIZER_REGIMEN_FIXTURE: MedicationRegimenRecord = def
   confidence: 0.86,
 })
 
+/** Compelled personnel screening regimen authorizing high-risk sourcing. */
+export const COERCED_PERSONNEL_SCREENING_REGIMEN_FIXTURE: MedicationRegimenRecord = defineRecord({
+  id: 'medication-regimen:coercive-personnel-screening-beta',
+  label: 'Coerced personnel screening regimen',
+  summary: 'Compelled screening regimen authorizing high-risk personnel sourcing.',
+  subjectRef: 'subject:cooperative-field-asset-41',
+  consentStatus: 'compelled',
+  deliveryVector: 'oral',
+  dosageCadenceLabel: 'pre-deployment',
+  intendedEffectLabel: 'risk screening clearance',
+  sideEffectProfileLabel: 'cognitive dulling',
+  containmentPurposeLabel: 'personnel risk screening',
+  monitoringRequired: true,
+  adverseReactionFlag: false,
+  confidence: 0.76,
+})
+
 /** Compelled delivery with adverse reaction and elevated interaction risk. */
 export const COMPELLED_ADVERSE_REACTION_REGIMEN_FIXTURE: MedicationRegimenRecord = defineRecord({
   id: 'medication-regimen:coercive-sedative-beta',

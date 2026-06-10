@@ -868,3 +868,146 @@ export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRe
   welfareDebtImpactLabel: 'forced isolation welfare debt likely',
   confidence: 0.73,
 })
+
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+export type CoerciveProtocolRecordsMap = Record<CoerciveProtocolId, CoerciveProtocolRecord>
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizeCoerciveProtocolRecordEntry(value: unknown): CoerciveProtocolRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const subjectRef = normalizeToken(value.subjectRef)
+  const handlingMode = value.handlingMode
+  const subjectFitState = value.subjectFitState
+  const authorizationSource = value.authorizationSource
+  const forcePolicy = value.forcePolicy
+  const consentConfidence = value.consentConfidence
+  const refusalHandling = value.refusalHandling
+  const isolationBurdenScore = value.isolationBurdenScore
+  const surveillanceBurdenScore = value.surveillanceBurdenScore
+  const containmentStabilityGain = value.containmentStabilityGain
+  const personhoodHarmRisk = value.personhoodHarmRisk
+  const trustDamageRisk = value.trustDamageRisk
+  const legitimacyRisk = value.legitimacyRisk
+  const welfareDebtImpactLabel = normalizeToken(value.welfareDebtImpactLabel)
+
+  if (
+    !id ||
+    !label ||
+    !subjectRef ||
+    !isCoerciveProtocolHandlingMode(handlingMode) ||
+    !isCoerciveProtocolSubjectFitState(subjectFitState) ||
+    typeof authorizationSource !== 'string' ||
+    !AUTHORIZATION_SOURCE_SET.has(authorizationSource) ||
+    typeof forcePolicy !== 'string' ||
+    !FORCE_POLICY_SET.has(forcePolicy) ||
+    !isValidUnitScore(consentConfidence) ||
+    typeof refusalHandling !== 'string' ||
+    !REFUSAL_HANDLING_SET.has(refusalHandling) ||
+    !isValidUnitScore(isolationBurdenScore) ||
+    !isValidUnitScore(surveillanceBurdenScore) ||
+    !isValidUnitScore(containmentStabilityGain) ||
+    !isValidUnitScore(personhoodHarmRisk) ||
+    !isValidUnitScore(trustDamageRisk) ||
+    !isValidUnitScore(legitimacyRisk) ||
+    !welfareDebtImpactLabel
+  ) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const dependencyLeverageScore = value.dependencyLeverageScore
+  const medicationRegimenRef = normalizeToken(value.medicationRegimenRef ?? '') || undefined
+  const custodyStatusRef = normalizeToken(value.custodyStatusRef ?? '') || undefined
+  const procedureRef = normalizeToken(value.procedureRef ?? '') || undefined
+  const subjectFitValidationRef = normalizeToken(value.subjectFitValidationRef ?? '') || undefined
+  const complianceMetricOnly =
+    typeof value.complianceMetricOnly === 'boolean' ? value.complianceMetricOnly : undefined
+  const confidence = value.confidence
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const record: CoerciveProtocolRecord = {
+    id,
+    label,
+    subjectRef,
+    handlingMode,
+    subjectFitState,
+    authorizationSource,
+    forcePolicy,
+    consentConfidence,
+    refusalHandling,
+    isolationBurdenScore,
+    surveillanceBurdenScore,
+    containmentStabilityGain,
+    personhoodHarmRisk,
+    trustDamageRisk,
+    legitimacyRisk,
+    welfareDebtImpactLabel,
+    ...(summary ? { summary } : {}),
+    ...(isValidUnitScore(dependencyLeverageScore) ? { dependencyLeverageScore } : {}),
+    ...(medicationRegimenRef ? { medicationRegimenRef } : {}),
+    ...(custodyStatusRef ? { custodyStatusRef } : {}),
+    ...(procedureRef ? { procedureRef } : {}),
+    ...(subjectFitValidationRef ? { subjectFitValidationRef } : {}),
+    ...(complianceMetricOnly !== undefined ? { complianceMetricOnly } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateCoerciveProtocolRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical protocol map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeCoerciveProtocolRecords(
+  value: unknown,
+  fallback: CoerciveProtocolRecordsMap = {}
+): CoerciveProtocolRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: CoerciveProtocolRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeCoerciveProtocolRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}

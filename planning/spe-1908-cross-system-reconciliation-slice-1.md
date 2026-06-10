@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2428](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2428 — Coercive protocol ↔ integrated health bundle cross-system reconciliation (slice 1)](https://linear.app/spectranoir/issue/SPE-2428) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2727 @ `e1e29ed2`                                                                        |
 | **Parent** | [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) — surveillance-isolation contradiction check umbrella |
 | **Branch** | `spe-1908-cross-system-reconciliation-slice-1`                                                           |
 | **Base `main` SHA** | `fed02b6a`                                                                                          |

@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) cross-system reconciliation slice 2 (SPE-848 surveillance tuning + SPE-1615 psychological resilience joins when runtime anchors exist) or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-848](https://linear.app/spectranoir/issue/SPE-848) surveillance tuning registry anchor + SPE-1908 cross-system reconciliation slice 3 (surveillance-tuning cross-join when runtime anchor exists) or [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) psychological resilience join; broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `e1e29ed2` (shipped: [SPE-2428](https://linear.app/spectranoir/issue/SPE-2428) coercive protocol ↔ integrated health bundle cross-reconciliation slice 1 @ PR #2727)
+**Base `main` SHA:** `0b3b7b79` (in flight: [SPE-2429](https://linear.app/spectranoir/issue/SPE-2429) cross-reconciliation surfacing slice 2)
 
 **Recently shipped:** [SPE-2428](https://linear.app/spectranoir/issue/SPE-2428) cross-system reconciliation slice 1 @ PR #2727; [SPE-2427](https://linear.app/spectranoir/issue/SPE-2427) mirror contradiction-check sibling detail slice 10 @ PR #2725; see `planning/spe-1908-cross-system-reconciliation-slice-1.md`.
 

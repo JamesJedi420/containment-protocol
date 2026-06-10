@@ -9,6 +9,7 @@ import {
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   evaluateCoerciveProtocolContradictionChecks,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
+import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { useGameStore } from '../../app/store/gameStore'
 import CoerciveContainedPersonProtocolMirrorPage from './CoerciveContainedPersonProtocolMirrorPage'
 
@@ -90,5 +91,30 @@ describe('CoerciveContainedPersonProtocolMirrorPage (SPE-1882 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent(/contradiction checks:/i)
     expect(recordsRegion).toHaveTextContent(/surveillance isolation burden/i)
     expect(recordsRegion).toHaveTextContent(triggered[0]?.issues[0]?.detail ?? '')
+  })
+})
+
+describe('CoerciveContainedPersonProtocolMirrorPage (SPE-2429 slice 2)', () => {
+  it('renders cross-system tension flags when protocol and bundle share subject ref', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted coercive contained person protocol records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent(/cross-system tension:/i)
+    expect(recordsRegion).toHaveTextContent(/surveillance burden stable mental state/i)
+    expect(screen.getByText(/cross-system tension subjects/i)).toBeInTheDocument()
   })
 })

@@ -8,6 +8,11 @@ import {
   type CoerciveProtocolContradictionRiskFlag,
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
+import type { CoerciveProtocolIntegratedHealthReconciliationSummary } from '../../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
+import {
+  composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries,
+  formatCrossSystemTensionFlagLabel,
+} from '../../domain/coerciveProtocolIntegratedHealthCrossReconciliationSurfacing'
 
 export interface CoerciveProtocolContradictionCheckMirrorView {
   flagLabel: string
@@ -38,6 +43,7 @@ export interface CoerciveContainedPersonProtocolMirrorRecordView {
   coercionRiskScoreLabel: string
   contradictionRiskFlagLabels: readonly string[]
   contradictionCheckViews: readonly CoerciveProtocolContradictionCheckMirrorView[]
+  crossSystemTensionFlagLabels: readonly string[]
   medicationRegimenRefLabel: string
   custodyStatusRefLabel: string
   procedureRefLabel: string
@@ -53,6 +59,8 @@ export interface CoerciveContainedPersonProtocolMirrorSummaryView {
   stableContainmentDominatesCareCount: number
   abusivePostureCount: number
   contradictionFlaggedCount: number
+  integratedHealthLinkedSubjectCount: number
+  crossSystemTensionSubjectCount: number
   week: number
 }
 
@@ -118,7 +126,27 @@ function toContradictionCheckView(
   })
 }
 
-function toRecordView(record: CoerciveProtocolRecord): CoerciveContainedPersonProtocolMirrorRecordView {
+function buildCrossSystemTensionFlagLabelsBySubject(
+  summaries: readonly CoerciveProtocolIntegratedHealthReconciliationSummary[]
+): ReadonlyMap<string, readonly string[]> {
+  const labelsBySubject = new Map<string, readonly string[]>()
+
+  for (const summary of summaries) {
+    labelsBySubject.set(
+      summary.subjectRef,
+      Object.freeze(
+        summary.crossSystemTensionFlags.map((flag) => formatCrossSystemTensionFlagLabel(flag))
+      )
+    )
+  }
+
+  return labelsBySubject
+}
+
+function toRecordView(
+  record: CoerciveProtocolRecord,
+  crossSystemTensionFlagLabels: readonly string[]
+): CoerciveContainedPersonProtocolMirrorRecordView {
   const tradeoff = projectContainmentCareTradeoff(record)
   const riskReview = projectCoerciveProtocolRiskReview(record)
   const contradictionChecks = evaluateCoerciveProtocolContradictionChecks(record)
@@ -155,6 +183,7 @@ function toRecordView(record: CoerciveProtocolRecord): CoerciveContainedPersonPr
       riskReview.contradictionRiskFlags.map((flag) => formatContradictionRiskFlagLabel(flag))
     ),
     contradictionCheckViews: Object.freeze(contradictionChecks.map(toContradictionCheckView)),
+    crossSystemTensionFlagLabels: Object.freeze([...crossSystemTensionFlagLabels]),
     medicationRegimenRefLabel: formatOptionalRef(record.medicationRegimenRef),
     custodyStatusRefLabel: formatOptionalRef(record.custodyStatusRef),
     procedureRefLabel: formatOptionalRef(record.procedureRef),
@@ -172,10 +201,23 @@ export function getCoerciveContainedPersonProtocolMirrorView(
 ): CoerciveContainedPersonProtocolMirrorView {
   const records = listPersistedRecords(game)
   const week = game.week
+  const reconciliationSummaries = composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
+    protocols: game.coerciveContainedPersonProtocolRecords,
+    bundles: game.containedPersonIntegratedHealthBundles,
+  })
+  const tensionLabelsBySubject = buildCrossSystemTensionFlagLabelsBySubject(reconciliationSummaries)
 
   let stableContainmentDominatesCareCount = 0
   let abusivePostureCount = 0
   let contradictionFlaggedCount = 0
+  const integratedHealthLinkedSubjectCount = reconciliationSummaries.length
+  let crossSystemTensionSubjectCount = 0
+
+  for (const summary of reconciliationSummaries) {
+    if (summary.crossSystemTensionFlags.length > 0) {
+      crossSystemTensionSubjectCount += 1
+    }
+  }
 
   const recordViews = records.map((record) => {
     const tradeoff = projectContainmentCareTradeoff(record)
@@ -193,7 +235,10 @@ export function getCoerciveContainedPersonProtocolMirrorView(
       contradictionFlaggedCount += 1
     }
 
-    return toRecordView(record)
+    return toRecordView(
+      record,
+      tensionLabelsBySubject.get(record.subjectRef) ?? []
+    )
   })
 
   return Object.freeze({
@@ -203,6 +248,8 @@ export function getCoerciveContainedPersonProtocolMirrorView(
       stableContainmentDominatesCareCount,
       abusivePostureCount,
       contradictionFlaggedCount,
+      integratedHealthLinkedSubjectCount,
+      crossSystemTensionSubjectCount,
       week,
     }),
     records: Object.freeze(recordViews),

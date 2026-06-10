@@ -10,6 +10,7 @@ import {
   validateCoerciveProtocolRecord,
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
+import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import {
   formatCoerciveProtocolEnumLabel,
   getCoerciveContainedPersonProtocolMirrorView,
@@ -258,6 +259,46 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 10)', () => 
       'Generalized Procedure Without Subject Fit',
       'Routine Force Authorization',
       'Surveillance Isolation Burden',
+    ])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2429 slice 2)', () => {
+  it('returns zero cross-system tension counts when integrated health bundles are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(0)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(0)
+    expect(view.records[0]?.crossSystemTensionFlagLabels).toEqual([])
+  })
+
+  it('surfaces cross-system tension flags when protocol and bundle share subject ref', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(1)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
     ])
   })
 })

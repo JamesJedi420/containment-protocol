@@ -304,6 +304,7 @@ import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentRev
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
+import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
@@ -4710,6 +4711,37 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...crossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-1908 / SPE-2429 slice 2: surface coercive protocol ↔ integrated health cross-reconciliation in weekly report notes.
+  const nextCoerciveProtocolsForReconciliation =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  const nextIntegratedHealthBundlesForReconciliation =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  if (
+    Object.keys(nextCoerciveProtocolsForReconciliation).length > 0 &&
+    Object.keys(nextIntegratedHealthBundlesForReconciliation).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const reconciliationNotes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: nextCoerciveProtocolsForReconciliation,
+      nextBundles: nextIntegratedHealthBundlesForReconciliation,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (reconciliationNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...reconciliationNotes],
       }
       result.reports = reports
     }

@@ -571,6 +571,125 @@ export type SurveillanceInterventionTuningRecordsMap = Record<
   SurveillanceInterventionTuningRecord
 >
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  return sortedStringArray(value)
+}
+
+function sanitizeHorizonOutcomes(value: unknown): InterventionHorizonOutcomes | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined
+  }
+
+  const next: Partial<InterventionHorizonOutcomes> = {}
+
+  for (const band of INTERVENTION_HORIZON_BANDS) {
+    const outcome = value[band]
+    if (outcome !== undefined && isInterventionHorizonOutcome(outcome)) {
+      next[band] = outcome
+    }
+  }
+
+  return Object.keys(next).length > 0 ? Object.freeze(next) : undefined
+}
+
+function sanitizeSurveillanceInterventionTuningRecordEntry(
+  value: unknown
+): SurveillanceInterventionTuningRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const subjectRef = normalizeToken(value.subjectRef)
+  const currentInterventionLevel = value.currentInterventionLevel
+  const surveillanceSignalScore = value.surveillanceSignalScore
+  const meaningfulContactScore = value.meaningfulContactScore
+
+  if (
+    !id ||
+    !label ||
+    !subjectRef ||
+    !isInterventionLevel(currentInterventionLevel) ||
+    !isValidUnitScore(surveillanceSignalScore) ||
+    !isValidUnitScore(meaningfulContactScore)
+  ) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const healthcareLoadScore = value.healthcareLoadScore
+  const collateralStrainScore = value.collateralStrainScore
+  const horizonOutcomes = sanitizeHorizonOutcomes(value.horizonOutcomes)
+  const tuningRationaleRef = normalizeToken(value.tuningRationaleRef ?? '') || undefined
+  const confidence = value.confidence
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const record: SurveillanceInterventionTuningRecord = {
+    id,
+    label,
+    subjectRef,
+    currentInterventionLevel,
+    surveillanceSignalScore,
+    meaningfulContactScore,
+    ...(summary ? { summary } : {}),
+    ...(healthcareLoadScore === null
+      ? { healthcareLoadScore: null }
+      : isValidUnitScore(healthcareLoadScore)
+        ? { healthcareLoadScore }
+        : {}),
+    ...(collateralStrainScore === null
+      ? { collateralStrainScore: null }
+      : isValidUnitScore(collateralStrainScore)
+        ? { collateralStrainScore }
+        : {}),
+    ...(horizonOutcomes ? { horizonOutcomes } : {}),
+    ...(tuningRationaleRef ? { tuningRationaleRef } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateSurveillanceInterventionTuningRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical tuning map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeSurveillanceInterventionTuningRecords(
+  value: unknown,
+  fallback: SurveillanceInterventionTuningRecordsMap = {}
+): SurveillanceInterventionTuningRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: SurveillanceInterventionTuningRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeSurveillanceInterventionTuningRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 /** Tuning record paired with abusive surveillance-isolation coercive protocol (subject-22). */
 export const SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE: SurveillanceInterventionTuningRecord =
   Object.freeze({

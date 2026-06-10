@@ -209,7 +209,7 @@ import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entit
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
 import { sanitizeWelfareDebtAccountingRecords } from '../../domain/welfareDebtAccountingRegistry'
-import { sanitizeCoerciveProtocolRecords } from '../../domain/coerciveContainedPersonProtocolRegistry'
+import { sanitizeCoerciveProtocolRecords, sanitizeCoerciveProtocolWeeklyProjectionSnapshots } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { sanitizeMedicationRegimenRecords } from '../../domain/containedPersonMedicationRegimenRegistry'
 import { sanitizeContainedPersonIntegratedHealthBundles } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
@@ -8511,6 +8511,12 @@ export function hydrateGame(
     game.coerciveContainedPersonProtocolRecords,
     fallback.coerciveContainedPersonProtocolRecords ?? {}
   )
+  const coerciveContainedPersonProtocolWeeklyProjectionSnapshots =
+    sanitizeCoerciveProtocolWeeklyProjectionSnapshots(
+      game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots,
+      fallback.coerciveContainedPersonProtocolWeeklyProjectionSnapshots ?? {},
+      new Set(Object.keys(coerciveContainedPersonProtocolRecords))
+    )
   const welfareDebtAccountingRecords = sanitizeWelfareDebtAccountingRecords(
     game.welfareDebtAccountingRecords,
     fallback.welfareDebtAccountingRecords ?? {}
@@ -8655,6 +8661,7 @@ export function hydrateGame(
       containedPersonMedicationRegimenRecords,
       containedPersonCustodyStatusRecords,
       coerciveContainedPersonProtocolRecords,
+      coerciveContainedPersonProtocolWeeklyProjectionSnapshots,
       welfareDebtAccountingRecords,
       containedPersonIntegratedHealthBundles,
       candidates,

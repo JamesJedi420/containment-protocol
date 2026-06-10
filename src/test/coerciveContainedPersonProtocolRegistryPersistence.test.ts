@@ -8,12 +8,19 @@ import {
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
   sanitizeCoerciveProtocolRecords,
+  sanitizeCoerciveProtocolWeeklyProjectionSnapshots,
   validateCoerciveProtocolRecord,
+  projectContainmentCareTradeoff,
+  projectCoerciveProtocolRiskReview,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
+import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 
 describe('coerciveContainedPersonProtocolRegistry persistence (SPE-1882 slice 2)', () => {
   it('defaults starting state to an empty coercive protocol map', () => {
     expect(createStartingState().coerciveContainedPersonProtocolRecords).toEqual({})
+    expect(createStartingState().coerciveContainedPersonProtocolWeeklyProjectionSnapshots).toEqual(
+      {}
+    )
   })
 
   it('drops invalid and duplicate-id entries during sanitize without throwing', () => {
@@ -220,6 +227,91 @@ describe('coerciveContainedPersonProtocolRegistry persistence (SPE-1882 slice 2)
     expect(second).toEqual(first)
     expect(validateCoerciveProtocolRecord(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)).toEqual(
       validateCoerciveProtocolRecord(second[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]!)
+    )
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry weekly projection snapshots (SPE-1882 slice 5)', () => {
+  it('drops invalid snapshot entries and orphan record ids during sanitize', () => {
+    const tick = applyWeeklyCoerciveProtocolTick(
+      {
+        [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      },
+      3
+    )
+    const sanitized = sanitizeCoerciveProtocolWeeklyProjectionSnapshots(
+      {
+        ...tick.snapshots,
+        orphan: {
+          recordId: 'coercive-protocol:orphan',
+          week: 3,
+          tradeoff: tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]!.tradeoff,
+          riskReview: tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]!.riskReview,
+        },
+        'wrong-key': {
+          recordId: EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id,
+          week: 3,
+          tradeoff: tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]!.tradeoff,
+          riskReview: tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]!.riskReview,
+        },
+      },
+      {},
+      new Set([EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id])
+    )
+
+    expect(sanitized).toEqual(tick.snapshots)
+  })
+
+  it('round-trips weekly projection snapshots through save/load', () => {
+    const state = createStartingState()
+    state.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+    state.coerciveContainedPersonProtocolWeeklyProjectionSnapshots =
+      applyWeeklyCoerciveProtocolTick(
+        state.coerciveContainedPersonProtocolRecords,
+        8
+      ).snapshots
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.coerciveContainedPersonProtocolWeeklyProjectionSnapshots).toEqual(
+      state.coerciveContainedPersonProtocolWeeklyProjectionSnapshots
+    )
+    expect(
+      loaded.coerciveContainedPersonProtocolWeeklyProjectionSnapshots?.[
+        EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id
+      ]?.tradeoff
+    ).toEqual(projectContainmentCareTradeoff(EMERGENCY_SEDATION_PROTOCOL_FIXTURE))
+    expect(
+      loaded.coerciveContainedPersonProtocolWeeklyProjectionSnapshots?.[
+        EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id
+      ]?.riskReview
+    ).toEqual(projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE))
+  })
+
+  it('hydrates persisted weekly projection snapshots through import parsing', () => {
+    const tick = applyWeeklyCoerciveProtocolTick(
+      {
+        [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      },
+      2
+    )
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        coerciveContainedPersonProtocolRecords: {
+          [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]:
+            ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+        },
+        coerciveContainedPersonProtocolWeeklyProjectionSnapshots: tick.snapshots,
+      },
+      fallback
+    )
+
+    expect(hydrated.coerciveContainedPersonProtocolWeeklyProjectionSnapshots).toEqual(
+      tick.snapshots
     )
   })
 })

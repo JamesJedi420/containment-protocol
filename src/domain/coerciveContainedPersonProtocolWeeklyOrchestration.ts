@@ -1,9 +1,9 @@
 /**
- * SPE-1882 slice 3: weekly orchestration for persisted coercive protocol records.
+ * SPE-1882 slice 3/5: weekly orchestration for persisted coercive protocol records.
  *
- * Pure deterministic tick: runs tradeoff and coercion-risk projections each week
- * while preserving source records. Does not mutate welfare-debt accounting,
- * implement contradiction-check siblings, or add persistence fields.
+ * Pure deterministic tick: runs tradeoff and coercion-risk projections each week,
+ * persists bounded weekly projection snapshots, and preserves source records byte-stable.
+ * Does not mutate welfare-debt accounting or implement contradiction-check siblings.
  */
 
 import {
@@ -13,6 +13,8 @@ import {
   type CoerciveProtocolRecord,
   type CoerciveProtocolRecordsMap,
   type CoerciveProtocolRiskReviewProjection,
+  type CoerciveProtocolWeeklyProjectionSnapshot,
+  type CoerciveProtocolWeeklyProjectionSnapshotsMap,
   type ContainmentCareTradeoffProjection,
 } from './coerciveContainedPersonProtocolRegistry'
 
@@ -23,12 +25,42 @@ export interface CoerciveProtocolWeeklyProjectionBundle {
   readonly riskReview: CoerciveProtocolRiskReviewProjection
 }
 
+export interface CoerciveProtocolWeeklyTickResult {
+  readonly records: CoerciveProtocolRecordsMap
+  readonly snapshots: CoerciveProtocolWeeklyProjectionSnapshotsMap
+}
+
 function normalizeWeek(week: number): number {
   if (!Number.isFinite(week)) {
     return 1
   }
 
   return Math.max(1, Math.trunc(week))
+}
+
+function freezeSnapshot(
+  bundle: CoerciveProtocolWeeklyProjectionBundle
+): CoerciveProtocolWeeklyProjectionSnapshot {
+  return Object.freeze({
+    recordId: bundle.recordId,
+    week: bundle.week,
+    tradeoff: bundle.tradeoff,
+    riskReview: bundle.riskReview,
+  })
+}
+
+function weeklyProjectionSnapshotsEqual(
+  left: CoerciveProtocolWeeklyProjectionSnapshot,
+  right: CoerciveProtocolWeeklyProjectionSnapshot
+): boolean {
+  if (left.recordId !== right.recordId || left.week !== right.week) {
+    return false
+  }
+
+  return (
+    JSON.stringify(left.tradeoff) === JSON.stringify(right.tradeoff) &&
+    JSON.stringify(left.riskReview) === JSON.stringify(right.riskReview)
+  )
 }
 
 /**
@@ -76,22 +108,82 @@ export function projectCoerciveProtocolRecordsForWeek(
   return Object.freeze(bundles)
 }
 
+function persistWeeklyProjectionSnapshots(
+  records: CoerciveProtocolRecordsMap,
+  snapshots: CoerciveProtocolWeeklyProjectionSnapshotsMap,
+  week: number
+): CoerciveProtocolWeeklyProjectionSnapshotsMap {
+  const normalizedWeek = normalizeWeek(week)
+  const recordIds = Object.keys(records).sort((left, right) => left.localeCompare(right))
+  let nextSnapshots: CoerciveProtocolWeeklyProjectionSnapshotsMap | null = null
+
+  for (const recordId of recordIds) {
+    const record = records[recordId]
+    if (!record) {
+      continue
+    }
+
+    const bundle = buildCoerciveProtocolWeeklyProjectionBundle(record, normalizedWeek)
+    const candidate = freezeSnapshot(bundle)
+    const existing = (nextSnapshots ?? snapshots)[recordId]
+
+    if (existing && weeklyProjectionSnapshotsEqual(existing, candidate)) {
+      continue
+    }
+
+    if (!nextSnapshots) {
+      nextSnapshots = { ...snapshots }
+    }
+
+    nextSnapshots[recordId] = candidate
+  }
+
+  const activeRecordIds = new Set(recordIds)
+  const sourceSnapshots = nextSnapshots ?? snapshots
+  for (const snapshotId of Object.keys(sourceSnapshots)) {
+    if (activeRecordIds.has(snapshotId)) {
+      continue
+    }
+
+    if (!nextSnapshots) {
+      nextSnapshots = { ...snapshots }
+    }
+
+    delete nextSnapshots[snapshotId]
+  }
+
+  if (!nextSnapshots) {
+    return snapshots
+  }
+
+  return Object.keys(nextSnapshots).length > 0 ? nextSnapshots : {}
+}
+
 /**
  * Applies one weekly orchestration pass over persisted coercive protocol records.
- * Runs deterministic projections but preserves source records byte-stable.
- * Empty map is a no-op. Re-applying after advance is idempotent for the same week.
+ * Runs deterministic projections, persists bounded weekly snapshots, and preserves
+ * source records byte-stable. Empty map is a no-op. Re-applying after advance is
+ * idempotent for the same week.
  */
 export function applyWeeklyCoerciveProtocolTick(
   records: CoerciveProtocolRecordsMap | null | undefined,
-  week: number
-): CoerciveProtocolRecordsMap {
+  week: number,
+  snapshots: CoerciveProtocolWeeklyProjectionSnapshotsMap | null | undefined = {}
+): CoerciveProtocolWeeklyTickResult {
   const safeRecords = records ?? {}
+  const safeSnapshots = snapshots ?? {}
   const recordIds = Object.keys(safeRecords)
   if (recordIds.length === 0) {
-    return safeRecords
+    return {
+      records: safeRecords,
+      snapshots: safeSnapshots,
+    }
   }
 
-  projectCoerciveProtocolRecordsForWeek(safeRecords, week)
+  const nextSnapshots = persistWeeklyProjectionSnapshots(safeRecords, safeSnapshots, week)
 
-  return safeRecords
+  return {
+    records: safeRecords,
+    snapshots: nextSnapshots,
+  }
 }

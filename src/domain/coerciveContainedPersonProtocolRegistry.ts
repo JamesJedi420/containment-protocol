@@ -1,0 +1,870 @@
+/**
+ * SPE-1882 slice 1: coercive contained-person protocol registry.
+ *
+ * Pure deterministic registry for contained-person procedure protocols —
+ * handling modes, authorization/consent/force posture, subject-fit state,
+ * containment-vs-care tradeoffs, and coercion-risk review output.
+ *
+ * Distinct from welfare-debt accounting math (SPE-1888), medication regimen
+ * details (SPE-1886), and integrated health bundles (SPE-1889).
+ */
+
+// ---------------------------------------------------------------------------
+// Identifiers and unions
+// ---------------------------------------------------------------------------
+
+export type CoerciveProtocolId = string
+
+export type CoerciveProtocolHandlingMode =
+  | 'voluntary'
+  | 'negotiated'
+  | 'compelled'
+  | 'emergency'
+  | 'punitive'
+  | 'deceptive'
+  | 'abusive'
+
+export const COERCIVE_PROTOCOL_HANDLING_MODES: readonly CoerciveProtocolHandlingMode[] = [
+  'voluntary',
+  'negotiated',
+  'compelled',
+  'emergency',
+  'punitive',
+  'deceptive',
+  'abusive',
+] as const
+
+export type CoerciveProtocolSubjectFitState = 'validated' | 'generalized' | 'pending' | 'mismatch'
+
+export const COERCIVE_PROTOCOL_SUBJECT_FIT_STATES: readonly CoerciveProtocolSubjectFitState[] = [
+  'validated',
+  'generalized',
+  'pending',
+  'mismatch',
+] as const
+
+export type CoerciveProtocolAuthorizationSource =
+  | 'court_order'
+  | 'emergency_directive'
+  | 'facility_policy'
+  | 'field_authority'
+  | 'undocumented'
+
+export const COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES: readonly CoerciveProtocolAuthorizationSource[] =
+  [
+    'court_order',
+    'emergency_directive',
+    'facility_policy',
+    'field_authority',
+    'undocumented',
+  ] as const
+
+export type CoerciveProtocolForcePolicy = 'proportional' | 'routine_default' | 'escalated' | 'prohibited'
+
+export const COERCIVE_PROTOCOL_FORCE_POLICIES: readonly CoerciveProtocolForcePolicy[] = [
+  'proportional',
+  'routine_default',
+  'escalated',
+  'prohibited',
+] as const
+
+export type CoerciveProtocolRefusalHandling =
+  | 'documented_override'
+  | 'ignored'
+  | 'deferred_review'
+  | 'accommodated'
+
+export const COERCIVE_PROTOCOL_REFUSAL_HANDLING: readonly CoerciveProtocolRefusalHandling[] = [
+  'documented_override',
+  'ignored',
+  'deferred_review',
+  'accommodated',
+] as const
+
+export type CoerciveProtocolHandlingPosture =
+  | 'legally_authorized'
+  | 'emergency'
+  | 'compelled'
+  | 'abusive'
+  | 'voluntary'
+
+export const COERCIVE_PROTOCOL_HANDLING_POSTURES: readonly CoerciveProtocolHandlingPosture[] = [
+  'legally_authorized',
+  'emergency',
+  'compelled',
+  'abusive',
+  'voluntary',
+] as const
+
+export type CoerciveProtocolContradictionRiskFlag =
+  | 'routine_force_authorization'
+  | 'generalized_procedure_without_subject_fit'
+  | 'compliance_metric_masks_harm'
+  | 'surveillance_isolation_burden'
+
+// ---------------------------------------------------------------------------
+// Records
+// ---------------------------------------------------------------------------
+
+export interface CoerciveProtocolRecord {
+  readonly id: CoerciveProtocolId
+  readonly label: string
+  readonly summary?: string
+  readonly subjectRef: string
+  readonly handlingMode: CoerciveProtocolHandlingMode
+  readonly subjectFitState: CoerciveProtocolSubjectFitState
+  readonly authorizationSource: CoerciveProtocolAuthorizationSource
+  readonly forcePolicy: CoerciveProtocolForcePolicy
+  readonly consentConfidence: number
+  readonly refusalHandling: CoerciveProtocolRefusalHandling
+  readonly dependencyLeverageScore?: number
+  readonly isolationBurdenScore: number
+  readonly surveillanceBurdenScore: number
+  /** Owner ref to SPE-1886 medication regimen — no regimen field duplication. */
+  readonly medicationRegimenRef?: string
+  /** Owner ref to SPE-1892 custody status — no custody field duplication. */
+  readonly custodyStatusRef?: string
+  /** Optional link to coercive procedure anchor for welfare-debt wire-up. */
+  readonly procedureRef?: string
+  readonly subjectFitValidationRef?: string
+  readonly containmentStabilityGain: number
+  readonly personhoodHarmRisk: number
+  readonly trustDamageRisk: number
+  readonly legitimacyRisk: number
+  readonly welfareDebtImpactLabel: string
+  readonly complianceMetricOnly?: boolean
+  readonly confidence?: number
+  readonly unknownFields?: readonly string[]
+  readonly redactedFields?: readonly string[]
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+export type CoerciveProtocolValidationCode =
+  | 'missing_id'
+  | 'missing_label'
+  | 'missing_subject_ref'
+  | 'invalid_handling_mode'
+  | 'invalid_subject_fit_state'
+  | 'invalid_authorization_source'
+  | 'invalid_force_policy'
+  | 'invalid_refusal_handling'
+  | 'invalid_consent_confidence'
+  | 'invalid_dependency_leverage_score'
+  | 'invalid_isolation_burden_score'
+  | 'invalid_surveillance_burden_score'
+  | 'invalid_containment_stability_gain'
+  | 'invalid_personhood_harm_risk'
+  | 'invalid_trust_damage_risk'
+  | 'invalid_legitimacy_risk'
+  | 'missing_welfare_debt_impact_label'
+  | 'invalid_confidence'
+  | 'compelled_without_authorization_source'
+  | 'emergency_without_authorization_source'
+  | 'abusive_without_review_path'
+  | 'deceptive_without_review_path'
+  | 'generalized_subject_fit_without_validation'
+  | 'routine_force_without_documented_override'
+  | 'franchise_token_in_id'
+  | 'franchise_token_in_label'
+  | 'franchise_token_in_field'
+  | 'branded_object_number_in_id'
+  | 'branded_object_number_in_label'
+  | 'branded_object_number_in_field'
+
+export interface CoerciveProtocolValidationIssue {
+  readonly code: CoerciveProtocolValidationCode
+  readonly detail: string
+  readonly severity: 'error' | 'warning'
+  readonly relatedIds?: readonly string[]
+}
+
+export interface CoerciveProtocolValidationResult {
+  readonly valid: boolean
+  readonly issues: readonly CoerciveProtocolValidationIssue[]
+}
+
+// ---------------------------------------------------------------------------
+// Projections
+// ---------------------------------------------------------------------------
+
+export interface ContainmentCareTradeoffProjection {
+  readonly recordId: CoerciveProtocolId
+  readonly label: string
+  readonly handlingMode: CoerciveProtocolHandlingMode
+  readonly containmentStabilityGain: number
+  readonly personhoodHarmRisk: number
+  readonly trustDamageRisk: number
+  readonly legitimacyRisk: number
+  readonly stableContainmentDominatesCare: boolean
+  readonly welfareDebtImpactLabel: string
+  readonly confidence: number | null
+  readonly redacted: boolean
+  readonly unknownFields: readonly string[]
+}
+
+export interface CoerciveProtocolRiskReviewProjection {
+  readonly recordId: CoerciveProtocolId
+  readonly label: string
+  readonly handlingPosture: CoerciveProtocolHandlingPosture
+  readonly coercionRiskScore: number
+  readonly contradictionRiskFlags: readonly CoerciveProtocolContradictionRiskFlag[]
+  readonly blocksProcedure: boolean
+  readonly subjectFitState: CoerciveProtocolSubjectFitState
+  readonly forcePolicy: CoerciveProtocolForcePolicy
+  readonly confidence: number | null
+  readonly redacted: boolean
+  readonly unknownFields: readonly string[]
+}
+
+// ---------------------------------------------------------------------------
+// Internal constants
+// ---------------------------------------------------------------------------
+
+const HANDLING_MODE_SET = new Set<string>(COERCIVE_PROTOCOL_HANDLING_MODES)
+const SUBJECT_FIT_STATE_SET = new Set<string>(COERCIVE_PROTOCOL_SUBJECT_FIT_STATES)
+const AUTHORIZATION_SOURCE_SET = new Set<string>(COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES)
+const FORCE_POLICY_SET = new Set<string>(COERCIVE_PROTOCOL_FORCE_POLICIES)
+const REFUSAL_HANDLING_SET = new Set<string>(COERCIVE_PROTOCOL_REFUSAL_HANDLING)
+
+const LEGALLY_AUTHORIZED_SOURCES = new Set<CoerciveProtocolAuthorizationSource>(['court_order'])
+
+const COERCIVE_HANDLING_MODES = new Set<CoerciveProtocolHandlingMode>([
+  'compelled',
+  'emergency',
+  'punitive',
+  'deceptive',
+  'abusive',
+])
+
+export const FRANCHISE_TOKEN_PATTERN =
+  /(?:\b(?:scp|mtf|mobile task force|foundation|goc|gru|uiu|chaos insurgency|group of interest|broken masquerade|masquerade breach)\b|goi-)/i
+
+export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
+
+const SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD = 0.65
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function normalizeToken(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function isValidUnitScore(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1
+}
+
+function asStringArray(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter((entry): entry is string => typeof entry === 'string')
+}
+
+function sortedStringArray(value: unknown): readonly string[] {
+  return [...asStringArray(value).map((entry) => entry.trim()).filter((entry) => entry.length > 0)].sort(
+    (left, right) => left.localeCompare(right)
+  )
+}
+
+function containsFranchiseToken(value: string): boolean {
+  const token = normalizeToken(value)
+  return token.length > 0 && FRANCHISE_TOKEN_PATTERN.test(token)
+}
+
+function containsBrandedObjectNumber(value: string): boolean {
+  const token = normalizeToken(value)
+  return token.length > 0 && BRANDED_OBJECT_NUMBER_PATTERN.test(token)
+}
+
+function pushIssue(issues: CoerciveProtocolValidationIssue[], issue: CoerciveProtocolValidationIssue) {
+  issues.push(issue)
+}
+
+function sortValidationIssues(issues: CoerciveProtocolValidationIssue[]) {
+  return [...issues].sort((left, right) => {
+    const codeCompare = left.code.localeCompare(right.code)
+    if (codeCompare !== 0) {
+      return codeCompare
+    }
+
+    const severityCompare = left.severity.localeCompare(right.severity)
+    if (severityCompare !== 0) {
+      return severityCompare
+    }
+
+    return left.detail.localeCompare(right.detail)
+  })
+}
+
+function freezeValidationResult(
+  issues: CoerciveProtocolValidationIssue[]
+): CoerciveProtocolValidationResult {
+  const sortedIssues = sortValidationIssues(issues)
+  const hasError = sortedIssues.some((issue) => issue.severity === 'error')
+
+  return Object.freeze({
+    valid: !hasError,
+    issues: Object.freeze(
+      sortedIssues.map((issue) =>
+        Object.freeze({
+          ...issue,
+          ...(issue.relatedIds ? { relatedIds: Object.freeze([...issue.relatedIds]) } : {}),
+        })
+      )
+    ),
+  })
+}
+
+function scanForbiddenTokens(
+  issues: CoerciveProtocolValidationIssue[],
+  id: string,
+  label: string,
+  record: CoerciveProtocolRecord
+) {
+  if (containsFranchiseToken(id)) {
+    pushIssue(issues, {
+      code: 'franchise_token_in_id',
+      severity: 'error',
+      detail: `Coercive protocol record id ${id || '(unknown)'} contains a franchise or source-literal token.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsBrandedObjectNumber(id)) {
+    pushIssue(issues, {
+      code: 'branded_object_number_in_id',
+      severity: 'error',
+      detail: `Coercive protocol record id ${id || '(unknown)'} contains a branded object number.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsFranchiseToken(label)) {
+    pushIssue(issues, {
+      code: 'franchise_token_in_label',
+      severity: 'error',
+      detail: `Coercive protocol record label ${label || '(unknown)'} contains a franchise or source-literal token.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (containsBrandedObjectNumber(label)) {
+    pushIssue(issues, {
+      code: 'branded_object_number_in_label',
+      severity: 'error',
+      detail: `Coercive protocol record label ${label || '(unknown)'} contains a branded object number.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  const subjectRef = normalizeToken(record.subjectRef)
+  if (subjectRef && (containsFranchiseToken(subjectRef) || containsBrandedObjectNumber(subjectRef))) {
+    pushIssue(issues, {
+      code: containsFranchiseToken(subjectRef)
+        ? 'franchise_token_in_field'
+        : 'branded_object_number_in_field',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} subjectRef contains a forbidden token.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+}
+
+function resolveConfidence(record: CoerciveProtocolRecord): number | null {
+  const confidence = record.confidence
+  return isValidUnitScore(confidence) ? confidence : null
+}
+
+function resolveUnknownFields(record: CoerciveProtocolRecord): readonly string[] {
+  return sortedStringArray(record.unknownFields)
+}
+
+function isRedacted(record: CoerciveProtocolRecord): boolean {
+  return sortedStringArray(record.redactedFields).length > 0
+}
+
+function clampUnitScore(value: number): number {
+  return Math.min(1, Math.max(0, value))
+}
+
+function roundUnitScore(value: number): number {
+  return Math.round(clampUnitScore(value) * 1000) / 1000
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export function isCoerciveProtocolHandlingMode(value: unknown): value is CoerciveProtocolHandlingMode {
+  return typeof value === 'string' && HANDLING_MODE_SET.has(value)
+}
+
+export function isCoerciveProtocolSubjectFitState(
+  value: unknown
+): value is CoerciveProtocolSubjectFitState {
+  return typeof value === 'string' && SUBJECT_FIT_STATE_SET.has(value)
+}
+
+export function validateCoerciveProtocolRecord(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolValidationResult {
+  const issues: CoerciveProtocolValidationIssue[] = []
+  const id = normalizeToken(record.id)
+  const label = normalizeToken(record.label)
+  const subjectRef = normalizeToken(record.subjectRef)
+  const welfareDebtImpactLabel = normalizeToken(record.welfareDebtImpactLabel)
+  const subjectFitValidationRef = normalizeToken(record.subjectFitValidationRef ?? '')
+
+  if (!id) {
+    pushIssue(issues, {
+      code: 'missing_id',
+      severity: 'error',
+      detail: 'Coercive protocol record is missing id.',
+    })
+  }
+
+  if (!label) {
+    pushIssue(issues, {
+      code: 'missing_label',
+      severity: 'error',
+      detail: 'Coercive protocol record is missing label.',
+    })
+  }
+
+  if (!subjectRef) {
+    pushIssue(issues, {
+      code: 'missing_subject_ref',
+      severity: 'error',
+      detail: 'Coercive protocol record is missing subjectRef.',
+    })
+  }
+
+  if (!isCoerciveProtocolHandlingMode(record.handlingMode)) {
+    pushIssue(issues, {
+      code: 'invalid_handling_mode',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid handlingMode.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isCoerciveProtocolSubjectFitState(record.subjectFitState)) {
+    pushIssue(issues, {
+      code: 'invalid_subject_fit_state',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid subjectFitState.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    typeof record.authorizationSource !== 'string' ||
+    !AUTHORIZATION_SOURCE_SET.has(record.authorizationSource)
+  ) {
+    pushIssue(issues, {
+      code: 'invalid_authorization_source',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid authorizationSource.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (typeof record.forcePolicy !== 'string' || !FORCE_POLICY_SET.has(record.forcePolicy)) {
+    pushIssue(issues, {
+      code: 'invalid_force_policy',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid forcePolicy.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (typeof record.refusalHandling !== 'string' || !REFUSAL_HANDLING_SET.has(record.refusalHandling)) {
+    pushIssue(issues, {
+      code: 'invalid_refusal_handling',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid refusalHandling.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.consentConfidence)) {
+    pushIssue(issues, {
+      code: 'invalid_consent_confidence',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid consentConfidence.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.dependencyLeverageScore !== undefined &&
+    !isValidUnitScore(record.dependencyLeverageScore)
+  ) {
+    pushIssue(issues, {
+      code: 'invalid_dependency_leverage_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid dependencyLeverageScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.isolationBurdenScore)) {
+    pushIssue(issues, {
+      code: 'invalid_isolation_burden_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid isolationBurdenScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.surveillanceBurdenScore)) {
+    pushIssue(issues, {
+      code: 'invalid_surveillance_burden_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid surveillanceBurdenScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.containmentStabilityGain)) {
+    pushIssue(issues, {
+      code: 'invalid_containment_stability_gain',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid containmentStabilityGain.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.personhoodHarmRisk)) {
+    pushIssue(issues, {
+      code: 'invalid_personhood_harm_risk',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid personhoodHarmRisk.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.trustDamageRisk)) {
+    pushIssue(issues, {
+      code: 'invalid_trust_damage_risk',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid trustDamageRisk.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!isValidUnitScore(record.legitimacyRisk)) {
+    pushIssue(issues, {
+      code: 'invalid_legitimacy_risk',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid legitimacyRisk.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (!welfareDebtImpactLabel) {
+    pushIssue(issues, {
+      code: 'missing_welfare_debt_impact_label',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} is missing welfareDebtImpactLabel.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.confidence !== undefined && !isValidUnitScore(record.confidence)) {
+    pushIssue(issues, {
+      code: 'invalid_confidence',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid confidence.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.handlingMode === 'compelled' &&
+    record.authorizationSource === 'undocumented'
+  ) {
+    pushIssue(issues, {
+      code: 'compelled_without_authorization_source',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is compelled without documented authorization.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.handlingMode === 'emergency' &&
+    record.authorizationSource === 'undocumented'
+  ) {
+    pushIssue(issues, {
+      code: 'emergency_without_authorization_source',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is emergency without documented authorization.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.handlingMode === 'abusive' && !subjectFitValidationRef) {
+    pushIssue(issues, {
+      code: 'abusive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is abusive without subject-fit validation or review ref.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.handlingMode === 'deceptive' && !subjectFitValidationRef) {
+    pushIssue(issues, {
+      code: 'deceptive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is deceptive without subject-fit validation or review ref.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.subjectFitState === 'generalized' && !subjectFitValidationRef) {
+    pushIssue(issues, {
+      code: 'generalized_subject_fit_without_validation',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} uses generalized subject fit without validation artifact.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.forcePolicy === 'routine_default' &&
+    record.refusalHandling !== 'documented_override'
+  ) {
+    pushIssue(issues, {
+      code: 'routine_force_without_documented_override',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} uses routine force without documented refusal override.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  scanForbiddenTokens(issues, id, label, record)
+
+  return freezeValidationResult(issues)
+}
+
+export function classifyCoerciveProtocolHandlingPosture(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolHandlingPosture {
+  if (record.handlingMode === 'abusive' || record.handlingMode === 'deceptive') {
+    return 'abusive'
+  }
+
+  if (record.handlingMode === 'voluntary' || record.handlingMode === 'negotiated') {
+    return 'voluntary'
+  }
+
+  if (record.handlingMode === 'emergency') {
+    return 'emergency'
+  }
+
+  if (
+    (record.handlingMode === 'compelled' || record.handlingMode === 'punitive') &&
+    LEGALLY_AUTHORIZED_SOURCES.has(record.authorizationSource)
+  ) {
+    return 'legally_authorized'
+  }
+
+  if (COERCIVE_HANDLING_MODES.has(record.handlingMode)) {
+    return 'compelled'
+  }
+
+  return 'compelled'
+}
+
+export function projectContainmentCareTradeoff(
+  record: CoerciveProtocolRecord
+): ContainmentCareTradeoffProjection {
+  const careHarmAggregate = roundUnitScore(
+    (record.personhoodHarmRisk + record.trustDamageRisk + record.legitimacyRisk) / 3
+  )
+  const stableContainmentDominatesCare =
+    record.containmentStabilityGain > careHarmAggregate
+
+  return Object.freeze({
+    recordId: record.id,
+    label: record.label,
+    handlingMode: record.handlingMode,
+    containmentStabilityGain: roundUnitScore(record.containmentStabilityGain),
+    personhoodHarmRisk: roundUnitScore(record.personhoodHarmRisk),
+    trustDamageRisk: roundUnitScore(record.trustDamageRisk),
+    legitimacyRisk: roundUnitScore(record.legitimacyRisk),
+    stableContainmentDominatesCare,
+    welfareDebtImpactLabel: normalizeToken(record.welfareDebtImpactLabel),
+    confidence: resolveConfidence(record),
+    redacted: isRedacted(record),
+    unknownFields: resolveUnknownFields(record),
+  })
+}
+
+function collectContradictionRiskFlags(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionRiskFlag[] {
+  const flags: CoerciveProtocolContradictionRiskFlag[] = []
+
+  if (record.forcePolicy === 'routine_default') {
+    flags.push('routine_force_authorization')
+  }
+
+  if (record.subjectFitState === 'generalized' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+    flags.push('generalized_procedure_without_subject_fit')
+  }
+
+  if (record.complianceMetricOnly === true) {
+    flags.push('compliance_metric_masks_harm')
+  }
+
+  if (
+    record.isolationBurdenScore >= SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD &&
+    record.surveillanceBurdenScore >= SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD
+  ) {
+    flags.push('surveillance_isolation_burden')
+  }
+
+  return flags.sort((left, right) => left.localeCompare(right))
+}
+
+function resolveCoercionRiskScore(
+  record: CoerciveProtocolRecord,
+  flags: readonly CoerciveProtocolContradictionRiskFlag[]
+): number {
+  let score = 0
+
+  if (record.handlingMode === 'abusive' || record.handlingMode === 'deceptive') {
+    score += 0.35
+  } else if (record.handlingMode === 'punitive' || record.handlingMode === 'compelled') {
+    score += 0.2
+  }
+
+  if (record.forcePolicy === 'routine_default') {
+    score += 0.2
+  } else if (record.forcePolicy === 'escalated') {
+    score += 0.15
+  }
+
+  if (record.subjectFitState === 'generalized' || record.subjectFitState === 'mismatch') {
+    score += 0.15
+  }
+
+  if (record.consentConfidence <= 0.35) {
+    score += 0.1
+  }
+
+  score += flags.length * 0.08
+
+  return roundUnitScore(score)
+}
+
+export function projectCoerciveProtocolRiskReview(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolRiskReviewProjection {
+  const contradictionRiskFlags = collectContradictionRiskFlags(record)
+
+  return Object.freeze({
+    recordId: record.id,
+    label: record.label,
+    handlingPosture: classifyCoerciveProtocolHandlingPosture(record),
+    coercionRiskScore: resolveCoercionRiskScore(record, contradictionRiskFlags),
+    contradictionRiskFlags: Object.freeze(contradictionRiskFlags),
+    blocksProcedure: false,
+    subjectFitState: record.subjectFitState,
+    forcePolicy: record.forcePolicy,
+    confidence: resolveConfidence(record),
+    redacted: isRedacted(record),
+    unknownFields: resolveUnknownFields(record),
+  })
+}
+
+function defineRecord(record: CoerciveProtocolRecord): CoerciveProtocolRecord {
+  return Object.freeze({ ...record })
+}
+
+/** Emergency sedation protocol with documented authorization and owner refs. */
+export const EMERGENCY_SEDATION_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
+  id: 'coercive-protocol:emergency-sedation-stabilization',
+  label: 'Emergency sedation stabilization protocol',
+  summary:
+    'Emergency compelled sedation improving containment stability while increasing coerced-medication welfare debt.',
+  subjectRef: 'subject:cooperative-field-asset-17',
+  handlingMode: 'emergency',
+  subjectFitState: 'validated',
+  authorizationSource: 'emergency_directive',
+  forcePolicy: 'proportional',
+  consentConfidence: 0.22,
+  refusalHandling: 'documented_override',
+  dependencyLeverageScore: 0.41,
+  isolationBurdenScore: 0.38,
+  surveillanceBurdenScore: 0.44,
+  medicationRegimenRef: 'medication-regimen:coercive-sedative-beta',
+  custodyStatusRef: 'custody-status:former-hostile-hold',
+  procedureRef: 'coercive-procedure:forced-sedation-stabilization',
+  subjectFitValidationRef: 'review-artifact:psych-fit-validation-17',
+  containmentStabilityGain: 0.78,
+  personhoodHarmRisk: 0.52,
+  trustDamageRisk: 0.47,
+  legitimacyRisk: 0.36,
+  welfareDebtImpactLabel: 'coerced medication welfare debt likely',
+  confidence: 0.84,
+})
+
+/** Routine force protocol generalized across subjects without fit validation. */
+export const ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
+  id: 'coercive-protocol:routine-force-generalized',
+  label: 'Routine force generalized restraint protocol',
+  summary:
+    'Facility-default restraint protocol applied without subject-fit validation; compliance metrics mask harm.',
+  subjectRef: 'subject:cooperative-field-asset-31',
+  handlingMode: 'compelled',
+  subjectFitState: 'generalized',
+  authorizationSource: 'facility_policy',
+  forcePolicy: 'routine_default',
+  consentConfidence: 0.18,
+  refusalHandling: 'ignored',
+  isolationBurdenScore: 0.58,
+  surveillanceBurdenScore: 0.49,
+  custodyStatusRef: 'custody-status:privilege-suspended-hold',
+  procedureRef: 'coercive-procedure:extended-mechanical-restraint',
+  containmentStabilityGain: 0.71,
+  personhoodHarmRisk: 0.63,
+  trustDamageRisk: 0.58,
+  legitimacyRisk: 0.55,
+  welfareDebtImpactLabel: 'harmful restraint welfare debt likely',
+  complianceMetricOnly: true,
+  confidence: 0.69,
+})
+
+/** Abusive surveillance-isolation protocol with high burden scores. */
+export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
+  id: 'coercive-protocol:abusive-surveillance-isolation',
+  label: 'Abusive surveillance isolation protocol',
+  summary:
+    'Abusive handling with elevated isolation and surveillance burden; review flags risk without blocking.',
+  subjectRef: 'subject:cooperative-field-asset-22',
+  handlingMode: 'abusive',
+  subjectFitState: 'mismatch',
+  authorizationSource: 'undocumented',
+  forcePolicy: 'escalated',
+  consentConfidence: 0.08,
+  refusalHandling: 'ignored',
+  dependencyLeverageScore: 0.72,
+  isolationBurdenScore: 0.82,
+  surveillanceBurdenScore: 0.79,
+  custodyStatusRef: 'custody-status:former-hostile-hold',
+  containmentStabilityGain: 0.66,
+  personhoodHarmRisk: 0.88,
+  trustDamageRisk: 0.84,
+  legitimacyRisk: 0.76,
+  welfareDebtImpactLabel: 'forced isolation welfare debt likely',
+  confidence: 0.73,
+})

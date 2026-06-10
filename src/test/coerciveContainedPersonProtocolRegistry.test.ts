@@ -4,6 +4,8 @@ import {
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
   classifyCoerciveProtocolHandlingPosture,
+  evaluateCoerciveProtocolContradictionChecks,
+  evaluateRoutineForceAuthorizationContradictionCheck,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
   validateCoerciveProtocolRecord,
@@ -96,6 +98,87 @@ describe('coerciveContainedPersonProtocolRegistry (SPE-1882 slice 1)', () => {
   it('returns byte-stable validation on repeated calls', () => {
     const first = validateCoerciveProtocolRecord(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
     const second = validateCoerciveProtocolRecord(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882 slice 6)', () => {
+  it('triggers routine-force sibling aligned with contradiction risk flags', () => {
+    const review = projectCoerciveProtocolRiskReview(ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE)
+    const check = evaluateRoutineForceAuthorizationContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+
+    expect(review.contradictionRiskFlags).toContain('routine_force_authorization')
+    expect(check.triggered).toBe(true)
+    expect(check.flag).toBe('routine_force_authorization')
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues.length).toBeGreaterThan(0)
+    expect(check.issues.every((issue) => issue.severity === 'warning')).toBe(true)
+    expect(check.issues.map((issue) => issue.code)).toEqual([
+      'routine_force_low_consent_confidence',
+      'routine_force_masks_care_harm',
+      'routine_force_operational_default',
+      'routine_force_undocumented_refusal_override',
+    ])
+  })
+
+  it('flags voluntary handling contradictions when routine force is the default', () => {
+    const voluntaryRoutineForce = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:voluntary-routine-force',
+      handlingMode: 'voluntary' as const,
+    }
+    const check = evaluateRoutineForceAuthorizationContradictionCheck(voluntaryRoutineForce)
+
+    expect(check.triggered).toBe(true)
+    expect(
+      check.issues.some((issue) => issue.code === 'routine_force_contradicts_voluntary_handling')
+    ).toBe(true)
+  })
+
+  it('returns non-triggered no-op for proportional force policy', () => {
+    const check = evaluateRoutineForceAuthorizationContradictionCheck(
+      EMERGENCY_SEDATION_PROTOCOL_FIXTURE
+    )
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('propagates redacted and unknown metadata into sibling output', () => {
+    const redacted = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      redactedFields: ['forcePolicy'],
+      unknownFields: ['refusalHandling'],
+    }
+    const check = evaluateRoutineForceAuthorizationContradictionCheck(redacted)
+
+    expect(check.triggered).toBe(true)
+    expect(check.redacted).toBe(true)
+    expect(check.unknownFields).toEqual(['refusalHandling'])
+  })
+
+  it('returns triggered siblings only from aggregator in deterministic order', () => {
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+    const skipped = evaluateCoerciveProtocolContradictionChecks(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+
+    expect(triggered).toHaveLength(1)
+    expect(triggered[0]?.flag).toBe('routine_force_authorization')
+    expect(skipped).toEqual([])
+  })
+
+  it('returns byte-stable contradiction-check output on repeated calls', () => {
+    const first = evaluateRoutineForceAuthorizationContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+    const second = evaluateRoutineForceAuthorizationContradictionCheck(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))
   })

@@ -219,6 +219,32 @@ export interface CoerciveProtocolRiskReviewProjection {
   readonly unknownFields: readonly string[]
 }
 
+export type CoerciveProtocolRoutineForceContradictionCheckCode =
+  | 'routine_force_operational_default'
+  | 'routine_force_contradicts_voluntary_handling'
+  | 'routine_force_low_consent_confidence'
+  | 'routine_force_undocumented_refusal_override'
+  | 'routine_force_masks_care_harm'
+
+export interface CoerciveProtocolContradictionCheckIssue {
+  readonly code: CoerciveProtocolRoutineForceContradictionCheckCode
+  readonly detail: string
+  readonly severity: 'warning'
+  readonly relatedIds?: readonly string[]
+}
+
+/** SPE-1882 slice 6: warning-only contradiction-check sibling for one registry flag. */
+export interface CoerciveProtocolContradictionCheckResult {
+  readonly recordId: CoerciveProtocolId
+  readonly flag: CoerciveProtocolContradictionRiskFlag
+  readonly triggered: boolean
+  readonly blocksProcedure: false
+  readonly issues: readonly CoerciveProtocolContradictionCheckIssue[]
+  readonly confidence: number | null
+  readonly redacted: boolean
+  readonly unknownFields: readonly string[]
+}
+
 /** SPE-1882 slice 5: persisted weekly tradeoff + risk-review projection snapshot for one protocol record. */
 export interface CoerciveProtocolWeeklyProjectionSnapshot {
   readonly recordId: CoerciveProtocolId
@@ -731,6 +757,140 @@ export function projectContainmentCareTradeoff(
     redacted: isRedacted(record),
     unknownFields: resolveUnknownFields(record),
   })
+}
+
+const ROUTINE_FORCE_LOW_CONSENT_CONFIDENCE_THRESHOLD = 0.35
+
+const VOLUNTARY_HANDLING_MODES = new Set<CoerciveProtocolHandlingMode>(['voluntary', 'negotiated'])
+
+function sortContradictionCheckIssues(
+  issues: CoerciveProtocolContradictionCheckIssue[]
+): readonly CoerciveProtocolContradictionCheckIssue[] {
+  return Object.freeze(
+    [...issues]
+      .sort((left, right) => {
+        const codeCompare = left.code.localeCompare(right.code)
+        if (codeCompare !== 0) {
+          return codeCompare
+        }
+
+        return left.detail.localeCompare(right.detail)
+      })
+      .map((issue) =>
+        Object.freeze({
+          ...issue,
+          ...(issue.relatedIds ? { relatedIds: Object.freeze([...issue.relatedIds]) } : {}),
+        })
+      )
+  )
+}
+
+function freezeContradictionCheckResult(
+  result: CoerciveProtocolContradictionCheckResult
+): CoerciveProtocolContradictionCheckResult {
+  return Object.freeze({
+    ...result,
+    issues: sortContradictionCheckIssues([...result.issues]),
+    unknownFields: Object.freeze([...result.unknownFields]),
+  })
+}
+
+function buildRoutineForceAuthorizationContradictionIssues(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckIssue[] {
+  const issues: CoerciveProtocolContradictionCheckIssue[] = []
+  const id = normalizeToken(record.id)
+  const relatedIds = id ? [id] : undefined
+
+  issues.push({
+    code: 'routine_force_operational_default',
+    severity: 'warning',
+    detail: `Coercive protocol record ${id || '(unknown)'} treats force as an operational default rather than emergency-only authorization.`,
+    relatedIds,
+  })
+
+  if (VOLUNTARY_HANDLING_MODES.has(record.handlingMode)) {
+    issues.push({
+      code: 'routine_force_contradicts_voluntary_handling',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} pairs routine force authorization with ${record.handlingMode} handling.`,
+      relatedIds,
+    })
+  }
+
+  if (record.consentConfidence <= ROUTINE_FORCE_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
+    issues.push({
+      code: 'routine_force_low_consent_confidence',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} authorizes routine force while consent confidence remains low (${record.consentConfidence.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  if (record.refusalHandling !== 'documented_override') {
+    issues.push({
+      code: 'routine_force_undocumented_refusal_override',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} uses routine force without documented refusal override (${record.refusalHandling}).`,
+      relatedIds,
+    })
+  }
+
+  if (projectContainmentCareTradeoff(record).stableContainmentDominatesCare) {
+    issues.push({
+      code: 'routine_force_masks_care_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} reports containment stability gains that may mask routine-force care harm.`,
+      relatedIds,
+    })
+  }
+
+  return issues
+}
+
+export function evaluateRoutineForceAuthorizationContradictionCheck(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckResult {
+  const flags = collectContradictionRiskFlags(record)
+  const triggered = flags.includes('routine_force_authorization')
+  const unknownFields = resolveUnknownFields(record)
+  const confidence = resolveConfidence(record)
+  const redacted = isRedacted(record)
+
+  if (!triggered) {
+    return freezeContradictionCheckResult({
+      recordId: record.id,
+      flag: 'routine_force_authorization',
+      triggered: false,
+      blocksProcedure: false,
+      issues: [],
+      confidence,
+      redacted,
+      unknownFields,
+    })
+  }
+
+  return freezeContradictionCheckResult({
+    recordId: record.id,
+    flag: 'routine_force_authorization',
+    triggered: true,
+    blocksProcedure: false,
+    issues: buildRoutineForceAuthorizationContradictionIssues(record),
+    confidence,
+    redacted,
+    unknownFields,
+  })
+}
+
+/** Runs implemented contradiction-check siblings in deterministic registry-flag order. */
+export function evaluateCoerciveProtocolContradictionChecks(
+  record: CoerciveProtocolRecord
+): readonly CoerciveProtocolContradictionCheckResult[] {
+  const routineForceCheck = evaluateRoutineForceAuthorizationContradictionCheck(record)
+
+  return Object.freeze(
+    routineForceCheck.triggered ? [routineForceCheck] : []
+  )
 }
 
 function collectContradictionRiskFlags(

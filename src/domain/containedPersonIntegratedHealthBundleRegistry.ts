@@ -864,6 +864,37 @@ export function sanitizeContainedPersonIntegratedHealthBundles(
 // Fixtures (tests / planning mirror)
 // ---------------------------------------------------------------------------
 
+/** Bundle paired with abusive surveillance-isolation coercive protocol (subject-22). */
+export const INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE: ContainedPersonIntegratedHealthBundle =
+  Object.freeze({
+    id: 'subject:cooperative-field-asset-22',
+    label: 'Cooperative field asset 22 integrated health bundle',
+    subjectRef: 'subject:cooperative-field-asset-22',
+    mentalStateBand: 'stable',
+    humaneCareRiskScore: 0.12,
+    therapeuticCareScheduleLinks: Object.freeze([
+      Object.freeze({
+        scheduleRef: 'care-schedule:cooperative-checkin-compliance-drift',
+        wiredRef: 'therapeutic-care:care-schedule:cooperative-checkin-compliance-drift',
+        careMode: 'cooperative_checkin',
+        channelState: 'degraded',
+        missedSessionStreak: 3,
+        complianceRiskScore: 0.58,
+        lockdownEscalationLikely: true,
+      }),
+    ]),
+    custodyStatusLinks: Object.freeze([
+      Object.freeze({
+        custodyRef: 'custody-status:former-hostile-hold',
+        wiredRef: 'custody-status:former-hostile-hold',
+        custodyStage: 'contained_person',
+        formerRoleCategory: 'hostile_actor',
+        restrictionLevel: 'elevated',
+        rightsReviewPending: true,
+      }),
+    ]),
+  })
+
 export const INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE: ContainedPersonIntegratedHealthBundle =
   Object.freeze({
     id: 'subject:contained-person-field-links',

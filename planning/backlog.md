@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Broader [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) cross-system reconciliation (condition bundles, surveillance tuning, psychological resilience) or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) cross-system reconciliation slice 2 (SPE-848 surveillance tuning + SPE-1615 psychological resilience joins when runtime anchors exist) or broader SPE-1898 cross-system reconciliation. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `4dad2c98` (shipped: [SPE-2427](https://linear.app/spectranoir/issue/SPE-2427) mirror contradiction-check sibling detail slice 10 @ PR #2725)
+**Base `main` SHA:** `fed02b6a` (in flight: [SPE-2428](https://linear.app/spectranoir/issue/SPE-2428) coercive protocol ↔ integrated health bundle cross-reconciliation slice 1)
 
 **Recently shipped:** [SPE-2427](https://linear.app/spectranoir/issue/SPE-2427) mirror contradiction-check sibling detail slice 10 @ PR #2725; [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) surveillance-isolation contradiction-check slice 9 @ PR #2723; see `planning/coercive-contained-person-protocol-model-slice-10.md`.
 

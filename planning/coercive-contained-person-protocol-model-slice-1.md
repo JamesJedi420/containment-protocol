@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2420](https://linear.app/spectranoir/
 | **Linear** | [SPE-2420 — Coercive contained-person protocol registry (slice 1)](https://linear.app/spectranoir/issue/SPE-2420) |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — Coercive contained-person protocol model     |
 | **Branch** | `jamesdyedbq/spe-1882-coercive-protocol-model-slice-1`                                                     |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2709                                                                                     |
 
 ## Goal
 

@@ -18,6 +18,8 @@ export type CoerciveHandlingMode =
   | 'compelled'
   | 'emergency'
   | 'punitive'
+  | 'deceptive'
+  | 'abusive'
 
 export const COERCIVE_HANDLING_MODES: readonly CoerciveHandlingMode[] = [
   'voluntary',
@@ -25,6 +27,8 @@ export const COERCIVE_HANDLING_MODES: readonly CoerciveHandlingMode[] = [
   'compelled',
   'emergency',
   'punitive',
+  'deceptive',
+  'abusive',
 ] as const
 
 export type CoerciveCoercionPressureTier = 'medium' | 'high'

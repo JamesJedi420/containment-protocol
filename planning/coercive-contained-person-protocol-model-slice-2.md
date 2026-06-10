@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2421](https://linear.app/spectranoir/
 | **Linear** | [SPE-2421 — Coercive contained-person protocol GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2421) |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — Coercive contained-person protocol model     |
 | **Branch** | `jamesdyedbq/spe-1882-coercive-protocol-model-slice-2`                                                     |
-| **Status** | Ready for PR                                                                                               |
+| **Status** | **Shipped** — PR #2711                                                                                     |
 | **Base `main` SHA** | `52b1f406`                                                                                          |
 
 ## Goal

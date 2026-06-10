@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) slice 2 — GameState persistence + weekly orchestration for coercive protocol records (after [SPE-2420](https://linear.app/spectranoir/issue/SPE-2420) slice 1 merges). Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) slice 3 — weekly orchestration hook for coercive protocol records in `advanceWeek` (after [SPE-2421](https://linear.app/spectranoir/issue/SPE-2421) slice 2 merges). Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `d3e31f6b` (shipped: [SPE-2420](https://linear.app/spectranoir/issue/SPE-2420) coercive protocol registry slice 1 @ PR #2709)
+**Base `main` SHA:** `2e660bfa` (shipped: [SPE-2421](https://linear.app/spectranoir/issue/SPE-2421) coercive protocol GameState persistence slice 2 @ PR #2711)
 
-**Recently shipped:** [SPE-2420](https://linear.app/spectranoir/issue/SPE-2420) coercive protocol registry slice 1 @ PR #2709; [SPE-2418](https://linear.app/spectranoir/issue/SPE-2418) privilege-deprivation / personnel-sourcing welfare-debt creation (slice 6) @ PR #2705; see `planning/coercive-contained-person-protocol-model-slice-1.md`.
+**Recently shipped:** [SPE-2421](https://linear.app/spectranoir/issue/SPE-2421) coercive protocol GameState persistence slice 2 @ PR #2711; [SPE-2420](https://linear.app/spectranoir/issue/SPE-2420) coercive protocol registry slice 1 @ PR #2709; see `planning/coercive-contained-person-protocol-model-slice-2.md`.
 
 ## Blocked / waiting
 
@@ -174,6 +174,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `contained-person-therapeutic-care-registry-slice-4.md`   | **Shipped**    | SPE-2344 / PR #2555; planning mirror UI over `containedPersonTherapeuticCareRecords` @ `8ca21f95`.                                                     |
 | `contained-person-therapeutic-care-registry-slice-5.md`   | **Shipped**    | SPE-2345 / PR #2557; therapeutic care → integrated health bundle wire-up @ `13789b0e`.                                                              |
 | `coercive-contained-person-protocol-model-slice-1.md`     | **Shipped**    | SPE-2420 / PR #2709; coercive protocol registry schema, validation, tradeoff + risk review projections.                                                |
+| `coercive-contained-person-protocol-model-slice-2.md`     | **Shipped**    | SPE-2421 / PR #2711; `coerciveContainedPersonProtocolRecords` GameState persistence @ `2e660bfa`.                                                     |
 | `contained-person-integrated-health-bundle-slice-6.md`  | **Shipped**    | SPE-2346 / PR #2559; planning mirror UI over `containedPersonIntegratedHealthBundles` @ `95d089e7`.                                                    |
 | `contained-person-integrated-health-bundle-slice-7.md`  | **Shipped**    | SPE-2347; medication/custody/welfare-debt mirror field groups on integrated health bundles @ `81d6a55e`.                                               |
 | `contained-person-integrated-health-bundle-slice-8.md`  | **Shipped**    | SPE-2348 / PR #2564; medication regimen derive/compose wire-up + SPE-1886 slice 1 registry @ `4ef9056d`.                                                |

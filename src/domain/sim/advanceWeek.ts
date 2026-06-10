@@ -269,6 +269,7 @@ import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareRe
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
+import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4719,6 +4720,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (Object.keys(currentTherapeuticCareRecords).length > 0) {
     outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
       currentTherapeuticCareRecords,
+      result.week
+    )
+  }
+
+  // SPE-1882 slice 3: deterministic tradeoff and coercion-risk projections on protocol records.
+  const currentCoerciveProtocolRecords = outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  if (Object.keys(currentCoerciveProtocolRecords).length > 0) {
+    outputWeeklyState.coerciveContainedPersonProtocolRecords = applyWeeklyCoerciveProtocolTick(
+      currentCoerciveProtocolRecords,
       result.week
     )
   }

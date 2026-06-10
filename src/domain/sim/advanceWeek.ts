@@ -4724,13 +4724,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     )
   }
 
-  // SPE-1882 slice 3: deterministic tradeoff and coercion-risk projections on protocol records.
+  // SPE-1882 slice 3/5: deterministic tradeoff and coercion-risk projections on protocol records.
   const currentCoerciveProtocolRecords = outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
   if (Object.keys(currentCoerciveProtocolRecords).length > 0) {
-    outputWeeklyState.coerciveContainedPersonProtocolRecords = applyWeeklyCoerciveProtocolTick(
+    const coerciveProtocolTick = applyWeeklyCoerciveProtocolTick(
       currentCoerciveProtocolRecords,
-      result.week
+      result.week,
+      outputWeeklyState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots
     )
+    outputWeeklyState.coerciveContainedPersonProtocolRecords = coerciveProtocolTick.records
+    outputWeeklyState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots =
+      coerciveProtocolTick.snapshots
   }
 
   // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.

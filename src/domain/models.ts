@@ -259,7 +259,10 @@ import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
-import type { CoerciveProtocolRecord } from './coerciveContainedPersonProtocolRegistry'
+import type {
+  CoerciveProtocolRecord,
+  CoerciveProtocolWeeklyProjectionSnapshot,
+} from './coerciveContainedPersonProtocolRegistry'
 import type { CustodyStatusRecord } from './containedPersonCustodyStatusRegistry'
 import type { MedicationRegimenRecord } from './containedPersonMedicationRegimenRegistry'
 import type { WelfareDebtAccountingRecord } from './welfareDebtAccountingRegistry'
@@ -2694,6 +2697,15 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   coerciveContainedPersonProtocolRecords?: Record<string, CoerciveProtocolRecord>
+
+  /**
+   * SPE-1882 slice 5: persisted weekly tradeoff/risk-review projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in protocol records.
+   */
+  coerciveContainedPersonProtocolWeeklyProjectionSnapshots?: Record<
+    string,
+    CoerciveProtocolWeeklyProjectionSnapshot
+  >
 
   /**
    * SPE-1888 slice 1: persisted welfare-debt accounting records (keyed by record id).

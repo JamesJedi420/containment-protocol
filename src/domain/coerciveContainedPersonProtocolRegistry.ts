@@ -219,6 +219,24 @@ export interface CoerciveProtocolRiskReviewProjection {
   readonly unknownFields: readonly string[]
 }
 
+/** SPE-1882 slice 5: persisted weekly tradeoff + risk-review projection snapshot for one protocol record. */
+export interface CoerciveProtocolWeeklyProjectionSnapshot {
+  readonly recordId: CoerciveProtocolId
+  readonly week: number
+  readonly tradeoff: ContainmentCareTradeoffProjection
+  readonly riskReview: CoerciveProtocolRiskReviewProjection
+}
+
+export type CoerciveProtocolWeeklyProjectionSnapshotsMap = Record<
+  CoerciveProtocolId,
+  CoerciveProtocolWeeklyProjectionSnapshot
+>
+
+/** Upper bound on persisted weekly projection snapshot entries (byte-stable record-id keys). */
+export const MAX_COERCIVE_PROTOCOL_WEEKLY_PROJECTION_SNAPSHOTS = 128
+
+const MAX_COERCIVE_PROTOCOL_PROJECTION_UNKNOWN_FIELDS = 32
+
 // ---------------------------------------------------------------------------
 // Internal constants
 // ---------------------------------------------------------------------------
@@ -228,6 +246,13 @@ const SUBJECT_FIT_STATE_SET = new Set<string>(COERCIVE_PROTOCOL_SUBJECT_FIT_STAT
 const AUTHORIZATION_SOURCE_SET = new Set<string>(COERCIVE_PROTOCOL_AUTHORIZATION_SOURCES)
 const FORCE_POLICY_SET = new Set<string>(COERCIVE_PROTOCOL_FORCE_POLICIES)
 const REFUSAL_HANDLING_SET = new Set<string>(COERCIVE_PROTOCOL_REFUSAL_HANDLING)
+const HANDLING_POSTURE_SET = new Set<string>(COERCIVE_PROTOCOL_HANDLING_POSTURES)
+const CONTRADICTION_RISK_FLAG_SET = new Set<string>([
+  'routine_force_authorization',
+  'generalized_procedure_without_subject_fit',
+  'compliance_metric_masks_harm',
+  'surveillance_isolation_burden',
+])
 
 const LEGALLY_AUTHORIZED_SOURCES = new Set<CoerciveProtocolAuthorizationSource>(['court_order'])
 
@@ -985,6 +1010,184 @@ function sanitizeCoerciveProtocolRecordEntry(value: unknown): CoerciveProtocolRe
   }
 
   return record
+}
+
+function parseBoundedStringList(value: unknown, maxEntries: number): readonly string[] {
+  return parseStringList(value).slice(0, maxEntries)
+}
+
+function sanitizeProjectionConfidence(value: unknown): number | null {
+  return isValidUnitScore(value) ? value : null
+}
+
+function sanitizeContainmentCareTradeoffProjection(
+  value: unknown,
+  recordId: CoerciveProtocolId
+): ContainmentCareTradeoffProjection | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const label = normalizeToken(value.label)
+  const handlingMode = value.handlingMode
+  const welfareDebtImpactLabel = normalizeToken(value.welfareDebtImpactLabel)
+
+  if (
+    !label ||
+    !isCoerciveProtocolHandlingMode(handlingMode) ||
+    !welfareDebtImpactLabel ||
+    !isValidUnitScore(value.containmentStabilityGain) ||
+    !isValidUnitScore(value.personhoodHarmRisk) ||
+    !isValidUnitScore(value.trustDamageRisk) ||
+    !isValidUnitScore(value.legitimacyRisk)
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    recordId,
+    label,
+    handlingMode,
+    containmentStabilityGain: roundUnitScore(value.containmentStabilityGain),
+    personhoodHarmRisk: roundUnitScore(value.personhoodHarmRisk),
+    trustDamageRisk: roundUnitScore(value.trustDamageRisk),
+    legitimacyRisk: roundUnitScore(value.legitimacyRisk),
+    stableContainmentDominatesCare: value.stableContainmentDominatesCare === true,
+    welfareDebtImpactLabel,
+    confidence: sanitizeProjectionConfidence(value.confidence),
+    redacted: value.redacted === true,
+    unknownFields: Object.freeze(
+      parseBoundedStringList(value.unknownFields, MAX_COERCIVE_PROTOCOL_PROJECTION_UNKNOWN_FIELDS)
+    ),
+  })
+}
+
+function sanitizeCoerciveProtocolRiskReviewProjection(
+  value: unknown,
+  recordId: CoerciveProtocolId
+): CoerciveProtocolRiskReviewProjection | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const label = normalizeToken(value.label)
+  const handlingPosture = value.handlingPosture
+  const forcePolicy = value.forcePolicy
+  const subjectFitState = value.subjectFitState
+
+  if (
+    !label ||
+    typeof handlingPosture !== 'string' ||
+    !HANDLING_POSTURE_SET.has(handlingPosture) ||
+    !isValidUnitScore(value.coercionRiskScore) ||
+    !isCoerciveProtocolSubjectFitState(subjectFitState) ||
+    typeof forcePolicy !== 'string' ||
+    !FORCE_POLICY_SET.has(forcePolicy)
+  ) {
+    return null
+  }
+
+  const contradictionRiskFlags = parseBoundedStringList(
+    value.contradictionRiskFlags,
+    MAX_COERCIVE_PROTOCOL_PROJECTION_UNKNOWN_FIELDS
+  ).filter((flag): flag is CoerciveProtocolContradictionRiskFlag =>
+    CONTRADICTION_RISK_FLAG_SET.has(flag)
+  )
+
+  return Object.freeze({
+    recordId,
+    label,
+    handlingPosture: handlingPosture as CoerciveProtocolHandlingPosture,
+    coercionRiskScore: roundUnitScore(value.coercionRiskScore),
+    contradictionRiskFlags: Object.freeze(
+      [...contradictionRiskFlags].sort((left, right) => left.localeCompare(right))
+    ),
+    blocksProcedure: value.blocksProcedure === true,
+    subjectFitState,
+    forcePolicy: forcePolicy as CoerciveProtocolForcePolicy,
+    confidence: sanitizeProjectionConfidence(value.confidence),
+    redacted: value.redacted === true,
+    unknownFields: Object.freeze(
+      parseBoundedStringList(value.unknownFields, MAX_COERCIVE_PROTOCOL_PROJECTION_UNKNOWN_FIELDS)
+    ),
+  })
+}
+
+function sanitizeCoerciveProtocolWeeklyProjectionSnapshotEntry(
+  key: string,
+  value: unknown
+): CoerciveProtocolWeeklyProjectionSnapshot | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const recordId = normalizeToken(value.recordId ?? key)
+  if (!recordId || recordId !== normalizeToken(key)) {
+    return null
+  }
+
+  const weekRaw = value.week
+  if (typeof weekRaw !== 'number' || !Number.isFinite(weekRaw)) {
+    return null
+  }
+
+  const week = Math.max(1, Math.trunc(weekRaw))
+  const tradeoff = sanitizeContainmentCareTradeoffProjection(value.tradeoff, recordId)
+  const riskReview = sanitizeCoerciveProtocolRiskReviewProjection(value.riskReview, recordId)
+
+  if (!tradeoff || !riskReview) {
+    return null
+  }
+
+  if (tradeoff.recordId !== recordId || riskReview.recordId !== recordId) {
+    return null
+  }
+
+  return Object.freeze({
+    recordId,
+    week,
+    tradeoff,
+    riskReview,
+  })
+}
+
+/** Hydration: canonical weekly projection snapshot map keyed by record id; drops invalid entries. */
+export function sanitizeCoerciveProtocolWeeklyProjectionSnapshots(
+  value: unknown,
+  fallback: CoerciveProtocolWeeklyProjectionSnapshotsMap = {},
+  knownRecordIds?: ReadonlySet<string>
+): CoerciveProtocolWeeklyProjectionSnapshotsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const candidates: CoerciveProtocolWeeklyProjectionSnapshot[] = []
+
+  for (const [key, entry] of Object.entries(value)) {
+    const snapshot = sanitizeCoerciveProtocolWeeklyProjectionSnapshotEntry(key, entry)
+    if (!snapshot) {
+      continue
+    }
+
+    if (knownRecordIds && !knownRecordIds.has(snapshot.recordId)) {
+      continue
+    }
+
+    candidates.push(snapshot)
+  }
+
+  if (candidates.length === 0) {
+    return fallback
+  }
+
+  candidates.sort((left, right) => left.recordId.localeCompare(right.recordId))
+
+  const next: CoerciveProtocolWeeklyProjectionSnapshotsMap = {}
+  for (const snapshot of candidates.slice(0, MAX_COERCIVE_PROTOCOL_WEEKLY_PROJECTION_SNAPSHOTS)) {
+    next[snapshot.recordId] = snapshot
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
 }
 
 /** Hydration: canonical protocol map keyed by record id; drops invalid and duplicate-id entries. */

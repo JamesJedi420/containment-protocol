@@ -7,6 +7,8 @@ import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  projectCoerciveProtocolRiskReview,
+  projectContainmentCareTradeoff,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
@@ -124,11 +126,39 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 3)',
 
     const once = advanceWeek(state)
     const recordsAfterAdvance = once.coerciveContainedPersonProtocolRecords ?? {}
-    const reticked = applyWeeklyCoerciveProtocolTick(recordsAfterAdvance, once.week)
+    const reticked = applyWeeklyCoerciveProtocolTick(
+      recordsAfterAdvance,
+      once.week,
+      once.coerciveContainedPersonProtocolWeeklyProjectionSnapshots
+    )
 
-    expect(reticked).toBe(recordsAfterAdvance)
-    expect(reticked[ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]).toBe(
+    expect(reticked.records).toBe(recordsAfterAdvance)
+    expect(reticked.snapshots).toBe(once.coerciveContainedPersonProtocolWeeklyProjectionSnapshots)
+    expect(reticked.records[ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]).toBe(
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+    )
+  })
+
+  it('persists weekly projection snapshots through advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const snapshot =
+      nextState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots?.[
+        EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id
+      ]
+
+    expect(snapshot?.week).toBe(5)
+    expect(snapshot?.tradeoff).toEqual(
+      projectContainmentCareTradeoff(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+    )
+    expect(snapshot?.riskReview).toEqual(
+      projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
     )
   })
 })

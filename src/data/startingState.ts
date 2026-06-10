@@ -61,6 +61,7 @@ const startingStateTemplate: GameState = {
   coerciveContainedPersonProtocolWeeklyProjectionSnapshots: {},
   welfareDebtAccountingRecords: {},
   containedPersonIntegratedHealthBundles: {},
+  surveillanceInterventionTuningRecords: {},
   factions: createInitialFactionState(),
 
   agency: {

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2423](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2423 — Coercive contained-person protocol planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2423) |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2715 @ `9653919f`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–3 shipped)          |
 | **Branch** | `spe-1882-coercive-protocol-mirror-ui-slice-4`                                                             |
 | **Base `main` SHA** | `5d792229`                                                                                          |

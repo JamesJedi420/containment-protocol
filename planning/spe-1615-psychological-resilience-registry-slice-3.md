@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2435](https://linear.app/spectranoir/
 | **Linear** | [SPE-2435 — Psychological resilience registry weekly advanceWeek depletion orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2435) |
 | **Parent** | [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) — Psychological resilience depletion             |
 | **Branch** | `jamesdyedbq/spe-1615-psychological-resilience-registry-slice-3`                                           |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2741 @ `34e7ff4e`                                                                        |
 | **Base `main` SHA** | `2b76942f`                                                                                          |
 
 ## Goal

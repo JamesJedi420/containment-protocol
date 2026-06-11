@@ -270,6 +270,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
+import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4767,6 +4768,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.coerciveContainedPersonProtocolRecords = coerciveProtocolTick.records
     outputWeeklyState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots =
       coerciveProtocolTick.snapshots
+  }
+
+  // SPE-848 slice 3: intervention-level and horizon-outcome advance on surveillance tuning records.
+  const currentSurveillanceInterventionTuningRecords =
+    outputWeeklyState.surveillanceInterventionTuningRecords ?? {}
+  if (Object.keys(currentSurveillanceInterventionTuningRecords).length > 0) {
+    outputWeeklyState.surveillanceInterventionTuningRecords =
+      applyWeeklySurveillanceInterventionTuningTick(
+        currentSurveillanceInterventionTuningRecords,
+        result.week
+      )
   }
 
   // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.

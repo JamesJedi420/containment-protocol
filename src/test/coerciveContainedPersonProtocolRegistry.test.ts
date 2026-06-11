@@ -3,11 +3,13 @@ import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
   classifyCoerciveProtocolHandlingPosture,
   evaluateCoerciveProtocolContradictionChecks,
   evaluateComplianceMetricMasksHarmContradictionCheck,
   evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck,
   evaluateRoutineForceAuthorizationContradictionCheck,
+  evaluateStaffExclusionSupportDutyContradictionCheck,
   evaluateSurveillanceIsolationBurdenContradictionCheck,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
@@ -464,6 +466,141 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
     )
     const second = evaluateSurveillanceIsolationBurdenContradictionCheck(
       ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE
+    )
+
+    expect(JSON.stringify(first)).toBe(JSON.stringify(second))
+  })
+})
+
+describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-2016)', () => {
+  it('triggers staff-exclusion sibling aligned with contradiction risk flags', () => {
+    const review = projectCoerciveProtocolRiskReview(STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE)
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE
+    )
+
+    expect(review.contradictionRiskFlags).toContain('staff_exclusion_support_duty')
+    expect(review.contradictionRiskFlags).not.toContain('surveillance_isolation_burden')
+    expect(check.triggered).toBe(true)
+    expect(check.flag).toBe('staff_exclusion_support_duty')
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues.length).toBeGreaterThan(0)
+    expect(check.issues.every((issue) => issue.severity === 'warning')).toBe(true)
+    expect(check.issues.map((issue) => issue.code)).toEqual([
+      'staff_exclusion_abusive_without_review_path',
+      'staff_exclusion_accommodation_access_not_routed',
+      'staff_exclusion_denial_as_contamination_reduction',
+      'staff_exclusion_elevated_burden',
+      'staff_exclusion_exposure_risk_not_separated',
+      'staff_exclusion_low_consent_confidence',
+      'staff_exclusion_masks_care_harm',
+      'staff_exclusion_masks_personhood_harm',
+      'staff_exclusion_medical_access_not_routed',
+      'staff_exclusion_support_duty_obligation_elevated',
+    ])
+  })
+
+  it('flags isolation-burden substitution when surveillance and isolation burden are also elevated', () => {
+    const withIsolationSubstitution = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:staff-exclusion-isolation-substitution',
+      isolationBurdenScore: 0.74,
+      surveillanceBurdenScore: 0.69,
+    }
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(withIsolationSubstitution)
+
+    expect(
+      check.issues.some((issue) => issue.code === 'staff_exclusion_isolation_burden_substitution')
+    ).toBe(true)
+  })
+
+  it('flags voluntary handling contradictions when staff exclusion burden is elevated', () => {
+    const voluntaryStaffExclusion = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:voluntary-staff-exclusion',
+      handlingMode: 'voluntary' as const,
+    }
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(voluntaryStaffExclusion)
+
+    expect(check.triggered).toBe(true)
+    expect(
+      check.issues.some((issue) => issue.code === 'staff_exclusion_contradicts_voluntary_handling')
+    ).toBe(true)
+  })
+
+  it('returns non-triggered no-op when staff exclusion burden is below threshold', () => {
+    const belowExclusionThreshold = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:below-staff-exclusion-threshold',
+      staffExclusionBurdenScore: 0.42,
+    }
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(belowExclusionThreshold)
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('returns non-triggered no-op when support-duty obligation is below threshold', () => {
+    const belowObligationThreshold = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:below-support-duty-threshold',
+      supportDutyObligationScore: 0.32,
+    }
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(belowObligationThreshold)
+
+    expect(check.triggered).toBe(false)
+    expect(check.blocksProcedure).toBe(false)
+    expect(check.issues).toEqual([])
+  })
+
+  it('propagates redacted and unknown metadata into sibling output', () => {
+    const redacted = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      redactedFields: ['staffExclusionBurdenScore'],
+      unknownFields: ['supportDutyObligationScore'],
+    }
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(redacted)
+
+    expect(check.triggered).toBe(true)
+    expect(check.redacted).toBe(true)
+    expect(check.unknownFields).toEqual(['supportDutyObligationScore'])
+  })
+
+  it('returns staff-exclusion sibling only from aggregator for staff exclusion fixture', () => {
+    const triggered = evaluateCoerciveProtocolContradictionChecks(
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE
+    )
+
+    expect(triggered.map((check) => check.flag)).toEqual(['staff_exclusion_support_duty'])
+  })
+
+  it('returns five triggered siblings in flag locale order for pent-flag fixture', () => {
+    const pentFlag = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      id: 'coercive-protocol:pent-flag-contradiction',
+      isolationBurdenScore: 0.72,
+      surveillanceBurdenScore: 0.71,
+      staffExclusionBurdenScore: 0.78,
+      supportDutyObligationScore: 0.66,
+    }
+    const triggered = evaluateCoerciveProtocolContradictionChecks(pentFlag)
+
+    expect(triggered.map((check) => check.flag)).toEqual([
+      'compliance_metric_masks_harm',
+      'generalized_procedure_without_subject_fit',
+      'routine_force_authorization',
+      'staff_exclusion_support_duty',
+      'surveillance_isolation_burden',
+    ])
+  })
+
+  it('returns byte-stable staff-exclusion output on repeated calls', () => {
+    const first = evaluateStaffExclusionSupportDutyContradictionCheck(
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE
+    )
+    const second = evaluateStaffExclusionSupportDutyContradictionCheck(
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE
     )
 
     expect(JSON.stringify(first)).toBe(JSON.stringify(second))

@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next registry mirror queue item or backlog hygiene pass. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-2016](https://linear.app/spectranoir/issue/SPE-2016) staff exclusion vs support-duty contradiction-check sibling @ `planning/spe-2016-staff-exclusion-contradiction-check-slice.md`. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `fa049b03` — shipped: [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) parent owner-map reconciliation @ `planning/spe-1908-owner-reconciliation-slice.md`
+**Base `main` SHA:** `809e46a1` — in progress: [SPE-2016](https://linear.app/spectranoir/issue/SPE-2016) @ branch `jamesdyedbq/spe-2016-staff-exclusion-contradiction-check`
 
-**Recently shipped:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) parent owner-map reconciliation / harvest fold-in (hygiene); [SPE-2440](https://linear.app/spectranoir/issue/SPE-2440) psychological-resilience cross-reconciliation surfacing slice 5 @ PR #2751; see `planning/spe-1908-owner-reconciliation-slice.md`.
+**Recently shipped:** [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) parent owner-map reconciliation / harvest fold-in (hygiene) @ PR #2752; [SPE-2440](https://linear.app/spectranoir/issue/SPE-2440) psychological-resilience cross-reconciliation surfacing slice 5 @ PR #2751.
 
 ## Blocked / waiting
 

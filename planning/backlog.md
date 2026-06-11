@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) psychological resilience registry slice 3 (weekly depletion orchestration), SPE-1908 cross-join follow-up, or SPE-848 slice 4 planning mirror UI. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `c6beab29` — in progress: [SPE-2434](https://linear.app/spectranoir/issue/SPE-2434) psychological resilience registry slice 2 (GameState persistence)
+**Base `main` SHA:** `467fe4d6` — shipped: [SPE-2434](https://linear.app/spectranoir/issue/SPE-2434) psychological resilience registry slice 2 @ PR #2739
 
-**Recently shipped:** [SPE-2433](https://linear.app/spectranoir/issue/SPE-2433) psychological resilience registry slice 1 @ PR #2737; [SPE-2432](https://linear.app/spectranoir/issue/SPE-2432) surveillance tuning weekly orchestration slice 3 @ PR #2735; see `planning/spe-1615-psychological-resilience-registry-slice-1.md`.
+**Recently shipped:** [SPE-2434](https://linear.app/spectranoir/issue/SPE-2434) psychological resilience registry slice 2 @ PR #2739; [SPE-2433](https://linear.app/spectranoir/issue/SPE-2433) psychological resilience registry slice 1 @ PR #2737; see `planning/spe-1615-psychological-resilience-registry-slice-2.md`.
 
 ## Blocked / waiting
 

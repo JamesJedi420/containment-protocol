@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2434](https://linear.app/spectranoir/
 | **Linear** | [SPE-2434 — Psychological resilience registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2434) |
 | **Parent** | [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) — Psychological resilience depletion             |
 | **Branch** | `jamesdyedbq/spe-1615-psychological-resilience-registry-slice-2`                                           |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2739 @ `467fe4d6`                                                                        |
 | **Base `main` SHA** | `c6beab29`                                                                                          |
 
 ## Goal

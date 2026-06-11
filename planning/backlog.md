@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next registry mirror queue item or backlog hygiene pass. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** Registry mirror slice-index pass (`spe-848-*`, `spe-1615-*` rows missing from planning slice index below) or next implementation queue item. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `528d55a7` — shipped: [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) staff-duty cross-reconciliation surfacing @ `planning/spe-1908-cross-system-reconciliation-slice-6.md` / PR #2757
+**Base `main` SHA:** `528d55a7` — shipped: [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) staff-duty cross-reconciliation surfacing @ `planning/spe-1908-cross-system-reconciliation-slice-6.md` / PR #2757 (shipped table row: `planning/backlog-handoff-hygiene-slice-3.md`)
 
-**Recently shipped:** [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) staff-duty cross-reconciliation surfacing @ PR #2757; [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) staff-duty cross-reconciliation compose @ PR #2755.
+**Recently shipped:** [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) staff-duty cross-reconciliation surfacing @ PR #2757; backlog handoff hygiene slice 3 @ `planning/backlog-handoff-hygiene-slice-3.md`.
 
 ## Blocked / waiting
 
@@ -68,6 +68,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 | **Extranormal event registry persistence ([SPE-2312](https://linear.app/spectranoir/issue/SPE-2312))** | [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) slice 2 — `extranormalEventRecords` on GameState (PR #2488); see `planning/extranormal-event-registry-slice-2.md`. |
 | **Unexplained location registry persistence ([SPE-2313](https://linear.app/spectranoir/issue/SPE-2313))** | [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) slice 2 — `unexplainedLocationRecords` on GameState (PR #2490); see `planning/unexplained-location-registry-slice-2.md`. |
 | **Unexplained location registry weekly lifecycle ([SPE-2317](https://linear.app/spectranoir/issue/SPE-2317))** | [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) slice 3 — monitoring-cadence advance hook (PR #2498); see `planning/unexplained-location-registry-slice-3.md`. |
+| **Coercive protocol ↔ integrated health cross-reconciliation ([SPE-1908](https://linear.app/spectranoir/issue/SPE-1908))** | Slices 1–6 shipped ([SPE-2428](https://linear.app/spectranoir/issue/SPE-2428) / #2727 … [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) / #2757); compose ([SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) / #2755 under [SPE-2016](https://linear.app/spectranoir/issue/SPE-2016)); staff-duty surfacing segment in `coerciveProtocolIntegratedHealthCrossReconciliationSurfacing.ts`; see `planning/spe-1908-cross-system-reconciliation-slice-6.md`. Parent [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) **Done** on Linear. |
 
 ## Harvest reconciliation (SCP-9995 — May 2026)
 
@@ -210,6 +211,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `exploit-access-harvest-deferral-slice-1.md`              | **Shipped**    | SPE-2397; SCP-9995 “Access via edge cases” deferral closure @ `64166238`.                                                                              |
 | `backlog-handoff-hygiene-slice-1.md`                      | **Shipped**    | SPE-2398; stale next-step + slice index + SPE-868 mirror alignment @ `e959a647`.                                                                       |
 | `backlog-handoff-hygiene-slice-2.md`                      | **Shipped**    | SPE-2415 / PR pending; post SPE-2414 handoff + groomed parent Linear alignment @ `e7943029`.                                                            |
+| `backlog-handoff-hygiene-slice-3.md`                      | **Shipped**    | Post SPE-2442 shipped table row + `spe-1908-*` / `spe-2016-*` slice index @ `34ade2c3`.                                                                 |
 | `spe-1309-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2399; SPE-1309 stays Backlog — SPE-2108 child Done; unified engine AC not met @ `5d5d7ab4`.                                                          |
 | `welfare-debt-accounting-registry-slice-2.md`             | **Shipped**    | SPE-2351 / PR #2570; planning mirror UI over `welfareDebtAccountingRecords` @ `96ad05ba`.                                                               |
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
@@ -220,6 +222,15 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1888-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2419 / PR pending; SPE-1888 stays Backlog — slices 5–6 close procedural AC; ethics links deferred @ `d76b6885`.                                      |
 | `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR #2671; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `8cf2b869`.                                           |
 | `spe-1310-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2402 / PR #2673; SPE-1310 stays Backlog — SPE-2117 + SPE-2123 children Done; case lifecycle AC not met @ `936b2576`.                               |
+| `spe-1908-cross-system-reconciliation-slice-1.md`         | **Shipped**    | SPE-2428 / PR #2727; cross-registry compose helper @ `e1e29ed2`.                                                                                      |
+| `spe-1908-cross-system-reconciliation-slice-2.md`         | **Shipped**    | SPE-2429 / PR #2729; surfacing + weekly report notes @ `07d73d7b`.                                                                                  |
+| `spe-1908-cross-system-reconciliation-slice-3.md`         | **Shipped**    | SPE-2430 / PR #2731; surveillance-tuning cross-join compose @ `f24cc2e5`.                                                                             |
+| `spe-1908-cross-system-reconciliation-slice-4.md`         | **Shipped**    | SPE-2439 / PR #2749; surveillance-tuning cross-reconciliation surfacing @ `baf5e2ea`.                                                               |
+| `spe-1908-cross-system-reconciliation-slice-5.md`         | **Shipped**    | SPE-2440 / PR #2751; psychological-resilience cross-reconciliation surfacing @ `6ee84c4a`.                                                          |
+| `spe-1908-cross-system-reconciliation-slice-6.md`         | **Shipped**    | SPE-2442 / PR #2757; staff-duty cross-reconciliation surfacing @ `528d55a7`.                                                                         |
+| `spe-1908-owner-reconciliation-slice.md`                  | **Shipped**    | SPE-1908 owner-map fold-in reconciliation (docs/Linear only) @ `fa049b03`.                                                                            |
+| `spe-2016-staff-exclusion-contradiction-check-slice.md`   | **Shipped**    | SPE-2016 / PR #2753; staff exclusion vs support-duty contradiction-check sibling @ `2c168f0c`.                                                       |
+| `spe-2016-cross-system-reconciliation-slice-1.md`         | **Shipped**    | SPE-2441 / PR #2755; staff-duty cross-reconciliation compose @ `2aef06ad`.                                                                            |
 | `anomaly-case-lifecycle-state-machine-slice-1.md`         | **Shipped**    | SPE-2409 / PR #2687 — named lifecycle stages + transition graph @ `c10168c3`.                                                                       |
 | `anomaly-case-lifecycle-state-machine-slice-2.md`         | **Shipped**    | SPE-2410 / PR #2689 — `CaseInstance.lifecycleStage` persistence + hydrate wire-up @ `22baca3d`.                                                    |
 | `anomaly-case-lifecycle-state-machine-slice-3.md`         | **Shipped**    | SPE-2411 / PR #2690 — `advanceWeek` lifecycle transition tick from intake credibility review + extranormal anomaly confirmation @ `aa960b5d`.       |

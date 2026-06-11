@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import { ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -89,5 +90,42 @@ describe('advanceWeek coercive protocol integrated health reconciliation integra
       `${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id} (${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.label})`
     )
     expect(reconciliationNotes[0]?.metadata?.linkedTuningCount).toBe(1)
+  })
+})
+
+describe('advanceWeek coercive protocol integrated health reconciliation integration (SPE-2440 slice 5)', () => {
+  it('surfaces psychological-resilience tension flags when resilience records coexist', () => {
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+    }
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.coerciveContainedPersonProtocolRecords = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    state.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    state.psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const reconciliationNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'coercive_protocol.integrated_health_reconciliation'
+      ) ?? []
+
+    expect(reconciliationNotes.length).toBeGreaterThan(0)
+    expect(reconciliationNotes[0]?.content).toContain('1 resilience record(s)')
+    expect(reconciliationNotes[0]?.content).toContain('Psychological Resilience Exposure Elevated')
+    expect(reconciliationNotes[0]?.content).toContain(
+      `${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id} (${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.label})`
+    )
+    expect(reconciliationNotes[0]?.metadata?.linkedResilienceCount).toBe(1)
   })
 })

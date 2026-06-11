@@ -9,11 +9,13 @@ import {
   formatCoerciveProtocolIntegratedHealthReconciliationNoteContent,
   formatCrossSystemTensionFlagLabel,
   formatIntegratedHealthBundleCrossLinkLabel,
+  formatPsychologicalResilienceCrossLinkLabel,
   formatSurveillanceTuningCrossLinkLabel,
 } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationSurfacing'
 import { composeCoerciveProtocolIntegratedHealthReconciliation } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
+import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
 
 const SURVEILLANCE_PROTOCOLS = {
@@ -28,6 +30,20 @@ const SURVEILLANCE_BUNDLES = {
 
 const SURVEILLANCE_TUNING_RECORDS = {
   [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+}
+
+const RESILIENCE_PROTOCOL = {
+  ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+  subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+}
+
+const RESILIENCE_PROTOCOLS = {
+  [RESILIENCE_PROTOCOL.id]: RESILIENCE_PROTOCOL,
+}
+
+const PSYCHOLOGICAL_RESILIENCE_RECORDS = {
+  [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+    PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
 }
 
 describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2429 slice 2)', () => {
@@ -188,6 +204,92 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2439
       'surveillance_burden_stable_mental_state',
       'surveillance_tuning_monitoring_exceeds_contact',
       'surveillance_tuning_sustained_under_collateral_strain',
+    ])
+  })
+})
+
+describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2440 slice 5)', () => {
+  it('formats psychological resilience cross-link labels from persisted id and label only', () => {
+    expect(
+      formatPsychologicalResilienceCrossLinkLabel(PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE)
+    ).toBe(
+      `${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id} (${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.label})`
+    )
+    expect(formatCrossSystemTensionFlagLabel('psychological_resilience_exposure_elevated')).toBe(
+      'Psychological Resilience Exposure Elevated'
+    )
+  })
+
+  it('passes psychological resilience records into compose summaries without throw on empty maps', () => {
+    expect(
+      composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
+        protocols: RESILIENCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        psychologicalResilienceRecords: {},
+      })
+    ).toHaveLength(1)
+    expect(
+      composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
+        protocols: RESILIENCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        psychologicalResilienceRecords: undefined,
+      })[0]?.linkedResilienceCount
+    ).toBe(0)
+  })
+
+  it('surfaces psychological-resilience tension flags and resilience labels when resilience map coexists', () => {
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      RESILIENCE_PROTOCOLS,
+      SURVEILLANCE_BUNDLES,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      PSYCHOLOGICAL_RESILIENCE_RECORDS
+    )
+
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: RESILIENCE_PROTOCOLS,
+      nextBundles: SURVEILLANCE_BUNDLES,
+      nextPsychologicalResilienceRecords: PSYCHOLOGICAL_RESILIENCE_RECORDS,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.content).toBe(
+      formatCoerciveProtocolIntegratedHealthReconciliationNoteContent({
+        summary,
+        protocols: RESILIENCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        psychologicalResilienceRecords: PSYCHOLOGICAL_RESILIENCE_RECORDS,
+      })
+    )
+    expect(notes[0]?.content).toContain('1 resilience record(s)')
+    expect(notes[0]?.content).toContain(
+      formatPsychologicalResilienceCrossLinkLabel(PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE)
+    )
+    expect(notes[0]?.content).toContain('Psychological Resilience Exposure Elevated')
+    expect(notes[0]?.content).toContain('Psychological Resilience Duty Reliability Degraded')
+    expect(notes[0]?.content).not.toContain('0.72')
+    expect(notes[0]?.content).not.toContain('0.79')
+    expect(notes[0]?.metadata?.linkedResilienceCount).toBe(1)
+  })
+
+  it('keeps byte-stable psychological-resilience tension flag ordering in note metadata', () => {
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: RESILIENCE_PROTOCOLS,
+      nextBundles: SURVEILLANCE_BUNDLES,
+      nextPsychologicalResilienceRecords: PSYCHOLOGICAL_RESILIENCE_RECORDS,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes[0]?.metadata?.crossSystemTensionFlags).toEqual([
+      'monitoring_substitutes_contact_signal',
+      'psychological_resilience_duty_reliability_degraded',
+      'psychological_resilience_exposure_elevated',
+      'surveillance_burden_low_humane_care_risk',
+      'surveillance_burden_no_active_contact_channel',
+      'surveillance_burden_stable_mental_state',
     ])
   })
 })

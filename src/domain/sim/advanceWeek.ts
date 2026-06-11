@@ -4718,13 +4718,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     }
   }
 
-  // SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4: surface coercive protocol ↔ integrated health cross-reconciliation in weekly report notes.
+  // SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: surface coercive protocol ↔ integrated health cross-reconciliation in weekly report notes.
   const nextCoerciveProtocolsForReconciliation =
     outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
   const nextIntegratedHealthBundlesForReconciliation =
     outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
   const nextSurveillanceTuningRecordsForReconciliation =
     outputWeeklyState.surveillanceInterventionTuningRecords ?? {}
+  const nextPsychologicalResilienceRecordsForReconciliation =
+    outputWeeklyState.psychologicalResilienceRecords ?? {}
   if (
     Object.keys(nextCoerciveProtocolsForReconciliation).length > 0 &&
     Object.keys(nextIntegratedHealthBundlesForReconciliation).length > 0 &&
@@ -4735,6 +4737,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       nextProtocols: nextCoerciveProtocolsForReconciliation,
       nextBundles: nextIntegratedHealthBundlesForReconciliation,
       nextSurveillanceTuningRecords: nextSurveillanceTuningRecordsForReconciliation,
+      nextPsychologicalResilienceRecords: nextPsychologicalResilienceRecordsForReconciliation,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,

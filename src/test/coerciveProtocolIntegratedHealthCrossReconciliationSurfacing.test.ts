@@ -9,10 +9,12 @@ import {
   formatCoerciveProtocolIntegratedHealthReconciliationNoteContent,
   formatCrossSystemTensionFlagLabel,
   formatIntegratedHealthBundleCrossLinkLabel,
+  formatSurveillanceTuningCrossLinkLabel,
 } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationSurfacing'
 import { composeCoerciveProtocolIntegratedHealthReconciliation } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
+import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
 
 const SURVEILLANCE_PROTOCOLS = {
   [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
@@ -22,6 +24,10 @@ const SURVEILLANCE_PROTOCOLS = {
 const SURVEILLANCE_BUNDLES = {
   [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
     INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+}
+
+const SURVEILLANCE_TUNING_RECORDS = {
+  [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
 }
 
 describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2429 slice 2)', () => {
@@ -101,5 +107,87 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2429
         sequenceStart: 1,
       })
     ).toEqual([])
+  })
+})
+
+describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2439 slice 4)', () => {
+  it('formats surveillance tuning cross-link labels from persisted id and label only', () => {
+    expect(formatSurveillanceTuningCrossLinkLabel(SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE)).toBe(
+      `${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id} (${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.label})`
+    )
+    expect(formatCrossSystemTensionFlagLabel('surveillance_tuning_monitoring_exceeds_contact')).toBe(
+      'Surveillance Tuning Monitoring Exceeds Contact'
+    )
+  })
+
+  it('passes surveillance tuning records into compose summaries without throw on empty maps', () => {
+    expect(
+      composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
+        protocols: SURVEILLANCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        surveillanceTuningRecords: {},
+      })
+    ).toHaveLength(1)
+    expect(
+      composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
+        protocols: SURVEILLANCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        surveillanceTuningRecords: undefined,
+      })[0]?.linkedTuningCount
+    ).toBe(0)
+  })
+
+  it('surfaces surveillance-tuning tension flags and tuning labels when tuning map coexists', () => {
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      SURVEILLANCE_PROTOCOLS,
+      SURVEILLANCE_BUNDLES,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      SURVEILLANCE_TUNING_RECORDS
+    )
+
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: SURVEILLANCE_PROTOCOLS,
+      nextBundles: SURVEILLANCE_BUNDLES,
+      nextSurveillanceTuningRecords: SURVEILLANCE_TUNING_RECORDS,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.content).toBe(
+      formatCoerciveProtocolIntegratedHealthReconciliationNoteContent({
+        summary,
+        protocols: SURVEILLANCE_PROTOCOLS,
+        bundles: SURVEILLANCE_BUNDLES,
+        surveillanceTuningRecords: SURVEILLANCE_TUNING_RECORDS,
+      })
+    )
+    expect(notes[0]?.content).toContain('1 tuning record(s)')
+    expect(notes[0]?.content).toContain(
+      formatSurveillanceTuningCrossLinkLabel(SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE)
+    )
+    expect(notes[0]?.content).toContain('Surveillance Tuning Monitoring Exceeds Contact')
+    expect(notes[0]?.content).toContain('Surveillance Tuning Sustained Under Collateral Strain')
+    expect(notes[0]?.content).not.toContain('0.88')
+    expect(notes[0]?.metadata?.linkedTuningCount).toBe(1)
+  })
+
+  it('keeps byte-stable surveillance-tuning tension flag ordering in note metadata', () => {
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: SURVEILLANCE_PROTOCOLS,
+      nextBundles: SURVEILLANCE_BUNDLES,
+      nextSurveillanceTuningRecords: SURVEILLANCE_TUNING_RECORDS,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes[0]?.metadata?.crossSystemTensionFlags).toEqual([
+      'monitoring_substitutes_contact_signal',
+      'surveillance_burden_low_humane_care_risk',
+      'surveillance_burden_no_active_contact_channel',
+      'surveillance_burden_stable_mental_state',
+      'surveillance_tuning_monitoring_exceeds_contact',
+      'surveillance_tuning_sustained_under_collateral_strain',
+    ])
   })
 })

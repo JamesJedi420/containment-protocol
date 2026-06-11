@@ -1,12 +1,13 @@
 /**
- * SPE-1908 / SPE-2429 slice 2: weekly report notes for coercive protocol ↔ integrated
- * health bundle cross-reconciliation.
+ * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4: weekly report notes for coercive
+ * protocol ↔ integrated health bundle cross-reconciliation.
  *
  * Emits deterministic notes when linked maps coexist — no new persistence.
  */
 
 import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
 import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import type { SurveillanceInterventionTuningRecordsMap } from './surveillanceCapacityInterventionTuningRegistry'
 import {
   composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries,
   formatCoerciveProtocolIntegratedHealthReconciliationNoteContent,
@@ -21,6 +22,7 @@ import { createDeterministicReportNote } from './reportNotes'
 export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes(input: {
   nextProtocols: CoerciveProtocolRecordsMap | null | undefined
   nextBundles: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
+  nextSurveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | null | undefined
   week: number
   sequenceStart: number
   baseTimestamp?: number
@@ -28,6 +30,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
   const nextSummaries = composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
     protocols: input.nextProtocols ?? undefined,
     bundles: input.nextBundles ?? undefined,
+    surveillanceTuningRecords: input.nextSurveillanceTuningRecords ?? undefined,
   })
 
   if (nextSummaries.length === 0) {
@@ -44,6 +47,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
           summary,
           protocols: input.nextProtocols ?? undefined,
           bundles: input.nextBundles ?? undefined,
+          surveillanceTuningRecords: input.nextSurveillanceTuningRecords ?? undefined,
         }),
         input.week,
         sequence,
@@ -53,6 +57,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
           subjectRef: summary.subjectRef,
           linkedProtocolCount: summary.linkedProtocolCount,
           linkedBundleCount: summary.linkedBundleCount,
+          linkedTuningCount: summary.linkedTuningCount,
           crossSystemTensionFlags: [...summary.crossSystemTensionFlags],
           structuredReasons: [...summary.structuredReasons],
           week: input.week,

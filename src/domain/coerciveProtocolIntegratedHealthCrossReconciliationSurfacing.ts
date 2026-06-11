@@ -1,9 +1,9 @@
 /**
- * SPE-1908 / SPE-2429 slice 2: read-only surfacing for coercive protocol ↔ integrated
- * health bundle cross-reconciliation compose output.
+ * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4: read-only surfacing for coercive
+ * protocol ↔ integrated health bundle cross-reconciliation compose output.
  *
  * Formats compose summaries for mirror labels and weekly report notes — no changes to
- * SPE-2428 compose contracts.
+ * SPE-2428 / SPE-2430 compose contracts.
  */
 
 import type {
@@ -19,6 +19,16 @@ import type {
   ContainedPersonIntegratedHealthBundle,
   ContainedPersonIntegratedHealthBundleRecordsMap,
 } from './containedPersonIntegratedHealthBundleRegistry'
+import type {
+  SurveillanceInterventionTuningRecord,
+  SurveillanceInterventionTuningRecordsMap,
+} from './surveillanceCapacityInterventionTuningRegistry'
+
+const SURVEILLANCE_TUNING_CROSS_SYSTEM_TENSION_FLAGS: ReadonlySet<CoerciveProtocolCrossSystemTensionFlag> =
+  new Set([
+    'surveillance_tuning_monitoring_exceeds_contact',
+    'surveillance_tuning_sustained_under_collateral_strain',
+  ])
 
 export function formatCoerciveProtocolCrossLinkLabel(record: CoerciveProtocolRecord): string {
   return `${record.id} (${record.label})`
@@ -28,6 +38,12 @@ export function formatIntegratedHealthBundleCrossLinkLabel(
   bundle: ContainedPersonIntegratedHealthBundle
 ): string {
   return `${bundle.id} (${bundle.label})`
+}
+
+export function formatSurveillanceTuningCrossLinkLabel(
+  record: SurveillanceInterventionTuningRecord
+): string {
+  return `${record.id} (${record.label})`
 }
 
 export function formatCrossSystemTensionFlagLabel(flag: CoerciveProtocolCrossSystemTensionFlag): string {
@@ -51,14 +67,24 @@ function bundleBySubjectRef(
   return bundles?.[subjectRef]
 }
 
+function tuningById(
+  records: SurveillanceInterventionTuningRecordsMap | undefined,
+  tuningId: string
+): SurveillanceInterventionTuningRecord | undefined {
+  return records?.[tuningId]
+}
+
 export function formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels(input: {
   summary: CoerciveProtocolIntegratedHealthReconciliationSummary
   protocols: CoerciveProtocolRecordsMap | undefined
   bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
 }): {
   readonly protocolLabels: readonly string[]
   readonly bundleLabel: string | null
+  readonly tuningLabels: readonly string[]
   readonly tensionFlagLabels: readonly string[]
+  readonly surveillanceTuningTensionFlagLabels: readonly string[]
 } {
   const protocolIds = [
     ...new Set(input.summary.links.map((link) => link.coerciveProtocolId)),
@@ -72,14 +98,31 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabel
   const bundle = bundleBySubjectRef(input.bundles, input.summary.subjectRef)
   const bundleLabel = bundle ? formatIntegratedHealthBundleCrossLinkLabel(bundle) : null
 
+  const tuningIds = [
+    ...new Set(input.summary.surveillanceTuningLinks.map((link) => link.surveillanceTuningId)),
+  ].sort((left, right) => left.localeCompare(right))
+
+  const tuningLabels = tuningIds
+    .map((tuningId) => tuningById(input.surveillanceTuningRecords, tuningId))
+    .filter((record): record is SurveillanceInterventionTuningRecord => record !== undefined)
+    .map((record) => formatSurveillanceTuningCrossLinkLabel(record))
+
   const tensionFlagLabels = Object.freeze(
     input.summary.crossSystemTensionFlags.map((flag) => formatCrossSystemTensionFlagLabel(flag))
+  )
+
+  const surveillanceTuningTensionFlagLabels = Object.freeze(
+    input.summary.crossSystemTensionFlags
+      .filter((flag) => SURVEILLANCE_TUNING_CROSS_SYSTEM_TENSION_FLAGS.has(flag))
+      .map((flag) => formatCrossSystemTensionFlagLabel(flag))
   )
 
   return {
     protocolLabels: Object.freeze(protocolLabels),
     bundleLabel,
+    tuningLabels: Object.freeze(tuningLabels),
     tensionFlagLabels,
+    surveillanceTuningTensionFlagLabels,
   }
 }
 
@@ -87,21 +130,25 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationNoteContent(
   summary: CoerciveProtocolIntegratedHealthReconciliationSummary
   protocols: CoerciveProtocolRecordsMap | undefined
   bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
 }): string {
-  const { protocolLabels, bundleLabel, tensionFlagLabels } =
+  const { protocolLabels, bundleLabel, tuningLabels, tensionFlagLabels } =
     formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels(input)
   const protocolSegment =
     protocolLabels.length > 0 ? protocolLabels.join('; ') : 'no linked coercive protocols'
   const bundleSegment = bundleLabel ?? 'no linked integrated health bundle'
+  const tuningSegment =
+    tuningLabels.length > 0 ? tuningLabels.join('; ') : 'no linked surveillance tuning records'
   const tensionSegment =
     tensionFlagLabels.length > 0 ? tensionFlagLabels.join('; ') : 'no cross-system tension flags'
 
-  return `Coercive protocol cross-link — ${input.summary.subjectRef}: ${input.summary.linkedProtocolCount} protocol(s), ${input.summary.linkedBundleCount} bundle(s). Tension flags: ${tensionSegment}. Protocols: ${protocolSegment}. Bundle: ${bundleSegment}.`
+  return `Coercive protocol cross-link — ${input.summary.subjectRef}: ${input.summary.linkedProtocolCount} protocol(s), ${input.summary.linkedBundleCount} bundle(s), ${input.summary.linkedTuningCount} tuning record(s). Tension flags: ${tensionSegment}. Protocols: ${protocolSegment}. Bundle: ${bundleSegment}. Tuning: ${tuningSegment}.`
 }
 
 export function composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries(input: {
   protocols: CoerciveProtocolRecordsMap | undefined
   bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
 }): readonly CoerciveProtocolIntegratedHealthReconciliationSummary[] {
   if (!input.protocols || !input.bundles) {
     return []
@@ -111,17 +158,23 @@ export function composeAllCoerciveProtocolIntegratedHealthReconciliationSummarie
     return []
   }
 
-  return composeAllCoerciveProtocolIntegratedHealthReconciliations(input.protocols, input.bundles)
+  return composeAllCoerciveProtocolIntegratedHealthReconciliations(
+    input.protocols,
+    input.bundles,
+    input.surveillanceTuningRecords
+  )
 }
 
 export function resolveCoerciveProtocolIntegratedHealthReconciliationForSubject(input: {
   protocols: CoerciveProtocolRecordsMap | undefined
   bundles: ContainedPersonIntegratedHealthBundleRecordsMap | undefined
+  surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
   subjectRef: string
 }): CoerciveProtocolIntegratedHealthReconciliationSummary | null {
   const summaries = composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
     protocols: input.protocols,
     bundles: input.bundles,
+    surveillanceTuningRecords: input.surveillanceTuningRecords,
   })
 
   return summaries.find((summary) => summary.subjectRef === input.subjectRef) ?? null

@@ -3,6 +3,7 @@ import { createStartingState } from '../data/startingState'
 import { ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -55,5 +56,38 @@ describe('advanceWeek coercive protocol integrated health reconciliation integra
       ) ?? []
 
     expect(reconciliationNotes).toEqual([])
+  })
+})
+
+describe('advanceWeek coercive protocol integrated health reconciliation integration (SPE-2439 slice 4)', () => {
+  it('surfaces surveillance-tuning tension flags when tuning records coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    state.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    state.surveillanceInterventionTuningRecords = {
+      [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const reconciliationNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'coercive_protocol.integrated_health_reconciliation'
+      ) ?? []
+
+    expect(reconciliationNotes.length).toBeGreaterThan(0)
+    expect(reconciliationNotes[0]?.content).toContain('1 tuning record(s)')
+    expect(reconciliationNotes[0]?.content).toContain('Surveillance Tuning Monitoring Exceeds Contact')
+    expect(reconciliationNotes[0]?.content).toContain(
+      `${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id} (${SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.label})`
+    )
+    expect(reconciliationNotes[0]?.metadata?.linkedTuningCount).toBe(1)
   })
 })

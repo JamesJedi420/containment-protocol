@@ -11,6 +11,7 @@ import {
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
   formatCoerciveProtocolEnumLabel,
   getCoerciveContainedPersonProtocolMirrorView,
@@ -300,5 +301,36 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-2429 slice 2)', () => {
       'Surveillance Burden No Active Contact Channel',
       'Surveillance Burden Stable Mental State',
     ])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2439 slice 4)', () => {
+  it('surfaces surveillance-tuning tension flags when tuning records coexist', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    game.surveillanceInterventionTuningRecords = {
+      [SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE.id]: SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
+      'Surveillance Tuning Monitoring Exceeds Contact',
+      'Surveillance Tuning Sustained Under Collateral Strain',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.88')
   })
 })

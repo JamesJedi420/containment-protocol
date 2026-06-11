@@ -5,6 +5,7 @@ One-page implementation plan. Linear: [SPE-2439](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2439 — Surveillance-tuning cross-reconciliation surfacing (slice 4)](https://linear.app/spectranoir/issue/SPE-2439) |
+| **Status** | **Shipped** — PR #2749 @ `baf5e2ea`                                                                        |
 | **Parent** | [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) — surveillance-isolation contradiction check umbrella |
 | **Branch** | `jamesdyedbq/spe-1908-cross-system-reconciliation-slice-4`                                                 |
 | **Base `main` SHA** | `e2becf77`                                                                                          |

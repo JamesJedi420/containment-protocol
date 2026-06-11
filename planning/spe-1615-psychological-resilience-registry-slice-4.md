@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2436](https://linear.app/spectranoir/
 | **Linear** | [SPE-2436 — Psychological resilience cross-join in compose (slice 4)](https://linear.app/spectranoir/issue/SPE-2436) |
 | **Parent** | [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) — Psychological resilience depletion             |
 | **Branch** | `jamesdyedbq/spe-1615-psychological-resilience-registry-slice-4`                                           |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2743 @ `9ded0f61`                                                                        |
 | **Base `main` SHA** | `38d6a540`                                                                                          |
 
 ## Goal

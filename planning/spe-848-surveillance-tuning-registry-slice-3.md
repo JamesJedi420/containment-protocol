@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2432](https://linear.app/spectranoir/
 | **Linear** | [SPE-2432 — Surveillance tuning registry weekly advanceWeek orchestration hook (slice 3)](https://linear.app/spectranoir/issue/SPE-2432) |
 | **Parent** | [SPE-848](https://linear.app/spectranoir/issue/SPE-848) — Surveillance and capacity intervention tuning     |
 | **Branch** | `spe-848-surveillance-tuning-weekly-hook-slice-3`                                                          |
-| **Status** | **Shipped** — pending PR                                                                                   |
+| **Status** | **Shipped** — PR #2735 @ `9573ec37`                                                                        |
 | **Base `main` SHA** | `f272a1ba`                                                                                          |
 
 ## Goal

@@ -271,6 +271,7 @@ import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptor
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
 import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
+import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4777,6 +4778,17 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.surveillanceInterventionTuningRecords =
       applyWeeklySurveillanceInterventionTuningTick(
         currentSurveillanceInterventionTuningRecords,
+        result.week
+      )
+  }
+
+  // SPE-1615 slice 3: depletion-band advance on psychological resilience records.
+  const currentPsychologicalResilienceRecords =
+    outputWeeklyState.psychologicalResilienceRecords ?? {}
+  if (Object.keys(currentPsychologicalResilienceRecords).length > 0) {
+    outputWeeklyState.psychologicalResilienceRecords =
+      applyWeeklyPsychologicalResilienceDepletionTick(
+        currentPsychologicalResilienceRecords,
         result.week
       )
   }

@@ -24,6 +24,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Base `main` SHA:** `dbd88079` — shipped: [SPE-2438](https://linear.app/spectranoir/issue/SPE-2438) surveillance tuning planning mirror UI slice 4 @ PR #2747
 
+**In progress:** [SPE-2439](https://linear.app/spectranoir/issue/SPE-2439) surveillance-tuning cross-reconciliation surfacing slice 4 under SPE-1908 — see `planning/spe-1908-cross-system-reconciliation-slice-4.md`.
+
 **Recently shipped:** [SPE-2438](https://linear.app/spectranoir/issue/SPE-2438) surveillance tuning planning mirror UI slice 4 @ PR #2747; [SPE-2437](https://linear.app/spectranoir/issue/SPE-2437) psychological resilience planning mirror UI slice 5 @ PR #2745; see `planning/spe-848-surveillance-tuning-registry-slice-4.md`.
 
 ## Blocked / waiting

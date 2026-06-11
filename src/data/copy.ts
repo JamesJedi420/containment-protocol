@@ -1306,6 +1306,42 @@ export const PSYCHOLOGICAL_RESILIENCE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const SURVEILLANCE_INTERVENTION_TUNING_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Surveillance intervention tuning registry',
+  pageSubtitle:
+    'Read-only operations view over persisted intervention tuning records and read-time surveillance, contact, and collateral-strain projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  monitoringExceedsContactLabel: 'Monitoring exceeds contact',
+  sustainedUnderCollateralStrainLabel: 'Sustained under collateral strain',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Intervention levels, signal scores, and horizon outcomes mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No surveillance intervention tuning records',
+  emptyBody:
+    'Persisted intervention tuning records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Monitoring/contact separation and collateral-strain projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  interventionColumn: 'Intervention level',
+  signalsColumn: 'Signal scores',
+  horizonColumn: 'Horizon outcomes',
+  projectionColumn: 'Projection signals',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  surveillanceSignalPrefix: 'Surveillance signal:',
+  meaningfulContactPrefix: 'Meaningful contact:',
+  healthcareLoadPrefix: 'Healthcare load:',
+  collateralStrainPrefix: 'Collateral strain:',
+  tuningRationalePrefix: 'Tuning rationale:',
+  monitoringExceedsContactSuffix: 'Monitoring exceeds contact',
+  sustainedUnderCollateralStrainSuffix: 'Sustained under collateral strain',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Contained person therapeutic care registry',

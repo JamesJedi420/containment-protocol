@@ -820,6 +820,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review depletion bands, exposure posture, treatment gating, and duty-reliability projections.',
     },
     {
+      label: 'Open surveillance intervention tuning mirror',
+      href: APP_ROUTES.surveillanceInterventionTuning,
+      description:
+        'Review intervention levels, surveillance/contact signal separation, horizon outcomes, and collateral-strain projections.',
+    },
+    {
       label: 'Open naming-hazard descriptor mirror',
       href: APP_ROUTES.namingHazardDescriptor,
       description:

@@ -34,6 +34,7 @@ export const APP_ROUTES = {
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
   coerciveContainedPersonProtocol: '/coercive-contained-person-protocol',
   psychologicalResilience: '/psychological-resilience',
+  surveillanceInterventionTuning: '/surveillance-intervention-tuning',
   namingHazardDescriptor: '/naming-hazard-descriptor',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
   welfareDebtAccounting: '/welfare-debt-accounting',

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2440](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2440 — Psychological-resilience cross-reconciliation surfacing (slice 5)](https://linear.app/spectranoir/issue/SPE-2440) |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2751 @ `6ee84c4a`                                                                        |
 | **Parent** | [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) — surveillance-isolation contradiction check umbrella |
 | **Branch** | `jamesdyedbq/spe-1908-cross-system-reconciliation-slice-5`                                                 |
 | **Base `main` SHA** | `6aaee42e`                                                                                          |
@@ -48,12 +48,12 @@ Surface `composeAllCoerciveProtocolIntegratedHealthReconciliations` psychologica
 
 ## Acceptance
 
-- [ ] Empty resilience maps no-op without throw; slice 2/4 regression unchanged
-- [ ] Mirror surfaces psychological-resilience tension flags for abusive surveillance + subject-22 bundle + staged-depletion resilience fixture
-- [ ] Weekly report note includes resilience cross-link labels and resilience tension flags when maps coexist
-- [ ] Redacted projection fields do not leak in surfacing labels
-- [ ] `advanceWeek` integration asserts resilience-aware reconciliation note when fixtures coexist
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty resilience maps no-op without throw; slice 2/4 regression unchanged
+- [x] Mirror surfaces psychological-resilience tension flags for abusive surveillance + subject-22 bundle + staged-depletion resilience fixture
+- [x] Weekly report note includes resilience cross-link labels and resilience tension flags when maps coexist
+- [x] Redacted projection fields do not leak in surfacing labels
+- [x] `advanceWeek` integration asserts resilience-aware reconciliation note when fixtures coexist
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

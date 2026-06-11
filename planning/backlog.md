@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) parent acceptance review or next registry mirror queue item. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `baf5e2ea` — shipped: [SPE-2439](https://linear.app/spectranoir/issue/SPE-2439) surveillance-tuning cross-reconciliation surfacing slice 4 @ PR #2749
+**Base `main` SHA:** `6ee84c4a` — shipped: [SPE-2440](https://linear.app/spectranoir/issue/SPE-2440) psychological-resilience cross-reconciliation surfacing slice 5 @ PR #2751
 
-**Recently shipped:** [SPE-2439](https://linear.app/spectranoir/issue/SPE-2439) surveillance-tuning cross-reconciliation surfacing slice 4 @ PR #2749; [SPE-2438](https://linear.app/spectranoir/issue/SPE-2438) surveillance tuning planning mirror UI slice 4 @ PR #2747; see `planning/spe-1908-cross-system-reconciliation-slice-4.md`.
+**Recently shipped:** [SPE-2440](https://linear.app/spectranoir/issue/SPE-2440) psychological-resilience cross-reconciliation surfacing slice 5 @ PR #2751; [SPE-2439](https://linear.app/spectranoir/issue/SPE-2439) surveillance-tuning cross-reconciliation surfacing slice 4 @ PR #2749; see `planning/spe-1908-cross-system-reconciliation-slice-5.md`.
 
 ## Blocked / waiting
 

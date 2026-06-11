@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2437](https://linear.app/spectranoir/
 | **Linear** | [SPE-2437 — Psychological resilience registry planning mirror UI (slice 5)](https://linear.app/spectranoir/issue/SPE-2437) |
 | **Parent** | [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) — Psychological resilience depletion             |
 | **Branch** | `jamesdyedbq/spe-1615-psychological-resilience-registry-slice-5`                                           |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2745 @ `ca2e081c`                                                                        |
 | **Base `main` SHA** | `cc5b9998`                                                                                          |
 
 ## Goal

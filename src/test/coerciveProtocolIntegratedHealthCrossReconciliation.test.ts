@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
   validateCoerciveProtocolRecord,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import {
@@ -23,6 +24,7 @@ import {
   validateSurveillanceInterventionTuningRecord,
 } from '../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
+  INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
   INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
   INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
   validateContainedPersonIntegratedHealthBundle,
@@ -350,6 +352,139 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
         operatorLinks
       ).map((record) => record.id)
     ).toEqual([PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id])
+  })
+
+  it('surfaces staff-exclusion tension flags when support-duty flag coexists with bundle cross-link', () => {
+    expect(validateCoerciveProtocolRecord(STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE).valid).toBe(
+      true
+    )
+    expect(
+      validateContainedPersonIntegratedHealthBundle(INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE)
+        .valid
+    ).toBe(true)
+
+    const protocols = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]: STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef
+    )
+
+    expect(summary.triggeredContradictionChecks.some((check) => check.flag === 'staff_exclusion_support_duty')).toBe(
+      true
+    )
+    expect(summary.crossSystemTensionFlags).toEqual([
+      'staff_exclusion_accommodation_access_not_routed',
+      'staff_exclusion_bundle_no_active_contact_cross_tension',
+      'staff_exclusion_exposure_risk_not_separated',
+      'staff_exclusion_medical_access_not_routed',
+      'staff_exclusion_support_duty_obligation_elevated',
+    ])
+    expect(summary.crossSystemTensionFlags).not.toContain('surveillance_burden_stable_mental_state')
+    expect(summary.crossSystemTensionFlags).not.toContain('surveillance_isolation_burden')
+    expect(summary.structuredReasons).toContain('tension:present')
+  })
+
+  it('no-ops staff-exclusion tension flags when bundle is missing for staff-duty protocol', () => {
+    const protocols = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]: STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      {},
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef
+    )
+
+    expect(summary.triggeredContradictionChecks.some((check) => check.flag === 'staff_exclusion_support_duty')).toBe(
+      true
+    )
+    expect(summary.crossSystemTensionFlags).toEqual([])
+    expect(summary.structuredReasons).toContain('tension:none')
+  })
+
+  it('no-ops staff-exclusion tension flags when support-duty threshold is not met', () => {
+    const belowThreshold = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      staffExclusionBurdenScore: 0.4,
+    }
+    const protocols = {
+      [belowThreshold.id]: belowThreshold,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      belowThreshold.subjectRef
+    )
+
+    expect(summary.triggeredContradictionChecks).toEqual([])
+    expect(summary.crossSystemTensionFlags).toEqual([])
+  })
+
+  it('surfaces staff-exclusion resilience cross-tension when duty reliability is degraded', () => {
+    const protocolWithOperatorLink = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+    }
+    const protocols = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+    const psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+
+    expect(summary.linkedResilienceCount).toBe(1)
+    expect(summary.crossSystemTensionFlags).toContain(
+      'staff_exclusion_resilience_duty_reliability_cross_tension'
+    )
+    expect(summary.crossSystemTensionFlags).toContain(
+      'psychological_resilience_duty_reliability_degraded'
+    )
+    expect(summary.crossSystemTensionFlags).toContain(
+      'staff_exclusion_bundle_no_active_contact_cross_tension'
+    )
+
+    const first = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+    const second = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+
+    expect(first.crossSystemTensionFlags).toEqual(second.crossSystemTensionFlags)
   })
 
   it('skips invalid hydrate drops without re-surfacing them', () => {

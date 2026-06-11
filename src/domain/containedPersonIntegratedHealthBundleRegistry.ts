@@ -864,6 +864,37 @@ export function sanitizeContainedPersonIntegratedHealthBundles(
 // Fixtures (tests / planning mirror)
 // ---------------------------------------------------------------------------
 
+/** Bundle paired with staff-exclusion support-duty coercive protocol (subject-09). */
+export const INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE: ContainedPersonIntegratedHealthBundle =
+  Object.freeze({
+    id: 'subject:contained-support-personnel-09',
+    label: 'Contained support personnel 09 integrated health bundle',
+    subjectRef: 'subject:contained-support-personnel-09',
+    mentalStateBand: 'strained',
+    humaneCareRiskScore: 0.41,
+    therapeuticCareScheduleLinks: Object.freeze([
+      Object.freeze({
+        scheduleRef: 'care-schedule:support-personnel-peer-contact-suspended',
+        wiredRef: 'therapeutic-care:care-schedule:support-personnel-peer-contact-suspended',
+        careMode: 'cooperative_checkin',
+        channelState: 'suspended',
+        missedSessionStreak: 2,
+        complianceRiskScore: 0.47,
+        lockdownEscalationLikely: false,
+      }),
+    ]),
+    custodyStatusLinks: Object.freeze([
+      Object.freeze({
+        custodyRef: 'custody-status:privilege-suspended-hold',
+        wiredRef: 'custody-status:privilege-suspended-hold',
+        custodyStage: 'contained_person',
+        formerRoleCategory: 'support_personnel',
+        restrictionLevel: 'elevated',
+        rightsReviewPending: true,
+      }),
+    ]),
+  })
+
 /** Bundle paired with abusive surveillance-isolation coercive protocol (subject-22). */
 export const INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE: ContainedPersonIntegratedHealthBundle =
   Object.freeze({

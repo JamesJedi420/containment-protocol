@@ -64,7 +64,7 @@ Implement a bounded contradiction-check sibling for staff exclusion and support-
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Cross-reconciliation compose for staff-duty tension flags | SPE-1908 follow-up / SPE-1615 | Out of registry-only slice boundary; consult existing tension flags only |
+| Cross-reconciliation compose for staff-duty tension flags | [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) | Shipped in `planning/spe-2016-cross-system-reconciliation-slice-1.md` |
 | Medical policy ledger implementation | SPE-2074 | Routed via `medicalAccessStateRef` — not duplicated here |
 | Accommodation request ledger | SPE-2005 | Routed via `accommodationAccessRef` |
 | Institutional denial doctrine enforcement | SPE-2001 | Routed via `denialDoctrinePressureRef` |

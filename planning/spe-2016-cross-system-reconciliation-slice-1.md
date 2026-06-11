@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2441](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2441 — Staff-duty cross-reconciliation compose (slice 1)](https://linear.app/spectranoir/issue/SPE-2441) |
-| **Status** | **Shipped** — pending PR merge                                                                            |
+| **Status** | **Shipped** — PR #2755 @ `2aef06ad`                                                                       |
 | **Parent** | [SPE-2016](https://linear.app/spectranoir/issue/SPE-2016) — staff exclusion vs support-duty obligations    |
 | **Branch** | `jamesdyedbq/spe-2016-staff-exclusion-cross-reconciliation-slice-1`                                        |
 | **Base `main` SHA** | `6cdb63d8`                                                                                          |

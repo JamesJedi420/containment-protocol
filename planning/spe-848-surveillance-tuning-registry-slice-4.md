@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2438](https://linear.app/spectranoir/
 | **Linear** | [SPE-2438 — Surveillance tuning registry planning mirror UI (slice 4)](https://linear.app/spectranoir/issue/SPE-2438) |
 | **Parent** | [SPE-848](https://linear.app/spectranoir/issue/SPE-848) — Surveillance and capacity intervention tuning     |
 | **Branch** | `jamesdyedbq/spe-848-surveillance-tuning-registry-slice-4`                                                 |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2747 @ `dbd88079`                                                                        |
 | **Base `main` SHA** | `2188f941`                                                                                          |
 
 ## Goal

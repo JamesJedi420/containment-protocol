@@ -9,9 +9,15 @@ import {
   composeAllCoerciveProtocolIntegratedHealthReconciliations,
   composeCoerciveProtocolIntegratedHealthReconciliation,
   listCoerciveProtocolsForIntegratedHealthSubject,
+  listPsychologicalResilienceRecordsForOperatorLinks,
   listSurveillanceInterventionTuningRecordsForSubject,
   resolveIntegratedHealthBundleForSubject,
 } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
+import {
+  PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+  PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE,
+  validatePsychologicalResilienceRecord,
+} from '../domain/psychologicalResilienceRegistry'
 import {
   SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE,
   validateSurveillanceInterventionTuningRecord,
@@ -32,16 +38,21 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
 
     expect(summary.links).toEqual([])
     expect(summary.surveillanceTuningLinks).toEqual([])
+    expect(summary.psychologicalResilienceLinks).toEqual([])
     expect(summary.linkedProtocolCount).toBe(0)
     expect(summary.linkedBundleCount).toBe(0)
     expect(summary.linkedTuningCount).toBe(0)
+    expect(summary.linkedResilienceCount).toBe(0)
     expect(summary.protocolRiskReviews).toEqual([])
     expect(summary.triggeredContradictionChecks).toEqual([])
     expect(summary.surveillanceTuningProjections).toEqual([])
+    expect(summary.psychologicalResilienceProjections).toEqual([])
     expect(summary.crossSystemTensionFlags).toEqual([])
     expect(summary.structuredReasons).toContain('link_count:0')
     expect(summary.structuredReasons).toContain('linked_tuning_count:0')
+    expect(summary.structuredReasons).toContain('linked_resilience_count:0')
     expect(summary.structuredReasons).toContain('tuning:none')
+    expect(summary.structuredReasons).toContain('resilience:none')
     expect(summary.structuredReasons).toContain('tension:none')
   })
 
@@ -205,6 +216,140 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliation (SPE-2428 slice 1)
     expect(first).toEqual(second)
     expect(first).toHaveLength(1)
     expect(first[0]?.subjectRef).toBe('subject:cooperative-field-asset-22')
+  })
+
+  it('cross-joins psychological resilience record by operator ref with protocol operator link', () => {
+    expect(
+      validatePsychologicalResilienceRecord(PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE).valid
+    ).toBe(true)
+
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+    }
+    const protocols = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    const psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+      [PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+
+    expect(summary.linkedResilienceCount).toBe(1)
+    expect(summary.psychologicalResilienceLinks).toHaveLength(1)
+    expect(summary.psychologicalResilienceLinks[0]?.matchKind).toBe('operator_ref')
+    expect(summary.psychologicalResilienceLinks[0]?.operatorRef).toBe(
+      PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef
+    )
+    expect(summary.psychologicalResilienceProjections[0]?.exposureElevated).toBe(true)
+    expect(summary.psychologicalResilienceProjections[0]?.dutyReliabilityDegraded).toBe(true)
+    expect(summary.psychologicalResilienceProjections[0]?.treatmentGated).toBe(false)
+    expect(summary.crossSystemTensionFlags).toEqual([
+      'monitoring_substitutes_contact_signal',
+      'psychological_resilience_duty_reliability_degraded',
+      'psychological_resilience_exposure_elevated',
+      'surveillance_burden_low_humane_care_risk',
+      'surveillance_burden_no_active_contact_channel',
+      'surveillance_burden_stable_mental_state',
+    ])
+    expect(summary.structuredReasons).toContain('linked_resilience_count:1')
+    expect(summary.structuredReasons).toContain('resilience:linked')
+  })
+
+  it('surfaces treatment-gated tension flag for breakdown resilience without flipping compose fields', () => {
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE.operatorRef,
+    }
+    const protocols = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    const psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+
+    expect(summary.linkedResilienceCount).toBe(1)
+    expect(summary.psychologicalResilienceProjections[0]?.treatmentGated).toBe(true)
+    expect(summary.crossSystemTensionFlags).toContain('psychological_resilience_treatment_gated')
+    expect(summary.linkedProtocolCount).toBe(1)
+    expect(summary.linkedBundleCount).toBe(1)
+    expect(summary.bundleMentalStateBand).toBe('stable')
+  })
+
+  it('no-ops psychological resilience cross-join when operator ref mismatches protocol operator link', () => {
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: 'agent:unrelated-operator-99',
+    }
+    const protocols = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    const bundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    const psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+    }
+
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      protocols,
+      bundles,
+      ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
+      undefined,
+      psychologicalResilienceRecords
+    )
+
+    expect(summary.psychologicalResilienceLinks).toEqual([])
+    expect(summary.linkedResilienceCount).toBe(0)
+    expect(summary.psychologicalResilienceProjections).toEqual([])
+    expect(summary.crossSystemTensionFlags).not.toContain('psychological_resilience_exposure_elevated')
+    expect(summary.structuredReasons).toContain('resilience:none')
+  })
+
+  it('lists hydrated psychological resilience records for operator links in stable order', () => {
+    const operatorLinks = [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef]
+    const psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+      [PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_TREATMENT_BREAKDOWN_FIXTURE,
+    }
+
+    expect(
+      listPsychologicalResilienceRecordsForOperatorLinks(
+        psychologicalResilienceRecords,
+        operatorLinks
+      ).map((record) => record.id)
+    ).toEqual([PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id])
   })
 
   it('skips invalid hydrate drops without re-surfacing them', () => {

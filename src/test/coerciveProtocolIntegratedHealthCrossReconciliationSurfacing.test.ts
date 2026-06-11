@@ -2,18 +2,23 @@ import { describe, expect, it } from 'vitest'
 
 import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import {
   composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries,
   formatCoerciveProtocolCrossLinkLabel,
   formatCoerciveProtocolIntegratedHealthReconciliationNoteContent,
+  formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels,
   formatCrossSystemTensionFlagLabel,
   formatIntegratedHealthBundleCrossLinkLabel,
   formatPsychologicalResilienceCrossLinkLabel,
   formatSurveillanceTuningCrossLinkLabel,
 } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationSurfacing'
 import { composeCoerciveProtocolIntegratedHealthReconciliation } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
-import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
+import {
+  INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+  INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+} from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../domain/coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
@@ -44,6 +49,15 @@ const RESILIENCE_PROTOCOLS = {
 const PSYCHOLOGICAL_RESILIENCE_RECORDS = {
   [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
     PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+}
+
+const STAFF_EXCLUSION_PROTOCOLS = {
+  [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]: STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+}
+
+const STAFF_EXCLUSION_BUNDLES = {
+  [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+    INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
 }
 
 describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2429 slice 2)', () => {
@@ -290,6 +304,81 @@ describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2440
       'surveillance_burden_low_humane_care_risk',
       'surveillance_burden_no_active_contact_channel',
       'surveillance_burden_stable_mental_state',
+    ])
+  })
+})
+
+describe('coerciveProtocolIntegratedHealthCrossReconciliationSurfacing (SPE-2442 slice 6)', () => {
+  it('formats staff-duty tension flag labels from compose tokens only', () => {
+    expect(
+      formatCrossSystemTensionFlagLabel('staff_exclusion_support_duty_obligation_elevated')
+    ).toBe('Staff Exclusion Support Duty Obligation Elevated')
+    expect(
+      formatCrossSystemTensionFlagLabel('staff_exclusion_bundle_no_active_contact_cross_tension')
+    ).toBe('Staff Exclusion Bundle No Active Contact Cross Tension')
+  })
+
+  it('returns empty staff-duty tension labels when bundle is missing for staff-exclusion protocol', () => {
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      STAFF_EXCLUSION_PROTOCOLS,
+      {},
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef
+    )
+
+    const labels = formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels({
+      summary,
+      protocols: STAFF_EXCLUSION_PROTOCOLS,
+      bundles: {},
+    })
+
+    expect(labels.staffExclusionTensionFlagLabels).toEqual([])
+  })
+
+  it('surfaces staff-duty tension flags and staff-duty segment when staff-exclusion fixtures coexist', () => {
+    const summary = composeCoerciveProtocolIntegratedHealthReconciliation(
+      STAFF_EXCLUSION_PROTOCOLS,
+      STAFF_EXCLUSION_BUNDLES,
+      STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef
+    )
+
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: STAFF_EXCLUSION_PROTOCOLS,
+      nextBundles: STAFF_EXCLUSION_BUNDLES,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.content).toBe(
+      formatCoerciveProtocolIntegratedHealthReconciliationNoteContent({
+        summary,
+        protocols: STAFF_EXCLUSION_PROTOCOLS,
+        bundles: STAFF_EXCLUSION_BUNDLES,
+      })
+    )
+    expect(notes[0]?.content).toContain('Staff-duty tension flags:')
+    expect(notes[0]?.content).toContain('Staff Exclusion Support Duty Obligation Elevated')
+    expect(notes[0]?.content).toContain('Staff Exclusion Medical Access Not Routed')
+    expect(notes[0]?.content).toContain('Staff Exclusion Bundle No Active Contact Cross Tension')
+    expect(notes[0]?.content).not.toContain('0.81')
+    expect(notes[0]?.content).not.toContain('0.73')
+    expect(notes[0]?.content).not.toContain('excludes staff or support personnel')
+  })
+
+  it('keeps byte-stable staff-duty tension flag ordering in note metadata', () => {
+    const notes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+      nextProtocols: STAFF_EXCLUSION_PROTOCOLS,
+      nextBundles: STAFF_EXCLUSION_BUNDLES,
+      week: 3,
+      sequenceStart: 1,
+    })
+
+    expect(notes[0]?.metadata?.crossSystemTensionFlags).toEqual([
+      'staff_exclusion_accommodation_access_not_routed',
+      'staff_exclusion_bundle_no_active_contact_cross_tension',
+      'staff_exclusion_exposure_risk_not_separated',
+      'staff_exclusion_medical_access_not_routed',
+      'staff_exclusion_support_duty_obligation_elevated',
     ])
   })
 })

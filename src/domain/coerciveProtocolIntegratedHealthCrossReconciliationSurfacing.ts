@@ -1,6 +1,7 @@
 /**
- * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: read-only surfacing
- * for coercive protocol ↔ integrated health bundle cross-reconciliation compose output.
+ * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5 + SPE-2442 slice 6:
+ * read-only surfacing for coercive protocol ↔ integrated health bundle cross-reconciliation
+ * compose output.
  *
  * Formats compose summaries for mirror labels and weekly report notes — no changes to
  * SPE-2428 / SPE-2430 compose contracts.
@@ -39,6 +40,16 @@ const PSYCHOLOGICAL_RESILIENCE_CROSS_SYSTEM_TENSION_FLAGS: ReadonlySet<CoerciveP
     'psychological_resilience_duty_reliability_degraded',
     'psychological_resilience_exposure_elevated',
     'psychological_resilience_treatment_gated',
+  ])
+
+const STAFF_EXCLUSION_CROSS_SYSTEM_TENSION_FLAGS: ReadonlySet<CoerciveProtocolCrossSystemTensionFlag> =
+  new Set([
+    'staff_exclusion_accommodation_access_not_routed',
+    'staff_exclusion_bundle_no_active_contact_cross_tension',
+    'staff_exclusion_exposure_risk_not_separated',
+    'staff_exclusion_medical_access_not_routed',
+    'staff_exclusion_resilience_duty_reliability_cross_tension',
+    'staff_exclusion_support_duty_obligation_elevated',
   ])
 
 export function formatCoerciveProtocolCrossLinkLabel(record: CoerciveProtocolRecord): string {
@@ -112,6 +123,7 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabel
   readonly tensionFlagLabels: readonly string[]
   readonly surveillanceTuningTensionFlagLabels: readonly string[]
   readonly psychologicalResilienceTensionFlagLabels: readonly string[]
+  readonly staffExclusionTensionFlagLabels: readonly string[]
 } {
   const protocolIds = [
     ...new Set(input.summary.links.map((link) => link.coerciveProtocolId)),
@@ -161,6 +173,12 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabel
       .map((flag) => formatCrossSystemTensionFlagLabel(flag))
   )
 
+  const staffExclusionTensionFlagLabels = Object.freeze(
+    input.summary.crossSystemTensionFlags
+      .filter((flag) => STAFF_EXCLUSION_CROSS_SYSTEM_TENSION_FLAGS.has(flag))
+      .map((flag) => formatCrossSystemTensionFlagLabel(flag))
+  )
+
   return {
     protocolLabels: Object.freeze(protocolLabels),
     bundleLabel,
@@ -169,6 +187,7 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabel
     tensionFlagLabels,
     surveillanceTuningTensionFlagLabels,
     psychologicalResilienceTensionFlagLabels,
+    staffExclusionTensionFlagLabels,
   }
 }
 
@@ -179,8 +198,14 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationNoteContent(
   surveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | undefined
   psychologicalResilienceRecords?: PsychologicalResilienceRecordsMap | undefined
 }): string {
-  const { protocolLabels, bundleLabel, tuningLabels, resilienceLabels, tensionFlagLabels } =
-    formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels(input)
+  const {
+    protocolLabels,
+    bundleLabel,
+    tuningLabels,
+    resilienceLabels,
+    tensionFlagLabels,
+    staffExclusionTensionFlagLabels,
+  } = formatCoerciveProtocolIntegratedHealthReconciliationSummaryLabels(input)
   const protocolSegment =
     protocolLabels.length > 0 ? protocolLabels.join('; ') : 'no linked coercive protocols'
   const bundleSegment = bundleLabel ?? 'no linked integrated health bundle'
@@ -192,8 +217,12 @@ export function formatCoerciveProtocolIntegratedHealthReconciliationNoteContent(
       : 'no linked psychological resilience records'
   const tensionSegment =
     tensionFlagLabels.length > 0 ? tensionFlagLabels.join('; ') : 'no cross-system tension flags'
+  const staffDutyTensionSegment =
+    staffExclusionTensionFlagLabels.length > 0
+      ? staffExclusionTensionFlagLabels.join('; ')
+      : 'no staff-duty cross-system tension flags'
 
-  return `Coercive protocol cross-link — ${input.summary.subjectRef}: ${input.summary.linkedProtocolCount} protocol(s), ${input.summary.linkedBundleCount} bundle(s), ${input.summary.linkedTuningCount} tuning record(s), ${input.summary.linkedResilienceCount} resilience record(s). Tension flags: ${tensionSegment}. Protocols: ${protocolSegment}. Bundle: ${bundleSegment}. Tuning: ${tuningSegment}. Resilience: ${resilienceSegment}.`
+  return `Coercive protocol cross-link — ${input.summary.subjectRef}: ${input.summary.linkedProtocolCount} protocol(s), ${input.summary.linkedBundleCount} bundle(s), ${input.summary.linkedTuningCount} tuning record(s), ${input.summary.linkedResilienceCount} resilience record(s). Tension flags: ${tensionSegment}. Protocols: ${protocolSegment}. Bundle: ${bundleSegment}. Tuning: ${tuningSegment}. Resilience: ${resilienceSegment}. Staff-duty tension flags: ${staffDutyTensionSegment}.`
 }
 
 export function composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries(input: {

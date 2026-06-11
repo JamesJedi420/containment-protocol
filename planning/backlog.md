@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next registry mirror queue item or backlog hygiene pass. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-2442](https://linear.app/spectranoir/issue/SPE-2442) staff-duty cross-reconciliation surfacing slice 6 — `planning/spe-1908-cross-system-reconciliation-slice-6.md`; branch `jamesdyedbq/spe-1908-staff-exclusion-cross-reconciliation-surfacing-slice-6` (**In Progress**). Alternative after ship: next registry mirror queue item or backlog hygiene pass. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `2aef06ad` — shipped: [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) staff-duty cross-reconciliation compose @ `planning/spe-2016-cross-system-reconciliation-slice-1.md` / PR #2755
+**Base `main` SHA:** `52fda7df` — shipped: [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) staff-duty cross-reconciliation compose @ `planning/spe-2016-cross-system-reconciliation-slice-1.md` / PR #2755
 
 **Recently shipped:** [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) staff-duty cross-reconciliation compose @ PR #2755; [SPE-2016](https://linear.app/spectranoir/issue/SPE-2016) staff exclusion vs support-duty contradiction-check sibling @ PR #2753.
 

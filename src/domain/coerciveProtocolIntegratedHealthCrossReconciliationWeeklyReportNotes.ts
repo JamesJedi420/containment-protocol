@@ -1,5 +1,6 @@
 /**
- * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: weekly report notes
+ * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5 + SPE-2442 slice 6:
+ * weekly report notes
  * for coercive protocol ↔ integrated health bundle cross-reconciliation.
  *
  * Emits deterministic notes when linked maps coexist — no new persistence.

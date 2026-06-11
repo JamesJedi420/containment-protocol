@@ -100,6 +100,7 @@ export type CoerciveProtocolContradictionRiskFlag =
   | 'routine_force_authorization'
   | 'generalized_procedure_without_subject_fit'
   | 'compliance_metric_masks_harm'
+  | 'staff_exclusion_support_duty'
   | 'surveillance_isolation_burden'
 
 // ---------------------------------------------------------------------------
@@ -133,6 +134,18 @@ export interface CoerciveProtocolRecord {
   readonly legitimacyRisk: number
   readonly welfareDebtImpactLabel: string
   readonly complianceMetricOnly?: boolean
+  /** Staff-side exclusion burden presented as containment safety (SPE-2016). */
+  readonly staffExclusionBurdenScore?: number
+  /** Elevated support-duty obligation while staff exclusion is active (SPE-2016). */
+  readonly supportDutyObligationScore?: number
+  /** Separately tracked exposure risk — must not collapse into exclusion burden (SPE-2016). */
+  readonly exposureRiskScore?: number
+  /** Owner ref to medical policy / outcome audit (SPE-2074 / SPE-2003) — no ledger duplication. */
+  readonly medicalAccessStateRef?: string
+  /** Owner ref to accommodation request ledger (SPE-2005) — no ledger duplication. */
+  readonly accommodationAccessRef?: string
+  /** Owner ref to institutional denial doctrine pressure (SPE-2001) — no model duplication. */
+  readonly denialDoctrinePressureRef?: string
   readonly confidence?: number
   readonly unknownFields?: readonly string[]
   readonly redactedFields?: readonly string[]
@@ -155,6 +168,9 @@ export type CoerciveProtocolValidationCode =
   | 'invalid_dependency_leverage_score'
   | 'invalid_isolation_burden_score'
   | 'invalid_surveillance_burden_score'
+  | 'invalid_staff_exclusion_burden_score'
+  | 'invalid_support_duty_obligation_score'
+  | 'invalid_exposure_risk_score'
   | 'invalid_containment_stability_gain'
   | 'invalid_personhood_harm_risk'
   | 'invalid_trust_damage_risk'
@@ -253,10 +269,26 @@ export type CoerciveProtocolSurveillanceIsolationContradictionCheckCode =
   | 'surveillance_isolation_masks_care_harm'
   | 'surveillance_isolation_masks_personhood_harm'
 
+export type CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode =
+  | 'staff_exclusion_elevated_burden'
+  | 'staff_exclusion_contradicts_voluntary_handling'
+  | 'staff_exclusion_low_consent_confidence'
+  | 'staff_exclusion_abusive_without_review_path'
+  | 'staff_exclusion_deceptive_without_review_path'
+  | 'staff_exclusion_exposure_risk_not_separated'
+  | 'staff_exclusion_support_duty_obligation_elevated'
+  | 'staff_exclusion_medical_access_not_routed'
+  | 'staff_exclusion_accommodation_access_not_routed'
+  | 'staff_exclusion_isolation_burden_substitution'
+  | 'staff_exclusion_denial_as_contamination_reduction'
+  | 'staff_exclusion_masks_care_harm'
+  | 'staff_exclusion_masks_personhood_harm'
+
 export type CoerciveProtocolContradictionCheckCode =
   | CoerciveProtocolRoutineForceContradictionCheckCode
   | CoerciveProtocolGeneralizedSubjectFitContradictionCheckCode
   | CoerciveProtocolComplianceMetricContradictionCheckCode
+  | CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode
   | CoerciveProtocolSurveillanceIsolationContradictionCheckCode
 
 export interface CoerciveProtocolContradictionCheckIssue {
@@ -310,6 +342,7 @@ const CONTRADICTION_RISK_FLAG_SET = new Set<string>([
   'routine_force_authorization',
   'generalized_procedure_without_subject_fit',
   'compliance_metric_masks_harm',
+  'staff_exclusion_support_duty',
   'surveillance_isolation_burden',
 ])
 
@@ -329,6 +362,8 @@ export const FRANCHISE_TOKEN_PATTERN =
 export const BRANDED_OBJECT_NUMBER_PATTERN = /\bSCP[\s-]?\d{3,4}\b/i
 
 const SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD = 0.65
+const STAFF_EXCLUSION_BURDEN_THRESHOLD = 0.65
+const SUPPORT_DUTY_OBLIGATION_THRESHOLD = 0.5
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -612,6 +647,39 @@ export function validateCoerciveProtocolRecord(
       code: 'invalid_surveillance_burden_score',
       severity: 'error',
       detail: `Coercive protocol record ${id || '(unknown)'} has invalid surveillanceBurdenScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.staffExclusionBurdenScore !== undefined &&
+    !isValidUnitScore(record.staffExclusionBurdenScore)
+  ) {
+    pushIssue(issues, {
+      code: 'invalid_staff_exclusion_burden_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid staffExclusionBurdenScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (
+    record.supportDutyObligationScore !== undefined &&
+    !isValidUnitScore(record.supportDutyObligationScore)
+  ) {
+    pushIssue(issues, {
+      code: 'invalid_support_duty_obligation_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid supportDutyObligationScore.`,
+      relatedIds: id ? [id] : undefined,
+    })
+  }
+
+  if (record.exposureRiskScore !== undefined && !isValidUnitScore(record.exposureRiskScore)) {
+    pushIssue(issues, {
+      code: 'invalid_exposure_risk_score',
+      severity: 'error',
+      detail: `Coercive protocol record ${id || '(unknown)'} has invalid exposureRiskScore.`,
       relatedIds: id ? [id] : undefined,
     })
   }
@@ -1024,6 +1092,132 @@ function buildComplianceMetricMasksHarmContradictionIssues(
   return issues
 }
 
+function buildStaffExclusionSupportDutyContradictionIssues(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckIssue[] {
+  const issues: CoerciveProtocolContradictionCheckIssue[] = []
+  const id = normalizeToken(record.id)
+  const relatedIds = id ? [id] : undefined
+  const staffExclusionBurden = record.staffExclusionBurdenScore ?? 0
+  const supportDutyObligation = record.supportDutyObligationScore ?? 0
+
+  issues.push({
+    code: 'staff_exclusion_elevated_burden',
+    severity: 'warning',
+    detail: `Coercive protocol record ${id || '(unknown)'} excludes staff or support personnel from services (burden ${staffExclusionBurden.toFixed(2)}) presented as containment safety rather than humane contact preservation.`,
+    relatedIds,
+  })
+
+  issues.push({
+    code: 'staff_exclusion_support_duty_obligation_elevated',
+    severity: 'warning',
+    detail: `Coercive protocol record ${id || '(unknown)'} retains elevated support-duty obligation (${supportDutyObligation.toFixed(2)}) while staff exclusion is active — duty-of-care must remain separable from exclusion burden.`,
+    relatedIds,
+  })
+
+  if (record.exposureRiskScore === undefined) {
+    issues.push({
+      code: 'staff_exclusion_exposure_risk_not_separated',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} applies staff exclusion without a separately tracked exposureRiskScore — exposure risk must not collapse into exclusion or surveillance burden.`,
+      relatedIds,
+    })
+  }
+
+  if (!normalizeToken(record.medicalAccessStateRef ?? '')) {
+    issues.push({
+      code: 'staff_exclusion_medical_access_not_routed',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} excludes staff without a medicalAccessStateRef — medical/access state must be routed to medical policy and outcome-audit owners, not inferred from exclusion.`,
+      relatedIds,
+    })
+  }
+
+  if (!normalizeToken(record.accommodationAccessRef ?? '')) {
+    issues.push({
+      code: 'staff_exclusion_accommodation_access_not_routed',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} excludes staff without an accommodationAccessRef — accommodation access must remain separable from support-service denial.`,
+      relatedIds,
+    })
+  }
+
+  if (
+    record.isolationBurdenScore >= SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD &&
+    record.surveillanceBurdenScore >= SURVEILLANCE_ISOLATION_BURDEN_THRESHOLD
+  ) {
+    issues.push({
+      code: 'staff_exclusion_isolation_burden_substitution',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} pairs staff exclusion with elevated isolation (${record.isolationBurdenScore.toFixed(2)}) and surveillance (${record.surveillanceBurdenScore.toFixed(2)}) burden — isolation burden must not substitute for support-duty contact.`,
+      relatedIds,
+    })
+  }
+
+  if (VOLUNTARY_HANDLING_MODES.has(record.handlingMode)) {
+    issues.push({
+      code: 'staff_exclusion_contradicts_voluntary_handling',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} pairs staff exclusion with ${record.handlingMode} handling.`,
+      relatedIds,
+    })
+  }
+
+  if (record.consentConfidence <= CONTRADICTION_CHECK_LOW_CONSENT_CONFIDENCE_THRESHOLD) {
+    issues.push({
+      code: 'staff_exclusion_low_consent_confidence',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} applies staff exclusion while consent confidence remains low (${record.consentConfidence.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'abusive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+    issues.push({
+      code: 'staff_exclusion_abusive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is abusive with staff exclusion and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (record.handlingMode === 'deceptive' && !normalizeToken(record.subjectFitValidationRef ?? '')) {
+    issues.push({
+      code: 'staff_exclusion_deceptive_without_review_path',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} is deceptive with staff exclusion and no validation or review ref.`,
+      relatedIds,
+    })
+  }
+
+  if (projectContainmentCareTradeoff(record).stableContainmentDominatesCare) {
+    issues.push({
+      code: 'staff_exclusion_denial_as_contamination_reduction',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} treats support-service denial as clean contamination reduction while containment stability dominates care harm.`,
+      relatedIds,
+    })
+
+    issues.push({
+      code: 'staff_exclusion_masks_care_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} reports containment stability gains that may mask staff-exclusion care harm.`,
+      relatedIds,
+    })
+  }
+
+  if (record.personhoodHarmRisk >= COMPLIANCE_METRIC_ELEVATED_PERSONHOOD_HARM_THRESHOLD) {
+    issues.push({
+      code: 'staff_exclusion_masks_personhood_harm',
+      severity: 'warning',
+      detail: `Coercive protocol record ${id || '(unknown)'} applies staff exclusion while personhood harm risk remains elevated (${record.personhoodHarmRisk.toFixed(2)}).`,
+      relatedIds,
+    })
+  }
+
+  return issues
+}
+
 function buildSurveillanceIsolationBurdenContradictionIssues(
   record: CoerciveProtocolRecord
 ): CoerciveProtocolContradictionCheckIssue[] {
@@ -1197,6 +1391,40 @@ export function evaluateRoutineForceAuthorizationContradictionCheck(
   })
 }
 
+export function evaluateStaffExclusionSupportDutyContradictionCheck(
+  record: CoerciveProtocolRecord
+): CoerciveProtocolContradictionCheckResult {
+  const flags = collectContradictionRiskFlags(record)
+  const triggered = flags.includes('staff_exclusion_support_duty')
+  const unknownFields = resolveUnknownFields(record)
+  const confidence = resolveConfidence(record)
+  const redacted = isRedacted(record)
+
+  if (!triggered) {
+    return freezeContradictionCheckResult({
+      recordId: record.id,
+      flag: 'staff_exclusion_support_duty',
+      triggered: false,
+      blocksProcedure: false,
+      issues: [],
+      confidence,
+      redacted,
+      unknownFields,
+    })
+  }
+
+  return freezeContradictionCheckResult({
+    recordId: record.id,
+    flag: 'staff_exclusion_support_duty',
+    triggered: true,
+    blocksProcedure: false,
+    issues: buildStaffExclusionSupportDutyContradictionIssues(record),
+    confidence,
+    redacted,
+    unknownFields,
+  })
+}
+
 export function evaluateSurveillanceIsolationBurdenContradictionCheck(
   record: CoerciveProtocolRecord
 ): CoerciveProtocolContradictionCheckResult {
@@ -1239,12 +1467,14 @@ export function evaluateCoerciveProtocolContradictionChecks(
   const generalizedSubjectFitCheck =
     evaluateGeneralizedProcedureWithoutSubjectFitContradictionCheck(record)
   const routineForceCheck = evaluateRoutineForceAuthorizationContradictionCheck(record)
+  const staffExclusionCheck = evaluateStaffExclusionSupportDutyContradictionCheck(record)
   const surveillanceIsolationCheck = evaluateSurveillanceIsolationBurdenContradictionCheck(record)
 
   const triggered = [
     complianceMetricCheck.triggered ? complianceMetricCheck : null,
     generalizedSubjectFitCheck.triggered ? generalizedSubjectFitCheck : null,
     routineForceCheck.triggered ? routineForceCheck : null,
+    staffExclusionCheck.triggered ? staffExclusionCheck : null,
     surveillanceIsolationCheck.triggered ? surveillanceIsolationCheck : null,
   ].filter((check): check is CoerciveProtocolContradictionCheckResult => check !== null)
 
@@ -1266,6 +1496,15 @@ function collectContradictionRiskFlags(
 
   if (record.complianceMetricOnly === true) {
     flags.push('compliance_metric_masks_harm')
+  }
+
+  if (
+    isValidUnitScore(record.staffExclusionBurdenScore) &&
+    isValidUnitScore(record.supportDutyObligationScore) &&
+    record.staffExclusionBurdenScore >= STAFF_EXCLUSION_BURDEN_THRESHOLD &&
+    record.supportDutyObligationScore >= SUPPORT_DUTY_OBLIGATION_THRESHOLD
+  ) {
+    flags.push('staff_exclusion_support_duty')
   }
 
   if (
@@ -1387,6 +1626,32 @@ export const ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE: CoerciveProtocolRecord 
   confidence: 0.69,
 })
 
+/** Staff exclusion protocol with elevated support-duty obligation and missing owner refs. */
+export const STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
+  id: 'coercive-protocol:staff-exclusion-support-duty',
+  label: 'Staff exclusion support-service denial protocol',
+  summary:
+    'Staff and contained-support personnel excluded from peer contact and medical channels while support-duty obligations remain elevated; welfare and reporting risk may increase.',
+  subjectRef: 'subject:contained-support-personnel-09',
+  handlingMode: 'abusive',
+  subjectFitState: 'mismatch',
+  authorizationSource: 'facility_policy',
+  forcePolicy: 'escalated',
+  consentConfidence: 0.11,
+  refusalHandling: 'ignored',
+  isolationBurdenScore: 0.52,
+  surveillanceBurdenScore: 0.48,
+  staffExclusionBurdenScore: 0.81,
+  supportDutyObligationScore: 0.73,
+  custodyStatusRef: 'custody-status:privilege-suspended-hold',
+  containmentStabilityGain: 0.77,
+  personhoodHarmRisk: 0.71,
+  trustDamageRisk: 0.68,
+  legitimacyRisk: 0.62,
+  welfareDebtImpactLabel: 'staff exclusion welfare debt likely',
+  confidence: 0.71,
+})
+
 /** Abusive surveillance-isolation protocol with high burden scores. */
 export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRecord = defineRecord({
   id: 'coercive-protocol:abusive-surveillance-isolation',
@@ -1490,6 +1755,13 @@ function sanitizeCoerciveProtocolRecordEntry(value: unknown): CoerciveProtocolRe
   const subjectFitValidationRef = normalizeToken(value.subjectFitValidationRef ?? '') || undefined
   const complianceMetricOnly =
     typeof value.complianceMetricOnly === 'boolean' ? value.complianceMetricOnly : undefined
+  const staffExclusionBurdenScore = value.staffExclusionBurdenScore
+  const supportDutyObligationScore = value.supportDutyObligationScore
+  const exposureRiskScore = value.exposureRiskScore
+  const medicalAccessStateRef = normalizeToken(value.medicalAccessStateRef ?? '') || undefined
+  const accommodationAccessRef = normalizeToken(value.accommodationAccessRef ?? '') || undefined
+  const denialDoctrinePressureRef =
+    normalizeToken(value.denialDoctrinePressureRef ?? '') || undefined
   const confidence = value.confidence
   const unknownFields = parseStringList(value.unknownFields)
   const redactedFields = parseStringList(value.redactedFields)
@@ -1518,6 +1790,12 @@ function sanitizeCoerciveProtocolRecordEntry(value: unknown): CoerciveProtocolRe
     ...(procedureRef ? { procedureRef } : {}),
     ...(subjectFitValidationRef ? { subjectFitValidationRef } : {}),
     ...(complianceMetricOnly !== undefined ? { complianceMetricOnly } : {}),
+    ...(isValidUnitScore(staffExclusionBurdenScore) ? { staffExclusionBurdenScore } : {}),
+    ...(isValidUnitScore(supportDutyObligationScore) ? { supportDutyObligationScore } : {}),
+    ...(isValidUnitScore(exposureRiskScore) ? { exposureRiskScore } : {}),
+    ...(medicalAccessStateRef ? { medicalAccessStateRef } : {}),
+    ...(accommodationAccessRef ? { accommodationAccessRef } : {}),
+    ...(denialDoctrinePressureRef ? { denialDoctrinePressureRef } : {}),
     ...(isValidUnitScore(confidence) ? { confidence } : {}),
     ...(unknownFields.length > 0 ? { unknownFields } : {}),
     ...(redactedFields.length > 0 ? { redactedFields } : {}),

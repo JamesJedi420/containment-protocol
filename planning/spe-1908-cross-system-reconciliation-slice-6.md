@@ -5,7 +5,7 @@ One-page implementation plan. Linear: **create child** under [SPE-1908](https://
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2442 — Staff-duty cross-reconciliation surfacing (slice 6)](https://linear.app/spectranoir/issue/SPE-2442) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2757 @ `528d55a7`                                                                        |
 | **Parent** | [SPE-1908](https://linear.app/spectranoir/issue/SPE-1908) — surveillance-isolation contradiction check umbrella (Done; surfacing series continues) |
 | **Related**| [SPE-2441](https://linear.app/spectranoir/issue/SPE-2441) — staff-duty compose (shipped)                   |
 | **Branch** | `jamesdyedbq/spe-1908-staff-exclusion-cross-reconciliation-surfacing-slice-6`                              |

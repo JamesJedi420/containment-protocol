@@ -268,6 +268,7 @@ import type { MedicationRegimenRecord } from './containedPersonMedicationRegimen
 import type { WelfareDebtAccountingRecord } from './welfareDebtAccountingRegistry'
 import type { ContainedPersonIntegratedHealthBundle } from './containedPersonIntegratedHealthBundleRegistry'
 import type { SurveillanceInterventionTuningRecord } from './surveillanceCapacityInterventionTuningRegistry'
+import type { PsychologicalResilienceRecord } from './psychologicalResilienceRegistry'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
@@ -2726,6 +2727,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   surveillanceInterventionTuningRecords?: Record<string, SurveillanceInterventionTuningRecord>
+
+  /**
+   * SPE-1615 slice 2: persisted psychological resilience records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  psychologicalResilienceRecords?: Record<string, PsychologicalResilienceRecord>
 
   /** Optional active compromised-authority runtime packet (SPE-746). */
   compromisedAuthority?: CompromisedAuthorityState

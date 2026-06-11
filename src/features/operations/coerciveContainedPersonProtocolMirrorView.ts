@@ -205,6 +205,7 @@ export function getCoerciveContainedPersonProtocolMirrorView(
     protocols: game.coerciveContainedPersonProtocolRecords,
     bundles: game.containedPersonIntegratedHealthBundles,
     surveillanceTuningRecords: game.surveillanceInterventionTuningRecords,
+    psychologicalResilienceRecords: game.psychologicalResilienceRecords,
   })
   const tensionLabelsBySubject = buildCrossSystemTensionFlagLabelsBySubject(reconciliationSummaries)
 

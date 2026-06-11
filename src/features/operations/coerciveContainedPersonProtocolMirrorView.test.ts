@@ -11,6 +11,7 @@ import {
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
   formatCoerciveProtocolEnumLabel,
@@ -332,5 +333,41 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-2439 slice 4)', () => {
       'Surveillance Tuning Sustained Under Collateral Strain',
     ])
     expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.88')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2440 slice 5)', () => {
+  it('surfaces psychological-resilience tension flags when resilience records coexist', () => {
+    const protocolWithOperatorLink = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      subjectFitValidationRef: PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.operatorRef,
+    }
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [protocolWithOperatorLink.id]: protocolWithOperatorLink,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+    }
+    game.psychologicalResilienceRecords = {
+      [PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id]:
+        PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Monitoring Substitutes Contact Signal',
+      'Psychological Resilience Duty Reliability Degraded',
+      'Psychological Resilience Exposure Elevated',
+      'Surveillance Burden Low Humane Care Risk',
+      'Surveillance Burden No Active Contact Channel',
+      'Surveillance Burden Stable Mental State',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.72')
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.79')
   })
 })

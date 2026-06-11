@@ -1,12 +1,13 @@
 /**
- * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4: weekly report notes for coercive
- * protocol ↔ integrated health bundle cross-reconciliation.
+ * SPE-1908 / SPE-2429 slice 2 + SPE-2439 slice 4 + SPE-2440 slice 5: weekly report notes
+ * for coercive protocol ↔ integrated health bundle cross-reconciliation.
  *
  * Emits deterministic notes when linked maps coexist — no new persistence.
  */
 
 import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
 import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import type { PsychologicalResilienceRecordsMap } from './psychologicalResilienceRegistry'
 import type { SurveillanceInterventionTuningRecordsMap } from './surveillanceCapacityInterventionTuningRegistry'
 import {
   composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries,
@@ -23,6 +24,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
   nextProtocols: CoerciveProtocolRecordsMap | null | undefined
   nextBundles: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
   nextSurveillanceTuningRecords?: SurveillanceInterventionTuningRecordsMap | null | undefined
+  nextPsychologicalResilienceRecords?: PsychologicalResilienceRecordsMap | null | undefined
   week: number
   sequenceStart: number
   baseTimestamp?: number
@@ -31,6 +33,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
     protocols: input.nextProtocols ?? undefined,
     bundles: input.nextBundles ?? undefined,
     surveillanceTuningRecords: input.nextSurveillanceTuningRecords ?? undefined,
+    psychologicalResilienceRecords: input.nextPsychologicalResilienceRecords ?? undefined,
   })
 
   if (nextSummaries.length === 0) {
@@ -48,6 +51,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
           protocols: input.nextProtocols ?? undefined,
           bundles: input.nextBundles ?? undefined,
           surveillanceTuningRecords: input.nextSurveillanceTuningRecords ?? undefined,
+          psychologicalResilienceRecords: input.nextPsychologicalResilienceRecords ?? undefined,
         }),
         input.week,
         sequence,
@@ -58,6 +62,7 @@ export function buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportN
           linkedProtocolCount: summary.linkedProtocolCount,
           linkedBundleCount: summary.linkedBundleCount,
           linkedTuningCount: summary.linkedTuningCount,
+          linkedResilienceCount: summary.linkedResilienceCount,
           crossSystemTensionFlags: [...summary.crossSystemTensionFlags],
           structuredReasons: [...summary.structuredReasons],
           week: input.week,

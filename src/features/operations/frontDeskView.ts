@@ -814,6 +814,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review handling modes, containment-care tradeoffs, coercion-risk flags, and owner refs.',
     },
     {
+      label: 'Open psychological resilience mirror',
+      href: APP_ROUTES.psychologicalResilience,
+      description:
+        'Review depletion bands, exposure posture, treatment gating, and duty-reliability projections.',
+    },
+    {
       label: 'Open naming-hazard descriptor mirror',
       href: APP_ROUTES.namingHazardDescriptor,
       description:

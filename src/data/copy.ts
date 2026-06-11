@@ -1267,6 +1267,45 @@ export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, s
   redactedSuffix: 'Partial redaction',
 }
 
+export const PSYCHOLOGICAL_RESILIENCE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Psychological resilience registry',
+  pageSubtitle:
+    'Read-only operations view over persisted operator resilience records and read-time depletion, exposure, and treatment-gating projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  exposureElevatedLabel: 'Exposure elevated',
+  treatmentGatedLabel: 'Treatment gated',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Depletion bands, exposure scores, and treatment gates mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No psychological resilience records',
+  emptyBody:
+    'Persisted operator resilience records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Exposure, depletion, and treatment-gating projections are read-time only, not objective truth.',
+  labelColumn: 'Label',
+  depletionColumn: 'Depletion posture',
+  exposureColumn: 'Exposure',
+  recoveryColumn: 'Recovery channel',
+  projectionColumn: 'Projection signals',
+  confidenceColumn: 'Confidence',
+  operatorRefPrefix: 'Operator:',
+  exposureScorePrefix: 'Exposure score:',
+  exposureEventPrefix: 'Exposure events:',
+  exposureSourcesPrefix: 'Sources:',
+  complicationsPrefix: 'Complications:',
+  counselingRefPrefix: 'Counseling ref:',
+  exposureElevatedSuffix: 'Exposure elevated',
+  treatmentGatedSuffix: 'Treatment gated',
+  depletionAdvancedSuffix: 'Depletion advanced',
+  dutyReliabilitySuffix: 'Duty reliability degraded',
+  restRecoverySuffix: 'Rest recovery eligible',
+  validationWarningPrefix: 'Validation warnings:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const CONTAINED_PERSON_THERAPEUTIC_CARE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Contained person therapeutic care registry',

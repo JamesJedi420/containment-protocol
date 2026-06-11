@@ -102,6 +102,9 @@ const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
 const CoerciveContainedPersonProtocolMirrorRoute = createRouteComponent(
   () => import('../features/operations/CoerciveContainedPersonProtocolMirrorPage')
 )
+const PsychologicalResilienceMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PsychologicalResilienceMirrorPage')
+)
 const NamingHazardDescriptorMirrorRoute = createRouteComponent(
   () => import('../features/operations/NamingHazardDescriptorMirrorPage')
 )
@@ -204,6 +207,10 @@ export default function App() {
         <Route
           path="coercive-contained-person-protocol"
           element={renderLazyRoute(CoerciveContainedPersonProtocolMirrorRoute)}
+        />
+        <Route
+          path="psychological-resilience"
+          element={renderLazyRoute(PsychologicalResilienceMirrorRoute)}
         />
         <Route
           path="naming-hazard-descriptor"

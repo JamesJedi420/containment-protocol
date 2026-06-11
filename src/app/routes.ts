@@ -33,6 +33,7 @@ export const APP_ROUTES = {
   entityWelfareReclassification: '/entity-welfare-reclassification',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
   coerciveContainedPersonProtocol: '/coercive-contained-person-protocol',
+  psychologicalResilience: '/psychological-resilience',
   namingHazardDescriptor: '/naming-hazard-descriptor',
   containedPersonIntegratedHealthBundle: '/contained-person-integrated-health-bundle',
   welfareDebtAccounting: '/welfare-debt-accounting',

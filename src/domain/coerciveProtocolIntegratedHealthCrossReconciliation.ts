@@ -10,12 +10,14 @@
 
 import {
   evaluateCoerciveProtocolContradictionChecks,
+  evaluateStaffExclusionSupportDutyContradictionCheck,
   projectCoerciveProtocolRiskReview,
   validateCoerciveProtocolRecord,
   type CoerciveProtocolContradictionCheckResult,
   type CoerciveProtocolRecord,
   type CoerciveProtocolRecordsMap,
   type CoerciveProtocolRiskReviewProjection,
+  type CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode,
 } from './coerciveContainedPersonProtocolRegistry'
 import {
   validateContainedPersonIntegratedHealthBundle,
@@ -58,6 +60,12 @@ export type CoerciveProtocolCrossSystemTensionFlag =
   | 'psychological_resilience_duty_reliability_degraded'
   | 'psychological_resilience_exposure_elevated'
   | 'psychological_resilience_treatment_gated'
+  | 'staff_exclusion_support_duty_obligation_elevated'
+  | 'staff_exclusion_exposure_risk_not_separated'
+  | 'staff_exclusion_medical_access_not_routed'
+  | 'staff_exclusion_accommodation_access_not_routed'
+  | 'staff_exclusion_resilience_duty_reliability_cross_tension'
+  | 'staff_exclusion_bundle_no_active_contact_cross_tension'
 
 export interface CoerciveProtocolSurveillanceTuningCrossLink {
   readonly surveillanceTuningId: string
@@ -357,6 +365,82 @@ function collectPsychologicalResilienceCrossSystemTensionFlags(input: {
   return Object.freeze([...new Set(flags)].sort((left, right) => left.localeCompare(right)))
 }
 
+const STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES = new Set<CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode>([
+  'staff_exclusion_support_duty_obligation_elevated',
+  'staff_exclusion_exposure_risk_not_separated',
+  'staff_exclusion_medical_access_not_routed',
+  'staff_exclusion_accommodation_access_not_routed',
+])
+
+function mapStaffExclusionIssueToCrossSystemTensionFlag(
+  code: CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode
+): CoerciveProtocolCrossSystemTensionFlag | null {
+  if (!STAFF_EXCLUSION_CROSS_SYSTEM_ISSUE_CODES.has(code)) {
+    return null
+  }
+
+  return code
+}
+
+function collectStaffExclusionCrossSystemTensionFlags(input: {
+  readonly protocolRecords: readonly CoerciveProtocolRecord[]
+  readonly bundle: ContainedPersonIntegratedHealthBundle | null
+  readonly psychologicalResilienceProjections: readonly PsychologicalResilienceProjection[]
+  readonly bundleCrossSystemTensionFlags: readonly CoerciveProtocolCrossSystemTensionFlag[]
+  readonly resilienceCrossSystemTensionFlags: readonly CoerciveProtocolCrossSystemTensionFlag[]
+}): readonly CoerciveProtocolCrossSystemTensionFlag[] {
+  if (!input.bundle) {
+    return Object.freeze([])
+  }
+
+  const hasStaffExclusionDuty = input.protocolRecords.some((record) => {
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(record)
+    return check.triggered
+  })
+
+  if (!hasStaffExclusionDuty) {
+    return Object.freeze([])
+  }
+
+  const flags: CoerciveProtocolCrossSystemTensionFlag[] = []
+
+  for (const record of input.protocolRecords) {
+    const check = evaluateStaffExclusionSupportDutyContradictionCheck(record)
+    if (!check.triggered) {
+      continue
+    }
+
+    for (const issue of check.issues) {
+      const tensionFlag = mapStaffExclusionIssueToCrossSystemTensionFlag(
+        issue.code as CoerciveProtocolStaffExclusionSupportDutyContradictionCheckCode
+      )
+      if (tensionFlag) {
+        flags.push(tensionFlag)
+      }
+    }
+  }
+
+  const resilienceDutyDegraded =
+    input.resilienceCrossSystemTensionFlags.includes(
+      'psychological_resilience_duty_reliability_degraded'
+    ) || input.psychologicalResilienceProjections.some((projection) => projection.dutyReliabilityDegraded)
+
+  if (resilienceDutyDegraded && input.psychologicalResilienceProjections.length > 0) {
+    flags.push('staff_exclusion_resilience_duty_reliability_cross_tension')
+  }
+
+  const bundleNoActiveContact =
+    input.bundleCrossSystemTensionFlags.includes('surveillance_burden_no_active_contact_channel') ||
+    ((input.bundle.therapeuticCareScheduleLinks ?? []).length > 0 &&
+      !hasActiveTherapeuticContactChannel(input.bundle))
+
+  if (bundleNoActiveContact) {
+    flags.push('staff_exclusion_bundle_no_active_contact_cross_tension')
+  }
+
+  return Object.freeze([...new Set(flags)].sort((left, right) => left.localeCompare(right)))
+}
+
 function collectSurveillanceTuningCrossSystemTensionFlags(input: {
   readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
   readonly surveillanceTuningProjections: readonly SurveillanceInterventionTuningProjection[]
@@ -381,23 +465,34 @@ function collectSurveillanceTuningCrossSystemTensionFlags(input: {
 }
 
 function collectCrossSystemTensionFlags(input: {
+  readonly protocolRecords: readonly CoerciveProtocolRecord[]
   readonly protocolRiskReviews: readonly CoerciveProtocolRiskReviewProjection[]
   readonly bundle: ContainedPersonIntegratedHealthBundle | null
   readonly surveillanceTuningProjections: readonly SurveillanceInterventionTuningProjection[]
   readonly psychologicalResilienceProjections: readonly PsychologicalResilienceProjection[]
 }): readonly CoerciveProtocolCrossSystemTensionFlag[] {
+  const bundleCrossSystemTensionFlags = collectBundleCrossSystemTensionFlags({
+    protocolRiskReviews: input.protocolRiskReviews,
+    bundle: input.bundle,
+  })
+  const resilienceCrossSystemTensionFlags = collectPsychologicalResilienceCrossSystemTensionFlags({
+    psychologicalResilienceProjections: input.psychologicalResilienceProjections,
+  })
+
   return Object.freeze(
     [
-      ...collectBundleCrossSystemTensionFlags({
-        protocolRiskReviews: input.protocolRiskReviews,
-        bundle: input.bundle,
-      }),
+      ...bundleCrossSystemTensionFlags,
       ...collectSurveillanceTuningCrossSystemTensionFlags({
         protocolRiskReviews: input.protocolRiskReviews,
         surveillanceTuningProjections: input.surveillanceTuningProjections,
       }),
-      ...collectPsychologicalResilienceCrossSystemTensionFlags({
+      ...resilienceCrossSystemTensionFlags,
+      ...collectStaffExclusionCrossSystemTensionFlags({
+        protocolRecords: input.protocolRecords,
+        bundle: input.bundle,
         psychologicalResilienceProjections: input.psychologicalResilienceProjections,
+        bundleCrossSystemTensionFlags,
+        resilienceCrossSystemTensionFlags,
       }),
     ]
       .filter((flag, index, flags) => flags.indexOf(flag) === index)
@@ -554,6 +649,7 @@ export function composeCoerciveProtocolIntegratedHealthReconciliation(
   })
 
   const crossSystemTensionFlags = collectCrossSystemTensionFlags({
+    protocolRecords,
     protocolRiskReviews,
     bundle,
     surveillanceTuningProjections,

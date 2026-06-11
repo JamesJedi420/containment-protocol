@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) psychological resilience registry slice 3 (weekly depletion orchestration), SPE-1908 cross-join follow-up, or SPE-848 slice 4 planning mirror UI. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
+**Next step:** [SPE-2435](https://linear.app/spectranoir/issue/SPE-2435) psychological resilience registry slice 3 (weekly depletion orchestration in flight), then SPE-1908 cross-join follow-up or SPE-848 slice 4 planning mirror UI. Mission triage expansion remains **blocked** per `ux/mission-triage.md`.
 
-**Base `main` SHA:** `467fe4d6` — shipped: [SPE-2434](https://linear.app/spectranoir/issue/SPE-2434) psychological resilience registry slice 2 @ PR #2739
+**Base `main` SHA:** `2b76942f` — in flight: [SPE-2435](https://linear.app/spectranoir/issue/SPE-2435) psychological resilience registry slice 3; branch `jamesdyedbq/spe-1615-psychological-resilience-registry-slice-3`
 
 **Recently shipped:** [SPE-2434](https://linear.app/spectranoir/issue/SPE-2434) psychological resilience registry slice 2 @ PR #2739; [SPE-2433](https://linear.app/spectranoir/issue/SPE-2433) psychological resilience registry slice 1 @ PR #2737; see `planning/spe-1615-psychological-resilience-registry-slice-2.md`.
 

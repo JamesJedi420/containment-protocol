@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
-import { ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
-import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
+import {
+  ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+} from '../domain/coerciveContainedPersonProtocolRegistry'
+import {
+  INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+  INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+} from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../domain/surveillanceCapacityInterventionTuningRegistry'
@@ -127,5 +133,35 @@ describe('advanceWeek coercive protocol integrated health reconciliation integra
       `${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.id} (${PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE.label})`
     )
     expect(reconciliationNotes[0]?.metadata?.linkedResilienceCount).toBe(1)
+  })
+})
+
+describe('advanceWeek coercive protocol integrated health reconciliation integration (SPE-2442 slice 6)', () => {
+  it('surfaces staff-duty tension flags when staff-exclusion fixtures coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.coerciveContainedPersonProtocolRecords = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]:
+        STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+    state.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const reconciliationNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'coercive_protocol.integrated_health_reconciliation'
+      ) ?? []
+
+    expect(reconciliationNotes.length).toBeGreaterThan(0)
+    expect(reconciliationNotes[0]?.content).toContain('subject:contained-support-personnel-09')
+    expect(reconciliationNotes[0]?.content).toContain('Staff-duty tension flags:')
+    expect(reconciliationNotes[0]?.content).toContain('Staff Exclusion Support Duty Obligation Elevated')
+    expect(reconciliationNotes[0]?.content).toContain('Staff Exclusion Medical Access Not Routed')
+    expect(reconciliationNotes[0]?.content).not.toContain('0.81')
+    expect(reconciliationNotes[0]?.content).not.toContain('excludes staff or support personnel')
   })
 })

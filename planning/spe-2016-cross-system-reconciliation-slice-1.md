@@ -63,7 +63,7 @@ Extend `composeCoerciveProtocolIntegratedHealthReconciliation` to surface staff-
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Staff-duty tension surfacing in mirror / weekly notes | SPE-1908 follow-up | Out of compose-only boundary |
+| Staff-duty tension surfacing in mirror / weekly notes | [SPE-1908 slice 6](spe-1908-cross-system-reconciliation-slice-6.md) | Out of compose-only boundary |
 | Medical policy ledger implementation | SPE-2074 | Routed via `medicalAccessStateRef` |
 | Accommodation request ledger | SPE-2005 | Routed via `accommodationAccessRef` |
 | Institutional denial doctrine enforcement | SPE-2001 | Routed via `denialDoctrinePressureRef` |

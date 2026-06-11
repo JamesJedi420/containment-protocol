@@ -4,13 +4,17 @@ import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
   evaluateCoerciveProtocolContradictionChecks,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
   validateCoerciveProtocolRecord,
   type CoerciveProtocolRecord,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
-import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import {
+  INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+  INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
+} from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
@@ -369,5 +373,34 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-2440 slice 5)', () => {
     ])
     expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.72')
     expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.79')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-2442 slice 6)', () => {
+  it('surfaces staff-duty tension flags when staff-exclusion fixtures coexist', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]:
+        STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE.subjectRef]:
+        INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.integratedHealthLinkedSubjectCount).toBe(1)
+    expect(view.summary.crossSystemTensionSubjectCount).toBe(1)
+    expect(record?.crossSystemTensionFlagLabels).toEqual([
+      'Staff Exclusion Accommodation Access Not Routed',
+      'Staff Exclusion Bundle No Active Contact Cross Tension',
+      'Staff Exclusion Exposure Risk Not Separated',
+      'Staff Exclusion Medical Access Not Routed',
+      'Staff Exclusion Support Duty Obligation Elevated',
+    ])
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.81')
+    expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('excludes staff')
   })
 })

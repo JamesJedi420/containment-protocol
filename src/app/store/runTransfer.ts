@@ -213,6 +213,7 @@ import { sanitizeCoerciveProtocolRecords, sanitizeCoerciveProtocolWeeklyProjecti
 import { sanitizeMedicationRegimenRecords } from '../../domain/containedPersonMedicationRegimenRegistry'
 import { sanitizeContainedPersonIntegratedHealthBundles } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { sanitizeSurveillanceInterventionTuningRecords } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
+import { sanitizePsychologicalResilienceRecords } from '../../domain/psychologicalResilienceRegistry'
 import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
 import {
   buildCandidateEvaluation,
@@ -8539,6 +8540,10 @@ export function hydrateGame(
     game.surveillanceInterventionTuningRecords,
     fallback.surveillanceInterventionTuningRecords ?? {}
   )
+  const psychologicalResilienceRecords = sanitizePsychologicalResilienceRecords(
+    game.psychologicalResilienceRecords,
+    fallback.psychologicalResilienceRecords ?? {}
+  )
   const factions = hasPersistedFactions
     ? sanitizeFactionsMap(game.factions, fallback.factions)
     : fallback.factions
@@ -8679,6 +8684,7 @@ export function hydrateGame(
       welfareDebtAccountingRecords,
       containedPersonIntegratedHealthBundles,
       surveillanceInterventionTuningRecords,
+      psychologicalResilienceRecords,
       candidates,
       recruitmentPool,
       teams,

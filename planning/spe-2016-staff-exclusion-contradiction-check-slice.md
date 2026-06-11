@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2016](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2016 — Contradiction check: Staff exclusion versus support-duty obligations](https://linear.app/spectranoir/issue/SPE-2016) |
-| **Status** | Ready for PR                                                                                               |
+| **Status** | **Shipped** — PR #2753 @ `2c168f0c`                                                                       |
 | **Parent** | None (staff-duty owner; related to SPE-1908 contained-person cross-join)                                   |
 | **Branch** | `jamesdyedbq/spe-2016-staff-exclusion-contradiction-check`                                                 |
 | **Base `main` SHA** | `809e46a1`                                                                                          |

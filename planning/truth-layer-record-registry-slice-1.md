@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2447](https://linear.app/spectranoir/
 | **Linear** | [SPE-2447 — Truth-layer record registry slice 1](https://linear.app/spectranoir/issue/SPE-2447)         |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split; stays **Backlog** |
 | **Branch** | `spe-1343-truth-layer-record-registry-slice-1`                                                             |
-| **Status** | **Ready for PR**                                                                                           |
+| **Status** | **Shipped** — PR #2772 @ `080608e6`                                                                        |
 | **Base `main` SHA** | `1808d653`                                                                                          |
 
 ## Goal

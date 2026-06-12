@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1343](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Cover narrative + agency operational record dual-incident pairing (slice 1) — child under SPE-1343       |
-| **Status** | **In progress** — branch `spe-1343-truth-layer-cover-narrative-pairing-slice-1` |
+| **Status** | **Shipped** — PR #2778 @ `fe3fbae1`                                                                        |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split          |
 | **Branch** | `spe-1343-truth-layer-cover-narrative-pairing-slice-1`                                                     |
 | **Base `main` SHA** | `cb53f843`                                                                                          |

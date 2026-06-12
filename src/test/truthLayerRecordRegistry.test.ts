@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest'
+import { createStartingState } from '../data/startingState'
+import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import type { AuthoritySourceConfidence } from '../domain/authorityGraph'
+import type { KnowledgeTier } from '../domain/knowledge'
 import {
   ACTOR_TRUTH_LAYER_FIXTURE,
   COMPETING_LAYER_ROLES,
   COMPETING_TRUTH_LAYERS_FIXTURE,
   TRUTH_LAYER_SUBJECT_KINDS,
+  isTruthLayerKnowledgeTier,
+  isTruthLayerSourceConfidence,
   projectTruthLayerReviewView,
+  sanitizeTruthLayerRecords,
   validateTruthLayerRecord,
   type TruthLayerRecord,
 } from '../domain/truthLayerRecordRegistry'
@@ -188,5 +196,150 @@ describe('truthLayerRecordRegistry (SPE-1343 slice 1)', () => {
     const second = JSON.stringify(validateTruthLayerRecord(record))
 
     expect(first).toBe(second)
+  })
+})
+
+describe('truthLayerRecordRegistry persistence (SPE-1343 slice 2)', () => {
+  it('defaults starting state to an empty truth-layer map', () => {
+    expect(createStartingState().truthLayerRecords).toEqual({})
+  })
+
+  it('reuses AuthoritySourceConfidence and KnowledgeTier at runtime on hydrated slots', () => {
+    const claimConfidence = COMPETING_TRUTH_LAYERS_FIXTURE.claim.sourceConfidence
+    const doctrineTier = COMPETING_TRUTH_LAYERS_FIXTURE.doctrine.knowledgeTier
+
+    expect(claimConfidence).toBeDefined()
+    expect(doctrineTier).toBeDefined()
+    expect(isTruthLayerSourceConfidence(claimConfidence as string)).toBe(true)
+    expect(isTruthLayerKnowledgeTier(doctrineTier as string)).toBe(true)
+
+    const confidence: AuthoritySourceConfidence = claimConfidence as AuthoritySourceConfidence
+    const tier: KnowledgeTier = doctrineTier as KnowledgeTier
+
+    expect(confidence).toBe('public_cover')
+    expect(tier).toBe('observed')
+  })
+
+  it('drops invalid and duplicate-id entries during sanitize without throwing', () => {
+    const fallback = {}
+    const sanitized = sanitizeTruthLayerRecords(
+      {
+        valid: COMPETING_TRUTH_LAYERS_FIXTURE,
+        actor: ACTOR_TRUTH_LAYER_FIXTURE,
+        'wrong-key': {
+          ...COMPETING_TRUTH_LAYERS_FIXTURE,
+          id: 'truth:regional-oversight-commissioner',
+        },
+        duplicate: {
+          ...COMPETING_TRUTH_LAYERS_FIXTURE,
+          label: 'duplicate label should lose',
+        },
+        invalid: {
+          id: '',
+          label: 'bad',
+          subjectRef: 'event:test',
+          subjectKind: 'event',
+          claim: { narrative: 'claim' },
+          doctrine: { narrative: 'doctrine' },
+          verification: { narrative: 'verification' },
+        },
+        franchiseLabel: {
+          id: 'truth:franchise',
+          label: 'Foundation cover narrative review',
+          subjectRef: 'event:test',
+          subjectKind: 'event',
+          claim: { narrative: 'Public claim narrative.' },
+          doctrine: { narrative: 'Institutional doctrine narrative.' },
+          verification: { narrative: 'Field verification narrative.' },
+        },
+        invalidConfidence: {
+          id: 'truth:invalid-confidence',
+          label: 'Invalid source confidence',
+          subjectRef: 'event:test',
+          subjectKind: 'event',
+          claim: { narrative: 'Public claim narrative.', sourceConfidence: 'not_a_level' },
+          doctrine: { narrative: 'Institutional doctrine narrative.' },
+          verification: { narrative: 'Field verification narrative.' },
+        },
+        invalidTier: {
+          id: 'truth:invalid-tier',
+          label: 'Invalid knowledge tier',
+          subjectRef: 'event:test',
+          subjectKind: 'event',
+          claim: { narrative: 'Public claim narrative.' },
+          doctrine: { narrative: 'Institutional doctrine narrative.', knowledgeTier: 'not_a_tier' },
+          verification: { narrative: 'Field verification narrative.' },
+        },
+      },
+      fallback
+    )
+
+    expect(sanitized['truth:coastal-research-campus-incident']).toEqual(
+      COMPETING_TRUTH_LAYERS_FIXTURE
+    )
+    expect(sanitized['truth:regional-oversight-commissioner']).toEqual(ACTOR_TRUTH_LAYER_FIXTURE)
+    expect(sanitized.invalid).toBeUndefined()
+    expect(sanitized.franchiseLabel).toBeUndefined()
+    expect(sanitized.duplicate).toBeUndefined()
+    expect(sanitized['wrong-key']).toBeUndefined()
+    expect(sanitized['truth:invalid-confidence']?.claim.sourceConfidence).toBeUndefined()
+    expect(sanitized['truth:invalid-confidence']?.claim.narrative).toBe('Public claim narrative.')
+    expect(sanitized['truth:invalid-tier']?.doctrine.knowledgeTier).toBeUndefined()
+    expect(sanitized['truth:invalid-tier']?.doctrine.narrative).toBe(
+      'Institutional doctrine narrative.'
+    )
+    expect(Object.keys(sanitized).sort()).toEqual([
+      'truth:coastal-research-campus-incident',
+      'truth:invalid-confidence',
+      'truth:invalid-tier',
+      'truth:regional-oversight-commissioner',
+    ])
+  })
+
+  it('round-trips fixture records with nested arrays byte-stable through save/load', () => {
+    const state = createStartingState()
+    state.truthLayerRecords = {
+      [COMPETING_TRUTH_LAYERS_FIXTURE.id]: COMPETING_TRUTH_LAYERS_FIXTURE,
+      [ACTOR_TRUTH_LAYER_FIXTURE.id]: ACTOR_TRUTH_LAYER_FIXTURE,
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.truthLayerRecords).toEqual(state.truthLayerRecords)
+    expect(
+      loaded.truthLayerRecords?.[COMPETING_TRUTH_LAYERS_FIXTURE.id]?.competingLayers
+    ).toEqual(COMPETING_TRUTH_LAYERS_FIXTURE.competingLayers)
+    expect(loaded.truthLayerRecords?.[COMPETING_TRUTH_LAYERS_FIXTURE.id]?.claim).toEqual(
+      COMPETING_TRUTH_LAYERS_FIXTURE.claim
+    )
+    expect(loaded.truthLayerRecords?.[ACTOR_TRUTH_LAYER_FIXTURE.id]?.verification).toEqual(
+      ACTOR_TRUTH_LAYER_FIXTURE.verification
+    )
+  })
+
+  it('hydrates persisted truth-layer records through import parsing', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        truthLayerRecords: {
+          [COMPETING_TRUTH_LAYERS_FIXTURE.id]: COMPETING_TRUTH_LAYERS_FIXTURE,
+          invalid: {
+            id: 'truth:invalid',
+            label: 'Foundation cover narrative review',
+            subjectRef: 'event:test',
+            subjectKind: 'event',
+            claim: { narrative: 'Public claim narrative.' },
+            doctrine: { narrative: 'Institutional doctrine narrative.' },
+            verification: { narrative: 'Field verification narrative.' },
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.truthLayerRecords).toEqual({
+      [COMPETING_TRUTH_LAYERS_FIXTURE.id]: COMPETING_TRUTH_LAYERS_FIXTURE,
+    })
   })
 })

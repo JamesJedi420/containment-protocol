@@ -50,6 +50,7 @@ const startingStateTemplate: GameState = {
   ruleDocumentComplianceRecords: {},
   selfCensoringInformationRecords: {},
   publicDisclosureRecords: {},
+  truthLayerRecords: {},
   patternSourceSeriesRecords: {},
   massAnomalousPopulationEmergenceRecords: {},
   visualTriggerHazardRecords: {},

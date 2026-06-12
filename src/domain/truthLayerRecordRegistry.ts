@@ -798,6 +798,186 @@ export const COMPETING_TRUTH_LAYERS_FIXTURE: TruthLayerRecord = defineRecord({
   confidence: 0.55,
 })
 
+// ---------------------------------------------------------------------------
+// Persistence (SPE-1343 slice 2)
+// ---------------------------------------------------------------------------
+
+export type TruthLayerRecordsMap = Record<TruthLayerRecordId, TruthLayerRecord>
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function parseTruthLayerSlot(value: unknown): TruthLayerSlot | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const narrative = normalizeToken(value.narrative)
+  if (!narrative) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const sourceConfidence =
+    typeof value.sourceConfidence === 'string' && isSourceConfidence(value.sourceConfidence)
+      ? value.sourceConfidence
+      : undefined
+  const knowledgeTier =
+    typeof value.knowledgeTier === 'string' && isKnowledgeTier(value.knowledgeTier)
+      ? value.knowledgeTier
+      : undefined
+  const lastUpdatedWeek = isFiniteWeek(value.lastUpdatedWeek) ? value.lastUpdatedWeek : undefined
+  const evidenceRef = normalizeToken(value.evidenceRef ?? '') || undefined
+
+  return {
+    narrative,
+    ...(summary ? { summary } : {}),
+    ...(sourceConfidence ? { sourceConfidence } : {}),
+    ...(knowledgeTier ? { knowledgeTier } : {}),
+    ...(lastUpdatedWeek !== undefined ? { lastUpdatedWeek } : {}),
+    ...(evidenceRef ? { evidenceRef } : {}),
+  }
+}
+
+function parseCompetingLayers(value: unknown): readonly CompetingTruthLayerRef[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const layers: CompetingTruthLayerRef[] = []
+
+  for (const entry of value) {
+    if (!isRecord(entry)) {
+      continue
+    }
+
+    const recordRef = normalizeToken(entry.recordRef)
+    const layerRole = entry.layerRole
+    if (
+      !recordRef ||
+      typeof layerRole !== 'string' ||
+      !isCompetingLayerRoleValue(layerRole)
+    ) {
+      continue
+    }
+
+    const note =
+      typeof entry.note === 'string' && entry.note.trim().length > 0
+        ? entry.note.trim()
+        : undefined
+
+    layers.push(note ? { recordRef, layerRole, note } : { recordRef, layerRole })
+  }
+
+  return layers
+}
+
+function sanitizeTruthLayerRecordEntry(value: unknown): TruthLayerRecord | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const subjectRef = normalizeToken(value.subjectRef)
+  const subjectKind = value.subjectKind
+  const claim = parseTruthLayerSlot(value.claim)
+  const doctrine = parseTruthLayerSlot(value.doctrine)
+  const verification = parseTruthLayerSlot(value.verification)
+
+  if (
+    !id ||
+    !label ||
+    !subjectRef ||
+    typeof subjectKind !== 'string' ||
+    !isSubjectKind(subjectKind) ||
+    !claim ||
+    !doctrine ||
+    !verification
+  ) {
+    return null
+  }
+
+  const competingLayers = parseCompetingLayers(value.competingLayers)
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const parentCaseRef = normalizeToken(value.parentCaseRef ?? '') || undefined
+  const linkedDisclosureRef = normalizeToken(value.linkedDisclosureRef ?? '') || undefined
+  const correctionPressure = value.correctionPressure
+  const mythInfrastructureWeight = value.mythInfrastructureWeight
+  const confidence = value.confidence
+
+  const record: TruthLayerRecord = {
+    id,
+    label,
+    subjectRef,
+    subjectKind,
+    claim,
+    doctrine,
+    verification,
+    ...(summary ? { summary } : {}),
+    ...(parentCaseRef ? { parentCaseRef } : {}),
+    ...(competingLayers.length > 0 ? { competingLayers } : {}),
+    ...(isValidUnitScore(correctionPressure) ? { correctionPressure } : {}),
+    ...(isValidUnitScore(mythInfrastructureWeight) ? { mythInfrastructureWeight } : {}),
+    ...(linkedDisclosureRef ? { linkedDisclosureRef } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateTruthLayerRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical record map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeTruthLayerRecords(
+  value: unknown,
+  fallback: TruthLayerRecordsMap = {}
+): TruthLayerRecordsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const next: TruthLayerRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeTruthLayerRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 /** Actor subject with separate claim/doctrine/verification slots for round-trip checks. */
 export const ACTOR_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
   id: 'truth:regional-oversight-commissioner',

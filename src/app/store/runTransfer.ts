@@ -203,6 +203,7 @@ import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLoca
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
 import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
+import { sanitizeTruthLayerRecords } from '../../domain/truthLayerRecordRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
@@ -8498,6 +8499,10 @@ export function hydrateGame(
     game.publicDisclosureRecords,
     fallback.publicDisclosureRecords ?? {}
   )
+  const truthLayerRecords = sanitizeTruthLayerRecords(
+    game.truthLayerRecords,
+    fallback.truthLayerRecords ?? {}
+  )
   const patternSourceSeriesRecords = sanitizePatternSourceSeriesRecords(
     game.patternSourceSeriesRecords,
     fallback.patternSourceSeriesRecords ?? {}
@@ -8681,6 +8686,7 @@ export function hydrateGame(
       ruleDocumentComplianceRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,
+      truthLayerRecords,
       patternSourceSeriesRecords,
       massAnomalousPopulationEmergenceRecords,
       visualTriggerHazardRecords,

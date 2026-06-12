@@ -67,7 +67,7 @@ Wire at least one incident that maintains a public cover narrative alongside a s
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Historical-icon normalcy pressure surfaces | SPE-1343 follow-up | Parent AC row 5 |
+| Historical-icon normalcy pressure surfaces | SPE-1343 follow-up slice 1 | Parent AC row 5 — **shipped** PR #2779 |
 | Cover-story lifecycle state machine | SPE-1347 | Out of registry pairing boundary |
 | Witness normalization wire-up | SPE-899 | Out of fixture pairing boundary |
 | Disclosure campaign player UI | SPE-861 | Out of domain wire-up boundary |

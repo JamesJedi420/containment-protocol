@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1343](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Historical-icon normalcy pressure review surfaces (slice 1) — child under SPE-1343                         |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2779 @ `c7c372da`                                                                        |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split          |
 | **Branch** | `spe-1343-truth-layer-historical-icon-normalcy-slice-1`                                                  |
 | **Base `main` SHA** | `d1467e14`                                                                                          |

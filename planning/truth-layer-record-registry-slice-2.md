@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2448](https://linear.app/spectranoir/
 | **Linear** | [SPE-2448 — Truth-layer record registry GameState persistence (slice 2)](https://linear.app/spectranoir/issue/SPE-2448) |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth operational truth split; stays **Backlog** |
 | **Branch** | `spe-1343-truth-layer-record-registry-slice-2`                                                             |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2774                                                                                     |
 | **Base `main` SHA** | `9e050dd0`                                                                                          |
 
 ## Goal

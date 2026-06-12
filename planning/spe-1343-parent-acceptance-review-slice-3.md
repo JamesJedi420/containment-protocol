@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1343](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2450 — SPE-1343 parent acceptance review (grooming slice 3)](https://linear.app/spectranoir/issue/SPE-2450) |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split; **Done** on Linear (reconciled this slice) |
 | **Branch** | `spe-1343-parent-acceptance-review-slice-3`                                                                |
-| **Status** | **In progress** — SPE-2450 (PR pending)                                                               |
+| **Status** | **Shipped** — SPE-2450 (PR #2781) @ `a3fac6bc`                                                         |
 | **Base `main` SHA** | `138c19b0`                                                                                          |
 
 ## Goal
@@ -69,7 +69,7 @@ Rows 1–4 and 6 updated from slice 2; row 5 is the primary grooming delta.
 - [x] Parent AC re-evaluated with AC row 5 **Partial/Met** (PR #2779) and truth-layer wave updates to rows 1–4, 6
 - [x] Parent disposition documented: **Done** on Linear; `planning/backlog.md` aligned
 - [x] Deferred sibling table confirms SPE-1347 / SPE-899 / SPE-861 / SPE-677 / SPE-58 do not block parent closure
-- [ ] SPE-2450 grooming child **Done** after merge; parent status unchanged
+- [x] SPE-2450 grooming child **Done** after merge; parent status unchanged
 - [x] Docs-only diff
 
 ## Deferred

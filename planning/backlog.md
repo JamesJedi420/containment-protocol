@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred; SPE-1309 unified engine AC remains open; SPE-1347 cover-story lifecycle or SPE-861 disclosure UI if truth-layer follow-on is prioritized.
 
-**Base `main` SHA:** `138c19b0` — in progress: SPE-1343 parent acceptance review grooming slice 3 @ `planning/spe-1343-parent-acceptance-review-slice-3.md` (SPE-2450)
+**Base `main` SHA:** `a3fac6bc` — shipped: SPE-1343 parent acceptance review grooming slice 3 @ `planning/spe-1343-parent-acceptance-review-slice-3.md` (SPE-2450 / PR #2781)
 
-**Recently shipped:** SPE-1343 historical-icon normalcy pressure slice 1 (PR #2779); SPE-1343 cover-narrative dual-incident pairing slice 1 (PR #2778); SPE-1343 truth-layer record registry slice 4 (PR #2777).
+**Recently shipped:** SPE-1343 parent acceptance review grooming slice 3 (PR #2781); SPE-1343 historical-icon normalcy pressure slice 1 (PR #2779); SPE-1343 cover-narrative dual-incident pairing slice 1 (PR #2778).
 
 ## Blocked / waiting
 
@@ -235,7 +235,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `truth-layer-record-registry-slice-4.md`                  | **Shipped**    | SPE-1343 slice 4 / PR #2777; truth-layer planning mirror UI @ `a681d537`.                                                                            |
 | `truth-layer-cover-narrative-pairing-slice-1.md`          | **Shipped**    | SPE-1343 cover narrative + agency operational dual-incident pairing / PR #2778 @ `fe3fbae1`.                                                        |
 | `truth-layer-historical-icon-normalcy-slice-1.md`       | **Shipped**    | SPE-1343 historical-icon normalcy pressure review surfaces / PR #2779 @ `c7c372da`.                                                                  |
-| `spe-1343-parent-acceptance-review-slice-3.md`          | **In progress** | SPE-2450 — AC row 5 Partial/Met (PR #2779); parent Done reconciliation @ `138c19b0`.                                                                  |
+| `spe-1343-parent-acceptance-review-slice-3.md`          | **Shipped**    | SPE-2450 / PR #2781; AC row 5 Partial/Met (PR #2779); parent Done reconciliation @ `a3fac6bc`.                                                        |
 | `spe-1310-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2402 / PR #2673; SPE-1310 stays Backlog — SPE-2117 + SPE-2123 children Done; case lifecycle AC not met @ `936b2576`.                               |
 | `spe-1615-psychological-resilience-registry-slice-1.md`   | **Shipped**    | SPE-2433 / PR #2737; psychological resilience registry domain anchor @ `a8503939`.                                                                      |
 | `spe-1615-psychological-resilience-registry-slice-2.md`   | **Shipped**    | SPE-2434 / PR #2739; `psychologicalResilienceRecords` GameState persistence @ `467fe4d6`.                                                               |

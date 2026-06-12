@@ -58,6 +58,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'informationIntakeNamingHazardCrossLinkWeeklyReportNotes',
     category: 'information_intake',
   },
+  'welfare_debt.accounting_cross_link': {
+    status: 'active',
+    producer: 'welfareDebtAccountingCrossLinkWeeklyReportNotes',
+    category: 'system',
+  },
   'coercive_protocol.integrated_health_reconciliation': {
     status: 'active',
     producer: 'coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes',
@@ -84,7 +89,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(43)
+    expect(entries).toHaveLength(44)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

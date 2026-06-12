@@ -1529,6 +1529,7 @@ export type ReportNoteType =
   | 'system.equipment_recovered'
   | 'information_intake.verification'
   | 'information_intake.naming_hazard_cross_link'
+  | 'welfare_debt.accounting_cross_link'
   | 'coercive_protocol.integrated_health_reconciliation'
   | 'post_incident_review.follow_on'
   | 'post_incident_review.closeout_reward_payout'

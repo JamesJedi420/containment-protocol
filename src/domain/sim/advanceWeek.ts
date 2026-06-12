@@ -308,6 +308,7 @@ import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestratio
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
+import { buildWeeklyWelfareDebtAccountingCrossLinkReportNotes } from '../welfareDebtAccountingCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
 import { decayRumorPackets, type CivicRumorPacket } from '../civicRumorChannel'
 import { decayCreditPackets, type CivicCreditPacket } from '../civicCreditChannel'
@@ -4819,6 +4820,40 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentWelfareDebtAccountingRecords,
       result.week
     )
+  }
+
+  // SPE-1888 slice 8: surface welfare-debt cross-link labels in weekly report notes.
+  const nextWelfareDebtRecordsForCrossLink = outputWeeklyState.welfareDebtAccountingRecords ?? {}
+  const nextBundlesForWelfareDebtCrossLink =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const nextCoerciveProtocolsForWelfareDebtCrossLink =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  if (
+    Object.keys(nextWelfareDebtRecordsForCrossLink).length > 0 &&
+    (Object.keys(nextBundlesForWelfareDebtCrossLink).length > 0 ||
+      Object.keys(nextCoerciveProtocolsForWelfareDebtCrossLink).length > 0) &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const welfareDebtCrossLinkNotes = buildWeeklyWelfareDebtAccountingCrossLinkReportNotes({
+      nextRecords: nextWelfareDebtRecordsForCrossLink,
+      nextBundles: nextBundlesForWelfareDebtCrossLink,
+      nextCoerciveProtocolRecords: nextCoerciveProtocolsForWelfareDebtCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (welfareDebtCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...welfareDebtCrossLinkNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2117 slice 3: cadence-due recurrenceCount and lastOccurrenceWeek advance on recurrent catastrophes.

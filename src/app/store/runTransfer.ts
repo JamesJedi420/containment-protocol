@@ -346,6 +346,7 @@ export const REPORT_NOTE_TYPES = [
   'system.equipment_recovered',
   'information_intake.verification',
   'information_intake.naming_hazard_cross_link',
+  'welfare_debt.accounting_cross_link',
   'coercive_protocol.integrated_health_reconciliation',
   'post_incident_review.follow_on',
   'post_incident_review.closeout_reward_payout',
@@ -618,6 +619,14 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'linkedReportCount',
     'linkedDescriptorCount',
     'structuredReasons',
+    'week',
+  ],
+  'welfare_debt.accounting_cross_link': [
+    'debtRef',
+    'subjectRef',
+    'integratedHealthLinkCount',
+    'coerciveProtocolLinkCount',
+    'crossLinkLabels',
     'week',
   ],
   'coercive_protocol.integrated_health_reconciliation': [

@@ -51,6 +51,7 @@ const startingStateTemplate: GameState = {
   selfCensoringInformationRecords: {},
   publicDisclosureRecords: {},
   truthLayerRecords: {},
+  truthLayerWeeklyProjectionSnapshots: {},
   patternSourceSeriesRecords: {},
   massAnomalousPopulationEmergenceRecords: {},
   visualTriggerHazardRecords: {},

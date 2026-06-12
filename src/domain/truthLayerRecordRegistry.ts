@@ -157,6 +157,35 @@ export interface TruthLayerReviewProjection {
   readonly unknownFields: readonly string[]
 }
 
+/** SPE-1343 slice 3: ops-facing projection — myth infrastructure and correction pressure without collapsing layers. */
+export interface TruthLayerOpsProjection {
+  readonly recordId: TruthLayerRecordId
+  readonly subjectRef: string
+  readonly subjectKind: TruthLayerSubjectKind
+  readonly mythInfrastructureActive: boolean
+  readonly correctionPressure: number | null
+  readonly layerDivergence: boolean
+  readonly mythDrivesOpsWithoutVerification: boolean
+  readonly claimSourceConfidence: TruthLayerSourceConfidence | null
+  readonly verificationSourceConfidence: TruthLayerSourceConfidence | null
+  readonly redacted: boolean
+}
+
+/** SPE-1343 slice 3: persisted weekly ops projection snapshot for one truth-layer record. */
+export interface TruthLayerWeeklyProjectionSnapshot {
+  readonly recordId: TruthLayerRecordId
+  readonly week: number
+  readonly ops: TruthLayerOpsProjection
+}
+
+export type TruthLayerWeeklyProjectionSnapshotsMap = Record<
+  TruthLayerRecordId,
+  TruthLayerWeeklyProjectionSnapshot
+>
+
+/** Upper bound on persisted weekly projection snapshot entries (byte-stable record-id keys). */
+export const MAX_TRUTH_LAYER_WEEKLY_PROJECTION_SNAPSHOTS = 128
+
 // ---------------------------------------------------------------------------
 // Internal constants
 // ---------------------------------------------------------------------------
@@ -745,6 +774,34 @@ export function projectTruthLayerReviewView(
   })
 }
 
+/**
+ * Projects myth-as-infrastructure ops signals from separate truth layers.
+ * Public myth may drive ops without treating the claim as a verified mechanism.
+ */
+export function projectTruthLayerOpsView(
+  record: TruthLayerRecord,
+  policy: TruthLayerReviewProjectionPolicy = {}
+): TruthLayerOpsProjection {
+  const review = projectTruthLayerReviewView(record, policy)
+  const verificationConfidence = review.verification.sourceConfidence
+  const mythDrivesOpsWithoutVerification =
+    review.mythInfrastructureActive &&
+    (review.layerDivergence || verificationConfidence !== 'verified')
+
+  return Object.freeze({
+    recordId: review.recordId,
+    subjectRef: review.subjectRef,
+    subjectKind: review.subjectKind,
+    mythInfrastructureActive: review.mythInfrastructureActive,
+    correctionPressure: review.correctionPressure,
+    layerDivergence: review.layerDivergence,
+    mythDrivesOpsWithoutVerification,
+    claimSourceConfidence: review.claim.sourceConfidence,
+    verificationSourceConfidence: verificationConfidence,
+    redacted: review.redacted,
+  })
+}
+
 function defineRecord(record: TruthLayerRecord): TruthLayerRecord {
   return Object.freeze({ ...record })
 }
@@ -973,6 +1030,132 @@ export function sanitizeTruthLayerRecords(
 
     seenIds.add(record.id)
     next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
+function sanitizeTruthLayerOpsProjection(
+  value: unknown,
+  recordId: string
+): TruthLayerOpsProjection | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const normalizedRecordId = normalizeToken(value.recordId ?? recordId)
+  if (!normalizedRecordId || normalizedRecordId !== normalizeToken(recordId)) {
+    return null
+  }
+
+  const subjectRef = normalizeToken(value.subjectRef)
+  if (!subjectRef) {
+    return null
+  }
+
+  const subjectKindRaw = value.subjectKind
+  if (typeof subjectKindRaw !== 'string' || !isSubjectKind(subjectKindRaw)) {
+    return null
+  }
+
+  const correctionPressure =
+    value.correctionPressure === null || value.correctionPressure === undefined
+      ? null
+      : isValidUnitScore(value.correctionPressure)
+        ? value.correctionPressure
+        : null
+
+  const claimSourceConfidence =
+    typeof value.claimSourceConfidence === 'string' &&
+    isSourceConfidence(value.claimSourceConfidence)
+      ? value.claimSourceConfidence
+      : null
+
+  const verificationSourceConfidence =
+    typeof value.verificationSourceConfidence === 'string' &&
+    isSourceConfidence(value.verificationSourceConfidence)
+      ? value.verificationSourceConfidence
+      : null
+
+  return Object.freeze({
+    recordId: normalizedRecordId,
+    subjectRef,
+    subjectKind: subjectKindRaw,
+    mythInfrastructureActive: value.mythInfrastructureActive === true,
+    correctionPressure,
+    layerDivergence: value.layerDivergence === true,
+    mythDrivesOpsWithoutVerification: value.mythDrivesOpsWithoutVerification === true,
+    claimSourceConfidence,
+    verificationSourceConfidence,
+    redacted: value.redacted === true,
+  })
+}
+
+function sanitizeTruthLayerWeeklyProjectionSnapshotEntry(
+  key: string,
+  value: unknown
+): TruthLayerWeeklyProjectionSnapshot | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const recordId = normalizeToken(value.recordId ?? key)
+  if (!recordId || recordId !== normalizeToken(key)) {
+    return null
+  }
+
+  const weekRaw = value.week
+  if (typeof weekRaw !== 'number' || !Number.isFinite(weekRaw)) {
+    return null
+  }
+
+  const week = Math.max(1, Math.trunc(weekRaw))
+  const ops = sanitizeTruthLayerOpsProjection(value.ops, recordId)
+  if (!ops || ops.recordId !== recordId) {
+    return null
+  }
+
+  return Object.freeze({
+    recordId,
+    week,
+    ops,
+  })
+}
+
+/** Hydration: canonical weekly projection snapshot map keyed by record id; drops invalid entries. */
+export function sanitizeTruthLayerWeeklyProjectionSnapshots(
+  value: unknown,
+  fallback: TruthLayerWeeklyProjectionSnapshotsMap = {},
+  knownRecordIds?: ReadonlySet<string>
+): TruthLayerWeeklyProjectionSnapshotsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const candidates: TruthLayerWeeklyProjectionSnapshot[] = []
+
+  for (const [key, entry] of Object.entries(value)) {
+    const snapshot = sanitizeTruthLayerWeeklyProjectionSnapshotEntry(key, entry)
+    if (!snapshot) {
+      continue
+    }
+
+    if (knownRecordIds && !knownRecordIds.has(snapshot.recordId)) {
+      continue
+    }
+
+    candidates.push(snapshot)
+  }
+
+  if (candidates.length === 0) {
+    return fallback
+  }
+
+  candidates.sort((left, right) => left.recordId.localeCompare(right.recordId))
+
+  const next: TruthLayerWeeklyProjectionSnapshotsMap = {}
+  for (const snapshot of candidates.slice(0, MAX_TRUTH_LAYER_WEEKLY_PROJECTION_SNAPSHOTS)) {
+    next[snapshot.recordId] = snapshot
   }
 
   return Object.keys(next).length > 0 ? next : fallback

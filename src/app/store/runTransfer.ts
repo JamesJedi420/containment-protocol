@@ -203,7 +203,10 @@ import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLoca
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
 import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
-import { sanitizeTruthLayerRecords } from '../../domain/truthLayerRecordRegistry'
+import {
+  sanitizeTruthLayerRecords,
+  sanitizeTruthLayerWeeklyProjectionSnapshots,
+} from '../../domain/truthLayerRecordRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
@@ -8503,6 +8506,11 @@ export function hydrateGame(
     game.truthLayerRecords,
     fallback.truthLayerRecords ?? {}
   )
+  const truthLayerWeeklyProjectionSnapshots = sanitizeTruthLayerWeeklyProjectionSnapshots(
+    game.truthLayerWeeklyProjectionSnapshots,
+    fallback.truthLayerWeeklyProjectionSnapshots ?? {},
+    new Set(Object.keys(truthLayerRecords))
+  )
   const patternSourceSeriesRecords = sanitizePatternSourceSeriesRecords(
     game.patternSourceSeriesRecords,
     fallback.patternSourceSeriesRecords ?? {}
@@ -8687,6 +8695,7 @@ export function hydrateGame(
       selfCensoringInformationRecords,
       publicDisclosureRecords,
       truthLayerRecords,
+      truthLayerWeeklyProjectionSnapshots,
       patternSourceSeriesRecords,
       massAnomalousPopulationEmergenceRecords,
       visualTriggerHazardRecords,

@@ -255,7 +255,10 @@ import type { PostIncidentReviewRecommendationRecord } from './postIncidentRevie
 import type { RuleDocumentComplianceRecord } from './ruleDocumentComplianceContainmentRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
-import type { TruthLayerRecord } from './truthLayerRecordRegistry'
+import type {
+  TruthLayerRecord,
+  TruthLayerWeeklyProjectionSnapshot,
+} from './truthLayerRecordRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
@@ -2660,6 +2663,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   truthLayerRecords?: Record<string, TruthLayerRecord>
+
+  /**
+   * SPE-1343 slice 3: persisted weekly myth-as-infrastructure ops projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in truth-layer records.
+   */
+  truthLayerWeeklyProjectionSnapshots?: Record<string, TruthLayerWeeklyProjectionSnapshot>
 
   /**
    * SPE-2110 slice 2: persisted pattern source series records (keyed by record id).

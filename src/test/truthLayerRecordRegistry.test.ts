@@ -11,6 +11,7 @@ import {
   TRUTH_LAYER_SUBJECT_KINDS,
   isTruthLayerKnowledgeTier,
   isTruthLayerSourceConfidence,
+  projectTruthLayerOpsView,
   projectTruthLayerReviewView,
   sanitizeTruthLayerRecords,
   validateTruthLayerRecord,
@@ -341,5 +342,35 @@ describe('truthLayerRecordRegistry persistence (SPE-1343 slice 2)', () => {
     expect(hydrated.truthLayerRecords).toEqual({
       [COMPETING_TRUTH_LAYERS_FIXTURE.id]: COMPETING_TRUTH_LAYERS_FIXTURE,
     })
+  })
+})
+
+describe('truthLayerRecordRegistry weekly snapshots (SPE-1343 slice 3)', () => {
+  it('defaults starting state to an empty weekly projection snapshot map', () => {
+    expect(createStartingState().truthLayerWeeklyProjectionSnapshots).toEqual({})
+  })
+
+  it('round-trips weekly ops projection snapshots through save/load', () => {
+    const state = createStartingState()
+    state.truthLayerRecords = {
+      [COMPETING_TRUTH_LAYERS_FIXTURE.id]: COMPETING_TRUTH_LAYERS_FIXTURE,
+    }
+    state.truthLayerWeeklyProjectionSnapshots = {
+      [COMPETING_TRUTH_LAYERS_FIXTURE.id]: {
+        recordId: COMPETING_TRUTH_LAYERS_FIXTURE.id,
+        week: 12,
+        ops: projectTruthLayerOpsView(COMPETING_TRUTH_LAYERS_FIXTURE),
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.truthLayerWeeklyProjectionSnapshots).toEqual(
+      state.truthLayerWeeklyProjectionSnapshots
+    )
+    expect(
+      loaded.truthLayerWeeklyProjectionSnapshots?.[COMPETING_TRUTH_LAYERS_FIXTURE.id]?.ops
+        .mythInfrastructureActive
+    ).toBe(true)
   })
 })

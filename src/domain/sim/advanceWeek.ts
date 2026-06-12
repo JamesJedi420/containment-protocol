@@ -270,6 +270,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
+import { applyWeeklyTruthLayerTick } from '../truthLayerWeeklyOrchestration'
 import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
 import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
 import {
@@ -4638,6 +4639,18 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPublicDisclosureRecords,
       result.week
     )
+  }
+
+  // SPE-1343 slice 3: myth-as-infrastructure ops projection on persisted truth-layer records.
+  const currentTruthLayerRecords = outputWeeklyState.truthLayerRecords ?? {}
+  if (Object.keys(currentTruthLayerRecords).length > 0) {
+    const truthLayerTick = applyWeeklyTruthLayerTick(
+      currentTruthLayerRecords,
+      result.week,
+      outputWeeklyState.truthLayerWeeklyProjectionSnapshots
+    )
+    outputWeeklyState.truthLayerRecords = truthLayerTick.records
+    outputWeeklyState.truthLayerWeeklyProjectionSnapshots = truthLayerTick.snapshots
   }
 
   // SPE-2110 slice 3: advance readiness-gated pattern-source intake processing pipeline.

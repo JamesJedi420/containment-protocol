@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) truth-layer record schema slice 1 (claim / doctrine / verification per actor, site, or event); mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred; SPE-1309 unified engine AC remains open.
 
-**Base `main` SHA:** `b5d23831` — in progress: SPE-1343 parent acceptance review grooming slice 2 @ `planning/spe-1343-parent-acceptance-review-slice-2.md` (SPE-2446)
+**Base `main` SHA:** `b0d319f2` — shipped: SPE-1343 parent acceptance review grooming slice 2 @ `planning/spe-1343-parent-acceptance-review-slice-2.md` (PR #2769)
 
-**Recently shipped:** SPE-1309 grooming slice 2 parent acceptance review (PR #2766); SPE-1888 grooming slice 3 (PR #2764); SPE-1343 grooming slice 1 (PR #2671).
+**Recently shipped:** SPE-1343 grooming slice 2 parent acceptance review (PR #2769); SPE-1309 grooming slice 2 (PR #2766); SPE-1888 grooming slice 3 (PR #2764).
 
 ## Blocked / waiting
 
@@ -228,7 +228,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `welfare-debt-accounting-registry-slice-8.md`             | **Shipped**    | SPE-2444 / PR #2763; welfare-debt cross-link weekly report notes @ `47ad133e`.                                                                          |
 | `spe-1888-parent-acceptance-review-slice-3.md`            | **Shipped**    | PR #2764; SPE-1888 stays Backlog — slices 7–8 cross-link surfacing groomed; SPE-1047 / SPE-1131 matrix deferred @ `d3185252`.                          |
 | `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR #2671; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `8cf2b869`.                                           |
-| `spe-1343-parent-acceptance-review-slice-2.md`            | **In progress** | SPE-2446; SPE-1343 stays Backlog — registry wave + SPE-2122 follow-on groomed; truth-layer priority @ `b5d23831`.                                        |
+| `spe-1343-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2446 / PR #2769; SPE-1343 stays Backlog — registry wave + SPE-2122 follow-on groomed; truth-layer priority @ `b0d319f2`.                            |
 | `spe-1310-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2402 / PR #2673; SPE-1310 stays Backlog — SPE-2117 + SPE-2123 children Done; case lifecycle AC not met @ `936b2576`.                               |
 | `spe-1615-psychological-resilience-registry-slice-1.md`   | **Shipped**    | SPE-2433 / PR #2737; psychological resilience registry domain anchor @ `a8503939`.                                                                      |
 | `spe-1615-psychological-resilience-registry-slice-2.md`   | **Shipped**    | SPE-2434 / PR #2739; `psychologicalResilienceRecords` GameState persistence @ `467fe4d6`.                                                               |

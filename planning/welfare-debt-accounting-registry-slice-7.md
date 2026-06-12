@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1888](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Welfare-debt ledger cross-links (slice 7) — child under [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2760 @ `b7702e4c`                                                                        |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until SPE-1047 / SPE-1131 matrix AC met |
 | **Branch** | `spe-1888-welfare-debt-cross-links-slice-7`                                                                |
 | **Base `main` SHA** | `73e6e344`                                                                                          |
@@ -45,13 +45,13 @@ Pure cross-link compose from persisted `welfareDebtAccountingRecords` to coerciv
 
 ## Acceptance
 
-- [ ] Empty maps return empty cross-link compose without throw
-- [ ] Creation-tick ids parse `procedureRef` for coercive protocol matching
-- [ ] Integrated health bundle links by `subjectRef` on audit + mirror
-- [ ] Opaque review-owner / mitigation-path wired refs on every valid record
-- [ ] Audit report appends cross-link lines when optional maps provided; unchanged when omitted
-- [ ] Mirror shows cross-link labels + `crossLinkedCount` summary
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty maps return empty cross-link compose without throw
+- [x] Creation-tick ids parse `procedureRef` for coercive protocol matching
+- [x] Integrated health bundle links by `subjectRef` on audit + mirror
+- [x] Opaque review-owner / mitigation-path wired refs on every valid record
+- [x] Audit report appends cross-link lines when optional maps provided; unchanged when omitted
+- [x] Mirror shows cross-link labels + `crossLinkedCount` summary
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

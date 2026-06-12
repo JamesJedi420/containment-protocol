@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1343](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Truth-layer record registry planning mirror UI (slice 4) — child under SPE-1343                            |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2777 @ `a681d537`                                                                        |
 | **Parent** | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) — Public myth / operational truth split          |
 | **Branch** | `spe-1343-truth-layer-record-registry-slice-4`                                                           |
 | **Base `main` SHA** | `86e0bd4d`                                                                                          |

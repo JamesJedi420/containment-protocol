@@ -75,4 +75,5 @@ Wire at least one historical-icon case preserving public myth, operational truth
 ## See also
 
 - `planning/truth-layer-cover-narrative-pairing-slice-1.md`
-- `planning/spe-1343-parent-acceptance-review-slice-2.md` — AC row 5
+- `planning/spe-1343-parent-acceptance-review-slice-2.md` — AC row 5 pre-ship (**No**)
+- `planning/spe-1343-parent-acceptance-review-slice-3.md` — AC row 5 post-ship (**Partial/Met**, PR #2779)

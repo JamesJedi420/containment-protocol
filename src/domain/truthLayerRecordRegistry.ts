@@ -1161,6 +1161,78 @@ export function sanitizeTruthLayerWeeklyProjectionSnapshots(
   return Object.keys(next).length > 0 ? next : fallback
 }
 
+/** Parallel public cover narrative maintained separately from agency operational truth. */
+export const COVER_NARRATIVE_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
+  id: 'truth:regional-press-cover-24',
+  label: 'Regional press cover narrative — coastal research campus',
+  summary: 'Public-facing cover narrative maintained through regional press coordination.',
+  subjectRef: 'site:coastal-research-campus',
+  subjectKind: 'site',
+  parentCaseRef: 'case:containment-response-24',
+  claim: {
+    narrative: 'Industrial solvent leak prompted precautionary campus evacuation.',
+    summary: 'Primary public cover line distributed through regional press.',
+    sourceConfidence: 'public_cover',
+    knowledgeTier: 'partial',
+    lastUpdatedWeek: 22,
+  },
+  doctrine: {
+    narrative: 'Press liaison maintains solvent spill framing per approved comms protocol.',
+    summary: 'Institutional comms doctrine for cover narrative maintenance.',
+    sourceConfidence: 'public_cover',
+    knowledgeTier: 'relayed',
+    lastUpdatedWeek: 22,
+    evidenceRef: 'briefing:comms-playbook-24',
+  },
+  verification: {
+    narrative: 'No independent laboratory confirmation of solvent source; witness timelines diverge.',
+    summary: 'Field verification notes cover narrative lacks corroborating spill evidence.',
+    sourceConfidence: 'rumor',
+    knowledgeTier: 'suspected',
+    lastUpdatedWeek: 23,
+  },
+  linkedDisclosureRef: 'disclosure:coastal-research-campus',
+  correctionPressure: 0.41,
+  confidence: 0.38,
+})
+
+/** Agency operational record with verified seal breach metrics separate from public cover. */
+export const AGENCY_OPERATIONAL_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
+  id: 'truth:agency-operational-log-24',
+  label: 'Agency operational log — coastal research campus seal breach',
+  summary: 'Agency operational record with seal breach metrics separate from public cover.',
+  subjectRef: 'site:coastal-research-campus',
+  subjectKind: 'site',
+  parentCaseRef: 'case:containment-response-24',
+  claim: {
+    narrative: 'Sub-basement wing containment event logged under response protocol 24.',
+    summary: 'Institutional claim for oversight briefing.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'observed',
+    lastUpdatedWeek: 23,
+  },
+  doctrine: {
+    narrative: 'Oversight briefing records exposure within modeled tolerance pending review.',
+    summary: 'Institutional doctrine before field verification completed.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'observed',
+    lastUpdatedWeek: 23,
+    evidenceRef: 'briefing:doctrine-summary-24',
+  },
+  verification: {
+    narrative: 'Seal inspection confirms breach beyond modeled tolerance; two contractors exposed.',
+    summary: 'Field verification from response team after seal inspection.',
+    sourceConfidence: 'verified',
+    knowledgeTier: 'confirmed',
+    lastUpdatedWeek: 24,
+    evidenceRef: 'report:ops-log-24',
+  },
+  linkedDisclosureRef: 'disclosure:coastal-research-campus',
+  correctionPressure: 0.71,
+  mythInfrastructureWeight: 0.22,
+  confidence: 0.67,
+})
+
 /** Actor subject with separate claim/doctrine/verification slots for round-trip checks. */
 export const ACTOR_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
   id: 'truth:regional-oversight-commissioner',

@@ -68,7 +68,7 @@ Pure cross-link compose from persisted `welfareDebtAccountingRecords` to coerciv
 | --- | --- | --- |
 | Faction ethics matrix runtime | SPE-1047 | Parent AC remainder; no matrix duplication in slice 7 |
 | Moral-legal accountability matrix | SPE-1131 | Same |
-| Weekly report notes for welfare-debt cross-links | SPE-1888 follow-up | Mirror + audit sufficient for smallest slice |
+| Weekly report notes for welfare-debt cross-links | SPE-2444 slice 8 | Shipped PR #2763 |
 | SPE-1908 reverse compose (ledger map as compose arg) | SPE-1908 | Bundle path already carries welfare-debt links |
 | Full coercive protocol model | SPE-1882 | Minimal procedure anchors only |
 | SPE-1888 parent Done | SPE-1888 | Ethics/accountability matrix AC still open per SPE-2419 |

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2444](https://linear.app/spectranoir/
 | **Linear** | [SPE-2444 — Welfare-debt cross-link surfacing in weekly report notes (slice 8)](https://linear.app/spectranoir/issue/SPE-2444) |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until SPE-1047 / SPE-1131 matrix AC met |
 | **Branch** | `spe-1888-welfare-debt-cross-link-surfacing-slice-8`                                                       |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2763 @ `47ad133e`                                                                        |
 | **Base `main` SHA** | `b183ea76`                                                                                          |
 
 ## Goal
@@ -46,11 +46,11 @@ Surface existing `composeAllWelfareDebtAccountingCrossLinks` / `formatWelfareDeb
 
 ## Acceptance
 
-- [ ] Empty maps no-op without throw
-- [ ] Weekly report note uses audit-line labels when fixtures coexist
-- [ ] `advanceWeek` integration asserts cross-link note when fixtures coexist
-- [ ] `reportNoteTypeAudit` covers new note type
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty maps no-op without throw
+- [x] Weekly report note uses audit-line labels when fixtures coexist
+- [x] `advanceWeek` integration asserts cross-link note when fixtures coexist
+- [x] `reportNoteTypeAudit` covers new note type
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

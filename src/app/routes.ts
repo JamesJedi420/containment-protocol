@@ -28,6 +28,7 @@ export const APP_ROUTES = {
   patternSourceSeries: '/pattern-source-series',
   selfCensoringInformation: '/self-censoring-information',
   publicDisclosureState: '/public-disclosure-state',
+  truthLayerRecords: '/truth-layer-records',
   massAnomalousPopulationEmergence: '/mass-anomalous-population-emergence',
   visualTriggerHazard: '/visual-trigger-hazard',
   entityWelfareReclassification: '/entity-welfare-reclassification',

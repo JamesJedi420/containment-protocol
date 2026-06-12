@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) truth-layer slice 4+ (planning mirror UI); mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred; SPE-1309 unified engine AC remains open.
+**Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred; SPE-1309 unified engine AC remains open; truth-layer slice 4 mirror UI in flight @ `planning/truth-layer-record-registry-slice-4.md`.
 
-**Base `main` SHA:** `f00b8870` — shipped: SPE-2449 truth-layer record registry slice 3 @ `planning/truth-layer-record-registry-slice-3.md` (PR #2776)
+**Base `main` SHA:** `86e0bd4d` — in flight: SPE-1343 truth-layer record registry slice 4 (planning mirror UI) @ `planning/truth-layer-record-registry-slice-4.md`
 
 **Recently shipped:** SPE-2449 truth-layer record registry slice 3 (PR #2776); SPE-2448 truth-layer record registry slice 2 (PR #2774); SPE-2447 truth-layer record registry slice 1 (PR #2772).
 
@@ -232,6 +232,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `truth-layer-record-registry-slice-1.md`                  | **Shipped**    | SPE-2447 / PR #2772; truth-layer record schema (claim / doctrine / verification) @ `080608e6`.                                                       |
 | `truth-layer-record-registry-slice-2.md`                  | **Shipped**    | SPE-2448 / PR #2774; `truthLayerRecords` GameState persistence @ `17f770c1`.                                                                         |
 | `truth-layer-record-registry-slice-3.md`                  | **Shipped**    | SPE-2449 / PR #2776; weekly orchestration hook + myth-as-infrastructure ops projection @ `f00b8870`.                                                 |
+| `truth-layer-record-registry-slice-4.md`                  | **In progress**| SPE-1343 slice 4; truth-layer planning mirror UI @ `86e0bd4d`.                                                                                       |
 | `spe-1310-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2402 / PR #2673; SPE-1310 stays Backlog — SPE-2117 + SPE-2123 children Done; case lifecycle AC not met @ `936b2576`.                               |
 | `spe-1615-psychological-resilience-registry-slice-1.md`   | **Shipped**    | SPE-2433 / PR #2737; psychological resilience registry domain anchor @ `a8503939`.                                                                      |
 | `spe-1615-psychological-resilience-registry-slice-2.md`   | **Shipped**    | SPE-2434 / PR #2739; `psychologicalResilienceRecords` GameState persistence @ `467fe4d6`.                                                               |

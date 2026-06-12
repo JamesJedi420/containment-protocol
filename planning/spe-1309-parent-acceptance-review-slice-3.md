@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1309](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2451 — SPE-1309 parent acceptance review (grooming slice 3)](https://linear.app/spectranoir/issue/SPE-2451) |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine; stays **Backlog** |
 | **Branch** | `spe-1309-parent-acceptance-review-slice-3`                                                                |
-| **Status** | **In progress** — SPE-2451                                                                                 |
+| **Status** | **Shipped** — SPE-2451 (PR #2783) @ `a8b26733`                                                         |
 | **Base `main` SHA** | `6e9d6770`                                                                                          |
 
 ## Goal
@@ -59,10 +59,10 @@ Rows unchanged from [SPE-2445](https://linear.app/spectranoir/issue/SPE-2445) gr
 
 ## Acceptance
 
-- [ ] Parent AC re-evaluated — rows unchanged from slice 2; unified engine AC still **No**
-- [ ] SPE-1309 **Backlog** on Linear aligned with docs; SPE-2108 / SPE-2116 remain **Done**
-- [ ] Recommended next step updated to [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) matrix-link grooming or truth-layer follow-on
-- [ ] Docs-only diff
+- [x] Parent AC re-evaluated — rows unchanged from slice 2; unified engine AC still **No**
+- [x] SPE-1309 **Backlog** on Linear aligned with docs; SPE-2108 / SPE-2116 remain **Done**
+- [x] Recommended next step updated to [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) matrix-link grooming or truth-layer follow-on
+- [x] Docs-only diff
 
 ## Deferred
 

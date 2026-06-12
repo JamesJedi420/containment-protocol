@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred (next grooming slice 4 if Linear auto-close drift); SPE-1309 unified engine AC remains open; SPE-1347 cover-story lifecycle or SPE-861 disclosure UI if truth-layer follow-on is prioritized.
 
-**Base `main` SHA:** `6e9d6770` — in progress: SPE-1309 parent acceptance review grooming slice 3 @ `planning/spe-1309-parent-acceptance-review-slice-3.md` (SPE-2451)
+**Base `main` SHA:** `a8b26733` — shipped: SPE-1309 parent acceptance review grooming slice 3 @ `planning/spe-1309-parent-acceptance-review-slice-3.md` (SPE-2451 / PR #2783)
 
-**Recently shipped:** SPE-1343 parent acceptance review grooming slice 3 (PR #2781); SPE-1343 historical-icon normalcy pressure slice 1 (PR #2779); SPE-1343 cover-narrative dual-incident pairing slice 1 (PR #2778).
+**Recently shipped:** SPE-1309 parent acceptance review grooming slice 3 (PR #2783); SPE-1343 parent acceptance review grooming slice 3 (PR #2781); SPE-1343 historical-icon normalcy pressure slice 1 (PR #2779).
 
 ## Blocked / waiting
 
@@ -217,7 +217,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `backlog-handoff-hygiene-slice-4.md`                      | **Shipped**    | Registry mirror slice-index pass — `spe-848-*` / `spe-1615-*` rows + Shipped table @ `7bb3b0f6`.                                                        |
 | `spe-1309-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2399; SPE-1309 stays Backlog — SPE-2108 child Done; unified engine AC not met @ `5d5d7ab4`.                                                          |
 | `spe-1309-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2445 / PR #2766; SPE-1309 stays Backlog — SPE-2108 + SPE-2116 follow-on groomed; unified engine AC not met @ `1c8d2d74`.                            |
-| `spe-1309-parent-acceptance-review-slice-3.md`            | **In progress** | SPE-2451; SPE-1309 stays Backlog — post SPE-1343 grooming; doc vs Linear auto-close reconciliation @ `6e9d6770`.                                      |
+| `spe-1309-parent-acceptance-review-slice-3.md`            | **Shipped**    | SPE-2451 / PR #2783; SPE-1309 stays Backlog — post SPE-1343 grooming; doc vs Linear auto-close reconciliation @ `a8b26733`.                            |
 | `welfare-debt-accounting-registry-slice-2.md`             | **Shipped**    | SPE-2351 / PR #2570; planning mirror UI over `welfareDebtAccountingRecords` @ `96ad05ba`.                                                               |
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
 | `welfare-debt-accounting-registry-slice-4.md`             | **Shipped**    | SPE-2353 / PR #2574; ledger summary audit output @ `1ec3ca12`.                                                                                         |

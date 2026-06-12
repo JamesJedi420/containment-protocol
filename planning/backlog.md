@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) or [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) parent acceptance review grooming slice 2 (registry-unification priority); mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1888 SPE-1047 / SPE-1131 matrix links remain deferred after grooming slice 3.
 
-**Base `main` SHA:** `84f6ea2a` — in progress: SPE-1888 parent acceptance review grooming slice 3 @ `planning/spe-1888-parent-acceptance-review-slice-3.md`
+**Base `main` SHA:** `d3185252` — shipped: SPE-1888 parent acceptance review grooming slice 3 @ `planning/spe-1888-parent-acceptance-review-slice-3.md` (PR #2764)
 
-**Recently shipped:** SPE-1888 slice 8 welfare-debt cross-link weekly report notes (PR #2763); slice 7 ledger cross-links (PR #2760).
+**Recently shipped:** SPE-1888 grooming slice 3 parent acceptance review (PR #2764); slice 8 weekly report cross-link notes (PR #2763); slice 7 ledger cross-links (PR #2760).
 
 ## Blocked / waiting
 
@@ -225,7 +225,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1888-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2419 / PR pending; SPE-1888 stays Backlog — slices 5–6 close procedural AC; ethics links deferred @ `d76b6885`.                                      |
 | `welfare-debt-accounting-registry-slice-7.md`             | **Shipped**    | SPE-1888 slice 7 / PR #2760; ledger cross-links on audit + mirror @ `b7702e4c`.                                                                        |
 | `welfare-debt-accounting-registry-slice-8.md`             | **Shipped**    | SPE-2444 / PR #2763; welfare-debt cross-link weekly report notes @ `47ad133e`.                                                                          |
-| `spe-1888-parent-acceptance-review-slice-3.md`            | **In Progress** | SPE-1888 grooming slice 3; parent stays Backlog — slices 7–8 cross-link surfacing groomed; SPE-1047 / SPE-1131 matrix deferred @ `84f6ea2a`.          |
+| `spe-1888-parent-acceptance-review-slice-3.md`            | **Shipped**    | PR #2764; SPE-1888 stays Backlog — slices 7–8 cross-link surfacing groomed; SPE-1047 / SPE-1131 matrix deferred @ `d3185252`.                          |
 | `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR #2671; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `8cf2b869`.                                           |
 | `spe-1310-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2402 / PR #2673; SPE-1310 stays Backlog — SPE-2117 + SPE-2123 children Done; case lifecycle AC not met @ `936b2576`.                               |
 | `spe-1615-psychological-resilience-registry-slice-1.md`   | **Shipped**    | SPE-2433 / PR #2737; psychological resilience registry domain anchor @ `a8503939`.                                                                      |

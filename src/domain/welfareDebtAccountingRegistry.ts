@@ -5,6 +5,13 @@
  * distinct from integrated health bundle wire-up (SPE-1889 slice 10).
  */
 
+import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
+import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import {
+  composeAllWelfareDebtAccountingCrossLinks,
+  formatWelfareDebtAccountingCrossLinkAuditLine,
+} from './welfareDebtAccountingCrossLinks'
+
 // ---------------------------------------------------------------------------
 // Identifiers and unions
 // ---------------------------------------------------------------------------
@@ -927,6 +934,8 @@ export interface WelfareDebtAccountingLedgerAuditInput {
   readonly records: WelfareDebtAccountingRecordsMap | null | undefined
   readonly week?: number
   readonly auditId?: string
+  readonly integratedHealthBundles?: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
+  readonly coerciveProtocolRecords?: CoerciveProtocolRecordsMap | null | undefined
 }
 
 export interface WelfareDebtAccountingLedgerAuditReport {
@@ -935,6 +944,7 @@ export interface WelfareDebtAccountingLedgerAuditReport {
   readonly isEmpty: boolean
   readonly summary: WelfareDebtAccountingLedgerSummary
   readonly lines: readonly string[]
+  readonly crossLinkLines: readonly string[]
 }
 
 function listPersistedWelfareDebtAccountingRecords(
@@ -1108,18 +1118,46 @@ function formatWelfareDebtAccountingLedgerAuditLines(
  * Export-only ledger audit report for agent routing over persisted welfare-debt records.
  * Hydrated truth only — does not re-validate or surface dropped invalid entries.
  */
+function formatWelfareDebtAccountingLedgerCrossLinkLines(
+  input: WelfareDebtAccountingLedgerAuditInput
+): readonly string[] {
+  if (
+    input.integratedHealthBundles === undefined &&
+    input.coerciveProtocolRecords === undefined
+  ) {
+    return Object.freeze([])
+  }
+
+  const crossLinkSummaries = composeAllWelfareDebtAccountingCrossLinks({
+    records: input.records,
+    bundles: input.integratedHealthBundles,
+    coerciveProtocolRecords: input.coerciveProtocolRecords,
+  })
+
+  if (crossLinkSummaries.length === 0) {
+    return Object.freeze([])
+  }
+
+  return Object.freeze(
+    crossLinkSummaries.map((summary) => formatWelfareDebtAccountingCrossLinkAuditLine(summary))
+  )
+}
+
 export function buildWelfareDebtAccountingLedgerAuditReport(
   input: WelfareDebtAccountingLedgerAuditInput
 ): WelfareDebtAccountingLedgerAuditReport {
   const auditId = resolveLedgerAuditId(input.auditId)
   const week = resolveLedgerAuditWeek(input.week)
   const summary = summarizeWelfareDebtAccountingRecords(input.records)
+  const crossLinkLines = formatWelfareDebtAccountingLedgerCrossLinkLines(input)
+  const baseLines = formatWelfareDebtAccountingLedgerAuditLines(auditId, week, summary)
 
   return Object.freeze({
     auditId,
     week,
     isEmpty: summary.totalRecords === 0,
     summary,
-    lines: formatWelfareDebtAccountingLedgerAuditLines(auditId, week, summary),
+    crossLinkLines,
+    lines: Object.freeze([...baseLines, ...crossLinkLines]),
   })
 }

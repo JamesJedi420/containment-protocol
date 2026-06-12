@@ -56,6 +56,10 @@ export default function WelfareDebtAccountingMirrorPage() {
             value={String(view.summary.mitigatedCount)}
           />
           <StatCard
+            label={WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.crossLinkedCountLabel}
+            value={String(view.summary.crossLinkedCount)}
+          />
+          <StatCard
             label={WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.weekLabel}
             value={`W${view.summary.week}`}
           />
@@ -105,6 +109,9 @@ export default function WelfareDebtAccountingMirrorPage() {
                     {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.reviewColumn}
                   </th>
                   <th className="px-2 py-2">
+                    {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.crossLinkColumn}
+                  </th>
+                  <th className="px-2 py-2">
                     {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.confidenceColumn}
                   </th>
                 </tr>
@@ -147,6 +154,13 @@ export default function WelfareDebtAccountingMirrorPage() {
                         {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.mitigationPathPrefix}{' '}
                         {record.mitigationPathLabel}
                       </p>
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.crossLinkLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">{record.crossLinkLabels.join('; ')}</p>
+                      ) : (
+                        <p className="text-xs opacity-45">—</p>
+                      )}
                     </td>
                     <td className="px-2 py-2">
                       {record.confidenceLabel}

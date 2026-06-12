@@ -1,5 +1,9 @@
 import type { GameState } from '../../domain/models'
 import {
+  composeWelfareDebtAccountingCrossLinksForRecord,
+  formatWelfareDebtAccountingCrossLinkLabels,
+} from '../../domain/welfareDebtAccountingCrossLinks'
+import {
   projectWelfareDebtAccounting,
   summarizeWelfareDebtAccountingRecords,
   validateWelfareDebtAccountingRecord,
@@ -18,6 +22,7 @@ export interface WelfareDebtAccountingMirrorRecordView {
   reviewOwnerLabel: string
   mitigationPathLabel: string
   containmentBenefitScoreLabel: string
+  crossLinkLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -28,6 +33,7 @@ export interface WelfareDebtAccountingMirrorSummaryView {
   unresolvedCount: number
   escalatedCount: number
   mitigatedCount: number
+  crossLinkedCount: number
   week: number
 }
 
@@ -65,7 +71,10 @@ function formatUnitScore(value: number | null | undefined): string {
   return value.toFixed(2)
 }
 
-function toRecordView(record: WelfareDebtAccountingRecord): WelfareDebtAccountingMirrorRecordView {
+function toRecordView(
+  record: WelfareDebtAccountingRecord,
+  game: GameState
+): WelfareDebtAccountingMirrorRecordView {
   const projection = projectWelfareDebtAccounting(record)
   const validation = validateWelfareDebtAccountingRecord(record)
 
@@ -80,6 +89,14 @@ function toRecordView(record: WelfareDebtAccountingRecord): WelfareDebtAccountin
     ? record.mitigationPathLabel
     : '—'
 
+  const crossLinkSummary = composeWelfareDebtAccountingCrossLinksForRecord(record, {
+    bundles: game.containedPersonIntegratedHealthBundles,
+    coerciveProtocolRecords: game.coerciveContainedPersonProtocolRecords,
+  })
+  const crossLinkLabels = crossLinkSummary
+    ? formatWelfareDebtAccountingCrossLinkLabels(crossLinkSummary)
+    : Object.freeze([] as readonly string[])
+
   return Object.freeze({
     id: record.id,
     label: record.label,
@@ -92,6 +109,7 @@ function toRecordView(record: WelfareDebtAccountingRecord): WelfareDebtAccountin
     reviewOwnerLabel: record.reviewOwnerLabel,
     mitigationPathLabel,
     containmentBenefitScoreLabel: formatUnitScore(projection.containmentBenefitScore),
+    crossLinkLabels,
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,
@@ -106,7 +124,8 @@ export function getWelfareDebtAccountingMirrorView(
   const week = game.week
   const ledgerSummary = summarizeWelfareDebtAccountingRecords(game.welfareDebtAccountingRecords)
 
-  const recordViews = records.map((record) => toRecordView(record))
+  const recordViews = records.map((record) => toRecordView(record, game))
+  const crossLinkedCount = recordViews.filter((record) => record.crossLinkLabels.length > 0).length
 
   return Object.freeze({
     isEmpty: records.length === 0,
@@ -115,6 +134,7 @@ export function getWelfareDebtAccountingMirrorView(
       unresolvedCount: ledgerSummary.unresolvedCount,
       escalatedCount: ledgerSummary.escalatedCount,
       mitigatedCount: ledgerSummary.mitigatedCount,
+      crossLinkedCount,
       week,
     }),
     records: Object.freeze(recordViews),

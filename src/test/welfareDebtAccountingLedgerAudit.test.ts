@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
+import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import {
   buildWelfareDebtAccountingLedgerAuditReport,
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
@@ -182,5 +184,31 @@ describe('welfareDebtAccountingLedgerAudit (SPE-1888 slice 4)', () => {
     expect(first.lines[1]).toBe('Week: 4')
     expect(first.lines[3]).toContain('harmful_restraint=1')
     expect(first.lines[3]).toContain('coerced_medication=1')
+    expect(first.crossLinkLines).toEqual([])
+  })
+
+  it('appends cross-link audit lines when optional registry maps are provided', () => {
+    const records = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+
+    const report = buildWelfareDebtAccountingLedgerAuditReport({
+      records,
+      week: 2,
+      integratedHealthBundles: {
+        [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+          INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+      },
+      coerciveProtocolRecords: {
+        [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]:
+          ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      },
+    })
+
+    expect(report.crossLinkLines.length).toBe(1)
+    expect(report.crossLinkLines[0]).toContain(COERCIVE_RESTRAINT_LEDGER_FIXTURE.id)
+    expect(report.crossLinkLines[0]).toContain('integrated-health:subject:contained-person-field-links')
+    expect(report.lines.length).toBeGreaterThan(4)
+    expect(report.lines.at(-1)).toBe(report.crossLinkLines[0])
   })
 })

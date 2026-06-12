@@ -1386,6 +1386,7 @@ export const WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT: Record<string, string> = {
   unresolvedCountLabel: 'Unresolved debt',
   escalatedCountLabel: 'Escalated debt',
   mitigatedCountLabel: 'Mitigated debt',
+  crossLinkedCountLabel: 'Cross-linked records',
   weekLabel: 'Campaign week',
   readOnlyNote:
     'Severity bands, mitigation states, and containment benefit scores mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
@@ -1399,6 +1400,7 @@ export const WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT: Record<string, string> = {
   debtColumn: 'Debt category / severity',
   procedureColumn: 'Source procedure',
   reviewColumn: 'Review / mitigation',
+  crossLinkColumn: 'Ledger cross-links',
   confidenceColumn: 'Confidence',
   subjectRefPrefix: 'Subject:',
   containmentBenefitPrefix: 'Containment benefit:',

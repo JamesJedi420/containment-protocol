@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import {
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
   FORCED_SEDATION_CYCLE_FIXTURE,
@@ -146,5 +147,25 @@ describe('welfareDebtAccountingMirrorView (SPE-1888 slice 2)', () => {
   it('formats enum labels for CP-neutral UI copy', () => {
     expect(formatWelfareDebtAccountingEnumLabel('harmful_restraint')).toBe('Harmful Restraint')
     expect(formatWelfareDebtAccountingEnumLabel('unresolved')).toBe('Unresolved')
+  })
+
+  it('surfaces ledger cross-link labels when integrated health bundles coexist', () => {
+    const game = createStartingState()
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+    }
+
+    const view = getWelfareDebtAccountingMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.crossLinkedCount).toBe(1)
+    expect(record?.crossLinkLabels.some((label) => label.startsWith('integrated-health:'))).toBe(
+      true
+    )
+    expect(record?.crossLinkLabels.some((label) => label.startsWith('review_owner:'))).toBe(true)
   })
 })

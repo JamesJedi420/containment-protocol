@@ -1233,6 +1233,140 @@ export const AGENCY_OPERATIONAL_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRe
   confidence: 0.67,
 })
 
+/** Heritage landmark with public sacred-history myth versus operational substrate truth. */
+export const HISTORICAL_ICON_NORMALCY_PRESSURE_FIXTURE: TruthLayerRecord = defineRecord({
+  id: 'truth:civic-memorial-plaza-incident',
+  label: 'Civic memorial plaza historical-icon normalcy pressure',
+  summary:
+    'Sacred civic history myth, institutional doctrine, and field substrate verification diverge on the same heritage landmark.',
+  subjectRef: 'site:civic-memorial-plaza',
+  subjectKind: 'site',
+  parentCaseRef: 'case:heritage-substrate-response-18',
+  claim: {
+    narrative:
+      'Public interprets plaza as consecrated civic memory requiring uninterrupted visitor access.',
+    summary: 'Tourism and scholarship depend on stable sacred-history framing.',
+    sourceConfidence: 'rumor',
+    knowledgeTier: 'relayed',
+    lastUpdatedWeek: 14,
+  },
+  doctrine: {
+    narrative: 'Heritage custodians record normalcy protocol requiring visible public continuity.',
+    summary: 'Institutional doctrine preserves civic tourist normalcy.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'observed',
+    lastUpdatedWeek: 15,
+    evidenceRef: 'briefing:heritage-normalcy-18',
+  },
+  verification: {
+    narrative: 'Subsurface monitoring detects active breach pathway beneath memorial footing.',
+    summary: 'Field verification contradicts public sacred-history continuity claim.',
+    sourceConfidence: 'verified',
+    knowledgeTier: 'confirmed',
+    lastUpdatedWeek: 16,
+    evidenceRef: 'report:substrate-survey-18',
+  },
+  competingLayers: [
+    {
+      recordRef: 'truth:civic-memorial-sacred-history-myth',
+      layerRole: 'public_myth',
+      note: 'Parallel public sacred-history myth record.',
+    },
+    {
+      recordRef: 'truth:civic-memorial-substrate-ops',
+      layerRole: 'operational_record',
+      note: 'Agency operational substrate survey record.',
+    },
+  ],
+  correctionPressure: 0.71,
+  mythInfrastructureWeight: 0.56,
+  confidence: 0.52,
+})
+
+/** Public sacred-history myth maintained separately from agency operational substrate truth. */
+export const PUBLIC_MYTH_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
+  id: 'truth:civic-memorial-sacred-history-myth',
+  label: 'Public sacred-history myth — civic memorial plaza',
+  summary:
+    'Folkloric civic myth preserving visitor normalcy and scholarship continuity at the heritage landmark.',
+  subjectRef: 'site:civic-memorial-plaza',
+  subjectKind: 'site',
+  parentCaseRef: 'case:heritage-substrate-response-18',
+  claim: {
+    narrative:
+      'Civic tradition holds the plaza marks an inviolable founding covenant; disturbance invites communal sanction.',
+    summary: 'Public myth framing for heritage visitor normalcy.',
+    sourceConfidence: 'rumor',
+    knowledgeTier: 'relayed',
+    lastUpdatedWeek: 14,
+  },
+  doctrine: {
+    narrative:
+      'Custodial tradition prescribes silence on subsurface surveys to preserve visitor normalcy.',
+    summary: 'Institutional folklore doctrine for sacred-history maintenance.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'relayed',
+    lastUpdatedWeek: 14,
+    evidenceRef: 'archive:custodial-tradition-18',
+  },
+  verification: {
+    narrative:
+      'Folkloric custodial records lack contemporaneous survey corroboration for covenant claims.',
+    summary: 'Field verification notes myth lacks corroborating substrate evidence.',
+    sourceConfidence: 'rumor',
+    knowledgeTier: 'suspected',
+    lastUpdatedWeek: 15,
+  },
+  correctionPressure: 0.83,
+  mythInfrastructureWeight: 0.79,
+  confidence: 0.41,
+})
+
+/** Agency operational substrate survey separate from public sacred-history myth. */
+export const HISTORICAL_ICON_OPERATIONAL_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
+  id: 'truth:civic-memorial-substrate-ops',
+  label: 'Operational truth — civic memorial plaza substrate survey',
+  summary:
+    'Agency operational substrate survey with verified breach metrics separate from public sacred-history myth.',
+  subjectRef: 'site:civic-memorial-plaza',
+  subjectKind: 'site',
+  parentCaseRef: 'case:heritage-substrate-response-18',
+  claim: {
+    narrative: 'Memorial plaza built over sealed containment substrate from prior response era.',
+    summary: 'Institutional claim for oversight briefing.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'observed',
+    lastUpdatedWeek: 15,
+  },
+  doctrine: {
+    narrative: 'Oversight briefing records custodial rotation under heritage normalcy protocol.',
+    summary: 'Institutional doctrine before field survey completed.',
+    sourceConfidence: 'probable',
+    knowledgeTier: 'observed',
+    lastUpdatedWeek: 15,
+    evidenceRef: 'briefing:substrate-custody-18',
+  },
+  verification: {
+    narrative:
+      'Ground-penetrating survey confirms active breach pathway through memorial footing.',
+    summary: 'Field verification from substrate survey after footing inspection.',
+    sourceConfidence: 'verified',
+    knowledgeTier: 'confirmed',
+    lastUpdatedWeek: 16,
+    evidenceRef: 'report:substrate-survey-18',
+  },
+  correctionPressure: 0.54,
+  mythInfrastructureWeight: 0.18,
+  confidence: 0.64,
+})
+
+/** Civic memorial plaza incident with public myth + operational truth siblings. */
+export const HISTORICAL_ICON_NORMALCY_TRUTH_LAYER_FIXTURES: TruthLayerRecordsMap = Object.freeze({
+  [HISTORICAL_ICON_NORMALCY_PRESSURE_FIXTURE.id]: HISTORICAL_ICON_NORMALCY_PRESSURE_FIXTURE,
+  [PUBLIC_MYTH_TRUTH_LAYER_FIXTURE.id]: PUBLIC_MYTH_TRUTH_LAYER_FIXTURE,
+  [HISTORICAL_ICON_OPERATIONAL_TRUTH_LAYER_FIXTURE.id]: HISTORICAL_ICON_OPERATIONAL_TRUTH_LAYER_FIXTURE,
+})
+
 /** Actor subject with separate claim/doctrine/verification slots for round-trip checks. */
 export const ACTOR_TRUTH_LAYER_FIXTURE: TruthLayerRecord = defineRecord({
   id: 'truth:regional-oversight-commissioner',

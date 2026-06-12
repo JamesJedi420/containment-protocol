@@ -903,6 +903,45 @@ export const SELF_CENSORING_INFORMATION_MIRROR_UI_TEXT: Record<string, string> =
   redactedSuffix: 'Partial redaction',
 }
 
+export const TRUTH_LAYER_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Truth-layer record registry',
+  pageSubtitle:
+    'Read-only operations view over persisted claim, doctrine, and verification layers plus weekly ops projection snapshots.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  layerDivergenceLabel: 'Layer divergence',
+  mythInfrastructureActiveLabel: 'Myth infrastructure active',
+  correctionPressureLabel: 'Correction pressure',
+  weekLabel: 'Simulation week',
+  readOnlyNote:
+    'Claim, doctrine, and verification slots mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No truth-layer records',
+  emptyBody:
+    'Persisted truth-layer records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Review slots stay separate; weekly snapshot column displays persisted ops projection when available.',
+  labelColumn: 'Label',
+  claimColumn: 'Claim layer',
+  doctrineColumn: 'Doctrine layer',
+  verificationColumn: 'Verification layer',
+  opsFlagsColumn: 'Ops flags',
+  weeklySnapshotColumn: 'Weekly snapshot',
+  claimSlotLabel: 'Claim',
+  doctrineSlotLabel: 'Doctrine',
+  verificationSlotLabel: 'Verification',
+  confidenceColumn: 'Confidence',
+  confidencePrefix: 'Source:',
+  tierPrefix: 'Tier:',
+  layerDivergencePrefix: 'Layer divergence:',
+  competingLayerSuffix: 'competing layer ref(s)',
+  unknownFieldsPrefix: 'Unknown fields:',
+  snapshotWeekPrefix: 'Snapshot week',
+  mythDrivesOpsPrefix: 'Myth drives ops without verification:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Public disclosure state registry',

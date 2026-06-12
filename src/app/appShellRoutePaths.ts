@@ -25,6 +25,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'pattern-source-series',
   'self-censoring-information',
   'public-disclosure-state',
+  'truth-layer-records',
   'mass-anomalous-population-emergence',
   'visual-trigger-hazard',
   'entity-welfare-reclassification',

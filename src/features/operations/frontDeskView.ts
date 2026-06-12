@@ -784,6 +784,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description: 'Review awareness levels, fallout phases, and regional trust projections.',
     },
     {
+      label: 'Open truth-layer mirror',
+      href: APP_ROUTES.truthLayerRecords,
+      description:
+        'Review separate claim, doctrine, and verification layers plus myth infrastructure ops flags.',
+    },
+    {
       label: 'Open population emergence mirror',
       href: APP_ROUTES.massAnomalousPopulationEmergence,
       description:

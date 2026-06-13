@@ -15,6 +15,7 @@ import {
   INTEGRATED_HEALTH_BUNDLE_STAFF_EXCLUSION_TENSION_FIXTURE,
   INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE,
 } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import { applyWeeklyCoerciveProtocolTick } from '../../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
 import {
@@ -402,5 +403,102 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-2442 slice 6)', () => {
     ])
     expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('0.81')
     expect(record?.crossSystemTensionFlagLabels.join('; ')).not.toContain('excludes staff')
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 11)', () => {
+  it('falls back to read-time projections when weekly snapshots are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const tradeoff = projectContainmentCareTradeoff(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+    const riskReview = projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
+
+    expect(view.summary.weeklySnapshotCount).toBe(0)
+    expect(record?.containmentStabilityGainLabel).toBe(tradeoff.containmentStabilityGain.toFixed(2))
+    expect(record?.coercionRiskScoreLabel).toBe(riskReview.coercionRiskScore.toFixed(2))
+  })
+
+  it('reads persisted weekly snapshots for tradeoff and risk-review display', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 9)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const snapshot = tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]
+
+    expect(view.summary.weeklySnapshotCount).toBe(1)
+    expect(record?.welfareDebtImpactLabel).toBe(snapshot?.tradeoff.welfareDebtImpactLabel)
+    expect(record?.coercionRiskScoreLabel).toBe(snapshot?.riskReview.coercionRiskScore?.toFixed(2))
+    expect(record?.handlingPostureLabel).toBe('Emergency')
+  })
+
+  it('prefers stale persisted snapshots over read-time projection after record mutation', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 6)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    const mutated = {
+      ...EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.01,
+      personhoodHarmRisk: 0.99,
+    }
+    game.coerciveContainedPersonProtocolRecords = {
+      [mutated.id]: mutated,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+    const record = view.records[0]
+    const liveTradeoff = projectContainmentCareTradeoff(mutated)
+    const snapshotTradeoff = tick.snapshots[EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]?.tradeoff
+
+    expect(record?.containmentStabilityGainLabel).toBe(
+      snapshotTradeoff?.containmentStabilityGain.toFixed(2)
+    )
+    expect(record?.personhoodHarmRiskLabel).toBe(snapshotTradeoff?.personhoodHarmRisk.toFixed(2))
+    expect(record?.containmentStabilityGainLabel).not.toBe(
+      liveTradeoff.containmentStabilityGain.toFixed(2)
+    )
+  })
+
+  it('uses snapshot-backed summary counts when persisted projections differ from current record', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+    }
+    const tick = applyWeeklyCoerciveProtocolTick(game.coerciveContainedPersonProtocolRecords, 3)
+    game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots = tick.snapshots
+
+    game.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: {
+        ...EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+        handlingMode: 'abusive',
+      },
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]: {
+        ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+        isolationBurdenScore: 0.1,
+        surveillanceBurdenScore: 0.1,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.weeklySnapshotCount).toBe(2)
+    expect(view.summary.stableContainmentDominatesCareCount).toBe(1)
+    expect(view.summary.abusivePostureCount).toBe(1)
+    expect(view.summary.contradictionFlaggedCount).toBe(1)
   })
 })

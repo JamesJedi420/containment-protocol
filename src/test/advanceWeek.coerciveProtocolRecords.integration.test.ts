@@ -12,6 +12,7 @@ import {
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { getCoerciveContainedPersonProtocolMirrorView } from '../features/operations/coerciveContainedPersonProtocolMirrorView'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -160,5 +161,29 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 3)',
     expect(snapshot?.riskReview).toEqual(
       projectCoerciveProtocolRiskReview(EMERGENCY_SEDATION_PROTOCOL_FIXTURE)
     )
+  })
+})
+
+describe('advanceWeek coercive protocol records integration (SPE-1882 slice 11)', () => {
+  it('mirror reads hydrated snapshots after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.coerciveContainedPersonProtocolRecords = {
+      [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
+    const snapshot =
+      nextState.coerciveContainedPersonProtocolWeeklyProjectionSnapshots?.[
+        EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id
+      ]
+
+    expect(view.summary.weeklySnapshotCount).toBe(1)
+    expect(view.records[0]?.coercionRiskScoreLabel).toBe(
+      snapshot?.riskReview.coercionRiskScore?.toFixed(2)
+    )
+    expect(view.records[0]?.welfareDebtImpactLabel).toBe(snapshot?.tradeoff.welfareDebtImpactLabel)
   })
 })

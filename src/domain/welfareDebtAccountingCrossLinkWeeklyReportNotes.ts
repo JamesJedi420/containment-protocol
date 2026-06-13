@@ -19,7 +19,7 @@ import { formatWelfareDebtAccountingCrossLinkLabels } from './welfareDebtAccount
 
 /**
  * Builds weekly report notes when welfare-debt records coexist with integrated-health
- * bundles and/or coercive protocol records with hydrated cross-links.
+ * bundles, coercive protocol records, and/or persisted matrix maps with hydrated cross-links.
  */
 export function buildWeeklyWelfareDebtAccountingCrossLinkReportNotes(input: {
   nextRecords: WelfareDebtAccountingRecordsMap | null | undefined

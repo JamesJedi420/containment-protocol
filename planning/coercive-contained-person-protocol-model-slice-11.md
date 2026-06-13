@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 11 child (create on merge).
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 11 — Mirror reads persisted weekly projection snapshots (create on merge)                 |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2798 @ `7b20fcb0`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–10 shipped)           |
 | **Branch** | `spe-1882-coercive-protocol-mirror-snapshot-read-slice-11`                                                 |
 | **Base `main` SHA** | `02e2a9aa`                                                                                          |

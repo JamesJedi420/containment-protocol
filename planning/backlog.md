@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1882 coercive protocol model or SPE-1309 unified engine owner slice if cognitive-hazard engine is prioritized; SPE-1347 cover-story lifecycle or SPE-861 disclosure UI if truth-layer follow-on is prioritized.
+**Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1347 cover-story lifecycle or SPE-861 disclosure UI if truth-layer follow-on is prioritized; SPE-1309 unified engine owner slice if cognitive-hazard engine is prioritized.
 
-**Base `main` SHA:** `25f10aff` — shipped: SPE-1309 parent acceptance review grooming slice 4 @ `planning/spe-1309-parent-acceptance-review-slice-4.md` (PR #2796 / SPE-2456)
+**Base `main` SHA:** `7b20fcb0` — shipped: SPE-1882 coercive protocol mirror snapshot read slice 11 @ `planning/coercive-contained-person-protocol-model-slice-11.md` (PR #2798)
 
-**Recently shipped:** SPE-1309 parent acceptance review grooming slice 4 (PR #2796); SPE-1888 parent acceptance review grooming slice 6 (PR #2793); welfare-debt registry slice 11 (PR #2791).
+**Recently shipped:** SPE-1882 coercive protocol mirror snapshot read slice 11 (PR #2798); SPE-1309 parent acceptance review grooming slice 4 (PR #2796); SPE-1888 parent acceptance review grooming slice 6 (PR #2793).
 
 ## Blocked / waiting
 
@@ -180,7 +180,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `coercive-contained-person-protocol-model-slice-2.md`     | **Shipped**    | SPE-2421 / PR #2711; `coerciveContainedPersonProtocolRecords` GameState persistence @ `2e660bfa`.                                                     |
 | `coercive-contained-person-protocol-model-slice-3.md`     | **Shipped**    | SPE-2422 / PR #2713; weekly tradeoff + risk projection hook in `advanceWeek` @ `cfad608f`.                                                           |
 | `coercive-contained-person-protocol-model-slice-10.md`    | **Shipped**    | SPE-2427 / PR #2725; mirror surfaces `evaluateCoerciveProtocolContradictionChecks` sibling issue detail @ `4dad2c98`.                               |
-| `coercive-contained-person-protocol-model-slice-11.md`    | **In progress** | SPE-1882 slice 11; mirror reads persisted weekly projection snapshots with read-time fallback @ `02e2a9aa`.                                          |
+| `coercive-contained-person-protocol-model-slice-11.md`    | **Shipped**    | SPE-1882 slice 11 / PR #2798; mirror reads persisted weekly projection snapshots with read-time fallback @ `7b20fcb0`.                               |
 | `contained-person-integrated-health-bundle-slice-6.md`  | **Shipped**    | SPE-2346 / PR #2559; planning mirror UI over `containedPersonIntegratedHealthBundles` @ `95d089e7`.                                                    |
 | `contained-person-integrated-health-bundle-slice-7.md`  | **Shipped**    | SPE-2347; medication/custody/welfare-debt mirror field groups on integrated health bundles @ `81d6a55e`.                                               |
 | `contained-person-integrated-health-bundle-slice-8.md`  | **Shipped**    | SPE-2348 / PR #2564; medication regimen derive/compose wire-up + SPE-1886 slice 1 registry @ `4ef9056d`.                                                |

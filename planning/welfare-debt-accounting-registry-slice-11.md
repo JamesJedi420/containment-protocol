@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-1888](https://linear.app/
 | **Linear** | SPE-1888 slice 11 — Welfare-debt matrix-only weekly cross-link surfacing (create on merge)                |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until full SPE-1047/1131 scope + SPE-1882 deferred items close |
 | **Branch** | `spe-1888-welfare-debt-matrix-surfacing-slice-11`                                                          |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2791 @ `d4675f06`                                                         |
 | **Base `main` SHA** | `bca68c09`                                                                                          |
 
 ## Goal
@@ -35,12 +35,12 @@ Relax the slice 8 sibling gate in `composeAllWelfareDebtAccountingCrossLinkSumma
 
 ## Acceptance
 
-- [ ] Empty matrix maps keep opaque fallback / no-op when all sibling maps empty
-- [ ] Matrix-only fixtures surface weekly notes with hydrated wired refs
-- [ ] `advanceWeek` emits matrix-only cross-link notes when maps persist on state
-- [ ] Bundles/protocol coexistence path unchanged
-- [ ] `npm run lint` + targeted tests green
-- [ ] SPE-1888 parent **Backlog** on Linear after merge
+- [x] Empty matrix maps keep opaque fallback / no-op when all sibling maps empty
+- [x] Matrix-only fixtures surface weekly notes with hydrated wired refs
+- [x] `advanceWeek` emits matrix-only cross-link notes when maps persist on state
+- [x] Bundles/protocol coexistence path unchanged
+- [x] `npm run lint` + targeted tests green
+- [x] SPE-1888 parent **Backlog** on Linear after merge (auto-close drift — manual return required)
 
 ## File touch list (expected)
 

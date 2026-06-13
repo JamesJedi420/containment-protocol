@@ -16,8 +16,8 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
-describe('advanceWeek welfare-debt cross-link integration (SPE-1888 slice 8)', () => {
-  it('is a no-op for welfare-debt cross-link notes when sibling maps are empty', () => {
+describe('advanceWeek welfare-debt cross-link integration (SPE-1888 slice 8 + slice 11)', () => {
+  it('is a no-op for welfare-debt cross-link notes when all sibling maps are empty', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
     state.welfareDebtAccountingRecords = {
@@ -88,5 +88,34 @@ describe('advanceWeek welfare-debt cross-link integration (SPE-1888 slice 8)', (
     )
     expect(nextState.factionEthicsRecords).toEqual(state.factionEthicsRecords)
     expect(nextState.accountabilityMatrixRecords).toEqual(state.accountabilityMatrixRecords)
+  })
+
+  it('surfaces matrix-only welfare-debt cross-link notes when persisted matrix maps coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    state.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    state.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const crossLinkNotes =
+      weeklyReport?.notes?.filter((note) => note.type === 'welfare_debt.accounting_cross_link') ??
+      []
+
+    expect(crossLinkNotes.length).toBeGreaterThan(0)
+    expect(crossLinkNotes[0]?.content).toContain('Welfare-debt cross-link')
+    expect(crossLinkNotes[0]?.metadata?.crossLinkLabels).toEqual(
+      expect.arrayContaining([
+        'faction-ethics:faction-ethics:ethics-review-board-routing',
+        'accountability-matrix:accountability-matrix:independent-welfare-audit',
+      ])
+    )
   })
 })

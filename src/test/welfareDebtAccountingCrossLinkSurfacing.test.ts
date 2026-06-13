@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   composeAllWelfareDebtAccountingCrossLinkSummaries,
   formatWelfareDebtAccountingCrossLinkNoteContent,
@@ -25,7 +27,7 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
     ).toEqual([])
   })
 
-  it('no-ops compose summaries when sibling maps are empty', () => {
+  it('no-ops compose summaries when all sibling maps are empty', () => {
     expect(
       composeAllWelfareDebtAccountingCrossLinkSummaries({
         records: {
@@ -33,6 +35,8 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
         },
         bundles: {},
         coerciveProtocolRecords: {},
+        factionEthicsRecords: {},
+        accountabilityMatrixRecords: {},
       })
     ).toEqual([])
   })
@@ -94,10 +98,51 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
         },
         nextBundles: {},
         nextCoerciveProtocolRecords: {},
+        factionEthicsRecords: {},
+        accountabilityMatrixRecords: {},
         week: 4,
         sequenceStart: 1,
       })
     ).toEqual([])
+  })
+
+  it('surfaces matrix cross-links when only persisted matrix maps coexist', () => {
+    const records = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    const factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    const accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      { factionEthicsRecords, accountabilityMatrixRecords }
+    )
+
+    const notes = buildWeeklyWelfareDebtAccountingCrossLinkReportNotes({
+      nextRecords: records,
+      nextBundles: {},
+      nextCoerciveProtocolRecords: {},
+      factionEthicsRecords,
+      accountabilityMatrixRecords,
+      week: 6,
+      sequenceStart: 1,
+    })
+
+    expect(notes).toHaveLength(1)
+    expect(notes[0]?.type).toBe('welfare_debt.accounting_cross_link')
+    expect(notes[0]?.content).toBe(formatWelfareDebtAccountingCrossLinkNoteContent(summary!))
+    expect(notes[0]?.metadata?.crossLinkLabels).toEqual(
+      formatWelfareDebtAccountingCrossLinkLabels(summary!)
+    )
+    expect(notes[0]?.metadata?.crossLinkLabels).toEqual(
+      expect.arrayContaining([
+        'faction-ethics:faction-ethics:ethics-review-board-routing',
+        'accountability-matrix:accountability-matrix:independent-welfare-audit',
+      ])
+    )
   })
 
   it('surfaces coercive protocol cross-links when protocol map coexists', () => {

@@ -4847,7 +4847,9 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   if (
     Object.keys(nextWelfareDebtRecordsForCrossLink).length > 0 &&
     (Object.keys(nextBundlesForWelfareDebtCrossLink).length > 0 ||
-      Object.keys(nextCoerciveProtocolsForWelfareDebtCrossLink).length > 0) &&
+      Object.keys(nextCoerciveProtocolsForWelfareDebtCrossLink).length > 0 ||
+      Object.keys(nextFactionEthicsRecordsForCrossLink).length > 0 ||
+      Object.keys(nextAccountabilityMatrixRecordsForCrossLink).length > 0) &&
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]

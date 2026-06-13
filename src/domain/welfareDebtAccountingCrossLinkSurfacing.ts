@@ -27,12 +27,19 @@ export function composeAllWelfareDebtAccountingCrossLinkSummaries(input: {
   const safeRecords = input.records ?? {}
   const safeBundles = input.bundles ?? {}
   const safeProtocols = input.coerciveProtocolRecords ?? {}
+  const safeFactionEthics = input.factionEthicsRecords ?? {}
+  const safeAccountabilityMatrix = input.accountabilityMatrixRecords ?? {}
 
   if (Object.keys(safeRecords).length === 0) {
     return []
   }
 
-  if (Object.keys(safeBundles).length === 0 && Object.keys(safeProtocols).length === 0) {
+  if (
+    Object.keys(safeBundles).length === 0 &&
+    Object.keys(safeProtocols).length === 0 &&
+    Object.keys(safeFactionEthics).length === 0 &&
+    Object.keys(safeAccountabilityMatrix).length === 0
+  ) {
     return []
   }
 

@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1309](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2456 — SPE-1309 parent acceptance review (grooming slice 4)](https://linear.app/spectranoir/issue/SPE-2456) |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine; stays **Backlog** |
 | **Branch** | `spe-1309-parent-acceptance-review-slice-4`                                                                |
-| **Status** | **Shipped** — SPE-2456 (PR pending) @ `8f4da2bd`                                                         |
+| **Status** | **Shipped** — SPE-2456 / PR #2796 @ `25f10aff`                                                         |
 | **Base `main` SHA** | `8f4da2bd`                                                                                          |
 
 ## Goal
@@ -46,7 +46,7 @@ Rows unchanged from [SPE-2451](https://linear.app/spectranoir/issue/SPE-2451) gr
 
 **Parent [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) disposition:** **Backlog** — registry intake wave plus naming-hazard follow-on are valid attach surfaces, not the unified cognitive hazard engine. Do **not** mark parent **Done** until AC rows 1–3 meet minimum bar via owner-scoped engine slice.
 
-**Doc vs Linear reconciliation:** Parent **Backlog** on Linear aligned with slice 3 doc and `planning/backlog.md` — no auto-close drift since slice 3 merge. Grooming slice 4 reconfirms guard against child **Done** conflation; mirror [SPE-2455](https://linear.app/spectranoir/issue/SPE-2455) / SPE-1888 slice 6 hygiene pattern.
+**Doc vs Linear reconciliation:** Linear auto-closed parent **Done** when SPE-2456 merged (PR #2796, 2026-06-13) while slice doc and `planning/backlog.md` recorded **Backlog**. Grooming slice 4 returns Linear to **Backlog** with reasoning above — mirror [SPE-2451](https://linear.app/spectranoir/issue/SPE-2451) / [SPE-2455](https://linear.app/spectranoir/issue/SPE-2455) auto-close hygiene pattern; do not conflate child **Done** with parent closure.
 
 ## Scope (this slice)
 

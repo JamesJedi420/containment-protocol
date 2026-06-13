@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1888](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2455 — SPE-1888 parent acceptance review (grooming slice 6)](https://linear.app/spectranoir/issue/SPE-2455) |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — Welfare-debt accounting for coercive procedures; stays **Backlog** |
 | **Branch** | `spe-1888-parent-acceptance-review-slice-6`                                                                |
-| **Status** | **Shipped** — SPE-2455 (PR pending) @ `02fc4528`                                                         |
+| **Status** | **Shipped** — SPE-2455 / PR #2793 @ `4ed8b7b5`                                                         |
 | **Base `main` SHA** | `02fc4528`                                                                                          |
 
 ## Goal

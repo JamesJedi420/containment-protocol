@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1888](https://linear.app/spectranoir/issue
 | **Linear** | [SPE-2453 — SPE-1888 parent acceptance review (grooming slice 5)](https://linear.app/spectranoir/issue/SPE-2453) |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — Welfare-debt accounting for coercive procedures; stays **Backlog** |
 | **Branch** | `spe-1888-parent-acceptance-review-slice-5`                                                                |
-| **Status** | **In Progress** — SPE-2453                                                                                 |
+| **Status** | **Shipped** — SPE-2453 / PR #2788 @ `af7c48cc`                                                         |
 | **Base `main` SHA** | `cf7e53b8`                                                                                          |
 
 ## Goal
@@ -49,7 +49,7 @@ Rows 1–4 unchanged from [SPE-2419](https://linear.app/spectranoir/issue/SPE-24
 
 **Parent [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) disposition:** **Backlog** — all six parent AC rows **Yes** at compose/audit granularity, but GameState persistence for matrix records, weekly matrix label surfacing, full [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) coercive protocol model, and full [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047) / [SPE-1131](https://linear.app/spectranoir/issue/SPE-1131) parent scope remain deferred. Do **not** conflate slice 9 compose path with parent **Done** or full matrix-engine closure.
 
-**Doc vs Linear reconciliation:** Linear auto-closed parent **Done** after slice 9 merge (2026-06-13) while grooming slice 4 doc recorded **Backlog** with row 5 **Partial**. Grooming slice 5 returns Linear to **Backlog** with row 5 **Yes** and deferred-work reasoning above — mirror [SPE-2452](https://linear.app/spectranoir/issue/SPE-2452) SPE-1309 slice 3 hygiene pattern; do not conflate child **Done** or compose-path AC with parent closure.
+**Doc vs Linear reconciliation:** Linear auto-closed parent **Done** after slice 9 merge (2026-06-13) while grooming slice 4 doc recorded **Backlog** with row 5 **Partial**. Grooming slice 5 returned Linear to **Backlog** pre-merge; parent re-auto-closed **Done** when SPE-2453 child marked **Done** post-merge — returned to **Backlog** again in-session. Mirror [SPE-2452](https://linear.app/spectranoir/issue/SPE-2452) SPE-1309 slice 3 hygiene pattern; do not conflate child **Done** or compose-path AC with parent closure.
 
 ## Scope (this slice)
 
@@ -63,10 +63,10 @@ Rows 1–4 unchanged from [SPE-2419](https://linear.app/spectranoir/issue/SPE-24
 
 ## Acceptance
 
-- [ ] Parent AC re-evaluated — row 5 **Yes** after slice 9; rows 1–4 and 6 unchanged
-- [ ] SPE-1888 **Backlog** on Linear aligned with docs; registry + compose children remain **Done**
-- [ ] Recommended next step updated to next genuinely open target
-- [ ] Docs-only diff
+- [x] Parent AC re-evaluated — row 5 **Yes** after slice 9; rows 1–4 and 6 unchanged
+- [x] SPE-1888 **Backlog** on Linear aligned with docs; registry + compose children remain **Done**
+- [x] Recommended next step updated to next genuinely open target
+- [x] Docs-only diff
 
 ## Deferred
 

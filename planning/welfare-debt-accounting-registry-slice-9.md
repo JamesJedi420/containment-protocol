@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-1888](https://linear.app/
 | **Linear** | Welfare-debt ledger faction ethics + accountability matrix cross-links (slice 9) — child under [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until row 5 AC fully met across runtime surfaces |
 | **Branch** | `spe-1888-welfare-debt-matrix-links-slice-9`                                                                |
-| **Status** | In progress                                                                                                |
+| **Status** | **Shipped** — PR #2786 @ `198094c6`                                                                        |
 | **Base `main` SHA** | `c0c138a0`                                                                                          |
 
 ## Goal

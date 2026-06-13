@@ -4841,6 +4841,9 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
   const nextCoerciveProtocolsForWelfareDebtCrossLink =
     outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  const nextFactionEthicsRecordsForCrossLink = outputWeeklyState.factionEthicsRecords ?? {}
+  const nextAccountabilityMatrixRecordsForCrossLink =
+    outputWeeklyState.accountabilityMatrixRecords ?? {}
   if (
     Object.keys(nextWelfareDebtRecordsForCrossLink).length > 0 &&
     (Object.keys(nextBundlesForWelfareDebtCrossLink).length > 0 ||
@@ -4852,6 +4855,8 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       nextRecords: nextWelfareDebtRecordsForCrossLink,
       nextBundles: nextBundlesForWelfareDebtCrossLink,
       nextCoerciveProtocolRecords: nextCoerciveProtocolsForWelfareDebtCrossLink,
+      factionEthicsRecords: nextFactionEthicsRecordsForCrossLink,
+      accountabilityMatrixRecords: nextAccountabilityMatrixRecordsForCrossLink,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,

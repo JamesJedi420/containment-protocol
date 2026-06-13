@@ -6,6 +6,8 @@
 
 import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
 import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import type { FactionEthicsMatrixRecordsMap } from './factionEthicsMatrixRegistry'
+import type { MoralLegalAccountabilityMatrixRecordsMap } from './moralLegalAccountabilityMatrixRegistry'
 import type { ReportNote } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import {
@@ -23,6 +25,8 @@ export function buildWeeklyWelfareDebtAccountingCrossLinkReportNotes(input: {
   nextRecords: WelfareDebtAccountingRecordsMap | null | undefined
   nextBundles: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
   nextCoerciveProtocolRecords: CoerciveProtocolRecordsMap | null | undefined
+  factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+  accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
   week: number
   sequenceStart: number
   baseTimestamp?: number
@@ -31,6 +35,8 @@ export function buildWeeklyWelfareDebtAccountingCrossLinkReportNotes(input: {
     records: input.nextRecords,
     bundles: input.nextBundles,
     coerciveProtocolRecords: input.nextCoerciveProtocolRecords,
+    factionEthicsRecords: input.factionEthicsRecords,
+    accountabilityMatrixRecords: input.accountabilityMatrixRecords,
   })
 
   if (nextSummaries.length === 0) {

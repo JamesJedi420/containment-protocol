@@ -212,6 +212,8 @@ import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/ma
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
+import { sanitizeFactionEthicsMatrixRecords } from '../../domain/factionEthicsMatrixRegistry'
+import { sanitizeMoralLegalAccountabilityMatrixRecords } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 import { sanitizeWelfareDebtAccountingRecords } from '../../domain/welfareDebtAccountingRegistry'
 import { sanitizeCoerciveProtocolRecords, sanitizeCoerciveProtocolWeeklyProjectionSnapshots } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { sanitizeMedicationRegimenRecords } from '../../domain/containedPersonMedicationRegimenRegistry'
@@ -8554,6 +8556,14 @@ export function hydrateGame(
     game.welfareDebtAccountingRecords,
     fallback.welfareDebtAccountingRecords ?? {}
   )
+  const factionEthicsRecords = sanitizeFactionEthicsMatrixRecords(
+    game.factionEthicsRecords,
+    fallback.factionEthicsRecords ?? {}
+  )
+  const accountabilityMatrixRecords = sanitizeMoralLegalAccountabilityMatrixRecords(
+    game.accountabilityMatrixRecords,
+    fallback.accountabilityMatrixRecords ?? {}
+  )
   const containedPersonIntegratedHealthBundles = sanitizeContainedPersonIntegratedHealthBundles(
     game.containedPersonIntegratedHealthBundles,
     fallback.containedPersonIntegratedHealthBundles ?? {}
@@ -8706,6 +8716,8 @@ export function hydrateGame(
       coerciveContainedPersonProtocolRecords,
       coerciveContainedPersonProtocolWeeklyProjectionSnapshots,
       welfareDebtAccountingRecords,
+      factionEthicsRecords,
+      accountabilityMatrixRecords,
       containedPersonIntegratedHealthBundles,
       surveillanceInterventionTuningRecords,
       psychologicalResilienceRecords,

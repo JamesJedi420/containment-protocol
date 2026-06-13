@@ -245,6 +245,101 @@ export function projectFactionEthicsMatrixReview(
   })
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizeFactionEthicsMatrixRecordEntry(value: unknown): FactionEthicsMatrixRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const factionId = normalizeToken(value.factionId)
+  const reviewOwnerLabel = normalizeToken(value.reviewOwnerLabel)
+  const permissibilityVerdict = value.permissibilityVerdict
+
+  if (
+    !id ||
+    !label ||
+    !factionId ||
+    !reviewOwnerLabel ||
+    typeof permissibilityVerdict !== 'string' ||
+    !PERMISSIBILITY_VERDICT_SET.has(permissibilityVerdict) ||
+    typeof value.authorizationRequired !== 'boolean'
+  ) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const subjectRef = normalizeToken(value.subjectRef ?? '') || undefined
+  const doctrineRef = normalizeToken(value.doctrineRef ?? '') || undefined
+  const confidence = value.confidence
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const record: FactionEthicsMatrixRecord = {
+    id,
+    label,
+    factionId,
+    reviewOwnerLabel,
+    permissibilityVerdict: permissibilityVerdict as EthicsPermissibilityVerdict,
+    authorizationRequired: value.authorizationRequired,
+    ...(summary ? { summary } : {}),
+    ...(subjectRef ? { subjectRef } : {}),
+    ...(doctrineRef ? { doctrineRef } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateFactionEthicsMatrixRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical faction ethics matrix map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeFactionEthicsMatrixRecords(
+  value: unknown,
+  fallback: FactionEthicsMatrixRecordsMap = {}
+): FactionEthicsMatrixRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: FactionEthicsMatrixRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeFactionEthicsMatrixRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 export function listHydratedFactionEthicsMatrixRecordsForReviewOwnerLabel(
   records: FactionEthicsMatrixRecordsMap | undefined,
   reviewOwnerLabel: string

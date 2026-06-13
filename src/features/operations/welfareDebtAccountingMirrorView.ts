@@ -92,6 +92,8 @@ function toRecordView(
   const crossLinkSummary = composeWelfareDebtAccountingCrossLinksForRecord(record, {
     bundles: game.containedPersonIntegratedHealthBundles,
     coerciveProtocolRecords: game.coerciveContainedPersonProtocolRecords,
+    factionEthicsRecords: game.factionEthicsRecords,
+    accountabilityMatrixRecords: game.accountabilityMatrixRecords,
   })
   const crossLinkLabels = crossLinkSummary
     ? formatWelfareDebtAccountingCrossLinkLabels(crossLinkSummary)

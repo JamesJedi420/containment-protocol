@@ -261,6 +261,112 @@ export function projectMoralLegalAccountabilityMatrixReview(
   })
 }
 
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function parseStringList(value: unknown): readonly string[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value
+    .filter((entry): entry is string => typeof entry === 'string')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0)
+}
+
+function sanitizeMoralLegalAccountabilityMatrixRecordEntry(
+  value: unknown
+): MoralLegalAccountabilityMatrixRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const mitigationPathLabel = normalizeToken(value.mitigationPathLabel)
+  const moralOutcome = value.moralOutcome
+  const legalOutcome = value.legalOutcome
+  const institutionalOutcome = value.institutionalOutcome
+  const publicOutcome = value.publicOutcome
+  const responsibilityClass = value.responsibilityClass
+
+  if (
+    !id ||
+    !label ||
+    !mitigationPathLabel ||
+    typeof moralOutcome !== 'string' ||
+    !ACCOUNTABILITY_OUTCOME_SET.has(moralOutcome) ||
+    typeof legalOutcome !== 'string' ||
+    !ACCOUNTABILITY_OUTCOME_SET.has(legalOutcome) ||
+    typeof institutionalOutcome !== 'string' ||
+    !ACCOUNTABILITY_OUTCOME_SET.has(institutionalOutcome) ||
+    typeof publicOutcome !== 'string' ||
+    !ACCOUNTABILITY_OUTCOME_SET.has(publicOutcome) ||
+    typeof responsibilityClass !== 'string' ||
+    !RESPONSIBILITY_CLASS_SET.has(responsibilityClass)
+  ) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const subjectRef = normalizeToken(value.subjectRef ?? '') || undefined
+  const confidence = value.confidence
+  const unknownFields = parseStringList(value.unknownFields)
+  const redactedFields = parseStringList(value.redactedFields)
+
+  const record: MoralLegalAccountabilityMatrixRecord = {
+    id,
+    label,
+    mitigationPathLabel,
+    moralOutcome: moralOutcome as AccountabilityOutcome,
+    legalOutcome: legalOutcome as AccountabilityOutcome,
+    institutionalOutcome: institutionalOutcome as AccountabilityOutcome,
+    publicOutcome: publicOutcome as AccountabilityOutcome,
+    responsibilityClass: responsibilityClass as ResponsibilityApplicability,
+    ...(summary ? { summary } : {}),
+    ...(subjectRef ? { subjectRef } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateMoralLegalAccountabilityMatrixRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical accountability matrix map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeMoralLegalAccountabilityMatrixRecords(
+  value: unknown,
+  fallback: MoralLegalAccountabilityMatrixRecordsMap = {}
+): MoralLegalAccountabilityMatrixRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: MoralLegalAccountabilityMatrixRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeMoralLegalAccountabilityMatrixRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
 export function listHydratedAccountabilityMatrixRecordsForMitigationPathLabel(
   records: MoralLegalAccountabilityMatrixRecordsMap | undefined,
   mitigationPathLabel: string

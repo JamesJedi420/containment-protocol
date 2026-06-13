@@ -7,6 +7,8 @@
 
 import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
 import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import type { FactionEthicsMatrixRecordsMap } from './factionEthicsMatrixRegistry'
+import type { MoralLegalAccountabilityMatrixRecordsMap } from './moralLegalAccountabilityMatrixRegistry'
 import {
   composeAllWelfareDebtAccountingCrossLinks,
   formatWelfareDebtAccountingCrossLinkAuditLine,
@@ -19,6 +21,8 @@ export function composeAllWelfareDebtAccountingCrossLinkSummaries(input: {
   records: WelfareDebtAccountingRecordsMap | null | undefined
   bundles?: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
   coerciveProtocolRecords?: CoerciveProtocolRecordsMap | null | undefined
+  factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+  accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
 }): readonly WelfareDebtAccountingCrossLinkSummary[] {
   const safeRecords = input.records ?? {}
   const safeBundles = input.bundles ?? {}
@@ -36,6 +40,8 @@ export function composeAllWelfareDebtAccountingCrossLinkSummaries(input: {
     records: safeRecords,
     bundles: input.bundles,
     coerciveProtocolRecords: input.coerciveProtocolRecords,
+    factionEthicsRecords: input.factionEthicsRecords,
+    accountabilityMatrixRecords: input.accountabilityMatrixRecords,
   })
 
   return Object.freeze(

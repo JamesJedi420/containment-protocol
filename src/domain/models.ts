@@ -269,6 +269,8 @@ import type {
 } from './coerciveContainedPersonProtocolRegistry'
 import type { CustodyStatusRecord } from './containedPersonCustodyStatusRegistry'
 import type { MedicationRegimenRecord } from './containedPersonMedicationRegimenRegistry'
+import type { FactionEthicsMatrixRecord } from './factionEthicsMatrixRegistry'
+import type { MoralLegalAccountabilityMatrixRecord } from './moralLegalAccountabilityMatrixRegistry'
 import type { WelfareDebtAccountingRecord } from './welfareDebtAccountingRegistry'
 import type { ContainedPersonIntegratedHealthBundle } from './containedPersonIntegratedHealthBundleRegistry'
 import type { SurveillanceInterventionTuningRecord } from './surveillanceCapacityInterventionTuningRegistry'
@@ -2732,6 +2734,18 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   welfareDebtAccountingRecords?: Record<string, WelfareDebtAccountingRecord>
+
+  /**
+   * SPE-1047 slice 2: persisted faction ethics matrix records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  factionEthicsRecords?: Record<string, FactionEthicsMatrixRecord>
+
+  /**
+   * SPE-1131 slice 2: persisted moral-legal accountability matrix records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  accountabilityMatrixRecords?: Record<string, MoralLegalAccountabilityMatrixRecord>
 
   /**
    * SPE-1889 slice 5: persisted contained-person integrated health bundles (keyed by subject ref).

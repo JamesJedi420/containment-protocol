@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
 import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
   FORCED_SEDATION_CYCLE_FIXTURE,
@@ -167,5 +169,35 @@ describe('welfareDebtAccountingMirrorView (SPE-1888 slice 2)', () => {
       true
     )
     expect(record?.crossLinkLabels.some((label) => label.startsWith('review_owner:'))).toBe(true)
+  })
+
+  it('hydrates matrix wired refs from persisted GameState maps in cross-link labels', () => {
+    const game = createStartingState()
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    game.containedPersonIntegratedHealthBundles = {
+      [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
+        INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE,
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const record = getWelfareDebtAccountingMirrorView(game).records[0]
+
+    expect(record?.crossLinkLabels).toEqual(
+      expect.arrayContaining([
+        'faction-ethics:faction-ethics:ethics-review-board-routing',
+        'accountability-matrix:accountability-matrix:independent-welfare-audit',
+      ])
+    )
+    expect(record?.crossLinkLabels.some((label) => label.startsWith('review_owner:'))).toBe(false)
+    expect(record?.crossLinkLabels.some((label) => label.startsWith('mitigation-path:'))).toBe(
+      false
+    )
   })
 })

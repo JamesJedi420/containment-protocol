@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** mission triage expansion remains **blocked** per `ux/mission-triage.md`; SPE-1309 grooming slice 4 or SPE-1882 coercive protocol model if welfare-debt follow-on is complete; SPE-1347 cover-story lifecycle or SPE-861 disclosure UI if truth-layer follow-on is prioritized.
 
-**Base `main` SHA:** `02fc4528` — in progress: SPE-1888 parent acceptance review grooming slice 6 @ `planning/spe-1888-parent-acceptance-review-slice-6.md` (SPE-2455)
+**Base `main` SHA:** `4ed8b7b5` — shipped: SPE-1888 parent acceptance review grooming slice 6 @ `planning/spe-1888-parent-acceptance-review-slice-6.md` (PR #2793 / SPE-2455)
 
-**Recently shipped:** welfare-debt registry slice 11 (PR #2791); welfare-debt registry slice 10 (PR #2790); SPE-1888 parent acceptance review grooming slice 5 (PR #2788).
+**Recently shipped:** SPE-1888 parent acceptance review grooming slice 6 (PR #2793); welfare-debt registry slice 11 (PR #2791); welfare-debt registry slice 10 (PR #2790).
 
 ## Blocked / waiting
 
@@ -233,7 +233,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1888-parent-acceptance-review-slice-5.md`            | **Shipped**    | SPE-2453 / PR #2788; SPE-1888 stays Backlog — row 5 AC Yes after slice 9; doc vs Linear auto-close reconciliation @ `8642663c`.                   |
 | `welfare-debt-accounting-registry-slice-10.md`            | **Shipped**    | SPE-2454 / PR #2790; matrix records GameState persistence + mirror/advanceWeek pass-through @ `b6eaf5f3`. |
 | `welfare-debt-accounting-registry-slice-11.md`            | **Shipped**    | PR #2791; matrix-only weekly cross-link surfacing guard @ `d4675f06`. |
-| `spe-1888-parent-acceptance-review-slice-6.md`            | **In Progress**| SPE-2455; SPE-1888 stays Backlog — slices 10–11 matrix persistence/surfacing groomed; slice 11 auto-close reconciliation @ `02fc4528`. |
+| `spe-1888-parent-acceptance-review-slice-6.md`            | **Shipped**    | SPE-2455 / PR #2793; SPE-1888 stays Backlog — slices 10–11 matrix persistence/surfacing groomed; slice 11 auto-close reconciliation @ `4ed8b7b5`. |
 | `spe-1343-parent-acceptance-review-slice-1.md`            | **Shipped**    | SPE-2401 / PR #2671; SPE-1343 stays Backlog — SPE-2109 child Done; truth-layer split AC not met @ `8cf2b869`.                                           |
 | `spe-1343-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2446 / PR #2769; SPE-1343 stays Backlog — registry wave + SPE-2122 follow-on groomed; truth-layer priority @ `b0d319f2`.                            |
 | `truth-layer-record-registry-slice-1.md`                  | **Shipped**    | SPE-2447 / PR #2772; truth-layer record schema (claim / doctrine / verification) @ `080608e6`.                                                       |

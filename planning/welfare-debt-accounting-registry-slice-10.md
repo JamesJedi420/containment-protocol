@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-1888](https://linear.app/
 | **Linear** | [SPE-2454 — Welfare-debt matrix records GameState persistence (slice 10)](https://linear.app/spectranoir/issue/SPE-2454) |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until full SPE-1047/1131 scope + SPE-1882 deferred items close |
 | **Branch** | `spe-1888-welfare-debt-matrix-persistence-slice-10`                                                        |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — SPE-2454 / PR #2790 @ `b6eaf5f3`                                                         |
 | **Base `main` SHA** | `d737e829`                                                                                          |
 
 ## Goal

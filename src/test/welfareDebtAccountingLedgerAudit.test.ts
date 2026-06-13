@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   buildWelfareDebtAccountingLedgerAuditReport,
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
@@ -210,5 +212,26 @@ describe('welfareDebtAccountingLedgerAudit (SPE-1888 slice 4)', () => {
     expect(report.crossLinkLines[0]).toContain('integrated-health:subject:contained-person-field-links')
     expect(report.lines.length).toBeGreaterThan(4)
     expect(report.lines.at(-1)).toBe(report.crossLinkLines[0])
+  })
+
+  it('appends matrix projection cross-link audit lines when ethics/accountability maps are provided', () => {
+    const records = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+
+    const report = buildWelfareDebtAccountingLedgerAuditReport({
+      records,
+      week: 2,
+      factionEthicsRecords: {
+        [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      },
+      accountabilityMatrixRecords: {
+        [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+      },
+    })
+
+    expect(report.crossLinkLines.length).toBe(1)
+    expect(report.crossLinkLines[0]).toContain('faction-ethics:')
+    expect(report.crossLinkLines[0]).toContain('accountability-matrix:')
   })
 })

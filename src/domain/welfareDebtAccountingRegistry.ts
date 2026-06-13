@@ -7,6 +7,8 @@
 
 import type { CoerciveProtocolRecordsMap } from './coerciveContainedPersonProtocolRegistry'
 import type { ContainedPersonIntegratedHealthBundleRecordsMap } from './containedPersonIntegratedHealthBundleRegistry'
+import type { FactionEthicsMatrixRecordsMap } from './factionEthicsMatrixRegistry'
+import type { MoralLegalAccountabilityMatrixRecordsMap } from './moralLegalAccountabilityMatrixRegistry'
 import {
   composeAllWelfareDebtAccountingCrossLinks,
   formatWelfareDebtAccountingCrossLinkAuditLine,
@@ -936,6 +938,8 @@ export interface WelfareDebtAccountingLedgerAuditInput {
   readonly auditId?: string
   readonly integratedHealthBundles?: ContainedPersonIntegratedHealthBundleRecordsMap | null | undefined
   readonly coerciveProtocolRecords?: CoerciveProtocolRecordsMap | null | undefined
+  readonly factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+  readonly accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
 }
 
 export interface WelfareDebtAccountingLedgerAuditReport {
@@ -1123,7 +1127,9 @@ function formatWelfareDebtAccountingLedgerCrossLinkLines(
 ): readonly string[] {
   if (
     input.integratedHealthBundles === undefined &&
-    input.coerciveProtocolRecords === undefined
+    input.coerciveProtocolRecords === undefined &&
+    input.factionEthicsRecords === undefined &&
+    input.accountabilityMatrixRecords === undefined
   ) {
     return Object.freeze([])
   }
@@ -1132,6 +1138,8 @@ function formatWelfareDebtAccountingLedgerCrossLinkLines(
     records: input.records,
     bundles: input.integratedHealthBundles,
     coerciveProtocolRecords: input.coerciveProtocolRecords,
+    factionEthicsRecords: input.factionEthicsRecords,
+    accountabilityMatrixRecords: input.accountabilityMatrixRecords,
   })
 
   if (crossLinkSummaries.length === 0) {

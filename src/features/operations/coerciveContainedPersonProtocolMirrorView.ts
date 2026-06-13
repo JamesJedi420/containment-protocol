@@ -7,6 +7,9 @@ import {
   type CoerciveProtocolContradictionCheckResult,
   type CoerciveProtocolContradictionRiskFlag,
   type CoerciveProtocolRecord,
+  type CoerciveProtocolRiskReviewProjection,
+  type CoerciveProtocolWeeklyProjectionSnapshotsMap,
+  type ContainmentCareTradeoffProjection,
 } from '../../domain/coerciveContainedPersonProtocolRegistry'
 import type { CoerciveProtocolIntegratedHealthReconciliationSummary } from '../../domain/coerciveProtocolIntegratedHealthCrossReconciliation'
 import {
@@ -61,6 +64,7 @@ export interface CoerciveContainedPersonProtocolMirrorSummaryView {
   contradictionFlaggedCount: number
   integratedHealthLinkedSubjectCount: number
   crossSystemTensionSubjectCount: number
+  weeklySnapshotCount: number
   week: number
 }
 
@@ -114,6 +118,27 @@ function sortedUnknownFieldLabels(unknownFields: readonly string[] | undefined):
   return Object.freeze([...(unknownFields ?? [])].sort((left, right) => left.localeCompare(right)))
 }
 
+function resolveCoerciveProtocolWeeklyProjections(
+  record: CoerciveProtocolRecord,
+  snapshots: CoerciveProtocolWeeklyProjectionSnapshotsMap | null | undefined
+): {
+  tradeoff: ContainmentCareTradeoffProjection
+  riskReview: CoerciveProtocolRiskReviewProjection
+} {
+  const snapshot = snapshots?.[record.id]
+  if (snapshot && snapshot.recordId === record.id) {
+    return {
+      tradeoff: snapshot.tradeoff,
+      riskReview: snapshot.riskReview,
+    }
+  }
+
+  return {
+    tradeoff: projectContainmentCareTradeoff(record),
+    riskReview: projectCoerciveProtocolRiskReview(record),
+  }
+}
+
 function toContradictionCheckView(
   check: CoerciveProtocolContradictionCheckResult
 ): CoerciveProtocolContradictionCheckMirrorView {
@@ -145,10 +170,10 @@ function buildCrossSystemTensionFlagLabelsBySubject(
 
 function toRecordView(
   record: CoerciveProtocolRecord,
-  crossSystemTensionFlagLabels: readonly string[]
+  crossSystemTensionFlagLabels: readonly string[],
+  tradeoff: ContainmentCareTradeoffProjection,
+  riskReview: CoerciveProtocolRiskReviewProjection
 ): CoerciveContainedPersonProtocolMirrorRecordView {
-  const tradeoff = projectContainmentCareTradeoff(record)
-  const riskReview = projectCoerciveProtocolRiskReview(record)
   const contradictionChecks = evaluateCoerciveProtocolContradictionChecks(record)
   const validation = validateCoerciveProtocolRecord(record)
 
@@ -195,11 +220,12 @@ function toRecordView(
   })
 }
 
-/** Read-only mirror over hydrated `coerciveContainedPersonProtocolRecords`; does not re-validate dropped entries. */
+/** Read-only mirror over hydrated `coerciveContainedPersonProtocolRecords` and weekly projection snapshots; does not re-validate dropped entries. */
 export function getCoerciveContainedPersonProtocolMirrorView(
   game: GameState
 ): CoerciveContainedPersonProtocolMirrorView {
   const records = listPersistedRecords(game)
+  const snapshots = game.coerciveContainedPersonProtocolWeeklyProjectionSnapshots ?? {}
   const week = game.week
   const reconciliationSummaries = composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries({
     protocols: game.coerciveContainedPersonProtocolRecords,
@@ -221,9 +247,14 @@ export function getCoerciveContainedPersonProtocolMirrorView(
     }
   }
 
+  let weeklySnapshotCount = 0
+
   const recordViews = records.map((record) => {
-    const tradeoff = projectContainmentCareTradeoff(record)
-    const riskReview = projectCoerciveProtocolRiskReview(record)
+    const { tradeoff, riskReview } = resolveCoerciveProtocolWeeklyProjections(record, snapshots)
+
+    if (snapshots[record.id]?.recordId === record.id) {
+      weeklySnapshotCount += 1
+    }
 
     if (tradeoff.stableContainmentDominatesCare) {
       stableContainmentDominatesCareCount += 1
@@ -239,7 +270,9 @@ export function getCoerciveContainedPersonProtocolMirrorView(
 
     return toRecordView(
       record,
-      tensionLabelsBySubject.get(record.subjectRef) ?? []
+      tensionLabelsBySubject.get(record.subjectRef) ?? [],
+      tradeoff,
+      riskReview
     )
   })
 
@@ -252,6 +285,7 @@ export function getCoerciveContainedPersonProtocolMirrorView(
       contradictionFlaggedCount,
       integratedHealthLinkedSubjectCount,
       crossSystemTensionSubjectCount,
+      weeklySnapshotCount,
       week,
     }),
     records: Object.freeze(recordViews),

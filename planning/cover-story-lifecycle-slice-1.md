@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1347](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Cover-story lifecycle registry slice 1 — child under SPE-1347                                            |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2799 @ `44e49f09`                                                                        |
 | **Parent** | [SPE-1347](https://linear.app/spectranoir/issue/SPE-1347) — Cover-story lifecycle state machine; stays **Backlog** |
 | **Branch** | `spe-1347-cover-story-lifecycle-slice-1`                                                                   |
 | **Base `main` SHA** | `89dc16c7`                                                                                          |

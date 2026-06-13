@@ -6,6 +6,14 @@ import {
 import { EXTENDED_MECHANICAL_RESTRAINT_ANCHOR } from '../domain/coerciveProcedureRegistry'
 import { INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE } from '../domain/containedPersonIntegratedHealthBundleRegistry'
 import {
+  ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+  PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE,
+} from '../domain/factionEthicsMatrixRegistry'
+import {
+  EXTERNAL_OVERSIGHT_ESCALATION_MATRIX_FIXTURE,
+  INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+} from '../domain/moralLegalAccountabilityMatrixRegistry'
+import {
   composeAllWelfareDebtAccountingCrossLinks,
   composeWelfareDebtAccountingCrossLinksForRecord,
   formatWelfareDebtAccountingCrossLinkLabels,
@@ -14,10 +22,11 @@ import {
 } from '../domain/welfareDebtAccountingCrossLinks'
 import {
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+  FORCED_SEDATION_CYCLE_FIXTURE,
   type WelfareDebtAccountingRecord,
 } from '../domain/welfareDebtAccountingRegistry'
 
-describe('welfareDebtAccountingCrossLinks (SPE-1888 slice 7)', () => {
+describe('welfareDebtAccountingCrossLinks (SPE-1888 slice 7 + slice 9)', () => {
   it('returns empty compose for empty records map without throw', () => {
     expect(composeAllWelfareDebtAccountingCrossLinks({ records: {} })).toEqual([])
   })
@@ -111,6 +120,84 @@ describe('welfareDebtAccountingCrossLinks (SPE-1888 slice 7)', () => {
     ])
   })
 
+  it('wires SPE-1047 faction ethics matrix projections when records map is provided', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      {
+        factionEthicsRecords: {
+          [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(summary?.factionEthicsLinks).toHaveLength(1)
+    expect(summary?.factionEthicsLinks[0]?.factionEthicsRecordId).toBe(
+      ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id
+    )
+    expect(summary?.factionEthicsLinks[0]?.wiredRef).toBe(
+      'faction-ethics:faction-ethics:ethics-review-board-routing'
+    )
+    expect(summary?.factionEthicsLinks[0]?.matchKind).toBe('review_owner_label')
+    expect(summary?.accountabilityLinkRefs.map((ref) => ref.kind)).toContain('faction_ethics')
+    expect(
+      summary?.accountabilityLinkRefs.some((ref) => ref.kind === 'review_owner')
+    ).toBe(false)
+  })
+
+  it('wires SPE-1131 accountability matrix projections when records map is provided', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      {
+        accountabilityMatrixRecords: {
+          [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(summary?.accountabilityMatrixLinks).toHaveLength(1)
+    expect(summary?.accountabilityMatrixLinks[0]?.accountabilityMatrixRecordId).toBe(
+      INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id
+    )
+    expect(summary?.accountabilityMatrixLinks[0]?.wiredRef).toBe(
+      'accountability-matrix:accountability-matrix:independent-welfare-audit'
+    )
+    expect(summary?.accountabilityMatrixLinks[0]?.matchKind).toBe('mitigation_path_label')
+    expect(summary?.accountabilityLinkRefs.map((ref) => ref.kind)).toContain(
+      'accountability_matrix'
+    )
+    expect(
+      summary?.accountabilityLinkRefs.some((ref) => ref.kind === 'mitigation_path')
+    ).toBe(false)
+  })
+
+  it('matches matrix projections for sedation fixture labels', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(FORCED_SEDATION_CYCLE_FIXTURE, {
+      factionEthicsRecords: {
+        [PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE.id]: PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE,
+      },
+      accountabilityMatrixRecords: {
+        [EXTERNAL_OVERSIGHT_ESCALATION_MATRIX_FIXTURE.id]:
+          EXTERNAL_OVERSIGHT_ESCALATION_MATRIX_FIXTURE,
+      },
+    })
+
+    expect(summary?.factionEthicsLinks[0]?.matchKind).toBe('review_owner_label')
+    expect(summary?.accountabilityMatrixLinks[0]?.matchKind).toBe('mitigation_path_label')
+  })
+
+  it('falls back to opaque accountability refs when matrix maps are absent', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE
+    )
+
+    expect(summary?.factionEthicsLinks).toEqual([])
+    expect(summary?.accountabilityMatrixLinks).toEqual([])
+    expect(summary?.accountabilityLinkRefs.map((ref) => ref.kind)).toEqual([
+      'mitigation_path',
+      'review_owner',
+    ])
+  })
+
   it('skips invalid records without re-surfacing', () => {
     const invalid = {
       id: 'welfare-debt:invalid',
@@ -145,6 +232,26 @@ describe('welfareDebtAccountingCrossLinks (SPE-1888 slice 7)', () => {
     expect(first).toEqual(second)
     expect(first.some((label) => label.startsWith('integrated-health:'))).toBe(true)
     expect(first.some((label) => label.startsWith('review_owner:'))).toBe(true)
+  })
+
+  it('includes matrix wired refs in labels when maps are provided', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      {
+        factionEthicsRecords: {
+          [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+        },
+        accountabilityMatrixRecords: {
+          [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    const labels = formatWelfareDebtAccountingCrossLinkLabels(summary!)
+    expect(labels.some((label) => label.startsWith('faction-ethics:'))).toBe(true)
+    expect(labels.some((label) => label.startsWith('accountability-matrix:'))).toBe(true)
+    expect(labels.some((label) => label.startsWith('review_owner:'))).toBe(false)
+    expect(labels.some((label) => label.startsWith('mitigation_path:'))).toBe(false)
   })
 
   it('composeAll returns byte-stable ordering by debtRef', () => {

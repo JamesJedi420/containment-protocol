@@ -49,6 +49,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'welfare_debt.accounting_cross_link',
   'coercive_protocol.integrated_health_reconciliation',
   'public_disclosure.trust_outcome',
+  'public_disclosure.segment_trust_divergence',
   'system.week_delta',
   'system.party_cards_drawn',
   'system.equipment_recovered',

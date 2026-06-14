@@ -297,6 +297,7 @@ import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeries
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
+import { buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes } from '../publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
@@ -5209,13 +5210,24 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       baseTimestamp: noteBaseTimestamp,
     })
 
-    if (trustOutcomeNotes.length > 0) {
+    let appendedDisclosureNotes = trustOutcomeNotes
+
+    const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
+      nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    appendedDisclosureNotes = [...appendedDisclosureNotes, ...segmentedTrustNotes]
+
+    if (appendedDisclosureNotes.length > 0) {
       const reports = [...result.reports]
       const lastReportIndex = reports.length - 1
       const lastReport = reports[lastReportIndex]
       reports[lastReportIndex] = {
         ...lastReport,
-        notes: [...(lastReport.notes ?? []), ...trustOutcomeNotes],
+        notes: [...(lastReport.notes ?? []), ...appendedDisclosureNotes],
       }
       result.reports = reports
     }

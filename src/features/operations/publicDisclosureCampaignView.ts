@@ -6,6 +6,7 @@ import {
 } from '../../domain/publicDisclosureStateRegistry'
 import { resolveTruthLayerDualIncidentPairing } from '../../domain/truthLayerCoverNarrativePairing'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
+import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 import { formatPublicDisclosureEnumLabel } from './publicDisclosureMirrorView'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
@@ -36,10 +37,19 @@ export interface PublicDisclosureCampaignRecordView {
   redacted: boolean
 }
 
+export interface PublicDisclosureCampaignSegmentChipView {
+  segmentLabel: string
+  segmentKindLabel: string
+  trustBandLabel: string
+  redacted: boolean
+}
+
 export interface PublicDisclosureCampaignSummaryView {
   activeDisclosureCount: number
   dominantAwarenessBandLabel: string
   cooperationBandLabel: string | null
+  segmentDivergenceLabel: string | null
+  segmentTrustChips: readonly PublicDisclosureCampaignSegmentChipView[]
   week: number
 }
 
@@ -178,10 +188,22 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
 export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosureCampaignView {
   const records = listPersistedRecords(game)
   const trustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
+  const segmentedTrust = projectPublicDisclosureSegmentedTrustOutcomeFromGame(game)
 
   const activeDisclosureCount = records.filter(
     (record) => record.awarenessLevel !== 'secrecy_intact'
   ).length
+
+  const segmentTrustChips = Object.freeze(
+    segmentedTrust.segmentEntries.map((entry) =>
+      Object.freeze({
+        segmentLabel: entry.segmentLabel,
+        segmentKindLabel: entry.segmentKindLabel,
+        trustBandLabel: entry.trustBandLabel,
+        redacted: entry.redacted,
+      })
+    )
+  )
 
   return Object.freeze({
     isEmpty: records.length === 0,
@@ -190,6 +212,8 @@ export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosu
       dominantAwarenessBandLabel: resolveDominantAwarenessBand(records),
       cooperationBandLabel:
         trustOutcome.cooperationBand === 'inactive' ? null : trustOutcome.cooperationBandLabel,
+      segmentDivergenceLabel: segmentedTrust.isInactive ? null : segmentedTrust.divergenceLabel,
+      segmentTrustChips,
       week: game.week,
     }),
     records: Object.freeze(records.map((record) => toRecordView(game, record))),

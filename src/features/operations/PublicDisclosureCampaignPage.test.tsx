@@ -58,6 +58,26 @@ describe('PublicDisclosureCampaignPage (SPE-861 slice 1)', () => {
     )
   })
 
+  it('renders segment trust chips when population and channel segments diverge', () => {
+    const game = createStartingState()
+    game.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: {
+        ...DISCLOSURE_PROGRESSION_FIXTURE,
+        trustByRegion: [
+          { regionRef: 'population:general-public', trustScore: 0.72 },
+          { regionRef: 'channel:community-forums', trustScore: 0.18 },
+        ],
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderCampaignPage()
+
+    expect(screen.getByText(/segment trust diverges/i)).toBeInTheDocument()
+    expect(screen.getByText(/Population: General Public — High/i)).toBeInTheDocument()
+    expect(screen.getByText(/Channel: Community Forums — Low/i)).toBeInTheDocument()
+  })
+
   it('does not mutate GameState after render', () => {
     const game = createStartingState()
     game.publicDisclosureRecords = {

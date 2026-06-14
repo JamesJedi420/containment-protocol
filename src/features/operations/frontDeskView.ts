@@ -48,6 +48,7 @@ import {
 import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
 import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
+import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
@@ -1196,14 +1197,20 @@ function buildAttentionItems(
     }))
 
   const disclosureTrustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
+  const disclosureSegmentedTrust = projectPublicDisclosureSegmentedTrustOutcomeFromGame(game)
+  const disclosureAttentionSummary = disclosureSegmentedTrust.frontDeskDivergenceSummary
+    ? `${disclosureTrustOutcome.frontDeskAttentionSummary} ${disclosureSegmentedTrust.frontDeskDivergenceSummary}`
+    : disclosureTrustOutcome.frontDeskAttentionSummary
+  const disclosureAttentionTone =
+    disclosureSegmentedTrust.frontDeskDivergenceTone ?? disclosureTrustOutcome.frontDeskAttentionTone
   const disclosureAttention =
     disclosureTrustOutcome.activeCampaignCount > 0
       ? [
           {
             id: 'disclosure:campaign-briefing',
             title: 'Disclosure campaign posture requires review',
-            summary: disclosureTrustOutcome.frontDeskAttentionSummary,
-            tone: disclosureTrustOutcome.frontDeskAttentionTone,
+            summary: disclosureAttentionSummary,
+            tone: disclosureAttentionTone,
             href: APP_ROUTES.publicDisclosureCampaign,
           } as const,
         ]

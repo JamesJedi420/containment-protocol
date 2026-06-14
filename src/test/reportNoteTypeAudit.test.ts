@@ -83,6 +83,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'publicDisclosureTrustOutcomeWeeklyReportNotes',
     category: 'system',
   },
+  'public_disclosure.segment_trust_divergence': {
+    status: 'active',
+    producer: 'publicDisclosureSegmentedTrustOutcomeWeeklyReportNotes',
+    category: 'system',
+  },
   'cognitive_hazard.simulation_trigger': {
     status: 'active',
     producer: 'cognitiveHazardSimulationTriggerWeeklyReportNotes',
@@ -99,7 +104,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(46)
+    expect(entries).toHaveLength(47)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

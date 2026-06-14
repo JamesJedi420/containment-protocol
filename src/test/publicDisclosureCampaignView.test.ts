@@ -89,6 +89,20 @@ describe('publicDisclosureCampaignView (SPE-861 slice 1)', () => {
     expect(view.summary.dominantAwarenessBandLabel).toBe('Normalization')
   })
 
+  it('surfaces segment trust chips and divergence label in campaign summary', () => {
+    const game = createStartingState()
+    game.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    const view = getPublicDisclosureCampaignView(game)
+
+    expect(view.summary.segmentDivergenceLabel).toBe('Segment trust diverges')
+    expect(view.summary.segmentTrustChips).toHaveLength(2)
+    expect(view.summary.segmentTrustChips[0]?.segmentLabel).toBe('Coastal Metro')
+    expect(view.summary.segmentTrustChips[0]?.segmentKindLabel).toBe('Population')
+  })
+
   it('is byte-stable for repeated campaign builds', () => {
     const game = createStartingState()
     game.publicDisclosureRecords = {

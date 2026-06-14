@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1347](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | Cover-story lifecycle contradiction accumulation engine (slice 4) — child under SPE-1347                  |
-| **Status** | **Shipped** — PR pending @ slice 4 branch                                                                 |
+| **Status** | **Shipped** — PR #2804 @ `511642a8`                                                                        |
 | **Parent** | [SPE-1347](https://linear.app/spectranoir/issue/SPE-1347) — Cover-story lifecycle state machine; stays **Backlog** |
 | **Branch** | `spe-1347-cover-story-lifecycle-slice-4`                                                                   |
 | **Base `main` SHA** | `6cfdc83c`                                                                                          |

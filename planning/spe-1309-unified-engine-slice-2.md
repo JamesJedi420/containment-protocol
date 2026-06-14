@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — cognitive hazard exposure persistence (slice 2)                                           |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2808 @ `9b22d0ca`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-2`                                                                          |
 | **Base `main` SHA** | `aa6c6d90`                                                                                          |

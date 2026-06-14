@@ -274,6 +274,7 @@ import { applyWeeklyCoverStoryTick } from '../coverStoryWeeklyOrchestration'
 import { applyWeeklyTruthLayerTick } from '../truthLayerWeeklyOrchestration'
 import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
 import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
+import { applyWeeklyCognitiveHazardExposureTick } from '../cognitiveHazardWeeklyOrchestration'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4835,6 +4836,16 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         currentPsychologicalResilienceRecords,
         result.week
       )
+  }
+
+  // SPE-1309 slice 3: memory-impairment-band advance on cognitive hazard exposure records.
+  const currentCognitiveHazardExposureRecords =
+    outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  if (Object.keys(currentCognitiveHazardExposureRecords).length > 0) {
+    outputWeeklyState.cognitiveHazardExposureRecords = applyWeeklyCognitiveHazardExposureTick(
+      currentCognitiveHazardExposureRecords,
+      result.week
+    )
   }
 
   // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.

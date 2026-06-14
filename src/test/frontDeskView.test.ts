@@ -12,6 +12,10 @@ import { OFF_BOOKS_COURIER_LOCKOUT_TAG } from '../domain/sim/downtimeSideWork'
 import { openCourierShellFront } from '../domain/sim/frontBusiness'
 import { normalizeGameState } from '../domain/teamSimulation'
 import { getProcurementListings } from '../domain/market'
+import { DISCLOSURE_PROGRESSION_FIXTURE } from '../domain/publicDisclosureStateRegistry'
+import {
+  buildPublicDisclosurePostureChoices,
+} from '../features/operations/frontDeskChoices'
 import {
   buildCourierNetworkCapacityOpportunityCard,
   buildProcurementPressureOpportunityCard,
@@ -272,6 +276,85 @@ describe('frontDeskView', () => {
     expect(getEligibleFrontDeskSceneTriggerIds(state)).not.toContain(
       FRONT_DESK_TRIGGER_IDS.specialRecruitOpportunity
     )
+  })
+
+  it('surfaces disclosure posture notices only for active campaigns without a selected posture', () => {
+    const inactive = createStartingState()
+    expect(
+      getFrontDeskBriefingView(inactive).notices.some((notice) =>
+        notice.id.startsWith('disclosure-posture-')
+      )
+    ).toBe(false)
+
+    const activeWithoutPosture = createStartingState()
+    activeWithoutPosture.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    const notice = getFrontDeskBriefingView(activeWithoutPosture).notices.find(
+      (entry) => entry.id === `disclosure-posture-${DISCLOSURE_PROGRESSION_FIXTURE.id}`
+    )
+
+    expect(notice).toMatchObject({
+      title: 'Disclosure posture decision required',
+      tone: 'warning',
+      actionTarget: 'disclosure',
+    })
+    expect(notice?.choices?.map((choice) => choice.id)).toEqual(
+      buildPublicDisclosurePostureChoices(
+        DISCLOSURE_PROGRESSION_FIXTURE.id,
+        DISCLOSURE_PROGRESSION_FIXTURE.label
+      ).map((choice) => choice.id)
+    )
+    expect(notice?.body).toContain(DISCLOSURE_PROGRESSION_FIXTURE.label)
+    expect(notice?.body).not.toMatch(/\b0\.\d+\b/)
+  })
+
+  it('clears disclosure posture notices after an authored choice sets posture', () => {
+    let state = createStartingState()
+    state.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    const notice = getFrontDeskBriefingView(state).notices.find(
+      (entry) => entry.id === `disclosure-posture-${DISCLOSURE_PROGRESSION_FIXTURE.id}`
+    )
+    const transparentChoice = notice?.choices?.find((choice) =>
+      choice.id.endsWith('.transparent')
+    )
+
+    expect(transparentChoice?.id).toBe(
+      `frontdesk.notice.disclosure-posture.${DISCLOSURE_PROGRESSION_FIXTURE.id}.transparent`
+    )
+
+    state = applyAuthoredChoice(state, transparentChoice!, {
+      activeContextId: `frontdesk.notice.disclosure-posture-${DISCLOSURE_PROGRESSION_FIXTURE.id}`,
+    }).state
+
+    expect(
+      getFrontDeskBriefingView(state).notices.some((entry) =>
+        entry.id.startsWith('disclosure-posture-')
+      )
+    ).toBe(false)
+    expect(state.publicDisclosurePostureChoices?.[DISCLOSURE_PROGRESSION_FIXTURE.id]).toBe(
+      'transparent'
+    )
+  })
+
+  it('keeps disclosure posture notices hidden when posture is already set', () => {
+    const state = createStartingState()
+    state.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+    state.publicDisclosurePostureChoices = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: 'managed_secrecy',
+    }
+
+    expect(
+      getFrontDeskBriefingView(state).notices.some((notice) =>
+        notice.id.startsWith('disclosure-posture-')
+      )
+    ).toBe(false)
   })
 })
 

@@ -102,6 +102,31 @@ export function canApplyPublicDisclosurePostureChoiceOnRecord(
   return record !== undefined && record.awarenessLevel !== 'secrecy_intact'
 }
 
+export interface PendingPublicDisclosurePostureDecision {
+  readonly recordId: string
+  readonly label: string
+}
+
+/** Active disclosure campaigns that still need a player posture choice, sort-stable by record id. */
+export function listPendingPublicDisclosurePostureDecisions(
+  state: Pick<GameState, 'publicDisclosureRecords' | 'publicDisclosurePostureChoices'>
+): readonly PendingPublicDisclosurePostureDecision[] {
+  const records = state.publicDisclosureRecords ?? {}
+
+  return Object.freeze(
+    Object.values(records)
+      .filter((record) => canApplyPublicDisclosurePostureChoiceOnRecord(record))
+      .filter((record) => readPublicDisclosurePostureChoice(state, record.id) === undefined)
+      .sort((left, right) => left.id.localeCompare(right.id))
+      .map((record) =>
+        Object.freeze({
+          recordId: record.id,
+          label: record.label,
+        })
+      )
+  )
+}
+
 export function readPublicDisclosurePostureChoice(
   state: Pick<GameState, 'publicDisclosurePostureChoices'>,
   recordId: string

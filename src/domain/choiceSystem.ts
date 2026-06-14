@@ -23,6 +23,10 @@ import {
   setDefinedProgressClock,
   type ProgressClockDefaults,
 } from './progressClocks'
+import {
+  applyPublicDisclosurePostureChoice,
+  type PublicDisclosurePostureChoice,
+} from './publicDisclosurePostureChoice'
 import type {
   GameFlagValue,
   GameLocationState,
@@ -74,6 +78,11 @@ export type AuthoredChoiceConsequence =
       type: 'emit_follow_up'
       /** Result-only follow-up identifier for UI/report orchestration. */
       followUpId: string
+    }
+  | {
+      type: 'set_public_disclosure_posture'
+      recordId: string
+      posture: PublicDisclosurePostureChoice
     }
 
 export interface AuthoredChoiceDefinition<
@@ -312,6 +321,26 @@ export function applyAuthoredChoice<
         type: consequence.type,
         key: encounterId,
         changed: true,
+      })
+      continue
+    }
+
+    if (consequence.type === 'set_public_disclosure_posture') {
+      const recordId = normalizeAuthorId(consequence.recordId)
+
+      if (recordId.length === 0) {
+        continue
+      }
+
+      const result = applyPublicDisclosurePostureChoice(nextState, {
+        recordId,
+        posture: consequence.posture,
+      })
+      nextState = result.state
+      appliedConsequences.push({
+        type: consequence.type,
+        key: `${recordId}:${consequence.posture}`,
+        changed: result.applied,
       })
       continue
     }

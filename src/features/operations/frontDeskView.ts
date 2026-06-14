@@ -42,6 +42,7 @@ import {
 import {
   buildBreachFollowUpChoices,
   buildHostileFactionResponseChoices,
+  buildPublicDisclosurePostureChoices,
   buildSpecialRecruitOpportunityChoices,
   buildWeeklyReportTutorialChoices,
 } from './frontDeskChoices'
@@ -49,9 +50,10 @@ import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from '.
 import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
+import { listPendingPublicDisclosurePostureDecisions } from '../../domain/publicDisclosurePostureChoice'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
-export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
+export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
 
 const MAX_QUEUE_DETAILS = 3
 const MAX_RECENT_ITEMS = 3
@@ -633,6 +635,18 @@ function buildSpecialRecruitNotice(
   )
 }
 
+function buildPublicDisclosurePostureNotices(game: GameState): FrontDeskNoticeView[] {
+  return listPendingPublicDisclosurePostureDecisions(game).map((pending) => ({
+    id: `disclosure-posture-${pending.recordId}`,
+    title: 'Disclosure posture decision required',
+    body: `${pending.label} is active but has no command posture on file. Set messaging posture from the desk or open the campaign briefing for regional band context.`,
+    tone: 'warning',
+    actionTarget: 'disclosure',
+    actionLabel: 'Open campaign briefing',
+    choices: buildPublicDisclosurePostureChoices(pending.recordId, pending.label),
+  }))
+}
+
 /**
  * Author-facing front-desk example surface for conditional content selection.
  * Add new notices here instead of scattering one-off `if/else` branches across
@@ -652,6 +666,7 @@ export function getFrontDeskBriefingView(game: GameState): FrontDeskBriefingView
     buildBreachFollowUpNotice(game, eligibleTriggerIds, branchContext),
     buildHostileFactionNotice(game, hostileFaction, branchContext),
     buildSpecialRecruitNotice(game, eligibleTriggerIds, branchContext),
+    ...buildPublicDisclosurePostureNotices(game),
   ].filter((notice): notice is FrontDeskNoticeView => Boolean(notice))
 
   return {
@@ -676,6 +691,10 @@ export function getFrontDeskNoticeActionHref(target?: FrontDeskNoticeActionTarge
 
   if (target === 'factions') {
     return APP_ROUTES.factions
+  }
+
+  if (target === 'disclosure') {
+    return APP_ROUTES.publicDisclosureCampaign
   }
 
   return APP_ROUTES.report

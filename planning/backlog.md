@@ -20,9 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next open umbrella per active queue.
+**Next step:** SPE-861 Front Desk posture choice notice orchestration (slice 5) @ `planning/disclosure-campaign-player-ui-slice-5.md`, or next open umbrella per active queue (SPE-70 concealment stack if prioritizing core loop).
 
-**Base `main` SHA:** `24b794d7` — shipped: SPE-861 disclosure choice mechanics slice 4 @ `planning/disclosure-campaign-player-ui-slice-4.md` (PR #2819)
+**Base `main` SHA:** `9e1f17bb` — shipped: SPE-861 disclosure choice mechanics slice 4 @ `planning/disclosure-campaign-player-ui-slice-4.md` (PR #2819 @ `24b794d7`)
+
+**In progress:** SPE-861 Front Desk posture choice notice slice 5 — branch `spe-861-front-desk-posture-choice-slice-5`
 
 **Recently shipped:** SPE-861 disclosure choice mechanics slice 4 (PR #2819 @ `24b794d7`); SPE-861 segmented population trust slice 3 (PR #2818 @ `86d0956f`).
 

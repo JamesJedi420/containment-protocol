@@ -70,6 +70,11 @@ export type CognitiveHazardExposureReviewBand = 'stable' | 'elevated' | 'critica
 // Records
 // ---------------------------------------------------------------------------
 
+export type CognitiveHazardExposureRecordsMap = Record<
+  CognitiveHazardExposureId,
+  CognitiveHazardExposureRecord
+>
+
 export interface CognitiveHazardExposureRecord {
   readonly id: CognitiveHazardExposureId
   readonly label: string
@@ -707,6 +712,120 @@ export function projectCognitiveHazardExposureReview(
     redacted: redactedFields.size > 0,
     unknownFields,
   })
+}
+
+// ---------------------------------------------------------------------------
+// Persistence / hydration
+// ---------------------------------------------------------------------------
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function sanitizeTriggerChannelList(value: unknown): readonly CognitiveHazardTriggerChannel[] {
+  if (!Array.isArray(value)) {
+    return Object.freeze([] as CognitiveHazardTriggerChannel[])
+  }
+
+  return sortedTriggerChannels(
+    value.filter(
+      (entry): entry is CognitiveHazardTriggerChannel =>
+        typeof entry === 'string' && TRIGGER_CHANNEL_SET.has(entry)
+    )
+  )
+}
+
+function sanitizeCountermeasureRefs(value: unknown): readonly string[] | undefined {
+  const refs = sortedStringArray(value).filter((ref) => ref.length > 0)
+  return refs.length > 0 ? refs : undefined
+}
+
+function sanitizeCognitiveHazardExposureRecordEntry(
+  value: unknown
+): CognitiveHazardExposureRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  const label = normalizeToken(value.label)
+  const subjectRef = normalizeToken(value.subjectRef)
+  const memoryImpairmentBand = value.memoryImpairmentBand
+  const countermeasurePosture = value.countermeasurePosture
+  const fearPressure = value.fearPressure
+  const memeticExposure = value.memeticExposure
+  const activeTriggerChannels = sanitizeTriggerChannelList(value.activeTriggerChannels)
+
+  if (
+    !id ||
+    !label ||
+    !subjectRef ||
+    !MEMORY_IMPAIRMENT_BAND_SET.has(String(memoryImpairmentBand)) ||
+    !COUNTERMEASURE_POSTURE_SET.has(String(countermeasurePosture)) ||
+    !isValidUnitScore(fearPressure) ||
+    !isValidUnitScore(memeticExposure)
+  ) {
+    return null
+  }
+
+  const summary =
+    typeof value.summary === 'string' && value.summary.trim().length > 0
+      ? value.summary.trim()
+      : undefined
+  const countermeasureRefs = sanitizeCountermeasureRefs(value.countermeasureRefs)
+  const confidence = value.confidence
+  const unknownFields = sortedStringArray(value.unknownFields)
+  const redactedFields = sortedStringArray(value.redactedFields)
+
+  const record: CognitiveHazardExposureRecord = {
+    id,
+    label,
+    subjectRef,
+    activeTriggerChannels,
+    fearPressure,
+    memeticExposure,
+    memoryImpairmentBand: memoryImpairmentBand as CognitiveHazardMemoryImpairmentBand,
+    countermeasurePosture: countermeasurePosture as CognitiveHazardCountermeasurePosture,
+    ...(summary ? { summary } : {}),
+    ...(countermeasureRefs ? { countermeasureRefs } : {}),
+    ...(value.knowledgeIntegrityDegraded === true ? { knowledgeIntegrityDegraded: true } : {}),
+    ...(value.procedureRestrictionActive === true ? { procedureRestrictionActive: true } : {}),
+    ...(value.agentDutyDegraded === true ? { agentDutyDegraded: true } : {}),
+    ...(isValidUnitScore(confidence) ? { confidence } : {}),
+    ...(unknownFields.length > 0 ? { unknownFields } : {}),
+    ...(redactedFields.length > 0 ? { redactedFields } : {}),
+  }
+
+  if (!validateCognitiveHazardExposureRecord(record).valid) {
+    return null
+  }
+
+  return record
+}
+
+/** Hydration: canonical exposure map keyed by record id; drops invalid and duplicate-id entries. */
+export function sanitizeCognitiveHazardExposureRecords(
+  value: unknown,
+  fallback: CognitiveHazardExposureRecordsMap = {}
+): CognitiveHazardExposureRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: CognitiveHazardExposureRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeCognitiveHazardExposureRecordEntry(entry)
+    if (!record || seenIds.has(record.id)) {
+      continue
+    }
+
+    seenIds.add(record.id)
+    next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
 }
 
 // ---------------------------------------------------------------------------

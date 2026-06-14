@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** SPE-1309 agent vitals / scoring side-effects from simulation triggers (row 3 **Partial** closure), or next SPE-861 follow-up child (segmented population trust / disclosure choice mechanics).
 
-**Base `main` SHA:** `92980ab1` — in progress: SPE-1309 parent acceptance review grooming slice 5 @ `planning/spe-1309-parent-acceptance-review-slice-5.md`
+**Base `main` SHA:** `62ddbc93` — shipped: SPE-1309 parent acceptance review grooming slice 5 @ `planning/spe-1309-parent-acceptance-review-slice-5.md` (PR #2813)
 
-**Recently shipped:** SPE-1309 unified cognitive hazard engine slice 6 (PR #2812 @ `621b2d74`); SPE-1309 unified cognitive hazard engine slice 5 (PR #2811 @ `8f5fde47`).
+**Recently shipped:** SPE-1309 parent acceptance review grooming slice 5 (PR #2813 @ `62ddbc93`); SPE-1309 unified cognitive hazard engine slice 6 (PR #2812 @ `621b2d74`).
 
 **Recently shipped:** SPE-1882 coercive protocol mirror snapshot read slice 11 (PR #2798); SPE-1309 parent acceptance review grooming slice 4 (PR #2796); SPE-1888 parent acceptance review grooming slice 6 (PR #2793).
 
@@ -230,7 +230,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1309-unified-engine-slice-4.md`                      | **Shipped**    | SPE-1309 child — sibling registry compose wire-up from SPE-2108 persisted maps / PR #2810 @ `9c41fcf6`.                                                  |
 | `spe-1309-unified-engine-slice-5.md`                      | **Shipped**    | SPE-1309 child — agent/knowledge/procedure simulation triggers / PR #2811 @ `8f5fde47`.                                                                  |
 | `spe-1309-unified-engine-slice-6.md`                      | **Shipped**    | SPE-1309 child — planning mirror UI / PR #2812 @ `621b2d74`.                                                                                              |
-| `spe-1309-parent-acceptance-review-slice-5.md`            | In progress    | SPE-1309 grooming slice 5 — post engine slices 1–6 AC reconciliation; parent stays Backlog (row 3 **Partial**) @ `92980ab1`.                              |
+| `spe-1309-parent-acceptance-review-slice-5.md`            | **Shipped**    | SPE-1309 grooming slice 5 / PR #2813; SPE-1309 stays Backlog — AC rows 1–2 **Yes**, row 3 **Partial**; post-engine auto-close reconciliation @ `62ddbc93`. |
 | `welfare-debt-accounting-registry-slice-2.md`             | **Shipped**    | SPE-2351 / PR #2570; planning mirror UI over `welfareDebtAccountingRecords` @ `96ad05ba`.                                                               |
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
 | `welfare-debt-accounting-registry-slice-4.md`             | **Shipped**    | SPE-2353 / PR #2574; ledger summary audit output @ `1ec3ca12`.                                                                                         |

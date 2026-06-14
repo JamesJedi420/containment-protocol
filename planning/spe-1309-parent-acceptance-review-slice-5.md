@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1309](https://linear.app/spectranoir/issue
 | **Linear** | SPE-1309 child — parent acceptance review (grooming slice 5) (create/claim on start)                       |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine; stays **Backlog** |
 | **Branch** | `spe-1309-parent-acceptance-review-slice-5`                                                                |
-| **Status** | In progress                                                                                                |
+| **Status** | **Shipped** — PR #2813 @ `62ddbc93`                                                                        |
 | **Base `main` SHA** | `92980ab1`                                                                                          |
 
 ## Goal

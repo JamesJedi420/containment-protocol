@@ -790,6 +790,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
         'Review separate claim, doctrine, and verification layers plus myth infrastructure ops flags.',
     },
     {
+      label: 'Open cover-story mirror',
+      href: APP_ROUTES.coverStoryRecords,
+      description:
+        'Review cover-story lifecycle phases, contradiction pressure, and weekly projection snapshots.',
+    },
+    {
       label: 'Open population emergence mirror',
       href: APP_ROUTES.massAnomalousPopulationEmergence,
       description:

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-861](https://linear.app/s
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-861 child — Disclosure campaign player UI (slice 1)                                                    |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2805 @ `517b1824`                                                                        |
 | **Parent** | [SPE-861](https://linear.app/spectranoir/issue/SPE-861) — public trust and compliance engine (umbrella)    |
 | **Branch** | `spe-861-disclosure-campaign-player-ui-slice-1`                                                            |
 | **Base `main` SHA** | `5aed7be3`                                                                                          |
@@ -46,12 +46,12 @@ Player-facing disclosure progression UI wired to existing `publicDisclosureRecor
 
 ## Acceptance
 
-- [ ] Empty `publicDisclosureRecords` map renders empty state without throw
-- [ ] Progression fixture displays institutional awareness/fallout and regional trust bands
-- [ ] Redacted summary/confidence suppressed in player copy
-- [ ] Front Desk attention item + quick link when records non-empty
-- [ ] `publicDisclosureMirrorView.test.ts` unchanged / regression green
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty `publicDisclosureRecords` map renders empty state without throw
+- [x] Progression fixture displays institutional awareness/fallout and regional trust bands
+- [x] Redacted summary/confidence suppressed in player copy
+- [x] Front Desk attention item + quick link when records non-empty
+- [x] `publicDisclosureMirrorView.test.ts` unchanged / regression green
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

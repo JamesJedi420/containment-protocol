@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** SPE-861 disclosure campaign player UI slice 2 (trust outcomes) or SPE-1309 unified engine owner slice if prioritized over remaining SPE-1347 siblings.
 
-**Base `main` SHA:** `5aed7be3` — in progress: SPE-861 disclosure campaign player UI slice 1 @ `planning/disclosure-campaign-player-ui-slice-1.md` (branch `spe-861-disclosure-campaign-player-ui-slice-1`)
+**Base `main` SHA:** `517b1824` — shipped: SPE-861 disclosure campaign player UI slice 1 @ `planning/disclosure-campaign-player-ui-slice-1.md` (PR #2805)
 
-**Recently shipped:** SPE-1347 cover-story lifecycle slice 4 (PR #2804); SPE-1347 cover-story lifecycle planning mirror UI slice 3 (PR #2803).
+**Recently shipped:** SPE-861 disclosure campaign player UI slice 1 (PR #2805); SPE-1347 cover-story lifecycle slice 4 (PR #2804).
 
 **Recently shipped:** SPE-1882 coercive protocol mirror snapshot read slice 11 (PR #2798); SPE-1309 parent acceptance review grooming slice 4 (PR #2796); SPE-1888 parent acceptance review grooming slice 6 (PR #2793).
 
@@ -161,7 +161,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `public-disclosure-state-registry-slice-2.md`             | **Shipped**    | SPE-2325 / PR #2517; `publicDisclosureRecords` GameState persistence.                                                                                |
 | `public-disclosure-state-registry-slice-3.md`             | **Shipped**    | SPE-2326 / PR #2519; weekly scheduled awareness/fallout progression hook.                                                                          |
 | `public-disclosure-state-registry-slice-4.md`             | **Shipped**    | SPE-2331 / PR #2529; planning mirror UI over `publicDisclosureRecords` @ `6fa361b3`.                                                                |
-| `disclosure-campaign-player-ui-slice-1.md`                | **In progress** | SPE-861 child — player-facing disclosure campaign briefing UI @ `5aed7be3`.                                                                       |
+| `disclosure-campaign-player-ui-slice-1.md`                | **Shipped**    | SPE-861 child — player-facing disclosure campaign briefing UI / PR #2805 @ `517b1824`.                                                             |
 | `pattern-source-series-registry-slice-1.md`               | **Shipped**    | SPE-2110 / PR #2431; series-hub intake metadata and processing queue projection.                                                                      |
 | `pattern-source-series-registry-slice-2.md`               | **Shipped**    | SPE-2327 / PR #2521; `patternSourceSeriesRecords` GameState persistence @ `0f67c210`.                                                               |
 | `pattern-source-series-registry-slice-3.md`               | **Shipped**    | SPE-2328 / PR #2523; readiness-gated processing-pipeline weekly hook @ `37619b71`.                                                                    |

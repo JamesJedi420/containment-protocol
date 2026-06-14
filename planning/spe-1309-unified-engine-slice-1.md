@@ -5,6 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — Unified cognitive hazard engine — exposure state anchor (slice 1)                       |
+| **Status** | **Shipped** — PR #2807 @ `0e803263`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-1`                                                                          |
 | **Base `main` SHA** | `0db414af`                                                                                          |

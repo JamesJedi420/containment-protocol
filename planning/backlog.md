@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** SPE-1309 unified engine slice 2 (persistence + hydrate) if prioritized, or next SPE-861 follow-up child (segmented population trust / disclosure choice mechanics).
 
-**Base `main` SHA:** `0db414af` — in progress: SPE-1309 unified cognitive hazard engine slice 1 @ `planning/spe-1309-unified-engine-slice-1.md`
+**Base `main` SHA:** `0e803263` — shipped: SPE-1309 unified cognitive hazard engine slice 1 @ `planning/spe-1309-unified-engine-slice-1.md` (PR #2807)
 
-**Recently shipped:** SPE-861 disclosure campaign trust outcomes slice 2 (PR #2806 @ `47e3e652`); SPE-861 disclosure campaign player UI slice 1 (PR #2805 @ `517b1824`).
+**Recently shipped:** SPE-1309 unified cognitive hazard engine slice 1 (PR #2807); SPE-861 disclosure campaign trust outcomes slice 2 (PR #2806 @ `47e3e652`).
 
 **Recently shipped:** SPE-1882 coercive protocol mirror snapshot read slice 11 (PR #2798); SPE-1309 parent acceptance review grooming slice 4 (PR #2796); SPE-1888 parent acceptance review grooming slice 6 (PR #2793).
 
@@ -224,7 +224,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1309-parent-acceptance-review-slice-2.md`            | **Shipped**    | SPE-2445 / PR #2766; SPE-1309 stays Backlog — SPE-2108 + SPE-2116 follow-on groomed; unified engine AC not met @ `1c8d2d74`.                            |
 | `spe-1309-parent-acceptance-review-slice-3.md`            | **Shipped**    | SPE-2451 / PR #2783; SPE-1309 stays Backlog — post SPE-1343 grooming; doc vs Linear auto-close reconciliation @ `a8b26733`.                            |
 | `spe-1309-parent-acceptance-review-slice-4.md`            | **Shipped**    | SPE-2456 / PR #2796; SPE-1309 stays Backlog — post SPE-1888 grooming slice 6; slice 4 auto-close reconciliation @ `25f10aff`.                    |
-| `spe-1309-unified-engine-slice-1.md`                      | **In Progress**| SPE-1309 child — unified cognitive hazard engine exposure state anchor @ `0db414af`.                                                                   |
+| `spe-1309-unified-engine-slice-1.md`                      | **Shipped**    | SPE-1309 child — unified cognitive hazard engine exposure state anchor / PR #2807 @ `0e803263`.                                                        |
 | `welfare-debt-accounting-registry-slice-2.md`             | **Shipped**    | SPE-2351 / PR #2570; planning mirror UI over `welfareDebtAccountingRecords` @ `96ad05ba`.                                                               |
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
 | `welfare-debt-accounting-registry-slice-4.md`             | **Shipped**    | SPE-2353 / PR #2574; ledger summary audit output @ `1ec3ca12`.                                                                                         |

@@ -203,6 +203,7 @@ import { sanitizeUnexplainedLocationRecords } from '../../domain/unexplainedLoca
 import { sanitizeMinorAnomalyItemRecords } from '../../domain/minorAnomalyItemRegistry'
 import { sanitizeSelfCensoringInformationRecords } from '../../domain/selfCensoringInformationRegistry'
 import { sanitizePublicDisclosureRecords } from '../../domain/publicDisclosureStateRegistry'
+import { sanitizePublicDisclosurePostureChoices } from '../../domain/publicDisclosurePostureChoice'
 import {
   sanitizeTruthLayerRecords,
   sanitizeTruthLayerWeeklyProjectionSnapshots,
@@ -8509,6 +8510,11 @@ export function hydrateGame(
     game.publicDisclosureRecords,
     fallback.publicDisclosureRecords ?? {}
   )
+  const publicDisclosurePostureChoices = sanitizePublicDisclosurePostureChoices(
+    game.publicDisclosurePostureChoices,
+    new Set(Object.keys(publicDisclosureRecords)),
+    fallback.publicDisclosurePostureChoices ?? {}
+  )
   const truthLayerRecords = sanitizeTruthLayerRecords(
     game.truthLayerRecords,
     fallback.truthLayerRecords ?? {}
@@ -8722,6 +8728,7 @@ export function hydrateGame(
       ruleDocumentComplianceRecords,
       selfCensoringInformationRecords,
       publicDisclosureRecords,
+      publicDisclosurePostureChoices,
       truthLayerRecords,
       truthLayerWeeklyProjectionSnapshots,
       coverStoryRecords,

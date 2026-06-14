@@ -97,6 +97,10 @@ import {
   applyInfiltrationWeeklyProbeActionOverride,
   canConfigureInfiltrationWeeklyProbeOnCase,
 } from '../../domain/infiltrationProbeOverride'
+import {
+  applyPublicDisclosurePostureChoice,
+  type PublicDisclosurePostureChoice,
+} from '../../domain/publicDisclosurePostureChoice'
 import { applyStealthLeaveBehindSelection } from '../../domain/stealthLeaveBehindSelection'
 import { queueFabrication } from '../../domain/sim/production'
 import { invokeEmergencyGrayMarketWaiver } from '../../domain/procurementEmergency'
@@ -252,6 +256,11 @@ interface GameStore {
   setInfiltrationWeeklyProbeAction: (
     caseId: Id,
     action: InfiltrationProbeAction | null
+  ) => void
+  /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
+  setPublicDisclosurePostureChoice: (
+    recordId: Id,
+    posture: PublicDisclosurePostureChoice
   ) => void
   hireCandidate: (candidateId: Id) => void
   scoutCandidate: (candidateId: Id) => void
@@ -1201,6 +1210,20 @@ export const useGameStore = create<GameStore>()(
             caseId,
             action,
           })
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
+      setPublicDisclosurePostureChoice: (recordId, posture) =>
+        set((s) => {
+          const result = applyPublicDisclosurePostureChoice(s.game, {
+            recordId,
+            posture,
+          })
+
           if (!result.applied) {
             return { game: s.game }
           }

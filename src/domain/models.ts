@@ -255,6 +255,7 @@ import type { PostIncidentReviewRecommendationRecord } from './postIncidentRevie
 import type { RuleDocumentComplianceRecord } from './ruleDocumentComplianceContainmentRegistry'
 import type { SelfCensoringInformationRecord } from './selfCensoringInformationRegistry'
 import type { PublicDisclosureRecord } from './publicDisclosureStateRegistry'
+import type { PublicDisclosurePostureChoicesMap } from './publicDisclosurePostureChoice'
 import type {
   TruthLayerRecord,
   TruthLayerWeeklyProjectionSnapshot,
@@ -2667,6 +2668,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   publicDisclosureRecords?: Record<string, PublicDisclosureRecord>
+
+  /**
+   * SPE-861 slice 4: player disclosure posture choices keyed by disclosure record id.
+   * Hydration drops invalid record ids and unknown posture values.
+   */
+  publicDisclosurePostureChoices?: PublicDisclosurePostureChoicesMap
 
   /**
    * SPE-1343 slice 2: persisted truth-layer records (keyed by record id).

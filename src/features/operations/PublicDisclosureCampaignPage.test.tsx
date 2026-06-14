@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import '../../test/setup'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
@@ -90,5 +90,28 @@ describe('PublicDisclosureCampaignPage (SPE-861 slice 1)', () => {
     renderCampaignPage()
 
     expect(JSON.stringify(useGameStore.getState().game)).toBe(before)
+  })
+
+  it('applies disclosure posture choices and updates cooperation band copy', () => {
+    const game = createStartingState()
+    game.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderCampaignPage()
+
+    expect(screen.getByText('Opposed posture')).toBeInTheDocument()
+    expect(screen.getByText(/no posture selected/i)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /transparent posture/i }))
+
+    expect(
+      useGameStore.getState().game.publicDisclosurePostureChoices?.[
+        DISCLOSURE_PROGRESSION_FIXTURE.id
+      ]
+    ).toBe('transparent')
+    expect(screen.getByText('Watchful compliance')).toBeInTheDocument()
+    expect(screen.getByText(/selected posture:/i)).toHaveTextContent('Transparent posture')
   })
 })

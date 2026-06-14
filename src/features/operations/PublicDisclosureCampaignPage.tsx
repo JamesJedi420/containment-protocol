@@ -15,7 +15,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 }
 
 export default function PublicDisclosureCampaignPage() {
-  const { game } = useGameStore()
+  const { game, setPublicDisclosurePostureChoice } = useGameStore()
   const view = useMemo(() => getPublicDisclosureCampaignView(game), [game])
 
   return (
@@ -78,6 +78,12 @@ export default function PublicDisclosureCampaignPage() {
           </div>
         ) : null}
 
+        {view.records.some((record) => record.allowsPostureChoice) ? (
+          <p className="text-xs opacity-55">
+            {PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.postureChoiceEffectNote}
+          </p>
+        ) : null}
+
         <p className="text-xs opacity-55">{PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.readOnlyNote}</p>
       </article>
 
@@ -102,7 +108,7 @@ export default function PublicDisclosureCampaignPage() {
           <ul className="space-y-3">
             {view.records.map((record) => (
               <li
-                key={record.label}
+                key={record.recordId}
                 className="rounded border border-white/10 bg-white/5 px-3 py-3 space-y-2"
               >
                 <div className="space-y-1">
@@ -167,6 +173,44 @@ export default function PublicDisclosureCampaignPage() {
 
                 {record.redacted ? (
                   <p className="text-xs opacity-55">{PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.redactedSuffix}</p>
+                ) : null}
+
+                {record.allowsPostureChoice ? (
+                  <div className="space-y-2 border-t border-white/10 pt-2">
+                    <div className="space-y-1">
+                      <p className="text-xs uppercase tracking-[0.18em] opacity-50">
+                        {PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.postureChoiceHeading}
+                      </p>
+                      <p className="text-xs opacity-60">
+                        {PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.postureChoiceSubtitle}
+                      </p>
+                      <p className="text-sm opacity-80">
+                        {PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.postureChoiceSelectedPrefix}{' '}
+                        {record.selectedPostureChoiceLabel ??
+                          PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.postureChoiceUnselectedLabel}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {record.postureChoiceOptions.map((option) => {
+                        const isSelected = record.selectedPostureChoice === option.posture
+
+                        return (
+                          <button
+                            key={`${record.recordId}:${option.posture}`}
+                            type="button"
+                            className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-ghost'}`}
+                            aria-pressed={isSelected}
+                            title={option.description}
+                            onClick={() =>
+                              setPublicDisclosurePostureChoice(record.recordId, option.posture)
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 ) : null}
               </li>
             ))}

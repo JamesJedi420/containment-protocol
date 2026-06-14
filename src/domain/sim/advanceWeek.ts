@@ -277,6 +277,7 @@ import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologica
 import { composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords } from '../cognitiveHazardSiblingCompose'
 import { applyWeeklyCognitiveHazardExposureTick } from '../cognitiveHazardWeeklyOrchestration'
 import { buildWeeklyCognitiveHazardSimulationTriggerReportNotes } from '../cognitiveHazardSimulationTriggerWeeklyReportNotes'
+import { applyCognitiveHazardSimulationTriggerVitalsToAgents } from '../cognitiveHazardSimulationTriggerVitals'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4893,6 +4894,15 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       }
       result.reports = reports
     }
+  }
+
+  // SPE-1309 slice 7: agent vitals side-effects from active simulation trigger summaries.
+  if (Object.keys(nextCognitiveHazardExposureRecordsForTriggers).length > 0) {
+    outputWeeklyState.agents = applyCognitiveHazardSimulationTriggerVitalsToAgents({
+      agents: outputWeeklyState.agents ?? sourceState.agents,
+      nextRecords: nextCognitiveHazardExposureRecordsForTriggers,
+      priorRecords: priorCognitiveHazardExposureRecords,
+    })
   }
 
   // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.

@@ -84,6 +84,22 @@ export const RECOVERY_CALIBRATION = {
   exposureResidueMedicalClearThreshold: 2,
 } as const
 
+/** SPE-1309 slice 7: bounded vitals/scoring side-effects from cognitive hazard simulation triggers. */
+export const COGNITIVE_HAZARD_CALIBRATION = {
+  dutyDegradedTeamPenaltyMultiplier: 0.92,
+  knowledgeDegradedTeamPenaltyMultiplier: 0.95,
+  stressDeltaByReviewBand: {
+    stable: 0,
+    elevated: 6,
+    critical: 12,
+  },
+  moraleDeltaByReviewBand: {
+    stable: 0,
+    elevated: 0,
+    critical: -4,
+  },
+} as const
+
 export const RESPONDER_ENERGY_CALIBRATION = {
   defaultReserve: 100,
   reserveBands: {

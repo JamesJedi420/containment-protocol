@@ -14,7 +14,11 @@ import {
   type WeeklyReport,
 } from '../models'
 import { clamp, sigmoid } from '../math'
-import { RECOVERY_CALIBRATION } from './calibration'
+import { COGNITIVE_HAZARD_CALIBRATION, RECOVERY_CALIBRATION } from './calibration'
+import {
+  vitalsHasCognitiveHazardDutyDegraded,
+  vitalsHasCognitiveHazardKnowledgeDegraded,
+} from '../cognitiveHazardSimulationTriggerVitals'
 import {
   buildAgentSquadCompositionProfile,
   dotResolutionProfile,
@@ -823,6 +827,36 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     reasons.push(`Impaired: ${impairedPenalty.toFixed(1)}`)
   }
 
+  const cognitiveHazardDutyCount = agents.filter((a) =>
+    vitalsHasCognitiveHazardDutyDegraded(a.vitals)
+  ).length
+  const cognitiveHazardDutyPenalty =
+    cognitiveHazardDutyCount > 0
+      ? -(
+          base *
+          (1 - COGNITIVE_HAZARD_CALIBRATION.dutyDegradedTeamPenaltyMultiplier) *
+          (cognitiveHazardDutyCount / Math.max(1, agents.length))
+        )
+      : 0
+  if (cognitiveHazardDutyPenalty !== 0) {
+    reasons.push(`Cognitive hazard duty strain: ${cognitiveHazardDutyPenalty.toFixed(1)}`)
+  }
+
+  const cognitiveHazardKnowledgeCount = agents.filter((a) =>
+    vitalsHasCognitiveHazardKnowledgeDegraded(a.vitals)
+  ).length
+  const cognitiveHazardKnowledgePenalty =
+    cognitiveHazardKnowledgeCount > 0
+      ? -(
+          base *
+          (1 - COGNITIVE_HAZARD_CALIBRATION.knowledgeDegradedTeamPenaltyMultiplier) *
+          (cognitiveHazardKnowledgeCount / Math.max(1, agents.length))
+        )
+      : 0
+  if (cognitiveHazardKnowledgePenalty !== 0) {
+    reasons.push(`Cognitive hazard knowledge strain: ${cognitiveHazardKnowledgePenalty.toFixed(1)}`)
+  }
+
   const nonAxisModifierTotal = computeNonAxisModifierTotal({
     leaderBonus,
     synergyBonus,
@@ -831,7 +865,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
     preferredBonus,
     equipmentScore: equipment.score,
     partyCardScore: partyCardBonus,
-    contextAdjustment: contextAdjustment + impairedPenalty,
+    contextAdjustment: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty,
   })
   const comparison = compareResolutionAgainstCase(
     profile.resolutionProfile,
@@ -875,7 +909,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       { id: 'preferred-tags', label: 'Preferred tags', delta: preferredBonus },
       { id: 'equipment', label: 'Equipment', delta: equipment.score },
       { id: 'party-cards', label: 'Party cards', delta: partyCardBonus },
-      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment + impairedPenalty },
+      { id: 'context-adjustment', label: 'Context adjustment', delta: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty },
     ],
   }
 
@@ -911,7 +945,7 @@ export function computeTeamScore(agents: Agent[], c: CaseInstance, context: Team
       preferredTagBonus: preferredBonus,
       equipmentBonus: equipment.score,
       partyCardBonus,
-      contextAdjustment: contextAdjustment + impairedPenalty,
+      contextAdjustment: contextAdjustment + impairedPenalty + cognitiveHazardDutyPenalty + cognitiveHazardKnowledgePenalty,
     }),
     layerBreakdown,
     comparison,

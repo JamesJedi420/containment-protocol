@@ -978,6 +978,32 @@ export const TRUTH_LAYER_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Public affairs briefing',
+  pageHeading: 'Disclosure campaign posture',
+  pageSubtitle:
+    'Institutional readout of post-secrecy disclosure progression and regional public-trust bands.',
+  backToDeskLabel: 'Back to Operations Desk',
+  activeDisclosureLabel: 'Active disclosures',
+  dominantAwarenessLabel: 'Dominant awareness band',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Awareness and regional trust reflect the latest weekly progression. This briefing does not change campaign state.',
+  emptyTitle: 'No active disclosure campaigns',
+  emptyBody:
+    'When disclosure records enter play, campaign posture and regional trust bands will appear here.',
+  campaignsHeading: 'Active campaigns',
+  campaignsSubtitle:
+    'Each card summarizes public-awareness posture without operational or verification-layer detail.',
+  awarenessPrefix: 'Awareness:',
+  falloutPrefix: 'Fallout:',
+  objectivePrefix: 'Objective:',
+  regionalTrustHeading: 'Regional public trust',
+  coverNarrativePrefix: 'Linked cover narrative:',
+  confidencePrefix: 'Assessment:',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Public disclosure state registry',

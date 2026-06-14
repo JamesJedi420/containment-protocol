@@ -46,6 +46,7 @@ import {
   buildWeeklyReportTutorialChoices,
 } from './frontDeskChoices'
 import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
+import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
@@ -736,8 +737,9 @@ function getAttentionPriority(tone: FrontDeskNoticeTone) {
 
 function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
   const shell = buildShellStatusBarView(game)
+  const disclosureCampaign = getPublicDisclosureCampaignView(game)
 
-  return [
+  const links: FrontDeskQuickLinkView[] = [
     {
       label: 'Open contracts',
       href: APP_ROUTES.contracts,
@@ -768,6 +770,17 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: shell.weeklyReportHref,
       description: 'Open the current or latest weekly report.',
     },
+  ]
+
+  if (!disclosureCampaign.isEmpty) {
+    links.push({
+      label: 'Open disclosure campaign briefing',
+      href: APP_ROUTES.publicDisclosureCampaign,
+      description: 'Review post-secrecy awareness posture and regional public-trust bands.',
+    })
+  }
+
+  links.push(
     {
       label: 'Open series intake mirror',
       href: APP_ROUTES.patternSourceSeries,
@@ -884,8 +897,10 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.postIncidentReviewRecommendationActions,
       description:
         'Review follow-on action stubs linked to persisted recommendation and qualifying review records.',
-    },
-  ]
+    }
+  )
+
+  return links
 }
 
 function buildStatCards(game: GameState): FrontDeskStatCardView[] {
@@ -1179,7 +1194,30 @@ function buildAttentionItems(
       href: APP_ROUTES.teamDetail(entry.teamId),
     }))
 
-  return [...noticeItems, ...debriefAttention, ...signalItems, ...routingItems, ...readinessItems]
+  const disclosureCampaign = getPublicDisclosureCampaignView(game)
+  const disclosureAttention =
+    !disclosureCampaign.isEmpty && disclosureCampaign.summary.activeDisclosureCount > 0
+      ? [
+          {
+            id: 'disclosure:campaign-briefing',
+            title: 'Disclosure campaign posture requires review',
+            summary: `${disclosureCampaign.summary.activeDisclosureCount} active disclosure campaign(s); dominant awareness band: ${disclosureCampaign.summary.dominantAwarenessBandLabel}.`,
+            tone: ((): FrontDeskNoticeTone => {
+              const band = disclosureCampaign.summary.dominantAwarenessBandLabel
+              if (band === 'Public Scandal' || band === 'Official Disclosure') {
+                return 'warning'
+              }
+              if (band === 'Normalization') {
+                return 'info'
+              }
+              return 'warning'
+            })(),
+            href: APP_ROUTES.publicDisclosureCampaign,
+          } as const,
+        ]
+      : []
+
+  return [...noticeItems, ...debriefAttention, ...disclosureAttention, ...signalItems, ...routingItems, ...readinessItems]
     .sort((left, right) => {
       const priorityDelta = getAttentionPriority(right.tone) - getAttentionPriority(left.tone)
 

@@ -903,6 +903,42 @@ export const SELF_CENSORING_INFORMATION_MIRROR_UI_TEXT: Record<string, string> =
   redactedSuffix: 'Partial redaction',
 }
 
+export const COVER_STORY_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Cover-story lifecycle registry',
+  pageSubtitle:
+    'Read-only operations view over persisted cover-story records and weekly lifecycle projection snapshots.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  coverStressActiveLabel: 'Cover stress active',
+  coverCollapsedLabel: 'Cover collapsed',
+  repairInProgressLabel: 'Repair in progress',
+  weekLabel: 'Simulation week',
+  readOnlyNote:
+    'Lifecycle projections mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No cover-story records',
+  emptyBody:
+    'Persisted cover-story records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Contradiction channel hints show aggregate pressure only; weekly snapshot column displays persisted lifecycle projection when available.',
+  labelColumn: 'Label',
+  lifecycleColumn: 'Lifecycle',
+  contradictionColumn: 'Contradiction signals',
+  opsFlagsColumn: 'Ops flags',
+  weeklySnapshotColumn: 'Weekly snapshot',
+  contradictionPressureLabel: 'Contradiction pressure',
+  coverCapacityScoreLabel: 'Cover capacity score',
+  channelCountPrefix: 'Active channels:',
+  motivationPrefix: 'Motivation:',
+  exposurePrefix: 'Exposure:',
+  confidenceColumn: 'Confidence',
+  latestRepairPrefix: 'Latest repair:',
+  unknownFieldsPrefix: 'Unknown fields:',
+  snapshotWeekPrefix: 'Snapshot week',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const TRUTH_LAYER_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Truth-layer record registry',

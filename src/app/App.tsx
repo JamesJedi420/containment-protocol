@@ -90,6 +90,9 @@ const PublicDisclosureMirrorRoute = createRouteComponent(
 const TruthLayerMirrorRoute = createRouteComponent(
   () => import('../features/operations/TruthLayerMirrorPage')
 )
+const CoverStoryMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CoverStoryMirrorPage')
+)
 const MassAnomalousPopulationEmergenceMirrorRoute = createRouteComponent(
   () => import('../features/operations/MassAnomalousPopulationEmergenceMirrorPage')
 )
@@ -195,6 +198,7 @@ export default function App() {
           element={renderLazyRoute(PublicDisclosureMirrorRoute)}
         />
         <Route path="truth-layer-records" element={renderLazyRoute(TruthLayerMirrorRoute)} />
+        <Route path="cover-story-records" element={renderLazyRoute(CoverStoryMirrorRoute)} />
         <Route
           path="mass-anomalous-population-emergence"
           element={renderLazyRoute(MassAnomalousPopulationEmergenceMirrorRoute)}

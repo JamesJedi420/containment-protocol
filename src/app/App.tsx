@@ -87,6 +87,9 @@ const SelfCensoringInformationMirrorRoute = createRouteComponent(
 const PublicDisclosureMirrorRoute = createRouteComponent(
   () => import('../features/operations/PublicDisclosureMirrorPage')
 )
+const PublicDisclosureCampaignRoute = createRouteComponent(
+  () => import('../features/operations/PublicDisclosureCampaignPage')
+)
 const TruthLayerMirrorRoute = createRouteComponent(
   () => import('../features/operations/TruthLayerMirrorPage')
 )
@@ -196,6 +199,10 @@ export default function App() {
         <Route
           path="public-disclosure-state"
           element={renderLazyRoute(PublicDisclosureMirrorRoute)}
+        />
+        <Route
+          path="campaign/public-disclosure"
+          element={renderLazyRoute(PublicDisclosureCampaignRoute)}
         />
         <Route path="truth-layer-records" element={renderLazyRoute(TruthLayerMirrorRoute)} />
         <Route path="cover-story-records" element={renderLazyRoute(CoverStoryMirrorRoute)} />

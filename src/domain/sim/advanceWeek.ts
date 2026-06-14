@@ -274,6 +274,7 @@ import { applyWeeklyCoverStoryTick } from '../coverStoryWeeklyOrchestration'
 import { applyWeeklyTruthLayerTick } from '../truthLayerWeeklyOrchestration'
 import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
 import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
+import { composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords } from '../cognitiveHazardSiblingCompose'
 import { applyWeeklyCognitiveHazardExposureTick } from '../cognitiveHazardWeeklyOrchestration'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
@@ -4838,9 +4839,24 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       )
   }
 
-  // SPE-1309 slice 3: memory-impairment-band advance on cognitive hazard exposure records.
-  const currentCognitiveHazardExposureRecords =
+  // SPE-1309 slice 4: merge SPE-2108 propagation-resistance tags into linked exposure channels.
+  let currentCognitiveHazardExposureRecords =
     outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  const currentSelfCensoringForCognitiveHazardCompose =
+    outputWeeklyState.selfCensoringInformationRecords ?? {}
+  if (
+    Object.keys(currentCognitiveHazardExposureRecords).length > 0 &&
+    Object.keys(currentSelfCensoringForCognitiveHazardCompose).length > 0
+  ) {
+    currentCognitiveHazardExposureRecords =
+      composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords(
+        currentCognitiveHazardExposureRecords,
+        currentSelfCensoringForCognitiveHazardCompose
+      )
+    outputWeeklyState.cognitiveHazardExposureRecords = currentCognitiveHazardExposureRecords
+  }
+
+  // SPE-1309 slice 3: memory-impairment-band advance on cognitive hazard exposure records.
   if (Object.keys(currentCognitiveHazardExposureRecords).length > 0) {
     outputWeeklyState.cognitiveHazardExposureRecords = applyWeeklyCognitiveHazardExposureTick(
       currentCognitiveHazardExposureRecords,

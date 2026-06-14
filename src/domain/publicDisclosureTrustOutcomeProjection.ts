@@ -7,6 +7,10 @@
 
 import type { GameState } from './models'
 import {
+  applyPublicDisclosurePostureTrustAdjustment,
+  type PublicDisclosurePostureChoicesMap,
+} from './publicDisclosurePostureChoice'
+import {
   projectDisclosureRegionalView,
   type AwarenessLevel,
   type PublicDisclosureRecord,
@@ -213,9 +217,11 @@ function buildFrontDeskAttentionSummary(input: {
 
 /** Projects compliance/cooperation bands from hydrated disclosure records. */
 export function projectPublicDisclosureTrustOutcome(
-  records: PublicDisclosureRecordsMap | null | undefined
+  records: PublicDisclosureRecordsMap | null | undefined,
+  postureChoices?: PublicDisclosurePostureChoicesMap | null
 ): PublicDisclosureTrustOutcomeProjection {
-  const persistedRecords = listPersistedRecords(records)
+  const effectiveRecords = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const persistedRecords = listPersistedRecords(effectiveRecords)
   const activeCampaignCount = persistedRecords.filter(
     (record) => record.awarenessLevel !== 'secrecy_intact'
   ).length
@@ -251,9 +257,12 @@ export function projectPublicDisclosureTrustOutcome(
 }
 
 export function projectPublicDisclosureTrustOutcomeFromGame(
-  game: Pick<GameState, 'publicDisclosureRecords'>
+  game: Pick<GameState, 'publicDisclosureRecords' | 'publicDisclosurePostureChoices'>
 ): PublicDisclosureTrustOutcomeProjection {
-  return projectPublicDisclosureTrustOutcome(game.publicDisclosureRecords)
+  return projectPublicDisclosureTrustOutcome(
+    game.publicDisclosureRecords,
+    game.publicDisclosurePostureChoices
+  )
 }
 
 export function formatPublicDisclosureTrustOutcomeNoteContent(

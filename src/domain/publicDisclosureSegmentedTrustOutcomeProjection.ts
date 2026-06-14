@@ -7,6 +7,10 @@
 
 import type { GameState } from './models'
 import {
+  applyPublicDisclosurePostureTrustAdjustment,
+  type PublicDisclosurePostureChoicesMap,
+} from './publicDisclosurePostureChoice'
+import {
   projectDisclosureRegionalView,
   type PublicDisclosureRecord,
   type PublicDisclosureRecordsMap,
@@ -269,9 +273,11 @@ function resolveFrontDeskDivergenceTone(
 
 /** Projects population / channel trust divergence from hydrated disclosure records. */
 export function projectPublicDisclosureSegmentedTrustOutcome(
-  records: PublicDisclosureRecordsMap | null | undefined
+  records: PublicDisclosureRecordsMap | null | undefined,
+  postureChoices?: PublicDisclosurePostureChoicesMap | null
 ): PublicDisclosureSegmentedTrustOutcomeProjection {
-  const persistedRecords = listPersistedRecords(records)
+  const effectiveRecords = applyPublicDisclosurePostureTrustAdjustment(records, postureChoices)
+  const persistedRecords = listPersistedRecords(effectiveRecords)
   const activeRecords = persistedRecords.filter((record) => record.awarenessLevel !== 'secrecy_intact')
   const aggregate = collectSegmentTrustScores(activeRecords)
   const segmentEntries = Object.freeze(buildSegmentEntries(aggregate))
@@ -300,9 +306,12 @@ export function projectPublicDisclosureSegmentedTrustOutcome(
 }
 
 export function projectPublicDisclosureSegmentedTrustOutcomeFromGame(
-  game: Pick<GameState, 'publicDisclosureRecords'>
+  game: Pick<GameState, 'publicDisclosureRecords' | 'publicDisclosurePostureChoices'>
 ): PublicDisclosureSegmentedTrustOutcomeProjection {
-  return projectPublicDisclosureSegmentedTrustOutcome(game.publicDisclosureRecords)
+  return projectPublicDisclosureSegmentedTrustOutcome(
+    game.publicDisclosureRecords,
+    game.publicDisclosurePostureChoices
+  )
 }
 
 export function formatPublicDisclosureSegmentedTrustOutcomeNoteContent(

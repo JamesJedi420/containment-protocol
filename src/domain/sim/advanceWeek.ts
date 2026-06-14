@@ -5205,6 +5205,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
     const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
       baseTimestamp: noteBaseTimestamp,
@@ -5214,6 +5215,7 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
 
     const segmentedTrustNotes = buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      postureChoices: inputWeeklyState.publicDisclosurePostureChoices,
       week: result.week,
       sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + appendedDisclosureNotes.length + 1,
       baseTimestamp: noteBaseTimestamp,

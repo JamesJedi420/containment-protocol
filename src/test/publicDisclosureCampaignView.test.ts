@@ -8,6 +8,7 @@ import {
 import { COASTAL_RESEARCH_CAMPUS_DUAL_INCIDENT_TRUTH_LAYER_FIXTURES } from '../domain/truthLayerCoverNarrativePairing'
 import { COVER_NARRATIVE_TRUTH_LAYER_FIXTURE } from '../domain/truthLayerRecordRegistry'
 import { getPublicDisclosureCampaignView } from '../features/operations/publicDisclosureCampaignView'
+import { applyPublicDisclosurePostureChoice } from '../domain/publicDisclosurePostureChoice'
 
 describe('publicDisclosureCampaignView (SPE-861 slice 1)', () => {
   it('returns empty campaign view when publicDisclosureRecords map is empty', () => {
@@ -114,5 +115,31 @@ describe('publicDisclosureCampaignView (SPE-861 slice 1)', () => {
     const second = JSON.stringify(getPublicDisclosureCampaignView(game))
 
     expect(first).toBe(second)
+  })
+
+  it('surfaces posture choice options and shifts cooperation band from selected posture', () => {
+    const game = createStartingState()
+    game.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    const baseline = getPublicDisclosureCampaignView(game)
+    const record = baseline.records[0]
+
+    expect(record?.recordId).toBe(DISCLOSURE_PROGRESSION_FIXTURE.id)
+    expect(record?.allowsPostureChoice).toBe(true)
+    expect(record?.postureChoiceOptions).toHaveLength(3)
+    expect(record?.selectedPostureChoice).toBeNull()
+    expect(baseline.summary.cooperationBandLabel).toBe('Opposed posture')
+
+    const withTransparent = applyPublicDisclosurePostureChoice(game, {
+      recordId: DISCLOSURE_PROGRESSION_FIXTURE.id,
+      posture: 'transparent',
+    }).state
+    const adjusted = getPublicDisclosureCampaignView(withTransparent)
+
+    expect(adjusted.records[0]?.selectedPostureChoice).toBe('transparent')
+    expect(adjusted.records[0]?.selectedPostureChoiceLabel).toBe('Transparent posture')
+    expect(adjusted.summary.cooperationBandLabel).toBe('Watchful compliance')
   })
 })

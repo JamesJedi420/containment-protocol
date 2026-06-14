@@ -991,7 +991,7 @@ export const PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT: Record<string, string> = {
   segmentTrustChipsHeading: 'Population and channel trust segments',
   weekLabel: 'Campaign week',
   readOnlyNote:
-    'Awareness and regional trust reflect the latest weekly progression. This briefing does not change campaign state.',
+    'Awareness and regional trust reflect the latest weekly progression. Posture choices adjust projected cooperation bands without revealing raw trust scores.',
   emptyTitle: 'No active disclosure campaigns',
   emptyBody:
     'When disclosure records enter play, campaign posture and regional trust bands will appear here.',
@@ -1005,6 +1005,13 @@ export const PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT: Record<string, string> = {
   coverNarrativePrefix: 'Linked cover narrative:',
   confidencePrefix: 'Assessment:',
   redactedSuffix: 'Partial redaction',
+  postureChoiceHeading: 'Disclosure posture choice',
+  postureChoiceSubtitle:
+    'Set institutional messaging posture for this campaign. Effects appear in cooperation bands and weekly trust outcomes.',
+  postureChoiceSelectedPrefix: 'Selected posture:',
+  postureChoiceUnselectedLabel: 'No posture selected',
+  postureChoiceEffectNote:
+    'Cooperation and segment-trust summaries above reflect your selected posture without exposing redacted trust scores.',
 }
 
 export const PUBLIC_DISCLOSURE_MIRROR_UI_TEXT: Record<string, string> = {

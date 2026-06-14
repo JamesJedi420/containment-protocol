@@ -7,6 +7,13 @@ import {
 import { resolveTruthLayerDualIncidentPairing } from '../../domain/truthLayerCoverNarrativePairing'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
+import {
+  canApplyPublicDisclosurePostureChoiceOnRecord,
+  listPublicDisclosurePostureChoiceOptions,
+  readPublicDisclosurePostureChoice,
+  formatPublicDisclosurePostureChoiceLabel,
+  type PublicDisclosurePostureChoice,
+} from '../../domain/publicDisclosurePostureChoice'
 import { formatPublicDisclosureEnumLabel } from './publicDisclosureMirrorView'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
@@ -24,7 +31,14 @@ export interface PublicDisclosureCampaignRegionalBandView {
   redacted: boolean
 }
 
+export interface PublicDisclosureCampaignPostureChoiceOptionView {
+  posture: PublicDisclosurePostureChoice
+  label: string
+  description: string
+}
+
 export interface PublicDisclosureCampaignRecordView {
+  recordId: string
   label: string
   summaryLabel: string
   awarenessLevelLabel: string
@@ -35,6 +49,10 @@ export interface PublicDisclosureCampaignRecordView {
   coverNarrativeContextLabel: string | null
   confidenceBandLabel: string | null
   redacted: boolean
+  allowsPostureChoice: boolean
+  selectedPostureChoice: PublicDisclosurePostureChoice | null
+  selectedPostureChoiceLabel: string | null
+  postureChoiceOptions: readonly PublicDisclosureCampaignPostureChoiceOptionView[]
 }
 
 export interface PublicDisclosureCampaignSegmentChipView {
@@ -143,6 +161,17 @@ function resolveCoverNarrativeContextLabel(
 
 function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDisclosureCampaignRecordView {
   const projection = projectDisclosureRegionalView(record, { redactUnknown: true })
+  const allowsPostureChoice = canApplyPublicDisclosurePostureChoiceOnRecord(record)
+  const selectedPostureChoice = readPublicDisclosurePostureChoice(game, record.id) ?? null
+  const postureChoiceOptions = allowsPostureChoice
+    ? listPublicDisclosurePostureChoiceOptions().map((option) =>
+        Object.freeze({
+          posture: option.posture,
+          label: option.label,
+          description: option.description,
+        })
+      )
+    : []
 
   const summaryLabel =
     projection.summary ??
@@ -169,6 +198,7 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
       : formatConfidenceBand(projection.confidence)
 
   return Object.freeze({
+    recordId: record.id,
     label: record.label,
     summaryLabel,
     awarenessLevelLabel: formatPublicDisclosureEnumLabel(projection.publicAwarenessHint),
@@ -181,6 +211,10 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
     coverNarrativeContextLabel: resolveCoverNarrativeContextLabel(game, record.id),
     confidenceBandLabel,
     redacted: projection.redacted,
+    allowsPostureChoice,
+    selectedPostureChoice,
+    selectedPostureChoiceLabel: formatPublicDisclosurePostureChoiceLabel(selectedPostureChoice),
+    postureChoiceOptions: Object.freeze(postureChoiceOptions),
   })
 }
 

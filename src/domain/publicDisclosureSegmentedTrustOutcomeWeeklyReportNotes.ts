@@ -9,17 +9,22 @@ import {
   projectPublicDisclosureSegmentedTrustOutcome,
 } from './publicDisclosureSegmentedTrustOutcomeProjection'
 import type { ReportNote } from './models'
+import type { PublicDisclosurePostureChoicesMap } from './publicDisclosurePostureChoice'
 import type { PublicDisclosureRecordsMap } from './publicDisclosureStateRegistry'
 import { createDeterministicReportNote } from './reportNotes'
 
 /** Builds weekly report notes when active campaigns project divergent segment trust. */
 export function buildWeeklyPublicDisclosureSegmentedTrustOutcomeReportNotes(input: {
   nextRecords: PublicDisclosureRecordsMap | null | undefined
+  postureChoices?: PublicDisclosurePostureChoicesMap | null
   week: number
   sequenceStart: number
   baseTimestamp?: number
 }): ReportNote[] {
-  const projection = projectPublicDisclosureSegmentedTrustOutcome(input.nextRecords)
+  const projection = projectPublicDisclosureSegmentedTrustOutcome(
+    input.nextRecords,
+    input.postureChoices
+  )
 
   if (projection.isInactive || !projection.hasDivergence) {
     return []

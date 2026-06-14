@@ -9,17 +9,22 @@ import {
   projectPublicDisclosureTrustOutcome,
 } from './publicDisclosureTrustOutcomeProjection'
 import type { ReportNote } from './models'
+import type { PublicDisclosurePostureChoicesMap } from './publicDisclosurePostureChoice'
 import type { PublicDisclosureRecordsMap } from './publicDisclosureStateRegistry'
 import { createDeterministicReportNote } from './reportNotes'
 
 /** Builds weekly report notes when active disclosure campaigns project a trust outcome. */
 export function buildWeeklyPublicDisclosureTrustOutcomeReportNotes(input: {
   nextRecords: PublicDisclosureRecordsMap | null | undefined
+  postureChoices?: PublicDisclosurePostureChoicesMap | null
   week: number
   sequenceStart: number
   baseTimestamp?: number
 }): ReportNote[] {
-  const projection = projectPublicDisclosureTrustOutcome(input.nextRecords)
+  const projection = projectPublicDisclosureTrustOutcome(
+    input.nextRecords,
+    input.postureChoices
+  )
 
   if (projection.activeCampaignCount === 0) {
     return []

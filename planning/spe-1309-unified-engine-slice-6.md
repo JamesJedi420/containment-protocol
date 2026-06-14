@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — planning mirror UI (slice 6)                                                            |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2812 @ `621b2d74`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-6`                                                                          |
 | **Base `main` SHA** | `68f5fc2e`                                                                                          |
@@ -36,11 +36,11 @@ Read-only planning mirror over persisted `cognitiveHazardExposureRecords` projec
 
 ## Acceptance
 
-- [ ] Empty exposure map renders empty state
-- [ ] Fixture rows mirror projection labels deterministically (sorted by record id)
-- [ ] Redacted unit scores show `—`; summary shows `[Redacted]` only when summary field is redacted — never raw pre-projection values
-- [ ] Trigger chip labels come from `composeCognitiveHazardSimulationTriggerSubjectSummaries` + `formatCognitiveHazardSimulationTriggerSummaryLabels`
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty exposure map renders empty state
+- [x] Fixture rows mirror projection labels deterministically (sorted by record id)
+- [x] Redacted unit scores show `—`; summary shows `[Redacted]` only when summary field is redacted — never raw pre-projection values
+- [x] Trigger chip labels come from `composeCognitiveHazardSimulationTriggerSubjectSummaries` + `formatCognitiveHazardSimulationTriggerSummaryLabels`
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

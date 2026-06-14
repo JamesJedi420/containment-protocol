@@ -22,7 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** SPE-861 slice 4 candidate (disclosure choice mechanics) or next open umbrella per active queue.
 
-**Base `main` SHA:** `d45b250a` — in progress: SPE-861 segmented population trust slice 3 @ `planning/disclosure-campaign-player-ui-slice-3.md` (branch `spe-861-segmented-population-trust-slice-3`)
+**Base `main` SHA:** `86d0956f` — shipped: SPE-861 segmented population trust slice 3 @ `planning/disclosure-campaign-player-ui-slice-3.md` (PR #2818 / [SPE-2459](https://linear.app/spectranoir/issue/SPE-2459))
+
+**Recently shipped:** SPE-861 segmented population trust slice 3 (PR #2818 @ `86d0956f`); SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`).
 
 **Recently shipped:** SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`); SPE-1309 unified cognitive hazard engine slice 7 (PR #2814 @ `a0f8e9ec`).
 

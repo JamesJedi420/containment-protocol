@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next open umbrella per active queue (SPE-861 slice 4 in progress).
+**Next step:** Next open umbrella per active queue.
 
-**Base `main` SHA:** `ad173090` — in progress: SPE-861 disclosure choice mechanics slice 4 @ `planning/disclosure-campaign-player-ui-slice-4.md` (branch `spe-861-disclosure-choice-mechanics-slice-4`)
+**Base `main` SHA:** `24b794d7` — shipped: SPE-861 disclosure choice mechanics slice 4 @ `planning/disclosure-campaign-player-ui-slice-4.md` (PR #2819)
 
-**Recently shipped:** SPE-861 segmented population trust slice 3 (PR #2818 @ `86d0956f`); SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`).
+**Recently shipped:** SPE-861 disclosure choice mechanics slice 4 (PR #2819 @ `24b794d7`); SPE-861 segmented population trust slice 3 (PR #2818 @ `86d0956f`).
 
 **Recently shipped:** SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`); SPE-1309 unified cognitive hazard engine slice 7 (PR #2814 @ `a0f8e9ec`).
 

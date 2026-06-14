@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-861](https://linear.app/s
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-861 child — Disclosure choice mechanics (slice 4)                                                    |
-| **Status** | Ready for PR                                                                                               |
+| **Status** | **Shipped** — PR #2819 @ `24b794d7`                                                                        |
 | **Parent** | [SPE-861](https://linear.app/spectranoir/issue/SPE-861) — public trust and compliance engine (umbrella)    |
 | **Branch** | `spe-861-disclosure-choice-mechanics-slice-4`                                                            |
 | **Base `main` SHA** | `ad173090`                                                                                          |

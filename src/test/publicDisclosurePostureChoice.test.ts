@@ -7,6 +7,7 @@ import {
 import {
   applyPublicDisclosurePostureChoice,
   applyPublicDisclosurePostureTrustAdjustment,
+  listPendingPublicDisclosurePostureDecisions,
   readPublicDisclosurePostureChoice,
   sanitizePublicDisclosurePostureChoices,
 } from '../domain/publicDisclosurePostureChoice'
@@ -115,5 +116,26 @@ describe('publicDisclosurePostureChoice (SPE-861 slice 4)', () => {
     expect(sanitized).toEqual({
       [DISCLOSURE_PROGRESSION_FIXTURE.id]: 'transparent',
     })
+  })
+
+  it('lists pending posture decisions for active campaigns without a stored choice', () => {
+    const state = createStartingState()
+    state.publicDisclosureRecords = {
+      [DISCLOSURE_PROGRESSION_FIXTURE.id]: DISCLOSURE_PROGRESSION_FIXTURE,
+    }
+
+    expect(listPendingPublicDisclosurePostureDecisions(state)).toEqual([
+      {
+        recordId: DISCLOSURE_PROGRESSION_FIXTURE.id,
+        label: DISCLOSURE_PROGRESSION_FIXTURE.label,
+      },
+    ])
+
+    const withPosture = applyPublicDisclosurePostureChoice(state, {
+      recordId: DISCLOSURE_PROGRESSION_FIXTURE.id,
+      posture: 'restrictive',
+    }).state
+
+    expect(listPendingPublicDisclosurePostureDecisions(withPosture)).toEqual([])
   })
 })

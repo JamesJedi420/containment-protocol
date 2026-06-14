@@ -2,6 +2,11 @@ import type { AuthoredChoiceDefinition } from '../../domain/choiceSystem'
 import type { FactionState } from '../../domain/factions'
 import { PROGRESS_CLOCK_IDS } from '../../domain/progressClocks'
 import type { Candidate } from '../../domain/recruitment/types'
+import {
+  listPublicDisclosurePostureChoiceOptions,
+  readPublicDisclosurePostureChoice,
+  type PublicDisclosurePostureChoice,
+} from '../../domain/publicDisclosurePostureChoice'
 
 export function buildWeeklyReportTutorialChoices(): AuthoredChoiceDefinition[] {
   return [
@@ -260,4 +265,40 @@ export function buildHostileFactionResponseChoices(
       ],
     },
   ]
+}
+
+const PUBLIC_DISCLOSURE_POSTURE_CHOICE_TONES: Record<
+  PublicDisclosurePostureChoice,
+  'success' | 'neutral' | 'warning'
+> = {
+  transparent: 'success',
+  managed_secrecy: 'neutral',
+  restrictive: 'warning',
+}
+
+export function buildPublicDisclosurePostureChoices(
+  recordId: string,
+  recordLabel: string
+): AuthoredChoiceDefinition[] {
+  return listPublicDisclosurePostureChoiceOptions().map((option) => ({
+    id: `frontdesk.notice.disclosure-posture.${recordId}.${option.posture}`,
+    label: option.label,
+    tone: PUBLIC_DISCLOSURE_POSTURE_CHOICE_TONES[option.posture],
+    description: `${option.description} Applies to ${recordLabel}.`,
+    when: {
+      predicates: [
+        {
+          id: `disclosure-posture-${recordId}-unset`,
+          test: ({ state }) => readPublicDisclosurePostureChoice(state, recordId) === undefined,
+        },
+      ],
+    },
+    consequences: [
+      {
+        type: 'set_public_disclosure_posture',
+        recordId,
+        posture: option.posture,
+      },
+    ],
+  }))
 }

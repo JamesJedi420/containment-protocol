@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1347](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2457 — Cover-story lifecycle GameState persistence + weekly orchestration hook (slice 2)](https://linear.app/spectranoir/issue/SPE-2457) |
-| **Status** | **In progress** — branch `spe-1347-cover-story-lifecycle-slice-2`                                        |
+| **Status** | **Shipped** — PR #2801 @ `adcb571a`                                                                        |
 | **Parent** | [SPE-1347](https://linear.app/spectranoir/issue/SPE-1347) — Cover-story lifecycle state machine; stays **Backlog** |
 | **Branch** | `spe-1347-cover-story-lifecycle-slice-2`                                                                   |
 | **Base `main` SHA** | `18579682`                                                                                          |

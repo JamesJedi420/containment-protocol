@@ -292,6 +292,7 @@ import {
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
+import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
 import { applyWeeklySelfCensoringInformationTick } from '../selfCensoringInformationWeeklyRetention'
 import { applyWeeklyMinorAnomalyItemDispositionTick } from '../minorAnomalyItemWeeklyDisposition'
 import { applyWeeklyUnexplainedLocationLifecycleTick } from '../unexplainedLocationWeeklyLifecycle'
@@ -5126,6 +5127,30 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
         currentDisclosureRecordsForCompose,
         derivedPopulationEmergenceNormalizationInputs
       )
+  }
+
+  // SPE-861 slice 2: surface post-tick public-disclosure trust outcomes in weekly report notes.
+  const nextPublicDisclosureRecordsForTrustOutcome =
+    outputWeeklyState.publicDisclosureRecords ?? {}
+  if (Object.keys(nextPublicDisclosureRecordsForTrustOutcome).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
+      nextRecords: nextPublicDisclosureRecordsForTrustOutcome,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (trustOutcomeNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...trustOutcomeNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-1265: Decay rumor packets each week; drop packets below the 0.05 signal threshold.

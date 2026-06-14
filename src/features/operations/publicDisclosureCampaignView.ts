@@ -5,6 +5,7 @@ import {
   type PublicDisclosureRecord,
 } from '../../domain/publicDisclosureStateRegistry'
 import { resolveTruthLayerDualIncidentPairing } from '../../domain/truthLayerCoverNarrativePairing'
+import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { formatPublicDisclosureEnumLabel } from './publicDisclosureMirrorView'
 
 const AWARENESS_SEVERITY_ORDER: readonly AwarenessLevel[] = [
@@ -38,6 +39,7 @@ export interface PublicDisclosureCampaignRecordView {
 export interface PublicDisclosureCampaignSummaryView {
   activeDisclosureCount: number
   dominantAwarenessBandLabel: string
+  cooperationBandLabel: string | null
   week: number
 }
 
@@ -175,6 +177,7 @@ function toRecordView(game: GameState, record: PublicDisclosureRecord): PublicDi
 /** Read-only player briefing over hydrated `publicDisclosureRecords`; does not mutate GameState. */
 export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosureCampaignView {
   const records = listPersistedRecords(game)
+  const trustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
 
   const activeDisclosureCount = records.filter(
     (record) => record.awarenessLevel !== 'secrecy_intact'
@@ -185,6 +188,8 @@ export function getPublicDisclosureCampaignView(game: GameState): PublicDisclosu
     summary: Object.freeze({
       activeDisclosureCount,
       dominantAwarenessBandLabel: resolveDominantAwarenessBand(records),
+      cooperationBandLabel:
+        trustOutcome.cooperationBand === 'inactive' ? null : trustOutcome.cooperationBandLabel,
       week: game.week,
     }),
     records: Object.freeze(records.map((record) => toRecordView(game, record))),

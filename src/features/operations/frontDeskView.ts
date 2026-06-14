@@ -47,6 +47,7 @@ import {
 } from './frontDeskChoices'
 import { FRONT_DESK_TRIGGER_IDS, getEligibleFrontDeskSceneTriggerIdSet } from './frontDeskTriggers'
 import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
+import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions'
@@ -1194,24 +1195,15 @@ function buildAttentionItems(
       href: APP_ROUTES.teamDetail(entry.teamId),
     }))
 
-  const disclosureCampaign = getPublicDisclosureCampaignView(game)
+  const disclosureTrustOutcome = projectPublicDisclosureTrustOutcomeFromGame(game)
   const disclosureAttention =
-    !disclosureCampaign.isEmpty && disclosureCampaign.summary.activeDisclosureCount > 0
+    disclosureTrustOutcome.activeCampaignCount > 0
       ? [
           {
             id: 'disclosure:campaign-briefing',
             title: 'Disclosure campaign posture requires review',
-            summary: `${disclosureCampaign.summary.activeDisclosureCount} active disclosure campaign(s); dominant awareness band: ${disclosureCampaign.summary.dominantAwarenessBandLabel}.`,
-            tone: ((): FrontDeskNoticeTone => {
-              const band = disclosureCampaign.summary.dominantAwarenessBandLabel
-              if (band === 'Public Scandal' || band === 'Official Disclosure') {
-                return 'warning'
-              }
-              if (band === 'Normalization') {
-                return 'info'
-              }
-              return 'warning'
-            })(),
+            summary: disclosureTrustOutcome.frontDeskAttentionSummary,
+            tone: disclosureTrustOutcome.frontDeskAttentionTone,
             href: APP_ROUTES.publicDisclosureCampaign,
           } as const,
         ]

@@ -43,6 +43,8 @@ describe('PublicDisclosureCampaignPage (SPE-861 slice 1)', () => {
 
     renderCampaignPage()
 
+    expect(screen.getByText('Opposed posture')).toBeInTheDocument()
+
     const campaignsRegion = screen.getByRole('region', { name: /active disclosure campaigns/i })
 
     expect(campaignsRegion).toBeInTheDocument()

@@ -35,6 +35,7 @@ describe('publicDisclosureCampaignView (SPE-861 slice 1)', () => {
     expect(view.isEmpty).toBe(false)
     expect(view.summary.activeDisclosureCount).toBe(1)
     expect(view.summary.dominantAwarenessBandLabel).toBe('Official Disclosure')
+    expect(view.summary.cooperationBandLabel).toBe('Opposed posture')
     expect(record?.label).toBe(DISCLOSURE_PROGRESSION_FIXTURE.label)
     expect(record?.awarenessLevelLabel).toBe('Official Disclosure')
     expect(record?.falloutPhaseLabel).toBe('Disclosure')

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — agent vitals / scoring side-effects from simulation triggers (slice 7)                    |
-| **Status** | In progress                                                                                                |
+| **Status** | **Shipped** — PR #2814 @ `a0f8e9ec`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-7`                                                                          |
 | **Base `main` SHA** | `195369f3`                                                                                          |

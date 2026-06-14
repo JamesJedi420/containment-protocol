@@ -65,7 +65,7 @@ Wire persisted `cognitiveHazardExposureRecords` into `advanceWeek` with a pure d
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Sibling registry compose wire-up from SPE-2108 persisted maps | SPE-1309 follow-up | Compose helper lands; sibling hook reads deferred |
+| Sibling registry compose wire-up from SPE-2108 persisted maps | **Shipped slice 4** | Compose helper wired in slice 4 / PR #2810 |
 | Agent/knowledge/procedure simulation triggers | SPE-1309 follow-up | Parent AC row 3 runtime effects deferred |
 | Planning mirror UI | SPE-1309 follow-up | Mirror follows orchestration pattern |
 | Full SPE-1309 parent Done | SPE-1309 | Multiple slices remain |

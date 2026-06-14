@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — sibling registry compose wire-up from SPE-2108 persisted maps (slice 4)                   |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2810 @ `9c41fcf6`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-4`                                                                          |
 | **Base `main` SHA** | `16209ad8`                                                                                          |

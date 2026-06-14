@@ -5,6 +5,7 @@ import {
   COVER_STORY_STRESSED_FIXTURE,
   projectCoverStoryLifecycleView,
 } from '../domain/coverStoryLifecycleRegistry'
+import { COVER_NARRATIVE_TRUTH_LAYER_FIXTURE } from '../domain/truthLayerRecordRegistry'
 import { applyWeeklyCoverStoryTick } from '../domain/coverStoryWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
@@ -81,12 +82,61 @@ describe('advanceWeek cover-story records integration (SPE-1347 slice 2)', () =>
     const reticked = applyWeeklyCoverStoryTick(
       recordsAfterAdvance,
       once.week,
-      once.coverStoryWeeklyProjectionSnapshots
+      once.coverStoryWeeklyProjectionSnapshots,
+      {
+        contradictionInput: {
+          priorIntakeReports: state.informationIntakeReports,
+          nextIntakeReports: once.informationIntakeReports,
+          truthLayerRecords: once.truthLayerRecords,
+          ruleDocumentComplianceRecords: once.ruleDocumentComplianceRecords,
+          extranormalEventRecords: once.extranormalEventRecords,
+          cases: once.cases,
+        },
+      }
     )
 
     expect(reticked.records).toBe(recordsAfterAdvance)
     expect(reticked.snapshots).toBe(once.coverStoryWeeklyProjectionSnapshots)
     expect(reticked.records[COVER_STORY_STRESSED_FIXTURE.id]).toBe(COVER_STORY_STRESSED_FIXTURE)
+  })
+
+  it('advances a stressed cover story toward collapsed through weekly accumulation triggers', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 20
+    state.truthLayerRecords = {
+      [COVER_NARRATIVE_TRUTH_LAYER_FIXTURE.id]: COVER_NARRATIVE_TRUTH_LAYER_FIXTURE,
+    }
+    state.coverStoryRecords = {
+      [COVER_STORY_STRESSED_FIXTURE.id]: {
+        ...COVER_STORY_STRESSED_FIXTURE,
+        contradictionChannels: [
+          {
+            channel: 'witness_testimony',
+            accumulationScore: 0.86,
+            lastUpdatedWeek: 19,
+            sourceRef: 'witness:contractor-shift-log',
+          },
+          {
+            channel: 'institutional_records',
+            accumulationScore: 0.86,
+            lastUpdatedWeek: 19,
+            sourceRef: 'record:seal-inspection-summary',
+          },
+        ],
+        contradictionPressure: 0.86,
+      },
+    }
+
+    const nextState = advanceWeek(state)
+    const record = nextState.coverStoryRecords?.[COVER_STORY_STRESSED_FIXTURE.id]
+
+    expect(record?.lifecyclePhase).toBe('collapsed')
+    expect(record?.transitionHistory?.at(-1)?.event).toBe('cover_collapsed')
+    expect(
+      nextState.coverStoryWeeklyProjectionSnapshots?.[COVER_STORY_STRESSED_FIXTURE.id]?.lifecycle
+        .coverCollapsed
+    ).toBe(true)
   })
 
   it('preserves validation fixture byte-stable through advanceWeek tick', () => {

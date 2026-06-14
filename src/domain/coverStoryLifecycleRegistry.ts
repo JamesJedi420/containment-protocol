@@ -522,7 +522,8 @@ function scanFranchiseTokens(
   }
 }
 
-function deriveContradictionPressure(record: CoverStoryRecord): number | null {
+/** Derives aggregate contradiction pressure from channel scores or explicit scalar. */
+export function deriveCoverStoryContradictionPressure(record: CoverStoryRecord): number | null {
   if (record.contradictionPressure !== undefined) {
     return record.contradictionPressure
   }
@@ -929,7 +930,7 @@ export function projectCoverStoryLifecycleView(
     redactedFields.has('exposureKind') ||
     (policy.redactUnknown === true && unknownFields.includes('exposureKind'))
 
-  const derivedPressure = deriveContradictionPressure(record)
+  const derivedPressure = deriveCoverStoryContradictionPressure(record)
   const contradictionPressure =
     contradictionRedacted || derivedPressure === null ? null : derivedPressure
 

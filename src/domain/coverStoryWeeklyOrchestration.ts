@@ -1,11 +1,13 @@
 /**
- * SPE-1347 slice 2: weekly orchestration for persisted cover-story records.
+ * SPE-1347 slice 4: weekly orchestration for persisted cover-story records.
  *
- * Pure deterministic tick: runs lifecycle projections each week, persists bounded
- * weekly projection snapshots, and preserves source records byte-stable.
- * Does not implement a full contradiction engine or mutate cover-story record fields.
+ * Pure deterministic tick: applies contradiction channel accumulation from trigger
+ * sources, runs lifecycle projections each week, persists bounded weekly projection
+ * snapshots, and preserves source records byte-stable when unchanged.
  */
 
+import type { CoverStoryContradictionTickInput } from './coverStoryContradictionAccumulation'
+import { applyWeeklyCoverStoryContradictionAccumulationTick } from './coverStoryContradictionAccumulation'
 import {
   projectCoverStoryLifecycleView,
   type CoverStoryLifecycleProjection,
@@ -14,6 +16,8 @@ import {
   type CoverStoryWeeklyProjectionSnapshot,
   type CoverStoryWeeklyProjectionSnapshotsMap,
 } from './coverStoryLifecycleRegistry'
+
+export type { CoverStoryContradictionTickInput } from './coverStoryContradictionAccumulation'
 
 export interface CoverStoryWeeklyProjectionBundle {
   readonly recordId: string
@@ -24,6 +28,10 @@ export interface CoverStoryWeeklyProjectionBundle {
 export interface CoverStoryWeeklyTickResult {
   readonly records: CoverStoryRecordsMap
   readonly snapshots: CoverStoryWeeklyProjectionSnapshotsMap
+}
+
+export interface CoverStoryWeeklyTickOptions {
+  readonly contradictionInput?: Omit<CoverStoryContradictionTickInput, 'week'> | null
 }
 
 function normalizeWeek(week: number): number {
@@ -151,14 +159,15 @@ function persistWeeklyProjectionSnapshots(
 
 /**
  * Applies one weekly orchestration pass over persisted cover-story records.
- * Runs deterministic lifecycle projections, persists bounded weekly snapshots, and preserves
- * source records byte-stable. Empty map is a no-op. Re-applying after advance is
- * idempotent for the same week.
+ * Runs deterministic contradiction accumulation when trigger input is provided,
+ * lifecycle projections, and bounded weekly snapshots. Empty map is a no-op.
+ * Re-applying after advance is idempotent for the same week.
  */
 export function applyWeeklyCoverStoryTick(
   records: CoverStoryRecordsMap | null | undefined,
   week: number,
-  snapshots: CoverStoryWeeklyProjectionSnapshotsMap | null | undefined = {}
+  snapshots: CoverStoryWeeklyProjectionSnapshotsMap | null | undefined = {},
+  options: CoverStoryWeeklyTickOptions = {}
 ): CoverStoryWeeklyTickResult {
   const safeRecords = records ?? {}
   const safeSnapshots = snapshots ?? {}
@@ -170,10 +179,24 @@ export function applyWeeklyCoverStoryTick(
     }
   }
 
-  const nextSnapshots = persistWeeklyProjectionSnapshots(safeRecords, safeSnapshots, week)
+  const normalizedWeek = normalizeWeek(week)
+  const contradictionInput = options.contradictionInput
+  const tickRecords =
+    contradictionInput === undefined || contradictionInput === null
+      ? safeRecords
+      : applyWeeklyCoverStoryContradictionAccumulationTick(safeRecords, {
+          week: normalizedWeek,
+          ...contradictionInput,
+        })
+
+  const nextSnapshots = persistWeeklyProjectionSnapshots(
+    tickRecords,
+    safeSnapshots,
+    normalizedWeek
+  )
 
   return {
-    records: safeRecords,
+    records: tickRecords,
     snapshots: nextSnapshots,
   }
 }

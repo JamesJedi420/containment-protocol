@@ -4654,13 +4654,23 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     outputWeeklyState.truthLayerWeeklyProjectionSnapshots = truthLayerTick.snapshots
   }
 
-  // SPE-1347 slice 2: lifecycle projection on persisted cover-story records.
+  // SPE-1347 slice 4: lifecycle projection + contradiction accumulation on persisted cover-story records.
   const currentCoverStoryRecords = outputWeeklyState.coverStoryRecords ?? {}
   if (Object.keys(currentCoverStoryRecords).length > 0) {
     const coverStoryTick = applyWeeklyCoverStoryTick(
       currentCoverStoryRecords,
       result.week,
-      outputWeeklyState.coverStoryWeeklyProjectionSnapshots
+      outputWeeklyState.coverStoryWeeklyProjectionSnapshots,
+      {
+        contradictionInput: {
+          priorIntakeReports,
+          nextIntakeReports: outputWeeklyState.informationIntakeReports ?? priorIntakeReports,
+          truthLayerRecords: outputWeeklyState.truthLayerRecords,
+          ruleDocumentComplianceRecords: outputWeeklyState.ruleDocumentComplianceRecords,
+          extranormalEventRecords: outputWeeklyState.extranormalEventRecords,
+          cases: outputWeeklyState.cases,
+        },
+      }
     )
     outputWeeklyState.coverStoryRecords = coverStoryTick.records
     outputWeeklyState.coverStoryWeeklyProjectionSnapshots = coverStoryTick.snapshots

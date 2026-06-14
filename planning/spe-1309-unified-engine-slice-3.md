@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — unified cognitive hazard engine advanceWeek exposure tick (slice 3)                       |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2809 @ `0b56a272`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-3`                                                                          |
 | **Base `main` SHA** | `9c8837ac`                                                                                          |

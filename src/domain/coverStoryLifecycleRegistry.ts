@@ -301,8 +301,23 @@ export interface CoverStoryLifecycleProjection {
 
 export type CoverStoryRecordsMap = Record<CoverStoryRecordId, CoverStoryRecord>
 
+/** SPE-1347 slice 2: persisted weekly lifecycle projection snapshot for one cover-story record. */
+export interface CoverStoryWeeklyProjectionSnapshot {
+  readonly recordId: CoverStoryRecordId
+  readonly week: number
+  readonly lifecycle: CoverStoryLifecycleProjection
+}
+
+export type CoverStoryWeeklyProjectionSnapshotsMap = Record<
+  CoverStoryRecordId,
+  CoverStoryWeeklyProjectionSnapshot
+>
+
 /** Upper bound on persisted cover-story record entries (byte-stable record-id keys). */
 export const MAX_COVER_STORY_RECORDS = 128
+
+/** Upper bound on persisted weekly projection snapshot entries (byte-stable record-id keys). */
+export const MAX_COVER_STORY_WEEKLY_PROJECTION_SNAPSHOTS = 128
 
 const DEFAULT_COVER_STRESS_THRESHOLD = 0.45
 
@@ -1250,6 +1265,199 @@ export function sanitizeCoverStoryRecords(
 
     seenIds.add(record.id)
     next[record.id] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
+function sanitizeCoverStoryLifecycleProjection(
+  value: unknown,
+  recordId: string
+): CoverStoryLifecycleProjection | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const normalizedRecordId = normalizeToken(value.recordId ?? recordId)
+  if (!normalizedRecordId || normalizedRecordId !== normalizeToken(recordId)) {
+    return null
+  }
+
+  const label = normalizeToken(value.label)
+  if (!label) {
+    return null
+  }
+
+  const lifecyclePhaseRaw = value.lifecyclePhase
+  if (typeof lifecyclePhaseRaw !== 'string' || !isLifecyclePhase(lifecyclePhaseRaw)) {
+    return null
+  }
+
+  const subjectRef = normalizeToken(value.subjectRef)
+  if (!subjectRef) {
+    return null
+  }
+
+  const subjectKindRaw = value.subjectKind
+  if (typeof subjectKindRaw !== 'string' || !isSubjectKind(subjectKindRaw)) {
+    return null
+  }
+
+  const summary =
+    value.summary === null
+      ? null
+      : typeof value.summary === 'string' && value.summary.trim().length > 0
+        ? value.summary.trim()
+        : null
+
+  const coverMotivation =
+    value.coverMotivation === null || value.coverMotivation === undefined
+      ? null
+      : typeof value.coverMotivation === 'string' && isCoverMotivation(value.coverMotivation)
+        ? value.coverMotivation
+        : null
+
+  const exposureKind =
+    value.exposureKind === null || value.exposureKind === undefined
+      ? null
+      : typeof value.exposureKind === 'string' && isExposureKind(value.exposureKind)
+        ? value.exposureKind
+        : null
+
+  const contradictionPressure =
+    value.contradictionPressure === null || value.contradictionPressure === undefined
+      ? null
+      : isValidUnitScore(value.contradictionPressure)
+        ? value.contradictionPressure
+        : null
+
+  const coverCapacityScore =
+    value.coverCapacityScore === null || value.coverCapacityScore === undefined
+      ? null
+      : isValidUnitScore(value.coverCapacityScore)
+        ? value.coverCapacityScore
+        : null
+
+  const activeContradictionChannelCountRaw = value.activeContradictionChannelCount
+  const activeContradictionChannelCount =
+    typeof activeContradictionChannelCountRaw === 'number' &&
+    Number.isFinite(activeContradictionChannelCountRaw) &&
+    activeContradictionChannelCountRaw >= 0 &&
+    activeContradictionChannelCountRaw === Math.trunc(activeContradictionChannelCountRaw)
+      ? activeContradictionChannelCountRaw
+      : null
+  if (activeContradictionChannelCount === null) {
+    return null
+  }
+
+  const contradictionChannelHints = parseStringList(value.contradictionChannelHints).filter(
+    (channel): channel is CoverStoryContradictionChannelKind => isContradictionChannelKind(channel)
+  )
+
+  const latestRepairAction =
+    value.latestRepairAction === null || value.latestRepairAction === undefined
+      ? null
+      : typeof value.latestRepairAction === 'string' && isStagedResponse(value.latestRepairAction)
+        ? value.latestRepairAction
+        : null
+
+  const confidence =
+    value.confidence === null || value.confidence === undefined
+      ? null
+      : isValidUnitScore(value.confidence)
+        ? value.confidence
+        : null
+
+  return Object.freeze({
+    recordId: normalizedRecordId,
+    label,
+    summary,
+    lifecyclePhase: lifecyclePhaseRaw,
+    subjectRef,
+    subjectKind: subjectKindRaw,
+    coverMotivation,
+    exposureKind,
+    contradictionPressure,
+    coverCapacityScore,
+    activeContradictionChannelCount,
+    contradictionChannelHints: Object.freeze(
+      [...new Set(contradictionChannelHints)].sort((left, right) => left.localeCompare(right))
+    ),
+    latestRepairAction,
+    coverStressActive: value.coverStressActive === true,
+    coverCollapsed: value.coverCollapsed === true,
+    repairInProgress: value.repairInProgress === true,
+    confidence,
+    redacted: value.redacted === true,
+    unknownFields: sortedStringArray(value.unknownFields),
+  })
+}
+
+function sanitizeCoverStoryWeeklyProjectionSnapshotEntry(
+  key: string,
+  value: unknown
+): CoverStoryWeeklyProjectionSnapshot | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const recordId = normalizeToken(value.recordId ?? key)
+  if (!recordId || recordId !== normalizeToken(key)) {
+    return null
+  }
+
+  const weekRaw = value.week
+  if (typeof weekRaw !== 'number' || !Number.isFinite(weekRaw)) {
+    return null
+  }
+
+  const week = Math.max(1, Math.trunc(weekRaw))
+  const lifecycle = sanitizeCoverStoryLifecycleProjection(value.lifecycle, recordId)
+  if (!lifecycle || lifecycle.recordId !== recordId) {
+    return null
+  }
+
+  return Object.freeze({
+    recordId,
+    week,
+    lifecycle,
+  })
+}
+
+/** Hydration: canonical weekly projection snapshot map keyed by record id; drops invalid entries. */
+export function sanitizeCoverStoryWeeklyProjectionSnapshots(
+  value: unknown,
+  fallback: CoverStoryWeeklyProjectionSnapshotsMap = {},
+  knownRecordIds?: ReadonlySet<string>
+): CoverStoryWeeklyProjectionSnapshotsMap {
+  if (!isRecord(value)) {
+    return fallback
+  }
+
+  const candidates: CoverStoryWeeklyProjectionSnapshot[] = []
+
+  for (const [key, entry] of Object.entries(value)) {
+    const snapshot = sanitizeCoverStoryWeeklyProjectionSnapshotEntry(key, entry)
+    if (!snapshot) {
+      continue
+    }
+
+    if (knownRecordIds && !knownRecordIds.has(snapshot.recordId)) {
+      continue
+    }
+
+    candidates.push(snapshot)
+  }
+
+  if (candidates.length === 0) {
+    return fallback
+  }
+
+  candidates.sort((left, right) => left.recordId.localeCompare(right.recordId))
+
+  const next: CoverStoryWeeklyProjectionSnapshotsMap = {}
+  for (const snapshot of candidates.slice(0, MAX_COVER_STORY_WEEKLY_PROJECTION_SNAPSHOTS)) {
+    next[snapshot.recordId] = snapshot
   }
 
   return Object.keys(next).length > 0 ? next : fallback

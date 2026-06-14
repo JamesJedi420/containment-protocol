@@ -270,6 +270,7 @@ import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeekly
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
+import { applyWeeklyCoverStoryTick } from '../coverStoryWeeklyOrchestration'
 import { applyWeeklyTruthLayerTick } from '../truthLayerWeeklyOrchestration'
 import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceInterventionTuningWeeklyOrchestration'
 import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
@@ -4651,6 +4652,18 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     )
     outputWeeklyState.truthLayerRecords = truthLayerTick.records
     outputWeeklyState.truthLayerWeeklyProjectionSnapshots = truthLayerTick.snapshots
+  }
+
+  // SPE-1347 slice 2: lifecycle projection on persisted cover-story records.
+  const currentCoverStoryRecords = outputWeeklyState.coverStoryRecords ?? {}
+  if (Object.keys(currentCoverStoryRecords).length > 0) {
+    const coverStoryTick = applyWeeklyCoverStoryTick(
+      currentCoverStoryRecords,
+      result.week,
+      outputWeeklyState.coverStoryWeeklyProjectionSnapshots
+    )
+    outputWeeklyState.coverStoryRecords = coverStoryTick.records
+    outputWeeklyState.coverStoryWeeklyProjectionSnapshots = coverStoryTick.snapshots
   }
 
   // SPE-2110 slice 3: advance readiness-gated pattern-source intake processing pipeline.

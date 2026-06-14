@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** SPE-1347 cover-story lifecycle slice 2 (GameState persistence + weekly hook) or SPE-861 disclosure UI if truth-layer follow-on is prioritized; SPE-1309 unified engine owner slice if cognitive-hazard engine is prioritized.
+**Next step:** SPE-1347 cover-story lifecycle slice 3 (planning mirror UI) or SPE-861 disclosure UI if truth-layer follow-on is prioritized; SPE-1309 unified engine owner slice if cognitive-hazard engine is prioritized.
 
-**Base `main` SHA:** `44e49f09` — shipped: SPE-1347 cover-story lifecycle registry slice 1 @ `planning/cover-story-lifecycle-slice-1.md` (PR #2799)
+**Base `main` SHA:** `18579682` — in progress: SPE-1347 cover-story lifecycle slice 2 @ `planning/cover-story-lifecycle-slice-2.md` (branch `spe-1347-cover-story-lifecycle-slice-2`)
 
 **Recently shipped:** SPE-1347 cover-story lifecycle registry slice 1 (PR #2799); SPE-1882 coercive protocol mirror snapshot read slice 11 (PR #2798).
 

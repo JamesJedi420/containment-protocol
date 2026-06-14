@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** SPE-1309 unified engine follow-up (agent/knowledge/procedure simulation triggers, or planning mirror UI), or next SPE-861 follow-up child (segmented population trust / disclosure choice mechanics).
+**Next step:** SPE-1309 unified engine follow-up (planning mirror UI), or next SPE-861 follow-up child (segmented population trust / disclosure choice mechanics).
 
-**Base `main` SHA:** `289fa998` — shipped: SPE-1309 unified cognitive hazard engine slice 4 @ `planning/spe-1309-unified-engine-slice-4.md` (PR #2810)
+**Base `main` SHA:** `a51d784d` — in progress: SPE-1309 unified cognitive hazard engine slice 5 @ `planning/spe-1309-unified-engine-slice-5.md` (simulation triggers)
 
 **Recently shipped:** SPE-1309 unified cognitive hazard engine slice 4 (PR #2810 @ `9c41fcf6`); SPE-1309 unified cognitive hazard engine slice 3 (PR #2809 @ `0b56a272`).
 
@@ -228,6 +228,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1309-unified-engine-slice-2.md`                      | **Shipped**    | SPE-1309 child — cognitive hazard exposure persistence + hydrate / PR #2808 @ `9b22d0ca`.                                                               |
 | `spe-1309-unified-engine-slice-3.md`                      | **Shipped**    | SPE-1309 child — `advanceWeek` exposure tick + sibling compose helper / PR #2809 @ `0b56a272`.                                                          |
 | `spe-1309-unified-engine-slice-4.md`                      | **Shipped**    | SPE-1309 child — sibling registry compose wire-up from SPE-2108 persisted maps / PR #2810 @ `9c41fcf6`.                                                  |
+| `spe-1309-unified-engine-slice-5.md`                      | **In progress**| SPE-1309 child — agent/knowledge/procedure simulation triggers @ `a51d784d`.                                                                             |
 | `welfare-debt-accounting-registry-slice-2.md`             | **Shipped**    | SPE-2351 / PR #2570; planning mirror UI over `welfareDebtAccountingRecords` @ `96ad05ba`.                                                               |
 | `welfare-debt-accounting-registry-slice-3.md`             | **Shipped**    | SPE-2352 / PR #2572; weekly orchestration hook in `advanceWeek` @ `5673423c`.                                                                          |
 | `welfare-debt-accounting-registry-slice-4.md`             | **Shipped**    | SPE-2353 / PR #2574; ledger summary audit output @ `1ec3ca12`.                                                                                         |

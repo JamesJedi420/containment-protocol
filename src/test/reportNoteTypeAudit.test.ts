@@ -83,6 +83,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'publicDisclosureTrustOutcomeWeeklyReportNotes',
     category: 'system',
   },
+  'cognitive_hazard.simulation_trigger': {
+    status: 'active',
+    producer: 'cognitiveHazardSimulationTriggerWeeklyReportNotes',
+    category: 'system',
+  },
 } as const satisfies Record<
   ReportNoteType,
   { status: 'active' | 'future-reserved' | 'stale'; producer: string; category: string }
@@ -94,7 +99,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(45)
+    expect(entries).toHaveLength(46)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

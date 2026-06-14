@@ -1545,6 +1545,7 @@ export type ReportNoteType =
   | 'post_incident_review.follow_on'
   | 'post_incident_review.closeout_reward_payout'
   | 'public_disclosure.trust_outcome'
+  | 'cognitive_hazard.simulation_trigger'
 
 export type ReportNoteMetadataValue =
   | string

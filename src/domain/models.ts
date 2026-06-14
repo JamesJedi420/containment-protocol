@@ -259,6 +259,10 @@ import type {
   TruthLayerRecord,
   TruthLayerWeeklyProjectionSnapshot,
 } from './truthLayerRecordRegistry'
+import type {
+  CoverStoryRecord,
+  CoverStoryWeeklyProjectionSnapshot,
+} from './coverStoryLifecycleRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
@@ -2671,6 +2675,18 @@ export interface GameState {
    * Hydration drops invalid entries and orphans not present in truth-layer records.
    */
   truthLayerWeeklyProjectionSnapshots?: Record<string, TruthLayerWeeklyProjectionSnapshot>
+
+  /**
+   * SPE-1347 slice 2: persisted cover-story records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  coverStoryRecords?: Record<string, CoverStoryRecord>
+
+  /**
+   * SPE-1347 slice 2: persisted weekly lifecycle projection snapshots (keyed by record id).
+   * Hydration drops invalid entries and orphans not present in cover-story records.
+   */
+  coverStoryWeeklyProjectionSnapshots?: Record<string, CoverStoryWeeklyProjectionSnapshot>
 
   /**
    * SPE-2110 slice 2: persisted pattern source series records (keyed by record id).

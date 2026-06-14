@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { hydrateGame } from '../app/store/runTransfer'
+import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
+import { createStartingState } from '../data/startingState'
 import {
   COASTAL_CAMPUS_COVER_STORY_FIXTURES,
   COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
@@ -15,6 +18,7 @@ import {
   isValidCoverStoryLifecycleTransition,
   projectCoverStoryLifecycleView,
   sanitizeCoverStoryRecords,
+  sanitizeCoverStoryWeeklyProjectionSnapshots,
   transitionCoverStoryLifecyclePhase,
   validateCoverStoryRecord,
   type CoverStoryRecord,
@@ -293,5 +297,141 @@ describe('coverStoryLifecycleTruthLayerAnchor (SPE-1347 slice 1)', () => {
 
     expect(anchor.linkedTruthLayerRecord).toBeNull()
     expect(anchor.dualIncidentPairing).toBeNull()
+  })
+})
+
+describe('coverStoryLifecycleRegistry persistence (SPE-1347 slice 2)', () => {
+  it('defaults starting state to empty cover-story maps', () => {
+    expect(createStartingState().coverStoryRecords).toEqual({})
+    expect(createStartingState().coverStoryWeeklyProjectionSnapshots).toEqual({})
+  })
+
+  it('round-trips fixture records byte-stable through save/load', () => {
+    const state = createStartingState()
+    state.coverStoryRecords = {
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+      [COVER_STORY_STRESSED_FIXTURE.id]: COVER_STORY_STRESSED_FIXTURE,
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.coverStoryRecords).toEqual(state.coverStoryRecords)
+    expect(
+      loaded.coverStoryRecords?.[COVER_STORY_STRESSED_FIXTURE.id]?.contradictionChannels
+    ).toEqual(COVER_STORY_STRESSED_FIXTURE.contradictionChannels)
+    expect(
+      loaded.coverStoryRecords?.[COVER_STORY_COLLAPSED_FIXTURE.id]
+    ).toBeUndefined()
+  })
+
+  it('hydrates persisted cover-story records through import parsing', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        coverStoryRecords: {
+          [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+            COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+          invalid: {
+            id: 'cover:invalid',
+            label: 'Foundation cover narrative review',
+            lifecyclePhase: 'not-a-phase',
+            subjectRef: 'event:test',
+            subjectKind: 'event',
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.coverStoryRecords).toEqual({
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+        COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+    })
+  })
+
+  it('round-trips weekly lifecycle projection snapshots through save/load', () => {
+    const state = createStartingState()
+    state.coverStoryRecords = {
+      [COVER_STORY_STRESSED_FIXTURE.id]: COVER_STORY_STRESSED_FIXTURE,
+    }
+    state.coverStoryWeeklyProjectionSnapshots = {
+      [COVER_STORY_STRESSED_FIXTURE.id]: {
+        recordId: COVER_STORY_STRESSED_FIXTURE.id,
+        week: 23,
+        lifecycle: projectCoverStoryLifecycleView(COVER_STORY_STRESSED_FIXTURE),
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.coverStoryWeeklyProjectionSnapshots).toEqual(
+      state.coverStoryWeeklyProjectionSnapshots
+    )
+    expect(
+      loaded.coverStoryWeeklyProjectionSnapshots?.[COVER_STORY_STRESSED_FIXTURE.id]?.lifecycle
+        .coverStressActive
+    ).toBe(true)
+  })
+
+  it('drops orphan weekly snapshots not present in hydrated cover-story records', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...fallback,
+        coverStoryRecords: {
+          [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]:
+            COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE,
+        },
+        coverStoryWeeklyProjectionSnapshots: {
+          [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: {
+            recordId: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id,
+            week: 22,
+            lifecycle: projectCoverStoryLifecycleView(COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE),
+          },
+          [COVER_STORY_COLLAPSED_FIXTURE.id]: {
+            recordId: COVER_STORY_COLLAPSED_FIXTURE.id,
+            week: 24,
+            lifecycle: projectCoverStoryLifecycleView(COVER_STORY_COLLAPSED_FIXTURE),
+          },
+        },
+      },
+      fallback
+    )
+
+    expect(hydrated.coverStoryWeeklyProjectionSnapshots).toEqual({
+      [COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id]: {
+        recordId: COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE.id,
+        week: 22,
+        lifecycle: projectCoverStoryLifecycleView(COASTAL_CAMPUS_COVER_STORY_MAINTAINED_FIXTURE),
+      },
+    })
+  })
+
+  it('sanitizes weekly snapshots through sanitizeCoverStoryWeeklyProjectionSnapshots', () => {
+    const knownRecordIds = new Set([COVER_STORY_STRESSED_FIXTURE.id])
+    const sanitized = sanitizeCoverStoryWeeklyProjectionSnapshots(
+      {
+        [COVER_STORY_STRESSED_FIXTURE.id]: {
+          recordId: COVER_STORY_STRESSED_FIXTURE.id,
+          week: 23,
+          lifecycle: projectCoverStoryLifecycleView(COVER_STORY_STRESSED_FIXTURE),
+        },
+        orphan: {
+          recordId: COVER_STORY_COLLAPSED_FIXTURE.id,
+          week: 24,
+          lifecycle: projectCoverStoryLifecycleView(COVER_STORY_COLLAPSED_FIXTURE),
+        },
+        invalid: {
+          recordId: 'cover:invalid',
+          week: 'bad',
+          lifecycle: null,
+        },
+      },
+      {},
+      knownRecordIds
+    )
+
+    expect(Object.keys(sanitized)).toEqual([COVER_STORY_STRESSED_FIXTURE.id])
   })
 })

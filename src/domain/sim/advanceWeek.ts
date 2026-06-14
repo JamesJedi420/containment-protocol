@@ -276,6 +276,7 @@ import { applyWeeklySurveillanceInterventionTuningTick } from '../surveillanceIn
 import { applyWeeklyPsychologicalResilienceDepletionTick } from '../psychologicalResilienceWeeklyOrchestration'
 import { composeSelfCensoringPropagationIntoCognitiveHazardExposureRecords } from '../cognitiveHazardSiblingCompose'
 import { applyWeeklyCognitiveHazardExposureTick } from '../cognitiveHazardWeeklyOrchestration'
+import { buildWeeklyCognitiveHazardSimulationTriggerReportNotes } from '../cognitiveHazardSimulationTriggerWeeklyReportNotes'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
@@ -4862,6 +4863,36 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentCognitiveHazardExposureRecords,
       result.week
     )
+  }
+
+  // SPE-1309 slice 5: surface agent/knowledge/procedure simulation triggers from post-tick projections.
+  const priorCognitiveHazardExposureRecords = sourceState.cognitiveHazardExposureRecords ?? {}
+  const nextCognitiveHazardExposureRecordsForTriggers =
+    outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  if (
+    Object.keys(nextCognitiveHazardExposureRecordsForTriggers).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const cognitiveHazardSimulationTriggerNotes =
+      buildWeeklyCognitiveHazardSimulationTriggerReportNotes({
+        nextRecords: nextCognitiveHazardExposureRecordsForTriggers,
+        priorRecords: priorCognitiveHazardExposureRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (cognitiveHazardSimulationTriggerNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...cognitiveHazardSimulationTriggerNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.

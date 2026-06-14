@@ -50,10 +50,33 @@ export default function PublicDisclosureCampaignPage() {
             value={view.summary.cooperationBandLabel ?? '—'}
           />
           <StatCard
+            label={PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.segmentDivergenceLabel}
+            value={view.summary.segmentDivergenceLabel ?? '—'}
+          />
+          <StatCard
             label={PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.weekLabel}
             value={`W${view.summary.week}`}
           />
         </div>
+
+        {view.summary.segmentTrustChips.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.18em] opacity-50">
+              {PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.segmentTrustChipsHeading}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {view.summary.segmentTrustChips.map((chip) => (
+                <span
+                  key={`${chip.segmentKindLabel}:${chip.segmentLabel}`}
+                  className="rounded-full border border-white/15 px-2 py-0.5 text-xs opacity-80"
+                >
+                  {chip.segmentKindLabel}: {chip.segmentLabel} — {chip.trustBandLabel}
+                  {chip.redacted ? ` ${PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.redactedSuffix}` : ''}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         <p className="text-xs opacity-55">{PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.readOnlyNote}</p>
       </article>

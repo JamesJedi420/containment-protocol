@@ -63,6 +63,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'post_incident_review.follow_on': 'post_incident_review',
   'post_incident_review.closeout_reward_payout': 'post_incident_review',
   'public_disclosure.trust_outcome': 'system',
+  'public_disclosure.segment_trust_divergence': 'system',
 } satisfies Record<ReportNoteType, ReportNoteCategory>
 
 describe('reportNoteView', () => {

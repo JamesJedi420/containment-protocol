@@ -987,6 +987,8 @@ export const PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT: Record<string, string> = {
   activeDisclosureLabel: 'Active disclosures',
   dominantAwarenessLabel: 'Dominant awareness band',
   cooperationBandLabel: 'Public cooperation band',
+  segmentDivergenceLabel: 'Audience segment trust',
+  segmentTrustChipsHeading: 'Population and channel trust segments',
   weekLabel: 'Campaign week',
   readOnlyNote:
     'Awareness and regional trust reflect the latest weekly progression. This briefing does not change campaign state.',

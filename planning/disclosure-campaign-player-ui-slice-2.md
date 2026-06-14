@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-861](https://linear.app/s
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-861 child — Disclosure campaign public-trust outcome projection (slice 2)                            |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2806 @ `47e3e652`                                                                        |
 | **Parent** | [SPE-861](https://linear.app/spectranoir/issue/SPE-861) — public trust and compliance engine (umbrella)    |
 | **Branch** | `spe-861-disclosure-campaign-trust-outcomes-slice-2`                                                       |
 | **Base `main` SHA** | `256a156e`                                                                                          |

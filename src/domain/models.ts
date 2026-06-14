@@ -1543,6 +1543,7 @@ export type ReportNoteType =
   | 'coercive_protocol.integrated_health_reconciliation'
   | 'post_incident_review.follow_on'
   | 'post_incident_review.closeout_reward_payout'
+  | 'public_disclosure.trust_outcome'
 
 export type ReportNoteMetadataValue =
   | string

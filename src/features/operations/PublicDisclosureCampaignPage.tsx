@@ -46,6 +46,10 @@ export default function PublicDisclosureCampaignPage() {
             value={view.summary.dominantAwarenessBandLabel}
           />
           <StatCard
+            label={PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.cooperationBandLabel}
+            value={view.summary.cooperationBandLabel ?? '—'}
+          />
+          <StatCard
             label={PUBLIC_DISCLOSURE_CAMPAIGN_UI_TEXT.weekLabel}
             value={`W${view.summary.week}`}
           />

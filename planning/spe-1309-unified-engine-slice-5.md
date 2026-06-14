@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-1309](https://linear.app/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1309 child — agent/knowledge/procedure simulation triggers (slice 5)                                   |
-| **Status** | **In progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2811 @ `8f5fde47`                                                                        |
 | **Parent** | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) — Unified cognitive hazard engine (umbrella)    |
 | **Branch** | `spe-1309-unified-engine-slice-5`                                                                          |
 | **Base `main` SHA** | `a51d784d`                                                                                          |

@@ -1408,6 +1408,45 @@ export const PSYCHOLOGICAL_RESILIENCE_MIRROR_UI_TEXT: Record<string, string> = {
   redactedSuffix: 'Partial redaction',
 }
 
+export const COGNITIVE_HAZARD_EXPOSURE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Cognitive hazard exposure registry',
+  pageSubtitle:
+    'Read-only operations view over persisted unified cognitive hazard exposure records, review-band projections, and simulation trigger summaries.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  elevatedExposureLabel: 'Elevated exposure',
+  simulationTriggerSubjectsLabel: 'Simulation trigger subjects',
+  countermeasureFailedLabel: 'Countermeasure failed',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Exposure pressures, review bands, and trigger chips mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here.',
+  emptyTitle: 'No cognitive hazard exposure records',
+  emptyBody:
+    'Persisted cognitive hazard exposure records will appear here after hydration. This mirror does not re-validate hidden truth.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Review projections and simulation trigger labels are read-time only; pre-projection field values are not surfaced.',
+  labelColumn: 'Label',
+  subjectColumn: 'Subject / channels',
+  exposureColumn: 'Exposure pressures',
+  memoryColumn: 'Memory / countermeasure',
+  reviewColumn: 'Review band / effects',
+  triggerColumn: 'Simulation triggers',
+  confidenceColumn: 'Confidence',
+  subjectRefPrefix: 'Subject:',
+  fearPressurePrefix: 'Fear:',
+  memeticExposurePrefix: 'Memetic:',
+  aggregateExposurePrefix: 'Aggregate:',
+  agentDutySuffix: 'Agent duty degraded',
+  knowledgeIntegritySuffix: 'Knowledge integrity degraded',
+  procedureRestrictionSuffix: 'Procedure restriction active',
+  countermeasureFailedSuffix: 'Countermeasure failed',
+  countermeasureShieldingSuffix: 'Shielding active',
+  memoryImpairmentAdvancedSuffix: 'Memory impairment advanced',
+  redactedSuffix: 'Partial redaction',
+}
+
 export const SURVEILLANCE_INTERVENTION_TUNING_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Surveillance intervention tuning registry',

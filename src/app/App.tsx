@@ -114,6 +114,9 @@ const CoerciveContainedPersonProtocolMirrorRoute = createRouteComponent(
 const PsychologicalResilienceMirrorRoute = createRouteComponent(
   () => import('../features/operations/PsychologicalResilienceMirrorPage')
 )
+const CognitiveHazardExposureMirrorRoute = createRouteComponent(
+  () => import('../features/operations/CognitiveHazardExposureMirrorPage')
+)
 const SurveillanceInterventionTuningMirrorRoute = createRouteComponent(
   () => import('../features/operations/SurveillanceInterventionTuningMirrorPage')
 )
@@ -229,6 +232,10 @@ export default function App() {
         <Route
           path="psychological-resilience"
           element={renderLazyRoute(PsychologicalResilienceMirrorRoute)}
+        />
+        <Route
+          path="cognitive-hazard-exposure"
+          element={renderLazyRoute(CognitiveHazardExposureMirrorRoute)}
         />
         <Route
           path="surveillance-intervention-tuning"

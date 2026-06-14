@@ -5,7 +5,7 @@ One-page implementation plan. Linear: child under [SPE-861](https://linear.app/s
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-861 child — Front Desk posture choice notice orchestration (slice 5)                                 |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2820 @ `da5b8fbf`                                                                        |
 | **Parent** | [SPE-861](https://linear.app/spectranoir/issue/SPE-861) — public trust and compliance engine (umbrella)    |
 | **Branch** | `spe-861-front-desk-posture-choice-slice-5`                                                                |
 | **Base `main` SHA** | `9e1f17bb`                                                                                          |

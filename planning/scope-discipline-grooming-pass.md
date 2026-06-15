@@ -31,7 +31,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 
 | Parent | Status | Grooming summary |
 | --- | --- | --- |
-| [SPE-70](https://linear.app/spectranoir/issue/SPE-70) | Backlog | Matrix slices 1–11 + SPE-2306 triage chips shipped; parent AC largely met — **owner** evaluates Done vs Backlog; no new modality slices without §14 pass |
+| [SPE-70](https://linear.app/spectranoir/issue/SPE-70) | Done | Matrix slices 1–11 + SPE-2306 triage chips + prep-stack (#2821–#2822) shipped; parent AC rows 1–8 **Yes** per `planning/spe-70-parent-reconciliation-slice.md`; no new modality slices without §14 pass |
 | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) | Done | Substrate slices 1–4 + full prep-stack shipped (PR #2824–#2833); parent AC rows 1–4 **Yes** per `planning/spe-521-parent-reconciliation-slice.md`; batch-4+ **deferred** per audit doc |
 | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Done | Intake wave + parent integration slices 1–2 shipped; no stale “open parent” in backlog |
 | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | Backlog | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 only — defer slice-2+ until MVP loop needs cognitive hazard engine depth |
@@ -68,7 +68,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | **SPE-2123 rule-document compliance registry persistence (slice 2)** | **Yes** | Slice 1 shipped (PR #2442); sibling persistence slice under SPE-1310; weekly hook deferred to slice 3+ |
 | Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) follow-on) | Partial | Read-only `analyzeRuntimeStability` seam; explicit-node adapter only; deferred from [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) — dev/stability tooling, not player loop |
 | Dedicated exploit-access content | **No** | Validator substrate shipped; defer until scoped slice owner exists |
-| SPE-70 parent Done review | Partial | Hygiene only — no runtime unless owner reopens AC |
+| SPE-70 parent Done review | **Yes** (closed) | Groomed `planning/spe-70-parent-reconciliation-slice.md` @ `ce76d07d`; parent **Done** on Linear |
 | Mission triage residual | **No** | Blocked — surfaces without loop truth |
 | SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates (audit unchanged) |
 

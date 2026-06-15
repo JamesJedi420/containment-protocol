@@ -51,6 +51,7 @@ import { getPublicDisclosureCampaignView } from './publicDisclosureCampaignView'
 import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/publicDisclosureTrustOutcomeProjection'
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 import { listPendingPublicDisclosurePostureDecisions } from '../../domain/publicDisclosurePostureChoice'
+import { projectConcealmentPendingActivationAttention } from '../../domain/concealmentPendingActivationAttention'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
@@ -1235,7 +1236,35 @@ function buildAttentionItems(
         ]
       : []
 
-  return [...noticeItems, ...debriefAttention, ...disclosureAttention, ...signalItems, ...routingItems, ...readinessItems]
+  const concealmentPendingActivation = projectConcealmentPendingActivationAttention(game)
+  const concealmentAttention =
+    concealmentPendingActivation.pendingCount > 0
+      ? [
+          {
+            id: 'concealment:pending-activation',
+            title:
+              concealmentPendingActivation.pendingCount === 1
+                ? 'Covert activation pending on next weekly tick'
+                : `${concealmentPendingActivation.pendingCount} covert activations pending on next weekly tick`,
+            summary: concealmentPendingActivation.frontDeskAttentionSummary,
+            tone: concealmentPendingActivation.frontDeskAttentionTone,
+            href:
+              concealmentPendingActivation.frontDeskAttentionCaseId !== null
+                ? APP_ROUTES.caseDetail(concealmentPendingActivation.frontDeskAttentionCaseId)
+                : APP_ROUTES.cases,
+          } as const,
+        ]
+      : []
+
+  return [
+    ...noticeItems,
+    ...debriefAttention,
+    ...disclosureAttention,
+    ...concealmentAttention,
+    ...signalItems,
+    ...routingItems,
+    ...readinessItems,
+  ]
     .sort((left, right) => {
       const priorityDelta = getAttentionPriority(right.tone) - getAttentionPriority(left.tone)
 

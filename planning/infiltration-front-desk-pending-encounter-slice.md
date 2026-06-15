@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2460](https://linear.app/spectranoir/
 | **Linear** | [SPE-2460 — Infiltration Front Desk pending-encounter attention](https://linear.app/spectranoir/issue/SPE-2460) |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Backlog)   |
 | **Branch** | `spe-521-infiltration-front-desk-pending-encounter`                 |
-| **Status** | In Progress                                                           |
+| **Status** | **Shipped** — PR #2824 @ `80f4eca9`                                   |
 | **Base `main` SHA** | `5cb73b4b`                                                   |
 
 ## Goal
@@ -33,12 +33,12 @@ Surface **deterministic pending infiltration encounter preview** on the Front De
 
 ## Acceptance
 
-- [ ] No eligible pending cases → no Front Desk attention item
-- [ ] Cases without authored probe plans → no attention item
-- [ ] Single pending case → attention item links to case detail with preview summary
-- [ ] Multiple pending cases → aggregated summary links to `/cases`
-- [ ] Exposed/violent stage or awareness at complication threshold uses `warning` tone; routine probing uses `info`
-- [ ] `npm run lint` + targeted `npm run test:run` green
+- [x] No eligible pending cases → no Front Desk attention item
+- [x] Cases without authored probe plans → no attention item
+- [x] Single pending case → attention item links to case detail with preview summary
+- [x] Multiple pending cases → aggregated summary links to `/cases`
+- [x] Exposed/violent stage or awareness at complication threshold uses `warning` tone; routine probing uses `info`
+- [x] `npm run lint` + targeted `npm run test:run` green
 
 ## File touch list
 

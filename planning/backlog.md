@@ -20,9 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Next open umbrella per active queue (SPE-70 concealment stack if prioritizing core loop).
+**Next step:** SPE-70 concealment case prep activation preview notes (in progress on `spe-70-concealment-case-prep-activation-preview`).
 
-**Base `main` SHA:** `da5b8fbf` — shipped: SPE-861 Front Desk posture choice notice slice 5 @ `planning/disclosure-campaign-player-ui-slice-5.md` (PR #2820)
+**Base `main` SHA:** `4eb49c26` — in progress: SPE-70 concealment prep activation preview @ `planning/concealment-case-prep-activation-preview-slice.md`
 
 **Recently shipped:** SPE-861 Front Desk posture choice notice slice 5 (PR #2820 @ `da5b8fbf`); SPE-861 disclosure choice mechanics slice 4 (PR #2819 @ `24b794d7`).
 
@@ -117,6 +117,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | File                                                      | Classification | Notes                                                                                                                                               |
 | --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
+| `concealment-case-prep-activation-preview-slice.md`       | **In progress** | SPE-70 concealment prep activation preview notes; branch `spe-70-concealment-case-prep-activation-preview`.                                        |
 | `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack).                                                                                       |
 | `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                                                                                                         |
 | `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |

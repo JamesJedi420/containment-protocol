@@ -38,6 +38,8 @@ export function ConcealmentCasePrepPanel({
 
       <PreviewSection view={view} />
 
+      {view.activationPreviewNotes.length > 0 ? <ActivationPreview view={view} /> : null}
+
       {view.activationTags.length > 0 ? (
         <section className="space-y-1" aria-label="Concealment activation tags">
           <p className="text-xs uppercase tracking-wide opacity-50">Activation tags</p>
@@ -108,6 +110,19 @@ function PanelHeader() {
       <h3 className="text-lg font-semibold">Concealment prep</h3>
       <p className="text-xs uppercase tracking-wide opacity-50">Covert activation</p>
     </div>
+  )
+}
+
+function ActivationPreview({ view }: { view: ConcealmentCasePrepView }) {
+  return (
+    <section className="space-y-1" aria-label="Activation preview">
+      <p className="text-xs uppercase tracking-wide opacity-50">Activation preview</p>
+      <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+        {view.activationPreviewNotes.map((note) => (
+          <li key={note}>{note}</li>
+        ))}
+      </ul>
+    </section>
   )
 }
 

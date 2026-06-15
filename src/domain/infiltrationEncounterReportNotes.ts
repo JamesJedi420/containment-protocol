@@ -3,6 +3,7 @@
  */
 
 import type { InfiltrationCoverRole } from './infiltrationCover'
+import { projectInfiltrationEncounterCivilianLongHorizonRoles } from './infiltrationEncounterCivilianLongHorizonRoles'
 import {
   isInfiltrationProbeEligible,
   resolveWeeklyInfiltrationProbeAction,
@@ -299,6 +300,11 @@ export function buildInfiltrationPrepEncounterNotes(
 
   if (context.leaveBehindLabel) {
     notes.push(`Staged leave-behind: ${context.leaveBehindLabel}.`)
+  }
+
+  const civilianLongHorizon = projectInfiltrationEncounterCivilianLongHorizonRoles(caseData)
+  if (civilianLongHorizon.visible) {
+    notes.push(civilianLongHorizon.embedSummaryLabel)
   }
 
   return notes

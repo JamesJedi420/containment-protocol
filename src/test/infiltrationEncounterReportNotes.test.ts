@@ -180,4 +180,25 @@ describe('infiltrationEncounterReportNotes', () => {
     expect(summary).not.toContain('Leave-behind')
     expect(resolveInfiltrationProbeActionSource(sparse)).toBe('authored')
   })
+
+  it('adds civilian long-horizon embed summary to prep encounter notes when eligible', () => {
+    const caseData = createStarterCase({
+      id: 'case-civilian-report',
+      templateId: 'ops-002',
+      status: 'in_progress',
+    })
+    caseData.hiddenState = 'hidden'
+    caseData.tags = ['infiltration', 'covert', 'civilian', 'interview', 'memory']
+    caseData.infiltrationCoverProfile = {
+      claimedRole: 'civilian_staff',
+      documentTier: 1,
+      doctrineBand: 0.35,
+    }
+    caseData.infiltrationProbePlan = { defaultAction: 'probe_access' }
+
+    const notes = buildInfiltrationPrepEncounterNotes(caseData)
+
+    expect(notes.some((note) => note.includes('Interview-cycle embed'))).toBe(true)
+    expect(notes.some((note) => note.includes('civilian_staff routine'))).toBe(true)
+  })
 })

@@ -56,7 +56,7 @@ Expose a **minimal deterministic role-branch read model** on the infiltration ca
 | Item | Owner | Why |
 | ---- | ----- | --- |
 | SPE-2250 batch-4+ template stacks | SPE-2250 follow-up | Content-only deferral |
-| Civilian long-horizon roles | SPE-521 parent | Broader parent scope |
+| Civilian long-horizon roles | **In Progress** — `planning/infiltration-civilian-long-horizon-roles-slice.md` (SPE-2461) | Follow-up slice under SPE-521 |
 
 ## See also
 

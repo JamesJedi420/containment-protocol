@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-521](https://linear.app/s
 | **Linear** | Child under SPE-521 — infiltration cover stance weekly tick         |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Backlog)   |
 | **Branch** | `spe-521-infiltration-cover-stance-weekly-tick`                       |
-| **Status** | In progress                                                           |
+| **Status** | **Shipped** — PR #2826 @ `6279930b`                                   |
 | **Base `main` SHA** | `9f5bd4a4`                                                   |
 
 ## Goal

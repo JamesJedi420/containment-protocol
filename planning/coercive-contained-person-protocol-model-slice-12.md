@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 12 child (create on merge).
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 12 — Mirror welfare-debt cross-link surfacing (create on merge)                             |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2837 @ `052a92f3`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–11 shipped)           |
 | **Branch** | `spe-1882-coercive-protocol-slice-12`                                                                      |
 | **Base `main` SHA** | `049ff7e4`                                                                                          |

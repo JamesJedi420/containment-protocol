@@ -32,7 +32,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | Parent | Status | Grooming summary |
 | --- | --- | --- |
 | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) | Backlog | Matrix slices 1–11 + SPE-2306 triage chips shipped; parent AC largely met — **owner** evaluates Done vs Backlog; no new modality slices without §14 pass |
-| [SPE-521](https://linear.app/spectranoir/issue/SPE-521) | Backlog | Probe/cover/prep/content stack shipped (incl. SPE-2250 Done, SPE-2305, SPE-2308); batch-4+ **deferred** per audit doc; broad encounter-state/guides remain |
+| [SPE-521](https://linear.app/spectranoir/issue/SPE-521) | Done | Substrate slices 1–4 + full prep-stack shipped (PR #2824–#2833); parent AC rows 1–4 **Yes** per `planning/spe-521-parent-reconciliation-slice.md`; batch-4+ **deferred** per audit doc |
 | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Done | Intake wave + parent integration slices 1–2 shipped; no stale “open parent” in backlog |
 | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | Backlog | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 only — defer slice-2+ until MVP loop needs cognitive hazard engine depth |
 | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | Backlog | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) slice 1 only — defer slice-2+ |

@@ -52,6 +52,7 @@ import { projectPublicDisclosureTrustOutcomeFromGame } from '../../domain/public
 import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../domain/publicDisclosureSegmentedTrustOutcomeProjection'
 import { listPendingPublicDisclosurePostureDecisions } from '../../domain/publicDisclosurePostureChoice'
 import { projectConcealmentPendingActivationAttention } from '../../domain/concealmentPendingActivationAttention'
+import { projectInfiltrationPendingEncounterAttention } from '../../domain/infiltrationPendingEncounterAttention'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
@@ -1256,11 +1257,32 @@ function buildAttentionItems(
         ]
       : []
 
+  const infiltrationPendingEncounter = projectInfiltrationPendingEncounterAttention(game)
+  const infiltrationAttention =
+    infiltrationPendingEncounter.pendingCount > 0
+      ? [
+          {
+            id: 'infiltration:pending-encounter',
+            title:
+              infiltrationPendingEncounter.pendingCount === 1
+                ? 'Infiltration encounter pending on next weekly tick'
+                : `${infiltrationPendingEncounter.pendingCount} infiltration encounters pending on next weekly tick`,
+            summary: infiltrationPendingEncounter.frontDeskAttentionSummary,
+            tone: infiltrationPendingEncounter.frontDeskAttentionTone,
+            href:
+              infiltrationPendingEncounter.frontDeskAttentionCaseId !== null
+                ? APP_ROUTES.caseDetail(infiltrationPendingEncounter.frontDeskAttentionCaseId)
+                : APP_ROUTES.cases,
+          } as const,
+        ]
+      : []
+
   return [
     ...noticeItems,
     ...debriefAttention,
     ...disclosureAttention,
     ...concealmentAttention,
+    ...infiltrationAttention,
     ...signalItems,
     ...routingItems,
     ...readinessItems,

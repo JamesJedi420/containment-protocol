@@ -87,6 +87,63 @@ function collectCaseTags(caseData: CaseInstance): Set<string> {
   return new Set([...caseData.tags, ...caseData.requiredTags, ...caseData.preferredTags])
 }
 
+/** Case tags on site that clash with the cover role incompatibility table. */
+export function listActiveCaseTagsClashingWithCoverRole(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): readonly string[] {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+
+  if (role === undefined) {
+    return []
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  return ROLE_INCOMPATIBLE_CASE_TAGS[role].filter((tag) => caseTags.has(tag)).sort()
+}
+
+/** Cover roles with no incompatible site tags active on the case (deterministic order). */
+export function listCoverRolesCompatibleWithCaseTags(
+  caseData: CaseInstance,
+  excludeRole?: InfiltrationCoverRole
+): readonly InfiltrationCoverRole[] {
+  const caseTags = collectCaseTags(caseData)
+
+  return INFILTRATION_COVER_ROLES.filter((role) => {
+    if (role === excludeRole) {
+      return false
+    }
+
+    return !ROLE_INCOMPATIBLE_CASE_TAGS[role].some((tag) => caseTags.has(tag))
+  })
+}
+
+/** Authored route-violation tags active on site but outside role incompatibility. */
+export function listActiveExtraRouteViolationTags(
+  caseData: CaseInstance,
+  coverRole?: InfiltrationCoverRole
+): readonly string[] {
+  const role = coverRole ?? caseData.infiltrationCoverProfile?.claimedRole
+  const profile = caseData.infiltrationCoverProfile
+
+  if (role === undefined || profile === undefined) {
+    return []
+  }
+
+  const caseTags = collectCaseTags(caseData)
+  const incompatibleTagSet = new Set(ROLE_INCOMPATIBLE_CASE_TAGS[role])
+  const routeViolationTags =
+    profile.claimedRole === role || coverRole !== undefined
+      ? profile.routeViolationTags
+      : undefined
+
+  return (
+    routeViolationTags
+      ?.filter((tag) => caseTags.has(tag) && !incompatibleTagSet.has(tag))
+      .sort() ?? []
+  )
+}
+
 function hasAnyTag(caseTags: Set<string>, candidates: readonly string[]) {
   return candidates.some((tag) => caseTags.has(tag))
 }

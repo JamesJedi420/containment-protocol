@@ -120,4 +120,23 @@ describe('infiltrationCasePrepView', () => {
     expect(view.guidesDocumentsVisible).toBe(false)
     expect(view.guidesDocumentsScrutinyLabels).toEqual([])
   })
+
+  it('surfaces role branches projection from claimed role and site tags', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.roleBranchesVisible).toBe(true)
+    expect(view.roleBranchesClaimedRoleLabel).toBe('Uniform guard')
+    expect(view.roleBranchesZoneLabels.length).toBeGreaterThan(0)
+    expect(view.roleBranchesAlternativeLabels.length).toBeGreaterThan(0)
+  })
+
+  it('hides role branches when case is ineligible', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createEligibleCase(),
+      status: 'resolved',
+    })
+
+    expect(view.roleBranchesVisible).toBe(false)
+    expect(view.roleBranchesZoneLabels).toEqual([])
+  })
 })

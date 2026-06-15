@@ -16,6 +16,10 @@ import {
   type InfiltrationEncounterGuidesDocuments,
 } from '../../domain/infiltrationEncounterGuidesDocuments'
 import {
+  projectInfiltrationEncounterRoleBranches,
+  type InfiltrationEncounterRoleBranches,
+} from '../../domain/infiltrationEncounterRoleBranches'
+import {
   projectInfiltrationEncounterStateCover,
   type InfiltrationEncounterCoverBand,
   type InfiltrationEncounterAwarenessBand,
@@ -99,6 +103,12 @@ export interface InfiltrationCasePrepView {
   readonly guidesDocumentsDoctrineBandPercent: number
   readonly guidesDocumentsScrutinyLabels: readonly string[]
   readonly guidesDocumentsReadinessLabels: readonly string[]
+  readonly roleBranchesVisible: boolean
+  readonly roleBranchesClaimedRoleLabel: string
+  readonly roleBranchesZoneLabels: readonly string[]
+  readonly roleBranchesAlternativeLabels: readonly string[]
+  readonly roleBranchesRouteLabels: readonly string[]
+  readonly roleBranchesAlignmentLabel?: string
 }
 
 export function canShowInfiltrationCasePrepOnCase(caseData: CaseInstance) {
@@ -200,6 +210,14 @@ const EMPTY_GUIDES_DOCUMENTS = {
   guidesDocumentsReadinessLabels: [] as readonly string[],
 }
 
+const EMPTY_ROLE_BRANCHES = {
+  roleBranchesVisible: false,
+  roleBranchesClaimedRoleLabel: '',
+  roleBranchesZoneLabels: [] as readonly string[],
+  roleBranchesAlternativeLabels: [] as readonly string[],
+  roleBranchesRouteLabels: [] as readonly string[],
+}
+
 function mapGuidesDocumentsToPrepView(
   projection: InfiltrationEncounterGuidesDocuments
 ): typeof EMPTY_GUIDES_DOCUMENTS {
@@ -214,6 +232,23 @@ function mapGuidesDocumentsToPrepView(
     guidesDocumentsDoctrineBandPercent: projection.doctrineBandPercent,
     guidesDocumentsScrutinyLabels: projection.scrutinyLabels,
     guidesDocumentsReadinessLabels: projection.readinessLabels,
+  }
+}
+
+function mapRoleBranchesToPrepView(
+  projection: InfiltrationEncounterRoleBranches
+): typeof EMPTY_ROLE_BRANCHES & { roleBranchesAlignmentLabel?: string } {
+  if (!projection.visible) {
+    return EMPTY_ROLE_BRANCHES
+  }
+
+  return {
+    roleBranchesVisible: true,
+    roleBranchesClaimedRoleLabel: projection.claimedRoleLabel,
+    roleBranchesZoneLabels: projection.zoneBranchLabels,
+    roleBranchesAlternativeLabels: projection.alternativeRoleLabels,
+    roleBranchesRouteLabels: projection.routeBranchLabels,
+    roleBranchesAlignmentLabel: projection.alignmentLabel,
   }
 }
 
@@ -243,6 +278,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       encounterPreviewNotes: [],
       ...EMPTY_ENCOUNTER_STATE_COVER,
       ...EMPTY_GUIDES_DOCUMENTS,
+      ...EMPTY_ROLE_BRANCHES,
     }
   }
 
@@ -253,6 +289,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
   const profile = caseData.infiltrationCoverProfile
   const encounterStateCover = projectInfiltrationEncounterStateCover(caseData)
   const guidesDocuments = projectInfiltrationEncounterGuidesDocuments(caseData)
+  const roleBranches = projectInfiltrationEncounterRoleBranches(caseData)
 
   return {
     visible: true,
@@ -296,5 +333,6 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     encounterCoverUsingStanceOverride: encounterStateCover.usingStanceOverride,
     encounterCoverStanceOptions: buildEncounterCoverStanceOptions(encounterStateCover.playerStance),
     ...mapGuidesDocumentsToPrepView(guidesDocuments),
+    ...mapRoleBranchesToPrepView(roleBranches),
   }
 }

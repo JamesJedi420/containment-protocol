@@ -55,7 +55,7 @@ When `infiltrationEncounterCoverStance` is set on an eligible in-progress case, 
 | Item | Owner | Why |
 | ---- | ----- | --- |
 | Guides and documents | **Shipped** — `planning/infiltration-guides-documents-slice.md` | Follow-up slice under SPE-521 |
-| Role branches per zone | SPE-521 parent | Out of slice boundary |
+| Role branches per zone | **Shipped** — `planning/infiltration-role-branches-zone-slice.md` | Follow-up slice under SPE-521 |
 | SPE-2250 batch-4+ template stacks | SPE-2250 follow-up | Content-only deferral |
 
 ## See also

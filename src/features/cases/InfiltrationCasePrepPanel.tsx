@@ -51,6 +51,8 @@ export function InfiltrationCasePrepPanel({
 
       {view.civilianLongHorizonVisible ? <CivilianLongHorizon view={view} /> : null}
 
+      {view.nonUniformIdentityVisible ? <NonUniformIdentity view={view} /> : null}
+
       {view.coverRoleLabel ? <CoverSummary view={view} /> : null}
 
       <section className="space-y-2" aria-label="Weekly probe action">
@@ -294,6 +296,26 @@ function CivilianLongHorizon({ view }: { view: InfiltrationCasePrepView }) {
       {view.civilianLongHorizonContextLabels.length > 0 ? (
         <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
           {view.civilianLongHorizonContextLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
+
+function NonUniformIdentity({ view }: { view: InfiltrationCasePrepView }) {
+  return (
+    <section className="space-y-2" aria-label="Non-uniform identity tree">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-wide opacity-50">Non-uniform identity tree</p>
+        <p className="text-sm">{view.nonUniformIdentityArchetypeLabel}</p>
+        <p className="text-xs opacity-65">{view.nonUniformIdentityPostureLabel}</p>
+      </div>
+
+      {view.nonUniformIdentityBranchLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+          {view.nonUniformIdentityBranchLabels.map((note) => (
             <li key={note}>{note}</li>
           ))}
         </ul>

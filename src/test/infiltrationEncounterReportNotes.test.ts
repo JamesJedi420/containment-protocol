@@ -201,4 +201,25 @@ describe('infiltrationEncounterReportNotes', () => {
     expect(notes.some((note) => note.includes('Interview-cycle embed'))).toBe(true)
     expect(notes.some((note) => note.includes('civilian_staff routine'))).toBe(true)
   })
+
+  it('adds non-uniform identity summary to prep encounter notes when eligible', () => {
+    const caseData = createStarterCase({
+      id: 'case-courier-report',
+      templateId: 'ops-001',
+      status: 'in_progress',
+    })
+    caseData.hiddenState = 'hidden'
+    caseData.tags = ['infiltration', 'covert', 'relay', 'cyber']
+    caseData.infiltrationCoverProfile = {
+      claimedRole: 'courier',
+      documentTier: 2,
+      doctrineBand: 0.65,
+    }
+    caseData.infiltrationProbePlan = { defaultAction: 'probe_route' }
+
+    const notes = buildInfiltrationPrepEncounterNotes(caseData)
+
+    expect(notes.some((note) => note.includes('Relay-chain courier identity'))).toBe(true)
+    expect(notes.some((note) => note.includes('non-institutional identity'))).toBe(true)
+  })
 })

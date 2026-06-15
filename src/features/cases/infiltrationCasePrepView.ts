@@ -20,6 +20,10 @@ import {
   type InfiltrationEncounterCivilianLongHorizonRoles,
 } from '../../domain/infiltrationEncounterCivilianLongHorizonRoles'
 import {
+  projectInfiltrationEncounterNonUniformIdentityTrees,
+  type InfiltrationEncounterNonUniformIdentityTrees,
+} from '../../domain/infiltrationEncounterNonUniformIdentityTrees'
+import {
   projectInfiltrationEncounterRoleBranches,
   type InfiltrationEncounterRoleBranches,
 } from '../../domain/infiltrationEncounterRoleBranches'
@@ -117,6 +121,10 @@ export interface InfiltrationCasePrepView {
   readonly civilianLongHorizonArchetypeLabel: string
   readonly civilianLongHorizonSustainLabel: string
   readonly civilianLongHorizonContextLabels: readonly string[]
+  readonly nonUniformIdentityVisible: boolean
+  readonly nonUniformIdentityArchetypeLabel: string
+  readonly nonUniformIdentityPostureLabel: string
+  readonly nonUniformIdentityBranchLabels: readonly string[]
 }
 
 export function canShowInfiltrationCasePrepOnCase(caseData: CaseInstance) {
@@ -233,6 +241,13 @@ const EMPTY_CIVILIAN_LONG_HORIZON = {
   civilianLongHorizonContextLabels: [] as readonly string[],
 }
 
+const EMPTY_NON_UNIFORM_IDENTITY = {
+  nonUniformIdentityVisible: false,
+  nonUniformIdentityArchetypeLabel: '',
+  nonUniformIdentityPostureLabel: '',
+  nonUniformIdentityBranchLabels: [] as readonly string[],
+}
+
 function mapGuidesDocumentsToPrepView(
   projection: InfiltrationEncounterGuidesDocuments
 ): typeof EMPTY_GUIDES_DOCUMENTS {
@@ -282,6 +297,21 @@ function mapCivilianLongHorizonToPrepView(
   }
 }
 
+function mapNonUniformIdentityToPrepView(
+  projection: InfiltrationEncounterNonUniformIdentityTrees
+): typeof EMPTY_NON_UNIFORM_IDENTITY {
+  if (!projection.visible) {
+    return EMPTY_NON_UNIFORM_IDENTITY
+  }
+
+  return {
+    nonUniformIdentityVisible: true,
+    nonUniformIdentityArchetypeLabel: projection.archetypeLabel,
+    nonUniformIdentityPostureLabel: projection.postureLabel,
+    nonUniformIdentityBranchLabels: projection.branchLabels,
+  }
+}
+
 export function buildInfiltrationCasePrepView(caseData: CaseInstance): InfiltrationCasePrepView {
   const emptyOptions = PROBE_ACTIONS.map((id) => ({
     id,
@@ -310,6 +340,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       ...EMPTY_GUIDES_DOCUMENTS,
       ...EMPTY_ROLE_BRANCHES,
       ...EMPTY_CIVILIAN_LONG_HORIZON,
+      ...EMPTY_NON_UNIFORM_IDENTITY,
     }
   }
 
@@ -322,6 +353,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
   const guidesDocuments = projectInfiltrationEncounterGuidesDocuments(caseData)
   const roleBranches = projectInfiltrationEncounterRoleBranches(caseData)
   const civilianLongHorizon = projectInfiltrationEncounterCivilianLongHorizonRoles(caseData)
+  const nonUniformIdentity = projectInfiltrationEncounterNonUniformIdentityTrees(caseData)
 
   return {
     visible: true,
@@ -367,5 +399,6 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     ...mapGuidesDocumentsToPrepView(guidesDocuments),
     ...mapRoleBranchesToPrepView(roleBranches),
     ...mapCivilianLongHorizonToPrepView(civilianLongHorizon),
+    ...mapNonUniformIdentityToPrepView(nonUniformIdentity),
   }
 }

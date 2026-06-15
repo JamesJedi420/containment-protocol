@@ -165,4 +165,30 @@ describe('infiltrationCasePrepView', () => {
     expect(view.civilianLongHorizonVisible).toBe(false)
     expect(view.civilianLongHorizonContextLabels).toEqual([])
   })
+
+  it('surfaces non-uniform identity projection for eligible courier cases', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createStarterCase({ id: 'case-courier-prep', templateId: 'ops-001' }),
+      status: 'in_progress',
+      hiddenState: 'hidden',
+      tags: ['infiltration', 'covert', 'relay', 'cyber'],
+      infiltrationProbeProgress: 0.35,
+      infiltrationAwareness: 0.42,
+      infiltrationStage: 'probing',
+      infiltrationCoverProfile: caseTemplateMap['ops-001'].infiltrationCoverProfile,
+      requiredTags: [],
+      preferredTags: [],
+    })
+
+    expect(view.nonUniformIdentityVisible).toBe(true)
+    expect(view.nonUniformIdentityArchetypeLabel).toBe('Relay-chain courier identity')
+    expect(view.nonUniformIdentityBranchLabels.length).toBeGreaterThan(0)
+  })
+
+  it('hides non-uniform identity projection for institutional cover roles', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.nonUniformIdentityVisible).toBe(false)
+    expect(view.nonUniformIdentityBranchLabels).toEqual([])
+  })
 })

@@ -4,6 +4,7 @@
 
 import type { InfiltrationCoverRole } from './infiltrationCover'
 import { projectInfiltrationEncounterCivilianLongHorizonRoles } from './infiltrationEncounterCivilianLongHorizonRoles'
+import { projectInfiltrationEncounterNonUniformIdentityTrees } from './infiltrationEncounterNonUniformIdentityTrees'
 import {
   isInfiltrationProbeEligible,
   resolveWeeklyInfiltrationProbeAction,
@@ -305,6 +306,11 @@ export function buildInfiltrationPrepEncounterNotes(
   const civilianLongHorizon = projectInfiltrationEncounterCivilianLongHorizonRoles(caseData)
   if (civilianLongHorizon.visible) {
     notes.push(civilianLongHorizon.embedSummaryLabel)
+  }
+
+  const nonUniformIdentity = projectInfiltrationEncounterNonUniformIdentityTrees(caseData)
+  if (nonUniformIdentity.visible) {
+    notes.push(nonUniformIdentity.identitySummaryLabel)
   }
 
   return notes

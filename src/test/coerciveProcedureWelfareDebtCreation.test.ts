@@ -15,10 +15,16 @@ import {
   PRIVILEGE_SUSPENSION_ENFORCEMENT_ANCHOR,
 } from '../domain/coerciveProcedureRegistry'
 import {
+  ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+  EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+  ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+} from '../domain/coerciveContainedPersonProtocolRegistry'
+import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   buildWelfareDebtAccountingRecordForCoerciveProcedureExecution,
   hasContainmentOrSecurityImprovement,
   resolveCoerciveProcedureExecutionDrafts,
+  resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords,
   resolveCoerciveProcedureExecutionDraftsFromCustodyStatus,
   resolveCoerciveProcedureExecutionDraftsFromMedicationRegimens,
   resolveCoerciveProcedureExecutionDraftsFromRegimenCustodyCombos,
@@ -313,5 +319,74 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1888 slice 6)', () => {
       'coercive-procedure:forced-sedation-stabilization',
       'coercive-procedure:privilege-suspension-enforcement',
     ])
+  })
+})
+
+describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 13)', () => {
+  it('derives compromised-care protocol drafts from stableContainmentDominatesCare fixtures', () => {
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      {
+        [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+        [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+      },
+      4
+    )
+
+    expect(drafts).toHaveLength(2)
+    expect(drafts.map((draft) => draft.executionKey)).toEqual([
+      'coercive-procedure:extended-mechanical-restraint:subject:cooperative-field-asset-31',
+      'coercive-procedure:forced-sedation-stabilization:subject:cooperative-field-asset-17',
+    ])
+    expect(drafts[0]?.postContainmentScore).toBe(0.71)
+    expect(drafts[1]?.postContainmentScore).toBe(0.78)
+  })
+
+  it('skips protocol records without compromised-care posture or resolvable procedureRef', () => {
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      {
+        [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+          ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      },
+      2
+    )
+
+    expect(drafts).toHaveLength(0)
+  })
+
+  it('does not treat welfareDebtImpactLabel alone as a creation gate', () => {
+    const labelOnly = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      procedureRef: 'coercive-procedure:forced-sedation-stabilization',
+    }
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      { [labelOnly.id]: labelOnly },
+      3
+    )
+
+    expect(drafts).toHaveLength(0)
+  })
+
+  it('prefers regimen/custody drafts over protocol drafts on duplicate execution keys', () => {
+    const drafts = resolveCoerciveProcedureExecutionDrafts(
+      {
+        [COMPELLED_ADVERSE_REACTION_REGIMEN_FIXTURE.id]: COMPELLED_ADVERSE_REACTION_REGIMEN_FIXTURE,
+      },
+      {},
+      2,
+      {
+        [EMERGENCY_SEDATION_PROTOCOL_FIXTURE.id]: {
+          ...EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
+          subjectRef: 'subject:cooperative-field-asset-22',
+          procedureRef: 'coercive-procedure:forced-sedation-stabilization',
+        },
+      }
+    )
+
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]?.executionKey).toBe(
+      'coercive-procedure:forced-sedation-stabilization:subject:cooperative-field-asset-22'
+    )
+    expect(drafts[0]?.postContainmentScore).toBe(0.64)
+    expect(drafts[0]?.adverseReactionFlag).toBe(true)
   })
 })

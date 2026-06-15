@@ -13,6 +13,7 @@ import {
 import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../domain/welfareDebtAccountingRegistry'
+import { composeWelfareDebtCrossLinksForCoerciveProtocolRecord } from '../domain/welfareDebtAccountingCrossLinks'
 import { getCoerciveContainedPersonProtocolMirrorView } from '../features/operations/coerciveContainedPersonProtocolMirrorView'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -206,6 +207,41 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 12)'
     }
 
     const nextState = advanceWeek(state)
+    const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
+  })
+})
+
+describe('advanceWeek coercive protocol records integration (SPE-1882 slice 13)', () => {
+  it('creates welfare-debt ledger entries from compromised-care protocol records and links by procedure_ref', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 2
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const debtId = `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef}`
+    const debtRecord = nextState.welfareDebtAccountingRecords?.[debtId]
+
+    expect(debtRecord?.debtCategory).toBe('harmful_restraint')
+    expect(
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+        ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+        { welfareDebtRecords: nextState.welfareDebtAccountingRecords }
+      )
+    ).toEqual([
+      expect.objectContaining({
+        debtRef: debtId,
+        coerciveProtocolId: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+        matchKind: 'procedure_ref',
+      }),
+    ])
+
     const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
 
     expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)

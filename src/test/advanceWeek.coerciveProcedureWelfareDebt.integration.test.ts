@@ -11,6 +11,9 @@ import {
 } from '../domain/containedPersonMedicationRegimenRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
+  ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+} from '../domain/coerciveContainedPersonProtocolRegistry'
+import {
   applyCoerciveProcedureWelfareDebtCreationTick,
   resolveCoerciveProcedureExecutionDrafts,
 } from '../domain/coerciveProcedureWelfareDebtCreation'
@@ -180,5 +183,68 @@ describe('advanceWeek privilege-deprivation and personnel-sourcing welfare-debt 
 
     expect(Object.keys(once.welfareDebtAccountingRecords ?? {})).toHaveLength(1)
     expect(twice.welfareDebtAccountingRecords).toEqual(once.welfareDebtAccountingRecords)
+  })
+})
+
+describe('advanceWeek compromised-care protocol welfare-debt integration (SPE-1882 slice 13)', () => {
+  it('creates welfare-debt records from compromised-care protocol records without regimen/custody anchors', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 2
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const recordId =
+      'welfare-debt:coercive-procedure:extended-mechanical-restraint:subject:cooperative-field-asset-31'
+    const record = nextState.welfareDebtAccountingRecords?.[recordId]
+
+    expect(record?.debtCategory).toBe('harmful_restraint')
+    expect(record?.severityBand).toBe('high')
+    expect(record?.containmentBenefitScore).toBe(0.71)
+  })
+
+  it('does not duplicate protocol-derived debt when advanceWeek runs again on a quiet week', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 1
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const once = advanceWeek(state)
+    const twice = advanceWeek(once)
+
+    expect(Object.keys(once.welfareDebtAccountingRecords ?? {})).toHaveLength(1)
+    expect(twice.welfareDebtAccountingRecords).toEqual(once.welfareDebtAccountingRecords)
+  })
+
+  it('matches standalone creation tick output for compromised-care protocol derived drafts', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 3
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const nextWeek = state.week + 1
+    const drafts = resolveCoerciveProcedureExecutionDrafts(
+      state.containedPersonMedicationRegimenRecords,
+      state.containedPersonCustodyStatusRecords,
+      nextWeek,
+      state.coerciveContainedPersonProtocolRecords
+    )
+    const createdOnly = applyCoerciveProcedureWelfareDebtCreationTick({}, drafts)
+    const viaAdvanceWeek = advanceWeek(state).welfareDebtAccountingRecords ?? {}
+
+    for (const recordId of Object.keys(createdOnly)) {
+      expect(viaAdvanceWeek[recordId]?.id).toBe(createdOnly[recordId]?.id)
+      expect(viaAdvanceWeek[recordId]?.debtCategory).toBe(createdOnly[recordId]?.debtCategory)
+      expect(viaAdvanceWeek[recordId]?.severityBand).toBe(createdOnly[recordId]?.severityBand)
+      expect(viaAdvanceWeek[recordId]?.containmentBenefitScore).toBe(
+        createdOnly[recordId]?.containmentBenefitScore
+      )
+    }
   })
 })

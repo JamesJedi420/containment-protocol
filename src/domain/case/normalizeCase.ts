@@ -1843,6 +1843,12 @@ export function normalizeCaseInstance(
     }).infiltrationEncounterCoverStance
   }
 
+  if (baseCase.status === 'resolved' && baseCase.infiltrationEncounterCoverStance !== undefined) {
+    delete (baseCase as {
+      infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
+    }).infiltrationEncounterCoverStance
+  }
+
   if (entry.mapLayer !== undefined && mapLayer === undefined) {
     delete (baseCase as { mapLayer?: CaseInstance['mapLayer'] }).mapLayer
   }

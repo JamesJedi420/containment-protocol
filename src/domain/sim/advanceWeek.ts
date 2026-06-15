@@ -194,6 +194,7 @@ import {
   formatInfiltrationWeeklyEncounterSummary,
   shouldEmitInfiltrationWeeklyEncounterNote,
 } from '../infiltrationEncounterReportNotes'
+import { stripInfiltrationEncounterCoverStanceOnResolvedCase } from '../infiltrationEncounterCoverStanceTick'
 import { applyWeeklyInfiltrationProbeTick } from '../infiltrationProbe'
 import {
   resolveAssignedCaseForWeek as resolveCanonicalAssignedCaseForWeek,
@@ -2810,13 +2811,13 @@ function resolveAssignments(
       }
 
       recordCaseOutcome(context, caseId, 'resolved')
-      context.nextState.cases[caseId] = {
+      context.nextState.cases[caseId] = stripInfiltrationEncounterCoverStanceOnResolvedCase({
         ...effectiveCase,
         assignedTeamIds: [],
         status: 'resolved',
         weeksRemaining: 0,
         supportShortfall: supportShortfallCases.includes(caseId),
-      }
+      })
       context.eventDrafts.push(
         buildCaseResolvedEventDraft({
           week: context.sourceState.week,

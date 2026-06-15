@@ -36,7 +36,8 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Done | Intake wave + parent integration slices 1–2 shipped; no stale “open parent” in backlog |
 | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | Backlog | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 only — defer slice-2+ until MVP loop needs cognitive hazard engine depth |
 | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | Backlog | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) slice 1 only — defer slice-2+ |
-| [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) | Backlog | [SPE-2115](https://linear.app/spectranoir/issue/SPE-2115) slice 1 only — defer slice-2+ |
+| [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) | Done | Integrated health bundle slices 5–10 shipped; parent **Done** on Linear |
+| [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) | Done | Registry slices 1–11 + grooming slices 1–7; parent AC rows 1–6 **Yes** per `planning/spe-1888-parent-acceptance-review-slice-7.md`; SPE-1882 + full SPE-1047/1131 deferred |
 | [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) | Backlog | [SPE-2117](https://linear.app/spectranoir/issue/SPE-2117), [SPE-2123](https://linear.app/spectranoir/issue/SPE-2123) slice 1 shipped — **next:** persistence slice 2 per active queue |
 | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) | Done | Substrate + [SPE-2361](https://linear.app/spectranoir/issue/SPE-2361) harvest + [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) runtime hooks shipped — optional stability-audit follow-on only |
 | [SPE-2250](https://linear.app/spectranoir/issue/SPE-2250) | Done | Batch-4+ template stacks **deferred** — `planning/infiltration-encounter-content-batch4plus-audit.md` |
@@ -69,6 +70,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) follow-on) | Partial | Read-only `analyzeRuntimeStability` seam; explicit-node adapter only; deferred from [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) — dev/stability tooling, not player loop |
 | Dedicated exploit-access content | **No** | Validator substrate shipped; defer until scoped slice owner exists |
 | SPE-70 parent Done review | **Yes** (closed) | Groomed `planning/spe-70-parent-reconciliation-slice.md` @ `ce76d07d`; parent **Done** on Linear |
+| SPE-1888 parent Done review | **Yes** (closed) | Groomed `planning/spe-1888-parent-acceptance-review-slice-7.md` @ `194174ec`; registry slices 1–11 + AC rows 1–6 **Yes**; parent **Done** on Linear |
 | Mission triage residual | **No** | Blocked — surfaces without loop truth |
 | SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates (audit unchanged) |
 

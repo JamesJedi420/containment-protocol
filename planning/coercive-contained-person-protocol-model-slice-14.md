@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 14 child (create on merge).
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 14 — Forced-isolation / staff-exclusion procedure anchors (create on merge)                 |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2840 @ `df379681`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–13 shipped)           |
 | **Branch** | `spe-1882-coercive-protocol-slice-14`                                                                      |
 | **Base `main` SHA** | `f1ad8a3b`                                                                                          |
@@ -40,12 +40,12 @@ Add minimal `coerciveProcedureRegistry` anchors and `procedureRef` on `ABUSIVE_S
 
 ## Acceptance
 
-- [ ] `STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE` creates welfare-debt ledger entry through `advanceWeek` (protocol-only)
-- [ ] Abusive surveillance fixture creates debt when in compromised-care posture (integration uses spread override; canonical fixture scores unchanged)
-- [ ] Anchor debt categories align with fixture `welfareDebtImpactLabel` semantics without label-as-gate
-- [ ] Cross-link `procedure_ref` matches creation-tick id for wired fixtures
-- [ ] Regimen/custody merge precedence unchanged on overlapping keys
-- [ ] `npm run lint` + targeted tests green
+- [x] `STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE` creates welfare-debt ledger entry through `advanceWeek` (protocol-only)
+- [x] Abusive surveillance fixture creates debt when in compromised-care posture (integration uses spread override; canonical fixture scores unchanged)
+- [x] Anchor debt categories align with fixture `welfareDebtImpactLabel` semantics without label-as-gate
+- [x] Cross-link `procedure_ref` matches creation-tick id for wired fixtures
+- [x] Regimen/custody merge precedence unchanged on overlapping keys
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

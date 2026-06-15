@@ -9,6 +9,12 @@
 import type { CustodyStatusRecordsMap, CustodyStatusRecord } from './containedPersonCustodyStatusRegistry'
 import type { MedicationRegimenRecordsMap, MedicationRegimenRecord } from './containedPersonMedicationRegimenRegistry'
 import {
+  projectContainmentCareTradeoff,
+  validateCoerciveProtocolRecord,
+  type CoerciveProtocolRecord,
+  type CoerciveProtocolRecordsMap,
+} from './coerciveContainedPersonProtocolRegistry'
+import {
   COERCIVE_PROCEDURE_ANCHORS,
   resolveCoerciveProcedureAnchor,
   type CoerciveProcedureAnchor,
@@ -437,11 +443,73 @@ export function resolveCoerciveProcedureExecutionDraftsFromRegimenCustodyCombos(
   )
 }
 
-/** Merge medication-regimen, custody-status, and combo derived execution drafts. */
+function pushCompromisedCareProtocolDraft(
+  drafts: CoerciveProcedureExecutionDraft[],
+  record: CoerciveProtocolRecord,
+  week: number
+) {
+  if (!validateCoerciveProtocolRecord(record).valid) {
+    return
+  }
+
+  const tradeoff = projectContainmentCareTradeoff(record)
+  if (!tradeoff.stableContainmentDominatesCare) {
+    return
+  }
+
+  const procedureRef = normalizeToken(record.procedureRef ?? '')
+  if (!procedureRef || !resolveCoerciveProcedureAnchor(procedureRef)) {
+    return
+  }
+
+  const subjectRef = normalizeToken(record.subjectRef)
+  if (!subjectRef) {
+    return
+  }
+
+  const postContainmentScore = clampUnitScore(record.containmentStabilityGain)
+  const priorContainmentScore = BASELINE_INSECURITY_SCORE
+  if (postContainmentScore <= priorContainmentScore) {
+    return
+  }
+
+  drafts.push({
+    executionKey: buildExecutionKey(procedureRef, subjectRef),
+    subjectRef,
+    procedureRef,
+    priorContainmentScore,
+    postContainmentScore,
+    week,
+  })
+}
+
+/**
+ * Derive execution drafts from coercive protocol records in compromised-care posture.
+ * `welfareDebtImpactLabel` is not a creation gate — only stableContainmentDominatesCare + procedure anchor.
+ */
+export function resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+  protocols: CoerciveProtocolRecordsMap | null | undefined,
+  week: number
+): readonly CoerciveProcedureExecutionDraft[] {
+  const safeProtocols = protocols ?? {}
+  const normalizedWeek = normalizeWeek(week)
+  const drafts: CoerciveProcedureExecutionDraft[] = []
+
+  for (const record of Object.values(safeProtocols)) {
+    pushCompromisedCareProtocolDraft(drafts, record, normalizedWeek)
+  }
+
+  return Object.freeze(
+    drafts.sort((left, right) => left.executionKey.localeCompare(right.executionKey))
+  )
+}
+
+/** Merge regimen, custody, combo, and compromised-care protocol derived execution drafts. */
 export function resolveCoerciveProcedureExecutionDrafts(
   regimens: MedicationRegimenRecordsMap | null | undefined,
   custodyRecords: CustodyStatusRecordsMap | null | undefined,
-  week: number
+  week: number,
+  protocols?: CoerciveProtocolRecordsMap | null | undefined
 ): readonly CoerciveProcedureExecutionDraft[] {
   const merged = new Map<string, CoerciveProcedureExecutionDraft>()
 
@@ -459,6 +527,15 @@ export function resolveCoerciveProcedureExecutionDrafts(
     week
   )) {
     merged.set(draft.executionKey, draft)
+  }
+
+  for (const draft of resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+    protocols,
+    week
+  )) {
+    if (!merged.has(draft.executionKey)) {
+      merged.set(draft.executionKey, draft)
+    }
   }
 
   return Object.freeze(

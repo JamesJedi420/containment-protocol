@@ -4907,11 +4907,12 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     })
   }
 
-  // SPE-1888 slice 5: welfare-debt creation when coercive procedures execute with containment improvement.
+  // SPE-1888 slice 5 + SPE-1882 slice 13: welfare-debt creation from regimen/custody anchors and compromised-care protocol records.
   const coerciveProcedureExecutionDrafts = resolveCoerciveProcedureExecutionDrafts(
     outputWeeklyState.containedPersonMedicationRegimenRecords,
     outputWeeklyState.containedPersonCustodyStatusRecords,
-    result.week
+    result.week,
+    outputWeeklyState.coerciveContainedPersonProtocolRecords
   )
   if (coerciveProcedureExecutionDrafts.length > 0) {
     outputWeeklyState.welfareDebtAccountingRecords = applyCoerciveProcedureWelfareDebtCreationTick(

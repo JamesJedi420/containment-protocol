@@ -47,6 +47,8 @@ export function InfiltrationCasePrepPanel({
 
       {view.guidesDocumentsVisible ? <GuidesDocuments view={view} /> : null}
 
+      {view.roleBranchesVisible ? <RoleBranches view={view} /> : null}
+
       {view.coverRoleLabel ? <CoverSummary view={view} /> : null}
 
       <section className="space-y-2" aria-label="Weekly probe action">
@@ -270,6 +272,44 @@ function GuidesDocuments({ view }: { view: InfiltrationCasePrepView }) {
       {view.guidesDocumentsReadinessLabels.length > 0 ? (
         <ul className="list-disc space-y-1 pl-5 text-xs text-amber-200/80">
           {view.guidesDocumentsReadinessLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
+
+function RoleBranches({ view }: { view: InfiltrationCasePrepView }) {
+  return (
+    <section className="space-y-2" aria-label="Role branches by zone">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-wide opacity-50">Role branches by zone</p>
+        <p className="text-sm">{view.roleBranchesClaimedRoleLabel}</p>
+        {view.roleBranchesAlignmentLabel ? (
+          <p className="text-xs opacity-65">{view.roleBranchesAlignmentLabel}</p>
+        ) : null}
+      </div>
+
+      {view.roleBranchesZoneLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs text-amber-200/80">
+          {view.roleBranchesZoneLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {view.roleBranchesRouteLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs text-amber-200/80">
+          {view.roleBranchesRouteLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {view.roleBranchesAlternativeLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+          {view.roleBranchesAlternativeLabels.map((note) => (
             <li key={note}>{note}</li>
           ))}
         </ul>

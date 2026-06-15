@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-521](https://linear.app/s
 | **Linear** | Child under SPE-521 — infiltration encounter-state cover              |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Backlog)   |
 | **Branch** | `spe-521-infiltration-encounter-state-cover`                          |
-| **Status** | In Progress                                                           |
+| **Status** | **Shipped** — PR #2825 @ `5146a622`                                   |
 | **Base `main` SHA** | `dbb4523d`                                                   |
 
 ## Goal
@@ -35,12 +35,12 @@ Expose **deterministic encounter-state cover posture** on the infiltration case-
 
 ## Acceptance
 
-- [ ] Eligible in-progress cases with cover profile show encounter-state band, status label, and factor labels
-- [ ] Bands derive from stage/awareness thresholds and cover strain evaluation only
-- [ ] Player can select or clear cover stance on eligible cases; persisted on case
-- [ ] Projection empty for resolved/open or ineligible cases
-- [ ] Does not duplicate Front Desk pending-encounter summaries
-- [ ] `npm run lint` + targeted `npm run test:run` green
+- [x] Eligible in-progress cases with cover profile show encounter-state band, status label, and factor labels
+- [x] Bands derive from stage/awareness thresholds and cover strain evaluation only
+- [x] Player can select or clear cover stance on eligible cases; persisted on case
+- [x] Projection empty for resolved/open or ineligible cases
+- [x] Does not duplicate Front Desk pending-encounter summaries
+- [x] `npm run lint` + targeted `npm run test:run` green
 
 ## File touch list
 

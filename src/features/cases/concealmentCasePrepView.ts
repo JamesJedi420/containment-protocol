@@ -5,6 +5,7 @@ import {
   listConcealmentActivationTagsOnCase,
   summarizeConcealmentTriggerWhen,
 } from '../../domain/concealmentCasePrep'
+import { buildConcealmentPrepActivationPreviewNotes } from '../../domain/concealmentPrepActivationPreviewNotes'
 import { isPersistentFlagSet } from '../../domain/flagSystem'
 import { readGameStateManager } from '../../domain/gameStateManager'
 import {
@@ -32,6 +33,7 @@ export interface ConcealmentCasePrepView {
   readonly playerConcealFlagActive: boolean
   readonly canToggleConcealFlag: boolean
   readonly hiddenModifierCount?: number
+  readonly activationPreviewNotes: readonly string[]
 }
 
 const MODE_LABELS: Record<ConcealmentActivationMode, string> = {
@@ -96,6 +98,7 @@ export function buildConcealmentCasePrepView(
     previewStatusLabel: 'Open posture — no covert activation on the next weekly tick',
     playerConcealFlagActive: false,
     canToggleConcealFlag: false,
+    activationPreviewNotes: [],
   }
 
   if (!canShowConcealmentCasePrepOnCase(caseData)) {
@@ -128,5 +131,6 @@ export function buildConcealmentCasePrepView(
     playerConcealFlagActive,
     canToggleConcealFlag: canPlayerSetConcealCaseFlag(caseData),
     hiddenModifierCount,
+    activationPreviewNotes: buildConcealmentPrepActivationPreviewNotes(caseData, game),
   }
 }

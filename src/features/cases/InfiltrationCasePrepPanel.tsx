@@ -49,6 +49,8 @@ export function InfiltrationCasePrepPanel({
 
       {view.roleBranchesVisible ? <RoleBranches view={view} /> : null}
 
+      {view.civilianLongHorizonVisible ? <CivilianLongHorizon view={view} /> : null}
+
       {view.coverRoleLabel ? <CoverSummary view={view} /> : null}
 
       <section className="space-y-2" aria-label="Weekly probe action">
@@ -272,6 +274,26 @@ function GuidesDocuments({ view }: { view: InfiltrationCasePrepView }) {
       {view.guidesDocumentsReadinessLabels.length > 0 ? (
         <ul className="list-disc space-y-1 pl-5 text-xs text-amber-200/80">
           {view.guidesDocumentsReadinessLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+    </section>
+  )
+}
+
+function CivilianLongHorizon({ view }: { view: InfiltrationCasePrepView }) {
+  return (
+    <section className="space-y-2" aria-label="Civilian long-horizon role">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-wide opacity-50">Civilian long-horizon role</p>
+        <p className="text-sm">{view.civilianLongHorizonArchetypeLabel}</p>
+        <p className="text-xs opacity-65">{view.civilianLongHorizonSustainLabel}</p>
+      </div>
+
+      {view.civilianLongHorizonContextLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+          {view.civilianLongHorizonContextLabels.map((note) => (
             <li key={note}>{note}</li>
           ))}
         </ul>

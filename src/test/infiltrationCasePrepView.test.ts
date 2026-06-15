@@ -139,4 +139,30 @@ describe('infiltrationCasePrepView', () => {
     expect(view.roleBranchesVisible).toBe(false)
     expect(view.roleBranchesZoneLabels).toEqual([])
   })
+
+  it('surfaces civilian long-horizon projection for eligible civilian_staff cases', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createStarterCase({ id: 'case-civilian-prep', templateId: 'ops-002' }),
+      status: 'in_progress',
+      hiddenState: 'hidden',
+      tags: ['infiltration', 'covert', 'civilian', 'interview', 'memory'],
+      infiltrationProbeProgress: 0.35,
+      infiltrationAwareness: 0.42,
+      infiltrationStage: 'probing',
+      infiltrationCoverProfile: caseTemplateMap['ops-002'].infiltrationCoverProfile,
+      requiredTags: [],
+      preferredTags: [],
+    })
+
+    expect(view.civilianLongHorizonVisible).toBe(true)
+    expect(view.civilianLongHorizonArchetypeLabel).toBe('Interview-cycle embed')
+    expect(view.civilianLongHorizonContextLabels.length).toBeGreaterThan(0)
+  })
+
+  it('hides civilian long-horizon projection for uniform guard cases', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.civilianLongHorizonVisible).toBe(false)
+    expect(view.civilianLongHorizonContextLabels).toEqual([])
+  })
 })

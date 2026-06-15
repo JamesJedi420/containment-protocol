@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2461](https://linear.app/spectranoir/
 | **Linear** | [SPE-2461](https://linear.app/spectranoir/issue/SPE-2461) — civilian long-horizon roles case prep |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Backlog)   |
 | **Branch** | `spe-521-infiltration-civilian-long-horizon-roles`                    |
-| **Status** | In Progress (ready for PR)                                            |
+| **Status** | Shipped (PR #2830 @ `2cf23287`)                                      |
 | **Base `main` SHA** | `813b1daf`                                                   |
 
 ## Goal

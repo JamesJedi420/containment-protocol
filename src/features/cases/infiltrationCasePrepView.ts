@@ -11,6 +11,12 @@ import {
   type InfiltrationStage,
 } from '../../domain/infiltrationProbe'
 import { buildInfiltrationPrepEncounterNotes } from '../../domain/infiltrationEncounterReportNotes'
+import {
+  projectInfiltrationEncounterStateCover,
+  type InfiltrationEncounterCoverBand,
+  type InfiltrationEncounterAwarenessBand,
+} from '../../domain/infiltrationEncounterStateCover'
+import type { InfiltrationEncounterCoverStance } from '../../domain/infiltrationEncounterCoverStance'
 import { readInfiltrationWeeklyProbeActionOverride } from '../../domain/infiltrationProbeOverride'
 import type { CaseInstance } from '../../domain/models'
 
@@ -47,6 +53,13 @@ export interface InfiltrationProbeActionOptionView {
   readonly selected: boolean
 }
 
+export interface InfiltrationEncounterCoverStanceOptionView {
+  readonly id: InfiltrationEncounterCoverStance
+  readonly label: string
+  readonly summary: string
+  readonly selected: boolean
+}
+
 export interface InfiltrationCasePrepView {
   readonly visible: boolean
   readonly probeProgressPercent: number
@@ -67,6 +80,17 @@ export interface InfiltrationCasePrepView {
   readonly actionOptions: readonly InfiltrationProbeActionOptionView[]
   readonly usingOverride: boolean
   readonly encounterPreviewNotes: readonly string[]
+  readonly encounterStateCoverVisible: boolean
+  readonly encounterCoverBand: InfiltrationEncounterCoverBand
+  readonly encounterCoverBandLabel: string
+  readonly encounterCoverStatusLabel: string
+  readonly encounterAwarenessBand: InfiltrationEncounterAwarenessBand
+  readonly encounterAwarenessBandLabel: string
+  readonly encounterCoverFactorLabels: readonly string[]
+  readonly encounterCoverHasElevatedPosture: boolean
+  readonly encounterCoverStance: InfiltrationEncounterCoverStance
+  readonly encounterCoverUsingStanceOverride: boolean
+  readonly encounterCoverStanceOptions: readonly InfiltrationEncounterCoverStanceOptionView[]
 }
 
 export function canShowInfiltrationCasePrepOnCase(caseData: CaseInstance) {
@@ -110,11 +134,54 @@ function buildCoverStrainNotes(caseData: CaseInstance): string[] {
   return notes
 }
 
+const COVER_STANCE_LABELS: Record<InfiltrationEncounterCoverStance, string> = {
+  maintain: 'Maintain cover',
+  reinforce: 'Reinforce cover',
+  low_profile: 'Low profile',
+}
+
+const COVER_STANCE_SUMMARIES: Record<InfiltrationEncounterCoverStance, string> = {
+  maintain: 'Hold the current cover story through the next encounter.',
+  reinforce: 'Prioritize paperwork and doctrine checks before observers engage.',
+  low_profile: 'Minimize exposure and defer high-visibility moves.',
+}
+
+const COVER_STANCES: readonly InfiltrationEncounterCoverStance[] = [
+  'maintain',
+  'reinforce',
+  'low_profile',
+]
+
 const PROBE_ACTIONS: readonly InfiltrationProbeAction[] = [
   'probe_access',
   'probe_route',
   'cleanup',
 ]
+
+function buildEncounterCoverStanceOptions(
+  selectedStance: InfiltrationEncounterCoverStance
+): readonly InfiltrationEncounterCoverStanceOptionView[] {
+  return COVER_STANCES.map((id) => ({
+    id,
+    label: COVER_STANCE_LABELS[id],
+    summary: COVER_STANCE_SUMMARIES[id],
+    selected: selectedStance === id,
+  }))
+}
+
+const EMPTY_ENCOUNTER_STATE_COVER = {
+  encounterStateCoverVisible: false,
+  encounterCoverBand: 'stable' as const,
+  encounterCoverBandLabel: 'Stable cover',
+  encounterCoverStatusLabel: 'Cover posture holds for routine encounter checks.',
+  encounterAwarenessBand: 'routine' as const,
+  encounterAwarenessBandLabel: 'Routine awareness band',
+  encounterCoverFactorLabels: [] as readonly string[],
+  encounterCoverHasElevatedPosture: false,
+  encounterCoverStance: 'maintain' as const,
+  encounterCoverUsingStanceOverride: false,
+  encounterCoverStanceOptions: buildEncounterCoverStanceOptions('maintain'),
+}
 
 export function buildInfiltrationCasePrepView(caseData: CaseInstance): InfiltrationCasePrepView {
   const emptyOptions = PROBE_ACTIONS.map((id) => ({
@@ -140,6 +207,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       actionOptions: emptyOptions,
       usingOverride: false,
       encounterPreviewNotes: [],
+      ...EMPTY_ENCOUNTER_STATE_COVER,
     }
   }
 
@@ -148,6 +216,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
   const overrideAction = readInfiltrationWeeklyProbeActionOverride(caseData)
   const effectiveAction = overrideAction ?? plannedAction
   const profile = caseData.infiltrationCoverProfile
+  const encounterStateCover = projectInfiltrationEncounterStateCover(caseData)
 
   return {
     visible: true,
@@ -181,5 +250,16 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     })),
     usingOverride: overrideAction !== undefined,
     encounterPreviewNotes: buildInfiltrationPrepEncounterNotes(caseData),
+    encounterStateCoverVisible: encounterStateCover.visible,
+    encounterCoverBand: encounterStateCover.band,
+    encounterCoverBandLabel: encounterStateCover.bandLabel,
+    encounterCoverStatusLabel: encounterStateCover.statusLabel,
+    encounterAwarenessBand: encounterStateCover.awarenessBand,
+    encounterAwarenessBandLabel: encounterStateCover.awarenessBandLabel,
+    encounterCoverFactorLabels: encounterStateCover.factorLabels,
+    encounterCoverHasElevatedPosture: encounterStateCover.hasElevatedPosture,
+    encounterCoverStance: encounterStateCover.playerStance,
+    encounterCoverUsingStanceOverride: encounterStateCover.usingStanceOverride,
+    encounterCoverStanceOptions: buildEncounterCoverStanceOptions(encounterStateCover.playerStance),
   }
 }

@@ -97,6 +97,8 @@ import {
   applyInfiltrationWeeklyProbeActionOverride,
   canConfigureInfiltrationWeeklyProbeOnCase,
 } from '../../domain/infiltrationProbeOverride'
+import { applyInfiltrationEncounterCoverStance } from '../../domain/infiltrationEncounterCoverStance'
+import type { InfiltrationEncounterCoverStance } from '../../domain/infiltrationEncounterCoverStance'
 import {
   applyPublicDisclosurePostureChoice,
   type PublicDisclosurePostureChoice,
@@ -256,6 +258,11 @@ interface GameStore {
   setInfiltrationWeeklyProbeAction: (
     caseId: Id,
     action: InfiltrationProbeAction | null
+  ) => void
+  /** SPE-521 follow-up: set or clear infiltration encounter cover stance on an eligible case. */
+  setInfiltrationEncounterCoverStance: (
+    caseId: Id,
+    stance: InfiltrationEncounterCoverStance | null
   ) => void
   /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
   setPublicDisclosurePostureChoice: (
@@ -1209,6 +1216,19 @@ export const useGameStore = create<GameStore>()(
           const result = applyInfiltrationWeeklyProbeActionOverride(s.game, {
             caseId,
             action,
+          })
+          if (!result.applied) {
+            return { game: s.game }
+          }
+
+          return { game: result.state }
+        }),
+
+      setInfiltrationEncounterCoverStance: (caseId, stance) =>
+        set((s) => {
+          const result = applyInfiltrationEncounterCoverStance(s.game, {
+            caseId,
+            stance,
           })
           if (!result.applied) {
             return { game: s.game }

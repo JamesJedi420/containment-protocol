@@ -1395,6 +1395,8 @@ export interface CaseInstance {
   infiltrationWeeklyProbeActionOverride?: import('./infiltrationProbe').InfiltrationProbeAction
   /** SPE-521 slice 3: cover identity profile copied from template at spawn. */
   infiltrationCoverProfile?: import('./infiltrationCover').InfiltrationCoverProfile
+  /** SPE-521 follow-up: player cover stance for next infiltration encounter prep. */
+  infiltrationEncounterCoverStance?: import('./infiltrationEncounterCoverStance').InfiltrationEncounterCoverStance
   /** SPE-2163 slice 2: stealth tradeoff row copied from template at spawn. */
   stealthLeaveBehindId?: string
 

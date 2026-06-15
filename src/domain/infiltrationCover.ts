@@ -33,8 +33,27 @@ const INFILTRATION_COVER_ROLES: readonly InfiltrationCoverRole[] = [
   'official_inspector',
 ]
 
+/** Institutional or uniform/office cover roles (distinct from non-uniform vendor trees). */
+export const INFILTRATION_INSTITUTIONAL_COVER_ROLES: readonly InfiltrationCoverRole[] = [
+  'uniform_guard',
+  'civilian_staff',
+  'official_inspector',
+]
+
+/** Non-institutional cover roles that branch on vendor-style identity trees. */
+export const INFILTRATION_NON_UNIFORM_IDENTITY_COVER_ROLES: readonly InfiltrationCoverRole[] = [
+  'courier',
+  'maintenance',
+]
+
 export function isInfiltrationCoverRole(value: string): value is InfiltrationCoverRole {
   return (INFILTRATION_COVER_ROLES as readonly string[]).includes(value)
+}
+
+export function isNonUniformIdentityCoverRole(
+  role: InfiltrationCoverRole | undefined
+): role is InfiltrationCoverRole {
+  return role !== undefined && (INFILTRATION_NON_UNIFORM_IDENTITY_COVER_ROLES as readonly string[]).includes(role)
 }
 
 export interface InfiltrationCoverProfile {

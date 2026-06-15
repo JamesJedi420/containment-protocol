@@ -65,7 +65,7 @@ Expose a **minimal deterministic civilian long-horizon role read model** on the 
 
 | Item | Owner | Why |
 | ---- | ----- | --- |
-| Non-uniform identity trees | SPE-521 parent | Separate parent scope row |
+| Non-uniform identity trees | SPE-521 parent | Separate parent scope row — **In Progress** `planning/infiltration-non-uniform-identity-trees-slice.md` (SPE-2463) |
 | SPE-2250 batch-4+ template stacks | SPE-2250 follow-up | Content-only deferral |
 | Authored per-template long-horizon archetype overrides | SPE-521 follow-up | Tag-heuristic slice sufficient for prep surfacing |
 

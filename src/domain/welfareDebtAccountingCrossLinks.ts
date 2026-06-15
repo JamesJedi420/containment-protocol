@@ -536,3 +536,63 @@ export function formatWelfareDebtAccountingCrossLinkAuditLine(
   const linkText = labels.length > 0 ? labels.join('; ') : 'none'
   return `Cross-links (${summary.debtRef}): ${linkText}`
 }
+
+/** Inverse compose: welfare-debt ledger links for one coercive protocol record (SPE-1882 slice 12). */
+export function composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+  record: CoerciveProtocolRecord,
+  input?: {
+    readonly welfareDebtRecords?: WelfareDebtAccountingRecordsMap | null | undefined
+  }
+): readonly WelfareDebtCoerciveProtocolCrossLink[] {
+  if (!validateCoerciveProtocolRecord(record).valid) {
+    return Object.freeze([])
+  }
+
+  const protocolId = normalizeToken(record.id)
+  if (!protocolId) {
+    return Object.freeze([])
+  }
+
+  const safeRecords = input?.welfareDebtRecords ?? {}
+  if (Object.keys(safeRecords).length === 0) {
+    return Object.freeze([])
+  }
+
+  const links: WelfareDebtCoerciveProtocolCrossLink[] = []
+
+  for (const debtRecord of Object.values(safeRecords)) {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(debtRecord, {
+      coerciveProtocolRecords: { [protocolId]: record },
+    })
+    if (!summary) {
+      continue
+    }
+
+    for (const link of summary.coerciveProtocolLinks) {
+      if (link.coerciveProtocolId === protocolId) {
+        links.push(link)
+      }
+    }
+  }
+
+  return Object.freeze(
+    [...links].sort((left, right) => {
+      const debtCompare = left.debtRef.localeCompare(right.debtRef)
+      if (debtCompare !== 0) {
+        return debtCompare
+      }
+
+      return left.matchKind.localeCompare(right.matchKind)
+    })
+  )
+}
+
+export function formatCoerciveProtocolWelfareDebtCrossLinkLabels(
+  links: readonly WelfareDebtCoerciveProtocolCrossLink[]
+): readonly string[] {
+  return Object.freeze(
+    [...links]
+      .map((link) => `welfare-debt:${link.debtRef}`)
+      .sort((left, right) => left.localeCompare(right))
+  )
+}

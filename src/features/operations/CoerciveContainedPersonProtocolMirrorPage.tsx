@@ -62,6 +62,14 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
             value={String(view.summary.crossSystemTensionSubjectCount)}
           />
           <StatCard
+            label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.weeklySnapshotCountLabel}
+            value={String(view.summary.weeklySnapshotCount)}
+          />
+          <StatCard
+            label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.welfareDebtLinkedRecordsLabel}
+            value={String(view.summary.welfareDebtLinkedRecordCount)}
+          />
+          <StatCard
             label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.weekLabel}
             value={`W${view.summary.week}`}
           />
@@ -227,10 +235,17 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
                       {record.subjectFitValidationRefLabel !== '—' ? (
                         <p className="text-xs opacity-45">{record.subjectFitValidationRefLabel}</p>
                       ) : null}
+                      {record.welfareDebtCrossLinkLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.welfareDebtCrossLinkPrefix}{' '}
+                          {record.welfareDebtCrossLinkLabels.join('; ')}
+                        </p>
+                      ) : null}
                       {record.medicationRegimenRefLabel === '—' &&
                       record.custodyStatusRefLabel === '—' &&
                       record.procedureRefLabel === '—' &&
-                      record.subjectFitValidationRefLabel === '—' ? (
+                      record.subjectFitValidationRefLabel === '—' &&
+                      record.welfareDebtCrossLinkLabels.length === 0 ? (
                         <p className="text-xs opacity-45">—</p>
                       ) : null}
                     </td>

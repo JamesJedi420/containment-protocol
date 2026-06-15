@@ -16,6 +16,8 @@ import {
 import {
   composeAllWelfareDebtAccountingCrossLinks,
   composeWelfareDebtAccountingCrossLinksForRecord,
+  composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
+  formatCoerciveProtocolWelfareDebtCrossLinkLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
   resolveProcedureRefFromWelfareDebtRecordId,
   resolveSubjectRefFromWelfareDebtRecordId,
@@ -272,5 +274,76 @@ describe('welfareDebtAccountingCrossLinks (SPE-1888 slice 7 + slice 9)', () => {
       COERCIVE_RESTRAINT_LEDGER_FIXTURE.id,
       'welfare-debt:zzz-second',
     ])
+  })
+})
+
+describe('welfareDebtAccountingCrossLinks inverse compose (SPE-1882 slice 12)', () => {
+  it('returns empty links when welfare-debt records map is empty', () => {
+    expect(
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+        ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+      )
+    ).toEqual([])
+  })
+
+  it('links welfare-debt ledger entries by procedureRef when creation-tick id matches', () => {
+    const creationTickRecord: WelfareDebtAccountingRecord = {
+      ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      id: `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:subject:cooperative-field-asset-31`,
+      subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+    }
+
+    const links = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords: {
+          [creationTickRecord.id]: creationTickRecord,
+        },
+      }
+    )
+
+    expect(links).toHaveLength(1)
+    expect(links[0]?.debtRef).toBe(creationTickRecord.id)
+    expect(links[0]?.matchKind).toBe('procedure_ref')
+    expect(formatCoerciveProtocolWelfareDebtCrossLinkLabels(links)).toEqual([
+      `welfare-debt:${creationTickRecord.id}`,
+    ])
+  })
+
+  it('falls back to subject-only welfare-debt matches for authored fixture ids', () => {
+    const links = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords: {
+          [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+            ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+            subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+          },
+        },
+      }
+    )
+
+    expect(links).toHaveLength(1)
+    expect(links[0]?.matchKind).toBe('subject_ref')
+  })
+
+  it('inverse compose is byte-stable across repeated calls', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const first = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      { welfareDebtRecords }
+    )
+    const second = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      { welfareDebtRecords }
+    )
+
+    expect(first).toEqual(second)
   })
 })

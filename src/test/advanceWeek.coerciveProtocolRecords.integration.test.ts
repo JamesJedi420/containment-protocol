@@ -12,6 +12,7 @@ import {
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../domain/welfareDebtAccountingRegistry'
 import { getCoerciveContainedPersonProtocolMirrorView } from '../features/operations/coerciveContainedPersonProtocolMirrorView'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -185,5 +186,29 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 11)'
       snapshot?.riskReview.coercionRiskScore?.toFixed(2)
     )
     expect(view.records[0]?.welfareDebtImpactLabel).toBe(snapshot?.tradeoff.welfareDebtImpactLabel)
+  })
+})
+
+describe('advanceWeek coercive protocol records integration (SPE-1882 slice 12)', () => {
+  it('mirror reads welfare-debt cross-links from persisted ledger records after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const debtId = `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:subject:cooperative-field-asset-31`
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    state.welfareDebtAccountingRecords = {
+      [debtId]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        id: debtId,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const nextState = advanceWeek(state)
+    const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
   })
 })

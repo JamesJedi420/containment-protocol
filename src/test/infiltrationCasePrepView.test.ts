@@ -100,4 +100,24 @@ describe('infiltrationCasePrepView', () => {
       true
     )
   })
+
+  it('surfaces guides and documents projection from cover profile', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.guidesDocumentsVisible).toBe(true)
+    expect(view.guidesDocumentsDocumentTierLabel).toBe('Plausible cover credentials')
+    expect(view.guidesDocumentsDoctrineGuideLabel).toBe('Cover guide fluent for scripted checks')
+    expect(view.guidesDocumentsDoctrineBandPercent).toBe(40)
+    expect(view.guidesDocumentsScrutinyLabels).toContain('Authority scrutiny active on site')
+  })
+
+  it('hides guides and documents when case is ineligible', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createEligibleCase(),
+      status: 'resolved',
+    })
+
+    expect(view.guidesDocumentsVisible).toBe(false)
+    expect(view.guidesDocumentsScrutinyLabels).toEqual([])
+  })
 })

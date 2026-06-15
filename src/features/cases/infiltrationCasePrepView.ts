@@ -12,6 +12,10 @@ import {
 } from '../../domain/infiltrationProbe'
 import { buildInfiltrationPrepEncounterNotes } from '../../domain/infiltrationEncounterReportNotes'
 import {
+  projectInfiltrationEncounterGuidesDocuments,
+  type InfiltrationEncounterGuidesDocuments,
+} from '../../domain/infiltrationEncounterGuidesDocuments'
+import {
   projectInfiltrationEncounterStateCover,
   type InfiltrationEncounterCoverBand,
   type InfiltrationEncounterAwarenessBand,
@@ -67,8 +71,6 @@ export interface InfiltrationCasePrepView {
   readonly stageLabel: string
   readonly awarenessComplicationBandPercent: number
   readonly coverRoleLabel?: string
-  readonly documentTier?: number
-  readonly doctrineBandPercent?: number
   readonly coverStrainNotes: readonly string[]
   readonly hasCoverStrain: boolean
   readonly plannedAction: InfiltrationProbeAction
@@ -91,6 +93,12 @@ export interface InfiltrationCasePrepView {
   readonly encounterCoverStance: InfiltrationEncounterCoverStance
   readonly encounterCoverUsingStanceOverride: boolean
   readonly encounterCoverStanceOptions: readonly InfiltrationEncounterCoverStanceOptionView[]
+  readonly guidesDocumentsVisible: boolean
+  readonly guidesDocumentsDocumentTierLabel: string
+  readonly guidesDocumentsDoctrineGuideLabel: string
+  readonly guidesDocumentsDoctrineBandPercent: number
+  readonly guidesDocumentsScrutinyLabels: readonly string[]
+  readonly guidesDocumentsReadinessLabels: readonly string[]
 }
 
 export function canShowInfiltrationCasePrepOnCase(caseData: CaseInstance) {
@@ -183,6 +191,32 @@ const EMPTY_ENCOUNTER_STATE_COVER = {
   encounterCoverStanceOptions: buildEncounterCoverStanceOptions('maintain'),
 }
 
+const EMPTY_GUIDES_DOCUMENTS = {
+  guidesDocumentsVisible: false,
+  guidesDocumentsDocumentTierLabel: '',
+  guidesDocumentsDoctrineGuideLabel: '',
+  guidesDocumentsDoctrineBandPercent: 0,
+  guidesDocumentsScrutinyLabels: [] as readonly string[],
+  guidesDocumentsReadinessLabels: [] as readonly string[],
+}
+
+function mapGuidesDocumentsToPrepView(
+  projection: InfiltrationEncounterGuidesDocuments
+): typeof EMPTY_GUIDES_DOCUMENTS {
+  if (!projection.visible) {
+    return EMPTY_GUIDES_DOCUMENTS
+  }
+
+  return {
+    guidesDocumentsVisible: true,
+    guidesDocumentsDocumentTierLabel: projection.documentTierLabel,
+    guidesDocumentsDoctrineGuideLabel: projection.doctrineGuideLabel,
+    guidesDocumentsDoctrineBandPercent: projection.doctrineBandPercent,
+    guidesDocumentsScrutinyLabels: projection.scrutinyLabels,
+    guidesDocumentsReadinessLabels: projection.readinessLabels,
+  }
+}
+
 export function buildInfiltrationCasePrepView(caseData: CaseInstance): InfiltrationCasePrepView {
   const emptyOptions = PROBE_ACTIONS.map((id) => ({
     id,
@@ -208,6 +242,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
       usingOverride: false,
       encounterPreviewNotes: [],
       ...EMPTY_ENCOUNTER_STATE_COVER,
+      ...EMPTY_GUIDES_DOCUMENTS,
     }
   }
 
@@ -217,6 +252,7 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
   const effectiveAction = overrideAction ?? plannedAction
   const profile = caseData.infiltrationCoverProfile
   const encounterStateCover = projectInfiltrationEncounterStateCover(caseData)
+  const guidesDocuments = projectInfiltrationEncounterGuidesDocuments(caseData)
 
   return {
     visible: true,
@@ -226,8 +262,6 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     awarenessComplicationBandPercent: formatPercent(AWARENESS_COMPLICATION_THRESHOLD),
     coverRoleLabel:
       profile !== undefined ? COVER_ROLE_LABELS[profile.claimedRole] : undefined,
-    documentTier: profile?.documentTier,
-    doctrineBandPercent: profile?.doctrineBand !== undefined ? formatPercent(profile.doctrineBand) : undefined,
     coverStrainNotes: buildCoverStrainNotes(caseData),
     hasCoverStrain: (() => {
       const mismatch = resolveCoverRoleMismatch(caseData)
@@ -261,5 +295,6 @@ export function buildInfiltrationCasePrepView(caseData: CaseInstance): Infiltrat
     encounterCoverStance: encounterStateCover.playerStance,
     encounterCoverUsingStanceOverride: encounterStateCover.usingStanceOverride,
     encounterCoverStanceOptions: buildEncounterCoverStanceOptions(encounterStateCover.playerStance),
+    ...mapGuidesDocumentsToPrepView(guidesDocuments),
   }
 }

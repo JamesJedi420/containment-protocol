@@ -45,6 +45,8 @@ export function InfiltrationCasePrepPanel({
 
       {view.encounterStateCoverVisible ? <EncounterStateCover view={view} onSelectStance={(stance) => setInfiltrationEncounterCoverStance(caseData.id, stance)} /> : null}
 
+      {view.guidesDocumentsVisible ? <GuidesDocuments view={view} /> : null}
+
       {view.coverRoleLabel ? <CoverSummary view={view} /> : null}
 
       <section className="space-y-2" aria-label="Weekly probe action">
@@ -236,16 +238,42 @@ function CoverSummary({ view }: { view: InfiltrationCasePrepView }) {
   return (
     <section className="space-y-1" aria-label="Cover posture">
       <p className="text-xs uppercase tracking-wide opacity-50">Cover posture</p>
-      <p className="text-sm">
-        {view.coverRoleLabel}
-        {view.documentTier !== undefined ? ` / Documents tier ${view.documentTier}` : ''}
-        {view.doctrineBandPercent !== undefined ? ` / Doctrine ${view.doctrineBandPercent}%` : ''}
-      </p>
+      <p className="text-sm">{view.coverRoleLabel}</p>
       <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
         {view.coverStrainNotes.map((note) => (
           <li key={note}>{note}</li>
         ))}
       </ul>
+    </section>
+  )
+}
+
+function GuidesDocuments({ view }: { view: InfiltrationCasePrepView }) {
+  return (
+    <section className="space-y-2" aria-label="Guides and documents">
+      <div className="space-y-1">
+        <p className="text-xs uppercase tracking-wide opacity-50">Guides and documents</p>
+        <p className="text-sm">{view.guidesDocumentsDocumentTierLabel}</p>
+        <p className="text-xs opacity-65">
+          {view.guidesDocumentsDoctrineGuideLabel} ({view.guidesDocumentsDoctrineBandPercent}%)
+        </p>
+      </div>
+
+      {view.guidesDocumentsScrutinyLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs opacity-70">
+          {view.guidesDocumentsScrutinyLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
+
+      {view.guidesDocumentsReadinessLabels.length > 0 ? (
+        <ul className="list-disc space-y-1 pl-5 text-xs text-amber-200/80">
+          {view.guidesDocumentsReadinessLabels.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   )
 }

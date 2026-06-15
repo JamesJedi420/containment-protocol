@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** Pick next item from active queue per `planning/backlog.md` (mission triage full refresh remains blocked).
 
-**Base `main` SHA:** `ce76d07d` — shipped: SPE-70 parent acceptance reconciliation @ `planning/spe-70-parent-reconciliation-slice.md`
+**Base `main` SHA:** `3b30f8df` — shipped: SPE-70 parent acceptance reconciliation @ `planning/spe-70-parent-reconciliation-slice.md` (PR #2835)
 
 **Recently shipped:** SPE-70 parent reconciliation grooming (matrix slices 1–11 + SPE-2306 + prep-stack PR #2821–#2822; AC rows 1–8 evidenced); SPE-521 parent reconciliation grooming (prep-stack PR #2824–#2833; substrate AC rows 1–4 evidenced).
 

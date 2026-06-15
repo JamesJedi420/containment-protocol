@@ -18,6 +18,7 @@ import {
 import { applyWeeklyCoerciveProtocolTick } from '../../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
+import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../../domain/welfareDebtAccountingRegistry'
 import {
   formatCoerciveProtocolEnumLabel,
   getCoerciveContainedPersonProtocolMirrorView,
@@ -500,5 +501,39 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 11)', () => 
     expect(view.summary.stableContainmentDominatesCareCount).toBe(1)
     expect(view.summary.abusivePostureCount).toBe(1)
     expect(view.summary.contradictionFlaggedCount).toBe(1)
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 12)', () => {
+  it('omits welfare-debt cross-link labels when ledger records are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(0)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([])
+  })
+
+  it('surfaces welfare-debt cross-link labels by procedureRef match', () => {
+    const game = createStartingState()
+    const debtId = `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:subject:cooperative-field-asset-31`
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [debtId]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        id: debtId,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
   })
 })

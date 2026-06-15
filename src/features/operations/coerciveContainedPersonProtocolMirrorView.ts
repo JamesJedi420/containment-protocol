@@ -16,6 +16,10 @@ import {
   composeAllCoerciveProtocolIntegratedHealthReconciliationSummaries,
   formatCrossSystemTensionFlagLabel,
 } from '../../domain/coerciveProtocolIntegratedHealthCrossReconciliationSurfacing'
+import {
+  composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
+  formatCoerciveProtocolWelfareDebtCrossLinkLabels,
+} from '../../domain/welfareDebtAccountingCrossLinks'
 
 export interface CoerciveProtocolContradictionCheckMirrorView {
   flagLabel: string
@@ -47,6 +51,7 @@ export interface CoerciveContainedPersonProtocolMirrorRecordView {
   contradictionRiskFlagLabels: readonly string[]
   contradictionCheckViews: readonly CoerciveProtocolContradictionCheckMirrorView[]
   crossSystemTensionFlagLabels: readonly string[]
+  welfareDebtCrossLinkLabels: readonly string[]
   medicationRegimenRefLabel: string
   custodyStatusRefLabel: string
   procedureRefLabel: string
@@ -64,6 +69,7 @@ export interface CoerciveContainedPersonProtocolMirrorSummaryView {
   contradictionFlaggedCount: number
   integratedHealthLinkedSubjectCount: number
   crossSystemTensionSubjectCount: number
+  welfareDebtLinkedRecordCount: number
   weeklySnapshotCount: number
   week: number
 }
@@ -171,6 +177,7 @@ function buildCrossSystemTensionFlagLabelsBySubject(
 function toRecordView(
   record: CoerciveProtocolRecord,
   crossSystemTensionFlagLabels: readonly string[],
+  welfareDebtCrossLinkLabels: readonly string[],
   tradeoff: ContainmentCareTradeoffProjection,
   riskReview: CoerciveProtocolRiskReviewProjection
 ): CoerciveContainedPersonProtocolMirrorRecordView {
@@ -209,6 +216,7 @@ function toRecordView(
     ),
     contradictionCheckViews: Object.freeze(contradictionChecks.map(toContradictionCheckView)),
     crossSystemTensionFlagLabels: Object.freeze([...crossSystemTensionFlagLabels]),
+    welfareDebtCrossLinkLabels: Object.freeze([...welfareDebtCrossLinkLabels]),
     medicationRegimenRefLabel: formatOptionalRef(record.medicationRegimenRef),
     custodyStatusRefLabel: formatOptionalRef(record.custodyStatusRef),
     procedureRefLabel: formatOptionalRef(record.procedureRef),
@@ -248,12 +256,22 @@ export function getCoerciveContainedPersonProtocolMirrorView(
   }
 
   let weeklySnapshotCount = 0
+  let welfareDebtLinkedRecordCount = 0
 
   const recordViews = records.map((record) => {
     const { tradeoff, riskReview } = resolveCoerciveProtocolWeeklyProjections(record, snapshots)
+    const welfareDebtCrossLinkLabels = formatCoerciveProtocolWelfareDebtCrossLinkLabels(
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(record, {
+        welfareDebtRecords: game.welfareDebtAccountingRecords,
+      })
+    )
 
     if (snapshots[record.id]?.recordId === record.id) {
       weeklySnapshotCount += 1
+    }
+
+    if (welfareDebtCrossLinkLabels.length > 0) {
+      welfareDebtLinkedRecordCount += 1
     }
 
     if (tradeoff.stableContainmentDominatesCare) {
@@ -271,6 +289,7 @@ export function getCoerciveContainedPersonProtocolMirrorView(
     return toRecordView(
       record,
       tensionLabelsBySubject.get(record.subjectRef) ?? [],
+      welfareDebtCrossLinkLabels,
       tradeoff,
       riskReview
     )
@@ -285,6 +304,7 @@ export function getCoerciveContainedPersonProtocolMirrorView(
       contradictionFlaggedCount,
       integratedHealthLinkedSubjectCount,
       crossSystemTensionSubjectCount,
+      welfareDebtLinkedRecordCount,
       weeklySnapshotCount,
       week,
     }),

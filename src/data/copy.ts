@@ -1374,6 +1374,9 @@ export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, s
   crossSystemTensionPrefix: 'Cross-system tension:',
   integratedHealthLinkedSubjectsLabel: 'Integrated health links',
   crossSystemTensionSubjectsLabel: 'Cross-system tension subjects',
+  weeklySnapshotCountLabel: 'Weekly snapshots',
+  welfareDebtLinkedRecordsLabel: 'Welfare-debt links',
+  welfareDebtCrossLinkPrefix: 'Welfare-debt cross-links:',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
 }

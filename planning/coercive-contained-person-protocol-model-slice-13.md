@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 13 child (create on merge).
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 13 — Compromised-care procedural debt creation wire-up (create on merge)                    |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2839 @ `6225a6e5`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–12 shipped)           |
 | **Branch** | `spe-1882-coercive-protocol-slice-13`                                                                      |
 | **Base `main` SHA** | `5464c6e2`                                                                                          |

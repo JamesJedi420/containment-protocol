@@ -7,7 +7,7 @@ One-page implementation plan. Linear: SPE-70 child — **Concealment case prep a
 | **Linear** | SPE-70 child — Concealment case prep activation preview notes         |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70)               |
 | **Branch** | `spe-70-concealment-case-prep-activation-preview`                     |
-| **Status** | In progress                                                           |
+| **Status** | **Shipped** — PR #2821 @ `17db4ab2`                                   |
 | **Base `main` SHA** | `4eb49c26`                                                   |
 
 ## Goal

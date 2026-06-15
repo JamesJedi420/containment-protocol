@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** SPE-70 concealment case prep activation preview notes (in progress on `spe-70-concealment-case-prep-activation-preview`).
+**Next step:** Next open umbrella per active queue ([SPE-70](https://linear.app/spectranoir/issue/SPE-70) concealment stack if prioritizing core loop).
 
-**Base `main` SHA:** `4eb49c26` — in progress: SPE-70 concealment prep activation preview @ `planning/concealment-case-prep-activation-preview-slice.md`
+**Base `main` SHA:** `17db4ab2` — shipped: SPE-70 concealment prep activation preview @ `planning/concealment-case-prep-activation-preview-slice.md` (PR #2821)
 
-**Recently shipped:** SPE-861 Front Desk posture choice notice slice 5 (PR #2820 @ `da5b8fbf`); SPE-861 disclosure choice mechanics slice 4 (PR #2819 @ `24b794d7`).
+**Recently shipped:** SPE-70 concealment case prep activation preview notes (PR #2821 @ `17db4ab2`); SPE-861 Front Desk posture choice notice slice 5 (PR #2820 @ `da5b8fbf`).
 
 **Recently shipped:** SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`); SPE-1309 unified cognitive hazard engine slice 7 (PR #2814 @ `a0f8e9ec`).
 
@@ -117,7 +117,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | File                                                      | Classification | Notes                                                                                                                                               |
 | --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
-| `concealment-case-prep-activation-preview-slice.md`       | **In progress** | SPE-70 concealment prep activation preview notes; branch `spe-70-concealment-case-prep-activation-preview`.                                        |
+| `concealment-case-prep-activation-preview-slice.md`       | **Shipped**    | SPE-70 concealment prep activation preview notes; PR #2821 @ `17db4ab2`.                                                                            |
 | `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack).                                                                                       |
 | `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                                                                                                         |
 | `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |

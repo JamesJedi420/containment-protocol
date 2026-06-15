@@ -7,7 +7,7 @@ One-page grooming record. Parent [SPE-1888](https://linear.app/spectranoir/issue
 | **Linear** | SPE-1888 parent acceptance review (grooming slice 7) — create/claim child on start                         |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — Welfare-debt accounting for coercive procedures; **Done** |
 | **Branch** | `spe-1888-parent-acceptance-review-slice-7`                                                                |
-| **Status** | In progress — docs-only grooming                                                                           |
+| **Status** | **Shipped** — PR #2836 @ `51a7bd1e`                                                                        |
 | **Base `main` SHA** | `194174ec`                                                                                          |
 
 ## Goal

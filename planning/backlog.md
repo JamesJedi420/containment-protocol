@@ -8,7 +8,7 @@ This file is the **canonical ordered queue** for concrete engineering and design
 
 From `README.md` **Current design notes**:
 
-- Concealment activation stack and hidden-modality matrix slices 1–11 shipped (SPE-2281–SPE-2303 / PR #2403–#2469); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) parent **Done** on Linear (prep activation preview PR #2821); mission-triage tell/illusion chips shipped in SPE-2306; Front Desk pending-activation follow-up in progress — see active queue.
+- Concealment activation stack and hidden-modality matrix slices 1–11 shipped (SPE-2281–SPE-2303 / PR #2403–#2469); [SPE-70](https://linear.app/spectranoir/issue/SPE-70) parent **Done** on Linear (prep activation preview PR #2821; Front Desk pending-activation PR #2822); mission-triage tell/illusion chips shipped in SPE-2306.
 - Intake registry wave and [SPE-854](https://linear.app/spectranoir/issue/SPE-854) parent integration slices 1–2 shipped (SPE-2292–SPE-2304 / PR #2444–#2471); parent [SPE-854](https://linear.app/spectranoir/issue/SPE-854) **Done** on Linear. [SPE-848](https://linear.app/spectranoir/issue/SPE-848) surveillance-tuning and [SPE-1615](https://linear.app/spectranoir/issue/SPE-1615) psychological-resilience registry parents **Done** (registry slices 2–4 / 1–5 + SPE-1908 cross-reconciliation surfacing). [SPE-1310](https://linear.app/spectranoir/issue/SPE-1310) parent **Done** (lifecycle slices 1–6). [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) parent **Done** on Linear (truth-layer registry slices 1–4 + cover pairing + historical-icon fixtures; groomed [SPE-2401](https://linear.app/spectranoir/issue/SPE-2401), [SPE-2446](https://linear.app/spectranoir/issue/SPE-2446), [SPE-2450](https://linear.app/spectranoir/issue/SPE-2450) — sibling deferred SPE-1347 / SPE-899 / SPE-861 / SPE-677 / SPE-58). [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) parent **Done** on Linear (unified engine slices 1–7 + grooming slices 1–6; groomed [SPE-2399](https://linear.app/spectranoir/issue/SPE-2399), [SPE-2445](https://linear.app/spectranoir/issue/SPE-2445), [SPE-2451](https://linear.app/spectranoir/issue/SPE-2451), [SPE-2456](https://linear.app/spectranoir/issue/SPE-2456), grooming slice 6 — AC rows 1–3 **Yes** after vitals slice 7). [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) parent **Backlog** on Linear (groomed [SPE-2400](https://linear.app/spectranoir/issue/SPE-2400), [SPE-2419](https://linear.app/spectranoir/issue/SPE-2419), [SPE-2452](https://linear.app/spectranoir/issue/SPE-2452), [SPE-2453](https://linear.app/spectranoir/issue/SPE-2453), [SPE-2455](https://linear.app/spectranoir/issue/SPE-2455) — registry slices 1–11 + cross-link compose + matrix persistence + weekly surfacing shipped; slice 6 reconciles slice 11 auto-close drift; SPE-1882 + full SPE-1047/1131 deferred). [SPE-1889](https://linear.app/spectranoir/issue/SPE-1889) parent **Done** on Linear.
 - Shared explanatory ownership stays in the domain wherever possible.
 - Prefer compact reusable rules vocabularies over bespoke subsystem logic.
@@ -20,11 +20,11 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** SPE-70 follow-up — Front Desk pending-activation attention @ `planning/concealment-front-desk-pending-activation-slice.md` (branch `spe-70-concealment-front-desk-pending-activation`).
+**Next step:** Pick next item from active queue per `planning/backlog.md` (mission triage full refresh remains blocked).
 
-**Base `main` SHA:** `5a06b0a2` — shipped: SPE-70 concealment prep activation preview @ `planning/concealment-case-prep-activation-preview-slice.md` (PR #2821 @ `17db4ab2`)
+**Base `main` SHA:** `c09addaf` — shipped: SPE-70 Front Desk pending-activation attention @ `planning/concealment-front-desk-pending-activation-slice.md` (PR #2822)
 
-**Recently shipped:** SPE-70 concealment case prep activation preview notes (PR #2821 @ `17db4ab2`); SPE-861 Front Desk posture choice notice slice 5 (PR #2820 @ `da5b8fbf`).
+**Recently shipped:** SPE-70 Front Desk pending concealment activation attention (PR #2822 @ `c09addaf`); SPE-70 concealment prep activation preview (PR #2821 @ `17db4ab2`).
 
 **Recently shipped:** SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`); SPE-1309 unified cognitive hazard engine slice 7 (PR #2814 @ `a0f8e9ec`).
 
@@ -118,7 +118,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
 | `concealment-case-prep-activation-preview-slice.md`       | **Shipped**    | SPE-70 concealment prep activation preview notes; PR #2821 @ `17db4ab2`.                                                                            |
-| `concealment-front-desk-pending-activation-slice.md`      | **In Progress** | SPE-70 follow-up — Front Desk pending-activation attention.                                                                                         |
+| `concealment-front-desk-pending-activation-slice.md`      | **Shipped**    | SPE-70 follow-up — Front Desk pending-activation attention; PR #2822 @ `c09addaf`.                                                                  |
 | `concealment-activation-event-feed-slice.md`              | **Shipped**    | Event feed + report notes; see Shipped table (batch-4 stack).                                                                                       |
 | `concealment-triggers-migration-batch-4-slice.md`         | **Shipped**    | SPE-2249 batch-4 templates.                                                                                                                         |
 | `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: SPE-70 follow-up — **Concealment Front D
 | **Linear** | SPE-70 follow-up — Concealment Front Desk pending-activation attention |
 | **Parent** | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) (Done)        |
 | **Branch** | `spe-70-concealment-front-desk-pending-activation`                    |
-| **Status** | **In Progress**                                                     |
+| **Status** | **Shipped** — PR #2822 @ `c09addaf`                                   |
 | **Base `main` SHA** | `17db4ab2`                                                   |
 
 ## Goal

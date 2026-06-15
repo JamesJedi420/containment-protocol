@@ -7,7 +7,7 @@ One-page implementation plan. Linear: [SPE-2463](https://linear.app/spectranoir/
 | **Linear** | [SPE-2463](https://linear.app/spectranoir/issue/SPE-2463) — non-uniform identity trees case prep |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Backlog)   |
 | **Branch** | `spe-521-infiltration-non-uniform-identity-trees`                     |
-| **Status** | In Progress                                                         |
+| **Status** | Shipped (PR #2833 @ `ce8aa09b`)                                      |
 | **Base `main` SHA** | `5a40a92f`                                                   |
 
 ## Goal
@@ -46,11 +46,11 @@ Expose a **minimal deterministic non-uniform / non-institutional identity tree r
 
 ## Acceptance
 
-- [ ] Eligible cases show archetype, posture, and branch labels on case prep
-- [ ] Projection empty for resolved/open, ineligible, institutional roles, or missing context tags
-- [ ] Prep encounter preview includes identity summary when projection visible
-- [ ] Does not duplicate role-branch, civilian long-horizon, guides/documents, cover-strain, or report friction copy
-- [ ] `npm run lint` + targeted `npm run test:run` green
+- [x] Eligible cases show archetype, posture, and branch labels on case prep
+- [x] Projection empty for resolved/open, ineligible, institutional roles, or missing context tags
+- [x] Prep encounter preview includes identity summary when projection visible
+- [x] Does not duplicate role-branch, civilian long-horizon, guides/documents, cover-strain, or report friction copy
+- [x] `npm run lint` + targeted `npm run test:run` green
 
 ## File touch list
 

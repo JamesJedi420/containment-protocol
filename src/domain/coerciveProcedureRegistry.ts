@@ -114,11 +114,35 @@ export const COERCED_HIGH_RISK_PERSONNEL_SOURCING_ANCHOR: CoerciveProcedureAncho
   custodyStage: 'temporary_holding',
 })
 
+/** Abusive surveillance-isolation cycle with elevated isolation and surveillance burden. */
+export const ABUSIVE_SURVEILLANCE_ISOLATION_ANCHOR: CoerciveProcedureAnchor = defineAnchor({
+  procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
+  sourceProcedureLabel: 'abusive surveillance isolation cycle',
+  debtCategory: 'forced_isolation',
+  handlingMode: 'abusive',
+  reviewOwnerLabel: 'ethics review board',
+  mitigationPathLabel: 'independent welfare audit',
+  coercionPressureTier: 'high',
+})
+
+/** Staff exclusion support-service denial with elevated support-duty obligation. */
+export const STAFF_EXCLUSION_SUPPORT_DUTY_ANCHOR: CoerciveProcedureAnchor = defineAnchor({
+  procedureRef: 'coercive-procedure:staff-exclusion-support-duty',
+  sourceProcedureLabel: 'staff exclusion support-service denial cycle',
+  debtCategory: 'punitive_handling',
+  handlingMode: 'abusive',
+  reviewOwnerLabel: 'ethics review board',
+  mitigationPathLabel: 'restored visitation rights',
+  coercionPressureTier: 'high',
+})
+
 export const COERCIVE_PROCEDURE_ANCHORS: readonly CoerciveProcedureAnchor[] = Object.freeze([
   FORCED_SEDATION_STABILIZATION_ANCHOR,
   EXTENDED_MECHANICAL_RESTRAINT_ANCHOR,
   PRIVILEGE_SUSPENSION_ENFORCEMENT_ANCHOR,
   COERCED_HIGH_RISK_PERSONNEL_SOURCING_ANCHOR,
+  ABUSIVE_SURVEILLANCE_ISOLATION_ANCHOR,
+  STAFF_EXCLUSION_SUPPORT_DUTY_ANCHOR,
 ])
 
 const COERCIVE_PROCEDURE_ANCHOR_BY_REF = new Map<string, CoerciveProcedureAnchor>(

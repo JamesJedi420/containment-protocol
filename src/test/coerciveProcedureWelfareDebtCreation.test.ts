@@ -9,15 +9,18 @@ import {
   COMPELLED_ADVERSE_REACTION_REGIMEN_FIXTURE,
 } from '../domain/containedPersonMedicationRegimenRegistry'
 import {
+  ABUSIVE_SURVEILLANCE_ISOLATION_ANCHOR,
   COERCED_HIGH_RISK_PERSONNEL_SOURCING_ANCHOR,
   EXTENDED_MECHANICAL_RESTRAINT_ANCHOR,
   FORCED_SEDATION_STABILIZATION_ANCHOR,
   PRIVILEGE_SUSPENSION_ENFORCEMENT_ANCHOR,
+  STAFF_EXCLUSION_SUPPORT_DUTY_ANCHOR,
 } from '../domain/coerciveProcedureRegistry'
 import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
 import {
   applyCoerciveProcedureWelfareDebtCreationTick,
@@ -341,12 +344,25 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 13)', () => {
     expect(drafts[1]?.postContainmentScore).toBe(0.78)
   })
 
-  it('skips protocol records without compromised-care posture or resolvable procedureRef', () => {
+  it('skips protocol records without compromised-care posture even when procedureRef resolves', () => {
     const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
       {
         [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
           ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
       },
+      2
+    )
+
+    expect(drafts).toHaveLength(0)
+  })
+
+  it('skips protocol records without resolvable procedureRef', () => {
+    const withoutProcedureRef = {
+      ...ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      procedureRef: undefined,
+    }
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      { [withoutProcedureRef.id]: withoutProcedureRef },
       2
     )
 
@@ -388,5 +404,97 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 13)', () => {
     )
     expect(drafts[0]?.postContainmentScore).toBe(0.64)
     expect(drafts[0]?.adverseReactionFlag).toBe(true)
+  })
+})
+
+describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 14)', () => {
+  it('derives staff-exclusion protocol draft from compromised-care fixture with anchor ref', () => {
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      {
+        [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]:
+          STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      },
+      3
+    )
+
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]?.executionKey).toBe(
+      'coercive-procedure:staff-exclusion-support-duty:subject:contained-support-personnel-09'
+    )
+    expect(drafts[0]?.postContainmentScore).toBe(0.77)
+  })
+
+  it('derives forced-isolation protocol draft when compromised-care posture is satisfied', () => {
+    const compromisedCareSurveillance = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.85,
+    }
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      { [compromisedCareSurveillance.id]: compromisedCareSurveillance },
+      4
+    )
+
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]?.procedureRef).toBe('coercive-procedure:abusive-surveillance-isolation')
+    expect(drafts[0]?.postContainmentScore).toBe(0.85)
+  })
+
+  it('builds forced-isolation debt from abusive surveillance anchor', () => {
+    const draft: CoerciveProcedureExecutionDraft = {
+      executionKey:
+        'coercive-procedure:abusive-surveillance-isolation:subject:cooperative-field-asset-22',
+      subjectRef: 'subject:cooperative-field-asset-22',
+      procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
+      priorContainmentScore: 0.38,
+      postContainmentScore: 0.66,
+      week: 2,
+    }
+
+    const created = buildWelfareDebtAccountingRecordForCoerciveProcedureExecution(
+      draft,
+      ABUSIVE_SURVEILLANCE_ISOLATION_ANCHOR
+    )
+
+    expect(created?.debtCategory).toBe('forced_isolation')
+    expect(created?.severityBand).toBe('high')
+    expect(created?.sourceProcedureLabel).toBe('abusive surveillance isolation cycle')
+  })
+
+  it('builds punitive-handling debt from staff-exclusion anchor', () => {
+    const draft: CoerciveProcedureExecutionDraft = {
+      executionKey:
+        'coercive-procedure:staff-exclusion-support-duty:subject:contained-support-personnel-09',
+      subjectRef: 'subject:contained-support-personnel-09',
+      procedureRef: 'coercive-procedure:staff-exclusion-support-duty',
+      priorContainmentScore: 0.38,
+      postContainmentScore: 0.77,
+      week: 2,
+    }
+
+    const created = buildWelfareDebtAccountingRecordForCoerciveProcedureExecution(
+      draft,
+      STAFF_EXCLUSION_SUPPORT_DUTY_ANCHOR
+    )
+
+    expect(created?.debtCategory).toBe('punitive_handling')
+    expect(created?.severityBand).toBe('high')
+    expect(created?.sourceProcedureLabel).toBe('staff exclusion support-service denial cycle')
+  })
+
+  it('does not treat welfareDebtImpactLabel alone as a creation gate for new anchors', () => {
+    const labelOnly = {
+      ...STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+      procedureRef: 'coercive-procedure:forced-sedation-stabilization',
+      containmentStabilityGain: 0.4,
+      personhoodHarmRisk: 0.9,
+      trustDamageRisk: 0.9,
+      legitimacyRisk: 0.9,
+    }
+    const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
+      { [labelOnly.id]: labelOnly },
+      3
+    )
+
+    expect(drafts).toHaveLength(0)
   })
 })

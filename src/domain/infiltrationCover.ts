@@ -2,6 +2,10 @@
  * SPE-521 slice 3: authored cover identity profile and weekly posture evaluation.
  */
 
+import {
+  applyInfiltrationEncounterCoverStanceToCoverPostureDelta,
+  readInfiltrationEncounterCoverStanceForTick,
+} from './infiltrationEncounterCoverStanceTick'
 import { clamp } from './math'
 import type { CaseInstance } from './models'
 import {
@@ -202,6 +206,11 @@ export function evaluateWeeklyInfiltrationCoverPosture(
     awarenessDelta += WEAK_DOCTRINE_AWARENESS
     strainReasons.push('cover doctrine slips under procedural questioning')
   }
+
+  awarenessDelta = applyInfiltrationEncounterCoverStanceToCoverPostureDelta(
+    awarenessDelta,
+    readInfiltrationEncounterCoverStanceForTick(caseData)
+  )
 
   if (awarenessDelta <= 0) {
     return { awarenessDelta: 0, events: [] }

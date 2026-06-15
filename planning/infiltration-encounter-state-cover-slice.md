@@ -57,7 +57,7 @@ Expose **deterministic encounter-state cover posture** on the infiltration case-
 
 | Item | Owner | Why |
 | ---- | ----- | --- |
-| Stance affects weekly tick deltas | SPE-521 parent | Read/write visibility slice only |
+| Stance affects weekly tick deltas | **Shipped** — `planning/infiltration-cover-stance-weekly-tick-slice.md` | Follow-up slice under SPE-521 |
 | Guides and documents | SPE-521 parent | Out of slice boundary |
 | Role branches per zone | SPE-521 parent | Out of slice boundary |
 | SPE-2250 batch-4+ template stacks | SPE-2250 follow-up | Content-only deferral |

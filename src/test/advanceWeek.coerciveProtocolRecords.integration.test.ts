@@ -7,6 +7,7 @@ import {
   ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
   EMERGENCY_SEDATION_PROTOCOL_FIXTURE,
   ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+  STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
   projectCoerciveProtocolRiskReview,
   projectContainmentCareTradeoff,
 } from '../domain/coerciveContainedPersonProtocolRegistry'
@@ -238,6 +239,73 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 13)'
         debtRef: debtId,
         coerciveProtocolId: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id,
         subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+        matchKind: 'procedure_ref',
+      }),
+    ])
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
+
+    expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
+  })
+})
+
+describe('advanceWeek coercive protocol records integration (SPE-1882 slice 14)', () => {
+  it('creates protocol-only staff-exclusion welfare debt and links by procedure_ref', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 2
+    state.coerciveContainedPersonProtocolRecords = {
+      [STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id]:
+        STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const debtId = `welfare-debt:${STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.procedureRef}:${STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef}`
+    const debtRecord = nextState.welfareDebtAccountingRecords?.[debtId]
+
+    expect(debtRecord?.debtCategory).toBe('punitive_handling')
+    expect(
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+        STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE,
+        { welfareDebtRecords: nextState.welfareDebtAccountingRecords }
+      )
+    ).toEqual([
+      expect.objectContaining({
+        debtRef: debtId,
+        coerciveProtocolId: STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.id,
+        subjectRef: STAFF_EXCLUSION_SUPPORT_DUTY_PROTOCOL_FIXTURE.subjectRef,
+        matchKind: 'procedure_ref',
+      }),
+    ])
+  })
+
+  it('creates protocol-only forced-isolation welfare debt when compromised-care posture is satisfied', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 2
+    const compromisedCareSurveillance = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.85,
+    }
+    state.coerciveContainedPersonProtocolRecords = {
+      [compromisedCareSurveillance.id]: compromisedCareSurveillance,
+    }
+
+    const nextState = advanceWeek(state)
+    const debtId = `welfare-debt:${compromisedCareSurveillance.procedureRef}:${compromisedCareSurveillance.subjectRef}`
+    const debtRecord = nextState.welfareDebtAccountingRecords?.[debtId]
+
+    expect(debtRecord?.debtCategory).toBe('forced_isolation')
+    expect(
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(compromisedCareSurveillance, {
+        welfareDebtRecords: nextState.welfareDebtAccountingRecords,
+      })
+    ).toEqual([
+      expect.objectContaining({
+        debtRef: debtId,
+        coerciveProtocolId: compromisedCareSurveillance.id,
+        subjectRef: compromisedCareSurveillance.subjectRef,
         matchKind: 'procedure_ref',
       }),
     ])

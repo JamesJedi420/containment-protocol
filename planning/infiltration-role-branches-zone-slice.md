@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-521](https://linear.app/s
 | **Linear** | Child under SPE-521 — infiltration role branches per zone case prep |
 | **Parent** | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) (Done)      |
 | **Branch** | `spe-521-infiltration-role-branches-zone`                             |
-| **Status** | In Progress                                                           |
+| **Status** | Shipped (PR #2828 @ `192986f8`)                                      |
 | **Base `main` SHA** | `b2df4866`                                                   |
 
 ## Goal

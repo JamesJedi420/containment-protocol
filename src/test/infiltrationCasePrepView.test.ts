@@ -76,4 +76,28 @@ describe('infiltrationCasePrepView', () => {
 
     expect(view.encounterPreviewNotes).toContain(INFILTRATION_STAGE_OBSERVER_CLAUSES.exposed)
   })
+
+  it('surfaces encounter-state cover projection and stance options', () => {
+    const view = buildInfiltrationCasePrepView(createEligibleCase())
+
+    expect(view.encounterStateCoverVisible).toBe(true)
+    expect(view.encounterCoverBand).toBe('strained')
+    expect(view.encounterCoverBandLabel).toBe('Strained cover')
+    expect(view.encounterCoverFactorLabels.length).toBeGreaterThan(0)
+    expect(view.encounterCoverStanceOptions).toHaveLength(3)
+    expect(view.encounterCoverUsingStanceOverride).toBe(false)
+  })
+
+  it('reflects persisted cover stance override in prep view', () => {
+    const view = buildInfiltrationCasePrepView({
+      ...createEligibleCase(),
+      infiltrationEncounterCoverStance: 'low_profile',
+    })
+
+    expect(view.encounterCoverStance).toBe('low_profile')
+    expect(view.encounterCoverUsingStanceOverride).toBe(true)
+    expect(view.encounterCoverStanceOptions.find((option) => option.id === 'low_profile')?.selected).toBe(
+      true
+    )
+  })
 })

@@ -11,6 +11,7 @@ import { buildConcealmentActivationTriggersFromAuthored } from '../hiddenStateAc
 import { buildInfiltrationCoverProfileFromAuthoredRecord } from '../infiltrationCoverAuthoring'
 import { buildInfiltrationProbePlanFromAuthoredRecord } from '../infiltrationProbeAuthoring'
 import { isInfiltrationProbeAction } from '../infiltrationProbe'
+import { isInfiltrationEncounterCoverStance } from '../infiltrationEncounterCoverStance'
 import { clamp } from '../math'
 import type { ThreatFamily } from '../shared/modifiers'
 import type {
@@ -717,6 +718,17 @@ function sanitizeInfiltrationWeeklyProbeActionOverride(
   }
 
   return typeof value === 'string' && isInfiltrationProbeAction(value) ? value : undefined
+}
+
+function sanitizeInfiltrationEncounterCoverStance(
+  value: unknown,
+  fallback: CaseInstance['infiltrationEncounterCoverStance']
+): CaseInstance['infiltrationEncounterCoverStance'] {
+  if (value === undefined) {
+    return fallback
+  }
+
+  return typeof value === 'string' && isInfiltrationEncounterCoverStance(value) ? value : undefined
 }
 
 function sanitizeInfiltrationProbePlanField(
@@ -1530,6 +1542,10 @@ export function normalizeCaseInstance(
     entry.infiltrationWeeklyProbeActionOverride,
     fallback.infiltrationWeeklyProbeActionOverride
   )
+  const infiltrationEncounterCoverStance = sanitizeInfiltrationEncounterCoverStance(
+    entry.infiltrationEncounterCoverStance,
+    fallback.infiltrationEncounterCoverStance
+  )
   const mapLayer = catalogKnown
     ? sanitizeMapLayer(entry.mapLayer, fallback.mapLayer)
     : undefined
@@ -1717,6 +1733,9 @@ export function normalizeCaseInstance(
     ...(infiltrationWeeklyProbeActionOverride !== undefined
       ? { infiltrationWeeklyProbeActionOverride }
       : {}),
+    ...(infiltrationEncounterCoverStance !== undefined
+      ? { infiltrationEncounterCoverStance }
+      : {}),
     ...(mapLayer !== undefined ? { mapLayer } : {}),
     ...(weirdRoomPackets !== undefined ? { weirdRoomPackets } : {}),
     ...(contract !== undefined ? { contract } : {}),
@@ -1813,6 +1832,15 @@ export function normalizeCaseInstance(
     delete (baseCase as {
       infiltrationWeeklyProbeActionOverride?: CaseInstance['infiltrationWeeklyProbeActionOverride']
     }).infiltrationWeeklyProbeActionOverride
+  }
+
+  if (
+    entry.infiltrationEncounterCoverStance !== undefined &&
+    infiltrationEncounterCoverStance === undefined
+  ) {
+    delete (baseCase as {
+      infiltrationEncounterCoverStance?: CaseInstance['infiltrationEncounterCoverStance']
+    }).infiltrationEncounterCoverStance
   }
 
   if (entry.mapLayer !== undefined && mapLayer === undefined) {

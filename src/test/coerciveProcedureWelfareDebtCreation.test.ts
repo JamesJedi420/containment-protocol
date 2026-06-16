@@ -345,10 +345,13 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 13)', () => {
   })
 
   it('skips protocol records without compromised-care posture even when procedureRef resolves', () => {
+    const withoutCompromisedCarePosture = {
+      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.66,
+    }
     const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
       {
-        [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
-          ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+        [withoutCompromisedCarePosture.id]: withoutCompromisedCarePosture,
       },
       2
     )
@@ -372,6 +375,7 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 13)', () => {
   it('does not treat welfareDebtImpactLabel alone as a creation gate', () => {
     const labelOnly = {
       ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      containmentStabilityGain: 0.66,
       procedureRef: 'coercive-procedure:forced-sedation-stabilization',
     }
     const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
@@ -424,13 +428,12 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 14)', () => {
     expect(drafts[0]?.postContainmentScore).toBe(0.77)
   })
 
-  it('derives forced-isolation protocol draft when compromised-care posture is satisfied', () => {
-    const compromisedCareSurveillance = {
-      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
-      containmentStabilityGain: 0.85,
-    }
+  it('derives forced-isolation protocol draft from canonical compromised-care fixture', () => {
     const drafts = resolveCoerciveProcedureExecutionDraftsFromCoerciveProtocolRecords(
-      { [compromisedCareSurveillance.id]: compromisedCareSurveillance },
+      {
+        [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+          ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+      },
       4
     )
 
@@ -446,7 +449,7 @@ describe('coerciveProcedureWelfareDebtCreation (SPE-1882 slice 14)', () => {
       subjectRef: 'subject:cooperative-field-asset-22',
       procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
       priorContainmentScore: 0.38,
-      postContainmentScore: 0.66,
+      postContainmentScore: 0.85,
       week: 2,
     }
 

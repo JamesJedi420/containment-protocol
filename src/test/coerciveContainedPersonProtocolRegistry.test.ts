@@ -379,6 +379,7 @@ describe('coerciveContainedPersonProtocolRegistry contradiction checks (SPE-1882
       'surveillance_isolation_abusive_without_review_path',
       'surveillance_isolation_elevated_burden',
       'surveillance_isolation_low_consent_confidence',
+      'surveillance_isolation_masks_care_harm',
       'surveillance_isolation_masks_personhood_harm',
     ])
   })

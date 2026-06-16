@@ -93,12 +93,12 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 4)', () => {
       (record) => record.id === ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id
     )
 
-    expect(view.summary.stableContainmentDominatesCareCount).toBe(1)
+    expect(view.summary.stableContainmentDominatesCareCount).toBe(2)
     expect(view.summary.abusivePostureCount).toBe(1)
     expect(view.summary.contradictionFlaggedCount).toBe(1)
     expect(abusiveRecord?.handlingPostureLabel).toBe('Abusive')
     expect(abusiveRecord?.contradictionRiskFlagLabels).toContain('Surveillance Isolation Burden')
-    expect(abusiveRecord?.stableContainmentDominatesCareLabel).toBe('—')
+    expect(abusiveRecord?.stableContainmentDominatesCareLabel).toBe('Yes')
   })
 
   it('still mirrors warning-only records with validation warning labels', () => {
@@ -498,7 +498,7 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 11)', () => 
     const view = getCoerciveContainedPersonProtocolMirrorView(game)
 
     expect(view.summary.weeklySnapshotCount).toBe(2)
-    expect(view.summary.stableContainmentDominatesCareCount).toBe(1)
+    expect(view.summary.stableContainmentDominatesCareCount).toBe(2)
     expect(view.summary.abusivePostureCount).toBe(1)
     expect(view.summary.contradictionFlaggedCount).toBe(1)
   })

@@ -280,32 +280,32 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 14)'
     ])
   })
 
-  it('creates protocol-only forced-isolation welfare debt when compromised-care posture is satisfied', () => {
+  it('creates protocol-only forced-isolation welfare debt from canonical compromised-care fixture', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
     state.week = 2
-    const compromisedCareSurveillance = {
-      ...ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
-      containmentStabilityGain: 0.85,
-    }
     state.coerciveContainedPersonProtocolRecords = {
-      [compromisedCareSurveillance.id]: compromisedCareSurveillance,
+      [ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id]:
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
     }
 
     const nextState = advanceWeek(state)
-    const debtId = `welfare-debt:${compromisedCareSurveillance.procedureRef}:${compromisedCareSurveillance.subjectRef}`
+    const debtId = `welfare-debt:${ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.procedureRef}:${ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef}`
     const debtRecord = nextState.welfareDebtAccountingRecords?.[debtId]
 
     expect(debtRecord?.debtCategory).toBe('forced_isolation')
     expect(
-      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(compromisedCareSurveillance, {
-        welfareDebtRecords: nextState.welfareDebtAccountingRecords,
-      })
+      composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
+        ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE,
+        {
+          welfareDebtRecords: nextState.welfareDebtAccountingRecords,
+        }
+      )
     ).toEqual([
       expect.objectContaining({
         debtRef: debtId,
-        coerciveProtocolId: compromisedCareSurveillance.id,
-        subjectRef: compromisedCareSurveillance.subjectRef,
+        coerciveProtocolId: ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.id,
+        subjectRef: ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE.subjectRef,
         matchKind: 'procedure_ref',
       }),
     ])

@@ -22,9 +22,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** Pick next active queue item per `planning/backlog.md` (mission triage full refresh remains blocked).
 
-**Base `main` SHA:** `416f9260` — shipped: SPE-1882 canonical abusive-surveillance fixture compromised-care realignment slice 15 @ `planning/coercive-contained-person-protocol-model-slice-15.md` (PR #2841)
+**Base `main` SHA:** `23dd59b1` — in progress: SPE-1047 / SPE-1131 coercive protocol mirror ethics + accountability cross-links slice 16 @ `planning/coercive-contained-person-protocol-model-slice-16.md` (branch `spe-1047-coercive-protocol-mirror-ethics-accountability-slice-16`)
 
-**Recently shipped:** SPE-1882 canonical abusive-surveillance fixture compromised-care realignment slice 15 (PR #2841 @ `2cb289a3`); SPE-1882 forced-isolation / staff-exclusion procedure anchors slice 14 (PR #2840 @ `df379681`); SPE-1882 compromised-care procedural debt creation wire-up slice 13 (PR #2839 @ `6225a6e5`).
+**Recently shipped:** SPE-1882 canonical abusive-surveillance fixture compromised-care realignment slice 15 (PR #2841 @ `416f9260`); SPE-1882 forced-isolation / staff-exclusion procedure anchors slice 14 (PR #2840 @ `df379681`); SPE-1882 compromised-care procedural debt creation wire-up slice 13 (PR #2839 @ `6225a6e5`).
 
 **Recently shipped:** SPE-1309 parent acceptance review grooming slice 6 (PR #2815 @ `0ec51d86`); SPE-1309 unified cognitive hazard engine slice 7 (PR #2814 @ `a0f8e9ec`).
 

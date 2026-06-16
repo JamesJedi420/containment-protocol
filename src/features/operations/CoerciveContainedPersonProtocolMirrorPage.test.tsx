@@ -12,6 +12,12 @@ import {
 import { INTEGRATED_HEALTH_BUNDLE_SURVEILLANCE_TENSION_FIXTURE } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { useGameStore } from '../../app/store/gameStore'
 import CoerciveContainedPersonProtocolMirrorPage from './CoerciveContainedPersonProtocolMirrorPage'
+import {
+  ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+} from '../../domain/coerciveContainedPersonProtocolRegistry'
+import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../../domain/welfareDebtAccountingRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 
 function renderMirrorPage() {
   return render(
@@ -116,5 +122,44 @@ describe('CoerciveContainedPersonProtocolMirrorPage (SPE-2429 slice 2)', () => {
     expect(recordsRegion).toHaveTextContent(/cross-system tension:/i)
     expect(recordsRegion).toHaveTextContent(/surveillance burden stable mental state/i)
     expect(screen.getByText(/cross-system tension subjects/i)).toBeInTheDocument()
+  })
+})
+
+describe('CoerciveContainedPersonProtocolMirrorPage (SPE-1047 / SPE-1131 slice 16)', () => {
+  it('renders faction ethics and accountability cross-link labels when matrix maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted coercive contained person protocol records/i,
+    })
+
+    expect(screen.getByText(/faction ethics links/i)).toBeInTheDocument()
+    expect(screen.getByText(/accountability matrix links/i)).toBeInTheDocument()
+    expect(recordsRegion).toHaveTextContent(/faction ethics cross-links:/i)
+    expect(recordsRegion).toHaveTextContent(/accountability matrix cross-links:/i)
+    expect(recordsRegion).toHaveTextContent(
+      'faction-ethics:faction-ethics:ethics-review-board-routing'
+    )
+    expect(recordsRegion).toHaveTextContent(
+      'accountability-matrix:accountability-matrix:independent-welfare-audit'
+    )
   })
 })

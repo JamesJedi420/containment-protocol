@@ -19,6 +19,8 @@ import { applyWeeklyCoerciveProtocolTick } from '../../domain/coerciveContainedP
 import { PSYCHOLOGICAL_RESILIENCE_STAGED_DEPLETION_FIXTURE } from '../../domain/psychologicalResilienceRegistry'
 import { SURVEILLANCE_TUNING_SUBJECT_22_FIXTURE } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
 import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../../domain/welfareDebtAccountingRegistry'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   formatCoerciveProtocolEnumLabel,
   getCoerciveContainedPersonProtocolMirrorView,
@@ -535,5 +537,73 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1882 slice 12)', () => 
 
     expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
     expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
+  })
+})
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1047 / SPE-1131 slice 16)', () => {
+  it('omits faction ethics and accountability labels when welfare-debt ledger is absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.factionEthicsLinkedRecordCount).toBe(0)
+    expect(view.summary.accountabilityMatrixLinkedRecordCount).toBe(0)
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([])
+  })
+
+  it('surfaces opaque ethics/accountability labels from linked welfare-debt entries', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.summary.factionEthicsLinkedRecordCount).toBe(1)
+    expect(view.summary.accountabilityMatrixLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([
+      'review_owner:review-owner:ethics-review-board',
+    ])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([
+      'mitigation_path:mitigation-path:independent-welfare-audit',
+    ])
+  })
+
+  it('surfaces matrix wired refs when faction ethics and accountability maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([
+      'faction-ethics:faction-ethics:ethics-review-board-routing',
+    ])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([
+      'accountability-matrix:accountability-matrix:independent-welfare-audit',
+    ])
   })
 })

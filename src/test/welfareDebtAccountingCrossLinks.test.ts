@@ -15,8 +15,11 @@ import {
 } from '../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   composeAllWelfareDebtAccountingCrossLinks,
+  composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord,
   composeWelfareDebtAccountingCrossLinksForRecord,
   composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
+  formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels,
+  formatCoerciveProtocolFactionEthicsCrossLinkLabels,
   formatCoerciveProtocolWelfareDebtCrossLinkLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
   resolveProcedureRefFromWelfareDebtRecordId,
@@ -342,6 +345,98 @@ describe('welfareDebtAccountingCrossLinks inverse compose (SPE-1882 slice 12)', 
     const second = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(
       ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
       { welfareDebtRecords }
+    )
+
+    expect(first).toEqual(second)
+  })
+})
+
+describe('welfareDebtAccountingCrossLinks ethics/accountability inverse compose (SPE-1882 slice 16)', () => {
+  it('returns empty ethics/accountability links when welfare-debt records map is empty', () => {
+    expect(
+      composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+        ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE
+      )
+    ).toEqual({
+      factionEthicsLinks: [],
+      accountabilityMatrixLinks: [],
+      accountabilityLinkRefs: [],
+    })
+  })
+
+  it('surfaces opaque review-owner and mitigation-path labels when matrix maps are absent', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      { welfareDebtRecords }
+    )
+
+    expect(formatCoerciveProtocolFactionEthicsCrossLinkLabels(summary)).toEqual([
+      'review_owner:review-owner:ethics-review-board',
+    ])
+    expect(formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels(summary)).toEqual([
+      'mitigation_path:mitigation-path:independent-welfare-audit',
+    ])
+  })
+
+  it('wires SPE-1047 and SPE-1131 matrix projections when maps are provided', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords,
+        factionEthicsRecords: {
+          [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+        },
+        accountabilityMatrixRecords: {
+          [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(summary.factionEthicsLinks).toHaveLength(1)
+    expect(summary.accountabilityMatrixLinks).toHaveLength(1)
+    expect(formatCoerciveProtocolFactionEthicsCrossLinkLabels(summary)).toEqual([
+      'faction-ethics:faction-ethics:ethics-review-board-routing',
+    ])
+    expect(formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels(summary)).toEqual([
+      'accountability-matrix:accountability-matrix:independent-welfare-audit',
+    ])
+  })
+
+  it('ethics/accountability inverse compose is byte-stable across repeated calls', () => {
+    const input = {
+      welfareDebtRecords: {
+        [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+          ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+          subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+        },
+      },
+      factionEthicsRecords: {
+        [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      },
+      accountabilityMatrixRecords: {
+        [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+      },
+    }
+
+    const first = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      input
+    )
+    const second = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      input
     )
 
     expect(first).toEqual(second)

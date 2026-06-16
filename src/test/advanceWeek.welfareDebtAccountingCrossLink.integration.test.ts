@@ -117,5 +117,15 @@ describe('advanceWeek welfare-debt cross-link integration (SPE-1888 slice 8 + sl
         'accountability-matrix:accountability-matrix:independent-welfare-audit',
       ])
     )
+    expect(crossLinkNotes[0]?.metadata?.projectionLabels).toEqual(
+      expect.arrayContaining([
+        'Escalation Required',
+        'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+      ])
+    )
+    expect(crossLinkNotes[0]?.content).toContain('Escalation Required')
+    expect(crossLinkNotes[0]?.content).toContain(
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred'
+    )
   })
 })

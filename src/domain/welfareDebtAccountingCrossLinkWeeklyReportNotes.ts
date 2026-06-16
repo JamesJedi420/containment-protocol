@@ -12,6 +12,7 @@ import type { ReportNote } from './models'
 import { createDeterministicReportNote } from './reportNotes'
 import {
   composeAllWelfareDebtAccountingCrossLinkSummaries,
+  formatWelfareDebtAccountingCrossLinkProjectionLabels,
   formatWelfareDebtAccountingCrossLinkNoteContent,
 } from './welfareDebtAccountingCrossLinkSurfacing'
 import type { WelfareDebtAccountingRecordsMap } from './welfareDebtAccountingRegistry'
@@ -49,7 +50,10 @@ export function buildWeeklyWelfareDebtAccountingCrossLinkReportNotes(input: {
   for (const summary of nextSummaries) {
     notes.push(
       createDeterministicReportNote(
-        formatWelfareDebtAccountingCrossLinkNoteContent(summary),
+        formatWelfareDebtAccountingCrossLinkNoteContent(summary, {
+          factionEthicsRecords: input.factionEthicsRecords,
+          accountabilityMatrixRecords: input.accountabilityMatrixRecords,
+        }),
         input.week,
         sequence,
         input.baseTimestamp,
@@ -60,6 +64,12 @@ export function buildWeeklyWelfareDebtAccountingCrossLinkReportNotes(input: {
           integratedHealthLinkCount: summary.integratedHealthLinks.length,
           coerciveProtocolLinkCount: summary.coerciveProtocolLinks.length,
           crossLinkLabels: [...formatWelfareDebtAccountingCrossLinkLabels(summary)],
+          projectionLabels: [
+            ...formatWelfareDebtAccountingCrossLinkProjectionLabels(summary, {
+              factionEthicsRecords: input.factionEthicsRecords,
+              accountabilityMatrixRecords: input.accountabilityMatrixRecords,
+            }),
+          ],
           week: input.week,
         }
       )

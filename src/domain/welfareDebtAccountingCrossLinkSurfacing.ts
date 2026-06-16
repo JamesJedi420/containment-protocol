@@ -12,7 +12,9 @@ import type { MoralLegalAccountabilityMatrixRecordsMap } from './moralLegalAccou
 import {
   composeAllWelfareDebtAccountingCrossLinks,
   formatWelfareDebtAccountingCrossLinkAuditLine,
+  formatWelfareDebtAccountabilityMatrixProjectionLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
+  formatWelfareDebtFactionEthicsProjectionLabels,
   type WelfareDebtAccountingCrossLinkSummary,
 } from './welfareDebtAccountingCrossLinks'
 import type { WelfareDebtAccountingRecordsMap } from './welfareDebtAccountingRegistry'
@@ -56,11 +58,38 @@ export function composeAllWelfareDebtAccountingCrossLinkSummaries(input: {
   )
 }
 
+export function formatWelfareDebtAccountingCrossLinkProjectionLabels(
+  summary: WelfareDebtAccountingCrossLinkSummary,
+  input?: {
+    factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+    accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
+  }
+): readonly string[] {
+  const factionEthicsLabels = formatWelfareDebtFactionEthicsProjectionLabels(
+    summary,
+    input?.factionEthicsRecords
+  )
+  const accountabilityMatrixLabels = formatWelfareDebtAccountabilityMatrixProjectionLabels(
+    summary,
+    input?.accountabilityMatrixRecords
+  )
+  return Object.freeze([...factionEthicsLabels, ...accountabilityMatrixLabels])
+}
+
 export function formatWelfareDebtAccountingCrossLinkNoteContent(
-  summary: WelfareDebtAccountingCrossLinkSummary
+  summary: WelfareDebtAccountingCrossLinkSummary,
+  input?: {
+    factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+    accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
+  }
 ): string {
-  return formatWelfareDebtAccountingCrossLinkAuditLine(summary).replace(
+  const baseContent = formatWelfareDebtAccountingCrossLinkAuditLine(summary).replace(
     /^Cross-links/,
     'Welfare-debt cross-link'
   )
+  const projectionLabels = formatWelfareDebtAccountingCrossLinkProjectionLabels(summary, input)
+  if (projectionLabels.length === 0) {
+    return baseContent
+  }
+  return `${baseContent} | Matrix projections: ${projectionLabels.join('; ')}`
 }

@@ -1381,6 +1381,8 @@ export const COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT: Record<string, s
   welfareDebtCrossLinkPrefix: 'Welfare-debt cross-links:',
   factionEthicsCrossLinkPrefix: 'Faction ethics cross-links:',
   accountabilityMatrixCrossLinkPrefix: 'Accountability matrix cross-links:',
+  factionEthicsProjectionPrefix: 'Permissibility verdict:',
+  accountabilityMatrixProjectionPrefix: 'Accountability outcomes:',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
 }

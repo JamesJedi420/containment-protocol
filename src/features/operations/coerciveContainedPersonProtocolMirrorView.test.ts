@@ -607,3 +607,49 @@ describe('coerciveContainedPersonProtocolMirrorView (SPE-1047 / SPE-1131 slice 1
     ])
   })
 })
+
+describe('coerciveContainedPersonProtocolMirrorView (SPE-1047 / SPE-1131 slice 17)', () => {
+  it('omits projection labels when matrix maps are absent', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsProjectionLabels).toEqual([])
+    expect(view.records[0]?.accountabilityMatrixProjectionLabels).toEqual([])
+  })
+
+  it('surfaces permissibility verdict and outcome projection labels when matrix maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const view = getCoerciveContainedPersonProtocolMirrorView(game)
+
+    expect(view.records[0]?.factionEthicsProjectionLabels).toEqual(['Escalation Required'])
+    expect(view.records[0]?.accountabilityMatrixProjectionLabels).toEqual([
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+    ])
+  })
+})

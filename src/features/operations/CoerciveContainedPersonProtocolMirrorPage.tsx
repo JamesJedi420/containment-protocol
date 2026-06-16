@@ -269,13 +269,31 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
                           {record.accountabilityMatrixCrossLinkLabels.join('; ')}
                         </p>
                       ) : null}
+                      {record.factionEthicsProjectionLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {
+                            COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.factionEthicsProjectionPrefix
+                          }{' '}
+                          {record.factionEthicsProjectionLabels.join('; ')}
+                        </p>
+                      ) : null}
+                      {record.accountabilityMatrixProjectionLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {
+                            COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.accountabilityMatrixProjectionPrefix
+                          }{' '}
+                          {record.accountabilityMatrixProjectionLabels.join('; ')}
+                        </p>
+                      ) : null}
                       {record.medicationRegimenRefLabel === '—' &&
                       record.custodyStatusRefLabel === '—' &&
                       record.procedureRefLabel === '—' &&
                       record.subjectFitValidationRefLabel === '—' &&
                       record.welfareDebtCrossLinkLabels.length === 0 &&
                       record.factionEthicsCrossLinkLabels.length === 0 &&
-                      record.accountabilityMatrixCrossLinkLabels.length === 0 ? (
+                      record.accountabilityMatrixCrossLinkLabels.length === 0 &&
+                      record.factionEthicsProjectionLabels.length === 0 &&
+                      record.accountabilityMatrixProjectionLabels.length === 0 ? (
                         <p className="text-xs opacity-45">—</p>
                       ) : null}
                     </td>

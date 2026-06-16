@@ -19,7 +19,9 @@ import {
   composeWelfareDebtAccountingCrossLinksForRecord,
   composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
   formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels,
+  formatCoerciveProtocolAccountabilityMatrixProjectionLabels,
   formatCoerciveProtocolFactionEthicsCrossLinkLabels,
+  formatCoerciveProtocolFactionEthicsProjectionLabels,
   formatCoerciveProtocolWelfareDebtCrossLinkLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
   resolveProcedureRefFromWelfareDebtRecordId,
@@ -440,5 +442,105 @@ describe('welfareDebtAccountingCrossLinks ethics/accountability inverse compose 
     )
 
     expect(first).toEqual(second)
+  })
+})
+
+describe('welfareDebtAccountingCrossLinks ethics/accountability projection labels (SPE-1882 slice 17)', () => {
+  it('returns empty projection labels when matrix maps are absent', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      { welfareDebtRecords }
+    )
+
+    expect(formatCoerciveProtocolFactionEthicsProjectionLabels(summary, undefined)).toEqual([])
+    expect(formatCoerciveProtocolAccountabilityMatrixProjectionLabels(summary, undefined)).toEqual(
+      []
+    )
+  })
+
+  it('surfaces permissibility verdict labels when faction ethics matrix is hydrated', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords,
+        factionEthicsRecords: {
+          [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(formatCoerciveProtocolFactionEthicsProjectionLabels(summary, {})).toEqual([])
+    expect(
+      formatCoerciveProtocolFactionEthicsProjectionLabels(summary, {
+        [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      })
+    ).toEqual(['Escalation Required'])
+  })
+
+  it('surfaces moral/legal outcome summary labels when accountability matrix is hydrated', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords,
+        accountabilityMatrixRecords: {
+          [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(formatCoerciveProtocolAccountabilityMatrixProjectionLabels(summary, {})).toEqual([])
+    expect(
+      formatCoerciveProtocolAccountabilityMatrixProjectionLabels(summary, {
+        [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+      })
+    ).toEqual([
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+    ])
+  })
+
+  it('sorts multiple matrix projection labels by cross-link wired-ref order', () => {
+    const welfareDebtRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+      [FORCED_SEDATION_CYCLE_FIXTURE.id]: {
+        ...FORCED_SEDATION_CYCLE_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    const summary = composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+      ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+      {
+        welfareDebtRecords,
+        factionEthicsRecords: {
+          [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+          [PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE.id]: PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE,
+        },
+      }
+    )
+
+    expect(formatCoerciveProtocolFactionEthicsProjectionLabels(summary, {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      [PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE.id]: PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE,
+    })).toEqual(['Escalation Required', 'Restricted'])
   })
 })

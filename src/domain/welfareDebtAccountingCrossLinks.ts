@@ -23,6 +23,8 @@ import {
   listHydratedFactionEthicsMatrixRecordsForSubjectRef,
   projectFactionEthicsMatrixReview,
   slugifyReviewOwnerLabel,
+  validateFactionEthicsMatrixRecord,
+  type FactionEthicsMatrixRecord,
   type FactionEthicsMatrixRecordsMap,
 } from './factionEthicsMatrixRegistry'
 import {
@@ -30,6 +32,8 @@ import {
   listHydratedAccountabilityMatrixRecordsForSubjectRef,
   projectMoralLegalAccountabilityMatrixReview,
   slugifyMitigationPathLabel,
+  validateMoralLegalAccountabilityMatrixRecord,
+  type MoralLegalAccountabilityMatrixRecord,
   type MoralLegalAccountabilityMatrixRecordsMap,
 } from './moralLegalAccountabilityMatrixRegistry'
 import {
@@ -781,4 +785,90 @@ export function formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels(
   }
 
   return Object.freeze([...labels].sort((left, right) => left.localeCompare(right)))
+}
+
+function formatMatrixRegistryEnumLabel(value: string): string {
+  return value
+    .split('_')
+    .map((part) => (part.length > 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part))
+    .join(' ')
+}
+
+function formatFactionEthicsPermissibilityProjectionLabel(
+  record: FactionEthicsMatrixRecord
+): string | null {
+  if (!validateFactionEthicsMatrixRecord(record).valid) {
+    return null
+  }
+
+  const projection = projectFactionEthicsMatrixReview(record)
+  return formatMatrixRegistryEnumLabel(projection.permissibilityVerdict)
+}
+
+function formatAccountabilityOutcomeProjectionLabel(
+  record: MoralLegalAccountabilityMatrixRecord
+): string | null {
+  if (!validateMoralLegalAccountabilityMatrixRecord(record).valid) {
+    return null
+  }
+
+  const projection = projectMoralLegalAccountabilityMatrixReview(record)
+  return [
+    `Moral ${formatMatrixRegistryEnumLabel(projection.moralOutcome)}`,
+    `Legal ${formatMatrixRegistryEnumLabel(projection.legalOutcome)}`,
+    `Institutional ${formatMatrixRegistryEnumLabel(projection.institutionalOutcome)}`,
+    `Public ${formatMatrixRegistryEnumLabel(projection.publicOutcome)}`,
+  ].join(' · ')
+}
+
+/** Matrix-gated permissibility verdict labels for coercive protocol mirror (SPE-1882 slice 17). */
+export function formatCoerciveProtocolFactionEthicsProjectionLabels(
+  summary: CoerciveProtocolEthicsAccountabilityCrossLinkSummary,
+  factionEthicsRecords: FactionEthicsMatrixRecordsMap | null | undefined
+): readonly string[] {
+  if (!factionEthicsRecords || summary.factionEthicsLinks.length === 0) {
+    return Object.freeze([])
+  }
+
+  const labels: string[] = []
+
+  for (const link of summary.factionEthicsLinks) {
+    const record = factionEthicsRecords[link.factionEthicsRecordId]
+    if (!record) {
+      continue
+    }
+
+    const label = formatFactionEthicsPermissibilityProjectionLabel(record)
+    if (label) {
+      labels.push(label)
+    }
+  }
+
+  return Object.freeze(labels)
+}
+
+/** Matrix-gated moral/legal outcome summary labels for coercive protocol mirror (SPE-1882 slice 17). */
+export function formatCoerciveProtocolAccountabilityMatrixProjectionLabels(
+  summary: CoerciveProtocolEthicsAccountabilityCrossLinkSummary,
+  accountabilityMatrixRecords: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
+): readonly string[] {
+  if (!accountabilityMatrixRecords || summary.accountabilityMatrixLinks.length === 0) {
+    return Object.freeze([])
+  }
+
+  const labels: string[] = []
+
+  for (const link of summary.accountabilityMatrixLinks) {
+    const record = accountabilityMatrixRecords[link.accountabilityMatrixRecordId]
+    if (!record) {
+      continue
+    }
+
+    const label = formatAccountabilityOutcomeProjectionLabel(record)
+    if (label) {
+      labels.push(label)
+    }
+  }
+
+  return Object.freeze(labels)
 }

@@ -7,7 +7,7 @@ One-page implementation plan. Linear: child under [SPE-1888](https://linear.app/
 | **Linear** | SPE-1888 slice 12 — Welfare-debt mirror matrix projection labels (create on start)                         |
 | **Parent** | [SPE-1888](https://linear.app/spectranoir/issue/SPE-1888) — parent stays **Backlog** until full SPE-1047/1131 scope closes |
 | **Branch** | `spe-1888-welfare-debt-mirror-matrix-projection-labels-slice-12`                                         |
-| **Status** | **In progress**                                                                                            |
+| **Status** | **Shipped** — PR #2844 @ `f6bbf8be`                                                                        |
 | **Base `main` SHA** | `45c14223`                                                                                          |
 
 ## Goal

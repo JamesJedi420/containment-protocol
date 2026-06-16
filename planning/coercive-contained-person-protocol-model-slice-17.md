@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 17 child (create on merge) 
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 17 — Mirror ethics + accountability projection labels (create on merge)                     |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2843 @ `b6e0f649`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–16 shipped)           |
 | **Related**| [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047), [SPE-1131](https://linear.app/spectranoir/issue/SPE-1131) — registry-wave compose deferred; mirror surfacing only |
 | **Branch** | `spe-1047-coercive-protocol-mirror-ethics-projection-labels-slice-17`                                    |
@@ -44,12 +44,12 @@ Surface SPE-1047 permissibility verdict and SPE-1131 moral/legal outcome project
 
 ## Acceptance
 
-- [ ] Matrix maps absent → permissibility and outcome projection labels empty (opaque wired refs unchanged)
-- [ ] Matrix hydration surfaces deterministic sorted permissibility verdict labels (e.g. Escalation Required)
-- [ ] Matrix hydration surfaces deterministic sorted moral/legal outcome summary labels
-- [ ] Projection labels remain display-only (no creation gates)
-- [ ] Slice 1–16 mirror regression unchanged
-- [ ] `npm run lint` + targeted tests green
+- [x] Matrix maps absent → permissibility and outcome projection labels empty (opaque wired refs unchanged)
+- [x] Matrix hydration surfaces deterministic sorted permissibility verdict labels (e.g. Escalation Required)
+- [x] Matrix hydration surfaces deterministic sorted moral/legal outcome summary labels
+- [x] Projection labels remain display-only (no creation gates)
+- [x] Slice 1–16 mirror regression unchanged
+- [x] `npm run lint` + targeted tests green
 
 ## File touch list (expected)
 

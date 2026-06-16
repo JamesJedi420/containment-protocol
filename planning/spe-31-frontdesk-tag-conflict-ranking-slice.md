@@ -7,8 +7,8 @@ One-page implementation plan. Linear: [SPE-2467](https://linear.app/spectranoir/
 | **Linear** | [SPE-2467](https://linear.app/spectranoir/issue/SPE-2467) — Front Desk multi-region tag-conflict ranking |
 | **Parent** | [SPE-31](https://linear.app/spectranoir/issue/SPE-31) |
 | **Branch** | `spe-31-frontdesk-tag-conflict-ranking-slice` |
-| **Status** | In progress |
-| **Base `main` SHA** | `bb250585` |
+| **Status** | Shipped |
+| **Base `main` SHA** | `7a9ce0a2` (PR #2852) |
 
 ## Goal
 
@@ -25,12 +25,16 @@ When multiple region-tag conflicts exist across open cases, surface one determin
 
 ## Acceptance
 
-- [ ] Card shows top-ranked region when multiple regions qualify
-- [ ] Card hidden when no region qualifies
-- [ ] Sort is deterministic: conflict-group count desc, case count desc, region tag asc tie-break
-- [ ] Existing courier/procurement/staffing/hub opportunity cards unaffected
-- [ ] `npm run test:run -- src/features/operations/FrontDeskPage.test.tsx` passes
-- [ ] `npm run lint` passes
+- [x] Card shows top-ranked region when multiple regions qualify
+- [x] Card hidden when no region qualifies
+- [x] Sort is deterministic: conflict-group count desc, case count desc, region tag asc tie-break
+- [x] Existing courier/procurement/staffing/hub opportunity cards unaffected
+- [x] `npm run test:run -- src/features/operations/FrontDeskPage.test.tsx` passes
+- [x] `npm run lint` passes
+
+## Shipped
+
+PR [#2852](https://github.com/JamesJedi420/containment-protocol/pull/2852) @ `7a9ce0a2`. Child [SPE-2467](https://linear.app/spectranoir/issue/SPE-2467) **Done** on Linear.
 
 ## Ranking
 

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 15 child (create on merge).
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 15 — Canonical abusive-surveillance fixture compromised-care realignment (create on merge) |
-| **Status** | In Progress                                                                                                |
+| **Status** | **Shipped** — PR #2841 @ `416f9260`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–14 shipped)           |
 | **Branch** | `spe-1882-coercive-protocol-slice-15`                                                                      |
 | **Base `main` SHA** | `d9932785`                                                                                          |

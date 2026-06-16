@@ -2,9 +2,11 @@ import '../../test/setup'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
 import { createStartingState } from '../../data/startingState'
+import { createOperationEvent } from '../../domain/events/eventBus'
+import * as hubState from '../../domain/hub/hubState'
 import { getCanonicalFundingState, placeProcurementOrder } from '../../domain/funding'
 import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
@@ -23,6 +25,8 @@ function renderFrontDesk() {
         <Route path="/teams" element={<p>Teams home</p>} />
         <Route path="/markets-suppliers" element={<p>Markets home</p>} />
         <Route path="/agency" element={<p>Agency home</p>} />
+        <Route path="/factions" element={<p>Factions home</p>} />
+        <Route path="/cases" element={<p>Cases home</p>} />
       </Routes>
     </MemoryRouter>
   )
@@ -99,8 +103,38 @@ function withTagConflictRegionCases(game: GameState): GameState {
   })
 }
 
+function makeStandingEvent(
+  sequence: number,
+  factionId: 'oversight' | 'black_budget',
+  delta: number
+): OperationEvent {
+  const factionName = factionId === 'oversight' ? 'Oversight Bureau' : 'Black Budget Programs'
+
+  return createOperationEvent(sequence, {
+    type: 'faction.standing_changed',
+    sourceSystem: 'faction',
+    payload: {
+      week: 1,
+      factionId,
+      factionName,
+      delta,
+      standingBefore: 0,
+      standingAfter: delta,
+      reason: 'case.resolved',
+    },
+  })
+}
+
+function withRankedHubFactionSignals(game: GameState): GameState {
+  return normalizeGameState({
+    ...game,
+    events: [makeStandingEvent(1, 'oversight', 10), makeStandingEvent(2, 'black_budget', 8)],
+  })
+}
+
 describe('FrontDeskPage', () => {
   beforeEach(() => {
+    vi.restoreAllMocks()
     useGameStore.persist.clearStorage()
     useGameStore.setState({ game: createStartingState() })
   })
@@ -261,6 +295,70 @@ describe('FrontDeskPage', () => {
     renderFrontDesk()
     expect(
       screen.queryByRole('region', { name: /tag conflict value stream opportunity/i })
+    ).not.toBeInTheDocument()
+  })
+
+  it('renders hub opportunity and rumor leads when hub simulation output is present', async () => {
+    const user = userEvent.setup()
+    const game = withRankedHubFactionSignals(createStartingState())
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /hub simulation opportunity lead/i })
+    expect(within(opportunity).getByText(/% confidence/i)).toBeInTheDocument()
+    expect(within(opportunity).getByText(/access: blocked/i)).toBeInTheDocument()
+
+    const rumor = screen.getByRole('region', { name: /hub simulation rumor lead/i })
+    expect(within(rumor).getByText(/% confidence/i)).toBeInTheDocument()
+
+    await user.click(within(opportunity).getByRole('link', { name: /open factions/i }))
+    expect(screen.getByText(/factions home/i)).toBeInTheDocument()
+  })
+
+  it('hides hub opportunity lead when hub simulation returns no opportunities', () => {
+    vi.spyOn(hubState, 'generateHubState').mockReturnValue({
+      districtKey: 'central_hub',
+      factionPresence: {},
+      opportunities: [],
+      rumors: [
+        {
+          id: 'rumor-test',
+          label: 'Test rumor',
+          detail: 'Rumor detail',
+          confidence: 0.5,
+        },
+      ],
+    })
+
+    renderFrontDesk()
+    expect(
+      screen.queryByRole('region', { name: /hub simulation opportunity lead/i })
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /hub simulation rumor lead/i })).toBeInTheDocument()
+  })
+
+  it('hides hub rumor lead when hub simulation returns no rumors', () => {
+    vi.spyOn(hubState, 'generateHubState').mockReturnValue({
+      districtKey: 'central_hub',
+      factionPresence: {},
+      opportunities: [
+        {
+          id: 'opportunity-test',
+          label: 'Test opportunity',
+          detail: 'Opportunity detail',
+          factionId: 'oversight',
+          confidence: 0.8,
+        },
+      ],
+      rumors: [],
+    })
+
+    renderFrontDesk()
+    expect(screen.getByRole('region', { name: /hub simulation opportunity lead/i })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('region', { name: /hub simulation rumor lead/i })
     ).not.toBeInTheDocument()
   })
 

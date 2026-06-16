@@ -625,6 +625,113 @@ export default function FrontDeskPage() {
             </section>
           ) : null}
 
+          {view.hubOpportunityLead ? (
+            <section className="panel space-y-3" aria-label="Hub simulation opportunity lead">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Hub opportunity</h2>
+                  <p className="text-xs opacity-60">
+                    Faction-driven opportunity surfaced by the hub simulation layer.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.hubOpportunityLead.tone)}`}
+                >
+                  {view.hubOpportunityLead.confidenceLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.hubOpportunityLead.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.hubOpportunityLead.title}</p>
+                <p className="text-sm opacity-80">{view.hubOpportunityLead.summary}</p>
+                {view.hubOpportunityLead.statusLabel ? (
+                  <p className="text-xs uppercase tracking-[0.12em] opacity-70">
+                    Access: {view.hubOpportunityLead.statusLabel}
+                    {view.hubOpportunityLead.statusDetail
+                      ? ` — ${view.hubOpportunityLead.statusDetail}`
+                      : ''}
+                  </p>
+                ) : null}
+                {view.hubOpportunityLead.misleading ? (
+                  <p className="text-xs text-amber-300">Potentially misleading signal</p>
+                ) : null}
+                {view.hubOpportunityLead.details.length > 0 ? (
+                  <ul className="space-y-1 text-sm opacity-70">
+                    {view.hubOpportunityLead.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.hubOpportunityLead.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.hubOpportunityLead.primaryLinkLabel}
+                  </Link>
+                  <Link
+                    to={view.hubOpportunityLead.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.hubOpportunityLead.secondaryLinkLabel}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {view.hubRumorLead ? (
+            <section className="panel space-y-3" aria-label="Hub simulation rumor lead">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Hub rumor</h2>
+                  <p className="text-xs opacity-60">
+                    Social rumor lead filtered through the hub simulation layer.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.hubRumorLead.tone)}`}
+                >
+                  {view.hubRumorLead.confidenceLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.hubRumorLead.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.hubRumorLead.title}</p>
+                <p className="text-sm opacity-80">{view.hubRumorLead.summary}</p>
+                {view.hubRumorLead.misleading ? (
+                  <p className="text-xs text-amber-300">Potentially misleading rumor</p>
+                ) : null}
+                {view.hubRumorLead.filtered ? (
+                  <p className="text-xs text-rose-300">Socially filtered rumor</p>
+                ) : null}
+                {view.hubRumorLead.details.length > 0 ? (
+                  <ul className="space-y-1 text-sm opacity-70">
+                    {view.hubRumorLead.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.hubRumorLead.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.hubRumorLead.primaryLinkLabel}
+                  </Link>
+                  <Link
+                    to={view.hubRumorLead.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.hubRumorLead.secondaryLinkLabel}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel space-y-3" aria-label="Active pressures">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">

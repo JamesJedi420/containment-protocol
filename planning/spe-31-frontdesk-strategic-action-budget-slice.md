@@ -7,8 +7,8 @@ One-page implementation plan. Linear: [SPE-2468](https://linear.app/spectranoir/
 | **Linear** | [SPE-2468](https://linear.app/spectranoir/issue/SPE-2468) — Front Desk strategic action budget opportunity card |
 | **Parent** | [SPE-31](https://linear.app/spectranoir/issue/SPE-31) |
 | **Branch** | `spe-31-frontdesk-strategic-action-budget-slice` |
-| **Status** | In progress |
-| **Base `main` SHA** | `1e6bb622` |
+| **Status** | Shipped |
+| **Base `main` SHA** | `1e6bb622` (PR #2854 @ `5c083422`) |
 
 ## Goal
 
@@ -31,6 +31,10 @@ Surface one deterministic Front Desk opportunity card that projects strategic-tu
 - [x] Existing courier/procurement/staffing/tag-conflict/hub opportunity cards unaffected
 - [x] `npm run test:run -- src/features/operations/FrontDeskPage.test.tsx src/test/strategicActionBudgetProjection.test.ts` passes
 - [x] `npm run lint` passes
+
+## Shipped
+
+PR [#2854](https://github.com/JamesJedi420/containment-protocol/pull/2854) @ `5c083422`. Child [SPE-2468](https://linear.app/spectranoir/issue/SPE-2468) **Done** on Linear.
 
 ## Ranking
 

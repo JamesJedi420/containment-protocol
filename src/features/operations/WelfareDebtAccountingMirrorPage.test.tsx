@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createStartingState } from '../../data/startingState'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 import {
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
   FORCED_SEDATION_CYCLE_FIXTURE,
@@ -63,5 +65,30 @@ describe('WelfareDebtAccountingMirrorPage (SPE-1888 slice 2)', () => {
       'href',
       '/'
     )
+  })
+
+  it('renders matrix projection labels in the review column when maps are hydrated', () => {
+    const game = createStartingState()
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted welfare debt accounting records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent('Permissibility verdict:')
+    expect(recordsRegion).toHaveTextContent('Escalation Required')
+    expect(recordsRegion).toHaveTextContent('Outcome summary:')
+    expect(recordsRegion).toHaveTextContent('Moral Blamed')
   })
 })

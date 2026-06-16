@@ -154,6 +154,20 @@ export default function WelfareDebtAccountingMirrorPage() {
                         {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.mitigationPathPrefix}{' '}
                         {record.mitigationPathLabel}
                       </p>
+                      {record.factionEthicsProjectionLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.factionEthicsProjectionPrefix}{' '}
+                          {record.factionEthicsProjectionLabels.join('; ')}
+                        </p>
+                      ) : null}
+                      {record.accountabilityMatrixProjectionLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {
+                            WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT.accountabilityMatrixProjectionPrefix
+                          }{' '}
+                          {record.accountabilityMatrixProjectionLabels.join('; ')}
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-2 py-2">
                       {record.crossLinkLabels.length > 0 ? (

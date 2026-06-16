@@ -20,7 +20,9 @@ import {
   composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord,
   composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
   formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels,
+  formatCoerciveProtocolAccountabilityMatrixProjectionLabels,
   formatCoerciveProtocolFactionEthicsCrossLinkLabels,
+  formatCoerciveProtocolFactionEthicsProjectionLabels,
   formatCoerciveProtocolWelfareDebtCrossLinkLabels,
 } from '../../domain/welfareDebtAccountingCrossLinks'
 
@@ -57,6 +59,8 @@ export interface CoerciveContainedPersonProtocolMirrorRecordView {
   welfareDebtCrossLinkLabels: readonly string[]
   factionEthicsCrossLinkLabels: readonly string[]
   accountabilityMatrixCrossLinkLabels: readonly string[]
+  factionEthicsProjectionLabels: readonly string[]
+  accountabilityMatrixProjectionLabels: readonly string[]
   medicationRegimenRefLabel: string
   custodyStatusRefLabel: string
   procedureRefLabel: string
@@ -187,6 +191,8 @@ function toRecordView(
   welfareDebtCrossLinkLabels: readonly string[],
   factionEthicsCrossLinkLabels: readonly string[],
   accountabilityMatrixCrossLinkLabels: readonly string[],
+  factionEthicsProjectionLabels: readonly string[],
+  accountabilityMatrixProjectionLabels: readonly string[],
   tradeoff: ContainmentCareTradeoffProjection,
   riskReview: CoerciveProtocolRiskReviewProjection
 ): CoerciveContainedPersonProtocolMirrorRecordView {
@@ -228,6 +234,8 @@ function toRecordView(
     welfareDebtCrossLinkLabels: Object.freeze([...welfareDebtCrossLinkLabels]),
     factionEthicsCrossLinkLabels: Object.freeze([...factionEthicsCrossLinkLabels]),
     accountabilityMatrixCrossLinkLabels: Object.freeze([...accountabilityMatrixCrossLinkLabels]),
+    factionEthicsProjectionLabels: Object.freeze([...factionEthicsProjectionLabels]),
+    accountabilityMatrixProjectionLabels: Object.freeze([...accountabilityMatrixProjectionLabels]),
     medicationRegimenRefLabel: formatOptionalRef(record.medicationRegimenRef),
     custodyStatusRefLabel: formatOptionalRef(record.custodyStatusRef),
     procedureRefLabel: formatOptionalRef(record.procedureRef),
@@ -291,6 +299,15 @@ export function getCoerciveContainedPersonProtocolMirrorView(
     )
     const accountabilityMatrixCrossLinkLabels =
       formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels(ethicsAccountabilitySummary)
+    const factionEthicsProjectionLabels = formatCoerciveProtocolFactionEthicsProjectionLabels(
+      ethicsAccountabilitySummary,
+      game.factionEthicsRecords
+    )
+    const accountabilityMatrixProjectionLabels =
+      formatCoerciveProtocolAccountabilityMatrixProjectionLabels(
+        ethicsAccountabilitySummary,
+        game.accountabilityMatrixRecords
+      )
 
     if (snapshots[record.id]?.recordId === record.id) {
       weeklySnapshotCount += 1
@@ -326,6 +343,8 @@ export function getCoerciveContainedPersonProtocolMirrorView(
       welfareDebtCrossLinkLabels,
       factionEthicsCrossLinkLabels,
       accountabilityMatrixCrossLinkLabels,
+      factionEthicsProjectionLabels,
+      accountabilityMatrixProjectionLabels,
       tradeoff,
       riskReview
     )

@@ -163,3 +163,36 @@ describe('CoerciveContainedPersonProtocolMirrorPage (SPE-1047 / SPE-1131 slice 1
     )
   })
 })
+
+describe('CoerciveContainedPersonProtocolMirrorPage (SPE-1047 / SPE-1131 slice 17)', () => {
+  it('renders permissibility verdict and accountability outcome projection labels when matrix maps are hydrated', () => {
+    const game = createStartingState()
+    game.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: {
+        ...COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+        subjectRef: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef,
+      },
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const recordsRegion = screen.getByRole('region', {
+      name: /persisted coercive contained person protocol records/i,
+    })
+
+    expect(recordsRegion).toHaveTextContent(/permissibility verdict:/i)
+    expect(recordsRegion).toHaveTextContent(/escalation required/i)
+    expect(recordsRegion).toHaveTextContent(/accountability outcomes:/i)
+    expect(recordsRegion).toHaveTextContent(/moral blamed · legal deferred/i)
+  })
+})

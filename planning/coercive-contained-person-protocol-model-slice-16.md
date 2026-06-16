@@ -5,7 +5,7 @@ One-page implementation plan. Linear: SPE-1882 slice 16 child (create on merge) 
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | SPE-1882 slice 16 — Mirror faction ethics + accountability cross-links (create on merge)                   |
-| **Status** | **In Progress** — branch `spe-1047-coercive-protocol-mirror-ethics-accountability-slice-16` |
+| **Status** | **Shipped** — PR #2842 @ `5535d356`                                                                        |
 | **Parent** | [SPE-1882](https://linear.app/spectranoir/issue/SPE-1882) — registry anchor (slice 1–15 shipped)           |
 | **Related**| [SPE-1047](https://linear.app/spectranoir/issue/SPE-1047), [SPE-1131](https://linear.app/spectranoir/issue/SPE-1131) — registry-wave compose deferred; mirror surfacing only |
 | **Branch** | `spe-1047-coercive-protocol-mirror-ethics-accountability-slice-16`                                       |

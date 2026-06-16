@@ -577,6 +577,54 @@ export default function FrontDeskPage() {
             </section>
           ) : null}
 
+          {view.tagConflictValueStreamOpportunity ? (
+            <section className="panel space-y-3" aria-label="Tag conflict value stream opportunity">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Tag-conflict opportunity</h2>
+                  <p className="text-xs opacity-60">
+                    Region-tag conflict lead derived from active case tags.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.tagConflictValueStreamOpportunity.tone)}`}
+                >
+                  {view.tagConflictValueStreamOpportunity.conflictLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.tagConflictValueStreamOpportunity.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.tagConflictValueStreamOpportunity.title}</p>
+                <p className="text-sm opacity-80">{view.tagConflictValueStreamOpportunity.summary}</p>
+                <p className="text-xs uppercase tracking-[0.12em] opacity-70">
+                  Value stream: {view.tagConflictValueStreamOpportunity.valueStreamLabel}
+                </p>
+                {view.tagConflictValueStreamOpportunity.details.length > 0 ? (
+                  <ul className="space-y-1 text-sm opacity-70">
+                    {view.tagConflictValueStreamOpportunity.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.tagConflictValueStreamOpportunity.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.tagConflictValueStreamOpportunity.primaryLinkLabel}
+                  </Link>
+                  <Link
+                    to={view.tagConflictValueStreamOpportunity.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.tagConflictValueStreamOpportunity.secondaryLinkLabel}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           <section className="panel space-y-3" aria-label="Active pressures">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">

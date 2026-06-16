@@ -872,3 +872,55 @@ export function formatCoerciveProtocolAccountabilityMatrixProjectionLabels(
 
   return Object.freeze(labels)
 }
+
+/** Matrix-gated permissibility verdict labels for welfare-debt mirror (SPE-1888 slice 12). */
+export function formatWelfareDebtFactionEthicsProjectionLabels(
+  summary: WelfareDebtAccountingCrossLinkSummary,
+  factionEthicsRecords: FactionEthicsMatrixRecordsMap | null | undefined
+): readonly string[] {
+  if (!factionEthicsRecords || summary.factionEthicsLinks.length === 0) {
+    return Object.freeze([])
+  }
+
+  const labels: string[] = []
+
+  for (const link of summary.factionEthicsLinks) {
+    const record = factionEthicsRecords[link.factionEthicsRecordId]
+    if (!record) {
+      continue
+    }
+
+    const label = formatFactionEthicsPermissibilityProjectionLabel(record)
+    if (label) {
+      labels.push(label)
+    }
+  }
+
+  return Object.freeze(labels)
+}
+
+/** Matrix-gated moral/legal outcome summary labels for welfare-debt mirror (SPE-1888 slice 12). */
+export function formatWelfareDebtAccountabilityMatrixProjectionLabels(
+  summary: WelfareDebtAccountingCrossLinkSummary,
+  accountabilityMatrixRecords: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
+): readonly string[] {
+  if (!accountabilityMatrixRecords || summary.accountabilityMatrixLinks.length === 0) {
+    return Object.freeze([])
+  }
+
+  const labels: string[] = []
+
+  for (const link of summary.accountabilityMatrixLinks) {
+    const record = accountabilityMatrixRecords[link.accountabilityMatrixRecordId]
+    if (!record) {
+      continue
+    }
+
+    const label = formatAccountabilityOutcomeProjectionLabel(record)
+    if (label) {
+      labels.push(label)
+    }
+  }
+
+  return Object.freeze(labels)
+}

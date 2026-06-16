@@ -1,7 +1,9 @@
 import type { GameState } from '../../domain/models'
 import {
   composeWelfareDebtAccountingCrossLinksForRecord,
+  formatWelfareDebtAccountabilityMatrixProjectionLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
+  formatWelfareDebtFactionEthicsProjectionLabels,
 } from '../../domain/welfareDebtAccountingCrossLinks'
 import {
   projectWelfareDebtAccounting,
@@ -23,6 +25,8 @@ export interface WelfareDebtAccountingMirrorRecordView {
   mitigationPathLabel: string
   containmentBenefitScoreLabel: string
   crossLinkLabels: readonly string[]
+  factionEthicsProjectionLabels: readonly string[]
+  accountabilityMatrixProjectionLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -98,6 +102,18 @@ function toRecordView(
   const crossLinkLabels = crossLinkSummary
     ? formatWelfareDebtAccountingCrossLinkLabels(crossLinkSummary)
     : Object.freeze([] as readonly string[])
+  const factionEthicsProjectionLabels = crossLinkSummary
+    ? formatWelfareDebtFactionEthicsProjectionLabels(
+        crossLinkSummary,
+        game.factionEthicsRecords
+      )
+    : Object.freeze([] as readonly string[])
+  const accountabilityMatrixProjectionLabels = crossLinkSummary
+    ? formatWelfareDebtAccountabilityMatrixProjectionLabels(
+        crossLinkSummary,
+        game.accountabilityMatrixRecords
+      )
+    : Object.freeze([] as readonly string[])
 
   return Object.freeze({
     id: record.id,
@@ -112,6 +128,8 @@ function toRecordView(
     mitigationPathLabel,
     containmentBenefitScoreLabel: formatUnitScore(projection.containmentBenefitScore),
     crossLinkLabels,
+    factionEthicsProjectionLabels,
+    accountabilityMatrixProjectionLabels,
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

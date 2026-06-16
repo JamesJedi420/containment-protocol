@@ -201,3 +201,37 @@ describe('welfareDebtAccountingMirrorView (SPE-1888 slice 2)', () => {
     )
   })
 })
+
+describe('welfareDebtAccountingMirrorView (SPE-1888 slice 12)', () => {
+  it('omits projection labels when matrix maps are absent', () => {
+    const game = createStartingState()
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+
+    const record = getWelfareDebtAccountingMirrorView(game).records[0]
+
+    expect(record?.factionEthicsProjectionLabels).toEqual([])
+    expect(record?.accountabilityMatrixProjectionLabels).toEqual([])
+  })
+
+  it('surfaces permissibility verdict and outcome projection labels when matrix maps are hydrated', () => {
+    const game = createStartingState()
+    game.welfareDebtAccountingRecords = {
+      [COERCIVE_RESTRAINT_LEDGER_FIXTURE.id]: COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+    }
+    game.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    game.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const record = getWelfareDebtAccountingMirrorView(game).records[0]
+
+    expect(record?.factionEthicsProjectionLabels).toEqual(['Escalation Required'])
+    expect(record?.accountabilityMatrixProjectionLabels).toEqual([
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+    ])
+  })
+})

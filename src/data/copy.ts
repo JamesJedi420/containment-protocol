@@ -1565,6 +1565,8 @@ export const WELFARE_DEBT_ACCOUNTING_MIRROR_UI_TEXT: Record<string, string> = {
   containmentBenefitPrefix: 'Containment benefit:',
   reviewOwnerPrefix: 'Review owner:',
   mitigationPathPrefix: 'Mitigation path:',
+  factionEthicsProjectionPrefix: 'Permissibility verdict:',
+  accountabilityMatrixProjectionPrefix: 'Outcome summary:',
   validationWarningPrefix: 'Validation warnings:',
   redactedSuffix: 'Partial redaction',
 }

@@ -23,7 +23,9 @@ import {
   formatCoerciveProtocolFactionEthicsCrossLinkLabels,
   formatCoerciveProtocolFactionEthicsProjectionLabels,
   formatCoerciveProtocolWelfareDebtCrossLinkLabels,
+  formatWelfareDebtAccountabilityMatrixProjectionLabels,
   formatWelfareDebtAccountingCrossLinkLabels,
+  formatWelfareDebtFactionEthicsProjectionLabels,
   resolveProcedureRefFromWelfareDebtRecordId,
   resolveSubjectRefFromWelfareDebtRecordId,
 } from '../domain/welfareDebtAccountingCrossLinks'
@@ -542,5 +544,47 @@ describe('welfareDebtAccountingCrossLinks ethics/accountability projection label
       [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
       [PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE.id]: PSYCHIATRIC_REVIEW_PANEL_MATRIX_FIXTURE,
     })).toEqual(['Escalation Required', 'Restricted'])
+  })
+})
+
+describe('welfareDebtAccountingCrossLinks welfare-debt projection labels (SPE-1888 slice 12)', () => {
+  it('returns empty projection labels when matrix maps are absent', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(COERCIVE_RESTRAINT_LEDGER_FIXTURE)
+
+    expect(summary).not.toBeNull()
+    expect(formatWelfareDebtFactionEthicsProjectionLabels(summary!, undefined)).toEqual([])
+    expect(formatWelfareDebtAccountabilityMatrixProjectionLabels(summary!, undefined)).toEqual([])
+  })
+
+  it('surfaces permissibility verdict labels when faction ethics matrix is hydrated', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(COERCIVE_RESTRAINT_LEDGER_FIXTURE, {
+      factionEthicsRecords: {
+        [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      },
+    })
+
+    expect(summary).not.toBeNull()
+    expect(formatWelfareDebtFactionEthicsProjectionLabels(summary!, {})).toEqual([])
+    expect(
+      formatWelfareDebtFactionEthicsProjectionLabels(summary!, {
+        [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+      })
+    ).toEqual(['Escalation Required'])
+  })
+
+  it('surfaces moral/legal outcome summary labels when accountability matrix is hydrated', () => {
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(COERCIVE_RESTRAINT_LEDGER_FIXTURE, {
+      accountabilityMatrixRecords: {
+        [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+      },
+    })
+
+    expect(summary).not.toBeNull()
+    expect(formatWelfareDebtAccountabilityMatrixProjectionLabels(summary!, {})).toEqual([])
+    expect(
+      formatWelfareDebtAccountabilityMatrixProjectionLabels(summary!, {
+        [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+      })
+    ).toEqual(['Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred'])
   })
 })

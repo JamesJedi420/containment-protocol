@@ -596,3 +596,189 @@ export function formatCoerciveProtocolWelfareDebtCrossLinkLabels(
       .sort((left, right) => left.localeCompare(right))
   )
 }
+
+export interface CoerciveProtocolEthicsAccountabilityCrossLinkSummary {
+  readonly factionEthicsLinks: readonly WelfareDebtFactionEthicsCrossLink[]
+  readonly accountabilityMatrixLinks: readonly WelfareDebtAccountabilityMatrixCrossLink[]
+  readonly accountabilityLinkRefs: readonly WelfareDebtAccountabilityLinkRef[]
+}
+
+const EMPTY_COERCIVE_PROTOCOL_ETHICS_ACCOUNTABILITY_SUMMARY: CoerciveProtocolEthicsAccountabilityCrossLinkSummary =
+  Object.freeze({
+    factionEthicsLinks: Object.freeze([]),
+    accountabilityMatrixLinks: Object.freeze([]),
+    accountabilityLinkRefs: Object.freeze([]),
+  })
+
+function mergeFactionEthicsCrossLinks(
+  target: Map<string, WelfareDebtFactionEthicsCrossLink>,
+  links: readonly WelfareDebtFactionEthicsCrossLink[]
+): void {
+  for (const link of links) {
+    const key = `${link.factionEthicsRecordId}:${link.wiredRef}:${link.matchKind}`
+    if (!target.has(key)) {
+      target.set(key, link)
+    }
+  }
+}
+
+function mergeAccountabilityMatrixCrossLinks(
+  target: Map<string, WelfareDebtAccountabilityMatrixCrossLink>,
+  links: readonly WelfareDebtAccountabilityMatrixCrossLink[]
+): void {
+  for (const link of links) {
+    const key = `${link.accountabilityMatrixRecordId}:${link.wiredRef}:${link.matchKind}`
+    if (!target.has(key)) {
+      target.set(key, link)
+    }
+  }
+}
+
+function mergeAccountabilityLinkRefs(
+  target: Map<string, WelfareDebtAccountabilityLinkRef>,
+  refs: readonly WelfareDebtAccountabilityLinkRef[]
+): void {
+  for (const ref of refs) {
+    const key = `${ref.kind}:${ref.wiredRef}`
+    if (!target.has(key)) {
+      target.set(key, ref)
+    }
+  }
+}
+
+function sortFactionEthicsCrossLinks(
+  links: readonly WelfareDebtFactionEthicsCrossLink[]
+): readonly WelfareDebtFactionEthicsCrossLink[] {
+  return Object.freeze(
+    [...links].sort((left, right) => {
+      const wiredCompare = left.wiredRef.localeCompare(right.wiredRef)
+      if (wiredCompare !== 0) {
+        return wiredCompare
+      }
+
+      return left.matchKind.localeCompare(right.matchKind)
+    })
+  )
+}
+
+function sortAccountabilityMatrixCrossLinks(
+  links: readonly WelfareDebtAccountabilityMatrixCrossLink[]
+): readonly WelfareDebtAccountabilityMatrixCrossLink[] {
+  return Object.freeze(
+    [...links].sort((left, right) => {
+      const wiredCompare = left.wiredRef.localeCompare(right.wiredRef)
+      if (wiredCompare !== 0) {
+        return wiredCompare
+      }
+
+      return left.matchKind.localeCompare(right.matchKind)
+    })
+  )
+}
+
+/** Inverse compose: SPE-1047 / SPE-1131 cross-links for one coercive protocol via linked welfare-debt ledger entries (SPE-1882 slice 16). */
+export function composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+  record: CoerciveProtocolRecord,
+  input?: {
+    readonly welfareDebtRecords?: WelfareDebtAccountingRecordsMap | null | undefined
+    readonly factionEthicsRecords?: FactionEthicsMatrixRecordsMap | null | undefined
+    readonly accountabilityMatrixRecords?: MoralLegalAccountabilityMatrixRecordsMap | null | undefined
+  }
+): CoerciveProtocolEthicsAccountabilityCrossLinkSummary {
+  if (!validateCoerciveProtocolRecord(record).valid) {
+    return EMPTY_COERCIVE_PROTOCOL_ETHICS_ACCOUNTABILITY_SUMMARY
+  }
+
+  const protocolId = normalizeToken(record.id)
+  if (!protocolId) {
+    return EMPTY_COERCIVE_PROTOCOL_ETHICS_ACCOUNTABILITY_SUMMARY
+  }
+
+  const welfareDebtLinks = composeWelfareDebtCrossLinksForCoerciveProtocolRecord(record, {
+    welfareDebtRecords: input?.welfareDebtRecords,
+  })
+  if (welfareDebtLinks.length === 0) {
+    return EMPTY_COERCIVE_PROTOCOL_ETHICS_ACCOUNTABILITY_SUMMARY
+  }
+
+  const safeRecords = input?.welfareDebtRecords ?? {}
+  const factionEthicsByKey = new Map<string, WelfareDebtFactionEthicsCrossLink>()
+  const accountabilityMatrixByKey = new Map<string, WelfareDebtAccountabilityMatrixCrossLink>()
+  const accountabilityLinkRefsByKey = new Map<string, WelfareDebtAccountabilityLinkRef>()
+
+  for (const welfareDebtLink of welfareDebtLinks) {
+    const debtRecord = safeRecords[welfareDebtLink.debtRef]
+    if (!debtRecord) {
+      continue
+    }
+
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(debtRecord, {
+      coerciveProtocolRecords: { [protocolId]: record },
+      factionEthicsRecords: input?.factionEthicsRecords,
+      accountabilityMatrixRecords: input?.accountabilityMatrixRecords,
+    })
+    if (!summary) {
+      continue
+    }
+
+    mergeFactionEthicsCrossLinks(factionEthicsByKey, summary.factionEthicsLinks)
+    mergeAccountabilityMatrixCrossLinks(
+      accountabilityMatrixByKey,
+      summary.accountabilityMatrixLinks
+    )
+    mergeAccountabilityLinkRefs(accountabilityLinkRefsByKey, summary.accountabilityLinkRefs)
+  }
+
+  return Object.freeze({
+    factionEthicsLinks: sortFactionEthicsCrossLinks([...factionEthicsByKey.values()]),
+    accountabilityMatrixLinks: sortAccountabilityMatrixCrossLinks([
+      ...accountabilityMatrixByKey.values(),
+    ]),
+    accountabilityLinkRefs: Object.freeze(
+      [...accountabilityLinkRefsByKey.values()].sort((left, right) => {
+        const byKind = left.kind.localeCompare(right.kind)
+        if (byKind !== 0) {
+          return byKind
+        }
+
+        return left.wiredRef.localeCompare(right.wiredRef)
+      })
+    ),
+  })
+}
+
+export function formatCoerciveProtocolFactionEthicsCrossLinkLabels(
+  summary: CoerciveProtocolEthicsAccountabilityCrossLinkSummary
+): readonly string[] {
+  const labels: string[] = []
+
+  for (const link of summary.factionEthicsLinks) {
+    labels.push(link.wiredRef)
+  }
+
+  for (const ref of summary.accountabilityLinkRefs) {
+    if (ref.kind === 'review_owner') {
+      labels.push(`${ref.kind}:${ref.wiredRef}`)
+    }
+  }
+
+  return Object.freeze([...labels].sort((left, right) => left.localeCompare(right)))
+}
+
+export function formatCoerciveProtocolAccountabilityMatrixCrossLinkLabels(
+  summary: CoerciveProtocolEthicsAccountabilityCrossLinkSummary
+): readonly string[] {
+  const labels: string[] = []
+
+  for (const link of summary.accountabilityMatrixLinks) {
+    labels.push(link.wiredRef)
+  }
+
+  for (const ref of summary.accountabilityLinkRefs) {
+    if (ref.kind === 'mitigation_path') {
+      labels.push(`${ref.kind}:${ref.wiredRef}`)
+    }
+  }
+
+  return Object.freeze([...labels].sort((left, right) => left.localeCompare(right)))
+}

@@ -14,7 +14,12 @@ import {
 import { applyWeeklyCoerciveProtocolTick } from '../domain/coerciveContainedPersonProtocolWeeklyOrchestration'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { COERCIVE_RESTRAINT_LEDGER_FIXTURE } from '../domain/welfareDebtAccountingRegistry'
-import { composeWelfareDebtCrossLinksForCoerciveProtocolRecord } from '../domain/welfareDebtAccountingCrossLinks'
+import {
+  composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord,
+  composeWelfareDebtCrossLinksForCoerciveProtocolRecord,
+} from '../domain/welfareDebtAccountingCrossLinks'
+import { ETHICS_REVIEW_BOARD_MATRIX_FIXTURE } from '../domain/factionEthicsMatrixRegistry'
+import { INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE } from '../domain/moralLegalAccountabilityMatrixRegistry'
 import { getCoerciveContainedPersonProtocolMirrorView } from '../features/operations/coerciveContainedPersonProtocolMirrorView'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -313,6 +318,47 @@ describe('advanceWeek coercive protocol records integration (SPE-1882 slice 14)'
     const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
 
     expect(view.summary.welfareDebtLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
+  })
+})
+
+describe('advanceWeek coercive protocol records integration (SPE-1047 / SPE-1131 slice 16)', () => {
+  it('mirror reads faction ethics and accountability cross-links after advanceWeek when matrix maps are hydrated', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 2
+    state.coerciveContainedPersonProtocolRecords = {
+      [ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.id]: ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+    }
+    state.factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    state.accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const debtId = `welfare-debt:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.procedureRef}:${ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE.subjectRef}`
+    const view = getCoerciveContainedPersonProtocolMirrorView(nextState)
+
+    expect(
+      composeEthicsAccountabilityCrossLinksForCoerciveProtocolRecord(
+        ROUTINE_FORCE_GENERALIZED_PROTOCOL_FIXTURE,
+        {
+          welfareDebtRecords: nextState.welfareDebtAccountingRecords,
+          factionEthicsRecords: nextState.factionEthicsRecords,
+          accountabilityMatrixRecords: nextState.accountabilityMatrixRecords,
+        }
+      ).factionEthicsLinks
+    ).toHaveLength(1)
+    expect(view.summary.factionEthicsLinkedRecordCount).toBe(1)
+    expect(view.summary.accountabilityMatrixLinkedRecordCount).toBe(1)
+    expect(view.records[0]?.factionEthicsCrossLinkLabels).toEqual([
+      'faction-ethics:faction-ethics:ethics-review-board-routing',
+    ])
+    expect(view.records[0]?.accountabilityMatrixCrossLinkLabels).toEqual([
+      'accountability-matrix:accountability-matrix:independent-welfare-audit',
+    ])
     expect(view.records[0]?.welfareDebtCrossLinkLabels).toEqual([`welfare-debt:${debtId}`])
   })
 })

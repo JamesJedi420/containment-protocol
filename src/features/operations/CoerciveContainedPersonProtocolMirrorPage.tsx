@@ -70,6 +70,18 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
             value={String(view.summary.welfareDebtLinkedRecordCount)}
           />
           <StatCard
+            label={
+              COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.factionEthicsLinkedRecordsLabel
+            }
+            value={String(view.summary.factionEthicsLinkedRecordCount)}
+          />
+          <StatCard
+            label={
+              COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.accountabilityMatrixLinkedRecordsLabel
+            }
+            value={String(view.summary.accountabilityMatrixLinkedRecordCount)}
+          />
+          <StatCard
             label={COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.weekLabel}
             value={`W${view.summary.week}`}
           />
@@ -241,11 +253,29 @@ export default function CoerciveContainedPersonProtocolMirrorPage() {
                           {record.welfareDebtCrossLinkLabels.join('; ')}
                         </p>
                       ) : null}
+                      {record.factionEthicsCrossLinkLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {
+                            COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.factionEthicsCrossLinkPrefix
+                          }{' '}
+                          {record.factionEthicsCrossLinkLabels.join('; ')}
+                        </p>
+                      ) : null}
+                      {record.accountabilityMatrixCrossLinkLabels.length > 0 ? (
+                        <p className="text-xs opacity-45">
+                          {
+                            COERCIVE_CONTAINED_PERSON_PROTOCOL_MIRROR_UI_TEXT.accountabilityMatrixCrossLinkPrefix
+                          }{' '}
+                          {record.accountabilityMatrixCrossLinkLabels.join('; ')}
+                        </p>
+                      ) : null}
                       {record.medicationRegimenRefLabel === '—' &&
                       record.custodyStatusRefLabel === '—' &&
                       record.procedureRefLabel === '—' &&
                       record.subjectFitValidationRefLabel === '—' &&
-                      record.welfareDebtCrossLinkLabels.length === 0 ? (
+                      record.welfareDebtCrossLinkLabels.length === 0 &&
+                      record.factionEthicsCrossLinkLabels.length === 0 &&
+                      record.accountabilityMatrixCrossLinkLabels.length === 0 ? (
                         <p className="text-xs opacity-45">—</p>
                       ) : null}
                     </td>

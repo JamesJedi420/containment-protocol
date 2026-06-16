@@ -21,6 +21,7 @@ import {
   getProcurementBacklog,
 } from '../../domain/funding'
 import { buildCampaignRulesSummary } from '../../domain/campaignLedger'
+import { generateHubState } from '../../domain/hub/hubState'
 import { EXPEDITION_RECOVERY_MODE_LABELS } from '../../data/expeditionRecoveryCopy'
 import type { GameState } from '../../domain/models'
 import { getProcurementListings } from '../../domain/market'
@@ -201,6 +202,40 @@ export interface FrontDeskStaffingReadinessOpportunityView {
   secondaryLinkLabel?: string
 }
 
+/** SPE-31: deterministic hub opportunity lead from existing hub simulation state. */
+export interface FrontDeskHubOpportunityLeadView {
+  id: string
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  factionId: string
+  confidenceLabel: string
+  statusLabel?: string
+  statusDetail?: string
+  misleading: boolean
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
+/** SPE-31: deterministic hub rumor lead from existing hub simulation state. */
+export interface FrontDeskHubRumorLeadView {
+  id: string
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  confidenceLabel: string
+  misleading: boolean
+  filtered: boolean
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
 /** SPE-31: deterministic hub opportunity derived from existing case region tags and value-stream hints. */
 export interface FrontDeskTagConflictValueStreamOpportunityView {
   id: 'tag-conflict-value-stream'
@@ -249,6 +284,8 @@ export interface FrontDeskHubView {
   procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
   staffingReadinessOpportunity: FrontDeskStaffingReadinessOpportunityView | null
   tagConflictValueStreamOpportunity: FrontDeskTagConflictValueStreamOpportunityView | null
+  hubOpportunityLead: FrontDeskHubOpportunityLeadView | null
+  hubRumorLead: FrontDeskHubRumorLeadView | null
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
@@ -1780,6 +1817,91 @@ export function buildTagConflictValueStreamOpportunityCard(
   return null
 }
 
+function formatHubDistrictLabel(districtKey: string) {
+  return districtKey.replace(/_/g, ' ')
+}
+
+function formatHubConfidenceLabel(confidence: number) {
+  return `${Math.round(confidence * 100)}% confidence`
+}
+
+function hubOpportunityTone(
+  accessState?: 'allowed' | 'blocked' | 'risky' | 'costly',
+  misleading?: boolean
+): FrontDeskNoticeTone {
+  if (accessState === 'blocked') return 'danger'
+  if (accessState === 'risky' || misleading) return 'warning'
+  if (accessState === 'costly') return 'warning'
+  return 'info'
+}
+
+function hubRumorTone(misleading?: boolean, filtered?: boolean): FrontDeskNoticeTone {
+  if (misleading) return 'warning'
+  if (filtered) return 'info'
+  return 'info'
+}
+
+export function buildHubOpportunityLeadCard(game: GameState): FrontDeskHubOpportunityLeadView | null {
+  const hub = generateHubState(game)
+  const opportunity = hub.opportunities[0]
+  if (!opportunity) return null
+
+  const details = uniqueBounded(
+    [
+      `District: ${formatHubDistrictLabel(hub.districtKey)}.`,
+      opportunity.misleading ? 'Signal may be misleading — verify before acting.' : '',
+    ].filter((line) => line.length > 0),
+    MAX_PRESSURE_DETAILS
+  )
+
+  return {
+    id: opportunity.id,
+    title: opportunity.label,
+    summary: opportunity.detail,
+    tone: hubOpportunityTone(opportunity.accessState, opportunity.misleading),
+    factionId: opportunity.factionId,
+    confidenceLabel: formatHubConfidenceLabel(opportunity.confidence),
+    statusLabel: opportunity.accessState,
+    statusDetail: opportunity.accessExplanation,
+    misleading: opportunity.misleading === true,
+    details,
+    primaryHref: APP_ROUTES.factions,
+    primaryLinkLabel: 'Open factions',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
+}
+
+export function buildHubRumorLeadCard(game: GameState): FrontDeskHubRumorLeadView | null {
+  const hub = generateHubState(game)
+  const rumor = hub.rumors[0]
+  if (!rumor) return null
+
+  const details = uniqueBounded(
+    [
+      `District: ${formatHubDistrictLabel(hub.districtKey)}.`,
+      rumor.filtered ? 'Social filtering may be suppressing parts of this lead.' : '',
+      rumor.misleading ? 'Treat as potentially misleading until corroborated.' : '',
+    ].filter((line) => line.length > 0),
+    MAX_PRESSURE_DETAILS
+  )
+
+  return {
+    id: rumor.id,
+    title: rumor.label,
+    summary: rumor.detail,
+    tone: hubRumorTone(rumor.misleading, rumor.filtered),
+    confidenceLabel: formatHubConfidenceLabel(rumor.confidence),
+    misleading: rumor.misleading === true,
+    filtered: rumor.filtered === true,
+    details,
+    primaryHref: APP_ROUTES.factions,
+    primaryLinkLabel: 'Open factions',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
+}
+
 export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const shell = buildShellStatusBarView(game)
   const agency = buildAgencySummary(game)
@@ -1839,6 +1961,8 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
     staffingReadinessOpportunity: buildStaffingReadinessOpportunityCard(game, operationsReport),
     tagConflictValueStreamOpportunity: buildTagConflictValueStreamOpportunityCard(game),
+    hubOpportunityLead: buildHubOpportunityLeadCard(game),
+    hubRumorLead: buildHubRumorLeadCard(game),
     campaignRulesSummary: {
       title: 'Campaign profile & rules ledger',
       headline: rulesSummary.headline,

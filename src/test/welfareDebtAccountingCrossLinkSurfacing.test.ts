@@ -61,6 +61,33 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
     )
   })
 
+  it('formats weekly note content with matrix projection labels when maps are hydrated', () => {
+    const factionEthicsRecords = {
+      [ETHICS_REVIEW_BOARD_MATRIX_FIXTURE.id]: ETHICS_REVIEW_BOARD_MATRIX_FIXTURE,
+    }
+    const accountabilityMatrixRecords = {
+      [INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE.id]: INDEPENDENT_WELFARE_AUDIT_MATRIX_FIXTURE,
+    }
+    const summary = composeWelfareDebtAccountingCrossLinksForRecord(
+      COERCIVE_RESTRAINT_LEDGER_FIXTURE,
+      { factionEthicsRecords, accountabilityMatrixRecords }
+    )
+
+    expect(summary).not.toBeNull()
+    expect(
+      formatWelfareDebtAccountingCrossLinkNoteContent(summary!, {
+        factionEthicsRecords,
+        accountabilityMatrixRecords,
+      })
+    ).toContain('Escalation Required')
+    expect(
+      formatWelfareDebtAccountingCrossLinkNoteContent(summary!, {
+        factionEthicsRecords,
+        accountabilityMatrixRecords,
+      })
+    ).toContain('Moral Blamed')
+  })
+
   it('builds weekly report notes when cross-linked maps coexist', () => {
     const bundles = {
       [INTEGRATED_HEALTH_BUNDLE_WITH_FIELD_LINKS_FIXTURE.id]:
@@ -133,7 +160,12 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
 
     expect(notes).toHaveLength(1)
     expect(notes[0]?.type).toBe('welfare_debt.accounting_cross_link')
-    expect(notes[0]?.content).toBe(formatWelfareDebtAccountingCrossLinkNoteContent(summary!))
+    expect(notes[0]?.content).toBe(
+      formatWelfareDebtAccountingCrossLinkNoteContent(summary!, {
+        factionEthicsRecords,
+        accountabilityMatrixRecords,
+      })
+    )
     expect(notes[0]?.metadata?.crossLinkLabels).toEqual(
       formatWelfareDebtAccountingCrossLinkLabels(summary!)
     )
@@ -142,6 +174,16 @@ describe('welfareDebtAccountingCrossLinkSurfacing (SPE-1888 slice 8)', () => {
         'faction-ethics:faction-ethics:ethics-review-board-routing',
         'accountability-matrix:accountability-matrix:independent-welfare-audit',
       ])
+    )
+    expect(notes[0]?.metadata?.projectionLabels).toEqual(
+      expect.arrayContaining([
+        'Escalation Required',
+        'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred',
+      ])
+    )
+    expect(notes[0]?.content).toContain('Escalation Required')
+    expect(notes[0]?.content).toContain(
+      'Moral Blamed · Legal Deferred · Institutional Blamed · Public Deferred'
     )
   })
 

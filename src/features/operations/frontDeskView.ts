@@ -201,6 +201,21 @@ export interface FrontDeskStaffingReadinessOpportunityView {
   secondaryLinkLabel?: string
 }
 
+/** SPE-31: deterministic hub opportunity derived from existing case region tags and value-stream hints. */
+export interface FrontDeskTagConflictValueStreamOpportunityView {
+  id: 'tag-conflict-value-stream'
+  title: string
+  summary: string
+  tone: FrontDeskNoticeTone
+  conflictLabel: string
+  valueStreamLabel: string
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
 /** SPE-1734: Bounded player-facing readout of the canonical campaign ledger. */
 export interface FrontDeskCampaignRulesSummaryView {
   title: string
@@ -233,6 +248,7 @@ export interface FrontDeskHubView {
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
   procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
   staffingReadinessOpportunity: FrontDeskStaffingReadinessOpportunityView | null
+  tagConflictValueStreamOpportunity: FrontDeskTagConflictValueStreamOpportunityView | null
   campaignRulesSummary: FrontDeskCampaignRulesSummaryView
 }
 
@@ -1687,6 +1703,83 @@ export function buildStaffingReadinessOpportunityCard(
   }
 }
 
+const TAG_CONFLICT_GROUPS: ReadonlyArray<{
+  id: 'authority' | 'criminal' | 'occult' | 'civilian'
+  label: string
+  tags: readonly string[]
+}> = [
+  { id: 'authority', label: 'Authority', tags: ['authority', 'police', 'government', 'institution'] },
+  { id: 'criminal', label: 'Criminal', tags: ['criminal', 'smuggling', 'gang', 'blackmarket'] },
+  { id: 'occult', label: 'Occult', tags: ['occult', 'cult', 'ritual', 'esoteric'] },
+  { id: 'civilian', label: 'Civilian', tags: ['civilian', 'public', 'community', 'witness'] },
+]
+
+const VALUE_STREAM_GROUPS: ReadonlyArray<{ label: string; tags: readonly string[] }> = [
+  { label: 'Public legitimacy', tags: ['public', 'civilian', 'authority', 'community'] },
+  { label: 'Cover integrity', tags: ['covert', 'cover', 'infiltration', 'smuggling'] },
+  { label: 'Funding', tags: ['funding', 'procurement', 'resource', 'supply'] },
+  { label: 'Evidence quality', tags: ['evidence', 'intel', 'signal', 'verification'] },
+  { label: 'Doctrine risk', tags: ['occult', 'cult', 'ritual', 'classified'] },
+]
+
+function hasAnyTag(haystack: readonly string[], needles: readonly string[]) {
+  return needles.some((needle) => haystack.includes(needle))
+}
+
+export function buildTagConflictValueStreamOpportunityCard(
+  game: GameState
+): FrontDeskTagConflictValueStreamOpportunityView | null {
+  const openCases = Object.values(game.cases).filter((currentCase) => currentCase.status !== 'resolved')
+  const casesByRegion = new Map<string, typeof openCases>()
+  for (const currentCase of openCases) {
+    if (!currentCase.regionTag) continue
+    const existing = casesByRegion.get(currentCase.regionTag) ?? []
+    existing.push(currentCase)
+    casesByRegion.set(currentCase.regionTag, existing)
+  }
+
+  const sortedRegions = [...casesByRegion.entries()].sort((left, right) => left[0].localeCompare(right[0]))
+  for (const [regionTag, regionCases] of sortedRegions) {
+    if (regionCases.length < 2) continue
+
+    const mergedTags = [...new Set(regionCases.flatMap((currentCase) => currentCase.tags))].sort((a, b) =>
+      a.localeCompare(b)
+    )
+    const presentGroups = TAG_CONFLICT_GROUPS.filter((group) => hasAnyTag(mergedTags, group.tags))
+    if (presentGroups.length < 2) continue
+
+    const conflictLabel = `${presentGroups[0]!.label} vs ${presentGroups[1]!.label}`
+    const scoredStreams = VALUE_STREAM_GROUPS.map((stream) => ({
+      label: stream.label,
+      score: stream.tags.filter((tag) => mergedTags.includes(tag)).length,
+    })).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label))
+    const valueStreamLabel = scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
+
+    return {
+      id: 'tag-conflict-value-stream',
+      title: 'Town-tag conflict lead requires routing',
+      summary: `${regionTag} carries a deterministic ${conflictLabel.toLowerCase()} tag conflict. Surface it as a ${valueStreamLabel.toLowerCase()} lead before it diffuses into low-signal queue noise.`,
+      tone: presentGroups.length >= 3 ? 'danger' : 'warning',
+      conflictLabel,
+      valueStreamLabel,
+      details: uniqueBounded(
+        [
+          `${pluralize(regionCases.length, 'open case')} share the ${regionTag} region tag.`,
+          `Conflict lane: ${conflictLabel}.`,
+          `Lead value stream: ${valueStreamLabel}.`,
+        ],
+        MAX_PRESSURE_DETAILS
+      ),
+      primaryHref: APP_ROUTES.cases,
+      primaryLinkLabel: 'Open cases',
+      secondaryHref: APP_ROUTES.report,
+      secondaryLinkLabel: 'Open report',
+    }
+  }
+
+  return null
+}
+
 export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
   const shell = buildShellStatusBarView(game)
   const agency = buildAgencySummary(game)
@@ -1745,6 +1838,7 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     ),
     procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
     staffingReadinessOpportunity: buildStaffingReadinessOpportunityCard(game, operationsReport),
+    tagConflictValueStreamOpportunity: buildTagConflictValueStreamOpportunityCard(game),
     campaignRulesSummary: {
       title: 'Campaign profile & rules ledger',
       headline: rulesSummary.headline,

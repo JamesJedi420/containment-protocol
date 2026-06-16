@@ -71,6 +71,34 @@ function withLostAgents(game: GameState, count: number): GameState {
   })
 }
 
+function withTagConflictRegionCases(game: GameState): GameState {
+  const normalized = normalizeGameState({ ...game })
+  const caseIds = Object.keys(normalized.cases).slice(0, 2)
+  if (caseIds.length < 2) {
+    throw new Error('Expected at least two cases in starting state for tag conflict fixture.')
+  }
+  const first = caseIds[0]!
+  const second = caseIds[1]!
+  return normalizeGameState({
+    ...normalized,
+    cases: {
+      ...normalized.cases,
+      [first]: {
+        ...normalized.cases[first]!,
+        status: 'open',
+        regionTag: 'district:river-ward',
+        tags: [...new Set([...(normalized.cases[first]!.tags ?? []), 'authority', 'public'])],
+      },
+      [second]: {
+        ...normalized.cases[second]!,
+        status: 'in_progress',
+        regionTag: 'district:river-ward',
+        tags: [...new Set([...(normalized.cases[second]!.tags ?? []), 'criminal', 'smuggling'])],
+      },
+    },
+  })
+}
+
 describe('FrontDeskPage', () => {
   beforeEach(() => {
     useGameStore.persist.clearStorage()
@@ -213,6 +241,27 @@ describe('FrontDeskPage', () => {
 
     await user.click(within(opportunity).getByRole('link', { name: /open teams/i }))
     expect(screen.getByText(/teams home/i)).toBeInTheDocument()
+  })
+
+  it('renders tag-conflict value-stream opportunity when region-tag conflict signals are present', () => {
+    const game = withTagConflictRegionCases(createStartingState())
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /tag conflict value stream opportunity/i })
+    expect(within(opportunity).getByText(/town-tag conflict lead requires routing/i)).toBeInTheDocument()
+    expect(within(opportunity).getByText(/^value stream:/i)).toBeInTheDocument()
+    expect(within(opportunity).getByRole('link', { name: /open cases/i })).toBeInTheDocument()
+    expect(within(opportunity).getByRole('link', { name: /open report/i })).toBeInTheDocument()
+  })
+
+  it('hides tag-conflict value-stream opportunity when no shared region-tag conflict exists', () => {
+    renderFrontDesk()
+    expect(
+      screen.queryByRole('region', { name: /tag conflict value stream opportunity/i })
+    ).not.toBeInTheDocument()
   })
 
   it('logs the selected front-desk routes once per route signature', async () => {

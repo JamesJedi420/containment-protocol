@@ -22,7 +22,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** Pick next active queue item per `planning/backlog.md` (mission triage full refresh remains blocked).
 
-**Base `main` SHA:** `89cff0a2` — shipped: SPE-1882 forced-isolation / staff-exclusion procedure anchors slice 14 @ `planning/coercive-contained-person-protocol-model-slice-14.md` (PR #2840)
+**Base `main` SHA:** `d9932785` — in progress: SPE-1882 canonical abusive-surveillance fixture compromised-care realignment slice 15 @ `planning/coercive-contained-person-protocol-model-slice-15.md` (branch `spe-1882-coercive-protocol-slice-15`)
 
 **Recently shipped:** SPE-1882 forced-isolation / staff-exclusion procedure anchors slice 14 (PR #2840 @ `df379681`); SPE-1882 compromised-care procedural debt creation wire-up slice 13 (PR #2839 @ `6225a6e5`); SPE-1882 coercive protocol mirror welfare-debt cross-link surfacing slice 12 (PR #2837 @ `052a92f3`).
 

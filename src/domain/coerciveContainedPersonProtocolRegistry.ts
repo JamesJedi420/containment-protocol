@@ -1671,7 +1671,7 @@ export const ABUSIVE_SURVEILLANCE_ISOLATION_PROTOCOL_FIXTURE: CoerciveProtocolRe
   surveillanceBurdenScore: 0.79,
   custodyStatusRef: 'custody-status:former-hostile-hold',
   procedureRef: 'coercive-procedure:abusive-surveillance-isolation',
-  containmentStabilityGain: 0.66,
+  containmentStabilityGain: 0.85,
   personhoodHarmRisk: 0.88,
   trustDamageRisk: 0.84,
   legitimacyRisk: 0.76,

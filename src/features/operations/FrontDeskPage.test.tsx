@@ -12,8 +12,9 @@ import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
 import FrontDeskPage from './FrontDeskPage'
+import { buildTagConflictValueStreamOpportunityCard } from './frontDeskView'
 import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
-import type { GameState, OperationEvent } from '../../domain/models'
+import type { CaseInstance, GameState, OperationEvent } from '../../domain/models'
 
 function renderFrontDesk() {
   return render(
@@ -99,6 +100,114 @@ function withTagConflictRegionCases(game: GameState): GameState {
         regionTag: 'district:river-ward',
         tags: [...new Set([...(normalized.cases[second]!.tags ?? []), 'criminal', 'smuggling'])],
       },
+    },
+  })
+}
+
+function cloneCaseForRegion(
+  template: CaseInstance,
+  id: string,
+  regionTag: string,
+  tags: string[],
+  status: CaseInstance['status'] = 'open'
+): CaseInstance {
+  return {
+    ...template,
+    id,
+    status,
+    regionTag,
+    tags: [...new Set([...template.tags, ...tags])],
+  }
+}
+
+function withRankedMultiRegionTagConflictCases(game: GameState): GameState {
+  const normalized = normalizeGameState({ ...game })
+  const template = normalized.cases['case-001']
+  if (!template) {
+    throw new Error('Expected case-001 in starting state for multi-region tag conflict fixture.')
+  }
+
+  return normalizeGameState({
+    ...normalized,
+    cases: {
+      ...normalized.cases,
+      'case-rank-alpha-a': cloneCaseForRegion(template, 'case-rank-alpha-a', 'district:alpha-ward', [
+        'authority',
+        'public',
+      ]),
+      'case-rank-alpha-b': cloneCaseForRegion(
+        template,
+        'case-rank-alpha-b',
+        'district:alpha-ward',
+        ['criminal', 'smuggling'],
+        'in_progress'
+      ),
+      'case-rank-beta-a': cloneCaseForRegion(template, 'case-rank-beta-a', 'district:beta-ward', [
+        'authority',
+        'public',
+      ]),
+      'case-rank-beta-b': cloneCaseForRegion(
+        template,
+        'case-rank-beta-b',
+        'district:beta-ward',
+        ['criminal', 'smuggling', 'occult', 'ritual'],
+        'in_progress'
+      ),
+      'case-rank-gamma-a': cloneCaseForRegion(template, 'case-rank-gamma-a', 'district:gamma-ward', [
+        'authority',
+        'public',
+      ]),
+      'case-rank-gamma-b': cloneCaseForRegion(
+        template,
+        'case-rank-gamma-b',
+        'district:gamma-ward',
+        ['criminal', 'smuggling'],
+        'in_progress'
+      ),
+      'case-rank-gamma-c': cloneCaseForRegion(
+        template,
+        'case-rank-gamma-c',
+        'district:gamma-ward',
+        ['civilian', 'witness'],
+        'open'
+      ),
+    },
+  })
+}
+
+function withTiedTagConflictRegionCases(game: GameState): GameState {
+  const normalized = normalizeGameState({ ...game })
+  const template = normalized.cases['case-001']
+  if (!template) {
+    throw new Error('Expected case-001 in starting state for tied tag conflict fixture.')
+  }
+
+  return normalizeGameState({
+    ...normalized,
+    cases: {
+      ...normalized.cases,
+      'case-tie-alpha-a': cloneCaseForRegion(template, 'case-tie-alpha-a', 'district:alpha-ward', [
+        'authority',
+        'public',
+      ]),
+      'case-tie-alpha-b': cloneCaseForRegion(
+        template,
+        'case-tie-alpha-b',
+        'district:alpha-ward',
+        ['criminal', 'smuggling'],
+        'in_progress'
+      ),
+      'case-tie-beta-a': cloneCaseForRegion(template, 'case-tie-beta-a', 'district:beta-ward', [
+        'authority',
+        'public',
+      ]),
+      'case-tie-beta-b': cloneCaseForRegion(
+        template,
+        'case-tie-beta-b',
+        'district:beta-ward',
+        ['criminal', 'smuggling'],
+        'in_progress'
+      ),
     },
   })
 }
@@ -296,6 +405,35 @@ describe('FrontDeskPage', () => {
     expect(
       screen.queryByRole('region', { name: /tag conflict value stream opportunity/i })
     ).not.toBeInTheDocument()
+  })
+
+  it('ranks the highest-priority region conflict when multiple regions qualify', () => {
+    const game = withRankedMultiRegionTagConflictCases(createStartingState())
+    const card = buildTagConflictValueStreamOpportunityCard(game)
+
+    expect(card).not.toBeNull()
+    expect(card?.summary).toContain('district:beta-ward')
+    expect(card?.tone).toBe('danger')
+    expect(card?.conflictLabel).toMatch(/authority vs criminal/i)
+  })
+
+  it('breaks equal region conflict scores with a stable region-tag tie-break', () => {
+    const game = withTiedTagConflictRegionCases(createStartingState())
+    const card = buildTagConflictValueStreamOpportunityCard(game)
+
+    expect(card).not.toBeNull()
+    expect(card?.summary).toContain('district:alpha-ward')
+  })
+
+  it('renders the ranked tag-conflict region on the Front Desk surface', () => {
+    const game = withRankedMultiRegionTagConflictCases(createStartingState())
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /tag conflict value stream opportunity/i })
+    expect(within(opportunity).getByText(/district:beta-ward carries a deterministic/i)).toBeInTheDocument()
   })
 
   it('renders hub opportunity and rumor leads when hub simulation output is present', async () => {

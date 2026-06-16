@@ -1763,6 +1763,63 @@ function hasAnyTag(haystack: readonly string[], needles: readonly string[]) {
   return needles.some((needle) => haystack.includes(needle))
 }
 
+type TagConflictRegionCandidate = {
+  regionTag: string
+  regionCases: Array<NonNullable<GameState['cases'][string]>>
+  mergedTags: string[]
+  presentGroups: Array<(typeof TAG_CONFLICT_GROUPS)[number]>
+}
+
+function compareTagConflictRegionCandidates(
+  left: TagConflictRegionCandidate,
+  right: TagConflictRegionCandidate
+) {
+  const groupDelta = right.presentGroups.length - left.presentGroups.length
+  if (groupDelta !== 0) {
+    return groupDelta
+  }
+
+  const caseDelta = right.regionCases.length - left.regionCases.length
+  if (caseDelta !== 0) {
+    return caseDelta
+  }
+
+  return left.regionTag.localeCompare(right.regionTag)
+}
+
+function buildTagConflictValueStreamOpportunityCardFromCandidate(
+  candidate: TagConflictRegionCandidate
+): FrontDeskTagConflictValueStreamOpportunityView {
+  const { regionTag, regionCases, mergedTags, presentGroups } = candidate
+  const conflictLabel = `${presentGroups[0]!.label} vs ${presentGroups[1]!.label}`
+  const scoredStreams = VALUE_STREAM_GROUPS.map((stream) => ({
+    label: stream.label,
+    score: stream.tags.filter((tag) => mergedTags.includes(tag)).length,
+  })).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label))
+  const valueStreamLabel = scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
+
+  return {
+    id: 'tag-conflict-value-stream',
+    title: 'Town-tag conflict lead requires routing',
+    summary: `${regionTag} carries a deterministic ${conflictLabel.toLowerCase()} tag conflict. Surface it as a ${valueStreamLabel.toLowerCase()} lead before it diffuses into low-signal queue noise.`,
+    tone: presentGroups.length >= 3 ? 'danger' : 'warning',
+    conflictLabel,
+    valueStreamLabel,
+    details: uniqueBounded(
+      [
+        `${pluralize(regionCases.length, 'open case')} share the ${regionTag} region tag.`,
+        `Conflict lane: ${conflictLabel}.`,
+        `Lead value stream: ${valueStreamLabel}.`,
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.cases,
+    primaryLinkLabel: 'Open cases',
+    secondaryHref: APP_ROUTES.report,
+    secondaryLinkLabel: 'Open report',
+  }
+}
+
 export function buildTagConflictValueStreamOpportunityCard(
   game: GameState
 ): FrontDeskTagConflictValueStreamOpportunityView | null {
@@ -1775,46 +1832,24 @@ export function buildTagConflictValueStreamOpportunityCard(
     casesByRegion.set(currentCase.regionTag, existing)
   }
 
-  const sortedRegions = [...casesByRegion.entries()].sort((left, right) => left[0].localeCompare(right[0]))
-  for (const [regionTag, regionCases] of sortedRegions) {
-    if (regionCases.length < 2) continue
+  const rankedCandidates = [...casesByRegion.entries()]
+    .filter(([, regionCases]) => regionCases.length >= 2)
+    .map(([regionTag, regionCases]) => {
+      const mergedTags = [...new Set(regionCases.flatMap((currentCase) => currentCase.tags))].sort(
+        (left, right) => left.localeCompare(right)
+      )
+      const presentGroups = TAG_CONFLICT_GROUPS.filter((group) => hasAnyTag(mergedTags, group.tags))
+      return { regionTag, regionCases, mergedTags, presentGroups }
+    })
+    .filter((candidate) => candidate.presentGroups.length >= 2)
+    .sort(compareTagConflictRegionCandidates)
 
-    const mergedTags = [...new Set(regionCases.flatMap((currentCase) => currentCase.tags))].sort((a, b) =>
-      a.localeCompare(b)
-    )
-    const presentGroups = TAG_CONFLICT_GROUPS.filter((group) => hasAnyTag(mergedTags, group.tags))
-    if (presentGroups.length < 2) continue
-
-    const conflictLabel = `${presentGroups[0]!.label} vs ${presentGroups[1]!.label}`
-    const scoredStreams = VALUE_STREAM_GROUPS.map((stream) => ({
-      label: stream.label,
-      score: stream.tags.filter((tag) => mergedTags.includes(tag)).length,
-    })).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label))
-    const valueStreamLabel = scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
-
-    return {
-      id: 'tag-conflict-value-stream',
-      title: 'Town-tag conflict lead requires routing',
-      summary: `${regionTag} carries a deterministic ${conflictLabel.toLowerCase()} tag conflict. Surface it as a ${valueStreamLabel.toLowerCase()} lead before it diffuses into low-signal queue noise.`,
-      tone: presentGroups.length >= 3 ? 'danger' : 'warning',
-      conflictLabel,
-      valueStreamLabel,
-      details: uniqueBounded(
-        [
-          `${pluralize(regionCases.length, 'open case')} share the ${regionTag} region tag.`,
-          `Conflict lane: ${conflictLabel}.`,
-          `Lead value stream: ${valueStreamLabel}.`,
-        ],
-        MAX_PRESSURE_DETAILS
-      ),
-      primaryHref: APP_ROUTES.cases,
-      primaryLinkLabel: 'Open cases',
-      secondaryHref: APP_ROUTES.report,
-      secondaryLinkLabel: 'Open report',
-    }
+  const lead = rankedCandidates[0]
+  if (!lead) {
+    return null
   }
 
-  return null
+  return buildTagConflictValueStreamOpportunityCardFromCandidate(lead)
 }
 
 function formatHubDistrictLabel(districtKey: string) {

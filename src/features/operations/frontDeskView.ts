@@ -54,6 +54,7 @@ import { projectPublicDisclosureSegmentedTrustOutcomeFromGame } from '../../doma
 import { listPendingPublicDisclosurePostureDecisions } from '../../domain/publicDisclosurePostureChoice'
 import { projectConcealmentPendingActivationAttention } from '../../domain/concealmentPendingActivationAttention'
 import { projectInfiltrationPendingEncounterAttention } from '../../domain/infiltrationPendingEncounterAttention'
+import { projectStrategicActionBudget } from '../../domain/strategicActionBudgetProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
 export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
@@ -236,6 +237,22 @@ export interface FrontDeskHubRumorLeadView {
   secondaryLinkLabel: string
 }
 
+/** SPE-31: deterministic hub opportunity derived from strategic-turn support/action capacity. */
+export interface FrontDeskStrategicActionBudgetOpportunityView {
+  id: 'strategic-action-budget'
+  title: string
+  summary: string
+  pressureLaneLabel: string
+  budgetLine: string
+  severityLabel: string
+  tone: FrontDeskNoticeTone
+  details: string[]
+  primaryHref: string
+  primaryLinkLabel: string
+  secondaryHref: string
+  secondaryLinkLabel: string
+}
+
 /** SPE-31: deterministic hub opportunity derived from existing case region tags and value-stream hints. */
 export interface FrontDeskTagConflictValueStreamOpportunityView {
   id: 'tag-conflict-value-stream'
@@ -283,6 +300,7 @@ export interface FrontDeskHubView {
   courierCapacityOpportunity: FrontDeskCourierCapacityOpportunityView | null
   procurementPressureOpportunity: FrontDeskProcurementPressureOpportunityView | null
   staffingReadinessOpportunity: FrontDeskStaffingReadinessOpportunityView | null
+  strategicActionBudgetOpportunity: FrontDeskStrategicActionBudgetOpportunityView | null
   tagConflictValueStreamOpportunity: FrontDeskTagConflictValueStreamOpportunityView | null
   hubOpportunityLead: FrontDeskHubOpportunityLeadView | null
   hubRumorLead: FrontDeskHubRumorLeadView | null
@@ -1820,6 +1838,46 @@ function buildTagConflictValueStreamOpportunityCardFromCandidate(
   }
 }
 
+export function buildStrategicActionBudgetOpportunityCard(
+  game: GameState
+): FrontDeskStrategicActionBudgetOpportunityView | null {
+  const projection = projectStrategicActionBudget(game)
+  if (!projection.constrained || !projection.leadLane) {
+    return null
+  }
+
+  const tone: FrontDeskNoticeTone =
+    projection.deficit >= 2 || projection.totalBudget === 0 ? 'danger' : 'warning'
+  const severityLabel =
+    projection.totalBudget === 0 ? 'Budget exhausted' : projection.deficit >= 2 ? 'Severe shortfall' : 'Constrained'
+
+  return {
+    id: 'strategic-action-budget',
+    title: 'Strategic action budget is constrained',
+    summary: `${projection.leadLane.label} deployments are competing for a support pool that cannot cover every committed field action this week. Re-prioritize before the weekly tick assigns support shortfalls.`,
+    pressureLaneLabel: projection.leadLane.label,
+    budgetLine: `Support pool ${projection.totalBudget} · ${pluralize(projection.committedDemand, 'committed deployment')} · ${pluralize(projection.deficit, 'projected shortfall')}`,
+    severityLabel,
+    tone,
+    details: uniqueBounded(
+      [
+        `Lead pressure lane: ${projection.leadLane.label} (${projection.leadLane.score} deployment${projection.leadLane.score === 1 ? '' : 's'}).`,
+        projection.pressureLanes[1]
+          ? `Next lane: ${projection.pressureLanes[1].label} (${projection.pressureLanes[1].score}).`
+          : '',
+        projection.remainingBudget === 0
+          ? 'No discretionary support remains after committed deployments.'
+          : `${projection.remainingBudget} support unit${projection.remainingBudget === 1 ? '' : 's'} remain before the pool is exhausted.`,
+      ],
+      MAX_PRESSURE_DETAILS
+    ),
+    primaryHref: APP_ROUTES.agency,
+    primaryLinkLabel: 'Open agency',
+    secondaryHref: APP_ROUTES.teams,
+    secondaryLinkLabel: 'Open teams',
+  }
+}
+
 export function buildTagConflictValueStreamOpportunityCard(
   game: GameState
 ): FrontDeskTagConflictValueStreamOpportunityView | null {
@@ -1995,6 +2053,7 @@ export function getFrontDeskHubView(game: GameState): FrontDeskHubView {
     ),
     procurementPressureOpportunity: buildProcurementPressureOpportunityCard(game),
     staffingReadinessOpportunity: buildStaffingReadinessOpportunityCard(game, operationsReport),
+    strategicActionBudgetOpportunity: buildStrategicActionBudgetOpportunityCard(game),
     tagConflictValueStreamOpportunity: buildTagConflictValueStreamOpportunityCard(game),
     hubOpportunityLead: buildHubOpportunityLeadCard(game),
     hubRumorLead: buildHubRumorLeadCard(game),

@@ -20,6 +20,7 @@ import {
   buildCourierNetworkCapacityOpportunityCard,
   buildProcurementPressureOpportunityCard,
   buildStaffingReadinessOpportunityCard,
+  buildStrategicActionBudgetOpportunityCard,
   getFrontDeskBriefingView,
   getFrontDeskHubView,
 } from '../features/operations/frontDeskView'
@@ -455,6 +456,11 @@ describe('SPE-31a hub courier capacity opportunity card', () => {
     })
     expect(card?.details.join(' ')).toContain('Deferred: Test Mission')
     expect(game).toEqual(frozen)
+  })
+
+  it('returns no strategic action budget opportunity when support pool covers deployments', () => {
+    expect(buildStrategicActionBudgetOpportunityCard(createStartingState())).toBeNull()
+    expect(getFrontDeskHubView(createStartingState()).strategicActionBudgetOpportunity).toBeNull()
   })
 
   it('returns null when the courier gap report has no unresolved gap', () => {

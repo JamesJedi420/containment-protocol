@@ -11,8 +11,12 @@ import { getCanonicalFundingState, placeProcurementOrder } from '../../domain/fu
 import { getProcurementListings } from '../../domain/market'
 import { openCourierShellFront } from '../../domain/sim/frontBusiness'
 import { normalizeGameState } from '../../domain/teamSimulation'
+import { assignTeam } from '../../domain/sim/assign'
 import FrontDeskPage from './FrontDeskPage'
-import { buildTagConflictValueStreamOpportunityCard } from './frontDeskView'
+import {
+  buildStrategicActionBudgetOpportunityCard,
+  buildTagConflictValueStreamOpportunityCard,
+} from './frontDeskView'
 import { withPaidCourierAndFunding } from '../../test/fixtures/withPaidCourierAndFunding'
 import type { CaseInstance, GameState, OperationEvent } from '../../domain/models'
 
@@ -232,6 +236,38 @@ function makeStandingEvent(
       reason: 'case.resolved',
     },
   })
+}
+
+function withConstrainedActionBudget(game: GameState): GameState {
+  let state = normalizeGameState({
+    ...game,
+    agency: {
+      ...game.agency!,
+      supportAvailable: 1,
+    },
+  })
+
+  for (const caseId of ['case-001', 'case-002'] as const) {
+    const teamId = caseId === 'case-001' ? 't_nightwatch' : 't_greentape'
+    state = assignTeam(state, caseId, teamId)
+    state = normalizeGameState({
+      ...state,
+      cases: {
+        ...state.cases,
+        [caseId]: {
+          ...state.cases[caseId]!,
+          status: 'in_progress',
+          weeksRemaining: 1,
+          tags:
+            caseId === 'case-001'
+              ? [...state.cases[caseId]!.tags, 'intel', 'evidence']
+              : [...state.cases[caseId]!.tags, 'recon', 'survey'],
+        },
+      },
+    })
+  }
+
+  return state
 }
 
 function withRankedHubFactionSignals(game: GameState): GameState {
@@ -498,6 +534,47 @@ describe('FrontDeskPage', () => {
     expect(
       screen.queryByRole('region', { name: /hub simulation rumor lead/i })
     ).not.toBeInTheDocument()
+  })
+
+  it('renders strategic action budget opportunity when support pool is constrained', async () => {
+    const user = userEvent.setup()
+    const game = withConstrainedActionBudget(createStartingState())
+    const card = buildStrategicActionBudgetOpportunityCard(game)
+
+    expect(card).not.toBeNull()
+    expect(card?.pressureLaneLabel).toBe('Exploration')
+
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    const opportunity = screen.getByRole('region', { name: /strategic action budget opportunity/i })
+    expect(within(opportunity).getByText(/strategic action budget is constrained/i)).toBeInTheDocument()
+    expect(within(opportunity).getByText(/lead lane: exploration/i)).toBeInTheDocument()
+    expect(within(opportunity).getByText(/support pool 1/i)).toBeInTheDocument()
+
+    await user.click(within(opportunity).getByRole('link', { name: /open agency/i }))
+    expect(screen.getByText(/agency home/i)).toBeInTheDocument()
+  })
+
+  it('hides strategic action budget opportunity when support pool covers deployments', () => {
+    renderFrontDesk()
+    expect(
+      screen.queryByRole('region', { name: /strategic action budget opportunity/i })
+    ).not.toBeInTheDocument()
+    expect(buildStrategicActionBudgetOpportunityCard(createStartingState())).toBeNull()
+  })
+
+  it('keeps procurement opportunity behavior unchanged when action budget card is present', () => {
+    const game = withProcurementBacklog(withConstrainedActionBudget(createStartingState()), 1)
+    act(() => {
+      useGameStore.setState({ game })
+    })
+    renderFrontDesk()
+
+    expect(screen.getByRole('region', { name: /strategic action budget opportunity/i })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: /procurement pressure opportunity/i })).toBeInTheDocument()
   })
 
   it('logs the selected front-desk routes once per route signature', async () => {

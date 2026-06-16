@@ -577,6 +577,57 @@ export default function FrontDeskPage() {
             </section>
           ) : null}
 
+          {view.strategicActionBudgetOpportunity ? (
+            <section className="panel space-y-3" aria-label="Strategic action budget opportunity">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold">Action budget opportunity</h2>
+                  <p className="text-xs opacity-60">
+                    Strategic-turn support pool versus committed deployment demand.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full border px-2 py-0.5 text-[11px] ${toneChipClass(view.strategicActionBudgetOpportunity.tone)}`}
+                >
+                  {view.strategicActionBudgetOpportunity.severityLabel}
+                </span>
+              </div>
+              <div
+                className={`rounded border px-3 py-3 space-y-2 ${toneSurfaceClass(view.strategicActionBudgetOpportunity.tone)}`}
+              >
+                <p className="text-sm font-medium">{view.strategicActionBudgetOpportunity.title}</p>
+                <p className="text-sm opacity-80">{view.strategicActionBudgetOpportunity.summary}</p>
+                <p className="text-sm font-semibold text-amber-100/90">
+                  {view.strategicActionBudgetOpportunity.budgetLine}
+                </p>
+                <p className="text-xs uppercase tracking-[0.12em] opacity-70">
+                  Lead lane: {view.strategicActionBudgetOpportunity.pressureLaneLabel}
+                </p>
+                {view.strategicActionBudgetOpportunity.details.length > 0 ? (
+                  <ul className="space-y-1 text-sm opacity-70">
+                    {view.strategicActionBudgetOpportunity.details.map((detail) => (
+                      <li key={detail}>{detail}</li>
+                    ))}
+                  </ul>
+                ) : null}
+                <div className="flex flex-wrap gap-3 pt-1 text-[11px] uppercase tracking-[0.14em]">
+                  <Link
+                    to={view.strategicActionBudgetOpportunity.primaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.strategicActionBudgetOpportunity.primaryLinkLabel}
+                  </Link>
+                  <Link
+                    to={view.strategicActionBudgetOpportunity.secondaryHref}
+                    className="opacity-70 hover:opacity-100"
+                  >
+                    {view.strategicActionBudgetOpportunity.secondaryLinkLabel}
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
           {view.tagConflictValueStreamOpportunity ? (
             <section className="panel space-y-3" aria-label="Tag conflict value stream opportunity">
               <div className="flex flex-wrap items-start justify-between gap-3">

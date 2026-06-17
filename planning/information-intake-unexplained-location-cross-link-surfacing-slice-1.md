@@ -7,7 +7,7 @@ One-page implementation plan. Follow-on from shipped [SPE-2356](https://linear.a
 | **Linear** | [SPE-2472 — Intake ↔ unexplained location cross-link surfacing in triage/report notes (slice 1)](https://linear.app/spectranoir/issue/SPE-2472) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine; registry anchor [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) |
 | **Branch** | `spe-854-intake-unexplained-location-cross-link-surfacing-slice-1`                                                  |
-| **Status** | **In progress** — pre-ship validation green                                                                                         |
+| **Status** | **Shipped** — PR #2863 @ `278ad57c`                                                                                         |
 | **Base `main` SHA** | `9cb520a4`                                                                                          |
 
 ## Goal

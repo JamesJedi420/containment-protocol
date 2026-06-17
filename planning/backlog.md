@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** [SPE-2477](https://linear.app/spectranoir/issue/SPE-2477) disaster playbook wrong-document failure (slice 1) — in progress on branch `spe-75-playbook-wrong-document-failure-slice-1` @ `251c639d`; mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** pick next SPE-75 follow-up child (rights governance, data-pack validation) or backlog grooming when unblocked work is identified; mission triage full refresh remains **blocked**.
+
+**Recently shipped:** [SPE-2477](https://linear.app/spectranoir/issue/SPE-2477) disaster playbook wrong-document failure (slice 1) — deterministic variant discrimination with wrong-document rejection under pressure; branch `spe-75-playbook-wrong-document-failure-slice-1` (PR #2873 @ `7a4fd84c`).
 
 **Recently shipped:** [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) segmented/weighted feedback workflow (slice 1) — deterministic channel scoring/ranking with weights + grouping policy; branch `spe-75-segmented-feedback-workflow-slice-1` (PR #2871 @ `b82bb426`).
 
@@ -32,9 +34,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** SPE-2477 disaster playbook wrong-document failure (slice 1) in progress; remaining SPE-75 follow-ups (rights governance, publish hooks, data-pack validation) deferred per `planning/playbook-wrong-document-failure-slice-1.md` ## Deferred.
+**Next step:** remaining SPE-75 follow-ups (rights governance, publish hooks, data-pack validation) deferred per `planning/playbook-wrong-document-failure-slice-1.md` ## Deferred; mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `251c639d` — post SPE-2476 backlog handoff finalize.
+**Base `main` SHA:** `7a4fd84c` — post SPE-2477 disaster playbook wrong-document failure merge (PR #2873).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 

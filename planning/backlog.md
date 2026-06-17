@@ -18,7 +18,11 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration (slice 1) on branch `spe-854-intake-cross-link-bundle-compose-slice-1`; mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** mission triage full refresh remains **blocked**; pick next SPE-75 follow-up child or backlog grooming when unblocked work is identified.
+
+**Recently shipped:** [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) contribution intake curation pipeline (slice 1) — deterministic submission validation + curation decision envelope (`accepted` / `needs_revision` / `rejected`); branch `spe-75-contribution-intake-curation-pipeline-slice-1` (PR pending).
+
+**Recently shipped:** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration — deterministic four-registry orchestrator over SPE-2354/2355/2356/2358 compose modules; branch `spe-854-intake-cross-link-bundle-compose-slice-1` (PR #2865 @ `3f92bb49`).
 
 **Recently shipped:** [SPE-2472](https://linear.app/spectranoir/issue/SPE-2472) intake ↔ unexplained-location cross-link surfacing — triage chip + weekly report notes; mirror SPE-2471; branch `spe-854-intake-unexplained-location-cross-link-surfacing-slice-1` (PR #2863 @ `278ad57c`).
 
@@ -26,9 +30,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration (slice 1) — compose-only orchestrator boundary documented in `planning/information-intake-cross-link-bundle-compose-slice-1.md`.
+**Next step:** mission triage full refresh remains **blocked**; SPE-75 follow-up children (release packaging, segmented feedback, playbook variants) remain deferred per `planning/contribution-intake-curation-pipeline-slice-1.md`.
 
-**Base `main` SHA:** `3bdff620` — post SPE-2472 unexplained-location surfacing merge (PR #2863) and SPE-31 follow-up sync.
+**Base `main` SHA:** `3f92bb49` — post SPE-2473 intake cross-link bundle compose merge (PR #2865); SPE-2474 branch targets this base.
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -126,6 +130,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 
 | File                                                      | Classification | Notes                                                                                                                                               |
 | --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contribution-intake-curation-pipeline-slice-1.md`          | **Shipped**    | [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) — deterministic contribution submission validation + curation decision baseline under SPE-75; PR pending. |
 | `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
 | `concealment-case-prep-activation-preview-slice.md`       | **Shipped**    | SPE-70 concealment prep activation preview notes; PR #2821 @ `17db4ab2`.                                                                            |
 | `concealment-front-desk-pending-activation-slice.md`      | **Shipped**    | SPE-70 follow-up — Front Desk pending-activation attention; PR #2822 @ `c09addaf`.                                                                  |
@@ -155,7 +160,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-extranormal-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) — surface SPE-2354 compose in triage/report notes; PR #2859 @ `69b3bd99`. |
 | `information-intake-minor-anomaly-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2471](https://linear.app/spectranoir/issue/SPE-2471) — surface SPE-2355 compose in triage/report notes; PR #2861 @ `b2a537d3`. |
 | `information-intake-unexplained-location-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2472](https://linear.app/spectranoir/issue/SPE-2472) — surface SPE-2356 compose in triage/report notes; PR #2863 @ `278ad57c`. |
-| `information-intake-cross-link-bundle-compose-slice-1.md` | **In progress** | [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) — deterministic intake cross-link bundle orchestrator over SPE-2354/2355/2356/2358 compose modules. |
+| `information-intake-cross-link-bundle-compose-slice-1.md` | **Shipped**    | [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) — deterministic intake cross-link bundle orchestrator; PR #2865 @ `3f92bb49`. |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

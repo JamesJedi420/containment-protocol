@@ -18,9 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) modular release packaging and compatibility declarations (slice 1) — `planning/modular-release-packaging-slice-1.md`; branch `spe-75-modular-release-packaging-slice-1`. Mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** mission triage full refresh remains **blocked**; pick next SPE-75 follow-up child (segmented feedback, playbook variants) or backlog grooming when unblocked work is identified.
 
-**Recently shipped:** [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) contribution intake curation pipeline (slice 1) — deterministic submission validation + curation decision envelope (`accepted` / `needs_revision` / `rejected`); branch `spe-75-contribution-intake-curation-pipeline-slice-1` (PR #2867 @ `b44a3781`).
+**Recently shipped:** [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) modular release packaging and compatibility declarations (slice 1) — post-curation release envelope with compatibility surfaces + delivery assumptions; branch `spe-75-modular-release-packaging-slice-1` (PR #2869 @ `d43f07cb`).
 
 **Recently shipped:** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration — deterministic four-registry orchestrator over SPE-2354/2355/2356/2358 compose modules; branch `spe-854-intake-cross-link-bundle-compose-slice-1` (PR #2865 @ `3f92bb49`).
 
@@ -30,9 +30,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) modular release packaging (slice 1) — `planning/modular-release-packaging-slice-1.md`; branch `spe-75-modular-release-packaging-slice-1`. Mission triage full refresh remains **blocked**; remaining SPE-75 follow-ups (segmented feedback, playbook variants) deferred per slice doc.
+**Next step:** mission triage full refresh remains **blocked**; remaining SPE-75 follow-ups (segmented feedback, playbook variants, rights governance) deferred per `planning/modular-release-packaging-slice-1.md`.
 
-**Base `main` SHA:** `b44a3781` — post SPE-2474 backlog handoff finalize.
+**Base `main` SHA:** `d43f07cb` — post SPE-2475 modular release packaging merge (PR #2869).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 

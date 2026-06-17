@@ -45,6 +45,8 @@ Domain playbook baseline: `src/domain/playbookWrongDocumentFailure.ts` (SPE-2477
 - **Branch / PR policy** — small reviewable units; no silent force-push to protected branches.
 - **Noncanonical side-content** — fan mods, unofficial tools, or narrative experiments live **outside** canonical release manifests unless explicitly promoted through intake.
 
+Domain governance baseline: `src/domain/submissionGovernanceRights.ts` (SPE-2478) accepts structured submission governance payloads and emits bounded rights/policy decisions with tier discrimination, license enforcement, and attribution assumptions — no publish side effects.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

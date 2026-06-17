@@ -20,6 +20,7 @@ export const REPORT_NOTE_CATEGORY_LABELS: Record<ReportNoteCategory, string> = {
 const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
   'information_intake.verification',
   'information_intake.naming_hazard_cross_link',
+  'information_intake.extranormal_cross_link',
 ]
 
 const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = [

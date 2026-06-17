@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import { createStarterCase } from '../domain/templates/startingCases'
+import { BRIEF_COVER_UP_EVENT_WITH_CLUSTER } from '../domain/extranormalEventRegistry'
 import {
   FORMAL_ALERT_PARTIAL_FIXTURE,
   IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
@@ -101,6 +102,33 @@ describe('missionTriageIntakeSignalView', () => {
     expect(signals.markers.some((marker) => marker.label === 'Intake: naming hazard')).toBe(true)
     expect(
       signals.markers.find((marker) => marker.label === 'Intake: naming hazard')?.title
+    ).toContain(CANAL_BRIDGE_TOPIC)
+  })
+
+  it('surfaces extranormal cross-link marker when intake and events share topic refs', () => {
+    const state = createStartingState()
+    state.informationIntakeReports = {
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.extranormalEventRecords = {
+      [BRIEF_COVER_UP_EVENT_WITH_CLUSTER.id]: BRIEF_COVER_UP_EVENT_WITH_CLUSTER,
+    }
+
+    const mission = createStarterCase({
+      id: 'case-intake-extranormal-chip',
+      templateId: 'puzzle_whispering_archive',
+      stage: 1,
+    })
+    mission.factionId = undefined
+    mission.tags = [...mission.tags, CANAL_BRIDGE_TOPIC]
+    state.cases[mission.id] = mission
+
+    const signals = buildMissionTriageIntakeSignals(mission, state)
+
+    expect(signals.visible).toBe(true)
+    expect(signals.markers.some((marker) => marker.label === 'Intake: extranormal')).toBe(true)
+    expect(
+      signals.markers.find((marker) => marker.label === 'Intake: extranormal')?.title
     ).toContain(CANAL_BRIDGE_TOPIC)
   })
 

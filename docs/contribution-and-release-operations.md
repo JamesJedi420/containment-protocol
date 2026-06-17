@@ -47,6 +47,12 @@ Domain playbook baseline: `src/domain/playbookWrongDocumentFailure.ts` (SPE-2477
 
 Domain governance baseline: `src/domain/submissionGovernanceRights.ts` (SPE-2478) accepts structured submission governance payloads and emits bounded rights/policy decisions with tier discrimination, license enforcement, and attribution assumptions — no publish side effects.
 
+## Modifiable data packs
+
+Authoring tools and contribution pipelines may ship **modifiable data packs** (tuning tables, reference sheets, doctrine notes) with typed section definitions. Packs must pass schema validation before import — corrupt structure fails safely rather than silently corrupting downstream state.
+
+Domain validation baseline: `src/domain/modifiableDataPackValidation.ts` (SPE-2479) accepts structured modifiable data-pack payloads and emits bounded schema-validation decisions with section-shape checks and borderline schema-version remediation — no publish side effects.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

@@ -7,8 +7,8 @@ One-page implementation plan. Linear: [SPE-2469](https://linear.app/spectranoir/
 | **Linear** | [SPE-2469](https://linear.app/spectranoir/issue/SPE-2469) — Town-first contract generation from civic tag packets |
 | **Parent** | [SPE-31](https://linear.app/spectranoir/issue/SPE-31) |
 | **Branch** | `spe-31-town-first-contract-generation-slice` |
-| **Status** | In progress |
-| **Base `main` SHA** | `3be8987b` |
+| **Status** | Shipped |
+| **Base `main` SHA** | `3be8987b` (PR #2856 @ `4594d231`) |
 
 ## Goal
 
@@ -35,6 +35,10 @@ Derive bounded contract-offer inputs from existing civic/town tag packets withou
 - `src/domain/townContractGeneration.ts` — packet context, value-stream slug, tag merge, selection bias
 - `src/domain/contracts.ts` — hooks in `buildSelectionScore` and `buildContractCaseSkeleton`
 - `src/test/townContractGeneration.test.ts` — unit + integration coverage
+
+## Shipped
+
+PR [#2856](https://github.com/JamesJedi420/containment-protocol/pull/2856) @ `4594d231`. Child [SPE-2469](https://linear.app/spectranoir/issue/SPE-2469) **Done** on Linear.
 
 ## Deferred
 

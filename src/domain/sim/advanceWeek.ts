@@ -317,6 +317,7 @@ import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestratio
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { buildWeeklyIntakeExtranormalCrossLinkReportNotes } from '../informationIntakeExtranormalCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeMinorAnomalyCrossLinkReportNotes } from '../informationIntakeMinorAnomalyCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyWelfareDebtAccountingCrossLinkReportNotes } from '../welfareDebtAccountingCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4786,6 +4787,34 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...extranormalCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 slice 1: surface intake ↔ minor anomaly item cross-link labels in weekly report notes.
+  const nextMinorAnomalyItemsForCrossLink = outputWeeklyState.minorAnomalyItemRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextMinorAnomalyItemsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const minorAnomalyCrossLinkNotes = buildWeeklyIntakeMinorAnomalyCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextItems: nextMinorAnomalyItemsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (minorAnomalyCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...minorAnomalyCrossLinkNotes],
       }
       result.reports = reports
     }

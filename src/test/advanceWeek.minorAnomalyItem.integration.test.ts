@@ -1,10 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  CANAL_BRIDGE_MINOR_ITEM_FIXTURE,
   DISPOSITION_CHAIN_ITEM_FIXTURE,
   FALSE_POSITIVE_ITEM_FIXTURE,
   type MinorAnomalyRecord,
 } from '../domain/minorAnomalyItemRegistry'
+import {
+  FORMAL_ALERT_PARTIAL_FIXTURE,
+  IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+  PUBLIC_RUMOR_CONFLICT_FIXTURE,
+} from '../domain/informationIntakeReport'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -106,5 +112,31 @@ describe('advanceWeek minor anomaly item disposition integration (SPE-2104 slice
     expect(nextState.minorAnomalyItemRecords?.[FALSE_POSITIVE_ITEM_FIXTURE.id]).toEqual(
       FALSE_POSITIVE_ITEM_FIXTURE
     )
+  })
+})
+
+describe('advanceWeek minor anomaly intake cross-link surfacing (slice 1)', () => {
+  it('surfaces intake minor anomaly cross-link notes when linked fixtures coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.informationIntakeReports = {
+      [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+      [PUBLIC_RUMOR_CONFLICT_FIXTURE.id]: PUBLIC_RUMOR_CONFLICT_FIXTURE,
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.minorAnomalyItemRecords = {
+      [CANAL_BRIDGE_MINOR_ITEM_FIXTURE.id]: CANAL_BRIDGE_MINOR_ITEM_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const crossLinkNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'information_intake.minor_anomaly_cross_link'
+      ) ?? []
+
+    expect(crossLinkNotes.length).toBeGreaterThan(0)
+    expect(crossLinkNotes[0]?.content).toContain('Intake cross-link')
+    expect(crossLinkNotes[0]?.content).toContain('topic:canal-bridge-incident')
   })
 })

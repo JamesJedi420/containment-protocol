@@ -1,3 +1,4 @@
+import { listMissionIntakeExtranormalCrossLinkSummaries } from '../../domain/informationIntakeExtranormalCrossLinkSurfacing'
 import { listMissionIntakeNamingHazardCrossLinkSummaries } from '../../domain/informationIntakeNamingHazardCrossLinkSurfacing'
 import { deriveMissionIntakeInformationSignals } from '../../domain/missionIntakeInformationRouting'
 import type { CaseInstance, GameState } from '../../domain/models'
@@ -23,6 +24,7 @@ const INTAKE_REASON_PRIORITY: readonly string[] = [
   'intake-verification-corroborated',
   'intake-linked-reports',
   'intake-naming-hazard-cross-link',
+  'intake-extranormal-cross-link',
 ]
 
 const INTAKE_REASON_PRIORITY_INDEX = new Map(
@@ -72,6 +74,8 @@ function intakeChipLabel(reasonCode: string): string {
       return 'Intake: linked'
     case 'intake-naming-hazard-cross-link':
       return 'Intake: naming hazard'
+    case 'intake-extranormal-cross-link':
+      return 'Intake: extranormal'
     default:
       if (reasonCode.startsWith('intake-coverage-')) {
         return 'Intake: coverage gap'
@@ -101,6 +105,8 @@ function intakeChipTitle(reasonCode: string, linkedReportCount: number): string 
       return `${linkedReportCount} information intake report${linkedReportCount === 1 ? '' : 's'} linked to this mission.`
     case 'intake-naming-hazard-cross-link':
       return 'Linked intake reports share topic refs with naming-hazard descriptors.'
+    case 'intake-extranormal-cross-link':
+      return 'Linked intake reports share topic refs with extranormal event records.'
     default:
       if (reasonCode.startsWith('intake-coverage-')) {
         return 'Linked intake coverage band adjusts triage priority.'
@@ -120,6 +126,7 @@ function intakeChipClassName(reasonCode: string): string {
       return MARKER_STYLES.incomplete
     case 'intake-linked-reports':
     case 'intake-naming-hazard-cross-link':
+    case 'intake-extranormal-cross-link':
       return MARKER_STYLES.linked
     default:
       return MARKER_STYLES.default
@@ -152,14 +159,22 @@ export function buildMissionTriageIntakeSignals(
   }
 
   const signals = deriveMissionIntakeInformationSignals(game, resolvedCase)
-  const crossLinkSummaries = listMissionIntakeNamingHazardCrossLinkSummaries({
+  const namingHazardCrossLinkSummaries = listMissionIntakeNamingHazardCrossLinkSummaries({
     reports: game.informationIntakeReports,
     descriptors: game.namingHazardDescriptorRecords,
     currentCase: resolvedCase,
   })
+  const extranormalCrossLinkSummaries = listMissionIntakeExtranormalCrossLinkSummaries({
+    reports: game.informationIntakeReports,
+    events: game.extranormalEventRecords,
+    currentCase: resolvedCase,
+  })
   const reasonCodes = [...signals.reasonCodes]
-  if (crossLinkSummaries.length > 0) {
+  if (namingHazardCrossLinkSummaries.length > 0) {
     reasonCodes.push('intake-naming-hazard-cross-link')
+  }
+  if (extranormalCrossLinkSummaries.length > 0) {
+    reasonCodes.push('intake-extranormal-cross-link')
   }
 
   if (reasonCodes.length === 0) {
@@ -175,10 +190,14 @@ export function buildMissionTriageIntakeSignals(
 
     const title =
       reasonCode === 'intake-naming-hazard-cross-link'
-        ? crossLinkSummaries
+        ? namingHazardCrossLinkSummaries
             .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedDescriptorCount})`)
             .join('; ')
-        : intakeChipTitle(reasonCode, signals.linkedReportCount)
+        : reasonCode === 'intake-extranormal-cross-link'
+          ? extranormalCrossLinkSummaries
+              .map((summary) => `${summary.topicRef} (${summary.linkedReportCount}/${summary.linkedEventCount})`)
+              .join('; ')
+          : intakeChipTitle(reasonCode, signals.linkedReportCount)
 
     pushMarker(markers, {
       id: reasonCode,

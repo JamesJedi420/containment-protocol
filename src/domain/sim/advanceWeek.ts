@@ -316,6 +316,7 @@ import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentCompliance
 import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
+import { buildWeeklyIntakeExtranormalCrossLinkReportNotes } from '../informationIntakeExtranormalCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyWelfareDebtAccountingCrossLinkReportNotes } from '../welfareDebtAccountingCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4757,6 +4758,34 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...crossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 / SPE-2470 slice 1: surface intake ↔ extranormal event cross-link labels in weekly report notes.
+  const nextExtranormalEventsForCrossLink = outputWeeklyState.extranormalEventRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextExtranormalEventsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const extranormalCrossLinkNotes = buildWeeklyIntakeExtranormalCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextEvents: nextExtranormalEventsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (extranormalCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...extranormalCrossLinkNotes],
       }
       result.reports = reports
     }

@@ -4,6 +4,11 @@ import {
   BRIEF_COVER_UP_EVENT_FIXTURE,
   BRIEF_COVER_UP_EVENT_WITH_CLUSTER,
 } from '../domain/extranormalEventRegistry'
+import {
+  FORMAL_ALERT_PARTIAL_FIXTURE,
+  IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+  PUBLIC_RUMOR_CONFLICT_FIXTURE,
+} from '../domain/informationIntakeReport'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
@@ -74,5 +79,31 @@ describe('advanceWeek extranormal event monitoring integration (SPE-2105 slice 3
     expect(event?.monitoringUntilWeek).toBeUndefined()
     expect(event?.similarEventCluster).toEqual(BRIEF_COVER_UP_EVENT_WITH_CLUSTER.similarEventCluster)
     expect(event?.observerClassTags).toEqual(BRIEF_COVER_UP_EVENT_WITH_CLUSTER.observerClassTags)
+  })
+})
+
+describe('advanceWeek extranormal intake cross-link surfacing (SPE-2470 slice 1)', () => {
+  it('surfaces intake extranormal cross-link notes when linked fixtures coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.informationIntakeReports = {
+      [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+      [PUBLIC_RUMOR_CONFLICT_FIXTURE.id]: PUBLIC_RUMOR_CONFLICT_FIXTURE,
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.extranormalEventRecords = {
+      [BRIEF_COVER_UP_EVENT_WITH_CLUSTER.id]: BRIEF_COVER_UP_EVENT_WITH_CLUSTER,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const crossLinkNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'information_intake.extranormal_cross_link'
+      ) ?? []
+
+    expect(crossLinkNotes.length).toBeGreaterThan(0)
+    expect(crossLinkNotes[0]?.content).toContain('Intake cross-link')
+    expect(crossLinkNotes[0]?.content).toContain('topic:canal-bridge-incident')
   })
 })

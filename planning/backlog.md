@@ -18,15 +18,17 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** Pick next slice from open parent grooming or roadmap §14 — mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** Pick next §14-pass candidate from `planning/scope-discipline-grooming-pass.md` — intake ↔ minor anomaly or unexplained-location cross-link surfacing (compose shipped); mission triage full refresh remains **blocked**.
+
+**Recently shipped:** [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) intake ↔ extranormal cross-link surfacing — triage chip + weekly report notes; mirror SPE-2406; branch `spe-854-intake-extranormal-cross-link-surfacing-slice-1` (PR pending).
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Pick next unblocked slice from `planning/scope-discipline-grooming-pass.md` or open parent backlog — mission triage full refresh remains **blocked**.
+**Next step:** Intake ↔ minor anomaly or unexplained-location cross-link surfacing — compose shipped ([SPE-2355](https://linear.app/spectranoir/issue/SPE-2355), [SPE-2356](https://linear.app/spectranoir/issue/SPE-2356)); mirror `planning/information-intake-extranormal-cross-link-surfacing-slice-1.md` pattern.
 
-**Base `main` SHA:** `dd80cb5d` — shipped: [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent reconciliation @ `planning/spe-31-parent-reconciliation-slice.md` (docs-only hygiene)
+**Base `main` SHA:** `236499f7` — post SPE-2470 slice (PR pending).
 
-**Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — children SPE-2465–SPE-2469 + SPE-31a; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md`; [SPE-2469](https://linear.app/spectranoir/issue/SPE-2469) town-first contract generation (PR #2856 @ `4594d231`).
+**Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
 **Recently shipped:** SPE-1047 / SPE-1131 coercive protocol mirror ethics projection labels slice 17 (PR #2843 @ `b6e0f649`); SPE-1047 / SPE-1131 coercive protocol mirror ethics + accountability cross-links slice 16 (PR #2842 @ `5535d356`); SPE-1882 canonical abusive-surveillance fixture compromised-care realignment slice 15 (PR #2841 @ `416f9260`).
 
@@ -147,7 +149,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |
 | `infiltration-encounter-content-slice-3.md`               | **Shipped**    | SPE-2305 / PR #2473; optional report encounter copy depth.                                                                                          |
 | `infiltration-encounter-content-batch4plus-audit.md`      | **Audit**      | SPE-2250 batch-4+ deferral; no eligible templates (June 2026).                                                                                        |
-| `scope-discipline-grooming-pass.md`                       | **Audit**      | Roadmap §15 grooming (June 2026); handoff + §14 next-step record.                                                                                      |
+| `scope-discipline-grooming-pass.md`                       | **Audit**      | Roadmap §15 grooming (June 2026); handoff + §14 next-step record; refreshed @ `236499f7`.                                                                                      |
+| `information-intake-extranormal-cross-link-surfacing-slice-1.md` | **In progress** | [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) — surface SPE-2354 compose in triage/report notes; PR pending. |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

@@ -31,6 +31,8 @@ Different artifact types (domain templates, UX specs, tuning tables, binaries if
 
 Separate **bug reports**, **balance discussion**, **security disclosures**, and **RFC-style design feedback** so triage stays deterministic and low-noise.
 
+Domain feedback baseline: `src/domain/segmentedFeedbackWorkflow.ts` (SPE-2476) accepts structured channel payloads and emits weighted ranking decisions with channel-type discrimination and grouping policy — no publish side effects.
+
 ## Submission governance
 
 - **Required metadata** — issue link, scope statement, test evidence for code.

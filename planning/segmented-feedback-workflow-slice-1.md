@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2476](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2476 — Segmented/weighted feedback workflow (slice 1)](https://linear.app/spectranoir/issue/SPE-2476) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent remains open for deferred follow-ups |
 | **Branch** | `spe-75-segmented-feedback-workflow-slice-1` |
 | **Base `main` SHA** | `7d72f39c` |

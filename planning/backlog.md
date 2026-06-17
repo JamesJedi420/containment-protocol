@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (in progress):** [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) segmented/weighted feedback workflow (slice 1) — deterministic channel scoring/ranking; branch `spe-75-segmented-feedback-workflow-slice-1` @ `7d72f39c`.
+**Next implementation (unblocked):** mission triage full refresh remains **blocked**; pick next SPE-75 follow-up child (playbook variants, rights governance) or backlog grooming when unblocked work is identified.
+
+**Recently shipped:** [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) segmented/weighted feedback workflow (slice 1) — deterministic channel scoring/ranking with weights + grouping policy; branch `spe-75-segmented-feedback-workflow-slice-1` (PR #2871 @ `b82bb426`).
 
 **Recently shipped:** [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) modular release packaging and compatibility declarations (slice 1) — post-curation release envelope with compatibility surfaces + delivery assumptions; branch `spe-75-modular-release-packaging-slice-1` (PR #2869 @ `d43f07cb`).
 
@@ -30,9 +32,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) segmented/weighted feedback workflow (slice 1) — `planning/segmented-feedback-workflow-slice-1.md`; branch `spe-75-segmented-feedback-workflow-slice-1`; base `main` @ `7d72f39c`.
+**Next step:** mission triage full refresh remains **blocked**; remaining SPE-75 follow-ups (playbook variants, rights governance, publish hooks) deferred per `planning/segmented-feedback-workflow-slice-1.md` ## Deferred.
 
-**Remaining SPE-75 follow-ups:** playbook variants, rights governance per `planning/segmented-feedback-workflow-slice-1.md` ## Deferred.
+**Base `main` SHA:** `b82bb426` — post SPE-2476 segmented feedback workflow merge (PR #2871).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -194,7 +196,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `minor-anomaly-item-registry-slice-2.md`                  | **Shipped**    | SPE-2314 / PR #2492; `minorAnomalyItemRecords` GameState persistence.                                                                               |
 | `minor-anomaly-item-registry-slice-3.md`                  | **Shipped**    | SPE-2316 / PR #2496 — weekly disposition/custody advance hook for SPE-2104.                                                                         |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
-| `segmented-feedback-workflow-slice-1.md`                  | **In Progress** | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; branch `spe-75-segmented-feedback-workflow-slice-1` @ `7d72f39c`. |
+| `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |
 | `self-censoring-information-registry-slice-2.md`          | **Shipped**    | SPE-2318 / PR #2500; `selfCensoringInformationRecords` GameState persistence.                                                                        |
 | `self-censoring-information-registry-slice-3.md`          | **Shipped**    | SPE-2324 / PR #2515; weekly retention-decay expiry + rediscovery due-week advance hook.                                                              |

@@ -7,7 +7,7 @@ One-page implementation plan. Follow-on from shipped [SPE-2355](https://linear.a
 | **Linear** | [SPE-2471 — Intake ↔ minor anomaly item cross-link surfacing in triage/report notes (slice 1)](https://linear.app/spectranoir/issue/SPE-2471) |
 | **Parent** | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) — Information intake and verification engine; registry anchor [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) |
 | **Branch** | `spe-854-intake-minor-anomaly-cross-link-surfacing-slice-1`                                                  |
-| **Status** | **Ready for PR**                                                                                         |
+| **Status** | **Shipped** — PR #2861 @ `b2a537d3`                                                                                         |
 | **Base `main` SHA** | `69b3bd99`                                                                                          |
 
 ## Goal

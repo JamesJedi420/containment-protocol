@@ -61,7 +61,7 @@ Deterministic compose helper linking persisted `informationIntakeReports` to `un
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Cross-link surfacing in triage / report notes | SPE-854 or UX owner | Out of compose-only boundary |
+| Cross-link surfacing in triage / report notes | SPE-2472 | Shipped in sibling surfacing slice — see `planning/information-intake-unexplained-location-cross-link-surfacing-slice-1.md` |
 | SPE-1464 branch validation follow-up | SPE-1464 | Separate backlog option |
 | Naming-hazard descriptor registry persistence (slice 2) | SPE-2116 | Sibling registry persistence path |
 

@@ -1,11 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import { createStartingState } from '../data/startingState'
 import {
+  FORMAL_ALERT_PARTIAL_FIXTURE,
+  IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+  PUBLIC_RUMOR_CONFLICT_FIXTURE,
+} from '../domain/informationIntakeReport'
+import { advanceWeek } from '../domain/sim/advanceWeek'
+import {
   LIFECYCLE_CHAIN_LOCATION_FIXTURE,
   REMOTE_MONITOR_SITE_FIXTURE,
+  CANAL_BRIDGE_LOCATION_FIXTURE,
   type UnexplainedLocationRecord,
 } from '../domain/unexplainedLocationRegistry'
-import { advanceWeek } from '../domain/sim/advanceWeek'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -113,5 +119,31 @@ describe('advanceWeek unexplained location lifecycle integration (SPE-2106 slice
     expect(nextState.unexplainedLocationRecords?.[REMOTE_MONITOR_SITE_FIXTURE.id]).toEqual(
       REMOTE_MONITOR_SITE_FIXTURE
     )
+  })
+})
+
+describe('advanceWeek unexplained location intake cross-link surfacing (slice 1)', () => {
+  it('surfaces intake unexplained location cross-link notes when linked fixtures coexist', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.informationIntakeReports = {
+      [IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE.id]: IMPOSSIBLE_ARCHIVED_SIGNATURE_FIXTURE,
+      [PUBLIC_RUMOR_CONFLICT_FIXTURE.id]: PUBLIC_RUMOR_CONFLICT_FIXTURE,
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.unexplainedLocationRecords = {
+      [CANAL_BRIDGE_LOCATION_FIXTURE.id]: CANAL_BRIDGE_LOCATION_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const weeklyReport = nextState.reports[nextState.reports.length - 1]
+    const crossLinkNotes =
+      weeklyReport?.notes?.filter(
+        (note) => note.type === 'information_intake.unexplained_location_cross_link'
+      ) ?? []
+
+    expect(crossLinkNotes.length).toBeGreaterThan(0)
+    expect(crossLinkNotes[0]?.content).toContain('Intake cross-link')
+    expect(crossLinkNotes[0]?.content).toContain('topic:canal-bridge-incident')
   })
 })

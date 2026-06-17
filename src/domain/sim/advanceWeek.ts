@@ -318,6 +318,7 @@ import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCo
 import { buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes } from '../coerciveProtocolIntegratedHealthCrossReconciliationWeeklyReportNotes'
 import { buildWeeklyIntakeExtranormalCrossLinkReportNotes } from '../informationIntakeExtranormalCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeMinorAnomalyCrossLinkReportNotes } from '../informationIntakeMinorAnomalyCrossLinkWeeklyReportNotes'
+import { buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes } from '../informationIntakeUnexplainedLocationCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeNamingHazardCrossLinkReportNotes } from '../informationIntakeNamingHazardCrossLinkWeeklyReportNotes'
 import { buildWeeklyWelfareDebtAccountingCrossLinkReportNotes } from '../welfareDebtAccountingCrossLinkWeeklyReportNotes'
 import { buildWeeklyIntakeVerificationReportNotes } from '../informationIntakeWeeklyReportNotes'
@@ -4815,6 +4816,34 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       reports[lastReportIndex] = {
         ...lastReport,
         notes: [...(lastReport.notes ?? []), ...minorAnomalyCrossLinkNotes],
+      }
+      result.reports = reports
+    }
+  }
+
+  // SPE-854 slice 1: surface intake ↔ unexplained location cross-link labels in weekly report notes.
+  const nextUnexplainedLocationsForCrossLink = outputWeeklyState.unexplainedLocationRecords ?? {}
+  if (
+    Object.keys(nextIntakeReportsForCrossLink).length > 0 &&
+    Object.keys(nextUnexplainedLocationsForCrossLink).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const unexplainedLocationCrossLinkNotes = buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes({
+      nextReports: nextIntakeReportsForCrossLink,
+      nextLocations: nextUnexplainedLocationsForCrossLink,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (unexplainedLocationCrossLinkNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...unexplainedLocationCrossLinkNotes],
       }
       result.reports = reports
     }

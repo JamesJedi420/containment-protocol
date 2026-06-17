@@ -60,6 +60,7 @@ const EXPECTED_CATEGORY_BY_TYPE = {
   'information_intake.naming_hazard_cross_link': 'information_intake',
   'information_intake.extranormal_cross_link': 'information_intake',
   'information_intake.minor_anomaly_cross_link': 'information_intake',
+  'information_intake.unexplained_location_cross_link': 'information_intake',
   'welfare_debt.accounting_cross_link': 'system',
   'coercive_protocol.integrated_health_reconciliation': 'system',
   'post_incident_review.follow_on': 'post_incident_review',

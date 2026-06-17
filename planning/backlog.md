@@ -18,7 +18,7 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** Bundle compose chain integration (SPE-854 follow-up); mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration (slice 1) on branch `spe-854-intake-cross-link-bundle-compose-slice-1`; mission triage full refresh remains **blocked**.
 
 **Recently shipped:** [SPE-2472](https://linear.app/spectranoir/issue/SPE-2472) intake ↔ unexplained-location cross-link surfacing — triage chip + weekly report notes; mirror SPE-2471; branch `spe-854-intake-unexplained-location-cross-link-surfacing-slice-1` (PR #2863 @ `278ad57c`).
 
@@ -26,9 +26,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Bundle compose chain integration (SPE-854 follow-up) — out of surfacing boundary; see `planning/information-intake-unexplained-location-cross-link-surfacing-slice-1.md` deferred table.
+**Next step:** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration (slice 1) — compose-only orchestrator boundary documented in `planning/information-intake-cross-link-bundle-compose-slice-1.md`.
 
-**Base `main` SHA:** `278ad57c` — post SPE-2472 unexplained-location surfacing merge (PR #2863).
+**Base `main` SHA:** `3bdff620` — post SPE-2472 unexplained-location surfacing merge (PR #2863) and SPE-31 follow-up sync.
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -155,6 +155,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `information-intake-extranormal-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) — surface SPE-2354 compose in triage/report notes; PR #2859 @ `69b3bd99`. |
 | `information-intake-minor-anomaly-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2471](https://linear.app/spectranoir/issue/SPE-2471) — surface SPE-2355 compose in triage/report notes; PR #2861 @ `b2a537d3`. |
 | `information-intake-unexplained-location-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2472](https://linear.app/spectranoir/issue/SPE-2472) — surface SPE-2356 compose in triage/report notes; PR #2863 @ `278ad57c`. |
+| `information-intake-cross-link-bundle-compose-slice-1.md` | **In progress** | [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) — deterministic intake cross-link bundle orchestrator over SPE-2354/2355/2356/2358 compose modules. |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** pick next SPE-75 follow-up child (publish hooks, data-pack validation) or backlog grooming when unblocked work is identified; mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** SPE-75 publish-hooks follow-up child or backlog grooming when unblocked work is identified; mission triage full refresh remains **blocked**.
+
+**In progress:** [SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) modifiable data pack safe-fail validation (slice 1) — deterministic schema-validation envelope under SPE-75; branch `spe-75-modifiable-data-pack-validation-slice-1` @ `940b27b2`.
 
 **Recently shipped:** [SPE-2478](https://linear.app/spectranoir/issue/SPE-2478) submission governance and rights policy enforcement (slice 1) — deterministic rights tier discrimination with license/attribution policy; branch `spe-75-submission-governance-rights-slice-1` (PR #2875 @ `ad8f566e`).
 
@@ -36,9 +38,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** remaining SPE-75 follow-ups (publish hooks, data-pack validation) deferred per `planning/submission-governance-rights-slice-1.md` ## Deferred; mission triage full refresh remains **blocked**.
+**Next step:** remaining SPE-75 follow-up (publish hooks) deferred per `planning/modifiable-data-pack-validation-slice-1.md` ## Deferred; mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `ad8f566e` — post SPE-2478 submission governance and rights policy enforcement merge (PR #2875).
+**Base `main` SHA:** `940b27b2` — pre SPE-2479 modifiable data pack safe-fail validation slice.
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -199,6 +201,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `minor-anomaly-item-registry-slice-1.md`                  | **Shipped**    | SPE-2104 / PR #2428; low-priority item intake schema.                                                                                               |
 | `minor-anomaly-item-registry-slice-2.md`                  | **Shipped**    | SPE-2314 / PR #2492; `minorAnomalyItemRecords` GameState persistence.                                                                               |
 | `minor-anomaly-item-registry-slice-3.md`                  | **Shipped**    | SPE-2316 / PR #2496 — weekly disposition/custody advance hook for SPE-2104.                                                                         |
+| `modifiable-data-pack-validation-slice-1.md`              | **In Progress** | [SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) — deterministic modifiable data-pack schema validation under SPE-75; branch `spe-75-modifiable-data-pack-validation-slice-1` @ `940b27b2`. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
 | `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |

@@ -20,7 +20,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next implementation (unblocked):** mission triage full refresh remains **blocked**; pick next SPE-75 follow-up child or backlog grooming when unblocked work is identified.
 
-**Recently shipped:** [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) contribution intake curation pipeline (slice 1) — deterministic submission validation + curation decision envelope (`accepted` / `needs_revision` / `rejected`); branch `spe-75-contribution-intake-curation-pipeline-slice-1` (PR pending).
+**Recently shipped:** [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) contribution intake curation pipeline (slice 1) — deterministic submission validation + curation decision envelope (`accepted` / `needs_revision` / `rejected`); branch `spe-75-contribution-intake-curation-pipeline-slice-1` (PR #2867 @ `895fdc42`).
 
 **Recently shipped:** [SPE-2473](https://linear.app/spectranoir/issue/SPE-2473) intake cross-link bundle compose chain integration — deterministic four-registry orchestrator over SPE-2354/2355/2356/2358 compose modules; branch `spe-854-intake-cross-link-bundle-compose-slice-1` (PR #2865 @ `3f92bb49`).
 
@@ -32,7 +32,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** mission triage full refresh remains **blocked**; SPE-75 follow-up children (release packaging, segmented feedback, playbook variants) remain deferred per `planning/contribution-intake-curation-pipeline-slice-1.md`.
 
-**Base `main` SHA:** `3f92bb49` — post SPE-2473 intake cross-link bundle compose merge (PR #2865); SPE-2474 branch targets this base.
+**Base `main` SHA:** `895fdc42` — post SPE-2474 contribution intake curation merge (PR #2867).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -130,7 +130,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 
 | File                                                      | Classification | Notes                                                                                                                                               |
 | --------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `contribution-intake-curation-pipeline-slice-1.md`          | **Shipped**    | [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) — deterministic contribution submission validation + curation decision baseline under SPE-75; PR pending. |
+| `contribution-intake-curation-pipeline-slice-1.md`          | **Shipped**    | [SPE-2474](https://linear.app/spectranoir/issue/SPE-2474) — deterministic contribution submission validation + curation decision baseline under SPE-75; PR #2867 @ `895fdc42`. |
 | `concealment-case-prep-slice.md`                          | **Shipped**    | SPE-70 concealment case prep panel; PR #2326.                                                                                                       |
 | `concealment-case-prep-activation-preview-slice.md`       | **Shipped**    | SPE-70 concealment prep activation preview notes; PR #2821 @ `17db4ab2`.                                                                            |
 | `concealment-front-desk-pending-activation-slice.md`      | **Shipped**    | SPE-70 follow-up — Front Desk pending-activation attention; PR #2822 @ `c09addaf`.                                                                  |

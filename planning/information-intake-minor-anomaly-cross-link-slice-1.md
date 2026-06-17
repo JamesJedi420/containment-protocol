@@ -62,7 +62,7 @@ Deterministic compose helper linking persisted `informationIntakeReports` to `mi
 | Item | Owner | Why |
 | --- | --- | --- |
 | Intake ↔ unexplained location cross-link | SPE-854 follow-up | One sibling registry per slice |
-| Cross-link surfacing in triage / report notes | SPE-854 or UX owner | Out of compose-only boundary |
+| Cross-link surfacing in triage / report notes | [SPE-854 follow-up](planning/information-intake-minor-anomaly-cross-link-surfacing-slice-1.md) | Surfacing slice 1 under compose parent SPE-2355 |
 | SPE-1464 branch validation follow-up | SPE-1464 | Separate backlog option |
 
 ## See also

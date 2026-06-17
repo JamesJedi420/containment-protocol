@@ -18,15 +18,15 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** Pick next §14-pass candidate from `planning/scope-discipline-grooming-pass.md` — intake ↔ minor anomaly or unexplained-location cross-link surfacing (compose shipped); mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** Intake ↔ unexplained-location cross-link surfacing (compose shipped SPE-2356); mission triage full refresh remains **blocked**.
 
-**Recently shipped:** [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) intake ↔ extranormal cross-link surfacing — triage chip + weekly report notes; mirror SPE-2406; branch `spe-854-intake-extranormal-cross-link-surfacing-slice-1` (PR pending).
+**Recently shipped:** [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) intake ↔ extranormal cross-link surfacing — triage chip + weekly report notes; mirror SPE-2406; branch `spe-854-intake-extranormal-cross-link-surfacing-slice-1` (PR #2859 @ `69b3bd99`).
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Intake ↔ minor anomaly or unexplained-location cross-link surfacing — compose shipped ([SPE-2355](https://linear.app/spectranoir/issue/SPE-2355), [SPE-2356](https://linear.app/spectranoir/issue/SPE-2356)); mirror `planning/information-intake-extranormal-cross-link-surfacing-slice-1.md` pattern.
+**Next step:** Intake ↔ minor anomaly cross-link surfacing — in progress (`planning/information-intake-minor-anomaly-cross-link-surfacing-slice-1.md`); then unexplained-location surfacing ([SPE-2356](https://linear.app/spectranoir/issue/SPE-2356)).
 
-**Base `main` SHA:** `236499f7` — post SPE-2470 slice (PR pending).
+**Base `main` SHA:** `69b3bd99` — post SPE-2470 extranormal surfacing merge (PR #2859).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -150,7 +150,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `infiltration-encounter-content-slice-3.md`               | **Shipped**    | SPE-2305 / PR #2473; optional report encounter copy depth.                                                                                          |
 | `infiltration-encounter-content-batch4plus-audit.md`      | **Audit**      | SPE-2250 batch-4+ deferral; no eligible templates (June 2026).                                                                                        |
 | `scope-discipline-grooming-pass.md`                       | **Audit**      | Roadmap §15 grooming (June 2026); handoff + §14 next-step record; refreshed @ `236499f7`.                                                                                      |
-| `information-intake-extranormal-cross-link-surfacing-slice-1.md` | **In progress** | [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) — surface SPE-2354 compose in triage/report notes; PR pending. |
+| `information-intake-extranormal-cross-link-surfacing-slice-1.md` | **Shipped** | [SPE-2470](https://linear.app/spectranoir/issue/SPE-2470) — surface SPE-2354 compose in triage/report notes; PR #2859 @ `69b3bd99`. |
+| `information-intake-minor-anomaly-cross-link-surfacing-slice-1.md` | **In progress** | [SPE-2471](https://linear.app/spectranoir/issue/SPE-2471) — surface SPE-2355 compose in triage/report notes; branch `spe-854-intake-minor-anomaly-cross-link-surfacing-slice-1`. |
 | `investigation-question-case-prep-slice.md`               | **Shipped**    | SPE-626 UI; links forward to concealment prep.                                                                                                      |
 | `mission-triage-covert-prep-slice.md`                     | **Shipped**    | SPE-2255 slice 1.                                                                                                                                   |
 | `mission-triage-deferral-compare-slice.md`                | **Shipped**    | SPE-2256 slice 2.                                                                                                                                   |

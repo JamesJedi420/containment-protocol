@@ -8,6 +8,7 @@ import {
   PUBLIC_RUMOR_CONFLICT_FIXTURE,
 } from '../domain/informationIntakeReport'
 import { CANAL_BRIDGE_NAMING_HAZARD_FIXTURE } from '../domain/namingHazardDescriptorRegistry'
+import { CANAL_BRIDGE_MINOR_ITEM_FIXTURE } from '../domain/minorAnomalyItemRegistry'
 import { getCaseListItemView } from '../features/cases/caseView'
 import { buildMissionTriageDispositionView } from '../features/cases/missionTriageDispositionView'
 import { buildMissionTriageIntakeSignals } from '../features/cases/missionTriageIntakeSignalView'
@@ -129,6 +130,33 @@ describe('missionTriageIntakeSignalView', () => {
     expect(signals.markers.some((marker) => marker.label === 'Intake: extranormal')).toBe(true)
     expect(
       signals.markers.find((marker) => marker.label === 'Intake: extranormal')?.title
+    ).toContain(CANAL_BRIDGE_TOPIC)
+  })
+
+  it('surfaces minor anomaly cross-link marker when intake and items share topic refs', () => {
+    const state = createStartingState()
+    state.informationIntakeReports = {
+      [FORMAL_ALERT_PARTIAL_FIXTURE.id]: FORMAL_ALERT_PARTIAL_FIXTURE,
+    }
+    state.minorAnomalyItemRecords = {
+      [CANAL_BRIDGE_MINOR_ITEM_FIXTURE.id]: CANAL_BRIDGE_MINOR_ITEM_FIXTURE,
+    }
+
+    const mission = createStarterCase({
+      id: 'case-intake-minor-anomaly-chip',
+      templateId: 'puzzle_whispering_archive',
+      stage: 1,
+    })
+    mission.factionId = undefined
+    mission.tags = [...mission.tags, CANAL_BRIDGE_TOPIC]
+    state.cases[mission.id] = mission
+
+    const signals = buildMissionTriageIntakeSignals(mission, state)
+
+    expect(signals.visible).toBe(true)
+    expect(signals.markers.some((marker) => marker.label === 'Intake: minor anomaly')).toBe(true)
+    expect(
+      signals.markers.find((marker) => marker.label === 'Intake: minor anomaly')?.title
     ).toContain(CANAL_BRIDGE_TOPIC)
   })
 

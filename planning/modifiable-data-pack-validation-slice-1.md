@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2479](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2479 — Modifiable data pack safe-fail validation (slice 1)](https://linear.app/spectranoir/issue/SPE-2479) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent remains open for deferred follow-ups |
 | **Branch** | `spe-75-modifiable-data-pack-validation-slice-1` |
 | **Base `main` SHA** | `940b27b2` |

@@ -33,6 +33,12 @@ Separate **bug reports**, **balance discussion**, **security disclosures**, and 
 
 Domain feedback baseline: `src/domain/segmentedFeedbackWorkflow.ts` (SPE-2476) accepts structured channel payloads and emits weighted ranking decisions with channel-type discrimination and grouping policy — no publish side effects.
 
+## Disaster playbook variants
+
+Disaster-type playbooks carry distinct procedural assumptions and resource risks. Teams under pressure must apply the variant that matches the active disaster — wrong-document application fails deterministically rather than silently.
+
+Domain playbook baseline: `src/domain/playbookWrongDocumentFailure.ts` (SPE-2477) accepts structured playbook variant payloads and emits bounded application decisions with variant-type discrimination and wrong-document failure — no publish side effects.
+
 ## Submission governance
 
 - **Required metadata** — issue link, scope statement, test evidence for code.

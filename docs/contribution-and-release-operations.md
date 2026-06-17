@@ -21,6 +21,8 @@ Non-release **correction or clarification packets** (errata, hotfix docs, semver
 
 Releases declare **compatibility surfaces**: engine/runtime versions, save format expectations, schema versions (`SCHEMA_REGISTRY.md`), and breaking-change callouts.
 
+Domain packaging baseline: `src/domain/modularReleasePackaging.ts` (SPE-2475) consumes accepted curation output from `src/domain/contributionIntakeCuration.ts` and emits sorted compatibility declarations plus delivery assumptions — no publish side effects.
+
 ## Artifact-type packaging
 
 Different artifact types (domain templates, UX specs, tuning tables, binaries if any) use **distinct packaging rules** — do not mix incompatible consumers in one bundle without explicit manifests.

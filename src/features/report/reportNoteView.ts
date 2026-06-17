@@ -22,6 +22,7 @@ const INFORMATION_INTAKE_NOTE_TYPES: ReportNoteType[] = [
   'information_intake.naming_hazard_cross_link',
   'information_intake.extranormal_cross_link',
   'information_intake.minor_anomaly_cross_link',
+  'information_intake.unexplained_location_cross_link',
 ]
 
 const POST_INCIDENT_REVIEW_NOTE_TYPES: ReportNoteType[] = [

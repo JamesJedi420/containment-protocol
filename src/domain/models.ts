@@ -1545,6 +1545,7 @@ export type ReportNoteType =
   | 'information_intake.naming_hazard_cross_link'
   | 'information_intake.extranormal_cross_link'
   | 'information_intake.minor_anomaly_cross_link'
+  | 'information_intake.unexplained_location_cross_link'
   | 'welfare_debt.accounting_cross_link'
   | 'coercive_protocol.integrated_health_reconciliation'
   | 'post_incident_review.follow_on'

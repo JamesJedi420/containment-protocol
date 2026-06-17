@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** [SPE-2478](https://linear.app/spectranoir/issue/SPE-2478) submission governance and rights policy enforcement (slice 1) — in progress on branch `spe-75-submission-governance-rights-slice-1`; remaining SPE-75 follow-ups (publish hooks, data-pack validation) deferred per `planning/submission-governance-rights-slice-1.md` ## Deferred; mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** pick next SPE-75 follow-up child (publish hooks, data-pack validation) or backlog grooming when unblocked work is identified; mission triage full refresh remains **blocked**.
+
+**Recently shipped:** [SPE-2478](https://linear.app/spectranoir/issue/SPE-2478) submission governance and rights policy enforcement (slice 1) — deterministic rights tier discrimination with license/attribution policy; branch `spe-75-submission-governance-rights-slice-1` (PR #2875 @ `ad8f566e`).
 
 **Recently shipped:** [SPE-2477](https://linear.app/spectranoir/issue/SPE-2477) disaster playbook wrong-document failure (slice 1) — deterministic variant discrimination with wrong-document rejection under pressure; branch `spe-75-playbook-wrong-document-failure-slice-1` (PR #2873 @ `7a4fd84c`).
 
@@ -34,9 +36,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2478](https://linear.app/spectranoir/issue/SPE-2478) submission governance and rights policy enforcement (slice 1) — `planning/submission-governance-rights-slice-1.md`; remaining SPE-75 follow-ups (publish hooks, data-pack validation) deferred; mission triage full refresh remains **blocked**.
+**Next step:** remaining SPE-75 follow-ups (publish hooks, data-pack validation) deferred per `planning/submission-governance-rights-slice-1.md` ## Deferred; mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `8fd639e0` — post SPE-2477 backlog handoff doc merge.
+**Base `main` SHA:** `ad8f566e` — post SPE-2478 submission governance and rights policy enforcement merge (PR #2875).
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 

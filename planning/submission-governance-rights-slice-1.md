@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2478](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2478 — Submission governance and rights policy enforcement (slice 1)](https://linear.app/spectranoir/issue/SPE-2478) |
-| **Status** | **In progress** (PR pending) |
+| **Status** | **Shipped** |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent remains open for deferred follow-ups |
 | **Branch** | `spe-75-submission-governance-rights-slice-1` |
 | **Base `main` SHA** | `8fd639e0` |

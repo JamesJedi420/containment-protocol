@@ -33,6 +33,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | --- | --- | --- |
 | [SPE-70](https://linear.app/spectranoir/issue/SPE-70) | Done | Matrix slices 1–11 + SPE-2306 triage chips + prep-stack (#2821–#2822) shipped; parent AC rows 1–8 **Yes** per `planning/spe-70-parent-reconciliation-slice.md`; no new modality slices without §14 pass |
 | [SPE-521](https://linear.app/spectranoir/issue/SPE-521) | Done | Substrate slices 1–4 + full prep-stack shipped (PR #2824–#2833); parent AC rows 1–4 **Yes** per `planning/spe-521-parent-reconciliation-slice.md`; batch-4+ **deferred** per audit doc |
+| [SPE-31](https://linear.app/spectranoir/issue/SPE-31) | Done | Hub shell + SPE-31a + children SPE-2465–SPE-2469 shipped; parent AC rows 1–6 **Yes** per `planning/spe-31-parent-reconciliation-slice.md`; multi-district contracts / site-gen hooks **deferred** |
 | [SPE-854](https://linear.app/spectranoir/issue/SPE-854) | Done | Intake wave + parent integration slices 1–2 shipped; no stale “open parent” in backlog |
 | [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) | Backlog | [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 only — defer slice-2+ until MVP loop needs cognitive hazard engine depth |
 | [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) | Backlog | [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) slice 1 only — defer slice-2+ |
@@ -70,6 +71,7 @@ Linear progress comments posted (June 2026 grooming) on open parents with shippe
 | Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) follow-on) | Partial | Read-only `analyzeRuntimeStability` seam; explicit-node adapter only; deferred from [SPE-2362](https://linear.app/spectranoir/issue/SPE-2362) — dev/stability tooling, not player loop |
 | Dedicated exploit-access content | **No** | Validator substrate shipped; defer until scoped slice owner exists |
 | SPE-70 parent Done review | **Yes** (closed) | Groomed `planning/spe-70-parent-reconciliation-slice.md` @ `ce76d07d`; parent **Done** on Linear |
+| SPE-31 parent Done review | **Yes** (closed) | Groomed `planning/spe-31-parent-reconciliation-slice.md` @ `dd80cb5d`; hub shell + SPE-31a + SPE-2465–2469; AC rows 1–6 **Yes**; parent **Done** on Linear |
 | SPE-1888 parent Done review | **Yes** (closed) | Groomed `planning/spe-1888-parent-acceptance-review-slice-7.md` @ `194174ec`; registry slices 1–11 + AC rows 1–6 **Yes**; parent **Done** on Linear |
 | Mission triage residual | **No** | Blocked — surfaces without loop truth |
 | SPE-2250 batch-4+ content | **No** | Deferred — no eligible catalog templates (audit unchanged) |

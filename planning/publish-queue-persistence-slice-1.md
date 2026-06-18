@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2483](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2483 — GameState publish-queue persistence (slice 1)](https://linear.app/spectranoir/issue/SPE-2483) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2886 @ `93711130` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-persistence-slice-1` |
 | **Base `main` SHA** | `14b42088` |

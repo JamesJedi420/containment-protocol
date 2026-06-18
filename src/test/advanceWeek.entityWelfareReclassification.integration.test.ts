@@ -40,7 +40,7 @@ function scheduledRecord(): EntityWelfareReclassificationRecord {
   }
 }
 
-describe('advanceWeek entity welfare reclassification integration (SPE-2114 slice 3)', () => {
+describe('advanceWeek entity welfare reclassification integration (SPE-2114 slice 3 / SPE-2490 slice 5)', () => {
   it('is a no-op for an empty entity welfare reclassification map without throwing', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -125,5 +125,58 @@ describe('advanceWeek entity welfare reclassification integration (SPE-2114 slic
     expect(reticked.entityWelfareReclassificationRecords?.[record.id]).toEqual(
       once.entityWelfareReclassificationRecords?.[record.id]
     )
+  })
+
+  it('surfaces weekly transition notes when reclassification state advances after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 15
+    const record = scheduledRecord()
+    state.entityWelfareReclassificationRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'entity_welfare_reclassification.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes.length).toBeGreaterThan(0)
+    expect(transitionNotes[0]?.content).toContain(record.label)
+    expect(transitionNotes[0]?.content).toContain('Approved')
+  })
+
+  it('does not surface weekly transition notes when registry map is empty', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.entityWelfareReclassificationRecords = {}
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'entity_welfare_reclassification.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not re-emit transition notes when records are unchanged on re-tick', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 15
+    const record = scheduledRecord()
+    state.entityWelfareReclassificationRecords = {
+      [record.id]: record,
+    }
+
+    const firstWeek = advanceWeek(state)
+    const secondWeek = advanceWeek(firstWeek)
+    const transitionNotes =
+      secondWeek.reports[secondWeek.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'entity_welfare_reclassification.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
   })
 })

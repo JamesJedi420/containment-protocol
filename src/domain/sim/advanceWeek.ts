@@ -297,6 +297,7 @@ import {
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { applyWeeklyPublishQueueExecutionTick } from '../publishQueueExecutor'
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
+import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
 import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -4742,14 +4743,44 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-2114 slice 3: scheduled reclassification-state transitions on entity welfare records.
-  const currentEntityWelfareReclassificationRecords =
+  const priorEntityWelfareReclassificationRecords =
     outputWeeklyState.entityWelfareReclassificationRecords ?? {}
+  const currentEntityWelfareReclassificationRecords = priorEntityWelfareReclassificationRecords
   if (Object.keys(currentEntityWelfareReclassificationRecords).length > 0) {
     outputWeeklyState.entityWelfareReclassificationRecords =
       applyWeeklyEntityWelfareReclassificationTick(
         currentEntityWelfareReclassificationRecords,
         result.week
       )
+  }
+
+  // SPE-2490 slice 5: surface post-tick entity welfare reclassification transitions in weekly report notes.
+  const nextEntityWelfareReclassificationRecords =
+    outputWeeklyState.entityWelfareReclassificationRecords ?? {}
+  if (
+    Object.keys(nextEntityWelfareReclassificationRecords).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const entityWelfareReclassificationTransitionNotes =
+      buildWeeklyEntityWelfareReclassificationTransitionReportNotes({
+        priorRecords: priorEntityWelfareReclassificationRecords,
+        nextRecords: nextEntityWelfareReclassificationRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (entityWelfareReclassificationTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...entityWelfareReclassificationTransitionNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2111 slice 3: disposal compliance, scheduled awareness-band, and occlusion pursuit on visual-trigger hazards.

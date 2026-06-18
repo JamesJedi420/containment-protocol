@@ -82,6 +82,7 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'cognitive_hazard.simulation_trigger',
   'contribution_release.publish_queue_execution',
   'visual_trigger_hazard.weekly_transition',
+  'entity_welfare_reclassification.weekly_transition',
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {

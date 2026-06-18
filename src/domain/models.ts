@@ -1557,6 +1557,7 @@ export type ReportNoteType =
   | 'cognitive_hazard.simulation_trigger'
   | 'contribution_release.publish_queue_execution'
   | 'visual_trigger_hazard.weekly_transition'
+  | 'entity_welfare_reclassification.weekly_transition'
 
 export type ReportNoteMetadataValue =
   | string

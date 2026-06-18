@@ -1556,6 +1556,7 @@ export type ReportNoteType =
   | 'public_disclosure.segment_trust_divergence'
   | 'cognitive_hazard.simulation_trigger'
   | 'contribution_release.publish_queue_execution'
+  | 'visual_trigger_hazard.weekly_transition'
 
 export type ReportNoteMetadataValue =
   | string

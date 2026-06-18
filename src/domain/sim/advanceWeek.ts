@@ -297,6 +297,7 @@ import {
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { applyWeeklyPublishQueueExecutionTick } from '../publishQueueExecutor'
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
+import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
@@ -4752,12 +4753,42 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
   }
 
   // SPE-2111 slice 3: disposal compliance, scheduled awareness-band, and occlusion pursuit on visual-trigger hazards.
-  const currentVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  const priorVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  const currentVisualTriggerHazardRecords = priorVisualTriggerHazardRecords
   if (Object.keys(currentVisualTriggerHazardRecords).length > 0) {
     outputWeeklyState.visualTriggerHazardRecords = applyWeeklyVisualTriggerHazardTick(
       currentVisualTriggerHazardRecords,
       result.week
     )
+  }
+
+  // SPE-2489 slice 5: surface post-tick visual-trigger hazard transitions in weekly report notes.
+  const nextVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
+  if (
+    Object.keys(nextVisualTriggerHazardRecords).length > 0 &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const visualTriggerHazardTransitionNotes = buildWeeklyVisualTriggerHazardTransitionReportNotes(
+      {
+        priorRecords: priorVisualTriggerHazardRecords,
+        nextRecords: nextVisualTriggerHazardRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      }
+    )
+
+    if (visualTriggerHazardTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...visualTriggerHazardTransitionNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2116 slice 4: substitution-policy hardening and confidence erosion on naming-hazard descriptors.

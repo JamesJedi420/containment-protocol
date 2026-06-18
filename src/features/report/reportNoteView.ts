@@ -79,7 +79,9 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'concealment.activated',
   'hub.opportunity',
   'hub.rumor',
+  'cognitive_hazard.simulation_trigger',
   'contribution_release.publish_queue_execution',
+  'visual_trigger_hazard.weekly_transition',
 ]
 
 export function getReportNoteCategory(note: ReportNote): ReportNoteCategory {

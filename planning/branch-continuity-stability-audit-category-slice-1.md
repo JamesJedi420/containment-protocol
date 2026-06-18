@@ -7,7 +7,7 @@ One-page implementation plan. Optional follow-on from [SPE-2362](https://linear.
 | **Linear** | [SPE-2487 — Branch continuity stability-audit category (slice 1)](https://linear.app/spectranoir/issue/SPE-2487) |
 | **Parent** | [SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) — substrate Done; parent stays **Done**        |
 | **Branch** | `spe-2487-branch-continuity-stability-audit-category-slice-1`                                              |
-| **Status** | **In progress** — PR pending                                                                               |
+| **Status** | **Shipped** — PR #2894 @ `aad88cff`                                                                                |
 | **Base `main` SHA** | `9358d867`                                                                                          |
 
 ## Goal

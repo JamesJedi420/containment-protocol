@@ -104,4 +104,23 @@ describe('publishQueueSurfacing (SPE-2485 slice 1)', () => {
     expect(content).toContain('Completed (dry-run)')
     expect(content).toContain('dry-run:publish_channel:pr-merge:channel:pr-merge')
   })
+
+  it('formats live receipt note content with channel ref labels', () => {
+    const receipt: PublishQueueExecutionReceipt = {
+      recordId: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id,
+      outcome: 'completed',
+      executionWeek: 2,
+      appliedHooks: [],
+      publishChannelRef: 'live:publish_channel:pr-merge:pr:2890:sha:abc123',
+    }
+
+    const content = formatPublishQueueExecutionReceiptNoteContent({
+      receipt,
+      record: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE,
+    })
+
+    expect(content).toContain('Publish queue (live)')
+    expect(content).toContain('Completed (live)')
+    expect(content).toContain('live:publish_channel:pr-merge:pr:2890:sha:abc123')
+  })
 })

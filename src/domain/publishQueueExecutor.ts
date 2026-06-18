@@ -21,7 +21,10 @@ import {
 } from './publishAutomationCreditingHooks'
 import type {
   PublishQueueGitHubClient,
+  PublishQueueGitHubClientSync,
   PublishQueueGitHubConfig,
+  PublishQueueGitHubMergeRequest,
+  PublishQueueGitHubMergeResult,
 } from './publishQueueGitHubClient'
 import {
   buildPrMergeGitHubRequest,
@@ -83,6 +86,11 @@ export interface PublishQueueExecutorOptions {
 
 export interface PublishQueueLiveExecutorOptions extends PublishQueueExecutorOptions {
   readonly githubClient: PublishQueueGitHubClient
+  readonly githubConfig: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
+}
+
+export interface PublishQueueLiveExecutorSyncOptions extends PublishQueueExecutorOptions {
+  readonly githubClient: PublishQueueGitHubClientSync
   readonly githubConfig: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
 }
 
@@ -331,6 +339,60 @@ export function executePublishQueueRecordDryRun(
   })
 }
 
+function finalizeLiveMergeExecution(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  maxHookApplications: number,
+  mergeRequest: PublishQueueGitHubMergeRequest | undefined,
+  mergeResult: PublishQueueGitHubMergeResult | undefined
+): PublishQueueExecutionResult {
+  const publishChannelHook = findPublishChannelHook(record)!
+  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
+
+  if (publishChannelHook.target !== 'pr-merge') {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'unsupported_publish_channel_target',
+      }),
+    }
+  }
+
+  if (!mergeRequest) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_pull_request_unresolved',
+      }),
+    }
+  }
+
+  if (!mergeResult || !mergeResult.ok) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_api_failed',
+      }),
+    }
+  }
+
+  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
+    publishChannelRef: formatPublishQueueGitHubMergeSuccessRef(mergeRequest, mergeResult),
+  })
+}
+
 /**
  * Executes one publish-queue record through the live `pr-merge` GitHub API path.
  * Failed API calls reject without mutating the record. Re-execution of
@@ -349,57 +411,59 @@ export async function executePublishQueueRecordLive(
   }
 
   const publishChannelHook = findPublishChannelHook(record)!
-  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
-
-  if (publishChannelHook.target !== 'pr-merge') {
-    return {
-      record,
-      receipt: freezeReceipt({
-        recordId: record.id,
-        outcome: 'rejected',
-        executionWeek,
-        appliedHooks: Object.freeze([]),
-        skipCode: 'unsupported_publish_channel_target',
-      }),
-    }
-  }
-
   const mergeRequest = buildPrMergeGitHubRequest(
     publishChannelHook,
     record,
     options.githubConfig
   )
 
-  if (!mergeRequest) {
-    return {
-      record,
-      receipt: freezeReceipt({
-        recordId: record.id,
-        outcome: 'rejected',
-        executionWeek,
-        appliedHooks: Object.freeze([]),
-        skipCode: 'publish_channel_pull_request_unresolved',
-      }),
-    }
+  const mergeResult = mergeRequest
+    ? await options.githubClient.mergePullRequest(mergeRequest)
+    : undefined
+
+  return finalizeLiveMergeExecution(
+    record,
+    executionWeek,
+    maxHookApplications,
+    mergeRequest,
+    mergeResult
+  )
+}
+
+/**
+ * Synchronous live executor for weekly orchestration inside `advanceWeek`.
+ * Requires an injectable sync GitHub client (tests/CI harness).
+ */
+export function executePublishQueueRecordLiveSync(
+  record: PublishQueueRecord,
+  options: PublishQueueLiveExecutorSyncOptions
+): PublishQueueExecutionResult {
+  const executionWeek = normalizeWeek(options.week)
+  const maxHookApplications = resolveMaxHookApplications(options.maxHookApplications)
+  const preExecution = buildPreExecutionReceipt(record, executionWeek)
+
+  if (preExecution.kind === 'result') {
+    return preExecution.result
   }
 
-  const mergeResult = await options.githubClient.mergePullRequest(mergeRequest)
-  if (!mergeResult.ok) {
-    return {
-      record,
-      receipt: freezeReceipt({
-        recordId: record.id,
-        outcome: 'rejected',
-        executionWeek,
-        appliedHooks: Object.freeze([]),
-        skipCode: 'publish_channel_api_failed',
-      }),
-    }
-  }
+  const publishChannelHook = findPublishChannelHook(record)!
+  const mergeRequest = buildPrMergeGitHubRequest(
+    publishChannelHook,
+    record,
+    options.githubConfig
+  )
 
-  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
-    publishChannelRef: formatPublishQueueGitHubMergeSuccessRef(mergeRequest, mergeResult),
-  })
+  const mergeResult = mergeRequest
+    ? options.githubClient.mergePullRequest(mergeRequest)
+    : undefined
+
+  return finalizeLiveMergeExecution(
+    record,
+    executionWeek,
+    maxHookApplications,
+    mergeRequest,
+    mergeResult
+  )
 }
 
 /**
@@ -494,6 +558,54 @@ export async function executePublishQueueRecordsLive(
 
     const sourceRecord = (nextRecords ?? safeRecords)[recordId] ?? record
     const result = await executePublishQueueRecordLive(sourceRecord, options)
+
+    receipts.push(result.receipt)
+
+    if (result.record === sourceRecord) {
+      continue
+    }
+
+    if (!nextRecords) {
+      nextRecords = { ...safeRecords }
+    }
+
+    nextRecords[recordId] = result.record
+  }
+
+  return {
+    records: nextRecords ?? safeRecords,
+    receipts: Object.freeze(receipts.map((receipt) => freezeReceipt(receipt))),
+  }
+}
+
+/**
+ * Synchronous batch live execution for weekly orchestration inside `advanceWeek`.
+ */
+export function executePublishQueueRecordsLiveSync(
+  records: PublishQueueRecordsMap | null | undefined,
+  options: PublishQueueLiveExecutorSyncOptions
+): PublishQueueBatchExecutionResult {
+  const safeRecords = records ?? {}
+  const recordIds = Object.keys(safeRecords).sort((left, right) => left.localeCompare(right))
+
+  if (recordIds.length === 0) {
+    return {
+      records: safeRecords,
+      receipts: Object.freeze([]),
+    }
+  }
+
+  let nextRecords: PublishQueueRecordsMap | null = null
+  const receipts: PublishQueueExecutionReceipt[] = []
+
+  for (const recordId of recordIds) {
+    const record = safeRecords[recordId]
+    if (!record) {
+      continue
+    }
+
+    const sourceRecord = (nextRecords ?? safeRecords)[recordId] ?? record
+    const result = executePublishQueueRecordLiveSync(sourceRecord, options)
 
     receipts.push(result.receipt)
 

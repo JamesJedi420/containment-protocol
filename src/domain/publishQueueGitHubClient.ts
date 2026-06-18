@@ -52,6 +52,10 @@ export interface PublishQueueGitHubClient {
   ): Promise<PublishQueueGitHubMergeResult>
 }
 
+export interface PublishQueueGitHubClientSync {
+  mergePullRequest(request: PublishQueueGitHubMergeRequest): PublishQueueGitHubMergeResult
+}
+
 export interface PublishQueueGitHubConfig {
   readonly owner: string
   readonly repo: string

@@ -54,7 +54,7 @@ function buildCanonicalReadyQueueRecord() {
   })!
 }
 
-describe('advanceWeek publish queue integration (SPE-2485 slice 1)', () => {
+describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
   it('is a no-op for an empty publish queue map without throwing', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -87,5 +87,55 @@ describe('advanceWeek publish queue integration (SPE-2485 slice 1)', () => {
     expect(publishQueueNote?.content).toContain('Publish queue (dry-run)')
     expect(publishQueueNote?.content).toContain(record.label)
     expect(publishQueueNote?.content).toContain('dry-run:publish_channel:pr-merge:channel:pr-merge')
+    expect(publishQueueNote?.metadata).toMatchObject({
+      executionMode: 'dry-run',
+      publishChannelStub: 'dry-run:publish_channel:pr-merge:channel:pr-merge',
+    })
+  })
+
+  it('surfaces live execution notes when orchestration deps inject sync client', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const record = {
+      ...buildCanonicalReadyQueueRecord(),
+      releaseArtifactRef: 'release:pr:2890',
+    }
+    state.publishQueueRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state, undefined, {
+      environment: {
+        mode: 'live',
+        githubOwner: 'JamesJedi420',
+        githubRepo: 'containment-protocol',
+        githubToken: 'ghp_test_token',
+      },
+      githubClient: {
+        mergePullRequest: () => ({
+          ok: true,
+          sha: 'abc123def456',
+          merged: true,
+          alreadyMerged: false,
+        }),
+      },
+    })
+
+    const nextRecord = nextState.publishQueueRecords?.[record.id]
+    expect(nextRecord?.status).toBe('published')
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const publishQueueNote = lastReport?.notes?.find(
+      (note) => note.type === 'contribution_release.publish_queue_execution'
+    )
+
+    expect(publishQueueNote).toBeDefined()
+    expect(publishQueueNote?.content).toContain('Publish queue (live)')
+    expect(publishQueueNote?.content).toContain('Completed (live)')
+    expect(publishQueueNote?.content).toContain('live:publish_channel:pr-merge')
+    expect(publishQueueNote?.metadata).toMatchObject({
+      executionMode: 'live',
+      publishChannelRef: expect.stringContaining('live:publish_channel:pr-merge'),
+    })
   })
 })

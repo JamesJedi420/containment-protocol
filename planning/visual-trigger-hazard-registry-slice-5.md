@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2489](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2489 — Visual-trigger hazard registry weekly transition surfacing (slice 5)](https://linear.app/spectranoir/issue/SPE-2489) |
-| **Status** | **In Progress**                                                                                            |
+| **Status** | **Shipped** — PR #2898 @ `96452e9e` |
 | **Parent** | [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) — registry anchor (slice 1–4 shipped); umbrella [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog** |
 | **Branch** | `spe-2111-visual-trigger-hazard-weekly-surfacing-slice-5`                                                 |
 | **Base `main` SHA** | `d31cba2f`                                                                                          |

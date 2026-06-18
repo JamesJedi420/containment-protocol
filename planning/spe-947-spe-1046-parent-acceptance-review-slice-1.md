@@ -8,8 +8,8 @@ One-page grooming record. Parents [SPE-947](https://linear.app/spectranoir/issue
 | **Parents** | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — Hazardous content propagation and counter-memetic operations; **Backlog** |
 | | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) — Affiliation, clearance, and membership status system; **Backlog** |
 | **Branch** | `spe-947-spe-1046-parent-acceptance-review-slice-1`                                                        |
-| **Status** | **In progress** |
-| **Base `main` SHA** | `ce3716b0`                                                                                          |
+| **Status** | **Shipped** — grooming closure session (docs-only) |
+| **Base `main` SHA** | `e0f7c38f` (post PR #2883 slice plan) |
 
 ## Goal
 
@@ -36,6 +36,8 @@ Re-evaluate parent acceptance criteria for [SPE-947](https://linear.app/spectran
 | Planning mirror UI | [SPE-2341](https://linear.app/spectranoir/issue/SPE-2341) — PR #2549 — `EntityWelfareReclassificationMirrorPage`, `/entity-welfare-reclassification` |
 
 **Delta since June 2026 scope-discipline grooming (`planning/scope-discipline-grooming-pass.md` @ `74cbd67e`):** SPE-947 / SPE-1046 listed as open umbrellas with shipped registry children but **no parent reconciliation doc**; parent bodies still read as full-scope goals with no AC matrix or deferred table hygiene.
+
+**Closure note (June 2026):** Parents SPE-947 / SPE-1046 were briefly auto-marked **Done** on Linear after PR #2883; grooming closure reopened both to **Backlog**, appended status note + deferred tables to parent bodies, and marked grooming children SPE-2481 / SPE-2482 **Done**.
 
 ## SPE-947 parent AC vs shipped evidence
 
@@ -87,12 +89,12 @@ Parent scope: affiliation classes, clearance, onboarding pipelines, site-specifi
 
 ## Acceptance
 
-- [ ] SPE-947 parent AC re-evaluated — matrix above posted to Linear parent + grooming child
-- [ ] SPE-1046 parent AC re-evaluated — matrix above posted to Linear parent + grooming child
-- [ ] SPE-947 and SPE-1046 remain **Backlog** on Linear; SPE-2111 and SPE-2114 remain **Done**
-- [ ] Parent deferred tables on Linear list unmet AC → sibling/backlog owners (not one-liners)
-- [ ] `planning/backlog.md` § Recommended next step updated post reconciliation
-- [ ] Docs-only diff; optional SPE-31 Linear hygiene in same session
+- [x] SPE-947 parent AC re-evaluated — matrix above posted to Linear parent + grooming child
+- [x] SPE-1046 parent AC re-evaluated — matrix above posted to Linear parent + grooming child
+- [x] SPE-947 and SPE-1046 remain **Backlog** on Linear; SPE-2111 and SPE-2114 remain **Done**
+- [x] Parent deferred tables on Linear list unmet AC → sibling/backlog owners (not one-liners)
+- [x] `planning/backlog.md` § Recommended next step updated post reconciliation
+- [x] Docs-only diff; SPE-31 / SPE-2468 Linear drift fixed → **Done** (auto-close hygiene)
 
 ## Deferred (parent umbrellas — not grooming slice scope)
 

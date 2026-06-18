@@ -17,7 +17,7 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
-describe('advanceWeek visual trigger hazard integration (SPE-2111 slice 3)', () => {
+describe('advanceWeek visual trigger hazard integration (SPE-2111 slice 3 / SPE-2489 slice 5)', () => {
   it('is a no-op for an empty visual trigger hazard map without throwing', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -101,5 +101,56 @@ describe('advanceWeek visual trigger hazard integration (SPE-2111 slice 3)', () 
     expect(reticked.visualTriggerHazardRecords?.[COVERED_PURSUIT_RESOLUTION_FIXTURE.id]).toEqual(
       once.visualTriggerHazardRecords?.[COVERED_PURSUIT_RESOLUTION_FIXTURE.id]
     )
+  })
+
+  it('surfaces weekly transition notes when pursuit resolves after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 9
+    state.visualTriggerHazardRecords = {
+      [COVERED_PURSUIT_RESOLUTION_FIXTURE.id]: COVERED_PURSUIT_RESOLUTION_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'visual_trigger_hazard.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes.length).toBeGreaterThan(0)
+    expect(transitionNotes[0]?.content).toContain(COVERED_PURSUIT_RESOLUTION_FIXTURE.label)
+    expect(transitionNotes[0]?.content).toContain('Resolved')
+  })
+
+  it('does not surface weekly transition notes when registry map is empty', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.visualTriggerHazardRecords = {}
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'visual_trigger_hazard.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not re-emit transition notes when records are unchanged on re-tick', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 9
+    state.visualTriggerHazardRecords = {
+      [COVERED_PURSUIT_RESOLUTION_FIXTURE.id]: COVERED_PURSUIT_RESOLUTION_FIXTURE,
+    }
+
+    const firstWeek = advanceWeek(state)
+    const secondWeek = advanceWeek(firstWeek)
+    const transitionNotes =
+      secondWeek.reports[secondWeek.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'visual_trigger_hazard.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
   })
 })

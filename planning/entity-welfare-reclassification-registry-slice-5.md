@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2490](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2490 — Entity welfare reclassification registry weekly transition surfacing (slice 5)](https://linear.app/spectranoir/issue/SPE-2490) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2900 @ `d5b795ae` |
 | **Parent** | [SPE-2114](https://linear.app/spectranoir/issue/SPE-2114) — registry anchor (slice 1–4 shipped); umbrella [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays **Backlog** |
 | **Branch** | `spe-2114-entity-welfare-reclassification-weekly-surfacing-slice-5`                                       |
 | **Base `main` SHA** | `8c670f52`                                                                                          |

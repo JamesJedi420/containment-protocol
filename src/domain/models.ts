@@ -1554,6 +1554,7 @@ export type ReportNoteType =
   | 'public_disclosure.trust_outcome'
   | 'public_disclosure.segment_trust_divergence'
   | 'cognitive_hazard.simulation_trigger'
+  | 'contribution_release.publish_queue_execution'
 
 export type ReportNoteMetadataValue =
   | string

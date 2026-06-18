@@ -1640,6 +1640,30 @@ export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
   validationWarningPrefix: 'Validation warnings:',
 }
 
+export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Publish queue',
+  pageSubtitle:
+    'Read-only operations view over persisted publish-queue records and dry-run execution posture.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Queue records',
+  readyToPublishLabel: 'Ready to publish',
+  publishedLabel: 'Published (dry-run)',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Statuses reflect hydrated GameState only. Weekly dry-run execution transitions ready records without real CI or GitHub publish side effects.',
+  emptyTitle: 'No publish queue records',
+  emptyBody:
+    'Persisted publish-queue records will appear here after hydration. Invalid records dropped on hydrate are not shown here.',
+  recordsHeading: 'Persisted queue records',
+  recordsSubtitle: 'Ready vs published discrimination uses queue status only — no hidden channel truth.',
+  labelColumn: 'Label',
+  statusColumn: 'Status',
+  artifactColumn: 'Release artifact',
+  queuedWeekColumn: 'Queued week',
+  hooksColumn: 'Hook counts',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

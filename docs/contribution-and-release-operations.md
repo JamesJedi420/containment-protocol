@@ -63,6 +63,8 @@ Publish-queue persistence (SPE-2483) stores bounded publish-intent snapshots on 
 
 Domain publish executor baseline: `src/domain/publishQueueExecutor.ts` (SPE-2484) consumes persisted queue records and SPE-2480 hook descriptors through bounded dry-run channel stubs with deterministic `ready_to_publish` → `published` transitions — no CI/GitHub API calls or real publish side effects.
 
+Publish-queue surfacing (SPE-2485) wires the weekly dry-run tick in `advanceWeek`, emits `contribution_release.publish_queue_execution` weekly report notes for reportable receipts, and exposes a read-only planning mirror at `/publish-queue` over hydrated `publishQueueRecords` — still no real publish side effects.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

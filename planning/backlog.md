@@ -18,7 +18,7 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** Owner reprioritizes from §14-pass alternates below; mission triage full refresh remains **blocked**.
+**In progress:** [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) publish-queue UI / orchestration surfacing — branch `spe-75-publish-queue-surfacing-slice-1`.
 
 **Recently shipped:** [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) registry umbrella grooming — parent AC matrices + deferred tables for [SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046); parents stay **Backlog**; `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`.
 
@@ -48,14 +48,14 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** owner reprioritizes from §14-pass alternates below; mission triage full refresh remains **blocked**.
+**Next step:** [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue UI / orchestration surfacing (slice 1). Slice doc: `planning/publish-queue-surfacing-slice-1.md`. Branch: `spe-75-publish-queue-surfacing-slice-1`. Mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `e0f7c38f` — post SPE-2481/SPE-2482 registry umbrella grooming closure.
+**Base `main` SHA:** `dff81abe` — post SPE-2484 publish-queue executor closure.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
 1. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — read-only `stabilityLayer.ts` category via `buildBranchContinuityRuntimeAuditSnapshot`; partial §14 (dev/stability tooling); see `planning/branch-continuity-runtime-hooks-slice-1.md` § Deferred.
-2. **Contribution/release ops follow-on (new Linear child — do not reopen [SPE-75](https://linear.app/spectranoir/issue/SPE-75) Done parent):** modifiable data-pack runtime import ([SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) deferred), publish-queue UI/orchestration (SPE-2483 persistence shipped), or real CI/GitHub API wiring (SPE-2484 dry-run executor shipped).
+2. **Contribution/release ops follow-on (new Linear child — do not reopen [SPE-75](https://linear.app/spectranoir/issue/SPE-75) Done parent):** modifiable data-pack runtime import ([SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) deferred) or real CI/GitHub API wiring (SPE-2484 dry-run executor shipped). Publish-queue surfacing child: [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485).
 3. **Registry umbrella follow-ons ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — grooming closed ([SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) **Done**); parents stay **Backlog**; no slice 5+ without fresh §14 pass — see `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md` § Deferred.
 
 **Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; real CI/GitHub publish API wiring without owner-scoped child.
@@ -224,6 +224,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `publish-automation-crediting-hooks-slice-1.md`           | **Shipped**    | [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) — deterministic publish-intent + crediting hooks under SPE-75; PR #2879 @ `99161c79`. |
 | `publish-queue-persistence-slice-1.md`                    | **Shipped**    | [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) — `publishQueueRecords` GameState persistence under SPE-75; PR #2886 @ `93711130`. |
 | `publish-queue-executor-slice-1.md`                       | **Shipped**    | [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) — dry-run publish executor under SPE-75; PR #2888 @ `6399251c`. |
+| `publish-queue-surfacing-slice-1.md`                      | **In progress** | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; branch `spe-75-publish-queue-surfacing-slice-1`. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
 | `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |

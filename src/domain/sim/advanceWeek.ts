@@ -295,6 +295,8 @@ import {
   composeWelfareDebtIntoIntegratedHealthBundles,
 } from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
+import { applyWeeklyPublishQueueExecutionTick } from '../publishQueueExecutor'
+import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
 import { buildWeeklyPublicDisclosureTrustOutcomeReportNotes } from '../publicDisclosureTrustOutcomeWeeklyReportNotes'
@@ -4693,6 +4695,38 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
       currentPatternSourceSeriesRecords,
       result.week
     )
+  }
+
+  // SPE-2485 slice 1: dry-run publish-queue execution tick and weekly report surfacing.
+  const currentPublishQueueRecords = outputWeeklyState.publishQueueRecords ?? {}
+  if (Object.keys(currentPublishQueueRecords).length > 0) {
+    const publishQueueTick = applyWeeklyPublishQueueExecutionTick(
+      currentPublishQueueRecords,
+      result.week
+    )
+    outputWeeklyState.publishQueueRecords = publishQueueTick.records
+
+    if (publishQueueTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const publishQueueNotes = buildWeeklyPublishQueueExecutionReportNotes({
+        receipts: publishQueueTick.receipts,
+        records: publishQueueTick.records,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (publishQueueNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...publishQueueNotes],
+        }
+        result.reports = reports
+      }
+    }
   }
 
   // SPE-2122 slice 3: decay registration backlog on persisted population emergence records.

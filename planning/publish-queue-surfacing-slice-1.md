@@ -70,7 +70,7 @@ Surface persisted `publishQueueRecords` and dry-run execution receipts via read-
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Real CI/GitHub API wiring | SPE-75 follow-up child | External automation beyond dry-run stubs |
+| Real CI/GitHub API wiring | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) | Shipped in follow-up slice 1 (`pr-merge` channel) |
 | GameState execution-receipt persistence | SPE-75 follow-up child | Optional ledger beyond queue status transition |
 | Modifiable data-pack runtime import | SPE-2479 follow-up child | Separate boundary from surfacing |
 | Mission triage publish-queue chips | Backlog | Mission triage full refresh blocked |

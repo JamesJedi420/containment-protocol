@@ -268,6 +268,7 @@ import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
+import type { ModifiableDataPackRecord } from './modifiableDataPackValidation'
 import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
 import type {
   CoerciveProtocolRecord,
@@ -2717,6 +2718,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   publishQueueRecords?: Record<string, PublishQueueRecord>
+
+  /**
+   * SPE-2486 slice 1: persisted modifiable data-pack records (keyed by packId).
+   * Hydration re-validates via SPE-2479 and drops rejected or duplicate-id entries.
+   */
+  modifiableDataPackRecords?: Record<string, ModifiableDataPackRecord>
 
   /**
    * SPE-2122 slice 2: persisted mass anomalous population emergence records (keyed by record id).

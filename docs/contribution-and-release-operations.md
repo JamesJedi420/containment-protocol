@@ -53,6 +53,8 @@ Authoring tools and contribution pipelines may ship **modifiable data packs** (t
 
 Domain validation baseline: `src/domain/modifiableDataPackValidation.ts` (SPE-2479) accepts structured modifiable data-pack payloads and emits bounded schema-validation decisions with section-shape checks and borderline schema-version remediation — no publish side effects.
 
+Runtime import (SPE-2486) persists validated packs on `GameState.modifiableDataPackRecords` with sanitize/hydration on save import — rejected payloads drop without corrupting downstream state.
+
 ## Publish automation and crediting hooks
 
 After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.

@@ -6,7 +6,7 @@ One-page implementation plan. Linear: [SPE-2480](https://linear.app/spectranoir/
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2480 — Publish automation and crediting hooks (slice 1)](https://linear.app/spectranoir/issue/SPE-2480) |
 | **Status** | **Shipped** |
-| **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent remains open until publish-hooks slice ships |
+| **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear |
 | **Branch** | `spe-75-publish-automation-crediting-hooks-slice-1` |
 | **Base `main` SHA** | `2a56d78c` |
 

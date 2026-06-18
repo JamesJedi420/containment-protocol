@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**Next implementation (unblocked):** [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) registry umbrella grooming ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)) — docs + Linear hygiene; `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`; mission triage full refresh remains **blocked**.
+**Next implementation (unblocked):** Owner reprioritizes from §14-pass alternates below; mission triage full refresh remains **blocked**.
+
+**Recently shipped:** [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) registry umbrella grooming — parent AC matrices + deferred tables for [SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046); parents stay **Backlog**; `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`.
 
 **Recently shipped:** [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) publish automation and crediting hooks (slice 1) — deterministic publish-intent envelope with crediting/publish hook descriptors; branch `spe-75-publish-automation-crediting-hooks-slice-1` (PR #2879 @ `99161c79`).
 
@@ -40,15 +42,15 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) + [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) registry umbrella grooming — `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`; branch `spe-947-spe-1046-parent-acceptance-review-slice-1`; parents stay **Backlog**; mission triage full refresh remains **blocked**.
+**Next step:** owner reprioritizes from §14-pass alternates below; mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `ce3716b0` — post scope-discipline grooming pass (PR #2880).
+**Base `main` SHA:** `e0f7c38f` — post SPE-2481/SPE-2482 registry umbrella grooming closure.
 
-**§14-pass alternates (after grooming closure — owner reprioritizes):**
+**§14-pass alternates (owner creates Linear child when starting):**
 
-1. **Registry umbrella grooming ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — **active** — [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482); docs/Linear hygiene only; parents stay **Backlog**.
-2. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — read-only `stabilityLayer.ts` category via `buildBranchContinuityRuntimeAuditSnapshot`; partial §14 (dev/stability tooling); see `planning/branch-continuity-runtime-hooks-slice-1.md` § Deferred.
-3. **Contribution/release ops follow-on (new Linear child — do not reopen [SPE-75](https://linear.app/spectranoir/issue/SPE-75) Done parent):** runtime publish executor / CI wiring, GameState publish-queue persistence ([SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) deferred), or modifiable data-pack runtime import ([SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) deferred).
+1. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — read-only `stabilityLayer.ts` category via `buildBranchContinuityRuntimeAuditSnapshot`; partial §14 (dev/stability tooling); see `planning/branch-continuity-runtime-hooks-slice-1.md` § Deferred.
+2. **Contribution/release ops follow-on (new Linear child — do not reopen [SPE-75](https://linear.app/spectranoir/issue/SPE-75) Done parent):** runtime publish executor / CI wiring, GameState publish-queue persistence ([SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) deferred), or modifiable data-pack runtime import ([SPE-2479](https://linear.app/spectranoir/issue/SPE-2479) deferred).
+3. **Registry umbrella follow-ons ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — grooming closed ([SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) **Done**); parents stay **Backlog**; no slice 5+ without fresh §14 pass — see `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md` § Deferred.
 
 **Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; runtime publish executor without owner-scoped child.
 
@@ -169,7 +171,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-31-town-first-contract-generation-slice.md`          | **Shipped**    | [SPE-2469](https://linear.app/spectranoir/issue/SPE-2469) / PR #2856 — town-first contract generation @ `4594d231`.                                   |
 | `spe-31-parent-reconciliation-slice.md`                   | **Shipped**    | SPE-31 parent AC reconciliation — hub shell + SPE-31a + SPE-2465–2469; parent **Done** on Linear; AC rows 1–6 **Yes**.                                 |
 | `spe-521-parent-reconciliation-slice.md`                  | **Shipped**    | SPE-521 parent AC reconciliation — substrate + prep-stack; parent **Done** on Linear.                                                               |
-| `spe-947-spe-1046-parent-acceptance-review-slice-1.md`    | **In progress** | [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) + [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) — registry umbrella grooming; parents SPE-947/SPE-1046 stay **Backlog**. |
+| `spe-947-spe-1046-parent-acceptance-review-slice-1.md`    | **Shipped**    | [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) + [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) — registry umbrella grooming; parents SPE-947/SPE-1046 stay **Backlog**. |
 | `infiltration-case-prep-slice.md`                         | **Shipped**    | SPE-521 prep panel; keep for patterns.                                                                                                              |
 | `infiltration-encounter-content-slice-1.md`               | **Shipped**    | SPE-2250 stack slice 1.                                                                                                                             |
 | `infiltration-encounter-content-slice-2.md`               | **Shipped**    | SPE-2250 stack slice 2.                                                                                                                             |

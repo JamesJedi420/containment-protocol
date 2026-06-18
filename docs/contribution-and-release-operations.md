@@ -53,6 +53,12 @@ Authoring tools and contribution pipelines may ship **modifiable data packs** (t
 
 Domain validation baseline: `src/domain/modifiableDataPackValidation.ts` (SPE-2479) accepts structured modifiable data-pack payloads and emits bounded schema-validation decisions with section-shape checks and borderline schema-version remediation — no publish side effects.
 
+## Publish automation and crediting hooks
+
+After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.
+
+Domain publish baseline: `src/domain/publishAutomationCreditingHooks.ts` (SPE-2480) consumes packaged release envelopes plus applied governance metadata and crediting manifest inputs, emitting sorted crediting and publish hook descriptors — no publish execution side effects.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

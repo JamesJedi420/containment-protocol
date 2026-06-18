@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2488](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2488 — Publish-queue GitHub API wiring (slice 1)](https://linear.app/spectranoir/issue/SPE-2488) |
-| **Status** | **In progress** |
+| **Status** | **Shipped** — PR #2896 @ `4acb1b9e` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-github-api-slice-1` |
 | **Base `main` SHA** | `f66edf73` |

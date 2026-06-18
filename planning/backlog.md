@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**In progress:** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) publish-queue GitHub API wiring (slice 1) — `pr-merge` live client + dry-run default; branch `spe-75-publish-queue-github-api-slice-1`.
+**In progress:** _(none — owner reprioritizes from §14-pass alternates)_
+
+**Recently shipped:** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) publish-queue GitHub API wiring (slice 1) — `pr-merge` live client + dry-run default; branch `spe-75-publish-queue-github-api-slice-1` (PR #2896 @ `4acb1b9e`).
 
 **Recently shipped:** [SPE-2487](https://linear.app/spectranoir/issue/SPE-2487) branch continuity stability-audit category (slice 1); branch `spe-75-branch-continuity-stability-audit-category-slice-1` (PR #2894 @ `f66edf73`).
 
@@ -54,14 +56,14 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) publish-queue GitHub API wiring (slice 1) in progress on `spe-75-publish-queue-github-api-slice-1`.
+**Next step:** Owner reprioritizes from §14-pass alternates below. Mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `f66edf73` — post SPE-2487 branch-continuity stability-audit category closure.
+**Base `main` SHA:** `4acb1b9e` — post SPE-2488 publish-queue GitHub API wiring closure.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
 1. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — **shipped** [SPE-2487](https://linear.app/spectranoir/issue/SPE-2487); see `planning/branch-continuity-stability-audit-category-slice-1.md`.
-2. **Contribution/release ops follow-on ([SPE-2488](https://linear.app/spectranoir/issue/SPE-2488))** — real CI/GitHub API wiring for `pr-merge` channel (in progress).
+2. **Contribution/release ops follow-on** — **shipped** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) (`pr-merge` GitHub API wiring slice 1); additional channels / live `advanceWeek` orchestration deferred.
 3. **Registry umbrella follow-ons ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — grooming closed ([SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) **Done**); parents stay **Backlog**; no slice 5+ without fresh §14 pass — see `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md` § Deferred.
 
 **Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; additional publish channels beyond `pr-merge`; `advanceWeek` live orchestration.
@@ -230,7 +232,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `modifiable-data-pack-runtime-import-slice-1.md`          | **Shipped**    | [SPE-2486](https://linear.app/spectranoir/issue/SPE-2486) — GameState modifiable data-pack runtime import under SPE-75. |
 | `publish-automation-crediting-hooks-slice-1.md`           | **Shipped**    | [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) — deterministic publish-intent + crediting hooks under SPE-75; PR #2879 @ `99161c79`. |
 | `publish-queue-persistence-slice-1.md`                    | **Shipped**    | [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) — `publishQueueRecords` GameState persistence under SPE-75; PR #2886 @ `93711130`. |
-| `publish-queue-github-api-slice-1.md`                   | **In progress** | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) — `pr-merge` GitHub API wiring under SPE-75; branch `spe-75-publish-queue-github-api-slice-1`. |
+| `publish-queue-github-api-slice-1.md`                   | **Shipped**    | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) — `pr-merge` GitHub API wiring under SPE-75; PR #2896 @ `4acb1b9e`. |
 | `publish-queue-executor-slice-1.md`                       | **Shipped**    | [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) — dry-run publish executor under SPE-75; PR #2888 @ `6399251c`. |
 | `publish-queue-surfacing-slice-1.md`                      | **Shipped**    | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; PR #2890 @ `1a801ec0`. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |

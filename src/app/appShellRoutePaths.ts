@@ -23,6 +23,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'report',
   'intel',
   'pattern-source-series',
+  'publish-queue',
   'self-censoring-information',
   'public-disclosure-state',
   'campaign/public-disclosure',

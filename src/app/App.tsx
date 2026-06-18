@@ -81,6 +81,9 @@ const HelpRoute = createRouteComponent(() => import('../features/divisions/HelpP
 const PatternSourceSeriesMirrorRoute = createRouteComponent(
   () => import('../features/operations/PatternSourceSeriesMirrorPage')
 )
+const PublishQueueMirrorRoute = createRouteComponent(
+  () => import('../features/operations/PublishQueueMirrorPage')
+)
 const SelfCensoringInformationMirrorRoute = createRouteComponent(
   () => import('../features/operations/SelfCensoringInformationMirrorPage')
 )
@@ -195,6 +198,7 @@ export default function App() {
           path="pattern-source-series"
           element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
         />
+        <Route path="publish-queue" element={renderLazyRoute(PublishQueueMirrorRoute)} />
         <Route
           path="self-censoring-information"
           element={renderLazyRoute(SelfCensoringInformationMirrorRoute)}

@@ -26,6 +26,7 @@ export const APP_ROUTES = {
   intel: '/intel',
   intelDetail: (templateId: string) => `/intel/${encodeURIComponent(templateId)}`,
   patternSourceSeries: '/pattern-source-series',
+  publishQueue: '/publish-queue',
   selfCensoringInformation: '/self-censoring-information',
   publicDisclosureState: '/public-disclosure-state',
   publicDisclosureCampaign: '/campaign/public-disclosure',

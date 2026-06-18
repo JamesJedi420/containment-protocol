@@ -1,9 +1,10 @@
 /**
  * SPE-2484 slice 1: publish-queue dry-run executor.
+ * SPE-2488 slice 1: optional live `pr-merge` GitHub API path with dry-run default.
  *
  * Pure deterministic executor consuming persisted publish-queue records and
- * SPE-2480 hook descriptors with bounded channel stubs — no CI/GitHub API
- * calls, UI, or real publish side effects.
+ * SPE-2480 hook descriptors. Dry-run uses bounded channel stubs; live mode
+ * calls an injectable GitHub client and only mutates records on API success.
  */
 
 import type {
@@ -18,6 +19,14 @@ import {
   validatePublishQueueRecord,
   withPublishQueueRecordStatus,
 } from './publishAutomationCreditingHooks'
+import type {
+  PublishQueueGitHubClient,
+  PublishQueueGitHubConfig,
+} from './publishQueueGitHubClient'
+import {
+  buildPrMergeGitHubRequest,
+  formatPublishQueueGitHubMergeSuccessRef,
+} from './publishQueueGitHubClient'
 
 // ---------------------------------------------------------------------------
 // Identifiers and unions
@@ -35,11 +44,17 @@ export type PublishQueueExecutorSkipCode =
   | 'record_not_ready_to_publish'
   | 'already_published'
   | 'missing_publish_channel_hook'
+  | 'unsupported_publish_channel_target'
+  | 'publish_channel_pull_request_unresolved'
+  | 'publish_channel_api_failed'
 
 export const PUBLISH_QUEUE_EXECUTOR_SKIP_CODES: readonly PublishQueueExecutorSkipCode[] = [
   'record_not_ready_to_publish',
   'already_published',
   'missing_publish_channel_hook',
+  'unsupported_publish_channel_target',
+  'publish_channel_pull_request_unresolved',
+  'publish_channel_api_failed',
 ] as const
 
 export type PublishHookStubKind = CreditingHookKind | PublishHookKind
@@ -57,12 +72,18 @@ export interface PublishQueueExecutionReceipt {
   readonly executionWeek: number
   readonly appliedHooks: readonly PublishHookStubApplication[]
   readonly publishChannelStub?: string
+  readonly publishChannelRef?: string
   readonly skipCode?: PublishQueueExecutorSkipCode
 }
 
 export interface PublishQueueExecutorOptions {
   readonly week?: number
   readonly maxHookApplications?: number
+}
+
+export interface PublishQueueLiveExecutorOptions extends PublishQueueExecutorOptions {
+  readonly githubClient: PublishQueueGitHubClient
+  readonly githubConfig: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
 }
 
 export interface PublishQueueExecutionResult {
@@ -192,75 +213,78 @@ export function isPublishQueueExecutorSkipCode(value: string): value is PublishQ
  * are rejected without mutation. Re-execution of `published` records is
  * idempotent (skipped, record byte-stable).
  */
-export function executePublishQueueRecordDryRun(
+function buildPreExecutionReceipt(
   record: PublishQueueRecord,
-  options: PublishQueueExecutorOptions = {}
-): PublishQueueExecutionResult {
-  const executionWeek = normalizeWeek(options.week)
-  const maxHookApplications = resolveMaxHookApplications(options.maxHookApplications)
-
+  executionWeek: number
+):
+  | { readonly kind: 'continue' }
+  | { readonly kind: 'result'; readonly result: PublishQueueExecutionResult } {
   if (record.status === 'published') {
-    const receipt = freezeReceipt({
-      recordId: record.id,
-      outcome: 'skipped',
-      executionWeek,
-      appliedHooks: Object.freeze([]),
-      skipCode: 'already_published',
-    })
-
     return {
-      record,
-      receipt,
+      kind: 'result',
+      result: {
+        record,
+        receipt: freezeReceipt({
+          recordId: record.id,
+          outcome: 'skipped',
+          executionWeek,
+          appliedHooks: Object.freeze([]),
+          skipCode: 'already_published',
+        }),
+      },
     }
   }
 
   if (record.status !== 'ready_to_publish') {
-    const receipt = freezeReceipt({
-      recordId: record.id,
-      outcome: 'rejected',
-      executionWeek,
-      appliedHooks: Object.freeze([]),
-      skipCode: 'record_not_ready_to_publish',
-    })
-
     return {
-      record,
-      receipt,
+      kind: 'result',
+      result: {
+        record,
+        receipt: freezeReceipt({
+          recordId: record.id,
+          outcome: 'rejected',
+          executionWeek,
+          appliedHooks: Object.freeze([]),
+          skipCode: 'record_not_ready_to_publish',
+        }),
+      },
     }
   }
 
   const publishChannelHook = findPublishChannelHook(record)
   if (!publishChannelHook) {
-    const receipt = freezeReceipt({
-      recordId: record.id,
-      outcome: 'rejected',
-      executionWeek,
-      appliedHooks: Object.freeze([]),
-      skipCode: 'missing_publish_channel_hook',
-    })
-
     return {
-      record,
-      receipt,
+      kind: 'result',
+      result: {
+        record,
+        receipt: freezeReceipt({
+          recordId: record.id,
+          outcome: 'rejected',
+          executionWeek,
+          appliedHooks: Object.freeze([]),
+          skipCode: 'missing_publish_channel_hook',
+        }),
+      },
     }
   }
 
-  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
-  const publishChannelStub = buildChannelStub(
-    publishChannelHook.kind,
-    publishChannelHook.target,
-    publishChannelHook.payload
-  )
-  const nextRecord =
-    withPublishQueueRecordStatus(record, 'published') ??
-    record
+  return { kind: 'continue' }
+}
+
+function finalizePublishedExecution(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  appliedHooks: readonly PublishHookStubApplication[],
+  channelReceipt: Pick<PublishQueueExecutionReceipt, 'publishChannelStub' | 'publishChannelRef'>
+): PublishQueueExecutionResult {
+  const nextRecord = withPublishQueueRecordStatus(record, 'published') ?? record
 
   const receipt = freezeReceipt({
     recordId: record.id,
     outcome: 'completed',
     executionWeek,
     appliedHooks,
-    publishChannelStub,
+    ...channelReceipt,
   })
 
   if (!validatePublishQueueRecord(nextRecord).valid) {
@@ -280,6 +304,102 @@ export function executePublishQueueRecordDryRun(
     record: nextRecord,
     receipt,
   }
+}
+
+export function executePublishQueueRecordDryRun(
+  record: PublishQueueRecord,
+  options: PublishQueueExecutorOptions = {}
+): PublishQueueExecutionResult {
+  const executionWeek = normalizeWeek(options.week)
+  const maxHookApplications = resolveMaxHookApplications(options.maxHookApplications)
+  const preExecution = buildPreExecutionReceipt(record, executionWeek)
+
+  if (preExecution.kind === 'result') {
+    return preExecution.result
+  }
+
+  const publishChannelHook = findPublishChannelHook(record)!
+  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
+  const publishChannelStub = buildChannelStub(
+    publishChannelHook.kind,
+    publishChannelHook.target,
+    publishChannelHook.payload
+  )
+
+  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
+    publishChannelStub,
+  })
+}
+
+/**
+ * Executes one publish-queue record through the live `pr-merge` GitHub API path.
+ * Failed API calls reject without mutating the record. Re-execution of
+ * `published` records remains idempotent (skipped, record byte-stable).
+ */
+export async function executePublishQueueRecordLive(
+  record: PublishQueueRecord,
+  options: PublishQueueLiveExecutorOptions
+): Promise<PublishQueueExecutionResult> {
+  const executionWeek = normalizeWeek(options.week)
+  const maxHookApplications = resolveMaxHookApplications(options.maxHookApplications)
+  const preExecution = buildPreExecutionReceipt(record, executionWeek)
+
+  if (preExecution.kind === 'result') {
+    return preExecution.result
+  }
+
+  const publishChannelHook = findPublishChannelHook(record)!
+  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
+
+  if (publishChannelHook.target !== 'pr-merge') {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'unsupported_publish_channel_target',
+      }),
+    }
+  }
+
+  const mergeRequest = buildPrMergeGitHubRequest(
+    publishChannelHook,
+    record,
+    options.githubConfig
+  )
+
+  if (!mergeRequest) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_pull_request_unresolved',
+      }),
+    }
+  }
+
+  const mergeResult = await options.githubClient.mergePullRequest(mergeRequest)
+  if (!mergeResult.ok) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_api_failed',
+      }),
+    }
+  }
+
+  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
+    publishChannelRef: formatPublishQueueGitHubMergeSuccessRef(mergeRequest, mergeResult),
+  })
 }
 
 /**
@@ -343,4 +463,53 @@ export function applyWeeklyPublishQueueExecutionTick(
   options: Omit<PublishQueueExecutorOptions, 'week'> = {}
 ): PublishQueueBatchExecutionResult {
   return executePublishQueueRecordsDryRun(records, { ...options, week })
+}
+
+/**
+ * Batch live execution in stable id order. Only records that complete a
+ * successful GitHub merge transition mutate the returned map.
+ */
+export async function executePublishQueueRecordsLive(
+  records: PublishQueueRecordsMap | null | undefined,
+  options: PublishQueueLiveExecutorOptions
+): Promise<PublishQueueBatchExecutionResult> {
+  const safeRecords = records ?? {}
+  const recordIds = Object.keys(safeRecords).sort((left, right) => left.localeCompare(right))
+
+  if (recordIds.length === 0) {
+    return {
+      records: safeRecords,
+      receipts: Object.freeze([]),
+    }
+  }
+
+  let nextRecords: PublishQueueRecordsMap | null = null
+  const receipts: PublishQueueExecutionReceipt[] = []
+
+  for (const recordId of recordIds) {
+    const record = safeRecords[recordId]
+    if (!record) {
+      continue
+    }
+
+    const sourceRecord = (nextRecords ?? safeRecords)[recordId] ?? record
+    const result = await executePublishQueueRecordLive(sourceRecord, options)
+
+    receipts.push(result.receipt)
+
+    if (result.record === sourceRecord) {
+      continue
+    }
+
+    if (!nextRecords) {
+      nextRecords = { ...safeRecords }
+    }
+
+    nextRecords[recordId] = result.record
+  }
+
+  return {
+    records: nextRecords ?? safeRecords,
+    receipts: Object.freeze(receipts.map((receipt) => freezeReceipt(receipt))),
+  }
 }

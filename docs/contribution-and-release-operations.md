@@ -65,6 +65,8 @@ Publish-queue persistence (SPE-2483) stores bounded publish-intent snapshots on 
 
 Domain publish executor baseline: `src/domain/publishQueueExecutor.ts` (SPE-2484) consumes persisted queue records and SPE-2480 hook descriptors through bounded dry-run channel stubs with deterministic `ready_to_publish` → `published` transitions — no CI/GitHub API calls or real publish side effects.
 
+Publish-queue GitHub API wiring (SPE-2488) adds an injectable `publishQueueGitHubClient` and `executePublishQueueRecordLive` path for the canonical `pr-merge` channel. Live mode is opt-in via `PUBLISH_QUEUE_EXECUTOR_MODE=live` plus `GITHUB_REPOSITORY` / `GITHUB_TOKEN` (or an injected client in tests). Failed API calls reject without mutating queue records; `advanceWeek` weekly tick remains dry-run by default.
+
 Publish-queue surfacing (SPE-2485) wires the weekly dry-run tick in `advanceWeek`, emits `contribution_release.publish_queue_execution` weekly report notes for reportable receipts, and exposes a read-only planning mirror at `/publish-queue` over hydrated `publishQueueRecords` — still no real publish side effects.
 
 ## Notation and docs standards

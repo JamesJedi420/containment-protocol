@@ -52,7 +52,7 @@ Pure domain publish-queue dry-run executor consuming persisted `publishQueueReco
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Real CI/GitHub API wiring | SPE-75 follow-up child | Requires external automation beyond dry-run stubs |
+| Real CI/GitHub API wiring | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) | Shipped in follow-up slice 1 (`pr-merge` channel) |
 | Publish-queue UI / weekly orchestration surfacing | SPE-75 follow-up child | Executor must land before UI |
 | GameState execution-receipt persistence | SPE-75 follow-up child | Optional ledger beyond queue status transition |
 

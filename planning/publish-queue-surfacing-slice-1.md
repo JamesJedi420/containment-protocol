@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2485](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2485 — Publish-queue UI / orchestration surfacing (slice 1)](https://linear.app/spectranoir/issue/SPE-2485) |
-| **Status** | **In progress** — branch `spe-75-publish-queue-surfacing-slice-1` |
+| **Status** | **Shipped** — PR #2890 @ `1a801ec0` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-surfacing-slice-1` |
 | **Base `main` SHA** | `dff81abe` |

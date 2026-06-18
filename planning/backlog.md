@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**In progress:** [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) publish-queue UI / orchestration surfacing — branch `spe-75-publish-queue-surfacing-slice-1`.
+**In progress:** _(none — owner reprioritizes from §14-pass alternates)_
+
+**Recently shipped:** [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) publish-queue UI / orchestration surfacing (slice 1) — dry-run tick + weekly notes + planning mirror; branch `spe-75-publish-queue-surfacing-slice-1` (PR #2890 @ `1a801ec0`).
 
 **Recently shipped:** [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) registry umbrella grooming — parent AC matrices + deferred tables for [SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046); parents stay **Backlog**; `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md`.
 
@@ -224,7 +226,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `publish-automation-crediting-hooks-slice-1.md`           | **Shipped**    | [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) — deterministic publish-intent + crediting hooks under SPE-75; PR #2879 @ `99161c79`. |
 | `publish-queue-persistence-slice-1.md`                    | **Shipped**    | [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) — `publishQueueRecords` GameState persistence under SPE-75; PR #2886 @ `93711130`. |
 | `publish-queue-executor-slice-1.md`                       | **Shipped**    | [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) — dry-run publish executor under SPE-75; PR #2888 @ `6399251c`. |
-| `publish-queue-surfacing-slice-1.md`                      | **In progress** | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; branch `spe-75-publish-queue-surfacing-slice-1`. |
+| `publish-queue-surfacing-slice-1.md`                      | **Shipped**    | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; PR #2890 @ `1a801ec0`. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
 | `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |

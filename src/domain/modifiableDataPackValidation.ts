@@ -576,3 +576,406 @@ export function evaluateModifiableDataPackValidation(
     packMetadata: buildPackMetadata(payload!, packKind, sectionCount),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Runtime import persistence (SPE-2486 slice 1)
+// ---------------------------------------------------------------------------
+
+export type ModifiableDataPackRecordId = string
+
+export type ModifiableDataPackImportStatus = Extract<
+  DataPackValidationStatus,
+  'applied' | 'needs_revision'
+>
+
+export interface ModifiableSectionRecord {
+  readonly sectionKey: string
+  readonly fieldType: ModifiableFieldType
+  readonly defaultValue?: unknown
+}
+
+export interface ModifiableDataPackRecord {
+  readonly packId: ModifiableDataPackRecordId
+  readonly schemaVersion: string
+  readonly packKind: ModifiableDataPackKind
+  readonly authorRef: string
+  readonly issueLink: string
+  readonly modifiableSections: readonly ModifiableSectionRecord[]
+  readonly importStatus: ModifiableDataPackImportStatus
+  readonly reasonCodes: readonly DataPackReasonCode[]
+}
+
+export type ModifiableDataPackRecordsMap = Record<
+  ModifiableDataPackRecordId,
+  ModifiableDataPackRecord
+>
+
+export type ModifiableDataPackRecordValidationCode =
+  | 'missing_pack_id'
+  | 'missing_schema_version'
+  | 'missing_pack_kind'
+  | 'invalid_pack_kind'
+  | 'missing_modifiable_sections'
+  | 'invalid_section_shape'
+  | 'invalid_import_status'
+  | 'invalid_reason_code'
+  | 'validation_rejected'
+
+export interface ModifiableDataPackRecordValidationIssue {
+  readonly code: ModifiableDataPackRecordValidationCode
+  readonly severity: 'error'
+  readonly detail: string
+}
+
+export interface ModifiableDataPackRecordValidationResult {
+  readonly valid: boolean
+  readonly issues: readonly ModifiableDataPackRecordValidationIssue[]
+}
+
+const DATA_PACK_REASON_CODE_SET = new Set<string>([
+  'invalid_payload',
+  'missing_pack_id',
+  'missing_schema_version',
+  'invalid_schema_version',
+  'missing_pack_kind',
+  'invalid_pack_kind',
+  'missing_modifiable_sections',
+  'invalid_modifiable_section_shape',
+  'missing_section_key',
+  'duplicate_section_keys',
+  'invalid_field_type',
+  'default_value_type_mismatch',
+  'schema_version_borderline',
+])
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isDataPackReasonCode(value: string): value is DataPackReasonCode {
+  return DATA_PACK_REASON_CODE_SET.has(value)
+}
+
+function isModifiableDataPackImportStatus(
+  value: string
+): value is ModifiableDataPackImportStatus {
+  return value === 'applied' || value === 'needs_revision'
+}
+
+function sortModifiableSections(
+  sections: ModifiableSectionRecord[]
+): readonly ModifiableSectionRecord[] {
+  return Object.freeze(
+    [...sections]
+      .sort((left, right) => left.sectionKey.localeCompare(right.sectionKey))
+      .map((section) =>
+        Object.freeze({
+          sectionKey: section.sectionKey,
+          fieldType: section.fieldType,
+          ...(section.defaultValue !== undefined ? { defaultValue: section.defaultValue } : {}),
+        })
+      )
+  )
+}
+
+function parseModifiableSectionRecords(value: unknown): ModifiableSectionRecord[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const sections: ModifiableSectionRecord[] = []
+
+  for (const entry of value) {
+    if (!isPlainRecord(entry)) {
+      continue
+    }
+
+    const sectionKey = normalizeToken(entry.sectionKey)
+    const fieldTypeToken = normalizeToken(entry.fieldType)
+
+    if (!sectionKey || !fieldTypeToken || !isModifiableFieldType(fieldTypeToken)) {
+      continue
+    }
+
+    const defaultValue = entry.defaultValue
+
+    sections.push({
+      sectionKey,
+      fieldType: fieldTypeToken,
+      ...(defaultValue !== undefined ? { defaultValue } : {}),
+    })
+  }
+
+  return sections
+}
+
+function modifiableDataPackRecordToPayload(
+  record: ModifiableDataPackRecord
+): ModifiableDataPackPayload {
+  return {
+    packId: record.packId,
+    schemaVersion: record.schemaVersion,
+    packKind: record.packKind,
+    authorRef: record.authorRef,
+    issueLink: record.issueLink,
+    modifiableSections: record.modifiableSections.map((section) => ({
+      sectionKey: section.sectionKey,
+      fieldType: section.fieldType,
+      ...(section.defaultValue !== undefined ? { defaultValue: section.defaultValue } : {}),
+    })),
+  }
+}
+
+function freezeModifiableDataPackRecordValidationResult(
+  issues: ModifiableDataPackRecordValidationIssue[]
+): ModifiableDataPackRecordValidationResult {
+  const sortedIssues = [...issues].sort((left, right) => {
+    const codeOrder = left.code.localeCompare(right.code)
+    if (codeOrder !== 0) {
+      return codeOrder
+    }
+
+    return left.detail.localeCompare(right.detail)
+  })
+
+  return Object.freeze({
+    valid: sortedIssues.length === 0,
+    issues: Object.freeze(sortedIssues.map((issue) => Object.freeze({ ...issue }))),
+  })
+}
+
+function defineModifiableDataPackRecord(
+  record: ModifiableDataPackRecord
+): ModifiableDataPackRecord {
+  return Object.freeze({
+    packId: normalizeToken(record.packId),
+    schemaVersion: normalizeToken(record.schemaVersion),
+    packKind: record.packKind,
+    authorRef: normalizeToken(record.authorRef),
+    issueLink: normalizeToken(record.issueLink),
+    modifiableSections: sortModifiableSections([...record.modifiableSections]),
+    importStatus: record.importStatus,
+    reasonCodes: Object.freeze([...record.reasonCodes]),
+  })
+}
+
+export function validateModifiableDataPackRecord(
+  record: ModifiableDataPackRecord,
+  policy?: DataPackValidationPolicy
+): ModifiableDataPackRecordValidationResult {
+  const issues: ModifiableDataPackRecordValidationIssue[] = []
+  const packId = normalizeToken(record.packId)
+  const schemaVersion = normalizeToken(record.schemaVersion)
+  const packKindToken = normalizeToken(record.packKind)
+  const importStatus = record.importStatus
+
+  if (!packId) {
+    issues.push({
+      code: 'missing_pack_id',
+      severity: 'error',
+      detail: 'Modifiable data-pack record is missing packId.',
+    })
+  }
+
+  if (!schemaVersion) {
+    issues.push({
+      code: 'missing_schema_version',
+      severity: 'error',
+      detail: 'Modifiable data-pack record is missing schemaVersion.',
+    })
+  }
+
+  if (!packKindToken) {
+    issues.push({
+      code: 'missing_pack_kind',
+      severity: 'error',
+      detail: 'Modifiable data-pack record is missing packKind.',
+    })
+  } else if (!isModifiableDataPackKind(packKindToken)) {
+    issues.push({
+      code: 'invalid_pack_kind',
+      severity: 'error',
+      detail: `Modifiable data-pack record has invalid packKind "${packKindToken}".`,
+    })
+  }
+
+  if (!Array.isArray(record.modifiableSections) || record.modifiableSections.length === 0) {
+    issues.push({
+      code: 'missing_modifiable_sections',
+      severity: 'error',
+      detail: 'Modifiable data-pack record must include at least one modifiable section.',
+    })
+  } else {
+    for (const section of record.modifiableSections) {
+      if (
+        !section ||
+        typeof section !== 'object' ||
+        !normalizeToken(section.sectionKey) ||
+        !isModifiableFieldType(section.fieldType)
+      ) {
+        issues.push({
+          code: 'invalid_section_shape',
+          severity: 'error',
+          detail: 'Each modifiable section record must include sectionKey and fieldType.',
+        })
+        break
+      }
+    }
+  }
+
+  if (typeof importStatus !== 'string' || !isModifiableDataPackImportStatus(importStatus)) {
+    issues.push({
+      code: 'invalid_import_status',
+      severity: 'error',
+      detail: 'Modifiable data-pack record has invalid importStatus.',
+    })
+  }
+
+  for (const reasonCode of record.reasonCodes) {
+    if (!isDataPackReasonCode(reasonCode)) {
+      issues.push({
+        code: 'invalid_reason_code',
+        severity: 'error',
+        detail: `Modifiable data-pack record has invalid reasonCode "${reasonCode}".`,
+      })
+    }
+  }
+
+  if (issues.length > 0) {
+    return freezeModifiableDataPackRecordValidationResult(issues)
+  }
+
+  const decision = evaluateModifiableDataPackValidation(
+    modifiableDataPackRecordToPayload(record),
+    policy
+  )
+
+  if (decision.status === 'rejected') {
+    issues.push({
+      code: 'validation_rejected',
+      severity: 'error',
+      detail: 'Modifiable data-pack record failed upstream schema validation.',
+    })
+  } else if (decision.status !== importStatus) {
+    issues.push({
+      code: 'invalid_import_status',
+      severity: 'error',
+      detail: `Modifiable data-pack record importStatus "${importStatus}" does not match validation decision "${decision.status}".`,
+    })
+  }
+
+  const expectedReasonCodes = [...decision.reasonCodes].sort((left, right) =>
+    left.localeCompare(right)
+  )
+  const actualReasonCodes = [...record.reasonCodes].sort((left, right) => left.localeCompare(right))
+
+  if (actualReasonCodes.join('|') !== expectedReasonCodes.join('|')) {
+    issues.push({
+      code: 'invalid_reason_code',
+      severity: 'error',
+      detail: 'Modifiable data-pack record reasonCodes do not match validation decision.',
+    })
+  }
+
+  return freezeModifiableDataPackRecordValidationResult(issues)
+}
+
+/**
+ * Imports a modifiable data-pack payload through SPE-2479 validation and returns a
+ * canonical runtime record, or null when validation rejects the payload.
+ */
+export function composeModifiableDataPackRecord(
+  payload?: ModifiableDataPackPayload,
+  policy?: DataPackValidationPolicy
+): ModifiableDataPackRecord | null {
+  const decision = evaluateModifiableDataPackValidation(payload, policy)
+
+  if (decision.status === 'rejected' || !decision.packMetadata) {
+    return null
+  }
+
+  const sections = parseModifiableSectionRecords(payload?.modifiableSections)
+
+  if (sections.length === 0) {
+    return null
+  }
+
+  const record = defineModifiableDataPackRecord({
+    packId: decision.packMetadata.packId,
+    schemaVersion: decision.packMetadata.schemaVersion,
+    packKind: decision.packMetadata.packKind,
+    authorRef: decision.packMetadata.authorRef,
+    issueLink: decision.packMetadata.issueLink,
+    modifiableSections: sections,
+    importStatus: decision.status,
+    reasonCodes: decision.reasonCodes,
+  })
+
+  return validateModifiableDataPackRecord(record, policy).valid ? record : null
+}
+
+/** Alias for compose — runtime import entry point for structured pack payloads. */
+export function importModifiableDataPackPayload(
+  payload?: ModifiableDataPackPayload,
+  policy?: DataPackValidationPolicy
+): ModifiableDataPackRecord | null {
+  return composeModifiableDataPackRecord(payload, policy)
+}
+
+function sanitizeModifiableDataPackRecordEntry(
+  value: unknown,
+  policy?: DataPackValidationPolicy
+): ModifiableDataPackRecord | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const payload: ModifiableDataPackPayload = {
+    packId: normalizeToken(value.packId),
+    schemaVersion: normalizeToken(value.schemaVersion),
+    packKind: normalizeToken(value.packKind),
+    authorRef: normalizeToken(value.authorRef),
+    issueLink: normalizeToken(value.issueLink),
+    modifiableSections: parseModifiableSectionRecords(value.modifiableSections),
+  }
+
+  return composeModifiableDataPackRecord(payload, policy)
+}
+
+/** Hydration: canonical record map keyed by packId; drops invalid and duplicate-id entries. */
+export function sanitizeModifiableDataPackRecords(
+  value: unknown,
+  fallback: ModifiableDataPackRecordsMap = {},
+  policy?: DataPackValidationPolicy
+): ModifiableDataPackRecordsMap {
+  if (!isPlainRecord(value)) {
+    return fallback
+  }
+
+  const next: ModifiableDataPackRecordsMap = {}
+  const seenIds = new Set<string>()
+
+  for (const entry of Object.values(value)) {
+    const record = sanitizeModifiableDataPackRecordEntry(entry, policy)
+    if (!record || seenIds.has(record.packId)) {
+      continue
+    }
+
+    seenIds.add(record.packId)
+    next[record.packId] = record
+  }
+
+  return Object.keys(next).length > 0 ? next : fallback
+}
+
+/** Applied pack record composed from the canonical SPE-2479 fixture chain. */
+export const CANONICAL_MODIFIABLE_DATA_PACK_RECORD_FIXTURE: ModifiableDataPackRecord =
+  defineModifiableDataPackRecord(
+    composeModifiableDataPackRecord(CANONICAL_MODIFIABLE_DATA_PACK_FIXTURE)!
+  )
+
+/** Borderline-schema pack record composed from the SPE-2479 borderline fixture. */
+export const BORDERLINE_MODIFIABLE_DATA_PACK_RECORD_FIXTURE: ModifiableDataPackRecord =
+  defineModifiableDataPackRecord(
+    composeModifiableDataPackRecord(BORDERLINE_SCHEMA_DATA_PACK_FIXTURE)!
+  )

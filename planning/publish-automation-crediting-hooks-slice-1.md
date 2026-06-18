@@ -62,10 +62,10 @@ Implement a pure domain module that composes packaged release, applied governanc
 
 ## Deferred
 
-| Item | Owner | Why |
+| Item | Owner | Why deferred |
 | --- | --- | --- |
 | Runtime publish executor / CI wiring | SPE-75 follow-up child | Requires automation integration beyond hook envelope |
-| GameState persistence for publish queue | SPE-75 follow-up child | Out of pure domain boundary |
+| GameState persistence for publish queue | [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) | Shipped in follow-up slice |
 
 ## See also
 

@@ -59,6 +59,8 @@ After packaging and governance gates pass, publish-intent evaluation composes cr
 
 Domain publish baseline: `src/domain/publishAutomationCreditingHooks.ts` (SPE-2480) consumes packaged release envelopes plus applied governance metadata and crediting manifest inputs, emitting sorted crediting and publish hook descriptors — no publish execution side effects.
 
+Publish-queue persistence (SPE-2483) stores bounded publish-intent snapshots on `GameState.publishQueueRecords` with sanitize/hydration on save import — still no publish execution.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

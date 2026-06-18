@@ -213,6 +213,7 @@ import {
   sanitizeCoverStoryWeeklyProjectionSnapshots,
 } from '../../domain/coverStoryLifecycleRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
+import { sanitizePublishQueueRecords } from '../../domain/publishAutomationCreditingHooks'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
@@ -8561,6 +8562,10 @@ export function hydrateGame(
     game.patternSourceSeriesRecords,
     fallback.patternSourceSeriesRecords ?? {}
   )
+  const publishQueueRecords = sanitizePublishQueueRecords(
+    game.publishQueueRecords,
+    fallback.publishQueueRecords ?? {}
+  )
   const massAnomalousPopulationEmergenceRecords =
     sanitizeMassAnomalousPopulationEmergenceRecords(
       game.massAnomalousPopulationEmergenceRecords,
@@ -8758,6 +8763,7 @@ export function hydrateGame(
       coverStoryRecords,
       coverStoryWeeklyProjectionSnapshots,
       patternSourceSeriesRecords,
+      publishQueueRecords,
       massAnomalousPopulationEmergenceRecords,
       visualTriggerHazardRecords,
       entityWelfareReclassificationRecords,

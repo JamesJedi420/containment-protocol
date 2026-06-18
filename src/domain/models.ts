@@ -267,6 +267,7 @@ import type {
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
+import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
 import type {
   CoerciveProtocolRecord,
@@ -2709,6 +2710,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   patternSourceSeriesRecords?: Record<string, PatternSourceSeriesRecord>
+
+  /**
+   * SPE-2483 slice 1: persisted publish-queue records (keyed by record id).
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  publishQueueRecords?: Record<string, PublishQueueRecord>
 
   /**
    * SPE-2122 slice 2: persisted mass anomalous population emergence records (keyed by record id).

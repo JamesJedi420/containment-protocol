@@ -14,6 +14,7 @@ import {
 } from './branchContinuityAuthoring'
 import type { BranchPathProjectionOptions } from './branchContinuityProjection'
 import type { GameState } from './models'
+import type { StabilityIssue, StabilityIssueSeverity } from './stabilityLayer'
 
 export interface BranchContinuityRuntimeAuditInput {
   game: GameState
@@ -48,6 +49,27 @@ const INACTIVE_REPORT_LINES = [
 ] as const
 
 const TOP_WARNING_LIMIT = 8
+
+function mapBranchContinuitySeverity(severity: string): StabilityIssueSeverity {
+  return severity === 'error' ? 'error' : 'warning'
+}
+
+export function buildBranchContinuityStabilityIssues(
+  snapshot: BranchContinuityRuntimeAuditSnapshot
+): StabilityIssue[] {
+  if (!snapshot.active) {
+    return []
+  }
+
+  return snapshot.topWarnings.map((warning) => ({
+    id: `branch-continuity.${warning.nodeId}.${warning.warningClass}`,
+    category: 'branch-continuity',
+    severity: mapBranchContinuitySeverity(warning.severity),
+    summary: warning.summary,
+    details: `node=${warning.nodeId} class=${warning.warningClass}`,
+    recoveryActions: [],
+  }))
+}
 
 export function buildBranchContinuityRuntimeAuditSnapshot(
   input: BranchContinuityRuntimeAuditInput

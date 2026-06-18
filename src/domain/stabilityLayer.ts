@@ -44,6 +44,7 @@ export type StabilityIssueCategory =
   | 'team-composition'
   | 'mission-routing'
   | 'deployment-readiness'
+  | 'branch-continuity'
 
 export type StabilityIssueSeverity = 'warning' | 'error'
 
@@ -272,6 +273,32 @@ export function hasSafeFrontDeskFallback(state: GameState) {
     safe: reasons.length === 0,
     reasons,
     directorMessageRouteId: frontDeskView.debug.directorMessageRouteId,
+  }
+}
+
+export function appendStabilityIssues(
+  report: StabilityReport,
+  additionalIssues: StabilityIssue[]
+): StabilityReport {
+  if (additionalIssues.length === 0) {
+    return report
+  }
+
+  const issues = [...report.issues, ...additionalIssues]
+  const errorCount = issues.filter((issue) => issue.severity === 'error').length
+  const warningCount = issues.length - errorCount
+  const categories = toStableUnique(issues.map((issue) => issue.category)) as StabilityIssueCategory[]
+
+  return {
+    issues,
+    summary: {
+      issueCount: issues.length,
+      errorCount,
+      warningCount,
+      softlockRisk: errorCount > 0,
+      categories,
+    },
+    recoveryActions: report.recoveryActions,
   }
 }
 

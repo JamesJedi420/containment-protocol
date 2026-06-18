@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2484](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2484 — Runtime publish executor / CI wiring (slice 1)](https://linear.app/spectranoir/issue/SPE-2484) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2888 @ `6399251c` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-executor-slice-1` |
 | **Base `main` SHA** | `fd91fd3b` |

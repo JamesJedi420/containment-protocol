@@ -17,12 +17,17 @@ import type {
 // Identifiers and unions
 // ---------------------------------------------------------------------------
 
-export type PublishAutomationStatus = 'ready_to_publish' | 'needs_revision' | 'rejected'
+export type PublishAutomationStatus =
+  | 'ready_to_publish'
+  | 'needs_revision'
+  | 'rejected'
+  | 'published'
 
 export const PUBLISH_AUTOMATION_STATUSES: readonly PublishAutomationStatus[] = [
   'ready_to_publish',
   'needs_revision',
   'rejected',
+  'published',
 ] as const
 
 export type CreditingHookKind =
@@ -1020,6 +1025,26 @@ export function composePublishQueueRecord(input: {
   })
 
   return validatePublishQueueRecord(record).valid ? record : null
+}
+
+/**
+ * Returns a validated publish-queue record with an updated status, or null when
+ * the transition would fail validation.
+ */
+export function withPublishQueueRecordStatus(
+  record: PublishQueueRecord,
+  status: PublishAutomationStatus
+): PublishQueueRecord | null {
+  if (!isPublishAutomationStatus(status)) {
+    return null
+  }
+
+  const next = definePublishQueueRecord({
+    ...record,
+    status,
+  })
+
+  return validatePublishQueueRecord(next).valid ? next : null
 }
 
 function sanitizePublishQueueRecordEntry(value: unknown): PublishQueueRecord | null {

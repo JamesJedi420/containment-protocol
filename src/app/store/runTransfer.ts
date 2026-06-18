@@ -372,6 +372,7 @@ export const REPORT_NOTE_TYPES = [
   'cognitive_hazard.simulation_trigger',
   'contribution_release.publish_queue_execution',
   'visual_trigger_hazard.weekly_transition',
+  'entity_welfare_reclassification.weekly_transition',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -733,6 +734,16 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'priorObserverAwarenessBand',
     'nextObserverAwarenessBand',
     'advancedSweepMediaInstanceIds',
+    'structuredReasons',
+    'week',
+  ],
+  'entity_welfare_reclassification.weekly_transition': [
+    'recordId',
+    'transitionKinds',
+    'priorReclassificationState',
+    'nextReclassificationState',
+    'priorReviewGate',
+    'nextReviewGate',
     'structuredReasons',
     'week',
   ],

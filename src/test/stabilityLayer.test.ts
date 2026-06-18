@@ -14,6 +14,7 @@ import { enqueueRuntimeEvent } from '../domain/eventQueue'
 import { setUiDebugState } from '../domain/gameStateManager'
 import {
   analyzeRuntimeStability,
+  appendStabilityIssues,
   clearInvalidEncounterAftermathReferences,
   clearStaleAuthoredContext,
   hasSafeFrontDeskFallback,
@@ -584,6 +585,33 @@ describe('stabilityLayer', () => {
     expect(cleaned.state.runtimeState?.encounterState['encounter.alpha']?.followUpIds).toEqual([
       'frontdesk.notice.weekly-report-tutorial',
     ])
+  })
+
+  it('appends branch-continuity issues without mutating base recovery actions', () => {
+    const state = createStartingState()
+    const base = analyzeRuntimeStability(state)
+    const branchContinuityIssue = {
+      id: 'branch-continuity.node:test.missing_seed_prerequisite',
+      category: 'branch-continuity' as const,
+      severity: 'error' as const,
+      summary: 'Seed prerequisite not met.',
+      recoveryActions: [] as const,
+    }
+
+    const merged = appendStabilityIssues(base, [branchContinuityIssue])
+
+    expect(merged.summary.issueCount).toBe(base.summary.issueCount + 1)
+    expect(merged.summary.errorCount).toBe(base.summary.errorCount + 1)
+    expect(merged.summary.categories).toContain('branch-continuity')
+    expect(merged.recoveryActions).toEqual(base.recoveryActions)
+    expect(merged.issues.at(-1)).toEqual(branchContinuityIssue)
+  })
+
+  it('returns the same report when appending zero additional issues', () => {
+    const state = createStartingState()
+    const base = analyzeRuntimeStability(state)
+
+    expect(appendStabilityIssues(base, [])).toBe(base)
   })
 
   it('remains save/load compatible after explicit recovery helper usage', () => {

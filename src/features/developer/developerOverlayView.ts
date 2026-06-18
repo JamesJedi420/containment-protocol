@@ -1,5 +1,6 @@
 import {
   buildBranchContinuityRuntimeAuditSnapshot,
+  buildBranchContinuityStabilityIssues,
   type BranchContinuityRuntimeAuditSnapshot,
 } from '../../domain/branchContinuityRuntimeHooks'
 import type { AuthoredBranchContinuityNode } from '../../domain/branchContinuityAuthoring'
@@ -23,7 +24,7 @@ import {
   rankBestAvailableTeams,
 } from '../../domain/teamComposition'
 import { normalizeMissionRoutingState } from '../../domain/missionIntakeRouting'
-import { analyzeRuntimeStability } from '../../domain/stabilityLayer'
+import { analyzeRuntimeStability, appendStabilityIssues } from '../../domain/stabilityLayer'
 import { getTeamAssignedCaseId } from '../../domain/teamSimulation'
 import {
   explainDeploymentReadiness,
@@ -350,11 +351,14 @@ export function buildDeveloperOverlaySnapshot(
   const missionEntries = missionRouting.orderedMissionIds
     .map((missionId) => missionRouting.missions[missionId])
     .filter((mission): mission is NonNullable<typeof missionRouting.missions[string]> => Boolean(mission))
-  const stability = analyzeRuntimeStability(game)
   const branchContinuityAudit = buildBranchContinuityRuntimeAuditSnapshot({
     game,
     authoredNodes: options.branchContinuityAuthoredNodes ?? [],
   })
+  const stability = appendStabilityIssues(
+    analyzeRuntimeStability(game),
+    buildBranchContinuityStabilityIssues(branchContinuityAudit)
+  )
   const pressure = explainWeeklyPressureState(game)
   const latestWeakestLinks = Object.values(game.reports.at(-1)?.caseSnapshots ?? {})
     .filter((snapshot) => snapshot.missionResult?.weakestLink)

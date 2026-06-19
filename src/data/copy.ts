@@ -1664,6 +1664,31 @@ export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   hooksColumn: 'Hook counts',
 }
 
+export const MODIFIABLE_DATA_PACK_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Modifiable data packs',
+  pageSubtitle:
+    'Read-only operations view over persisted modifiable data-pack records and safe-fail import posture.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Pack records',
+  appliedLabel: 'Applied',
+  needsRevisionLabel: 'Needs revision',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Records reflect hydrated GameState only. Rejected or invalid payloads dropped on hydrate are not shown here.',
+  emptyTitle: 'No modifiable data-pack records',
+  emptyBody:
+    'Persisted modifiable data-pack records will appear here after hydration. Invalid records dropped on hydrate are not shown here.',
+  recordsHeading: 'Persisted pack records',
+  recordsSubtitle:
+    'Applied vs needs-revision discrimination uses import status only — no hidden validation truth.',
+  packIdColumn: 'Pack id',
+  statusColumn: 'Import status',
+  kindColumn: 'Pack kind',
+  schemaColumn: 'Schema version',
+  sectionsColumn: 'Sections',
+}
+
 export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Pattern source series intake',

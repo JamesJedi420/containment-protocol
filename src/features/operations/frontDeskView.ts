@@ -886,6 +886,11 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       description: 'Review publish-queue records and dry-run execution posture.',
     },
     {
+      label: 'Open modifiable data-pack mirror',
+      href: APP_ROUTES.modifiableDataPacks,
+      description: 'Review persisted modifiable data-pack records and import validation posture.',
+    },
+    {
       label: 'Open self-censoring information mirror',
       href: APP_ROUTES.selfCensoringInformation,
       description: 'Review retention timers, rediscovery loops, and negative-fact posture.',

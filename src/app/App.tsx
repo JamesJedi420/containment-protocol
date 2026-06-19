@@ -84,6 +84,9 @@ const PatternSourceSeriesMirrorRoute = createRouteComponent(
 const PublishQueueMirrorRoute = createRouteComponent(
   () => import('../features/operations/PublishQueueMirrorPage')
 )
+const ModifiableDataPackMirrorRoute = createRouteComponent(
+  () => import('../features/operations/ModifiableDataPackMirrorPage')
+)
 const SelfCensoringInformationMirrorRoute = createRouteComponent(
   () => import('../features/operations/SelfCensoringInformationMirrorPage')
 )
@@ -199,6 +202,10 @@ export default function App() {
           element={renderLazyRoute(PatternSourceSeriesMirrorRoute)}
         />
         <Route path="publish-queue" element={renderLazyRoute(PublishQueueMirrorRoute)} />
+        <Route
+          path="modifiable-data-packs"
+          element={renderLazyRoute(ModifiableDataPackMirrorRoute)}
+        />
         <Route
           path="self-censoring-information"
           element={renderLazyRoute(SelfCensoringInformationMirrorRoute)}

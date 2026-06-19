@@ -100,6 +100,9 @@ describe('modifiableDataPackWeeklyReportNotes (SPE-2493 slice 2)', () => {
 
     expect(notes).toHaveLength(1)
     expect(notes[0]?.metadata?.importStatus).toBe('needs_revision')
+    expect(notes[0]?.content).not.toContain('Applied')
+  })
+
   it('emits notes for removed validation-failure receipts', () => {
     const notes = buildWeeklyModifiableDataPackGovernanceReportNotes({
       receipts: [

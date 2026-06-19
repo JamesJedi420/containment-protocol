@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2493](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2493 — Modifiable data-pack weekly orchestration (slice 2)](https://linear.app/spectranoir/issue/SPE-2493) |
-| **Status** | **In progress** — branch `spe-75-modifiable-data-pack-weekly-orchestration-slice-2` @ `c5bc6ac5`; PR pending |
+| **Status** | **Shipped** — PR #2906 @ `0ccfd463` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-modifiable-data-pack-weekly-orchestration-slice-2` |
 | **Base `main` SHA** | `bf149f84` |
@@ -49,7 +49,7 @@ Wire weekly governance tick + operations-report notes for `modifiableDataPackRec
 - [x] `needs_revision` records produce governance report notes with safe labels
 - [x] `applied` records do not produce governance report notes
 - [x] Invalid drifted records drop from map on tick
-- [ ] `npm run lint` + targeted tests green (unverified locally — Node.js not on agent PATH; IDE lints clean)
+- [x] `npm run lint` + targeted tests green (CI on PR #2906)
 
 ## File touch list (expected)
 

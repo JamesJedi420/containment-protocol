@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2491](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2491 — Publish-queue live advanceWeek orchestration (slice 1)](https://linear.app/spectranoir/issue/SPE-2491) |
-| **Status** | In progress — PR pending |
+| **Status** | **Shipped** — PR #2902 @ `67f65fd6` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-live-orchestration-slice-1` |
 | **Base `main` SHA** | `2e655e18` |

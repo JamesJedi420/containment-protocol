@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2492](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2492 — Modifiable data-pack planning mirror and surfacing (slice 1)](https://linear.app/spectranoir/issue/SPE-2492) |
-| **Status** | In progress |
+| **Status** | **Shipped** — PR #2904 @ `30b0099e` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-modifiable-data-pack-surfacing-slice-1` |
 | **Base `main` SHA** | `2e655e18` (pre SPE-2491 merge; branch includes SPE-2491 publish-queue live orchestration until main sync) |

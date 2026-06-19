@@ -64,7 +64,7 @@ Wire weekly governance tick + operations-report notes for `modifiableDataPackRec
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| Publish automation integration for pack import | SPE-75 follow-up child | Out of weekly orchestration boundary |
+| Publish automation integration for pack import | [SPE-2494](https://linear.app/spectranoir/issue/SPE-2494) | Out of weekly orchestration boundary |
 | GameState execution-receipt persistence | SPE-75 follow-up child | Optional ledger beyond governance receipts |
 | Mission triage modifiable-pack chips | Backlog | Mission triage full refresh blocked |
 

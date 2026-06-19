@@ -62,14 +62,14 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Next step:** Owner reprioritizes from §14-pass alternates below. Mission triage full refresh remains **blocked**.
+**Next step:** [SPE-2494](https://linear.app/spectranoir/issue/SPE-2494) modifiable data-pack publish automation integration (slice 3) — `planning/modifiable-data-pack-publish-automation-integration-slice-3.md`; branch `spe-75-modifiable-data-pack-publish-automation-integration-slice-3` from `main` @ `ab890d33`. Mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `30b0099e` — post SPE-2492 modifiable data-pack surfacing closure (includes SPE-2491 via #2902).
+**Base `main` SHA:** `ab890d33` — post SPE-2493 modifiable data-pack weekly orchestration closure (PR #2906 @ `0ccfd463`).
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
 1. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — **shipped** [SPE-2487](https://linear.app/spectranoir/issue/SPE-2487); see `planning/branch-continuity-stability-audit-category-slice-1.md`.
-2. **Contribution/release ops follow-on** — **shipped** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) (`pr-merge` GitHub API wiring slice 1); **shipped** [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) live `advanceWeek` orchestration (PR #2902); **shipped** [SPE-2492](https://linear.app/spectranoir/issue/SPE-2492) modifiable data-pack surfacing (PR #2904); **shipped** [SPE-2493](https://linear.app/spectranoir/issue/SPE-2493) modifiable-pack weekly orchestration (PR #2906); deferred: additional publish channels, execution-receipt persistence, publish automation integration for pack import.
+2. **Contribution/release ops follow-on** — **shipped** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) (`pr-merge` GitHub API wiring slice 1); **shipped** [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) live `advanceWeek` orchestration (PR #2902); **shipped** [SPE-2492](https://linear.app/spectranoir/issue/SPE-2492) modifiable data-pack surfacing (PR #2904); **shipped** [SPE-2493](https://linear.app/spectranoir/issue/SPE-2493) modifiable-pack weekly orchestration (PR #2906); **next:** [SPE-2494](https://linear.app/spectranoir/issue/SPE-2494) publish automation integration for pack import; deferred: additional publish channels, execution-receipt persistence.
 3. **Registry umbrella follow-ons ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — grooming closed ([SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) **Done**); parents stay **Backlog**; [SPE-2489](https://linear.app/spectranoir/issue/SPE-2489) SPE-947 slice 5 **shipped**; [SPE-2490](https://linear.app/spectranoir/issue/SPE-2490) SPE-1046 entity-welfare slice 5 **shipped** — see `planning/entity-welfare-reclassification-registry-slice-5.md`.
 
 **Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; additional publish channels beyond `pr-merge`.
@@ -238,6 +238,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `modifiable-data-pack-runtime-import-slice-1.md`          | **Shipped**    | [SPE-2486](https://linear.app/spectranoir/issue/SPE-2486) — GameState modifiable data-pack runtime import under SPE-75. |
 | `modifiable-data-pack-surfacing-slice-1.md`               | **Shipped**    | [SPE-2492](https://linear.app/spectranoir/issue/SPE-2492) — planning mirror and surfacing under SPE-75; PR #2904 @ `30b0099e`. |
 | `modifiable-data-pack-weekly-orchestration-slice-2.md`    | **Shipped**    | [SPE-2493](https://linear.app/spectranoir/issue/SPE-2493) — weekly governance tick + report notes under SPE-75; PR #2906 @ `0ccfd463`. |
+| `modifiable-data-pack-publish-automation-integration-slice-3.md` | **Planned** | [SPE-2494](https://linear.app/spectranoir/issue/SPE-2494) — pack import → publish-intent integration under SPE-75; base `main` @ `ab890d33`. |
 | `publish-automation-crediting-hooks-slice-1.md`           | **Shipped**    | [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) — deterministic publish-intent + crediting hooks under SPE-75; PR #2879 @ `99161c79`. |
 | `publish-queue-persistence-slice-1.md`                    | **Shipped**    | [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) — `publishQueueRecords` GameState persistence under SPE-75; PR #2886 @ `93711130`. |
 | `publish-queue-github-api-slice-1.md`                   | **Shipped**    | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) — `pr-merge` GitHub API wiring under SPE-75; PR #2896 @ `4acb1b9e`. |

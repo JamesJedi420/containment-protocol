@@ -59,6 +59,8 @@ Modifiable data-pack surfacing (SPE-2492) exposes a read-only planning mirror at
 
 Modifiable data-pack weekly orchestration (SPE-2493) wires `applyWeeklyModifiableDataPackGovernanceTick` into `advanceWeek`: re-validates persisted records, drops invalid entries without re-importing rejected payloads, and emits `contribution_release.modifiable_data_pack_governance` weekly report notes for `needs_revision` governance observations. Applied records are idempotent skips with no notes.
 
+Modifiable data-pack publish automation integration (SPE-2494) composes validated pack import with the contribution intake → release packaging → governance → publish-intent chain via `src/domain/modifiableDataPackPublishIntegration.ts` — rejected payloads produce no record and no publish-intent side effects; `needs_revision` import status caps publish-intent below `ready_to_publish`.
+
 ## Publish automation and crediting hooks
 
 After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.

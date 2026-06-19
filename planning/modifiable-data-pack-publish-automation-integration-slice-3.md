@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2494](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2494 — Modifiable data-pack publish automation integration (slice 3)](https://linear.app/spectranoir/issue/SPE-2494) |
-| **Status** | **In progress** |
+| **Status** | **Shipped** — PR #2908 @ `a0532b78` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-modifiable-data-pack-publish-automation-integration-slice-3` |
 | **Base `main` SHA** | `ab890d33` |

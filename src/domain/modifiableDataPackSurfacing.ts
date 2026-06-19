@@ -10,6 +10,10 @@ import type {
   ModifiableDataPackRecord,
   ModifiableDataPackRecordsMap,
 } from './modifiableDataPackValidation'
+import type {
+  ModifiableDataPackWeeklyTickReceipt,
+  ModifiableDataPackWeeklyTickSkipCode,
+} from './modifiableDataPackWeeklyOrchestration'
 
 export function formatModifiableDataPackKindLabel(kind: ModifiableDataPackKind | string): string {
   return kind
@@ -60,4 +64,59 @@ export function formatModifiableDataPackSectionSummary(record: ModifiableDataPac
   }
 
   return `${count} sections`
+}
+
+export function formatModifiableDataPackWeeklyTickSkipCodeLabel(
+  skipCode: ModifiableDataPackWeeklyTickSkipCode
+): string {
+  switch (skipCode) {
+    case 'import_status_stable':
+      return 'import status stable'
+    default: {
+      const unreachable: never = skipCode
+      return unreachable
+    }
+  }
+}
+
+export function isReportableModifiableDataPackWeeklyTickReceipt(
+  receipt: ModifiableDataPackWeeklyTickReceipt
+): boolean {
+  return receipt.outcome === 'observed' || receipt.outcome === 'removed'
+}
+
+export function listReportableModifiableDataPackWeeklyTickReceipts(
+  receipts: readonly ModifiableDataPackWeeklyTickReceipt[] | null | undefined
+): readonly ModifiableDataPackWeeklyTickReceipt[] {
+  if (!receipts || receipts.length === 0) {
+    return Object.freeze([])
+  }
+
+  return Object.freeze(
+    [...receipts]
+      .filter((receipt) => isReportableModifiableDataPackWeeklyTickReceipt(receipt))
+      .sort((left, right) => left.packId.localeCompare(right.packId))
+  )
+}
+
+export function formatModifiableDataPackWeeklyTickNoteContent(input: {
+  receipt: ModifiableDataPackWeeklyTickReceipt
+  record: ModifiableDataPackRecord | undefined
+}): string {
+  const packId = input.receipt.packId
+  const record = input.record
+  const kindLabel = record ? formatModifiableDataPackKindLabel(record.packKind) : 'Unknown'
+  const statusLabel = formatModifiableDataPackImportStatusLabel(input.receipt.importStatus)
+  const sectionSummary = record ? formatModifiableDataPackSectionSummary(record) : '—'
+
+  if (input.receipt.outcome === 'removed') {
+    return `Modifiable data pack — ${packId}: removed from runtime map [validation failed]. Prior status: ${statusLabel}.`
+  }
+
+  const reasonSegment =
+    input.receipt.reasonCodes.length > 0
+      ? ` Reasons: ${input.receipt.reasonCodes.join(', ')}.`
+      : ''
+
+  return `Modifiable data pack — ${packId}: ${kindLabel} [${statusLabel}]. ${sectionSummary}. Governance observation.${reasonSegment}`
 }

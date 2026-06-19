@@ -1556,6 +1556,7 @@ export type ReportNoteType =
   | 'public_disclosure.segment_trust_divergence'
   | 'cognitive_hazard.simulation_trigger'
   | 'contribution_release.publish_queue_execution'
+  | 'contribution_release.modifiable_data_pack_governance'
   | 'visual_trigger_hazard.weekly_transition'
   | 'entity_welfare_reclassification.weekly_transition'
 

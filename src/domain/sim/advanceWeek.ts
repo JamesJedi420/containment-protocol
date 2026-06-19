@@ -298,6 +298,8 @@ import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeries
 import { applyWeeklyPublishQueueExecutionTickOrchestrated } from '../publishQueueWeeklyOrchestration'
 import type { PublishQueueWeeklyOrchestrationDeps } from '../publishQueueWeeklyOrchestration'
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
+import { applyWeeklyModifiableDataPackGovernanceTick } from '../modifiableDataPackWeeklyOrchestration'
+import { buildWeeklyModifiableDataPackGovernanceReportNotes } from '../modifiableDataPackWeeklyReportNotes'
 import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
 import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
@@ -4731,6 +4733,38 @@ export function advanceWeek(
         reports[lastReportIndex] = {
           ...lastReport,
           notes: [...(lastReport.notes ?? []), ...publishQueueNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
+  // SPE-2493 slice 2: modifiable data-pack governance tick (re-validation + needs_revision observation).
+  const currentModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
+  if (Object.keys(currentModifiableDataPackRecords).length > 0) {
+    const modifiableDataPackTick = applyWeeklyModifiableDataPackGovernanceTick(
+      currentModifiableDataPackRecords,
+      result.week
+    )
+    outputWeeklyState.modifiableDataPackRecords = modifiableDataPackTick.records
+
+    if (modifiableDataPackTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const modifiableDataPackNotes = buildWeeklyModifiableDataPackGovernanceReportNotes({
+        receipts: modifiableDataPackTick.receipts,
+        records: modifiableDataPackTick.records,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (modifiableDataPackNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...modifiableDataPackNotes],
         }
         result.reports = reports
       }

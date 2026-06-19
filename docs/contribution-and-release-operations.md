@@ -57,6 +57,8 @@ Runtime import (SPE-2486) persists validated packs on `GameState.modifiableDataP
 
 Modifiable data-pack surfacing (SPE-2492) exposes a read-only planning mirror at `/modifiable-data-packs` over hydrated `modifiableDataPackRecords` with CP-neutral import-status and section-summary labels.
 
+Modifiable data-pack weekly orchestration (SPE-2493) wires `applyWeeklyModifiableDataPackGovernanceTick` into `advanceWeek`: re-validates persisted records, drops invalid entries without re-importing rejected payloads, and emits `contribution_release.modifiable_data_pack_governance` weekly report notes for `needs_revision` governance observations. Applied records are idempotent skips with no notes.
+
 ## Publish automation and crediting hooks
 
 After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.

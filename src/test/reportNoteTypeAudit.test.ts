@@ -113,6 +113,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'publishQueueWeeklyReportNotes',
     category: 'system',
   },
+  'contribution_release.modifiable_data_pack_governance': {
+    status: 'active',
+    producer: 'modifiableDataPackWeeklyReportNotes',
+    category: 'system',
+  },
   'visual_trigger_hazard.weekly_transition': {
     status: 'active',
     producer: 'visualTriggerHazardWeeklyReportNotes',
@@ -134,7 +139,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(53)
+    expect(entries).toHaveLength(54)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

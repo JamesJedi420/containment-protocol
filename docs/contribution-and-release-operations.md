@@ -77,6 +77,8 @@ Publish-queue live orchestration (SPE-2491) wires `applyWeeklyPublishQueueExecut
 
 Publish-queue surfacing (SPE-2485) wires the weekly execution tick in `advanceWeek`, emits `contribution_release.publish_queue_execution` weekly report notes for reportable receipts, and exposes a read-only planning mirror at `/publish-queue` over hydrated `publishQueueRecords`.
 
+Publish-queue execution-receipt persistence (SPE-2495) stores bounded executor receipts on `GameState.publishQueueExecutionReceipts` keyed by `${recordId}@${executionWeek}` with sanitize/hydration on save import. `advanceWeek` merges reportable tick receipts after queue record updates; malformed, duplicate, and orphaned entries drop without corrupting queue state.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

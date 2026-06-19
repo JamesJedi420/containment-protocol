@@ -56,6 +56,7 @@ const startingStateTemplate: GameState = {
   coverStoryWeeklyProjectionSnapshots: {},
   patternSourceSeriesRecords: {},
   publishQueueRecords: {},
+  publishQueueExecutionReceipts: {},
   modifiableDataPackRecords: {},
   massAnomalousPopulationEmergenceRecords: {},
   visualTriggerHazardRecords: {},

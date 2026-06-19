@@ -214,6 +214,7 @@ import {
 } from '../../domain/coverStoryLifecycleRegistry'
 import { sanitizePatternSourceSeriesRecords } from '../../domain/patternSourceSeriesRegistry'
 import { sanitizePublishQueueRecords } from '../../domain/publishAutomationCreditingHooks'
+import { sanitizePublishQueueExecutionReceipts } from '../../domain/publishQueueExecutionReceiptPersistence'
 import { sanitizeModifiableDataPackRecords } from '../../domain/modifiableDataPackValidation'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
@@ -8625,6 +8626,11 @@ export function hydrateGame(
     game.publishQueueRecords,
     fallback.publishQueueRecords ?? {}
   )
+  const publishQueueExecutionReceipts = sanitizePublishQueueExecutionReceipts(
+    game.publishQueueExecutionReceipts,
+    fallback.publishQueueExecutionReceipts ?? {},
+    new Set(Object.keys(publishQueueRecords))
+  )
   const modifiableDataPackRecords = sanitizeModifiableDataPackRecords(
     game.modifiableDataPackRecords,
     fallback.modifiableDataPackRecords ?? {}
@@ -8827,6 +8833,7 @@ export function hydrateGame(
       coverStoryWeeklyProjectionSnapshots,
       patternSourceSeriesRecords,
       publishQueueRecords,
+      publishQueueExecutionReceipts,
       modifiableDataPackRecords,
       massAnomalousPopulationEmergenceRecords,
       visualTriggerHazardRecords,

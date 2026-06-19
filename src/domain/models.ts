@@ -268,6 +268,7 @@ import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
+import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
 import type { ModifiableDataPackRecord } from './modifiableDataPackValidation'
 import type { TherapeuticCareScheduleRecord } from './containedPersonTherapeuticCareRegistry'
 import type {
@@ -2721,6 +2722,13 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   publishQueueRecords?: Record<string, PublishQueueRecord>
+
+  /**
+   * SPE-2495 slice 1: persisted publish-queue execution receipts
+   * (keyed by `${recordId}@${executionWeek}`).
+   * Hydration drops invalid, duplicate, and orphaned entries without throwing.
+   */
+  publishQueueExecutionReceipts?: Record<string, PublishQueueExecutionReceipt>
 
   /**
    * SPE-2486 slice 1: persisted modifiable data-pack records (keyed by packId).

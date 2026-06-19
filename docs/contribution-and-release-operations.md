@@ -55,6 +55,8 @@ Domain validation baseline: `src/domain/modifiableDataPackValidation.ts` (SPE-24
 
 Runtime import (SPE-2486) persists validated packs on `GameState.modifiableDataPackRecords` with sanitize/hydration on save import — rejected payloads drop without corrupting downstream state.
 
+Modifiable data-pack surfacing (SPE-2492) exposes a read-only planning mirror at `/modifiable-data-packs` over hydrated `modifiableDataPackRecords` with CP-neutral import-status and section-summary labels.
+
 ## Publish automation and crediting hooks
 
 After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.

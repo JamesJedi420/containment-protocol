@@ -30,6 +30,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'truth-layer-records',
   'cover-story-records',
   'mass-anomalous-population-emergence',
+  'modifiable-data-packs',
   'visual-trigger-hazard',
   'entity-welfare-reclassification',
   'contained-person-therapeutic-care',

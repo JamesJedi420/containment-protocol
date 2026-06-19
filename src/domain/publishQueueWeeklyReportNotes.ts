@@ -9,6 +9,7 @@ import { createDeterministicReportNote } from './reportNotes'
 import {
   formatPublishQueueExecutionReceiptNoteContent,
   listReportablePublishQueueReceipts,
+  resolvePublishQueueReceiptExecutionMode,
 } from './publishQueueSurfacing'
 
 /**
@@ -47,6 +48,8 @@ export function buildWeeklyPublishQueueExecutionReportNotes(input: {
           executionWeek: receipt.executionWeek,
           skipCode: receipt.skipCode,
           publishChannelStub: receipt.publishChannelStub,
+          publishChannelRef: receipt.publishChannelRef,
+          executionMode: resolvePublishQueueReceiptExecutionMode(receipt),
           recordStatus: record?.status,
           week: input.week,
         }

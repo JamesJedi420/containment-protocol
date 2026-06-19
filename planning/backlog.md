@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
-**In progress:** _(none — owner reprioritizes from §14-pass alternates)_
+**In progress:** [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) publish-queue live `advanceWeek` orchestration (slice 1) — branch `spe-75-publish-queue-live-orchestration-slice-1`; see `planning/publish-queue-live-orchestration-slice-1.md`.
+
+**Recently shipped:** [SPE-2490](https://linear.app/spectranoir/issue/SPE-2490) entity-welfare reclassification registry weekly transition surfacing (slice 5) — `entity_welfare_reclassification.weekly_transition` notes; branch `spe-2114-entity-welfare-reclassification-weekly-surfacing-slice-5` (PR #2900 @ `d5b795ae`). Parents [SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stay **Backlog**.
 
 **Recently shipped:** [SPE-2489](https://linear.app/spectranoir/issue/SPE-2489) visual-trigger hazard registry weekly transition surfacing (slice 5) — `visual_trigger_hazard.weekly_transition` notes; branch `spe-2111-visual-trigger-hazard-weekly-surfacing-slice-5` (PR #2898 @ `96452e9e`). Parents [SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) stay **Backlog** / **Done** respectively.
 
@@ -35,8 +37,6 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 **Recently shipped:** [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) Runtime publish executor / CI wiring (slice 1) — dry-run channel-stub executor over persisted queue records; branch `spe-75-publish-queue-executor-slice-1` (PR #2888 @ `6399251c`).
 
 **Recently shipped:** [SPE-2483](https://linear.app/spectranoir/issue/SPE-2483) GameState publish-queue persistence (slice 1) — `publishQueueRecords` sanitize/hydrate on GameState; branch `spe-75-publish-queue-persistence-slice-1` (PR #2886 @ `93711130`).
-
-**In progress:** _(none — owner reprioritizes from §14-pass alternates)_
 
 **Recently shipped:** [SPE-2480](https://linear.app/spectranoir/issue/SPE-2480) publish automation and crediting hooks (slice 1) — deterministic publish-intent envelope with crediting/publish hook descriptors; branch `spe-75-publish-automation-crediting-hooks-slice-1` (PR #2879 @ `99161c79`).
 
@@ -65,10 +65,10 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 **§14-pass alternates (owner creates Linear child when starting):**
 
 1. **Branch continuity stability-audit category ([SPE-1464](https://linear.app/spectranoir/issue/SPE-1464) optional follow-on)** — **shipped** [SPE-2487](https://linear.app/spectranoir/issue/SPE-2487); see `planning/branch-continuity-stability-audit-category-slice-1.md`.
-2. **Contribution/release ops follow-on** — **shipped** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) (`pr-merge` GitHub API wiring slice 1); additional channels / live `advanceWeek` orchestration deferred.
+2. **Contribution/release ops follow-on** — **shipped** [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) (`pr-merge` GitHub API wiring slice 1); **in progress** [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) live `advanceWeek` orchestration; additional channels deferred.
 3. **Registry umbrella follow-ons ([SPE-947](https://linear.app/spectranoir/issue/SPE-947) / [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046))** — grooming closed ([SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) / [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) **Done**); parents stay **Backlog**; [SPE-2489](https://linear.app/spectranoir/issue/SPE-2489) SPE-947 slice 5 **shipped**; [SPE-2490](https://linear.app/spectranoir/issue/SPE-2490) SPE-1046 entity-welfare slice 5 **shipped** — see `planning/entity-welfare-reclassification-registry-slice-5.md`.
 
-**Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; additional publish channels beyond `pr-merge`; `advanceWeek` live orchestration.
+**Explicitly deferred:** mission triage full refresh; SPE-2250 batch-4+; dedicated exploit-access content; registry slice 5+ without §14 pass; additional publish channels beyond `pr-merge`.
 
 **Recently shipped:** [SPE-31](https://linear.app/spectranoir/issue/SPE-31) parent **Done** — hub shell + SPE-31a + children SPE-2465–SPE-2469; AC rows 1–6 **Yes** @ `planning/spe-31-parent-reconciliation-slice.md` (PR #2857 @ `236499f7`).
 
@@ -237,6 +237,7 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `publish-queue-github-api-slice-1.md`                   | **Shipped**    | [SPE-2488](https://linear.app/spectranoir/issue/SPE-2488) — `pr-merge` GitHub API wiring under SPE-75; PR #2896 @ `4acb1b9e`. |
 | `publish-queue-executor-slice-1.md`                       | **Shipped**    | [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) — dry-run publish executor under SPE-75; PR #2888 @ `6399251c`. |
 | `publish-queue-surfacing-slice-1.md`                      | **Shipped**    | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; PR #2890 @ `1a801ec0`. |
+| `publish-queue-live-orchestration-slice-1.md`             | **In progress** | [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) — live vs dry-run weekly orchestration under SPE-75. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
 | `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |

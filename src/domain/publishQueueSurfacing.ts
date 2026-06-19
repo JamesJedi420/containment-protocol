@@ -1,7 +1,8 @@
 /**
- * SPE-2485 slice 1: read-only surfacing for publish-queue records and dry-run receipts.
+ * SPE-2485 slice 1: read-only surfacing for publish-queue records and execution receipts.
+ * SPE-2491 slice 1: live vs dry-run receipt labels.
  *
- * CP-neutral labels only; no real publish side effects.
+ * CP-neutral labels only; no publish side effects from surfacing helpers.
  */
 
 import type { PublishAutomationStatus } from './publishAutomationCreditingHooks'
@@ -11,6 +12,7 @@ import type {
   PublishQueueExecutorOutcome,
   PublishQueueExecutorSkipCode,
 } from './publishQueueExecutor'
+import type { PublishQueueExecutionMode } from './publishQueueGitHubClient'
 
 export function formatPublishQueueStatusLabel(status: PublishAutomationStatus | string): string {
   return status
@@ -19,10 +21,19 @@ export function formatPublishQueueStatusLabel(status: PublishAutomationStatus | 
     .join(' ')
 }
 
-export function formatPublishQueueExecutorOutcomeLabel(outcome: PublishQueueExecutorOutcome): string {
+export function resolvePublishQueueReceiptExecutionMode(
+  receipt: PublishQueueExecutionReceipt
+): PublishQueueExecutionMode {
+  return receipt.publishChannelRef ? 'live' : 'dry-run'
+}
+
+export function formatPublishQueueExecutorOutcomeLabel(
+  outcome: PublishQueueExecutorOutcome,
+  executionMode: PublishQueueExecutionMode = 'dry-run'
+): string {
   switch (outcome) {
     case 'completed':
-      return 'Completed (dry-run)'
+      return executionMode === 'live' ? 'Completed (live)' : 'Completed (dry-run)'
     case 'skipped':
       return 'Skipped'
     case 'rejected':
@@ -42,6 +53,12 @@ export function formatPublishQueueSkipCodeLabel(skipCode: PublishQueueExecutorSk
       return 'record not ready to publish'
     case 'missing_publish_channel_hook':
       return 'missing publish channel hook'
+    case 'unsupported_publish_channel_target':
+      return 'unsupported publish channel target'
+    case 'publish_channel_pull_request_unresolved':
+      return 'publish channel pull request unresolved'
+    case 'publish_channel_api_failed':
+      return 'publish channel API failed'
     default: {
       const unreachable: never = skipCode
       return unreachable
@@ -79,20 +96,24 @@ export function formatPublishQueueExecutionReceiptNoteContent(input: {
   receipt: PublishQueueExecutionReceipt
   record: PublishQueueRecord | undefined
 }): string {
+  const executionMode = resolvePublishQueueReceiptExecutionMode(input.receipt)
+  const channelLabel = executionMode === 'live' ? 'live' : 'dry-run'
   const label = input.record?.label ?? input.receipt.recordId
   const statusLabel = input.record
     ? formatPublishQueueStatusLabel(input.record.status)
     : 'Unknown'
-  const outcomeLabel = formatPublishQueueExecutorOutcomeLabel(input.receipt.outcome)
+  const outcomeLabel = formatPublishQueueExecutorOutcomeLabel(input.receipt.outcome, executionMode)
   const skipSegment =
     input.receipt.skipCode !== undefined
       ? ` (${formatPublishQueueSkipCodeLabel(input.receipt.skipCode)})`
       : ''
-  const stubSegment = input.receipt.publishChannelStub
-    ? ` Dry-run channel: ${input.receipt.publishChannelStub}.`
-    : ''
+  const channelSegment = input.receipt.publishChannelRef
+    ? ` Live channel ref: ${input.receipt.publishChannelRef}.`
+    : input.receipt.publishChannelStub
+      ? ` Dry-run channel: ${input.receipt.publishChannelStub}.`
+      : ''
 
-  return `Publish queue (dry-run) — ${input.receipt.recordId}: ${label} [${statusLabel}]. Outcome: ${outcomeLabel}${skipSegment}.${stubSegment}`
+  return `Publish queue (${channelLabel}) — ${input.receipt.recordId}: ${label} [${statusLabel}]. Outcome: ${outcomeLabel}${skipSegment}.${channelSegment}`
 }
 
 export function summarizePublishQueueRecords(

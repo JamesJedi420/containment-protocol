@@ -69,6 +69,37 @@ describe('publishQueueWeeklyReportNotes (SPE-2485 slice 1)', () => {
       executionWeek: 2,
       recordStatus: 'published',
       week: 2,
+      executionMode: 'dry-run',
+      publishChannelStub: 'dry-run:publish_channel:pr-merge:channel:pr-merge',
+    })
+  })
+
+  it('includes live receipt metadata when publishChannelRef is present', () => {
+    const liveReceipt: PublishQueueExecutionReceipt = {
+      recordId: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id,
+      outcome: 'completed',
+      executionWeek: 2,
+      appliedHooks: [],
+      publishChannelRef: 'live:publish_channel:pr-merge:pr:2890:sha:abc123',
+    }
+
+    const notes = buildWeeklyPublishQueueExecutionReportNotes({
+      receipts: [liveReceipt],
+      records: {
+        [CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id]: {
+          ...CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE,
+          status: 'published',
+        },
+      },
+      week: 2,
+      sequenceStart: 1,
+    })
+
+    expect(notes[0]?.content).toContain('Publish queue (live)')
+    expect(notes[0]?.metadata).toMatchObject({
+      executionMode: 'live',
+      publishChannelRef: 'live:publish_channel:pr-merge:pr:2890:sha:abc123',
+      publishChannelStub: undefined,
     })
   })
 })

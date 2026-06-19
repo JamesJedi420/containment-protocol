@@ -295,7 +295,8 @@ import {
   composeWelfareDebtIntoIntegratedHealthBundles,
 } from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
-import { applyWeeklyPublishQueueExecutionTick } from '../publishQueueExecutor'
+import { applyWeeklyPublishQueueExecutionTickOrchestrated } from '../publishQueueWeeklyOrchestration'
+import type { PublishQueueWeeklyOrchestrationDeps } from '../publishQueueWeeklyOrchestration'
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
 import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
 import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
@@ -4425,7 +4426,11 @@ function finalizeEvents(
  * This is a batch simulation step: abstract case resolution, report output, and state updates.
  * It is intentionally not a visual combat loop or action-by-action playback engine.
  */
-export function advanceWeek(state: GameState, overrideNow?: number): GameState {
+export function advanceWeek(
+  state: GameState,
+  overrideNow?: number,
+  publishQueueOrchestrationDeps?: PublishQueueWeeklyOrchestrationDeps
+): GameState {
   if (state.gameOver) {
     return ensureNormalizedGameState(state)
   }
@@ -4699,12 +4704,13 @@ export function advanceWeek(state: GameState, overrideNow?: number): GameState {
     )
   }
 
-  // SPE-2485 slice 1: dry-run publish-queue execution tick and weekly report surfacing.
+  // SPE-2485 / SPE-2491: publish-queue execution tick (dry-run default; live when configured).
   const currentPublishQueueRecords = outputWeeklyState.publishQueueRecords ?? {}
   if (Object.keys(currentPublishQueueRecords).length > 0) {
-    const publishQueueTick = applyWeeklyPublishQueueExecutionTick(
+    const publishQueueTick = applyWeeklyPublishQueueExecutionTickOrchestrated(
       currentPublishQueueRecords,
-      result.week
+      result.week,
+      publishQueueOrchestrationDeps
     )
     outputWeeklyState.publishQueueRecords = publishQueueTick.records
 

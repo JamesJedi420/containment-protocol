@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2496](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2496 — Publish-queue execution-receipt mirror surfacing (slice 1)](https://linear.app/spectranoir/issue/SPE-2496) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2912 @ `dd1b8b42` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-execution-receipt-surfacing-slice-1` |
 | **Base `main` SHA** | `c3521010` |
@@ -44,12 +44,12 @@ Surface hydrated `publishQueueExecutionReceipts` on the existing `/publish-queue
 
 ## Acceptance
 
-- [ ] Empty receipt map renders empty receipts section without throw
-- [ ] Completed dry-run and live receipts show correct outcome/mode/channel labels
-- [ ] Rejected and reportable skipped receipts surface in ledger
-- [ ] Orphan receipt (no matching queue record) shows recordId fallback label
-- [ ] Existing queue-record mirror tests unchanged
-- [ ] `npm run lint` + targeted tests green (CI gate)
+- [x] Empty receipt map renders empty receipts section without throw
+- [x] Completed dry-run and live receipts show correct outcome/mode/channel labels
+- [x] Rejected and reportable skipped receipts surface in ledger
+- [x] Orphan receipt (no matching queue record) shows recordId fallback label
+- [x] Existing queue-record mirror tests unchanged
+- [x] `npm run lint` + targeted tests green (CI gate)
 
 ## File touch list (expected)
 

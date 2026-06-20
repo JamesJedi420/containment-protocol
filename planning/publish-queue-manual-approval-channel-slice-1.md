@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2498](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2498 — Publish-queue manual-approval channel (slice 1)](https://linear.app/spectranoir/issue/SPE-2498) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2916 @ `e933d69d` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-manual-approval-channel-slice-1` |
 | **Base `main` SHA** | `f5b91540` |
@@ -57,11 +57,11 @@ Live success ref: `live:publish_channel:manual-approval:token:{token}:status:app
 
 ## Acceptance
 
-- [ ] Dry-run executes `manual-approval` records with stable stub + `published` transition
-- [ ] Live path with injected sync client transitions on approval; deny/unresolved reject without mutation
-- [ ] Existing `pr-merge` dry-run + live paths regression-clean
-- [ ] `advanceWeek` persists reportable receipts and surfaces notes; mirror unchanged
-- [ ] `npm run lint` + targeted tests green
+- [x] Dry-run executes `manual-approval` records with stable stub + `published` transition
+- [x] Live path with injected sync client transitions on approval; deny/unresolved reject without mutation
+- [x] Existing `pr-merge` dry-run + live paths regression-clean
+- [x] `advanceWeek` persists reportable receipts and surfaces notes; mirror unchanged
+- [x] `npm run lint` + targeted tests green (CI gate)
 
 ## File touch list (expected)
 

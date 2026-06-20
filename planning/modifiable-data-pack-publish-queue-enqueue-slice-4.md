@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2500](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2500 — Modifiable data-pack publish queue enqueue weekly orchestration (slice 4)](https://linear.app/spectranoir/issue/SPE-2500) |
-| **Status** | **In progress** — branch `spe-75-modifiable-data-pack-publish-queue-enqueue-slice-4` |
+| **Status** | **Shipped** — PR #2922 @ `b734f03b` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-modifiable-data-pack-publish-queue-enqueue-slice-4` |
 | **Base `main` SHA** | `40320cbf` |

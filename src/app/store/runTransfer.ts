@@ -374,6 +374,7 @@ export const REPORT_NOTE_TYPES = [
   'contribution_release.publish_queue_execution',
   'visual_trigger_hazard.weekly_transition',
   'entity_welfare_reclassification.weekly_transition',
+  'pattern_source_series.weekly_transition',
 ] as const satisfies readonly ReportNoteType[]
 
 const REPORT_NOTE_METADATA_MAX_KEYS = 32
@@ -745,6 +746,16 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'nextReclassificationState',
     'priorReviewGate',
     'nextReviewGate',
+    'structuredReasons',
+    'week',
+  ],
+  'pattern_source_series.weekly_transition': [
+    'recordId',
+    'transitionKinds',
+    'priorProcessingStatus',
+    'nextProcessingStatus',
+    'priorReadinessScore',
+    'nextReadinessScore',
     'structuredReasons',
     'week',
   ],

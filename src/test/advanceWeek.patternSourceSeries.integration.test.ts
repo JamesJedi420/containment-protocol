@@ -29,7 +29,7 @@ function unqueuedRecord(): PatternSourceSeriesRecord {
   }
 }
 
-describe('advanceWeek pattern source series integration (SPE-2110 slice 3)', () => {
+describe('advanceWeek pattern source series integration (SPE-2110 slice 3 / SPE-2497 slice 5)', () => {
   it('is a no-op for an empty pattern source series map without throwing', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
@@ -99,5 +99,89 @@ describe('advanceWeek pattern source series integration (SPE-2110 slice 3)', () 
     const nextRecord = nextState.patternSourceSeriesRecords?.[record.id]
 
     expect(nextRecord).toEqual(record)
+  })
+
+  it('surfaces weekly transition notes when pipeline advances after advanceWeek', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const record = unqueuedRecord()
+    state.patternSourceSeriesRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'pattern_source_series.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes.length).toBeGreaterThan(0)
+    expect(transitionNotes[0]?.content).toContain(record.title)
+    expect(transitionNotes[0]?.content).toContain('Blurb Triaged')
+  })
+
+  it('does not surface weekly transition notes when registry map is empty', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.patternSourceSeriesRecords = {}
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'pattern_source_series.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not surface weekly transition notes when readiness is below gate', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const record = { ...unqueuedRecord(), readinessScore: 0.05 }
+    state.patternSourceSeriesRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'pattern_source_series.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not surface weekly transition notes for terminal reconciled fixture', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.patternSourceSeriesRecords = {
+      [SERIES_HUB_OPEN_ENTRY_FIXTURE.id]: SERIES_HUB_OPEN_ENTRY_FIXTURE,
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'pattern_source_series.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not re-emit transition notes when records are unchanged on re-tick', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    const record = unqueuedRecord()
+    state.patternSourceSeriesRecords = {
+      [record.id]: record,
+    }
+
+    const firstWeek = advanceWeek(state)
+    const secondWeek = advanceWeek(firstWeek)
+    const transitionNotes =
+      secondWeek.reports[secondWeek.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'pattern_source_series.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
   })
 })

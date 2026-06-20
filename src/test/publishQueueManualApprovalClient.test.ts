@@ -86,11 +86,7 @@ describe('publishQueueManualApprovalClient (SPE-2498 slice 1)', () => {
     }
 
     expect(
-      formatPublishQueueManualApprovalSuccessRef(request, {
-        ok: true,
-        approvalToken: 'release-batch-1',
-        alreadyApproved: false,
-      })
+      formatPublishQueueManualApprovalSuccessRef(request)
     ).toBe('live:publish_channel:manual-approval:token:release-batch-1:status:approved')
   })
 

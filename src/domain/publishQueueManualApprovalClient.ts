@@ -115,8 +115,7 @@ export function buildManualApprovalRequest(
 }
 
 export function formatPublishQueueManualApprovalSuccessRef(
-  request: PublishQueueManualApprovalRequest,
-  _result: PublishQueueManualApprovalSuccess
+  request: PublishQueueManualApprovalRequest
 ): string {
   return buildLiveManualApprovalChannelRef(request)
 }

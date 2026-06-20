@@ -457,10 +457,7 @@ function finalizeLiveManualApprovalExecution(
   }
 
   return finalizePublishedExecution(record, executionWeek, appliedHooks, {
-    publishChannelRef: formatPublishQueueManualApprovalSuccessRef(
-      approvalRequest,
-      approvalResult
-    ),
+    publishChannelRef: formatPublishQueueManualApprovalSuccessRef(approvalRequest),
   })
 }
 

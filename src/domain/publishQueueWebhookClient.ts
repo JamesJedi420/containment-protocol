@@ -81,10 +81,6 @@ function normalizeEndpointIdForEnv(endpointId: string): string {
   return endpointId.replace(/[^a-zA-Z0-9]+/g, '_').toUpperCase()
 }
 
-function buildWebhookUrlEnvKey(endpointId: string): string {
-  return `${WEBHOOK_URL_ENV_PREFIX}${normalizeEndpointIdForEnv(endpointId)}${WEBHOOK_URL_ENV_SUFFIX}`
-}
-
 function buildWebhookTokenEnvKey(endpointId: string): string {
   return `${WEBHOOK_URL_ENV_PREFIX}${normalizeEndpointIdForEnv(endpointId)}${WEBHOOK_TOKEN_ENV_SUFFIX}`
 }

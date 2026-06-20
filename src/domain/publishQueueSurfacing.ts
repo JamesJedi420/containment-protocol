@@ -13,6 +13,7 @@ import type {
   PublishQueueExecutorSkipCode,
 } from './publishQueueExecutor'
 import type { PublishQueueExecutionMode } from './publishQueueGitHubClient'
+import type { PublishQueueExecutionReceiptsMap } from './publishQueueExecutionReceiptPersistence'
 
 export function formatPublishQueueStatusLabel(status: PublishAutomationStatus | string): string {
   return status
@@ -134,5 +135,56 @@ export function summarizePublishQueueRecords(
     terminalCount: values.filter(
       (record) => record.status === 'needs_revision' || record.status === 'rejected'
     ).length,
+  })
+}
+
+export function summarizePublishQueueExecutionReceipts(
+  receipts: PublishQueueExecutionReceiptsMap | null | undefined
+): {
+  readonly totalReceipts: number
+  readonly completedDryRunCount: number
+  readonly completedLiveCount: number
+  readonly rejectedCount: number
+  readonly skippedReportableCount: number
+} {
+  const safeReceipts = receipts ?? {}
+  const values = Object.values(safeReceipts)
+
+  let completedDryRunCount = 0
+  let completedLiveCount = 0
+  let rejectedCount = 0
+  let skippedReportableCount = 0
+
+  for (const receipt of values) {
+    switch (receipt.outcome) {
+      case 'completed': {
+        if (resolvePublishQueueReceiptExecutionMode(receipt) === 'live') {
+          completedLiveCount += 1
+        } else {
+          completedDryRunCount += 1
+        }
+        break
+      }
+      case 'rejected':
+        rejectedCount += 1
+        break
+      case 'skipped':
+        if (receipt.skipCode !== 'already_published') {
+          skippedReportableCount += 1
+        }
+        break
+      default: {
+        const unreachable: never = receipt.outcome
+        void unreachable
+      }
+    }
+  }
+
+  return Object.freeze({
+    totalReceipts: values.length,
+    completedDryRunCount,
+    completedLiveCount,
+    rejectedCount,
+    skippedReportableCount,
   })
 }

@@ -79,6 +79,8 @@ Publish-queue surfacing (SPE-2485) wires the weekly execution tick in `advanceWe
 
 Publish-queue execution-receipt persistence (SPE-2495) stores bounded executor receipts on `GameState.publishQueueExecutionReceipts` keyed by `${recordId}@${executionWeek}` with sanitize/hydration on save import. `advanceWeek` merges reportable tick receipts after queue record updates; malformed, duplicate, and orphaned entries drop without corrupting queue state.
 
+Publish-queue execution-receipt mirror surfacing (SPE-2496) extends the `/publish-queue` planning mirror with a read-only execution-receipt ledger over hydrated `publishQueueExecutionReceipts`, joined to queue record labels where available. Live vs dry-run discrimination uses `publishChannelRef` presence; the mirror does not re-validate hidden truth.
+
 ## Notation and docs standards
 
 - Prefer **issue IDs** (SPE-\*) in commit and PR titles when mandated by team workflow.

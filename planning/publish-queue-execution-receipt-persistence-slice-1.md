@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2495](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2495 — GameState publish-queue execution-receipt persistence (slice 1)](https://linear.app/spectranoir/issue/SPE-2495) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2910 @ `c3521010` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-execution-receipt-persistence-slice-1` |
 | **Base `main` SHA** | `b3a02c3a` |
@@ -67,7 +67,7 @@ Persist bounded publish-queue execution receipts on `GameState` with compose/san
 | Item | Owner | Why |
 | --- | --- | --- |
 | Additional publish channels beyond `pr-merge` | Backlog child | Out of receipt-persistence boundary |
-| Mirror surfacing over persisted receipts | Future SPE-75 child | Persistence must land first |
+| Mirror surfacing over persisted receipts | [SPE-2496](https://linear.app/spectranoir/issue/SPE-2496) | Shipped to follow-up slice after persistence |
 | Mission triage publish-queue / modifiable-pack chips | Backlog | Mission triage full refresh blocked |
 
 ## See also

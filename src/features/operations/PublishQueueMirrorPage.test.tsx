@@ -54,4 +54,39 @@ describe('PublishQueueMirrorPage (SPE-2485 slice 1)', () => {
       '/'
     )
   })
+
+  it('renders empty execution receipt ledger when no receipts are persisted', () => {
+    renderMirrorPage()
+
+    expect(screen.getByRole('region', { name: /execution receipt ledger/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: /empty execution receipt ledger/i })
+    ).toBeInTheDocument()
+    expect(screen.getByText(/no execution receipts/i)).toBeInTheDocument()
+  })
+
+  it('renders hydrated execution receipts with outcome and mode labels', () => {
+    const game = createStartingState()
+    game.publishQueueRecords = {
+      [CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id]: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE,
+    }
+    game.publishQueueExecutionReceipts = {
+      'publish-queue:domain-release-batch-1@4': {
+        recordId: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id,
+        outcome: 'completed',
+        executionWeek: 4,
+        appliedHooks: [],
+        publishChannelStub: 'dry-run:publish_channel:pr-merge:channel:pr-merge',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const ledgerRegion = screen.getByRole('region', { name: /execution receipt ledger/i })
+
+    expect(ledgerRegion).toHaveTextContent('Completed (dry-run)')
+    expect(ledgerRegion).toHaveTextContent('Dry-run')
+    expect(ledgerRegion).toHaveTextContent(CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.label)
+  })
 })

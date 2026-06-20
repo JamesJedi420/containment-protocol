@@ -357,3 +357,136 @@ describe('publishQueueExecutor manual-approval channel (SPE-2498 slice 1)', () =
     expect(result.receipt.skipCode).toBe('publish_channel_approval_unresolved')
   })
 })
+
+describe('publishQueueExecutor webhook channel (SPE-2499 slice 1)', () => {
+  const acceptedCuration = evaluateContributionIntakeCuration(
+    CANONICAL_CONTRIBUTION_SUBMISSION_FIXTURE
+  )
+  const packagedRelease = evaluateModularReleasePackaging(
+    acceptedCuration,
+    CANONICAL_RELEASE_ARTIFACT_MANIFEST_FIXTURE
+  )
+  const appliedGovernance = evaluateSubmissionGovernanceRights(
+    CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE
+  )
+  const decision = evaluatePublishAutomationCreditingHooks(
+    packagedRelease,
+    appliedGovernance,
+    CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE
+  )
+
+  const testWebhookConfig = {
+    endpoints: {
+      'release-batch-1': {
+        url: 'https://hooks.example.com/release-batch-1',
+      },
+    },
+  }
+
+  function buildWebhookRecord(releaseArtifactRef = 'release:webhook:release-batch-1') {
+    const baseRecord = composePublishQueueRecord({
+      id: 'publish-queue:webhook',
+      label: 'Webhook release batch',
+      releaseArtifactRef,
+      decision,
+      summary: 'Awaiting webhook delivery before publish.',
+      queuedWeek: 4,
+    })!
+
+    return {
+      ...baseRecord,
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'webhook',
+              payload: 'channel:webhook:release-batch-1',
+            }
+          : hook
+      ),
+    }
+  }
+
+  it('executes webhook dry-run with stable channel stub and published transition', () => {
+    const record = buildWebhookRecord()
+    const result = executePublishQueueRecordDryRun(record, { week: 4 })
+
+    expect(result.record.status).toBe('published')
+    expect(result.receipt.outcome).toBe('completed')
+    expect(result.receipt.publishChannelStub).toBe(
+      'dry-run:publish_channel:webhook:channel:webhook:release-batch-1'
+    )
+  })
+
+  it('publishes on successful webhook delivery without mutating hooks', () => {
+    const record = buildWebhookRecord()
+    const result = executePublishQueueRecordLiveSync(record, {
+      week: 8,
+      webhookConfig: testWebhookConfig,
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: false,
+        }),
+      },
+    })
+
+    expect(result.record.status).toBe('published')
+    expect(result.receipt.outcome).toBe('completed')
+    expect(result.receipt.publishChannelRef).toBe(
+      'live:publish_channel:webhook:endpoint:release-batch-1:status:delivered'
+    )
+    expect(result.record.creditingHooks).toEqual(record.creditingHooks)
+  })
+
+  it('rejects without mutation when webhook delivery fails', () => {
+    const record = buildWebhookRecord()
+    const result = executePublishQueueRecordLiveSync(record, {
+      week: 8,
+      webhookConfig: testWebhookConfig,
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: false,
+          statusCode: 500,
+          message: 'delivery failed',
+        }),
+      },
+    })
+
+    expect(result.record).toBe(record)
+    expect(result.receipt.outcome).toBe('rejected')
+    expect(result.receipt.skipCode).toBe('publish_channel_api_failed')
+  })
+
+  it('rejects without mutation when webhook endpoint cannot be resolved', () => {
+    const record = buildWebhookRecord('release:domain-code-bundle-spe-2480')
+    const unresolvedRecord = {
+      ...record,
+      publishHooks: record.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              payload: 'channel:webhook:',
+            }
+          : hook
+      ),
+    }
+
+    const result = executePublishQueueRecordLiveSync(unresolvedRecord, {
+      week: 8,
+      webhookConfig: testWebhookConfig,
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: false,
+        }),
+      },
+    })
+
+    expect(result.record).toBe(unresolvedRecord)
+    expect(result.receipt.outcome).toBe('rejected')
+    expect(result.receipt.skipCode).toBe('publish_channel_webhook_unresolved')
+  })
+})

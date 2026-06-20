@@ -196,4 +196,10 @@ describe('publishQueueSurfacing (SPE-2485 slice 1)', () => {
       'publish channel approval unresolved'
     )
   })
+
+  it('labels webhook unresolved skip codes for weekly notes', () => {
+    expect(formatPublishQueueSkipCodeLabel('publish_channel_webhook_unresolved')).toBe(
+      'publish channel webhook unresolved'
+    )
+  })
 })

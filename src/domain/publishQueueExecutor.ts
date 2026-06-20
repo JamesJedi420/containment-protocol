@@ -2,6 +2,7 @@
  * SPE-2484 slice 1: publish-queue dry-run executor.
  * SPE-2488 slice 1: optional live `pr-merge` GitHub API path with dry-run default.
  * SPE-2498 slice 1: optional live `manual-approval` injectable sync client path.
+ * SPE-2499 slice 1: optional live `webhook` injectable sync/async HTTP client path.
  *
  * Pure deterministic executor consuming persisted publish-queue records and
  * SPE-2480 hook descriptors. Dry-run uses bounded channel stubs; live mode
@@ -40,6 +41,17 @@ import {
   buildManualApprovalRequest,
   formatPublishQueueManualApprovalSuccessRef,
 } from './publishQueueManualApprovalClient'
+import type {
+  PublishQueueWebhookClient,
+  PublishQueueWebhookClientSync,
+  PublishQueueWebhookConfig,
+  PublishQueueWebhookRequest,
+  PublishQueueWebhookResult,
+} from './publishQueueWebhookClient'
+import {
+  buildWebhookRequest,
+  formatPublishQueueWebhookSuccessRef,
+} from './publishQueueWebhookClient'
 
 // ---------------------------------------------------------------------------
 // Identifiers and unions
@@ -60,6 +72,7 @@ export type PublishQueueExecutorSkipCode =
   | 'unsupported_publish_channel_target'
   | 'publish_channel_pull_request_unresolved'
   | 'publish_channel_approval_unresolved'
+  | 'publish_channel_webhook_unresolved'
   | 'publish_channel_api_failed'
 
 export const PUBLISH_QUEUE_EXECUTOR_SKIP_CODES: readonly PublishQueueExecutorSkipCode[] = [
@@ -69,6 +82,7 @@ export const PUBLISH_QUEUE_EXECUTOR_SKIP_CODES: readonly PublishQueueExecutorSki
   'unsupported_publish_channel_target',
   'publish_channel_pull_request_unresolved',
   'publish_channel_approval_unresolved',
+  'publish_channel_webhook_unresolved',
   'publish_channel_api_failed',
 ] as const
 
@@ -100,12 +114,16 @@ export interface PublishQueueLiveExecutorOptions extends PublishQueueExecutorOpt
   readonly githubClient?: PublishQueueGitHubClient
   readonly githubConfig?: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
   readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
+  readonly webhookClient?: PublishQueueWebhookClient
+  readonly webhookConfig?: PublishQueueWebhookConfig
 }
 
 export interface PublishQueueLiveExecutorSyncOptions extends PublishQueueExecutorOptions {
   readonly githubClient?: PublishQueueGitHubClientSync
   readonly githubConfig?: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
   readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
+  readonly webhookClient?: PublishQueueWebhookClientSync
+  readonly webhookConfig?: PublishQueueWebhookConfig
 }
 
 export interface PublishQueueExecutionResult {
@@ -461,6 +479,60 @@ function finalizeLiveManualApprovalExecution(
   })
 }
 
+function finalizeLiveWebhookExecution(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  maxHookApplications: number,
+  webhookRequest: PublishQueueWebhookRequest | undefined,
+  webhookResult: PublishQueueWebhookResult | undefined
+): PublishQueueExecutionResult {
+  const publishChannelHook = findPublishChannelHook(record)!
+  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
+
+  if (publishChannelHook.target !== 'webhook') {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'unsupported_publish_channel_target',
+      }),
+    }
+  }
+
+  if (!webhookRequest) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_webhook_unresolved',
+      }),
+    }
+  }
+
+  if (!webhookResult || !webhookResult.ok) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_api_failed',
+      }),
+    }
+  }
+
+  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
+    publishChannelRef: formatPublishQueueWebhookSuccessRef(webhookRequest),
+  })
+}
+
 function executePublishQueueRecordLiveSyncInternal(
   record: PublishQueueRecord,
   executionWeek: number,
@@ -526,6 +598,37 @@ function executePublishQueueRecordLiveSyncInternal(
         maxHookApplications,
         approvalRequest,
         approvalResult
+      )
+    }
+    case 'webhook': {
+      if (!options.webhookClient || !options.webhookConfig) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const webhookRequest = buildWebhookRequest(
+        publishChannelHook,
+        record,
+        options.webhookConfig
+      )
+      const webhookResult = webhookRequest
+        ? options.webhookClient.deliverWebhook(webhookRequest)
+        : undefined
+
+      return finalizeLiveWebhookExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        webhookRequest,
+        webhookResult
       )
     }
     default:
@@ -609,6 +712,37 @@ async function executePublishQueueRecordLiveInternal(
         approvalResult
       )
     }
+    case 'webhook': {
+      if (!options.webhookClient || !options.webhookConfig) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const webhookRequest = buildWebhookRequest(
+        publishChannelHook,
+        record,
+        options.webhookConfig
+      )
+      const webhookResult = webhookRequest
+        ? await options.webhookClient.deliverWebhook(webhookRequest)
+        : undefined
+
+      return finalizeLiveWebhookExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        webhookRequest,
+        webhookResult
+      )
+    }
     default:
       return {
         record,
@@ -625,7 +759,7 @@ async function executePublishQueueRecordLiveInternal(
 
 /**
  * Executes one publish-queue record through the live channel path for supported
- * publish targets (`pr-merge`, `manual-approval`). Failed client calls reject
+ * publish targets (`pr-merge`, `manual-approval`, `webhook`). Failed client calls reject
  * without mutating the record. Re-execution of `published` records remains
  * idempotent (skipped, record byte-stable).
  */

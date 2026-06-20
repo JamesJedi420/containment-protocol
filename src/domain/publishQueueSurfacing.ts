@@ -60,6 +60,8 @@ export function formatPublishQueueSkipCodeLabel(skipCode: PublishQueueExecutorSk
       return 'publish channel pull request unresolved'
     case 'publish_channel_approval_unresolved':
       return 'publish channel approval unresolved'
+    case 'publish_channel_webhook_unresolved':
+      return 'publish channel webhook unresolved'
     case 'publish_channel_api_failed':
       return 'publish channel API failed'
     default: {

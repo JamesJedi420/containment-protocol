@@ -259,4 +259,121 @@ describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
     expect(publishQueueNotes).toHaveLength(0)
     expect(nextState.publishQueueRecords?.[record.id]).toBe(record)
   })
+
+  it('surfaces live webhook notes and persists receipts when orchestration deps inject client', () => {
+    const baseRecord = buildCanonicalReadyQueueRecord()
+    const record = {
+      ...baseRecord,
+      id: 'publish-queue:webhook',
+      releaseArtifactRef: 'release:webhook:release-batch-1',
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'webhook',
+              payload: 'channel:webhook:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.publishQueueRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state, undefined, {
+      environment: { mode: 'live' },
+      webhookConfig: {
+        endpoints: {
+          'release-batch-1': {
+            url: 'https://hooks.example.com/release-batch-1',
+          },
+        },
+      },
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: false,
+        }),
+      },
+    })
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const publishQueueNote = lastReport?.notes?.find(
+      (note) => note.type === 'contribution_release.publish_queue_execution'
+    )
+
+    expect(publishQueueNote).toBeDefined()
+    expect(publishQueueNote?.content).toContain('Publish queue (live)')
+    expect(publishQueueNote?.content).toContain(
+      'live:publish_channel:webhook:endpoint:release-batch-1:status:delivered'
+    )
+    expect(publishQueueNote?.metadata).toMatchObject({
+      executionMode: 'live',
+      publishChannelRef:
+        'live:publish_channel:webhook:endpoint:release-batch-1:status:delivered',
+    })
+
+    const receiptKey = buildPublishQueueExecutionReceiptKey(record.id, nextState.week)!
+    expect(nextState.publishQueueExecutionReceipts?.[receiptKey]).toMatchObject({
+      recordId: record.id,
+      outcome: 'completed',
+      executionWeek: nextState.week,
+      publishChannelRef:
+        'live:publish_channel:webhook:endpoint:release-batch-1:status:delivered',
+    })
+  })
+
+  it('does not emit reportable notes when re-ticking already-published webhook records', () => {
+    const baseRecord = buildCanonicalReadyQueueRecord()
+    const record = {
+      ...baseRecord,
+      id: 'publish-queue:webhook-idempotent',
+      status: 'published' as const,
+      releaseArtifactRef: 'release:webhook:release-batch-1',
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'webhook',
+              payload: 'channel:webhook:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.publishQueueRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state, undefined, {
+      environment: { mode: 'live' },
+      webhookConfig: {
+        endpoints: {
+          'release-batch-1': {
+            url: 'https://hooks.example.com/release-batch-1',
+          },
+        },
+      },
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: true,
+        }),
+      },
+    })
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const publishQueueNotes =
+      lastReport?.notes?.filter(
+        (note) => note.type === 'contribution_release.publish_queue_execution'
+      ) ?? []
+
+    expect(publishQueueNotes).toHaveLength(0)
+    expect(nextState.publishQueueRecords?.[record.id]).toBe(record)
+  })
 })

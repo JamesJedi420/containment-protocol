@@ -1,6 +1,7 @@
 /**
  * SPE-2491 slice 1: weekly publish-queue execution orchestration for `advanceWeek`.
  * SPE-2498 slice 1: live `manual-approval` channel via injectable sync client.
+ * SPE-2499 slice 1: live `webhook` channel via injectable sync client.
  *
  * Dry-run is the safe default. Live execution requires explicit
  * `PUBLISH_QUEUE_EXECUTOR_MODE=live` plus injectable sync clients because
@@ -23,16 +24,20 @@ import {
   readPublishQueueExecutorEnvironment,
 } from './publishQueueGitHubClient'
 import type { PublishQueueManualApprovalClientSync } from './publishQueueManualApprovalClient'
+import type { PublishQueueWebhookClientSync, PublishQueueWebhookConfig } from './publishQueueWebhookClient'
+import { buildPublishQueueWebhookConfig } from './publishQueueWebhookClient'
 
 export interface PublishQueueWeeklyOrchestrationDeps {
   readonly environment?: PublishQueueExecutorEnvironment
   readonly githubClient?: PublishQueueGitHubClientSync
   readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
+  readonly webhookClient?: PublishQueueWebhookClientSync
+  readonly webhookConfig?: PublishQueueWebhookConfig
 }
 
 /**
  * Resolves the effective weekly execution mode. Live mode requires `mode=live`
- * plus complete GitHub credentials and/or an injectable manual-approval client;
+ * plus complete GitHub credentials and/or injectable manual-approval/webhook clients;
  * otherwise dry-run.
  */
 export function resolveEffectivePublishQueueWeeklyExecutionMode(
@@ -52,11 +57,15 @@ export function resolveEffectivePublishQueueWeeklyExecutionMode(
     return 'live'
   }
 
+  if (deps.webhookClient) {
+    return 'live'
+  }
+
   return 'dry-run'
 }
 
 function hasLiveOrchestrationClients(deps: PublishQueueWeeklyOrchestrationDeps): boolean {
-  return Boolean(deps.githubClient || deps.manualApprovalClient)
+  return Boolean(deps.githubClient || deps.manualApprovalClient || deps.webhookClient)
 }
 
 /**
@@ -81,6 +90,7 @@ export function applyWeeklyPublishQueueExecutionTickOrchestrated(
 
   const environment = deps.environment ?? readPublishQueueExecutorEnvironment()
   const githubConfig = buildPublishQueueGitHubConfig(environment)
+  const webhookConfig = deps.webhookConfig ?? buildPublishQueueWebhookConfig()
 
   return executePublishQueueRecordsLiveSync(records, {
     week,
@@ -95,6 +105,12 @@ export function applyWeeklyPublishQueueExecutionTickOrchestrated(
       : {}),
     ...(deps.manualApprovalClient
       ? { manualApprovalClient: deps.manualApprovalClient }
+      : {}),
+    ...(webhookConfig && deps.webhookClient
+      ? {
+          webhookClient: deps.webhookClient,
+          webhookConfig,
+        }
       : {}),
   })
 }

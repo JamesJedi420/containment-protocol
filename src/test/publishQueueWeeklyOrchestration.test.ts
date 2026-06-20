@@ -253,4 +253,137 @@ describe('publishQueueWeeklyOrchestration (SPE-2491 slice 1)', () => {
     expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')
     expect(orchestrated.records[prMergeRecord.id]?.status).toBe('published')
   })
+
+  const testWebhookConfig = {
+    endpoints: {
+      'release-batch-1': {
+        url: 'https://hooks.example.com/release-batch-1',
+      },
+    },
+  }
+
+  it('resolves live mode with injectable webhook client even without GitHub credentials', () => {
+    expect(
+      resolveEffectivePublishQueueWeeklyExecutionMode({
+        environment: { mode: 'live' },
+        webhookClient: {
+          deliverWebhook: () => ({
+            ok: true,
+            endpointId: 'release-batch-1',
+            alreadyDelivered: false,
+          }),
+        },
+      })
+    ).toBe('live')
+  })
+
+  it('uses live webhook client when configured without GitHub credentials', () => {
+    const webhookRecord = {
+      ...buildCanonicalReadyQueueRecord(),
+      id: 'publish-queue:webhook',
+      releaseArtifactRef: 'release:webhook:release-batch-1',
+      publishHooks: buildCanonicalReadyQueueRecord().publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'webhook',
+              payload: 'channel:webhook:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const webhookRecords = {
+      [webhookRecord.id]: webhookRecord,
+    }
+
+    const orchestrated = applyWeeklyPublishQueueExecutionTickOrchestrated(webhookRecords, 4, {
+      environment: { mode: 'live' },
+      webhookConfig: testWebhookConfig,
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: false,
+        }),
+      },
+    })
+
+    expect(orchestrated.records[webhookRecord.id]?.status).toBe('published')
+    expect(orchestrated.receipts[0]?.publishChannelRef).toBe(
+      'live:publish_channel:webhook:endpoint:release-batch-1:status:delivered'
+    )
+  })
+
+  it('executes mixed pr-merge, manual-approval, and webhook records in stable id order', () => {
+    const prMergeRecord = buildLiveReadyQueueRecord()
+    const manualApprovalRecord = {
+      ...buildCanonicalReadyQueueRecord(),
+      id: 'publish-queue:manual-approval-mixed',
+      releaseArtifactRef: 'release:approval:release-batch-2',
+      publishHooks: buildCanonicalReadyQueueRecord().publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-2',
+            }
+          : hook
+      ),
+    }
+    const webhookRecord = {
+      ...buildCanonicalReadyQueueRecord(),
+      id: 'publish-queue:webhook-mixed',
+      releaseArtifactRef: 'release:webhook:release-batch-1',
+      publishHooks: buildCanonicalReadyQueueRecord().publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'webhook',
+              payload: 'channel:webhook:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const mixedRecords = {
+      [manualApprovalRecord.id]: manualApprovalRecord,
+      [prMergeRecord.id]: prMergeRecord,
+      [webhookRecord.id]: webhookRecord,
+    }
+
+    const orchestrated = applyWeeklyPublishQueueExecutionTickOrchestrated(mixedRecords, 4, {
+      environment: liveEnvironment,
+      webhookConfig: testWebhookConfig,
+      githubClient: {
+        mergePullRequest: () => ({
+          ok: true,
+          sha: 'abc123def456',
+          merged: true,
+          alreadyMerged: false,
+        }),
+      },
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-2',
+          alreadyApproved: false,
+        }),
+      },
+      webhookClient: {
+        deliverWebhook: () => ({
+          ok: true,
+          endpointId: 'release-batch-1',
+          alreadyDelivered: false,
+        }),
+      },
+    })
+
+    expect(orchestrated.receipts.map((receipt) => receipt.recordId)).toEqual([
+      manualApprovalRecord.id,
+      prMergeRecord.id,
+      webhookRecord.id,
+    ])
+    expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')
+    expect(orchestrated.records[prMergeRecord.id]?.status).toBe('published')
+    expect(orchestrated.records[webhookRecord.id]?.status).toBe('published')
+  })
 })

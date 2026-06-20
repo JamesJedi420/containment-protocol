@@ -72,7 +72,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Next step:** Owner reprioritizes from §14-pass alternates below. Mission triage full refresh remains **blocked**.
 
-**Base `main` SHA:** `e933d69d` — post SPE-2498 manual-approval publish channel closure (PR #2916).
+**Base `main` SHA:** `9d642611` — post SPE-2498 docs hygiene (PR #2917); implementation @ `e933d69d` (PR #2916).
 
 **§14-pass alternates (owner creates Linear child when starting):**
 

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2499](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2499 — Publish-queue webhook channel (slice 1)](https://linear.app/spectranoir/issue/SPE-2499) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2920 @ `40320cbf` |
 | **Parent** | [SPE-75](https://linear.app/spectranoir/issue/SPE-75) — parent **Done** on Linear (do not reopen) |
 | **Branch** | `spe-75-publish-queue-webhook-channel-slice-1` |
 | **Base `main` SHA** | `e964c6ba` |
@@ -65,11 +65,11 @@ POST body (deterministic JSON): `{ recordId, releaseArtifactRef, endpointId, cha
 
 ## Acceptance
 
-- [ ] Dry-run executes `webhook` records with stable stub + `published` transition
-- [ ] Live path with injected sync client transitions on successful POST; failure/unresolved reject without mutation
-- [ ] Existing `pr-merge` + `manual-approval` dry-run + live paths regression-clean
-- [ ] `advanceWeek` persists reportable receipts and surfaces notes; mirror unchanged
-- [ ] `npm run lint` + targeted tests green (CI gate)
+- [x] Dry-run executes `webhook` records with stable stub + `published` transition
+- [x] Live path with injected sync client transitions on successful POST; failure/unresolved reject without mutation
+- [x] Existing `pr-merge` + `manual-approval` dry-run + live paths regression-clean
+- [x] `advanceWeek` persists reportable receipts and surfaces notes; mirror unchanged
+- [x] `npm run lint` + targeted tests green (CI gate)
 
 ## File touch list (expected)
 

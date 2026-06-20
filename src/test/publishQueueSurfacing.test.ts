@@ -4,6 +4,7 @@ import { CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE } from '../domain/publishAutomat
 import type { PublishQueueExecutionReceipt } from '../domain/publishQueueExecutor'
 import {
   formatPublishQueueExecutionReceiptNoteContent,
+  formatPublishQueueSkipCodeLabel,
   formatPublishQueueStatusLabel,
   isReportablePublishQueueReceipt,
   listReportablePublishQueueReceipts,
@@ -188,5 +189,11 @@ describe('publishQueueSurfacing (SPE-2485 slice 1)', () => {
       rejectedCount: 1,
       skippedReportableCount: 1,
     })
+  })
+
+  it('labels manual-approval unresolved skip codes for weekly notes', () => {
+    expect(formatPublishQueueSkipCodeLabel('publish_channel_approval_unresolved')).toBe(
+      'publish channel approval unresolved'
+    )
   })
 })

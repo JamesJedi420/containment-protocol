@@ -17,6 +17,7 @@ import {
 import {
   applyWeeklyPublishQueueExecutionTick,
   executePublishQueueRecordDryRun,
+  executePublishQueueRecordLiveSync,
   executePublishQueueRecordsDryRun,
 } from '../domain/publishQueueExecutor'
 import {
@@ -233,5 +234,126 @@ describe('publishQueueExecutor (SPE-2484 slice 1)', () => {
         publishChannelStub: undefined,
       }))
     )
+  })
+})
+
+describe('publishQueueExecutor manual-approval channel (SPE-2498 slice 1)', () => {
+  const acceptedCuration = evaluateContributionIntakeCuration(
+    CANONICAL_CONTRIBUTION_SUBMISSION_FIXTURE
+  )
+  const packagedRelease = evaluateModularReleasePackaging(
+    acceptedCuration,
+    CANONICAL_RELEASE_ARTIFACT_MANIFEST_FIXTURE
+  )
+  const appliedGovernance = evaluateSubmissionGovernanceRights(
+    CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE
+  )
+  const decision = evaluatePublishAutomationCreditingHooks(
+    packagedRelease,
+    appliedGovernance,
+    CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE
+  )
+
+  function buildManualApprovalRecord(releaseArtifactRef = 'release:approval:release-batch-1') {
+    const baseRecord = composePublishQueueRecord({
+      id: 'publish-queue:manual-approval',
+      label: 'Manual approval release batch',
+      releaseArtifactRef,
+      decision,
+      summary: 'Awaiting manual approval before publish.',
+      queuedWeek: 4,
+    })!
+
+    return {
+      ...baseRecord,
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-1',
+            }
+          : hook
+      ),
+    }
+  }
+
+  it('executes manual-approval dry-run with stable channel stub and published transition', () => {
+    const record = buildManualApprovalRecord()
+    const result = executePublishQueueRecordDryRun(record, { week: 4 })
+
+    expect(result.record.status).toBe('published')
+    expect(result.receipt.outcome).toBe('completed')
+    expect(result.receipt.publishChannelStub).toBe(
+      'dry-run:publish_channel:manual-approval:channel:manual-approval:release-batch-1'
+    )
+  })
+
+  it('publishes on successful manual approval without mutating hooks', () => {
+    const record = buildManualApprovalRecord()
+    const result = executePublishQueueRecordLiveSync(record, {
+      week: 8,
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-1',
+          alreadyApproved: false,
+        }),
+      },
+    })
+
+    expect(result.record.status).toBe('published')
+    expect(result.receipt.outcome).toBe('completed')
+    expect(result.receipt.publishChannelRef).toBe(
+      'live:publish_channel:manual-approval:token:release-batch-1:status:approved'
+    )
+    expect(result.record.creditingHooks).toEqual(record.creditingHooks)
+  })
+
+  it('rejects without mutation when manual approval is denied', () => {
+    const record = buildManualApprovalRecord()
+    const result = executePublishQueueRecordLiveSync(record, {
+      week: 8,
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: false,
+          message: 'approval denied',
+        }),
+      },
+    })
+
+    expect(result.record).toBe(record)
+    expect(result.receipt.outcome).toBe('rejected')
+    expect(result.receipt.skipCode).toBe('publish_channel_api_failed')
+  })
+
+  it('rejects without mutation when approval token cannot be resolved', () => {
+    const record = buildManualApprovalRecord('release:domain-code-bundle-spe-2480')
+    const unresolvedRecord = {
+      ...record,
+      publishHooks: record.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              payload: 'channel:manual-approval:',
+            }
+          : hook
+      ),
+    }
+
+    const result = executePublishQueueRecordLiveSync(unresolvedRecord, {
+      week: 8,
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-1',
+          alreadyApproved: false,
+        }),
+      },
+    })
+
+    expect(result.record).toBe(unresolvedRecord)
+    expect(result.receipt.outcome).toBe('rejected')
+    expect(result.receipt.skipCode).toBe('publish_channel_approval_unresolved')
   })
 })

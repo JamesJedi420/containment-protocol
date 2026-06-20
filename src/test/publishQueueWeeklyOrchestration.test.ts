@@ -90,6 +90,21 @@ describe('publishQueueWeeklyOrchestration (SPE-2491 slice 1)', () => {
     ).toBe('live')
   })
 
+  it('resolves live mode with injectable manual-approval client even without GitHub credentials', () => {
+    expect(
+      resolveEffectivePublishQueueWeeklyExecutionMode({
+        environment: { mode: 'live' },
+        manualApprovalClient: {
+          resolveApproval: () => ({
+            ok: true,
+            approvalToken: 'release-batch-1',
+            alreadyApproved: false,
+          }),
+        },
+      })
+    ).toBe('live')
+  })
+
   it('matches dry-run weekly tick when live mode is not effective', () => {
     const orchestrated = applyWeeklyPublishQueueExecutionTickOrchestrated(records, 4)
     const dryRun = applyWeeklyPublishQueueExecutionTick(records, 4)
@@ -149,5 +164,93 @@ describe('publishQueueWeeklyOrchestration (SPE-2491 slice 1)', () => {
     const dryRun = applyWeeklyPublishQueueExecutionTick(records, 4)
 
     expect(orchestrated).toEqual(dryRun)
+  })
+
+  it('uses live manual-approval client when configured without GitHub credentials', () => {
+    const manualApprovalRecord = {
+      ...buildCanonicalReadyQueueRecord(),
+      id: 'publish-queue:manual-approval',
+      releaseArtifactRef: 'release:approval:release-batch-1',
+      publishHooks: buildCanonicalReadyQueueRecord().publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const manualApprovalRecords = {
+      [manualApprovalRecord.id]: manualApprovalRecord,
+    }
+
+    const orchestrated = applyWeeklyPublishQueueExecutionTickOrchestrated(
+      manualApprovalRecords,
+      4,
+      {
+        environment: { mode: 'live' },
+        manualApprovalClient: {
+          resolveApproval: () => ({
+            ok: true,
+            approvalToken: 'release-batch-1',
+            alreadyApproved: false,
+          }),
+        },
+      }
+    )
+
+    expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')
+    expect(orchestrated.receipts[0]?.publishChannelRef).toBe(
+      'live:publish_channel:manual-approval:token:release-batch-1:status:approved'
+    )
+  })
+
+  it('executes mixed pr-merge and manual-approval records in stable id order', () => {
+    const prMergeRecord = buildLiveReadyQueueRecord()
+    const manualApprovalRecord = {
+      ...buildCanonicalReadyQueueRecord(),
+      id: 'publish-queue:manual-approval-mixed',
+      releaseArtifactRef: 'release:approval:release-batch-2',
+      publishHooks: buildCanonicalReadyQueueRecord().publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-2',
+            }
+          : hook
+      ),
+    }
+    const mixedRecords = {
+      [manualApprovalRecord.id]: manualApprovalRecord,
+      [prMergeRecord.id]: prMergeRecord,
+    }
+
+    const orchestrated = applyWeeklyPublishQueueExecutionTickOrchestrated(mixedRecords, 4, {
+      environment: liveEnvironment,
+      githubClient: {
+        mergePullRequest: () => ({
+          ok: true,
+          sha: 'abc123def456',
+          merged: true,
+          alreadyMerged: false,
+        }),
+      },
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-2',
+          alreadyApproved: false,
+        }),
+      },
+    })
+
+    expect(orchestrated.receipts.map((receipt) => receipt.recordId)).toEqual([
+      manualApprovalRecord.id,
+      prMergeRecord.id,
+    ])
+    expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')
+    expect(orchestrated.records[prMergeRecord.id]?.status).toBe('published')
   })
 })

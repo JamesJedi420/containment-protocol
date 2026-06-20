@@ -154,4 +154,109 @@ describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
       expect.stringContaining('live:publish_channel:pr-merge')
     )
   })
+
+  it('surfaces live manual-approval notes and persists receipts when orchestration deps inject client', () => {
+    const baseRecord = buildCanonicalReadyQueueRecord()
+    const record = {
+      ...baseRecord,
+      id: 'publish-queue:manual-approval',
+      releaseArtifactRef: 'release:approval:release-batch-1',
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.publishQueueRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state, undefined, {
+      environment: { mode: 'live' },
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-1',
+          alreadyApproved: false,
+        }),
+      },
+    })
+
+    expect(nextState.publishQueueRecords?.[record.id]?.status).toBe('published')
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const publishQueueNote = lastReport?.notes?.find(
+      (note) => note.type === 'contribution_release.publish_queue_execution'
+    )
+
+    expect(publishQueueNote).toBeDefined()
+    expect(publishQueueNote?.content).toContain('Publish queue (live)')
+    expect(publishQueueNote?.content).toContain(
+      'live:publish_channel:manual-approval:token:release-batch-1:status:approved'
+    )
+    expect(publishQueueNote?.metadata).toMatchObject({
+      executionMode: 'live',
+      publishChannelRef:
+        'live:publish_channel:manual-approval:token:release-batch-1:status:approved',
+    })
+
+    const receiptKey = buildPublishQueueExecutionReceiptKey(record.id, nextState.week)!
+    expect(nextState.publishQueueExecutionReceipts?.[receiptKey]).toMatchObject({
+      recordId: record.id,
+      outcome: 'completed',
+      executionWeek: nextState.week,
+      publishChannelRef:
+        'live:publish_channel:manual-approval:token:release-batch-1:status:approved',
+    })
+  })
+
+  it('does not emit reportable notes when re-ticking already-published manual-approval records', () => {
+    const baseRecord = buildCanonicalReadyQueueRecord()
+    const record = {
+      ...baseRecord,
+      id: 'publish-queue:manual-approval-idempotent',
+      status: 'published' as const,
+      releaseArtifactRef: 'release:approval:release-batch-1',
+      publishHooks: baseRecord.publishHooks.map((hook) =>
+        hook.kind === 'publish_channel'
+          ? {
+              ...hook,
+              target: 'manual-approval',
+              payload: 'channel:manual-approval:release-batch-1',
+            }
+          : hook
+      ),
+    }
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.publishQueueRecords = {
+      [record.id]: record,
+    }
+
+    const nextState = advanceWeek(state, undefined, {
+      environment: { mode: 'live' },
+      manualApprovalClient: {
+        resolveApproval: () => ({
+          ok: true,
+          approvalToken: 'release-batch-1',
+          alreadyApproved: true,
+        }),
+      },
+    })
+
+    const lastReport = nextState.reports[nextState.reports.length - 1]
+    const publishQueueNotes =
+      lastReport?.notes?.filter(
+        (note) => note.type === 'contribution_release.publish_queue_execution'
+      ) ?? []
+
+    expect(publishQueueNotes).toHaveLength(0)
+    expect(nextState.publishQueueRecords?.[record.id]).toBe(record)
+  })
 })

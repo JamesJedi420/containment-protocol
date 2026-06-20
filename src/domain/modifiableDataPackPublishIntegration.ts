@@ -25,6 +25,7 @@ import type {
 import {
   CANONICAL_MODIFIABLE_DATA_PACK_FIXTURE,
   composeModifiableDataPackRecord,
+  modifiableDataPackRecordToPayload,
 } from './modifiableDataPackValidation'
 import type {
   PublishAutomationDecision,
@@ -253,5 +254,22 @@ export function evaluateModifiableDataPackPublishIntegration(
     publishDecision: gated.publishDecision,
     validationIssues: Object.freeze(sortIntegrationIssues([...gated.validationIssues])),
     reasonCodes: gated.reasonCodes,
+  })
+}
+
+/**
+ * SPE-2500 slice 4: publish-intent integration from a persisted modifiable data-pack record.
+ * Uses canonical upstream fixtures unless overridden.
+ */
+export function evaluateModifiableDataPackPublishIntegrationFromRecord(
+  record: ModifiableDataPackRecord,
+  overrides: Omit<ModifiableDataPackPublishIntegrationInput, 'packPayload'> = {}
+): ModifiableDataPackPublishIntegrationEnvelope {
+  return evaluateModifiableDataPackPublishIntegration({
+    packPayload: modifiableDataPackRecordToPayload(record),
+    releaseManifest: CANONICAL_RELEASE_ARTIFACT_MANIFEST_FIXTURE,
+    governancePayload: CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE,
+    creditingManifest: CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE,
+    ...overrides,
   })
 }

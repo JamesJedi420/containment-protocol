@@ -709,7 +709,8 @@ function parseModifiableSectionRecords(value: unknown): ModifiableSectionRecord[
   return sections
 }
 
-function modifiableDataPackRecordToPayload(
+/** Reconstructs a validation payload from a persisted modifiable data-pack record. */
+export function modifiableDataPackRecordToPayload(
   record: ModifiableDataPackRecord
 ): ModifiableDataPackPayload {
   return {

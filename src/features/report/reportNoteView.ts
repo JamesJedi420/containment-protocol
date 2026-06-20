@@ -81,6 +81,8 @@ const SYSTEM_NOTE_TYPES: ReportNoteType[] = [
   'hub.rumor',
   'cognitive_hazard.simulation_trigger',
   'contribution_release.publish_queue_execution',
+  'contribution_release.modifiable_data_pack_governance',
+  'contribution_release.modifiable_data_pack_publish_enqueue',
   'visual_trigger_hazard.weekly_transition',
   'entity_welfare_reclassification.weekly_transition',
   'pattern_source_series.weekly_transition',

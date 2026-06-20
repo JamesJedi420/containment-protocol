@@ -11,6 +11,7 @@ import {
 import {
   CANONICAL_MODIFIABLE_DATA_PACK_PUBLISH_INTEGRATION_INPUT,
   evaluateModifiableDataPackPublishIntegration,
+  evaluateModifiableDataPackPublishIntegrationFromRecord,
 } from '../domain/modifiableDataPackPublishIntegration'
 import {
   CANONICAL_PUBLISH_CREDITING_MANIFEST_FIXTURE,
@@ -141,5 +142,14 @@ describe('modifiableDataPackPublishIntegration (SPE-2494 slice 3)', () => {
     expect(envelope.publishDecision?.publishMetadata?.contributorRef).toBe(
       'contributor:agent-maintainer'
     )
+  })
+
+  it('evaluates publish-intent from a persisted applied record via fromRecord helper', () => {
+    const envelope = evaluateModifiableDataPackPublishIntegrationFromRecord(
+      CANONICAL_MODIFIABLE_DATA_PACK_RECORD_FIXTURE
+    )
+
+    expect(envelope.record).toEqual(CANONICAL_MODIFIABLE_DATA_PACK_RECORD_FIXTURE)
+    expect(envelope.publishDecision?.status).toBe('ready_to_publish')
   })
 })

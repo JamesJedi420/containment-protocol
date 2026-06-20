@@ -14,6 +14,7 @@ import type {
   ModifiableDataPackWeeklyTickReceipt,
   ModifiableDataPackWeeklyTickSkipCode,
 } from './modifiableDataPackWeeklyOrchestration'
+import type { ModifiableDataPackPublishQueueEnqueueReceipt } from './modifiableDataPackPublishQueueEnqueue'
 
 export function formatModifiableDataPackKindLabel(kind: ModifiableDataPackKind | string): string {
   return kind
@@ -119,4 +120,40 @@ export function formatModifiableDataPackWeeklyTickNoteContent(input: {
       : ''
 
   return `Modifiable data pack — ${packId}: ${kindLabel} [${statusLabel}]. ${sectionSummary}. Governance observation.${reasonSegment}`
+}
+
+export function isReportableModifiableDataPackPublishQueueEnqueueReceipt(
+  receipt: ModifiableDataPackPublishQueueEnqueueReceipt
+): boolean {
+  return receipt.outcome === 'enqueued'
+}
+
+export function listReportableModifiableDataPackPublishQueueEnqueueReceipts(
+  receipts: readonly ModifiableDataPackPublishQueueEnqueueReceipt[] | null | undefined
+): readonly ModifiableDataPackPublishQueueEnqueueReceipt[] {
+  if (!receipts || receipts.length === 0) {
+    return Object.freeze([])
+  }
+
+  return Object.freeze(
+    [...receipts]
+      .filter((receipt) => isReportableModifiableDataPackPublishQueueEnqueueReceipt(receipt))
+      .sort((left, right) => left.packId.localeCompare(right.packId))
+  )
+}
+
+export function formatModifiableDataPackPublishQueueEnqueueNoteContent(input: {
+  receipt: ModifiableDataPackPublishQueueEnqueueReceipt
+  record: ModifiableDataPackRecord | undefined
+}): string {
+  const packId = input.receipt.packId
+  const record = input.record
+  const kindLabel = record ? formatModifiableDataPackKindLabel(record.packKind) : 'Unknown'
+  const sectionSummary = record ? formatModifiableDataPackSectionSummary(record) : '—'
+  const queueRecordId = input.receipt.queueRecordId ?? '—'
+
+  return (
+    `Modifiable data pack — ${packId}: ${kindLabel}. ${sectionSummary}. ` +
+    `Publish queue enqueue [${queueRecordId}].`
+  )
 }

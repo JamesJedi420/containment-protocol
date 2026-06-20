@@ -302,6 +302,8 @@ import { mergePublishQueueExecutionReceipts } from '../publishQueueExecutionRece
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
 import { applyWeeklyModifiableDataPackGovernanceTick } from '../modifiableDataPackWeeklyOrchestration'
 import { buildWeeklyModifiableDataPackGovernanceReportNotes } from '../modifiableDataPackWeeklyReportNotes'
+import { applyWeeklyModifiableDataPackPublishQueueEnqueueTick } from '../modifiableDataPackPublishQueueEnqueue'
+import { buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes } from '../modifiableDataPackPublishQueueEnqueueWeeklyReportNotes'
 import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
 import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
@@ -4731,6 +4733,73 @@ export function advanceWeek(
     }
   }
 
+  // SPE-2493 slice 2: modifiable data-pack governance tick (re-validation + needs_revision observation).
+  const currentModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
+  if (Object.keys(currentModifiableDataPackRecords).length > 0) {
+    const modifiableDataPackTick = applyWeeklyModifiableDataPackGovernanceTick(
+      currentModifiableDataPackRecords,
+      result.week
+    )
+    outputWeeklyState.modifiableDataPackRecords = modifiableDataPackTick.records
+
+    if (modifiableDataPackTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const modifiableDataPackNotes = buildWeeklyModifiableDataPackGovernanceReportNotes({
+        receipts: modifiableDataPackTick.receipts,
+        records: modifiableDataPackTick.records,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+      if (modifiableDataPackNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...modifiableDataPackNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
+  // SPE-2500 slice 4: modifiable data-pack publish-queue enqueue tick.
+  const postGovernanceModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
+  if (Object.keys(postGovernanceModifiableDataPackRecords).length > 0) {
+    const publishQueueEnqueueTick = applyWeeklyModifiableDataPackPublishQueueEnqueueTick(
+      postGovernanceModifiableDataPackRecords,
+      outputWeeklyState.publishQueueRecords ?? {},
+      result.week
+    )
+    outputWeeklyState.publishQueueRecords = publishQueueEnqueueTick.records
+
+    if (publishQueueEnqueueTick.receipts.length > 0 && result.reports.length > 0) {
+      const lastWeeklyReport = result.reports[result.reports.length - 1]
+      const publishQueueEnqueueNotes = buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes(
+        {
+          receipts: publishQueueEnqueueTick.receipts,
+          records: postGovernanceModifiableDataPackRecords,
+          week: result.week,
+          sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+          baseTimestamp: noteBaseTimestamp,
+        }
+      )
+
+      if (publishQueueEnqueueNotes.length > 0) {
+        const reports = [...result.reports]
+        const lastReportIndex = reports.length - 1
+        const lastReport = reports[lastReportIndex]
+        reports[lastReportIndex] = {
+          ...lastReport,
+          notes: [...(lastReport.notes ?? []), ...publishQueueEnqueueNotes],
+        }
+        result.reports = reports
+      }
+    }
+  }
+
   // SPE-2485 / SPE-2491: publish-queue execution tick (dry-run default; live when configured).
   const currentPublishQueueRecords = outputWeeklyState.publishQueueRecords ?? {}
   if (Object.keys(currentPublishQueueRecords).length > 0) {
@@ -4763,38 +4832,6 @@ export function advanceWeek(
         reports[lastReportIndex] = {
           ...lastReport,
           notes: [...(lastReport.notes ?? []), ...publishQueueNotes],
-        }
-        result.reports = reports
-      }
-    }
-  }
-
-  // SPE-2493 slice 2: modifiable data-pack governance tick (re-validation + needs_revision observation).
-  const currentModifiableDataPackRecords = outputWeeklyState.modifiableDataPackRecords ?? {}
-  if (Object.keys(currentModifiableDataPackRecords).length > 0) {
-    const modifiableDataPackTick = applyWeeklyModifiableDataPackGovernanceTick(
-      currentModifiableDataPackRecords,
-      result.week
-    )
-    outputWeeklyState.modifiableDataPackRecords = modifiableDataPackTick.records
-
-    if (modifiableDataPackTick.receipts.length > 0 && result.reports.length > 0) {
-      const lastWeeklyReport = result.reports[result.reports.length - 1]
-      const modifiableDataPackNotes = buildWeeklyModifiableDataPackGovernanceReportNotes({
-        receipts: modifiableDataPackTick.receipts,
-        records: modifiableDataPackTick.records,
-        week: result.week,
-        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
-        baseTimestamp: noteBaseTimestamp,
-      })
-
-      if (modifiableDataPackNotes.length > 0) {
-        const reports = [...result.reports]
-        const lastReportIndex = reports.length - 1
-        const lastReport = reports[lastReportIndex]
-        reports[lastReportIndex] = {
-          ...lastReport,
-          notes: [...(lastReport.notes ?? []), ...modifiableDataPackNotes],
         }
         result.reports = reports
       }

@@ -61,6 +61,8 @@ Modifiable data-pack weekly orchestration (SPE-2493) wires `applyWeeklyModifiabl
 
 Modifiable data-pack publish automation integration (SPE-2494) composes validated pack import with the contribution intake → release packaging → governance → publish-intent chain via `src/domain/modifiableDataPackPublishIntegration.ts` — rejected payloads produce no record and no publish-intent side effects; `needs_revision` import status caps publish-intent below `ready_to_publish`.
 
+Modifiable data-pack publish queue enqueue (SPE-2500) wires `applyWeeklyModifiableDataPackPublishQueueEnqueueTick` into `advanceWeek` after the SPE-2493 governance tick and before publish-queue execution: `applied` records run publish-intent integration and enqueue deterministic `publish-queue:modifiable-pack:{packId}` entries via `composePublishQueueRecord`; idempotent skips when the queue record already exists; weekly report notes use `contribution_release.modifiable_data_pack_publish_enqueue`.
+
 ## Publish automation and crediting hooks
 
 After packaging and governance gates pass, publish-intent evaluation composes crediting targets (CONTRIBUTORS, changelog entries, version bumps) and bounded publish channel hooks without executing publish actions.

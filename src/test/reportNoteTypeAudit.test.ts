@@ -128,6 +128,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'entityWelfareReclassificationWeeklyReportNotes',
     category: 'system',
   },
+  'pattern_source_series.weekly_transition': {
+    status: 'active',
+    producer: 'patternSourceSeriesWeeklyReportNotes',
+    category: 'system',
+  },
 } as const satisfies Record<
   ReportNoteType,
   { status: 'active' | 'future-reserved' | 'stale'; producer: string; category: string }

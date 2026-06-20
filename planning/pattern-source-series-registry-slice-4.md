@@ -69,5 +69,6 @@ Read-only planning/operations mirror over persisted `patternSourceSeriesRecords`
 
 ## See also
 
+- `planning/pattern-source-series-registry-slice-5.md`
 - `planning/pattern-source-series-registry-slice-3.md`
 - `planning/pattern-source-series-registry-slice-2.md`

@@ -295,6 +295,7 @@ import {
   composeWelfareDebtIntoIntegratedHealthBundles,
 } from '../containedPersonIntegratedHealthBundleCompose'
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
+import { buildWeeklyPatternSourceSeriesTransitionReportNotes } from '../patternSourceSeriesWeeklyReportNotes'
 import { applyWeeklyPublishQueueExecutionTickOrchestrated } from '../publishQueueWeeklyOrchestration'
 import type { PublishQueueWeeklyOrchestrationDeps } from '../publishQueueWeeklyOrchestration'
 import { mergePublishQueueExecutionReceipts } from '../publishQueueExecutionReceiptPersistence'
@@ -4698,13 +4699,36 @@ export function advanceWeek(
     outputWeeklyState.coverStoryWeeklyProjectionSnapshots = coverStoryTick.snapshots
   }
 
-  // SPE-2110 slice 3: advance readiness-gated pattern-source intake processing pipeline.
-  const currentPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
-  if (Object.keys(currentPatternSourceSeriesRecords).length > 0) {
+  // SPE-2110 slice 3 / SPE-2497 slice 5: advance readiness-gated pattern-source intake pipeline + surface transitions.
+  const priorPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
+  if (Object.keys(priorPatternSourceSeriesRecords).length > 0) {
     outputWeeklyState.patternSourceSeriesRecords = applyWeeklyPatternSourceSeriesIntakeTick(
-      currentPatternSourceSeriesRecords,
+      priorPatternSourceSeriesRecords,
       result.week
     )
+  }
+
+  const nextPatternSourceSeriesRecords = outputWeeklyState.patternSourceSeriesRecords ?? {}
+  if (Object.keys(nextPatternSourceSeriesRecords).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const patternSourceSeriesTransitionNotes = buildWeeklyPatternSourceSeriesTransitionReportNotes({
+      priorRecords: priorPatternSourceSeriesRecords,
+      nextRecords: nextPatternSourceSeriesRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (patternSourceSeriesTransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...patternSourceSeriesTransitionNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2485 / SPE-2491: publish-queue execution tick (dry-run default; live when configured).

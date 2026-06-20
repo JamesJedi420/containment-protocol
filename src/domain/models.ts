@@ -1560,6 +1560,7 @@ export type ReportNoteType =
   | 'contribution_release.modifiable_data_pack_governance'
   | 'visual_trigger_hazard.weekly_transition'
   | 'entity_welfare_reclassification.weekly_transition'
+  | 'pattern_source_series.weekly_transition'
 
 export type ReportNoteMetadataValue =
   | string

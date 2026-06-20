@@ -1,9 +1,10 @@
 /**
  * SPE-2491 slice 1: weekly publish-queue execution orchestration for `advanceWeek`.
+ * SPE-2498 slice 1: live `manual-approval` channel via injectable sync client.
  *
- * Dry-run is the safe default. Live `pr-merge` execution requires explicit
- * `PUBLISH_QUEUE_EXECUTOR_MODE=live`, complete GitHub credentials, and an
- * injectable sync client (tests/CI harness) because `advanceWeek` is synchronous.
+ * Dry-run is the safe default. Live execution requires explicit
+ * `PUBLISH_QUEUE_EXECUTOR_MODE=live` plus injectable sync clients because
+ * `advanceWeek` is synchronous.
  */
 
 import type { PublishQueueRecordsMap } from './publishAutomationCreditingHooks'
@@ -21,15 +22,18 @@ import {
   buildPublishQueueGitHubConfig,
   readPublishQueueExecutorEnvironment,
 } from './publishQueueGitHubClient'
+import type { PublishQueueManualApprovalClientSync } from './publishQueueManualApprovalClient'
 
 export interface PublishQueueWeeklyOrchestrationDeps {
   readonly environment?: PublishQueueExecutorEnvironment
   readonly githubClient?: PublishQueueGitHubClientSync
+  readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
 }
 
 /**
- * Resolves the effective weekly execution mode. Live mode requires both
- * `mode=live` and complete GitHub credentials; otherwise dry-run.
+ * Resolves the effective weekly execution mode. Live mode requires `mode=live`
+ * plus complete GitHub credentials and/or an injectable manual-approval client;
+ * otherwise dry-run.
  */
 export function resolveEffectivePublishQueueWeeklyExecutionMode(
   deps: PublishQueueWeeklyOrchestrationDeps = {}
@@ -40,17 +44,25 @@ export function resolveEffectivePublishQueueWeeklyExecutionMode(
     return 'dry-run'
   }
 
-  if (!buildPublishQueueGitHubConfig(environment)) {
-    return 'dry-run'
+  if (buildPublishQueueGitHubConfig(environment)) {
+    return 'live'
   }
 
-  return 'live'
+  if (deps.manualApprovalClient) {
+    return 'live'
+  }
+
+  return 'dry-run'
+}
+
+function hasLiveOrchestrationClients(deps: PublishQueueWeeklyOrchestrationDeps): boolean {
+  return Boolean(deps.githubClient || deps.manualApprovalClient)
 }
 
 /**
  * One deterministic weekly publish-queue execution pass. Uses dry-run stubs by
- * default; when live mode is configured and a sync GitHub client is available,
- * invokes the live `pr-merge` executor path without mutating records on failure.
+ * default; when live mode is configured and sync clients are available, invokes
+ * the live executor path without mutating records on failure.
  */
 export function applyWeeklyPublishQueueExecutionTickOrchestrated(
   records: PublishQueueRecordsMap | null | undefined,
@@ -63,19 +75,26 @@ export function applyWeeklyPublishQueueExecutionTickOrchestrated(
     return applyWeeklyPublishQueueExecutionTick(records, week)
   }
 
-  const environment = deps.environment ?? readPublishQueueExecutorEnvironment()
-  const githubConfig = buildPublishQueueGitHubConfig(environment)
-
-  if (!githubConfig || !deps.githubClient) {
+  if (!hasLiveOrchestrationClients(deps)) {
     return applyWeeklyPublishQueueExecutionTick(records, week)
   }
 
+  const environment = deps.environment ?? readPublishQueueExecutorEnvironment()
+  const githubConfig = buildPublishQueueGitHubConfig(environment)
+
   return executePublishQueueRecordsLiveSync(records, {
     week,
-    githubClient: deps.githubClient,
-    githubConfig: {
-      owner: githubConfig.owner,
-      repo: githubConfig.repo,
-    },
+    ...(githubConfig && deps.githubClient
+      ? {
+          githubClient: deps.githubClient,
+          githubConfig: {
+            owner: githubConfig.owner,
+            repo: githubConfig.repo,
+          },
+        }
+      : {}),
+    ...(deps.manualApprovalClient
+      ? { manualApprovalClient: deps.manualApprovalClient }
+      : {}),
   })
 }

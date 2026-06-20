@@ -1,6 +1,7 @@
 /**
  * SPE-2484 slice 1: publish-queue dry-run executor.
  * SPE-2488 slice 1: optional live `pr-merge` GitHub API path with dry-run default.
+ * SPE-2498 slice 1: optional live `manual-approval` injectable sync client path.
  *
  * Pure deterministic executor consuming persisted publish-queue records and
  * SPE-2480 hook descriptors. Dry-run uses bounded channel stubs; live mode
@@ -30,6 +31,15 @@ import {
   buildPrMergeGitHubRequest,
   formatPublishQueueGitHubMergeSuccessRef,
 } from './publishQueueGitHubClient'
+import type {
+  PublishQueueManualApprovalClientSync,
+  PublishQueueManualApprovalRequest,
+  PublishQueueManualApprovalResult,
+} from './publishQueueManualApprovalClient'
+import {
+  buildManualApprovalRequest,
+  formatPublishQueueManualApprovalSuccessRef,
+} from './publishQueueManualApprovalClient'
 
 // ---------------------------------------------------------------------------
 // Identifiers and unions
@@ -49,6 +59,7 @@ export type PublishQueueExecutorSkipCode =
   | 'missing_publish_channel_hook'
   | 'unsupported_publish_channel_target'
   | 'publish_channel_pull_request_unresolved'
+  | 'publish_channel_approval_unresolved'
   | 'publish_channel_api_failed'
 
 export const PUBLISH_QUEUE_EXECUTOR_SKIP_CODES: readonly PublishQueueExecutorSkipCode[] = [
@@ -57,6 +68,7 @@ export const PUBLISH_QUEUE_EXECUTOR_SKIP_CODES: readonly PublishQueueExecutorSki
   'missing_publish_channel_hook',
   'unsupported_publish_channel_target',
   'publish_channel_pull_request_unresolved',
+  'publish_channel_approval_unresolved',
   'publish_channel_api_failed',
 ] as const
 
@@ -85,13 +97,15 @@ export interface PublishQueueExecutorOptions {
 }
 
 export interface PublishQueueLiveExecutorOptions extends PublishQueueExecutorOptions {
-  readonly githubClient: PublishQueueGitHubClient
-  readonly githubConfig: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
+  readonly githubClient?: PublishQueueGitHubClient
+  readonly githubConfig?: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
+  readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
 }
 
 export interface PublishQueueLiveExecutorSyncOptions extends PublishQueueExecutorOptions {
-  readonly githubClient: PublishQueueGitHubClientSync
-  readonly githubConfig: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
+  readonly githubClient?: PublishQueueGitHubClientSync
+  readonly githubConfig?: Pick<PublishQueueGitHubConfig, 'owner' | 'repo'>
+  readonly manualApprovalClient?: PublishQueueManualApprovalClientSync
 }
 
 export interface PublishQueueExecutionResult {
@@ -393,10 +407,227 @@ function finalizeLiveMergeExecution(
   })
 }
 
+function finalizeLiveManualApprovalExecution(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  maxHookApplications: number,
+  approvalRequest: PublishQueueManualApprovalRequest | undefined,
+  approvalResult: PublishQueueManualApprovalResult | undefined
+): PublishQueueExecutionResult {
+  const publishChannelHook = findPublishChannelHook(record)!
+  const appliedHooks = buildAppliedHookStubs(record, maxHookApplications)
+
+  if (publishChannelHook.target !== 'manual-approval') {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'unsupported_publish_channel_target',
+      }),
+    }
+  }
+
+  if (!approvalRequest) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_approval_unresolved',
+      }),
+    }
+  }
+
+  if (!approvalResult || !approvalResult.ok) {
+    return {
+      record,
+      receipt: freezeReceipt({
+        recordId: record.id,
+        outcome: 'rejected',
+        executionWeek,
+        appliedHooks: Object.freeze([]),
+        skipCode: 'publish_channel_api_failed',
+      }),
+    }
+  }
+
+  return finalizePublishedExecution(record, executionWeek, appliedHooks, {
+    publishChannelRef: formatPublishQueueManualApprovalSuccessRef(approvalRequest),
+  })
+}
+
+function executePublishQueueRecordLiveSyncInternal(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  maxHookApplications: number,
+  options: PublishQueueLiveExecutorSyncOptions
+): PublishQueueExecutionResult {
+  const publishChannelHook = findPublishChannelHook(record)!
+
+  switch (publishChannelHook.target) {
+    case 'pr-merge': {
+      if (!options.githubClient || !options.githubConfig) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const mergeRequest = buildPrMergeGitHubRequest(
+        publishChannelHook,
+        record,
+        options.githubConfig
+      )
+      const mergeResult = mergeRequest
+        ? options.githubClient.mergePullRequest(mergeRequest)
+        : undefined
+
+      return finalizeLiveMergeExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        mergeRequest,
+        mergeResult
+      )
+    }
+    case 'manual-approval': {
+      if (!options.manualApprovalClient) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const approvalRequest = buildManualApprovalRequest(publishChannelHook, record)
+      const approvalResult = approvalRequest
+        ? options.manualApprovalClient.resolveApproval(approvalRequest)
+        : undefined
+
+      return finalizeLiveManualApprovalExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        approvalRequest,
+        approvalResult
+      )
+    }
+    default:
+      return {
+        record,
+        receipt: freezeReceipt({
+          recordId: record.id,
+          outcome: 'rejected',
+          executionWeek,
+          appliedHooks: Object.freeze([]),
+          skipCode: 'unsupported_publish_channel_target',
+        }),
+      }
+  }
+}
+
+async function executePublishQueueRecordLiveInternal(
+  record: PublishQueueRecord,
+  executionWeek: number,
+  maxHookApplications: number,
+  options: PublishQueueLiveExecutorOptions
+): Promise<PublishQueueExecutionResult> {
+  const publishChannelHook = findPublishChannelHook(record)!
+
+  switch (publishChannelHook.target) {
+    case 'pr-merge': {
+      if (!options.githubClient || !options.githubConfig) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const mergeRequest = buildPrMergeGitHubRequest(
+        publishChannelHook,
+        record,
+        options.githubConfig
+      )
+      const mergeResult = mergeRequest
+        ? await options.githubClient.mergePullRequest(mergeRequest)
+        : undefined
+
+      return finalizeLiveMergeExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        mergeRequest,
+        mergeResult
+      )
+    }
+    case 'manual-approval': {
+      if (!options.manualApprovalClient) {
+        return {
+          record,
+          receipt: freezeReceipt({
+            recordId: record.id,
+            outcome: 'rejected',
+            executionWeek,
+            appliedHooks: Object.freeze([]),
+            skipCode: 'publish_channel_api_failed',
+          }),
+        }
+      }
+
+      const approvalRequest = buildManualApprovalRequest(publishChannelHook, record)
+      const approvalResult = approvalRequest
+        ? options.manualApprovalClient.resolveApproval(approvalRequest)
+        : undefined
+
+      return finalizeLiveManualApprovalExecution(
+        record,
+        executionWeek,
+        maxHookApplications,
+        approvalRequest,
+        approvalResult
+      )
+    }
+    default:
+      return {
+        record,
+        receipt: freezeReceipt({
+          recordId: record.id,
+          outcome: 'rejected',
+          executionWeek,
+          appliedHooks: Object.freeze([]),
+          skipCode: 'unsupported_publish_channel_target',
+        }),
+      }
+  }
+}
+
 /**
- * Executes one publish-queue record through the live `pr-merge` GitHub API path.
- * Failed API calls reject without mutating the record. Re-execution of
- * `published` records remains idempotent (skipped, record byte-stable).
+ * Executes one publish-queue record through the live channel path for supported
+ * publish targets (`pr-merge`, `manual-approval`). Failed client calls reject
+ * without mutating the record. Re-execution of `published` records remains
+ * idempotent (skipped, record byte-stable).
  */
 export async function executePublishQueueRecordLive(
   record: PublishQueueRecord,
@@ -410,23 +641,11 @@ export async function executePublishQueueRecordLive(
     return preExecution.result
   }
 
-  const publishChannelHook = findPublishChannelHook(record)!
-  const mergeRequest = buildPrMergeGitHubRequest(
-    publishChannelHook,
-    record,
-    options.githubConfig
-  )
-
-  const mergeResult = mergeRequest
-    ? await options.githubClient.mergePullRequest(mergeRequest)
-    : undefined
-
-  return finalizeLiveMergeExecution(
+  return executePublishQueueRecordLiveInternal(
     record,
     executionWeek,
     maxHookApplications,
-    mergeRequest,
-    mergeResult
+    options
   )
 }
 
@@ -446,23 +665,11 @@ export function executePublishQueueRecordLiveSync(
     return preExecution.result
   }
 
-  const publishChannelHook = findPublishChannelHook(record)!
-  const mergeRequest = buildPrMergeGitHubRequest(
-    publishChannelHook,
-    record,
-    options.githubConfig
-  )
-
-  const mergeResult = mergeRequest
-    ? options.githubClient.mergePullRequest(mergeRequest)
-    : undefined
-
-  return finalizeLiveMergeExecution(
+  return executePublishQueueRecordLiveSyncInternal(
     record,
     executionWeek,
     maxHookApplications,
-    mergeRequest,
-    mergeResult
+    options
   )
 }
 
@@ -531,7 +738,7 @@ export function applyWeeklyPublishQueueExecutionTick(
 
 /**
  * Batch live execution in stable id order. Only records that complete a
- * successful GitHub merge transition mutate the returned map.
+ * successful live channel transition mutate the returned map.
  */
 export async function executePublishQueueRecordsLive(
   records: PublishQueueRecordsMap | null | undefined,

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2497](https://linear.app/spectranoir/
 | Field      | Value                                                                                                      |
 | ---------- | ---------------------------------------------------------------------------------------------------------- |
 | **Linear** | [SPE-2497 — Pattern source series registry weekly transition surfacing (slice 5)](https://linear.app/spectranoir/issue/SPE-2497) |
-| **Status** | **In Progress** |
+| **Status** | **Shipped** — PR #2914 @ `f5b91540` |
 | **Parent** | [SPE-2110](https://linear.app/spectranoir/issue/SPE-2110) — registry anchor (slice 1–4 shipped); parent [SPE-75](https://linear.app/spectranoir/issue/SPE-75) stays **Done** |
 | **Branch** | `spe-2110-pattern-source-series-weekly-surfacing-slice-5`                                                 |
 | **Base `main` SHA** | `e845a0e7`                                                                                          |
@@ -45,12 +45,12 @@ Surface post-tick pattern source series record transitions in weekly report note
 
 ## Acceptance
 
-- [ ] Empty `patternSourceSeriesRecords` map emits no weekly transition notes
-- [ ] Readiness-gated pipeline advance fixtures emit typed notes after `advanceWeek`
-- [ ] Idempotent re-tick at same week emits no duplicate transition notes
-- [ ] Terminal reconciled fixture emits no transition notes
-- [ ] `REPORT_NOTE_TYPES` aligned with audit registry
-- [ ] `npm run lint` + targeted tests green
+- [x] Empty `patternSourceSeriesRecords` map emits no weekly transition notes
+- [x] Readiness-gated pipeline advance fixtures emit typed notes after `advanceWeek`
+- [x] Idempotent re-tick at same week emits no duplicate transition notes
+- [x] Terminal reconciled fixture emits no transition notes
+- [x] `REPORT_NOTE_TYPES` aligned with audit registry
+- [x] `npm run lint` + targeted tests green (CI)
 
 ## File touch list (expected)
 

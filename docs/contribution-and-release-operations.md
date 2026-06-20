@@ -75,6 +75,8 @@ Publish-queue GitHub API wiring (SPE-2488) adds an injectable `publishQueueGitHu
 
 Publish-queue live orchestration (SPE-2491) wires `applyWeeklyPublishQueueExecutionTickOrchestrated` into `advanceWeek`: dry-run remains the default for browser and CI tests; live `pr-merge` execution runs when live mode, complete GitHub credentials, and an injectable sync client are supplied via `publishQueueOrchestrationDeps`. Weekly notes surface `executionMode` and `publishChannelRef` for live receipts.
 
+Publish-queue manual-approval channel (SPE-2498) extends the live executor with target dispatch for `manual-approval` via injectable sync `publishQueueManualApprovalClient`. Live mode may run approval-only automation when `manualApprovalClient` is supplied through `publishQueueOrchestrationDeps` even without GitHub credentials; mixed queues pass both clients. Approval token resolution mirrors `pr-merge` conventions (`channel:manual-approval[:token]` or `release:approval:{token}`). Failed or unresolved approvals reject without mutating queue records; receipt persistence and mirror surfacing reuse SPE-2495/2496 unchanged.
+
 Publish-queue surfacing (SPE-2485) wires the weekly execution tick in `advanceWeek`, emits `contribution_release.publish_queue_execution` weekly report notes for reportable receipts, and exposes a read-only planning mirror at `/publish-queue` over hydrated `publishQueueRecords`.
 
 Publish-queue execution-receipt persistence (SPE-2495) stores bounded executor receipts on `GameState.publishQueueExecutionReceipts` keyed by `${recordId}@${executionWeek}` with sanitize/hydration on save import. `advanceWeek` merges reportable tick receipts after queue record updates; malformed, duplicate, and orphaned entries drop without corrupting queue state.

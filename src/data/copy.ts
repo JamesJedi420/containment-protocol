@@ -1644,7 +1644,7 @@ export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Publish queue',
   pageSubtitle:
-    'Read-only operations view over persisted publish-queue records and dry-run execution posture.',
+    'Read-only operations view over persisted publish-queue records and execution receipts.',
   backToDeskLabel: 'Back to Operations Desk',
   totalRecordsLabel: 'Queue records',
   readyToPublishLabel: 'Ready to publish',
@@ -1662,6 +1662,22 @@ export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   artifactColumn: 'Release artifact',
   queuedWeekColumn: 'Queued week',
   hooksColumn: 'Hook counts',
+  receiptsHeading: 'Execution receipt ledger',
+  receiptsSubtitle:
+    'Persisted executor receipts keyed by record and week — hydrated map entries only, no re-validation.',
+  totalReceiptsLabel: 'Execution receipts',
+  completedDryRunLabel: 'Completed (dry-run)',
+  completedLiveLabel: 'Completed (live)',
+  rejectedOrSkippedLabel: 'Rejected / skipped',
+  receiptsEmptyTitle: 'No execution receipts',
+  receiptsEmptyBody:
+    'Persisted publish-queue execution receipts will appear here after weekly ticks. Invalid receipts dropped on hydrate are not shown here.',
+  receiptLabelColumn: 'Label',
+  receiptWeekColumn: 'Execution week',
+  receiptOutcomeColumn: 'Outcome',
+  receiptModeColumn: 'Mode',
+  receiptChannelColumn: 'Channel',
+  receiptHooksColumn: 'Hooks',
 }
 
 export const MODIFIABLE_DATA_PACK_MIRROR_UI_TEXT: Record<string, string> = {

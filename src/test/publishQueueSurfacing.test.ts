@@ -7,6 +7,7 @@ import {
   formatPublishQueueStatusLabel,
   isReportablePublishQueueReceipt,
   listReportablePublishQueueReceipts,
+  summarizePublishQueueExecutionReceipts,
   summarizePublishQueueRecords,
 } from '../domain/publishQueueSurfacing'
 
@@ -122,5 +123,70 @@ describe('publishQueueSurfacing (SPE-2485 slice 1)', () => {
     expect(content).toContain('Publish queue (live)')
     expect(content).toContain('Completed (live)')
     expect(content).toContain('live:publish_channel:pr-merge:pr:2890:sha:abc123')
+  })
+
+  it('returns empty receipt summary for empty or missing receipt maps without throwing', () => {
+    expect(summarizePublishQueueExecutionReceipts({})).toEqual({
+      totalReceipts: 0,
+      completedDryRunCount: 0,
+      completedLiveCount: 0,
+      rejectedCount: 0,
+      skippedReportableCount: 0,
+    })
+    expect(summarizePublishQueueExecutionReceipts(undefined)).toEqual({
+      totalReceipts: 0,
+      completedDryRunCount: 0,
+      completedLiveCount: 0,
+      rejectedCount: 0,
+      skippedReportableCount: 0,
+    })
+  })
+
+  it('discriminates completed dry-run vs live and reportable skipped receipts', () => {
+    const summary = summarizePublishQueueExecutionReceipts({
+      'publish-queue:domain-release-batch-1@4': {
+        recordId: CANONICAL_PUBLISH_QUEUE_RECORD_FIXTURE.id,
+        outcome: 'completed',
+        executionWeek: 4,
+        appliedHooks: [],
+        publishChannelStub: 'dry-run:publish_channel:pr-merge:channel:pr-merge',
+      },
+      'publish-queue:published@5': {
+        recordId: 'publish-queue:published',
+        outcome: 'completed',
+        executionWeek: 5,
+        appliedHooks: [],
+        publishChannelRef: 'live:publish_channel:pr-merge:pr:2910:sha:abc123',
+      },
+      'publish-queue:rejected@4': {
+        recordId: 'publish-queue:rejected',
+        outcome: 'rejected',
+        executionWeek: 4,
+        appliedHooks: [],
+        skipCode: 'record_not_ready_to_publish',
+      },
+      'publish-queue:skipped@4': {
+        recordId: 'publish-queue:skipped',
+        outcome: 'skipped',
+        executionWeek: 4,
+        appliedHooks: [],
+        skipCode: 'missing_publish_channel_hook',
+      },
+      'publish-queue:idempotent@4': {
+        recordId: 'publish-queue:idempotent',
+        outcome: 'skipped',
+        executionWeek: 4,
+        appliedHooks: [],
+        skipCode: 'already_published',
+      },
+    })
+
+    expect(summary).toEqual({
+      totalReceipts: 5,
+      completedDryRunCount: 1,
+      completedLiveCount: 1,
+      rejectedCount: 1,
+      skippedReportableCount: 1,
+    })
   })
 })

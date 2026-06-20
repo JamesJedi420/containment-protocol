@@ -20,7 +20,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2494](https://linear.app/spectranoir/issue/SPE-2494) modifiable data-pack publish automation integration (slice 3) — pack import → publish-intent chain; PR #2908 @ `a0532b78`.
 
-**Active:** [SPE-2495](https://linear.app/spectranoir/issue/SPE-2495) publish-queue execution-receipt persistence (slice 1) — `publishQueueExecutionReceipts` sanitize/hydrate on GameState; branch `spe-75-publish-queue-execution-receipt-persistence-slice-1` @ `b3a02c3a`.
+**Recently shipped:** [SPE-2495](https://linear.app/spectranoir/issue/SPE-2495) publish-queue execution-receipt persistence (slice 1) — `publishQueueExecutionReceipts` sanitize/hydrate on GameState; PR #2910 @ `c3521010`.
+
+**Active:** [SPE-2496](https://linear.app/spectranoir/issue/SPE-2496) publish-queue execution-receipt mirror surfacing (slice 1) — read-only receipt ledger on `/publish-queue`; branch `spe-75-publish-queue-execution-receipt-surfacing-slice-1` @ `c3521010`.
 
 **Recently shipped:** [SPE-2492](https://linear.app/spectranoir/issue/SPE-2492) modifiable data-pack planning mirror and surfacing (slice 1) — read-only `/modifiable-data-packs` mirror + Front Desk link; branch `spe-75-modifiable-data-pack-surfacing-slice-1` (PR #2904 @ `30b0099e`).
 
@@ -249,7 +251,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `publish-queue-executor-slice-1.md`                       | **Shipped**    | [SPE-2484](https://linear.app/spectranoir/issue/SPE-2484) — dry-run publish executor under SPE-75; PR #2888 @ `6399251c`. |
 | `publish-queue-surfacing-slice-1.md`                      | **Shipped**    | [SPE-2485](https://linear.app/spectranoir/issue/SPE-2485) — publish-queue mirror + weekly orchestration surfacing under SPE-75; PR #2890 @ `1a801ec0`. |
 | `publish-queue-live-orchestration-slice-1.md`             | **Shipped**    | [SPE-2491](https://linear.app/spectranoir/issue/SPE-2491) — live vs dry-run weekly orchestration under SPE-75; PR #2902 @ `67f65fd6`. |
-| `publish-queue-execution-receipt-persistence-slice-1.md` | **In Progress** | [SPE-2495](https://linear.app/spectranoir/issue/SPE-2495) — `publishQueueExecutionReceipts` GameState persistence under SPE-75; branch `spe-75-publish-queue-execution-receipt-persistence-slice-1` @ `b3a02c3a`. |
+| `publish-queue-execution-receipt-persistence-slice-1.md` | **Shipped**    | [SPE-2495](https://linear.app/spectranoir/issue/SPE-2495) — `publishQueueExecutionReceipts` GameState persistence under SPE-75; PR #2910 @ `c3521010`. |
+| `publish-queue-execution-receipt-surfacing-slice-1.md` | **In Progress** | [SPE-2496](https://linear.app/spectranoir/issue/SPE-2496) — execution-receipt ledger on `/publish-queue` mirror under SPE-75; branch `spe-75-publish-queue-execution-receipt-surfacing-slice-1` @ `c3521010`. |
 | `modular-release-packaging-slice-1.md`                    | **Shipped**    | [SPE-2475](https://linear.app/spectranoir/issue/SPE-2475) — post-curation release envelope under SPE-75; PR #2869 @ `d43f07cb`.                      |
 | `segmented-feedback-workflow-slice-1.md`                  | **Shipped**    | [SPE-2476](https://linear.app/spectranoir/issue/SPE-2476) — deterministic feedback channel scoring/ranking under SPE-75; PR #2871 @ `b82bb426`. |
 | `self-censoring-information-registry-slice-1.md`          | **Shipped**    | SPE-2108 / PR #2429; negative facts, retention decay, rediscovery loops — cognitive hazard intake slice 1.                                           |

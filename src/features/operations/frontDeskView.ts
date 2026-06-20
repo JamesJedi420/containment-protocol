@@ -883,7 +883,7 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
     {
       label: 'Open publish queue mirror',
       href: APP_ROUTES.publishQueue,
-      description: 'Review publish-queue records and dry-run execution posture.',
+      description: 'Review publish-queue records and persisted execution receipts.',
     },
     {
       label: 'Open modifiable data-pack mirror',

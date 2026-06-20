@@ -297,6 +297,7 @@ import {
 import { applyWeeklyPatternSourceSeriesIntakeTick } from '../patternSourceSeriesWeeklyIntake'
 import { applyWeeklyPublishQueueExecutionTickOrchestrated } from '../publishQueueWeeklyOrchestration'
 import type { PublishQueueWeeklyOrchestrationDeps } from '../publishQueueWeeklyOrchestration'
+import { mergePublishQueueExecutionReceipts } from '../publishQueueExecutionReceiptPersistence'
 import { buildWeeklyPublishQueueExecutionReportNotes } from '../publishQueueWeeklyReportNotes'
 import { applyWeeklyModifiableDataPackGovernanceTick } from '../modifiableDataPackWeeklyOrchestration'
 import { buildWeeklyModifiableDataPackGovernanceReportNotes } from '../modifiableDataPackWeeklyReportNotes'
@@ -4715,6 +4716,11 @@ export function advanceWeek(
       publishQueueOrchestrationDeps
     )
     outputWeeklyState.publishQueueRecords = publishQueueTick.records
+    outputWeeklyState.publishQueueExecutionReceipts = mergePublishQueueExecutionReceipts(
+      outputWeeklyState.publishQueueExecutionReceipts,
+      publishQueueTick.receipts,
+      { records: publishQueueTick.records }
+    )
 
     if (publishQueueTick.receipts.length > 0 && result.reports.length > 0) {
       const lastWeeklyReport = result.reports[result.reports.length - 1]

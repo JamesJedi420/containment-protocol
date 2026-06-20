@@ -13,6 +13,9 @@ import {
 } from '../domain/modularReleasePackaging'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import {
+  buildPublishQueueExecutionReceiptKey,
+} from '../domain/publishQueueExecutionReceiptPersistence'
+import {
   CANONICAL_SUBMISSION_GOVERNANCE_FIXTURE,
   evaluateSubmissionGovernanceRights,
 } from '../domain/submissionGovernanceRights'
@@ -63,6 +66,7 @@ describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
     const nextState = advanceWeek(state)
 
     expect(nextState.publishQueueRecords).toEqual({})
+    expect(nextState.publishQueueExecutionReceipts ?? {}).toEqual({})
   })
 
   it('transitions ready_to_publish records and surfaces dry-run execution notes', () => {
@@ -90,6 +94,13 @@ describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
     expect(publishQueueNote?.metadata).toMatchObject({
       executionMode: 'dry-run',
       publishChannelStub: 'dry-run:publish_channel:pr-merge:channel:pr-merge',
+    })
+
+    const receiptKey = buildPublishQueueExecutionReceiptKey(record.id, nextState.week)!
+    expect(nextState.publishQueueExecutionReceipts?.[receiptKey]).toMatchObject({
+      recordId: record.id,
+      outcome: 'completed',
+      executionWeek: nextState.week,
     })
   })
 
@@ -137,5 +148,10 @@ describe('advanceWeek publish queue integration (SPE-2485 / SPE-2491)', () => {
       executionMode: 'live',
       publishChannelRef: expect.stringContaining('live:publish_channel:pr-merge'),
     })
+
+    const receiptKey = buildPublishQueueExecutionReceiptKey(record.id, nextState.week)!
+    expect(nextState.publishQueueExecutionReceipts?.[receiptKey]?.publishChannelRef).toEqual(
+      expect.stringContaining('live:publish_channel:pr-merge')
+    )
   })
 })

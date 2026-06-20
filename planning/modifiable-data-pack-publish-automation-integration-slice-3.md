@@ -108,7 +108,7 @@ Integration input bundles:
 
 | Item | Owner | Why |
 | --- | --- | --- |
-| GameState execution-receipt persistence | SPE-75 follow-up child | Optional ledger beyond integration envelope |
+| GameState execution-receipt persistence | [SPE-2495](https://linear.app/spectranoir/issue/SPE-2495) | Optional ledger beyond integration envelope |
 | Mission triage modifiable-pack chips | Backlog | Mission triage full refresh blocked |
 | Runtime wire integration into `runTransfer` | Out of slice unless required for acceptance | Pure domain boundary first |
 

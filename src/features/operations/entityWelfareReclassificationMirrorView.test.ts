@@ -25,6 +25,22 @@ function warningOnlyRecord(): EntityWelfareReclassificationRecord {
   }
 }
 
+function permissionRecord(
+  proposedDisposition: EntityWelfareReclassificationRecord['proposedDisposition']
+): EntityWelfareReclassificationRecord {
+  return {
+    id: `reclass:${proposedDisposition}-permission-view`,
+    label: `${formatEntityWelfareReclassificationEnumLabel(proposedDisposition)} permission view`,
+    priorThreatLabel: 'provisional-threat',
+    proposedDisposition,
+    reclassificationState: 'approved',
+    reviewGate: 'ethics',
+    reviewArtifactRef: `review:${proposedDisposition}-permission-view`,
+    evidenceBundleRefs: [`evidence:${proposedDisposition}-permission-view`],
+    containmentRevisionRefs: [`revision:${proposedDisposition}-permission-view`],
+  }
+}
+
 describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
   it('returns empty mirror when entityWelfareReclassificationRecords map is empty', () => {
     const game = createStartingState()
@@ -136,5 +152,43 @@ describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
     const record = view.records[0]
 
     expect(record?.transitionHistoryLabels[0]).toMatch(/^W11: Pending → Approved \(Ethics\)$/)
+  })
+  it('surfaces stable status-class permission labels for hydrated records', () => {
+    const cooperativeRecord = permissionRecord('cooperative')
+    const medicalRecord = permissionRecord('medical')
+    const sapientRemainsRecord = permissionRecord('sapient_remains')
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [cooperativeRecord.id]: cooperativeRecord,
+      [medicalRecord.id]: medicalRecord,
+      [sapientRemainsRecord.id]: sapientRemainsRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const cooperative = view.records.find((record) => record.id === cooperativeRecord.id)
+    const medical = view.records.find((record) => record.id === medicalRecord.id)
+    const sapientRemains = view.records.find((record) => record.id === sapientRemainsRecord.id)
+
+    expect(cooperative?.permissionDecisionLabels).toEqual([
+      'Room: Blocked',
+      'File: Restricted',
+      'Gear: Restricted',
+      'Housing: Allowed',
+      'Mission: Restricted',
+    ])
+    expect(medical?.permissionDecisionLabels).toEqual([
+      'Room: Restricted',
+      'File: Restricted',
+      'Gear: Blocked',
+      'Housing: Allowed',
+      'Mission: Blocked',
+    ])
+    expect(sapientRemains?.permissionDecisionLabels).toEqual([
+      'Room: Restricted',
+      'File: Restricted',
+      'Gear: Blocked',
+      'Housing: Restricted',
+      'Mission: Blocked',
+    ])
   })
 })

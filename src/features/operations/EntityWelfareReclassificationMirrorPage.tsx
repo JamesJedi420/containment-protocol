@@ -20,7 +20,11 @@ export default function EntityWelfareReclassificationMirrorPage() {
 
   return (
     <section className="space-y-4" aria-label="Entity welfare reclassification registry mirror">
-      <article className="panel panel-primary space-y-4" role="region" aria-label="Registry summary">
+      <article
+        className="panel panel-primary space-y-4"
+        role="region"
+        aria-label="Registry summary"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-xs uppercase tracking-[0.24em] opacity-50">
@@ -63,11 +67,17 @@ export default function EntityWelfareReclassificationMirrorPage() {
       </article>
 
       {view.isEmpty ? (
-        <article className="panel panel-support space-y-2" role="region" aria-label="Empty registry state">
+        <article
+          className="panel panel-support space-y-2"
+          role="region"
+          aria-label="Empty registry state"
+        >
           <h3 className="text-lg font-semibold">
             {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.emptyTitle}
           </h3>
-          <p className="text-sm opacity-70">{ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.emptyBody}</p>
+          <p className="text-sm opacity-70">
+            {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.emptyBody}
+          </p>
         </article>
       ) : (
         <article
@@ -93,6 +103,9 @@ export default function EntityWelfareReclassificationMirrorPage() {
                   </th>
                   <th className="px-2 py-2">
                     {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.dispositionColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.permissionsColumn}
                   </th>
                   <th className="px-2 py-2">
                     {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.pressureColumn}
@@ -129,6 +142,13 @@ export default function EntityWelfareReclassificationMirrorPage() {
                           {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.welfareDebtLinkedSuffix}
                         </p>
                       ) : null}
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.permissionDecisionLabels.map((label) => (
+                        <p key={label} className="text-xs opacity-55">
+                          {label}
+                        </p>
+                      ))}
                     </td>
                     <td className="px-2 py-2">
                       <p className="text-xs opacity-55">

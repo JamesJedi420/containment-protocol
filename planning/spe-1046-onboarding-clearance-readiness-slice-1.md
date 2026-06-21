@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2504](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                         |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2504 - Onboarding clearance readiness substrate](https://linear.app/spectranoir/issue/SPE-2504/onboarding-clearance-readiness-substrate) |
-| **Status**          | **In progress**                                                                                                                               |
+| **Status**          | **Shipped** - PR #2932 @ `2a409753`                                                                                                           |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**           |
 | **Branch**          | `spe-1046-onboarding-clearance-readiness-slice-1`                                                                                             |
 | **Base `main` SHA** | `6b4936d7`                                                                                                                                    |
@@ -33,11 +33,11 @@ Add a pure deterministic onboarding and clearance-readiness substrate over exist
 
 ## Acceptance
 
-- [ ] Domain helper exports stable checkpoint/outcome/stage unions and evaluators.
-- [ ] Prospect, contacted, screening, provisional, cleared, and lost/expired policies are covered.
-- [ ] Optional read-only context can make hired candidates full-access eligible.
-- [ ] No GameState, Candidate, Agent, or entity-welfare record schemas change.
-- [ ] Targeted tests pass.
+- [x] Domain helper exports stable checkpoint/outcome/stage unions and evaluators.
+- [x] Prospect, contacted, screening, provisional, cleared, and lost/expired policies are covered.
+- [x] Optional read-only context can make hired candidates full-access eligible.
+- [x] No GameState, Candidate, Agent, or entity-welfare record schemas change.
+- [x] Targeted tests pass.
 
 ## Validation
 

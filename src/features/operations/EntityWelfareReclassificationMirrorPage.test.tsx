@@ -62,6 +62,10 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent(HOSTILE_TO_COOPERATIVE_FIXTURE.label)
     expect(recordsRegion).toHaveTextContent('Cooperative')
     expect(recordsRegion).toHaveTextContent('Approved')
+    expect(recordsRegion).toHaveTextContent('Permissions')
+    expect(recordsRegion).toHaveTextContent('Room: Blocked')
+    expect(recordsRegion).toHaveTextContent('Housing: Allowed')
+    expect(recordsRegion).toHaveTextContent('Mission: Restricted')
     expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
       'href',
       '/'

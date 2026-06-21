@@ -1591,6 +1591,7 @@ export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, stri
     'Pressure forecasts come from reclassification projection at read time; pending and terminal states display as stored.',
   labelColumn: 'Label',
   dispositionColumn: 'Disposition / state',
+  permissionsColumn: 'Permissions',
   pressureColumn: 'Reclassification pressure',
   reviewColumn: 'Evidence / history',
   confidenceColumn: 'Confidence',

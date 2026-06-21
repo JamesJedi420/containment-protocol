@@ -5,6 +5,7 @@ import {
   type EntityWelfareReclassificationRecord,
   type ReclassificationTransitionHistoryEntry,
 } from '../../domain/entityWelfareReclassificationRegistry'
+import { evaluateEntityWelfareStatusPermissionSet } from '../../domain/entityWelfareStatusPermissions'
 
 export interface EntityWelfareReclassificationMirrorRecordView {
   id: string
@@ -21,6 +22,7 @@ export interface EntityWelfareReclassificationMirrorRecordView {
   evidenceBundleRefLabels: readonly string[]
   containmentRevisionRefLabels: readonly string[]
   transitionHistoryLabels: readonly string[]
+  permissionDecisionLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -84,14 +86,24 @@ function formatTransitionHistoryLabel(entry: ReclassificationTransitionHistoryEn
   return `W${entry.week}: ${fromLabel} → ${toLabel}${gateSuffix}`
 }
 
-function toRecordView(record: EntityWelfareReclassificationRecord): EntityWelfareReclassificationMirrorRecordView {
+function formatPermissionDecisionLabels(
+  record: EntityWelfareReclassificationRecord
+): readonly string[] {
+  return Object.freeze(
+    evaluateEntityWelfareStatusPermissionSet(record).map(
+      (decision) => `${decision.surfaceLabel}: ${decision.outcomeLabel}`
+    )
+  )
+}
+
+function toRecordView(
+  record: EntityWelfareReclassificationRecord
+): EntityWelfareReclassificationMirrorRecordView {
   const projection = projectReclassificationPressure(record)
   const validation = validateEntityWelfareReclassificationRecord(record)
 
   const validationWarningLabels = Object.freeze(
-    validation.issues
-      .filter((issue) => issue.severity === 'warning')
-      .map((issue) => issue.detail)
+    validation.issues.filter((issue) => issue.severity === 'warning').map((issue) => issue.detail)
   )
 
   const summaryLabel = record.summary?.trim() ? record.summary : '—'
@@ -101,7 +113,9 @@ function toRecordView(record: EntityWelfareReclassificationRecord): EntityWelfar
     label: record.label,
     summaryLabel,
     priorThreatLabel: record.priorThreatLabel,
-    proposedDispositionLabel: formatEntityWelfareReclassificationEnumLabel(record.proposedDisposition),
+    proposedDispositionLabel: formatEntityWelfareReclassificationEnumLabel(
+      record.proposedDisposition
+    ),
     reclassificationStateLabel: formatEntityWelfareReclassificationEnumLabel(
       record.reclassificationState
     ),
@@ -117,6 +131,7 @@ function toRecordView(record: EntityWelfareReclassificationRecord): EntityWelfar
     transitionHistoryLabels: Object.freeze(
       (record.transitionHistory ?? []).map((entry) => formatTransitionHistoryLabel(entry))
     ),
+    permissionDecisionLabels: formatPermissionDecisionLabels(record),
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

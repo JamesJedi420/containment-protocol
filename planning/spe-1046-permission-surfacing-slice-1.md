@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2503](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                     |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2503 - Permission surfacing for entity welfare mirror](https://linear.app/spectranoir/issue/SPE-2503/permission-surfacing-for-entity-welfare-mirror) |
-| **Status**          | **In progress** - implementation slice                                                                                                                    |
+| **Status**          | **Shipped** - PR #2929 @ `25369551`                                                                                                                       |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                       |
 | **Branch**          | `spe-1046-permission-surfacing-slice-1`                                                                                                                   |
 | **Base `main` SHA** | `5e3aa575`                                                                                                                                                |

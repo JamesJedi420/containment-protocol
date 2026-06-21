@@ -45,14 +45,15 @@ export interface PublishQueueManualApprovalClientSync {
 
 const DEFAULT_APPROVAL_TOKEN = 'default'
 
+function isBareManualApprovalChannelPayload(payload: string): boolean {
+  const parts = payload.split(':')
+  return parts.length === 2 && parts[0] === 'channel' && parts[1] === 'manual-approval'
+}
+
 function parseApprovalTokenFromChannelPayload(payload: string): string | undefined {
   const parts = payload.split(':')
-  if (parts.length < 2 || parts[0] !== 'channel' || parts[1] !== 'manual-approval') {
+  if (parts.length <= 2 || parts[0] !== 'channel' || parts[1] !== 'manual-approval') {
     return undefined
-  }
-
-  if (parts.length === 2) {
-    return DEFAULT_APPROVAL_TOKEN
   }
 
   const token = parts.slice(2).join(':').trim()
@@ -90,10 +91,17 @@ export function resolveManualApprovalToken(
     return undefined
   }
 
-  return (
-    parseApprovalTokenFromChannelPayload(hook.payload) ??
-    parseApprovalTokenFromReleaseArtifactRef(record.releaseArtifactRef)
-  )
+  const payloadToken = parseApprovalTokenFromChannelPayload(hook.payload)
+  if (payloadToken) {
+    return payloadToken
+  }
+
+  const artifactToken = parseApprovalTokenFromReleaseArtifactRef(record.releaseArtifactRef)
+  if (artifactToken) {
+    return artifactToken
+  }
+
+  return isBareManualApprovalChannelPayload(hook.payload) ? DEFAULT_APPROVAL_TOKEN : undefined
 }
 
 export function buildManualApprovalRequest(

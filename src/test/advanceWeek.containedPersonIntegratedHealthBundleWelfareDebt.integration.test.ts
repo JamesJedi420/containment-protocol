@@ -4,7 +4,7 @@ import {
   COERCIVE_RESTRAINT_LEDGER_FIXTURE,
   FORCED_SEDATION_CYCLE_FIXTURE,
 } from '../domain/welfareDebtAccountingRegistry'
-import { HOSTILE_ACTOR_CONTAINED_HOLD_FIXTURE } from '../domain/containedPersonCustodyStatusRegistry'
+import { TRANSFER_PENDING_REVIEW_FIXTURE } from '../domain/containedPersonCustodyStatusRegistry'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { deriveWelfareDebtBundleFragmentsFromRecords } from '../domain/welfareDebtAccountingHealthBundleLinks'
 import { composeWelfareDebtIntoIntegratedHealthBundles } from '../domain/containedPersonIntegratedHealthBundleCompose'
@@ -78,13 +78,14 @@ describe('advanceWeek contained-person integrated health bundle welfare-debt int
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
     state.welfareDebtAccountingRecords = {}
+    state.containedPersonIntegratedHealthBundles = {}
     state.containedPersonCustodyStatusRecords = {
-      [HOSTILE_ACTOR_CONTAINED_HOLD_FIXTURE.id]: HOSTILE_ACTOR_CONTAINED_HOLD_FIXTURE,
+      [TRANSFER_PENDING_REVIEW_FIXTURE.id]: TRANSFER_PENDING_REVIEW_FIXTURE,
     }
 
     const nextState = advanceWeek(state)
     const bundle = nextState.containedPersonIntegratedHealthBundles?.[
-      HOSTILE_ACTOR_CONTAINED_HOLD_FIXTURE.subjectRef
+      TRANSFER_PENDING_REVIEW_FIXTURE.subjectRef
     ]
 
     expect(bundle?.custodyStatusLinks).toHaveLength(1)

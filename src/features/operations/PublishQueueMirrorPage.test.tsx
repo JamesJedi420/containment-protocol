@@ -58,7 +58,9 @@ describe('PublishQueueMirrorPage (SPE-2485 slice 1)', () => {
   it('renders empty execution receipt ledger when no receipts are persisted', () => {
     renderMirrorPage()
 
-    expect(screen.getByRole('region', { name: /execution receipt ledger/i })).toBeInTheDocument()
+    expect(
+      screen.getByRole('region', { name: /^execution receipt ledger$/i })
+    ).toBeInTheDocument()
     expect(
       screen.getByRole('region', { name: /empty execution receipt ledger/i })
     ).toBeInTheDocument()

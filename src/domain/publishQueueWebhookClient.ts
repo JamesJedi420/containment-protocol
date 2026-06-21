@@ -89,18 +89,17 @@ function decodeEndpointIdFromEnvKey(envId: string): string {
   return envId.toLowerCase().replace(/_/g, '-')
 }
 
+function isBareWebhookChannelPayload(payload: string): boolean {
+  const parts = payload.split(':')
+  return parts.length === 2 && parts[0] === 'channel' && parts[1] === 'webhook'
+}
+
 function parseEndpointIdFromChannelPayload(payload: string): string | undefined {
   const parts = payload.split(':')
-  if (parts.length < 2 || parts[0] !== 'channel' || parts[1] !== 'webhook') {
-    return undefined
-  }
-
-  if (parts.length === 2) {
-    return DEFAULT_ENDPOINT_ID
-  }
-
   const endpointId = parts[2]?.trim()
-  return endpointId && endpointId.length > 0 ? endpointId : undefined
+  return parts.length > 2 && parts[0] === 'channel' && parts[1] === 'webhook' && endpointId
+    ? endpointId
+    : undefined
 }
 
 function parseAuthTokenFromChannelPayload(payload: string): string | undefined {
@@ -222,10 +221,17 @@ export function resolveWebhookEndpointId(
     return undefined
   }
 
-  return (
-    parseEndpointIdFromChannelPayload(hook.payload) ??
-    parseEndpointIdFromReleaseArtifactRef(record.releaseArtifactRef)
-  )
+  const payloadEndpointId = parseEndpointIdFromChannelPayload(hook.payload)
+  if (payloadEndpointId) {
+    return payloadEndpointId
+  }
+
+  const artifactEndpointId = parseEndpointIdFromReleaseArtifactRef(record.releaseArtifactRef)
+  if (artifactEndpointId) {
+    return artifactEndpointId
+  }
+
+  return isBareWebhookChannelPayload(hook.payload) ? DEFAULT_ENDPOINT_ID : undefined
 }
 
 export function buildWebhookRequest(

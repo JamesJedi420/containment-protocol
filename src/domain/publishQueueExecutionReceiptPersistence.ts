@@ -202,17 +202,19 @@ function enforcePublishQueueExecutionReceiptBound(
   map: PublishQueueExecutionReceiptsMap
 ): PublishQueueExecutionReceiptsMap {
   const entries = Object.entries(map)
+  const receipts = entries.map(([, receipt]) => receipt)
+  receipts.sort(compareReceiptKeys)
+
   if (entries.length <= MAX_PUBLISH_QUEUE_EXECUTION_RECEIPTS) {
-    const sortedKeys = Object.keys(map).sort((left, right) => left.localeCompare(right))
     const next: PublishQueueExecutionReceiptsMap = {}
-    for (const key of sortedKeys) {
-      next[key] = map[key]
+    for (const receipt of receipts) {
+      const key = buildPublishQueueExecutionReceiptKey(receipt.recordId, receipt.executionWeek)
+      if (key) {
+        next[key] = receipt
+      }
     }
     return Object.keys(next).length > 0 ? next : {}
   }
-
-  const receipts = entries.map(([, receipt]) => receipt)
-  receipts.sort(compareReceiptKeys)
 
   const retained = receipts.slice(-MAX_PUBLISH_QUEUE_EXECUTION_RECEIPTS)
   const next: PublishQueueExecutionReceiptsMap = {}
@@ -224,10 +226,12 @@ function enforcePublishQueueExecutionReceiptBound(
     }
   }
 
-  const sortedKeys = Object.keys(next).sort((left, right) => left.localeCompare(right))
   const bounded: PublishQueueExecutionReceiptsMap = {}
-  for (const key of sortedKeys) {
-    bounded[key] = next[key]
+  for (const receipt of Object.values(next).sort(compareReceiptKeys)) {
+    const key = buildPublishQueueExecutionReceiptKey(receipt.recordId, receipt.executionWeek)
+    if (key) {
+      bounded[key] = receipt
+    }
   }
 
   return Object.keys(bounded).length > 0 ? bounded : {}

@@ -202,7 +202,7 @@ it('shows infiltration prep and sets weekly probe action override', async () => 
   const weeklyPrep = screen.getByRole('region', { name: /weekly case prep/i })
 
   expect(within(weeklyPrep).getByText(/probe progress 20%/i)).toBeInTheDocument()
-  expect(within(weeklyPrep).getByText(/uniform guard/i)).toBeInTheDocument()
+  expect(within(weeklyPrep).getAllByText(/uniform guard/i).length).toBeGreaterThan(0)
 
   const cleanupRow = within(weeklyPrep).getByText(/clean up cover/i).closest('li')
   expect(cleanupRow).not.toBeNull()

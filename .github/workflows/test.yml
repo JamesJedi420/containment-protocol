@@ -37,7 +37,7 @@ jobs:
         run: npm run verify:theme-contracts
 
       - name: Run tests (non-watch)
-        run: npm run test:run
+        run: npm run test:run:ci
 
       - name: Coverage
-        run: npm run coverage
+        run: npm run coverage:ci

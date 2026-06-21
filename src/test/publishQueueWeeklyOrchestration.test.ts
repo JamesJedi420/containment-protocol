@@ -247,8 +247,8 @@ describe('publishQueueWeeklyOrchestration (SPE-2491 slice 1)', () => {
     })
 
     expect(orchestrated.receipts.map((receipt) => receipt.recordId)).toEqual([
-      manualApprovalRecord.id,
       prMergeRecord.id,
+      manualApprovalRecord.id,
     ])
     expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')
     expect(orchestrated.records[prMergeRecord.id]?.status).toBe('published')
@@ -378,8 +378,8 @@ describe('publishQueueWeeklyOrchestration (SPE-2491 slice 1)', () => {
     })
 
     expect(orchestrated.receipts.map((receipt) => receipt.recordId)).toEqual([
-      manualApprovalRecord.id,
       prMergeRecord.id,
+      manualApprovalRecord.id,
       webhookRecord.id,
     ])
     expect(orchestrated.records[manualApprovalRecord.id]?.status).toBe('published')

@@ -139,6 +139,11 @@ describe('RecruitmentPage', () => {
     const averyCard = screen.getByText(/^avery holt$/i).closest('li')
     expect(averyCard).not.toBeNull()
     expect(within(averyCard!).getByText(/weekly wage:/i)).toHaveTextContent(/\$30/i)
+    expect(within(averyCard!).getByText(/clearance readiness/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/stage: prospect/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/full access pending/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/identity: required/i)).toBeInTheDocument()
+    expect(within(averyCard!).getByText(/oath contract: blocked/i)).toBeInTheDocument()
 
     const searchInput = screen.getByRole('textbox', { name: /^search$/i })
     await user.type(searchInput, 'briar')

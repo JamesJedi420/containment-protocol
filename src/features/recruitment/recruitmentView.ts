@@ -1,5 +1,6 @@
 import { assessAttritionPressure } from '../../domain/agent/attrition'
 import { buildAgentStatCaps } from '../../domain/agentPotential'
+import { evaluateAffiliationOnboardingReadiness } from '../../domain/affiliationOnboardingReadiness'
 import { type Candidate, type GameState, type StatBlock } from '../../domain/models'
 import { ROLE_LABELS } from '../../data/copy'
 import { evaluateRecruitmentScoutSupport } from '../../domain/recon'
@@ -44,6 +45,9 @@ export interface RecruitmentCandidateView {
   scoutWorthLabel: string
   scoutConfidenceLabel: string
   scoutIdentityLabel?: string
+  onboardingStageLabel: string
+  onboardingAccessLabel: string
+  onboardingCheckpointLabels: readonly string[]
   knownNowSummary: string
   uncertaintySummary: string
   nextScanSummary: string
@@ -92,15 +96,15 @@ export function getRecruitmentCandidateViews(
       return true
     }
 
-      const haystack = [
-        candidate.name,
-        candidate.category,
-        candidate.sourceFactionName,
-        candidate.sourceContactName,
-        candidate.sourceSummary,
-        candidate.agentData?.role,
-        candidate.agentData?.specialization,
-        candidate.staffData?.specialty,
+    const haystack = [
+      candidate.name,
+      candidate.category,
+      candidate.sourceFactionName,
+      candidate.sourceContactName,
+      candidate.sourceSummary,
+      candidate.agentData?.role,
+      candidate.agentData?.specialization,
+      candidate.staffData?.specialty,
       candidate.evaluation.impression,
       candidate.evaluation.outlook,
       ...candidate.evaluation.rumorTags,
@@ -118,6 +122,7 @@ export function getRecruitmentCandidateViews(
       const scoutAssessment = assessCandidateScouting(game, candidate.id)
       const hireOutcomeLabel = getCandidateHireOutcomeLabel(candidate)
       const scoutIntel = buildCandidateScoutIntel(candidate)
+      const onboardingReadiness = buildCandidateOnboardingReadinessLabels(candidate)
 
       return {
         candidate,
@@ -140,6 +145,9 @@ export function getRecruitmentCandidateViews(
         ...(hireOutcomeLabel === ROLE_LABELS.field_recon
           ? { scoutIdentityLabel: 'Field Recon path' }
           : {}),
+        onboardingStageLabel: onboardingReadiness.stageLabel,
+        onboardingAccessLabel: onboardingReadiness.accessLabel,
+        onboardingCheckpointLabels: onboardingReadiness.checkpointLabels,
         knownNowSummary: scoutIntel.knownNowSummary,
         uncertaintySummary: scoutIntel.uncertaintySummary,
         nextScanSummary: scoutIntel.nextScanSummary,
@@ -199,10 +207,11 @@ export function getRecruitmentScoutingOverview(game: GameState): RecruitmentScou
       !isCandidateScoutConfirmed(candidate)
   ).length
   const recentOutcomes = game.events
-    .filter((event) =>
-      event.type === 'recruitment.scouting_initiated' ||
-      event.type === 'recruitment.scouting_refined' ||
-      event.type === 'recruitment.intel_confirmed'
+    .filter(
+      (event) =>
+        event.type === 'recruitment.scouting_initiated' ||
+        event.type === 'recruitment.scouting_refined' ||
+        event.type === 'recruitment.intel_confirmed'
     )
     .slice(-3)
     .reverse()
@@ -238,6 +247,20 @@ export function getRecruitmentScoutingOverview(game: GameState): RecruitmentScou
         ? `Active scouting discount: up to $${support.costDiscount} per scan.`
         : 'No active scouting discount is currently available.',
     recentOutcomes,
+  }
+}
+
+function buildCandidateOnboardingReadinessLabels(candidate: Candidate) {
+  const decision = evaluateAffiliationOnboardingReadiness(candidate)
+
+  return {
+    stageLabel: `Stage: ${decision.stageLabel}`,
+    accessLabel: decision.fullAccessEligible ? 'Full access eligible' : 'Full access pending',
+    checkpointLabels: Object.freeze(
+      decision.checkpointDecisions.map(
+        (checkpoint) => `${checkpoint.checkpointLabel}: ${checkpoint.outcomeLabel}`
+      )
+    ),
   }
 }
 
@@ -370,7 +393,8 @@ function buildCandidateScoutIntel(candidate: Candidate) {
       depthLabel: 'Scouting unavailable',
       worthLabel: 'Scouting only applies to operative candidates.',
       confidenceLabel: 'Not applicable',
-      knownNowSummary: 'Role fit, wage, and source details are already visible without operative scouting.',
+      knownNowSummary:
+        'Role fit, wage, and source details are already visible without operative scouting.',
       uncertaintySummary: 'No operative ceiling intel applies to non-agent candidates.',
       nextScanSummary: 'No additional scouting pass is available for this candidate.',
       capLabel: 'Ceiling intel withheld',
@@ -398,18 +422,17 @@ function buildCandidateScoutIntel(candidate: Candidate) {
   const exactKnown = isCandidateScoutConfirmed(candidate)
   const tier = candidate.scoutReport.confirmedTier ?? candidate.scoutReport.projectedTier
   const baseStats = exactKnown
-    ? candidate.agentData.stats ?? normalizeCandidateScoutStats(candidate)
+    ? (candidate.agentData.stats ?? normalizeCandidateScoutStats(candidate))
     : normalizeCandidateScoutStats(candidate)
 
   if (!baseStats) {
     return {
       depthLabel: exactKnown ? 'Confirmed intel' : stage === 2 ? 'Refined scout' : 'Initial scout',
-      worthLabel:
-        exactKnown
-          ? 'Exact ceilings are locked in.'
-          : stage === 2
-            ? 'Deep scan can confirm exact ceilings.'
-            : 'Follow-up scouting can tighten the current projection.',
+      worthLabel: exactKnown
+        ? 'Exact ceilings are locked in.'
+        : stage === 2
+          ? 'Deep scan can confirm exact ceilings.'
+          : 'Follow-up scouting can tighten the current projection.',
       confidenceLabel: exactKnown
         ? 'Confirmed intel'
         : capitalize(formatScoutConfidence(candidate.scoutReport.confidence)),
@@ -450,12 +473,11 @@ function buildCandidateScoutIntel(candidate: Candidate) {
 
   return {
     depthLabel: exactKnown ? 'Confirmed intel' : stage === 2 ? 'Refined scout' : 'Initial scout',
-    worthLabel:
-      exactKnown
-        ? 'Exact ceilings confirmed. Additional scouting is no longer needed.'
-        : stage === 2
-          ? 'Deep scan can confirm exact ceilings and replace the remaining projected bands.'
-          : 'Follow-up scouting is worthwhile if you need tighter ceiling bands before hiring.',
+    worthLabel: exactKnown
+      ? 'Exact ceilings confirmed. Additional scouting is no longer needed.'
+      : stage === 2
+        ? 'Deep scan can confirm exact ceilings and replace the remaining projected bands.'
+        : 'Follow-up scouting is worthwhile if you need tighter ceiling bands before hiring.',
     confidenceLabel: exactKnown
       ? 'Confirmed intel'
       : capitalize(formatScoutConfidence(candidate.scoutReport.confidence)),
@@ -474,12 +496,11 @@ function buildCandidateScoutIntel(candidate: Candidate) {
       : stage === 2
         ? 'A deep recon scan can confirm the exact ceiling read and lock the tier.'
         : 'A follow-up scout tightens the current ceiling bands before you spend the hire slot.',
-    capLabel:
-      exactKnown
-        ? 'Confirmed ceiling intel'
-        : stage === 2
-          ? 'Projected ceiling bands'
-          : 'Broad ceiling bands',
+    capLabel: exactKnown
+      ? 'Confirmed ceiling intel'
+      : stage === 2
+        ? 'Projected ceiling bands'
+        : 'Broad ceiling bands',
     capDetails,
   }
 }

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2506](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2506 - Dual-loyalty risk substrate](https://linear.app/spectranoir/issue/SPE-2506/dual-loyalty-risk-substrate)                 |
-| **Status**          | **In Progress**                                                                                                                     |
+| **Status**          | **Shipped**                                                                                                                         |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog** |
 | **Branch**          | `spe-1046-dual-loyalty-risk-slice-1`                                                                                                |
 | **Base `main` SHA** | `15c1d643`                                                                                                                          |

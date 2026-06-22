@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2507](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                     |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2507 - Protected-status action restrictions substrate](https://linear.app/spectranoir/issue/SPE-2507/protected-status-action-restrictions-substrate) |
-| **Status**          | **In Progress**                                                                                                                                           |
+| **Status**          | **Shipped**                                                                                                                                               |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                       |
 | **Branch**          | `spe-1046-protected-status-action-restrictions-slice-1`                                                                                                   |
 | **Base `main` SHA** | `7e47e23c`                                                                                                                                                |

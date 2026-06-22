@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2508](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                    |
 | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2508 - Revocation/downgrade access outcomes substrate](https://linear.app/spectranoir/issue/SPE-2508/revocationdowngrade-access-outcomes-substrate) |
-| **Status**          | **In Progress**                                                                                                                                          |
+| **Status**          | **Shipped**                                                                                                                                              |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                      |
 | **Branch**          | `spe-1046-revocation-downgrade-outcomes-slice-1`                                                                                                         |
 | **Base `main` SHA** | `b1915bc7`                                                                                                                                               |

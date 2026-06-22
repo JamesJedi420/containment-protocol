@@ -7,6 +7,7 @@ import { createStartingState } from '../../data/startingState'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
+  type EntityWelfareReclassificationRecord,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import { useGameStore } from '../../app/store/gameStore'
 import EntityWelfareReclassificationMirrorPage from './EntityWelfareReclassificationMirrorPage'
@@ -44,10 +45,21 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
   })
 
   it('renders persisted records when fixtures are hydrated', () => {
+    const deniedRecord: EntityWelfareReclassificationRecord = {
+      id: 'reclass:denied-access-outcome-page',
+      label: 'Denied access outcome page',
+      priorThreatLabel: 'provisional-threat',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+      reviewGate: 'ethics',
+      reviewArtifactRef: 'review:denied-access-outcome-page',
+      evidenceBundleRefs: ['evidence:denied-access-outcome-page'],
+    }
     const game = createStartingState()
     game.entityWelfareReclassificationRecords = {
       [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
       [HOSTILE_TO_COOPERATIVE_FIXTURE.id]: HOSTILE_TO_COOPERATIVE_FIXTURE,
+      [deniedRecord.id]: deniedRecord,
     }
     useGameStore.setState({ game })
 
@@ -66,6 +78,10 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent('Room: Blocked')
     expect(recordsRegion).toHaveTextContent('Housing: Allowed')
     expect(recordsRegion).toHaveTextContent('Mission: Restricted')
+    expect(recordsRegion).toHaveTextContent('Access outcome')
+    expect(recordsRegion).toHaveTextContent('Outcome: Blocked')
+    expect(recordsRegion).toHaveTextContent('Trust: Blocked')
+    expect(recordsRegion).toHaveTextContent('Blocked: File, Gear, Mission')
     expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
       'href',
       '/'

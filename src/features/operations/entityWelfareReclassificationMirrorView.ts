@@ -5,7 +5,17 @@ import {
   type EntityWelfareReclassificationRecord,
   type ReclassificationTransitionHistoryEntry,
 } from '../../domain/entityWelfareReclassificationRegistry'
-import { evaluateEntityWelfareStatusPermissionSet } from '../../domain/entityWelfareStatusPermissions'
+import {
+  evaluateAffiliationRevocationOutcome,
+  type AffiliationRevocationCause,
+  type AffiliationRevocationKind,
+} from '../../domain/affiliationRevocationOutcomes'
+import {
+  ENTITY_WELFARE_PERMISSION_SURFACES,
+  evaluateEntityWelfareStatusPermissionSet,
+  type EntityWelfarePermissionDecision,
+  type EntityWelfarePermissionSurface,
+} from '../../domain/entityWelfareStatusPermissions'
 
 export interface EntityWelfareReclassificationMirrorRecordView {
   id: string
@@ -23,6 +33,7 @@ export interface EntityWelfareReclassificationMirrorRecordView {
   containmentRevisionRefLabels: readonly string[]
   transitionHistoryLabels: readonly string[]
   permissionDecisionLabels: readonly string[]
+  accessOutcomeLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -43,6 +54,11 @@ export interface EntityWelfareReclassificationMirrorView {
 }
 
 const TERMINAL_STATES = new Set(['approved', 'denied', 'reverted'])
+const SENSITIVE_ACCESS_SURFACES: readonly EntityWelfarePermissionSurface[] = [
+  'file',
+  'gear',
+  'mission',
+] as const
 
 export function formatEntityWelfareReclassificationEnumLabel(value: string): string {
   return value
@@ -96,6 +112,90 @@ function formatPermissionDecisionLabels(
   )
 }
 
+function selectRelevantPermissionDecision(
+  decisions: readonly EntityWelfarePermissionDecision[],
+  affectedSurfaces: readonly EntityWelfarePermissionSurface[]
+): EntityWelfarePermissionDecision | undefined {
+  return (
+    decisions.find(
+      (decision) => affectedSurfaces.includes(decision.surface) && decision.outcome === 'blocked'
+    ) ??
+    decisions.find(
+      (decision) => affectedSurfaces.includes(decision.surface) && decision.outcome === 'restricted'
+    )
+  )
+}
+
+function formatRevocationDecisionLabels(
+  record: EntityWelfareReclassificationRecord,
+  kind: AffiliationRevocationKind,
+  cause: AffiliationRevocationCause,
+  affectedSurfaces: readonly EntityWelfarePermissionSurface[],
+  permissionDecision?: EntityWelfarePermissionDecision
+): readonly string[] {
+  const decision = evaluateAffiliationRevocationOutcome({
+    subjectId: record.id,
+    subjectLabel: record.label,
+    kind,
+    cause,
+    affectedSurfaces,
+    permissionDecision,
+  })
+
+  const labels = [`Outcome: ${decision.outcomeLabel}`, `Trust: ${decision.trustOutcomeLabel}`]
+  if (decision.blockedSurfaceLabels.length > 0) {
+    labels.push(`Blocked: ${decision.blockedSurfaceLabels.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
+}
+
+function formatAccessOutcomeLabels(record: EntityWelfareReclassificationRecord): readonly string[] {
+  if (record.reclassificationState === 'approved') {
+    return Object.freeze(['Outcome: Unchanged', 'Trust: Trusted'])
+  }
+
+  const permissionDecisions = evaluateEntityWelfareStatusPermissionSet(record)
+
+  if (record.reclassificationState === 'pending') {
+    const affectedSurfaces = ENTITY_WELFARE_PERMISSION_SURFACES
+    return formatRevocationDecisionLabels(
+      record,
+      'clearance_review',
+      'policy_violation',
+      affectedSurfaces,
+      selectRelevantPermissionDecision(permissionDecisions, affectedSurfaces)
+    )
+  }
+
+  if (record.reclassificationState === 'denied') {
+    return formatRevocationDecisionLabels(
+      record,
+      'revocation',
+      'policy_violation',
+      SENSITIVE_ACCESS_SURFACES,
+      selectRelevantPermissionDecision(permissionDecisions, SENSITIVE_ACCESS_SURFACES)
+    )
+  }
+
+  if (record.reclassificationState === 'reverted') {
+    return formatRevocationDecisionLabels(
+      record,
+      'downgrade',
+      'exposure_risk',
+      SENSITIVE_ACCESS_SURFACES
+    )
+  }
+
+  return formatRevocationDecisionLabels(
+    record,
+    'unknown',
+    'unknown',
+    ENTITY_WELFARE_PERMISSION_SURFACES,
+    selectRelevantPermissionDecision(permissionDecisions, ENTITY_WELFARE_PERMISSION_SURFACES)
+  )
+}
+
 function toRecordView(
   record: EntityWelfareReclassificationRecord
 ): EntityWelfareReclassificationMirrorRecordView {
@@ -132,6 +232,7 @@ function toRecordView(
       (record.transitionHistory ?? []).map((entry) => formatTransitionHistoryLabel(entry))
     ),
     permissionDecisionLabels: formatPermissionDecisionLabels(record),
+    accessOutcomeLabels: formatAccessOutcomeLabels(record),
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

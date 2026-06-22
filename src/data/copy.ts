@@ -1592,6 +1592,7 @@ export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, stri
   labelColumn: 'Label',
   dispositionColumn: 'Disposition / state',
   permissionsColumn: 'Permissions',
+  accessOutcomeColumn: 'Access outcome',
   pressureColumn: 'Reclassification pressure',
   reviewColumn: 'Evidence / history',
   confidenceColumn: 'Confidence',

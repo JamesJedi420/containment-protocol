@@ -41,6 +41,22 @@ function permissionRecord(
   }
 }
 
+function stateRecord(
+  reclassificationState: EntityWelfareReclassificationRecord['reclassificationState'],
+  proposedDisposition: EntityWelfareReclassificationRecord['proposedDisposition'] = 'cooperative'
+): EntityWelfareReclassificationRecord {
+  return {
+    id: `reclass:${reclassificationState}-access-outcome-view`,
+    label: `${formatEntityWelfareReclassificationEnumLabel(reclassificationState)} access outcome`,
+    priorThreatLabel: 'provisional-threat',
+    proposedDisposition,
+    reclassificationState,
+    reviewGate: reclassificationState === 'pending' ? 'ethics' : undefined,
+    reviewArtifactRef: `review:${reclassificationState}-access-outcome-view`,
+    evidenceBundleRefs: [`evidence:${reclassificationState}-access-outcome-view`],
+  }
+}
+
 describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
   it('returns empty mirror when entityWelfareReclassificationRecords map is empty', () => {
     const game = createStartingState()
@@ -190,5 +206,38 @@ describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
       'Housing: Restricted',
       'Mission: Blocked',
     ])
+  })
+
+  it('surfaces revocation access outcomes for pending, denied, reverted, and approved records', () => {
+    const deniedRecord = stateRecord('denied', 'hostile')
+    const revertedRecord = stateRecord('reverted')
+    const pendingRecord = stateRecord('pending', 'unknown')
+    const approvedRecord = stateRecord('approved')
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [deniedRecord.id]: deniedRecord,
+      [revertedRecord.id]: revertedRecord,
+      [pendingRecord.id]: pendingRecord,
+      [approvedRecord.id]: approvedRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const denied = view.records.find((record) => record.id === deniedRecord.id)
+    const reverted = view.records.find((record) => record.id === revertedRecord.id)
+    const pending = view.records.find((record) => record.id === pendingRecord.id)
+    const approved = view.records.find((record) => record.id === approvedRecord.id)
+
+    expect(denied?.accessOutcomeLabels).toEqual([
+      'Outcome: Blocked',
+      'Trust: Blocked',
+      'Blocked: File, Gear, Mission',
+    ])
+    expect(reverted?.accessOutcomeLabels).toEqual([
+      'Outcome: Downgraded',
+      'Trust: Restricted',
+      'Blocked: File, Gear',
+    ])
+    expect(pending?.accessOutcomeLabels).toEqual(['Outcome: Restricted', 'Trust: Probation'])
+    expect(approved?.accessOutcomeLabels).toEqual(['Outcome: Unchanged', 'Trust: Trusted'])
   })
 })

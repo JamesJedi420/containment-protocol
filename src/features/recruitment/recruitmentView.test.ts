@@ -136,6 +136,52 @@ describe('recruitment view contract', () => {
     })
   })
 
+  it('surfaces stable onboarding readiness labels from candidate state', () => {
+    const game = createStartingState()
+    game.week = 4
+    game.candidates = [
+      {
+        ...buildCandidates()[0]!,
+        funnelStage: 'screening',
+        roleInclination: 'field',
+        scoutReport: {
+          stage: 2,
+          projectedTier: 'B',
+          exactKnown: false,
+          confidence: 'high',
+          scoutedWeek: 4,
+        },
+      },
+    ]
+
+    const [view] = getRecruitmentCandidateViews(game)
+
+    expect(view?.onboardingStageLabel).toBe('Stage: Screening')
+    expect(view?.onboardingAccessLabel).toBe('Full access pending')
+    expect(view?.onboardingCheckpointLabels).toEqual([
+      'Identity: Complete',
+      'Background: Complete',
+      'Role Fit: Complete',
+      'Training: Required',
+      'Oath Contract: Blocked',
+    ])
+  })
+
+  it('keeps onboarding readiness byte-stable and leaves empty pools unchanged', () => {
+    const game = createStartingState()
+    game.week = 4
+    game.candidates = buildCandidates()
+
+    const first = JSON.stringify(getRecruitmentCandidateViews(game))
+    const second = JSON.stringify(getRecruitmentCandidateViews(game))
+
+    expect(first).toBe(second)
+
+    game.candidates = []
+
+    expect(getRecruitmentCandidateViews(game)).toEqual([])
+  })
+
   it('surfaces the eventual hire class when a recruit remaps into field recon', () => {
     const game = createStartingState()
     game.candidates = [

@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2509](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                                     |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2509 - Revocation outcome surfacing for entity welfare mirror](https://linear.app/spectranoir/issue/SPE-2509/revocation-outcome-surfacing-for-entity-welfare-mirror) |
-| **Status**          | **In Progress**                                                                                                                                                           |
+| **Status**          | **Shipped**                                                                                                                                                               |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                       |
 | **Branch**          | `spe-1046-revocation-outcome-surfacing-slice-1`                                                                                                                           |
 | **Base `main` SHA** | `afb89b48`                                                                                                                                                                |

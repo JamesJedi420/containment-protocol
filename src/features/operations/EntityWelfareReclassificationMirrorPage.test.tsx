@@ -53,7 +53,8 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
       reclassificationState: 'denied',
       reviewGate: 'ethics',
       reviewArtifactRef: 'review:denied-access-outcome-page',
-      evidenceBundleRefs: ['evidence:denied-access-outcome-page'],
+      evidenceBundleRefs: ['site:denied-access-outcome-page'],
+      containmentRevisionRefs: ['facility:denied-access-outcome-page'],
     }
     const game = createStartingState()
     game.entityWelfareReclassificationRecords = {
@@ -82,6 +83,11 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent('Outcome: Blocked')
     expect(recordsRegion).toHaveTextContent('Trust: Blocked')
     expect(recordsRegion).toHaveTextContent('Blocked: File, Gear, Mission')
+    expect(recordsRegion).toHaveTextContent('Site clearance')
+    expect(recordsRegion).toHaveTextContent('Mission: Blocked')
+    expect(recordsRegion).toHaveTextContent('Facility: Scoped')
+    expect(recordsRegion).toHaveTextContent('Site: site:denied-access-outcome-page')
+    expect(recordsRegion).toHaveTextContent('Facility: facility:denied-access-outcome-page')
     expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
       'href',
       '/'

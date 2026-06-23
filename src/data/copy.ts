@@ -524,7 +524,8 @@ export const MISSION_TRIAGE_DEFERRAL_COMPARE_LABELS = {
   escalationCarryover: 'Carryover',
   covertPrepConcealmentDetail: 'Concealment or posture prep on case detail before advance week.',
   covertPrepLeaveBehindDetail: 'Leave-behind staged; forensic fallout may compound next resolve.',
-  covertPrepForensicDetail: 'Forensic budget strained; investigation questions cost more before resolve.',
+  covertPrepForensicDetail:
+    'Forensic budget strained; investigation questions cost more before resolve.',
   carryoverLinkLabel: 'Escalation carryover',
   carryoverLinkDetail:
     'Deferred work can worsen under escalation thresholds and incident pressure curves next week.',
@@ -578,10 +579,7 @@ export function formatMissionTriageDeferralCarryoverLink(
   return DEFERRAL_COMPARE_TONE_VALUES[tone]
 }
 
-export function formatMissionTriageDeferralCarryoverDetail(
-  stage: number,
-  kind: string
-): string {
+export function formatMissionTriageDeferralCarryoverDetail(stage: number, kind: string): string {
   const kindLabel = kind === 'raid' ? 'raid incident' : 'case'
   return `Stage ${stage} ${kindLabel} · unresolved work may carry into next week`
 }
@@ -1184,7 +1182,8 @@ export const POST_INCIDENT_REVIEW_RECOMMENDATION_MIRROR_UI_TEXT: Record<string, 
   linkedRecordsSubtitle:
     'Recommendations whose reviewRef matches orchestration-created qualifying case or near-catastrophe reviews.',
   recordsHeading: 'Persisted records',
-  recordsSubtitle: 'Follow-on stub tokens materialized from review unknownFields during weekly advance.',
+  recordsSubtitle:
+    'Follow-on stub tokens materialized from review unknownFields during weekly advance.',
   labelColumn: 'Label',
   reviewRefColumn: 'Review ref',
   linkedReviewColumn: 'Linked review',
@@ -1593,6 +1592,7 @@ export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, stri
   dispositionColumn: 'Disposition / state',
   permissionsColumn: 'Permissions',
   accessOutcomeColumn: 'Access outcome',
+  siteClearanceColumn: 'Site clearance',
   pressureColumn: 'Reclassification pressure',
   reviewColumn: 'Evidence / history',
   confidenceColumn: 'Confidence',
@@ -1658,7 +1658,8 @@ export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   emptyBody:
     'Persisted publish-queue records will appear here after hydration. Invalid records dropped on hydrate are not shown here.',
   recordsHeading: 'Persisted queue records',
-  recordsSubtitle: 'Ready vs published discrimination uses queue status only — no hidden channel truth.',
+  recordsSubtitle:
+    'Ready vs published discrimination uses queue status only — no hidden channel truth.',
   labelColumn: 'Label',
   statusColumn: 'Status',
   artifactColumn: 'Release artifact',
@@ -1725,7 +1726,8 @@ export const PATTERN_SOURCE_SERIES_MIRROR_UI_TEXT: Record<string, string> = {
   queueHeading: 'Processing queue projection',
   queueSubtitle: 'Ranked by readiness score and CP utility, not publication recency.',
   recordsHeading: 'Persisted records',
-  recordsSubtitle: 'Queue rank column reflects projection rank; raw fields come from hydrated GameState.',
+  recordsSubtitle:
+    'Queue rank column reflects projection rank; raw fields come from hydrated GameState.',
   emptyQueueBody: 'No records currently qualify for queue projection at default policy thresholds.',
   rankColumn: 'Rank',
   queueRankColumn: 'Queue rank',

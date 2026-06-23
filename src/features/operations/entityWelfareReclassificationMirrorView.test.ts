@@ -57,6 +57,24 @@ function stateRecord(
   }
 }
 
+function siteClearanceRecord(
+  reclassificationState: EntityWelfareReclassificationRecord['reclassificationState'],
+  proposedDisposition: EntityWelfareReclassificationRecord['proposedDisposition'] = 'cooperative',
+  scoped = true
+): EntityWelfareReclassificationRecord {
+  return {
+    id: `reclass:${reclassificationState}-${proposedDisposition}-${scoped ? 'scoped' : 'unscoped'}-site-clearance-view`,
+    label: `${formatEntityWelfareReclassificationEnumLabel(reclassificationState)} site clearance`,
+    priorThreatLabel: 'provisional-threat',
+    proposedDisposition,
+    reclassificationState,
+    reviewGate: 'ethics',
+    reviewArtifactRef: `review:${reclassificationState}-site-clearance-view`,
+    evidenceBundleRefs: scoped ? [`site:${reclassificationState}-evidence`] : [],
+    containmentRevisionRefs: scoped ? [`facility:${reclassificationState}-revision`] : [],
+  }
+}
+
 describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
   it('returns empty mirror when entityWelfareReclassificationRecords map is empty', () => {
     const game = createStartingState()
@@ -239,5 +257,53 @@ describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
     ])
     expect(pending?.accessOutcomeLabels).toEqual(['Outcome: Restricted', 'Trust: Probation'])
     expect(approved?.accessOutcomeLabels).toEqual(['Outcome: Unchanged', 'Trust: Trusted'])
+  })
+
+  it('surfaces read-only site-clearance labels for scoped and unscoped records', () => {
+    const approvedRecord = siteClearanceRecord('approved')
+    const pendingRecord = siteClearanceRecord('pending', 'unknown')
+    const deniedRecord = siteClearanceRecord('denied', 'hostile')
+    const unscopedRecord = siteClearanceRecord('approved', 'cooperative', false)
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [approvedRecord.id]: approvedRecord,
+      [pendingRecord.id]: pendingRecord,
+      [deniedRecord.id]: deniedRecord,
+      [unscopedRecord.id]: unscopedRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const approved = view.records.find((record) => record.id === approvedRecord.id)
+    const pending = view.records.find((record) => record.id === pendingRecord.id)
+    const denied = view.records.find((record) => record.id === deniedRecord.id)
+    const unscoped = view.records.find((record) => record.id === unscopedRecord.id)
+
+    expect(approved?.siteClearanceLabels).toEqual([
+      'Mission: Allowed',
+      'Facility: Scoped',
+      'Site: site:approved-evidence',
+      'Facility: facility:approved-revision',
+      'Reasons: base_permission_restricted_observed, facility_clearance_granted, subject_clearance_resolved',
+    ])
+    expect(pending?.siteClearanceLabels).toEqual([
+      'Mission: Restricted',
+      'Facility: Scoped',
+      'Site: site:pending-evidence',
+      'Facility: facility:pending-revision',
+      'Reasons: facility_clearance_restricted, site_clearance_restricted',
+    ])
+    expect(denied?.siteClearanceLabels).toEqual([
+      'Mission: Blocked',
+      'Facility: Scoped',
+      'Site: site:denied-evidence',
+      'Facility: facility:denied-revision',
+      'Reasons: facility_clearance_blocked, site_clearance_blocked',
+    ])
+    expect(unscoped?.siteClearanceLabels).toEqual([
+      'Mission: Restricted',
+      'Site: Unscoped',
+      'Site: Unscoped site',
+      'Reasons: missing_site_or_facility_scope',
+    ])
   })
 })

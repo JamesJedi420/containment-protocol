@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2513](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2513 - Protected-status action surfacing for entity welfare mirror](https://linear.app/spectranoir/issue/SPE-2513/protected-status-action-surfacing-for-entity-welfare-mirror) |
-| **Status**          | **In Progress**                                                                                                                                                                     |
+| **Status**          | **Shipped** - PR #2954 @ `30aac683`                                                                                                                                                 |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                                 |
 | **Branch**          | `spe-1046-protected-status-surfacing-slice-1`                                                                                                                                       |
 | **Base `main` SHA** | `9173ba80`                                                                                                                                                                          |

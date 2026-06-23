@@ -1,10 +1,17 @@
 import { assessAttritionPressure } from './agent/attrition'
 import { createSeededRng, normalizeSeed } from './math'
 import { buildAgentLoadoutReadinessSummary } from './equipment'
-import { buildTeamDeploymentReadinessState, evaluateDeploymentEligibility } from './deploymentReadiness'
+import {
+  buildTeamDeploymentReadinessState,
+  evaluateDeploymentEligibility,
+} from './deploymentReadiness'
 import { assessFundingPressure } from './funding'
 import { createMissionIntelState, getMissionIntelRisk } from './intel'
-import { INTEL_CALIBRATION, isSecondEscalationBandWeek, PRESSURE_CALIBRATION } from './sim/calibration'
+import {
+  INTEL_CALIBRATION,
+  isSecondEscalationBandWeek,
+  PRESSURE_CALIBRATION,
+} from './sim/calibration'
 import {
   buildTeamCompositionState,
   rankBestAvailableTeams,
@@ -53,7 +60,10 @@ function getTeamMemberIds(team: Pick<Team, 'memberIds' | 'agentIds'>): Id[] {
   return [...new Set(memberIds ?? agentIds ?? [])]
 }
 
-function getTeamMembers(team: Pick<Team, 'memberIds' | 'agentIds'>, agentsById: GameState['agents']) {
+function getTeamMembers(
+  team: Pick<Team, 'memberIds' | 'agentIds'>,
+  agentsById: GameState['agents']
+) {
   return getTeamMemberIds(team)
     .map((agentId) => agentsById[agentId])
     .filter((agent): agent is Agent => Boolean(agent))
@@ -72,11 +82,11 @@ function clampInteger(value: number, min: number, max: number) {
 }
 
 export function deriveMissionCategory(currentCase: CaseInstance): MissionCategory {
-  const tagSet = new Set([
-    ...currentCase.tags,
-    ...currentCase.requiredTags,
-    ...currentCase.preferredTags,
-  ].map((tag) => tag.toLowerCase()))
+  const tagSet = new Set(
+    [...currentCase.tags, ...currentCase.requiredTags, ...currentCase.preferredTags].map((tag) =>
+      tag.toLowerCase()
+    )
+  )
 
   if (
     currentCase.kind === 'raid' ||
@@ -186,7 +196,11 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
     0,
     25
   )
-  const escalationRisk = clampInteger(currentCase.stage * 6 + (currentCase.kind === 'raid' ? 8 : 0), 0, 20)
+  const escalationRisk = clampInteger(
+    currentCase.stage * 6 + (currentCase.kind === 'raid' ? 8 : 0),
+    0,
+    20
+  )
   const strategicValue = clampInteger(
     currentCase.contract ? 15 : currentCase.factionId ? 10 : 6,
     0,
@@ -194,14 +208,18 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
   )
 
   const teamCount = Object.keys(state.teams).length
-  const inProgressCaseCount = Object.values(state.cases).filter((entry) => entry.status === 'in_progress').length
+  const inProgressCaseCount = Object.values(state.cases).filter(
+    (entry) => entry.status === 'in_progress'
+  ).length
   const capacityPenalty = clampInteger(
     Math.round((inProgressCaseCount / Math.max(teamCount, 1)) * 12),
     0,
     20
   )
   const intelRisk = clampInteger(
-    Math.round(getMissionIntelRisk(currentCase, state.week) * INTEL_CALIBRATION.routingRiskPenaltyCap),
+    Math.round(
+      getMissionIntelRisk(currentCase, state.week) * INTEL_CALIBRATION.routingRiskPenaltyCap
+    ),
     0,
     INTEL_CALIBRATION.routingRiskPenaltyCap
   )
@@ -228,9 +246,21 @@ export function triageMission(state: GameState, currentCase: CaseInstance): Miss
     ...intakeSignals.reasonCodes,
     urgency >= 24 ? 'urgency-high' : urgency >= 12 ? 'urgency-medium' : 'urgency-low',
     threatSeverity >= 18 ? 'threat-high' : threatSeverity >= 10 ? 'threat-medium' : 'threat-low',
-    escalationRisk >= 14 ? 'escalation-high' : escalationRisk >= 7 ? 'escalation-medium' : 'escalation-low',
-    strategicValue >= 12 ? 'strategic-high' : strategicValue >= 8 ? 'strategic-medium' : 'strategic-low',
-    capacityPenalty >= 12 ? 'capacity-high' : capacityPenalty >= 6 ? 'capacity-medium' : 'capacity-low',
+    escalationRisk >= 14
+      ? 'escalation-high'
+      : escalationRisk >= 7
+        ? 'escalation-medium'
+        : 'escalation-low',
+    strategicValue >= 12
+      ? 'strategic-high'
+      : strategicValue >= 8
+        ? 'strategic-medium'
+        : 'strategic-low',
+    capacityPenalty >= 12
+      ? 'capacity-high'
+      : capacityPenalty >= 6
+        ? 'capacity-medium'
+        : 'capacity-low',
     budgetPenalty >= 6
       ? 'budget-pressure-high'
       : budgetPenalty >= 3
@@ -283,9 +313,7 @@ export function missionTriageEscalationBandFromReasonCodes(
 }
 
 export function missionTriageShowsEscalationDeferralRisk(reasonCodes: readonly string[]) {
-  return (
-    reasonCodes.includes('escalation-high') || reasonCodes.includes('escalation-medium')
-  )
+  return reasonCodes.includes('escalation-high') || reasonCodes.includes('escalation-medium')
 }
 
 /** Matches `escalation-high` reason code banding in {@link triageMission}. */
@@ -334,8 +362,8 @@ function buildMissionRoutingCandidate(
   const eligibility = evaluateDeploymentEligibility(state, currentCase.id, team.id)
   const readinessState = buildTeamDeploymentReadinessState(state, team.id, currentCase.id)
   const members = getTeamMembers(team, state.agents)
-  const loadoutBlocked = members.some((member) =>
-    buildAgentLoadoutReadinessSummary(member, { state }).readiness === 'blocked'
+  const loadoutBlocked = members.some(
+    (member) => buildAgentLoadoutReadinessSummary(member, { state }).readiness === 'blocked'
   )
   const missingCertification = currentCase.requiredTags.some((tag) => tag.startsWith('cert:'))
     ? members.every((member) => {
@@ -346,9 +374,10 @@ function buildMissionRoutingCandidate(
       }) === false
     : false
 
-  const avgFatigue = members.length > 0
-    ? Math.round(members.reduce((sum, member) => sum + member.fatigue, 0) / members.length)
-    : 100
+  const avgFatigue =
+    members.length > 0
+      ? Math.round(members.reduce((sum, member) => sum + member.fatigue, 0) / members.length)
+      : 100
   const assignedCaseId = getTeamAssignedCaseId(team)
 
   const blockerCodes = uniqueSortedStrings([
@@ -368,12 +397,13 @@ function buildMissionRoutingCandidate(
     readinessCategory: readinessState.readinessCategory,
     readinessScore: readinessState.readinessScore,
     cohesionScore: composition.cohesion.cohesionScore,
-    readiness: members.length > 0
-      ? Math.round(
-          members.reduce((sum, member) => sum + Math.max(0, 100 - member.fatigue), 0) /
-            members.length
-        )
-      : 0,
+    readiness:
+      members.length > 0
+        ? Math.round(
+            members.reduce((sum, member) => sum + Math.max(0, 100 - member.fatigue), 0) /
+              members.length
+          )
+        : 0,
     fatigueBurden: avgFatigue,
     expectedTotalWeeks: eligibility.timeCostSummary.expectedTotalWeeks,
     blockerCodes,
@@ -469,18 +499,21 @@ export function routeMission(state: GameState, missionId: Id): MissionRoutingRes
       rejectedTeams,
       rankedCandidates,
       timeCostSummary: rankedCandidates[0]
-        ? evaluateDeploymentEligibility(state, missionId, rankedCandidates[0].teamId).timeCostSummary
+        ? evaluateDeploymentEligibility(state, missionId, rankedCandidates[0].teamId)
+            .timeCostSummary
         : undefined,
     }
   }
 
-  const assignedTeamIds = currentCase.assignedTeamIds.filter((teamId) => Boolean(state.teams[teamId]))
+  const assignedTeamIds = currentCase.assignedTeamIds.filter((teamId) =>
+    Boolean(state.teams[teamId])
+  )
   const routingState: MissionRoutingStateKind =
     currentCase.status === 'in_progress' && assignedTeamIds.length > 0
       ? 'assigned'
       : validCandidates.length > 0
-      ? 'shortlisted'
-      : 'queued'
+        ? 'shortlisted'
+        : 'queued'
 
   return {
     missionId,
@@ -499,6 +532,7 @@ const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
   'training-blocked',
   'missing-certification',
   'invalid-loadout-gate',
+  'site-clearance-required',
   'fatigue-over-threshold',
   'team-state-incompatible',
   'recovery-required',
@@ -547,10 +581,7 @@ export function isMissionTriageDispositionActive(
   mission: Pick<MissionRoutingRecord, 'playerDisposition' | 'playerDispositionWeek'> | undefined,
   week: number
 ) {
-  return (
-    mission?.playerDisposition !== undefined &&
-    mission.playerDispositionWeek === week
-  )
+  return mission?.playerDisposition !== undefined && mission.playerDispositionWeek === week
 }
 
 export function dispositionToRoutingState(
@@ -585,9 +616,9 @@ export function isMissionTriageIgnoredThisWeek(game: GameState, missionId: Id) {
   const mission = game.missionRouting?.missions[missionId]
   return Boolean(
     mission?.triageIgnored &&
-      isMissionTriageDispositionActive(mission, game.week) &&
-      mission.playerDisposition === 'ignore' &&
-      !missionHasAssignedTeams(game, missionId)
+    isMissionTriageDispositionActive(mission, game.week) &&
+    mission.playerDisposition === 'ignore' &&
+    !missionHasAssignedTeams(game, missionId)
   )
 }
 
@@ -624,9 +655,7 @@ function mergeRecomputedMissionRecord(
     lastRoutedWeek: week,
     lastCandidateTeamIds: routed.candidateTeamIds,
     lastRejectedTeamIds:
-      mission.lastRejectedTeamIds.length > 0
-        ? mission.lastRejectedTeamIds
-        : routed.rejectedTeams,
+      mission.lastRejectedTeamIds.length > 0 ? mission.lastRejectedTeamIds : routed.rejectedTeams,
   }
 }
 
@@ -736,11 +765,17 @@ function normalizeMissionRecord(
     preferredTags: [...caseData.preferredTags],
     assignedTeamIds: [...caseData.assignedTeamIds],
     intakeSource: sanitizeIntakeSource(deriveMissionIntakeSource(caseData, state)),
-    priority: sanitizePriority(intakeLinked ? triage.priority : (existing?.priority ?? triage.priority)),
+    priority: sanitizePriority(
+      intakeLinked ? triage.priority : (existing?.priority ?? triage.priority)
+    ),
     priorityReasonCodes: uniqueSortedStrings(
       intakeLinked ? triage.reasonCodes : (existing?.priorityReasonCodes ?? triage.reasonCodes)
     ),
-    triageScore: clampInteger(intakeLinked ? triage.score : (existing?.triageScore ?? triage.score), 0, 100),
+    triageScore: clampInteger(
+      intakeLinked ? triage.score : (existing?.triageScore ?? triage.score),
+      0,
+      100
+    ),
     routingState: sanitizeRoutingStateKind(
       isMissionTriageDispositionActive(existing, state.week) &&
         existing?.playerDisposition &&
@@ -756,7 +791,11 @@ function normalizeMissionRecord(
     !missionHasAssignedTeams(state, caseData.id)
       ? {
           playerDisposition: sanitizeMissionTriageDisposition(existing.playerDisposition),
-          playerDispositionWeek: clampInteger(existing.playerDispositionWeek, 1, Number.MAX_SAFE_INTEGER),
+          playerDispositionWeek: clampInteger(
+            existing.playerDispositionWeek,
+            1,
+            Number.MAX_SAFE_INTEGER
+          ),
           ...(existing.playerDisposition === 'ignore' ? { triageIgnored: true } : {}),
         }
       : {}),
@@ -767,11 +806,12 @@ function normalizeMissionRecord(
     ...(typeof existing?.lastRoutedWeek === 'number'
       ? { lastRoutedWeek: clampInteger(existing.lastRoutedWeek, 1, Number.MAX_SAFE_INTEGER) }
       : {}),
-    lastCandidateTeamIds: uniqueSortedStrings(existing?.lastCandidateTeamIds ?? routing.candidateTeamIds),
-    lastRejectedTeamIds: (
-      existing?.lastRejectedTeamIds && existing.lastRejectedTeamIds.length > 0
-        ? existing.lastRejectedTeamIds
-        : routing.rejectedTeams
+    lastCandidateTeamIds: uniqueSortedStrings(
+      existing?.lastCandidateTeamIds ?? routing.candidateTeamIds
+    ),
+    lastRejectedTeamIds: (existing?.lastRejectedTeamIds && existing.lastRejectedTeamIds.length > 0
+      ? existing.lastRejectedTeamIds
+      : routing.rejectedTeams
     )
       .filter((entry) => typeof entry.teamId === 'string' && typeof entry.reasonCode === 'string')
       .map((entry) => ({
@@ -788,7 +828,9 @@ export function normalizeMissionRoutingState(state: GameState): MissionRoutingSt
     .map((currentCase) => currentCase.id)
   const orderedMissionIds = [
     ...new Set([
-      ...((existing?.orderedMissionIds ?? []).filter((missionId) => unresolvedMissionIds.includes(missionId))),
+      ...(existing?.orderedMissionIds ?? []).filter((missionId) =>
+        unresolvedMissionIds.includes(missionId)
+      ),
       ...unresolvedMissionIds,
     ]),
   ]
@@ -801,7 +843,10 @@ export function normalizeMissionRoutingState(state: GameState): MissionRoutingSt
           return null
         }
 
-        return [missionId, normalizeMissionRecord(state, currentCase, existing?.missions?.[missionId])] as const
+        return [
+          missionId,
+          normalizeMissionRecord(state, currentCase, existing?.missions?.[missionId]),
+        ] as const
       })
       .filter((entry): entry is readonly [Id, MissionRoutingRecord] => Boolean(entry))
   )
@@ -809,7 +854,11 @@ export function normalizeMissionRoutingState(state: GameState): MissionRoutingSt
   return {
     orderedMissionIds,
     missions,
-    nextGeneratedSequence: clampInteger(existing?.nextGeneratedSequence ?? orderedMissionIds.length + 1, 1, Number.MAX_SAFE_INTEGER),
+    nextGeneratedSequence: clampInteger(
+      existing?.nextGeneratedSequence ?? orderedMissionIds.length + 1,
+      1,
+      Number.MAX_SAFE_INTEGER
+    ),
   }
 }
 
@@ -842,7 +891,8 @@ export function generateWeeklyMissionIntake(state: GameState): MissionIntakeGene
       .sort((left, right) => left.templateId.localeCompare(right.templateId))
 
     if (availableTemplates.length > 0) {
-      const selectedTemplate = availableTemplates[Math.floor(rng.next() * availableTemplates.length)]!
+      const selectedTemplate =
+        availableTemplates[Math.floor(rng.next() * availableTemplates.length)]!
       const generatedId = `case-intake-${String(nextState.missionRouting.nextGeneratedSequence).padStart(6, '0')}`
       const exists = Boolean(nextState.cases[generatedId])
 
@@ -871,7 +921,9 @@ export function generateWeeklyMissionIntake(state: GameState): MissionIntakeGene
           assignedTeamIds: [],
           onFail: { ...selectedTemplate.onFail },
           onUnresolved: { ...selectedTemplate.onUnresolved },
-          ...(selectedTemplate.pressureValue !== undefined ? { pressureValue: selectedTemplate.pressureValue } : {}),
+          ...(selectedTemplate.pressureValue !== undefined
+            ? { pressureValue: selectedTemplate.pressureValue }
+            : {}),
           ...(selectedTemplate.regionTag ? { regionTag: selectedTemplate.regionTag } : {}),
           ...(selectedTemplate.raid ? { raid: { ...selectedTemplate.raid } } : {}),
         }
@@ -913,10 +965,7 @@ export function recomputeMissionRouting(state: GameState, week = state.week) {
       const triage = triageMission(state, state.cases[missionId]!)
       const routed = routeMission(state, missionId)
 
-      return [
-        missionId,
-        mergeRecomputedMissionRecord(state, mission, routed, triage, week),
-      ]
+      return [missionId, mergeRecomputedMissionRecord(state, mission, routed, triage, week)]
     })
   )
 
@@ -985,7 +1034,8 @@ export function routeMissionToTeam(state: GameState, missionId: Id, teamId: Id) 
 }
 
 function sanitizeMissionRoutingBlockerCode(value: unknown): MissionRoutingBlockerCode | null {
-  return typeof value === 'string' && MISSION_ROUTING_BLOCKER_CODES.has(value as MissionRoutingBlockerCode)
+  return typeof value === 'string' &&
+    MISSION_ROUTING_BLOCKER_CODES.has(value as MissionRoutingBlockerCode)
     ? (value as MissionRoutingBlockerCode)
     : null
 }
@@ -1030,12 +1080,14 @@ function sanitizeMissionRoutingRecord(
     return null
   }
 
-  const assignedTeamIds = (Array.isArray(raw.assignedTeamIds) ? raw.assignedTeamIds : currentCase.assignedTeamIds)
-    .filter((teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams)
+  const assignedTeamIds = (
+    Array.isArray(raw.assignedTeamIds) ? raw.assignedTeamIds : currentCase.assignedTeamIds
+  ).filter((teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams)
 
   const lastCandidateTeamIds = uniqueSortedStrings(
-    (Array.isArray(raw.lastCandidateTeamIds) ? raw.lastCandidateTeamIds : [])
-      .filter((teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams)
+    (Array.isArray(raw.lastCandidateTeamIds) ? raw.lastCandidateTeamIds : []).filter(
+      (teamId): teamId is string => typeof teamId === 'string' && teamId in context.teams
+    )
   )
 
   const lastRejectedTeamIds = sanitizeRejectedTeamRecords(raw.lastRejectedTeamIds, context.teams)
@@ -1091,12 +1143,13 @@ function sanitizeMissionRoutingRecord(
         : []
     ),
     triageScore: clampInteger(typeof raw.triageScore === 'number' ? raw.triageScore : 0, 0, 100),
-    routingState: dispositionActive && playerDisposition
-      ? dispositionToRoutingState(
-          playerDisposition,
-          sanitizeRoutingStateKind(raw.routingState ?? raw.state)
-        )
-      : sanitizeRoutingStateKind(raw.routingState ?? raw.state),
+    routingState:
+      dispositionActive && playerDisposition
+        ? dispositionToRoutingState(
+            playerDisposition,
+            sanitizeRoutingStateKind(raw.routingState ?? raw.state)
+          )
+        : sanitizeRoutingStateKind(raw.routingState ?? raw.state),
     routingBlockers,
     ...(dispositionActive && playerDisposition
       ? {
@@ -1224,7 +1277,10 @@ function refreshIntakeLinkedMissionRoutingRecord(
   return {
     ...record,
     intakeSource: sanitizeIntakeSource(
-      deriveMissionIntakeSource(currentCase, triageState as Pick<GameState, 'informationIntakeReports'>)
+      deriveMissionIntakeSource(
+        currentCase,
+        triageState as Pick<GameState, 'informationIntakeReports'>
+      )
     ),
     triageScore: triage.score,
     priority: triage.priority,
@@ -1277,7 +1333,9 @@ export function sanitizePersistedMissionRoutingState(
   }
 
   const nextGeneratedSequence = clampInteger(
-    typeof raw.nextGeneratedSequence === 'number' ? raw.nextGeneratedSequence : orderedMissionIds.length + 1,
+    typeof raw.nextGeneratedSequence === 'number'
+      ? raw.nextGeneratedSequence
+      : orderedMissionIds.length + 1,
     orderedMissionIds.length + 1,
     Number.MAX_SAFE_INTEGER
   )

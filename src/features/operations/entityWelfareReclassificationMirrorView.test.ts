@@ -93,6 +93,24 @@ function dualLoyaltyRecord(
   }
 }
 
+function protectedStatusRecord(
+  id: string,
+  overrides: Partial<EntityWelfareReclassificationRecord> = {}
+): EntityWelfareReclassificationRecord {
+  return {
+    id,
+    label: `${id} protected status`,
+    priorThreatLabel: 'routine-contact',
+    proposedDisposition: 'cooperative',
+    reclassificationState: 'approved',
+    reviewGate: 'ethics',
+    reviewArtifactRef: `review:${id}`,
+    evidenceBundleRefs: [`site:${id}`],
+    containmentRevisionRefs: [`facility:${id}`],
+    ...overrides,
+  }
+}
+
 describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
   it('returns empty mirror when entityWelfareReclassificationRecords map is empty', () => {
     const game = createStartingState()
@@ -422,5 +440,79 @@ describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
       'Restricted: Room, File, Gear, Housing, Mission',
       'Reasons: blocked_site_clearance, lost_onboarding_blocked, single_loyalty_anchor',
     ])
+  })
+
+  it('surfaces read-only protected-status labels for staff, care, custody, remains, and unknown projections', () => {
+    const staffRecord = protectedStatusRecord('reclass:protected-full-staff')
+    const patientRecord = protectedStatusRecord('reclass:protected-patient', {
+      proposedDisposition: 'medical',
+      reclassificationState: 'pending',
+      reviewGate: 'psych',
+    })
+    const remainsRecord = protectedStatusRecord('reclass:protected-remains', {
+      proposedDisposition: 'sapient_remains',
+    })
+    const detaineeRecord = protectedStatusRecord('reclass:protected-detainee', {
+      proposedDisposition: 'hostile',
+    })
+    const unknownRecord = protectedStatusRecord('reclass:protected-unknown', {
+      proposedDisposition: 'unknown',
+    })
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [staffRecord.id]: staffRecord,
+      [patientRecord.id]: patientRecord,
+      [remainsRecord.id]: remainsRecord,
+      [detaineeRecord.id]: detaineeRecord,
+      [unknownRecord.id]: unknownRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const staff = view.records.find((record) => record.id === staffRecord.id)
+    const patient = view.records.find((record) => record.id === patientRecord.id)
+    const remains = view.records.find((record) => record.id === remainsRecord.id)
+    const detainee = view.records.find((record) => record.id === detaineeRecord.id)
+    const unknown = view.records.find((record) => record.id === unknownRecord.id)
+
+    expect(staff?.protectedStatusActionLabels).toEqual(
+      expect.arrayContaining([
+        'Status: Full Staff',
+        'Grant File Access: Restricted',
+        'Restricted: File',
+        'Reasons: full_staff_action_baseline_allowed, upstream_permission_restricted',
+      ])
+    )
+    expect(patient?.protectedStatusActionLabels).toEqual(
+      expect.arrayContaining([
+        'Status: Patient',
+        'Assign Housing: Restricted',
+        'Review: care_duty_review',
+      ])
+    )
+    expect(patient?.protectedStatusActionLabels.join(' ')).toContain(
+      'patient_assign_housing_care_review_required'
+    )
+    expect(remains?.protectedStatusActionLabels).toEqual(
+      expect.arrayContaining(['Status: Sapient Remains', 'Disclose Identity: Blocked'])
+    )
+    expect(remains?.protectedStatusActionLabels.join(' ')).toContain(
+      'sapient_remains_disclose_identity_blocked'
+    )
+    expect(detainee?.protectedStatusActionLabels).toEqual(
+      expect.arrayContaining(['Status: Detainee', 'Release: Blocked', 'Review: due_process_review'])
+    )
+    expect(detainee?.protectedStatusActionLabels.join(' ')).toContain(
+      'detainee_release_due_process_required'
+    )
+    expect(unknown?.protectedStatusActionLabels).toEqual(
+      expect.arrayContaining([
+        'Status: Unknown',
+        'Assign Mission: Restricted',
+        'Review: protected_status_review',
+      ])
+    )
+    expect(unknown?.protectedStatusActionLabels.join(' ')).toContain(
+      'unknown_protected_status_restricted'
+    )
   })
 })

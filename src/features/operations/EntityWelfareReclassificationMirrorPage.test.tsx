@@ -92,6 +92,10 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent('Risk: Blocked')
     expect(recordsRegion).toHaveTextContent('Anchors: Rival Containment')
     expect(recordsRegion).toHaveTextContent('Restricted: Room, File, Gear, Housing, Mission')
+    expect(recordsRegion).toHaveTextContent('Protected status')
+    expect(recordsRegion).toHaveTextContent('Status: Detainee')
+    expect(recordsRegion).toHaveTextContent('Release: Blocked')
+    expect(recordsRegion).toHaveTextContent('Review: due_process_review')
     expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
       'href',
       '/'

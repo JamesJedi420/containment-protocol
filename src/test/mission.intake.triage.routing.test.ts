@@ -263,6 +263,92 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.candidateTeamIds).not.toContain(missingTeamId)
   })
 
+  it('leaves existing missions without explicit dual-loyalty requirements unchanged', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const baseline = routeMission(state, missionId)
+
+    state.teams[teamId] = {
+      ...state.teams[teamId]!,
+      tags: [...state.teams[teamId]!.tags, 'dual-loyalty:criminal'],
+    }
+
+    const routed = routeMission(state, missionId)
+
+    expect(routed.routingState).toBe(baseline.routingState)
+    expect(routed.routingBlockers).not.toContain('dual-loyalty-restricted')
+    expect(routed.candidateTeamIds).toEqual(baseline.candidateTeamIds)
+  })
+
+  it('allows explicit dual-loyalty clearance for clean or watch-only teams', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['dual-loyalty-clearance'],
+      requiredRoles: [],
+    }
+    state.agents[memberId] = {
+      ...state.agents[memberId],
+      tags: [...state.agents[memberId].tags, 'dual-loyalty:civic'],
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).not.toContain('dual-loyalty-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.candidateTeamIds).toContain(teamId)
+    expect(routed.routingBlockers).not.toContain('dual-loyalty-restricted')
+  })
+
+  it('blocks mission routing when explicit dual-loyalty review finds restricted evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['dual-loyalty-clearance'],
+      requiredRoles: [],
+    }
+
+    for (const team of Object.values(state.teams)) {
+      team.tags = [...team.tags, 'dual-loyalty:criminal']
+    }
+
+    const teamId = Object.keys(state.teams)[0]!
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('dual-loyalty-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('dual-loyalty-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
+  it('blocks mission routing when explicit dual-loyalty review finds blocked evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['dual-loyalty-clearance'],
+      requiredRoles: [],
+    }
+
+    for (const team of Object.values(state.teams)) {
+      team.tags = [...team.tags, 'dual-loyalty:blocked']
+    }
+
+    const routed = routeMission(state, missionId)
+
+    expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('dual-loyalty-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
   it('requires explicit assignment action and preserves mission routing through save/load', () => {
     const state = createStartingState()
     const normalized = {

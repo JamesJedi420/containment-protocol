@@ -107,13 +107,16 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
     )
   })
 
-  it('hydrates site-clearance routing blockers and drops unknown blocker strings', () => {
+  it('hydrates explicit routing blockers and drops unknown blocker strings', () => {
     const state = createStartingState()
     const missionId = 'case-001'
     state.cases[missionId] = {
       ...state.cases[missionId],
-      requiredTags: ['site-clearance:alpha'],
+      requiredTags: ['site-clearance:alpha', 'dual-loyalty-clearance'],
       requiredRoles: [],
+    }
+    for (const team of Object.values(state.teams)) {
+      team.tags = [...team.tags, 'dual-loyalty:criminal']
     }
     state.missionRouting = normalizeMissionRoutingState(state)
     state.missionRouting = {
@@ -125,6 +128,7 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
           routingState: 'blocked',
           routingBlockers: [
             'site-clearance-required',
+            'dual-loyalty-restricted',
             'not-a-real-blocker',
           ] as (typeof state.missionRouting.missions)[string]['routingBlockers'],
         },
@@ -135,6 +139,9 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
 
     expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).toContain(
       'site-clearance-required'
+    )
+    expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).toContain(
+      'dual-loyalty-restricted'
     )
     expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).not.toContain(
       'not-a-real-blocker'

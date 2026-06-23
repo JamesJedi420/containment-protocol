@@ -11,6 +11,11 @@ import {
   type AffiliationRevocationKind,
 } from '../../domain/affiliationRevocationOutcomes'
 import {
+  evaluateAffiliationSiteClearance,
+  type AffiliationSiteClearanceDecision,
+} from '../../domain/affiliationSiteClearance'
+import type { AffiliationOnboardingDecision } from '../../domain/affiliationOnboardingReadiness'
+import {
   ENTITY_WELFARE_PERMISSION_SURFACES,
   evaluateEntityWelfareStatusPermissionSet,
   type EntityWelfarePermissionDecision,
@@ -34,6 +39,7 @@ export interface EntityWelfareReclassificationMirrorRecordView {
   transitionHistoryLabels: readonly string[]
   permissionDecisionLabels: readonly string[]
   accessOutcomeLabels: readonly string[]
+  siteClearanceLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -126,6 +132,24 @@ function selectRelevantPermissionDecision(
   )
 }
 
+function buildReadOnlyOnboardingDecision(
+  record: EntityWelfareReclassificationRecord
+): AffiliationOnboardingDecision {
+  const cleared = record.reclassificationState === 'approved'
+  const screening = record.reclassificationState === 'pending'
+  const stage = cleared ? 'cleared' : screening ? 'screening' : 'lost'
+
+  return Object.freeze({
+    candidateId: record.id,
+    candidateName: record.label,
+    stage,
+    stageLabel: formatEntityWelfareReclassificationEnumLabel(stage),
+    fullAccessEligible: cleared,
+    checkpointDecisions: Object.freeze([]),
+    reasonCodes: Object.freeze([`mirror_reclassification_${record.reclassificationState}`]),
+  })
+}
+
 function formatRevocationDecisionLabels(
   record: EntityWelfareReclassificationRecord,
   kind: AffiliationRevocationKind,
@@ -145,6 +169,60 @@ function formatRevocationDecisionLabels(
   const labels = [`Outcome: ${decision.outcomeLabel}`, `Trust: ${decision.trustOutcomeLabel}`]
   if (decision.blockedSurfaceLabels.length > 0) {
     labels.push(`Blocked: ${decision.blockedSurfaceLabels.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
+}
+
+function selectSiteClearanceDecision(
+  record: EntityWelfareReclassificationRecord
+): AffiliationSiteClearanceDecision {
+  const permissionDecisions = evaluateEntityWelfareStatusPermissionSet(record)
+  const missionPermission = permissionDecisions.find((decision) => decision.surface === 'mission')
+  const siteId = record.evidenceBundleRefs?.[0] ?? ''
+  const facilityId = record.containmentRevisionRefs?.[0] ?? ''
+  const approved = record.reclassificationState === 'approved'
+  const pending = record.reclassificationState === 'pending'
+  const blocked =
+    record.reclassificationState === 'denied' || record.reclassificationState === 'reverted'
+
+  return evaluateAffiliationSiteClearance({
+    subjectId: record.id,
+    subjectLabel: record.label,
+    surface: 'mission',
+    onboardingDecision: buildReadOnlyOnboardingDecision(record),
+    basePermissionDecision: missionPermission,
+    context: {
+      boundary: facilityId ? 'facility' : 'site',
+      siteId,
+      siteLabel: siteId || 'Unscoped site',
+      facilityId,
+      facilityLabel: facilityId || 'Unscoped facility',
+      siteLayer: facilityId ? 'interior' : 'transition',
+      grantedSiteIds: approved && siteId ? [siteId] : [],
+      grantedFacilityIds: approved && facilityId ? [facilityId] : [],
+      restrictedSiteIds: pending && siteId ? [siteId] : [],
+      restrictedFacilityIds: pending && facilityId ? [facilityId] : [],
+      blockedSiteIds: blocked && siteId ? [siteId] : [],
+      blockedFacilityIds: blocked && facilityId ? [facilityId] : [],
+    },
+  })
+}
+
+function formatSiteClearanceLabels(record: EntityWelfareReclassificationRecord): readonly string[] {
+  const decision = selectSiteClearanceDecision(record)
+  const labels = [
+    `${decision.surfaceLabel}: ${decision.outcomeLabel}`,
+    `${decision.boundaryLabel}: ${decision.siteSpecific ? 'Scoped' : 'Unscoped'}`,
+    `Site: ${decision.siteLabel}`,
+  ]
+
+  if (decision.facilityId !== 'facility:unknown') {
+    labels.push(`Facility: ${decision.facilityLabel}`)
+  }
+
+  if (decision.reasonCodes.length > 0) {
+    labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
   }
 
   return Object.freeze(labels)
@@ -233,6 +311,7 @@ function toRecordView(
     ),
     permissionDecisionLabels: formatPermissionDecisionLabels(record),
     accessOutcomeLabels: formatAccessOutcomeLabels(record),
+    siteClearanceLabels: formatSiteClearanceLabels(record),
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

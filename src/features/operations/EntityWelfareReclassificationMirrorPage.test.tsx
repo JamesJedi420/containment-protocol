@@ -88,6 +88,10 @@ describe('EntityWelfareReclassificationMirrorPage (SPE-2114 slice 4)', () => {
     expect(recordsRegion).toHaveTextContent('Facility: Scoped')
     expect(recordsRegion).toHaveTextContent('Site: site:denied-access-outcome-page')
     expect(recordsRegion).toHaveTextContent('Facility: facility:denied-access-outcome-page')
+    expect(recordsRegion).toHaveTextContent('Dual loyalty')
+    expect(recordsRegion).toHaveTextContent('Risk: Blocked')
+    expect(recordsRegion).toHaveTextContent('Anchors: Rival Containment')
+    expect(recordsRegion).toHaveTextContent('Restricted: Room, File, Gear, Housing, Mission')
     expect(screen.getByRole('link', { name: /back to operations desk/i })).toHaveAttribute(
       'href',
       '/'

@@ -6,6 +6,10 @@ import {
   type ReclassificationTransitionHistoryEntry,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import {
+  evaluateAffiliationDualLoyaltyRisk,
+  type AffiliationLoyaltyAnchor,
+} from '../../domain/affiliationDualLoyaltyRisk'
+import {
   evaluateAffiliationRevocationOutcome,
   type AffiliationRevocationCause,
   type AffiliationRevocationKind,
@@ -40,6 +44,7 @@ export interface EntityWelfareReclassificationMirrorRecordView {
   permissionDecisionLabels: readonly string[]
   accessOutcomeLabels: readonly string[]
   siteClearanceLabels: readonly string[]
+  dualLoyaltyRiskLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -65,6 +70,7 @@ const SENSITIVE_ACCESS_SURFACES: readonly EntityWelfarePermissionSurface[] = [
   'gear',
   'mission',
 ] as const
+const HOSTILE_PRIOR_LABEL_PATTERN = /\b(hostile|threat|predator|apex)\b/i
 
 export function formatEntityWelfareReclassificationEnumLabel(value: string): string {
   return value
@@ -228,6 +234,70 @@ function formatSiteClearanceLabels(record: EntityWelfareReclassificationRecord):
   return Object.freeze(labels)
 }
 
+function deriveDualLoyaltySecondaryAnchors(
+  record: EntityWelfareReclassificationRecord
+): readonly AffiliationLoyaltyAnchor[] {
+  const anchors: AffiliationLoyaltyAnchor[] = []
+
+  if (
+    record.proposedDisposition === 'medical' ||
+    record.reviewGate === 'veterinary' ||
+    record.reviewGate === 'psych'
+  ) {
+    anchors.push('medical')
+  }
+
+  if (
+    record.proposedDisposition === 'hostile' ||
+    HOSTILE_PRIOR_LABEL_PATTERN.test(record.priorThreatLabel)
+  ) {
+    anchors.push('rival_containment')
+  }
+
+  if (record.proposedDisposition === 'unknown') {
+    anchors.push('unknown')
+  }
+
+  return Object.freeze([...new Set(anchors)])
+}
+
+function formatDualLoyaltyRiskLabels(
+  record: EntityWelfareReclassificationRecord
+): readonly string[] {
+  const decision = evaluateAffiliationDualLoyaltyRisk({
+    subjectId: record.id,
+    subjectLabel: record.label,
+    primaryAnchor: 'agency',
+    secondaryAnchors: deriveDualLoyaltySecondaryAnchors(record),
+    onboardingDecision: buildReadOnlyOnboardingDecision(record),
+    siteClearanceDecision: selectSiteClearanceDecision(record),
+    affiliationRefs: [
+      ...(record.evidenceBundleRefs ?? []),
+      ...(record.containmentRevisionRefs ?? []),
+    ],
+  })
+
+  const labels = [
+    `Risk: ${decision.riskLevelLabel}`,
+    `Primary: ${decision.primaryAnchorLabel}`,
+    `Anchors: ${
+      decision.secondaryAnchorLabels.length > 0
+        ? decision.secondaryAnchorLabels.join(', ')
+        : 'Agency only'
+    }`,
+  ]
+
+  if (decision.restrictedSurfaceLabels.length > 0) {
+    labels.push(`Restricted: ${decision.restrictedSurfaceLabels.join(', ')}`)
+  }
+
+  if (decision.reasonCodes.length > 0) {
+    labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
+}
+
 function formatAccessOutcomeLabels(record: EntityWelfareReclassificationRecord): readonly string[] {
   if (record.reclassificationState === 'approved') {
     return Object.freeze(['Outcome: Unchanged', 'Trust: Trusted'])
@@ -312,6 +382,7 @@ function toRecordView(
     permissionDecisionLabels: formatPermissionDecisionLabels(record),
     accessOutcomeLabels: formatAccessOutcomeLabels(record),
     siteClearanceLabels: formatSiteClearanceLabels(record),
+    dualLoyaltyRiskLabels: formatDualLoyaltyRiskLabels(record),
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

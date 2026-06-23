@@ -107,6 +107,40 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
     )
   })
 
+  it('hydrates site-clearance routing blockers and drops unknown blocker strings', () => {
+    const state = createStartingState()
+    const missionId = 'case-001'
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['site-clearance:alpha'],
+      requiredRoles: [],
+    }
+    state.missionRouting = normalizeMissionRoutingState(state)
+    state.missionRouting = {
+      ...state.missionRouting!,
+      missions: {
+        ...state.missionRouting!.missions,
+        [missionId]: {
+          ...state.missionRouting!.missions[missionId]!,
+          routingState: 'blocked',
+          routingBlockers: [
+            'site-clearance-required',
+            'not-a-real-blocker',
+          ] as (typeof state.missionRouting.missions)[string]['routingBlockers'],
+        },
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).toContain(
+      'site-clearance-required'
+    )
+    expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).not.toContain(
+      'not-a-real-blocker'
+    )
+  })
+
   it('hydrates intake-linked triage through import parsing without clobbering player disposition', () => {
     const fallback = createStartingState()
     const mission = createStarterCase({

@@ -6,16 +6,17 @@ import { clamp } from './math'
 import { buildTeamNicheSummary, mapCoverageRolesToNiches } from './nicheIdentity'
 import { INTEL_CALIBRATION, DOWNTIME_CARRY_IN_CALIBRATION } from './sim/calibration'
 import { evaluateConstructionReadinessBurden } from './constructionProgress'
-import {
-  createDefaultFatigueChannels,
-  deriveFatigueChannelPenalties,
-} from './agentFatigueChannels'
+import { createDefaultFatigueChannels, deriveFatigueChannelPenalties } from './agentFatigueChannels'
 import {
   buildTeamCompositionState,
   buildTeamWeakestLinkSummary,
   validateTeamComposition,
 } from './teamComposition'
 import { getTeamAssignedCaseId, getTeamMemberIds } from './teamSimulation'
+import {
+  evaluateMissionSiteClearanceEnforcement,
+  isMissionSiteClearanceTag,
+} from './missionSiteClearanceEnforcement'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -43,7 +44,10 @@ function shouldApplyDeploymentCarryInReadiness(mission: CaseInstance | undefined
   return remaining === duration
 }
 
-function getTeamMembers(team: Pick<Team, 'memberIds' | 'agentIds'>, agentsById: GameState['agents']) {
+function getTeamMembers(
+  team: Pick<Team, 'memberIds' | 'agentIds'>,
+  agentsById: GameState['agents']
+) {
   return getTeamMemberIds(team)
     .map((agentId) => agentsById[agentId])
     .filter((agent): agent is Agent => Boolean(agent))
@@ -65,9 +69,7 @@ function buildMissionNicheSummary(
 }
 
 function uniqueSorted(values: string[]) {
-  return [...new Set(values.filter((value) => value.length > 0))].sort((a, b) =>
-    a.localeCompare(b)
-  )
+  return [...new Set(values.filter((value) => value.length > 0))].sort((a, b) => a.localeCompare(b))
 }
 
 function clampWeek(value: number) {
@@ -136,7 +138,9 @@ export function buildAgentDeploymentReadinessSnapshot(
   const certifications = agent.progression?.certifications ?? {}
   const certificationReadiness =
     requiredCertIds.length === 0 ||
-    requiredCertIds.every((certificationId) => certifications[certificationId]?.state === 'certified')
+    requiredCertIds.every(
+      (certificationId) => certifications[certificationId]?.state === 'certified'
+    )
       ? 'ready'
       : 'blocked'
 
@@ -183,7 +187,9 @@ export function buildMissionTimeCostSummary(
 
   const setupPenaltyFromBlockers = hardBlockers.includes('training-blocked')
     ? 1
-    : hardBlockers.includes('missing-certification') || hardBlockers.includes('invalid-loadout-gate')
+    : hardBlockers.includes('missing-certification') ||
+        hardBlockers.includes('invalid-loadout-gate') ||
+        hardBlockers.includes('site-clearance-required')
       ? 2
       : 0
   const setupPenaltyFromBudget = fundingPressure.deploymentSetupDelayWeeks
@@ -238,6 +244,7 @@ function deriveReadinessCategory(
       hardBlockers.includes('missing-coverage') ||
       hardBlockers.includes('missing-certification') ||
       hardBlockers.includes('invalid-loadout-gate') ||
+      hardBlockers.includes('site-clearance-required') ||
       hardBlockers.includes('team-state-incompatible')
     ) {
       return 'hard_blocked'
@@ -288,8 +295,7 @@ export function evaluateDeploymentEligibility(
     missionValidation.requiredRoles
   )
   const hasMissionNicheMismatch =
-    missionNicheSummary.missingNiches.length > 0 ||
-    missionNicheSummary.substituteNiches.length > 0
+    missionNicheSummary.missingNiches.length > 0 || missionNicheSummary.substituteNiches.length > 0
   const agentSnapshots = members.map((member) =>
     buildAgentDeploymentReadinessSnapshot(member, mission.requiredTags, state)
   )
@@ -305,9 +311,17 @@ export function evaluateDeploymentEligibility(
   const tagCoverage = new Set(
     members.flatMap((member) => member.tags.map((tag) => tag.trim()).filter(Boolean))
   )
+  const siteClearance = evaluateMissionSiteClearanceEnforcement({
+    mission,
+    team,
+    members,
+  })
 
   const missingRequiredTags = mission.requiredTags.filter(
-    (requiredTag) => !requiredTag.startsWith('cert:') && !tagCoverage.has(requiredTag)
+    (requiredTag) =>
+      !requiredTag.startsWith('cert:') &&
+      !isMissionSiteClearanceTag(requiredTag) &&
+      !tagCoverage.has(requiredTag)
   )
 
   const hardBlockers = uniqueSorted([
@@ -325,9 +339,8 @@ export function evaluateDeploymentEligibility(
     agentSnapshots.some((snapshot) => snapshot.availabilityState === 'training')
       ? 'training-blocked'
       : '',
-    missingRequiredTags.length > 0
-      ? 'invalid-loadout-gate'
-      : '',
+    missingRequiredTags.length > 0 ? 'invalid-loadout-gate' : '',
+    siteClearance.required && !siteClearance.allowed ? 'site-clearance-required' : '',
     agentSnapshots.some((snapshot) => snapshot.certificationReadiness === 'blocked')
       ? 'missing-certification'
       : '',
@@ -338,14 +351,14 @@ export function evaluateDeploymentEligibility(
     missionRoutingState === 'blocked' || missionRoutingState === 'deferred'
       ? 'routing-state-blocked'
       : '',
-    getTeamAssignedCaseId(team) &&
-    getTeamAssignedCaseId(team) !== missionId
+    getTeamAssignedCaseId(team) && getTeamAssignedCaseId(team) !== missionId
       ? 'capacity-locked'
       : '',
   ]) as DeploymentHardBlockerCode[]
 
   const softRisks = uniqueSorted([
-    composition.cohesion.cohesionBand === 'fragile' || composition.cohesion.cohesionBand === 'unstable'
+    composition.cohesion.cohesionBand === 'fragile' ||
+    composition.cohesion.cohesionBand === 'unstable'
       ? 'low-cohesion-band'
       : '',
     averageFatigue >= 55 ? 'high-fatigue-burden' : '',
@@ -383,6 +396,11 @@ export function evaluateDeploymentEligibility(
       `Budget pressure: ${fundingPressure.budgetPressure}/4 with ${fundingPressure.pendingProcurementRequestIds.length} pending procurement item(s).`,
       `Attrition pressure: ${attritionPressure.replacementPressure} replacement pressure, ${attritionPressure.staffingGap} staffing gap, ${attritionPressure.temporaryUnavailableCount} temporary absence(s).`,
       `Mission intel risk: ${missionIntelEffect.penalty}/${INTEL_CALIBRATION.deploymentPenaltyCap} (confidence ${missionIntelEffect.summary.confidence.toFixed(2)}, uncertainty ${missionIntelEffect.summary.uncertainty.toFixed(2)}, age ${missionIntelEffect.summary.age})`,
+      siteClearance.required
+        ? `Site clearance: ${
+            siteClearance.allowed ? 'allowed' : 'blocked'
+          } (${siteClearance.reasonCodes.join(', ') || 'no reasons'}).`
+        : '',
       missionNicheSummary.summaryLines[0] ?? '',
       missionNicheSummary.overlappingNiches.length > 0
         ? `Niche overlap: ${missionNicheSummary.overlappingNiches.join(', ')}.`
@@ -475,7 +493,8 @@ export function buildTeamDeploymentReadinessState(
       averageChannelPenalty -
       eligibility.hardBlockers.length * 12 -
       nonIntelSoftRiskCount * 6 +
-      ((composition?.requiredCoverageRoles.length ?? 0) - (composition?.missingRoles.length ?? 0)) * 8 -
+      ((composition?.requiredCoverageRoles.length ?? 0) - (composition?.missingRoles.length ?? 0)) *
+        8 -
       missionIntelEffect.penalty -
       constructionBurden +
       deploymentCarryInReadinessDelta,
@@ -506,7 +525,8 @@ export function buildTeamDeploymentReadinessState(
     minimumMemberReadiness,
     averageFatigue,
     estimatedDeployWeeks:
-      eligibility.timeCostSummary.expectedTravelWeeks + eligibility.timeCostSummary.expectedSetupWeeks,
+      eligibility.timeCostSummary.expectedTravelWeeks +
+      eligibility.timeCostSummary.expectedSetupWeeks,
     estimatedRecoveryWeeks: eligibility.timeCostSummary.expectedRecoveryWeeks,
     computedWeek: state.week,
   }

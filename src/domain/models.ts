@@ -3,6 +3,7 @@ export type DeploymentHardBlockerCode =
   | 'missing-coverage'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'site-clearance-required'
   | 'team-state-incompatible'
   | 'training-blocked'
   | 'recovery-required'
@@ -39,6 +40,7 @@ export type MissionRoutingBlockerCode =
   | 'training-blocked'
   | 'missing-certification'
   | 'invalid-loadout-gate'
+  | 'site-clearance-required'
   | 'fatigue-over-threshold'
   | 'team-state-incompatible'
   | 'recovery-required'
@@ -963,8 +965,7 @@ export const EXPEDITION_RECOVERY_MODES: readonly ExpeditionRecoveryMode[] = [
 
 export function isExpeditionRecoveryMode(value: unknown): value is ExpeditionRecoveryMode {
   return (
-    typeof value === 'string' &&
-    (EXPEDITION_RECOVERY_MODES as readonly string[]).includes(value)
+    typeof value === 'string' && (EXPEDITION_RECOVERY_MODES as readonly string[]).includes(value)
   )
 }
 

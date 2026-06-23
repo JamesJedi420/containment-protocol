@@ -176,6 +176,93 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.timeCostSummary?.expectedTotalWeeks).toBeGreaterThan(0)
   })
 
+  it('leaves existing missions without explicit clearance requirements unchanged', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const baseline = routeMission(state, missionId)
+
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      tags: [...state.cases[missionId].tags, 'site:packet:explicitly-not-clearance'],
+    }
+
+    const routed = routeMission(state, missionId)
+
+    expect(routed.routingState).toBe(baseline.routingState)
+    expect(routed.routingBlockers).not.toContain('site-clearance-required')
+    expect(routed.candidateTeamIds).toEqual(baseline.candidateTeamIds)
+  })
+
+  it('allows explicit site clearance through member grant tags', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: [...state.cases[missionId].requiredTags, 'site-clearance:alpha'],
+    }
+    state.agents[memberId] = {
+      ...state.agents[memberId],
+      tags: [...state.agents[memberId].tags, 'site-clearance:alpha'],
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).not.toContain('site-clearance-required')
+    expect(routed.candidateTeamIds).toContain(teamId)
+    expect(routed.routingBlockers).not.toContain('site-clearance-required')
+  })
+
+  it('blocks mission routing when explicit site clearance is missing', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['site-clearance:restricted-yard'],
+      requiredRoles: [],
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('site-clearance-required')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('site-clearance-required')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
+  it('allows explicit facility clearance through team grant tags only when facility matches', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const [grantedTeamId, missingTeamId] = Object.keys(state.teams)
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['facility-clearance:archive'],
+      requiredRoles: [],
+    }
+    state.teams[grantedTeamId!] = {
+      ...state.teams[grantedTeamId!]!,
+      tags: [...state.teams[grantedTeamId!]!.tags, 'facility-clearance:archive'],
+    }
+
+    const grantedEligibility = evaluateDeploymentEligibility(state, missionId, grantedTeamId!)
+    const missingEligibility = evaluateDeploymentEligibility(state, missionId, missingTeamId!)
+    const candidates = shortlistMissionCandidateTeams(state, missionId)
+    const routed = routeMission(state, missionId)
+
+    expect(grantedEligibility.hardBlockers).not.toContain('site-clearance-required')
+    expect(missingEligibility.hardBlockers).toContain('site-clearance-required')
+    expect(
+      candidates.find((candidate) => candidate.teamId === missingTeamId)?.blockerCodes
+    ).toContain('site-clearance-required')
+    expect(routed.candidateTeamIds).toContain(grantedTeamId)
+    expect(routed.candidateTeamIds).not.toContain(missingTeamId)
+  })
+
   it('requires explicit assignment action and preserves mission routing through save/load', () => {
     const state = createStartingState()
     const normalized = {

@@ -75,6 +75,24 @@ function siteClearanceRecord(
   }
 }
 
+function dualLoyaltyRecord(
+  id: string,
+  overrides: Partial<EntityWelfareReclassificationRecord> = {}
+): EntityWelfareReclassificationRecord {
+  return {
+    id,
+    label: `${id} dual loyalty`,
+    priorThreatLabel: 'routine-contact',
+    proposedDisposition: 'cooperative',
+    reclassificationState: 'approved',
+    reviewGate: 'ethics',
+    reviewArtifactRef: `review:${id}`,
+    evidenceBundleRefs: [`site:${id}`],
+    containmentRevisionRefs: [`facility:${id}`],
+    ...overrides,
+  }
+}
+
 describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
   it('returns empty mirror when entityWelfareReclassificationRecords map is empty', () => {
     const game = createStartingState()
@@ -304,6 +322,105 @@ describe('entityWelfareReclassificationMirrorView (SPE-2114 slice 4)', () => {
       'Site: Unscoped',
       'Site: Unscoped site',
       'Reasons: missing_site_or_facility_scope',
+    ])
+  })
+
+  it('surfaces read-only dual-loyalty risk labels for agency-only and medical overlaps', () => {
+    const cooperativeRecord = dualLoyaltyRecord('reclass:agency-only')
+    const medicalRecord = dualLoyaltyRecord('reclass:medical-overlap', {
+      proposedDisposition: 'medical',
+    })
+    const psychReviewRecord = dualLoyaltyRecord('reclass:psych-review-overlap', {
+      reviewGate: 'psych',
+    })
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [cooperativeRecord.id]: cooperativeRecord,
+      [medicalRecord.id]: medicalRecord,
+      [psychReviewRecord.id]: psychReviewRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const cooperative = view.records.find((record) => record.id === cooperativeRecord.id)
+    const medical = view.records.find((record) => record.id === medicalRecord.id)
+    const psychReview = view.records.find((record) => record.id === psychReviewRecord.id)
+
+    expect(cooperative?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: None',
+      'Primary: Agency',
+      'Anchors: Agency only',
+      'Reasons: no_dual_loyalty_risk, single_loyalty_anchor',
+    ])
+    expect(medical?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Blocked',
+      'Primary: Agency',
+      'Anchors: Medical',
+      'Restricted: Room, File, Gear, Housing, Mission',
+      'Reasons: benign_medical_overlap_watch, blocked_site_clearance',
+    ])
+    expect(psychReview?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Watch',
+      'Primary: Agency',
+      'Anchors: Medical',
+      'Reasons: benign_medical_overlap_watch',
+    ])
+  })
+
+  it('surfaces hostile and terminal-state overlays in dual-loyalty risk labels', () => {
+    const rivalPriorRecord = dualLoyaltyRecord('reclass:rival-prior-overlap', {
+      priorThreatLabel: 'apex contact',
+    })
+    const hostileRecord = dualLoyaltyRecord('reclass:hostile-overlap', {
+      proposedDisposition: 'hostile',
+    })
+    const deniedRecord = dualLoyaltyRecord('reclass:denied-hostile-overlap', {
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    })
+    const revertedRecord = dualLoyaltyRecord('reclass:reverted-overlap', {
+      reclassificationState: 'reverted',
+    })
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [rivalPriorRecord.id]: rivalPriorRecord,
+      [hostileRecord.id]: hostileRecord,
+      [deniedRecord.id]: deniedRecord,
+      [revertedRecord.id]: revertedRecord,
+    }
+
+    const view = getEntityWelfareReclassificationMirrorView(game)
+    const rivalPrior = view.records.find((record) => record.id === rivalPriorRecord.id)
+    const hostile = view.records.find((record) => record.id === hostileRecord.id)
+    const denied = view.records.find((record) => record.id === deniedRecord.id)
+    const reverted = view.records.find((record) => record.id === revertedRecord.id)
+
+    expect(rivalPrior?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Restricted',
+      'Primary: Agency',
+      'Anchors: Rival Containment',
+      'Restricted: File, Gear, Mission',
+      'Reasons: restricted_rival_containment_overlap',
+    ])
+    expect(hostile?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Blocked',
+      'Primary: Agency',
+      'Anchors: Rival Containment',
+      'Restricted: Room, File, Gear, Housing, Mission',
+      'Reasons: blocked_site_clearance, restricted_rival_containment_overlap',
+    ])
+    expect(denied?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Blocked',
+      'Primary: Agency',
+      'Anchors: Rival Containment',
+      'Restricted: Room, File, Gear, Housing, Mission',
+      'Reasons: blocked_site_clearance, lost_onboarding_blocked, restricted_rival_containment_overlap',
+    ])
+    expect(reverted?.dualLoyaltyRiskLabels).toEqual([
+      'Risk: Blocked',
+      'Primary: Agency',
+      'Anchors: Agency only',
+      'Restricted: Room, File, Gear, Housing, Mission',
+      'Reasons: blocked_site_clearance, lost_onboarding_blocked, single_loyalty_anchor',
     ])
   })
 })

@@ -25,6 +25,10 @@ import {
   evaluateMissionProtectedStatusEnforcement,
   isMissionProtectedStatusClearanceTag,
 } from './missionProtectedStatusEnforcement'
+import {
+  evaluateMissionRevocationEnforcement,
+  isMissionRevocationClearanceTag,
+} from './missionRevocationEnforcement'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -199,7 +203,8 @@ export function buildMissionTimeCostSummary(
         hardBlockers.includes('invalid-loadout-gate') ||
         hardBlockers.includes('site-clearance-required') ||
         hardBlockers.includes('dual-loyalty-restricted') ||
-        hardBlockers.includes('protected-status-restricted')
+        hardBlockers.includes('protected-status-restricted') ||
+        hardBlockers.includes('revocation-restricted')
       ? 2
       : 0
   const setupPenaltyFromBudget = fundingPressure.deploymentSetupDelayWeeks
@@ -257,6 +262,7 @@ function deriveReadinessCategory(
       hardBlockers.includes('site-clearance-required') ||
       hardBlockers.includes('dual-loyalty-restricted') ||
       hardBlockers.includes('protected-status-restricted') ||
+      hardBlockers.includes('revocation-restricted') ||
       hardBlockers.includes('team-state-incompatible')
     ) {
       return 'hard_blocked'
@@ -338,6 +344,11 @@ export function evaluateDeploymentEligibility(
     team,
     members,
   })
+  const revocation = evaluateMissionRevocationEnforcement({
+    mission,
+    team,
+    members,
+  })
 
   const missingRequiredTags = mission.requiredTags.filter(
     (requiredTag) =>
@@ -345,6 +356,7 @@ export function evaluateDeploymentEligibility(
       !isMissionSiteClearanceTag(requiredTag) &&
       !isMissionDualLoyaltyClearanceTag(requiredTag) &&
       !isMissionProtectedStatusClearanceTag(requiredTag) &&
+      !isMissionRevocationClearanceTag(requiredTag) &&
       !tagCoverage.has(requiredTag)
   )
 
@@ -367,6 +379,7 @@ export function evaluateDeploymentEligibility(
     siteClearance.required && !siteClearance.allowed ? 'site-clearance-required' : '',
     dualLoyalty.required && !dualLoyalty.allowed ? 'dual-loyalty-restricted' : '',
     protectedStatus.required && !protectedStatus.allowed ? 'protected-status-restricted' : '',
+    revocation.required && !revocation.allowed ? 'revocation-restricted' : '',
     agentSnapshots.some((snapshot) => snapshot.certificationReadiness === 'blocked')
       ? 'missing-certification'
       : '',
@@ -436,6 +449,11 @@ export function evaluateDeploymentEligibility(
         ? `Protected status: ${
             protectedStatus.allowed ? 'allowed' : 'blocked'
           } (${protectedStatus.reasonCodes.join(', ') || 'no reasons'}).`
+        : '',
+      revocation.required
+        ? `Revocation: ${
+            revocation.allowed ? 'allowed' : 'blocked'
+          } (${revocation.reasonCodes.join(', ') || 'no reasons'}).`
         : '',
       missionNicheSummary.summaryLines[0] ?? '',
       missionNicheSummary.overlappingNiches.length > 0

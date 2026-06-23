@@ -415,6 +415,54 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
   })
 
+  it('allows explicit revocation clearance when no active revocation evidence exists', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['revocation-clearance'],
+      requiredRoles: [],
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).not.toContain('revocation-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.candidateTeamIds).toContain(teamId)
+    expect(routed.routingBlockers).not.toContain('revocation-restricted')
+  })
+
+  it('blocks mission routing when explicit revocation review restricts mission access', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['revocation-clearance'],
+      requiredRoles: [],
+    }
+
+    for (const team of Object.values(state.teams)) {
+      team.tags = [
+        ...team.tags,
+        'revocation-kind:revocation',
+        'revocation-cause:site-breach',
+        'revocation-surface:mission',
+      ]
+    }
+
+    const teamId = Object.keys(state.teams)[0]!
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('revocation-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('revocation-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
   it('requires explicit assignment action and preserves mission routing through save/load', () => {
     const state = createStartingState()
     const normalized = {

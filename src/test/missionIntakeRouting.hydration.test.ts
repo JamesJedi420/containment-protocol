@@ -116,11 +116,19 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
         'site-clearance:alpha',
         'dual-loyalty-clearance',
         'protected-status-clearance',
+        'revocation-clearance',
       ],
       requiredRoles: [],
     }
     for (const team of Object.values(state.teams)) {
-      team.tags = [...team.tags, 'dual-loyalty:criminal', 'protected-status:minor']
+      team.tags = [
+        ...team.tags,
+        'dual-loyalty:criminal',
+        'protected-status:minor',
+        'revocation-kind:revocation',
+        'revocation-cause:site-breach',
+        'revocation-surface:mission',
+      ]
     }
     state.missionRouting = normalizeMissionRoutingState(state)
     state.missionRouting = {
@@ -134,6 +142,7 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
             'site-clearance-required',
             'dual-loyalty-restricted',
             'protected-status-restricted',
+            'revocation-restricted',
             'not-a-real-blocker',
           ] as (typeof state.missionRouting.missions)[string]['routingBlockers'],
         },
@@ -150,6 +159,9 @@ describe('mission intake routing hydration (SPE-854 parent slice 2)', () => {
     )
     expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).toContain(
       'protected-status-restricted'
+    )
+    expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).toContain(
+      'revocation-restricted'
     )
     expect(loaded.missionRouting?.missions[missionId]?.routingBlockers).not.toContain(
       'not-a-real-blocker'

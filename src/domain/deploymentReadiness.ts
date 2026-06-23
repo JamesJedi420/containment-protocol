@@ -17,6 +17,10 @@ import {
   evaluateMissionSiteClearanceEnforcement,
   isMissionSiteClearanceTag,
 } from './missionSiteClearanceEnforcement'
+import {
+  evaluateMissionDualLoyaltyEnforcement,
+  isMissionDualLoyaltyClearanceTag,
+} from './missionDualLoyaltyEnforcement'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -189,7 +193,8 @@ export function buildMissionTimeCostSummary(
     ? 1
     : hardBlockers.includes('missing-certification') ||
         hardBlockers.includes('invalid-loadout-gate') ||
-        hardBlockers.includes('site-clearance-required')
+        hardBlockers.includes('site-clearance-required') ||
+        hardBlockers.includes('dual-loyalty-restricted')
       ? 2
       : 0
   const setupPenaltyFromBudget = fundingPressure.deploymentSetupDelayWeeks
@@ -245,6 +250,7 @@ function deriveReadinessCategory(
       hardBlockers.includes('missing-certification') ||
       hardBlockers.includes('invalid-loadout-gate') ||
       hardBlockers.includes('site-clearance-required') ||
+      hardBlockers.includes('dual-loyalty-restricted') ||
       hardBlockers.includes('team-state-incompatible')
     ) {
       return 'hard_blocked'
@@ -316,11 +322,17 @@ export function evaluateDeploymentEligibility(
     team,
     members,
   })
+  const dualLoyalty = evaluateMissionDualLoyaltyEnforcement({
+    mission,
+    team,
+    members,
+  })
 
   const missingRequiredTags = mission.requiredTags.filter(
     (requiredTag) =>
       !requiredTag.startsWith('cert:') &&
       !isMissionSiteClearanceTag(requiredTag) &&
+      !isMissionDualLoyaltyClearanceTag(requiredTag) &&
       !tagCoverage.has(requiredTag)
   )
 
@@ -341,6 +353,7 @@ export function evaluateDeploymentEligibility(
       : '',
     missingRequiredTags.length > 0 ? 'invalid-loadout-gate' : '',
     siteClearance.required && !siteClearance.allowed ? 'site-clearance-required' : '',
+    dualLoyalty.required && !dualLoyalty.allowed ? 'dual-loyalty-restricted' : '',
     agentSnapshots.some((snapshot) => snapshot.certificationReadiness === 'blocked')
       ? 'missing-certification'
       : '',
@@ -400,6 +413,11 @@ export function evaluateDeploymentEligibility(
         ? `Site clearance: ${
             siteClearance.allowed ? 'allowed' : 'blocked'
           } (${siteClearance.reasonCodes.join(', ') || 'no reasons'}).`
+        : '',
+      dualLoyalty.required
+        ? `Dual loyalty: ${
+            dualLoyalty.allowed ? 'allowed' : 'blocked'
+          } (${dualLoyalty.reasonCodes.join(', ') || 'no reasons'}).`
         : '',
       missionNicheSummary.summaryLines[0] ?? '',
       missionNicheSummary.overlappingNiches.length > 0

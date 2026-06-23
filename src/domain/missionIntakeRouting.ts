@@ -533,6 +533,7 @@ const MISSION_ROUTING_BLOCKER_CODES = new Set<MissionRoutingBlockerCode>([
   'missing-certification',
   'invalid-loadout-gate',
   'site-clearance-required',
+  'dual-loyalty-restricted',
   'fatigue-over-threshold',
   'team-state-incompatible',
   'recovery-required',

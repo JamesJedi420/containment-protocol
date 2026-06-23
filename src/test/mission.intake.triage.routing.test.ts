@@ -349,6 +349,72 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
   })
 
+  it('leaves existing missions without explicit protected-status requirements unchanged', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const baseline = routeMission(state, missionId)
+
+    state.teams[teamId] = {
+      ...state.teams[teamId]!,
+      tags: [...state.teams[teamId]!.tags, 'protected-status:minor'],
+    }
+
+    const routed = routeMission(state, missionId)
+
+    expect(routed.routingState).toBe(baseline.routingState)
+    expect(routed.routingBlockers).not.toContain('protected-status-restricted')
+    expect(routed.candidateTeamIds).toEqual(baseline.candidateTeamIds)
+  })
+
+  it('allows explicit protected-status clearance for full staff teams', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['protected-status-clearance'],
+      requiredRoles: [],
+    }
+    state.agents[memberId] = {
+      ...state.agents[memberId],
+      tags: [...state.agents[memberId].tags, 'protected-status:full-staff'],
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).not.toContain('protected-status-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.candidateTeamIds).toContain(teamId)
+    expect(routed.routingBlockers).not.toContain('protected-status-restricted')
+  })
+
+  it('blocks mission routing when explicit protected-status review restricts assignment', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['protected-status-clearance'],
+      requiredRoles: [],
+    }
+
+    for (const team of Object.values(state.teams)) {
+      team.tags = [...team.tags, 'protected-status:minor']
+    }
+
+    const teamId = Object.keys(state.teams)[0]!
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('protected-status-restricted')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('protected-status-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
   it('requires explicit assignment action and preserves mission routing through save/load', () => {
     const state = createStartingState()
     const normalized = {

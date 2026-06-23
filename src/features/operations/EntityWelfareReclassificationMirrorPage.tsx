@@ -117,6 +117,9 @@ export default function EntityWelfareReclassificationMirrorPage() {
                     {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.dualLoyaltyColumn}
                   </th>
                   <th className="px-2 py-2">
+                    {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.protectedStatusColumn}
+                  </th>
+                  <th className="px-2 py-2">
                     {ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT.pressureColumn}
                   </th>
                   <th className="px-2 py-2">
@@ -175,6 +178,13 @@ export default function EntityWelfareReclassificationMirrorPage() {
                     </td>
                     <td className="px-2 py-2">
                       {record.dualLoyaltyRiskLabels.map((label) => (
+                        <p key={label} className="text-xs opacity-55">
+                          {label}
+                        </p>
+                      ))}
+                    </td>
+                    <td className="px-2 py-2">
+                      {record.protectedStatusActionLabels.map((label) => (
                         <p key={label} className="text-xs opacity-55">
                           {label}
                         </p>

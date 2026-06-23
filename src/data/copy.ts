@@ -1594,6 +1594,7 @@ export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, stri
   accessOutcomeColumn: 'Access outcome',
   siteClearanceColumn: 'Site clearance',
   dualLoyaltyColumn: 'Dual loyalty',
+  protectedStatusColumn: 'Protected status',
   pressureColumn: 'Reclassification pressure',
   reviewColumn: 'Evidence / history',
   confidenceColumn: 'Confidence',

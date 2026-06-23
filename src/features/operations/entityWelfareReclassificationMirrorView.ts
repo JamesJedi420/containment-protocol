@@ -7,8 +7,14 @@ import {
 } from '../../domain/entityWelfareReclassificationRegistry'
 import {
   evaluateAffiliationDualLoyaltyRisk,
+  type AffiliationDualLoyaltyDecision,
   type AffiliationLoyaltyAnchor,
 } from '../../domain/affiliationDualLoyaltyRisk'
+import {
+  evaluateAffiliationProtectedStatusAction,
+  type AffiliationProtectedAction,
+  type AffiliationProtectedStatus,
+} from '../../domain/affiliationProtectedStatusActions'
 import {
   evaluateAffiliationRevocationOutcome,
   type AffiliationRevocationCause,
@@ -45,6 +51,7 @@ export interface EntityWelfareReclassificationMirrorRecordView {
   accessOutcomeLabels: readonly string[]
   siteClearanceLabels: readonly string[]
   dualLoyaltyRiskLabels: readonly string[]
+  protectedStatusActionLabels: readonly string[]
   validationWarningLabels: readonly string[]
   confidenceLabel: string
   redacted: boolean
@@ -115,12 +122,10 @@ function formatTransitionHistoryLabel(entry: ReclassificationTransitionHistoryEn
 }
 
 function formatPermissionDecisionLabels(
-  record: EntityWelfareReclassificationRecord
+  decisions: readonly EntityWelfarePermissionDecision[]
 ): readonly string[] {
   return Object.freeze(
-    evaluateEntityWelfareStatusPermissionSet(record).map(
-      (decision) => `${decision.surfaceLabel}: ${decision.outcomeLabel}`
-    )
+    decisions.map((decision) => `${decision.surfaceLabel}: ${decision.outcomeLabel}`)
   )
 }
 
@@ -215,8 +220,7 @@ function selectSiteClearanceDecision(
   })
 }
 
-function formatSiteClearanceLabels(record: EntityWelfareReclassificationRecord): readonly string[] {
-  const decision = selectSiteClearanceDecision(record)
+function formatSiteClearanceLabels(decision: AffiliationSiteClearanceDecision): readonly string[] {
   const labels = [
     `${decision.surfaceLabel}: ${decision.outcomeLabel}`,
     `${decision.boundaryLabel}: ${decision.siteSpecific ? 'Scoped' : 'Unscoped'}`,
@@ -261,10 +265,10 @@ function deriveDualLoyaltySecondaryAnchors(
   return Object.freeze([...new Set(anchors)])
 }
 
-function formatDualLoyaltyRiskLabels(
+function selectDualLoyaltyDecision(
   record: EntityWelfareReclassificationRecord
-): readonly string[] {
-  const decision = evaluateAffiliationDualLoyaltyRisk({
+): AffiliationDualLoyaltyDecision {
+  return evaluateAffiliationDualLoyaltyRisk({
     subjectId: record.id,
     subjectLabel: record.label,
     primaryAnchor: 'agency',
@@ -276,7 +280,9 @@ function formatDualLoyaltyRiskLabels(
       ...(record.containmentRevisionRefs ?? []),
     ],
   })
+}
 
+function formatDualLoyaltyRiskLabels(decision: AffiliationDualLoyaltyDecision): readonly string[] {
   const labels = [
     `Risk: ${decision.riskLevelLabel}`,
     `Primary: ${decision.primaryAnchorLabel}`,
@@ -289,6 +295,96 @@ function formatDualLoyaltyRiskLabels(
 
   if (decision.restrictedSurfaceLabels.length > 0) {
     labels.push(`Restricted: ${decision.restrictedSurfaceLabels.join(', ')}`)
+  }
+
+  if (decision.reasonCodes.length > 0) {
+    labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
+}
+
+function selectProtectedStatusProjection(record: EntityWelfareReclassificationRecord): {
+  protectedStatus: AffiliationProtectedStatus
+  action: AffiliationProtectedAction
+  careDutyActive?: boolean
+  dueProcessRequired?: boolean
+} {
+  if (
+    record.proposedDisposition === 'medical' ||
+    record.reviewGate === 'psych' ||
+    record.reviewGate === 'veterinary'
+  ) {
+    return {
+      protectedStatus: 'patient',
+      action: 'assign_housing',
+      careDutyActive: record.reclassificationState === 'approved',
+    }
+  }
+
+  if (record.proposedDisposition === 'sapient_remains') {
+    return { protectedStatus: 'sapient_remains', action: 'disclose_identity' }
+  }
+
+  if (record.proposedDisposition === 'hostile') {
+    return { protectedStatus: 'detainee', action: 'release', dueProcessRequired: true }
+  }
+
+  if (record.proposedDisposition === 'cooperative') {
+    return {
+      protectedStatus:
+        record.reclassificationState === 'approved' ? 'full_staff' : 'probationary_staff',
+      action: 'grant_file_access',
+    }
+  }
+
+  return { protectedStatus: 'unknown', action: 'assign_mission' }
+}
+
+function formatProtectedStatusActionLabels(
+  record: EntityWelfareReclassificationRecord,
+  permissionDecisions: readonly EntityWelfarePermissionDecision[],
+  siteClearanceDecision: AffiliationSiteClearanceDecision,
+  dualLoyaltyDecision: AffiliationDualLoyaltyDecision
+): readonly string[] {
+  const projection = selectProtectedStatusProjection(record)
+  const actionSurface =
+    projection.action === 'grant_file_access'
+      ? 'file'
+      : projection.action === 'grant_gear_access'
+        ? 'gear'
+        : projection.action === 'grant_room_access'
+          ? 'room'
+          : projection.action === 'assign_housing'
+            ? 'housing'
+            : projection.action === 'assign_mission'
+              ? 'mission'
+              : undefined
+  const permissionDecision = actionSurface
+    ? permissionDecisions.find((decision) => decision.surface === actionSurface)
+    : selectRelevantPermissionDecision(permissionDecisions, ENTITY_WELFARE_PERMISSION_SURFACES)
+  const decision = evaluateAffiliationProtectedStatusAction({
+    subjectId: record.id,
+    subjectLabel: record.label,
+    protectedStatus: projection.protectedStatus,
+    action: projection.action,
+    careDutyActive: projection.careDutyActive,
+    dueProcessRequired: projection.dueProcessRequired,
+    reviewEvidenceRefs: record.reviewArtifactRef ? [record.reviewArtifactRef] : [],
+    permissionDecision,
+    onboardingDecision: buildReadOnlyOnboardingDecision(record),
+    siteClearanceDecision,
+    dualLoyaltyDecision,
+  })
+
+  const labels = [`Status: ${decision.protectedStatusLabel}`, decision.decisionLabel]
+
+  if (decision.restrictedSurfaceLabels.length > 0) {
+    labels.push(`Restricted: ${decision.restrictedSurfaceLabels.join(', ')}`)
+  }
+
+  if (decision.requiredReviewGates.length > 0) {
+    labels.push(`Review: ${decision.requiredReviewGates.join(', ')}`)
   }
 
   if (decision.reasonCodes.length > 0) {
@@ -349,6 +445,9 @@ function toRecordView(
 ): EntityWelfareReclassificationMirrorRecordView {
   const projection = projectReclassificationPressure(record)
   const validation = validateEntityWelfareReclassificationRecord(record)
+  const permissionDecisions = evaluateEntityWelfareStatusPermissionSet(record)
+  const siteClearanceDecision = selectSiteClearanceDecision(record)
+  const dualLoyaltyDecision = selectDualLoyaltyDecision(record)
 
   const validationWarningLabels = Object.freeze(
     validation.issues.filter((issue) => issue.severity === 'warning').map((issue) => issue.detail)
@@ -379,10 +478,16 @@ function toRecordView(
     transitionHistoryLabels: Object.freeze(
       (record.transitionHistory ?? []).map((entry) => formatTransitionHistoryLabel(entry))
     ),
-    permissionDecisionLabels: formatPermissionDecisionLabels(record),
+    permissionDecisionLabels: formatPermissionDecisionLabels(permissionDecisions),
     accessOutcomeLabels: formatAccessOutcomeLabels(record),
-    siteClearanceLabels: formatSiteClearanceLabels(record),
-    dualLoyaltyRiskLabels: formatDualLoyaltyRiskLabels(record),
+    siteClearanceLabels: formatSiteClearanceLabels(siteClearanceDecision),
+    dualLoyaltyRiskLabels: formatDualLoyaltyRiskLabels(dualLoyaltyDecision),
+    protectedStatusActionLabels: formatProtectedStatusActionLabels(
+      record,
+      permissionDecisions,
+      siteClearanceDecision,
+      dualLoyaltyDecision
+    ),
     validationWarningLabels,
     confidenceLabel: formatConfidence(projection.confidence),
     redacted: projection.redacted,

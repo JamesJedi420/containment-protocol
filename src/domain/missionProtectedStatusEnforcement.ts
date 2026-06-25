@@ -4,6 +4,7 @@ import {
   type AffiliationProtectedActionDecision,
   type AffiliationProtectedStatus,
 } from './affiliationProtectedStatusActions'
+import type { AffiliationPersonStatusMissionRoutingEvidenceEntry } from './affiliationPersonStatusMissionRoutingEvidence'
 import type { Agent, CaseInstance, Team } from './models'
 
 const PROTECTED_STATUS_REQUIREMENT_TAG = 'protected-status-clearance'
@@ -68,10 +69,25 @@ function collectReviewEvidenceRefs(tags: readonly string[]) {
   )
 }
 
+function hasProtectedStatusEvidence(tags: readonly string[]) {
+  return tags.some((tag) => {
+    const normalized = normalizeToken(tag)
+    return (
+      normalized.startsWith(PROTECTED_STATUS_PREFIX) ||
+      normalized.startsWith(PROTECTED_REVIEW_PREFIX) ||
+      normalized === 'protected-minor' ||
+      normalized === 'protected-medical-hold' ||
+      normalized === 'protected-care-duty-active' ||
+      normalized === 'protected-due-process-required'
+    )
+  })
+}
+
 export function evaluateMissionProtectedStatusEnforcement(input: {
   readonly mission: Pick<CaseInstance, 'requiredTags'>
   readonly team: Pick<Team, 'id' | 'name' | 'tags'>
   readonly members: readonly Pick<Agent, 'tags'>[]
+  readonly durableEvidence?: readonly AffiliationPersonStatusMissionRoutingEvidenceEntry[]
 }): MissionProtectedStatusEnforcementResult {
   if (!missionRequiresProtectedStatusClearance(input.mission)) {
     return Object.freeze({
@@ -86,20 +102,26 @@ export function evaluateMissionProtectedStatusEnforcement(input: {
   const statuses = collectProtectedStatuses(tags)
   const reviewEvidenceRefs = collectReviewEvidenceRefs(tags)
   const hasFlag = (flag: string) => tags.some((tag) => normalizeToken(tag) === flag)
-  const candidateStatuses = statuses.length > 0 ? statuses : (['unknown'] as const)
-  const decisions = candidateStatuses.map((protectedStatus) =>
-    evaluateAffiliationProtectedStatusAction({
-      subjectId: input.team.id,
-      subjectLabel: input.team.name,
-      protectedStatus,
-      action: 'assign_mission',
-      minor: hasFlag('protected-minor'),
-      medicalHold: hasFlag('protected-medical-hold'),
-      careDutyActive: hasFlag('protected-care-duty-active'),
-      dueProcessRequired: hasFlag('protected-due-process-required'),
-      reviewEvidenceRefs,
-    })
+  const durableDecisions = (input.durableEvidence ?? []).map(
+    (entry) => entry.snapshot.protectedActionDecision
   )
+  const shouldUseTagEvidence = hasProtectedStatusEvidence(tags) || durableDecisions.length === 0
+  const tagDecisions = shouldUseTagEvidence
+    ? (statuses.length > 0 ? statuses : (['unknown'] as const)).map((protectedStatus) =>
+        evaluateAffiliationProtectedStatusAction({
+          subjectId: input.team.id,
+          subjectLabel: input.team.name,
+          protectedStatus,
+          action: 'assign_mission',
+          minor: hasFlag('protected-minor'),
+          medicalHold: hasFlag('protected-medical-hold'),
+          careDutyActive: hasFlag('protected-care-duty-active'),
+          dueProcessRequired: hasFlag('protected-due-process-required'),
+          reviewEvidenceRefs,
+        })
+      )
+    : []
+  const decisions = [...tagDecisions, ...durableDecisions]
 
   return Object.freeze({
     required: true,

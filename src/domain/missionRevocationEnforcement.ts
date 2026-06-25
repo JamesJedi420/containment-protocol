@@ -10,6 +10,7 @@ import {
 } from './affiliationRevocationOutcomes'
 import { ENTITY_WELFARE_PERMISSION_SURFACES } from './entityWelfareStatusPermissions'
 import type { EntityWelfarePermissionSurface } from './entityWelfareStatusPermissions'
+import type { AffiliationPersonStatusMissionRoutingEvidenceEntry } from './affiliationPersonStatusMissionRoutingEvidence'
 import type { Agent, CaseInstance, Team } from './models'
 
 const REVOCATION_REQUIREMENT_TAG = 'revocation-clearance'
@@ -138,6 +139,7 @@ export function evaluateMissionRevocationEnforcement(input: {
   readonly mission: Pick<CaseInstance, 'requiredTags'>
   readonly team: Pick<Team, 'id' | 'name' | 'tags'>
   readonly members: readonly Pick<Agent, 'tags'>[]
+  readonly durableEvidence?: readonly AffiliationPersonStatusMissionRoutingEvidenceEntry[]
 }): MissionRevocationEnforcementResult {
   if (!missionRequiresRevocationClearance(input.mission)) {
     return Object.freeze({
@@ -150,8 +152,16 @@ export function evaluateMissionRevocationEnforcement(input: {
 
   const tags = [...input.team.tags, ...input.members.flatMap((member) => member.tags)]
   const revocationKinds = collectRevocationKinds(tags)
+  const durableDecisions = (input.durableEvidence ?? [])
+    .map((entry) => entry.snapshot.revocationDecision)
+    .filter(
+      (decision) =>
+        decision.kind !== 'unknown' ||
+        decision.outcome !== 'unchanged' ||
+        decision.reviewEvidenceRefs.length > 0
+    )
 
-  if (revocationKinds.length === 0) {
+  if (revocationKinds.length === 0 && durableDecisions.length === 0) {
     return Object.freeze({
       required: true,
       allowed: true,
@@ -164,7 +174,7 @@ export function evaluateMissionRevocationEnforcement(input: {
   const affectedSurfaces = collectAffectedSurfaces(tags)
   const priorTrustBand = collectPriorTrust(tags)
   const reviewEvidenceRefs = collectReviewEvidenceRefs(tags)
-  const decisions = revocationKinds.map((kind) =>
+  const tagDecisions = revocationKinds.map((kind) =>
     evaluateAffiliationRevocationOutcome({
       subjectId: input.team.id,
       subjectLabel: input.team.name,
@@ -175,6 +185,7 @@ export function evaluateMissionRevocationEnforcement(input: {
       reviewEvidenceRefs,
     } satisfies AffiliationRevocationOutcomeInput)
   )
+  const decisions = [...tagDecisions, ...durableDecisions]
 
   return Object.freeze({
     required: true,

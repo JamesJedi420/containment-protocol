@@ -22,6 +22,7 @@ import { FUNDING_CALIBRATION } from '../domain/sim/calibration'
 import { getProcurementScreenView, getMarketListings } from '../features/market/marketView'
 import { assessFactionFavorExchangeProcurement } from '../domain/market'
 import { queueFabrication } from '../domain/sim/production'
+import type { EntityWelfareReclassificationRecord } from '../domain/entityWelfareReclassificationRegistry'
 
 describe('market procurement simulation', () => {
   function createDiscountedMarketState() {
@@ -33,6 +34,33 @@ describe('market procurement simulation', () => {
         ...state.market,
         pressure: 'discounted' as const,
       },
+    }
+  }
+
+  function createClearedMarketState() {
+    const state = createStartingState()
+
+    return {
+      ...state,
+      clearanceLevel: 2,
+      agency: state.agency ? { ...state.agency, clearanceLevel: 2 } : state.agency,
+    }
+  }
+
+  function createGearPermissionRecord(
+    overrides: Partial<EntityWelfareReclassificationRecord> = {}
+  ): EntityWelfareReclassificationRecord {
+    return {
+      id: 'reclass:procurement-gear-permission',
+      label: 'Procurement gear permission',
+      priorThreatLabel: 'procurement-review',
+      proposedDisposition: 'cooperative',
+      reclassificationState: 'approved',
+      reviewGate: 'ethics',
+      reviewArtifactRef: 'review:procurement-gear-permission',
+      evidenceBundleRefs: ['evidence:procurement-gear-permission'],
+      containmentRevisionRefs: ['revision:procurement-gear-permission'],
+      ...overrides,
     }
   }
 
@@ -233,19 +261,39 @@ describe('market procurement simulation', () => {
     expect(result).toBe(state)
   })
 
-  it('allows a restricted acquisition class after clearance unlocks its channel', () => {
-    const state = createStartingState()
-    const clearedState = {
-      ...state,
-      clearanceLevel: 2,
-      agency: state.agency ? { ...state.agency, clearanceLevel: 2 } : state.agency,
+  it('keeps restricted procurement blocked before SPE-1046 gear permission can matter when clearance is missing', () => {
+    const state = {
+      ...createStartingState(),
+      entityWelfareReclassificationRecords: {},
     }
+    const restrictedListing = getProcurementListings(state).find(
+      (candidate) => candidate.itemId === 'advanced_recon_suite'
+    )
+
+    expect(restrictedListing).toBeDefined()
+    expect(restrictedListing!.acquisitionClass).toBe('restricted')
+    expect(restrictedListing!.accessAvailable).toBe(false)
+    expect(restrictedListing!.accessBlockedReason).toMatch(/requires clearance 2/i)
+    expect(restrictedListing!.accessDetails).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/SPE-1046 gear permission has no restrictive record/i),
+      ])
+    )
+  })
+
+  it('allows a restricted acquisition class after clearance unlocks its channel', () => {
+    const clearedState = createClearedMarketState()
     const restrictedListing = getProcurementListings(clearedState).find(
       (candidate) => candidate.itemId === 'advanced_recon_suite'
     )
 
     expect(restrictedListing).toBeDefined()
     expect(restrictedListing!.accessAvailable).toBe(true)
+    expect(restrictedListing!.accessDetails).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/SPE-1046 gear permission has no restrictive record/i),
+      ])
+    )
 
     const result = purchaseMarketInventory(clearedState, restrictedListing!.id, 1)
 
@@ -253,6 +301,92 @@ describe('market procurement simulation', () => {
     expect(result.inventory.advanced_recon_suite).toBe(
       (clearedState.inventory.advanced_recon_suite ?? 0) + restrictedListing!.bundleQuantity
     )
+  })
+
+  it.each([
+    ['restricted', createGearPermissionRecord()],
+    [
+      'blocked',
+      createGearPermissionRecord({
+        proposedDisposition: 'medical',
+        id: 'reclass:medical-gear-block',
+        label: 'Medical gear block',
+      }),
+    ],
+  ] as const)(
+    'keeps restricted procurement unavailable when SPE-1046 gear permission is %s',
+    (_outcome, record) => {
+      const clearedState = {
+        ...createClearedMarketState(),
+        entityWelfareReclassificationRecords: {
+          [record.id]: record,
+        },
+      }
+      const restrictedListing = getProcurementListings(clearedState).find(
+        (candidate) => candidate.itemId === 'advanced_recon_suite'
+      )
+
+      expect(restrictedListing).toBeDefined()
+      expect(clearedState.funding).toBeGreaterThanOrEqual(restrictedListing!.buyPrice)
+      expect(restrictedListing!.accessAvailable).toBe(false)
+      expect(restrictedListing!.accessBlockedReason).toMatch(/SPE-1046 gear access blocked/i)
+      expect(restrictedListing!.accessDetails).toEqual(
+        expect.arrayContaining([expect.stringMatching(/gear permission/i)])
+      )
+      expect(purchaseMarketInventory(clearedState, restrictedListing!.id, 1)).toBe(clearedState)
+    }
+  )
+
+  it('surfaces SPE-1046 gear blockers in procurement view details while keeping budget separate', () => {
+    const record = createGearPermissionRecord({
+      id: 'reclass:procurement-gear-restricted',
+      label: 'Procurement gear restricted',
+    })
+    const clearedState = {
+      ...createClearedMarketState(),
+      funding: 9999,
+      agency: {
+        ...createClearedMarketState().agency!,
+        clearanceLevel: 2,
+        funding: 9999,
+      },
+      entityWelfareReclassificationRecords: {
+        [record.id]: record,
+      },
+    }
+    const screen = getProcurementScreenView(
+      clearedState,
+      { q: 'advanced recon', category: 'all', sort: 'recommended' },
+      'gear:advanced_recon_suite'
+    )
+
+    expect(screen.selectedDetail).toBeDefined()
+    expect(screen.selectedDetail!.blockerDetails).toEqual(
+      expect.arrayContaining([expect.stringMatching(/SPE-1046 gear access blocked/i)])
+    )
+    expect(screen.selectedDetail!.acquisitionDetails).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Procurement gear restricted/i)])
+    )
+    expect(screen.selectedDetail!.budgetPreviews[0]).toMatchObject({
+      affordable: false,
+      fundingAfterLabel: '$9999',
+      blockedReason: expect.stringMatching(/SPE-1046 gear access blocked/i),
+    })
+
+    const standardListing = getMarketListings({
+      ...clearedState,
+      funding: 0,
+      agency: {
+        ...clearedState.agency!,
+        funding: 0,
+      },
+      entityWelfareReclassificationRecords: {},
+    }).find((candidate) => candidate.id === 'med-kits')
+
+    expect(standardListing).toBeDefined()
+    expect(standardListing!.accessAvailable).toBe(true)
+    expect(standardListing!.budgetBlockedReason).toMatch(/Need \+\$/i)
+    expect(standardListing!.buyBlockedReason).toBe(standardListing!.budgetBlockedReason)
   })
 
   it('applies market packet boundary effects to equipment listings', () => {
@@ -681,9 +815,7 @@ describe('delayed supplier fulfillment (SPE-2319)', () => {
       (state.inventory.field_plate ?? 0) + listing.bundleQuantity
     )
     expect(ordered.funding).toBe(fundingAfterOrder)
-    const orderExpenseEntries = getCanonicalFundingState(
-      afterSecondClose
-    ).fundingHistory.filter(
+    const orderExpenseEntries = getCanonicalFundingState(afterSecondClose).fundingHistory.filter(
       (entry) => entry.reason === 'market_transaction' && entry.delta < 0
     )
     expect(orderExpenseEntries).toHaveLength(1)
@@ -700,7 +832,9 @@ describe('delayed supplier fulfillment (SPE-2319)', () => {
 describe('market view delayed procurement (SPE-2319)', () => {
   it('shows order CTA and backlog ETA for delayed field plate listing', () => {
     const state = createStartingState()
-    const listing = getMarketListings(state).find((candidate) => candidate.id === 'gear:field_plate')
+    const listing = getMarketListings(state).find(
+      (candidate) => candidate.id === 'gear:field_plate'
+    )
 
     expect(listing).toBeDefined()
     expect(listing!.canBuyOne).toBe(false)
@@ -709,7 +843,11 @@ describe('market view delayed procurement (SPE-2319)', () => {
     expect(listing!.buyBlockedReason).toMatch(/instant exchange unavailable/i)
 
     const ordered = placeDelayedMarketOrder(state, 'gear:field_plate', 1)
-    const screen = getProcurementScreenView(ordered, { q: '', category: 'all', sort: 'recommended' })
+    const screen = getProcurementScreenView(ordered, {
+      q: '',
+      category: 'all',
+      sort: 'recommended',
+    })
 
     expect(screen.backlogRows).toHaveLength(1)
     expect(screen.backlogRows[0]?.detail).toMatch(/ETA week/)
@@ -740,7 +878,9 @@ describe('faction favor exchange (SPE-28)', () => {
     const cashAttempt = purchaseMarketInventory(state, listingId, 1)
 
     expect(cashAttempt.funding).toBe(state.funding)
-    expect(cashAttempt.inventory.containment_staff ?? 0).toBe(state.inventory.containment_staff ?? 0)
+    expect(cashAttempt.inventory.containment_staff ?? 0).toBe(
+      state.inventory.containment_staff ?? 0
+    )
   })
 
   it('redeems open corporate_supply salvage favor without spending funding', () => {

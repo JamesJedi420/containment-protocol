@@ -23,6 +23,7 @@ import {
   type ProcurementCorruptionRoutingReason,
 } from './sim/compromisedAuthority'
 import { FUNDING_CALIBRATION } from './sim/calibration'
+import { assessProcurementGearAccess } from './procurementGearAccess'
 
 export type ProcurementTransactionAction =
   | 'buy'
@@ -654,13 +655,23 @@ function assessProcurementAccess(
     accessDetails.push(obligationAssessment.detail)
   }
 
+  const gearAccess = assessProcurementGearAccess({
+    listingId: definition.id,
+    itemName: definition.itemName,
+    acquisitionClass: rule.acquisitionClass,
+    entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
+  })
+
+  accessDetails.push(...gearAccess.details)
+
   const clearanceBlocked =
     typeof rule.requiredClearanceLevel === 'number' && clearanceLevel < rule.requiredClearanceLevel
   const accessBlockedReason = clearanceBlocked
     ? `${rule.accessLabel} locked: requires clearance ${rule.requiredClearanceLevel}; current clearance ${clearanceLevel}.`
-    : marketPacket.blockedReason
+    : (marketPacket.blockedReason ?? gearAccess.blockedReason)
   const cashPurchaseAllowed = rule.accessChannel !== 'faction_favor_exchange'
-  const channelAvailable = marketPacket.available && accessBlockedReason === undefined
+  const channelAvailable =
+    marketPacket.available && gearAccess.available && accessBlockedReason === undefined
 
   return {
     acquisitionClass: rule.acquisitionClass,
@@ -1108,10 +1119,7 @@ export function assessProcurementShortagePressure(
       entry.status === 'pending' &&
       game.week - entry.requestedWeek > FUNDING_CALIBRATION.budgetPressure.staleBacklogWeeks
   )
-  if (
-    fundingState.budgetPressure >= cal.budgetPressureThreshold ||
-    staleProcurementBacklog
-  ) {
+  if (fundingState.budgetPressure >= cal.budgetPressureThreshold || staleProcurementBacklog) {
     reasons.push('funding-strain')
   }
 
@@ -1137,15 +1145,10 @@ export function applyShortagePressureToBundleAvailability(
     return bundleAvailability
   }
 
-  return Math.max(
-    cal.minBundles,
-    bundleAvailability - cal.availabilityPenaltyBundles
-  )
+  return Math.max(cal.minBundles, bundleAvailability - cal.availabilityPenaltyBundles)
 }
 
-export function assessProcurementCorruptionRouting(
-  game: Pick<GameState, 'compromisedAuthority'>
-) {
+export function assessProcurementCorruptionRouting(game: Pick<GameState, 'compromisedAuthority'>) {
   return assessCompromisedAuthorityProcurementDiversion(game)
 }
 
@@ -1165,10 +1168,7 @@ export function applyCorruptionRoutingToBundleAvailability(
     return bundleAvailability
   }
 
-  return Math.max(
-    cal.minBundles,
-    bundleAvailability - cal.availabilityPenaltyBundles
-  )
+  return Math.max(cal.minBundles, bundleAvailability - cal.availabilityPenaltyBundles)
 }
 
 function getBaseAvailability(
@@ -1456,8 +1456,14 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function sanitizeMarketInteger(value: number | undefined, fallback: number, min: number, max?: number) {
-  const finiteValue = typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
+function sanitizeMarketInteger(
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max?: number
+) {
+  const finiteValue =
+    typeof value === 'number' && Number.isFinite(value) ? Math.trunc(value) : fallback
   const boundedMin = Math.max(min, finiteValue)
 
   if (typeof max === 'number') {
@@ -1480,8 +1486,7 @@ function sanitizeMarketDecimal(
 
 function isMarketPressure(value: unknown): value is MarketPressure {
   return (
-    typeof value === 'string' &&
-    (PERSISTED_MARKET_PRESSURES as readonly string[]).includes(value)
+    typeof value === 'string' && (PERSISTED_MARKET_PRESSURES as readonly string[]).includes(value)
   )
 }
 

@@ -57,7 +57,12 @@ import { projectInfiltrationPendingEncounterAttention } from '../../domain/infil
 import { projectStrategicActionBudget } from '../../domain/strategicActionBudgetProjection'
 
 export type FrontDeskNoticeTone = 'info' | 'warning' | 'danger' | 'success'
-export type FrontDeskNoticeActionTarget = 'report' | 'cases' | 'recruitment' | 'factions' | 'disclosure'
+export type FrontDeskNoticeActionTarget =
+  | 'report'
+  | 'cases'
+  | 'recruitment'
+  | 'factions'
+  | 'disclosure'
 
 const MAX_QUEUE_DETAILS = 3
 const MAX_RECENT_ITEMS = 3
@@ -915,8 +920,7 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
     {
       label: 'Open population emergence mirror',
       href: APP_ROUTES.massAnomalousPopulationEmergence,
-      description:
-        'Review registration backlog, triage lanes, and governance-surge projections.',
+      description: 'Review registration backlog, triage lanes, and governance-surge projections.',
     },
     {
       label: 'Open visual trigger hazard mirror',
@@ -929,6 +933,12 @@ function buildQuickLinks(game: GameState): FrontDeskQuickLinkView[] {
       href: APP_ROUTES.entityWelfareReclassification,
       description:
         'Review disposition review posture, reclassification pressure forecasts, and pending vs terminal states.',
+    },
+    {
+      label: 'Open affiliation person-status mirror',
+      href: APP_ROUTES.affiliationPersonStatus,
+      description:
+        'Review durable person-status evidence, status permissions, and composed clearance outcomes.',
     },
     {
       label: 'Open contained person therapeutic care mirror',
@@ -1304,7 +1314,8 @@ function buildAttentionItems(
     ? `${disclosureTrustOutcome.frontDeskAttentionSummary} ${disclosureSegmentedTrust.frontDeskDivergenceSummary}`
     : disclosureTrustOutcome.frontDeskAttentionSummary
   const disclosureAttentionTone =
-    disclosureSegmentedTrust.frontDeskDivergenceTone ?? disclosureTrustOutcome.frontDeskAttentionTone
+    disclosureSegmentedTrust.frontDeskDivergenceTone ??
+    disclosureTrustOutcome.frontDeskAttentionTone
   const disclosureAttention =
     disclosureTrustOutcome.activeCampaignCount > 0
       ? [
@@ -1773,7 +1784,11 @@ const TAG_CONFLICT_GROUPS: ReadonlyArray<{
   label: string
   tags: readonly string[]
 }> = [
-  { id: 'authority', label: 'Authority', tags: ['authority', 'police', 'government', 'institution'] },
+  {
+    id: 'authority',
+    label: 'Authority',
+    tags: ['authority', 'police', 'government', 'institution'],
+  },
   { id: 'criminal', label: 'Criminal', tags: ['criminal', 'smuggling', 'gang', 'blackmarket'] },
   { id: 'occult', label: 'Occult', tags: ['occult', 'cult', 'ritual', 'esoteric'] },
   { id: 'civilian', label: 'Civilian', tags: ['civilian', 'public', 'community', 'witness'] },
@@ -1824,7 +1839,8 @@ function buildTagConflictValueStreamOpportunityCardFromCandidate(
     label: stream.label,
     score: stream.tags.filter((tag) => mergedTags.includes(tag)).length,
   })).sort((left, right) => right.score - left.score || left.label.localeCompare(right.label))
-  const valueStreamLabel = scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
+  const valueStreamLabel =
+    scoredStreams[0]!.score > 0 ? scoredStreams[0]!.label : 'Evidence quality'
 
   return {
     id: 'tag-conflict-value-stream',
@@ -1859,7 +1875,11 @@ export function buildStrategicActionBudgetOpportunityCard(
   const tone: FrontDeskNoticeTone =
     projection.deficit >= 2 || projection.totalBudget === 0 ? 'danger' : 'warning'
   const severityLabel =
-    projection.totalBudget === 0 ? 'Budget exhausted' : projection.deficit >= 2 ? 'Severe shortfall' : 'Constrained'
+    projection.totalBudget === 0
+      ? 'Budget exhausted'
+      : projection.deficit >= 2
+        ? 'Severe shortfall'
+        : 'Constrained'
 
   return {
     id: 'strategic-action-budget',
@@ -1891,7 +1911,9 @@ export function buildStrategicActionBudgetOpportunityCard(
 export function buildTagConflictValueStreamOpportunityCard(
   game: GameState
 ): FrontDeskTagConflictValueStreamOpportunityView | null {
-  const openCases = Object.values(game.cases).filter((currentCase) => currentCase.status !== 'resolved')
+  const openCases = Object.values(game.cases).filter(
+    (currentCase) => currentCase.status !== 'resolved'
+  )
   const casesByRegion = new Map<string, typeof openCases>()
   for (const currentCase of openCases) {
     if (!currentCase.regionTag) continue
@@ -1944,7 +1966,9 @@ function hubRumorTone(misleading?: boolean, filtered?: boolean): FrontDeskNotice
   return 'info'
 }
 
-export function buildHubOpportunityLeadCard(game: GameState): FrontDeskHubOpportunityLeadView | null {
+export function buildHubOpportunityLeadCard(
+  game: GameState
+): FrontDeskHubOpportunityLeadView | null {
   const hub = generateHubState(game)
   const opportunity = hub.opportunities[0]
   if (!opportunity) return null

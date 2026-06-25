@@ -274,6 +274,7 @@ import type {
 } from './coverStoryLifecycleRegistry'
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
+import type { AffiliationPersonStatusRecord } from './affiliationPersonStatusRecords'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
@@ -2756,6 +2757,12 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   visualTriggerHazardRecords?: Record<string, VisualTriggerHazardRecord>
+
+  /**
+   * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationPersonStatusRecords?: Record<string, AffiliationPersonStatusRecord>
 
   /**
    * SPE-2114 slice 2: persisted entity welfare reclassification records (keyed by record id).

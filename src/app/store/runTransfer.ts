@@ -375,6 +375,7 @@ export const REPORT_NOTE_TYPES = [
   'contribution_release.modifiable_data_pack_publish_enqueue',
   'visual_trigger_hazard.weekly_transition',
   'entity_welfare_reclassification.weekly_transition',
+  'affiliation_person_status.weekly_progression',
   'pattern_source_series.weekly_transition',
 ] as const satisfies readonly ReportNoteType[]
 
@@ -773,6 +774,12 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'nextReclassificationState',
     'priorReviewGate',
     'nextReviewGate',
+    'structuredReasons',
+    'week',
+  ],
+  'affiliation_person_status.weekly_progression': [
+    'recordId',
+    'transitionKinds',
     'structuredReasons',
     'week',
   ],

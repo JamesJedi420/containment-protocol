@@ -1569,6 +1569,7 @@ export type ReportNoteType =
   | 'contribution_release.modifiable_data_pack_publish_enqueue'
   | 'visual_trigger_hazard.weekly_transition'
   | 'entity_welfare_reclassification.weekly_transition'
+  | 'affiliation_person_status.weekly_progression'
   | 'pattern_source_series.weekly_transition'
 
 export type ReportNoteMetadataValue =

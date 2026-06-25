@@ -101,6 +101,109 @@ describe('affiliationPersonStatusRecords', () => {
     ).toBeUndefined()
   })
 
+  it('keeps valid weekly progression entries in canonical week/id order', () => {
+    const sanitized = sanitizeAffiliationPersonStatusRecords({
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        weeklyProgression: [
+          {
+            id: 'progression:week-4-b',
+            week: 4,
+            summary: ' Training package reviewed. ',
+            trainingCompleted: true,
+          },
+          {
+            id: 'progression:week-3',
+            week: 3,
+            backgroundCleared: true,
+          },
+          {
+            id: 'progression:week-4-a',
+            week: 4,
+            oathContractSigned: true,
+          },
+        ],
+      },
+    })
+
+    expect(sanitized[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]?.weeklyProgression).toEqual([
+      {
+        id: 'progression:week-3',
+        week: 3,
+        backgroundCleared: true,
+      },
+      {
+        id: 'progression:week-4-a',
+        week: 4,
+        oathContractSigned: true,
+      },
+      {
+        id: 'progression:week-4-b',
+        week: 4,
+        summary: 'Training package reviewed.',
+        trainingCompleted: true,
+      },
+    ])
+  })
+
+  it('drops invalid weekly progression entries without dropping the parent record', () => {
+    const sanitized = sanitizeAffiliationPersonStatusRecords({
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        weeklyProgression: [
+          {
+            id: '',
+            week: 4,
+            backgroundCleared: true,
+          },
+          {
+            id: 'progression:fractional-week',
+            week: 4.5,
+            trainingCompleted: true,
+          },
+          {
+            id: 'progression:valid',
+            week: 5,
+            oathContractSigned: true,
+          },
+        ],
+      },
+    })
+
+    expect(sanitized[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]?.weeklyProgression).toEqual([
+      {
+        id: 'progression:valid',
+        week: 5,
+        oathContractSigned: true,
+      },
+    ])
+  })
+
+  it('trims dedupes and sorts weekly progression evidence arrays', () => {
+    const sanitized = sanitizeAffiliationPersonStatusRecords({
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        weeklyProgression: [
+          {
+            id: 'progression:arrays',
+            week: 4,
+            grantedSiteIds: [' site:annex ', 'site:annex', 'site:archive'],
+            blockedFacilityIds: ['facility:vault', '', ' facility:archive '],
+            protectedReviewEvidenceRefs: ['review:z', 'review:a', 'review:z'],
+          },
+        ],
+      },
+    })
+
+    expect(
+      sanitized[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]?.weeklyProgression?.[0]
+    ).toMatchObject({
+      grantedSiteIds: ['site:annex', 'site:archive'],
+      blockedFacilityIds: ['facility:archive', 'facility:vault'],
+      protectedReviewEvidenceRefs: ['review:a', 'review:z'],
+    })
+  })
+
   it('projects a durable person record through the existing SPE-1046 evaluator chain', () => {
     const snapshot = projectAffiliationPersonStatusSnapshot({
       record: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,

@@ -1,0 +1,196 @@
+import { useMemo } from 'react'
+import { Link } from 'react-router'
+import { APP_ROUTES } from '../../app/routes'
+import { useGameStore } from '../../app/store/gameStore'
+import { AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT } from '../../data/copy'
+import { getAffiliationPersonStatusMirrorView } from './affiliationPersonStatusMirrorView'
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded border border-white/10 bg-white/5 px-3 py-2">
+      <p className="text-xs uppercase tracking-[0.24em] opacity-50">{label}</p>
+      <p className="mt-1 text-lg font-semibold">{value}</p>
+    </div>
+  )
+}
+
+function LabelStack({ labels }: { labels: readonly string[] }) {
+  return (
+    <>
+      {labels.map((label) => (
+        <p key={label} className="text-xs opacity-55">
+          {label}
+        </p>
+      ))}
+    </>
+  )
+}
+
+export default function AffiliationPersonStatusMirrorPage() {
+  const { game } = useGameStore()
+  const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
+
+  return (
+    <section className="space-y-4" aria-label="Affiliation person-status mirror">
+      <article
+        className="panel panel-primary space-y-4"
+        role="region"
+        aria-label="Person-status summary"
+      >
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-xs uppercase tracking-[0.24em] opacity-50">
+              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pageEyebrow}
+            </p>
+            <h2 className="text-xl font-semibold">
+              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pageHeading}
+            </h2>
+            <p className="text-sm opacity-60">
+              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pageSubtitle}
+            </p>
+          </div>
+          <Link to={APP_ROUTES.operationsDesk} className="btn btn-sm btn-ghost">
+            {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.backToDeskLabel}
+          </Link>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.totalRecordsLabel}
+            value={String(view.summary.totalRecords)}
+          />
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.candidateLinkedLabel}
+            value={String(view.summary.candidateLinkedCount)}
+          />
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.welfareLinkedLabel}
+            value={String(view.summary.welfareLinkedCount)}
+          />
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.restrictedOrBlockedLabel}
+            value={String(view.summary.restrictedOrBlockedCount)}
+          />
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.missingReferenceLabel}
+            value={String(view.summary.missingReferenceCount)}
+          />
+          <StatCard
+            label={AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.weekLabel}
+            value={`W${view.summary.week}`}
+          />
+        </div>
+
+        <p className="text-xs opacity-55">
+          {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.readOnlyNote}
+        </p>
+      </article>
+
+      {view.isEmpty ? (
+        <article
+          className="panel panel-support space-y-2"
+          role="region"
+          aria-label="Empty person-status state"
+        >
+          <h3 className="text-lg font-semibold">
+            {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.emptyTitle}
+          </h3>
+          <p className="text-sm opacity-70">{AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.emptyBody}</p>
+        </article>
+      ) : (
+        <article
+          className="panel panel-support space-y-3"
+          role="region"
+          aria-label="Persisted affiliation person-status records"
+        >
+          <div className="space-y-1">
+            <h3 className="text-lg font-semibold">
+              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsHeading}
+            </h3>
+            <p className="text-sm opacity-60">
+              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsSubtitle}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.subjectColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.linksColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.onboardingColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.permissionsColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.dualLoyaltyColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.protectedStatusColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.revocationColumn}
+                  </th>
+                  <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.records.map((record) => (
+                  <tr key={record.id} className="border-b border-white/5 align-top">
+                    <td className="px-2 py-2">
+                      <p className="font-medium">{record.subjectLabel}</p>
+                      <p className="text-xs opacity-55">{record.id}</p>
+                      <p className="text-xs opacity-45">{record.subjectId}</p>
+                    </td>
+                    <td className="px-2 py-2">
+                      <p className="text-xs opacity-55">
+                        {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.candidateRefPrefix}{' '}
+                        {record.candidateRefLabel}
+                      </p>
+                      <p className="text-xs opacity-55">
+                        {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.welfareRefPrefix}{' '}
+                        {record.entityWelfareReclassificationRefLabel}
+                      </p>
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.onboardingLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.permissionDecisionLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.siteClearanceLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.dualLoyaltyLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.protectedStatusLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.revocationLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.reasonCodeLabels} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      )}
+    </section>
+  )
+}

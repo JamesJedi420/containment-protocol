@@ -36,6 +36,7 @@ export const APP_ROUTES = {
   massAnomalousPopulationEmergence: '/mass-anomalous-population-emergence',
   visualTriggerHazard: '/visual-trigger-hazard',
   entityWelfareReclassification: '/entity-welfare-reclassification',
+  affiliationPersonStatus: '/affiliation-person-status',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',
   coerciveContainedPersonProtocol: '/coercive-contained-person-protocol',
   psychologicalResilience: '/psychological-resilience',

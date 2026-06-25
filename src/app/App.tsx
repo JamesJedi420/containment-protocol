@@ -111,6 +111,9 @@ const VisualTriggerHazardMirrorRoute = createRouteComponent(
 const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
   () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
 )
+const AffiliationPersonStatusMirrorRoute = createRouteComponent(
+  () => import('../features/operations/AffiliationPersonStatusMirrorPage')
+)
 const ContainedPersonTherapeuticCareMirrorRoute = createRouteComponent(
   () => import('../features/operations/ContainedPersonTherapeuticCareMirrorPage')
 )
@@ -231,6 +234,10 @@ export default function App() {
         <Route
           path="entity-welfare-reclassification"
           element={renderLazyRoute(EntityWelfareReclassificationMirrorRoute)}
+        />
+        <Route
+          path="affiliation-person-status"
+          element={renderLazyRoute(AffiliationPersonStatusMirrorRoute)}
         />
         <Route
           path="contained-person-therapeutic-care"

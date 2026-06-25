@@ -33,6 +33,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'modifiable-data-packs',
   'visual-trigger-hazard',
   'entity-welfare-reclassification',
+  'affiliation-person-status',
   'contained-person-therapeutic-care',
   'contained-person-integrated-health-bundle',
   'welfare-debt-accounting',

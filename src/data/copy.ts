@@ -1609,6 +1609,39 @@ export const ENTITY_WELFARE_RECLASSIFICATION_MIRROR_UI_TEXT: Record<string, stri
   redactedSuffix: 'Partial redaction',
 }
 
+export const AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Affiliation person-status records',
+  pageSubtitle:
+    'Read-only operations view over persisted affiliation person-status evidence and composed clearance projections.',
+  backToDeskLabel: 'Back to Operations Desk',
+  totalRecordsLabel: 'Persisted records',
+  candidateLinkedLabel: 'Candidate links',
+  welfareLinkedLabel: 'Welfare links',
+  restrictedOrBlockedLabel: 'Restricted / blocked',
+  missingReferenceLabel: 'Missing refs',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Status records mirror hydrated GameState only. Invalid records dropped on hydrate are not shown here, and this mirror does not mutate weekly state.',
+  emptyTitle: 'No affiliation person-status records',
+  emptyBody:
+    'Persisted affiliation person-status records will appear here after hydration. This mirror does not re-validate dropped entries.',
+  recordsHeading: 'Persisted records',
+  recordsSubtitle:
+    'Projection labels compose existing SPE-1046 evaluators at read time; mission routing still uses explicit team and member tags.',
+  subjectColumn: 'Subject',
+  linksColumn: 'Links',
+  onboardingColumn: 'Onboarding',
+  permissionsColumn: 'Permissions',
+  siteClearanceColumn: 'Site clearance',
+  dualLoyaltyColumn: 'Dual loyalty',
+  protectedStatusColumn: 'Protected status',
+  revocationColumn: 'Revocation',
+  reasonCodesColumn: 'Reason codes',
+  candidateRefPrefix: 'Candidate:',
+  welfareRefPrefix: 'Welfare:',
+}
+
 export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Visual trigger hazard registry',

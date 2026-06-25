@@ -60,6 +60,7 @@ const startingStateTemplate: GameState = {
   modifiableDataPackRecords: {},
   massAnomalousPopulationEmergenceRecords: {},
   visualTriggerHazardRecords: {},
+  affiliationPersonStatusRecords: {},
   entityWelfareReclassificationRecords: {},
   containedPersonTherapeuticCareRecords: {},
   containedPersonMedicationRegimenRecords: {},

@@ -12,10 +12,7 @@ import {
 } from '../../data/production'
 import { getTrainingProgram } from '../../data/training'
 import { createDefaultAgentAssignmentState } from '../../domain/agentDefaults'
-import {
-  normalizeAgent,
-  reconcileAgentAssignmentAgainstGame,
-} from '../../domain/agent/normalize'
+import { normalizeAgent, reconcileAgentAssignmentAgainstGame } from '../../domain/agent/normalize'
 import { recomputeAttritionDerivedState } from '../../domain/agent/attritionReset'
 import { sanitizeReplacementPressureState } from '../../domain/agent/replacementPressureHydration'
 import { EQUIPMENT_SLOT_KINDS, getEquipmentSlotItemId } from '../../domain/equipment'
@@ -41,10 +38,7 @@ import {
   sanitizeSupportStaffSummary,
 } from '../../domain/funding'
 import { sanitizeProgressionUnlockIds } from '../../domain/agencyProgression'
-import {
-  normalizeRuntimeState,
-  reconcileRuntimeUiSelections,
-} from '../../domain/gameStateManager'
+import { normalizeRuntimeState, reconcileRuntimeUiSelections } from '../../domain/gameStateManager'
 import { normalizeCaseInstance } from '../../domain/case/normalizeCase'
 import { sanitizeDistrictScheduleState } from '../../domain/districtSchedule'
 import { normalizeMissionIntelRecord } from '../../domain/intel'
@@ -91,12 +85,13 @@ import type { HubState } from '../../domain/hub/hubState'
 import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
 import { createSquadMetadata } from '../../domain/squadMetadata'
 import { sanitizePersistedFieldBasePacket } from '../../domain/fieldBaseStaging'
-import { FACTION_DEFINITIONS, getFactionDefinition, getFactionReputationTier } from '../../domain/factions'
-import { buildTeamCompositionState } from '../../domain/teamComposition'
 import {
-  getTeamMemberIds,
-  syncTeamSimulationTeam,
-} from '../../domain/teamSimulation'
+  FACTION_DEFINITIONS,
+  getFactionDefinition,
+  getFactionReputationTier,
+} from '../../domain/factions'
+import { buildTeamCompositionState } from '../../domain/teamComposition'
+import { getTeamMemberIds, syncTeamSimulationTeam } from '../../domain/teamSimulation'
 import { resolveTeamStatus } from '../../domain/teamStateMachine'
 import {
   type ActiveContractRuntime,
@@ -217,13 +212,17 @@ import { sanitizePublishQueueRecords } from '../../domain/publishAutomationCredi
 import { sanitizePublishQueueExecutionReceipts } from '../../domain/publishQueueExecutionReceiptPersistence'
 import { sanitizeModifiableDataPackRecords } from '../../domain/modifiableDataPackValidation'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
+import { sanitizeAffiliationPersonStatusRecords } from '../../domain/affiliationPersonStatusRecords'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
 import { sanitizeFactionEthicsMatrixRecords } from '../../domain/factionEthicsMatrixRegistry'
 import { sanitizeMoralLegalAccountabilityMatrixRecords } from '../../domain/moralLegalAccountabilityMatrixRegistry'
 import { sanitizeWelfareDebtAccountingRecords } from '../../domain/welfareDebtAccountingRegistry'
-import { sanitizeCoerciveProtocolRecords, sanitizeCoerciveProtocolWeeklyProjectionSnapshots } from '../../domain/coerciveContainedPersonProtocolRegistry'
+import {
+  sanitizeCoerciveProtocolRecords,
+  sanitizeCoerciveProtocolWeeklyProjectionSnapshots,
+} from '../../domain/coerciveContainedPersonProtocolRegistry'
 import { sanitizeMedicationRegimenRecords } from '../../domain/containedPersonMedicationRegimenRegistry'
 import { sanitizeContainedPersonIntegratedHealthBundles } from '../../domain/containedPersonIntegratedHealthBundleRegistry'
 import { sanitizeSurveillanceInterventionTuningRecords } from '../../domain/surveillanceCapacityInterventionTuningRegistry'
@@ -405,7 +404,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'toStage',
     ...CASE_OUTCOME_REWARD_METADATA_KEYS,
   ],
-  'case.failed': ['caseId', 'caseTitle', 'fromStage', 'toStage', ...CASE_OUTCOME_REWARD_METADATA_KEYS],
+  'case.failed': [
+    'caseId',
+    'caseTitle',
+    'fromStage',
+    'toStage',
+    ...CASE_OUTCOME_REWARD_METADATA_KEYS,
+  ],
   'case.escalated': [
     'caseId',
     'caseTitle',
@@ -440,7 +445,13 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'movementDeniedCount',
   ],
   'agent.training_completed': ['agentId', 'agentName', 'trainingId', 'queueId'],
-  'production.queue_completed': ['queueId', 'recipeId', 'recipeName', 'outputItemId', 'outputQuantity'],
+  'production.queue_completed': [
+    'queueId',
+    'recipeId',
+    'recipeName',
+    'outputItemId',
+    'outputQuantity',
+  ],
   'market.shifted': ['featuredRecipeId', 'pressure', 'costMultiplier'],
   'market.transaction_recorded': [
     'action',
@@ -473,11 +484,7 @@ const REPORT_NOTE_METADATA_ALLOWLIST: Partial<Record<ReportNoteType, readonly st
     'label',
     'disposition',
   ],
-  'agency.containment_updated': [
-    'containmentDelta',
-    'fundingDelta',
-    'clearanceLevelAfter',
-  ],
+  'agency.containment_updated': ['containmentDelta', 'fundingDelta', 'clearanceLevelAfter'],
   'system.week_delta': ['delta'],
   'system.recruitment_expired': ['count'],
   'system.recruitment_generated': ['count'],
@@ -987,11 +994,7 @@ export interface OperationEventReconcileContext {
   trainingIds: ReadonlySet<string>
 }
 
-function clampOperationEventWeek(
-  value: unknown,
-  fallback: number,
-  campaignWeek?: number
-): number {
+function clampOperationEventWeek(value: unknown, fallback: number, campaignWeek?: number): number {
   const week = sanitizeInteger(value as number | undefined, fallback, 1)
 
   if (campaignWeek === undefined) {
@@ -1028,7 +1031,9 @@ function sanitizeGameOverReason(
   return ALLOWED_GAME_OVER_REASONS.has(trimmed) ? trimmed : GAME_OVER_REASONS.breachState
 }
 
-function trimOperationEventPayloadStrings(payload: Record<string, unknown>): Record<string, unknown> {
+function trimOperationEventPayloadStrings(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
   const next: Record<string, unknown> = {}
 
   for (const [key, value] of Object.entries(payload)) {
@@ -1110,11 +1115,7 @@ function reconcileStageTransition(fromStage: unknown, toStage: unknown) {
   }
 }
 
-function reconcileStandingFields(
-  standingBefore: unknown,
-  standingAfter: unknown,
-  delta: unknown
-) {
+function reconcileStandingFields(standingBefore: unknown, standingAfter: unknown, delta: unknown) {
   const before = clamp(
     sanitizeInteger(standingBefore as number | undefined, 0, FACTION_STANDING_MIN),
     FACTION_STANDING_MIN,
@@ -1204,10 +1205,7 @@ function reconcilePromotionLevels(
   levelsGained: unknown
 ) {
   const previous = sanitizeInteger(previousLevel as number | undefined, 1, 1)
-  const next = Math.max(
-    previous,
-    sanitizeInteger(newLevel as number | undefined, previous, 1)
-  )
+  const next = Math.max(previous, sanitizeInteger(newLevel as number | undefined, previous, 1))
   const expectedGained = next - previous
   const gained = sanitizeInteger(levelsGained as number | undefined, expectedGained, 0)
 
@@ -1233,19 +1231,10 @@ function clampEmergencyWaiverGrantWeek(
 
   const fallback = Math.max(1, cappedEventWeek - 1)
 
-  return clamp(
-    sanitizeInteger(value as number | undefined, fallback, 1),
-    1,
-    maxGrantWeek
-  )
+  return clamp(sanitizeInteger(value as number | undefined, fallback, 1), 1, maxGrantWeek)
 }
 
-function reconcileBeforeAfterDelta(
-  before: unknown,
-  after: unknown,
-  delta: unknown,
-  min: number
-) {
+function reconcileBeforeAfterDelta(before: unknown, after: unknown, delta: unknown, min: number) {
   const beforeValue = sanitizeInteger(before as number | undefined, 0, min)
   const deltaValue = sanitizeInteger(delta as number | undefined, 0, Number.MIN_SAFE_INTEGER)
   const expectedAfter = beforeValue + deltaValue
@@ -1325,8 +1314,7 @@ function sanitizeOperationEventMarketProcurementAllocation(value: unknown) {
       : {}),
     substitutionStatus:
       value.substitutionStatus === 'degraded_substitute' ? 'degraded_substitute' : 'none',
-    ...(typeof value.substitutionSummary === 'string' &&
-    value.substitutionSummary.trim().length > 0
+    ...(typeof value.substitutionSummary === 'string' && value.substitutionSummary.trim().length > 0
       ? { substitutionSummary: value.substitutionSummary.trim() }
       : {}),
   }
@@ -1545,7 +1533,8 @@ function sanitizeInfiltrationProbeEventPayload(
 ) {
   const caseId = importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`
   const infiltrationAwareness =
-    typeof payload.infiltrationAwareness === 'number' && Number.isFinite(payload.infiltrationAwareness)
+    typeof payload.infiltrationAwareness === 'number' &&
+    Number.isFinite(payload.infiltrationAwareness)
       ? clamp(payload.infiltrationAwareness, 0, 100)
       : undefined
   const infiltrationProbeProgress =
@@ -1562,7 +1551,9 @@ function sanitizeInfiltrationProbeEventPayload(
   const probeActionSource = isOneOf(payload.probeActionSource, INFILTRATION_PROBE_ACTION_SOURCES)
     ? payload.probeActionSource
     : undefined
-  const coverRole = isOneOf(payload.coverRole, INFILTRATION_COVER_ROLES) ? payload.coverRole : undefined
+  const coverRole = isOneOf(payload.coverRole, INFILTRATION_COVER_ROLES)
+    ? payload.coverRole
+    : undefined
   const leaveBehindId =
     typeof payload.leaveBehindId === 'string' && payload.leaveBehindId.trim().length > 0
       ? payload.leaveBehindId.trim()
@@ -1828,11 +1819,7 @@ function deriveOperationEventWeekFromTimestamp(timestamp: string) {
   return Math.max(1, weekIndex + 1)
 }
 
-function reconcileOperationEventTimestamp(
-  week: number,
-  sequence: number,
-  rawTimestamp: unknown
-) {
+function reconcileOperationEventTimestamp(week: number, sequence: number, rawTimestamp: unknown) {
   if (typeof rawTimestamp === 'string' && !Number.isNaN(Date.parse(rawTimestamp))) {
     const derivedWeek = deriveOperationEventWeekFromTimestamp(rawTimestamp)
 
@@ -1869,7 +1856,9 @@ function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
     }
 
     const rawId =
-      typeof entry.id === 'string' && entry.id.trim().length > 0 ? entry.id.trim() : `note-${index + 1}`
+      typeof entry.id === 'string' && entry.id.trim().length > 0
+        ? entry.id.trim()
+        : `note-${index + 1}`
     let id = rawId
 
     if (seenIds.has(id)) {
@@ -1902,9 +1891,11 @@ function sanitizeReportNoteList(value: unknown, week: number): ReportNote[] {
   return notes
 }
 
-const SUBSTANCE_POLICIES = ['permitted', 'restricted', 'prohibited'] as const satisfies readonly NonNullable<
-  GameConfig['substancePolicy']
->[]
+const SUBSTANCE_POLICIES = [
+  'permitted',
+  'restricted',
+  'prohibited',
+] as const satisfies readonly NonNullable<GameConfig['substancePolicy']>[]
 
 /**
  * Hydration problem 475: clearance thresholds are deduped, non-negative, and strictly increasing.
@@ -1928,7 +1919,9 @@ function sanitizeClearanceThresholds(value: unknown, fallback: number[]) {
     ),
   ].sort((left, right) => left - right)
 
-  const strictlyIncreasing = sanitized.filter((entry, index) => index === 0 || entry > sanitized[index - 1]!)
+  const strictlyIncreasing = sanitized.filter(
+    (entry, index) => index === 0 || entry > sanitized[index - 1]!
+  )
 
   return strictlyIncreasing.length > 0 ? strictlyIncreasing : fallback
 }
@@ -2056,7 +2049,10 @@ export function buildReportCaseSnapshots(cases: GameState['cases']) {
   )
 }
 
-export { buildReportTeamStatus, buildReportTeamStatusEntry } from '../../domain/sim/reportTeamStatus'
+export {
+  buildReportTeamStatus,
+  buildReportTeamStatusEntry,
+} from '../../domain/sim/reportTeamStatus'
 
 /** Hydration 507: upper bounds for persisted tuning scalars. */
 const MAX_GAME_CONFIG_MAX_ACTIVE_CASES = 50
@@ -2204,11 +2200,7 @@ export function sanitizeGameConfig(
 
   if (config.containmentWeeklyDecay !== undefined) {
     nextConfig.containmentWeeklyDecay = clamp(
-      sanitizeInteger(
-        config.containmentWeeklyDecay as number,
-        fallback.containmentWeeklyDecay,
-        0
-      ),
+      sanitizeInteger(config.containmentWeeklyDecay as number, fallback.containmentWeeklyDecay, 0),
       0,
       MAX_GAME_CONFIG_CONTAINMENT_DELTA
     )
@@ -2283,11 +2275,7 @@ function reconcileTrainingCapacity(
   academyTier: number,
   fallbackBaseSlots: number
 ): { trainingSlots: number; academyTier: number } {
-  const tier = clamp(
-    sanitizeInteger(academyTier, 0, 0),
-    0,
-    MAX_ACADEMY_TIER
-  )
+  const tier = clamp(sanitizeInteger(academyTier, 0, 0), 0, MAX_ACADEMY_TIER)
   let baseSlots = clamp(
     sanitizeInteger(trainingSlots, fallbackBaseSlots, 1),
     1,
@@ -2317,14 +2305,15 @@ function reconcileHydratedClearanceLevel(
   const maxClearance = resolveMaxClearanceLevel(thresholds)
   const derivedClearance = computeClearanceLevel(containmentRating, thresholds)
 
-  return clamp(
-    sanitizeInteger(clearanceLevel, derivedClearance, 1),
-    1,
-    maxClearance
-  )
+  return clamp(sanitizeInteger(clearanceLevel, derivedClearance, 1), 1, maxClearance)
 }
 
-const TEAM_STATES = ['ready', 'deployed', 'resolving', 'recovering'] as const satisfies readonly TeamState[]
+const TEAM_STATES = [
+  'ready',
+  'deployed',
+  'resolving',
+  'recovering',
+] as const satisfies readonly TeamState[]
 
 /** Hydration 415: persisted team recovery pressure is a non-negative finite scalar. */
 const MAX_TEAM_RECOVERY_PRESSURE = 100
@@ -2335,7 +2324,12 @@ const MISSION_RESOLUTION_OUTCOMES = [
   'unresolved',
 ] as const satisfies readonly MissionResolutionKind[]
 
-const CASE_PRIORITIES = ['critical', 'high', 'normal', 'low'] as const satisfies readonly CasePriority[]
+const CASE_PRIORITIES = [
+  'critical',
+  'high',
+  'normal',
+  'low',
+] as const satisfies readonly CasePriority[]
 
 /** Hydration 575–576: weekly report snapshot kind/mode allowlists. */
 const CASE_KINDS = ['case', 'raid', 'standard', 'anomaly'] as const satisfies readonly CaseKind[]
@@ -2478,7 +2472,10 @@ function reconcileProgressionXpGainedFields(payload: Record<string, unknown>) {
 }
 
 /** SPE-455: only open or in-progress cases may remain in the priority queue. */
-const CASE_QUEUE_ELIGIBLE_STATUSES = ['open', 'in_progress'] as const satisfies readonly CaseStatus[]
+const CASE_QUEUE_ELIGIBLE_STATUSES = [
+  'open',
+  'in_progress',
+] as const satisfies readonly CaseStatus[]
 
 const CONTRACT_STRATEGY_TAGS = [
   'income',
@@ -2570,7 +2567,11 @@ const EXTERNAL_SUPPORT_ASSET_CLASSES = [
   'defector',
 ] as const satisfies readonly ExternalSupportAssetClass[]
 
-const CONTACT_STATUSES = ['active', 'inactive', 'hostile'] as const satisfies readonly Contact['status'][]
+const CONTACT_STATUSES = [
+  'active',
+  'inactive',
+  'hostile',
+] as const satisfies readonly Contact['status'][]
 
 const REPUTATION_TIERS = [
   'hostile',
@@ -2651,10 +2652,7 @@ function sanitizeRevealLevel(value: unknown): CandidateRevealLevel {
 }
 
 function sanitizeCandidateCostEstimate(value: unknown): CandidateCostEstimate | undefined {
-  return value === 'low' ||
-    value === 'moderate' ||
-    value === 'high' ||
-    value === 'unknown'
+  return value === 'low' || value === 'moderate' || value === 'high' || value === 'unknown'
     ? value
     : undefined
 }
@@ -2740,9 +2738,7 @@ function sanitizeCandidateEvaluation(
         : undefined
 
   const potentialTier =
-    value.potentialTier === 'low' ||
-    value.potentialTier === 'mid' ||
-    value.potentialTier === 'high'
+    value.potentialTier === 'low' || value.potentialTier === 'mid' || value.potentialTier === 'high'
       ? value.potentialTier
       : undefined
 
@@ -2802,8 +2798,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
       ? Math.max(0, Math.trunc(entry.weeklyWage))
       : weeklyCost
   const costEstimate =
-    sanitizeCandidateCostEstimate(entry.costEstimate) ??
-    deriveCandidateCostEstimate(weeklyCost)
+    sanitizeCandidateCostEstimate(entry.costEstimate) ?? deriveCandidateCostEstimate(weeklyCost)
   const portraitId =
     typeof entry.portraitId === 'string' && entry.portraitId.trim().length > 0
       ? entry.portraitId.trim()
@@ -2886,7 +2881,8 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
     lastUpdatedWeek = createdWeek
   }
 
-  const cappedCampaignWeek = campaignWeek !== undefined ? Math.max(1, Math.trunc(campaignWeek)) : undefined
+  const cappedCampaignWeek =
+    campaignWeek !== undefined ? Math.max(1, Math.trunc(campaignWeek)) : undefined
 
   if (
     cappedCampaignWeek !== undefined &&
@@ -2903,7 +2899,8 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
   }
 
   if (cappedCampaignWeek !== undefined && hireStatus === 'expired') {
-    createdWeek = createdWeek !== undefined ? Math.min(createdWeek, cappedCampaignWeek) : cappedCampaignWeek
+    createdWeek =
+      createdWeek !== undefined ? Math.min(createdWeek, cappedCampaignWeek) : cappedCampaignWeek
     lastUpdatedWeek = cappedCampaignWeek
     expiryWeek = cappedCampaignWeek
     normalizedAvailabilityWindow = {
@@ -2991,8 +2988,9 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
         specialization,
         traits: [
           ...new Set(
-            (Array.isArray(agentData.traits) ? agentData.traits : [])
-              .filter((trait): trait is string => typeof trait === 'string' && trait.length > 0)
+            (Array.isArray(agentData.traits) ? agentData.traits : []).filter(
+              (trait): trait is string => typeof trait === 'string' && trait.length > 0
+            )
           ),
         ],
         ...(typeof agentData.growthProfile === 'string' && agentData.growthProfile.length > 0
@@ -3002,7 +3000,11 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
           ? {
               stats: {
                 combat: clamp(Math.round(Number(agentData.stats.combat) || 0), 0, 100),
-                investigation: clamp(Math.round(Number(agentData.stats.investigation) || 0), 0, 100),
+                investigation: clamp(
+                  Math.round(Number(agentData.stats.investigation) || 0),
+                  0,
+                  100
+                ),
                 utility: clamp(Math.round(Number(agentData.stats.utility) || 0), 0, 100),
                 social: clamp(Math.round(Number(agentData.stats.social) || 0), 0, 100),
               },
@@ -3083,11 +3085,7 @@ function sanitizeCandidateEntry(entry: unknown, campaignWeek?: number): Candidat
         ...(typeof entry.instructorData.visibleEfficiency === 'number' &&
         Number.isFinite(entry.instructorData.visibleEfficiency)
           ? {
-              visibleEfficiency: clamp(
-                Math.round(entry.instructorData.visibleEfficiency),
-                0,
-                100
-              ),
+              visibleEfficiency: clamp(Math.round(entry.instructorData.visibleEfficiency), 0, 100),
             }
           : {}),
       },
@@ -3352,9 +3350,7 @@ export function sanitizeStaffMap(
           ? clamp(Math.round(entry.efficiency), 0, 100)
           : 70
       const name =
-        typeof entry.name === 'string' && entry.name.trim().length > 0
-          ? entry.name.trim()
-          : staffId
+        typeof entry.name === 'string' && entry.name.trim().length > 0 ? entry.name.trim() : staffId
       const assignedAgentId =
         typeof entry.assignedAgentId === 'string' && knownAgentIds.has(entry.assignedAgentId)
           ? entry.assignedAgentId
@@ -3573,7 +3569,7 @@ export function sanitizeTeamsMap(
     const leaderId =
       typeof reconciledEntry.leaderId === 'string' && memberIds.includes(reconciledEntry.leaderId)
         ? reconciledEntry.leaderId
-        : memberIds[0] ?? null
+        : (memberIds[0] ?? null)
     const category = sanitizeTeamCategoryField(reconciledEntry.category)
 
     const statusRecord = isRecord(reconciledEntry.status) ? reconciledEntry.status : undefined
@@ -3809,7 +3805,10 @@ function sanitizePowerImpactSummary(value: unknown): PowerImpactSummary | undefi
       value.protocolContributionDelta,
       defaults.protocolContributionDelta
     ),
-    equipmentScoreDelta: sanitizeFiniteNumber(value.equipmentScoreDelta, defaults.equipmentScoreDelta),
+    equipmentScoreDelta: sanitizeFiniteNumber(
+      value.equipmentScoreDelta,
+      defaults.equipmentScoreDelta
+    ),
     kitScoreDelta: sanitizeFiniteNumber(value.kitScoreDelta, defaults.kitScoreDelta),
     protocolScoreDelta: sanitizeFiniteNumber(value.protocolScoreDelta, defaults.protocolScoreDelta),
     kitEffectivenessMultiplier: sanitizeFiniteNumber(
@@ -3845,18 +3844,27 @@ function sanitizeMissionRewardBreakdownSnapshot(
 
   return {
     outcome,
-    caseType: typeof value.caseType === 'string' ? value.caseType : (fallback?.caseType ?? 'general'),
+    caseType:
+      typeof value.caseType === 'string' ? value.caseType : (fallback?.caseType ?? 'general'),
     caseTypeLabel:
       typeof value.caseTypeLabel === 'string'
         ? value.caseTypeLabel
         : (fallback?.caseTypeLabel ?? 'Operation'),
-    operationValue: sanitizeInteger(value.operationValue as number | undefined, fallback?.operationValue ?? 0, 0),
+    operationValue: sanitizeInteger(
+      value.operationValue as number | undefined,
+      fallback?.operationValue ?? 0,
+      0
+    ),
     factors: Array.isArray(value.factors)
       ? value.factors.filter((entry): entry is MissionRewardBreakdown['factors'][number] =>
           isRecord(entry)
         )
       : (fallback?.factors ?? []),
-    fundingDelta: sanitizeInteger(value.fundingDelta as number | undefined, fallback?.fundingDelta ?? 0, -10_000),
+    fundingDelta: sanitizeInteger(
+      value.fundingDelta as number | undefined,
+      fallback?.fundingDelta ?? 0,
+      -10_000
+    ),
     containmentDelta: sanitizeInteger(
       value.containmentDelta as number | undefined,
       fallback?.containmentDelta ?? 0,
@@ -3915,8 +3923,9 @@ function sanitizeWeeklyReportDistortion(
     return undefined
   }
 
-  const distortion = value.filter((entry): entry is NonNullable<WeeklyReportCaseSnapshot['distortion']>[number] =>
-    isDistortionState(entry)
+  const distortion = value.filter(
+    (entry): entry is NonNullable<WeeklyReportCaseSnapshot['distortion']>[number] =>
+      isDistortionState(entry)
   )
 
   return distortion.length > 0 ? distortion : undefined
@@ -3976,9 +3985,7 @@ function sanitizeMissionResult(
   }
 
   const caseId =
-    typeof value.caseId === 'string' && value.caseId.length > 0
-      ? value.caseId
-      : fallback?.caseId
+    typeof value.caseId === 'string' && value.caseId.length > 0 ? value.caseId : fallback?.caseId
   const outcome = isOneOf(value.outcome, MISSION_RESOLUTION_OUTCOMES)
     ? value.outcome
     : fallback?.outcome
@@ -4003,8 +4010,7 @@ function sanitizeMissionResult(
         }))
     : (fallback?.teamsUsed ?? [])
 
-  const performanceSummary =
-    sanitizePerformanceMetricSummary(value.performanceSummary) ??
+  const performanceSummary = sanitizePerformanceMetricSummary(value.performanceSummary) ??
     fallback?.performanceSummary ?? {
       contribution: 0,
       threatHandled: 0,
@@ -4032,7 +4038,11 @@ function sanitizeMissionResult(
     'failure_recovery_pressure',
   ] as const satisfies readonly WeakestLinkResolutionOutcomeCategory[]
 
-  const WEAKST_LINK_RESULT_KINDS = ['success', 'partial', 'fail'] as const satisfies readonly WeakestLinkResultKind[]
+  const WEAKST_LINK_RESULT_KINDS = [
+    'success',
+    'partial',
+    'fail',
+  ] as const satisfies readonly WeakestLinkResultKind[]
 
   const WEAKST_LINK_RECOVERY_PRESSURE_BANDS = [
     'low',
@@ -4046,18 +4056,20 @@ function sanitizeMissionResult(
   ): WeakestLinkPenaltyBucket | undefined => {
     if (!isRecord(entry)) return undefined
 
-    const code = isOneOf(entry.code, WEAKST_LINK_PENALTY_SOURCE_CODES)
-      ? entry.code
-      : undefined
-    const weight = typeof entry.weight === 'number' && Number.isFinite(entry.weight) ? entry.weight : undefined
+    const code = isOneOf(entry.code, WEAKST_LINK_PENALTY_SOURCE_CODES) ? entry.code : undefined
+    const weight =
+      typeof entry.weight === 'number' && Number.isFinite(entry.weight) ? entry.weight : undefined
     const rawSignal =
-      typeof entry.rawSignal === 'number' && Number.isFinite(entry.rawSignal) ? entry.rawSignal : undefined
+      typeof entry.rawSignal === 'number' && Number.isFinite(entry.rawSignal)
+        ? entry.rawSignal
+        : undefined
     const appliedPenalty =
       typeof entry.appliedPenalty === 'number' && Number.isFinite(entry.appliedPenalty)
         ? entry.appliedPenalty
         : undefined
 
-    if (!code || weight === undefined || rawSignal === undefined || appliedPenalty === undefined) return undefined
+    if (!code || weight === undefined || rawSignal === undefined || appliedPenalty === undefined)
+      return undefined
 
     return { code, weight, rawSignal, appliedPenalty }
   }
@@ -4076,54 +4088,75 @@ function sanitizeMissionResult(
         : weakFallback?.missionId
 
     const week =
-      typeof raw.week === 'number' && Number.isFinite(raw.week) ? Math.max(1, Math.trunc(raw.week)) : weakFallback?.week
+      typeof raw.week === 'number' && Number.isFinite(raw.week)
+        ? Math.max(1, Math.trunc(raw.week))
+        : weakFallback?.week
 
     const outcomeCategory = isOneOf(raw.outcomeCategory, WEAKST_LINK_OUTCOME_CATEGORIES)
       ? raw.outcomeCategory
       : weakFallback?.outcomeCategory
 
-    const resultKind = isOneOf(raw.resultKind, WEAKST_LINK_RESULT_KINDS) ? raw.resultKind : weakFallback?.resultKind
+    const resultKind = isOneOf(raw.resultKind, WEAKST_LINK_RESULT_KINDS)
+      ? raw.resultKind
+      : weakFallback?.resultKind
 
     if (!missionId || week === undefined || !outcomeCategory || !resultKind) {
       return weakFallback
     }
 
     const baseScore =
-      typeof raw.baseScore === 'number' && Number.isFinite(raw.baseScore) ? raw.baseScore : weakFallback?.baseScore ?? 0
+      typeof raw.baseScore === 'number' && Number.isFinite(raw.baseScore)
+        ? raw.baseScore
+        : (weakFallback?.baseScore ?? 0)
     const requiredScore =
-      typeof raw.requiredScore === 'number' && Number.isFinite(raw.requiredScore) ? raw.requiredScore : weakFallback?.requiredScore ?? 0
+      typeof raw.requiredScore === 'number' && Number.isFinite(raw.requiredScore)
+        ? raw.requiredScore
+        : (weakFallback?.requiredScore ?? 0)
     const finalDelta =
-      typeof raw.finalDelta === 'number' && Number.isFinite(raw.finalDelta) ? raw.finalDelta : weakFallback?.finalDelta ?? 0
+      typeof raw.finalDelta === 'number' && Number.isFinite(raw.finalDelta)
+        ? raw.finalDelta
+        : (weakFallback?.finalDelta ?? 0)
 
     const weakestLinkTotalPenalty =
-      typeof raw.weakestLinkTotalPenalty === 'number' && Number.isFinite(raw.weakestLinkTotalPenalty)
+      typeof raw.weakestLinkTotalPenalty === 'number' &&
+      Number.isFinite(raw.weakestLinkTotalPenalty)
         ? raw.weakestLinkTotalPenalty
-        : weakFallback?.weakestLinkTotalPenalty ?? 0
+        : (weakFallback?.weakestLinkTotalPenalty ?? 0)
 
     const weakestLinkPenaltyBuckets = Array.isArray(raw.weakestLinkPenaltyBuckets)
       ? raw.weakestLinkPenaltyBuckets
           .map(sanitizeWeakestLinkPenaltyBucket)
           .filter((bucket): bucket is WeakestLinkPenaltyBucket => bucket !== undefined)
-      : weakFallback?.weakestLinkPenaltyBuckets ?? []
+      : (weakFallback?.weakestLinkPenaltyBuckets ?? [])
 
     const weakestLinkContributors = Array.isArray(raw.weakestLinkContributors)
       ? raw.weakestLinkContributors.filter((entry): entry is string => typeof entry === 'string')
-      : weakFallback?.weakestLinkContributors ?? []
+      : (weakFallback?.weakestLinkContributors ?? [])
 
     const weakestLinkNarrativeReasonCodes = Array.isArray(raw.weakestLinkNarrativeReasonCodes)
-      ? raw.weakestLinkNarrativeReasonCodes.filter((entry): entry is string => typeof entry === 'string')
-      : weakFallback?.weakestLinkNarrativeReasonCodes ?? []
+      ? raw.weakestLinkNarrativeReasonCodes.filter(
+          (entry): entry is string => typeof entry === 'string'
+        )
+      : (weakFallback?.weakestLinkNarrativeReasonCodes ?? [])
 
     const injuryRiskDelta =
-      typeof raw.injuryRiskDelta === 'number' && Number.isFinite(raw.injuryRiskDelta) ? raw.injuryRiskDelta : weakFallback?.injuryRiskDelta
+      typeof raw.injuryRiskDelta === 'number' && Number.isFinite(raw.injuryRiskDelta)
+        ? raw.injuryRiskDelta
+        : weakFallback?.injuryRiskDelta
     const fatalityRiskDelta =
-      typeof raw.fatalityRiskDelta === 'number' && Number.isFinite(raw.fatalityRiskDelta) ? raw.fatalityRiskDelta : weakFallback?.fatalityRiskDelta
+      typeof raw.fatalityRiskDelta === 'number' && Number.isFinite(raw.fatalityRiskDelta)
+        ? raw.fatalityRiskDelta
+        : weakFallback?.fatalityRiskDelta
     const expectedRecoveryWeeksDelta =
-      typeof raw.expectedRecoveryWeeksDelta === 'number' && Number.isFinite(raw.expectedRecoveryWeeksDelta)
+      typeof raw.expectedRecoveryWeeksDelta === 'number' &&
+      Number.isFinite(raw.expectedRecoveryWeeksDelta)
         ? raw.expectedRecoveryWeeksDelta
         : weakFallback?.expectedRecoveryWeeksDelta
 
-    const recoveryPressureBand = isOneOf(raw.recoveryPressureBand, WEAKST_LINK_RECOVERY_PRESSURE_BANDS)
+    const recoveryPressureBand = isOneOf(
+      raw.recoveryPressureBand,
+      WEAKST_LINK_RECOVERY_PRESSURE_BANDS
+    )
       ? raw.recoveryPressureBand
       : weakFallback?.recoveryPressureBand
 
@@ -4132,7 +4165,8 @@ function sanitizeMissionResult(
       : weakFallback?.deploymentDebtSignals
 
     const penaltyComputationVersion =
-      typeof raw.penaltyComputationVersion === 'string' && raw.penaltyComputationVersion.trim().length > 0
+      typeof raw.penaltyComputationVersion === 'string' &&
+      raw.penaltyComputationVersion.trim().length > 0
         ? raw.penaltyComputationVersion.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
         : weakFallback?.penaltyComputationVersion
 
@@ -4161,12 +4195,16 @@ function sanitizeMissionResult(
           const upstreamCause =
             typeof raw.executionInstability.upstreamCause === 'string' &&
             raw.executionInstability.upstreamCause.trim().length > 0
-              ? raw.executionInstability.upstreamCause.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
+              ? raw.executionInstability.upstreamCause
+                  .trim()
+                  .slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
               : undefined
           const downstreamEffect =
             typeof raw.executionInstability.downstreamEffect === 'string' &&
             raw.executionInstability.downstreamEffect.trim().length > 0
-              ? raw.executionInstability.downstreamEffect.trim().slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
+              ? raw.executionInstability.downstreamEffect
+                  .trim()
+                  .slice(0, REPORT_NOTE_METADATA_MAX_STRING_LENGTH)
               : undefined
 
           if (!flag || applied === undefined || !upstreamCause || !downstreamEffect) {
@@ -4206,7 +4244,10 @@ function sanitizeMissionResult(
     }) as WeakestLinkMissionResolutionResult
   }
 
-  const weakestLink = sanitizeWeakestLinkMissionResolutionResult(value.weakestLink, fallback?.weakestLink)
+  const weakestLink = sanitizeWeakestLinkMissionResolutionResult(
+    value.weakestLink,
+    fallback?.weakestLink
+  )
 
   const rewards = isRecord(value.rewards)
     ? {
@@ -4226,7 +4267,10 @@ function sanitizeMissionResult(
           reasons: [],
         }),
         ...value.rewards,
-        outcome: isOneOf((value.rewards as { outcome?: unknown }).outcome, MISSION_RESOLUTION_OUTCOMES)
+        outcome: isOneOf(
+          (value.rewards as { outcome?: unknown }).outcome,
+          MISSION_RESOLUTION_OUTCOMES
+        )
           ? (value.rewards as { outcome: MissionResolutionKind }).outcome
           : outcome,
         fundingDelta: sanitizeInteger(
@@ -4244,7 +4288,9 @@ function sanitizeMissionResult(
           fallback?.rewards.reputationDelta ?? 0,
           -10_000
         ),
-        inventoryRewards: Array.isArray((value.rewards as { inventoryRewards?: unknown }).inventoryRewards)
+        inventoryRewards: Array.isArray(
+          (value.rewards as { inventoryRewards?: unknown }).inventoryRewards
+        )
           ? (value.rewards as { inventoryRewards: MissionResult['rewards']['inventoryRewards'] })
               .inventoryRewards
           : (fallback?.rewards.inventoryRewards ?? []),
@@ -4343,7 +4389,11 @@ function sanitizeMissionResult(
       : fallback?.hiddenState
         ? { hiddenState: fallback.hiddenState }
         : {}),
-    ...(typeof value.route === 'string' ? { route: value.route } : fallback?.route ? { route: fallback.route } : {}),
+    ...(typeof value.route === 'string'
+      ? { route: value.route }
+      : fallback?.route
+        ? { route: fallback.route }
+        : {}),
   }) as MissionResult
 }
 
@@ -4399,7 +4449,10 @@ function sanitizeCaseSnapshots(
     knownTeamIds?: ReadonlySet<string>
   } = {}
 ): Record<Id, WeeklyReportCaseSnapshot> {
-  const currentCampaignWeek = Math.max(1, Math.trunc(options.currentCampaignWeek ?? options.campaignWeek ?? 1))
+  const currentCampaignWeek = Math.max(
+    1,
+    Math.trunc(options.currentCampaignWeek ?? options.campaignWeek ?? 1)
+  )
   const reportWeek = Math.max(1, Math.trunc(options.reportWeek ?? options.campaignWeek ?? 1))
   const useCurrentCaseFallback = reportWeek === currentCampaignWeek
 
@@ -4421,10 +4474,10 @@ function sanitizeCaseSnapshots(
     }
 
     const caseId =
-      typeof snapshot.caseId === 'string' && snapshot.caseId.length > 0
-        ? snapshot.caseId
-        : entryId
-    const fallbackSnapshot = useCurrentCaseFallback ? (fallback[caseId] ?? fallback[entryId]) : undefined
+      typeof snapshot.caseId === 'string' && snapshot.caseId.length > 0 ? snapshot.caseId : entryId
+    const fallbackSnapshot = useCurrentCaseFallback
+      ? (fallback[caseId] ?? fallback[entryId])
+      : undefined
 
     if (entryId !== caseId && entryId in nextSnapshots) {
       delete nextSnapshots[entryId]
@@ -4474,9 +4527,7 @@ function sanitizeCaseSnapshots(
       caseId,
       title:
         typeof snapshot.title === 'string' ? snapshot.title : (fallbackSnapshot?.title ?? caseId),
-      kind: isOneOf(snapshot.kind, CASE_KINDS)
-        ? snapshot.kind
-        : (fallbackSnapshot?.kind ?? 'case'),
+      kind: isOneOf(snapshot.kind, CASE_KINDS) ? snapshot.kind : (fallbackSnapshot?.kind ?? 'case'),
       mode: isOneOf(snapshot.mode, CASE_MODES)
         ? snapshot.mode
         : (fallbackSnapshot?.mode ?? 'threshold'),
@@ -4613,11 +4664,7 @@ function sanitizeTeamStatus(
         ? entry.assignedCaseId
         : undefined
 
-    if (
-      assignedCaseId &&
-      !(assignedCaseId in cases) &&
-      !allowedCaseIds?.has(assignedCaseId)
-    ) {
+    if (assignedCaseId && !(assignedCaseId in cases) && !allowedCaseIds?.has(assignedCaseId)) {
       assignedCaseId = undefined
     }
 
@@ -4940,11 +4987,10 @@ function sanitizeTrainingQueue(
 
     const program = getTrainingProgram(trainingId)
     const scope =
-      entry.scope === 'team' || entry.scope === 'agent'
-        ? entry.scope
-        : (program?.scope ?? 'agent')
+      entry.scope === 'team' || entry.scope === 'agent' ? entry.scope : (program?.scope ?? 'agent')
 
-    const teamDrillRefs = scope === 'team' ? reconcileTeamDrillMemberIds(entry, agents, teams) : null
+    const teamDrillRefs =
+      scope === 'team' ? reconcileTeamDrillMemberIds(entry, agents, teams) : null
 
     if (scope === 'team' && !teamDrillRefs) {
       continue
@@ -5330,11 +5376,7 @@ function sanitizeHydratedContractOffer(
     riskLevel,
     durationWeeks: Math.max(
       1,
-      sanitizeInteger(
-        value.durationWeeks as number | undefined,
-        definition.durationWeeks ?? 1,
-        1
-      )
+      sanitizeInteger(value.durationWeeks as number | undefined, definition.durationWeeks ?? 1, 1)
     ),
     rewards: sanitizeContractRewardPackage(value.rewards, definition.baseRewards),
     requirements: sanitizeContractRequirements(value.requirements),
@@ -5452,8 +5494,7 @@ function sanitizeHydratedActiveContractRuntime(
     return null
   }
 
-  const templateId =
-    typeof value.templateId === 'string' ? value.templateId : undefined
+  const templateId = typeof value.templateId === 'string' ? value.templateId : undefined
   const definition = templateId ? resolveContractTemplateDefinition(templateId) : undefined
 
   if (templateId && !definition) {
@@ -5539,9 +5580,9 @@ function sanitizeHydratedContractSystemState(
   }
 ): ContractSystemState {
   const offers = Array.isArray((value as { offers?: unknown })?.offers)
-    ? ((value as { offers: unknown[] }).offers
+    ? (value as { offers: unknown[] }).offers
         .map((offer) => sanitizeHydratedContractOffer(offer, context.factions))
-        .filter((offer): offer is ContractOffer => offer !== null))
+        .filter((offer): offer is ContractOffer => offer !== null)
     : []
 
   const historyEntries: Array<[string, ContractHistoryRecord]> = []
@@ -5630,7 +5671,13 @@ function sanitizeExternalSupportAssetsMap(
       continue
     }
 
-    const tags = [...new Set(sanitizeStringList(entry.tags).map((tag) => tag.trim()).filter(Boolean))]
+    const tags = [
+      ...new Set(
+        sanitizeStringList(entry.tags)
+          .map((tag) => tag.trim())
+          .filter(Boolean)
+      ),
+    ]
 
     next[recordKey] = stripUndefinedFields({
       id,
@@ -5653,8 +5700,10 @@ function sanitizeHydratedContact(value: unknown): Contact | null {
   }
 
   const id = typeof value.id === 'string' && value.id.length > 0 ? value.id : undefined
-  const name = typeof value.name === 'string' && value.name.trim().length > 0 ? value.name : undefined
-  const role = typeof value.role === 'string' && value.role.trim().length > 0 ? value.role : undefined
+  const name =
+    typeof value.name === 'string' && value.name.trim().length > 0 ? value.name : undefined
+  const role =
+    typeof value.role === 'string' && value.role.trim().length > 0 ? value.role : undefined
 
   if (!id || !name || !role) {
     return null
@@ -5742,8 +5791,7 @@ function sanitizeFactionsMap(
       ? entry.contacts
           .map((contact) => sanitizeHydratedContact(contact))
           .filter(
-            (contact): contact is Contact =>
-              contact !== null && knownContactIds.has(contact.id)
+            (contact): contact is Contact => contact !== null && knownContactIds.has(contact.id)
           )
       : [...(fallback[factionId]?.contacts ?? [])]
     const historyRaw = isRecord(entry.history) ? entry.history : {}
@@ -5836,8 +5884,7 @@ function sanitizeFactionsMap(
             }))
             .filter(
               (unlock) =>
-                !unlock.contactId ||
-                contacts.some((contact) => contact.id === unlock.contactId)
+                !unlock.contactId || contacts.some((contact) => contact.id === unlock.contactId)
             )
         : [],
       lore,
@@ -5932,14 +5979,16 @@ function sanitizeAgencyState(
       ? {
           supportAvailable: sanitizeInteger(
             mirrors.supportAvailable,
-            sanitizeInteger(raw.supportAvailable as number | undefined, mirrors.supportAvailable, 0),
+            sanitizeInteger(
+              raw.supportAvailable as number | undefined,
+              mirrors.supportAvailable,
+              0
+            ),
             0
           ),
         }
       : {}),
-    ...(maintenanceSpecialistsAvailable !== undefined
-      ? { maintenanceSpecialistsAvailable }
-      : {}),
+    ...(maintenanceSpecialistsAvailable !== undefined ? { maintenanceSpecialistsAvailable } : {}),
     ...(typeof mirrors.coordinationFrictionActive === 'boolean'
       ? { coordinationFrictionActive: mirrors.coordinationFrictionActive }
       : {}),
@@ -5991,9 +6040,9 @@ function uniqueSortedProjectIds(ids: unknown): string[] {
     return []
   }
 
-  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length > 0))].sort(
-    (left, right) => left.localeCompare(right)
-  )
+  return [
+    ...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length > 0)),
+  ].sort((left, right) => left.localeCompare(right))
 }
 
 function sanitizeResearchUnlock(value: unknown): ResearchUnlock | null {
@@ -6033,9 +6082,7 @@ function sanitizeResearchProject(
   }
 
   const projectId =
-    typeof value.projectId === 'string' && value.projectId.length > 0
-      ? value.projectId
-      : recordKey
+    typeof value.projectId === 'string' && value.projectId.length > 0 ? value.projectId : recordKey
 
   if (projectId !== recordKey) {
     return null
@@ -6109,8 +6156,7 @@ function sanitizeResearchProject(
           requiredFacilityLevels: value.requiredFacilityLevels
             .filter((entry): entry is Record<string, unknown> => isRecord(entry))
             .map((entry) => ({
-              facilityId:
-                typeof entry.facilityId === 'string' ? entry.facilityId.trim() : '',
+              facilityId: typeof entry.facilityId === 'string' ? entry.facilityId.trim() : '',
               level: Math.max(0, sanitizeInteger(entry.level as number | undefined, 0, 0)),
             }))
             .filter((entry) => entry.facilityId.length > 0),
@@ -6206,7 +6252,9 @@ function applyHydratedFacilityResearchScalars(
   const bonusSlots = facilities.reduce((sum, facility) => {
     const raw = facility.effects.researchSlots
 
-    return sum + (typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0)
+    return (
+      sum + (typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.round(raw)) : 0)
+    )
   }, 0)
   const speedMultiplier = facilities.reduce((product, facility) => {
     const raw = facility.effects.researchSpeedMultiplier
@@ -6356,11 +6404,7 @@ function sanitizeFacilityInstance(
     1,
     MAX_FACILITY_LEVEL
   )
-  const level = clamp(
-    sanitizeInteger(value.level as number | undefined, 1, 1),
-    1,
-    maxLevel
-  )
+  const level = clamp(sanitizeInteger(value.level as number | undefined, 1, 1), 1, maxLevel)
   const status = isOneOf(value.status, FACILITY_STATUSES) ? value.status : 'inactive'
   const upgradeInProgress = value.upgradeInProgress === true
   const upgradeStartedWeek =
@@ -6393,9 +6437,7 @@ function sanitizeFacilityInstance(
           upgradeInProgress: true,
           upgradeStartedWeek,
           upgradeCompleteWeek:
-            upgradeCompleteWeek >= upgradeStartedWeek
-              ? upgradeCompleteWeek
-              : upgradeStartedWeek,
+            upgradeCompleteWeek >= upgradeStartedWeek ? upgradeCompleteWeek : upgradeStartedWeek,
         }
       : {}),
     ...(value.pendingEffectDeltas
@@ -6453,16 +6495,29 @@ function sanitizeRelationshipSnapshot(
     return null
   }
 
-  const week = clamp(sanitizeInteger(value.week as number | undefined, campaignWeek, 1), 1, campaignWeek)
+  const week = clamp(
+    sanitizeInteger(value.week as number | undefined, campaignWeek, 1),
+    1,
+    campaignWeek
+  )
   const snapshotValue = clamp(
-    sanitizeDecimal(value.value as number | undefined, 0, RELATIONSHIP_VALUE_MIN, RELATIONSHIP_VALUE_MAX),
+    sanitizeDecimal(
+      value.value as number | undefined,
+      0,
+      RELATIONSHIP_VALUE_MIN,
+      RELATIONSHIP_VALUE_MAX
+    ),
     RELATIONSHIP_VALUE_MIN,
     RELATIONSHIP_VALUE_MAX
   )
   const reason = isOneOf(value.reason, RELATIONSHIP_SNAPSHOT_REASONS) ? value.reason : undefined
   const trustDamage =
     typeof value.trustDamage === 'number' && Number.isFinite(value.trustDamage)
-      ? clamp(sanitizeDecimal(value.trustDamage, 0, 0, RELATIONSHIP_VALUE_MAX), 0, RELATIONSHIP_VALUE_MAX)
+      ? clamp(
+          sanitizeDecimal(value.trustDamage, 0, 0, RELATIONSHIP_VALUE_MAX),
+          0,
+          RELATIONSHIP_VALUE_MAX
+        )
       : undefined
 
   return stripUndefinedFields({
@@ -6470,7 +6525,9 @@ function sanitizeRelationshipSnapshot(
     agentAId,
     agentBId,
     value: snapshotValue,
-    modifiers: sanitizeStringList(value.modifiers).map((modifier) => modifier.trim()).filter(Boolean),
+    modifiers: sanitizeStringList(value.modifiers)
+      .map((modifier) => modifier.trim())
+      .filter(Boolean),
     ...(trustDamage !== undefined ? { trustDamage } : {}),
     ...(reason ? { reason } : {}),
   }) as RelationshipSnapshot
@@ -6523,9 +6580,7 @@ function sanitizeHubOpportunity(value: unknown): HubState['opportunities'][numbe
     ...(typeof value.accessExplanation === 'string' && value.accessExplanation.trim().length > 0
       ? { accessExplanation: value.accessExplanation.trim() }
       : {}),
-    ...(isOneOf(value.accessState, HUB_ACCESS_STATES)
-      ? { accessState: value.accessState }
-      : {}),
+    ...(isOneOf(value.accessState, HUB_ACCESS_STATES) ? { accessState: value.accessState } : {}),
   }) as HubState['opportunities'][number]
 }
 
@@ -6593,7 +6648,11 @@ function sanitizeHubState(value: unknown): HubState | undefined {
         .slice(0, 8)
     : []
 
-  if (opportunities.length === 0 && rumors.length === 0 && Object.keys(factionPresence).length === 0) {
+  if (
+    opportunities.length === 0 &&
+    rumors.length === 0 &&
+    Object.keys(factionPresence).length === 0
+  ) {
     return undefined
   }
 
@@ -6631,7 +6690,7 @@ function sanitizeSquadMetadataMap(
     const leaderId =
       typeof entry.designatedLeaderId === 'string'
         ? entry.designatedLeaderId
-        : teams[squadId]?.leaderId ?? ''
+        : (teams[squadId]?.leaderId ?? '')
 
     if (!(leaderId in agents)) {
       continue
@@ -6655,7 +6714,9 @@ function sanitizeSquadMetadataMap(
   return Object.keys(next).length > 0 ? next : undefined
 }
 
-function sanitizeSquadKitTemplatesMap(value: unknown): Record<string, SquadKitTemplate> | undefined {
+function sanitizeSquadKitTemplatesMap(
+  value: unknown
+): Record<string, SquadKitTemplate> | undefined {
   if (!isRecord(value)) {
     return undefined
   }
@@ -6819,7 +6880,11 @@ function sanitizeHydratedContractDebriefRecord(
     return null
   }
 
-  const week = clamp(sanitizeInteger(value.week as number | undefined, campaignWeek, 1), 1, campaignWeek)
+  const week = clamp(
+    sanitizeInteger(value.week as number | undefined, campaignWeek, 1),
+    1,
+    campaignWeek
+  )
   const factionId =
     typeof value.factionId === 'string' && value.factionId.length > 0 ? value.factionId : undefined
 
@@ -6872,9 +6937,7 @@ function sanitizeHydratedContractDebriefRecords(
   }
 
   const records = value
-    .map((entry) =>
-      sanitizeHydratedContractDebriefRecord(entry, campaignWeek, cases, factions)
-    )
+    .map((entry) => sanitizeHydratedContractDebriefRecord(entry, campaignWeek, cases, factions))
     .filter((record): record is ContractDebriefRecord => record !== null)
 
   return records.length > 0 ? records : undefined
@@ -7003,13 +7066,11 @@ function sanitizeOperationEvents(
             ...createBase('assignment.team_assigned'),
             payload: {
               week,
-              caseId:
-                importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
+              caseId: importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
               caseTitle:
                 typeof payload.caseTitle === 'string' ? payload.caseTitle : `Case ${index + 1}`,
               caseKind: payload.caseKind === 'raid' ? 'raid' : 'case',
-              teamId:
-                importEntityId(payload.teamId, `team-${index + 1}`) ?? `team-${index + 1}`,
+              teamId: importEntityId(payload.teamId, `team-${index + 1}`) ?? `team-${index + 1}`,
               teamName:
                 typeof payload.teamName === 'string' ? payload.teamName : `Team ${index + 1}`,
               assignedTeamCount,
@@ -7069,8 +7130,7 @@ function sanitizeOperationEvents(
             ...createBase('case.partially_resolved'),
             payload: {
               week,
-              caseId:
-                importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
+              caseId: importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
               caseTitle:
                 typeof payload.caseTitle === 'string' ? payload.caseTitle : `Case ${index + 1}`,
               mode: sanitizeOperationEventCaseMode(payload.mode),
@@ -7093,8 +7153,7 @@ function sanitizeOperationEvents(
             ...createBase('case.failed'),
             payload: {
               week,
-              caseId:
-                importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
+              caseId: importEntityId(payload.caseId, `case-${index + 1}`) ?? `case-${index + 1}`,
               caseTitle:
                 typeof payload.caseTitle === 'string' ? payload.caseTitle : `Case ${index + 1}`,
               mode: sanitizeOperationEventCaseMode(payload.mode),
@@ -7132,7 +7191,8 @@ function sanitizeOperationEvents(
                 1,
                 0
               ),
-              convertedToRaid: convertedToRaid && stageTransition.toStage > stageTransition.fromStage,
+              convertedToRaid:
+                convertedToRaid && stageTransition.toStage > stageTransition.fromStage,
               ...(typeof payload.neighborhoodPressureAuditTag === 'string'
                 ? { neighborhoodPressureAuditTag: payload.neighborhoodPressureAuditTag }
                 : {}),
@@ -7188,19 +7248,11 @@ function sanitizeOperationEvents(
               kind: sanitizeOperationEventCaseKind(payload.kind),
               battleId:
                 typeof payload.battleId === 'string' ? payload.battleId : `battle-${index + 1}`,
-              roundsResolved: sanitizeInteger(
-                payload.roundsResolved as number | undefined,
-                0,
-                0
-              ),
-              winnerSideId:
-                typeof payload.winnerSideId === 'string' ? payload.winnerSideId : null,
-              winnerLabel:
-                typeof payload.winnerLabel === 'string' ? payload.winnerLabel : null,
+              roundsResolved: sanitizeInteger(payload.roundsResolved as number | undefined, 0, 0),
+              winnerSideId: typeof payload.winnerSideId === 'string' ? payload.winnerSideId : null,
+              winnerLabel: typeof payload.winnerLabel === 'string' ? payload.winnerLabel : null,
               friendlyLabel:
-                typeof payload.friendlyLabel === 'string'
-                  ? payload.friendlyLabel
-                  : 'Friendly',
+                typeof payload.friendlyLabel === 'string' ? payload.friendlyLabel : 'Friendly',
               hostileLabel:
                 typeof payload.hostileLabel === 'string' ? payload.hostileLabel : 'Hostile',
               movementDeniedCount: sanitizeInteger(
@@ -7828,10 +7880,8 @@ function sanitizeOperationEvents(
                 `txn-${week}-${index + 1}`,
               action: isOneOf(payload.action, MARKET_TRANSACTION_ACTIONS) ? payload.action : 'buy',
               listingId:
-                importEntityId(payload.listingId, `listing-${index + 1}`) ??
-                `listing-${index + 1}`,
-              itemId:
-                importEntityId(payload.itemId, `item-${index + 1}`) ?? `item-${index + 1}`,
+                importEntityId(payload.listingId, `listing-${index + 1}`) ?? `listing-${index + 1}`,
+              itemId: importEntityId(payload.itemId, `item-${index + 1}`) ?? `item-${index + 1}`,
               itemName:
                 typeof payload.itemName === 'string' ? payload.itemName : `Item ${index + 1}`,
               category: isOneOf(payload.category, MARKET_TRANSACTION_CATEGORIES)
@@ -7897,11 +7947,13 @@ function sanitizeOperationEvents(
                 typeof payload.institutionKey === 'string' ? payload.institutionKey : undefined
               ),
               authorityRoute:
-                typeof payload.authorityRoute === 'string' && payload.authorityRoute.trim().length > 0
+                typeof payload.authorityRoute === 'string' &&
+                payload.authorityRoute.trim().length > 0
                   ? payload.authorityRoute.trim()
                   : AUTHORITY_ROUTE_CRISIS_DIRECTOR_SELF,
               authorityBasis:
-                typeof payload.authorityBasis === 'string' && payload.authorityBasis.trim().length > 0
+                typeof payload.authorityBasis === 'string' &&
+                payload.authorityBasis.trim().length > 0
                   ? payload.authorityBasis.trim()
                   : LEGACY_WAIVER_AUTHORITY_BASIS_MIGRATION,
               regulatoryArbitrageSignal:
@@ -8022,8 +8074,7 @@ function sanitizeOperationEvents(
             payload: stripUndefinedFields({
               week,
               factionId:
-                importEntityId(payload.factionId, `faction-${index + 1}`) ??
-                `faction-${index + 1}`,
+                importEntityId(payload.factionId, `faction-${index + 1}`) ?? `faction-${index + 1}`,
               factionName:
                 typeof payload.factionName === 'string'
                   ? payload.factionName
@@ -8276,7 +8327,10 @@ function sanitizeOperationEvents(
                 payload.optionId === 'offBooksCourier' || payload.optionId === 'trustedCourier'
                   ? payload.optionId
                   : 'trustedCourier',
-              outcome: payload.outcome === 'paid' || payload.outcome === 'lockout' ? payload.outcome : 'paid',
+              outcome:
+                payload.outcome === 'paid' || payload.outcome === 'lockout'
+                  ? payload.outcome
+                  : 'paid',
               fundingDelta: sanitizeInteger(payload.fundingDelta as number | undefined, 0, -10_000),
               fatigueDelta: sanitizeInteger(payload.fatigueDelta as number | undefined, 0, -100),
             },
@@ -8463,10 +8517,7 @@ function sanitizeWeeklyReports(
       resolvedCases: sanitizeWeeklyReportCaseIdList(report.resolvedCases, allowedCaseIds),
       failedCases: sanitizeWeeklyReportCaseIdList(report.failedCases, allowedCaseIds),
       partialCases: sanitizeWeeklyReportCaseIdList(report.partialCases, allowedCaseIds),
-      unresolvedTriggers: sanitizeWeeklyReportCaseIdList(
-        report.unresolvedTriggers,
-        allowedCaseIds
-      ),
+      unresolvedTriggers: sanitizeWeeklyReportCaseIdList(report.unresolvedTriggers, allowedCaseIds),
       spawnedCases: sanitizeWeeklyReportCaseIdList(report.spawnedCases, allowedCaseIds),
     })
     const reportDate = sanitizeWeeklyReportDate(report.date, week, calendarConfig)
@@ -8666,14 +8717,17 @@ export function hydrateGame(
     game.modifiableDataPackRecords,
     fallback.modifiableDataPackRecords ?? {}
   )
-  const massAnomalousPopulationEmergenceRecords =
-    sanitizeMassAnomalousPopulationEmergenceRecords(
-      game.massAnomalousPopulationEmergenceRecords,
-      fallback.massAnomalousPopulationEmergenceRecords ?? {}
-    )
+  const massAnomalousPopulationEmergenceRecords = sanitizeMassAnomalousPopulationEmergenceRecords(
+    game.massAnomalousPopulationEmergenceRecords,
+    fallback.massAnomalousPopulationEmergenceRecords ?? {}
+  )
   const visualTriggerHazardRecords = sanitizeVisualTriggerHazardRecords(
     game.visualTriggerHazardRecords,
     fallback.visualTriggerHazardRecords ?? {}
+  )
+  const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
+    game.affiliationPersonStatusRecords,
+    fallback.affiliationPersonStatusRecords ?? {}
   )
   const entityWelfareReclassificationRecords = sanitizeEntityWelfareReclassificationRecords(
     game.entityWelfareReclassificationRecords,
@@ -8831,134 +8885,132 @@ export function hydrateGame(
   const market = sanitizeMarket(game.market, fallback.market, week)
 
   const hydratedBase = stripUndefinedFields({
-      ...fallback,
+    ...fallback,
+    week,
+    rngSeed,
+    rngState: hydratedRngState,
+    gameOver,
+    gameOverReason,
+    directiveState: sanitizeWeeklyDirectiveState(
+      game.directiveState,
+      fallback.directiveState,
+      week
+    ),
+    agents,
+    staff,
+    knowledge,
+    informationIntakeReports,
+    extranormalEventRecords,
+    unexplainedLocationRecords,
+    minorAnomalyItemRecords,
+    namingHazardDescriptorRecords,
+    recurrentCatastropheRecords,
+    postIncidentReviewRecords,
+    postIncidentReviewRecommendationRecords,
+    postIncidentReviewRecommendationActionRecords,
+    ruleDocumentComplianceRecords,
+    selfCensoringInformationRecords,
+    publicDisclosureRecords,
+    publicDisclosurePostureChoices,
+    truthLayerRecords,
+    truthLayerWeeklyProjectionSnapshots,
+    coverStoryRecords,
+    coverStoryWeeklyProjectionSnapshots,
+    patternSourceSeriesRecords,
+    publishQueueRecords,
+    publishQueueExecutionReceipts,
+    modifiableDataPackRecords,
+    massAnomalousPopulationEmergenceRecords,
+    visualTriggerHazardRecords,
+    affiliationPersonStatusRecords,
+    entityWelfareReclassificationRecords,
+    containedPersonTherapeuticCareRecords,
+    containedPersonMedicationRegimenRecords,
+    containedPersonCustodyStatusRecords,
+    coerciveContainedPersonProtocolRecords,
+    coerciveContainedPersonProtocolWeeklyProjectionSnapshots,
+    welfareDebtAccountingRecords,
+    factionEthicsRecords,
+    accountabilityMatrixRecords,
+    containedPersonIntegratedHealthBundles,
+    surveillanceInterventionTuningRecords,
+    psychologicalResilienceRecords,
+    cognitiveHazardExposureRecords,
+    candidates,
+    recruitmentPool,
+    teams,
+    cases: normalizedCases,
+    caseQueue: sanitizeCaseQueueState(game.caseQueue, normalizedCases, fallback.caseQueue),
+    reports,
+    events,
+    inventory: sanitizeInventory(game.inventory, fallback.inventory),
+    runtimeState,
+    globalFlags,
+    researchState: sanitizeResearchState(
+      game.researchState,
       week,
-      rngSeed,
-      rngState: hydratedRngState,
-      gameOver,
-      gameOverReason,
-      directiveState: sanitizeWeeklyDirectiveState(
-        game.directiveState,
-        fallback.directiveState,
-        week
-      ),
+      fallback.researchState,
+      facilityState
+    ),
+    facilityState,
+    relationshipHistory: sanitizeRelationshipHistory(
+      game.relationshipHistory,
+      week,
       agents,
-      staff,
-      knowledge,
-      informationIntakeReports,
-      extranormalEventRecords,
-      unexplainedLocationRecords,
-      minorAnomalyItemRecords,
-      namingHazardDescriptorRecords,
-      recurrentCatastropheRecords,
-      postIncidentReviewRecords,
-      postIncidentReviewRecommendationRecords,
-      postIncidentReviewRecommendationActionRecords,
-      ruleDocumentComplianceRecords,
-      selfCensoringInformationRecords,
-      publicDisclosureRecords,
-      publicDisclosurePostureChoices,
-      truthLayerRecords,
-      truthLayerWeeklyProjectionSnapshots,
-      coverStoryRecords,
-      coverStoryWeeklyProjectionSnapshots,
-      patternSourceSeriesRecords,
-      publishQueueRecords,
-      publishQueueExecutionReceipts,
-      modifiableDataPackRecords,
-      massAnomalousPopulationEmergenceRecords,
-      visualTriggerHazardRecords,
-      entityWelfareReclassificationRecords,
-      containedPersonTherapeuticCareRecords,
-      containedPersonMedicationRegimenRecords,
-      containedPersonCustodyStatusRecords,
-      coerciveContainedPersonProtocolRecords,
-      coerciveContainedPersonProtocolWeeklyProjectionSnapshots,
-      welfareDebtAccountingRecords,
-      factionEthicsRecords,
-      accountabilityMatrixRecords,
-      containedPersonIntegratedHealthBundles,
-      surveillanceInterventionTuningRecords,
-      psychologicalResilienceRecords,
-      cognitiveHazardExposureRecords,
-      candidates,
-      recruitmentPool,
+      fallback.relationshipHistory
+    ),
+    hubState: sanitizeHubState(game.hubState),
+    prevHubState: sanitizeHubState(game.prevHubState),
+    squadMetadata: sanitizeSquadMetadataMap(game.squadMetadata, teams, agents),
+    squadKitTemplates,
+    squadKitAssignments,
+    partyCards: sanitizePartyCardState(
+      game.partyCards,
+      fallback.partyCards,
+      normalizedCases,
       teams,
+      week
+    ),
+    missionRouting: sanitizePersistedMissionRoutingState(game.missionRouting, {
       cases: normalizedCases,
-      caseQueue: sanitizeCaseQueueState(game.caseQueue, normalizedCases, fallback.caseQueue),
-      reports,
-      events,
-      inventory: sanitizeInventory(game.inventory, fallback.inventory),
-      runtimeState,
-      globalFlags,
-      researchState: sanitizeResearchState(
-        game.researchState,
-        week,
-        fallback.researchState,
-        facilityState
-      ),
-      facilityState,
-      relationshipHistory: sanitizeRelationshipHistory(
-        game.relationshipHistory,
-        week,
-        agents,
-        fallback.relationshipHistory
-      ),
-      hubState: sanitizeHubState(game.hubState),
-      prevHubState: sanitizeHubState(game.prevHubState),
-      squadMetadata: sanitizeSquadMetadataMap(game.squadMetadata, teams, agents),
-      squadKitTemplates,
-      squadKitAssignments,
-      partyCards: sanitizePartyCardState(
-        game.partyCards,
-        fallback.partyCards,
-        normalizedCases,
-        teams,
-        week
-      ),
-      missionRouting: sanitizePersistedMissionRoutingState(game.missionRouting, {
-        cases: normalizedCases,
-        teams,
-        week,
-        informationIntakeReports,
-        agents,
-        config,
-        funding: hydrationFunding,
-        agency: hydrationAgency,
-        supportStaff: hydrationSupportStaff,
-      }),
-      replacementPressureState: sanitizeReplacementPressureState(game.replacementPressureState),
-      districtScheduleState: sanitizeDistrictScheduleState(game.districtScheduleState, week),
-      compromisedAuthority: sanitizeCompromisedAuthorityState(
-        game.compromisedAuthority,
-        factions
-      ),
-      trainingQueue: sanitizeTrainingQueue(game.trainingQueue, agents, teams, academyTier, week),
-      market,
-      productionQueue: sanitizeProductionQueue(game.productionQueue, week, market),
+      teams,
+      week,
+      informationIntakeReports,
+      agents,
       config,
-      campaignLedger: sanitizeCampaignLedger(
-        game.campaignLedger,
-        fallback.campaignLedger ?? createSeedCampaignLedger(),
-        week
-      ),
-      contracts,
-      factions,
-      externalSupportAssets,
-      academyTier,
-      containmentRating: hydrationContainmentRating,
-      clearanceLevel: hydrationClearanceLevel,
       funding: hydrationFunding,
-      emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
-        game.emergencyGrayMarketWaiverWeek,
-        week
-      ),
-      emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
-        game.emergencyGrayMarketWaiverPrecedentCount
-      ),
-      deploymentMomentum: sanitizeDeploymentMomentumState(game.deploymentMomentum, week, config),
-      templates: fallback.templates,
-    }) as GameState
+      agency: hydrationAgency,
+      supportStaff: hydrationSupportStaff,
+    }),
+    replacementPressureState: sanitizeReplacementPressureState(game.replacementPressureState),
+    districtScheduleState: sanitizeDistrictScheduleState(game.districtScheduleState, week),
+    compromisedAuthority: sanitizeCompromisedAuthorityState(game.compromisedAuthority, factions),
+    trainingQueue: sanitizeTrainingQueue(game.trainingQueue, agents, teams, academyTier, week),
+    market,
+    productionQueue: sanitizeProductionQueue(game.productionQueue, week, market),
+    config,
+    campaignLedger: sanitizeCampaignLedger(
+      game.campaignLedger,
+      fallback.campaignLedger ?? createSeedCampaignLedger(),
+      week
+    ),
+    contracts,
+    factions,
+    externalSupportAssets,
+    academyTier,
+    containmentRating: hydrationContainmentRating,
+    clearanceLevel: hydrationClearanceLevel,
+    funding: hydrationFunding,
+    emergencyGrayMarketWaiverWeek: sanitizeEmergencyGrayMarketWaiverWeek(
+      game.emergencyGrayMarketWaiverWeek,
+      week
+    ),
+    emergencyGrayMarketWaiverPrecedentCount: sanitizeEmergencyGrayMarketWaiverPrecedentCount(
+      game.emergencyGrayMarketWaiverPrecedentCount
+    ),
+    deploymentMomentum: sanitizeDeploymentMomentumState(game.deploymentMomentum, week, config),
+    templates: fallback.templates,
+  }) as GameState
 
   const containmentRating = hydrationContainmentRating
   const clearanceLevel = hydrationClearanceLevel
@@ -9004,10 +9056,14 @@ export function hydrateGame(
 
   hydrated = {
     ...hydrated,
-    missionRouting: reconcileHydratedMissionRoutingTriage(hydratedBase.missionRouting, hydrated.missionRouting, {
-      cases: normalizedCases,
-      informationIntakeReports,
-    }),
+    missionRouting: reconcileHydratedMissionRoutingTriage(
+      hydratedBase.missionRouting,
+      hydrated.missionRouting,
+      {
+        cases: normalizedCases,
+        informationIntakeReports,
+      }
+    ),
   }
 
   if (!legitimacy) {

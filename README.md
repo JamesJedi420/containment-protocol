@@ -1,202 +1,164 @@
 # Containment Protocol
 
-## Project Scope
+[![Test](https://github.com/JamesJedi420/containment-protocol/actions/workflows/test.yml/badge.svg)](https://github.com/JamesJedi420/containment-protocol/actions/workflows/test.yml)
 
-**Containment Protocol** is a deterministic, domain-driven simulation and management game prototype. It models containment-response operations, squad assignment, weekly incident resolution, and cross-scale state handoff, with a focus on canonical rules, authorable content, and strict architectural boundaries.
+**Containment Protocol** is a deterministic, domain-driven containment operations simulation built as a React and TypeScript single-page app. It models weekly incident response, squad assignment, procurement, recruitment, faction pressure, reports, and explicit cross-system state handoffs.
 
-## Core Simulation Engine
+The project is intentionally client-only: no backend, database, external services, or secrets are required to run the app locally.
 
-- Canonical, deterministic simulation logic lives in `src/domain/`
-- Simulation output is reproducible through seeded RNG and regression/snapshot tests
-- Domain rules, orchestration, projections, and UI remain explicitly separated
-- Cross-scale state transfer uses explicit contracts instead of hidden coupling
+## Table of Contents
 
-## Architecture & Boundaries
+- [Quick Start](#quick-start)
+- [Requirements](#requirements)
+- [Common Commands](#common-commands)
+- [Validation](#validation)
+- [Architecture](#architecture)
+- [Current Status](#current-status)
+- [Project Structure](#project-structure)
+- [Contributing](#contributing)
+- [Planning and Documentation](#planning-and-documentation)
 
-- **Domain Layer**: pure simulation logic in `src/domain/**`
-- **Store / Orchestration**: state management, hydration, transfer, and selectors in `src/app/store/**`
-- **Projection / View-Model**: pure selectors and view-models in `src/features/*View.ts`
-- **UI / Components**: presentational React modules in `src/features/**` and `src/styles/**`
-- Shared explanatory output is owned by canonical domain helpers wherever possible
-- Dependency boundaries are enforced by Vitest guardrails (`src/test/boundary-enforcement.test.ts`); see `docs/dependency-boundaries.md`
+## Quick Start
 
-## Shell route disposition
+```bash
+npm ci
+npm run dev
+```
 
-| Route                | Disposition            | Implementation                                                                       |
-| -------------------- | ---------------------- | ------------------------------------------------------------------------------------ |
-| `/help`              | Bounded guidance index | `HelpPlaceholderPage` — links to Operations Desk, Report, Contracts, Registry, Cases |
-| `/containment-site`  | Future placeholder     | `SystemBoundaryPage` — live metrics, no dedicated site UI                            |
-| `/rankings`          | Future placeholder     | `SystemBoundaryPage` — report-derived benchmarks only                                |
-| `/agency`            | Future placeholder     | `SystemBoundaryPage` — economy/directives stay on Operations Desk until shipped      |
-| `/markets-suppliers` | Live                   | `MarketPage`                                                                         |
-| `/factions`          | Live                   | `FactionsPage`                                                                       |
+Open the Vite dev server at:
 
-## UI / UX Features
+```text
+http://localhost:5173
+```
 
-- Weekly simulation flow and case resolution
-- Dashboard, reports, case management, team and agent detail
-- Equipment, fabrication, market, recruitment, factions, intel, training, and operations surfaces
-- Feature modules are isolated under `src/features/`
+On Windows PowerShell, `npm.cmd run dev` is also fine.
 
-## Authoring & Content
+## Requirements
 
-- Case template authoring lives in `src/domain/templates/`
-- Narrative and explanatory copy stubs live in `src/data/copy.ts`
-- Authoring guardrails and contract tests enforce content integrity
-- Starter state is assembled from canonical template modules, not ad hoc UI data
+- Node.js 22
+- npm
+- A modern browser
 
-## Event Schema & Versioning
+No environment variables are required. CI sets `STRICT_TEST_CONSOLE=1` so unexpected console output fails tests.
 
-- Operation event schemas, validation, and migration utilities live in `src/domain/events/`
-- Schema ownership and migration guidance are documented in `SCHEMA_REGISTRY.md`
-- Backward compatibility is maintained through canonical migration paths
+## Common Commands
 
-## Validation & Testing
+| Command                          | Purpose                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------- |
+| `npm run dev`                    | Start the Vite development server with HMR.                                           |
+| `npm run lint`                   | Run ESLint across the repository.                                                     |
+| `npm run test:run`               | Run the full Vitest suite once using the local `vmThreads` pool.                      |
+| `npm run test`                   | Run Vitest in watch mode. Pass a file path to narrow scope while iterating.           |
+| `npm run test:run:ci`            | Run the CI test command using the `forks` pool.                                       |
+| `npm run coverage`               | Run tests with coverage output.                                                       |
+| `npm run format`                 | Rewrite files with Prettier.                                                          |
+| `npm run format:check`           | Check formatting without editing files.                                               |
+| `npm run verify:audits-index`    | Verify `docs/design-audits-index.md` matches top-level `docs/*audit*.md` files.       |
+| `npm run verify:theme-contracts` | Verify SPE mirror coverage against `architecture/external-design-theme-contracts.md`. |
+| `npm run build`                  | Run the TypeScript project build and Vite production bundle. See the note below.      |
 
-- Comprehensive simulation, determinism, regression, UI, and boundary-enforcement coverage
-- Domain and feature tests live in `src/test/` and `src/features/**/*.test.tsx`
-- Full repository validation is green
-- Canonical hidden-state and disguise-validation slices are covered by targeted tests
+`npm run build` is a type-contract gate, not the current day-to-day development gate. The app, tests, and dev server use Vite successfully, but strict project build can expose known type-contract drift that should be fixed in scoped follow-up slices before treating build as a deployment blocker.
 
-## Archived Prototype
+## Validation
 
-Early prototype work is preserved in `docs/archived/incident-shell/` and is not part of the active runtime.
+Before opening a pull request, run the checks that match the scope of your change:
 
-## Recent Updates
+```bash
+npm run lint
+npm run test:run
+npm run format:check
+```
 
-### Hidden-state, displacement, and counter-detection layer completed ([SPE-70](https://linear.app/spectranoir/issue/SPE-70/hidden-state-displacement-and-counter-detection-layer))
+Documentation and planning changes may also need:
 
-- Mission results now carry canonical hidden-state fields:
-  - `hiddenState`
-  - `detectionConfidence`
-  - `counterDetection`
-  - `displacementTarget`
-- Existing report detail surfaces render these fields directly
-- Deterministic regression coverage now verifies:
-  - distinct hidden-state modalities
-  - counter-detection behavior
-  - downstream route impact from displacement
-  - player-facing ambiguous / partial reveal output
-- Design reference: `architecture/hidden-state-displacement-counter-detection.md`
+```bash
+npm run verify:audits-index
+npm run verify:theme-contracts
+```
 
-### Behavior-weighted disguise validation completed as a bounded pass ([SPE-285](https://linear.app/spectranoir/issue/SPE-285/behavior-weighted-disguise-validation))
+GitHub Actions runs lint, audit verification, theme-contract verification, tests, and coverage on pull requests.
 
-- Added a shared deterministic behavior-weighted disguise evaluator
-- Reused the existing hidden-state pipeline rather than introducing a parallel disguise framework
-- Preview and live resolution both route through existing `scoreAdjustment` and `scoreAdjustmentReason` paths
-- Strong behavioral mismatch can:
-  - raise `detectionConfidence`
-  - trigger `counterDetection`
-  - downgrade an otherwise clean success to partial under scrutiny
-- Reporting continues to use existing mission-result fields and `explanationNotes`
-- This pass is intentionally bounded to cases already entering with `hiddenState: 'hidden'`
+## Architecture
 
-### Shared rules substrate completed and consumer-migrated ([SPE-41](https://linear.app/spectranoir/issue/SPE-41/tags-conditions-and-graded-outcome-framework))
+The app keeps simulation rules, state orchestration, projections, and UI separate.
 
-- Canonical shared rules now live in:
-  - `src/domain/shared/tags.ts`
-  - `src/domain/shared/outcomes.ts`
-  - `src/domain/shared/modifiers.ts`
-  - `src/domain/shared/distortion.ts`
-- Distortion handling, typed consequence routing, and shared outcome formatting now flow through canonical helpers
-- Dashboard, agency, containment, and shared copy surfaces now consume canonical domain outputs rather than local reinterpretation
+| Layer               | Location                                               | Responsibility                                                                              |
+| ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| Domain              | `src/domain/**`                                        | Deterministic simulation logic, rule evaluators, event contracts, and weekly orchestration. |
+| Store and hydration | `src/app/store/**`                                     | Zustand state, save/load compatibility, and run transfer.                                   |
+| View models         | `src/features/*View.ts`                                | Pure projections for UI surfaces.                                                           |
+| UI                  | `src/features/**`, `src/styles/**`                     | React routes, pages, panels, and presentational components.                                 |
+| Starter data        | `src/data/startingState.ts`, `src/domain/templates/**` | Canonical initial state and authorable content templates.                                   |
+| Tests               | `src/test/**`, `src/features/**/*.test.tsx`            | Determinism, domain, regression, view-model, UI, and boundary coverage.                     |
 
-### Cross-scale integration and explicit handoff contracts completed ([SPE-64](https://linear.app/spectranoir/issue/SPE-64/cross-scale-integration-and-domain-interface-layer))
+Important design rules:
 
-- Explicit `CampaignToIncidentPacket` and `IncidentToCampaignPacket` contracts now carry bounded state between campaign and incident paths
-- Weekly resolution uses explicit handoff packets instead of hidden mutable coupling
-- Optional modular hook points can inspect or alter handoff packets without rewriting the core loop
-- Deterministic contract tests cover packet transfer and integration behavior
+- Simulation output must be deterministic and testable.
+- Shared explanatory output should live in canonical domain helpers where possible.
+- Optional modules integrate through explicit contracts, not hidden mutable state.
+- Type-only imports must use `import type` in Vite-loaded source files.
+- Dependency boundaries are enforced by guardrail tests; see `docs/dependency-boundaries.md`.
 
-### Escalation, threat drift, and time pressure canonicalized ([SPE-20](https://linear.app/spectranoir/issue/SPE-20/escalation-threat-drift-and-time-pressure))
+## Current Status
 
-- Escalation, drift, and time pressure live in canonical simulation state
-- Weekly outcome assignment is routed through a canonical registrar with exclusive bucketing
-- Per-tick case bucketing no longer allows double assignment across resolved / failed / partial / unresolved paths
-- Deterministic scheduler and escalation coverage is green
+Recent shipped work includes:
 
-### Support bottleneck pass completed ([SPE-94](https://linear.app/spectranoir/issue/SPE-94/support-specialist-multiplier-and-bottleneck-pass))
+- **Durable affiliation/person-status records** for SPE-1046, including persistence, read-only surfacing, weekly progression, and exact-match mission-routing evidence through existing clearance gates.
+- **Publish and contribution operations** for SPE-75, including publish-queue persistence, execution receipts, manual approval, webhook, and modifiable data-pack orchestration.
+- **Registry umbrella grooming** for SPE-947 and SPE-1046, with parent issues kept in Backlog until full parent acceptance is satisfied.
+- **Mission triage and hidden-state slices** for concealment, intake signal chips, modality tells, and deterministic report notes.
 
-- Equipment recovery throughput is gated by bounded maintenance specialist availability
-- Missing or overcommitted support specialists create visible operational bottlenecks
-- Existing reports and summaries surface dependency and blockage cleanly
-- See `docs/maintenance-specialist-bottleneck.md`
+The canonical live queue is `planning/backlog.md`. Avoid duplicating long tactical lists in this README.
 
-### Repo-wide stabilization completed
+## Project Structure
 
-- `npm run test:run` and `npm run lint` are green in CI; treat `npm run build` as a separate type-contract gate (see `AGENTS.md` for known baseline TypeScript drift and Vite 8 type-import caveats)
-- Full Vitest suite is green
-- Compatibility drift across older runtime/test surfaces was resolved without undoing current canonical behavior
-- Hidden-state and disguise-validation bounded slices remain green after stabilization
+```text
+.
+|-- architecture/            # Long-lived architecture and contract docs
+|-- docs/                    # Audits, handoffs, contribution docs, and references
+|-- planning/                # Canonical backlog and slice plans
+|-- scripts/                 # Repository verification scripts
+|-- src/
+|   |-- app/                 # App shell, routes, and Zustand store
+|   |-- data/                # Copy and starting-state assembly
+|   |-- domain/              # Deterministic simulation domain
+|   |-- features/            # React feature surfaces and view models
+|   |-- styles/              # Shared styling
+|   `-- test/                # Domain and integration test coverage
+|-- app.vite.config.ts       # Vite app/test configuration
+|-- package.json             # Scripts and dependencies
+`-- README.md
+```
 
-## Stack
+Archived prototype work lives in `docs/archived/incident-shell/` and is not part of the active runtime.
 
-- React 19
-- TypeScript
-- Vite 8
-- ESLint 10
-- Vitest
-- Testing Library
+## Contributing
 
-## Scripts
+Work is tracked in Linear, not GitHub Issues:
 
-- `npm run dev` — start the local Vite dev server
-- `npm run build` — run TypeScript project build (`tsc -b`) over app + Vite config, then produce a production bundle with Vite (manual chunks in `app.vite.config.ts` are organizational only: `vendor-react`, `vendor-icons`, `vendor-misc`, `content-catalog`, `sim-core`; no bundle-size budgets or analyzer CI gate yet)
-- `npm run lint` — run ESLint across the repo
-- `npm run format` — rewrite files with Prettier
-- `npm run format:check` — verify formatting without changing files
-- `npm run test:run` — execute the full Vitest suite once (CI and pre-merge gate; same flags as `npm run test` with `vitest run`)
-- `npm run test` — Vitest in watch mode (pass a file path to narrow scope while iterating)
-- `npm run test:ui` — open the Vitest UI
-- `npm run coverage` — run tests with coverage output
-- `npm run verify:audits-index` — assert `docs/design-audits-index.md` matches every top-level `docs/*audit*.md` (excludes the index file itself)
-- `npm run verify:theme-contracts` — assert mirrored **SPE-** follow-ups match `architecture/external-design-theme-contracts.md` coverage lines
+- Linear team queue: [SpectraNoir SPE](https://linear.app/spectranoir/team/SPE/all)
+- PR template: `.github/pull_request_template.md`
+- Contribution and release policy: `docs/contribution-and-release-operations.md`
+- Agent/session handoff: `AGENTS.md` and `docs/agent-session-handoff.md`
 
-**Planning and doc curation:** `planning/documentation-curation.md` — when to update backlog, roadmap, mirrors, and the systems map.
+Expected PR flow:
 
-**Contributing:** Track work in [Linear](https://linear.app/spectranoir/team/SPE/all) (not GitHub issues). PRs use `.github/pull_request_template.md`; see `docs/contribution-and-release-operations.md` for intake policy, CODEOWNERS placeholders, and Dependabot grouping.
+1. Start from updated `main`.
+2. Create or find the Linear slice issue and set it In Progress.
+3. Keep the implementation boundary small and testable.
+4. Run targeted checks, then full validation as appropriate.
+5. Link the Linear issue in the PR body.
+6. Merge only after CI is green.
 
-## Structure
+After a PR merges, sync local `main` before starting the next slice.
 
-- `src/main.tsx` mounts the live gameplay app
-- `src/app/App.tsx` defines gameplay routes
-- `src/app/store/gameStore.ts` holds simulation state and gameplay actions
-- `src/app/store/runTransfer.ts` handles run hydration / transfer compatibility
-- `src/domain/models.ts` defines core simulation types and handoff contracts
-- `src/domain/sim/*` contains assignment, resolution, spawning, escalation, and week-advance logic
-- `src/domain/templates/*` contains starter content, roster/team setup, template sources, and seeded opening cases
-- `src/data/startingState.ts` assembles initial state from canonical templates
-- `src/features/*` contains gameplay surfaces and projections
-- `src/test/*` contains deterministic simulation and regression coverage
-- `docs/archived/incident-shell/*` contains the preserved archived prototype
+## Planning and Documentation
 
-## Cross-Scale Integration & Modular Contracts
+- Canonical near-term queue: `planning/backlog.md`
+- Deferred deep design: `planning/deferred-design-documents.md`
+- Documentation curation rhythm: `planning/documentation-curation.md`
+- Schema ownership: `SCHEMA_REGISTRY.md`
+- Cross-scale handoff contracts: `docs/cross-scale-integration.md`
+- Dependency boundaries: `docs/dependency-boundaries.md`
 
-### Explicit handoff contracts ([SPE-64](https://linear.app/spectranoir/issue/SPE-64/cross-scale-integration-and-domain-interface-layer))
-
-- `CampaignToIncidentPacket` and `IncidentToCampaignPacket` define deterministic cross-scale transfer
-- `src/domain/sim/advanceWeek.ts` uses these contracts in the canonical weekly loop
-- Optional modules can attach through explicit integration points rather than hidden feature coupling
-- See:
-  - `src/test/crossScaleContracts.test.ts`
-  - `src/test/campaignToIncidentHook.integration.test.ts`
-  - `docs/cross-scale-integration.md`
-
-## Current Design Notes
-
-- **Concealment activation (shipped on `main`):** runtime resolver ([SPE-2107](https://linear.app/spectranoir/issue/SPE-2107), PR #2169), authored triggers ([SPE-2113](https://linear.app/spectranoir/issue/SPE-2113), PR #2175), case-detail prep UI ([SPE-70](https://linear.app/spectranoir/issue/SPE-70), PR #2326), activation events/report notes (PR #2328), and batch-4 concealment trigger migration ([SPE-2249](https://linear.app/spectranoir/issue/SPE-2249), PR #2335).
-- **Tiered reveal + hidden-modality matrix (shipped on `main`):** [SPE-781](https://linear.app/spectranoir/issue/SPE-781) reveal slices (PR #2342–#2347); matrix slices [SPE-2281](https://linear.app/spectranoir/issue/SPE-2281)–[SPE-2290](https://linear.app/spectranoir/issue/SPE-2290) (PR #2403–#2423) — domain compose, weekly orchestration, modality report copy, persistent recon cache, false-entity / structural-illusion lifecycle, mode-specific tells, post-matrix signature masking / false-detection / glamour overlay.
-- **Intake registry wave (shipped on `main`):** initial registries shipped for [SPE-2105](https://linear.app/spectranoir/issue/SPE-2105) extranormal events, [SPE-2106](https://linear.app/spectranoir/issue/SPE-2106) unexplained locations, and [SPE-2104](https://linear.app/spectranoir/issue/SPE-2104) minor anomaly items (PR #2426–#2428). [SPE-854](https://linear.app/spectranoir/issue/SPE-854) parent integration slices 1–2 are Done; persistence + weekly hooks shipped through [SPE-2315](https://linear.app/spectranoir/issue/SPE-2315) / [SPE-2316](https://linear.app/spectranoir/issue/SPE-2316) / [SPE-2317](https://linear.app/spectranoir/issue/SPE-2317) (PR #2494–#2498).
-- **Self-censoring information registry (shipped on `main`):** [SPE-2108](https://linear.app/spectranoir/issue/SPE-2108) slice 1 (PR #2429) — see `planning/self-censoring-information-registry-slice-1.md`. [SPE-1309](https://linear.app/spectranoir/issue/SPE-1309) parent **Done** on Linear.
-- **Public disclosure state registry (shipped on `main`):** [SPE-2109](https://linear.app/spectranoir/issue/SPE-2109) slice 1 (PR #2430) — see `planning/public-disclosure-state-registry-slice-1.md`. [SPE-1343](https://linear.app/spectranoir/issue/SPE-1343) parent **Done** on Linear.
-- **Contribution/release operations (shipped on `main`):** [SPE-75](https://linear.app/spectranoir/issue/SPE-75) parent **Done** — domain baseline chain SPE-2474–SPE-2480 (PR #2867–#2879); see `docs/contribution-and-release-operations.md`.
-- **Next runtime slice:** see active queue in **`planning/backlog.md`** § Recommended next step; keep tactical ordering in the backlog instead of duplicating a long queue here.
-- Shared explanatory ownership stays in the domain wherever possible
-- The project prefers compact reusable rules vocabularies over bespoke subsystem logic
-- Optional modules should integrate through explicit contracts, not shared mutable state
-
-## Next useful steps
-
-Canonical near-term queue (merged with roadmap focus): **`planning/backlog.md`**. Deferred deep design without in-repo bodies yet (SPE-186+, knowledge children): **`planning/deferred-design-documents.md`**.
-
-**Recommended next step:** Run `git checkout main && git pull origin main`, then pick from **`planning/backlog.md`**. Historical grooming context is in `planning/scope-discipline-grooming-pass.md`; do not treat it as the current sequencing source.
+When adding a new top-level `docs/*audit*.md`, update `docs/design-audits-index.md` in strict alphabetical order and run `npm run verify:audits-index`.

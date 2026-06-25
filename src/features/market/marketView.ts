@@ -218,8 +218,7 @@ export function getProcurementScreenView(
         listings.find((listing) => listing.itemId === entry.itemId)?.itemName ??
         inventoryItemLabels[entry.itemId] ??
         entry.itemId
-      const delayWeeks =
-        entry.delayWeeks ?? FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
+      const delayWeeks = entry.delayWeeks ?? FUNDING_CALIBRATION.procurementDelayedFulfillmentWeeks
       const etaWeek = entry.requestedWeek + delayWeeks
 
       return {
@@ -572,6 +571,7 @@ function buildProcurementDetailView(
         `Legality: ${listing.marketPacket.legalityAccessMode} / ${listing.marketPacket.participantChannelType}.`,
         `Liquidity: ${listing.marketPacket.liquidityProfile} / availability ${listing.marketPacket.availabilityMultiplier.toFixed(2)}x / price ${listing.marketPacket.priceMultiplier.toFixed(2)}x.`,
         `Access: ${listing.accessLabel} / ${listing.acquisitionClass}.`,
+        ...listing.accessDetails,
         `Allocation: ${listing.allocationStatus.sourceLabel} supplier attention ${listing.allocationStatus.available}/${listing.allocationStatus.capacity} open.`,
         ...listing.resourceStatuses
           .filter((status) => status !== listing.allocationStatus)
@@ -604,7 +604,7 @@ function buildProcurementDetailView(
               .join('; ')}.`
           : 'No current-week transaction has hit this line yet.',
       ],
-      8
+      12
     ),
     blockerDetails: uniqueBounded(
       [

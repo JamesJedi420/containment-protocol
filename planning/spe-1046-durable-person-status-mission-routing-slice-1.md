@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2521](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                     |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2521 - Durable person-status mission routing evidence](https://linear.app/spectranoir/issue/SPE-2521/durable-person-status-mission-routing-evidence) |
-| **Status**          | **In Progress**                                                                                                                                           |
+| **Status**          | **Shipped** - PR #2970 @ `5ed06ab8`                                                                                                                       |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                       |
 | **Branch**          | `spe-1046-durable-person-status-mission-routing-slice-1`                                                                                                  |
 | **Base `main` SHA** | `a0196aa7`                                                                                                                                                |

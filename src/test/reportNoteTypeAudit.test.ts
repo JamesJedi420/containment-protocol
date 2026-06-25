@@ -6,39 +6,123 @@ import type { ReportNoteType } from '../domain/models'
  * Future UI follow-up tracked for hub/support report surfacing (Linear draft).
  */
 export const REPORT_NOTE_TYPE_AUDIT = {
-  'case.resolved': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.partially_resolved': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.failed': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.escalated': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.spawned': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.raid_converted': { status: 'active', producer: 'advanceWeek/eventDraftPipeline', category: 'incident_response' },
-  'case.aggregate_battle': { status: 'active', producer: 'advanceWeek', category: 'incident_response' },
+  'case.resolved': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.partially_resolved': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.failed': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.escalated': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.spawned': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.raid_converted': {
+    status: 'active',
+    producer: 'advanceWeek/eventDraftPipeline',
+    category: 'incident_response',
+  },
+  'case.aggregate_battle': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'incident_response',
+  },
   'agent.training_completed': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'production.queue_completed': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'market.shifted': { status: 'active', producer: 'advanceWeek/market', category: 'system' },
   'market.transaction_recorded': { status: 'active', producer: 'market', category: 'system' },
-  'faction.standing_changed': { status: 'active', producer: 'advanceWeek/factions', category: 'system' },
-  'faction.unlock_available': { status: 'active', producer: 'advanceWeek/factions', category: 'system' },
+  'faction.standing_changed': {
+    status: 'active',
+    producer: 'advanceWeek/factions',
+    category: 'system',
+  },
+  'faction.unlock_available': {
+    status: 'active',
+    producer: 'advanceWeek/factions',
+    category: 'system',
+  },
   'agency.containment_updated': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'system.week_delta': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'system.recruitment_expired': { status: 'active', producer: 'advanceWeek', category: 'recruitment' },
-  'system.recruitment_generated': { status: 'active', producer: 'advanceWeek', category: 'recruitment' },
-  'recruitment.scouting_initiated': { status: 'active', producer: 'advanceWeek', category: 'recruitment' },
-  'recruitment.scouting_refined': { status: 'active', producer: 'advanceWeek', category: 'recruitment' },
-  'recruitment.intel_confirmed': { status: 'active', producer: 'advanceWeek', category: 'recruitment' },
+  'system.recruitment_expired': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
+  'system.recruitment_generated': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
+  'recruitment.scouting_initiated': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
+  'recruitment.scouting_refined': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
+  'recruitment.intel_confirmed': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'recruitment',
+  },
   'system.party_cards_drawn': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'system.escalation_consequence': { status: 'active', producer: 'reportNotes', category: 'system' },
+  'system.escalation_consequence': {
+    status: 'active',
+    producer: 'reportNotes',
+    category: 'system',
+  },
   'system.proxy_conflict': { status: 'active', producer: 'reportNotes', category: 'system' },
   'system.protocol_contact': { status: 'active', producer: 'reportNotes', category: 'system' },
   'system.anchor_instability': { status: 'active', producer: 'reportNotes', category: 'system' },
   'directive.applied': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'support.shortfall': { status: 'active', producer: 'advanceWeek/reportNotes.support', category: 'system' },
-  'infiltration.awareness_complication': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'infiltration.escalation_exposed': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'infiltration.escalation_violent': { status: 'active', producer: 'advanceWeek', category: 'system' },
+  'support.shortfall': {
+    status: 'active',
+    producer: 'advanceWeek/reportNotes.support',
+    category: 'system',
+  },
+  'infiltration.awareness_complication': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'system',
+  },
+  'infiltration.escalation_exposed': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'system',
+  },
+  'infiltration.escalation_violent': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'system',
+  },
   'infiltration.cover_strain': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'infiltration.weekly_encounter': { status: 'active', producer: 'advanceWeek', category: 'system' },
-  'infiltration.leave_behind_tradeoff': { status: 'active', producer: 'advanceWeek', category: 'system' },
+  'infiltration.weekly_encounter': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'system',
+  },
+  'infiltration.leave_behind_tradeoff': {
+    status: 'active',
+    producer: 'advanceWeek',
+    category: 'system',
+  },
   'concealment.activated': { status: 'active', producer: 'advanceWeek', category: 'system' },
   'support.restored': {
     status: 'active',
@@ -133,6 +217,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'entityWelfareReclassificationWeeklyReportNotes',
     category: 'system',
   },
+  'affiliation_person_status.weekly_progression': {
+    status: 'active',
+    producer: 'affiliationPersonStatusWeeklyReportNotes',
+    category: 'system',
+  },
   'pattern_source_series.weekly_transition': {
     status: 'active',
     producer: 'patternSourceSeriesWeeklyReportNotes',
@@ -149,7 +238,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(56)
+    expect(entries).toHaveLength(57)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

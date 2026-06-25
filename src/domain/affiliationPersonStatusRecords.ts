@@ -51,6 +51,23 @@ import type { Candidate } from './recruitment'
 
 export type AffiliationPersonStatusRecordId = string
 
+export interface AffiliationPersonStatusWeeklyProgressionEntry {
+  readonly id: string
+  readonly week: number
+  readonly summary?: string
+  readonly backgroundCleared?: boolean
+  readonly trainingCompleted?: boolean
+  readonly oathContractSigned?: boolean
+  readonly grantedSiteIds?: readonly string[]
+  readonly restrictedSiteIds?: readonly string[]
+  readonly blockedSiteIds?: readonly string[]
+  readonly grantedFacilityIds?: readonly string[]
+  readonly restrictedFacilityIds?: readonly string[]
+  readonly blockedFacilityIds?: readonly string[]
+  readonly protectedReviewEvidenceRefs?: readonly string[]
+  readonly revocationReviewEvidenceRefs?: readonly string[]
+}
+
 export interface AffiliationPersonStatusRecord {
   readonly id: AffiliationPersonStatusRecordId
   readonly subjectId: string
@@ -90,6 +107,7 @@ export interface AffiliationPersonStatusRecord {
   readonly revocationAffectedSurfaces?: readonly EntityWelfarePermissionSurface[]
   readonly priorTrustBand?: AffiliationTrustOutcome
   readonly revocationReviewEvidenceRefs?: readonly string[]
+  readonly weeklyProgression?: readonly AffiliationPersonStatusWeeklyProgressionEntry[]
 }
 
 export type AffiliationPersonStatusRecordsMap = Record<
@@ -159,6 +177,12 @@ function normalizeBoolean(value: unknown) {
   return typeof value === 'boolean' ? value : undefined
 }
 
+function isFiniteWeek(value: unknown): value is number {
+  return (
+    typeof value === 'number' && Number.isFinite(value) && value >= 0 && value === Math.trunc(value)
+  )
+}
+
 function uniqueSorted(values: readonly string[]) {
   return [...new Set(values.map((value) => value.trim()).filter((value) => value.length > 0))].sort(
     (left, right) => left.localeCompare(right)
@@ -185,6 +209,80 @@ function parseEnumList<T extends string>(value: unknown, allowed: readonly T[]) 
   return [...new Set(value.filter((entry): entry is T => allowed.includes(entry as T)))].sort(
     (left, right) => left.localeCompare(right)
   )
+}
+
+function withWeeklyStringList<K extends keyof AffiliationPersonStatusWeeklyProgressionEntry>(
+  key: K,
+  values: readonly string[]
+) {
+  return values.length > 0 ? { [key]: values } : {}
+}
+
+function sanitizeWeeklyProgressionEntry(
+  value: unknown
+): AffiliationPersonStatusWeeklyProgressionEntry | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeToken(value.id)
+  if (!id || !isFiniteWeek(value.week)) {
+    return null
+  }
+
+  const summary = normalizeToken(value.summary)
+
+  return {
+    id,
+    week: value.week,
+    ...(summary ? { summary } : {}),
+    ...(normalizeBoolean(value.backgroundCleared) !== undefined
+      ? { backgroundCleared: normalizeBoolean(value.backgroundCleared) }
+      : {}),
+    ...(normalizeBoolean(value.trainingCompleted) !== undefined
+      ? { trainingCompleted: normalizeBoolean(value.trainingCompleted) }
+      : {}),
+    ...(normalizeBoolean(value.oathContractSigned) !== undefined
+      ? { oathContractSigned: normalizeBoolean(value.oathContractSigned) }
+      : {}),
+    ...withWeeklyStringList('grantedSiteIds', parseStringList(value.grantedSiteIds)),
+    ...withWeeklyStringList('restrictedSiteIds', parseStringList(value.restrictedSiteIds)),
+    ...withWeeklyStringList('blockedSiteIds', parseStringList(value.blockedSiteIds)),
+    ...withWeeklyStringList('grantedFacilityIds', parseStringList(value.grantedFacilityIds)),
+    ...withWeeklyStringList('restrictedFacilityIds', parseStringList(value.restrictedFacilityIds)),
+    ...withWeeklyStringList('blockedFacilityIds', parseStringList(value.blockedFacilityIds)),
+    ...withWeeklyStringList(
+      'protectedReviewEvidenceRefs',
+      parseStringList(value.protectedReviewEvidenceRefs)
+    ),
+    ...withWeeklyStringList(
+      'revocationReviewEvidenceRefs',
+      parseStringList(value.revocationReviewEvidenceRefs)
+    ),
+  }
+}
+
+function parseWeeklyProgressionEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const entries: AffiliationPersonStatusWeeklyProgressionEntry[] = []
+  const seenIds = new Set<string>()
+  for (const entry of value) {
+    const sanitized = sanitizeWeeklyProgressionEntry(entry)
+    if (!sanitized || seenIds.has(sanitized.id)) {
+      continue
+    }
+
+    seenIds.add(sanitized.id)
+    entries.push(sanitized)
+  }
+
+  return entries.sort((left, right) => {
+    const weekCompare = left.week - right.week
+    return weekCompare !== 0 ? weekCompare : left.id.localeCompare(right.id)
+  })
 }
 
 function sanitizeRecordEntry(
@@ -224,6 +322,7 @@ function sanitizeRecordEntry(
     ENTITY_WELFARE_PERMISSION_SURFACES
   )
   const priorTrustBand = parseEnum(value.priorTrustBand, TRUST_OUTCOMES)
+  const weeklyProgression = parseWeeklyProgressionEntries(value.weeklyProgression)
 
   return {
     id,
@@ -286,6 +385,7 @@ function sanitizeRecordEntry(
       'revocationReviewEvidenceRefs',
       parseStringList(value.revocationReviewEvidenceRefs)
     ),
+    ...(weeklyProgression.length > 0 ? { weeklyProgression } : {}),
   }
 }
 

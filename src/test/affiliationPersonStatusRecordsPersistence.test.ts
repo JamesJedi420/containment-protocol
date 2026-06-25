@@ -28,6 +28,35 @@ describe('affiliationPersonStatusRecords persistence (SPE-2518 slice 1)', () => 
     expect(loaded.affiliationPersonStatusRecords).toEqual(state.affiliationPersonStatusRecords)
   })
 
+  it('round-trips valid weekly progression entries through save/load', () => {
+    const state = createStartingState()
+    state.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        weeklyProgression: [
+          {
+            id: 'progression:contractor-week-7',
+            week: 7,
+            summary: 'Contractor onboarding bundle arrives.',
+            backgroundCleared: true,
+            grantedSiteIds: ['site:annex-7'],
+            protectedReviewEvidenceRefs: ['review:contractor-guardianship'],
+          },
+        ],
+      },
+    }
+
+    const loaded = loadGameSave(serializeGameSave(state))
+
+    expect(
+      loaded.affiliationPersonStatusRecords?.[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]
+        ?.weeklyProgression
+    ).toEqual(
+      state.affiliationPersonStatusRecords[COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]
+        ?.weeklyProgression
+    )
+  })
+
   it('hydrates persisted affiliation person-status records through import parsing', () => {
     const fallback = createStartingState()
     const hydrated = hydrateGame(

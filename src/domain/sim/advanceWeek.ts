@@ -267,6 +267,7 @@ import { applyWeeklyExtranormalEventMonitoringTick } from '../extranormalEventWe
 import { deriveNormalizationInputsFromPopulationEmergenceRecords } from '../massAnomalousPopulationEmergenceNormalizationInputs'
 import { applyWeeklyPopulationEmergenceGovernanceTick } from '../massAnomalousPopulationEmergenceWeeklyGovernance'
 import { applyWeeklyEntityWelfareReclassificationTick } from '../entityWelfareReclassificationWeeklyOrchestration'
+import { applyWeeklyAffiliationPersonStatusProgressionTick } from '../affiliationPersonStatusWeeklyProgression'
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
@@ -305,6 +306,7 @@ import { buildWeeklyModifiableDataPackGovernanceReportNotes } from '../modifiabl
 import { applyWeeklyModifiableDataPackPublishQueueEnqueueTick } from '../modifiableDataPackPublishQueueEnqueue'
 import { buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes } from '../modifiableDataPackPublishQueueEnqueueWeeklyReportNotes'
 import { buildWeeklyEntityWelfareReclassificationTransitionReportNotes } from '../entityWelfareReclassificationWeeklyReportNotes'
+import { buildWeeklyAffiliationPersonStatusProgressionReportNotes } from '../affiliationPersonStatusWeeklyReportNotes'
 import { buildWeeklyVisualTriggerHazardTransitionReportNotes } from '../visualTriggerHazardWeeklyReportNotes'
 import { composePopulationEmergenceNormalizationIntoDisclosureRecords } from '../publicDisclosureNormalizationCompose'
 import { applyWeeklyPublicDisclosureProgressionTick } from '../publicDisclosureWeeklyProgression'
@@ -322,7 +324,10 @@ import { applyWeeklyPostIncidentReviewFollowOnRecommendationRegistryTick } from 
 import { applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick } from '../postIncidentReviewFollowOnTrainingEnqueue'
 import { buildWeeklyPostIncidentReviewFollowOnReportNotes } from '../postIncidentReviewFollowOnWeeklyReportNotes'
 import { buildWeeklyPostIncidentReviewCloseoutRewardPayoutReportNotes } from '../postIncidentReviewCloseoutRewardPayoutSurfacing'
-import { applyWeeklyPostIncidentReviewCreationTick, resolveQualifyingIncidentReviewDraftsFromEventDrafts } from '../postIncidentReviewWeeklyOrchestration'
+import {
+  applyWeeklyPostIncidentReviewCreationTick,
+  resolveQualifyingIncidentReviewDraftsFromEventDrafts,
+} from '../postIncidentReviewWeeklyOrchestration'
 import { applyWeeklyRuleDocumentComplianceTick } from '../ruleDocumentComplianceWeeklyOrchestration'
 import { applyWeeklyCaseLifecycleTick } from '../caseLifecycleWeeklyOrchestration'
 import { applyWeeklyIntakeCorroborationTick } from '../informationIntakeWeeklyCorroboration'
@@ -638,7 +643,9 @@ function safeNumber(value: unknown, fallback: number) {
   return typeof value === 'number' && !Number.isNaN(value) ? value : fallback
 }
 
-function cloneFundingStateForCanonicalize(fs: NonNullable<AgencyState['fundingState']>): FundingState {
+function cloneFundingStateForCanonicalize(
+  fs: NonNullable<AgencyState['fundingState']>
+): FundingState {
   return {
     ...fs,
     fundingHistory: fs.fundingHistory.map((entry) => ({ ...entry })),
@@ -670,7 +677,9 @@ function canonicalizeAgencyState(base: Partial<AgencyState> | null | undefined):
     ...(Array.isArray(base?.progressionUnlockIds)
       ? { progressionUnlockIds: [...base.progressionUnlockIds] }
       : {}),
-    ...(base?.fundingState ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) } : {}),
+    ...(base?.fundingState
+      ? { fundingState: cloneFundingStateForCanonicalize(base.fundingState) }
+      : {}),
     ...(base?.courierShellFront ? { courierShellFront: { ...base.courierShellFront } } : {}),
   }
 }
@@ -1655,7 +1664,9 @@ interface WeeklyCaseResolutionStrategy {
   hiddenStateModalityTell?: ReturnType<
     typeof resolveCanonicalAssignedCaseForWeek
   >['hiddenStateModalityTell']
-  hiddenStateScouting?: ReturnType<typeof resolveCanonicalAssignedCaseForWeek>['hiddenStateScouting']
+  hiddenStateScouting?: ReturnType<
+    typeof resolveCanonicalAssignedCaseForWeek
+  >['hiddenStateScouting']
   infiltrationStageMission?: ReturnType<
     typeof resolveCanonicalAssignedCaseForWeek
   >['infiltrationStageMission']
@@ -2295,7 +2306,10 @@ function applyWeeklyInfiltrationProbe(
     )
   }
 
-  if (probeResult.events.length === 0 && shouldEmitInfiltrationWeeklyEncounterNote(probeResult.case)) {
+  if (
+    probeResult.events.length === 0 &&
+    shouldEmitInfiltrationWeeklyEncounterNote(probeResult.case)
+  ) {
     if (reportContextAfterProbe && probeResult.case.status === 'in_progress') {
       pushInfiltrationEncounterEventDraft(
         context,
@@ -3915,8 +3929,7 @@ function applyRecoveryDowntimeAfterMissions(context: WeeklyExecutionContext) {
 
   const fundingDelta = downtimeResult.agencyFundingDelta ?? 0
   if (fundingDelta !== 0) {
-    const prevTopFunding =
-      context.nextState.funding ?? context.nextState.agency?.funding ?? 0
+    const prevTopFunding = context.nextState.funding ?? context.nextState.agency?.funding ?? 0
     const nextTopFunding = prevTopFunding + fundingDelta
     const agencyBefore = context.nextState.agency
     context.nextState = {
@@ -4777,15 +4790,13 @@ export function advanceWeek(
 
     if (publishQueueEnqueueTick.receipts.length > 0 && result.reports.length > 0) {
       const lastWeeklyReport = result.reports[result.reports.length - 1]
-      const publishQueueEnqueueNotes = buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes(
-        {
-          receipts: publishQueueEnqueueTick.receipts,
-          records: postGovernanceModifiableDataPackRecords,
-          week: result.week,
-          sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
-          baseTimestamp: noteBaseTimestamp,
-        }
-      )
+      const publishQueueEnqueueNotes = buildWeeklyModifiableDataPackPublishQueueEnqueueReportNotes({
+        receipts: publishQueueEnqueueTick.receipts,
+        records: postGovernanceModifiableDataPackRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
 
       if (publishQueueEnqueueNotes.length > 0) {
         const reports = [...result.reports]
@@ -4861,6 +4872,16 @@ export function advanceWeek(
       )
   }
 
+  // SPE-2520: authored weekly evidence progression for durable person-status records.
+  const priorAffiliationPersonStatusRecords = outputWeeklyState.affiliationPersonStatusRecords ?? {}
+  if (Object.keys(priorAffiliationPersonStatusRecords).length > 0) {
+    outputWeeklyState.affiliationPersonStatusRecords =
+      applyWeeklyAffiliationPersonStatusProgressionTick(
+        priorAffiliationPersonStatusRecords,
+        result.week
+      )
+  }
+
   // SPE-2490 slice 5: surface post-tick entity welfare reclassification transitions in weekly report notes.
   const nextEntityWelfareReclassificationRecords =
     outputWeeklyState.entityWelfareReclassificationRecords ?? {}
@@ -4890,6 +4911,31 @@ export function advanceWeek(
     }
   }
 
+  // SPE-2520: surface post-tick durable person-status evidence progression in weekly report notes.
+  const nextAffiliationPersonStatusRecords = outputWeeklyState.affiliationPersonStatusRecords ?? {}
+  if (Object.keys(nextAffiliationPersonStatusRecords).length > 0 && result.reports.length > 0) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const affiliationPersonStatusProgressionNotes =
+      buildWeeklyAffiliationPersonStatusProgressionReportNotes({
+        priorRecords: priorAffiliationPersonStatusRecords,
+        nextRecords: nextAffiliationPersonStatusRecords,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
+
+    if (affiliationPersonStatusProgressionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...affiliationPersonStatusProgressionNotes],
+      }
+      result.reports = reports
+    }
+  }
+
   // SPE-2111 slice 3: disposal compliance, scheduled awareness-band, and occlusion pursuit on visual-trigger hazards.
   const priorVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
   const currentVisualTriggerHazardRecords = priorVisualTriggerHazardRecords
@@ -4902,20 +4948,15 @@ export function advanceWeek(
 
   // SPE-2489 slice 5: surface post-tick visual-trigger hazard transitions in weekly report notes.
   const nextVisualTriggerHazardRecords = outputWeeklyState.visualTriggerHazardRecords ?? {}
-  if (
-    Object.keys(nextVisualTriggerHazardRecords).length > 0 &&
-    result.reports.length > 0
-  ) {
+  if (Object.keys(nextVisualTriggerHazardRecords).length > 0 && result.reports.length > 0) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
-    const visualTriggerHazardTransitionNotes = buildWeeklyVisualTriggerHazardTransitionReportNotes(
-      {
-        priorRecords: priorVisualTriggerHazardRecords,
-        nextRecords: nextVisualTriggerHazardRecords,
-        week: result.week,
-        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
-        baseTimestamp: noteBaseTimestamp,
-      }
-    )
+    const visualTriggerHazardTransitionNotes = buildWeeklyVisualTriggerHazardTransitionReportNotes({
+      priorRecords: priorVisualTriggerHazardRecords,
+      nextRecords: nextVisualTriggerHazardRecords,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
 
     if (visualTriggerHazardTransitionNotes.length > 0) {
       const reports = [...result.reports]
@@ -5032,13 +5073,14 @@ export function advanceWeek(
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
-    const unexplainedLocationCrossLinkNotes = buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes({
-      nextReports: nextIntakeReportsForCrossLink,
-      nextLocations: nextUnexplainedLocationsForCrossLink,
-      week: result.week,
-      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
-      baseTimestamp: noteBaseTimestamp,
-    })
+    const unexplainedLocationCrossLinkNotes =
+      buildWeeklyIntakeUnexplainedLocationCrossLinkReportNotes({
+        nextReports: nextIntakeReportsForCrossLink,
+        nextLocations: nextUnexplainedLocationsForCrossLink,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
 
     if (unexplainedLocationCrossLinkNotes.length > 0) {
       const reports = [...result.reports]
@@ -5067,15 +5109,16 @@ export function advanceWeek(
     result.reports.length > 0
   ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
-    const reconciliationNotes = buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
-      nextProtocols: nextCoerciveProtocolsForReconciliation,
-      nextBundles: nextIntegratedHealthBundlesForReconciliation,
-      nextSurveillanceTuningRecords: nextSurveillanceTuningRecordsForReconciliation,
-      nextPsychologicalResilienceRecords: nextPsychologicalResilienceRecordsForReconciliation,
-      week: result.week,
-      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
-      baseTimestamp: noteBaseTimestamp,
-    })
+    const reconciliationNotes =
+      buildWeeklyCoerciveProtocolIntegratedHealthReconciliationReportNotes({
+        nextProtocols: nextCoerciveProtocolsForReconciliation,
+        nextBundles: nextIntegratedHealthBundlesForReconciliation,
+        nextSurveillanceTuningRecords: nextSurveillanceTuningRecordsForReconciliation,
+        nextPsychologicalResilienceRecords: nextPsychologicalResilienceRecordsForReconciliation,
+        week: result.week,
+        sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+        baseTimestamp: noteBaseTimestamp,
+      })
 
     if (reconciliationNotes.length > 0) {
       const reports = [...result.reports]
@@ -5090,7 +5133,8 @@ export function advanceWeek(
   }
 
   // SPE-2115 slice 3: cadence-based missed-session streak and channel degradation on therapeutic care records.
-  const currentTherapeuticCareRecords = outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
+  const currentTherapeuticCareRecords =
+    outputWeeklyState.containedPersonTherapeuticCareRecords ?? {}
   if (Object.keys(currentTherapeuticCareRecords).length > 0) {
     outputWeeklyState.containedPersonTherapeuticCareRecords = applyWeeklyTherapeuticCareTick(
       currentTherapeuticCareRecords,
@@ -5099,7 +5143,8 @@ export function advanceWeek(
   }
 
   // SPE-1882 slice 3/5: deterministic tradeoff and coercion-risk projections on protocol records.
-  const currentCoerciveProtocolRecords = outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
+  const currentCoerciveProtocolRecords =
+    outputWeeklyState.coerciveContainedPersonProtocolRecords ?? {}
   if (Object.keys(currentCoerciveProtocolRecords).length > 0) {
     const coerciveProtocolTick = applyWeeklyCoerciveProtocolTick(
       currentCoerciveProtocolRecords,
@@ -5134,8 +5179,7 @@ export function advanceWeek(
   }
 
   // SPE-1309 slice 4: merge SPE-2108 propagation-resistance tags into linked exposure channels.
-  let currentCognitiveHazardExposureRecords =
-    outputWeeklyState.cognitiveHazardExposureRecords ?? {}
+  let currentCognitiveHazardExposureRecords = outputWeeklyState.cognitiveHazardExposureRecords ?? {}
   const currentSelfCensoringForCognitiveHazardCompose =
     outputWeeklyState.selfCensoringInformationRecords ?? {}
   if (
@@ -5315,11 +5359,12 @@ export function advanceWeek(
         outputWeeklyState.postIncidentReviewRecommendationRecords
       )
 
-    const stateAfterFollowOnTrainingEnqueue = applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
-      outputWeeklyState,
-      currentPostIncidentReviewRecords,
-      outputWeeklyState.postIncidentReviewRecords
-    )
+    const stateAfterFollowOnTrainingEnqueue =
+      applyWeeklyPostIncidentReviewFollowOnTrainingEnqueueTick(
+        outputWeeklyState,
+        currentPostIncidentReviewRecords,
+        outputWeeklyState.postIncidentReviewRecords
+      )
     outputWeeklyState.trainingQueue = stateAfterFollowOnTrainingEnqueue.trainingQueue
     outputWeeklyState.agents = stateAfterFollowOnTrainingEnqueue.agents
     outputWeeklyState.funding = stateAfterFollowOnTrainingEnqueue.funding
@@ -5416,9 +5461,9 @@ export function advanceWeek(
     outputWeeklyState.containedPersonCustodyStatusRecords ?? {}
   const welfareDebtAccountingRecordsForBundleCompose =
     outputWeeklyState.welfareDebtAccountingRecords ?? {}
-  let currentIntegratedHealthBundles = outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
-  const hasTherapeuticCareRecords =
-    Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
+  let currentIntegratedHealthBundles =
+    outputWeeklyState.containedPersonIntegratedHealthBundles ?? {}
+  const hasTherapeuticCareRecords = Object.keys(therapeuticCareRecordsForBundleCompose).length > 0
   const hasMedicationRegimenRecords =
     Object.keys(medicationRegimenRecordsForBundleCompose).length > 0
   const hasCustodyStatusRecords = Object.keys(custodyStatusRecordsForBundleCompose).length > 0
@@ -5491,9 +5536,11 @@ export function advanceWeek(
   }
 
   // SPE-861 slice 2: surface post-tick public-disclosure trust outcomes in weekly report notes.
-  const nextPublicDisclosureRecordsForTrustOutcome =
-    outputWeeklyState.publicDisclosureRecords ?? {}
-  if (Object.keys(nextPublicDisclosureRecordsForTrustOutcome).length > 0 && result.reports.length > 0) {
+  const nextPublicDisclosureRecordsForTrustOutcome = outputWeeklyState.publicDisclosureRecords ?? {}
+  if (
+    Object.keys(nextPublicDisclosureRecordsForTrustOutcome).length > 0 &&
+    result.reports.length > 0
+  ) {
     const lastWeeklyReport = result.reports[result.reports.length - 1]
     const trustOutcomeNotes = buildWeeklyPublicDisclosureTrustOutcomeReportNotes({
       nextRecords: nextPublicDisclosureRecordsForTrustOutcome,

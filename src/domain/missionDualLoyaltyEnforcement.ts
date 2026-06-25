@@ -4,6 +4,7 @@ import {
   type AffiliationDualLoyaltyDecision,
   type AffiliationLoyaltyAnchor,
 } from './affiliationDualLoyaltyRisk'
+import type { AffiliationPersonStatusMissionRoutingEvidenceEntry } from './affiliationPersonStatusMissionRoutingEvidence'
 import type { Agent, CaseInstance, Team } from './models'
 
 const DUAL_LOYALTY_REQUIREMENT_TAG = 'dual-loyalty-clearance'
@@ -93,6 +94,7 @@ export function evaluateMissionDualLoyaltyEnforcement(input: {
   readonly mission: Pick<CaseInstance, 'requiredTags'>
   readonly team: Pick<Team, 'id' | 'name' | 'tags'>
   readonly members: readonly Pick<Agent, 'tags'>[]
+  readonly durableEvidence?: readonly AffiliationPersonStatusMissionRoutingEvidenceEntry[]
 }): MissionDualLoyaltyEnforcementResult {
   if (!missionRequiresDualLoyaltyClearance(input.mission)) {
     return Object.freeze({
@@ -104,7 +106,7 @@ export function evaluateMissionDualLoyaltyEnforcement(input: {
   }
 
   const tags = [...input.team.tags, ...input.members.flatMap((member) => member.tags)]
-  const decision = evaluateAffiliationDualLoyaltyRisk({
+  const tagDecision = evaluateAffiliationDualLoyaltyRisk({
     subjectId: input.team.id,
     subjectLabel: input.team.name,
     primaryAnchor: collectPrimaryAnchor(tags),
@@ -112,15 +114,21 @@ export function evaluateMissionDualLoyaltyEnforcement(input: {
     evidenceTags: collectEvidenceTags(tags),
     onboardingDecision: buildClearedTeamOnboarding(input.team),
   })
-  const allowed =
-    decision.riskLevel === 'none' ||
-    decision.riskLevel === 'watch' ||
-    !decision.restrictedSurfaces.includes('mission')
+  const decisions = [
+    tagDecision,
+    ...(input.durableEvidence ?? []).map((entry) => entry.snapshot.dualLoyaltyDecision),
+  ]
+  const allowed = decisions.every(
+    (decision) =>
+      decision.riskLevel === 'none' ||
+      decision.riskLevel === 'watch' ||
+      !decision.restrictedSurfaces.includes('mission')
+  )
 
   return Object.freeze({
     required: true,
     allowed,
-    decisions: Object.freeze([decision]),
-    reasonCodes: Object.freeze(uniqueSorted(decision.reasonCodes)),
+    decisions: Object.freeze(decisions),
+    reasonCodes: Object.freeze(uniqueSorted(decisions.flatMap((decision) => decision.reasonCodes))),
   })
 }

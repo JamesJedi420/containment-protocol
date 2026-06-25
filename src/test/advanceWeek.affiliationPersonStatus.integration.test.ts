@@ -4,6 +4,7 @@ import { createStartingState } from '../data/startingState'
 import type { AffiliationPersonStatusRecord } from '../domain/affiliationPersonStatusRecords'
 import { evaluateDeploymentEligibility } from '../domain/deploymentReadiness'
 import { advanceWeek } from '../domain/sim/advanceWeek'
+import type { Candidate } from '../domain/recruitment'
 
 function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) {
   for (const currentCase of Object.values(state.cases)) {
@@ -15,12 +16,54 @@ function freezeCasesForQuietWeek(state: ReturnType<typeof createStartingState>) 
   }
 }
 
-function weeklyRecord(): AffiliationPersonStatusRecord {
+function makeClearedCandidate(id: string, name: string): Candidate {
+  return {
+    id,
+    name,
+    age: 31,
+    category: 'agent',
+    hireStatus: 'available',
+    weeklyCost: 20,
+    weeklyWage: 20,
+    funnelStage: 'hired',
+    revealLevel: 2,
+    expiryWeek: 52,
+    origin: 'open-call',
+    roleInclination: 'field',
+    skills: ['recon-sweep'],
+    liabilities: [],
+    createdWeek: 1,
+    lastUpdatedWeek: 1,
+    evaluation: {
+      overallVisible: true,
+      overall: 65,
+      overallValue: 65,
+      potentialVisible: true,
+      potentialTier: 'mid',
+      rumorTags: [],
+    },
+    agentData: {
+      role: 'field',
+      specialization: 'recon',
+      stats: {
+        combat: 45,
+        investigation: 55,
+        utility: 50,
+        social: 40,
+      },
+      traits: [],
+    },
+  } as Candidate
+}
+
+function weeklyRecord(
+  overrides: Partial<AffiliationPersonStatusRecord> = {}
+): AffiliationPersonStatusRecord {
   return {
     id: 'person-status:advance-week-weekly',
-    subjectId: 'subject:advance-week-weekly',
-    subjectLabel: 'Advance Week Contractor',
-    candidateRef: 'candidate:advance-week-weekly',
+    subjectId: overrides.subjectId ?? 'subject:advance-week-weekly',
+    subjectLabel: overrides.subjectLabel ?? 'Advance Week Contractor',
+    candidateRef: overrides.candidateRef ?? 'candidate:advance-week-weekly',
     backgroundCleared: false,
     trainingCompleted: false,
     oathContractSigned: false,
@@ -30,11 +73,13 @@ function weeklyRecord(): AffiliationPersonStatusRecord {
         week: 6,
         backgroundCleared: true,
         trainingCompleted: true,
-        grantedSiteIds: ['site:annex-7'],
+        oathContractSigned: true,
+        grantedSiteIds: ['annex-7'],
         grantedFacilityIds: ['facility:archive'],
         protectedReviewEvidenceRefs: ['review:protected-week-6'],
       },
     ],
+    ...overrides,
   }
 }
 
@@ -59,7 +104,8 @@ describe('advanceWeek affiliation person-status weekly progression integration (
     expect(nextState.week).toBe(6)
     expect(nextRecord?.backgroundCleared).toBe(true)
     expect(nextRecord?.trainingCompleted).toBe(true)
-    expect(nextRecord?.grantedSiteIds).toEqual(['site:annex-7'])
+    expect(nextRecord?.oathContractSigned).toBe(true)
+    expect(nextRecord?.grantedSiteIds).toEqual(['annex-7'])
     expect(nextRecord?.grantedFacilityIds).toEqual(['facility:archive'])
     expect(nextRecord?.protectedReviewEvidenceRefs).toEqual(['review:protected-week-6'])
     expect(nextRecord?.weeklyProgression).toEqual(record.weeklyProgression)
@@ -68,7 +114,7 @@ describe('advanceWeek affiliation person-status weekly progression integration (
     expect(progressionNotes[0]?.metadata?.recordId).toBe(record.id)
   })
 
-  it('leaves mission routing behavior unchanged by durable person-status records', () => {
+  it('lets weekly durable person-status progression satisfy explicit mission clearance after advanceWeek', () => {
     const state = createStartingState()
     freezeCasesForQuietWeek(state)
     state.week = 5
@@ -81,8 +127,18 @@ describe('advanceWeek affiliation person-status weekly progression integration (
     state.cases[missionId] = {
       ...state.cases[missionId],
       requiredTags: ['site-clearance:annex-7'],
+      requiredRoles: [],
     }
-    const record = weeklyRecord()
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    const candidateId = `candidate:${memberId}`
+    state.candidates = [makeClearedCandidate(candidateId, state.agents[memberId]!.name)]
+    state.recruitmentPool = state.candidates
+    const record = weeklyRecord({
+      id: `person-status:${memberId}`,
+      subjectId: memberId,
+      subjectLabel: state.agents[memberId]!.name,
+      candidateRef: candidateId,
+    })
     state.affiliationPersonStatusRecords = {
       [record.id]: record,
     }
@@ -92,6 +148,6 @@ describe('advanceWeek affiliation person-status weekly progression integration (
     const afterEligibility = evaluateDeploymentEligibility(nextState, missionId, teamId)
 
     expect(beforeEligibility.hardBlockers).toContain('site-clearance-required')
-    expect(afterEligibility.hardBlockers).toContain('site-clearance-required')
+    expect(afterEligibility.hardBlockers).not.toContain('site-clearance-required')
   })
 })

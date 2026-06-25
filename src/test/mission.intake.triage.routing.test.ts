@@ -19,6 +19,50 @@ import { loadGameSave, serializeGameSave } from '../app/store/saveSystem'
 import { evaluateDeploymentEligibility } from '../domain/deploymentReadiness'
 import { advanceWeek } from '../domain/sim/advanceWeek'
 import { assignTeam } from '../domain/sim/assign'
+import type { AffiliationPersonStatusRecord } from '../domain/affiliationPersonStatusRecords'
+import type { Candidate } from '../domain/recruitment'
+
+function makeClearedCandidate(id: string, name: string): Candidate {
+  return {
+    id,
+    name,
+    hireStatus: 'available',
+    funnelStage: 'hired',
+    revealLevel: 2,
+    roleInclination: 'field',
+    agentData: {
+      role: 'field',
+      specialization: 'recon',
+      stats: {
+        combat: 45,
+        investigation: 55,
+        utility: 50,
+        social: 40,
+      },
+      traits: [],
+    },
+  } as Candidate
+}
+
+function clearedPersonStatusRecord(
+  overrides: Partial<AffiliationPersonStatusRecord>
+): AffiliationPersonStatusRecord {
+  const subjectId = overrides.subjectId ?? 'subject:mission-routing'
+  const candidateRef = overrides.candidateRef ?? `candidate:${subjectId}`
+
+  return {
+    id: overrides.id ?? `person-status:${subjectId}`,
+    subjectId,
+    subjectLabel: overrides.subjectLabel ?? subjectId,
+    candidateRef,
+    backgroundCleared: true,
+    trainingCompleted: true,
+    oathContractSigned: true,
+    protectedStatus: 'full_staff',
+    protectedAction: 'assign_mission',
+    ...overrides,
+  }
+}
 
 describe('mission intake, triage, and routing', () => {
   it('generates deterministic weekly intake batches with stable mission ordering', () => {
@@ -263,6 +307,67 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.candidateTeamIds).not.toContain(missingTeamId)
   })
 
+  it('allows explicit site clearance through exact-match durable person-status evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    const candidateId = `candidate:${memberId}`
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['site-clearance:annex-7'],
+      requiredRoles: [],
+    }
+    state.candidates = [makeClearedCandidate(candidateId, state.agents[memberId]!.name)]
+    state.recruitmentPool = state.candidates
+    state.affiliationPersonStatusRecords = {
+      [`person-status:${memberId}`]: clearedPersonStatusRecord({
+        id: `person-status:${memberId}`,
+        subjectId: memberId,
+        subjectLabel: state.agents[memberId]!.name,
+        candidateRef: candidateId,
+        grantedSiteIds: ['annex-7'],
+      }),
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).not.toContain('site-clearance-required')
+    expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
+    expect(routed.candidateTeamIds).toContain(teamId)
+    expect(routed.routingBlockers).not.toContain('site-clearance-required')
+  })
+
+  it('ignores durable person-status evidence that does not exactly match team or member ids', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const candidateId = 'candidate:nonmatching'
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['site-clearance:annex-7'],
+      requiredRoles: [],
+    }
+    state.candidates = [makeClearedCandidate(candidateId, 'Nonmatching Record')]
+    state.recruitmentPool = state.candidates
+    state.affiliationPersonStatusRecords = {
+      'person-status:nonmatching': clearedPersonStatusRecord({
+        id: 'person-status:nonmatching',
+        subjectId: 'agent:not-on-team',
+        subjectLabel: 'Nonmatching Record',
+        candidateRef: candidateId,
+        grantedSiteIds: ['annex-7'],
+      }),
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('site-clearance-required')
+    expect(routed.routingBlockers).toContain('site-clearance-required')
+  })
+
   it('leaves existing missions without explicit dual-loyalty requirements unchanged', () => {
     const state = createStartingState()
     const missionId = state.cases['case-001'].id
@@ -349,6 +454,40 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
   })
 
+  it('blocks explicit dual-loyalty review from durable person-status evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['dual-loyalty-clearance'],
+      requiredRoles: [],
+    }
+    state.affiliationPersonStatusRecords = Object.fromEntries(
+      Object.values(state.teams).map((team) => {
+        const memberId = team.memberIds?.[0] ?? team.agentIds[0]!
+        return [
+          `person-status:${memberId}`,
+          clearedPersonStatusRecord({
+            id: `person-status:${memberId}`,
+            subjectId: memberId,
+            subjectLabel: state.agents[memberId]!.name,
+            primaryLoyaltyAnchor: 'agency',
+            secondaryLoyaltyAnchors: ['patron'],
+            dualLoyaltyEvidenceTags: ['dual_loyalty:restricted'],
+          }),
+        ]
+      })
+    )
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('dual-loyalty-restricted')
+    expect(routed.routingBlockers).toContain('dual-loyalty-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
   it('leaves existing missions without explicit protected-status requirements unchanged', () => {
     const state = createStartingState()
     const missionId = state.cases['case-001'].id
@@ -415,6 +554,34 @@ describe('mission intake, triage, and routing', () => {
     expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
   })
 
+  it('blocks explicit protected-status review from durable person-status evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    const memberId = state.teams[teamId]!.memberIds?.[0] ?? state.teams[teamId]!.agentIds[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['protected-status-clearance'],
+      requiredRoles: [],
+    }
+    state.affiliationPersonStatusRecords = {
+      [`person-status:${memberId}`]: clearedPersonStatusRecord({
+        id: `person-status:${memberId}`,
+        subjectId: memberId,
+        subjectLabel: state.agents[memberId]!.name,
+        protectedStatus: 'minor',
+        protectedAction: 'assign_mission',
+      }),
+    }
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('protected-status-restricted')
+    expect(routed.routingBlockers).toContain('protected-status-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
   it('allows explicit revocation clearance when no active revocation evidence exists', () => {
     const state = createStartingState()
     const missionId = state.cases['case-001'].id
@@ -459,6 +626,40 @@ describe('mission intake, triage, and routing', () => {
     expect(eligibility.hardBlockers).toContain('revocation-restricted')
     expect(eligibility.hardBlockers).not.toContain('invalid-loadout-gate')
     expect(routed.routingState).toBe('blocked')
+    expect(routed.routingBlockers).toContain('revocation-restricted')
+    expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
+  })
+
+  it('blocks explicit revocation review from durable person-status evidence', () => {
+    const state = createStartingState()
+    const missionId = state.cases['case-001'].id
+    const teamId = Object.keys(state.teams)[0]!
+    state.cases[missionId] = {
+      ...state.cases[missionId],
+      requiredTags: ['revocation-clearance'],
+      requiredRoles: [],
+    }
+    state.affiliationPersonStatusRecords = Object.fromEntries(
+      Object.values(state.teams).map((team) => {
+        const memberId = team.memberIds?.[0] ?? team.agentIds[0]!
+        return [
+          `person-status:${memberId}`,
+          clearedPersonStatusRecord({
+            id: `person-status:${memberId}`,
+            subjectId: memberId,
+            subjectLabel: state.agents[memberId]!.name,
+            revocationKind: 'revocation',
+            revocationCause: 'site_breach',
+            revocationAffectedSurfaces: ['mission'],
+          }),
+        ]
+      })
+    )
+
+    const eligibility = evaluateDeploymentEligibility(state, missionId, teamId)
+    const routed = routeMission(state, missionId)
+
+    expect(eligibility.hardBlockers).toContain('revocation-restricted')
     expect(routed.routingBlockers).toContain('revocation-restricted')
     expect(routed.routingBlockers).not.toContain('invalid-loadout-gate')
   })

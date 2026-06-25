@@ -29,6 +29,7 @@ import {
   evaluateMissionRevocationEnforcement,
   isMissionRevocationClearanceTag,
 } from './missionRevocationEnforcement'
+import { selectAffiliationPersonStatusMissionRoutingEvidence } from './affiliationPersonStatusMissionRoutingEvidence'
 import type {
   Agent,
   AgentAvailabilityState,
@@ -329,25 +330,39 @@ export function evaluateDeploymentEligibility(
   const tagCoverage = new Set(
     members.flatMap((member) => member.tags.map((tag) => tag.trim()).filter(Boolean))
   )
+  const durablePersonStatusEvidence = selectAffiliationPersonStatusMissionRoutingEvidence({
+    records: state.affiliationPersonStatusRecords,
+    team,
+    members,
+    candidates:
+      state.recruitmentPool && state.recruitmentPool.length > 0
+        ? state.recruitmentPool
+        : state.candidates,
+    entityWelfareReclassificationRecords: state.entityWelfareReclassificationRecords,
+  })
   const siteClearance = evaluateMissionSiteClearanceEnforcement({
     mission,
     team,
     members,
+    durableEvidence: durablePersonStatusEvidence,
   })
   const dualLoyalty = evaluateMissionDualLoyaltyEnforcement({
     mission,
     team,
     members,
+    durableEvidence: durablePersonStatusEvidence,
   })
   const protectedStatus = evaluateMissionProtectedStatusEnforcement({
     mission,
     team,
     members,
+    durableEvidence: durablePersonStatusEvidence,
   })
   const revocation = evaluateMissionRevocationEnforcement({
     mission,
     team,
     members,
+    durableEvidence: durablePersonStatusEvidence,
   })
 
   const missingRequiredTags = mission.requiredTags.filter(

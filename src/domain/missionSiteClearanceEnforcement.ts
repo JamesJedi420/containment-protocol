@@ -2,6 +2,8 @@ import {
   evaluateAffiliationSiteClearance,
   type AffiliationSiteClearanceDecision,
 } from './affiliationSiteClearance'
+import type { AffiliationPersonStatusMissionRoutingEvidenceEntry } from './affiliationPersonStatusMissionRoutingEvidence'
+import type { EntityWelfarePermissionSurface } from './entityWelfareStatusPermissions'
 import type { Agent, CaseInstance, Team } from './models'
 
 const SITE_CLEARANCE_PREFIX = 'site-clearance:'
@@ -75,10 +77,73 @@ function collectGrantTags(team: Pick<Team, 'tags'>, members: readonly Pick<Agent
   }
 }
 
+function missionPermissionDecision(
+  entry: AffiliationPersonStatusMissionRoutingEvidenceEntry,
+  surface: EntityWelfarePermissionSurface
+) {
+  return entry.snapshot.permissionDecisions.find((decision) => decision.surface === surface)
+}
+
+function buildDurableSiteClearanceDecisions(input: {
+  readonly mission: Pick<CaseInstance, 'id' | 'title' | 'requiredTags' | 'siteLayer'>
+  readonly requirement: MissionSiteClearanceRequirement
+  readonly durableEvidence: readonly AffiliationPersonStatusMissionRoutingEvidenceEntry[]
+}) {
+  return input.durableEvidence.flatMap((entry) => [
+    ...input.requirement.siteIds.map((siteId) =>
+      evaluateAffiliationSiteClearance({
+        subjectId: entry.record.subjectId,
+        subjectLabel: entry.record.subjectLabel,
+        surface: 'mission',
+        onboardingDecision: entry.snapshot.onboardingDecision,
+        basePermissionDecision: missionPermissionDecision(entry, 'mission'),
+        context: {
+          boundary: 'site',
+          siteId,
+          siteLabel: siteId,
+          siteLayer: input.mission.siteLayer ?? entry.record.siteLayer ?? 'transition',
+          grantedSiteIds: entry.record.grantedSiteIds,
+          restrictedSiteIds: entry.record.restrictedSiteIds,
+          blockedSiteIds: entry.record.blockedSiteIds,
+          minimumOnboardingStage: entry.record.minimumOnboardingStage,
+        },
+      })
+    ),
+    ...input.requirement.facilityIds.map((facilityId) =>
+      evaluateAffiliationSiteClearance({
+        subjectId: entry.record.subjectId,
+        subjectLabel: entry.record.subjectLabel,
+        surface: 'mission',
+        onboardingDecision: entry.snapshot.onboardingDecision,
+        basePermissionDecision: missionPermissionDecision(entry, 'mission'),
+        context: {
+          boundary: 'facility',
+          facilityId,
+          facilityLabel: facilityId,
+          siteLayer: input.mission.siteLayer ?? entry.record.siteLayer ?? 'transition',
+          grantedFacilityIds: entry.record.grantedFacilityIds,
+          restrictedFacilityIds: entry.record.restrictedFacilityIds,
+          blockedFacilityIds: entry.record.blockedFacilityIds,
+          minimumOnboardingStage: entry.record.minimumOnboardingStage,
+        },
+      })
+    ),
+  ])
+}
+
+function requirementAllowed(
+  decisions: readonly AffiliationSiteClearanceDecision[],
+  field: 'siteId' | 'facilityId',
+  value: string
+) {
+  return decisions.some((decision) => decision[field] === value && decision.outcome === 'allowed')
+}
+
 export function evaluateMissionSiteClearanceEnforcement(input: {
   readonly mission: Pick<CaseInstance, 'id' | 'title' | 'requiredTags' | 'siteLayer'>
   readonly team: Pick<Team, 'id' | 'name' | 'tags'>
   readonly members: readonly Pick<Agent, 'tags'>[]
+  readonly durableEvidence?: readonly AffiliationPersonStatusMissionRoutingEvidenceEntry[]
 }): MissionSiteClearanceEnforcementResult {
   const requirement = parseMissionSiteClearanceRequirement(input.mission)
   const required = requirement.siteIds.length > 0 || requirement.facilityIds.length > 0
@@ -94,7 +159,7 @@ export function evaluateMissionSiteClearanceEnforcement(input: {
 
   const grants = collectGrantTags(input.team, input.members)
   const onboardingDecision = buildClearedTeamOnboarding(input.team)
-  const decisions = [
+  const tagDecisions = [
     ...requirement.siteIds.map((siteId) =>
       evaluateAffiliationSiteClearance({
         subjectId: input.team.id,
@@ -126,11 +191,24 @@ export function evaluateMissionSiteClearanceEnforcement(input: {
       })
     ),
   ]
+  const decisions = [
+    ...tagDecisions,
+    ...buildDurableSiteClearanceDecisions({
+      mission: input.mission,
+      requirement,
+      durableEvidence: input.durableEvidence ?? [],
+    }),
+  ]
   const reasonCodes = uniqueSorted(decisions.flatMap((decision) => decision.reasonCodes))
+  const allowed =
+    requirement.siteIds.every((siteId) => requirementAllowed(decisions, 'siteId', siteId)) &&
+    requirement.facilityIds.every((facilityId) =>
+      requirementAllowed(decisions, 'facilityId', facilityId)
+    )
 
   return Object.freeze({
     required: true,
-    allowed: decisions.every((decision) => decision.outcome === 'allowed'),
+    allowed,
     decisions: Object.freeze(decisions),
     reasonCodes: Object.freeze(reasonCodes),
   })

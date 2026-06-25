@@ -110,11 +110,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2519](https://linear.app/spectranoir/issue/SPE-2519/durable-person-status-surfacing-for-operations-mirror) SPE-1046 durable person-status surfacing for operations mirror (slice 1) — read-only route/page over persisted person-status evidence and composed projection outcomes; PR #2966 @ `543f837a`; see `planning/spe-1046-durable-person-status-surfacing-slice-1.md`.
 
-**In progress:** [SPE-2520](https://linear.app/spectranoir/issue/SPE-2520/durable-person-status-weekly-progression) SPE-1046 durable person-status weekly progression (slice 1) — authored weekly onboarding/access/review evidence advances persisted person-status records without changing mission routing; branch `spe-1046-durable-person-status-weekly-progression-slice-1`; see `planning/spe-1046-durable-person-status-weekly-progression-slice-1.md`.
+**Recently shipped:** [SPE-2520](https://linear.app/spectranoir/issue/SPE-2520/durable-person-status-weekly-progression) SPE-1046 durable person-status weekly progression (slice 1) — authored weekly onboarding/access/review evidence advances persisted person-status records without changing mission routing; PR #2968 @ `a0196aa7`; see `planning/spe-1046-durable-person-status-weekly-progression-slice-1.md`.
 
-**Next step after SPE-2520:** Owner reprioritizes from SPE-1046 durable enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+**In progress:** [SPE-2521](https://linear.app/spectranoir/issue/SPE-2521/durable-person-status-mission-routing-evidence) SPE-1046 durable person-status mission routing evidence (slice 1) — exact-match durable person-status records supplement existing explicit mission-routing clearance gates; branch `spe-1046-durable-person-status-mission-routing-slice-1`; see `planning/spe-1046-durable-person-status-mission-routing-slice-1.md`.
 
-**Base `main` SHA:** `543f837a` — post SPE-2519 durable person-status surfacing for operations mirror.
+**Next step after SPE-2521:** Owner reprioritizes from SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+
+**Base `main` SHA:** `a0196aa7` — post SPE-2520 durable person-status weekly progression.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
@@ -254,7 +256,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1046-revocation-enforcement-slice-1.md`                              | **Shipped**     | [SPE-2517](https://linear.app/spectranoir/issue/SPE-2517) / PR #2962 — explicit revocation/downgrade mission-routing gate @ `03fd0867`; parent SPE-1046 stays **Backlog**.                                             |
 | `spe-1046-durable-person-status-records-slice-1.md`                       | **Shipped**     | [SPE-2518](https://linear.app/spectranoir/issue/SPE-2518) — persisted affiliation/person-status evidence records and pure projection helper; parent SPE-1046 stays **Backlog**.                                        |
 | `spe-1046-durable-person-status-surfacing-slice-1.md`                     | **Shipped**     | [SPE-2519](https://linear.app/spectranoir/issue/SPE-2519) — read-only operations mirror for durable person-status evidence and composed projection outcomes; PR #2966 @ `543f837a`; parent SPE-1046 stays **Backlog**. |
-| `spe-1046-durable-person-status-weekly-progression-slice-1.md`            | **In Progress** | [SPE-2520](https://linear.app/spectranoir/issue/SPE-2520) — authored weekly progression for durable person-status evidence without changing mission routing; parent SPE-1046 stays **Backlog**.                        |
+| `spe-1046-durable-person-status-weekly-progression-slice-1.md`            | **Shipped**     | [SPE-2520](https://linear.app/spectranoir/issue/SPE-2520) — authored weekly progression for durable person-status evidence without changing mission routing; parent SPE-1046 stays **Backlog**.                        |
+| `spe-1046-durable-person-status-mission-routing-slice-1.md`               | **In Progress** | [SPE-2521](https://linear.app/spectranoir/issue/SPE-2521) — exact-match durable person-status records supplement existing explicit mission-routing clearance gates; parent SPE-1046 stays **Backlog**.                 |
 | `spe-1046-protected-status-action-restrictions-slice-1.md`                | **Shipped**     | [SPE-2507](https://linear.app/spectranoir/issue/SPE-2507) — pure protected-status action restriction evaluator; PR #2942 @ `b1915bc7`; parent SPE-1046 stays **Backlog**.                                              |
 | `spe-1046-revocation-downgrade-outcomes-slice-1.md`                       | **Shipped**     | [SPE-2508](https://linear.app/spectranoir/issue/SPE-2508) — pure revocation/downgrade access outcome evaluator; PR #2944 @ `afb89b48`; parent SPE-1046 stays **Backlog**.                                              |
 | `spe-947-spe-1046-parent-acceptance-review-slice-1.md`                    | **Shipped**     | [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) + [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) — registry umbrella grooming; parents SPE-947/SPE-1046 stay **Backlog**.                         |

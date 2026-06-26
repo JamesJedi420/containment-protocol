@@ -1,14 +1,15 @@
 # SPE-1046 - File work queue action recommendations (slice 1)
 
-One-page implementation plan. Linear: new SPE-1046 child to be created/linked for file work queue action recommendations. Follows `planning/spe-1046-file-work-queues-slice-1.md`; [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) parent stays **Backlog**.
+One-page implementation plan. Linear: [SPE-2527](https://linear.app/spectranoir/issue/SPE-2527/spe-1046-file-work-queue-action-recommendations) (child under [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)). Follows `planning/spe-1046-file-work-queues-slice-1.md`; [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) parent stays **Backlog**.
 
-| Field               | Value                                                                                                                               |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| **Linear**          | New SPE-1046 child - file work queue action recommendations                                                                         |
-| **Status**          | **In Progress**                                                                                                                     |
-| **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog** |
-| **Branch**          | `spe-1046-file-work-queue-action-recommendations-slice-1`                                                                           |
-| **Base `main` SHA** | `af849277`                                                                                                                          |
+| Field               | Value                                                                                                                                                       |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linear**          | [SPE-2527 - SPE-1046 file work queue action recommendations](https://linear.app/spectranoir/issue/SPE-2527/spe-1046-file-work-queue-action-recommendations) |
+| **Status**          | **Shipped**                                                                                                                                                 |
+| **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                         |
+| **Branch**          | `spe-1046-file-work-queue-action-recommendations-slice-1`                                                                                                   |
+| **Base `main` SHA** | `af849277`                                                                                                                                                  |
+| **PR**              | [#2982](https://github.com/JamesJedi420/containment-protocol/pull/2982)                                                                                     |
 
 ## Goal
 

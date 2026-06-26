@@ -70,6 +70,11 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     expect(queueRegion).toHaveTextContent('Blocked 0')
     expect(queueRegion).toHaveTextContent('Restricted 2')
     expect(queueRegion).toHaveTextContent('Missing review 0')
+    expect(queueRegion).toHaveTextContent('Recommended action')
+    expect(queueRegion).toHaveTextContent('Route restricted review')
+    expect(queueRegion).toHaveTextContent(
+      'Supervisor or review-gate handling is required before any file release.'
+    )
     expect(queueRegion).toHaveTextContent('Facility file access: Restricted')
     expect(queueRegion).toHaveTextContent('Facility: Briefing Room')
     expect(recordsRegion).toHaveTextContent('Cooperative Contractor')

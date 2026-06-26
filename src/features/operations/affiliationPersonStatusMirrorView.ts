@@ -43,6 +43,18 @@ export type AffiliationFileAccessWorkQueueBucket =
   | 'missing_review'
   | 'allowed'
 
+export type AffiliationFileAccessRecommendedActionKind =
+  | 'resolve_missing_review'
+  | 'hold_blocked_access'
+  | 'route_restricted_review'
+  | 'monitor_allowed_access'
+
+export interface AffiliationFileAccessRecommendedActionView {
+  recommendedActionKind: AffiliationFileAccessRecommendedActionKind
+  recommendedActionLabel: string
+  recommendedActionDetail: string
+}
+
 export interface AffiliationFileAccessWorkQueueEntryView {
   id: string
   subjectLabel: string
@@ -53,6 +65,9 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   facilityFileAccessLabel: string
   siteLabel: string
   facilityLabel: string
+  recommendedActionKind: AffiliationFileAccessRecommendedActionKind
+  recommendedActionLabel: string
+  recommendedActionDetail: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -241,6 +256,40 @@ function fileAccessWorkQueueBucketPriority(bucket: AffiliationFileAccessWorkQueu
   }
 }
 
+export function getFileAccessWorkQueueRecommendedAction(
+  bucket: AffiliationFileAccessWorkQueueBucket
+): AffiliationFileAccessRecommendedActionView {
+  switch (bucket) {
+    case 'missing_review':
+      return Object.freeze({
+        recommendedActionKind: 'resolve_missing_review',
+        recommendedActionLabel: 'Resolve missing review',
+        recommendedActionDetail:
+          'Attach missing candidate, welfare, onboarding, file, or site evidence before evaluating access.',
+      })
+    case 'blocked':
+      return Object.freeze({
+        recommendedActionKind: 'hold_blocked_access',
+        recommendedActionLabel: 'Hold access',
+        recommendedActionDetail:
+          'Resolve blocked file, site, or facility reason before moving this file workflow forward.',
+      })
+    case 'restricted':
+      return Object.freeze({
+        recommendedActionKind: 'route_restricted_review',
+        recommendedActionLabel: 'Route restricted review',
+        recommendedActionDetail:
+          'Supervisor or review-gate handling is required before any file release.',
+      })
+    case 'allowed':
+      return Object.freeze({
+        recommendedActionKind: 'monitor_allowed_access',
+        recommendedActionLabel: 'Monitor allowed access',
+        recommendedActionDetail: 'Audit visibility only; no intervention is required.',
+      })
+  }
+}
+
 function fileAccessDecisionLabel(snapshot: AffiliationPersonStatusSnapshot) {
   const decision = snapshot.permissionDecisions.find((candidate) => candidate.surface === 'file')
   return decision ? `File access: ${decision.outcomeLabel}` : 'File access: -'
@@ -256,6 +305,7 @@ function toFileAccessWorkQueueEntry(
     : snapshot.reasonCodes.filter((reasonCode) => reasonCode.startsWith('missing_'))
   const reasonCodeLabels =
     reasonCodes.length > 0 ? reasonCodes : ['missing_facility_file_access_decision']
+  const recommendedAction = getFileAccessWorkQueueRecommendedAction(bucket)
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -267,6 +317,7 @@ function toFileAccessWorkQueueEntry(
     facilityFileAccessLabel: decision?.decisionLabel ?? 'Facility file access: -',
     siteLabel: decision ? `Site: ${decision.siteLabel}` : 'Site: -',
     facilityLabel: decision ? `Facility: ${decision.facilityLabel}` : 'Facility: -',
+    ...recommendedAction,
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

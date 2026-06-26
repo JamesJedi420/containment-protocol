@@ -9,7 +9,10 @@ import {
   PENDING_TO_APPROVED_FIXTURE,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import type { Candidate } from '../../domain/recruitment'
-import { getAffiliationPersonStatusMirrorView } from './affiliationPersonStatusMirrorView'
+import {
+  getAffiliationPersonStatusMirrorView,
+  getFileAccessWorkQueueRecommendedAction,
+} from './affiliationPersonStatusMirrorView'
 
 function makeCandidate(overrides: Partial<Candidate> = {}): Candidate {
   return {
@@ -95,6 +98,12 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id, 'Restricted'],
       [RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id, 'Restricted'],
     ])
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      recommendedActionKind: 'route_restricted_review',
+      recommendedActionLabel: 'Route restricted review',
+      recommendedActionDetail:
+        'Supervisor or review-gate handling is required before any file release.',
+    })
     expect(view.records.map((record) => record.id)).toEqual([
       COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
       RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id,
@@ -162,6 +171,10 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       facilityFileAccessLabel: 'Facility file access: -',
       siteLabel: 'Site: -',
       facilityLabel: 'Facility: -',
+      recommendedActionKind: 'resolve_missing_review',
+      recommendedActionLabel: 'Resolve missing review',
+      recommendedActionDetail:
+        'Attach missing candidate, welfare, onboarding, file, or site evidence before evaluating access.',
     })
     expect(view.fileAccessWorkQueue[0]?.reasonCodeLabels).toEqual([
       'missing_candidate_ref',
@@ -200,6 +213,12 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(view.summary.restrictedOrBlockedCount).toBe(1)
     expect(view.summary.fileAccessBlockedCount).toBe(1)
     expect(view.fileAccessWorkQueue[0]?.bucketLabel).toBe('Blocked')
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      recommendedActionKind: 'hold_blocked_access',
+      recommendedActionLabel: 'Hold access',
+      recommendedActionDetail:
+        'Resolve blocked file, site, or facility reason before moving this file workflow forward.',
+    })
     expect(record?.fileAccessLabels).toEqual([
       'File access: Blocked',
       'Reasons: denied_reclassification_blocked',
@@ -246,5 +265,31 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     ])
     expect(record?.permissionDecisionLabels).toContain('Room: Restricted')
     expect(record?.permissionDecisionLabels).toContain('Housing: Restricted')
+  })
+
+  it('maps every file-access queue bucket to stable recommended action guidance', () => {
+    expect(getFileAccessWorkQueueRecommendedAction('missing_review')).toEqual({
+      recommendedActionKind: 'resolve_missing_review',
+      recommendedActionLabel: 'Resolve missing review',
+      recommendedActionDetail:
+        'Attach missing candidate, welfare, onboarding, file, or site evidence before evaluating access.',
+    })
+    expect(getFileAccessWorkQueueRecommendedAction('blocked')).toEqual({
+      recommendedActionKind: 'hold_blocked_access',
+      recommendedActionLabel: 'Hold access',
+      recommendedActionDetail:
+        'Resolve blocked file, site, or facility reason before moving this file workflow forward.',
+    })
+    expect(getFileAccessWorkQueueRecommendedAction('restricted')).toEqual({
+      recommendedActionKind: 'route_restricted_review',
+      recommendedActionLabel: 'Route restricted review',
+      recommendedActionDetail:
+        'Supervisor or review-gate handling is required before any file release.',
+    })
+    expect(getFileAccessWorkQueueRecommendedAction('allowed')).toEqual({
+      recommendedActionKind: 'monitor_allowed_access',
+      recommendedActionLabel: 'Monitor allowed access',
+      recommendedActionDetail: 'Audit visibility only; no intervention is required.',
+    })
   })
 })

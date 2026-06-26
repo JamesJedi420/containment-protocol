@@ -114,11 +114,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2521](https://linear.app/spectranoir/issue/SPE-2521/durable-person-status-mission-routing-evidence) SPE-1046 durable person-status mission routing evidence (slice 1) — exact-match durable person-status records supplement existing explicit mission-routing clearance gates; PR #2970 @ `5ed06ab8`; see `planning/spe-1046-durable-person-status-mission-routing-slice-1.md`.
 
-**In progress:** [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523/spe-1046-procurement-gear-access-enforcement) SPE-1046 procurement gear access enforcement (slice 1) — restricted/rare procurement listings compose the existing gear permission surface through current access fields; branch `spe-1046-procurement-gear-access-slice-1`; see `planning/spe-1046-procurement-gear-access-slice-1.md`.
+**Recently shipped:** [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523/spe-1046-procurement-gear-access-enforcement) SPE-1046 procurement gear access enforcement (slice 1) — restricted/rare procurement listings compose the existing gear permission surface through current access fields; PR #2974 @ `9f623d9a`; see `planning/spe-1046-procurement-gear-access-slice-1.md`.
 
-**Next step after SPE-2523:** Owner reprioritizes from SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+**In progress:** [SPE-2524](https://linear.app/spectranoir/issue/SPE-2524/spe-1046-file-access-enforcement-for-operations-surfaces) SPE-1046 file access enforcement for operations surfaces (slice 1) — durable person-status mirror exposes read-only file-access outcomes from existing SPE-1046 permission decisions; branch `spe-1046-file-access-enforcement-slice-1`; see `planning/spe-1046-file-access-enforcement-slice-1.md`.
 
-**Base `main` SHA:** `451eac0d` — includes PR #2970 / `5ed06ab8`.
+**Next step after SPE-2524:** Owner reprioritizes remaining SPE-1046 non-mission enforcement follow-ons (room/housing/facility-specific file workflows) or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+
+**Base `main` SHA:** `9f623d9a` — includes PR #2974 / SPE-2523 procurement gear access enforcement.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
@@ -260,7 +262,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1046-durable-person-status-surfacing-slice-1.md`                     | **Shipped**     | [SPE-2519](https://linear.app/spectranoir/issue/SPE-2519) — read-only operations mirror for durable person-status evidence and composed projection outcomes; PR #2966 @ `543f837a`; parent SPE-1046 stays **Backlog**.        |
 | `spe-1046-durable-person-status-weekly-progression-slice-1.md`            | **Shipped**     | [SPE-2520](https://linear.app/spectranoir/issue/SPE-2520) — authored weekly progression for durable person-status evidence without changing mission routing; parent SPE-1046 stays **Backlog**.                               |
 | `spe-1046-durable-person-status-mission-routing-slice-1.md`               | **Shipped**     | [SPE-2521](https://linear.app/spectranoir/issue/SPE-2521) — exact-match durable person-status records supplement existing explicit mission-routing clearance gates; PR #2970 @ `5ed06ab8`; parent SPE-1046 stays **Backlog**. |
-| `spe-1046-procurement-gear-access-slice-1.md`                             | **In Progress** | [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523) — restricted/rare procurement listings compose existing gear permission checks through current access fields; parent SPE-1046 stays **Backlog**.                    |
+| `spe-1046-file-access-enforcement-slice-1.md`                             | **In Progress** | [SPE-2524](https://linear.app/spectranoir/issue/SPE-2524) — durable person-status mirror exposes file-access outcomes from existing SPE-1046 permission decisions; parent SPE-1046 stays **Backlog**.                  |
+| `spe-1046-procurement-gear-access-slice-1.md`                             | **Shipped**     | [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523) — restricted/rare procurement listings compose existing gear permission checks through current access fields; PR #2974 @ `9f623d9a`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-protected-status-action-restrictions-slice-1.md`                | **Shipped**     | [SPE-2507](https://linear.app/spectranoir/issue/SPE-2507) — pure protected-status action restriction evaluator; PR #2942 @ `b1915bc7`; parent SPE-1046 stays **Backlog**.                                                     |
 | `spe-1046-revocation-downgrade-outcomes-slice-1.md`                       | **Shipped**     | [SPE-2508](https://linear.app/spectranoir/issue/SPE-2508) — pure revocation/downgrade access outcome evaluator; PR #2944 @ `afb89b48`; parent SPE-1046 stays **Backlog**.                                                     |
 | `spe-947-spe-1046-parent-acceptance-review-slice-1.md`                    | **Shipped**     | [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) + [SPE-2482](https://linear.app/spectranoir/issue/SPE-2482) — registry umbrella grooming; parents SPE-947/SPE-1046 stay **Backlog**.                                |

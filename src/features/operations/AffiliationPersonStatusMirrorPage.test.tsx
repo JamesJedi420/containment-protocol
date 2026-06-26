@@ -58,10 +58,20 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
 
     renderMirrorPage()
 
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
     const recordsRegion = screen.getByRole('region', {
       name: /persisted affiliation person-status records/i,
     })
 
+    expect(queueRegion).toHaveTextContent('File access work queue')
+    expect(queueRegion).toHaveTextContent('Total 2')
+    expect(queueRegion).toHaveTextContent('Blocked 0')
+    expect(queueRegion).toHaveTextContent('Restricted 2')
+    expect(queueRegion).toHaveTextContent('Missing review 0')
+    expect(queueRegion).toHaveTextContent('Facility file access: Restricted')
+    expect(queueRegion).toHaveTextContent('Facility: Briefing Room')
     expect(recordsRegion).toHaveTextContent('Cooperative Contractor')
     expect(recordsRegion).toHaveTextContent('Rival Patron Risk')
     expect(recordsRegion).toHaveTextContent('Risk: Restricted')

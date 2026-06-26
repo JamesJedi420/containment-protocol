@@ -87,6 +87,14 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(view.summary.candidateLinkedCount).toBe(1)
     expect(view.summary.welfareLinkedCount).toBe(2)
     expect(view.summary.restrictedOrBlockedCount).toBe(2)
+    expect(view.summary.fileAccessWorkQueueCount).toBe(2)
+    expect(view.summary.fileAccessBlockedCount).toBe(0)
+    expect(view.summary.fileAccessRestrictedCount).toBe(2)
+    expect(view.summary.fileAccessMissingReviewCount).toBe(0)
+    expect(view.fileAccessWorkQueue.map((entry) => [entry.id, entry.bucketLabel])).toEqual([
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id, 'Restricted'],
+      [RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id, 'Restricted'],
+    ])
     expect(view.records.map((record) => record.id)).toEqual([
       COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
       RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id,
@@ -145,6 +153,21 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(record?.facilityFileAccessLabels).toEqual(['Facility file access: -'])
     expect(record?.housingAccessLabels).toEqual(['Housing access: -'])
     expect(record?.onboardingLabels).toEqual(['Candidate: -', 'Access: -'])
+    expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      bucket: 'missing_review',
+      bucketLabel: 'Missing review',
+      fileAccessLabel: 'File access: -',
+      facilityFileAccessLabel: 'Facility file access: -',
+      siteLabel: 'Site: -',
+      facilityLabel: 'Facility: -',
+    })
+    expect(view.fileAccessWorkQueue[0]?.reasonCodeLabels).toEqual([
+      'missing_candidate_ref',
+      'missing_entity_welfare_reclassification_ref',
+      'missing_onboarding_clearance',
+    ])
   })
 
   it('surfaces blocked file access from linked SPE-1046 welfare decisions', () => {
@@ -175,6 +198,8 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     const record = view.records[0]
 
     expect(view.summary.restrictedOrBlockedCount).toBe(1)
+    expect(view.summary.fileAccessBlockedCount).toBe(1)
+    expect(view.fileAccessWorkQueue[0]?.bucketLabel).toBe('Blocked')
     expect(record?.fileAccessLabels).toEqual([
       'File access: Blocked',
       'Reasons: denied_reclassification_blocked',

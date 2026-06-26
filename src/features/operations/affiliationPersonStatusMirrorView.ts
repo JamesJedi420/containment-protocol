@@ -30,12 +30,36 @@ export interface AffiliationPersonStatusMirrorSummaryView {
   welfareLinkedCount: number
   restrictedOrBlockedCount: number
   missingReferenceCount: number
+  fileAccessWorkQueueCount: number
+  fileAccessBlockedCount: number
+  fileAccessRestrictedCount: number
+  fileAccessMissingReviewCount: number
   week: number
+}
+
+export type AffiliationFileAccessWorkQueueBucket =
+  | 'blocked'
+  | 'restricted'
+  | 'missing_review'
+  | 'allowed'
+
+export interface AffiliationFileAccessWorkQueueEntryView {
+  id: string
+  subjectLabel: string
+  subjectId: string
+  bucket: AffiliationFileAccessWorkQueueBucket
+  bucketLabel: string
+  fileAccessLabel: string
+  facilityFileAccessLabel: string
+  siteLabel: string
+  facilityLabel: string
+  reasonCodeLabels: readonly string[]
 }
 
 export interface AffiliationPersonStatusMirrorView {
   isEmpty: boolean
   summary: AffiliationPersonStatusMirrorSummaryView
+  fileAccessWorkQueue: readonly AffiliationFileAccessWorkQueueEntryView[]
   records: readonly AffiliationPersonStatusMirrorRecordView[]
 }
 
@@ -191,6 +215,77 @@ function hasMissingReference(snapshot: AffiliationPersonStatusSnapshot) {
   return snapshot.reasonCodes.some((reasonCode) => reasonCode.startsWith('missing_'))
 }
 
+function formatFileAccessWorkQueueBucketLabel(bucket: AffiliationFileAccessWorkQueueBucket) {
+  switch (bucket) {
+    case 'blocked':
+      return 'Blocked'
+    case 'restricted':
+      return 'Restricted'
+    case 'missing_review':
+      return 'Missing review'
+    case 'allowed':
+      return 'Allowed'
+  }
+}
+
+function fileAccessWorkQueueBucketPriority(bucket: AffiliationFileAccessWorkQueueBucket) {
+  switch (bucket) {
+    case 'blocked':
+      return 0
+    case 'restricted':
+      return 1
+    case 'missing_review':
+      return 2
+    case 'allowed':
+      return 3
+  }
+}
+
+function fileAccessDecisionLabel(snapshot: AffiliationPersonStatusSnapshot) {
+  const decision = snapshot.permissionDecisions.find((candidate) => candidate.surface === 'file')
+  return decision ? `File access: ${decision.outcomeLabel}` : 'File access: -'
+}
+
+function toFileAccessWorkQueueEntry(
+  snapshot: AffiliationPersonStatusSnapshot
+): AffiliationFileAccessWorkQueueEntryView {
+  const decision = snapshot.facilityFileAccessDecision
+  const bucket: AffiliationFileAccessWorkQueueBucket = decision?.outcome ?? 'missing_review'
+  const reasonCodes = decision
+    ? decision.reasonCodes
+    : snapshot.reasonCodes.filter((reasonCode) => reasonCode.startsWith('missing_'))
+  const reasonCodeLabels =
+    reasonCodes.length > 0 ? reasonCodes : ['missing_facility_file_access_decision']
+
+  return Object.freeze({
+    id: snapshot.recordId,
+    subjectLabel: snapshot.subjectLabel,
+    subjectId: snapshot.subjectId,
+    bucket,
+    bucketLabel: formatFileAccessWorkQueueBucketLabel(bucket),
+    fileAccessLabel: fileAccessDecisionLabel(snapshot),
+    facilityFileAccessLabel: decision?.decisionLabel ?? 'Facility file access: -',
+    siteLabel: decision ? `Site: ${decision.siteLabel}` : 'Site: -',
+    facilityLabel: decision ? `Facility: ${decision.facilityLabel}` : 'Facility: -',
+    reasonCodeLabels: Object.freeze(reasonCodeLabels),
+  })
+}
+
+function buildFileAccessWorkQueue(
+  snapshots: readonly AffiliationPersonStatusSnapshot[]
+): readonly AffiliationFileAccessWorkQueueEntryView[] {
+  return Object.freeze(
+    snapshots
+      .map((snapshot) => toFileAccessWorkQueueEntry(snapshot))
+      .sort((left, right) => {
+        const bucketCompare =
+          fileAccessWorkQueueBucketPriority(left.bucket) -
+          fileAccessWorkQueueBucketPriority(right.bucket)
+        return bucketCompare !== 0 ? bucketCompare : left.id.localeCompare(right.id)
+      })
+  )
+}
+
 function toRecordView(
   snapshot: AffiliationPersonStatusSnapshot
 ): AffiliationPersonStatusMirrorRecordView {
@@ -237,6 +332,7 @@ export function getAffiliationPersonStatusMirrorView(
   })
   let restrictedOrBlockedCount = 0
   let missingReferenceCount = 0
+  const fileAccessWorkQueue = buildFileAccessWorkQueue(snapshots)
 
   for (const snapshot of snapshots) {
     if (hasRestrictedOrBlockedOutcome(snapshot)) {
@@ -257,8 +353,18 @@ export function getAffiliationPersonStatusMirrorView(
         .length,
       restrictedOrBlockedCount,
       missingReferenceCount,
+      fileAccessWorkQueueCount: fileAccessWorkQueue.length,
+      fileAccessBlockedCount: fileAccessWorkQueue.filter((entry) => entry.bucket === 'blocked')
+        .length,
+      fileAccessRestrictedCount: fileAccessWorkQueue.filter(
+        (entry) => entry.bucket === 'restricted'
+      ).length,
+      fileAccessMissingReviewCount: fileAccessWorkQueue.filter(
+        (entry) => entry.bucket === 'missing_review'
+      ).length,
       week: game.week,
     }),
+    fileAccessWorkQueue,
     records: Object.freeze(snapshots.map((snapshot) => toRecordView(snapshot))),
   })
 }

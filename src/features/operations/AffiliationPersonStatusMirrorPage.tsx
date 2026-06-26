@@ -98,122 +98,209 @@ export default function AffiliationPersonStatusMirrorPage() {
           <p className="text-sm opacity-70">{AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.emptyBody}</p>
         </article>
       ) : (
-        <article
-          className="panel panel-support space-y-3"
-          role="region"
-          aria-label="Persisted affiliation person-status records"
-        >
-          <div className="space-y-1">
-            <h3 className="text-lg font-semibold">
-              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsHeading}
-            </h3>
-            <p className="text-sm opacity-60">
-              {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsSubtitle}
-            </p>
-          </div>
+        <>
+          <article
+            className="panel panel-support space-y-3"
+            role="region"
+            aria-label="File access work queue"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueHeading}
+                </h3>
+                <p className="text-sm opacity-60">
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueSubtitle}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-right text-xs sm:grid-cols-4">
+                <p>
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueTotalLabel}{' '}
+                  <span className="font-semibold">{view.summary.fileAccessWorkQueueCount}</span>
+                </p>
+                <p>
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueBlockedLabel}{' '}
+                  <span className="font-semibold">{view.summary.fileAccessBlockedCount}</span>
+                </p>
+                <p>
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueRestrictedLabel}{' '}
+                  <span className="font-semibold">{view.summary.fileAccessRestrictedCount}</span>
+                </p>
+                <p>
+                  {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueMissingLabel}{' '}
+                  <span className="font-semibold">{view.summary.fileAccessMissingReviewCount}</span>
+                </p>
+              </div>
+            </div>
 
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.subjectColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.linksColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.onboardingColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.permissionsColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.roomAccessColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.facilityFileAccessColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.housingAccessColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.dualLoyaltyColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.protectedStatusColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.revocationColumn}
-                  </th>
-                  <th className="px-2 py-2">
-                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {view.records.map((record) => (
-                  <tr key={record.id} className="border-b border-white/5 align-top">
-                    <td className="px-2 py-2">
-                      <p className="font-medium">{record.subjectLabel}</p>
-                      <p className="text-xs opacity-55">{record.id}</p>
-                      <p className="text-xs opacity-45">{record.subjectId}</p>
-                    </td>
-                    <td className="px-2 py-2">
-                      <p className="text-xs opacity-55">
-                        {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.candidateRefPrefix}{' '}
-                        {record.candidateRefLabel}
-                      </p>
-                      <p className="text-xs opacity-55">
-                        {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.welfareRefPrefix}{' '}
-                        {record.entityWelfareReclassificationRefLabel}
-                      </p>
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.onboardingLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.permissionDecisionLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.roomAccessLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.fileAccessLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.facilityFileAccessLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.housingAccessLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.siteClearanceLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.dualLoyaltyLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.protectedStatusLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.revocationLabels} />
-                    </td>
-                    <td className="px-2 py-2">
-                      <LabelStack labels={record.reasonCodeLabels} />
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessQueueStatusColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.subjectColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.facilityFileAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
+                </thead>
+                <tbody>
+                  {view.fileAccessWorkQueue.map((entry) => (
+                    <tr key={entry.id} className="border-b border-white/5 align-top">
+                      <td className="px-2 py-2 font-medium">{entry.bucketLabel}</td>
+                      <td className="px-2 py-2">
+                        <p className="font-medium">{entry.subjectLabel}</p>
+                        <p className="text-xs opacity-55">{entry.id}</p>
+                        <p className="text-xs opacity-45">{entry.subjectId}</p>
+                      </td>
+                      <td className="px-2 py-2 text-xs opacity-55">{entry.fileAccessLabel}</td>
+                      <td className="px-2 py-2 text-xs opacity-55">
+                        {entry.facilityFileAccessLabel}
+                      </td>
+                      <td className="px-2 py-2">
+                        <p className="text-xs opacity-55">{entry.siteLabel}</p>
+                        <p className="text-xs opacity-55">{entry.facilityLabel}</p>
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={entry.reasonCodeLabels} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article
+            className="panel panel-support space-y-3"
+            role="region"
+            aria-label="Persisted affiliation person-status records"
+          >
+            <div className="space-y-1">
+              <h3 className="text-lg font-semibold">
+                {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsHeading}
+              </h3>
+              <p className="text-sm opacity-60">
+                {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordsSubtitle}
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-xs uppercase tracking-[0.18em] opacity-55">
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.subjectColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.linksColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.onboardingColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.permissionsColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.roomAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.facilityFileAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.housingAccessColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.dualLoyaltyColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.protectedStatusColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.revocationColumn}
+                    </th>
+                    <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {view.records.map((record) => (
+                    <tr key={record.id} className="border-b border-white/5 align-top">
+                      <td className="px-2 py-2">
+                        <p className="font-medium">{record.subjectLabel}</p>
+                        <p className="text-xs opacity-55">{record.id}</p>
+                        <p className="text-xs opacity-45">{record.subjectId}</p>
+                      </td>
+                      <td className="px-2 py-2">
+                        <p className="text-xs opacity-55">
+                          {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.candidateRefPrefix}{' '}
+                          {record.candidateRefLabel}
+                        </p>
+                        <p className="text-xs opacity-55">
+                          {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.welfareRefPrefix}{' '}
+                          {record.entityWelfareReclassificationRefLabel}
+                        </p>
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.onboardingLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.permissionDecisionLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.roomAccessLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.fileAccessLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.facilityFileAccessLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.housingAccessLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.siteClearanceLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.dualLoyaltyLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.protectedStatusLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.revocationLabels} />
+                      </td>
+                      <td className="px-2 py-2">
+                        <LabelStack labels={record.reasonCodeLabels} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </>
       )}
     </section>
   )

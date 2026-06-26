@@ -67,6 +67,8 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     expect(recordsRegion).toHaveTextContent('Risk: Restricted')
     expect(recordsRegion).toHaveTextContent('Room access: Blocked')
     expect(recordsRegion).toHaveTextContent('File access: Restricted')
+    expect(recordsRegion).toHaveTextContent('Facility file access: Restricted')
+    expect(recordsRegion).toHaveTextContent('Facility: Briefing Room')
     expect(recordsRegion).toHaveTextContent('Housing access: Allowed')
     expect(recordsRegion).toHaveTextContent('Mission: Restricted')
     expect(recordsRegion).toHaveTextContent('person-status:cooperative-contractor-cleared')

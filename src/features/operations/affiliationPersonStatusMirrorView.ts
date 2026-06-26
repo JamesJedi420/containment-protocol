@@ -14,6 +14,7 @@ export interface AffiliationPersonStatusMirrorRecordView {
   permissionDecisionLabels: readonly string[]
   roomAccessLabels: readonly string[]
   fileAccessLabels: readonly string[]
+  facilityFileAccessLabels: readonly string[]
   housingAccessLabels: readonly string[]
   onboardingLabels: readonly string[]
   siteClearanceLabels: readonly string[]
@@ -98,6 +99,28 @@ function formatSiteClearanceLabels(snapshot: AffiliationPersonStatusSnapshot): r
   return Object.freeze(labels)
 }
 
+function formatFacilityFileAccessLabels(
+  snapshot: AffiliationPersonStatusSnapshot
+): readonly string[] {
+  const decision = snapshot.facilityFileAccessDecision
+
+  if (!decision) {
+    return Object.freeze(['Facility file access: -'])
+  }
+
+  const labels = [decision.decisionLabel, `Site: ${decision.siteLabel}`]
+
+  if (decision.facilityId !== 'facility:unknown') {
+    labels.push(`Facility: ${decision.facilityLabel}`)
+  }
+
+  if (decision.reasonCodes.length > 0) {
+    labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
+}
+
 function formatDualLoyaltyLabels(snapshot: AffiliationPersonStatusSnapshot): readonly string[] {
   const decision = snapshot.dualLoyaltyDecision
   const labels = [
@@ -154,6 +177,8 @@ function hasRestrictedOrBlockedOutcome(snapshot: AffiliationPersonStatusSnapshot
     ) ||
     snapshot.siteClearanceDecision.outcome === 'restricted' ||
     snapshot.siteClearanceDecision.outcome === 'blocked' ||
+    snapshot.facilityFileAccessDecision?.outcome === 'restricted' ||
+    snapshot.facilityFileAccessDecision?.outcome === 'blocked' ||
     snapshot.dualLoyaltyDecision.riskLevel === 'restricted' ||
     snapshot.dualLoyaltyDecision.riskLevel === 'blocked' ||
     snapshot.protectedActionDecision.outcome === 'restricted' ||
@@ -186,6 +211,7 @@ function toRecordView(
       'file',
       'File access'
     ),
+    facilityFileAccessLabels: formatFacilityFileAccessLabels(snapshot),
     housingAccessLabels: formatSurfaceAccessLabels(
       snapshot.permissionDecisions,
       'housing',

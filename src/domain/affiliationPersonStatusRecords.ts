@@ -10,6 +10,10 @@ import {
   type AffiliationLoyaltyAnchor,
 } from './affiliationDualLoyaltyRisk'
 import {
+  evaluateAffiliationFacilityFileAccess,
+  type AffiliationFacilityFileAccessDecision,
+} from './affiliationFacilityFileAccess'
+import {
   evaluateAffiliationOnboardingReadiness,
   type AffiliationOnboardingDecision,
   type AffiliationOnboardingStage,
@@ -34,6 +38,7 @@ import {
 import {
   evaluateAffiliationSiteClearance,
   type AffiliationSiteClearanceBoundary,
+  type AffiliationSiteClearanceContext,
   type AffiliationSiteClearanceDecision,
   type AffiliationSiteLayer,
 } from './affiliationSiteClearance'
@@ -130,6 +135,7 @@ export interface AffiliationPersonStatusSnapshot {
   readonly permissionDecisions: readonly EntityWelfarePermissionDecision[]
   readonly onboardingDecision?: AffiliationOnboardingDecision
   readonly siteClearanceDecision: AffiliationSiteClearanceDecision
+  readonly facilityFileAccessDecision?: AffiliationFacilityFileAccessDecision
   readonly dualLoyaltyDecision: AffiliationDualLoyaltyDecision
   readonly protectedActionDecision: AffiliationProtectedActionDecision
   readonly revocationDecision: AffiliationRevocationDecision
@@ -504,31 +510,48 @@ export function projectAffiliationPersonStatusSnapshot(
     : Object.freeze([] as EntityWelfarePermissionDecision[])
   const permissionSurface = record.permissionSurface ?? 'mission'
   const permissionDecision = firstPermissionDecision(permissionDecisions, permissionSurface)
+  const filePermissionDecision = firstPermissionDecision(permissionDecisions, 'file')
   const onboardingDecision = candidate
     ? evaluateAffiliationOnboardingReadiness(candidate, onboardingContext(record))
     : undefined
+  const siteClearanceContext: AffiliationSiteClearanceContext = {
+    boundary: record.siteBoundary,
+    siteId: record.siteId,
+    siteLabel: record.siteLabel,
+    facilityId: record.facilityId,
+    facilityLabel: record.facilityLabel,
+    siteLayer: record.siteLayer,
+    grantedSiteIds: record.grantedSiteIds,
+    restrictedSiteIds: record.restrictedSiteIds,
+    blockedSiteIds: record.blockedSiteIds,
+    grantedFacilityIds: record.grantedFacilityIds,
+    restrictedFacilityIds: record.restrictedFacilityIds,
+    blockedFacilityIds: record.blockedFacilityIds,
+    minimumOnboardingStage: record.minimumOnboardingStage,
+  }
   const siteClearanceDecision = evaluateAffiliationSiteClearance({
     subjectId: record.subjectId,
     subjectLabel: record.subjectLabel,
     surface: permissionSurface,
-    context: {
-      boundary: record.siteBoundary,
-      siteId: record.siteId,
-      siteLabel: record.siteLabel,
-      facilityId: record.facilityId,
-      facilityLabel: record.facilityLabel,
-      siteLayer: record.siteLayer,
-      grantedSiteIds: record.grantedSiteIds,
-      restrictedSiteIds: record.restrictedSiteIds,
-      blockedSiteIds: record.blockedSiteIds,
-      grantedFacilityIds: record.grantedFacilityIds,
-      restrictedFacilityIds: record.restrictedFacilityIds,
-      blockedFacilityIds: record.blockedFacilityIds,
-      minimumOnboardingStage: record.minimumOnboardingStage,
-    },
+    context: siteClearanceContext,
     onboardingDecision,
     basePermissionDecision: permissionDecision,
   })
+  const facilityFileAccessDecision = filePermissionDecision
+    ? evaluateAffiliationFacilityFileAccess({
+        subjectId: record.subjectId,
+        subjectLabel: record.subjectLabel,
+        filePermissionDecision,
+        siteClearanceDecision: evaluateAffiliationSiteClearance({
+          subjectId: record.subjectId,
+          subjectLabel: record.subjectLabel,
+          surface: 'file',
+          context: siteClearanceContext,
+          onboardingDecision,
+          basePermissionDecision: filePermissionDecision,
+        }),
+      })
+    : undefined
   const dualLoyaltyDecision = evaluateAffiliationDualLoyaltyRisk({
     subjectId: record.subjectId,
     subjectLabel: record.subjectLabel,
@@ -580,6 +603,7 @@ export function projectAffiliationPersonStatusSnapshot(
     permissionDecisions,
     ...(onboardingDecision ? { onboardingDecision } : {}),
     siteClearanceDecision,
+    ...(facilityFileAccessDecision ? { facilityFileAccessDecision } : {}),
     dualLoyaltyDecision,
     protectedActionDecision,
     revocationDecision,
@@ -587,6 +611,7 @@ export function projectAffiliationPersonStatusSnapshot(
       uniqueSorted([
         ...reasonCodes,
         ...siteClearanceDecision.reasonCodes,
+        ...(facilityFileAccessDecision?.reasonCodes ?? []),
         ...dualLoyaltyDecision.reasonCodes,
         ...protectedActionDecision.reasonCodes,
         ...revocationDecision.reasonCodes,

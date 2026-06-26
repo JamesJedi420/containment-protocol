@@ -1635,6 +1635,7 @@ export const AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT: Record<string, string> = 
   permissionsColumn: 'Permissions',
   roomAccessColumn: 'Room access',
   fileAccessColumn: 'File access',
+  facilityFileAccessColumn: 'Facility file access',
   housingAccessColumn: 'Housing access',
   siteClearanceColumn: 'Site clearance',
   dualLoyaltyColumn: 'Dual loyalty',

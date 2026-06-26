@@ -105,6 +105,9 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       'File access: Restricted',
       'Reasons: approved_cooperative_file_restricted',
     ])
+    expect(cooperative?.facilityFileAccessLabels).toContain('Facility file access: Restricted')
+    expect(cooperative?.facilityFileAccessLabels).toContain('Site: Annex 7')
+    expect(cooperative?.facilityFileAccessLabels).toContain('Facility: Briefing Room')
     expect(cooperative?.housingAccessLabels).toEqual([
       'Housing access: Allowed',
       'Reasons: approved_cooperative_housing_allowed',
@@ -139,6 +142,7 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(record?.permissionDecisionLabels).toEqual(['-'])
     expect(record?.roomAccessLabels).toEqual(['Room access: -'])
     expect(record?.fileAccessLabels).toEqual(['File access: -'])
+    expect(record?.facilityFileAccessLabels).toEqual(['Facility file access: -'])
     expect(record?.housingAccessLabels).toEqual(['Housing access: -'])
     expect(record?.onboardingLabels).toEqual(['Candidate: -', 'Access: -'])
   })
@@ -175,6 +179,7 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       'File access: Blocked',
       'Reasons: denied_reclassification_blocked',
     ])
+    expect(record?.facilityFileAccessLabels).toContain('Facility file access: Blocked')
     expect(record?.permissionDecisionLabels).toContain('File: Blocked')
   })
 

@@ -222,6 +222,9 @@ describe('affiliationPersonStatusRecords', () => {
     expect(snapshot.onboardingDecision?.stage).toBe('cleared')
     expect(snapshot.onboardingDecision?.fullAccessEligible).toBe(true)
     expect(snapshot.siteClearanceDecision.outcome).toBe('allowed')
+    expect(snapshot.facilityFileAccessDecision?.outcome).toBe('restricted')
+    expect(snapshot.facilityFileAccessDecision?.siteId).toBe('site:annex-7')
+    expect(snapshot.facilityFileAccessDecision?.facilityId).toBe('facility:briefing-room')
     expect(snapshot.dualLoyaltyDecision.riskLevel).toBe('watch')
     expect(snapshot.protectedActionDecision.action).toBe('assign_mission')
     expect(snapshot.revocationDecision.kind).toBe('probation')
@@ -244,6 +247,7 @@ describe('affiliationPersonStatusRecords', () => {
     expect(snapshot.permissionDecisions).toEqual([])
     expect(snapshot.onboardingDecision).toBeUndefined()
     expect(snapshot.siteClearanceDecision.outcome).not.toBe('allowed')
+    expect(snapshot.facilityFileAccessDecision).toBeUndefined()
   })
 
   it('projects record maps in stable record-id order', () => {

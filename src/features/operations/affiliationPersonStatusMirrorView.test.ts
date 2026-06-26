@@ -97,9 +97,17 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
 
     expect(cooperative?.subjectLabel).toBe('Cooperative Contractor')
     expect(cooperative?.onboardingLabels).toContain('Stage: Cleared')
+    expect(cooperative?.roomAccessLabels).toEqual([
+      'Room access: Blocked',
+      'Reasons: approved_cooperative_unrestricted_room_blocked',
+    ])
     expect(cooperative?.fileAccessLabels).toEqual([
       'File access: Restricted',
       'Reasons: approved_cooperative_file_restricted',
+    ])
+    expect(cooperative?.housingAccessLabels).toEqual([
+      'Housing access: Allowed',
+      'Reasons: approved_cooperative_housing_allowed',
     ])
     expect(cooperative?.siteClearanceLabels).toContain('Mission: Allowed')
     expect(cooperative?.permissionDecisionLabels).toContain('Mission: Restricted')
@@ -129,7 +137,9 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(record?.reasonCodeLabels).toContain('missing_candidate_ref')
     expect(record?.reasonCodeLabels).toContain('missing_entity_welfare_reclassification_ref')
     expect(record?.permissionDecisionLabels).toEqual(['-'])
+    expect(record?.roomAccessLabels).toEqual(['Room access: -'])
     expect(record?.fileAccessLabels).toEqual(['File access: -'])
+    expect(record?.housingAccessLabels).toEqual(['Housing access: -'])
     expect(record?.onboardingLabels).toEqual(['Candidate: -', 'Access: -'])
   })
 
@@ -166,5 +176,45 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       'Reasons: denied_reclassification_blocked',
     ])
     expect(record?.permissionDecisionLabels).toContain('File: Blocked')
+  })
+
+  it('surfaces restricted room and housing access from linked SPE-1046 welfare decisions', () => {
+    const game = createStartingState()
+    const restrictedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:room-housing-restricted',
+      label: 'Protected housing review',
+      proposedDisposition: 'sapient_remains',
+      reclassificationState: 'approved',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [restrictedWelfareRecord.id]: restrictedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:room-housing-restricted': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:room-housing-restricted',
+        subjectId: 'subject:room-housing-restricted',
+        subjectLabel: 'Room Housing Restricted Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: restrictedWelfareRecord.id,
+        permissionSurface: 'room',
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.restrictedOrBlockedCount).toBe(1)
+    expect(record?.roomAccessLabels).toEqual([
+      'Room access: Restricted',
+      'Reasons: approved_sapient_remains_room_protected_restricted',
+    ])
+    expect(record?.housingAccessLabels).toEqual([
+      'Housing access: Restricted',
+      'Reasons: approved_sapient_remains_housing_protected_restricted',
+    ])
+    expect(record?.permissionDecisionLabels).toContain('Room: Restricted')
+    expect(record?.permissionDecisionLabels).toContain('Housing: Restricted')
   })
 })

@@ -12,7 +12,9 @@ export interface AffiliationPersonStatusMirrorRecordView {
   candidateRefLabel: string
   entityWelfareReclassificationRefLabel: string
   permissionDecisionLabels: readonly string[]
+  roomAccessLabels: readonly string[]
   fileAccessLabels: readonly string[]
+  housingAccessLabels: readonly string[]
   onboardingLabels: readonly string[]
   siteClearanceLabels: readonly string[]
   dualLoyaltyLabels: readonly string[]
@@ -48,16 +50,18 @@ function formatPermissionDecisionLabels(
   )
 }
 
-function formatFileAccessLabels(
-  decisions: readonly EntityWelfarePermissionDecision[]
+function formatSurfaceAccessLabels(
+  decisions: readonly EntityWelfarePermissionDecision[],
+  surface: EntityWelfarePermissionDecision['surface'],
+  label: string
 ): readonly string[] {
-  const decision = decisions.find((candidate) => candidate.surface === 'file')
+  const decision = decisions.find((candidate) => candidate.surface === surface)
 
   if (!decision) {
-    return Object.freeze(['File access: -'])
+    return Object.freeze([`${label}: -`])
   }
 
-  const labels = [`File access: ${decision.outcomeLabel}`]
+  const labels = [`${label}: ${decision.outcomeLabel}`]
 
   if (decision.reasonCodes.length > 0) {
     labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
@@ -172,7 +176,21 @@ function toRecordView(
     candidateRefLabel: snapshot.candidateRef ?? '-',
     entityWelfareReclassificationRefLabel: snapshot.entityWelfareReclassificationRef ?? '-',
     permissionDecisionLabels: formatPermissionDecisionLabels(snapshot.permissionDecisions),
-    fileAccessLabels: formatFileAccessLabels(snapshot.permissionDecisions),
+    roomAccessLabels: formatSurfaceAccessLabels(
+      snapshot.permissionDecisions,
+      'room',
+      'Room access'
+    ),
+    fileAccessLabels: formatSurfaceAccessLabels(
+      snapshot.permissionDecisions,
+      'file',
+      'File access'
+    ),
+    housingAccessLabels: formatSurfaceAccessLabels(
+      snapshot.permissionDecisions,
+      'housing',
+      'Housing access'
+    ),
     onboardingLabels: formatOnboardingLabels(snapshot),
     siteClearanceLabels: formatSiteClearanceLabels(snapshot),
     dualLoyaltyLabels: formatDualLoyaltyLabels(snapshot),

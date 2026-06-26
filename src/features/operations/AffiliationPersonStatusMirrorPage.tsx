@@ -153,6 +153,9 @@ export default function AffiliationPersonStatusMirrorPage() {
                       {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
                     </th>
                     <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recommendedActionColumn}
+                    </th>
+                    <th className="px-2 py-2">
                       {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
                     </th>
                   </tr>
@@ -173,6 +176,10 @@ export default function AffiliationPersonStatusMirrorPage() {
                       <td className="px-2 py-2">
                         <p className="text-xs opacity-55">{entry.siteLabel}</p>
                         <p className="text-xs opacity-55">{entry.facilityLabel}</p>
+                      </td>
+                      <td className="px-2 py-2">
+                        <p className="text-xs font-medium">{entry.recommendedActionLabel}</p>
+                        <p className="text-xs opacity-55">{entry.recommendedActionDetail}</p>
                       </td>
                       <td className="px-2 py-2">
                         <LabelStack labels={entry.reasonCodeLabels} />

@@ -1634,6 +1634,7 @@ export const AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT: Record<string, string> = 
   fileAccessQueueRestrictedLabel: 'Restricted',
   fileAccessQueueMissingLabel: 'Missing review',
   fileAccessQueueStatusColumn: 'Queue status',
+  recommendedActionColumn: 'Recommended action',
   recordsHeading: 'Persisted records',
   recordsSubtitle:
     'Projection labels compose existing SPE-1046 evaluators at read time; mission routing still uses explicit team and member tags.',

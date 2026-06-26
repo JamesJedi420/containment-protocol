@@ -122,11 +122,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2526](https://linear.app/spectranoir/issue/SPE-2526/spe-1046-facility-specific-file-workflows) SPE-1046 facility-specific file workflows (slice 1) — durable person-status mirror derives read-only facility-file access from existing file permission and site/facility clearance decisions; PR #2980 @ `3242f52b`; see `planning/spe-1046-facility-file-access-workflows-slice-1.md`.
 
-**In progress:** SPE-1046 file access work queues (slice 1) — existing person-status/file/facility decisions are grouped into a read-only operations queue for blocked, restricted, missing-review, and allowed file-access situations; branch `spe-1046-file-work-queues-slice-1`; see `planning/spe-1046-file-work-queues-slice-1.md`.
+**Recently shipped:** SPE-1046 file access work queues (slice 1) — existing person-status/file/facility decisions are grouped into a read-only operations queue for blocked, restricted, missing-review, and allowed file-access situations; commit `af849277`; see `planning/spe-1046-file-work-queues-slice-1.md`.
 
-**Next step after file access work queues:** Owner reprioritizes remaining SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+**In progress:** SPE-1046 file work queue action recommendations (slice 1) — existing file access work queue rows gain deterministic read-only recommended action guidance; branch `spe-1046-file-work-queue-action-recommendations-slice-1`; see `planning/spe-1046-file-work-queue-action-recommendations-slice-1.md`.
 
-**Base `main` SHA:** `3242f52b` — includes PR #2980 / SPE-2526 facility-specific file workflows.
+**Next step after file work queue action recommendations:** Owner reprioritizes remaining SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+
+**Base `main` SHA:** `af849277` — includes SPE-1046 file access work queues.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
@@ -271,7 +273,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1046-file-access-enforcement-slice-1.md`                             | **Shipped**     | [SPE-2524](https://linear.app/spectranoir/issue/SPE-2524) — durable person-status mirror exposes file-access outcomes from existing SPE-1046 permission decisions; PR #2976 @ `c5869e65`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-room-housing-access-enforcement-slice-1.md`                     | **Shipped**     | [SPE-2525](https://linear.app/spectranoir/issue/SPE-2525) — durable person-status mirror exposes room-access and housing-access outcomes from existing SPE-1046 permission decisions; PR #2978 @ `a6166182`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-facility-file-access-workflows-slice-1.md`                      | **Shipped**     | [SPE-2526](https://linear.app/spectranoir/issue/SPE-2526) — durable person-status mirror derives facility-file access from existing file permission and site/facility clearance decisions; PR #2980 @ `3242f52b`; parent SPE-1046 stays **Backlog**. |
-| `spe-1046-file-work-queues-slice-1.md`                                     | **In Progress** | New SPE-1046 child — existing person-status/file/facility decisions feed a read-only operations work queue; parent SPE-1046 stays **Backlog**. |
+| `spe-1046-file-work-queues-slice-1.md`                                     | **Shipped**     | New SPE-1046 child — existing person-status/file/facility decisions feed a read-only operations work queue; commit `af849277`; parent SPE-1046 stays **Backlog**. |
+| `spe-1046-file-work-queue-action-recommendations-slice-1.md`               | **In Progress** | New SPE-1046 child — file access work queue rows gain deterministic read-only recommended action guidance; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-procurement-gear-access-slice-1.md`                             | **Shipped**     | [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523) — restricted/rare procurement listings compose existing gear permission checks through current access fields; PR #2974 @ `9f623d9a`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-protected-status-action-restrictions-slice-1.md`                | **Shipped**     | [SPE-2507](https://linear.app/spectranoir/issue/SPE-2507) — pure protected-status action restriction evaluator; PR #2942 @ `b1915bc7`; parent SPE-1046 stays **Backlog**.                                                     |
 | `spe-1046-revocation-downgrade-outcomes-slice-1.md`                       | **Shipped**     | [SPE-2508](https://linear.app/spectranoir/issue/SPE-2508) — pure revocation/downgrade access outcome evaluator; PR #2944 @ `afb89b48`; parent SPE-1046 stays **Backlog**.                                                     |

@@ -97,6 +97,10 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
 
     expect(cooperative?.subjectLabel).toBe('Cooperative Contractor')
     expect(cooperative?.onboardingLabels).toContain('Stage: Cleared')
+    expect(cooperative?.fileAccessLabels).toEqual([
+      'File access: Restricted',
+      'Reasons: approved_cooperative_file_restricted',
+    ])
     expect(cooperative?.siteClearanceLabels).toContain('Mission: Allowed')
     expect(cooperative?.permissionDecisionLabels).toContain('Mission: Restricted')
     expect(restricted?.dualLoyaltyLabels).toContain('Risk: Restricted')
@@ -125,6 +129,42 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(record?.reasonCodeLabels).toContain('missing_candidate_ref')
     expect(record?.reasonCodeLabels).toContain('missing_entity_welfare_reclassification_ref')
     expect(record?.permissionDecisionLabels).toEqual(['-'])
+    expect(record?.fileAccessLabels).toEqual(['File access: -'])
     expect(record?.onboardingLabels).toEqual(['Candidate: -', 'Access: -'])
+  })
+
+  it('surfaces blocked file access from linked SPE-1046 welfare decisions', () => {
+    const game = createStartingState()
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: blockedWelfareRecord.id,
+        permissionSurface: 'file',
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+    const record = view.records[0]
+
+    expect(view.summary.restrictedOrBlockedCount).toBe(1)
+    expect(record?.fileAccessLabels).toEqual([
+      'File access: Blocked',
+      'Reasons: denied_reclassification_blocked',
+    ])
+    expect(record?.permissionDecisionLabels).toContain('File: Blocked')
   })
 })

@@ -12,6 +12,7 @@ export interface AffiliationPersonStatusMirrorRecordView {
   candidateRefLabel: string
   entityWelfareReclassificationRefLabel: string
   permissionDecisionLabels: readonly string[]
+  fileAccessLabels: readonly string[]
   onboardingLabels: readonly string[]
   siteClearanceLabels: readonly string[]
   dualLoyaltyLabels: readonly string[]
@@ -45,6 +46,24 @@ function formatPermissionDecisionLabels(
   return Object.freeze(
     emptyFallback(decisions.map((decision) => `${decision.surfaceLabel}: ${decision.outcomeLabel}`))
   )
+}
+
+function formatFileAccessLabels(
+  decisions: readonly EntityWelfarePermissionDecision[]
+): readonly string[] {
+  const decision = decisions.find((candidate) => candidate.surface === 'file')
+
+  if (!decision) {
+    return Object.freeze(['File access: -'])
+  }
+
+  const labels = [`File access: ${decision.outcomeLabel}`]
+
+  if (decision.reasonCodes.length > 0) {
+    labels.push(`Reasons: ${decision.reasonCodes.join(', ')}`)
+  }
+
+  return Object.freeze(labels)
 }
 
 function formatOnboardingLabels(snapshot: AffiliationPersonStatusSnapshot): readonly string[] {
@@ -153,6 +172,7 @@ function toRecordView(
     candidateRefLabel: snapshot.candidateRef ?? '-',
     entityWelfareReclassificationRefLabel: snapshot.entityWelfareReclassificationRef ?? '-',
     permissionDecisionLabels: formatPermissionDecisionLabels(snapshot.permissionDecisions),
+    fileAccessLabels: formatFileAccessLabels(snapshot.permissionDecisions),
     onboardingLabels: formatOnboardingLabels(snapshot),
     siteClearanceLabels: formatSiteClearanceLabels(snapshot),
     dualLoyaltyLabels: formatDualLoyaltyLabels(snapshot),

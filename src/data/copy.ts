@@ -1633,6 +1633,7 @@ export const AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT: Record<string, string> = 
   linksColumn: 'Links',
   onboardingColumn: 'Onboarding',
   permissionsColumn: 'Permissions',
+  fileAccessColumn: 'File access',
   siteClearanceColumn: 'Site clearance',
   dualLoyaltyColumn: 'Dual loyalty',
   protectedStatusColumn: 'Protected status',

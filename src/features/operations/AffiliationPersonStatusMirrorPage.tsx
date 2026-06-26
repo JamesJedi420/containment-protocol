@@ -129,6 +129,9 @@ export default function AffiliationPersonStatusMirrorPage() {
                     {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.permissionsColumn}
                   </th>
                   <th className="px-2 py-2">
+                    {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.fileAccessColumn}
+                  </th>
+                  <th className="px-2 py-2">
                     {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.siteClearanceColumn}
                   </th>
                   <th className="px-2 py-2">
@@ -168,6 +171,9 @@ export default function AffiliationPersonStatusMirrorPage() {
                     </td>
                     <td className="px-2 py-2">
                       <LabelStack labels={record.permissionDecisionLabels} />
+                    </td>
+                    <td className="px-2 py-2">
+                      <LabelStack labels={record.fileAccessLabels} />
                     </td>
                     <td className="px-2 py-2">
                       <LabelStack labels={record.siteClearanceLabels} />

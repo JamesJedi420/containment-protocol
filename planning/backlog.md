@@ -130,11 +130,13 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2529](https://linear.app/spectranoir/issue/SPE-2529/spe-1046-file-work-queue-operator-action-ledger) SPE-1046 file work queue operator action ledger (slice 1) — persisted deterministic operator acknowledgements for existing file access work queue recommendations; PR #2987 @ `2c2c060d`; see `planning/spe-1046-file-work-queue-operator-action-ledger-slice-1.md`.
 
-**In progress:** [SPE-2530](https://linear.app/spectranoir/issue/SPE-2530/spe-1046-post-spe-2529-handoff-reconciliation) SPE-1046 post-SPE-2529 handoff reconciliation — parent Linear status and repo handoff hygiene after PR #2987; branch `spe-1046-post-spe-2529-handoff-reconciliation-slice-1`; see `planning/spe-1046-post-spe-2529-handoff-reconciliation-slice-1.md`.
+**Recently shipped:** [SPE-2530](https://linear.app/spectranoir/issue/SPE-2530/spe-1046-post-spe-2529-handoff-reconciliation) SPE-1046 post-SPE-2529 handoff reconciliation — parent Linear status and repo handoff hygiene after PR #2987; PR #2989 @ `16fd4cb1`; see `planning/spe-1046-post-spe-2529-handoff-reconciliation-slice-1.md`.
 
-**Next step after SPE-2530:** Owner reprioritizes remaining SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+**In progress:** [SPE-2531](https://linear.app/spectranoir/issue/SPE-2531/spe-1046-post-spe-2530-handoff-reconciliation) SPE-1046 post-SPE-2530 handoff reconciliation — parent Linear status and repo handoff hygiene after PR #2989; branch `spe-1046-post-spe-2530-handoff-reconciliation-slice-1`; see `planning/spe-1046-post-spe-2530-handoff-reconciliation-slice-1.md`.
 
-**Base `main` SHA:** `2c2c060d` — includes PR #2987 / SPE-2529 file work queue operator action ledger.
+**Next step after SPE-2531:** Owner reprioritizes remaining SPE-1046 non-mission enforcement follow-ons or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
+
+**Base `main` SHA:** `16fd4cb1` — includes PR #2989 / SPE-2530 handoff reconciliation.
 
 **§14-pass alternates (owner creates Linear child when starting):**
 
@@ -283,7 +285,8 @@ Git-visible implementation plans for agent sessions. **Linear issue state is aut
 | `spe-1046-file-work-queue-action-recommendations-slice-1.md`               | **Shipped**     | [SPE-2527](https://linear.app/spectranoir/issue/SPE-2527) — file access work queue rows gain deterministic read-only recommended action guidance; PR #2982 @ `67da21e2`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-post-spe-2527-status-reconciliation-slice-1.md`                  | **Shipped**     | [SPE-2528](https://linear.app/spectranoir/issue/SPE-2528) — parent Linear status and repo handoff hygiene after SPE-2527; PR #2985; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-file-work-queue-operator-action-ledger-slice-1.md`                | **Shipped**     | [SPE-2529](https://linear.app/spectranoir/issue/SPE-2529) — persisted deterministic operator acknowledgements for existing file access work queue recommendations; PR #2987 @ `2c2c060d`; parent SPE-1046 stays **Backlog**. |
-| `spe-1046-post-spe-2529-handoff-reconciliation-slice-1.md`                  | **In Progress** | [SPE-2530](https://linear.app/spectranoir/issue/SPE-2530) — parent Linear status and repo handoff hygiene after SPE-2529; parent SPE-1046 stays **Backlog**. |
+| `spe-1046-post-spe-2529-handoff-reconciliation-slice-1.md`                  | **Shipped**     | [SPE-2530](https://linear.app/spectranoir/issue/SPE-2530) — parent Linear status and repo handoff hygiene after SPE-2529; PR #2989 @ `16fd4cb1`; parent SPE-1046 stays **Backlog**. |
+| `spe-1046-post-spe-2530-handoff-reconciliation-slice-1.md`                  | **In Progress** | [SPE-2531](https://linear.app/spectranoir/issue/SPE-2531) — parent Linear status and repo handoff hygiene after SPE-2530; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-procurement-gear-access-slice-1.md`                             | **Shipped**     | [SPE-2523](https://linear.app/spectranoir/issue/SPE-2523) — restricted/rare procurement listings compose existing gear permission checks through current access fields; PR #2974 @ `9f623d9a`; parent SPE-1046 stays **Backlog**. |
 | `spe-1046-protected-status-action-restrictions-slice-1.md`                | **Shipped**     | [SPE-2507](https://linear.app/spectranoir/issue/SPE-2507) — pure protected-status action restriction evaluator; PR #2942 @ `b1915bc7`; parent SPE-1046 stays **Backlog**.                                                     |
 | `spe-1046-revocation-downgrade-outcomes-slice-1.md`                       | **Shipped**     | [SPE-2508](https://linear.app/spectranoir/issue/SPE-2508) — pure revocation/downgrade access outcome evaluator; PR #2944 @ `afb89b48`; parent SPE-1046 stays **Backlog**.                                                     |

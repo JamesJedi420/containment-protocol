@@ -4,6 +4,7 @@ import {
   COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
   RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE,
 } from '../../domain/affiliationPersonStatusRecords'
+import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -290,6 +291,37 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       recommendedActionKind: 'monitor_allowed_access',
       recommendedActionLabel: 'Monitor allowed access',
       recommendedActionDetail: 'Audit visibility only; no intervention is required.',
+    })
+  })
+
+  it('joins recorded operator actions onto queue rows without changing ordering', () => {
+    const game = makeStatusGame()
+    const recorded = buildAffiliationFileWorkQueueActionRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      actionKind: 'route_restricted_review',
+      actionLabel: 'Route restricted review',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_restricted'],
+      recordedWeek: 6,
+    })
+    game.affiliationFileWorkQueueActionRecords = {
+      [recorded.id]: recorded,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue.map((entry) => entry.id)).toEqual([
+      COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id,
+    ])
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      isRecommendedActionRecorded: true,
+      recordedActionLabel: 'Recorded W6',
+    })
+    expect(view.fileAccessWorkQueue[1]).toMatchObject({
+      isRecommendedActionRecorded: false,
     })
   })
 })

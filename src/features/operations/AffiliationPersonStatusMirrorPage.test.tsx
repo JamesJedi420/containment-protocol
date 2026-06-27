@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import '../../test/setup'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useGameStore } from '../../app/store/gameStore'
@@ -71,7 +72,9 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     expect(queueRegion).toHaveTextContent('Restricted 2')
     expect(queueRegion).toHaveTextContent('Missing review 0')
     expect(queueRegion).toHaveTextContent('Recommended action')
+    expect(queueRegion).toHaveTextContent('Action status')
     expect(queueRegion).toHaveTextContent('Route restricted review')
+    expect(queueRegion).toHaveTextContent('Not recorded')
     expect(queueRegion).toHaveTextContent(
       'Supervisor or review-gate handling is required before any file release.'
     )
@@ -87,5 +90,42 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     expect(recordsRegion).toHaveTextContent('Housing access: Allowed')
     expect(recordsRegion).toHaveTextContent('Mission: Restricted')
     expect(recordsRegion).toHaveTextContent('person-status:cooperative-contractor-cleared')
+  })
+
+  it('records a file work queue operator action from the queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 8
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    await user.click(screen.getByRole('button', { name: /record action/i }))
+
+    expect(queueRegion).toHaveTextContent('Recorded W8')
+    expect(queueRegion).not.toHaveTextContent('Not recorded')
+    expect(useGameStore.getState().game.affiliationFileWorkQueueActionRecords).toEqual(
+      expect.objectContaining({
+        'affiliation-file-action:person-status:cooperative-contractor-cleared:route_restricted_review':
+          expect.objectContaining({
+            actionKind: 'route_restricted_review',
+            actionLabel: 'Route restricted review',
+            sourceBucket: 'restricted',
+            recordedWeek: 8,
+          }),
+      })
+    )
   })
 })

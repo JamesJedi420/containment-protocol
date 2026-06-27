@@ -275,6 +275,7 @@ import type {
 import type { PatternSourceSeriesRecord } from './patternSourceSeriesRegistry'
 import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergenceRegistry'
 import type { AffiliationPersonStatusRecord } from './affiliationPersonStatusRecords'
+import type { AffiliationFileWorkQueueActionRecord } from './affiliationFileWorkQueueActionRecords'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
@@ -2764,6 +2765,12 @@ export interface GameState {
    * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
    */
   affiliationPersonStatusRecords?: Record<string, AffiliationPersonStatusRecord>
+
+  /**
+   * SPE-2529 slice 1: persisted file work queue operator action acknowledgements.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueActionRecords?: Record<string, AffiliationFileWorkQueueActionRecord>
 
   /**
    * SPE-2114 slice 2: persisted entity welfare reclassification records (keyed by record id).

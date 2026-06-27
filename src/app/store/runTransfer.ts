@@ -213,6 +213,7 @@ import { sanitizePublishQueueExecutionReceipts } from '../../domain/publishQueue
 import { sanitizeModifiableDataPackRecords } from '../../domain/modifiableDataPackValidation'
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeAffiliationPersonStatusRecords } from '../../domain/affiliationPersonStatusRecords'
+import { sanitizeAffiliationFileWorkQueueActionRecords } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
@@ -8736,6 +8737,10 @@ export function hydrateGame(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
   )
+  const affiliationFileWorkQueueActionRecords = sanitizeAffiliationFileWorkQueueActionRecords(
+    game.affiliationFileWorkQueueActionRecords,
+    fallback.affiliationFileWorkQueueActionRecords ?? {}
+  )
   const entityWelfareReclassificationRecords = sanitizeEntityWelfareReclassificationRecords(
     game.entityWelfareReclassificationRecords,
     fallback.entityWelfareReclassificationRecords ?? {}
@@ -8930,6 +8935,7 @@ export function hydrateGame(
     massAnomalousPopulationEmergenceRecords,
     visualTriggerHazardRecords,
     affiliationPersonStatusRecords,
+    affiliationFileWorkQueueActionRecords,
     entityWelfareReclassificationRecords,
     containedPersonTherapeuticCareRecords,
     containedPersonMedicationRegimenRecords,

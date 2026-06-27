@@ -49,6 +49,12 @@ import { createSquadKitTemplate } from '../../domain/squadKitTemplate'
 import { assignSquadKit } from '../../domain/squadKitAssignment'
 import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { recomputeMissionRouting } from '../../domain/missionIntakeRouting'
+import { COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE } from '../../domain/affiliationPersonStatusRecords'
+import {
+  HOSTILE_TO_COOPERATIVE_FIXTURE,
+  PENDING_TO_APPROVED_FIXTURE,
+} from '../../domain/entityWelfareReclassificationRegistry'
+import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -179,7 +185,9 @@ describe('gameStore', () => {
 
     expect(useGameStore.getState().game).toBe(afterFirstAsk)
 
-    useGameStore.getState().askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
+    useGameStore
+      .getState()
+      .askInvestigationQuestion('missing-case', 'forensic', 'forensic.present-signature')
 
     expect(useGameStore.getState().game).toBe(afterFirstAsk)
 
@@ -218,7 +226,9 @@ describe('gameStore', () => {
       status: 'in_progress',
       hiddenState: 'hidden',
       tags: ['infiltration'],
-      infiltrationProbePlan: copyInfiltrationProbePlan(caseTemplateMap['ops-004'].infiltrationProbePlan),
+      infiltrationProbePlan: copyInfiltrationProbePlan(
+        caseTemplateMap['ops-004'].infiltrationProbePlan
+      ),
       requiredTags: [],
       preferredTags: [],
       assignedTeamIds: [],
@@ -226,16 +236,20 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game })
 
-    useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', 'probe_route')
+    useGameStore
+      .getState()
+      .setInfiltrationWeeklyProbeAction('case-infiltration-store', 'probe_route')
 
     expect(
-      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+      useGameStore.getState().game.cases['case-infiltration-store']
+        ?.infiltrationWeeklyProbeActionOverride
     ).toBe('probe_route')
 
     useGameStore.getState().setInfiltrationWeeklyProbeAction('case-infiltration-store', null)
 
     expect(
-      useGameStore.getState().game.cases['case-infiltration-store']?.infiltrationWeeklyProbeActionOverride
+      useGameStore.getState().game.cases['case-infiltration-store']
+        ?.infiltrationWeeklyProbeActionOverride
     ).toBeUndefined()
 
     useGameStore.getState().setInfiltrationWeeklyProbeAction('missing-case', 'cleanup')
@@ -247,7 +261,9 @@ describe('gameStore', () => {
     useGameStore.getState().assign('case-001', 't_nightwatch')
 
     expect(useGameStore.getState().game.cases['case-001'].assignedTeamIds).toEqual(['t_nightwatch'])
-    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBe('case-001')
+    expect(getTeamAssignedCaseId(useGameStore.getState().game.teams['t_nightwatch'])).toBe(
+      'case-001'
+    )
 
     useGameStore.getState().unassign('case-001', 't_nightwatch')
 
@@ -290,8 +306,12 @@ describe('gameStore', () => {
     useGameStore.getState().advanceWeek()
 
     const next = useGameStore.getState().game
-    const baselineShortfalls = Object.values(baselineResult.cases).filter((currentCase) => currentCase.supportShortfall)
-    const nextShortfalls = Object.values(next.cases).filter((currentCase) => currentCase.supportShortfall)
+    const baselineShortfalls = Object.values(baselineResult.cases).filter(
+      (currentCase) => currentCase.supportShortfall
+    )
+    const nextShortfalls = Object.values(next.cases).filter(
+      (currentCase) => currentCase.supportShortfall
+    )
 
     expect(nextShortfalls).toHaveLength(0)
     expect(baselineShortfalls).toHaveLength(2)
@@ -354,7 +374,9 @@ describe('gameStore', () => {
       consumedOneShots: ['frontdesk.tutorial.weekly-report'],
     })
     expect(
-      useGameStore.getState().game.runtimeState?.globalFlags['frontdesk.tutorial.weekly-report.acknowledged']
+      useGameStore.getState().game.runtimeState?.globalFlags[
+        'frontdesk.tutorial.weekly-report.acknowledged'
+      ]
     ).toBe(true)
     expect(useGameStore.getState().game.runtimeState?.ui.debug.eventLog).toEqual(
       expect.arrayContaining([
@@ -367,12 +389,12 @@ describe('gameStore', () => {
   })
 
   it('logs one-shot consumption only once when repeat-trigger prevention holds', () => {
-    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
-      true
-    )
-    expect(useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')).toBe(
-      false
-    )
+    expect(
+      useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')
+    ).toBe(true)
+    expect(
+      useGameStore.getState().consumeOneShotContent('frontdesk.warning.weekly-report', 'frontdesk')
+    ).toBe(false)
 
     const oneShotLogs = (useGameStore.getState().game.runtimeState?.ui.debug.eventLog ?? []).filter(
       (entry) => entry.type === 'one_shot.consumed'
@@ -401,15 +423,20 @@ describe('gameStore', () => {
     expect(firstId).toBe('qevt-0001')
     expect(secondId).toBe('qevt-0002')
     expect(useGameStore.getState().peekRuntimeEvent()).toBe('qevt-0001')
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
-      'followup.alpha',
-      'followup.beta',
-    ])
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toEqual(['followup.alpha', 'followup.beta'])
 
     expect(useGameStore.getState().dequeueRuntimeEvent()).toBe('qevt-0001')
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toEqual([
-      'followup.beta',
-    ])
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toEqual(['followup.beta'])
 
     expect(useGameStore.getState().clearRuntimeEventQueue()).toBe(1)
     expect(useGameStore.getState().listRuntimeEventQueue()).toEqual([])
@@ -572,9 +599,12 @@ describe('gameStore', () => {
       value: 1,
       max: 3,
     })
-    expect(useGameStore.getState().listRuntimeEventQueue().map((entry) => entry.targetId)).toContain(
-      'frontdesk.encounter.alpha.after-action'
-    )
+    expect(
+      useGameStore
+        .getState()
+        .listRuntimeEventQueue()
+        .map((entry) => entry.targetId)
+    ).toContain('frontdesk.encounter.alpha.after-action')
 
     const logs = game.runtimeState?.ui.debug.eventLog ?? []
     expect(logs).toEqual(
@@ -752,7 +782,9 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game: initial })
 
-    expect(useGameStore.getState().contactCandidate('cand-funnel-store', 'initial outreach')).toBe(true)
+    expect(useGameStore.getState().contactCandidate('cand-funnel-store', 'initial outreach')).toBe(
+      true
+    )
     expect(useGameStore.getState().screenCandidate('cand-funnel-store', 'screen packet')).toBe(true)
 
     expect(useGameStore.getState().game.candidates[0]).toMatchObject({
@@ -793,8 +825,12 @@ describe('gameStore', () => {
 
     useGameStore.setState({ game: equipped })
 
-    const storeApplied = useGameStore.getState().applyPreparedSupportProcedure('case-001', 'a_casey')
-    const storeRefreshed = useGameStore.getState().refreshPreparedSupportProcedure('case-001', 'a_casey')
+    const storeApplied = useGameStore
+      .getState()
+      .applyPreparedSupportProcedure('case-001', 'a_casey')
+    const storeRefreshed = useGameStore
+      .getState()
+      .refreshPreparedSupportProcedure('case-001', 'a_casey')
 
     expect(storeApplied).toMatchObject({
       applied: true,
@@ -1373,7 +1409,9 @@ describe('gameStore persistence', () => {
 
     expect(next.agents['a_kellan']!.attritionState).toBeUndefined()
     expect(next.deploymentMomentum?.stacks).toBe(0)
-    expect(next.deploymentMomentum?.lastSummary).toContain('Chapter break cleared deployment momentum')
+    expect(next.deploymentMomentum?.lastSummary).toContain(
+      'Chapter break cleared deployment momentum'
+    )
     expect(next.replacementPressureState).toEqual(buildReplacementPressureState(next))
     expect(next.missionRouting).toEqual(recomputeMissionRouting(next))
     expect(next.teams.t_nightwatch?.deploymentReadinessState).toBeDefined()
@@ -1591,6 +1629,102 @@ describe('gameStore persistence', () => {
       durationModel: 'attrition',
     })
     expect(useGameStore.getState().game.templates).toEqual(caseTemplateMap)
+  })
+})
+
+describe('affiliation file work queue action ledger store action (SPE-2529 slice 1)', () => {
+  it('records deterministic operator actions for reachable queue recommendation kinds', () => {
+    const game = createStartingState()
+    game.week = 9
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+
+    useGameStore.setState({ game })
+
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:missing-review')
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:file-blocked')
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const next = useGameStore.getState().game
+    const missingId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      actionKind: 'resolve_missing_review',
+    })
+    const blockedId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: 'person-status:file-blocked',
+      actionKind: 'hold_blocked_access',
+    })
+    const restrictedId = buildAffiliationFileWorkQueueActionRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      actionKind: 'route_restricted_review',
+    })
+
+    expect(next.affiliationFileWorkQueueActionRecords?.[missingId]).toMatchObject({
+      id: missingId,
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      actionKind: 'resolve_missing_review',
+      actionLabel: 'Resolve missing review',
+      sourceBucket: 'missing_review',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationFileWorkQueueActionRecords?.[blockedId]).toMatchObject({
+      actionKind: 'hold_blocked_access',
+      actionLabel: 'Hold access',
+      sourceBucket: 'blocked',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationFileWorkQueueActionRecords?.[restrictedId]).toMatchObject({
+      actionKind: 'route_restricted_review',
+      actionLabel: 'Route restricted review',
+      sourceBucket: 'restricted',
+      recordedWeek: 9,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+  })
+
+  it('no-ops when the requested work queue entry is absent', () => {
+    const before = useGameStore.getState().game
+
+    useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:missing')
+
+    expect(useGameStore.getState().game).toBe(before)
   })
 })
 

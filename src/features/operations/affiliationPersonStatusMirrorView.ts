@@ -1,4 +1,5 @@
 import type { GameState } from '../../domain/models'
+import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
@@ -68,6 +69,8 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   recommendedActionKind: AffiliationFileAccessRecommendedActionKind
   recommendedActionLabel: string
   recommendedActionDetail: string
+  isRecommendedActionRecorded: boolean
+  recordedActionLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -296,7 +299,8 @@ function fileAccessDecisionLabel(snapshot: AffiliationPersonStatusSnapshot) {
 }
 
 function toFileAccessWorkQueueEntry(
-  snapshot: AffiliationPersonStatusSnapshot
+  snapshot: AffiliationPersonStatusSnapshot,
+  game: GameState
 ): AffiliationFileAccessWorkQueueEntryView {
   const decision = snapshot.facilityFileAccessDecision
   const bucket: AffiliationFileAccessWorkQueueBucket = decision?.outcome ?? 'missing_review'
@@ -306,6 +310,11 @@ function toFileAccessWorkQueueEntry(
   const reasonCodeLabels =
     reasonCodes.length > 0 ? reasonCodes : ['missing_facility_file_access_decision']
   const recommendedAction = getFileAccessWorkQueueRecommendedAction(bucket)
+  const recordedActionId = buildAffiliationFileWorkQueueActionRecordId({
+    workQueueEntryId: snapshot.recordId,
+    actionKind: recommendedAction.recommendedActionKind,
+  })
+  const recordedAction = game.affiliationFileWorkQueueActionRecords?.[recordedActionId]
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -318,16 +327,19 @@ function toFileAccessWorkQueueEntry(
     siteLabel: decision ? `Site: ${decision.siteLabel}` : 'Site: -',
     facilityLabel: decision ? `Facility: ${decision.facilityLabel}` : 'Facility: -',
     ...recommendedAction,
+    isRecommendedActionRecorded: Boolean(recordedAction),
+    ...(recordedAction ? { recordedActionLabel: `Recorded W${recordedAction.recordedWeek}` } : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }
 
 function buildFileAccessWorkQueue(
-  snapshots: readonly AffiliationPersonStatusSnapshot[]
+  snapshots: readonly AffiliationPersonStatusSnapshot[],
+  game: GameState
 ): readonly AffiliationFileAccessWorkQueueEntryView[] {
   return Object.freeze(
     snapshots
-      .map((snapshot) => toFileAccessWorkQueueEntry(snapshot))
+      .map((snapshot) => toFileAccessWorkQueueEntry(snapshot, game))
       .sort((left, right) => {
         const bucketCompare =
           fileAccessWorkQueueBucketPriority(left.bucket) -
@@ -383,7 +395,7 @@ export function getAffiliationPersonStatusMirrorView(
   })
   let restrictedOrBlockedCount = 0
   let missingReferenceCount = 0
-  const fileAccessWorkQueue = buildFileAccessWorkQueue(snapshots)
+  const fileAccessWorkQueue = buildFileAccessWorkQueue(snapshots, game)
 
   for (const snapshot of snapshots) {
     if (hasRestrictedOrBlockedOutcome(snapshot)) {

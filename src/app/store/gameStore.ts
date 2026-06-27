@@ -153,6 +153,8 @@ import {
 } from '../../domain/missionIntakeRouting'
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
+import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
   launchContract as launchContractDomain,
@@ -255,20 +257,14 @@ interface GameStore {
     questionId: string
   ) => void
   /** SPE-521 deferred UX: override or clear weekly infiltration probe action on an eligible case. */
-  setInfiltrationWeeklyProbeAction: (
-    caseId: Id,
-    action: InfiltrationProbeAction | null
-  ) => void
+  setInfiltrationWeeklyProbeAction: (caseId: Id, action: InfiltrationProbeAction | null) => void
   /** SPE-521 follow-up: set or clear infiltration encounter cover stance on an eligible case. */
   setInfiltrationEncounterCoverStance: (
     caseId: Id,
     stance: InfiltrationEncounterCoverStance | null
   ) => void
   /** SPE-861 slice 4: set disclosure posture choice on an active disclosure campaign record. */
-  setPublicDisclosurePostureChoice: (
-    recordId: Id,
-    posture: PublicDisclosurePostureChoice
-  ) => void
+  setPublicDisclosurePostureChoice: (recordId: Id, posture: PublicDisclosurePostureChoice) => void
   hireCandidate: (candidateId: Id) => void
   scoutCandidate: (candidateId: Id) => void
   transitionCandidateFunnel: (
@@ -333,6 +329,7 @@ interface GameStore {
   ) => ReturnType<typeof evaluateDeploymentEligibility> | null
   assignMissionTeam: (missionId: Id, teamId: Id) => boolean
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
+  recordAffiliationFileWorkQueueAction: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -1165,8 +1162,7 @@ export const useGameStore = create<GameStore>()(
       setContractNextIntent: (intent) =>
         set((s) => ({ game: setContractNextIntent(s.game, intent) })),
 
-      clearContractNextIntent: () =>
-        set((s) => ({ game: clearContractNextIntent(s.game) })),
+      clearContractNextIntent: () => set((s) => ({ game: clearContractNextIntent(s.game) })),
 
       launchMajorIncident: (caseId, teamIds, strategy = 'balanced', provisions = []) =>
         set((s) => ({
@@ -1692,6 +1688,37 @@ export const useGameStore = create<GameStore>()(
 
       applyRotatingRosterContinuityReconciliation: () =>
         set((s) => ({ game: applyRotatingRosterContinuityReconciliation(s.game) })),
+
+      recordAffiliationFileWorkQueueAction: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+
+          if (!entry) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            actionKind: entry.recommendedActionKind,
+            actionLabel: entry.recommendedActionLabel,
+            sourceBucket: entry.bucket,
+            sourceReasonCodes: entry.reasonCodeLabels,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueActionRecords: {
+                ...(s.game.affiliationFileWorkQueueActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
 
       reset: () => set({ game: createStartingState() }),
 

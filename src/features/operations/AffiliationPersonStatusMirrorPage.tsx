@@ -27,7 +27,10 @@ function LabelStack({ labels }: { labels: readonly string[] }) {
 }
 
 export default function AffiliationPersonStatusMirrorPage() {
-  const { game } = useGameStore()
+  const game = useGameStore((state) => state.game)
+  const recordAffiliationFileWorkQueueAction = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueAction
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -156,6 +159,9 @@ export default function AffiliationPersonStatusMirrorPage() {
                       {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recommendedActionColumn}
                     </th>
                     <th className="px-2 py-2">
+                      {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.actionStatusColumn}
+                    </th>
+                    <th className="px-2 py-2">
                       {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.reasonCodesColumn}
                     </th>
                   </tr>
@@ -180,6 +186,24 @@ export default function AffiliationPersonStatusMirrorPage() {
                       <td className="px-2 py-2">
                         <p className="text-xs font-medium">{entry.recommendedActionLabel}</p>
                         <p className="text-xs opacity-55">{entry.recommendedActionDetail}</p>
+                      </td>
+                      <td className="px-2 py-2">
+                        {entry.isRecommendedActionRecorded ? (
+                          <p className="text-xs font-medium">{entry.recordedActionLabel}</p>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-primary whitespace-nowrap"
+                            onClick={() => recordAffiliationFileWorkQueueAction(entry.id)}
+                          >
+                            {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordActionButtonLabel}
+                          </button>
+                        )}
+                        {!entry.isRecommendedActionRecorded ? (
+                          <p className="mt-1 text-xs opacity-55">
+                            {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pendingActionStatusLabel}
+                          </p>
+                        ) : null}
                       </td>
                       <td className="px-2 py-2">
                         <LabelStack labels={entry.reasonCodeLabels} />

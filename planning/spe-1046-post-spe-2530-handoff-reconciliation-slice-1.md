@@ -5,10 +5,11 @@ One-page hygiene record. Linear: [SPE-2531](https://linear.app/spectranoir/issue
 | Field               | Value                                                                                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2531 - SPE-1046 post-SPE-2530 handoff reconciliation](https://linear.app/spectranoir/issue/SPE-2531/spe-1046-post-spe-2530-handoff-reconciliation) |
-| **Status**          | **In Progress**                                                                                                                                         |
+| **Status**          | **Shipped**                                                                                                                                             |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                     |
 | **Branch**          | `spe-1046-post-spe-2530-handoff-reconciliation-slice-1`                                                                                                 |
 | **Base `main` SHA** | `16fd4cb1`                                                                                                                                              |
+| **PR**              | [PR #2991](https://github.com/JamesJedi420/containment-protocol/pull/2991) @ `2a7f6678`                                                                 |
 
 ## Goal
 

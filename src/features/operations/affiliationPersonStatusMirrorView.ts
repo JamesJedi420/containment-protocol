@@ -1,6 +1,9 @@
 import type { GameState } from '../../domain/models'
 import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
-import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import {
+  buildAffiliationFileWorkQueueEvidenceRepairCandidates,
+  buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
+} from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
@@ -75,6 +78,7 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   canRecordEvidenceResolution: boolean
   isEvidenceResolutionRecorded: boolean
   evidenceResolutionLabel?: string
+  evidenceRepairCandidateLabels: readonly string[]
   reasonCodeLabels: readonly string[]
 }
 
@@ -350,6 +354,13 @@ function toFileAccessWorkQueueEntry(
           evidenceResolutionLabel: `Evidence resolution recorded W${evidenceResolution.recordedWeek}`,
         }
       : {}),
+    evidenceRepairCandidateLabels: Object.freeze(
+      evidenceResolution
+        ? buildAffiliationFileWorkQueueEvidenceRepairCandidates(
+            evidenceResolution.missingReasonCodes
+          ).map((candidate) => candidate.repairLabel)
+        : []
+    ),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

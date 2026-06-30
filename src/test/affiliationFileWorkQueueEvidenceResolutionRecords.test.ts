@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { hydrateGame } from '../app/store/runTransfer'
 import { createStartingState } from '../data/startingState'
 import {
+  buildAffiliationFileWorkQueueEvidenceRepairCandidates,
   buildAffiliationFileWorkQueueEvidenceResolutionReasonFingerprint,
   buildAffiliationFileWorkQueueEvidenceResolutionRecord,
   buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
@@ -85,6 +86,31 @@ describe('affiliationFileWorkQueueEvidenceResolutionRecords persistence', () => 
     ).toEqual({
       [valid.id]: valid,
     })
+  })
+
+  it('maps normalized missing reasons to deterministic repair candidate labels', () => {
+    expect(
+      buildAffiliationFileWorkQueueEvidenceRepairCandidates([
+        'missing_onboarding_clearance',
+        'missing_candidate_ref',
+        'missing_candidate_ref',
+        'missing_unmapped_archive_ref',
+        'file_restricted',
+      ])
+    ).toEqual([
+      {
+        reasonCode: 'missing_candidate_ref',
+        repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+      },
+      {
+        reasonCode: 'missing_onboarding_clearance',
+        repairLabel: 'Onboarding repair: attach or restore clearance readiness evidence.',
+      },
+      {
+        reasonCode: 'missing_unmapped_archive_ref',
+        repairLabel: 'Evidence repair: review missing_unmapped_archive_ref.',
+      },
+    ])
   })
 
   it('hydrates and exports evidence-resolution records through GameState without mutating person-status records', () => {

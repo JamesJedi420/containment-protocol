@@ -400,4 +400,35 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       ],
     })
   })
+
+  it('moves repaired candidate evidence out of missing-review through existing derivations', () => {
+    const game = createStartingState()
+    game.recruitmentPool = [makeCandidate({ id: 'candidate:repaired', name: 'Repaired Subject' })]
+    game.candidates = [makeCandidate({ id: 'candidate:repaired', name: 'Repaired Subject' })]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:repaired-candidate': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:repaired-candidate',
+        subjectId: 'subject:repaired-candidate',
+        subjectLabel: 'Repaired Subject',
+        candidateRef: 'candidate:repaired',
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.summary.missingReferenceCount).toBe(0)
+    expect(view.summary.fileAccessMissingReviewCount).toBe(0)
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:repaired-candidate',
+      bucket: 'restricted',
+      fileAccessLabel: 'File access: Restricted',
+      facilityFileAccessLabel: 'Facility file access: Restricted',
+    })
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
+  })
 })

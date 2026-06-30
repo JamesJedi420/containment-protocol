@@ -177,11 +177,11 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     )
     expect(screen.getAllByRole('button', { name: /record repair action/i })).toHaveLength(3)
 
-    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[0])
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[1])
 
     const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
       workQueueEntryId: 'person-status:missing-review',
-      reasonCode: 'missing_candidate_ref',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
     })
 
     expect(queueRegion).toHaveTextContent('Repair recorded W10')
@@ -189,7 +189,7 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
       expect.objectContaining({
         [repairActionId]: expect.objectContaining({
           workQueueEntryId: 'person-status:missing-review',
-          reasonCode: 'missing_candidate_ref',
+          reasonCode: 'missing_entity_welfare_reclassification_ref',
           recordedWeek: 10,
         }),
       })
@@ -204,5 +204,51 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
         }),
       })
     )
+  })
+
+  it('repairs candidate evidence from a resolved missing-review queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('missing_candidate_ref')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[0])
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('Restricted 0')
+    expect(queueRegion).toHaveTextContent('Facility file access: -')
+    expect(queueRegion).not.toHaveTextContent('missing_candidate_ref')
+    expect(useGameStore.getState().game.candidates).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
+    expect(useGameStore.getState().game.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
   })
 })

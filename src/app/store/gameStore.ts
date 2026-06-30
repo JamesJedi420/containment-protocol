@@ -155,7 +155,10 @@ import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
-import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import {
+  applyAffiliationFileWorkQueueCandidateEvidenceRepair,
+  buildAffiliationFileWorkQueueRepairActionRecord,
+} from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -1787,11 +1790,18 @@ export const useGameStore = create<GameStore>()(
             recordedWeek: s.game.week,
           })
 
+          const repaired = applyAffiliationFileWorkQueueCandidateEvidenceRepair({
+            state: s.game,
+            workQueueEntryId: entry.id,
+            reasonCode: repairCandidate.reasonCode,
+            recordedWeek: s.game.week,
+          })
+
           return {
             game: {
-              ...s.game,
+              ...repaired.state,
               affiliationFileWorkQueueRepairActionRecords: {
-                ...(s.game.affiliationFileWorkQueueRepairActionRecords ?? {}),
+                ...(repaired.state.affiliationFileWorkQueueRepairActionRecords ?? {}),
                 [record.id]: record,
               },
             },

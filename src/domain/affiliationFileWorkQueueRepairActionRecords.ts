@@ -1,3 +1,6 @@
+import type { GameState } from './models'
+import type { Candidate } from './recruitment'
+
 export type AffiliationFileWorkQueueRepairActionRecordId = string
 
 export interface AffiliationFileWorkQueueRepairActionRecord {
@@ -24,6 +27,20 @@ export interface AffiliationFileWorkQueueRepairActionRecordInput {
   readonly recordedWeek: number
 }
 
+export type AffiliationFileWorkQueueCandidateEvidenceRepairReason =
+  | 'applied'
+  | 'unsupported-reason-code'
+  | 'missing-person-status-record'
+  | 'missing-candidate-ref'
+  | 'candidate-already-present'
+  | 'missing-evidence-resolution'
+
+export interface AffiliationFileWorkQueueCandidateEvidenceRepairResult {
+  readonly state: GameState
+  readonly applied: boolean
+  readonly reason: AffiliationFileWorkQueueCandidateEvidenceRepairReason
+}
+
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -44,6 +61,141 @@ function normalizeRecordedWeek(value: unknown): number | undefined {
 function normalizeReasonCode(value: unknown) {
   const reasonCode = normalizeToken(value)
   return reasonCode.startsWith('missing_') ? reasonCode : ''
+}
+
+function hasCandidate(candidates: readonly Candidate[] | undefined, candidateId: string) {
+  return (candidates ?? []).some((candidate) => candidate.id === candidateId)
+}
+
+function hasRecordedCandidateEvidenceResolution(state: GameState, entryId: string) {
+  return Object.values(state.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}).some(
+    (record) =>
+      record.workQueueEntryId === entryId &&
+      record.missingReasonCodes.includes('missing_candidate_ref')
+  )
+}
+
+function buildRepairedCandidateEvidence(input: {
+  readonly candidateId: string
+  readonly subjectLabel: string
+  readonly week: number
+}): Candidate {
+  return Object.freeze({
+    id: input.candidateId,
+    name: input.subjectLabel,
+    age: 30,
+    category: 'agent',
+    hireStatus: 'available',
+    weeklyCost: 0,
+    weeklyWage: 0,
+    revealLevel: 2,
+    expiryWeek: Math.max(1, input.week + 8),
+    origin: 'affiliation-file-work-queue-repair',
+    roleInclination: 'field',
+    skills: ['affiliation-evidence-repaired'],
+    liabilities: [],
+    funnelStage: 'hired',
+    createdWeek: Math.max(1, input.week),
+    lastUpdatedWeek: Math.max(1, input.week),
+    evaluation: {
+      overallVisible: true,
+      overall: 50,
+      overallValue: 50,
+      potentialVisible: true,
+      potentialTier: 'mid',
+      rumorTags: ['affiliation-evidence-repaired'],
+    },
+    agentData: {
+      role: 'field',
+      specialization: 'affiliation evidence repair',
+      stats: {
+        combat: 50,
+        investigation: 50,
+        utility: 50,
+        social: 50,
+      },
+      traits: ['affiliation-evidence-repaired'],
+    },
+  })
+}
+
+function appendCandidateIfMissing(
+  candidates: readonly Candidate[] | undefined,
+  candidate: Candidate
+) {
+  return hasCandidate(candidates, candidate.id)
+    ? [...(candidates ?? [])]
+    : [...(candidates ?? []), candidate]
+}
+
+export function applyAffiliationFileWorkQueueCandidateEvidenceRepair(input: {
+  readonly state: GameState
+  readonly workQueueEntryId: string
+  readonly reasonCode: string
+  readonly recordedWeek: number
+}): AffiliationFileWorkQueueCandidateEvidenceRepairResult {
+  const reasonCode = normalizeReasonCode(input.reasonCode)
+
+  if (reasonCode !== 'missing_candidate_ref') {
+    return Object.freeze({
+      state: input.state,
+      applied: false,
+      reason: 'unsupported-reason-code',
+    })
+  }
+
+  const record = input.state.affiliationPersonStatusRecords?.[input.workQueueEntryId]
+  if (!record) {
+    return Object.freeze({
+      state: input.state,
+      applied: false,
+      reason: 'missing-person-status-record',
+    })
+  }
+
+  const candidateRef = normalizeToken(record.candidateRef)
+  if (!candidateRef) {
+    return Object.freeze({
+      state: input.state,
+      applied: false,
+      reason: 'missing-candidate-ref',
+    })
+  }
+
+  if (!hasRecordedCandidateEvidenceResolution(input.state, input.workQueueEntryId)) {
+    return Object.freeze({
+      state: input.state,
+      applied: false,
+      reason: 'missing-evidence-resolution',
+    })
+  }
+
+  if (
+    hasCandidate(input.state.candidates, candidateRef) &&
+    hasCandidate(input.state.recruitmentPool, candidateRef)
+  ) {
+    return Object.freeze({
+      state: input.state,
+      applied: false,
+      reason: 'candidate-already-present',
+    })
+  }
+
+  const candidate = buildRepairedCandidateEvidence({
+    candidateId: candidateRef,
+    subjectLabel: record.subjectLabel,
+    week: input.recordedWeek,
+  })
+
+  return Object.freeze({
+    state: {
+      ...input.state,
+      candidates: appendCandidateIfMissing(input.state.candidates, candidate),
+      recruitmentPool: appendCandidateIfMissing(input.state.recruitmentPool, candidate),
+    },
+    applied: true,
+    reason: 'applied',
+  })
 }
 
 export function buildAffiliationFileWorkQueueRepairActionRecordId(input: {

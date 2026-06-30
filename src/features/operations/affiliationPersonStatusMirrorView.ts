@@ -1,5 +1,6 @@
 import type { GameState } from '../../domain/models'
 import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
@@ -71,6 +72,9 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   recommendedActionDetail: string
   isRecommendedActionRecorded: boolean
   recordedActionLabel?: string
+  canRecordEvidenceResolution: boolean
+  isEvidenceResolutionRecorded: boolean
+  evidenceResolutionLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -315,6 +319,15 @@ function toFileAccessWorkQueueEntry(
     actionKind: recommendedAction.recommendedActionKind,
   })
   const recordedAction = game.affiliationFileWorkQueueActionRecords?.[recordedActionId]
+  const missingReasonCodes = reasonCodeLabels.filter((reasonCode) =>
+    reasonCode.startsWith('missing_')
+  )
+  const evidenceResolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+    workQueueEntryId: snapshot.recordId,
+    missingReasonCodes,
+  })
+  const evidenceResolution =
+    game.affiliationFileWorkQueueEvidenceResolutionRecords?.[evidenceResolutionId]
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -329,6 +342,14 @@ function toFileAccessWorkQueueEntry(
     ...recommendedAction,
     isRecommendedActionRecorded: Boolean(recordedAction),
     ...(recordedAction ? { recordedActionLabel: `Recorded W${recordedAction.recordedWeek}` } : {}),
+    canRecordEvidenceResolution:
+      bucket === 'missing_review' && missingReasonCodes.length > 0 && !evidenceResolution,
+    isEvidenceResolutionRecorded: Boolean(evidenceResolution),
+    ...(evidenceResolution
+      ? {
+          evidenceResolutionLabel: `Evidence resolution recorded W${evidenceResolution.recordedWeek}`,
+        }
+      : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

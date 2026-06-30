@@ -31,6 +31,9 @@ export default function AffiliationPersonStatusMirrorPage() {
   const recordAffiliationFileWorkQueueAction = useGameStore(
     (state) => state.recordAffiliationFileWorkQueueAction
   )
+  const recordAffiliationFileWorkQueueEvidenceResolution = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueEvidenceResolution
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -202,6 +205,30 @@ export default function AffiliationPersonStatusMirrorPage() {
                         {!entry.isRecommendedActionRecorded ? (
                           <p className="mt-1 text-xs opacity-55">
                             {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pendingActionStatusLabel}
+                          </p>
+                        ) : null}
+                        {entry.isEvidenceResolutionRecorded ? (
+                          <p className="mt-2 text-xs font-medium">
+                            {entry.evidenceResolutionLabel}
+                          </p>
+                        ) : entry.canRecordEvidenceResolution ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2 whitespace-nowrap"
+                            onClick={() =>
+                              recordAffiliationFileWorkQueueEvidenceResolution(entry.id)
+                            }
+                          >
+                            {
+                              AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordEvidenceResolutionButtonLabel
+                            }
+                          </button>
+                        ) : null}
+                        {entry.canRecordEvidenceResolution ? (
+                          <p className="mt-1 text-xs opacity-55">
+                            {
+                              AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pendingEvidenceResolutionStatusLabel
+                            }
                           </p>
                         ) : null}
                       </td>

@@ -165,6 +165,15 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     })
 
     expect(queueRegion).toHaveTextContent('Evidence resolution recorded W10')
+    expect(queueRegion).toHaveTextContent(
+      'Candidate link repair: attach or restore recruitment candidate evidence.'
+    )
+    expect(queueRegion).toHaveTextContent(
+      'Welfare link repair: attach or restore entity welfare reclassification evidence.'
+    )
+    expect(queueRegion).toHaveTextContent(
+      'Onboarding repair: attach or restore clearance readiness evidence.'
+    )
     expect(queueRegion).not.toHaveTextContent('Evidence unresolved')
     expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceResolutionRecords).toEqual(
       expect.objectContaining({

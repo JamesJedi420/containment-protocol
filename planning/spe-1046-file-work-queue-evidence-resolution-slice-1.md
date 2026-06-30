@@ -5,10 +5,11 @@ One-page implementation plan. Linear: new SPE-1046 child to be created/linked fo
 | Field               | Value                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | New SPE-1046 child - file work queue evidence resolution workflows                                                                  |
-| **Status**          | **In Progress**                                                                                                                     |
+| **Status**          | **Shipped**                                                                                                                         |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog** |
 | **Branch**          | `spe-1046-file-work-queue-evidence-resolution-slice-1`                                                                              |
 | **Base `main` SHA** | `cfab81d7`                                                                                                                          |
+| **PR**              | [#2998](https://github.com/JamesJedi420/containment-protocol/pull/2998) @ `44e99cf6`                                                |
 
 ## Goal
 

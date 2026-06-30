@@ -208,9 +208,10 @@ export default function AffiliationPersonStatusMirrorPage() {
                           </p>
                         ) : null}
                         {entry.isEvidenceResolutionRecorded ? (
-                          <p className="mt-2 text-xs font-medium">
-                            {entry.evidenceResolutionLabel}
-                          </p>
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs font-medium">{entry.evidenceResolutionLabel}</p>
+                            <LabelStack labels={entry.evidenceRepairCandidateLabels} />
+                          </div>
                         ) : entry.canRecordEvidenceResolution ? (
                           <button
                             type="button"

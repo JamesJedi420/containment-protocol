@@ -12,6 +12,11 @@ export interface AffiliationFileWorkQueueEvidenceResolutionRecord {
   readonly recordedWeek: number
 }
 
+export interface AffiliationFileWorkQueueEvidenceRepairCandidate {
+  readonly reasonCode: string
+  readonly repairLabel: string
+}
+
 export type AffiliationFileWorkQueueEvidenceResolutionRecordsMap = Record<
   AffiliationFileWorkQueueEvidenceResolutionRecordId,
   AffiliationFileWorkQueueEvidenceResolutionRecord
@@ -93,6 +98,32 @@ export function buildAffiliationFileWorkQueueEvidenceResolutionRecord(
     missingReasonCodes: Object.freeze(missingReasonCodes),
     recordedWeek: input.recordedWeek,
   })
+}
+
+export function buildAffiliationFileWorkQueueEvidenceRepairCandidates(
+  missingReasonCodes: readonly string[]
+): readonly AffiliationFileWorkQueueEvidenceRepairCandidate[] {
+  return Object.freeze(
+    normalizeAffiliationFileWorkQueueMissingReasonCodes([...missingReasonCodes]).map((reasonCode) =>
+      Object.freeze({
+        reasonCode,
+        repairLabel: formatAffiliationFileWorkQueueEvidenceRepairLabel(reasonCode),
+      })
+    )
+  )
+}
+
+function formatAffiliationFileWorkQueueEvidenceRepairLabel(reasonCode: string) {
+  switch (reasonCode) {
+    case 'missing_candidate_ref':
+      return 'Candidate link repair: attach or restore recruitment candidate evidence.'
+    case 'missing_entity_welfare_reclassification_ref':
+      return 'Welfare link repair: attach or restore entity welfare reclassification evidence.'
+    case 'missing_onboarding_clearance':
+      return 'Onboarding repair: attach or restore clearance readiness evidence.'
+    default:
+      return `Evidence repair: review ${reasonCode}.`
+  }
 }
 
 function sanitizeEvidenceResolutionRecordEntry(

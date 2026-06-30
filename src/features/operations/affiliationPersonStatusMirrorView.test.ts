@@ -367,6 +367,11 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       canRecordEvidenceResolution: false,
       isEvidenceResolutionRecorded: true,
       evidenceResolutionLabel: 'Evidence resolution recorded W8',
+      evidenceRepairCandidateLabels: [
+        'Candidate link repair: attach or restore recruitment candidate evidence.',
+        'Welfare link repair: attach or restore entity welfare reclassification evidence.',
+        'Onboarding repair: attach or restore clearance readiness evidence.',
+      ],
     })
   })
 })

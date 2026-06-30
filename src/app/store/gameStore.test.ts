@@ -60,6 +60,7 @@ import {
   buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
 } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -1813,7 +1814,7 @@ describe('affiliation file work queue evidence resolution store action', () => {
 })
 
 describe('affiliation file work queue repair action store action', () => {
-  it('records deterministic repair-action records for resolved missing-review candidates', () => {
+  it('records deterministic repair-action records and restores candidate evidence for resolved missing-review candidates', () => {
     const game = createStartingState()
     game.week = 12
     game.affiliationPersonStatusRecords = {
@@ -1867,9 +1868,85 @@ describe('affiliation file work queue repair action store action', () => {
       repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
       recordedWeek: 12,
     })
+    expect(next.candidates).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+        category: 'agent',
+        hireStatus: 'available',
+        funnelStage: 'hired',
+        createdWeek: 12,
+        lastUpdatedWeek: 12,
+      }),
+    ])
+    expect(next.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
     expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
     expect(next.affiliationFileWorkQueueEvidenceResolutionRecords).toBe(
       originalEvidenceResolutionRecords
+    )
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]?.reasonCode).toBe(
+      'missing_candidate_ref'
+    )
+  })
+
+  it('keeps repaired candidate rows in missing-review when other missing evidence still blocks derivation', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    expect(before.candidates).toEqual([])
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_candidate_ref'
+      )
+
+    const next = useGameStore.getState().game
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:missing-review',
+      bucket: 'missing_review',
+      fileAccessLabel: 'File access: -',
+      facilityFileAccessLabel: 'Facility file access: -',
+    })
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
+    expect(view.records[0]?.reasonCodeLabels).toContain(
+      'missing_entity_welfare_reclassification_ref'
     )
   })
 
@@ -1951,6 +2028,15 @@ describe('affiliation file work queue repair action store action', () => {
     expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toBe(
       beforeAlreadyRecorded.affiliationFileWorkQueueRepairActionRecords
     )
+
+    const beforeUnsupported = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_entity_welfare_reclassification_ref'
+      )
+    expect(useGameStore.getState().game.candidates).toBe(beforeUnsupported.candidates)
   })
 })
 

@@ -6,6 +6,7 @@ import {
 } from '../../domain/affiliationPersonStatusRecords'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -355,6 +356,17 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     game.affiliationFileWorkQueueEvidenceResolutionRecords = {
       [recorded.id]: recorded,
     }
+    const repairAction = buildAffiliationFileWorkQueueRepairActionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      reasonCode: 'missing_candidate_ref',
+      repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+      recordedWeek: 9,
+    })
+    game.affiliationFileWorkQueueRepairActionRecords = {
+      [repairAction.id]: repairAction,
+    }
 
     const view = getAffiliationPersonStatusMirrorView(game)
 
@@ -367,10 +379,24 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       canRecordEvidenceResolution: false,
       isEvidenceResolutionRecorded: true,
       evidenceResolutionLabel: 'Evidence resolution recorded W8',
-      evidenceRepairCandidateLabels: [
-        'Candidate link repair: attach or restore recruitment candidate evidence.',
-        'Welfare link repair: attach or restore entity welfare reclassification evidence.',
-        'Onboarding repair: attach or restore clearance readiness evidence.',
+      evidenceRepairCandidates: [
+        {
+          reasonCode: 'missing_candidate_ref',
+          repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+          isRepairActionRecorded: true,
+          repairActionLabel: 'Repair recorded W9',
+        },
+        {
+          reasonCode: 'missing_entity_welfare_reclassification_ref',
+          repairLabel:
+            'Welfare link repair: attach or restore entity welfare reclassification evidence.',
+          isRepairActionRecorded: false,
+        },
+        {
+          reasonCode: 'missing_onboarding_clearance',
+          repairLabel: 'Onboarding repair: attach or restore clearance readiness evidence.',
+          isRepairActionRecorded: false,
+        },
       ],
     })
   })

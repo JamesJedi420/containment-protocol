@@ -277,6 +277,7 @@ import type { PopulationEmergenceRecord } from './massAnomalousPopulationEmergen
 import type { AffiliationPersonStatusRecord } from './affiliationPersonStatusRecords'
 import type { AffiliationFileWorkQueueActionRecord } from './affiliationFileWorkQueueActionRecords'
 import type { AffiliationFileWorkQueueEvidenceResolutionRecord } from './affiliationFileWorkQueueEvidenceResolutionRecords'
+import type { AffiliationFileWorkQueueRepairActionRecord } from './affiliationFileWorkQueueRepairActionRecords'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
@@ -2780,6 +2781,15 @@ export interface GameState {
   affiliationFileWorkQueueEvidenceResolutionRecords?: Record<
     string,
     AffiliationFileWorkQueueEvidenceResolutionRecord
+  >
+
+  /**
+   * SPE-2535 slice 1: persisted file work queue repair-action acknowledgements.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueRepairActionRecords?: Record<
+    string,
+    AffiliationFileWorkQueueRepairActionRecord
   >
 
   /**

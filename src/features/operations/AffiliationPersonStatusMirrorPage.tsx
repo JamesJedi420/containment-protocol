@@ -34,6 +34,9 @@ export default function AffiliationPersonStatusMirrorPage() {
   const recordAffiliationFileWorkQueueEvidenceResolution = useGameStore(
     (state) => state.recordAffiliationFileWorkQueueEvidenceResolution
   )
+  const recordAffiliationFileWorkQueueRepairAction = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueRepairAction
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -210,7 +213,29 @@ export default function AffiliationPersonStatusMirrorPage() {
                         {entry.isEvidenceResolutionRecorded ? (
                           <div className="mt-2 space-y-1">
                             <p className="text-xs font-medium">{entry.evidenceResolutionLabel}</p>
-                            <LabelStack labels={entry.evidenceRepairCandidateLabels} />
+                            {entry.evidenceRepairCandidates.map((candidate) => (
+                              <div key={candidate.reasonCode} className="space-y-1">
+                                <p className="text-xs opacity-55">{candidate.repairLabel}</p>
+                                {candidate.isRepairActionRecorded ? (
+                                  <p className="text-xs font-medium">
+                                    {candidate.repairActionLabel}
+                                  </p>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost whitespace-nowrap"
+                                    onClick={() =>
+                                      recordAffiliationFileWorkQueueRepairAction(
+                                        entry.id,
+                                        candidate.reasonCode
+                                      )
+                                    }
+                                  >
+                                    Record repair action
+                                  </button>
+                                )}
+                              </div>
+                            ))}
                           </div>
                         ) : entry.canRecordEvidenceResolution ? (
                           <button

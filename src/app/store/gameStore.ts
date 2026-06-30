@@ -155,6 +155,7 @@ import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -332,6 +333,7 @@ interface GameStore {
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   recordAffiliationFileWorkQueueAction: (entryId: string) => void
   recordAffiliationFileWorkQueueEvidenceResolution: (entryId: string) => void
+  recordAffiliationFileWorkQueueRepairAction: (entryId: string, reasonCode: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -1753,6 +1755,43 @@ export const useGameStore = create<GameStore>()(
               ...s.game,
               affiliationFileWorkQueueEvidenceResolutionRecords: {
                 ...(s.game.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueRepairAction: (entryId, reasonCode) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const repairCandidate = entry?.evidenceRepairCandidates.find(
+            (candidate) => candidate.reasonCode === reasonCode
+          )
+
+          if (
+            !entry ||
+            !repairCandidate ||
+            repairCandidate.isRepairActionRecorded ||
+            !reasonCode.startsWith('missing_')
+          ) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueRepairActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            reasonCode: repairCandidate.reasonCode,
+            repairLabel: repairCandidate.repairLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueRepairActionRecords: {
+                ...(s.game.affiliationFileWorkQueueRepairActionRecords ?? {}),
                 [record.id]: record,
               },
             },

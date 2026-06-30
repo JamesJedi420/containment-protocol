@@ -4,6 +4,7 @@ import {
   buildAffiliationFileWorkQueueEvidenceRepairCandidates,
   buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
 } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
@@ -60,6 +61,13 @@ export interface AffiliationFileAccessRecommendedActionView {
   recommendedActionDetail: string
 }
 
+export interface AffiliationFileAccessRepairCandidateView {
+  reasonCode: string
+  repairLabel: string
+  isRepairActionRecorded: boolean
+  repairActionLabel?: string
+}
+
 export interface AffiliationFileAccessWorkQueueEntryView {
   id: string
   subjectLabel: string
@@ -78,7 +86,7 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   canRecordEvidenceResolution: boolean
   isEvidenceResolutionRecorded: boolean
   evidenceResolutionLabel?: string
-  evidenceRepairCandidateLabels: readonly string[]
+  evidenceRepairCandidates: readonly AffiliationFileAccessRepairCandidateView[]
   reasonCodeLabels: readonly string[]
 }
 
@@ -332,6 +340,24 @@ function toFileAccessWorkQueueEntry(
   })
   const evidenceResolution =
     game.affiliationFileWorkQueueEvidenceResolutionRecords?.[evidenceResolutionId]
+  const evidenceRepairCandidates = evidenceResolution
+    ? buildAffiliationFileWorkQueueEvidenceRepairCandidates(
+        evidenceResolution.missingReasonCodes
+      ).map((candidate): AffiliationFileAccessRepairCandidateView => {
+        const recordId = buildAffiliationFileWorkQueueRepairActionRecordId({
+          workQueueEntryId: snapshot.recordId,
+          reasonCode: candidate.reasonCode,
+        })
+        const record = game.affiliationFileWorkQueueRepairActionRecords?.[recordId]
+
+        return Object.freeze({
+          reasonCode: candidate.reasonCode,
+          repairLabel: candidate.repairLabel,
+          isRepairActionRecorded: Boolean(record),
+          ...(record ? { repairActionLabel: `Repair recorded W${record.recordedWeek}` } : {}),
+        })
+      })
+    : []
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -354,13 +380,7 @@ function toFileAccessWorkQueueEntry(
           evidenceResolutionLabel: `Evidence resolution recorded W${evidenceResolution.recordedWeek}`,
         }
       : {}),
-    evidenceRepairCandidateLabels: Object.freeze(
-      evidenceResolution
-        ? buildAffiliationFileWorkQueueEvidenceRepairCandidates(
-            evidenceResolution.missingReasonCodes
-          ).map((candidate) => candidate.repairLabel)
-        : []
-    ),
+    evidenceRepairCandidates: Object.freeze(evidenceRepairCandidates),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

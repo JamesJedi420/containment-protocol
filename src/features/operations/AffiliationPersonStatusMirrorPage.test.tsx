@@ -15,6 +15,7 @@ import {
   PENDING_TO_APPROVED_FIXTURE,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -173,6 +174,25 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     )
     expect(queueRegion).toHaveTextContent(
       'Onboarding repair: attach or restore clearance readiness evidence.'
+    )
+    expect(screen.getAllByRole('button', { name: /record repair action/i })).toHaveLength(3)
+
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[0])
+
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      reasonCode: 'missing_candidate_ref',
+    })
+
+    expect(queueRegion).toHaveTextContent('Repair recorded W10')
+    expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toEqual(
+      expect.objectContaining({
+        [repairActionId]: expect.objectContaining({
+          workQueueEntryId: 'person-status:missing-review',
+          reasonCode: 'missing_candidate_ref',
+          recordedWeek: 10,
+        }),
+      })
     )
     expect(queueRegion).not.toHaveTextContent('Evidence unresolved')
     expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceResolutionRecords).toEqual(

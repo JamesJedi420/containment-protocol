@@ -5,6 +5,7 @@ import {
   RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE,
 } from '../../domain/affiliationPersonStatusRecords'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -322,6 +323,50 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     })
     expect(view.fileAccessWorkQueue[1]).toMatchObject({
       isRecommendedActionRecorded: false,
+    })
+  })
+
+  it('joins evidence-resolution records onto missing-review queue rows without changing ordering', () => {
+    const game = makeStatusGame()
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]:
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+    }
+    const recorded = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 8,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [recorded.id]: recorded,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue.map((entry) => entry.id)).toEqual([
+      COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      'person-status:missing-review',
+    ])
+    expect(view.fileAccessWorkQueue[1]).toMatchObject({
+      bucket: 'missing_review',
+      canRecordEvidenceResolution: false,
+      isEvidenceResolutionRecorded: true,
+      evidenceResolutionLabel: 'Evidence resolution recorded W8',
     })
   })
 })

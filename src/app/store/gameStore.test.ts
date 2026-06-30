@@ -55,6 +55,7 @@ import {
   PENDING_TO_APPROVED_FIXTURE,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 
 const STORE_KEY = 'containment-protocol-game-state'
 
@@ -1725,6 +1726,85 @@ describe('affiliation file work queue action ledger store action (SPE-2529 slice
     useGameStore.getState().recordAffiliationFileWorkQueueAction('person-status:missing')
 
     expect(useGameStore.getState().game).toBe(before)
+  })
+})
+
+describe('affiliation file work queue evidence resolution store action', () => {
+  it('records deterministic evidence-resolution records for reachable missing-review queue rows', () => {
+    const game = createStartingState()
+    game.week = 11
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalWelfareRecords = game.entityWelfareReclassificationRecords
+
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceResolution('person-status:missing-review')
+
+    const next = useGameStore.getState().game
+    const resolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+    })
+
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords?.[resolutionId]).toMatchObject({
+      id: resolutionId,
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+  })
+
+  it('no-ops for absent and non-missing-review queue entries', () => {
+    const game = createStartingState()
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeRestricted = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceResolution(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    expect(useGameStore.getState().game).toBe(beforeRestricted)
+
+    const beforeMissing = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueEvidenceResolution('person-status:absent')
+
+    expect(useGameStore.getState().game).toBe(beforeMissing)
   })
 })
 

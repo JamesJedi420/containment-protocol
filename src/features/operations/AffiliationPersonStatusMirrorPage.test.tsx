@@ -14,6 +14,7 @@ import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
 } from '../../domain/entityWelfareReclassificationRegistry'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -125,6 +126,53 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
             sourceBucket: 'restricted',
             recordedWeek: 8,
           }),
+      })
+    )
+  })
+
+  it('records missing-review evidence resolution from the queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    expect(queueRegion).toHaveTextContent('Evidence unresolved')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+
+    const resolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+    })
+
+    expect(queueRegion).toHaveTextContent('Evidence resolution recorded W10')
+    expect(queueRegion).not.toHaveTextContent('Evidence unresolved')
+    expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceResolutionRecords).toEqual(
+      expect.objectContaining({
+        [resolutionId]: expect.objectContaining({
+          workQueueEntryId: 'person-status:missing-review',
+          sourceBucket: 'missing_review',
+          recordedWeek: 10,
+        }),
       })
     )
   })

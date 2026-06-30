@@ -5,10 +5,11 @@ One-page implementation plan. Linear: [SPE-2534](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                               |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2534 - SPE-1046 file work queue evidence repair candidates](https://linear.app/spectranoir/issue/SPE-2534/spe-1046-file-work-queue-evidence-repair-candidates) |
-| **Status**          | **In Progress**                                                                                                                                                     |
+| **Status**          | **Shipped**                                                                                                                                                         |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                 |
 | **Branch**          | `spe-1046-file-work-queue-evidence-repair-candidates-slice-1`                                                                                                       |
 | **Base `main` SHA** | `44e99cf6`                                                                                                                                                          |
+| **PR**              | [#3000](https://github.com/JamesJedi420/containment-protocol/pull/3000) @ `5ca14f36`                                                                                |
 
 ## Goal
 

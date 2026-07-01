@@ -650,7 +650,6 @@ export function projectConceptCollateral(
   const label = normalizeToken(record.label) || '(unknown)'
   const fromState = normalizeToken(record.fromState) || 'unknown_state'
   const toState = normalizeToken(record.toState) || 'unknown_state'
-  const stateTransition = `${fromState} → ${toState}`
 
   const confidence = resolveConfidence(record, policy)
   const detectionDifficulty = resolveDetectionDifficulty(record, policy)

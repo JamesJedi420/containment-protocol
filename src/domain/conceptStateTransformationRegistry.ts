@@ -789,35 +789,3 @@ export function projectConceptCollateral(
 function defineRecord(record: ConceptStateOperatorRecord): ConceptStateOperatorRecord {
   return Object.freeze({ ...record })
 }
-
-/** Concept relocate operator with collateral concept refs. */
-export const CONCEPT_RELOCATE_COLLATERAL_FIXTURE: ConceptStateOperatorRecord = defineRecord({
-  id: 'concept-operator:inside-outside-relocate',
-  label: 'Inside-outside concept relocate',
-  summary: 'Relational inside/outside membership shifts with collateral category drift.',
-  targetKind: 'concept',
-  operator: 'relocate',
-  fromState: 'inside_perimeter',
-  toState: 'outside_perimeter',
-  collateralConceptRefs: ['concept:membership-queue-a', 'concept:boundary-marker-7'],
-  detectionDifficulty: 0.62,
-  confidence: 0.71,
-})
-
-/** Category bind operator with explicit scope rules. */
-export const CATEGORY_BIND_SCOPE_FIXTURE: ConceptStateOperatorRecord = defineRecord({
-  id: 'concept-operator:personnel-category-bind',
-  label: 'Personnel category bind operator',
-  summary: 'Binds personnel category membership under bounded scope rules.',
-  targetKind: 'category',
-  operator: 'bind',
-  fromState: 'unassigned_pool',
-  toState: 'restricted_pool',
-  scopeRules: [
-    { constraint: 'only_when_badge_reader_conflict', boundaryRef: 'boundary:annex-c-reader' },
-    { constraint: 'exclude_visitor_pass_holders' },
-  ],
-  collateralConceptRefs: ['concept:visitor-clearance-tier'],
-  detectionDifficulty: 0.48,
-  confidence: 0.83,
-})

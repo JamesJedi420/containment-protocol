@@ -44,8 +44,12 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     const projection = projectConceptCollateral(CONCEPT_RELOCATE_COLLATERAL_FIXTURE)
 
     expect(projection.affectedEntries).toHaveLength(2)
-    expect(projection.affectedEntries[0]?.symptomDescriptor).toContain('Boundary drift reported for')
-    expect(projection.affectedEntries[0]?.symptomDescriptor).toContain('inside_perimeter -> outside_perimeter')
+    expect(projection.affectedEntries[0]?.symptomDescriptor).toContain(
+      'Boundary drift reported for'
+    )
+    expect(projection.affectedEntries[0]?.symptomDescriptor).toContain(
+      'inside_perimeter -> outside_perimeter'
+    )
     expect(projection.redacted).toBe(false)
   })
 
@@ -87,7 +91,9 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     )
 
     expect(result.valid).toBe(false)
-    expect(result.issues.some((issue) => issue.code === 'branded_object_number_in_label')).toBe(true)
+    expect(result.issues.some((issue) => issue.code === 'branded_object_number_in_label')).toBe(
+      true
+    )
   })
 
   it('redacts collateral when policy requests unknown redaction', () => {
@@ -130,7 +136,6 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     expect(projection.detectionDifficulty).toBeNull()
     expect(projection.redacted).toBe(true)
   })
-})
 
   it('errors on franchise token in scopeRules constraint', () => {
     const result = validateConceptStateOperatorRecord(

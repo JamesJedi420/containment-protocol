@@ -130,6 +130,7 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     expect(projection.detectionDifficulty).toBeNull()
     expect(projection.redacted).toBe(true)
   })
+})
 
   it('errors on franchise token in scopeRules constraint', () => {
     const result = validateConceptStateOperatorRecord(

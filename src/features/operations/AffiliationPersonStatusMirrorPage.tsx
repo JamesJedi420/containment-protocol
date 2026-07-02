@@ -31,6 +31,12 @@ export default function AffiliationPersonStatusMirrorPage() {
   const recordAffiliationFileWorkQueueAction = useGameStore(
     (state) => state.recordAffiliationFileWorkQueueAction
   )
+  const recordAffiliationFileWorkQueueEvidenceResolution = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueEvidenceResolution
+  )
+  const recordAffiliationFileWorkQueueRepairAction = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueRepairAction
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -202,6 +208,53 @@ export default function AffiliationPersonStatusMirrorPage() {
                         {!entry.isRecommendedActionRecorded ? (
                           <p className="mt-1 text-xs opacity-55">
                             {AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pendingActionStatusLabel}
+                          </p>
+                        ) : null}
+                        {entry.isEvidenceResolutionRecorded ? (
+                          <div className="mt-2 space-y-1">
+                            <p className="text-xs font-medium">{entry.evidenceResolutionLabel}</p>
+                            {entry.evidenceRepairCandidates.map((candidate) => (
+                              <div key={candidate.reasonCode} className="space-y-1">
+                                <p className="text-xs opacity-55">{candidate.repairLabel}</p>
+                                {candidate.isRepairActionRecorded ? (
+                                  <p className="text-xs font-medium">
+                                    {candidate.repairActionLabel}
+                                  </p>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="btn btn-xs btn-ghost whitespace-nowrap"
+                                    onClick={() =>
+                                      recordAffiliationFileWorkQueueRepairAction(
+                                        entry.id,
+                                        candidate.reasonCode
+                                      )
+                                    }
+                                  >
+                                    Record repair action
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : entry.canRecordEvidenceResolution ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2 whitespace-nowrap"
+                            onClick={() =>
+                              recordAffiliationFileWorkQueueEvidenceResolution(entry.id)
+                            }
+                          >
+                            {
+                              AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.recordEvidenceResolutionButtonLabel
+                            }
+                          </button>
+                        ) : null}
+                        {entry.canRecordEvidenceResolution ? (
+                          <p className="mt-1 text-xs opacity-55">
+                            {
+                              AFFILIATION_PERSON_STATUS_MIRROR_UI_TEXT.pendingEvidenceResolutionStatusLabel
+                            }
                           </p>
                         ) : null}
                       </td>

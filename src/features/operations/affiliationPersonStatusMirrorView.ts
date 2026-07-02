@@ -1,6 +1,11 @@
 import type { GameState } from '../../domain/models'
 import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
 import {
+  buildAffiliationFileWorkQueueEvidenceRepairCandidates,
+  buildAffiliationFileWorkQueueEvidenceResolutionRecordId,
+} from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
 } from '../../domain/affiliationPersonStatusRecords'
@@ -56,6 +61,13 @@ export interface AffiliationFileAccessRecommendedActionView {
   recommendedActionDetail: string
 }
 
+export interface AffiliationFileAccessRepairCandidateView {
+  reasonCode: string
+  repairLabel: string
+  isRepairActionRecorded: boolean
+  repairActionLabel?: string
+}
+
 export interface AffiliationFileAccessWorkQueueEntryView {
   id: string
   subjectLabel: string
@@ -71,6 +83,10 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   recommendedActionDetail: string
   isRecommendedActionRecorded: boolean
   recordedActionLabel?: string
+  canRecordEvidenceResolution: boolean
+  isEvidenceResolutionRecorded: boolean
+  evidenceResolutionLabel?: string
+  evidenceRepairCandidates: readonly AffiliationFileAccessRepairCandidateView[]
   reasonCodeLabels: readonly string[]
 }
 
@@ -315,6 +331,33 @@ function toFileAccessWorkQueueEntry(
     actionKind: recommendedAction.recommendedActionKind,
   })
   const recordedAction = game.affiliationFileWorkQueueActionRecords?.[recordedActionId]
+  const missingReasonCodes = reasonCodeLabels.filter((reasonCode) =>
+    reasonCode.startsWith('missing_')
+  )
+  const evidenceResolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+    workQueueEntryId: snapshot.recordId,
+    missingReasonCodes,
+  })
+  const evidenceResolution =
+    game.affiliationFileWorkQueueEvidenceResolutionRecords?.[evidenceResolutionId]
+  const evidenceRepairCandidates = evidenceResolution
+    ? buildAffiliationFileWorkQueueEvidenceRepairCandidates(
+        evidenceResolution.missingReasonCodes
+      ).map((candidate): AffiliationFileAccessRepairCandidateView => {
+        const recordId = buildAffiliationFileWorkQueueRepairActionRecordId({
+          workQueueEntryId: snapshot.recordId,
+          reasonCode: candidate.reasonCode,
+        })
+        const record = game.affiliationFileWorkQueueRepairActionRecords?.[recordId]
+
+        return Object.freeze({
+          reasonCode: candidate.reasonCode,
+          repairLabel: candidate.repairLabel,
+          isRepairActionRecorded: Boolean(record),
+          ...(record ? { repairActionLabel: `Repair recorded W${record.recordedWeek}` } : {}),
+        })
+      })
+    : []
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -329,6 +372,15 @@ function toFileAccessWorkQueueEntry(
     ...recommendedAction,
     isRecommendedActionRecorded: Boolean(recordedAction),
     ...(recordedAction ? { recordedActionLabel: `Recorded W${recordedAction.recordedWeek}` } : {}),
+    canRecordEvidenceResolution:
+      bucket === 'missing_review' && missingReasonCodes.length > 0 && !evidenceResolution,
+    isEvidenceResolutionRecorded: Boolean(evidenceResolution),
+    ...(evidenceResolution
+      ? {
+          evidenceResolutionLabel: `Evidence resolution recorded W${evidenceResolution.recordedWeek}`,
+        }
+      : {}),
+    evidenceRepairCandidates: Object.freeze(evidenceRepairCandidates),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

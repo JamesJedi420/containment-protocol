@@ -75,6 +75,7 @@ export type ConceptStateOperatorValidationCode =
   | 'invalid_collateral_concept_ref'
   | 'empty_collateral_concept_ref'
   | 'bind_without_scope_rules'
+  | 'collapse_without_scope_rules'
   | 'franchise_token_in_id'
   | 'franchise_token_in_label'
   | 'franchise_token_in_field'
@@ -160,9 +161,7 @@ function asStringArray(value: unknown): readonly string[] {
 }
 
 function sortedStringArray(value: unknown): readonly string[] {
-  return Object.freeze(
-    [...asStringArray(value)].sort((left, right) => left.localeCompare(right))
-  )
+  return Object.freeze([...asStringArray(value)].sort((left, right) => left.localeCompare(right)))
 }
 
 function pushIssue(
@@ -431,10 +430,7 @@ function resolveRoleHint(
   return `${targetKind}_collateral`
 }
 
-function buildSymptomDescriptor(
-  record: ConceptStateOperatorRecord,
-  ref: string
-): string {
+function buildSymptomDescriptor(record: ConceptStateOperatorRecord, ref: string): string {
   const operator = isConceptStateOperator(record.operator) ? record.operator : 'relocate'
   const fromState = normalizeToken(record.fromState) || 'unknown_state'
   const toState = normalizeToken(record.toState) || 'unknown_state'
@@ -625,7 +621,10 @@ export function validateConceptStateOperatorRecord(
     !hasNonEmptyScopeRules(record)
   ) {
     pushIssue(issues, {
-      code: 'bind_without_scope_rules',
+      code:
+        record.operator === 'collapse'
+          ? 'collapse_without_scope_rules'
+          : 'bind_without_scope_rules',
       severity: 'warning',
       detail: `Concept-state operator record ${id || '(unknown)'} with operator ${record.operator} declares no non-empty scopeRules.`,
       relatedIds: id ? [id] : undefined,
@@ -635,44 +634,6 @@ export function validateConceptStateOperatorRecord(
   scanForbiddenTokens(issues, id, label, record)
 
   return freezeValidationResult(issues)
-}
-
-/**
- * Project affected concept refs with symptom descriptors and role hints.
- * Deterministic mapping: operator + state transition → collateral symptoms.
- * Does not assert objective truth or omniscient classification.
- */
-export function projectConceptCollateral(
-  record: ConceptStateOperatorRecord,
-  policy: ConceptCollateralProjectionPolicy = {}
-): ConceptCollateralProjection {
-  const recordId = normalizeToken(record.id) || '(unknown)'
-  const label = normalizeToken(record.label) || '(unknown)'
-  const fromState = normalizeToken(record.fromState) || 'unknown_state'
-  const toState = normalizeToken(record.toState) || 'unknown_state'
-
-  const confidence = resolveConfidence(record, policy)
-  const detectionDifficulty = resolveDetectionDifficulty(record, policy)
-  const redacted =
-    (confidence === null && record.confidence !== undefined) ||
-    (detectionDifficulty === null && record.detectionDifficulty !== undefined)
-  const unknownFields = sortedStringArray(record.unknownFields)
-
-  return Object.freeze({
-    recordId,
-    label,
-    targetKind: isConceptStateTargetKind(record.targetKind)
-      ? record.targetKind
-      : 'concept',
-    operator: isConceptStateOperator(record.operator) ? record.operator : 'relocate',
-    fromState,
-    toState,
-    affectedEntries: buildAffectedEntries(record, policy),
-    detectionDifficulty,
-    confidence,
-    redacted,
-    unknownFields,
-  })
 }
 
 // ---------------------------------------------------------------------------
@@ -738,7 +699,6 @@ export const OBJECT_COLLAPSE_FIXTURE: ConceptStateOperatorRecord = defineRecord(
   toState: 'superposition_indistinguishable',
 })
 
-
 /**
  * Projects symptom-first collateral entries for related concept refs.
  * Does not emit omniscient hidden-conflict labels.
@@ -757,7 +717,9 @@ export function projectConceptCollateral(
     redactedFields.has('collateralConceptRefs') ||
     (policy.redactUnknown === true && unknownFields.includes('collateralConceptRefs'))
 
-  const affectedEntries = collateralRedacted ? Object.freeze([]) : buildAffectedEntries(record, policy)
+  const affectedEntries = collateralRedacted
+    ? Object.freeze([])
+    : buildAffectedEntries(record, policy)
 
   const difficultyRedacted =
     redactedFields.has('detectionDifficulty') ||
@@ -768,7 +730,9 @@ export function projectConceptCollateral(
     redactedFields.has('confidence') ||
     difficultyRedacted ||
     (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
-    (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
+    (confidence === null &&
+      record.confidence !== undefined &&
+      policy.minimumConfidence !== undefined)
 
   return Object.freeze({
     recordId,
@@ -784,4 +748,3 @@ export function projectConceptCollateral(
     unknownFields,
   })
 }
-

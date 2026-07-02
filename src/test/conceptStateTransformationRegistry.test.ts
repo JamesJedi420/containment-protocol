@@ -72,6 +72,25 @@ describe('conceptStateTransformationRegistry (SPE-2118 slice 1)', () => {
     ])
   })
 
+  it('warns with collapse-specific code when collapse lacks scopeRules', () => {
+    const result = validateConceptStateOperatorRecord(
+      baseRecord({
+        operator: 'collapse',
+        targetKind: 'object',
+        fromState: 'distinct_states',
+        toState: 'superposition_indistinguishable',
+      })
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.issues).toEqual([
+      expect.objectContaining({
+        code: 'collapse_without_scope_rules',
+        severity: 'warning',
+      }),
+    ])
+  })
+
   it('errors on franchise token in operator id', () => {
     const result = validateConceptStateOperatorRecord(
       baseRecord({

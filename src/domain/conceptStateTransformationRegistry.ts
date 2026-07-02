@@ -75,6 +75,7 @@ export type ConceptStateOperatorValidationCode =
   | 'invalid_collateral_concept_ref'
   | 'empty_collateral_concept_ref'
   | 'bind_without_scope_rules'
+  | 'collapse_without_scope_rules'
   | 'franchise_token_in_id'
   | 'franchise_token_in_label'
   | 'franchise_token_in_field'
@@ -160,9 +161,7 @@ function asStringArray(value: unknown): readonly string[] {
 }
 
 function sortedStringArray(value: unknown): readonly string[] {
-  return Object.freeze(
-    [...asStringArray(value)].sort((left, right) => left.localeCompare(right))
-  )
+  return Object.freeze([...asStringArray(value)].sort((left, right) => left.localeCompare(right)))
 }
 
 function pushIssue(
@@ -431,10 +430,7 @@ function resolveRoleHint(
   return `${targetKind}_collateral`
 }
 
-function buildSymptomDescriptor(
-  record: ConceptStateOperatorRecord,
-  ref: string
-): string {
+function buildSymptomDescriptor(record: ConceptStateOperatorRecord, ref: string): string {
   const operator = isConceptStateOperator(record.operator) ? record.operator : 'relocate'
   const fromState = normalizeToken(record.fromState) || 'unknown_state'
   const toState = normalizeToken(record.toState) || 'unknown_state'
@@ -618,19 +614,90 @@ export function validateConceptStateOperatorRecord(
     }
   }
 
-  scanForbiddenTokens(issues, id, label, record)
-
-  if (record.operator === 'bind' && !hasNonEmptyScopeRules(record)) {
+  // bind and collapse operators should have scope rules; warn if absent
+  if (
+    isConceptStateOperator(record.operator) &&
+    (record.operator === 'bind' || record.operator === 'collapse') &&
+    !hasNonEmptyScopeRules(record)
+  ) {
     pushIssue(issues, {
-      code: 'bind_without_scope_rules',
+      code:
+        record.operator === 'collapse'
+          ? 'collapse_without_scope_rules'
+          : 'bind_without_scope_rules',
       severity: 'warning',
-      detail: `Concept-state operator record ${id || '(unknown)'} uses bind without scopeRules.`,
+      detail: `Concept-state operator record ${id || '(unknown)'} with operator ${record.operator} declares no non-empty scopeRules.`,
       relatedIds: id ? [id] : undefined,
     })
   }
 
+  scanForbiddenTokens(issues, id, label, record)
+
   return freezeValidationResult(issues)
 }
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function defineRecord(record: ConceptStateOperatorRecord): ConceptStateOperatorRecord {
+  return Object.freeze({ ...record })
+}
+
+/** Concept relocate with collateralConceptRefs. */
+export const CONCEPT_RELOCATE_COLLATERAL_FIXTURE: ConceptStateOperatorRecord = defineRecord({
+  id: 'op:concept-inside-outside-flip',
+  label: 'Inside-outside distinction collapse',
+  summary: 'Anomaly relocates objective inside-outside boundary for named concept.',
+  targetKind: 'concept',
+  operator: 'relocate',
+  fromState: 'inside_perimeter',
+  toState: 'outside_perimeter',
+  collateralConceptRefs: ['concept:perimeter', 'concept:jurisdiction'],
+  detectionDifficulty: 0.6,
+  confidence: 0.71,
+})
+
+/** Category bind with scopeRules. */
+export const CATEGORY_BIND_SCOPE_FIXTURE: ConceptStateOperatorRecord = defineRecord({
+  id: 'op:category-membership-bind',
+  label: 'Membership binding under pressure',
+  summary: 'Anomaly forces category membership bond on normally voluntary affiliations.',
+  targetKind: 'category',
+  operator: 'bind',
+  fromState: 'voluntary_association',
+  toState: 'compulsory_membership',
+  scopeRules: [
+    { constraint: 'within_site_perimeter', boundaryRef: 'spatial_boundary' },
+    { constraint: 'active_anomaly_field', boundaryRef: 'effect_radius' },
+  ],
+  collateralConceptRefs: ['concept:agency_affiliation', 'concept:staff_loyalty'],
+  detectionDifficulty: 0.45,
+  confidence: 0.58,
+})
+
+/** Relation invert with minimal collateral refs (no scopeRules required). */
+export const RELATION_INVERT_FIXTURE: ConceptStateOperatorRecord = defineRecord({
+  id: 'op:relation-invert-temporal',
+  label: 'Temporal causality inversion',
+  summary: 'Effect and cause reversed for specific event pairs.',
+  targetKind: 'relation',
+  operator: 'invert',
+  fromState: 'cause_before_effect',
+  toState: 'effect_precedes_cause',
+  collateralConceptRefs: ['concept:timeline', 'concept:causality_chain'],
+  confidence: 0.39,
+})
+
+/** Object collapse with minimal data. */
+export const OBJECT_COLLAPSE_FIXTURE: ConceptStateOperatorRecord = defineRecord({
+  id: 'op:object-state-boundary-collapse',
+  label: 'Object state distinction loss',
+  targetKind: 'object',
+  operator: 'collapse',
+  fromState: 'distinct_states',
+  toState: 'superposition_indistinguishable',
+})
 
 /**
  * Projects symptom-first collateral entries for related concept refs.
@@ -650,7 +717,9 @@ export function projectConceptCollateral(
     redactedFields.has('collateralConceptRefs') ||
     (policy.redactUnknown === true && unknownFields.includes('collateralConceptRefs'))
 
-  const affectedEntries = collateralRedacted ? Object.freeze([]) : buildAffectedEntries(record, policy)
+  const affectedEntries = collateralRedacted
+    ? Object.freeze([])
+    : buildAffectedEntries(record, policy)
 
   const difficultyRedacted =
     redactedFields.has('detectionDifficulty') ||
@@ -661,7 +730,9 @@ export function projectConceptCollateral(
     redactedFields.has('confidence') ||
     difficultyRedacted ||
     (policy.redactUnknown === true && unknownFields.includes('confidence')) ||
-    (confidence === null && record.confidence !== undefined && policy.minimumConfidence !== undefined)
+    (confidence === null &&
+      record.confidence !== undefined &&
+      policy.minimumConfidence !== undefined)
 
   return Object.freeze({
     recordId,
@@ -677,39 +748,3 @@ export function projectConceptCollateral(
     unknownFields,
   })
 }
-
-function defineRecord(record: ConceptStateOperatorRecord): ConceptStateOperatorRecord {
-  return Object.freeze({ ...record })
-}
-
-/** Concept relocate operator with collateral concept refs. */
-export const CONCEPT_RELOCATE_COLLATERAL_FIXTURE: ConceptStateOperatorRecord = defineRecord({
-  id: 'concept-operator:inside-outside-relocate',
-  label: 'Inside-outside concept relocate',
-  summary: 'Relational inside/outside membership shifts with collateral category drift.',
-  targetKind: 'concept',
-  operator: 'relocate',
-  fromState: 'inside_perimeter',
-  toState: 'outside_perimeter',
-  collateralConceptRefs: ['concept:membership-queue-a', 'concept:boundary-marker-7'],
-  detectionDifficulty: 0.62,
-  confidence: 0.71,
-})
-
-/** Category bind operator with explicit scope rules. */
-export const CATEGORY_BIND_SCOPE_FIXTURE: ConceptStateOperatorRecord = defineRecord({
-  id: 'concept-operator:personnel-category-bind',
-  label: 'Personnel category bind operator',
-  summary: 'Binds personnel category membership under bounded scope rules.',
-  targetKind: 'category',
-  operator: 'bind',
-  fromState: 'unassigned_pool',
-  toState: 'restricted_pool',
-  scopeRules: [
-    { constraint: 'only_when_badge_reader_conflict', boundaryRef: 'boundary:annex-c-reader' },
-    { constraint: 'exclude_visitor_pass_holders' },
-  ],
-  collateralConceptRefs: ['concept:visitor-clearance-tier'],
-  detectionDifficulty: 0.48,
-  confidence: 0.83,
-})

@@ -154,6 +154,11 @@ import {
 import { evaluateDeploymentEligibility } from '../../domain/deploymentReadiness'
 import { reconcileAgents } from '../../domain/sim/reconciliation'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import {
+  applyAffiliationFileWorkQueueCandidateEvidenceRepair,
+  buildAffiliationFileWorkQueueRepairActionRecord,
+} from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -330,6 +335,8 @@ interface GameStore {
   assignMissionTeam: (missionId: Id, teamId: Id) => boolean
   rallySupportStaff: (amount?: number) => ReturnType<typeof applyRallySupportStaffAction>['note']
   recordAffiliationFileWorkQueueAction: (entryId: string) => void
+  recordAffiliationFileWorkQueueEvidenceResolution: (entryId: string) => void
+  recordAffiliationFileWorkQueueRepairAction: (entryId: string, reasonCode: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -1714,6 +1721,87 @@ export const useGameStore = create<GameStore>()(
               ...s.game,
               affiliationFileWorkQueueActionRecords: {
                 ...(s.game.affiliationFileWorkQueueActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueEvidenceResolution: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+
+          if (!entry || entry.bucket !== 'missing_review') {
+            return { game: s.game }
+          }
+
+          const missingReasonCodes = entry.reasonCodeLabels.filter((reasonCode) =>
+            reasonCode.startsWith('missing_')
+          )
+
+          if (missingReasonCodes.length === 0) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceBucket: entry.bucket,
+            missingReasonCodes,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueEvidenceResolutionRecords: {
+                ...(s.game.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueRepairAction: (entryId, reasonCode) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const repairCandidate = entry?.evidenceRepairCandidates.find(
+            (candidate) => candidate.reasonCode === reasonCode
+          )
+
+          if (
+            !entry ||
+            !repairCandidate ||
+            repairCandidate.isRepairActionRecorded ||
+            !reasonCode.startsWith('missing_')
+          ) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueRepairActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            reasonCode: repairCandidate.reasonCode,
+            repairLabel: repairCandidate.repairLabel,
+            recordedWeek: s.game.week,
+          })
+
+          const repaired = applyAffiliationFileWorkQueueCandidateEvidenceRepair({
+            state: s.game,
+            workQueueEntryId: entry.id,
+            reasonCode: repairCandidate.reasonCode,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...repaired.state,
+              affiliationFileWorkQueueRepairActionRecords: {
+                ...(repaired.state.affiliationFileWorkQueueRepairActionRecords ?? {}),
                 [record.id]: record,
               },
             },

@@ -214,6 +214,8 @@ import { sanitizeModifiableDataPackRecords } from '../../domain/modifiableDataPa
 import { sanitizeMassAnomalousPopulationEmergenceRecords } from '../../domain/massAnomalousPopulationEmergenceRegistry'
 import { sanitizeAffiliationPersonStatusRecords } from '../../domain/affiliationPersonStatusRecords'
 import { sanitizeAffiliationFileWorkQueueActionRecords } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { sanitizeAffiliationFileWorkQueueEvidenceResolutionRecords } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { sanitizeAffiliationFileWorkQueueRepairActionRecords } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
@@ -8741,6 +8743,16 @@ export function hydrateGame(
     game.affiliationFileWorkQueueActionRecords,
     fallback.affiliationFileWorkQueueActionRecords ?? {}
   )
+  const affiliationFileWorkQueueEvidenceResolutionRecords =
+    sanitizeAffiliationFileWorkQueueEvidenceResolutionRecords(
+      game.affiliationFileWorkQueueEvidenceResolutionRecords,
+      fallback.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}
+    )
+  const affiliationFileWorkQueueRepairActionRecords =
+    sanitizeAffiliationFileWorkQueueRepairActionRecords(
+      game.affiliationFileWorkQueueRepairActionRecords,
+      fallback.affiliationFileWorkQueueRepairActionRecords ?? {}
+    )
   const entityWelfareReclassificationRecords = sanitizeEntityWelfareReclassificationRecords(
     game.entityWelfareReclassificationRecords,
     fallback.entityWelfareReclassificationRecords ?? {}
@@ -8936,6 +8948,8 @@ export function hydrateGame(
     visualTriggerHazardRecords,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
+    affiliationFileWorkQueueEvidenceResolutionRecords,
+    affiliationFileWorkQueueRepairActionRecords,
     entityWelfareReclassificationRecords,
     containedPersonTherapeuticCareRecords,
     containedPersonMedicationRegimenRecords,

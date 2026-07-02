@@ -5,6 +5,8 @@ import {
   RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE,
 } from '../../domain/affiliationPersonStatusRecords'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -323,5 +325,110 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(view.fileAccessWorkQueue[1]).toMatchObject({
       isRecommendedActionRecorded: false,
     })
+  })
+
+  it('joins evidence-resolution records onto missing-review queue rows without changing ordering', () => {
+    const game = makeStatusGame()
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]:
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+    }
+    const recorded = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 8,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [recorded.id]: recorded,
+    }
+    const repairAction = buildAffiliationFileWorkQueueRepairActionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      reasonCode: 'missing_candidate_ref',
+      repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+      recordedWeek: 9,
+    })
+    game.affiliationFileWorkQueueRepairActionRecords = {
+      [repairAction.id]: repairAction,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue.map((entry) => entry.id)).toEqual([
+      COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      'person-status:missing-review',
+    ])
+    expect(view.fileAccessWorkQueue[1]).toMatchObject({
+      bucket: 'missing_review',
+      canRecordEvidenceResolution: false,
+      isEvidenceResolutionRecorded: true,
+      evidenceResolutionLabel: 'Evidence resolution recorded W8',
+      evidenceRepairCandidates: [
+        {
+          reasonCode: 'missing_candidate_ref',
+          repairLabel: 'Candidate link repair: attach or restore recruitment candidate evidence.',
+          isRepairActionRecorded: true,
+          repairActionLabel: 'Repair recorded W9',
+        },
+        {
+          reasonCode: 'missing_entity_welfare_reclassification_ref',
+          repairLabel:
+            'Welfare link repair: attach or restore entity welfare reclassification evidence.',
+          isRepairActionRecorded: false,
+        },
+        {
+          reasonCode: 'missing_onboarding_clearance',
+          repairLabel: 'Onboarding repair: attach or restore clearance readiness evidence.',
+          isRepairActionRecorded: false,
+        },
+      ],
+    })
+  })
+
+  it('moves repaired candidate evidence out of missing-review through existing derivations', () => {
+    const game = createStartingState()
+    game.recruitmentPool = [makeCandidate({ id: 'candidate:repaired', name: 'Repaired Subject' })]
+    game.candidates = [makeCandidate({ id: 'candidate:repaired', name: 'Repaired Subject' })]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:repaired-candidate': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:repaired-candidate',
+        subjectId: 'subject:repaired-candidate',
+        subjectLabel: 'Repaired Subject',
+        candidateRef: 'candidate:repaired',
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.summary.missingReferenceCount).toBe(0)
+    expect(view.summary.fileAccessMissingReviewCount).toBe(0)
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:repaired-candidate',
+      bucket: 'restricted',
+      fileAccessLabel: 'File access: Restricted',
+      facilityFileAccessLabel: 'Facility file access: Restricted',
+    })
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
   })
 })

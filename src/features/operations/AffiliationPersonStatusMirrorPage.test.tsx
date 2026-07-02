@@ -14,6 +14,8 @@ import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
 } from '../../domain/entityWelfareReclassificationRegistry'
+import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
+import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -127,5 +129,126 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
           }),
       })
     )
+  })
+
+  it('records missing-review evidence resolution from the queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    expect(queueRegion).toHaveTextContent('Evidence unresolved')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+
+    const resolutionId = buildAffiliationFileWorkQueueEvidenceResolutionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      missingReasonCodes: [
+        'missing_candidate_ref',
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+    })
+
+    expect(queueRegion).toHaveTextContent('Evidence resolution recorded W10')
+    expect(queueRegion).toHaveTextContent(
+      'Candidate link repair: attach or restore recruitment candidate evidence.'
+    )
+    expect(queueRegion).toHaveTextContent(
+      'Welfare link repair: attach or restore entity welfare reclassification evidence.'
+    )
+    expect(queueRegion).toHaveTextContent(
+      'Onboarding repair: attach or restore clearance readiness evidence.'
+    )
+    expect(screen.getAllByRole('button', { name: /record repair action/i })).toHaveLength(3)
+
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[1])
+
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:missing-review',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
+    })
+
+    expect(queueRegion).toHaveTextContent('Repair recorded W10')
+    expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toEqual(
+      expect.objectContaining({
+        [repairActionId]: expect.objectContaining({
+          workQueueEntryId: 'person-status:missing-review',
+          reasonCode: 'missing_entity_welfare_reclassification_ref',
+          recordedWeek: 10,
+        }),
+      })
+    )
+    expect(queueRegion).not.toHaveTextContent('Evidence unresolved')
+    expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceResolutionRecords).toEqual(
+      expect.objectContaining({
+        [resolutionId]: expect.objectContaining({
+          workQueueEntryId: 'person-status:missing-review',
+          sourceBucket: 'missing_review',
+          recordedWeek: 10,
+        }),
+      })
+    )
+  })
+
+  it('repairs candidate evidence from a resolved missing-review queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('missing_candidate_ref')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[0])
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('Restricted 0')
+    expect(queueRegion).toHaveTextContent('Facility file access: -')
+    expect(queueRegion).not.toHaveTextContent('missing_candidate_ref')
+    expect(useGameStore.getState().game.candidates).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
+    expect(useGameStore.getState().game.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: 'candidate:missing',
+        name: 'Missing Review Subject',
+      }),
+    ])
   })
 })

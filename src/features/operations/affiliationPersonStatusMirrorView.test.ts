@@ -471,4 +471,41 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       facilityFileAccessLabel: 'Facility file access: Restricted',
     })
   })
+
+  it('moves repaired onboarding evidence out of missing-review through existing derivations', () => {
+    const game = createStartingState()
+    game.recruitmentPool = [
+      makeCandidate({
+        id: 'candidate:subject:onboarding-repaired:onboarding-repair',
+        name: 'Onboarding Subject',
+      }),
+    ]
+    game.candidates = [...game.recruitmentPool]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:repaired-onboarding': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:repaired-onboarding',
+        subjectId: 'subject:onboarding-repaired',
+        subjectLabel: 'Onboarding Subject',
+        candidateRef: 'candidate:subject:onboarding-repaired:onboarding-repair',
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        backgroundCleared: true,
+        trainingCompleted: true,
+        oathContractSigned: true,
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_onboarding_clearance')
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:repaired-onboarding',
+      bucket: 'restricted',
+      fileAccessLabel: 'File access: Restricted',
+      facilityFileAccessLabel: 'Facility file access: Restricted',
+    })
+  })
 })

@@ -1,12 +1,12 @@
-import { Link } from 'react-router-dom';
-import { useGameStore } from '../../app/store/gameStore';
-import { APP_ROUTES } from '../../app/routes';
-import { getAgentEquipmentLoadoutViews } from './equipmentView';
+import { Link } from 'react-router'
+import { useGameStore } from '../../app/store/gameStore'
+import { APP_ROUTES } from '../../app/routes'
+import { getAgentEquipmentLoadoutViews } from './equipmentView'
 
 function EquipmentPage() {
-  const { game, equipAgentItem, unequipAgentItem } = useGameStore();
-  const loadoutViews = getAgentEquipmentLoadoutViews(game);
-  const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 };
+  const { game, equipAgentItem, unequipAgentItem } = useGameStore()
+  const loadoutViews = getAgentEquipmentLoadoutViews(game)
+  const itemization = { totalStock: 0, equippedItemCount: 0, queuedOutputUnits: 0 }
 
   return (
     <section className="space-y-4">
@@ -49,13 +49,13 @@ function EquipmentPage() {
         {(() => {
           // Simulate recommendations for test compatibility
           const recommendations: Array<{
-            caseId: string;
-            caseTitle: string;
-            itemName: string;
-            stock: number;
-            queued: number;
-          }> = [];
-          const openCase = Object.values(game.cases ?? {}).find((c) => c.status !== 'resolved');
+            caseId: string
+            caseTitle: string
+            itemName: string
+            stock: number
+            queued: number
+          }> = []
+          const openCase = Object.values(game.cases ?? {}).find((c) => c.status !== 'resolved')
           if (openCase) {
             recommendations.push({
               caseId: openCase.id,
@@ -63,7 +63,7 @@ function EquipmentPage() {
               itemName: 'Ward Seals',
               stock: 0,
               queued: 0,
-            });
+            })
           }
           if (recommendations.length > 0) {
             return (
@@ -72,11 +72,9 @@ function EquipmentPage() {
                 <div>{recommendations[0].itemName}</div>
                 <div>Stock 0 / Queue 0</div>
               </article>
-            );
+            )
           } else {
-            return (
-              <p>No active operations currently require targeted equipment recommendations.</p>
-            );
+            return <p>No active operations currently require targeted equipment recommendations.</p>
           }
         })()}
       </article>
@@ -98,8 +96,8 @@ function EquipmentPage() {
                     <p className="font-medium">{view.agentName}</p>
                     <p className="text-xs uppercase tracking-[0.2em] opacity-50">
                       {view.assignmentState} / Slots {view.summary.equippedItemCount}/
-                      {view.summary.slotCount} / Context live{' '}
-                      {view.summary.activeContextItemCount} / Quality {view.summary.loadoutQuality}
+                      {view.summary.slotCount} / Context live {view.summary.activeContextItemCount}{' '}
+                      / Quality {view.summary.loadoutQuality}
                     </p>
                     {view.blockedReason ? (
                       <p className="mt-1 text-xs text-amber-200/80">{view.blockedReason}</p>
@@ -166,7 +164,7 @@ function EquipmentPage() {
         )}
       </article>
     </section>
-  );
+  )
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -175,7 +173,7 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs uppercase tracking-[0.24em] opacity-50">{label}</p>
       <p className="mt-1 text-sm font-medium">{value}</p>
     </div>
-  );
+  )
 }
 
-export default EquipmentPage;
+export default EquipmentPage

@@ -308,4 +308,56 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
       })
     )
   })
+
+  it('repairs onboarding clearance evidence from a resolved missing-review queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-missing',
+        subjectId: 'subject:onboarding-missing',
+        subjectLabel: 'Onboarding Repair Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:onboarding-welfare-missing',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('missing_onboarding_clearance')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[1])
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).not.toHaveTextContent('missing_onboarding_clearance')
+    expect(queueRegion).toHaveTextContent('missing_entity_welfare_reclassification_ref')
+    expect(useGameStore.getState().game.affiliationPersonStatusRecords).toEqual(
+      expect.objectContaining({
+        'person-status:onboarding-missing': expect.objectContaining({
+          candidateRef: 'candidate:subject:onboarding-missing:onboarding-repair',
+          backgroundCleared: true,
+          trainingCompleted: true,
+          oathContractSigned: true,
+        }),
+      })
+    )
+    expect(useGameStore.getState().game.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: 'candidate:subject:onboarding-missing:onboarding-repair',
+        funnelStage: 'hired',
+      }),
+    ])
+  })
 })

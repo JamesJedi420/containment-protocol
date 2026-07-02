@@ -2035,6 +2035,91 @@ describe('affiliation file work queue repair action store action', () => {
     )
   })
 
+  it('records repair actions and restores onboarding evidence for resolved onboarding-clearance rows', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-missing',
+        subjectId: 'subject:onboarding-missing',
+        subjectLabel: 'Onboarding Repair Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:onboarding-welfare-missing',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-missing',
+      subjectId: 'subject:onboarding-missing',
+      subjectLabel: 'Onboarding Repair Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: [
+        'missing_entity_welfare_reclassification_ref',
+        'missing_onboarding_clearance',
+      ],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const originalWelfareRecords = game.entityWelfareReclassificationRecords
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:onboarding-missing',
+        'missing_onboarding_clearance'
+      )
+
+    const next = useGameStore.getState().game
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:onboarding-missing',
+      reasonCode: 'missing_onboarding_clearance',
+    })
+    const candidateId = 'candidate:subject:onboarding-missing:onboarding-repair'
+    const repairedRecord = next.affiliationPersonStatusRecords?.['person-status:onboarding-missing']
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]).toEqual({
+      id: repairActionId,
+      workQueueEntryId: 'person-status:onboarding-missing',
+      subjectId: 'subject:onboarding-missing',
+      subjectLabel: 'Onboarding Repair Subject',
+      reasonCode: 'missing_onboarding_clearance',
+      repairLabel: 'Onboarding repair: attach or restore clearance readiness evidence.',
+      recordedWeek: 12,
+    })
+    expect(repairedRecord).toMatchObject({
+      candidateRef: candidateId,
+      backgroundCleared: true,
+      trainingCompleted: true,
+      oathContractSigned: true,
+    })
+    expect(next.candidates).toEqual([
+      expect.objectContaining({
+        id: candidateId,
+        name: 'Onboarding Repair Subject',
+        funnelStage: 'hired',
+      }),
+    ])
+    expect(next.recruitmentPool).toEqual([
+      expect.objectContaining({
+        id: candidateId,
+        name: 'Onboarding Repair Subject',
+      }),
+    ])
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_onboarding_clearance')
+    expect(view.records[0]?.reasonCodeLabels).toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+    expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+  })
+
   it('no-ops for absent, unresolved, non-matching, and already-recorded rows', () => {
     const game = createStartingState()
     game.week = 12

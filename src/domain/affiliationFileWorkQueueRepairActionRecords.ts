@@ -1,6 +1,7 @@
 import type { GameState } from './models'
 import type { Candidate } from './recruitment'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
+import type { AffiliationPersonStatusRecord } from './affiliationPersonStatusRecords'
 
 export type AffiliationFileWorkQueueRepairActionRecordId = string
 
@@ -36,6 +37,7 @@ export type AffiliationFileWorkQueueEvidenceRepairReason =
   | 'missing-welfare-ref'
   | 'candidate-already-present'
   | 'welfare-record-already-present'
+  | 'onboarding-already-present'
   | 'missing-evidence-resolution'
 
 export interface AffiliationFileWorkQueueEvidenceRepairResult {
@@ -83,6 +85,14 @@ function hasRecordedWelfareEvidenceResolution(state: GameState, entryId: string)
     (record) =>
       record.workQueueEntryId === entryId &&
       record.missingReasonCodes.includes('missing_entity_welfare_reclassification_ref')
+  )
+}
+
+function hasRecordedOnboardingEvidenceResolution(state: GameState, entryId: string) {
+  return Object.values(state.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}).some(
+    (record) =>
+      record.workQueueEntryId === entryId &&
+      record.missingReasonCodes.includes('missing_onboarding_clearance')
   )
 }
 
@@ -147,6 +157,46 @@ function buildRepairedWelfareEvidence(input: {
   })
 }
 
+function buildRepairedOnboardingCandidateId(record: AffiliationPersonStatusRecord) {
+  return `candidate:${record.subjectId.replace(/[^a-zA-Z0-9:-]+/g, '-').toLowerCase()}:onboarding-repair`
+}
+
+function isOnboardingCleared(record: AffiliationPersonStatusRecord, candidate: Candidate) {
+  return (
+    candidate.funnelStage === 'hired' &&
+    record.backgroundCleared === true &&
+    record.trainingCompleted === true &&
+    record.oathContractSigned === true
+  )
+}
+
+function buildOnboardingRepairedRecord(input: {
+  readonly record: AffiliationPersonStatusRecord
+  readonly candidateId: string
+}): AffiliationPersonStatusRecord {
+  const { record, candidateId } = input
+
+  return Object.freeze({
+    ...record,
+    candidateRef: candidateId,
+    backgroundCleared: true,
+    trainingCompleted: true,
+    oathContractSigned: true,
+  })
+}
+
+function buildOnboardingRepairedCandidate(candidate: Candidate, week: number): Candidate {
+  return Object.freeze({
+    ...candidate,
+    hireStatus: candidate.hireStatus === 'expired' ? 'available' : candidate.hireStatus,
+    revealLevel: candidate.revealLevel < 2 ? 2 : candidate.revealLevel,
+    funnelStage: 'hired',
+    lastUpdatedWeek: Math.max(1, week),
+    roleInclination: candidate.roleInclination ?? 'field',
+    skills: [...new Set([...(candidate.skills ?? []), 'affiliation-onboarding-repaired'])],
+  })
+}
+
 function appendCandidateIfMissing(
   candidates: readonly Candidate[] | undefined,
   candidate: Candidate
@@ -154,6 +204,18 @@ function appendCandidateIfMissing(
   return hasCandidate(candidates, candidate.id)
     ? [...(candidates ?? [])]
     : [...(candidates ?? []), candidate]
+}
+
+function replaceCandidateIfPresent(
+  candidates: readonly Candidate[] | undefined,
+  nextCandidate: Candidate
+) {
+  const current = candidates ?? []
+  return current.map((candidate) => (candidate.id === nextCandidate.id ? nextCandidate : candidate))
+}
+
+function findCandidate(candidates: readonly Candidate[] | undefined, candidateId: string) {
+  return (candidates ?? []).find((candidate) => candidate.id === candidateId)
 }
 
 export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
@@ -166,7 +228,8 @@ export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
 
   if (
     reasonCode !== 'missing_candidate_ref' &&
-    reasonCode !== 'missing_entity_welfare_reclassification_ref'
+    reasonCode !== 'missing_entity_welfare_reclassification_ref' &&
+    reasonCode !== 'missing_onboarding_clearance'
   ) {
     return Object.freeze({
       state: input.state,
@@ -223,6 +286,87 @@ export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
           ...(input.state.entityWelfareReclassificationRecords ?? {}),
           [welfareRecord.id]: welfareRecord,
         },
+      },
+      applied: true,
+      reason: 'applied',
+    })
+  }
+
+  if (reasonCode === 'missing_onboarding_clearance') {
+    if (!hasRecordedOnboardingEvidenceResolution(input.state, input.workQueueEntryId)) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'missing-evidence-resolution',
+      })
+    }
+
+    const candidateRef = normalizeToken(record.candidateRef)
+    if (!candidateRef) {
+      const candidate = buildRepairedCandidateEvidence({
+        candidateId: buildRepairedOnboardingCandidateId(record),
+        subjectLabel: record.subjectLabel,
+        week: input.recordedWeek,
+      })
+      const nextRecord = buildOnboardingRepairedRecord({
+        record,
+        candidateId: candidate.id,
+      })
+
+      return Object.freeze({
+        state: {
+          ...input.state,
+          affiliationPersonStatusRecords: {
+            ...(input.state.affiliationPersonStatusRecords ?? {}),
+            [nextRecord.id]: nextRecord,
+          },
+          candidates: appendCandidateIfMissing(input.state.candidates, candidate),
+          recruitmentPool: appendCandidateIfMissing(input.state.recruitmentPool, candidate),
+        },
+        applied: true,
+        reason: 'applied',
+      })
+    }
+
+    const currentCandidate = findCandidate(
+      input.state.recruitmentPool ?? input.state.candidates,
+      candidateRef
+    )
+    if (!currentCandidate) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'missing-candidate-ref',
+      })
+    }
+
+    if (isOnboardingCleared(record, currentCandidate)) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'onboarding-already-present',
+      })
+    }
+
+    const nextCandidate = buildOnboardingRepairedCandidate(currentCandidate, input.recordedWeek)
+    const nextRecord = buildOnboardingRepairedRecord({
+      record,
+      candidateId: nextCandidate.id,
+    })
+
+    return Object.freeze({
+      state: {
+        ...input.state,
+        affiliationPersonStatusRecords: {
+          ...(input.state.affiliationPersonStatusRecords ?? {}),
+          [nextRecord.id]: nextRecord,
+        },
+        candidates: hasCandidate(input.state.candidates, nextCandidate.id)
+          ? replaceCandidateIfPresent(input.state.candidates, nextCandidate)
+          : input.state.candidates,
+        recruitmentPool: hasCandidate(input.state.recruitmentPool, nextCandidate.id)
+          ? replaceCandidateIfPresent(input.state.recruitmentPool, nextCandidate)
+          : input.state.recruitmentPool,
       },
       applied: true,
       reason: 'applied',

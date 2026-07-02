@@ -785,6 +785,3 @@ export function projectConceptCollateral(
   })
 }
 
-function defineRecord(record: ConceptStateOperatorRecord): ConceptStateOperatorRecord {
-  return Object.freeze({ ...record })
-}

@@ -66,6 +66,8 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
+**Current handoff:** [SPE-2537](https://linear.app/spectranoir/issue/SPE-2537/spe-1046-file-work-queue-welfare-evidence-repair-mutation) SPE-1046 file work queue welfare evidence repair mutation (slice 1) is **in progress** on branch `spe-1046-file-work-queue-welfare-evidence-repair-slice-1` from base `9cf49c36`; see `planning/spe-1046-file-work-queue-welfare-evidence-repair-slice-1.md`. [SPE-2536](https://linear.app/spectranoir/issue/SPE-2536/spe-1046-file-work-queue-candidate-evidence-repair-mutation) shipped in PR #3004 @ `7ab3739f`.
+
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 
 **Recently shipped:** [SPE-2500](https://linear.app/spectranoir/issue/SPE-2500) modifiable data-pack publish queue enqueue weekly orchestration (slice 4) — governance → enqueue → execution in `advanceWeek`; PR #2922 @ `b734f03b`.

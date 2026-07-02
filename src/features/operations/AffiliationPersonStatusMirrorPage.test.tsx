@@ -184,7 +184,9 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
       reasonCode: 'missing_entity_welfare_reclassification_ref',
     })
 
-    expect(queueRegion).toHaveTextContent('Repair recorded W10')
+    expect(queueRegion).toHaveTextContent('Missing review 0')
+    expect(queueRegion).toHaveTextContent('Restricted 1')
+    expect(queueRegion).not.toHaveTextContent('missing_entity_welfare_reclassification_ref')
     expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toEqual(
       expect.objectContaining({
         [repairActionId]: expect.objectContaining({
@@ -250,5 +252,60 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
         name: 'Missing Review Subject',
       }),
     ])
+  })
+
+  it('repairs welfare evidence from a resolved missing-review queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 10
+    game.candidates = [
+      {
+        id: 'candidate:present',
+        name: 'Welfare Repair Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 2,
+      },
+    ]
+    game.recruitmentPool = [...game.candidates]
+    game.affiliationPersonStatusRecords = {
+      'person-status:welfare-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:welfare-missing',
+        subjectId: 'subject:welfare-missing',
+        subjectLabel: 'Welfare Repair Subject',
+        candidateRef: 'candidate:present',
+        entityWelfareReclassificationRef: 'reclass:welfare-missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(queueRegion).toHaveTextContent('missing_entity_welfare_reclassification_ref')
+
+    await user.click(screen.getByRole('button', { name: /record evidence resolution/i }))
+    await user.click(screen.getAllByRole('button', { name: /record repair action/i })[0])
+
+    expect(queueRegion).toHaveTextContent('Missing review 0')
+    expect(queueRegion).not.toHaveTextContent('missing_entity_welfare_reclassification_ref')
+    expect(
+      useGameStore.getState().game.entityWelfareReclassificationRecords?.['reclass:welfare-missing']
+    ).toEqual(
+      expect.objectContaining({
+        id: 'reclass:welfare-missing',
+        label: 'Welfare Repair Subject welfare link repair',
+        proposedDisposition: 'unknown',
+        reclassificationState: 'pending',
+      })
+    )
   })
 })

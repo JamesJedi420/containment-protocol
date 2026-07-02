@@ -1,5 +1,6 @@
 import type { GameState } from './models'
 import type { Candidate } from './recruitment'
+import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 
 export type AffiliationFileWorkQueueRepairActionRecordId = string
 
@@ -27,18 +28,20 @@ export interface AffiliationFileWorkQueueRepairActionRecordInput {
   readonly recordedWeek: number
 }
 
-export type AffiliationFileWorkQueueCandidateEvidenceRepairReason =
+export type AffiliationFileWorkQueueEvidenceRepairReason =
   | 'applied'
   | 'unsupported-reason-code'
   | 'missing-person-status-record'
   | 'missing-candidate-ref'
+  | 'missing-welfare-ref'
   | 'candidate-already-present'
+  | 'welfare-record-already-present'
   | 'missing-evidence-resolution'
 
-export interface AffiliationFileWorkQueueCandidateEvidenceRepairResult {
+export interface AffiliationFileWorkQueueEvidenceRepairResult {
   readonly state: GameState
   readonly applied: boolean
-  readonly reason: AffiliationFileWorkQueueCandidateEvidenceRepairReason
+  readonly reason: AffiliationFileWorkQueueEvidenceRepairReason
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -72,6 +75,14 @@ function hasRecordedCandidateEvidenceResolution(state: GameState, entryId: strin
     (record) =>
       record.workQueueEntryId === entryId &&
       record.missingReasonCodes.includes('missing_candidate_ref')
+  )
+}
+
+function hasRecordedWelfareEvidenceResolution(state: GameState, entryId: string) {
+  return Object.values(state.affiliationFileWorkQueueEvidenceResolutionRecords ?? {}).some(
+    (record) =>
+      record.workQueueEntryId === entryId &&
+      record.missingReasonCodes.includes('missing_entity_welfare_reclassification_ref')
   )
 }
 
@@ -119,6 +130,23 @@ function buildRepairedCandidateEvidence(input: {
   })
 }
 
+function buildRepairedWelfareEvidence(input: {
+  readonly recordId: string
+  readonly subjectLabel: string
+  readonly week: number
+}): EntityWelfareReclassificationRecord {
+  return Object.freeze({
+    id: input.recordId,
+    label: `${input.subjectLabel} welfare link repair`,
+    summary: 'Minimal restored welfare reclassification evidence from file work queue repair.',
+    priorThreatLabel: 'unreviewed affiliation custody',
+    proposedDisposition: 'unknown',
+    reclassificationState: 'pending',
+    evidenceBundleRefs: [`affiliation-file-work-queue-repair:${input.recordId}:week-${input.week}`],
+    confidence: 0.5,
+  })
+}
+
 function appendCandidateIfMissing(
   candidates: readonly Candidate[] | undefined,
   candidate: Candidate
@@ -128,15 +156,18 @@ function appendCandidateIfMissing(
     : [...(candidates ?? []), candidate]
 }
 
-export function applyAffiliationFileWorkQueueCandidateEvidenceRepair(input: {
+export function applyAffiliationFileWorkQueueEvidenceRepair(input: {
   readonly state: GameState
   readonly workQueueEntryId: string
   readonly reasonCode: string
   readonly recordedWeek: number
-}): AffiliationFileWorkQueueCandidateEvidenceRepairResult {
+}): AffiliationFileWorkQueueEvidenceRepairResult {
   const reasonCode = normalizeReasonCode(input.reasonCode)
 
-  if (reasonCode !== 'missing_candidate_ref') {
+  if (
+    reasonCode !== 'missing_candidate_ref' &&
+    reasonCode !== 'missing_entity_welfare_reclassification_ref'
+  ) {
     return Object.freeze({
       state: input.state,
       applied: false,
@@ -150,6 +181,51 @@ export function applyAffiliationFileWorkQueueCandidateEvidenceRepair(input: {
       state: input.state,
       applied: false,
       reason: 'missing-person-status-record',
+    })
+  }
+
+  if (reasonCode === 'missing_entity_welfare_reclassification_ref') {
+    const welfareRef = normalizeToken(record.entityWelfareReclassificationRef)
+    if (!welfareRef) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'missing-welfare-ref',
+      })
+    }
+
+    if (!hasRecordedWelfareEvidenceResolution(input.state, input.workQueueEntryId)) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'missing-evidence-resolution',
+      })
+    }
+
+    if (input.state.entityWelfareReclassificationRecords?.[welfareRef]) {
+      return Object.freeze({
+        state: input.state,
+        applied: false,
+        reason: 'welfare-record-already-present',
+      })
+    }
+
+    const welfareRecord = buildRepairedWelfareEvidence({
+      recordId: welfareRef,
+      subjectLabel: record.subjectLabel,
+      week: input.recordedWeek,
+    })
+
+    return Object.freeze({
+      state: {
+        ...input.state,
+        entityWelfareReclassificationRecords: {
+          ...(input.state.entityWelfareReclassificationRecords ?? {}),
+          [welfareRecord.id]: welfareRecord,
+        },
+      },
+      applied: true,
+      reason: 'applied',
     })
   }
 
@@ -197,6 +273,9 @@ export function applyAffiliationFileWorkQueueCandidateEvidenceRepair(input: {
     reason: 'applied',
   })
 }
+
+export const applyAffiliationFileWorkQueueCandidateEvidenceRepair =
+  applyAffiliationFileWorkQueueEvidenceRepair
 
 export function buildAffiliationFileWorkQueueRepairActionRecordId(input: {
   readonly workQueueEntryId: string

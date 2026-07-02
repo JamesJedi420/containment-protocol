@@ -53,6 +53,7 @@ import { COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE } from '../../domain/affil
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
+  validateEntityWelfareReclassificationRecord,
 } from '../../domain/entityWelfareReclassificationRegistry'
 import { buildAffiliationFileWorkQueueActionRecordId } from '../../domain/affiliationFileWorkQueueActionRecords'
 import {
@@ -1950,6 +1951,90 @@ describe('affiliation file work queue repair action store action', () => {
     )
   })
 
+  it('records repair actions and restores welfare evidence for resolved welfare-link rows', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.candidates = [
+      {
+        id: 'candidate:present',
+        name: 'Welfare Repair Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 2,
+      },
+    ]
+    game.recruitmentPool = [...game.candidates]
+    game.affiliationPersonStatusRecords = {
+      'person-status:welfare-missing': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:welfare-missing',
+        subjectId: 'subject:welfare-missing',
+        subjectLabel: 'Welfare Repair Subject',
+        candidateRef: 'candidate:present',
+        entityWelfareReclassificationRef: 'reclass:welfare-missing',
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:welfare-missing',
+      subjectId: 'subject:welfare-missing',
+      subjectLabel: 'Welfare Repair Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_entity_welfare_reclassification_ref'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const originalPersonStatusRecords = game.affiliationPersonStatusRecords
+    const originalCandidates = game.candidates
+    const originalRecruitmentPool = game.recruitmentPool
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:welfare-missing',
+        'missing_entity_welfare_reclassification_ref'
+      )
+
+    const next = useGameStore.getState().game
+    const repairActionId = buildAffiliationFileWorkQueueRepairActionRecordId({
+      workQueueEntryId: 'person-status:welfare-missing',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
+    })
+    const restored = next.entityWelfareReclassificationRecords?.['reclass:welfare-missing']
+    const view = getAffiliationPersonStatusMirrorView(next)
+
+    expect(next.affiliationFileWorkQueueRepairActionRecords?.[repairActionId]).toEqual({
+      id: repairActionId,
+      workQueueEntryId: 'person-status:welfare-missing',
+      subjectId: 'subject:welfare-missing',
+      subjectLabel: 'Welfare Repair Subject',
+      reasonCode: 'missing_entity_welfare_reclassification_ref',
+      repairLabel:
+        'Welfare link repair: attach or restore entity welfare reclassification evidence.',
+      recordedWeek: 12,
+    })
+    expect(restored).toMatchObject({
+      id: 'reclass:welfare-missing',
+      label: 'Welfare Repair Subject welfare link repair',
+      proposedDisposition: 'unknown',
+      reclassificationState: 'pending',
+    })
+    expect(restored ? validateEntityWelfareReclassificationRecord(restored).valid : false).toBe(
+      true
+    )
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.candidates).toBe(originalCandidates)
+    expect(next.recruitmentPool).toBe(originalRecruitmentPool)
+    expect(view.records[0]?.reasonCodeLabels).not.toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+  })
+
   it('no-ops for absent, unresolved, non-matching, and already-recorded rows', () => {
     const game = createStartingState()
     game.week = 12
@@ -2032,11 +2117,51 @@ describe('affiliation file work queue repair action store action', () => {
     const beforeUnsupported = useGameStore.getState().game
     useGameStore
       .getState()
+      .recordAffiliationFileWorkQueueRepairAction('person-status:missing-review', 'missing_unknown')
+    expect(useGameStore.getState().game.candidates).toBe(beforeUnsupported.candidates)
+
+    const beforeWelfareUnresolved = useGameStore.getState().game
+    useGameStore
+      .getState()
       .recordAffiliationFileWorkQueueRepairAction(
         'person-status:missing-review',
         'missing_entity_welfare_reclassification_ref'
       )
-    expect(useGameStore.getState().game.candidates).toBe(beforeUnsupported.candidates)
+    expect(useGameStore.getState().game).toBe(beforeWelfareUnresolved)
+
+    const welfareResolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:missing-review',
+      subjectId: 'subject:missing-review',
+      subjectLabel: 'Missing Review Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_entity_welfare_reclassification_ref'],
+      recordedWeek: 14,
+    })
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueEvidenceResolutionRecords: {
+          [welfareResolutionRecord.id]: welfareResolutionRecord,
+        },
+        entityWelfareReclassificationRecords: {
+          'reclass:missing': PENDING_TO_APPROVED_FIXTURE,
+        },
+      },
+    })
+
+    const beforeWelfarePresent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:missing-review',
+        'missing_entity_welfare_reclassification_ref'
+      )
+    expect(useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords).toBe(
+      beforeWelfarePresent.affiliationFileWorkQueueRepairActionRecords
+    )
+    expect(useGameStore.getState().game.entityWelfareReclassificationRecords).toBe(
+      beforeWelfarePresent.entityWelfareReclassificationRecords
+    )
   })
 })
 

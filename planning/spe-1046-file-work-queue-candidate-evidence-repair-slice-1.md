@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2536](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                                               |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2536 - SPE-1046 file work queue candidate evidence repair mutation](https://linear.app/spectranoir/issue/SPE-2536/spe-1046-file-work-queue-candidate-evidence-repair-mutation) |
-| **Status**          | **In Progress**                                                                                                                                                                     |
+| **Status**          | **Shipped** - PR #3004 @ `7ab3739f`                                                                                                                                                 |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                                 |
 | **Branch**          | `spe-1046-file-work-queue-candidate-evidence-repair-slice-1`                                                                                                                        |
 | **Base `main` SHA** | `5c165a7c`                                                                                                                                                                          |
@@ -45,7 +45,7 @@ Turn the recorded file work queue repair-action step into a bounded evidence rep
 
 | Item                          | Owner                    | Why                                                     |
 | ----------------------------- | ------------------------ | ------------------------------------------------------- |
-| Welfare evidence repair       | SPE-1046 follow-up child | This slice only repairs `missing_candidate_ref`.        |
+| Welfare evidence repair       | SPE-1046 follow-up child | Followed by SPE-2537.                                   |
 | Onboarding/site repair lanes  | SPE-1046 follow-up child | Requires separate lane policy and tests.                |
 | File release workflow actions | SPE-1046 follow-up child | Access decisions remain derived from existing evidence. |
 | SPE-947 propagation work      | SPE-947 child            | Separate parent thread.                                 |

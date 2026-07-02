@@ -431,4 +431,44 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     })
     expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
   })
+
+  it('moves repaired welfare evidence out of missing-review through existing derivations', () => {
+    const game = createStartingState()
+    game.recruitmentPool = [makeCandidate({ id: 'candidate:present', name: 'Welfare Subject' })]
+    game.candidates = [makeCandidate({ id: 'candidate:present', name: 'Welfare Subject' })]
+    game.entityWelfareReclassificationRecords = {
+      'reclass:welfare-repaired': {
+        id: 'reclass:welfare-repaired',
+        label: 'Welfare Subject welfare link repair',
+        summary: 'Minimal restored welfare reclassification evidence from file work queue repair.',
+        priorThreatLabel: 'unreviewed affiliation custody',
+        proposedDisposition: 'unknown',
+        reclassificationState: 'pending',
+        evidenceBundleRefs: ['affiliation-file-work-queue-repair:reclass:welfare-repaired:week-12'],
+        confidence: 0.5,
+      },
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:repaired-welfare': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:repaired-welfare',
+        subjectId: 'subject:repaired-welfare',
+        subjectLabel: 'Welfare Subject',
+        candidateRef: 'candidate:present',
+        entityWelfareReclassificationRef: 'reclass:welfare-repaired',
+      },
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.records[0]?.reasonCodeLabels).not.toContain(
+      'missing_entity_welfare_reclassification_ref'
+    )
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      id: 'person-status:repaired-welfare',
+      bucket: 'restricted',
+      fileAccessLabel: 'File access: Restricted',
+      facilityFileAccessLabel: 'Facility file access: Restricted',
+    })
+  })
 })

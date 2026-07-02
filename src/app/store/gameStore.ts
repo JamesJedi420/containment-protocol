@@ -156,7 +156,7 @@ import { reconcileAgents } from '../../domain/sim/reconciliation'
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import {
-  applyAffiliationFileWorkQueueCandidateEvidenceRepair,
+  applyAffiliationFileWorkQueueEvidenceRepair,
   buildAffiliationFileWorkQueueRepairActionRecord,
 } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
@@ -1790,7 +1790,7 @@ export const useGameStore = create<GameStore>()(
             recordedWeek: s.game.week,
           })
 
-          const repaired = applyAffiliationFileWorkQueueCandidateEvidenceRepair({
+          const repaired = applyAffiliationFileWorkQueueEvidenceRepair({
             state: s.game,
             workQueueEntryId: entry.id,
             reasonCode: repairCandidate.reasonCode,

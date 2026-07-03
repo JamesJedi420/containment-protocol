@@ -40,6 +40,9 @@ export default function AffiliationPersonStatusMirrorPage() {
   const recordAffiliationFileWorkQueueReleaseAction = useGameStore(
     (state) => state.recordAffiliationFileWorkQueueReleaseAction
   )
+  const recordAffiliationFileWorkQueueReleaseOutcome = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueReleaseOutcome
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -271,6 +274,19 @@ export default function AffiliationPersonStatusMirrorPage() {
                             onClick={() => recordAffiliationFileWorkQueueReleaseAction(entry.id)}
                           >
                             {entry.releaseActionButtonLabel}
+                          </button>
+                        ) : null}
+                        {entry.isReleaseOutcomeRecorded ? (
+                          <p className="mt-2 text-xs font-medium">
+                            {entry.releaseOutcomeStatusLabel}
+                          </p>
+                        ) : entry.canRecordReleaseOutcome ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2 whitespace-nowrap"
+                            onClick={() => recordAffiliationFileWorkQueueReleaseOutcome(entry.id)}
+                          >
+                            {entry.releaseOutcomeButtonLabel}
                           </button>
                         ) : null}
                       </td>

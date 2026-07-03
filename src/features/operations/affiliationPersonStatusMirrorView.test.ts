@@ -8,6 +8,7 @@ import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliat
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecord } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import { buildAffiliationFileWorkQueueReleaseOutcomeRecord } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -362,6 +363,54 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       isReleaseActionRecorded: false,
       releaseActionLabel: 'Restricted release review routed',
       releaseActionButtonLabel: 'Route restricted review',
+    })
+  })
+
+  it('joins release-outcome records onto rows after release action recording', () => {
+    const game = makeStatusGame()
+    const releaseAction = buildAffiliationFileWorkQueueReleaseActionRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      actionKind: 'restricted_release_review_routed',
+      actionLabel: 'Restricted release review routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_restricted'],
+      recordedWeek: 10,
+    })
+    const outcome = buildAffiliationFileWorkQueueReleaseOutcomeRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceActionKind: 'restricted_release_review_routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_restricted'],
+      outcomeKind: 'restricted_review_pending',
+      outcomeLabel: 'Restricted review pending',
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueReleaseActionRecords = {
+      [releaseAction.id]: releaseAction,
+    }
+    game.affiliationFileWorkQueueReleaseOutcomeRecords = {
+      [outcome.id]: outcome,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      canRecordReleaseAction: false,
+      isReleaseActionRecorded: true,
+      releaseActionKind: 'restricted_release_review_routed',
+      releaseActionStatusLabel: 'Restricted release review routed W10',
+      canRecordReleaseOutcome: false,
+      isReleaseOutcomeRecorded: true,
+      releaseOutcomeStatusLabel: 'Restricted review pending W11',
+      releaseOutcomeButtonLabel: 'Record review hold',
+    })
+    expect(view.fileAccessWorkQueue[1]).toMatchObject({
+      canRecordReleaseOutcome: false,
+      isReleaseOutcomeRecorded: false,
     })
   })
 

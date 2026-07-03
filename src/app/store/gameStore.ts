@@ -163,6 +163,10 @@ import {
   buildAffiliationFileWorkQueueReleaseActionRecord,
   getAffiliationFileWorkQueueReleaseActionForBucket,
 } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseOutcomeRecord,
+  getAffiliationFileWorkQueueReleaseOutcomeForAction,
+} from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -342,6 +346,7 @@ interface GameStore {
   recordAffiliationFileWorkQueueEvidenceResolution: (entryId: string) => void
   recordAffiliationFileWorkQueueRepairAction: (entryId: string, reasonCode: string) => void
   recordAffiliationFileWorkQueueReleaseAction: (entryId: string) => void
+  recordAffiliationFileWorkQueueReleaseOutcome: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -1842,6 +1847,47 @@ export const useGameStore = create<GameStore>()(
               ...s.game,
               affiliationFileWorkQueueReleaseActionRecords: {
                 ...(s.game.affiliationFileWorkQueueReleaseActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleaseOutcome: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+
+          if (
+            !entry ||
+            !entry.releaseActionKind ||
+            !entry.isReleaseActionRecorded ||
+            entry.isReleaseOutcomeRecorded
+          ) {
+            return { game: s.game }
+          }
+
+          const sourceBucket = entry.bucket === 'allowed' ? 'allowed' : 'restricted'
+          const outcome = getAffiliationFileWorkQueueReleaseOutcomeForAction(
+            entry.releaseActionKind
+          )
+          const record = buildAffiliationFileWorkQueueReleaseOutcomeRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceActionKind: entry.releaseActionKind,
+            sourceBucket,
+            sourceReasonCodes: entry.reasonCodeLabels,
+            outcomeKind: outcome.outcomeKind,
+            outcomeLabel: outcome.outcomeLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleaseOutcomeRecords: {
+                ...(s.game.affiliationFileWorkQueueReleaseOutcomeRecords ?? {}),
                 [record.id]: record,
               },
             },

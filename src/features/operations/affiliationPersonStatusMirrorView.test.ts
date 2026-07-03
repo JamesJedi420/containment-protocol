@@ -7,6 +7,7 @@ import {
 import { buildAffiliationFileWorkQueueActionRecord } from '../../domain/affiliationFileWorkQueueActionRecords'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import { buildAffiliationFileWorkQueueReleaseActionRecord } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -324,6 +325,43 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     })
     expect(view.fileAccessWorkQueue[1]).toMatchObject({
       isRecommendedActionRecorded: false,
+    })
+  })
+
+  it('joins release-action records onto eligible queue rows without changing ordering', () => {
+    const game = makeStatusGame()
+    const recorded = buildAffiliationFileWorkQueueReleaseActionRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      actionKind: 'restricted_release_review_routed',
+      actionLabel: 'Restricted release review routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_restricted'],
+      recordedWeek: 10,
+    })
+    game.affiliationFileWorkQueueReleaseActionRecords = {
+      [recorded.id]: recorded,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue.map((entry) => entry.id)).toEqual([
+      COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      RESTRICTED_DUAL_LOYALTY_PERSON_STATUS_FIXTURE.id,
+    ])
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      canRecordReleaseAction: false,
+      isReleaseActionRecorded: true,
+      releaseActionLabel: 'Restricted release review routed',
+      releaseActionStatusLabel: 'Restricted release review routed W10',
+      releaseActionButtonLabel: 'Route restricted review',
+    })
+    expect(view.fileAccessWorkQueue[1]).toMatchObject({
+      canRecordReleaseAction: true,
+      isReleaseActionRecorded: false,
+      releaseActionLabel: 'Restricted release review routed',
+      releaseActionButtonLabel: 'Route restricted review',
     })
   })
 

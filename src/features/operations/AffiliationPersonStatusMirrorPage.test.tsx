@@ -17,6 +17,7 @@ import {
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -169,6 +170,52 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
           actionLabel: 'Restricted release review routed',
           sourceBucket: 'restricted',
           recordedWeek: 9,
+        }),
+      })
+    )
+  })
+
+  it('records a release outcome after the release action is recorded', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 9
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    expect(screen.queryByRole('button', { name: /record review hold/i })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /route restricted review/i }))
+    expect(screen.getByRole('button', { name: /record review hold/i })).toBeInTheDocument()
+
+    useGameStore.setState({ game: { ...useGameStore.getState().game, week: 10 } })
+    await user.click(screen.getByRole('button', { name: /record review hold/i }))
+    const outcomeId = buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceActionKind: 'restricted_release_review_routed',
+    })
+
+    expect(queueRegion).toHaveTextContent('Restricted review pending W10')
+    expect(screen.queryByRole('button', { name: /record review hold/i })).not.toBeInTheDocument()
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleaseOutcomeRecords).toEqual(
+      expect.objectContaining({
+        [outcomeId]: expect.objectContaining({
+          sourceActionKind: 'restricted_release_review_routed',
+          outcomeKind: 'restricted_review_pending',
+          outcomeLabel: 'Restricted review pending',
+          recordedWeek: 10,
         }),
       })
     )

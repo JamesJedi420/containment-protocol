@@ -8,7 +8,9 @@ import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/
 import {
   buildAffiliationFileWorkQueueReleaseActionRecordId,
   getAffiliationFileWorkQueueReleaseActionForBucket,
+  type AffiliationFileWorkQueueReleaseActionKind,
 } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
@@ -93,9 +95,14 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   evidenceRepairCandidates: readonly AffiliationFileAccessRepairCandidateView[]
   canRecordReleaseAction: boolean
   isReleaseActionRecorded: boolean
+  releaseActionKind?: AffiliationFileWorkQueueReleaseActionKind
   releaseActionLabel?: string
   releaseActionStatusLabel?: string
   releaseActionButtonLabel?: string
+  canRecordReleaseOutcome: boolean
+  isReleaseOutcomeRecorded: boolean
+  releaseOutcomeStatusLabel?: string
+  releaseOutcomeButtonLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -377,6 +384,15 @@ function toFileAccessWorkQueueEntry(
   const releaseActionRecord = releaseAction
     ? game.affiliationFileWorkQueueReleaseActionRecords?.[releaseActionRecordId]
     : undefined
+  const releaseOutcomeRecordId = releaseAction
+    ? buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
+        workQueueEntryId: snapshot.recordId,
+        sourceActionKind: releaseAction.actionKind,
+      })
+    : ''
+  const releaseOutcomeRecord = releaseAction
+    ? game.affiliationFileWorkQueueReleaseOutcomeRecords?.[releaseOutcomeRecordId]
+    : undefined
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -402,6 +418,7 @@ function toFileAccessWorkQueueEntry(
     evidenceRepairCandidates: Object.freeze(evidenceRepairCandidates),
     canRecordReleaseAction: Boolean(releaseAction && !releaseActionRecord),
     isReleaseActionRecorded: Boolean(releaseActionRecord),
+    ...(releaseAction ? { releaseActionKind: releaseAction.actionKind } : {}),
     ...(releaseAction ? { releaseActionLabel: releaseAction.actionLabel } : {}),
     ...(releaseAction
       ? {
@@ -414,6 +431,21 @@ function toFileAccessWorkQueueEntry(
     ...(releaseActionRecord
       ? {
           releaseActionStatusLabel: `${releaseActionRecord.actionLabel} W${releaseActionRecord.recordedWeek}`,
+        }
+      : {}),
+    canRecordReleaseOutcome: Boolean(releaseActionRecord && !releaseOutcomeRecord),
+    isReleaseOutcomeRecorded: Boolean(releaseOutcomeRecord),
+    ...(releaseAction
+      ? {
+          releaseOutcomeButtonLabel:
+            releaseAction.actionKind === 'file_release_authorized'
+              ? 'Finalize release'
+              : 'Record review hold',
+        }
+      : {}),
+    ...(releaseOutcomeRecord
+      ? {
+          releaseOutcomeStatusLabel: `${releaseOutcomeRecord.outcomeLabel} W${releaseOutcomeRecord.recordedWeek}`,
         }
       : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),

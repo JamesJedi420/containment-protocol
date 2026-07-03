@@ -62,6 +62,7 @@ import {
 } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 
 const STORE_KEY = 'containment-protocol-game-state'
@@ -1852,6 +1853,146 @@ describe('affiliation file work queue release action store action', () => {
       .getState()
       .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
     expect(useGameStore.getState().game).toBe(afterFirstRecord)
+  })
+})
+
+describe('affiliation file work queue release outcome store action', () => {
+  it('records restricted release review outcomes without mutating source evidence or release actions', () => {
+    const game = createStartingState()
+    game.week = 15
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const afterReleaseAction = useGameStore.getState().game
+    const originalPersonStatusRecords = afterReleaseAction.affiliationPersonStatusRecords
+    const originalWelfareRecords = afterReleaseAction.entityWelfareReclassificationRecords
+    const originalEvidenceResolutionRecords =
+      afterReleaseAction.affiliationFileWorkQueueEvidenceResolutionRecords
+    const originalRepairActionRecords =
+      afterReleaseAction.affiliationFileWorkQueueRepairActionRecords
+    const originalReleaseActionRecords =
+      afterReleaseAction.affiliationFileWorkQueueReleaseActionRecords
+
+    useGameStore.setState({ game: { ...afterReleaseAction, week: 16 } })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const next = useGameStore.getState().game
+    const outcomeId = buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceActionKind: 'restricted_release_review_routed',
+    })
+
+    expect(next.affiliationFileWorkQueueReleaseOutcomeRecords?.[outcomeId]).toEqual({
+      id: outcomeId,
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceActionKind: 'restricted_release_review_routed',
+      sourceBucket: 'restricted',
+      sourceReasonCodes: [
+        'approved_cooperative_file_restricted',
+        'file_permission_restricted',
+        'missing_onboarding_clearance',
+        'site_clearance_restricted',
+      ],
+      outcomeKind: 'restricted_review_pending',
+      outcomeLabel: 'Restricted review pending',
+      recordedWeek: 16,
+    })
+    expect(next.affiliationPersonStatusRecords).toBe(originalPersonStatusRecords)
+    expect(next.entityWelfareReclassificationRecords).toBe(originalWelfareRecords)
+    expect(next.affiliationFileWorkQueueEvidenceResolutionRecords).toBe(
+      originalEvidenceResolutionRecords
+    )
+    expect(next.affiliationFileWorkQueueRepairActionRecords).toBe(originalRepairActionRecords)
+    expect(next.affiliationFileWorkQueueReleaseActionRecords).toBe(originalReleaseActionRecords)
+  })
+
+  it('no-ops for missing release action, blocked, missing-review, absent, and already-recorded rows', () => {
+    const game = createStartingState()
+    game.week = 15
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingAction = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeMissingAction)
+
+    const beforeBlocked = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome('person-status:file-blocked')
+    expect(useGameStore.getState().game).toBe(beforeBlocked)
+
+    const beforeMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome('person-status:missing-review')
+    expect(useGameStore.getState().game).toBe(beforeMissingReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleaseOutcome('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseAction(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    const afterFirstOutcome = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleaseOutcome(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(afterFirstOutcome)
   })
 })
 

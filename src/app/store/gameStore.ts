@@ -159,6 +159,10 @@ import {
   applyAffiliationFileWorkQueueEvidenceRepair,
   buildAffiliationFileWorkQueueRepairActionRecord,
 } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseActionRecord,
+  getAffiliationFileWorkQueueReleaseActionForBucket,
+} from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -337,6 +341,7 @@ interface GameStore {
   recordAffiliationFileWorkQueueAction: (entryId: string) => void
   recordAffiliationFileWorkQueueEvidenceResolution: (entryId: string) => void
   recordAffiliationFileWorkQueueRepairAction: (entryId: string, reasonCode: string) => void
+  recordAffiliationFileWorkQueueReleaseAction: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -1802,6 +1807,41 @@ export const useGameStore = create<GameStore>()(
               ...repaired.state,
               affiliationFileWorkQueueRepairActionRecords: {
                 ...(repaired.state.affiliationFileWorkQueueRepairActionRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueReleaseAction: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+          const releaseAction = entry
+            ? getAffiliationFileWorkQueueReleaseActionForBucket(entry.bucket)
+            : null
+
+          if (!entry || !releaseAction || entry.isReleaseActionRecorded) {
+            return { game: s.game }
+          }
+
+          const sourceBucket = entry.bucket === 'allowed' ? 'allowed' : 'restricted'
+          const record = buildAffiliationFileWorkQueueReleaseActionRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            actionKind: releaseAction.actionKind,
+            actionLabel: releaseAction.actionLabel,
+            sourceBucket,
+            sourceReasonCodes: entry.reasonCodeLabels,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueReleaseActionRecords: {
+                ...(s.game.affiliationFileWorkQueueReleaseActionRecords ?? {}),
                 [record.id]: record,
               },
             },

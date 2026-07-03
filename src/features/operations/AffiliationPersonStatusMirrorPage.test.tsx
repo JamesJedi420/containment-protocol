@@ -16,6 +16,7 @@ import {
 } from '../../domain/entityWelfareReclassificationRegistry'
 import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
+import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -129,6 +130,75 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
           }),
       })
     )
+  })
+
+  it('records a restricted file release review action from the queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 9
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    await user.click(screen.getByRole('button', { name: /route restricted review/i }))
+    const releaseActionId = buildAffiliationFileWorkQueueReleaseActionRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      actionKind: 'restricted_release_review_routed',
+    })
+
+    expect(queueRegion).toHaveTextContent('Restricted release review routed W9')
+    expect(
+      screen.queryByRole('button', { name: /route restricted review/i })
+    ).not.toBeInTheDocument()
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleaseActionRecords).toEqual(
+      expect.objectContaining({
+        [releaseActionId]: expect.objectContaining({
+          actionKind: 'restricted_release_review_routed',
+          actionLabel: 'Restricted release review routed',
+          sourceBucket: 'restricted',
+          recordedWeek: 9,
+        }),
+      })
+    )
+  })
+
+  it('does not show file release controls for unresolved missing-review rows', () => {
+    const game = createStartingState()
+    game.affiliationPersonStatusRecords = {
+      'person-status:missing-review': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:missing-review',
+        subjectId: 'subject:missing-review',
+        subjectLabel: 'Missing Review Subject',
+        candidateRef: 'candidate:missing',
+        entityWelfareReclassificationRef: 'reclass:missing',
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    expect(queueRegion).toHaveTextContent('Missing review 1')
+    expect(screen.queryByRole('button', { name: /record release/i })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: /route restricted review/i })
+    ).not.toBeInTheDocument()
   })
 
   it('records missing-review evidence resolution from the queue row', async () => {

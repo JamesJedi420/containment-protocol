@@ -6,6 +6,10 @@ import {
 } from '../../domain/affiliationFileWorkQueueEvidenceResolutionRecords'
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import {
+  buildAffiliationFileWorkQueueReleaseActionRecordId,
+  getAffiliationFileWorkQueueReleaseActionForBucket,
+} from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
+import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
 } from '../../domain/affiliationPersonStatusRecords'
@@ -87,6 +91,11 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   isEvidenceResolutionRecorded: boolean
   evidenceResolutionLabel?: string
   evidenceRepairCandidates: readonly AffiliationFileAccessRepairCandidateView[]
+  canRecordReleaseAction: boolean
+  isReleaseActionRecorded: boolean
+  releaseActionLabel?: string
+  releaseActionStatusLabel?: string
+  releaseActionButtonLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -358,6 +367,16 @@ function toFileAccessWorkQueueEntry(
         })
       })
     : []
+  const releaseAction = getAffiliationFileWorkQueueReleaseActionForBucket(bucket)
+  const releaseActionRecordId = releaseAction
+    ? buildAffiliationFileWorkQueueReleaseActionRecordId({
+        workQueueEntryId: snapshot.recordId,
+        actionKind: releaseAction.actionKind,
+      })
+    : ''
+  const releaseActionRecord = releaseAction
+    ? game.affiliationFileWorkQueueReleaseActionRecords?.[releaseActionRecordId]
+    : undefined
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -381,6 +400,22 @@ function toFileAccessWorkQueueEntry(
         }
       : {}),
     evidenceRepairCandidates: Object.freeze(evidenceRepairCandidates),
+    canRecordReleaseAction: Boolean(releaseAction && !releaseActionRecord),
+    isReleaseActionRecorded: Boolean(releaseActionRecord),
+    ...(releaseAction ? { releaseActionLabel: releaseAction.actionLabel } : {}),
+    ...(releaseAction
+      ? {
+          releaseActionButtonLabel:
+            releaseAction.actionKind === 'file_release_authorized'
+              ? 'Record release'
+              : 'Route restricted review',
+        }
+      : {}),
+    ...(releaseActionRecord
+      ? {
+          releaseActionStatusLabel: `${releaseActionRecord.actionLabel} W${releaseActionRecord.recordedWeek}`,
+        }
+      : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),
   })
 }

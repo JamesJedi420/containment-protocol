@@ -407,6 +407,8 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       isReleaseOutcomeRecorded: true,
       releaseOutcomeStatusLabel: 'Restricted review pending W11',
       releaseOutcomeButtonLabel: 'Record review hold',
+      canRecordReleaseFulfillment: false,
+      isReleaseFulfillmentRecorded: false,
     })
     expect(view.fileAccessWorkQueue[1]).toMatchObject({
       canRecordReleaseOutcome: false,

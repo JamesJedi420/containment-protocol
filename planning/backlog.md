@@ -66,7 +66,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff:** [SPE-2540](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) SPE-1046 file work queue release outcomes (slice 1) is **in progress** on branch `spe-1046-file-work-queue-release-outcomes-slice-1` from base `f1d96633`; see `planning/spe-1046-file-work-queue-release-outcomes-slice-1.md`. [SPE-2539](https://linear.app/spectranoir/issue/SPE-2539/spe-1046-file-work-queue-release-actions) shipped in PR #3011 @ `f1d96633`.
+**Current handoff:** SPE-1046 file work queue file-release fulfillment (slice 1) is implemented locally on branch `spe-1046-file-work-queue-file-release-fulfillment-slice-1` from base `320e356e`; see `planning/spe-1046-file-work-queue-file-release-fulfillment-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication. [SPE-2540](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) is already on `main` @ `320e356e`.
 
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 

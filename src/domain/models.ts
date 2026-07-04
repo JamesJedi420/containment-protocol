@@ -280,6 +280,7 @@ import type { AffiliationFileWorkQueueEvidenceResolutionRecord } from './affilia
 import type { AffiliationFileWorkQueueRepairActionRecord } from './affiliationFileWorkQueueRepairActionRecords'
 import type { AffiliationFileWorkQueueReleaseActionRecord } from './affiliationFileWorkQueueReleaseActionRecords'
 import type { AffiliationFileWorkQueueReleaseOutcomeRecord } from './affiliationFileWorkQueueReleaseOutcomeRecords'
+import type { AffiliationFileWorkQueueReleaseFulfillmentRecord } from './affiliationFileWorkQueueReleaseFulfillmentRecords'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
@@ -2810,6 +2811,15 @@ export interface GameState {
   affiliationFileWorkQueueReleaseOutcomeRecords?: Record<
     string,
     AffiliationFileWorkQueueReleaseOutcomeRecord
+  >
+
+  /**
+   * SPE-1046 file work queue release fulfillment: persisted file-release fulfillment receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueReleaseFulfillmentRecords?: Record<
+    string,
+    AffiliationFileWorkQueueReleaseFulfillmentRecord
   >
 
   /**

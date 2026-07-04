@@ -209,6 +209,7 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
 
     expect(queueRegion).toHaveTextContent('Restricted review pending W10')
     expect(screen.queryByRole('button', { name: /record review hold/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /record fulfillment/i })).not.toBeInTheDocument()
     expect(useGameStore.getState().game.affiliationFileWorkQueueReleaseOutcomeRecords).toEqual(
       expect.objectContaining({
         [outcomeId]: expect.objectContaining({

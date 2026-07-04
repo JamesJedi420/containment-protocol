@@ -12,6 +12,11 @@ import {
 } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecordId,
+  getAffiliationFileWorkQueueReleaseFulfillmentForOutcome,
+} from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
+import {
   projectAffiliationPersonStatusSnapshots,
   type AffiliationPersonStatusSnapshot,
 } from '../../domain/affiliationPersonStatusRecords'
@@ -101,8 +106,13 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   releaseActionButtonLabel?: string
   canRecordReleaseOutcome: boolean
   isReleaseOutcomeRecorded: boolean
+  releaseOutcomeKind?: AffiliationFileWorkQueueReleaseOutcomeKind
   releaseOutcomeStatusLabel?: string
   releaseOutcomeButtonLabel?: string
+  canRecordReleaseFulfillment: boolean
+  isReleaseFulfillmentRecorded: boolean
+  releaseFulfillmentStatusLabel?: string
+  releaseFulfillmentButtonLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -393,6 +403,21 @@ function toFileAccessWorkQueueEntry(
   const releaseOutcomeRecord = releaseAction
     ? game.affiliationFileWorkQueueReleaseOutcomeRecords?.[releaseOutcomeRecordId]
     : undefined
+  const releaseFulfillment =
+    bucket === 'allowed' && releaseOutcomeRecord?.sourceBucket === 'allowed'
+      ? getAffiliationFileWorkQueueReleaseFulfillmentForOutcome(releaseOutcomeRecord.outcomeKind)
+      : null
+  const releaseFulfillmentRecordId =
+    releaseOutcomeRecord && releaseFulfillment
+      ? buildAffiliationFileWorkQueueReleaseFulfillmentRecordId({
+          workQueueEntryId: snapshot.recordId,
+          sourceOutcomeKind: releaseOutcomeRecord.outcomeKind,
+        })
+      : ''
+  const releaseFulfillmentRecord =
+    releaseOutcomeRecord && releaseFulfillment
+      ? game.affiliationFileWorkQueueReleaseFulfillmentRecords?.[releaseFulfillmentRecordId]
+      : undefined
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -435,6 +460,7 @@ function toFileAccessWorkQueueEntry(
       : {}),
     canRecordReleaseOutcome: Boolean(releaseActionRecord && !releaseOutcomeRecord),
     isReleaseOutcomeRecorded: Boolean(releaseOutcomeRecord),
+    ...(releaseOutcomeRecord ? { releaseOutcomeKind: releaseOutcomeRecord.outcomeKind } : {}),
     ...(releaseAction
       ? {
           releaseOutcomeButtonLabel:
@@ -446,6 +472,14 @@ function toFileAccessWorkQueueEntry(
     ...(releaseOutcomeRecord
       ? {
           releaseOutcomeStatusLabel: `${releaseOutcomeRecord.outcomeLabel} W${releaseOutcomeRecord.recordedWeek}`,
+        }
+      : {}),
+    canRecordReleaseFulfillment: Boolean(releaseFulfillment && !releaseFulfillmentRecord),
+    isReleaseFulfillmentRecorded: Boolean(releaseFulfillmentRecord),
+    ...(releaseFulfillment ? { releaseFulfillmentButtonLabel: 'Record fulfillment' } : {}),
+    ...(releaseFulfillmentRecord
+      ? {
+          releaseFulfillmentStatusLabel: `${releaseFulfillmentRecord.fulfillmentLabel} W${releaseFulfillmentRecord.recordedWeek}`,
         }
       : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),

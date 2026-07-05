@@ -18,6 +18,8 @@ import { buildAffiliationFileWorkQueueEvidenceResolutionRecordId } from '../../d
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
+import { buildAffiliationFileWorkQueueReleaseFulfillmentRecord } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -217,6 +219,70 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
           outcomeKind: 'restricted_review_pending',
           outcomeLabel: 'Restricted review pending',
           recordedWeek: 10,
+        }),
+      })
+    )
+  })
+
+  it('records package handoff after an allowed file-release fulfillment exists', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 13
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 12,
+    })
+    game.affiliationFileWorkQueueReleaseFulfillmentRecords = {
+      [fulfillment.id]: fulfillment,
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+    expect(queueRegion).toHaveTextContent('File release fulfilled W12')
+    expect(screen.getByRole('button', { name: /prepare handoff package/i })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /prepare handoff package/i }))
+
+    const packageId = buildAffiliationFileWorkQueueReleasePackageRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceFulfillmentKind: 'file_release_fulfilled',
+    })
+
+    expect(queueRegion).toHaveTextContent('File release fulfilled W12')
+    expect(queueRegion).toHaveTextContent('Safe file handoff package W13')
+    expect(queueRegion).toHaveTextContent(
+      `release-package:${COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id}:file_release_fulfilled`
+    )
+    expect(
+      screen.queryByRole('button', { name: /prepare handoff package/i })
+    ).not.toBeInTheDocument()
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleasePackageRecords).toEqual(
+      expect.objectContaining({
+        [packageId]: expect.objectContaining({
+          packageKind: 'safe_file_handoff_package',
+          packageLabel: 'Safe file handoff package',
+          recordedWeek: 13,
         }),
       })
     )

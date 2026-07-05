@@ -63,10 +63,35 @@ import {
 import { buildAffiliationFileWorkQueueRepairActionRecordId } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecordId } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
-import { buildAffiliationFileWorkQueueReleaseFulfillmentRecordId } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import {
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecord,
+  buildAffiliationFileWorkQueueReleaseFulfillmentRecordId,
+} from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 
 const STORE_KEY = 'containment-protocol-game-state'
+
+function makeCooperativeContractorCandidate(): Candidate {
+  return {
+    id: 'candidate:cooperative-contractor',
+    name: 'Cooperative Contractor',
+    age: 31,
+    category: 'agent',
+    hireStatus: 'available',
+    weeklyCost: 20,
+    weeklyWage: 20,
+    revealLevel: 2,
+    expiryWeek: 8,
+    origin: 'open-call',
+    roleInclination: 'field',
+    skills: ['recon-sweep', 'pathing'],
+    liabilities: ['deadline-pressure'],
+    funnelStage: 'hired',
+    createdWeek: 1,
+    lastUpdatedWeek: 1,
+  }
+}
 
 function getPersistedState() {
   return useGameStore.persist.getOptions().storage?.getItem(STORE_KEY) as
@@ -2048,6 +2073,113 @@ describe('affiliation file work queue release fulfillment store action', () => {
       })
     ).toBe(
       `affiliation-file-release-fulfillment:${COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id}:file_released`
+    )
+  })
+})
+
+describe('affiliation file work queue release package store action', () => {
+  it('records deterministic package handoff records only after allowed release fulfillment', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeFulfillment = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeFulfillment)
+
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 15,
+    })
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationFileWorkQueueReleaseFulfillmentRecords: {
+          [fulfillment.id]: fulfillment,
+        },
+      },
+    })
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+
+    const packageId = buildAffiliationFileWorkQueueReleasePackageRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceFulfillmentKind: 'file_release_fulfilled',
+    })
+    const next = useGameStore.getState().game
+
+    expect(next.affiliationFileWorkQueueReleasePackageRecords).toEqual({
+      [packageId]: expect.objectContaining({
+        id: packageId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourceOutcomeKind: 'file_released',
+        sourceFulfillmentKind: 'file_release_fulfilled',
+        sourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+        packageKind: 'safe_file_handoff_package',
+        packageLabel: 'Safe file handoff package',
+        packageRef: `release-package:${COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id}:file_release_fulfilled`,
+        recordedWeek: 16,
+      }),
+    })
+    expect(next.affiliationFileWorkQueueReleaseFulfillmentRecords).toBeDefined()
+
+    const afterFirstPackage = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(afterFirstPackage)
+  })
+
+  it('no-ops for restricted review outcomes and absent rows', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.candidates = [makeCooperativeContractorCandidate()]
+    game.recruitmentPool = [makeCooperativeContractorCandidate()]
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingFulfillment = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueReleasePackage(COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id)
+    expect(useGameStore.getState().game).toBe(beforeMissingFulfillment)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore.getState().recordAffiliationFileWorkQueueReleasePackage('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+    expect(useGameStore.getState().game.affiliationFileWorkQueueReleasePackageRecords).toBe(
+      undefined
     )
   })
 })

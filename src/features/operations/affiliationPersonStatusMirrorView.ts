@@ -14,7 +14,9 @@ import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domai
 import {
   buildAffiliationFileWorkQueueReleaseFulfillmentRecordId,
   getAffiliationFileWorkQueueReleaseFulfillmentForOutcome,
+  type AffiliationFileWorkQueueReleaseFulfillmentKind,
 } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
@@ -111,8 +113,14 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   releaseOutcomeButtonLabel?: string
   canRecordReleaseFulfillment: boolean
   isReleaseFulfillmentRecorded: boolean
+  releaseFulfillmentKind?: AffiliationFileWorkQueueReleaseFulfillmentKind
+  releaseFulfillmentSourceReasonCodes?: readonly string[]
   releaseFulfillmentStatusLabel?: string
   releaseFulfillmentButtonLabel?: string
+  canRecordReleasePackage: boolean
+  isReleasePackageRecorded: boolean
+  releasePackageStatusLabel?: string
+  releasePackageButtonLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -418,6 +426,20 @@ function toFileAccessWorkQueueEntry(
     releaseOutcomeRecord && releaseFulfillment
       ? game.affiliationFileWorkQueueReleaseFulfillmentRecords?.[releaseFulfillmentRecordId]
       : undefined
+  const durableReleaseFulfillmentRecord =
+    releaseFulfillmentRecord ??
+    Object.values(game.affiliationFileWorkQueueReleaseFulfillmentRecords ?? {}).find(
+      (record) => record.workQueueEntryId === snapshot.recordId
+    )
+  const releasePackageRecordId = durableReleaseFulfillmentRecord
+    ? buildAffiliationFileWorkQueueReleasePackageRecordId({
+        workQueueEntryId: snapshot.recordId,
+        sourceFulfillmentKind: durableReleaseFulfillmentRecord.fulfillmentKind,
+      })
+    : ''
+  const releasePackageRecord = durableReleaseFulfillmentRecord
+    ? game.affiliationFileWorkQueueReleasePackageRecords?.[releasePackageRecordId]
+    : undefined
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -475,11 +497,28 @@ function toFileAccessWorkQueueEntry(
         }
       : {}),
     canRecordReleaseFulfillment: Boolean(releaseFulfillment && !releaseFulfillmentRecord),
-    isReleaseFulfillmentRecorded: Boolean(releaseFulfillmentRecord),
-    ...(releaseFulfillment ? { releaseFulfillmentButtonLabel: 'Record fulfillment' } : {}),
-    ...(releaseFulfillmentRecord
+    isReleaseFulfillmentRecorded: Boolean(durableReleaseFulfillmentRecord),
+    ...(durableReleaseFulfillmentRecord
       ? {
-          releaseFulfillmentStatusLabel: `${releaseFulfillmentRecord.fulfillmentLabel} W${releaseFulfillmentRecord.recordedWeek}`,
+          releaseOutcomeKind: durableReleaseFulfillmentRecord.sourceOutcomeKind,
+          releaseFulfillmentKind: durableReleaseFulfillmentRecord.fulfillmentKind,
+          releaseFulfillmentSourceReasonCodes: durableReleaseFulfillmentRecord.sourceReasonCodes,
+        }
+      : {}),
+    ...(releaseFulfillment ? { releaseFulfillmentButtonLabel: 'Record fulfillment' } : {}),
+    ...(durableReleaseFulfillmentRecord
+      ? {
+          releaseFulfillmentStatusLabel: `${durableReleaseFulfillmentRecord.fulfillmentLabel} W${durableReleaseFulfillmentRecord.recordedWeek}`,
+        }
+      : {}),
+    canRecordReleasePackage: Boolean(durableReleaseFulfillmentRecord && !releasePackageRecord),
+    isReleasePackageRecorded: Boolean(releasePackageRecord),
+    ...(durableReleaseFulfillmentRecord
+      ? { releasePackageButtonLabel: 'Prepare handoff package' }
+      : {}),
+    ...(releasePackageRecord
+      ? {
+          releasePackageStatusLabel: `${releasePackageRecord.packageLabel} W${releasePackageRecord.recordedWeek} (${releasePackageRecord.packageRef})`,
         }
       : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),

@@ -9,6 +9,8 @@ import { buildAffiliationFileWorkQueueEvidenceResolutionRecord } from '../../dom
 import { buildAffiliationFileWorkQueueRepairActionRecord } from '../../domain/affiliationFileWorkQueueRepairActionRecords'
 import { buildAffiliationFileWorkQueueReleaseActionRecord } from '../../domain/affiliationFileWorkQueueReleaseActionRecords'
 import { buildAffiliationFileWorkQueueReleaseOutcomeRecord } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
+import { buildAffiliationFileWorkQueueReleaseFulfillmentRecord } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
+import { buildAffiliationFileWorkQueueReleasePackageRecord } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -413,6 +415,88 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
     expect(view.fileAccessWorkQueue[1]).toMatchObject({
       canRecordReleaseOutcome: false,
       isReleaseOutcomeRecorded: false,
+    })
+  })
+
+  it('joins release fulfillment and package records onto allowed rows after fulfillment', () => {
+    const game = makeStatusGame()
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    const releaseAction = buildAffiliationFileWorkQueueReleaseActionRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      actionKind: 'file_release_authorized',
+      actionLabel: 'File release authorized',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      recordedWeek: 10,
+    })
+    const outcome = buildAffiliationFileWorkQueueReleaseOutcomeRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceActionKind: 'file_release_authorized',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      outcomeKind: 'file_released',
+      outcomeLabel: 'File released',
+      recordedWeek: 11,
+    })
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 12,
+    })
+    const releasePackage = buildAffiliationFileWorkQueueReleasePackageRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceFulfillmentKind: 'file_release_fulfilled',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      packageKind: 'safe_file_handoff_package',
+      packageLabel: 'Safe file handoff package',
+      recordedWeek: 13,
+    })
+    game.affiliationFileWorkQueueReleaseActionRecords = {
+      [releaseAction.id]: releaseAction,
+    }
+    game.affiliationFileWorkQueueReleaseOutcomeRecords = {
+      [outcome.id]: outcome,
+    }
+    game.affiliationFileWorkQueueReleaseFulfillmentRecords = {
+      [fulfillment.id]: fulfillment,
+    }
+    game.affiliationFileWorkQueueReleasePackageRecords = {
+      [releasePackage.id]: releasePackage,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      bucket: 'restricted',
+      releaseOutcomeKind: 'file_released',
+      releaseFulfillmentKind: 'file_release_fulfilled',
+      releaseFulfillmentSourceReasonCodes: ['file_permission_allowed', 'site_clearance_allowed'],
+      canRecordReleaseFulfillment: false,
+      isReleaseFulfillmentRecorded: true,
+      releaseFulfillmentStatusLabel: 'File release fulfilled W12',
+      canRecordReleasePackage: false,
+      isReleasePackageRecorded: true,
+      releasePackageStatusLabel:
+        'Safe file handoff package W13 (release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled)',
     })
   })
 

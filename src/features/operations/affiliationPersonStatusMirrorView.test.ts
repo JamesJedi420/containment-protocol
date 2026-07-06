@@ -11,6 +11,7 @@ import { buildAffiliationFileWorkQueueReleaseActionRecord } from '../../domain/a
 import { buildAffiliationFileWorkQueueReleaseOutcomeRecord } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import { buildAffiliationFileWorkQueueReleaseFulfillmentRecord } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { buildAffiliationFileWorkQueueReleasePackageRecord } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
+import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecord } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -497,6 +498,71 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       isReleasePackageRecorded: true,
       releasePackageStatusLabel:
         'Safe file handoff package W13 (release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled)',
+      canRecordFileReleaseDelivery: true,
+      isFileReleaseDeliveryRecorded: false,
+      fileReleaseDeliveryButtonLabel: 'Record file delivery',
+    })
+  })
+
+  it('shows file-release delivery status after a delivery receipt is recorded', () => {
+    const game = makeStatusGame()
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+        permissionSurface: 'file',
+      },
+    }
+    const fulfillment = buildAffiliationFileWorkQueueReleaseFulfillmentRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceBucket: 'allowed',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      fulfillmentKind: 'file_release_fulfilled',
+      fulfillmentLabel: 'File release fulfilled',
+      recordedWeek: 12,
+    })
+    const releasePackage = buildAffiliationFileWorkQueueReleasePackageRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceOutcomeKind: 'file_released',
+      sourceFulfillmentKind: 'file_release_fulfilled',
+      sourceReasonCodes: ['site_clearance_allowed', 'file_permission_allowed'],
+      packageKind: 'safe_file_handoff_package',
+      packageLabel: 'Safe file handoff package',
+      recordedWeek: 13,
+    })
+    const delivery = buildAffiliationFileWorkQueueFileReleaseDeliveryRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourcePackageKind: 'safe_file_handoff_package',
+      sourcePackageRef: releasePackage.packageRef,
+      sourceReasonCodes: releasePackage.sourceReasonCodes,
+      deliveryKind: 'metadata_only_file_release_delivered',
+      deliveryLabel: 'Metadata-only file release delivered',
+      recordedWeek: 14,
+    })
+    game.affiliationFileWorkQueueReleaseFulfillmentRecords = {
+      [fulfillment.id]: fulfillment,
+    }
+    game.affiliationFileWorkQueueReleasePackageRecords = {
+      [releasePackage.id]: releasePackage,
+    }
+    game.affiliationFileWorkQueueFileReleaseDeliveryRecords = {
+      [delivery.id]: delivery,
+    }
+
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      canRecordFileReleaseDelivery: false,
+      isFileReleaseDeliveryRecorded: true,
+      fileReleaseDeliveryStatusLabel:
+        'Metadata-only file release delivered W14 (file-release-delivery:person-status:cooperative-contractor-cleared:safe_file_handoff_package)',
     })
   })
 

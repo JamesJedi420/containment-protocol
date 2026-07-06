@@ -16,7 +16,11 @@ import {
   getAffiliationFileWorkQueueReleaseFulfillmentForOutcome,
   type AffiliationFileWorkQueueReleaseFulfillmentKind,
 } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
-import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
+import {
+  buildAffiliationFileWorkQueueReleasePackageRecordId,
+  type AffiliationFileWorkQueueReleasePackageKind,
+} from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
+import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
@@ -119,8 +123,15 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   releaseFulfillmentButtonLabel?: string
   canRecordReleasePackage: boolean
   isReleasePackageRecorded: boolean
+  releasePackageKind?: AffiliationFileWorkQueueReleasePackageKind
+  releasePackageRef?: string
+  releasePackageSourceReasonCodes?: readonly string[]
   releasePackageStatusLabel?: string
   releasePackageButtonLabel?: string
+  canRecordFileReleaseDelivery: boolean
+  isFileReleaseDeliveryRecorded: boolean
+  fileReleaseDeliveryStatusLabel?: string
+  fileReleaseDeliveryButtonLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -440,6 +451,15 @@ function toFileAccessWorkQueueEntry(
   const releasePackageRecord = durableReleaseFulfillmentRecord
     ? game.affiliationFileWorkQueueReleasePackageRecords?.[releasePackageRecordId]
     : undefined
+  const fileReleaseDeliveryRecordId = releasePackageRecord
+    ? buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+        workQueueEntryId: snapshot.recordId,
+        sourcePackageKind: releasePackageRecord.packageKind,
+      })
+    : ''
+  const fileReleaseDeliveryRecord = releasePackageRecord
+    ? game.affiliationFileWorkQueueFileReleaseDeliveryRecords?.[fileReleaseDeliveryRecordId]
+    : undefined
 
   return Object.freeze({
     id: snapshot.recordId,
@@ -513,12 +533,25 @@ function toFileAccessWorkQueueEntry(
       : {}),
     canRecordReleasePackage: Boolean(durableReleaseFulfillmentRecord && !releasePackageRecord),
     isReleasePackageRecorded: Boolean(releasePackageRecord),
+    ...(releasePackageRecord ? { releasePackageKind: releasePackageRecord.packageKind } : {}),
+    ...(releasePackageRecord ? { releasePackageRef: releasePackageRecord.packageRef } : {}),
+    ...(releasePackageRecord
+      ? { releasePackageSourceReasonCodes: releasePackageRecord.sourceReasonCodes }
+      : {}),
     ...(durableReleaseFulfillmentRecord
       ? { releasePackageButtonLabel: 'Prepare handoff package' }
       : {}),
     ...(releasePackageRecord
       ? {
           releasePackageStatusLabel: `${releasePackageRecord.packageLabel} W${releasePackageRecord.recordedWeek} (${releasePackageRecord.packageRef})`,
+        }
+      : {}),
+    canRecordFileReleaseDelivery: Boolean(releasePackageRecord && !fileReleaseDeliveryRecord),
+    isFileReleaseDeliveryRecorded: Boolean(fileReleaseDeliveryRecord),
+    ...(releasePackageRecord ? { fileReleaseDeliveryButtonLabel: 'Record file delivery' } : {}),
+    ...(fileReleaseDeliveryRecord
+      ? {
+          fileReleaseDeliveryStatusLabel: `${fileReleaseDeliveryRecord.deliveryLabel} W${fileReleaseDeliveryRecord.recordedWeek} (${fileReleaseDeliveryRecord.deliveryRef})`,
         }
       : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),

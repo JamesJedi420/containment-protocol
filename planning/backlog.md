@@ -16,7 +16,9 @@ From `README.md` **Current design notes**:
 
 ## Active queue (highest leverage first — reorder as needed)
 
-**In progress:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment; branch `spe-1046-file-work-queue-release-package-handoff-slice-1`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication.
+**Recently shipped:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment on `main` @ `14b3f29a`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays **Backlog**.
+
+**In progress:** SPE-1046 file work queue file-content release delivery (slice 1) - persisted metadata-only file-release delivery receipts after safe package handoff; branch `spe-1046-file-work-queue-file-release-delivery-slice-1`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
@@ -68,7 +70,7 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff:** SPE-1046 file work queue file-release fulfillment (slice 1) is implemented locally on branch `spe-1046-file-work-queue-file-release-fulfillment-slice-1` from base `320e356e`; see `planning/spe-1046-file-work-queue-file-release-fulfillment-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication. [SPE-2540](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) is already on `main` @ `320e356e`.
+**Current handoff:** SPE-1046 file work queue file-content release delivery (slice 1) is in progress on branch `spe-1046-file-work-queue-file-release-delivery-slice-1` from base `14b3f29a`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication.
 
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 

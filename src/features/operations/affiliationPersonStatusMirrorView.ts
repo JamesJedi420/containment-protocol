@@ -413,13 +413,13 @@ function toFileAccessWorkQueueEntry(
   const releaseActionRecord = releaseAction
     ? game.affiliationFileWorkQueueReleaseActionRecords?.[releaseActionRecordId]
     : undefined
-  const releaseOutcomeRecordId = releaseAction
+  const releaseOutcomeRecordId = releaseActionRecord
     ? buildAffiliationFileWorkQueueReleaseOutcomeRecordId({
         workQueueEntryId: snapshot.recordId,
-        sourceActionKind: releaseAction.actionKind,
+        sourceActionKind: releaseActionRecord.actionKind,
       })
     : ''
-  const releaseOutcomeRecord = releaseAction
+  const releaseOutcomeRecord = releaseActionRecord
     ? game.affiliationFileWorkQueueReleaseOutcomeRecords?.[releaseOutcomeRecordId]
     : undefined
   const releaseFulfillment =

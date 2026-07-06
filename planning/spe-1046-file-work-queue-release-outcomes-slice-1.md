@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2540](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                           |
 | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2540 - SPE-1046 file work queue release outcomes](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) |
-| **Status**          | **In Progress**                                                                                                                                 |
+| **Status**          | **Done** — PR #3016 merged @ `38960983`                                                                                                         |
 | **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**             |
 | **Branch**          | `spe-1046-file-work-queue-release-outcomes-slice-1`                                                                                             |
 | **Base `main` SHA** | `f1d96633`                                                                                                                                      |

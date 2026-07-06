@@ -25,14 +25,14 @@ Record bounded release workflow outcomes for file access work queue rows after a
 
 ## Acceptance
 
-- [ ] `file_release_authorized` maps to `file_released`.
-- [ ] `restricted_release_review_routed` maps to `restricted_review_pending`.
-- [ ] Outcome recording requires an existing release action.
-- [ ] Blocked, missing-review, absent, missing-action, and already-recorded rows no-op.
-- [ ] Outcome records persist through hydrate/export without mutating person-status, release-action, evidence-resolution, or repair-action records.
-- [ ] Operations mirror shows outcome controls only after release action recording and recorded labels after outcome action.
-- [ ] File contents, access decisions, mission routing, procurement, weekly progression, and SPE-947 remain untouched.
-- [ ] SPE-1046 parent remains **Backlog**.
+- [x] `file_release_authorized` maps to `file_released`.
+- [x] `restricted_release_review_routed` maps to `restricted_review_pending`.
+- [x] Outcome recording requires an existing release action.
+- [x] Blocked, missing-review, absent, missing-action, and already-recorded rows no-op.
+- [x] Outcome records persist through hydrate/export without mutating person-status, release-action, evidence-resolution, or repair-action records.
+- [x] Operations mirror shows outcome controls only after release action recording and recorded labels after outcome action.
+- [x] File contents, access decisions, mission routing, procurement, weekly progression, and SPE-947 remain untouched.
+- [x] SPE-1046 parent remains **Backlog**.
 
 ## Validation
 

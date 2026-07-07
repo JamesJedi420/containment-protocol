@@ -3,6 +3,7 @@ import {
   buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
   buildAffiliationFileWorkQueueEvidenceRepairWorkflowId,
   sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows,
+  type AffiliationFileWorkQueueEvidenceRepairWorkflow,
 } from './affiliationFileWorkQueueEvidenceRepairWorkflows'
 
 describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
@@ -200,36 +201,45 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
     })
 
     it('deduplicates by (workQueueEntryId, evidenceType), keeping first occurrence', () => {
-      const record1 = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+      const expectedId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+        workQueueEntryId: 'entry-dup',
+        evidenceType: 'missing_entity_welfare_reclassification_ref',
+      })
+
+      // First occurrence with correct ID
+      const record1: AffiliationFileWorkQueueEvidenceRepairWorkflow = Object.freeze({
+        id: expectedId,
         workQueueEntryId: 'entry-dup',
         evidenceType: 'missing_entity_welfare_reclassification_ref',
         subjectId: 'subject-1',
         subjectLabel: 'Subject 1',
         repairLabel: 'Repair 1',
+        repairRef: 'evidence-repair:entry-dup:missing_entity_welfare_reclassification_ref',
         recordedWeek: 1,
       })
 
-      const duplicate = {
-        ...record1,
-        id: 'duplicate-workflow-id',
+      // Duplicate with same (workQueueEntryId, evidenceType) but stale/old ID
+      const duplicate: AffiliationFileWorkQueueEvidenceRepairWorkflow = Object.freeze({
+        id: 'stale-evidence-repair-id-old-format',
         workQueueEntryId: 'entry-dup',
         evidenceType: 'missing_entity_welfare_reclassification_ref',
         subjectId: 'subject-2',
         subjectLabel: 'Subject 2',
         repairLabel: 'Repair 2',
+        repairRef: 'evidence-repair:entry-dup:missing_entity_welfare_reclassification_ref',
         recordedWeek: 2,
-      }
+      })
 
       const input = {
-        [record1.id]: record1,
-        [duplicate.id]: duplicate,
+        [expectedId]: record1,
+        'stale-evidence-repair-id-old-format': duplicate,
       }
 
       const result = sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(input)
 
-      // Should keep first occurrence (record1)
+      // Should keep first occurrence (record1) and skip duplicate due to (workQueueEntryId, evidenceType) pair
       expect(Object.keys(result)).toHaveLength(1)
-      expect(result[record1.id]).toEqual(record1)
+      expect(result[expectedId]).toEqual(record1)
     })
 
     it('handles array input gracefully', () => {

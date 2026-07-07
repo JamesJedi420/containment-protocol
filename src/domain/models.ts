@@ -283,6 +283,7 @@ import type { AffiliationFileWorkQueueReleaseOutcomeRecord } from './affiliation
 import type { AffiliationFileWorkQueueReleaseFulfillmentRecord } from './affiliationFileWorkQueueReleaseFulfillmentRecords'
 import type { AffiliationFileWorkQueueReleasePackageRecord } from './affiliationFileWorkQueueReleasePackageRecords'
 import type { AffiliationFileWorkQueueFileReleaseDeliveryRecord } from './affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import type { AffiliationFileWorkQueueEvidenceRepairWorkflow } from './affiliationFileWorkQueueEvidenceRepairWorkflows'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
 import type { PublishQueueExecutionReceipt } from './publishQueueExecutor'
@@ -2840,6 +2841,15 @@ export interface GameState {
   affiliationFileWorkQueueFileReleaseDeliveryRecords?: Record<
     string,
     AffiliationFileWorkQueueFileReleaseDeliveryRecord
+  >
+
+  /**
+   * SPE-2541 file work queue welfare evidence repair: persisted repair workflow candidates (read-only guidance).
+   * Keyed by workflow id; hydration drops invalid, duplicate-key, or mismatched (entryId, evidenceType) entries without throwing.
+   */
+  affiliationFileWorkQueueEvidenceRepairWorkflows?: Record<
+    string,
+    AffiliationFileWorkQueueEvidenceRepairWorkflow
   >
 
   /**

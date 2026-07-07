@@ -221,6 +221,7 @@ import { sanitizeAffiliationFileWorkQueueReleaseOutcomeRecords } from '../../dom
 import { sanitizeAffiliationFileWorkQueueReleaseFulfillmentRecords } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { sanitizeAffiliationFileWorkQueueReleasePackageRecords } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { sanitizeAffiliationFileWorkQueueFileReleaseDeliveryRecords } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
 import { sanitizeCustodyStatusRecords } from '../../domain/containedPersonCustodyStatusRegistry'
@@ -8783,6 +8784,11 @@ export function hydrateGame(
       game.affiliationFileWorkQueueFileReleaseDeliveryRecords,
       fallback.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}
     )
+  const affiliationFileWorkQueueEvidenceRepairWorkflows =
+    sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
+      game.affiliationFileWorkQueueEvidenceRepairWorkflows,
+      fallback.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}
+    )
   const entityWelfareReclassificationRecords = sanitizeEntityWelfareReclassificationRecords(
     game.entityWelfareReclassificationRecords,
     fallback.entityWelfareReclassificationRecords ?? {}
@@ -8985,6 +8991,7 @@ export function hydrateGame(
     affiliationFileWorkQueueReleaseFulfillmentRecords,
     affiliationFileWorkQueueReleasePackageRecords,
     affiliationFileWorkQueueFileReleaseDeliveryRecords,
+    affiliationFileWorkQueueEvidenceRepairWorkflows,
     entityWelfareReclassificationRecords,
     containedPersonTherapeuticCareRecords,
     containedPersonMedicationRegimenRecords,

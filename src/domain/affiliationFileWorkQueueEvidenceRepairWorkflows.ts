@@ -130,6 +130,7 @@ function sanitizeEvidenceRepairWorkflowEntry(
 }
 
 export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
+export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
   records: unknown,
   fallback: AffiliationFileWorkQueueEvidenceRepairWorkflowsMap = {}
 ): AffiliationFileWorkQueueEvidenceRepairWorkflowsMap {

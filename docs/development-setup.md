@@ -164,6 +164,7 @@ npm run test -- --inspect-brk
 ### Component Development
 
 1. **Test-driven approach:**
+
    ```bash
    npm run test -- ComponentName  # Watch tests for this component
    npm run dev                     # Dev server in another terminal
@@ -201,6 +202,7 @@ npm run coverage
 ### Code Quality
 
 1. **ESLint violations:**
+
    ```bash
    # View all violations
    npm run lint
@@ -210,6 +212,7 @@ npm run coverage
    ```
 
 2. **Formatting with Prettier:**
+
    ```bash
    # Auto-format all files
    npm run format
@@ -225,16 +228,16 @@ npm run coverage
 
 ## Environment Variables Reference
 
-| Variable                | Purpose                                  | Default             |
-| ----------------------- | ---------------------------------------- | ------------------- |
-| `NODE_ENV`              | Build environment                       | `development`       |
-| `VITE_APP_VERSION`      | App version for display                  | `1.0.0`             |
-| `VITE_BUILD_DATE`       | Build timestamp                          | Current date        |
-| `PORT`                  | Dev server port                          | `5173`              |
-| `VITE_SOURCE_MAP`       | Enable source maps                       | `true`              |
-| `VITE_DEV_MODE`         | Enable dev features                      | `true`              |
-| `DEBUG`                 | Debug logging filter                     | `containment:*`     |
-| `STRICT_TEST_CONSOLE`   | Fail tests on console warnings           | `0` (dev only)      |
+| Variable              | Purpose                        | Default         |
+| --------------------- | ------------------------------ | --------------- |
+| `NODE_ENV`            | Build environment              | `development`   |
+| `VITE_APP_VERSION`    | App version for display        | `1.0.0`         |
+| `VITE_BUILD_DATE`     | Build timestamp                | Current date    |
+| `PORT`                | Dev server port                | `5173`          |
+| `VITE_SOURCE_MAP`     | Enable source maps             | `true`          |
+| `VITE_DEV_MODE`       | Enable dev features            | `true`          |
+| `DEBUG`               | Debug logging filter           | `containment:*` |
+| `STRICT_TEST_CONSOLE` | Fail tests on console warnings | `0` (dev only)  |
 
 To change, edit `.env.local` in the project root.
 
@@ -281,6 +284,7 @@ Fix: `npm run lint -- --fix`
 ### Performance Issues
 
 1. **Slow tests:**
+
    ```bash
    npm run test:run -- --reporter=verbose
    ```
@@ -292,10 +296,12 @@ Fix: `npm run lint -- --fix`
 ### IDE Issues
 
 **VS Code not showing type errors:**
+
 - Run: `cmd+shift+p` → "TypeScript: Restart TS Server"
 - Or reload window: `cmd+shift+p` → "Developer: Reload Window"
 
 **Extensions not loaded:**
+
 - Install: `cmd+shift+x` → Search each extension
 - Or: `code --install-extension <extension-id>`
 

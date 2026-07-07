@@ -1,6 +1,7 @@
 export type AffiliationFileWorkQueueEvidenceRepairWorkflowId = string
 
-export type AffiliationFileWorkQueueEvidenceRepairEvidenceType = 'missing_entity_welfare_reclassification_ref'
+export type AffiliationFileWorkQueueEvidenceRepairEvidenceType =
+  'missing_entity_welfare_reclassification_ref'
 
 export interface AffiliationFileWorkQueueEvidenceRepairWorkflow {
   readonly id: AffiliationFileWorkQueueEvidenceRepairWorkflowId

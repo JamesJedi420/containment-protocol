@@ -179,6 +179,10 @@ import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
   getAffiliationFileWorkQueueFileReleaseDeliveryForPackage,
 } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
+  sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows,
+} from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,
@@ -362,6 +366,7 @@ interface GameStore {
   recordAffiliationFileWorkQueueReleaseFulfillment: (entryId: string) => void
   recordAffiliationFileWorkQueueReleasePackage: (entryId: string) => void
   recordAffiliationFileWorkQueueFileReleaseDelivery: (entryId: string) => void
+  recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
   setSquadMetadata: (metadata: SquadMetadata) => void
@@ -2032,6 +2037,59 @@ export const useGameStore = create<GameStore>()(
               ...s.game,
               affiliationFileWorkQueueFileReleaseDeliveryRecords: {
                 ...(s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+
+          // No-op: missing entry, not missing_review, or already recorded
+          if (!entry || entry.bucket !== 'missing_review') {
+            return { game: s.game }
+          }
+
+          // Check if missing_entity_welfare_reclassification_ref is in the missing codes
+          const hasMissingWelfareRef = (entry.missingReasonCodes ?? []).includes(
+            'missing_entity_welfare_reclassification_ref'
+          )
+          if (!hasMissingWelfareRef) {
+            return { game: s.game }
+          }
+
+          // Build the repair workflow record
+          const record = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+            workQueueEntryId: entry.id,
+            evidenceType: 'missing_entity_welfare_reclassification_ref',
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            repairLabel: 'Restore minimal welfare evidence',
+            recordedWeek: s.game.week,
+          })
+
+          // Check for duplicate (same entry + evidence type already recorded)
+          const existing = Object.values(
+            s.game.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}
+          )
+          const isDuplicate = existing.some(
+            (existing) =>
+              existing.workQueueEntryId === record.workQueueEntryId &&
+              existing.evidenceType === record.evidenceType
+          )
+
+          if (isDuplicate) {
+            return { game: s.game }
+          }
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueEvidenceRepairWorkflows: {
+                ...(s.game.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}),
                 [record.id]: record,
               },
             },

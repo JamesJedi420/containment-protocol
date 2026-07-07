@@ -1,14 +1,14 @@
 # SPE-1046 - File work queue welfare evidence repair mutation (slice 1)
 
-One-page implementation plan. Linear: [SPE-2537](https://linear.app/spectranoir/issue/SPE-2537/spe-1046-file-work-queue-welfare-evidence-repair-mutation) (child under [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)). Follows [SPE-2536](https://linear.app/spectranoir/issue/SPE-2536/spe-1046-file-work-queue-candidate-evidence-repair-mutation) / PR #3004; [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) parent stays **Backlog**.
+One-page implementation plan. Linear: [SPE-2541](https://linear.app/spectranoir/issue/SPE-2541/spe-1046-file-work-queue-welfare-evidence-repair-workflows-slice-2) (child under [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)). Follows [SPE-2536](https://linear.app/spectranoir/issue/SPE-2536/spe-1046-file-work-queue-candidate-evidence-repair-mutation) / PR #3004; [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) parent stays **Backlog**.
 
-| Field               | Value                                                                                                                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Linear**          | [SPE-2537 - SPE-1046 file work queue welfare evidence repair mutation](https://linear.app/spectranoir/issue/SPE-2537/spe-1046-file-work-queue-welfare-evidence-repair-mutation) |
-| **Status**          | **In Progress**                                                                                                                                                                 |
-| **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                             |
-| **Branch**          | `spe-1046-file-work-queue-welfare-evidence-repair-slice-1`                                                                                                                      |
-| **Base `main` SHA** | `9cf49c36`                                                                                                                                                                      |
+| Field               | Value                                                                                                                                                                                               |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Linear**          | [SPE-2541 - SPE-1046 file work queue welfare evidence repair workflows (slice 2)](https://linear.app/spectranoir/issue/SPE-2541/spe-1046-file-work-queue-welfare-evidence-repair-workflows-slice-2) |
+| **Status**          | **Backlog** (ready to start)                                                                                                                                                                        |
+| **Parent**          | [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) - affiliation, clearance, and membership status system; stays **Backlog**                                                                 |
+| **Branch**          | `spe-1046-file-work-queue-welfare-evidence-repair-slice-1`                                                                                                                                          |
+| **Base `main` SHA** | `cfb28683`                                                                                                                                                                                          |
 
 ## Goal
 

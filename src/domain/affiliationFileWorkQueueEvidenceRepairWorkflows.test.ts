@@ -142,7 +142,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
       const input = {
         'id-1': {
           id: 'id-1',
-          workQueueEntryId: '',  // Empty
+          workQueueEntryId: '', // Empty
           evidenceType: 'missing_entity_welfare_reclassification_ref',
           subjectId: 'subject',
           subjectLabel: 'Label',
@@ -153,7 +153,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
         'id-2': {
           id: 'id-2',
           workQueueEntryId: 'entry',
-          evidenceType: 'invalid_type',  // Invalid
+          evidenceType: 'invalid_type', // Invalid
           subjectId: 'subject',
           subjectLabel: 'Label',
           repairLabel: 'Repair',
@@ -168,7 +168,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
           subjectLabel: 'Label',
           repairLabel: 'Repair',
           repairRef: 'ref',
-          recordedWeek: -1,  // Invalid week
+          recordedWeek: -1, // Invalid week
         },
       }
 
@@ -289,7 +289,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
           subjectLabel: 'Label',
           repairLabel: 'Repair',
           repairRef: 'ref',
-          recordedWeek: 1.5,  // Float, not integer
+          recordedWeek: 1.5, // Float, not integer
         },
         'negative-week': {
           id: 'negative-week',

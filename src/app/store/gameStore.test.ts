@@ -69,6 +69,10 @@ import {
 } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueEvidenceRepairWorkflowId,
+  buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
+} from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 
 const STORE_KEY = 'containment-protocol-game-state'
@@ -2368,6 +2372,153 @@ describe('affiliation file work queue file-release delivery store action', () =>
         COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
       )
     expect(useGameStore.getState().game).toBe(afterFirstDelivery)
+  })
+})
+
+describe('affiliation file work queue evidence repair workflow store action', () => {
+  it('records deterministic welfare evidence repair workflows for missing_review queue rows', () => {
+    const game = createStartingState()
+    game.week = 13
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const workflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+    })
+    const next = useGameStore.getState().game
+
+    expect(next.affiliationFileWorkQueueEvidenceRepairWorkflows).toEqual({
+      [workflowId]: expect.objectContaining({
+        id: workflowId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        evidenceType: 'missing_entity_welfare_reclassification_ref',
+        subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+        subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+        repairLabel: 'Restore minimal welfare evidence',
+        recordedWeek: 13,
+      }),
+    })
+  })
+
+  it('no-ops when entry is missing, not in missing_review, or lacks welfare evidence gap', () => {
+    const game = createStartingState()
+    game.week = 14
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    // Change to not missing_review state
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        affiliationPersonStatusRecords: {
+          [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+            ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+            permissionSurface: 'allowed', // Not missing_review
+          },
+        },
+      },
+    })
+
+    const beforeNotMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeNotMissingReview)
+  })
+
+  it('no-ops when welfare evidence repair workflow is already recorded', () => {
+    const game = createStartingState()
+    game.week = 15
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+
+    const workflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+    })
+    const existingWorkflow = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      repairLabel: 'Restore minimal welfare evidence',
+      recordedWeek: 14,
+    })
+
+    game.affiliationFileWorkQueueEvidenceRepairWorkflows = {
+      [workflowId]: existingWorkflow,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    expect(useGameStore.getState().game).toBe(before)
+    expect(useGameStore.getState().game.affiliationFileWorkQueueEvidenceRepairWorkflows).toEqual({
+      [workflowId]: existingWorkflow,
+    })
+  })
+
+  it('maintains isolation: welfare repair workflows do not affect other ledgers', () => {
+    const game = createStartingState()
+    game.week = 16
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        permissionSurface: 'file',
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeReleaseDeliveries =
+      useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords
+    const beforeRepairActions =
+      useGameStore.getState().game.affiliationFileWorkQueueRepairActionRecords
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueEvidenceRepairWorkflow(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const after = useGameStore.getState().game
+    expect(after.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      beforeReleaseDeliveries
+    )
+    expect(after.affiliationFileWorkQueueRepairActionRecords).toEqual(beforeRepairActions)
   })
 })
 

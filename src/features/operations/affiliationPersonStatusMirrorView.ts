@@ -21,6 +21,7 @@ import {
   type AffiliationFileWorkQueueReleasePackageKind,
 } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { buildAffiliationFileWorkQueueEvidenceRepairWorkflowId } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
   projectAffiliationPersonStatusSnapshots,
@@ -132,6 +133,9 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   isFileReleaseDeliveryRecorded: boolean
   fileReleaseDeliveryStatusLabel?: string
   fileReleaseDeliveryButtonLabel?: string
+  canRecordEvidenceRepairWorkflow: boolean
+  isEvidenceRepairWorkflowRecorded: boolean
+  evidenceRepairWorkflowStatusLabel?: string
   reasonCodeLabels: readonly string[]
 }
 
@@ -461,6 +465,13 @@ function toFileAccessWorkQueueEntry(
     ? game.affiliationFileWorkQueueFileReleaseDeliveryRecords?.[fileReleaseDeliveryRecordId]
     : undefined
 
+  const evidenceRepairWorkflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+    workQueueEntryId: snapshot.recordId,
+    evidenceType: 'missing_entity_welfare_reclassification_ref',
+  })
+  const evidenceRepairWorkflow =
+    game.affiliationFileWorkQueueEvidenceRepairWorkflows?.[evidenceRepairWorkflowId]
+
   return Object.freeze({
     id: snapshot.recordId,
     subjectLabel: snapshot.subjectLabel,
@@ -552,6 +563,16 @@ function toFileAccessWorkQueueEntry(
     ...(fileReleaseDeliveryRecord
       ? {
           fileReleaseDeliveryStatusLabel: `${fileReleaseDeliveryRecord.deliveryLabel} W${fileReleaseDeliveryRecord.recordedWeek} (${fileReleaseDeliveryRecord.deliveryRef})`,
+        }
+      : {}),
+    canRecordEvidenceRepairWorkflow:
+      bucket === 'missing_review' &&
+      (missingReasonCodes ?? []).includes('missing_entity_welfare_reclassification_ref') &&
+      !evidenceRepairWorkflow,
+    isEvidenceRepairWorkflowRecorded: Boolean(evidenceRepairWorkflow),
+    ...(evidenceRepairWorkflow
+      ? {
+          evidenceRepairWorkflowStatusLabel: `Repair candidate: welfare evidence (${evidenceRepairWorkflow.repairRef})`,
         }
       : {}),
     reasonCodeLabels: Object.freeze(reasonCodeLabels),

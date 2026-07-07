@@ -138,20 +138,35 @@ export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
     return { ...fallback }
   }
 
-  const seen = new Set<string>()
+  const seenPairs = new Set<string>()
+  const seenIds = new Set<string>()
   const result: AffiliationFileWorkQueueEvidenceRepairWorkflowsMap = {}
 
-  const entries = Object.entries(records)
-    .map(([, entry]) => sanitizeEvidenceRepairWorkflowEntry(entry))
-    .filter((entry): entry is AffiliationFileWorkQueueEvidenceRepairWorkflow => entry !== undefined)
-
-  // Dedup by (workQueueEntryId, evidenceType), keep first occurrence
-  for (const entry of entries) {
-    const key = `${entry.workQueueEntryId}:${entry.evidenceType}`
-    if (!seen.has(key)) {
-      seen.add(key)
-      result[entry.id] = entry
+  for (const [rawKey, value] of Object.entries(records)) {
+    const entry = sanitizeEvidenceRepairWorkflowEntry(value)
+    if (!entry) {
+      continue
     }
+
+    const expectedId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
+      workQueueEntryId: entry.workQueueEntryId,
+      evidenceType: entry.evidenceType,
+    })
+    const expectedRepairRef = `evidence-repair:${entry.workQueueEntryId}:${entry.evidenceType}`
+    const normalizedKey = normalizeToken(rawKey)
+
+    if (normalizedKey !== expectedId || entry.id !== expectedId || entry.repairRef !== expectedRepairRef) {
+      continue
+    }
+
+    const pairKey = `${entry.workQueueEntryId}:${entry.evidenceType}`
+    if (seenPairs.has(pairKey) || seenIds.has(expectedId)) {
+      continue
+    }
+
+    seenPairs.add(pairKey)
+    seenIds.add(expectedId)
+    result[expectedId] = entry
   }
 
   return result

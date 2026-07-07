@@ -239,7 +239,6 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
     })
 
     it('validates evidence type strictly', () => {
-      const validTypes = ['missing_entity_welfare_reclassification_ref']
       const invalidTypes = ['missing_welfare', 'welfare_ref', 'missing_entity_welfare']
 
       for (const invalidType of invalidTypes) {

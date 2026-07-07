@@ -179,10 +179,7 @@ import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
   getAffiliationFileWorkQueueFileReleaseDeliveryForPackage,
 } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
-import {
-  buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
-  sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows,
-} from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
+import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
   clearContractNextIntent,

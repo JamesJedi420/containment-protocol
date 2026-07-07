@@ -59,8 +59,34 @@ import { createAgent } from '../../domain/agent/factory'
 import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { buildHavenSchedule } from '../../domain/settlements/haven'
 import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
+import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 
 describe('runTransfer helpers', () => {
+  it('preserves fallback affiliation file work queue evidence repair workflows for older saves', () => {
+    const fallbackWorkflow = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+      workQueueEntryId: 'person-status:legacy',
+      evidenceType: 'missing_entity_welfare_reclassification_ref',
+      subjectId: 'subject-legacy',
+      subjectLabel: 'Legacy Subject',
+      repairLabel: 'Restore legacy welfare evidence',
+      recordedWeek: 9,
+    })
+    const fallback = {
+      ...createStartingState(),
+      affiliationFileWorkQueueEvidenceRepairWorkflows: {
+        [fallbackWorkflow.id]: fallbackWorkflow,
+      },
+    }
+    const olderSave = stripGameTemplates(fallback)
+    delete olderSave.affiliationFileWorkQueueEvidenceRepairWorkflows
+
+    const hydrated = hydrateGame(olderSave, fallback)
+
+    expect(hydrated.affiliationFileWorkQueueEvidenceRepairWorkflows).toEqual(
+      fallback.affiliationFileWorkQueueEvidenceRepairWorkflows
+    )
+  })
+
   it('hydrates emergencyGrayMarketWaiverWeek when it matches the campaign week (SPE-1524)', () => {
     const fallback = createStartingState()
     const hydrated = hydrateGame(

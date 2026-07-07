@@ -8787,7 +8787,7 @@ export function hydrateGame(
   const affiliationFileWorkQueueEvidenceRepairWorkflows =
     sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
       game.affiliationFileWorkQueueEvidenceRepairWorkflows,
-      game.affiliationFileWorkQueueEvidenceRepairWorkflows
+      fallback.affiliationFileWorkQueueEvidenceRepairWorkflows ?? {}
     )
   const entityWelfareReclassificationRecords = sanitizeEntityWelfareReclassificationRecords(
     game.entityWelfareReclassificationRecords,

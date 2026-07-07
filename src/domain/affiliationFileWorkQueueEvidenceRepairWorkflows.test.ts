@@ -54,7 +54,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
 
       const record = buildAffiliationFileWorkQueueEvidenceRepairWorkflow(input)
 
-      expect(record).toBeFrozen()
+      expect(Object.isFrozen(record)).toBe(true)
       expect(record.id).toBeDefined()
       expect(record.workQueueEntryId).toBe('entry-789')
       expect(record.evidenceType).toBe('missing_entity_welfare_reclassification_ref')
@@ -110,12 +110,34 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
   })
 
   describe('sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows', () => {
-    it('returns empty map for non-record input', () => {
-      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(null)).toEqual({})
-      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(undefined)).toEqual({})
-      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows([])).toEqual({})
-      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows('string')).toEqual({})
-      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(123)).toEqual({})
+    it('returns fallback map for non-record input', () => {
+      const fallbackWorkflow = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+        workQueueEntryId: 'entry-valid',
+        evidenceType: 'missing_entity_welfare_reclassification_ref',
+        subjectId: 'subject-valid',
+        subjectLabel: 'Valid Subject',
+        repairLabel: 'Restore welfare evidence',
+        recordedWeek: 4,
+      })
+      const fallback = {
+        [fallbackWorkflow.id]: fallbackWorkflow,
+      }
+
+      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(null, fallback)).toEqual(
+        fallback
+      )
+      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(undefined, fallback)).toEqual(
+        fallback
+      )
+      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows([], fallback)).toEqual(
+        fallback
+      )
+      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows('string', fallback)).toEqual(
+        fallback
+      )
+      expect(sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(123, fallback)).toEqual(
+        fallback
+      )
     })
 
     it('keeps valid records', () => {
@@ -187,18 +209,20 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
         recordedWeek: 1,
       })
 
-      const record2 = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+      const duplicate = {
+        ...record1,
+        id: 'duplicate-workflow-id',
         workQueueEntryId: 'entry-dup',
         evidenceType: 'missing_entity_welfare_reclassification_ref',
         subjectId: 'subject-2',
         subjectLabel: 'Subject 2',
         repairLabel: 'Repair 2',
         recordedWeek: 2,
-      })
+      }
 
       const input = {
         [record1.id]: record1,
-        [record2.id]: record2,
+        [duplicate.id]: duplicate,
       }
 
       const result = sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(input)
@@ -217,15 +241,23 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
     })
 
     it('trims whitespace from string fields', () => {
+      const canonical = buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+        workQueueEntryId: 'entry-trim',
+        evidenceType: 'missing_entity_welfare_reclassification_ref',
+        subjectId: 'subject-trim',
+        subjectLabel: 'Trimmed Subject',
+        repairLabel: 'Trim Repair',
+        recordedWeek: 1,
+      })
       const input = {
-        'id-trimmed': {
-          id: '  id-trimmed  ',
+        [`  ${canonical.id}  `]: {
+          id: `  ${canonical.id}  `,
           workQueueEntryId: '  entry-trim  ',
           evidenceType: 'missing_entity_welfare_reclassification_ref',
           subjectId: '  subject-trim  ',
           subjectLabel: '  Trimmed Subject  ',
           repairLabel: '  Trim Repair  ',
-          repairRef: '  ref-trim  ',
+          repairRef: `  ${canonical.repairRef}  `,
           recordedWeek: 1,
         },
       }
@@ -275,7 +307,7 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
       })
 
       const sanitized = Object.values(result)[0]
-      expect(sanitized).toBeFrozen()
+      expect(Object.isFrozen(sanitized)).toBe(true)
     })
 
     it('requires week to be non-negative integer', () => {

@@ -130,7 +130,6 @@ function sanitizeEvidenceRepairWorkflowEntry(
 }
 
 export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
-export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
   records: unknown,
   fallback: AffiliationFileWorkQueueEvidenceRepairWorkflowsMap = {}
 ): AffiliationFileWorkQueueEvidenceRepairWorkflowsMap {
@@ -155,7 +154,11 @@ export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
     const expectedRepairRef = `evidence-repair:${entry.workQueueEntryId}:${entry.evidenceType}`
     const normalizedKey = normalizeToken(rawKey)
 
-    if (normalizedKey !== expectedId || entry.id !== expectedId || entry.repairRef !== expectedRepairRef) {
+    if (
+      normalizedKey !== expectedId ||
+      entry.id !== expectedId ||
+      entry.repairRef !== expectedRepairRef
+    ) {
       continue
     }
 

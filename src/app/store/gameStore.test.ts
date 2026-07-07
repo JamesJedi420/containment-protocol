@@ -2439,6 +2439,9 @@ describe('affiliation file work queue evidence repair workflow store action', ()
             permissionSurface: 'allowed', // Not missing_review
           },
         },
+        entityWelfareReclassificationRecords: {
+          [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+        },
       },
     })
 

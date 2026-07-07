@@ -305,5 +305,20 @@ describe('affiliationFileWorkQueueEvidenceRepairWorkflows', () => {
       const result = sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(input)
       expect(Object.keys(result)).toHaveLength(0)
     })
+
+    it('returns fallback map when input is not a valid record', () => {
+      const fallback = {
+        'wf-1': buildAffiliationFileWorkQueueEvidenceRepairWorkflow({
+          workQueueEntryId: 'entry-1',
+          evidenceType: 'missing_entity_welfare_reclassification_ref',
+          subjectId: 'subj-1',
+          subjectLabel: 'Subject 1',
+          repairLabel: 'Repair 1',
+          recordedWeek: 5,
+        }).record,
+      }
+      const result = sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(null, fallback)
+      expect(result).toEqual(fallback)
+    })
   })
 })

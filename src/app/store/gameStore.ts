@@ -2051,7 +2051,7 @@ export const useGameStore = create<GameStore>()(
           }
 
           // Check if missing_entity_welfare_reclassification_ref is in the missing codes
-          const hasMissingWelfareRef = (entry.missingReasonCodes ?? []).includes(
+          const hasMissingWelfareRef = entry.reasonCodeLabels.includes(
             'missing_entity_welfare_reclassification_ref'
           )
           if (!hasMissingWelfareRef) {

@@ -130,10 +130,11 @@ function sanitizeEvidenceRepairWorkflowEntry(
 }
 
 export function sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
-  records: unknown
+  records: unknown,
+  fallback: AffiliationFileWorkQueueEvidenceRepairWorkflowsMap = {}
 ): AffiliationFileWorkQueueEvidenceRepairWorkflowsMap {
   if (!isPlainRecord(records)) {
-    return {}
+    return { ...fallback }
   }
 
   const seen = new Set<string>()

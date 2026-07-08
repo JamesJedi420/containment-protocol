@@ -18,7 +18,9 @@ From `README.md` **Current design notes**:
 
 **Recently shipped:** SPE-1046 file work queue release package handoff (slice 1) - persisted safe package handoff receipts after fulfillment on `main` @ `14b3f29a`; see `planning/spe-1046-file-work-queue-release-package-handoff-slice-1.md`. Parent [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) stays **Backlog**.
 
-**In progress:** SPE-1046 file work queue file-content release delivery (slice 1) - persisted metadata-only file-release delivery receipts after safe package handoff; branch `spe-1046-file-work-queue-file-release-delivery-slice-1`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication.
+**Recently shipped:** SPE-1046 file work queue file-content release delivery (slice 1) - persisted metadata-only file-release delivery receipts after safe package handoff; landed on `main` @ `97da46e3`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
+
+**Next up (planning):** Actual file-content release delivery (slice 2) requires a new active Linear successor issue because [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) now reflects **Done**.
 
 Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **deferred** per `planning/infiltration-encounter-content-batch4plus-audit.md` (no eligible templates).
 
@@ -70,7 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff:** SPE-1046 file work queue file-content release delivery (slice 1) is in progress on branch `spe-1046-file-work-queue-file-release-delivery-slice-1` from base `14b3f29a`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`. Linear child creation/status update is blocked until Linear OAuth reauthentication.
+**Current handoff:** Backlog/handoff reconciliation complete for SPE-1046 file work queue file-content release delivery (slice 1) shipped on `main` @ `97da46e3`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
+
+**Current handoff:** Prepare and execute actual file-content release delivery (slice 2) using `planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md` once a new active Linear successor issue is created.
 
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 

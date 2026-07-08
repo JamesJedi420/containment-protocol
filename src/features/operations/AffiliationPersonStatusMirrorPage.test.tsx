@@ -355,7 +355,9 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
     expect(queueRegion).toHaveTextContent(
       'Metadata-only file release delivered W14 (file-release-delivery:person-status:cooperative-contractor-cleared:safe_file_handoff_package)'
     )
-    expect(screen.queryByRole('button', { name: /record file delivery/i })).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /record actual file-content delivery/i })
+    ).toBeInTheDocument()
     expect(useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
       expect.objectContaining({
         [deliveryId]: expect.objectContaining({
@@ -364,6 +366,33 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
             'release-package:person-status:cooperative-contractor-cleared:file_release_fulfilled',
           deliveryKind: 'metadata_only_file_release_delivered',
           deliveryLabel: 'Metadata-only file release delivered',
+          recordedWeek: 14,
+        }),
+      })
+    )
+
+    await user.click(screen.getByRole('button', { name: /record actual file-content delivery/i }))
+
+    const actualDeliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourcePackageKind: 'safe_file_handoff_package',
+      deliveryKind: 'actual_file_content_release_delivered',
+    })
+
+    expect(queueRegion).toHaveTextContent(
+      'Actual file content release delivered W14 (file-release-delivery:person-status:cooperative-contractor-cleared:safe_file_handoff_package:actual_file_content_release_delivered)'
+    )
+    expect(
+      screen.queryByRole('button', { name: /record actual file-content delivery/i })
+    ).not.toBeInTheDocument()
+    expect(useGameStore.getState().game.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      expect.objectContaining({
+        [deliveryId]: expect.objectContaining({
+          deliveryKind: 'metadata_only_file_release_delivered',
+        }),
+        [actualDeliveryId]: expect.objectContaining({
+          deliveryKind: 'actual_file_content_release_delivered',
+          deliveryLabel: 'Actual file content release delivered',
           recordedWeek: 14,
         }),
       })

@@ -5,6 +5,7 @@ import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId,
   getAffiliationFileWorkQueueFileReleaseDeliveryForPackage,
+  getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode,
   sanitizeAffiliationFileWorkQueueFileReleaseDeliveryRecords,
 } from '../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
 
@@ -15,6 +16,28 @@ describe('affiliationFileWorkQueueFileReleaseDeliveryRecords persistence', () =>
     ).toEqual({
       deliveryKind: 'metadata_only_file_release_delivered',
       deliveryLabel: 'Metadata-only file release delivered',
+    })
+  })
+
+  it('maps safe handoff packages to metadata-only and actual file-content release delivery receipts', () => {
+    expect(
+      getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
+        packageKind: 'safe_file_handoff_package',
+        mode: 'metadata_only',
+      })
+    ).toEqual({
+      deliveryKind: 'metadata_only_file_release_delivered',
+      deliveryLabel: 'Metadata-only file release delivered',
+    })
+
+    expect(
+      getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
+        packageKind: 'safe_file_handoff_package',
+        mode: 'actual_file_content',
+      })
+    ).toEqual({
+      deliveryKind: 'actual_file_content_release_delivered',
+      deliveryLabel: 'Actual file content release delivered',
     })
   })
 
@@ -105,6 +128,28 @@ describe('affiliationFileWorkQueueFileReleaseDeliveryRecords persistence', () =>
       })
     ).toEqual({
       [valid.id]: valid,
+    })
+  })
+
+  it('keeps valid actual-content delivery records during hydration sanitization', () => {
+    const record = buildAffiliationFileWorkQueueFileReleaseDeliveryRecord({
+      workQueueEntryId: 'person-status:actual',
+      subjectId: 'subject:actual',
+      subjectLabel: 'Actual Subject',
+      sourcePackageKind: 'safe_file_handoff_package',
+      sourcePackageRef: 'release-package:person-status:actual:file_release_fulfilled',
+      sourceReasonCodes: ['file_permission_allowed'],
+      deliveryKind: 'actual_file_content_release_delivered',
+      deliveryLabel: 'Actual file content release delivered',
+      recordedWeek: 9,
+    })
+
+    expect(
+      sanitizeAffiliationFileWorkQueueFileReleaseDeliveryRecords({
+        [record.id]: record,
+      })
+    ).toEqual({
+      [record.id]: record,
     })
   })
 

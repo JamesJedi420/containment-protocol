@@ -2275,7 +2275,7 @@ describe('affiliation file work queue file-release delivery store action', () =>
     expect(next.affiliationFileWorkQueueReleaseFulfillmentRecords).toBeDefined()
   })
 
-  it('no-ops when package handoff is missing, the row is absent, or a delivery is already recorded', () => {
+  it('no-ops when package handoff is missing or the row is absent, then records actual-content delivery as a second step', () => {
     const game = createStartingState()
     game.week = 17
     game.candidates = [makeCooperativeContractorCandidate()]
@@ -2313,6 +2313,11 @@ describe('affiliation file work queue file-release delivery store action', () =>
     const deliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
       workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
       sourcePackageKind: 'safe_file_handoff_package',
+    })
+    const actualDeliveryId = buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourcePackageKind: 'safe_file_handoff_package',
+      deliveryKind: 'actual_file_content_release_delivered',
     })
 
     useGameStore.setState({
@@ -2371,7 +2376,26 @@ describe('affiliation file work queue file-release delivery store action', () =>
       .recordAffiliationFileWorkQueueFileReleaseDelivery(
         COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
       )
-    expect(useGameStore.getState().game).toBe(afterFirstDelivery)
+
+    const afterSecondDelivery = useGameStore.getState().game
+    expect(afterSecondDelivery.affiliationFileWorkQueueFileReleaseDeliveryRecords).toEqual(
+      expect.objectContaining({
+        [deliveryId]: expect.objectContaining({
+          deliveryKind: 'metadata_only_file_release_delivered',
+        }),
+        [actualDeliveryId]: expect.objectContaining({
+          deliveryKind: 'actual_file_content_release_delivered',
+          deliveryLabel: 'Actual file content release delivered',
+        }),
+      })
+    )
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueFileReleaseDelivery(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(afterSecondDelivery)
   })
 })
 

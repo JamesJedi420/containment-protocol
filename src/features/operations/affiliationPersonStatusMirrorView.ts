@@ -20,7 +20,10 @@ import {
   buildAffiliationFileWorkQueueReleasePackageRecordId,
   type AffiliationFileWorkQueueReleasePackageKind,
 } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
-import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId,
+  type AffiliationFileWorkQueueFileReleaseDeliveryRecord,
+} from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflowId } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
@@ -461,9 +464,33 @@ function toFileAccessWorkQueueEntry(
         sourcePackageKind: releasePackageRecord.packageKind,
       })
     : ''
-  const fileReleaseDeliveryRecord = releasePackageRecord
+  const metadataFileReleaseDeliveryRecord = releasePackageRecord
     ? game.affiliationFileWorkQueueFileReleaseDeliveryRecords?.[fileReleaseDeliveryRecordId]
     : undefined
+  const relatedFileReleaseDeliveries: readonly AffiliationFileWorkQueueFileReleaseDeliveryRecord[] =
+    releasePackageRecord
+      ? Object.values(game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}).filter(
+          (record) =>
+            record &&
+            record.workQueueEntryId === snapshot.recordId &&
+            record.sourcePackageKind === releasePackageRecord.packageKind &&
+            record.sourcePackageRef === releasePackageRecord.packageRef
+        )
+      : []
+  const fileReleaseDeliveryRecord =
+    relatedFileReleaseDeliveries.find(
+      (record) => record.deliveryKind === 'actual_file_content_release_delivered'
+    ) ??
+    relatedFileReleaseDeliveries.find(
+      (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
+    ) ??
+    metadataFileReleaseDeliveryRecord
+  const hasMetadataFileReleaseDelivery = relatedFileReleaseDeliveries.some(
+    (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
+  )
+  const hasActualFileReleaseDelivery = relatedFileReleaseDeliveries.some(
+    (record) => record.deliveryKind === 'actual_file_content_release_delivered'
+  )
 
   const evidenceRepairWorkflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
     workQueueEntryId: snapshot.recordId,
@@ -557,9 +584,15 @@ function toFileAccessWorkQueueEntry(
           releasePackageStatusLabel: `${releasePackageRecord.packageLabel} W${releasePackageRecord.recordedWeek} (${releasePackageRecord.packageRef})`,
         }
       : {}),
-    canRecordFileReleaseDelivery: Boolean(releasePackageRecord && !fileReleaseDeliveryRecord),
+    canRecordFileReleaseDelivery: Boolean(releasePackageRecord && !hasActualFileReleaseDelivery),
     isFileReleaseDeliveryRecorded: Boolean(fileReleaseDeliveryRecord),
-    ...(releasePackageRecord ? { fileReleaseDeliveryButtonLabel: 'Record file delivery' } : {}),
+    ...(releasePackageRecord
+      ? {
+          fileReleaseDeliveryButtonLabel: hasMetadataFileReleaseDelivery
+            ? 'Record actual file-content delivery'
+            : 'Record file delivery',
+        }
+      : {}),
     ...(fileReleaseDeliveryRecord
       ? {
           fileReleaseDeliveryStatusLabel: `${fileReleaseDeliveryRecord.deliveryLabel} W${fileReleaseDeliveryRecord.recordedWeek} (${fileReleaseDeliveryRecord.deliveryRef})`,

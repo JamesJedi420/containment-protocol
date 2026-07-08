@@ -1,9 +1,9 @@
 # SPE-1046 - File work queue file-content release delivery (slice 1)
 
-One-page implementation plan. Linear child creation/status update is blocked in this session by Linear OAuth reauthentication; intended parent is [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046). Follows file work queue release package handoff / base `14b3f29a`; [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046) parent stays **Backlog**.
+One-page implementation plan. This slice shipped on `main` in commit `97da46e3` after file work queue release package handoff / base `14b3f29a`.
 
-- **Linear:** Pending SPE-1046 child - file work queue file-content release delivery
-- **Status:** In Progress
+- **Linear:** SPE-1046 chain (historical shipped slice)
+- **Status:** Shipped
 - **Parent:** [SPE-1046](https://linear.app/spectranoir/issue/SPE-1046)
 - **Branch:** `spe-1046-file-work-queue-file-release-delivery-slice-1`
 - **Base `main` SHA:** `14b3f29a`
@@ -58,9 +58,9 @@ Persist a durable metadata-only file-release delivery receipt after safe package
 - **SPE-1046 parent closure**
   Owner: SPE-1046
   Why: Broader parent acceptance remains open.
-- **Linear issue creation/update**
+- **Successor issue creation for actual file-content delivery**
   Owner: Human / next agent
-  Why: Linear connector requires OAuth reauthentication first.
+  Why: Follow-up scope must be tracked under a new active successor issue.
 
 ## See also
 

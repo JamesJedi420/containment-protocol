@@ -2,7 +2,13 @@ import type { AffiliationFileWorkQueueReleasePackageKind } from './affiliationFi
 
 export type AffiliationFileWorkQueueFileReleaseDeliveryRecordId = string
 
-export type AffiliationFileWorkQueueFileReleaseDeliveryKind = 'metadata_only_file_release_delivered'
+export type AffiliationFileWorkQueueFileReleaseDeliveryKind =
+  | 'metadata_only_file_release_delivered'
+  | 'actual_file_content_release_delivered'
+
+export type AffiliationFileWorkQueueFileReleaseDeliveryMode =
+  | 'metadata_only'
+  | 'actual_file_content'
 
 export interface AffiliationFileWorkQueueFileReleaseDeliveryRecord {
   readonly id: AffiliationFileWorkQueueFileReleaseDeliveryRecordId
@@ -71,7 +77,10 @@ function normalizeSourcePackageKind(
 function normalizeDeliveryKind(
   value: unknown
 ): AffiliationFileWorkQueueFileReleaseDeliveryKind | undefined {
-  return value === 'metadata_only_file_release_delivered' ? value : undefined
+  return value === 'metadata_only_file_release_delivered' ||
+    value === 'actual_file_content_release_delivered'
+    ? value
+    : undefined
 }
 
 function isValidDeliveryPair(input: {
@@ -80,7 +89,8 @@ function isValidDeliveryPair(input: {
 }) {
   return (
     input.sourcePackageKind === 'safe_file_handoff_package' &&
-    input.deliveryKind === 'metadata_only_file_release_delivered'
+    (input.deliveryKind === 'metadata_only_file_release_delivered' ||
+      input.deliveryKind === 'actual_file_content_release_delivered')
   )
 }
 
@@ -99,18 +109,55 @@ export function getAffiliationFileWorkQueueFileReleaseDeliveryForPackage(
   }
 }
 
+export function getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode(input: {
+  readonly packageKind: AffiliationFileWorkQueueReleasePackageKind
+  readonly mode: AffiliationFileWorkQueueFileReleaseDeliveryMode
+}): {
+  readonly deliveryKind: AffiliationFileWorkQueueFileReleaseDeliveryKind
+  readonly deliveryLabel: string
+} {
+  if (input.packageKind !== 'safe_file_handoff_package') {
+    const delivery = getAffiliationFileWorkQueueFileReleaseDeliveryForPackage(input.packageKind)
+    if (!delivery) {
+      throw new Error(`Unsupported package kind for file release delivery: ${input.packageKind}`)
+    }
+    return delivery
+  }
+
+  switch (input.mode) {
+    case 'metadata_only':
+      return Object.freeze({
+        deliveryKind: 'metadata_only_file_release_delivered',
+        deliveryLabel: 'Metadata-only file release delivered',
+      })
+    case 'actual_file_content':
+      return Object.freeze({
+        deliveryKind: 'actual_file_content_release_delivered',
+        deliveryLabel: 'Actual file content release delivered',
+      })
+  }
+}
+
 export function buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId(input: {
   readonly workQueueEntryId: string
   readonly sourcePackageKind: AffiliationFileWorkQueueReleasePackageKind
+  readonly deliveryKind?: AffiliationFileWorkQueueFileReleaseDeliveryKind
 }) {
-  return `affiliation-file-release-delivery:${input.workQueueEntryId}:${input.sourcePackageKind}`
+  const base = `affiliation-file-release-delivery:${input.workQueueEntryId}:${input.sourcePackageKind}`
+  return input.deliveryKind === 'actual_file_content_release_delivered'
+    ? `${base}:${input.deliveryKind}`
+    : base
 }
 
 function buildFileReleaseDeliveryRef(input: {
   readonly workQueueEntryId: string
   readonly sourcePackageKind: AffiliationFileWorkQueueReleasePackageKind
+  readonly deliveryKind?: AffiliationFileWorkQueueFileReleaseDeliveryKind
 }) {
-  return `file-release-delivery:${input.workQueueEntryId}:${input.sourcePackageKind}`
+  const base = `file-release-delivery:${input.workQueueEntryId}:${input.sourcePackageKind}`
+  return input.deliveryKind === 'actual_file_content_release_delivered'
+    ? `${base}:${input.deliveryKind}`
+    : base
 }
 
 export function buildAffiliationFileWorkQueueFileReleaseDeliveryRecord(
@@ -120,12 +167,14 @@ export function buildAffiliationFileWorkQueueFileReleaseDeliveryRecord(
   const deliveryRef = buildFileReleaseDeliveryRef({
     workQueueEntryId: input.workQueueEntryId,
     sourcePackageKind: input.sourcePackageKind,
+    deliveryKind: input.deliveryKind,
   })
 
   return Object.freeze({
     id: buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
       workQueueEntryId: input.workQueueEntryId,
       sourcePackageKind: input.sourcePackageKind,
+      deliveryKind: input.deliveryKind,
     }),
     workQueueEntryId: input.workQueueEntryId,
     subjectId: input.subjectId,
@@ -184,11 +233,13 @@ function sanitizeFileReleaseDeliveryRecordEntry(
       buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId({
         workQueueEntryId,
         sourcePackageKind,
+        deliveryKind,
       }) ||
     deliveryRef !==
       buildFileReleaseDeliveryRef({
         workQueueEntryId,
         sourcePackageKind,
+        deliveryKind,
       })
   ) {
     return null

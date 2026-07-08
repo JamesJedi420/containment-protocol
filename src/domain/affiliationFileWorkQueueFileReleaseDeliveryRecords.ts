@@ -117,7 +117,11 @@ export function getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode(inp
   readonly deliveryLabel: string
 } {
   if (input.packageKind !== 'safe_file_handoff_package') {
-    return getAffiliationFileWorkQueueFileReleaseDeliveryForPackage(input.packageKind)
+    const delivery = getAffiliationFileWorkQueueFileReleaseDeliveryForPackage(input.packageKind)
+    if (!delivery) {
+      throw new Error(`Unsupported package kind for file release delivery: ${input.packageKind}`)
+    }
+    return delivery
   }
 
   switch (input.mode) {

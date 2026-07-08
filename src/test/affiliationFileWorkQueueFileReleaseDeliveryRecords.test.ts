@@ -19,7 +19,17 @@ describe('affiliationFileWorkQueueFileReleaseDeliveryRecords persistence', () =>
     })
   })
 
-  it('maps safe handoff packages to actual file-content release delivery receipts', () => {
+  it('maps safe handoff packages to metadata-only and actual file-content release delivery receipts', () => {
+    expect(
+      getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
+        packageKind: 'safe_file_handoff_package',
+        mode: 'metadata_only',
+      })
+    ).toEqual({
+      deliveryKind: 'metadata_only_file_release_delivered',
+      deliveryLabel: 'Metadata-only file release delivered',
+    })
+
     expect(
       getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
         packageKind: 'safe_file_handoff_package',

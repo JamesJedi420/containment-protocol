@@ -69,6 +69,7 @@ import {
 } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { buildAffiliationFileWorkQueueNonMissionEnforcementRecordId } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import {
   buildAffiliationFileWorkQueueEvidenceRepairWorkflowId,
   buildAffiliationFileWorkQueueEvidenceRepairWorkflow,
@@ -2396,6 +2397,133 @@ describe('affiliation file work queue file-release delivery store action', () =>
         COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
       )
     expect(useGameStore.getState().game).toBe(afterSecondDelivery)
+  })
+})
+
+describe('affiliation file work queue non-mission enforcement store action', () => {
+  it('records deterministic non-mission enforcement receipts for blocked and restricted queue rows', () => {
+    const game = createStartingState()
+    game.week = 18
+    const blockedWelfareRecord = {
+      ...HOSTILE_TO_COOPERATIVE_FIXTURE,
+      id: 'reclass:file-blocked',
+      label: 'Blocked file custody',
+      proposedDisposition: 'hostile',
+      reclassificationState: 'denied',
+    } as const
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+      [blockedWelfareRecord.id]: blockedWelfareRecord,
+    }
+    game.affiliationPersonStatusRecords = {
+      'person-status:file-blocked': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:file-blocked',
+        subjectId: 'subject:file-blocked',
+        subjectLabel: 'File Blocked Subject',
+        candidateRef: undefined,
+        entityWelfareReclassificationRef: 'reclass:file-blocked',
+        permissionSurface: 'file',
+      },
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement('person-status:file-blocked')
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+
+    const next = useGameStore.getState().game
+    const blockedId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+      workQueueEntryId: 'person-status:file-blocked',
+      sourceBucket: 'blocked',
+    })
+    const restrictedId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceBucket: 'restricted',
+    })
+
+    expect(next.affiliationFileWorkQueueNonMissionEnforcementRecords).toEqual({
+      [blockedId]: expect.objectContaining({
+        id: blockedId,
+        workQueueEntryId: 'person-status:file-blocked',
+        sourceBucket: 'blocked',
+        enforcementKind: 'blocked_non_mission_access_enforced',
+        enforcementLabel: 'Blocked non-mission access enforced',
+        recordedWeek: 18,
+      }),
+      [restrictedId]: expect.objectContaining({
+        id: restrictedId,
+        workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+        sourceBucket: 'restricted',
+        enforcementKind: 'restricted_non_mission_access_enforced',
+        enforcementLabel: 'Restricted non-mission access enforced',
+        recordedWeek: 18,
+      }),
+    })
+  })
+
+  it('no-ops for missing-review, absent, and duplicate requests', () => {
+    const game = createStartingState()
+    game.week = 19
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        candidateRef: 'candidate:missing-review',
+        entityWelfareReclassificationRef: undefined,
+      },
+    }
+    useGameStore.setState({ game })
+
+    const beforeMissingReview = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(beforeMissingReview)
+
+    const beforeAbsent = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement('person-status:absent')
+    expect(useGameStore.getState().game).toBe(beforeAbsent)
+
+    useGameStore.setState({
+      game: {
+        ...useGameStore.getState().game,
+        entityWelfareReclassificationRecords: {
+          [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+        },
+        affiliationPersonStatusRecords: {
+          [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+            ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+            entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+          },
+        },
+      },
+    })
+
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    const afterFirstRecord = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueNonMissionEnforcement(
+        COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id
+      )
+    expect(useGameStore.getState().game).toBe(afterFirstRecord)
   })
 })
 

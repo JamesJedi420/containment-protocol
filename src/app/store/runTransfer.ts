@@ -221,6 +221,7 @@ import { sanitizeAffiliationFileWorkQueueReleaseOutcomeRecords } from '../../dom
 import { sanitizeAffiliationFileWorkQueueReleaseFulfillmentRecords } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { sanitizeAffiliationFileWorkQueueReleasePackageRecords } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { sanitizeAffiliationFileWorkQueueFileReleaseDeliveryRecords } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { sanitizeAffiliationFileWorkQueueNonMissionEnforcementRecords } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import { sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { sanitizeEntityWelfareReclassificationRecords } from '../../domain/entityWelfareReclassificationRegistry'
 import { sanitizeTherapeuticCareScheduleRecords } from '../../domain/containedPersonTherapeuticCareRegistry'
@@ -8784,6 +8785,11 @@ export function hydrateGame(
       game.affiliationFileWorkQueueFileReleaseDeliveryRecords,
       fallback.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}
     )
+  const affiliationFileWorkQueueNonMissionEnforcementRecords =
+    sanitizeAffiliationFileWorkQueueNonMissionEnforcementRecords(
+      game.affiliationFileWorkQueueNonMissionEnforcementRecords,
+      fallback.affiliationFileWorkQueueNonMissionEnforcementRecords ?? {}
+    )
   const affiliationFileWorkQueueEvidenceRepairWorkflows =
     sanitizeAffiliationFileWorkQueueEvidenceRepairWorkflows(
       game.affiliationFileWorkQueueEvidenceRepairWorkflows,
@@ -8991,6 +8997,7 @@ export function hydrateGame(
     affiliationFileWorkQueueReleaseFulfillmentRecords,
     affiliationFileWorkQueueReleasePackageRecords,
     affiliationFileWorkQueueFileReleaseDeliveryRecords,
+    affiliationFileWorkQueueNonMissionEnforcementRecords,
     affiliationFileWorkQueueEvidenceRepairWorkflows,
     entityWelfareReclassificationRecords,
     containedPersonTherapeuticCareRecords,

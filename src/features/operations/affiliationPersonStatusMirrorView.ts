@@ -24,6 +24,10 @@ import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId,
   type AffiliationFileWorkQueueFileReleaseDeliveryRecord,
 } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueNonMissionEnforcementRecordId,
+  getAffiliationFileWorkQueueNonMissionEnforcementForBucket,
+} from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflowId } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import type { AffiliationFileWorkQueueReleaseOutcomeKind } from '../../domain/affiliationFileWorkQueueReleaseOutcomeRecords'
 import {
@@ -136,6 +140,10 @@ export interface AffiliationFileAccessWorkQueueEntryView {
   isFileReleaseDeliveryRecorded: boolean
   fileReleaseDeliveryStatusLabel?: string
   fileReleaseDeliveryButtonLabel?: string
+  canRecordNonMissionEnforcement: boolean
+  isNonMissionEnforcementRecorded: boolean
+  nonMissionEnforcementStatusLabel?: string
+  nonMissionEnforcementButtonLabel?: string
   canRecordEvidenceRepairWorkflow: boolean
   isEvidenceRepairWorkflowRecorded: boolean
   evidenceRepairWorkflowStatusLabel?: string
@@ -491,6 +499,16 @@ function toFileAccessWorkQueueEntry(
   const hasActualFileReleaseDelivery = relatedFileReleaseDeliveries.some(
     (record) => record.deliveryKind === 'actual_file_content_release_delivered'
   )
+  const nonMissionEnforcement = getAffiliationFileWorkQueueNonMissionEnforcementForBucket(bucket)
+  const nonMissionEnforcementRecordId = nonMissionEnforcement
+    ? buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+        workQueueEntryId: snapshot.recordId,
+        sourceBucket: bucket,
+      })
+    : ''
+  const nonMissionEnforcementRecord = nonMissionEnforcement
+    ? game.affiliationFileWorkQueueNonMissionEnforcementRecords?.[nonMissionEnforcementRecordId]
+    : undefined
 
   const evidenceRepairWorkflowId = buildAffiliationFileWorkQueueEvidenceRepairWorkflowId({
     workQueueEntryId: snapshot.recordId,
@@ -596,6 +614,18 @@ function toFileAccessWorkQueueEntry(
     ...(fileReleaseDeliveryRecord
       ? {
           fileReleaseDeliveryStatusLabel: `${fileReleaseDeliveryRecord.deliveryLabel} W${fileReleaseDeliveryRecord.recordedWeek} (${fileReleaseDeliveryRecord.deliveryRef})`,
+        }
+      : {}),
+    canRecordNonMissionEnforcement: Boolean(nonMissionEnforcement && !nonMissionEnforcementRecord),
+    isNonMissionEnforcementRecorded: Boolean(nonMissionEnforcementRecord),
+    ...(nonMissionEnforcement
+      ? {
+          nonMissionEnforcementButtonLabel: `Record ${bucket} non-mission enforcement`,
+        }
+      : {}),
+    ...(nonMissionEnforcementRecord
+      ? {
+          nonMissionEnforcementStatusLabel: `${nonMissionEnforcementRecord.enforcementLabel} W${nonMissionEnforcementRecord.recordedWeek} (${nonMissionEnforcementRecord.id})`,
         }
       : {}),
     canRecordEvidenceRepairWorkflow:

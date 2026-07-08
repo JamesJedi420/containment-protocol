@@ -12,6 +12,7 @@ import { buildAffiliationFileWorkQueueReleaseOutcomeRecord } from '../../domain/
 import { buildAffiliationFileWorkQueueReleaseFulfillmentRecord } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { buildAffiliationFileWorkQueueReleasePackageRecord } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecord } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { buildAffiliationFileWorkQueueNonMissionEnforcementRecord } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import {
   HOSTILE_TO_COOPERATIVE_FIXTURE,
   PENDING_TO_APPROVED_FIXTURE,
@@ -564,6 +565,40 @@ describe('affiliationPersonStatusMirrorView (SPE-2519 slice 1)', () => {
       fileReleaseDeliveryButtonLabel: 'Record actual file-content delivery',
       fileReleaseDeliveryStatusLabel:
         'Metadata-only file release delivered W14 (file-release-delivery:person-status:cooperative-contractor-cleared:safe_file_handoff_package)',
+    })
+  })
+
+  it('shows non-mission enforcement controls and recorded status for restricted rows', () => {
+    const game = makeStatusGame()
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.fileAccessWorkQueue[0]).toMatchObject({
+      canRecordNonMissionEnforcement: true,
+      isNonMissionEnforcementRecorded: false,
+      nonMissionEnforcementButtonLabel: 'Record restricted non-mission enforcement',
+    })
+
+    const recorded = buildAffiliationFileWorkQueueNonMissionEnforcementRecord({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      subjectId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectId,
+      subjectLabel: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.subjectLabel,
+      sourceBucket: 'restricted',
+      sourceReasonCodes: ['approved_cooperative_file_restricted'],
+      enforcementKind: 'restricted_non_mission_access_enforced',
+      enforcementLabel: 'Restricted non-mission access enforced',
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueNonMissionEnforcementRecords = {
+      [recorded.id]: recorded,
+    }
+
+    const recordedView = getAffiliationPersonStatusMirrorView(game)
+
+    expect(recordedView.fileAccessWorkQueue[0]).toMatchObject({
+      canRecordNonMissionEnforcement: false,
+      isNonMissionEnforcementRecorded: true,
+      nonMissionEnforcementStatusLabel:
+        'Restricted non-mission access enforced W11 (affiliation-file-non-mission-enforcement:person-status:cooperative-contractor-cleared:restricted)',
     })
   })
 

@@ -21,6 +21,7 @@ import { buildAffiliationFileWorkQueueReleaseOutcomeRecordId } from '../../domai
 import { buildAffiliationFileWorkQueueReleaseFulfillmentRecord } from '../../domain/affiliationFileWorkQueueReleaseFulfillmentRecords'
 import { buildAffiliationFileWorkQueueReleasePackageRecordId } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import { buildAffiliationFileWorkQueueFileReleaseDeliveryRecordId } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import { buildAffiliationFileWorkQueueNonMissionEnforcementRecordId } from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import AffiliationPersonStatusMirrorPage from './AffiliationPersonStatusMirrorPage'
 
 function renderMirrorPage() {
@@ -132,6 +133,53 @@ describe('AffiliationPersonStatusMirrorPage (SPE-2519 slice 1)', () => {
             sourceBucket: 'restricted',
             recordedWeek: 8,
           }),
+      })
+    )
+  })
+
+  it('records a non-mission enforcement entry from the queue row', async () => {
+    const user = userEvent.setup()
+    const game = createStartingState()
+    game.week = 8
+    game.entityWelfareReclassificationRecords = {
+      [PENDING_TO_APPROVED_FIXTURE.id]: PENDING_TO_APPROVED_FIXTURE,
+    }
+    game.affiliationPersonStatusRecords = {
+      [COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id]: {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        entityWelfareReclassificationRef: PENDING_TO_APPROVED_FIXTURE.id,
+      },
+    }
+    useGameStore.setState({ game })
+
+    renderMirrorPage()
+
+    const queueRegion = screen.getByRole('region', {
+      name: /file access work queue/i,
+    })
+
+    await user.click(
+      screen.getByRole('button', { name: /record restricted non-mission enforcement/i })
+    )
+
+    const enforcementId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+      workQueueEntryId: COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE.id,
+      sourceBucket: 'restricted',
+    })
+
+    expect(queueRegion).toHaveTextContent('Restricted non-mission access enforced W8')
+    expect(
+      screen.queryByRole('button', { name: /record restricted non-mission enforcement/i })
+    ).not.toBeInTheDocument()
+    expect(
+      useGameStore.getState().game.affiliationFileWorkQueueNonMissionEnforcementRecords
+    ).toEqual(
+      expect.objectContaining({
+        [enforcementId]: expect.objectContaining({
+          enforcementKind: 'restricted_non_mission_access_enforced',
+          enforcementLabel: 'Restricted non-mission access enforced',
+          recordedWeek: 8,
+        }),
       })
     )
   })

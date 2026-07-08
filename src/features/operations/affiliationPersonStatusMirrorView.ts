@@ -471,6 +471,7 @@ function toFileAccessWorkQueueEntry(
     releasePackageRecord
       ? Object.values(game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}).filter(
           (record) =>
+            record &&
             record.workQueueEntryId === snapshot.recordId &&
             record.sourcePackageKind === releasePackageRecord.packageKind &&
             record.sourcePackageRef === releasePackageRecord.packageRef

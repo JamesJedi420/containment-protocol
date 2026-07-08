@@ -326,11 +326,12 @@ export default function AffiliationPersonStatusMirrorPage() {
                             {entry.releasePackageButtonLabel}
                           </button>
                         ) : null}
-                        {entry.isFileReleaseDeliveryRecorded ? (
+                        {entry.fileReleaseDeliveryStatusLabel ? (
                           <p className="mt-2 text-xs font-medium">
                             {entry.fileReleaseDeliveryStatusLabel}
                           </p>
-                        ) : entry.canRecordFileReleaseDelivery ? (
+                        ) : null}
+                        {entry.canRecordFileReleaseDelivery ? (
                           <button
                             type="button"
                             className="btn btn-xs btn-primary mt-2 whitespace-nowrap"

@@ -177,7 +177,7 @@ import {
 } from '../../domain/affiliationFileWorkQueueReleasePackageRecords'
 import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
-  getAffiliationFileWorkQueueFileReleaseDeliveryForPackage,
+  getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode,
 } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
@@ -2008,15 +2008,35 @@ export const useGameStore = create<GameStore>()(
             !entry ||
             !entry.releasePackageKind ||
             !entry.releasePackageRef ||
-            !entry.isReleasePackageRecorded ||
-            entry.isFileReleaseDeliveryRecorded
+            !entry.isReleasePackageRecorded
           ) {
             return { game: s.game }
           }
 
-          const fileReleaseDelivery = getAffiliationFileWorkQueueFileReleaseDeliveryForPackage(
-            entry.releasePackageKind
+          const existingDeliveries = Object.values(
+            s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}
+          ).filter(
+            (record) =>
+              record.workQueueEntryId === entry.id &&
+              record.sourcePackageKind === entry.releasePackageKind &&
+              record.sourcePackageRef === entry.releasePackageRef
           )
+
+          const hasMetadataDelivery = existingDeliveries.some(
+            (record) => record.deliveryKind === 'metadata_only_file_release_delivered'
+          )
+          const hasActualContentDelivery = existingDeliveries.some(
+            (record) => record.deliveryKind === 'actual_file_content_release_delivered'
+          )
+
+          if (hasActualContentDelivery) {
+            return { game: s.game }
+          }
+
+          const fileReleaseDelivery = getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode({
+            packageKind: entry.releasePackageKind,
+            mode: hasMetadataDelivery ? 'actual_file_content' : 'metadata_only',
+          })
           const record = buildAffiliationFileWorkQueueFileReleaseDeliveryRecord({
             workQueueEntryId: entry.id,
             subjectId: entry.subjectId,

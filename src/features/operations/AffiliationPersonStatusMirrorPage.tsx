@@ -52,6 +52,9 @@ export default function AffiliationPersonStatusMirrorPage() {
   const recordAffiliationFileWorkQueueFileReleaseDelivery = useGameStore(
     (state) => state.recordAffiliationFileWorkQueueFileReleaseDelivery
   )
+  const recordAffiliationFileWorkQueueNonMissionEnforcement = useGameStore(
+    (state) => state.recordAffiliationFileWorkQueueNonMissionEnforcement
+  )
   const view = useMemo(() => getAffiliationPersonStatusMirrorView(game), [game])
 
   return (
@@ -340,6 +343,21 @@ export default function AffiliationPersonStatusMirrorPage() {
                             }
                           >
                             {entry.fileReleaseDeliveryButtonLabel}
+                          </button>
+                        ) : null}
+                        {entry.isNonMissionEnforcementRecorded ? (
+                          <p className="mt-2 text-xs font-medium">
+                            {entry.nonMissionEnforcementStatusLabel}
+                          </p>
+                        ) : entry.canRecordNonMissionEnforcement ? (
+                          <button
+                            type="button"
+                            className="btn btn-xs btn-ghost mt-2 whitespace-nowrap"
+                            onClick={() =>
+                              recordAffiliationFileWorkQueueNonMissionEnforcement(entry.id)
+                            }
+                          >
+                            {entry.nonMissionEnforcementButtonLabel}
                           </button>
                         ) : null}
                       </td>

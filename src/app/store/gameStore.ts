@@ -2017,6 +2017,7 @@ export const useGameStore = create<GameStore>()(
             s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}
           ).filter(
             (record) =>
+              record &&
               record.workQueueEntryId === entry.id &&
               record.sourcePackageKind === entry.releasePackageKind &&
               record.sourcePackageRef === entry.releasePackageRef

@@ -283,6 +283,7 @@ import type { AffiliationFileWorkQueueReleaseOutcomeRecord } from './affiliation
 import type { AffiliationFileWorkQueueReleaseFulfillmentRecord } from './affiliationFileWorkQueueReleaseFulfillmentRecords'
 import type { AffiliationFileWorkQueueReleasePackageRecord } from './affiliationFileWorkQueueReleasePackageRecords'
 import type { AffiliationFileWorkQueueFileReleaseDeliveryRecord } from './affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import type { AffiliationFileWorkQueueNonMissionEnforcementRecord } from './affiliationFileWorkQueueNonMissionEnforcementRecords'
 import type { AffiliationFileWorkQueueEvidenceRepairWorkflow } from './affiliationFileWorkQueueEvidenceRepairWorkflows'
 import type { EntityWelfareReclassificationRecord } from './entityWelfareReclassificationRegistry'
 import type { PublishQueueRecord } from './publishAutomationCreditingHooks'
@@ -2841,6 +2842,15 @@ export interface GameState {
   affiliationFileWorkQueueFileReleaseDeliveryRecords?: Record<
     string,
     AffiliationFileWorkQueueFileReleaseDeliveryRecord
+  >
+
+  /**
+   * SPE-1046 non-mission file-access enforcement follow-on: persisted non-mission enforcement receipts.
+   * Hydration drops invalid, duplicate-id, and mismatched-key entries without throwing.
+   */
+  affiliationFileWorkQueueNonMissionEnforcementRecords?: Record<
+    string,
+    AffiliationFileWorkQueueNonMissionEnforcementRecord
   >
 
   /**

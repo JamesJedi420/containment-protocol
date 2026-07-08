@@ -179,6 +179,11 @@ import {
   buildAffiliationFileWorkQueueFileReleaseDeliveryRecord,
   getAffiliationFileWorkQueueFileReleaseDeliveryForPackageMode,
 } from '../../domain/affiliationFileWorkQueueFileReleaseDeliveryRecords'
+import {
+  buildAffiliationFileWorkQueueNonMissionEnforcementRecord,
+  buildAffiliationFileWorkQueueNonMissionEnforcementRecordId,
+  getAffiliationFileWorkQueueNonMissionEnforcementForBucket,
+} from '../../domain/affiliationFileWorkQueueNonMissionEnforcementRecords'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
 import { getAffiliationPersonStatusMirrorView } from '../../features/operations/affiliationPersonStatusMirrorView'
 import {
@@ -363,6 +368,7 @@ interface GameStore {
   recordAffiliationFileWorkQueueReleaseFulfillment: (entryId: string) => void
   recordAffiliationFileWorkQueueReleasePackage: (entryId: string) => void
   recordAffiliationFileWorkQueueFileReleaseDelivery: (entryId: string) => void
+  recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId: string) => void
   recordAffiliationFileWorkQueueEvidenceRepairWorkflow: (entryId: string) => void
   advanceWeek: () => void
   setSeed: (seed: number) => void
@@ -2055,6 +2061,54 @@ export const useGameStore = create<GameStore>()(
               ...s.game,
               affiliationFileWorkQueueFileReleaseDeliveryRecords: {
                 ...(s.game.affiliationFileWorkQueueFileReleaseDeliveryRecords ?? {}),
+                [record.id]: record,
+              },
+            },
+          }
+        }),
+
+      recordAffiliationFileWorkQueueNonMissionEnforcement: (entryId) =>
+        set((s) => {
+          const view = getAffiliationPersonStatusMirrorView(s.game)
+          const entry = view.fileAccessWorkQueue.find((candidate) => candidate.id === entryId)
+
+          if (!entry) {
+            return { game: s.game }
+          }
+
+          const enforcement = getAffiliationFileWorkQueueNonMissionEnforcementForBucket(
+            entry.bucket
+          )
+
+          if (!enforcement) {
+            return { game: s.game }
+          }
+
+          const recordId = buildAffiliationFileWorkQueueNonMissionEnforcementRecordId({
+            workQueueEntryId: entry.id,
+            sourceBucket: entry.bucket,
+          })
+
+          if (s.game.affiliationFileWorkQueueNonMissionEnforcementRecords?.[recordId]) {
+            return { game: s.game }
+          }
+
+          const record = buildAffiliationFileWorkQueueNonMissionEnforcementRecord({
+            workQueueEntryId: entry.id,
+            subjectId: entry.subjectId,
+            subjectLabel: entry.subjectLabel,
+            sourceBucket: entry.bucket,
+            sourceReasonCodes: entry.reasonCodeLabels,
+            enforcementKind: enforcement.enforcementKind,
+            enforcementLabel: enforcement.enforcementLabel,
+            recordedWeek: s.game.week,
+          })
+
+          return {
+            game: {
+              ...s.game,
+              affiliationFileWorkQueueNonMissionEnforcementRecords: {
+                ...(s.game.affiliationFileWorkQueueNonMissionEnforcementRecords ?? {}),
                 [record.id]: record,
               },
             },

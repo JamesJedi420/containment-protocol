@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { operationEventPayloadSchemas, validateOperationEventPayload } from '../domain/events/eventValidation'
+import {
+  operationEventPayloadSchemas,
+  validateOperationEventPayload,
+} from '../domain/events/eventValidation'
 import { EVENT_TYPE_TO_SOURCE_SYSTEM } from '../domain/events/types'
+import { minimalOperationEventPayloads } from './fixtures/minimalOperationEventPayloads'
 
 describe('event payload validation coverage', () => {
   it('provides a schema for every operation event type', () => {
@@ -94,58 +98,70 @@ describe('event payload validation coverage', () => {
   })
 
   it('accepts market.emergency_gray_market_waiver_granted payloads', () => {
-    const validation = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
-      week: 4,
-      marketWeek: 2,
-      crisisPressureScore: 130,
-      sanctionLevel: 'sanctioned',
-      packetId: 'gray_market_broker',
-      falloutRiskApplied: 'risk',
-      waiverPrecedentCount: 1,
-      institutionKey: 'containment_protocol',
-      authorityRoute: 'crisis_director_self',
-      authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
-      regulatoryArbitrageSignal: 'none',
-      ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
-    })
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        week: 4,
+        marketWeek: 2,
+        crisisPressureScore: 130,
+        sanctionLevel: 'sanctioned',
+        packetId: 'gray_market_broker',
+        falloutRiskApplied: 'risk',
+        waiverPrecedentCount: 1,
+        institutionKey: 'containment_protocol',
+        authorityRoute: 'crisis_director_self',
+        authorityBasis:
+          'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+        regulatoryArbitrageSignal: 'none',
+        ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
+      }
+    )
 
     expect(validation.success).toBe(true)
   })
 
   it('accepts market.emergency_gray_market_waiver_granted with cross_institution regulatory arbitrage signal', () => {
-    const validation = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
-      week: 4,
-      marketWeek: 2,
-      crisisPressureScore: 130,
-      sanctionLevel: 'sanctioned',
-      packetId: 'gray_market_broker',
-      falloutRiskApplied: 'risk',
-      waiverPrecedentCount: 1,
-      institutionKey: 'joint_oversight_concordat',
-      authorityRoute: 'joint_oversight_clearance_ratification',
-      authorityBasis: 'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
-      regulatoryArbitrageSignal: 'cross_institution_clearance_route',
-      ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
-    })
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        week: 4,
+        marketWeek: 2,
+        crisisPressureScore: 130,
+        sanctionLevel: 'sanctioned',
+        packetId: 'gray_market_broker',
+        falloutRiskApplied: 'risk',
+        waiverPrecedentCount: 1,
+        institutionKey: 'joint_oversight_concordat',
+        authorityRoute: 'joint_oversight_clearance_ratification',
+        authorityBasis:
+          'Joint Oversight Concordat emergency authorization ratified at clearanceLevel 3.',
+        regulatoryArbitrageSignal: 'cross_institution_clearance_route',
+        ruleConflictSignal: 'sanctioned_procurement_vs_crisis_waiver',
+      }
+    )
 
     expect(validation.success).toBe(true)
   })
 
   it('accepts market.emergency_gray_market_waiver_granted with ruleConflictSignal none', () => {
-    const validation = validateOperationEventPayload('market.emergency_gray_market_waiver_granted', {
-      week: 4,
-      marketWeek: 2,
-      crisisPressureScore: 130,
-      sanctionLevel: 'sanctioned',
-      packetId: 'gray_market_broker',
-      falloutRiskApplied: 'risk',
-      waiverPrecedentCount: 1,
-      institutionKey: 'containment_protocol',
-      authorityRoute: 'crisis_director_self',
-      authorityBasis: 'Director institutional self-authorization under crisis procurement rules (baseline institution).',
-      regulatoryArbitrageSignal: 'none',
-      ruleConflictSignal: 'none',
-    })
+    const validation = validateOperationEventPayload(
+      'market.emergency_gray_market_waiver_granted',
+      {
+        week: 4,
+        marketWeek: 2,
+        crisisPressureScore: 130,
+        sanctionLevel: 'sanctioned',
+        packetId: 'gray_market_broker',
+        falloutRiskApplied: 'risk',
+        waiverPrecedentCount: 1,
+        institutionKey: 'containment_protocol',
+        authorityRoute: 'crisis_director_self',
+        authorityBasis:
+          'Director institutional self-authorization under crisis procurement rules (baseline institution).',
+        regulatoryArbitrageSignal: 'none',
+        ruleConflictSignal: 'none',
+      }
+    )
 
     expect(validation.success).toBe(true)
   })
@@ -179,5 +195,90 @@ describe('event payload validation coverage', () => {
     })
 
     expect(validation.success).toBe(true)
+  })
+
+  it('rejects case.aggregate_battle payloads missing battleId', () => {
+    const payload: Record<string, unknown> = {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+    }
+    delete payload.battleId
+
+    const validation = validateOperationEventPayload('case.aggregate_battle', payload)
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects case.aggregate_battle payloads with negative rounds', () => {
+    const validation = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      roundsResolved: -1,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects case.aggregate_battle payloads with invalid extraction pressure', () => {
+    const validation = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      extractionRequired: true,
+      extractionOutcome: 'contested',
+      extractionPressure: 'severe',
+      extractionResidualThreatUnits: 2,
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('rejects case.aggregate_battle payloads with routed and special damage count mismatches', () => {
+    const routedMismatch = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      hostileRoutedCount: 1,
+      hostileRoutedUnits: [],
+    })
+
+    const damageMismatch = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      specialDamageCount: 2,
+      specialDamage: ['Reliquary Guardian 1/3'],
+    })
+
+    expect(routedMismatch.success).toBe(false)
+    expect(damageMismatch.success).toBe(false)
+  })
+
+  it('rejects case.aggregate_battle payloads with malformed unit arrays', () => {
+    const validation = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      friendlyRoutedCount: 1,
+      friendlyRoutedUnits: [''],
+    })
+
+    expect(validation.success).toBe(false)
+  })
+
+  it('accepts detailed case.aggregate_battle payloads with optional follow-through fields', () => {
+    const validation = validateOperationEventPayload('case.aggregate_battle', {
+      ...minimalOperationEventPayloads['case.aggregate_battle'],
+      roundsResolved: 3,
+      winnerSideId: null,
+      winnerLabel: null,
+      movementDeniedCount: 2,
+      hostileRoutedCount: 2,
+      hostileRoutedUnits: ['Hostile Screen', 'Reserve Cell'],
+      specialDamageCount: 1,
+      specialDamage: ['Reliquary Guardian 2/3'],
+      parallelObjectiveId: 'seal-threshold',
+      parallelObjectiveOutcome: 'partial',
+      parallelObjectiveProgress: '2/3',
+      extractionRequired: true,
+      extractionOutcome: 'contested',
+      extractionPressure: 'medium',
+      extractionResidualThreatUnits: 1,
+      ceasefireApplied: true,
+      ceasefireObjectiveId: 'seal-threshold',
+      ceasefireTacticalValue: 'specialist_knowledge',
+    })
+
+    expect(validation.success, validation.error).toBe(true)
   })
 })

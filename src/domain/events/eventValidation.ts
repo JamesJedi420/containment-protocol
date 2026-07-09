@@ -5,6 +5,9 @@ import type { OperationEventType } from './types'
 const idSchema = z.string().min(1)
 const weekSchema = z.number().int().min(1)
 const nonNegativeIntSchema = z.number().int().min(0)
+const finiteNonNegativeIntSchema = z.number().finite().int().min(0)
+const caseModeSchema = z.enum(['threshold', 'probability', 'deterministic', 'standard'])
+const caseKindSchema = z.enum(['case', 'raid', 'standard', 'anomaly'])
 const relationshipReasonSchema = z.enum([
   'mission_success',
   'mission_partial',
@@ -150,6 +153,64 @@ const caseRaidConvertedSchema = z
     maxTeams: z.number(),
   })
   .strict()
+
+const caseAggregateBattleSchema = z
+  .object({
+    week: weekSchema,
+    caseId: idSchema,
+    caseTitle: z.string(),
+    mode: caseModeSchema,
+    kind: caseKindSchema,
+    battleId: idSchema,
+    roundsResolved: finiteNonNegativeIntSchema,
+    winnerSideId: idSchema.nullable(),
+    winnerLabel: z.string().min(1).nullable(),
+    friendlyLabel: z.string().min(1),
+    hostileLabel: z.string().min(1),
+    movementDeniedCount: finiteNonNegativeIntSchema,
+    friendlyRoutedCount: finiteNonNegativeIntSchema,
+    hostileRoutedCount: finiteNonNegativeIntSchema,
+    friendlyRoutedUnits: z.array(idSchema),
+    hostileRoutedUnits: z.array(idSchema),
+    specialDamageCount: finiteNonNegativeIntSchema,
+    specialDamage: z.array(z.string().min(1)),
+    parallelObjectiveId: idSchema.optional(),
+    parallelObjectiveOutcome: z.enum(['success', 'partial', 'fail']).optional(),
+    parallelObjectiveProgress: z.string().min(1).optional(),
+    extractionRequired: z.boolean().optional(),
+    extractionOutcome: z.enum(['not_required', 'secured', 'contested', 'overrun']).optional(),
+    extractionPressure: z.enum(['low', 'medium', 'high']).optional(),
+    extractionResidualThreatUnits: finiteNonNegativeIntSchema.optional(),
+    ceasefireApplied: z.boolean().optional(),
+    ceasefireObjectiveId: idSchema.optional(),
+    ceasefireTacticalValue: z.enum(['temporary_manpower', 'specialist_knowledge']).optional(),
+  })
+  .strict()
+  .superRefine((payload, context) => {
+    if (payload.friendlyRoutedCount !== payload.friendlyRoutedUnits.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'friendlyRoutedCount must match friendlyRoutedUnits length',
+        path: ['friendlyRoutedCount'],
+      })
+    }
+
+    if (payload.hostileRoutedCount !== payload.hostileRoutedUnits.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'hostileRoutedCount must match hostileRoutedUnits length',
+        path: ['hostileRoutedCount'],
+      })
+    }
+
+    if (payload.specialDamageCount !== payload.specialDamage.length) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'specialDamageCount must match specialDamage length',
+        path: ['specialDamageCount'],
+      })
+    }
+  })
 
 const intelReportGeneratedSchema = z
   .object({
@@ -590,13 +651,7 @@ const infiltrationProbeEventSchema = z
     probeAction: z.enum(['probe_access', 'probe_route', 'cleanup']).optional(),
     probeActionSource: z.enum(['override', 'authored', 'heuristic']).optional(),
     coverRole: z
-      .enum([
-        'uniform_guard',
-        'civilian_staff',
-        'courier',
-        'maintenance',
-        'official_inspector',
-      ])
+      .enum(['uniform_guard', 'civilian_staff', 'courier', 'maintenance', 'official_inspector'])
       .optional(),
     leaveBehindId: z.string().optional(),
     leaveBehindLabel: z.string().optional(),
@@ -696,7 +751,7 @@ export const operationEventPayloadSchemas = {
   'concealment.activated': concealmentActivatedEventSchema,
   'system.academy_upgraded': systemAcademyUpgradedSchema,
   'system.equipment_recovered': z.object({}).passthrough(),
-  'case.aggregate_battle': z.object({}).passthrough(),
+  'case.aggregate_battle': caseAggregateBattleSchema,
   'staff.coping.applied': z.object({
     week: z.number(),
     agentId: z.string(),

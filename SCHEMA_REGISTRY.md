@@ -8,11 +8,12 @@ Documents versioning strategy for OperationEvent types to ensure backward compat
 
 - **Version**: 2
 - **Target**: 1 | 2 union type
-- **Compatibility**: V1 events auto-convert to V2
+- **Compatibility**: Valid V1 events auto-convert to V2; invalid payloads are rejected at migration
 
 ## Migration Path
 
-- V1 → V2: No breaking changes; all V1 events remain valid
+- V1 → V2: No breaking shape changes; valid V1 events remain valid
+- Invalid or missing payloads are dropped during migration so canonical runtime history contains only schema-valid OperationEvents
 - All new events created with V2 schema
 - Legacy V1 events automatically migrated on load
 

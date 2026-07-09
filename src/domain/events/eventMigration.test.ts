@@ -73,8 +73,8 @@ describe('hydration problems 519-526 (schema migration)', () => {
         payload: minimalOperationEventPayloads[type],
       })
 
-      expect(migrated.schemaVersion).toBe(2)
-      expect(migrated.type).toBe(type)
+      expect(migrated?.schemaVersion).toBe(2)
+      expect(migrated?.type).toBe(type)
     }
   })
 })
@@ -99,8 +99,8 @@ describe('hydration problems 527-534 (schema migration)', () => {
         payload: minimalOperationEventPayloads[type],
       })
 
-      expect(migrated.schemaVersion).toBe(2)
-      expect(migrated.type).toBe(type)
+      expect(migrated?.schemaVersion).toBe(2)
+      expect(migrated?.type).toBe(type)
     }
   })
 })
@@ -112,15 +112,15 @@ describe('hydration problems 535-542 (schema migration)', () => {
       schemaVersion: 2,
     })
 
-    expect(v2.schemaVersion).toBe(2)
-    expect(v2.id).toBe(validV1.id)
-    expect(v2.type).toBe(validV1.type)
+    expect(v2?.schemaVersion).toBe(2)
+    expect(v2?.id).toBe(validV1.id)
+    expect(v2?.type).toBe(validV1.type)
   })
 
   it('542 getEventMigrator exposes v1→v2 step targeting schema 2', () => {
     const migrator = getEventMigrator()
     expect(migrator['1']?.target).toBe(2)
-    expect(migrator['1']?.migrate(validV1).schemaVersion).toBe(2)
+    expect(migrator['1']?.migrate(validV1)?.schemaVersion).toBe(2)
   })
 })
 
@@ -147,8 +147,8 @@ describe('hydration problems 583-590 (schema migration)', () => {
         payload: minimalOperationEventPayloads[type],
       })
 
-      expect(migrated.schemaVersion).toBe(2)
-      expect(migrated.type).toBe(type)
+      expect(migrated?.schemaVersion).toBe(2)
+      expect(migrated?.type).toBe(type)
     }
   })
 })
@@ -156,14 +156,33 @@ describe('hydration problems 583-590 (schema migration)', () => {
 describe('migrateEventV1toV2', () => {
   it('migrates valid V1 event to V2', () => {
     const migrated = migrateEventV1toV2(validV1)
-    expect(migrated.schemaVersion).toBe(2)
-    expect(migrated.id).toBe(validV1.id)
+    expect(migrated?.schemaVersion).toBe(2)
+    expect(migrated?.id).toBe(validV1.id)
   })
 
-  it('logs error for invalid payload', () => {
-    // Should log error, but still migrate
+  it('drops invalid known-type payloads instead of carrying them into canonical history', () => {
     const migrated = migrateEventV1toV2(invalidV1)
-    expect(migrated.schemaVersion).toBe(2)
-    expect(migrated.id).toBe(invalidV1.id)
+    expect(migrated).toBeNull()
+  })
+
+  it('drops known-type events with missing payloads', () => {
+    const migrated = migrateEventV1toV2({
+      id: 'evt-missing-payload',
+      schemaVersion: 1,
+      type: 'assignment.team_assigned',
+    })
+
+    expect(migrated).toBeNull()
+  })
+
+  it('passes through valid V2 events unchanged after validation', () => {
+    const validV2 = {
+      ...validV1,
+      schemaVersion: 2,
+    }
+
+    const migrated = migrateEventV1toV2(validV2)
+
+    expect(migrated).toBe(validV2)
   })
 })

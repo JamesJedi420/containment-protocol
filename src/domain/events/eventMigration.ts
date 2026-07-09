@@ -1,12 +1,12 @@
 import type { OperationEvent, OperationEventType } from './types'
-import { validateOperationEventPayload } from './eventValidation'
+import { operationEventPayloadSchemas, validateOperationEventPayload } from './eventValidation'
 
 /**
  * Operation event schema versions (hydration 542).
  *
- * - **v1 → v2:** structural-compatible bump — payloads are not reshaped; hydration assigns
+ * - **v1 → v2:** structural-compatible bump — payloads are not reshaped; migration assigns
  *   `schemaVersion: 2` and validates against `operationEventPayloadSchemas`. Invalid payloads are
- *   logged in non-test environments but still carried forward so saves remain loadable.
+ *   logged in non-test environments and dropped so canonical runtime history remains valid.
  * - **v2:** current canonical version used by `sanitizeOperationEvents` / `migrateOperationEventToCurrentSchema`.
  *
  * Per-type payload migrations belong in `eventValidation` or `sanitizeOperationEvents` when a
@@ -48,7 +48,7 @@ type EventWithSchemaVersion = { schemaVersion?: number } & Record<string, unknow
 
 export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
   event: TEvent
-): OperationEvent {
+): OperationEvent | null {
   const eventRecord = event as EventWithSchemaVersion & {
     type?: unknown
     payload?: unknown
@@ -64,17 +64,29 @@ export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
   const type =
     typeof eventRecord.type === 'string' ? (eventRecord.type as OperationEventType) : undefined
 
-  if (type) {
-    const validation = validateOperationEventPayload(type, eventRecord.payload)
-    if (SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS && !validation.success) {
+  if (!type || !(type in operationEventPayloadSchemas)) {
+    if (SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS) {
       console.error(
-        `[event-validation] Invalid payload for event type ${type}: ${validation.error}`
+        `[event-validation] Invalid or missing event type for event ID=${eventRecord.id ?? 'unknown'}`
       )
     }
+
+    return null
   }
+
+  const validation = validateOperationEventPayload(type, eventRecord.payload)
+  if (!validation.success) {
+    if (SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS) {
+      console.error(`[event-validation] Invalid payload for event type ${type}: ${validation.error}`)
+    }
+
+    return null
+  }
+
   if (event.schemaVersion === 2) {
     return event as unknown as OperationEvent
   }
+
   // V1 events are compatible with V2 schema
   return {
     ...event,
@@ -85,10 +97,7 @@ export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
 export function getEventMigrator() {
   return {
     '1': {
-      migrate: (event: EventWithSchemaVersion) => ({
-        ...event,
-        schemaVersion: 2,
-      }),
+      migrate: (event: EventWithSchemaVersion) => migrateEventV1toV2(event),
       target: 2,
     },
   }

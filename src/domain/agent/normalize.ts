@@ -1173,6 +1173,10 @@ function sanitizeAgentHistoryLog(entry: unknown): OperationEvent | null {
     payload: entry.payload,
   })
 
+  if (!migrated) {
+    return null
+  }
+
   return {
     ...migrated,
     id: entry.id,

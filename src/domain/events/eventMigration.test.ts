@@ -154,6 +154,18 @@ describe('hydration problems 583-590 (schema migration)', () => {
 })
 
 describe('migrateEventV1toV2', () => {
+  it('keeps valid known event types on the validation path', () => {
+    const migrated = migrateEventV1toV2({
+      id: 'evt-known-type',
+      schemaVersion: 1,
+      type: 'assignment.team_assigned',
+      payload: minimalOperationEventPayloads['assignment.team_assigned'],
+    })
+
+    expect(migrated?.type).toBe('assignment.team_assigned')
+    expect(migrated?.schemaVersion).toBe(2)
+  })
+
   it('migrates valid V1 event to V2', () => {
     const migrated = migrateEventV1toV2(validV1)
     expect(migrated?.schemaVersion).toBe(2)
@@ -173,6 +185,64 @@ describe('migrateEventV1toV2', () => {
     })
 
     expect(migrated).toBeNull()
+  })
+
+  it('drops unknown string event types before payload validation', () => {
+    expect(() =>
+      migrateEventV1toV2({
+        id: 'evt-unknown-type',
+        schemaVersion: 1,
+        type: 'system.unknown_event',
+        payload: { week: 1 },
+      })
+    ).not.toThrow()
+
+    expect(
+      migrateEventV1toV2({
+        id: 'evt-unknown-type',
+        schemaVersion: 1,
+        type: 'system.unknown_event',
+        payload: { week: 1 },
+      })
+    ).toBeNull()
+  })
+
+  it('drops events with missing types before payload validation', () => {
+    expect(
+      migrateEventV1toV2({
+        id: 'evt-missing-type',
+        schemaVersion: 1,
+        payload: { week: 1 },
+      })
+    ).toBeNull()
+  })
+
+  it('drops events with non-string types before payload validation', () => {
+    expect(
+      migrateEventV1toV2({
+        id: 'evt-non-string-type',
+        schemaVersion: 1,
+        type: 42,
+        payload: { week: 1 },
+      })
+    ).toBeNull()
+  })
+
+  it('drops legacy faction.activity at the migration boundary', () => {
+    expect(
+      migrateEventV1toV2({
+        id: 'evt-legacy-faction-activity',
+        schemaVersion: 1,
+        type: 'faction.activity',
+        payload: {
+          week: 1,
+          factionId: 'faction-1',
+          factionLabel: 'Faction',
+          delta: 1,
+          reason: 'legacy import',
+        },
+      })
+    ).toBeNull()
   })
 
   it('passes through valid V2 events unchanged after validation', () => {

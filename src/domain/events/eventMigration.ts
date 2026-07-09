@@ -46,6 +46,13 @@ const SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS = (() => {
 
 type EventWithSchemaVersion = { schemaVersion?: number } & Record<string, unknown>
 
+function isKnownOperationEventType(value: unknown): value is OperationEventType {
+  return (
+    typeof value === 'string' &&
+    Object.prototype.hasOwnProperty.call(operationEventPayloadSchemas, value)
+  )
+}
+
 export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
   event: TEvent
 ): OperationEvent | null {
@@ -61,10 +68,7 @@ export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
     )
   }
 
-  const type =
-    typeof eventRecord.type === 'string' ? (eventRecord.type as OperationEventType) : undefined
-
-  if (!type || !(type in operationEventPayloadSchemas)) {
+  if (!isKnownOperationEventType(eventRecord.type)) {
     if (SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS) {
       console.error(
         `[event-validation] Invalid or missing event type for event ID=${eventRecord.id ?? 'unknown'}`
@@ -74,10 +78,13 @@ export function migrateEventV1toV2<TEvent extends EventWithSchemaVersion>(
     return null
   }
 
+  const type = eventRecord.type
   const validation = validateOperationEventPayload(type, eventRecord.payload)
   if (!validation.success) {
     if (SHOULD_LOG_EVENT_MIGRATION_DIAGNOSTICS) {
-      console.error(`[event-validation] Invalid payload for event type ${type}: ${validation.error}`)
+      console.error(
+        `[event-validation] Invalid payload for event type ${type}: ${validation.error}`
+      )
     }
 
     return null

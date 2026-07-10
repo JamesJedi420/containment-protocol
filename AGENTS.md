@@ -104,7 +104,7 @@ AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `
 
 ### Architecture
 
-Per `docs/dependency-boundaries.md` and `src/test/boundary-enforcement.test.ts`:
+Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 
 - **Domain** (`src/domain/**`): pure simulation; no store/projection/UI imports.
 - **Store** (`src/app/store/**`): orchestration; may import domain only.

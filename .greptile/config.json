@@ -32,8 +32,8 @@
     },
     {
       "id": "projections-pure",
-      "rule": "*View.ts files are pure projections: no side effects, no cross-feature imports, do not re-derive canonical domain summaries.",
-      "scope": ["src/features/**/*View.ts"],
+      "rule": "*View.ts and *Selectors.ts files are pure projections: no side effects, no cross-feature imports, do not re-derive canonical domain summaries.",
+      "scope": ["src/features/**/*View.ts", "src/features/**/*Selectors.ts"],
       "severity": "medium"
     },
     {
@@ -45,7 +45,7 @@
     {
       "id": "deterministic-tests",
       "rule": "Vitest tests must be deterministic; flag missing coverage for persistence/user-visible behavior and weakened assertions.",
-      "scope": ["src/test/**", "src/features/**/*.test.ts", "src/features/**/*.test.tsx"],
+      "scope": ["src/test/**", "src/domain/**/*.test.ts", "src/app/**/*.test.ts", "src/components/**/*.test.ts", "src/features/**/*.test.ts", "src/features/**/*.test.tsx", "test/**"],
       "severity": "medium"
     },
     {

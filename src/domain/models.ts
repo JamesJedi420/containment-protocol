@@ -2570,6 +2570,11 @@ export interface GameState {
   /** Historical snapshots of relationship values for trend analysis and chemistry prediction. */
   relationshipHistory?: RelationshipSnapshot[]
   inventory: Record<string, number>
+  /**
+   * Canonical weekly maintenance backlog of damaged equipment item IDs.
+   * Hydration and weekly recovery keep this bounded to unique, owned equipment-catalog entries.
+   */
+  damagedEquipmentQueue?: Id[]
   caseQueue?: CaseQueueState
   trainingQueue: TrainingQueueEntry[]
   productionQueue: ProductionQueueEntry[]

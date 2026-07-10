@@ -1,6 +1,6 @@
 ## Linear
 
-- **Slice issue:** <!-- SPE-___ + URL — canonical scope and acceptance -->
+- **Slice issue:** <!-- SPE-___ + URL — or none for workflow/docs-only PRs -->
 - **Parent issue (if any):** <!-- leave blank when none -->
 - **Child issues covered:** <!-- list each child this branch satisfies, or "slice only" -->
 
@@ -44,3 +44,4 @@
 - [ ] Slice issue linked in this PR body (not parent only)
 - [ ] PR URL commented on slice issue
 - [ ] Accurate status through merge (Done only when full child boundary ships)
+- [ ] Post-merge comment on slice issue (PR URL + what shipped + validation)

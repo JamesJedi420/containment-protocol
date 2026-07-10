@@ -40,6 +40,56 @@ describe('saveSystem', () => {
     expect(payload.state).not.toHaveProperty('templates')
   })
 
+  it('rejects saves with missing, invalid, or future savedAt metadata', () => {
+    const fallback = createStartingState()
+    const basePayload = {
+      kind: GAME_SAVE_KIND,
+      version: GAME_SAVE_VERSION,
+      state: {
+        ...fallback,
+        week: 3,
+      },
+    }
+
+    expect(() => loadGameSave(JSON.stringify(basePayload))).toThrow(
+      'Save payload savedAt timestamp is missing or invalid.'
+    )
+    expect(() =>
+      loadGameSave(
+        JSON.stringify({
+          ...basePayload,
+          savedAt: 'not-a-date',
+        })
+      )
+    ).toThrow('Save payload savedAt timestamp is missing or invalid.')
+    expect(() =>
+      loadGameSave(
+        JSON.stringify({
+          ...basePayload,
+          savedAt: '2999-01-01T00:00:00.000Z',
+        })
+      )
+    ).toThrow('Save payload savedAt timestamp is from the future.')
+  })
+
+  it('accepts saves with valid savedAt metadata', () => {
+    const fallback = createStartingState()
+
+    const loaded = loadGameSave(
+      JSON.stringify({
+        kind: GAME_SAVE_KIND,
+        version: GAME_SAVE_VERSION,
+        savedAt: '2026-01-01T00:00:00.000Z',
+        state: {
+          ...fallback,
+          week: 4,
+        },
+      })
+    )
+
+    expect(loaded.week).toBe(4)
+  })
+
   it('round-trips authored runtime state, inventory, and breadcrumbs through save serialization', () => {
     let game = createStartingState()
 

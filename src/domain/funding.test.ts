@@ -341,6 +341,198 @@ describe('Funding, Procurement, & Budget Pressure System', () => {
     })
   })
 
+  it('sanitizes procurement backlog chronology and stale references during normalize', () => {
+    const longRequestId = `req-${'x'.repeat(160)}`
+    const longBlockedReason = `blocked-${'y'.repeat(160)}`
+    const normalized = normalizeFundingState(
+      500,
+      {
+        fundingBasePerWeek: basePerWeek,
+        fundingPerResolution: perResolution,
+        fundingPenaltyPerFail: penaltyPerFail,
+        fundingPenaltyPerUnresolved: penaltyPerUnresolved,
+      },
+      {
+        ...createInitialFundingState(
+          basePerWeek,
+          perResolution,
+          penaltyPerFail,
+          penaltyPerUnresolved,
+          500
+        ),
+        procurementBacklog: [
+          {
+            requestId: ' req-fulfilled-before ',
+            itemId: ' medkits ',
+            quantity: 2.9,
+            status: 'fulfilled',
+            requestedWeek: 4,
+            fulfilledWeek: 2,
+            cost: 12.345,
+            blockedReason: longBlockedReason,
+          },
+          {
+            requestId: 'req-future',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: 99,
+            cost: 4,
+          },
+          {
+            requestId: 'req-invalid-status',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'lost' as 'pending',
+            requestedWeek: 3,
+            cost: 4,
+          },
+          {
+            requestId: 'req-unknown-item',
+            itemId: 'unknown_widget',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: 3,
+            cost: 7,
+          },
+          {
+            requestId: 'req-negative-cost',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: 3,
+            cost: -9,
+          },
+          {
+            requestId: longRequestId,
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: 3,
+            cost: 8,
+            listingId: 'gear:field_plate',
+            delayWeeks: 2.8,
+          },
+          {
+            requestId: 'req-valid-delay',
+            itemId: 'medkits',
+            quantity: 1,
+            status: 'pending',
+            requestedWeek: 3,
+            cost: 8,
+            listingId: 'med-kits',
+            delayWeeks: 2,
+          },
+        ],
+      },
+      5
+    )
+
+    expect(normalized.procurementBacklog).toEqual([
+      {
+        requestId: 'req-negative-cost',
+        itemId: 'medkits',
+        quantity: 1,
+        requestedWeek: 3,
+        cost: 0,
+        status: 'pending',
+      },
+      {
+        requestId: 'req-unknown-item',
+        itemId: 'unknown_widget',
+        quantity: 1,
+        requestedWeek: 3,
+        cost: 7,
+        status: 'cancelled',
+        fulfilledWeek: 3,
+        blockedReason: 'unknown_item',
+      },
+      {
+        requestId: 'req-valid-delay',
+        itemId: 'medkits',
+        quantity: 1,
+        requestedWeek: 3,
+        cost: 8,
+        status: 'pending',
+        listingId: 'med-kits',
+        delayWeeks: 2,
+      },
+      {
+        requestId: longRequestId.slice(0, 120),
+        itemId: 'medkits',
+        quantity: 1,
+        requestedWeek: 3,
+        cost: 8,
+        status: 'cancelled',
+        fulfilledWeek: 3,
+        blockedReason: 'stale_listing',
+        delayWeeks: 2,
+      },
+      {
+        requestId: 'req-fulfilled-before',
+        itemId: 'medkits',
+        quantity: 2,
+        requestedWeek: 4,
+        cost: 12.35,
+        status: 'fulfilled',
+        fulfilledWeek: 4,
+        blockedReason: longBlockedReason.slice(0, 120),
+      },
+      {
+        requestId: 'req-future',
+        itemId: 'medkits',
+        quantity: 1,
+        requestedWeek: 5,
+        cost: 4,
+        status: 'pending',
+      },
+    ])
+  })
+
+  it('sanitizes funding history audit rows during normalize', () => {
+    const longReason = `custom-${'x'.repeat(120)}`
+    const longSourceId = `source-${'y'.repeat(160)}`
+    const normalized = normalizeFundingState(
+      500,
+      {
+        fundingBasePerWeek: basePerWeek,
+        fundingPerResolution: perResolution,
+        fundingPenaltyPerFail: penaltyPerFail,
+        fundingPenaltyPerUnresolved: penaltyPerUnresolved,
+      },
+      {
+        ...createInitialFundingState(
+          basePerWeek,
+          perResolution,
+          penaltyPerFail,
+          penaltyPerUnresolved,
+          500
+        ),
+        fundingHistory: [
+          { week: week + 99, delta: 12.345, reason: ' weekly_income ', sourceId: ' source-a ' },
+          { week: 2, delta: Number.NaN, reason: 'resolution_reward' },
+          { week: 3, delta: 9, reason: '   ' },
+          { week: 4, delta: 10, reason: longReason, sourceId: longSourceId },
+          { week: 4, delta: 11, reason: longReason, sourceId: longSourceId },
+          { week: 5, delta: -9_999_999, reason: 'failure_penalty' },
+          { week: 5, delta: 4, reason: 'market_transaction', sourceId: 'missing-request' },
+        ],
+      },
+      5
+    )
+
+    expect(normalized.fundingHistory).toEqual([
+      {
+        week: 4,
+        delta: 10,
+        reason: longReason.slice(0, 80),
+        sourceId: longSourceId.slice(0, 120),
+      },
+      { week: 5, delta: -1_000_000, reason: 'failure_penalty' },
+      { week: 5, delta: 12.35, reason: 'weekly_income', sourceId: 'source-a' },
+    ])
+  })
+
   it('throws on invalid status transitions', () => {
     let state = createInitialFundingState(basePerWeek, perResolution, penaltyPerFail, penaltyPerUnresolved, 100)
     state = placeProcurementOrder(state, {

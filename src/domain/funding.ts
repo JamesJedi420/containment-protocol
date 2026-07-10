@@ -21,8 +21,18 @@ import { FUNDING_CALIBRATION } from './sim/calibration'
 import { hasCompromisedAuthorityProcurementDiversionSignals } from './sim/compromisedAuthority'
 
 const PROCUREMENT_SOURCE_REASONS = new Set<string>(['market_transaction'])
+const FUNDING_HISTORY_DELTA_LIMIT = 1_000_000
+const FUNDING_HISTORY_REASON_MAX_LENGTH = 80
+const FUNDING_HISTORY_SOURCE_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_REQUEST_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_BLOCKED_REASON_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_LISTING_ID_MAX_LENGTH = 120
+const PROCUREMENT_BACKLOG_COST_LIMIT = 1_000_000
+const PROCUREMENT_BACKLOG_QUANTITY_LIMIT = 999
+const PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT = 52
 
 let knownProcurementItemIdsCache: Set<string> | undefined
+let knownProcurementListingItemIdsCache: Map<string, string> | undefined
 
 export function getKnownProcurementItemIds(): Set<string> {
   if (!knownProcurementItemIdsCache) {
@@ -35,6 +45,24 @@ export function getKnownProcurementItemIds(): Set<string> {
   }
 
   return knownProcurementItemIdsCache
+}
+
+function getKnownProcurementListingItemIds(): Map<string, string> {
+  if (!knownProcurementListingItemIdsCache) {
+    knownProcurementListingItemIdsCache = new Map([
+      ...productionCatalog.map(
+        (recipe) => [recipe.recipeId, recipe.outputItemId] as const
+      ),
+      ...productionMaterialCatalog.map(
+        (material) => [`material:${material.materialId}`, material.materialId] as const
+      ),
+      ...getEquipmentCatalogEntries().map(
+        (definition) => [`gear:${definition.id}`, definition.id] as const
+      ),
+    ])
+  }
+
+  return knownProcurementListingItemIdsCache
 }
 
 type FundingConfig = Pick<
@@ -178,6 +206,26 @@ function isFundingHistorySourceIdValid(
   return sourceId.trim().length > 0
 }
 
+function sanitizeFundingHistoryReason(value: string) {
+  return value.trim().slice(0, FUNDING_HISTORY_REASON_MAX_LENGTH)
+}
+
+function sanitizeFundingHistorySourceId(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const sourceId = value.trim().slice(0, FUNDING_HISTORY_SOURCE_ID_MAX_LENGTH)
+  return sourceId.length > 0 ? sourceId : undefined
+}
+
+function sanitizeFundingHistoryDelta(value: number) {
+  return Math.max(
+    -FUNDING_HISTORY_DELTA_LIMIT,
+    Math.min(FUNDING_HISTORY_DELTA_LIMIT, Number(value.toFixed(2)))
+  )
+}
+
 function sanitizeFundingHistory(
   value: FundingState['fundingHistory'] | undefined,
   campaignWeek: number,
@@ -201,11 +249,8 @@ function sanitizeFundingHistory(
     )
     .map((entry) => {
       const week = clampCampaignWeek(entry.week, cappedWeek, cappedWeek)
-      const reason = entry.reason.trim() as FundingCategory
-      const sourceId =
-        typeof entry.sourceId === 'string' && entry.sourceId.trim().length > 0
-          ? entry.sourceId.trim()
-          : undefined
+      const reason = sanitizeFundingHistoryReason(entry.reason) as FundingCategory
+      const sourceId = sanitizeFundingHistorySourceId(entry.sourceId)
 
       if (!isFundingHistorySourceIdValid(reason, sourceId, procurementRequestIds)) {
         return null
@@ -213,7 +258,7 @@ function sanitizeFundingHistory(
 
       return {
         week,
-        delta: Number(entry.delta.toFixed(2)),
+        delta: sanitizeFundingHistoryDelta(entry.delta),
         reason,
         ...(sourceId ? { sourceId } : {}),
       }
@@ -236,39 +281,92 @@ function sanitizeFundingHistory(
 
       return left.delta - right.delta
     })
+    .filter((entry, index, entries) => {
+      const key = `${entry.week}:${entry.reason}:${entry.sourceId ?? ''}`
+      return (
+        entries.findIndex(
+          (candidate) =>
+            `${candidate.week}:${candidate.reason}:${candidate.sourceId ?? ''}` === key
+        ) === index
+      )
+    })
+}
+
+function sanitizeProcurementBacklogRequestId(value: string) {
+  return value.trim().slice(0, PROCUREMENT_BACKLOG_REQUEST_ID_MAX_LENGTH)
+}
+
+function sanitizeProcurementBacklogBlockedReason(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const blockedReason = value.trim().slice(0, PROCUREMENT_BACKLOG_BLOCKED_REASON_MAX_LENGTH)
+  return blockedReason.length > 0 ? blockedReason : undefined
+}
+
+function sanitizeProcurementBacklogListingId(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined
+  }
+
+  const listingId = value.trim().slice(0, PROCUREMENT_BACKLOG_LISTING_ID_MAX_LENGTH)
+  return listingId.length > 0 ? listingId : undefined
+}
+
+function sanitizeProcurementBacklogCost(value: number) {
+  return Math.max(0, Math.min(PROCUREMENT_BACKLOG_COST_LIMIT, Number(value.toFixed(2))))
 }
 
 function sanitizeProcurementBacklogEntry(
   entry: ProcurementBacklogEntry,
   campaignWeek: number,
-  knownItemIds: Set<string>
+  knownItemIds: Set<string>,
+  knownListingItemIds: Map<string, string>
 ): ProcurementBacklogEntry | null {
   const cappedWeek = Math.max(1, Math.trunc(campaignWeek))
+  const requestId = sanitizeProcurementBacklogRequestId(entry.requestId)
+  const itemId = entry.itemId.trim()
+  if (requestId.length === 0 || itemId.length === 0) {
+    return null
+  }
+
   if (typeof entry.quantity !== 'number' || !Number.isFinite(entry.quantity) || entry.quantity < 1) {
     return null
   }
 
-  const quantity = Math.max(1, Math.trunc(entry.quantity))
+  const quantity = Math.min(
+    PROCUREMENT_BACKLOG_QUANTITY_LIMIT,
+    Math.max(1, Math.trunc(entry.quantity))
+  )
 
   const requestedWeek = clampCampaignWeek(entry.requestedWeek, cappedWeek, 1)
   let status = entry.status
+  const originalStatus = status
   let fulfilledWeek =
     typeof entry.fulfilledWeek === 'number' && Number.isFinite(entry.fulfilledWeek)
       ? clampCampaignWeek(entry.fulfilledWeek, cappedWeek, requestedWeek)
       : undefined
-  let blockedReason =
-    typeof entry.blockedReason === 'string' && entry.blockedReason.trim().length > 0
-      ? entry.blockedReason.trim()
-      : undefined
+  let blockedReason = sanitizeProcurementBacklogBlockedReason(entry.blockedReason)
 
-  const itemKnown = knownItemIds.has(entry.itemId)
+  const itemKnown = knownItemIds.has(itemId)
 
   if (!itemKnown) {
+    status = 'cancelled'
+    fulfilledWeek = originalStatus === 'pending' ? requestedWeek : (fulfilledWeek ?? requestedWeek)
+    blockedReason = blockedReason ?? 'unknown_item'
+  }
+
+  const listingId = sanitizeProcurementBacklogListingId(entry.listingId)
+  const knownListingItemId = listingId ? knownListingItemIds.get(listingId) : undefined
+  const staleListing = Boolean(listingId && knownListingItemId !== itemId)
+
+  if (staleListing) {
     if (status === 'pending') {
       status = 'cancelled'
       fulfilledWeek = requestedWeek
-      blockedReason = blockedReason ?? 'unknown_item'
     }
+    blockedReason = blockedReason ?? 'stale_listing'
   }
 
   if (status === 'pending') {
@@ -280,25 +378,24 @@ function sanitizeProcurementBacklogEntry(
     }
   }
 
-  const listingId =
-    typeof entry.listingId === 'string' && entry.listingId.trim().length > 0
-      ? entry.listingId.trim()
-      : undefined
   const delayWeeks =
     typeof entry.delayWeeks === 'number' && Number.isFinite(entry.delayWeeks)
-      ? Math.max(0, Math.trunc(entry.delayWeeks))
+      ? Math.min(
+          PROCUREMENT_BACKLOG_DELAY_WEEKS_LIMIT,
+          Math.max(0, Math.trunc(entry.delayWeeks))
+        )
       : undefined
 
   return {
-    requestId: entry.requestId,
-    itemId: entry.itemId,
+    requestId,
+    itemId,
     quantity,
     requestedWeek,
-    cost: sanitizeInteger(entry.cost, 0, 0),
+    cost: sanitizeProcurementBacklogCost(entry.cost),
     status,
     ...(fulfilledWeek !== undefined ? { fulfilledWeek } : {}),
     ...(blockedReason ? { blockedReason } : {}),
-    ...(listingId ? { listingId } : {}),
+    ...(listingId && !staleListing ? { listingId } : {}),
     ...(delayWeeks !== undefined ? { delayWeeks } : {}),
   }
 }
@@ -316,9 +413,9 @@ function sanitizeProcurementBacklog(
     .filter(
       (entry): entry is ProcurementBacklogEntry =>
         typeof entry?.requestId === 'string' &&
-        entry.requestId.length > 0 &&
+        entry.requestId.trim().length > 0 &&
         typeof entry.itemId === 'string' &&
-        entry.itemId.length > 0 &&
+        entry.itemId.trim().length > 0 &&
         typeof entry.quantity === 'number' &&
         Number.isFinite(entry.quantity) &&
         typeof entry.requestedWeek === 'number' &&
@@ -327,7 +424,14 @@ function sanitizeProcurementBacklog(
         Number.isFinite(entry.cost) &&
         (entry.status === 'pending' || entry.status === 'fulfilled' || entry.status === 'cancelled')
     )
-    .map((entry) => sanitizeProcurementBacklogEntry(entry, campaignWeek, knownItemIds))
+    .map((entry) =>
+      sanitizeProcurementBacklogEntry(
+        entry,
+        campaignWeek,
+        knownItemIds,
+        getKnownProcurementListingItemIds()
+      )
+    )
     .filter((entry): entry is ProcurementBacklogEntry => entry !== null)
     .sort((left, right) => {
       if (left.requestedWeek !== right.requestedWeek) {

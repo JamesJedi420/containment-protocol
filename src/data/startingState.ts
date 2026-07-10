@@ -30,6 +30,7 @@ const startingStateTemplate: GameState = {
   reports: [],
   events: [],
   inventory: createStartingInventory(),
+  damagedEquipmentQueue: [],
   caseQueue: {
     queuedCaseIds: [],
     priorities: {},

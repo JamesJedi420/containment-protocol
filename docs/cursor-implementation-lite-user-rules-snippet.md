@@ -63,7 +63,7 @@ Run only **after** pre-ship audit passes:
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
 4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment).
-5. **Babysit → merge (same session):** after the PR opens — **independent review** of full diff vs `main` from scratch (slice doc + Linear acceptance; use `code-reviewer` / `bugbot` on non-trivial diffs); fix in-boundary findings and push; **triage external comments** (Greptile, CodeRabbit, Copilot, Codex, Gemini, humans); `@greptileai` to re-review after material fixes if needed; **CI loop** (`gh pr checks`) until green; merge when mergeable. Do **not** rely only on existing PR comments. Do **not** end the session or write a next-issue plan while the PR is still open.
+5. **Babysit → merge (same session):** after the PR opens — **independent review** of full diff vs `main` from scratch (slice doc + Linear acceptance; use `code-reviewer` / `bugbot` on non-trivial diffs); fix in-boundary findings and push; **triage external comments** (Greptile, CodeRabbit, Amazon Q, Copilot, Codex, Gemini, humans); `@greptileai` or `/q review` after material fixes if needed; **CI loop** (`gh pr checks`) until green; merge when mergeable. Do **not** rely only on existing PR comments. Do **not** end the session or write a next-issue plan while the PR is still open.
 6. **Sync `main`:** `git checkout main` && `git pull origin main`.
 
 Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."

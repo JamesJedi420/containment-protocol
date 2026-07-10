@@ -1,0 +1,186 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# Containment Protocol — CodeRabbit review config (repo root).
+# Merges with org UI settings (JamesJedi420). Repo values override org for the same keys.
+# Issue Planning rulesets remain workspace UI only (not configurable here).
+#
+# Refresh from a live PR: comment `@coderabbitai configuration` and copy resolved YAML.
+# Tune path rules over time: `@coderabbitai emit path instructions` on a PR.
+
+language: en-US
+inheritance: true
+early_access: false
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    # Defaults already include AGENTS.md, .cursor/rules/, .github/copilot-instructions.md
+
+reviews:
+  profile: chill
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+
+  abort_on_close: true
+  disable_cache: false
+  enable_prompt_for_ai_agents: true
+
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_instructions: |
+    Summarize for a Containment Protocol implementation slice:
+    - Linked Linear issue (SPE-####), parent/child scope, and acceptance criteria
+    - Layer touched: domain (src/domain), store, projections (*View.ts), or UI (src/features)
+    - Determinism, week-close ordering, persistence/hydration, event schema/migration risks
+    - Tests and docs updated; what is explicitly out of scope
+    Align with AGENTS.md Review guidelines and docs/dependency-boundaries.md.
+
+  auto_title_instructions: |
+    Use: feat(SPE-####): <imperative summary> or fix(SPE-####): / docs(SPE-####): when appropriate.
+    Pull SPE id from PR body or branch name. Keep under 72 characters.
+
+  poem: false
+  sequence_diagrams: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+
+  slop_detection:
+    enabled: true
+    label: needs-pr-hygiene
+
+  path_filters:
+    - "!node_modules/**"
+    - "!dist/**"
+    - "!dist-ssr/**"
+    - "!coverage/**"
+    - "!**/*.log"
+    - "!coverage_out*.txt"
+    - "!coverage_out_*.txt"
+    - "!*test-results*.json"
+    - "!.tmp/**"
+    - "!docs/archived/**"
+    - "!tools/**"
+    - "!linear-export/**"
+    - "!planning/*-harvest.md"
+    - "!planning/harvest-reconciliation-index.md"
+
+  path_instructions:
+    - path: "src/domain/**"
+      instructions: |
+        Pure deterministic simulation. Flag P0/P1: imports from src/app/, src/features/, or React;
+        Math.random()/Date.now() in sim logic; week-close mutations outside advanceWeek hooks;
+        missing normalize defaults for new persisted fields; silent mutation or hidden truth leaks.
+
+    - path: "src/domain/sim/**"
+      instructions: |
+        Week-close ordering is critical. Flag P0 if operating cost, procurement, registry hooks, or
+        funding run at wrong phase; hooks run twice on replay; new weekly hooks lack integration tests
+        when behavior is persistence-affecting.
+
+    - path: "src/domain/events/**"
+      instructions: |
+        Event schema changes need migration per SCHEMA_REGISTRY.md. Flag P1: missing validation in
+        eventValidation.ts; broken backward compatibility; value imports of types in Vite-loaded files.
+
+    - path: "src/app/store/**"
+      instructions: |
+        Orchestration only. Flag P1: domain logic duplicated here; hydration without normalize*;
+        cross-feature imports from src/features/ except established selector patterns.
+
+    - path: "src/features/**/*View.ts"
+      instructions: |
+        Pure projections. Flag P1: cross-feature projection imports; re-deriving canonical domain
+        summaries; side effects or store writes; exposing hidden simulation state.
+
+    - path: "src/features/**/*.tsx"
+      instructions: |
+        Presentational UI — use *View.ts. Flag P1: deep src/domain imports; sim math in components;
+        missing empty states; feature-to-feature imports.
+
+    - path: "src/test/**"
+      instructions: |
+        Vitest + jsdom; deterministic. Flag P1: missing coverage for new persistence/user-visible
+        behavior; order-dependent tests; weakened assertions.
+
+    - path: "planning/spe-*-slice.md"
+      instructions: |
+        Slice contract. Flag P1 if PR exceeds Goal/Acceptance or contradicts ## Deferred.
+        Check SPE-#### in PR body matches slice.
+
+    - path: "docs/**"
+      instructions: |
+        New docs/*audit*.md must update docs/design-audits-index.md in strict alphabetical order.
+        Flag stale docs contradicting src/ in the same PR.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Flag P1 if CI weakened, STRICT_TEST_CONSOLE removed, or Node version is not 22.
+
+  labeling_instructions:
+    - label: bug
+      instructions: Regression or incorrect behavior. Not refactors or docs-only.
+
+    - label: enhancement
+      instructions: New slice behavior, domain rules, or UI surfaces. Default for implementation PRs.
+
+    - label: documentation
+      instructions: Primarily planning/, docs/, AGENTS.md, .cursor/rules, README. No meaningful src/ change.
+
+    - label: dependencies
+      instructions: package.json / lockfile dependency changes dominate the PR.
+
+    - label: github_actions
+      instructions: Changes under .github/workflows/ or CI configuration.
+
+    - label: tooling
+      instructions: Scripts, eslint/prettier, verify scripts, .gitignore, dev environment hygiene.
+
+    - label: stability
+      instructions: Determinism, hydration, normalization, event migration, boundary enforcement.
+
+    - label: simulation
+      instructions: Primary changes in src/domain/ (sim/, models, week-close).
+
+    - label: ui
+      instructions: Primary changes in src/features/** or presentational React.
+
+    - label: save-load
+      instructions: Persistence, hydration, localStorage, event schema/migration, normalize* paths.
+
+    - label: core-loop
+      instructions: advanceWeek, weekly close, mission resolution, central sim orchestration.
+
+    - label: system:schema
+      instructions: src/domain/events/, migrations, SCHEMA_REGISTRY.
+
+    - label: system:planning
+      instructions: planning/*-slice.md, harvest reconciliation docs, backlog hygiene.
+
+  suggested_reviewers_instructions:
+    - reviewers:
+        - handle: copilot-pull-request-reviewer
+      instructions: |
+        Suggest when PR changes src/ implementation (domain, store, features, tests).
+        Skip docs-only PRs (planning/, docs/, .cursor/rules only).
+
+    - reviewers:
+        - handle: gemini-code-assist
+      instructions: |
+        Suggest for non-trivial src/ changes. Skip when PR is documentation or workflow-only.
+
+  tools:
+    eslint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true

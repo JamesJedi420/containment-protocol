@@ -93,7 +93,9 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 
 ## Review guidelines
 
-Codex (`@codex review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the Linear slice issue, `planning/*-slice.md`, and stated boundary before commenting.
+Codex (`@codex review`), **Greptile** (`@greptileai`), **CodeRabbit**, **Amazon Q Developer** (`/q review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the Linear slice issue, `planning/*-slice.md`, and stated boundary before commenting.
+
+AI review repo config: `.greptile/` (`config.json`, `rules.md`, `files.json`), `.amazonq/rules/*.md`, `.coderabbit.yaml`. Dashboard or marketplace settings may also apply; in-repo files are version-controlled and reviewed in PRs.
 
 ### Severity
 
@@ -102,7 +104,7 @@ Codex (`@codex review`), Copilot code review, Gemini Code Assist, CharlieHelps, 
 
 ### Architecture
 
-Per `docs/dependency-boundaries.md` and `src/test/boundary-enforcement.test.ts`:
+Per `docs/dependency-boundaries.md` and `test/boundary-enforcement.test.ts`:
 
 - **Domain** (`src/domain/**`): pure simulation; no store/projection/UI imports.
 - **Store** (`src/app/store/**`): orchestration; may import domain only.

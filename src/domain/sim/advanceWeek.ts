@@ -61,13 +61,10 @@ function getMissionResultHiddenStateFields(
 // SPE-94: Maintenance Specialist Bottleneck for Equipment Recovery
 /**
  * Returns a deterministic queue of damaged equipment item IDs for recovery.
- * For this implementation, we assume a field state.damagedEquipmentQueue: string[] exists or is derived.
- * In a real system, this would be derived from agent/equipment state each week.
+ * Queue entries are persisted as item IDs and sanitized against owned catalog equipment.
  */
 function getDamagedEquipmentQueue(state: GameState): string[] {
-  const { damagedEquipmentQueue } = state as AdvanceWeekState
-
-  return Array.isArray(damagedEquipmentQueue) ? [...damagedEquipmentQueue] : []
+  return sanitizeDamagedEquipmentQueue(state.damagedEquipmentQueue, state.inventory)
 }
 
 /**
@@ -345,6 +342,7 @@ import { listQueuedRuntimeEvents } from '../eventQueue'
 import { advanceRecoveryAgentsForWeek } from './recoveryPipeline'
 import { resolveDowntimeSlotForAgent } from './downtimeSlot'
 import { advanceRecoveryDowntimeForWeek, type DowntimeActivity } from './recoveryDowntime'
+import { sanitizeDamagedEquipmentQueue } from '../equipmentRecovery'
 import {
   applyWeeklyInventoryHoldingCostToFundingState,
   applyWeeklyOperatingCostToFundingState,
@@ -385,7 +383,6 @@ import { applyDwell } from './weirdRoom'
 import { previewResolutionForTeamIds } from './resolve'
 
 type AdvanceWeekState = GameState & {
-  damagedEquipmentQueue?: string[]
   id?: string
   neighborhoodPackets?: readonly NeighborhoodIncidentPacket[]
   civicConsequencePackets?: readonly CompactCivicAuthorityConsequencePacket[]
@@ -3867,11 +3864,7 @@ function advanceQueues(context: WeeklyExecutionContext) {
   const maintenanceCapacity = context.nextState.agency?.maintenanceSpecialistsAvailable ?? 0
   const { recovered, delayed } = applyEquipmentRecoveryBottleneck(damagedQueue, maintenanceCapacity)
 
-  // For demo: remove recovered items from damagedEquipmentQueue, leave delayed for next week
-  const nextStateWithExtras = context.nextState as AdvanceWeekState
-  if (nextStateWithExtras.damagedEquipmentQueue) {
-    nextStateWithExtras.damagedEquipmentQueue = [...delayed]
-  }
+  context.nextState.damagedEquipmentQueue = [...delayed]
 
   // Surface bottleneck/help signals in report notes
   if (damagedQueue.length > 0) {
@@ -4566,7 +4559,7 @@ export function advanceWeek(
   // SPE-854 slice 4: accumulate weekly corroboration/contradiction on persisted intake reports.
   const intakeCorroborationWeek = sourceState.week
 
-  // Patch: preserve unknown fields from input state for testability (e.g., damagedEquipmentQueue)
+  // Patch: preserve unknown fields from input state for testability.
   const stateWithUnknownFields = state as unknown as Record<string, unknown>
   const resultWithUnknownFields = result as unknown as Record<string, unknown>
   for (const key of Object.keys(stateWithUnknownFields)) {

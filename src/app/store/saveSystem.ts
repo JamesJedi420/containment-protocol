@@ -5,6 +5,7 @@ import {
   hydrateGame,
   parseRunExport,
   stripGameTemplates,
+  validateImportTimestampMetadata,
   type PersistedGame,
 } from './runTransfer'
 
@@ -52,6 +53,8 @@ export function hydrateGameSavePayload(payload: unknown, fallback = createStarti
   if (typeof payload.version !== 'number' || payload.version > GAME_SAVE_VERSION) {
     throw new Error('Save payload version is not supported by this build.')
   }
+
+  validateImportTimestampMetadata(payload.savedAt, 'savedAt', 'Save payload')
 
   return hydrateGame(payload.state, fallback)
 }

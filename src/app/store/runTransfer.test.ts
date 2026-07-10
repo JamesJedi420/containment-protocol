@@ -26,10 +26,7 @@ import { resolveMapMetadata } from '../../domain/siteGeneration/mapMetadata'
 import type { SiteGenerationStageSnapshot } from '../../domain/siteGeneration/packets'
 import type { DistortionState } from '../../domain/shared/distortion'
 import { queueTraining } from '../../domain/sim/training'
-import {
-  LEGACY_THREAT_FAMILY_ALIASES,
-  MAX_CASE_STAGE,
-} from '../../domain/case/normalizeCase'
+import { LEGACY_THREAT_FAMILY_ALIASES, MAX_CASE_STAGE } from '../../domain/case/normalizeCase'
 import {
   GAME_STORE_VERSION,
   RUN_EXPORT_KIND,
@@ -60,6 +57,7 @@ import { buildReplacementPressureState } from '../../domain/agent/attrition'
 import { buildHavenSchedule } from '../../domain/settlements/haven'
 import { DEFAULT_RESPONSE_GRID } from '../../domain/pressure'
 import { buildAffiliationFileWorkQueueEvidenceRepairWorkflow } from '../../domain/affiliationFileWorkQueueEvidenceRepairWorkflows'
+import { generateHubState } from '../../domain/hub/hubState'
 
 describe('runTransfer helpers', () => {
   it('preserves fallback affiliation file work queue evidence repair workflows for older saves', () => {
@@ -749,8 +747,7 @@ describe('runTransfer helpers', () => {
     const xpAmount = 12
     const totalXp = 44
     const expectedLevel = getLevelForXp(totalXp)
-    const expectedLevelsGained =
-      expectedLevel - getLevelForXp(totalXp - xpAmount)
+    const expectedLevelsGained = expectedLevel - getLevelForXp(totalXp - xpAmount)
 
     expect(roundTripped.events).toEqual(
       expect.arrayContaining([
@@ -1533,9 +1530,72 @@ describe('runTransfer helpers', () => {
         week: 3,
         agentId: 'agent-1',
         agentName: 'Agent 1',
-        trainingId: 'training-1',
-        trainingName: 'Training 1',
+        trainingId: 'combat-drills',
+        trainingName: 'Close-Quarters Drills',
         refund: 0,
+      },
+    })
+  })
+
+  it('sanitizes legacy unknown training event payloads to catalog-backed IDs/names and bounded refund', () => {
+    const fallback = createStartingState()
+    const imported = parseRunExport(
+      JSON.stringify({
+        kind: RUN_EXPORT_KIND,
+        version: GAME_STORE_VERSION,
+        exportedAt: new Date().toISOString(),
+        game: {
+          ...fallback,
+          week: 3,
+          allowLegacySyntheticRepair: true,
+          events: [
+            {
+              id: 'evt-legacy-training-started',
+              type: 'agent.training_started',
+              payload: {
+                week: 3,
+                queueId: 'queue-legacy',
+                agentId: 'a_mina',
+                agentName: 'Mina',
+                trainingId: 'legacy-unknown-program',
+                trainingName: 'Legacy Course Name',
+                etaWeeks: 2,
+                fundingCost: 10,
+              },
+            },
+            {
+              id: 'evt-legacy-training-cancelled',
+              type: 'agent.training_cancelled',
+              payload: {
+                week: 3,
+                agentId: 'a_mina',
+                agentName: 'Mina',
+                trainingId: 'legacy-unknown-program',
+                trainingName: 'Legacy Course Name',
+                refund: 999,
+              },
+            },
+          ],
+        },
+      })
+    )
+
+    expect(imported.events).toHaveLength(2)
+    expect(imported.events[0]).toMatchObject({
+      type: 'agent.training_started',
+      payload: {
+        trainingId: 'combat-drills',
+        trainingName: 'Close-Quarters Drills',
+        etaWeeks: 2,
+        fundingCost: 10,
+      },
+    })
+    expect(imported.events[1]).toMatchObject({
+      type: 'agent.training_cancelled',
+      payload: {
+        trainingId: 'combat-drills',
+        trainingName: 'Close-Quarters Drills',
+        refund: 10,
       },
     })
   })
@@ -1584,6 +1644,53 @@ describe('runTransfer helpers', () => {
     ],
   ])('rejects invalid import payloads', (raw, expectedMessage) => {
     expect(() => parseRunExport(raw)).toThrow(expectedMessage)
+  })
+
+  it('rejects run exports with missing, invalid, or future exportedAt metadata', () => {
+    const fallback = createStartingState()
+    const basePayload = {
+      kind: RUN_EXPORT_KIND,
+      version: GAME_STORE_VERSION,
+      game: stripGameTemplates(fallback),
+    }
+
+    expect(() => parseRunExport(JSON.stringify(basePayload))).toThrow(
+      'Run payload exportedAt timestamp is missing or invalid.'
+    )
+    expect(() =>
+      parseRunExport(
+        JSON.stringify({
+          ...basePayload,
+          exportedAt: 'not-a-date',
+        })
+      )
+    ).toThrow('Run payload exportedAt timestamp is missing or invalid.')
+    expect(() =>
+      parseRunExport(
+        JSON.stringify({
+          ...basePayload,
+          exportedAt: '2999-01-01T00:00:00.000Z',
+        })
+      )
+    ).toThrow('Run payload exportedAt timestamp is from the future.')
+  })
+
+  it('accepts run exports with valid exportedAt metadata', () => {
+    const fallback = createStartingState()
+
+    const imported = parseRunExport(
+      JSON.stringify({
+        kind: RUN_EXPORT_KIND,
+        version: GAME_STORE_VERSION,
+        exportedAt: '2026-01-01T00:00:00.000Z',
+        game: {
+          ...stripGameTemplates(fallback),
+          week: 3,
+        },
+      })
+    )
+
+    expect(imported.week).toBe(3)
   })
 
   it('keeps canonical candidates when recruitmentPool mirror diverges on hydrate (312)', () => {
@@ -1898,6 +2005,73 @@ describe('runTransfer import sanitization (326-332)', () => {
     })
   })
 
+  it('326 trims padded IDs and rejects whitespace-only required IDs during import sanitization', () => {
+    const fallback = createStartingState()
+    const hydrated = hydrateGame(
+      {
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-case-padded',
+            type: 'case.resolved',
+            payload: {
+              week: 2,
+              caseId: '  case-001  ',
+              caseTitle: 'Padded case',
+              mode: 'threshold',
+              kind: 'case',
+              stage: 1,
+              teamIds: ['team-1'],
+            },
+          },
+          {
+            id: 'evt-relationship-whitespace-agent',
+            type: 'agent.relationship_changed',
+            payload: {
+              week: 2,
+              agentId: '   ',
+              agentName: 'Mina',
+              counterpartId: 'a_sato',
+              counterpartName: 'Dr. Sato',
+              previousValue: 0,
+              nextValue: 1,
+              delta: 1,
+              reason: 'passive_drift',
+            },
+          },
+          {
+            id: 'evt-relationship-padded-counterpart',
+            type: 'agent.relationship_changed',
+            payload: {
+              week: 2,
+              agentId: 'a_mina',
+              agentName: 'Mina',
+              counterpartId: '  a_sato  ',
+              counterpartName: 'Dr. Sato',
+              previousValue: 0,
+              nextValue: 1,
+              delta: 1,
+              reason: 'passive_drift',
+            },
+          },
+        ],
+      },
+      fallback
+    )
+
+    expect(hydrated.events).toHaveLength(2)
+    expect(hydrated.events[0]).toMatchObject({
+      id: 'evt-case-padded',
+      type: 'case.resolved',
+      payload: expect.objectContaining({ caseId: 'case-001' }),
+    })
+    expect(hydrated.events[1]).toMatchObject({
+      id: 'evt-relationship-padded-counterpart',
+      type: 'agent.relationship_changed',
+      payload: expect.objectContaining({ counterpartId: 'a_sato' }),
+    })
+  })
+
   it('normalizes malformed relationship and betrayal numbers to finite values (327)', () => {
     const fallback = createStartingState()
     const imported = hydrateGame(
@@ -2182,7 +2356,13 @@ describe('runTransfer import sanitization (326-332)', () => {
               maxStage: 0,
               avgFatigue: 0,
               teamStatus: [],
-              notes: [{ id: 'note-week-4-a', content: 'first', timestamp: buildReportNoteTimestamp(4, 0) }],
+              notes: [
+                {
+                  id: 'note-week-4-a',
+                  content: 'first',
+                  timestamp: buildReportNoteTimestamp(4, 0),
+                },
+              ],
             },
             {
               week: 2,
@@ -2214,7 +2394,13 @@ describe('runTransfer import sanitization (326-332)', () => {
               maxStage: 0,
               avgFatigue: 0,
               teamStatus: [],
-              notes: [{ id: 'note-week-4-b', content: 'second', timestamp: buildReportNoteTimestamp(4, 1) }],
+              notes: [
+                {
+                  id: 'note-week-4-b',
+                  content: 'second',
+                  timestamp: buildReportNoteTimestamp(4, 1),
+                },
+              ],
             },
           ],
         },
@@ -3573,13 +3759,7 @@ describe('runTransfer import sanitization (326-332)', () => {
               ...baseAgent,
               history: {
                 ...baseAgent.history!,
-                alliesWorkedWith: [
-                  agentId,
-                  counterpartId,
-                  'a_missing',
-                  '',
-                  counterpartId,
-                ],
+                alliesWorkedWith: [agentId, counterpartId, 'a_missing', '', counterpartId],
               },
             },
           },
@@ -3665,10 +3845,7 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 374-381', () => {
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -4020,10 +4197,7 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 382-388', () => {
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -4383,10 +4557,7 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 389-395', () => {
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -4660,10 +4831,7 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 396-402', () => {
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -4940,10 +5108,7 @@ describe('runTransfer import sanitization (326-332)', () => {
   })
 
   describe('hydration problems 403-409', () => {
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -5811,7 +5976,10 @@ describe('runTransfer import sanitization (326-332)', () => {
               },
             ],
             lore: {
-              discovered: [{ label: 'Ledger', summary: 'Recovered index' }, { label: '', summary: '' }],
+              discovered: [
+                { label: 'Ledger', summary: 'Recovered index' },
+                { label: '', summary: '' },
+              ],
               remainingCount: -2,
             },
           },
@@ -5898,7 +6066,7 @@ describe('runTransfer import sanitization (326-332)', () => {
         week: 10,
         facilityState: {
           facilities: {
-            'research_lab': {
+            research_lab: {
               facilityId: 'research_lab',
               category: 'research_lab',
               level: 99,
@@ -5929,6 +6097,110 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(lab?.status).toBe('inactive')
       expect(lab?.effects).toEqual({ researchSpeedMultiplier: 1.5 })
       expect(lab?.upgradeInProgress).toBeUndefined()
+    })
+
+    it('425b repairs facility upgrade chronology and status contradictions', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 10,
+        facilityState: {
+          facilities: {
+            'complete-before-start': {
+              facilityId: 'complete-before-start',
+              category: 'research_lab',
+              level: 1,
+              maxLevel: 3,
+              status: 'upgrading',
+              effects: {},
+              upgradeInProgress: true,
+              upgradeStartedWeek: 8,
+              upgradeCompleteWeek: 4,
+              pendingEffectDeltas: { researchSpeedMultiplier: 0.25 },
+            },
+            'future-complete-without-upgrade': {
+              facilityId: 'future-complete-without-upgrade',
+              category: 'research_lab',
+              level: 1,
+              maxLevel: 3,
+              status: 'active',
+              effects: {},
+              upgradeInProgress: false,
+              upgradeStartedWeek: 3,
+              upgradeCompleteWeek: 20,
+              pendingEffectDeltas: { researchSpeedMultiplier: 0.5 },
+            },
+            'pending-without-upgrade': {
+              facilityId: 'pending-without-upgrade',
+              category: 'training_annex',
+              level: 1,
+              maxLevel: 3,
+              status: 'available',
+              effects: {},
+              pendingEffectDeltas: { trainingSlots: 2 },
+            },
+            'inactive-but-upgrading': {
+              facilityId: 'inactive-but-upgrading',
+              category: 'containment_ward',
+              level: 1,
+              maxLevel: 3,
+              status: 'inactive',
+              effects: {},
+              upgradeInProgress: true,
+              upgradeStartedWeek: 9,
+              upgradeCompleteWeek: 12,
+              pendingEffectDeltas: { recoveryThroughput: 1 },
+            },
+            'valid-upgrade': {
+              facilityId: 'valid-upgrade',
+              category: 'research_lab',
+              level: 1,
+              maxLevel: 3,
+              status: 'upgrading',
+              effects: { researchSlots: 1 },
+              upgradeInProgress: true,
+              upgradeStartedWeek: 7,
+              upgradeCompleteWeek: 10,
+              pendingEffectDeltas: { researchSpeedMultiplier: 0.5 },
+            },
+          },
+        },
+      })
+
+      const facilities = hydrated.facilityState?.facilities ?? {}
+      expect(facilities['complete-before-start']).toMatchObject({
+        status: 'inactive',
+      })
+      expect(facilities['complete-before-start']?.upgradeInProgress).toBeUndefined()
+      expect(facilities['complete-before-start']?.pendingEffectDeltas).toBeUndefined()
+
+      expect(facilities['future-complete-without-upgrade']).toMatchObject({
+        status: 'active',
+      })
+      expect(facilities['future-complete-without-upgrade']?.upgradeCompleteWeek).toBeUndefined()
+      expect(facilities['future-complete-without-upgrade']?.pendingEffectDeltas).toBeUndefined()
+
+      expect(facilities['pending-without-upgrade']).toMatchObject({
+        status: 'available',
+      })
+      expect(facilities['pending-without-upgrade']?.pendingEffectDeltas).toBeUndefined()
+
+      expect(facilities['inactive-but-upgrading']).toMatchObject({
+        status: 'upgrading',
+        upgradeInProgress: true,
+        upgradeStartedWeek: 9,
+        upgradeCompleteWeek: 12,
+        pendingEffectDeltas: { recoveryThroughput: 1 },
+      })
+
+      expect(facilities['valid-upgrade']).toMatchObject({
+        status: 'upgrading',
+        upgradeInProgress: true,
+        upgradeStartedWeek: 7,
+        upgradeCompleteWeek: 10,
+        pendingEffectDeltas: { researchSpeedMultiplier: 0.5 },
+      })
     })
 
     it('426 drops invalid relationship snapshots and clamps valid ones', () => {
@@ -6039,6 +6311,247 @@ describe('runTransfer import sanitization (326-332)', () => {
         factionPresence: { institutions: 40 },
       })
       expect(retained.hubState?.opportunities[0]?.confidence).toBe(1)
+    })
+
+    it('428b drops malformed hub opportunities and stale faction references', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        hubState: {
+          districtKey: 'nonexistent_district',
+          factionPresence: {
+            institutions: 25,
+            stale_faction: 80,
+          },
+          opportunities: [
+            {
+              id: 'valid-opp',
+              label: 'Valid lead',
+              detail: 'Valid detail',
+              factionId: 'institutions',
+              confidence: 0.75,
+              accessState: 'risky',
+              requiredSanctionLevel: 'covert',
+            },
+            {
+              id: 'stale-opp',
+              label: 'Stale lead',
+              detail: 'Stale detail',
+              factionId: 'stale_faction',
+              confidence: 0.9,
+            },
+            {
+              id: 'missing-detail',
+              label: 'Malformed lead',
+              factionId: 'institutions',
+              confidence: 0.9,
+            },
+          ],
+          rumors: [],
+        },
+      })
+
+      expect(hydrated.hubState).toMatchObject({
+        districtKey: 'central_hub',
+        factionPresence: { institutions: 25 },
+      })
+      expect(hydrated.hubState?.factionPresence).not.toHaveProperty('stale_faction')
+      expect(hydrated.hubState?.opportunities).toHaveLength(1)
+      expect(hydrated.hubState?.opportunities[0]).toMatchObject({
+        id: 'valid-opp',
+        factionId: 'institutions',
+        confidence: 0.75,
+        accessState: 'risky',
+        requiredSanctionLevel: 'covert',
+      })
+    })
+
+    it('428c clamps invalid hub confidence and strips invalid access enums', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        hubState: {
+          districtKey: 'industrial_zone',
+          factionPresence: { institutions: Number.POSITIVE_INFINITY },
+          opportunities: [
+            {
+              id: 'opp-invalid-confidence',
+              label: 'Invalid confidence',
+              detail: 'Invalid confidence detail',
+              factionId: 'institutions',
+              confidence: Number.NaN,
+              accessState: 'forbidden',
+              requiredSanctionLevel: 'public',
+              accessExplanation: '  Needs review.  ',
+            },
+          ],
+          rumors: [
+            {
+              id: 'rumor-invalid-confidence',
+              label: 'Rumor',
+              detail: 'Rumor detail',
+              confidence: 9,
+              misleading: true,
+              filtered: true,
+            },
+          ],
+        },
+      })
+
+      expect(hydrated.hubState?.districtKey).toBe('industrial_zone')
+      expect(hydrated.hubState?.factionPresence.institutions).toBe(0)
+      expect(hydrated.hubState?.opportunities[0]).toMatchObject({
+        confidence: 0.5,
+        accessExplanation: 'Needs review.',
+      })
+      expect(hydrated.hubState?.opportunities[0]).not.toHaveProperty('accessState')
+      expect(hydrated.hubState?.opportunities[0]).not.toHaveProperty('requiredSanctionLevel')
+      expect(hydrated.hubState?.rumors[0]).toMatchObject({
+        confidence: 1,
+        misleading: true,
+        filtered: true,
+      })
+    })
+
+    it('428d hydrates valid generated hub state without dropping bounded fields', () => {
+      const fallback = createStartingState()
+      const generatedHub = generateHubState(fallback)
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        hubState: generatedHub,
+        prevHubState: generatedHub,
+      })
+
+      expect(hydrated.hubState).toEqual(generatedHub)
+      expect(hydrated.prevHubState).toEqual(generatedHub)
+    })
+
+    it('428e sanitizes malformed prevHubState with the same hub-state bounds', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        prevHubState: {
+          districtKey: 'stale_district',
+          factionPresence: {
+            oversight: 15,
+            retired_faction: 70,
+          },
+          opportunities: [
+            {
+              id: '',
+              label: 'Invalid id',
+              detail: 'Should be dropped',
+              factionId: 'oversight',
+              confidence: 0.7,
+            },
+            {
+              id: 'prev-valid-opp',
+              label: 'Previous lead',
+              detail: 'Previous lead detail',
+              factionId: 'oversight',
+              confidence: -4,
+              accessState: 'blocked',
+              requiredSanctionLevel: 'sanctioned',
+            },
+            {
+              id: 'prev-stale-faction',
+              label: 'Stale faction lead',
+              detail: 'Should be dropped',
+              factionId: 'retired_faction',
+              confidence: 0.9,
+            },
+          ],
+          rumors: [
+            {
+              id: '',
+              label: 'Invalid rumor',
+              detail: 'Should be dropped',
+              confidence: 0.8,
+            },
+          ],
+        },
+      })
+
+      expect(hydrated.prevHubState).toMatchObject({
+        districtKey: 'central_hub',
+        factionPresence: { oversight: 15 },
+        rumors: [],
+      })
+      expect(hydrated.prevHubState?.factionPresence).not.toHaveProperty('retired_faction')
+      expect(hydrated.prevHubState?.opportunities).toHaveLength(1)
+      expect(hydrated.prevHubState?.opportunities[0]).toMatchObject({
+        id: 'prev-valid-opp',
+        factionId: 'oversight',
+        confidence: 0,
+        accessState: 'blocked',
+        requiredSanctionLevel: 'sanctioned',
+      })
+    })
+
+    it('428f leaves missing prevHubState absent on hydration', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+      })
+
+      expect(hydrated.prevHubState).toBeUndefined()
+    })
+
+    it('428g sanitizes damaged equipment recovery queue against inventory and catalog state', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        inventory: {
+          ...fallback.inventory,
+          medkits: 2,
+          ward_seals: 1,
+          silver_rounds: 0,
+        },
+        damagedEquipmentQueue: [
+          ' medkits ',
+          'medkits',
+          '',
+          'unknown_equipment',
+          42,
+          'ward_seals',
+          'silver_rounds',
+        ],
+      })
+
+      expect(hydrated.damagedEquipmentQueue).toEqual(['medkits', 'ward_seals'])
+    })
+
+    it('428h preserves an empty damaged equipment recovery queue', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        damagedEquipmentQueue: [],
+      })
+
+      expect(hydrated.damagedEquipmentQueue).toEqual([])
+    })
+
+    it('428i keeps a valid damaged equipment recovery queue in order', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        inventory: {
+          ...fallback.inventory,
+          silver_rounds: 1,
+          signal_jammers: 1,
+        },
+        damagedEquipmentQueue: ['silver_rounds', 'signal_jammers'],
+      })
+
+      expect(hydrated.damagedEquipmentQueue).toEqual(['silver_rounds', 'signal_jammers'])
     })
 
     it('429 validates squad metadata, kit templates, and assignments against live teams', () => {
@@ -6219,7 +6732,9 @@ describe('runTransfer import sanitization (326-332)', () => {
 
       expect(hydrated.runtimeState?.encounterState['enc-locked']?.status).toBe('locked')
       expect(hydrated.runtimeState?.encounterState['enc-failed']?.latestOutcome).toBe('failed')
-      expect(hydrated.runtimeState?.encounterState['enc-dismissed']?.latestOutcome).toBe('dismissed')
+      expect(hydrated.runtimeState?.encounterState['enc-dismissed']?.latestOutcome).toBe(
+        'dismissed'
+      )
     })
 
     it('432 repairs encounter temporal metadata on active and resolved records', () => {
@@ -6388,7 +6903,10 @@ describe('runTransfer import sanitization (326-332)', () => {
       const entries = hydrated.runtimeState?.eventQueue.entries ?? []
 
       expect(entries.map((entry) => entry.id)).toEqual(['qevt-0001', 'qevt-0002'])
-      expect(entries.map((entry) => entry.type)).toEqual(['authored.follow_up', 'encounter.follow_up'])
+      expect(entries.map((entry) => entry.type)).toEqual([
+        'authored.follow_up',
+        'encounter.follow_up',
+      ])
     })
 
     it('435 recomputes nextSequence from retained queue entry ids', () => {
@@ -6613,6 +7131,136 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(Number.isFinite(hydrated.agency?.fundingState?.budgetPressure ?? NaN)).toBe(true)
     })
 
+    it('441b hydrates fundingState-only legacy saves into all funding mirrors', () => {
+      const fallback = createStartingState()
+      const legacy = {
+        ...stripGameTemplates(fallback),
+        week: 4,
+        agency: {
+          ...fallback.agency!,
+          funding: Number.NaN,
+          fundingState: {
+            ...fallback.agency!.fundingState,
+            funding: 77,
+            budgetPressure: 99,
+          },
+        },
+      } as Record<string, unknown>
+      delete legacy.funding
+
+      const hydrated = hydrateGame(legacy)
+
+      expect(hydrated.funding).toBe(77)
+      expect(hydrated.agency?.funding).toBe(77)
+      expect(hydrated.agency?.fundingState?.funding).toBe(77)
+      expect(hydrated.agency?.fundingState?.budgetPressure).toBeLessThanOrEqual(4)
+    })
+
+    it('441c hydrates agency-only funding into all funding mirrors', () => {
+      const fallback = createStartingState()
+      const legacy = {
+        ...stripGameTemplates(fallback),
+        week: 4,
+        agency: {
+          ...fallback.agency!,
+          funding: 88,
+          fundingState: {
+            ...fallback.agency!.fundingState,
+            funding: Number.NaN,
+          },
+        },
+      } as Record<string, unknown>
+      delete legacy.funding
+
+      const hydrated = hydrateGame(legacy)
+
+      expect(hydrated.funding).toBe(88)
+      expect(hydrated.agency?.funding).toBe(88)
+      expect(hydrated.agency?.fundingState?.funding).toBe(88)
+    })
+
+    it('441d hydrates top-level-only legacy funding into agency mirrors', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 4,
+        funding: 66,
+        agency: {
+          containmentRating: fallback.containmentRating,
+          clearanceLevel: fallback.clearanceLevel,
+        },
+      })
+
+      expect(hydrated.funding).toBe(66)
+      expect(hydrated.agency?.funding).toBe(66)
+      expect(hydrated.agency?.fundingState?.funding).toBe(66)
+    })
+
+    it('441e lets sanitized top-level funding win conflicting agency funding values', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 4,
+        funding: 55,
+        agency: {
+          ...fallback.agency!,
+          funding: 88,
+          fundingState: {
+            ...fallback.agency!.fundingState,
+            funding: 99,
+          },
+        },
+      })
+
+      expect(hydrated.funding).toBe(55)
+      expect(hydrated.agency?.funding).toBe(55)
+      expect(hydrated.agency?.fundingState?.funding).toBe(55)
+    })
+
+    it('441f repairs malformed fundingState while preserving the canonical funding mirror', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 4,
+        funding: 33,
+        agency: {
+          ...fallback.agency!,
+          fundingState: {
+            funding: Number.POSITIVE_INFINITY,
+            fundingBasePerWeek: Number.NaN,
+            fundingPerResolution: Number.NaN,
+            fundingPenaltyPerFail: Number.NaN,
+            fundingPenaltyPerUnresolved: Number.NaN,
+            budgetPressure: Number.POSITIVE_INFINITY,
+            courierShellBudgetPressureDebt: Number.POSITIVE_INFINITY,
+            fundingHistory: [{ week: 99, delta: Number.NaN, reason: '' }],
+            procurementBacklog: [
+              {
+                requestId: '',
+                itemId: 'phantom-widget',
+                quantity: -1,
+                status: 'pending',
+                requestedWeek: Number.NaN,
+                cost: Number.NaN,
+              },
+            ],
+          },
+        },
+      })
+
+      const fundingState = hydrated.agency?.fundingState
+      expect(hydrated.funding).toBe(33)
+      expect(hydrated.agency?.funding).toBe(33)
+      expect(fundingState?.funding).toBe(33)
+      expect(Number.isFinite(fundingState?.budgetPressure ?? NaN)).toBe(true)
+      expect(fundingState?.courierShellBudgetPressureDebt).toBeUndefined()
+      expect(fundingState?.fundingHistory).toEqual([])
+      expect(fundingState?.procurementBacklog).toEqual([])
+    })
+
     it('442-445 sanitize funding history, procurement backlog, and shell debt', () => {
       const fallback = createStartingState()
       const knownItemId = Object.keys(fallback.inventory)[0]
@@ -6679,18 +7327,24 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(fs?.courierShellBudgetPressureDebt).toBeUndefined()
       expect(Number.isFinite(fs?.budgetPressure ?? NaN)).toBe(true)
       expect(fs?.fundingHistory).toHaveLength(2)
-      expect(fs?.fundingHistory.find((entry) => entry.reason === 'market_transaction')).toMatchObject({
+      expect(
+        fs?.fundingHistory.find((entry) => entry.reason === 'market_transaction')
+      ).toMatchObject({
         week: 5,
         reason: 'market_transaction',
         sourceId: 'req-known',
       })
-      expect(fs?.fundingHistory.find((entry) => entry.reason === 'not_a_real_reason')).toMatchObject({
+      expect(
+        fs?.fundingHistory.find((entry) => entry.reason === 'not_a_real_reason')
+      ).toMatchObject({
         week: 5,
         reason: 'not_a_real_reason',
         delta: 1,
       })
       expect(fs?.procurementBacklog.find((e) => e.requestId === 'req-zero')).toBeUndefined()
-      expect(fs?.procurementBacklog.find((e) => e.requestId === 'req-known')?.status).toBe('pending')
+      expect(fs?.procurementBacklog.find((e) => e.requestId === 'req-known')?.status).toBe(
+        'pending'
+      )
       const unknown = fs?.procurementBacklog.find((e) => e.requestId === 'req-unknown')
       expect(unknown?.status).toBe('cancelled')
       expect(unknown?.blockedReason).toBe('unknown_item')
@@ -6698,6 +7352,51 @@ describe('runTransfer import sanitization (326-332)', () => {
       const fulfilled = fs?.procurementBacklog.find((e) => e.requestId === 'req-fulfilled')
       expect(fulfilled?.status).toBe('fulfilled')
       expect(fulfilled?.fulfilledWeek).toBeGreaterThanOrEqual(4)
+    })
+
+    it('445b bounds and dedupes hydrated funding history audit rows', () => {
+      const fallback = createStartingState()
+      const longReason = `custom-${'x'.repeat(120)}`
+      const longSourceId = `source-${'y'.repeat(160)}`
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 5,
+        funding: 200,
+        agency: {
+          ...fallback.agency!,
+          funding: 200,
+          fundingState: {
+            funding: 200,
+            fundingBasePerWeek: 8,
+            fundingPerResolution: 8,
+            fundingPenaltyPerFail: 7,
+            fundingPenaltyPerUnresolved: 12,
+            budgetPressure: 0,
+            fundingHistory: [
+              { week: 99, delta: 12.345, reason: ' weekly_income ', sourceId: ' source-a ' },
+              { week: 2, delta: Number.NaN, reason: 'resolution_reward' },
+              { week: 3, delta: 9, reason: '   ' },
+              { week: 4, delta: 10, reason: longReason, sourceId: longSourceId },
+              { week: 4, delta: 11, reason: longReason, sourceId: longSourceId },
+              { week: 5, delta: -9_999_999, reason: 'failure_penalty' },
+              { week: 5, delta: 4, reason: 'market_transaction', sourceId: 'missing-request' },
+            ],
+            procurementBacklog: [],
+          },
+        },
+      })
+
+      expect(hydrated.agency?.fundingState?.fundingHistory).toEqual([
+        {
+          week: 4,
+          delta: 10,
+          reason: longReason.slice(0, 80),
+          sourceId: longSourceId.slice(0, 120),
+        },
+        { week: 5, delta: -1_000_000, reason: 'failure_penalty' },
+        { week: 5, delta: 12.35, reason: 'weekly_income', sourceId: 'source-a' },
+      ])
     })
   })
 
@@ -6801,6 +7500,73 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.agency?.activeProtocolIds).toEqual(['field-clearance-protocol'])
     })
 
+    it('451b clamps negative protocolSelectionLimit and dedupes activeProtocolIds', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 2,
+        clearanceLevel: 3,
+        agency: {
+          ...fallback.agency!,
+          protocolSelectionLimit: -4,
+          activeProtocolIds: [
+            ' field-clearance-protocol ',
+            'field-clearance-protocol',
+            'containment-doctrine-alpha',
+          ],
+        },
+      })
+
+      expect(hydrated.agency?.protocolSelectionLimit).toBe(1)
+      expect(hydrated.agency?.activeProtocolIds).toEqual(['field-clearance-protocol'])
+    })
+
+    it('451c drops non-finite protocolSelectionLimit while still sanitizing activeProtocolIds', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 2,
+        clearanceLevel: 2,
+        agency: {
+          ...fallback.agency!,
+          protocolSelectionLimit: Number.NaN,
+          activeProtocolIds: [
+            'field-clearance-protocol',
+            'containment-doctrine-alpha',
+            'unknown-renamed-protocol',
+          ],
+        },
+      })
+
+      expect(hydrated.agency?.protocolSelectionLimit).toBeUndefined()
+      expect(hydrated.agency?.activeProtocolIds).toEqual([
+        'field-clearance-protocol',
+        'containment-doctrine-alpha',
+      ])
+    })
+
+    it('451d preserves valid agency protocol state', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 2,
+        agency: {
+          ...fallback.agency!,
+          protocolSelectionLimit: 2,
+          activeProtocolIds: ['field-clearance-protocol', 'containment-doctrine-alpha'],
+        },
+      })
+
+      expect(hydrated.agency?.protocolSelectionLimit).toBe(2)
+      expect(hydrated.agency?.activeProtocolIds).toEqual([
+        'field-clearance-protocol',
+        'containment-doctrine-alpha',
+      ])
+    })
+
     it('452 clamps maintenanceSpecialistsAvailable to bounded non-negative capacity', () => {
       const fallback = createStartingState()
 
@@ -6893,13 +7659,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           },
         },
         caseQueue: {
-          queuedCaseIds: [
-            missingCaseId,
-            openCaseId,
-            resolvedCaseId,
-            openCaseId,
-            '  ',
-          ],
+          queuedCaseIds: [missingCaseId, openCaseId, resolvedCaseId, openCaseId, '  '],
           priorities: {
             [openCaseId]: 'critical',
             [resolvedCaseId]: 'high',
@@ -6979,6 +7739,153 @@ describe('runTransfer import sanitization (326-332)', () => {
         cost: 0,
         quantity: 1,
       })
+    })
+
+    it('458b repairs procurement backlog chronology and stale delayed supplier references', () => {
+      const fallback = createStartingState()
+      const longRequestId = `req-${'x'.repeat(160)}`
+      const longBlockedReason = `blocked-${'y'.repeat(160)}`
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 5,
+        agency: {
+          ...fallback.agency!,
+          fundingState: {
+            funding: 500,
+            fundingBasePerWeek: 8,
+            fundingPerResolution: 8,
+            fundingPenaltyPerFail: 7,
+            fundingPenaltyPerUnresolved: 12,
+            budgetPressure: 0,
+            fundingHistory: [],
+            procurementBacklog: [
+              {
+                requestId: ' req-fulfilled-before ',
+                itemId: ' medkits ',
+                quantity: 2.9,
+                status: 'fulfilled',
+                requestedWeek: 4,
+                fulfilledWeek: 2,
+                cost: 12.345,
+                blockedReason: longBlockedReason,
+              },
+              {
+                requestId: 'req-future',
+                itemId: 'medkits',
+                quantity: 1,
+                status: 'pending',
+                requestedWeek: 99,
+                cost: 4,
+              },
+              {
+                requestId: 'req-invalid-status',
+                itemId: 'medkits',
+                quantity: 1,
+                status: 'lost' as 'pending',
+                requestedWeek: 3,
+                cost: 4,
+              },
+              {
+                requestId: 'req-unknown-item',
+                itemId: 'unknown_widget',
+                quantity: 1,
+                status: 'pending',
+                requestedWeek: 3,
+                cost: 7,
+              },
+              {
+                requestId: 'req-negative-cost',
+                itemId: 'medkits',
+                quantity: 1,
+                status: 'pending',
+                requestedWeek: 3,
+                cost: -9,
+              },
+              {
+                requestId: longRequestId,
+                itemId: 'medkits',
+                quantity: 1,
+                status: 'pending',
+                requestedWeek: 3,
+                cost: 8,
+                listingId: 'gear:field_plate',
+                delayWeeks: 2.8,
+              },
+              {
+                requestId: 'req-valid-delay',
+                itemId: 'medkits',
+                quantity: 1,
+                status: 'pending',
+                requestedWeek: 3,
+                cost: 8,
+                listingId: 'med-kits',
+                delayWeeks: 2,
+              },
+            ],
+          },
+        },
+      })
+
+      expect(hydrated.agency?.fundingState?.procurementBacklog).toEqual([
+        {
+          requestId: 'req-negative-cost',
+          itemId: 'medkits',
+          quantity: 1,
+          requestedWeek: 3,
+          cost: 0,
+          status: 'pending',
+        },
+        {
+          requestId: 'req-unknown-item',
+          itemId: 'unknown_widget',
+          quantity: 1,
+          requestedWeek: 3,
+          cost: 7,
+          status: 'cancelled',
+          fulfilledWeek: 3,
+          blockedReason: 'unknown_item',
+        },
+        {
+          requestId: 'req-valid-delay',
+          itemId: 'medkits',
+          quantity: 1,
+          requestedWeek: 3,
+          cost: 8,
+          status: 'pending',
+          listingId: 'med-kits',
+          delayWeeks: 2,
+        },
+        {
+          requestId: longRequestId.slice(0, 120),
+          itemId: 'medkits',
+          quantity: 1,
+          requestedWeek: 3,
+          cost: 8,
+          status: 'cancelled',
+          fulfilledWeek: 3,
+          blockedReason: 'stale_listing',
+          delayWeeks: 2,
+        },
+        {
+          requestId: 'req-fulfilled-before',
+          itemId: 'medkits',
+          quantity: 2,
+          requestedWeek: 4,
+          cost: 12.35,
+          status: 'fulfilled',
+          fulfilledWeek: 4,
+          blockedReason: longBlockedReason.slice(0, 120),
+        },
+        {
+          requestId: 'req-future',
+          itemId: 'medkits',
+          quantity: 1,
+          requestedWeek: 5,
+          cost: 4,
+          status: 'pending',
+        },
+      ])
     })
 
     it('459 canonicalizes caseSnapshots record keys to embedded caseId', () => {
@@ -7203,9 +8110,7 @@ describe('runTransfer import sanitization (326-332)', () => {
       const materials = hydrated.contracts?.offers[0]?.rewards.materials ?? []
       expect(materials.some((drop) => drop.itemId === 'phantom-widget')).toBe(false)
       expect(materials.length).toBeGreaterThan(0)
-      expect(materials.every((drop) => drop.itemId.length > 0 && drop.label.length > 0)).toBe(
-        true
-      )
+      expect(materials.every((drop) => drop.itemId.length > 0 && drop.label.length > 0)).toBe(true)
     })
   })
 
@@ -7273,9 +8178,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(mission?.routingBlockers).not.toContain('not-a-blocker')
       expect(hydrated.missionRouting?.orderedMissionIds).not.toContain('case-missing')
       expect(hydrated.missionRouting?.missions['case-missing']).toBeUndefined()
-      expect(
-        hydrated.missionRouting?.nextGeneratedSequence
-      ).toBeGreaterThanOrEqual((hydrated.missionRouting?.orderedMissionIds.length ?? 0) + 1)
+      expect(hydrated.missionRouting?.nextGeneratedSequence).toBeGreaterThanOrEqual(
+        (hydrated.missionRouting?.orderedMissionIds.length ?? 0) + 1
+      )
     })
 
     it('464 strips corrupt replacement pressure scalars and unknown backlog arrays', () => {
@@ -8984,6 +9889,84 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(sanitized.containmentDeltaPerFail).toBe(-1000)
     })
 
+    it('507b preserves precision for bounded simulation scalars during hydration', () => {
+      const fallback = createStartingState()
+      const [agentAId, agentBId] = Object.keys(fallback.agents)
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 6,
+        config: {
+          ...fallback.config,
+          stageScalar: 0.123456,
+          probabilityK: 0.987654,
+          raidCoordinationPenaltyPerExtraTeam: 0.333333,
+        },
+        facilityState: {
+          facilities: {
+            precision_lab: {
+              facilityId: 'precision_lab',
+              category: 'research_lab',
+              level: 1,
+              maxLevel: 3,
+              status: 'active',
+              effects: {
+                researchSpeedMultiplier: 1.234567,
+                dataPoolPerWeek: 2.345678,
+              },
+            },
+          },
+        },
+        relationshipHistory: [
+          {
+            week: 6,
+            agentAId,
+            agentBId,
+            value: 0.123456,
+            trustDamage: 0.234567,
+            modifiers: ['precision'],
+            reason: 'passive_drift',
+          },
+        ],
+        hubState: {
+          districtKey: 'central_hub',
+          factionPresence: { institutions: 12.345678 },
+          opportunities: [
+            {
+              id: 'opp-precision',
+              label: 'Precision lead',
+              detail: 'Precision detail',
+              factionId: 'institutions',
+              confidence: 0.345678,
+            },
+          ],
+          rumors: [
+            {
+              id: 'rumor-precision',
+              label: 'Precision rumor',
+              detail: 'Precision rumor detail',
+              confidence: 0.456789,
+            },
+          ],
+        },
+      })
+
+      expect(hydrated.config.stageScalar).toBe(0.123456)
+      expect(hydrated.config.probabilityK).toBe(0.987654)
+      expect(hydrated.config.raidCoordinationPenaltyPerExtraTeam).toBe(0.333333)
+      expect(hydrated.facilityState?.facilities.precision_lab?.effects).toMatchObject({
+        researchSpeedMultiplier: 1.234567,
+        dataPoolPerWeek: 2.345678,
+      })
+      expect(hydrated.relationshipHistory?.[0]).toMatchObject({
+        value: 0.123456,
+        trustDamage: 0.234567,
+      })
+      expect(hydrated.hubState?.factionPresence.institutions).toBe(12.345678)
+      expect(hydrated.hubState?.opportunities[0]?.confidence).toBe(0.345678)
+      expect(hydrated.hubState?.rumors[0]?.confidence).toBe(0.456789)
+    })
+
     it('508 normalizes relationship_changed and agent.betrayed numeric fields without NaN', () => {
       const fallback = createStartingState()
 
@@ -9027,13 +10010,45 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(hydrated.events[0]?.payload).toMatchObject({
         previousValue: 0.5,
         nextValue: 0,
-        delta: 0,
+        delta: -0.5,
       })
       expect(hydrated.events[1]?.payload).toMatchObject({
         trustDamageDelta: 0,
         trustDamageTotal: 0,
       })
       expect(hydrated.events.every((event) => !JSON.stringify(event).includes('NaN'))).toBe(true)
+    })
+
+    it('508b clamps legacy relationship_changed values to -2..2 and recomputes delta', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-relationship-legacy-wide-scale',
+            type: 'agent.relationship_changed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              agentId: Object.keys(fallback.agents)[0]!,
+              agentName: 'Agent',
+              counterpartId: 'a_stale_counterpart',
+              counterpartName: 'Retired',
+              previousValue: 5,
+              nextValue: -3,
+              delta: 999,
+              reason: 'passive_drift',
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        previousValue: 2,
+        nextValue: -2,
+        delta: -4,
+      })
     })
 
     it('509 enforces non-decreasing case stage transitions and raid conversion consistency', () => {
@@ -9157,6 +10172,50 @@ describe('runTransfer import sanitization (326-332)', () => {
         )
       ).toBe(false)
     })
+
+    it('510b keeps only catalog-backed nonnegative integer material rows for legacy unknown-recipe production events', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-production-legacy-materials',
+            type: 'production.queue_started',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              queueId: 'q-legacy',
+              queueName: 'Legacy Queue',
+              recipeId: 'legacy-recipe',
+              outputId: 'ward_seals',
+              outputName: 'Output',
+              outputQuantity: 1,
+              etaWeeks: 1,
+              fundingCost: 0,
+              inputMaterials: [
+                { materialId: ' electronic_parts ', materialName: '   ', quantity: 0 },
+                { materialId: 'medical_supplies', materialName: 'Medical Supplies', quantity: 1.5 },
+                { materialId: 'occult_reagents', materialName: 'Occult Reagents', quantity: -1 },
+                { materialId: 'mystery_powder', materialName: 'Mystery Powder', quantity: 1 },
+                { materialId: '   ', materialName: 'Blank Id', quantity: 1 },
+              ],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        recipeId: 'legacy-recipe',
+        inputMaterials: [
+          {
+            materialId: 'electronic_parts',
+            materialName: 'Electronic Parts',
+            quantity: 0,
+          },
+        ],
+      })
+    })
   })
 
   describe('hydration problems 511-518', () => {
@@ -9242,6 +10301,192 @@ describe('runTransfer import sanitization (326-332)', () => {
         allocations: [
           expect.objectContaining({
             allocationId: 'alloc-511-b',
+            substitutionStatus: 'degraded_substitute',
+          }),
+        ],
+      })
+    })
+
+    it('511b bounds market transaction listing resource status capacities', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-511b',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(3, 0),
+            payload: {
+              week: 3,
+              marketWeek: 3,
+              transactionId: 'market-3-2',
+              action: 'buy',
+              listingId: 'gear:combat_stims',
+              itemId: 'combat_stims',
+              itemName: 'Combat Stims',
+              category: 'equipment',
+              quantity: 1,
+              bundleCount: 1,
+              unitPrice: 12,
+              totalPrice: 12,
+              remainingAvailability: 4,
+              listingResourceStatuses: [
+                {
+                  resourceClass: 'licensed_handling_capacity',
+                  sourceId: ' licensed_handling_desk ',
+                  label: ' Licensed handling desk ',
+                  capacity: -2,
+                  available: -5,
+                  allocations: [' alloc-a ', 'alloc-a', '', 42],
+                },
+                {
+                  resourceClass: 'reagent_stock',
+                  capacity: 2,
+                  available: 9,
+                  allocations: ['reagent-2', ' reagent-1 ', 'reagent-2'],
+                },
+                {
+                  resourceClass: 'supplier_attention_slot',
+                  capacity: 3.9,
+                  available: 2.8,
+                },
+              ],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        listingResourceStatuses: [
+          {
+            resourceClass: 'licensed_handling_capacity',
+            sourceId: 'licensed_handling_desk',
+            label: 'Licensed handling desk',
+            capacity: 0,
+            available: 0,
+            allocations: ['alloc-a'],
+          },
+          {
+            resourceClass: 'reagent_stock',
+            capacity: 2,
+            available: 2,
+            allocations: ['reagent-1', 'reagent-2'],
+          },
+          {
+            resourceClass: 'supplier_attention_slot',
+            capacity: 3,
+            available: 2,
+          },
+        ],
+      })
+    })
+
+    it('511c bounds market transaction procurement allocation priority and delay', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        events: [
+          {
+            id: 'evt-market-txn-511c',
+            type: 'market.transaction_recorded',
+            timestamp: buildOperationEventTimestamp(3, 0),
+            payload: {
+              week: 3,
+              marketWeek: 3,
+              transactionId: 'market-3-3',
+              action: 'buy',
+              listingId: 'gear:combat_stims',
+              itemId: 'combat_stims',
+              itemName: 'Combat Stims',
+              category: 'equipment',
+              quantity: 1,
+              bundleCount: 1,
+              unitPrice: 12,
+              totalPrice: 12,
+              remainingAvailability: 4,
+              allocation: {
+                allocationId: 'alloc-huge',
+                resourceClass: 'reagent_stock',
+                source: 'broker_a',
+                sourceLabel: 'Broker A',
+                destinationUse: 'field_kit',
+                destinationLabel: 'Field kit',
+                urgency: 'contingency',
+                expectedBenefit: 'stabilize supply',
+                priority: 9999,
+                delayWeeks: 9999,
+                substitutionStatus: 'none',
+              },
+              allocations: [
+                {
+                  allocationId: 'alloc-negative',
+                  resourceClass: 'supplier_attention_slot',
+                  source: 'broker_b',
+                  sourceLabel: 'Broker B',
+                  destinationUse: 'reserve',
+                  destinationLabel: 'Reserve',
+                  urgency: 'standard',
+                  expectedBenefit: 'buffer',
+                  priority: -5,
+                  delayWeeks: -7,
+                  substitutionStatus: 'none',
+                },
+                {
+                  allocationId: 'alloc-malformed',
+                  resourceClass: 'licensed_handling_capacity',
+                  source: 'desk',
+                  sourceLabel: 'Desk',
+                  destinationUse: 'controlled_procurement',
+                  destinationLabel: 'Controlled procurement',
+                  urgency: 'standard',
+                  expectedBenefit: 'compliance',
+                  priority: 'urgent',
+                  delayWeeks: Number.NaN,
+                  substitutionStatus: 'none',
+                },
+                {
+                  allocationId: 'alloc-valid',
+                  resourceClass: 'licensed_handling_capacity',
+                  source: 'desk',
+                  sourceLabel: 'Desk',
+                  destinationUse: 'controlled_procurement',
+                  destinationLabel: 'Controlled procurement',
+                  urgency: 'contingency',
+                  expectedBenefit: 'compliance',
+                  priority: 2,
+                  delayWeeks: 1,
+                  substitutionStatus: 'degraded_substitute',
+                  substitutionSummary: 'substitute lane',
+                },
+              ],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        allocation: expect.objectContaining({
+          allocationId: 'alloc-huge',
+          priority: 10,
+          delayWeeks: 52,
+        }),
+        allocations: [
+          expect.objectContaining({
+            allocationId: 'alloc-negative',
+            priority: 0,
+            delayWeeks: 0,
+          }),
+          expect.objectContaining({
+            allocationId: 'alloc-malformed',
+            priority: 0,
+            delayWeeks: 0,
+          }),
+          expect.objectContaining({
+            allocationId: 'alloc-valid',
+            priority: 2,
+            delayWeeks: 1,
             substitutionStatus: 'degraded_substitute',
           }),
         ],
@@ -9355,9 +10600,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       expect(payload.reputationBefore).toBe(10)
       expect(payload.reputationAfter).toBe(100)
       expect(Number.isFinite(payload.reputationAfter!)).toBe(true)
-      expect(
-        payload.contactRelationshipAfter! - payload.contactRelationshipBefore!
-      ).toBe(payload.contactDelta)
+      expect(payload.contactRelationshipAfter! - payload.contactRelationshipBefore!).toBe(
+        payload.contactDelta
+      )
     })
 
     it('516 reconciles agency.containment_updated containment, funding, and clearance', () => {
@@ -9396,9 +10641,9 @@ describe('runTransfer import sanitization (326-332)', () => {
         fundingDelta?: number
       }
 
-      expect(
-        payload.containmentRatingAfter! - payload.containmentRatingBefore!
-      ).toBe(payload.containmentDelta)
+      expect(payload.containmentRatingAfter! - payload.containmentRatingBefore!).toBe(
+        payload.containmentDelta
+      )
       expect(payload.fundingAfter! - payload.fundingBefore!).toBe(payload.fundingDelta)
       expect(payload.clearanceLevelAfter! - payload.clearanceLevelBefore!).toBe(3)
     })
@@ -9462,7 +10707,9 @@ describe('runTransfer import sanitization (326-332)', () => {
             maxStage: 0,
             avgFatigue: 0,
             teamStatus: [],
-            notes: [{ id: 'note-future', content: 'future', timestamp: buildReportNoteTimestamp(99, 0) }],
+            notes: [
+              { id: 'note-future', content: 'future', timestamp: buildReportNoteTimestamp(99, 0) },
+            ],
           },
           {
             week: 2,
@@ -9478,7 +10725,9 @@ describe('runTransfer import sanitization (326-332)', () => {
             maxStage: 0,
             avgFatigue: 0,
             teamStatus: [],
-            notes: [{ id: 'note-week-2-a', content: 'first', timestamp: buildReportNoteTimestamp(2, 0) }],
+            notes: [
+              { id: 'note-week-2-a', content: 'first', timestamp: buildReportNoteTimestamp(2, 0) },
+            ],
           },
           {
             week: 4,
@@ -9494,7 +10743,13 @@ describe('runTransfer import sanitization (326-332)', () => {
             maxStage: 0,
             avgFatigue: 0,
             teamStatus: [],
-            notes: [{ id: 'note-week-4-a', content: 'week four a', timestamp: buildReportNoteTimestamp(4, 0) }],
+            notes: [
+              {
+                id: 'note-week-4-a',
+                content: 'week four a',
+                timestamp: buildReportNoteTimestamp(4, 0),
+              },
+            ],
           },
           {
             week: 4,
@@ -9510,7 +10765,13 @@ describe('runTransfer import sanitization (326-332)', () => {
             maxStage: 0,
             avgFatigue: 0,
             teamStatus: [],
-            notes: [{ id: 'note-week-4-b', content: 'week four b', timestamp: buildReportNoteTimestamp(4, 1) }],
+            notes: [
+              {
+                id: 'note-week-4-b',
+                content: 'week four b',
+                timestamp: buildReportNoteTimestamp(4, 1),
+              },
+            ],
           },
         ],
       })
@@ -9932,7 +11193,7 @@ describe('runTransfer import sanitization (326-332)', () => {
           caseId: 'case-infiltration',
           caseTitle: 'Covert Case',
           summary: 'Probe strain detected.',
-          infiltrationAwareness: 100,
+          infiltrationAwareness: 1,
           infiltrationProbeProgress: 0,
           infiltrationStage: 'exposed',
           probeAction: 'probe_access',
@@ -9942,6 +11203,84 @@ describe('runTransfer import sanitization (326-332)', () => {
           leaveBehindLabel: 'Courier cache',
         })
       }
+    })
+
+    it('527b migrates infiltration event awareness and progress to fractional scale', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 3,
+        events: [
+          {
+            id: 'evt-infiltration-fraction',
+            type: 'infiltration.awareness_complication',
+            timestamp: buildOperationEventTimestamp(3, 0),
+            payload: {
+              week: 3,
+              caseId: 'case-infiltration',
+              caseTitle: 'Covert Case',
+              summary: 'Fractional values.',
+              infiltrationAwareness: 0.25,
+              infiltrationProbeProgress: 1,
+            },
+          },
+          {
+            id: 'evt-infiltration-percent',
+            type: 'infiltration.weekly_encounter',
+            timestamp: buildOperationEventTimestamp(3, 1),
+            payload: {
+              week: 3,
+              caseId: 'case-infiltration',
+              caseTitle: 'Covert Case',
+              summary: 'Legacy percent values.',
+              infiltrationAwareness: 25,
+              infiltrationProbeProgress: 100,
+            },
+          },
+          {
+            id: 'evt-infiltration-negative',
+            type: 'infiltration.cover_strain',
+            timestamp: buildOperationEventTimestamp(3, 2),
+            payload: {
+              week: 3,
+              caseId: 'case-infiltration',
+              caseTitle: 'Covert Case',
+              summary: 'Negative values.',
+              infiltrationAwareness: -0.5,
+              infiltrationProbeProgress: -25,
+            },
+          },
+          {
+            id: 'evt-infiltration-malformed',
+            type: 'infiltration.leave_behind_tradeoff',
+            timestamp: buildOperationEventTimestamp(3, 3),
+            payload: {
+              week: 3,
+              caseId: 'case-infiltration',
+              caseTitle: 'Covert Case',
+              summary: 'Malformed values.',
+              infiltrationAwareness: '25%',
+              infiltrationProbeProgress: '0.5',
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload).toMatchObject({
+        infiltrationAwareness: 0.25,
+        infiltrationProbeProgress: 1,
+      })
+      expect(hydrated.events[1]?.payload).toMatchObject({
+        infiltrationAwareness: 0.25,
+        infiltrationProbeProgress: 1,
+      })
+      expect(hydrated.events[2]?.payload).toMatchObject({
+        infiltrationAwareness: 0,
+        infiltrationProbeProgress: 0,
+      })
+      expect(hydrated.events[3]?.payload).not.toHaveProperty('infiltrationAwareness')
+      expect(hydrated.events[3]?.payload).not.toHaveProperty('infiltrationProbeProgress')
     })
 
     it('528 hydrates concealment.activated with trimmed strings and clamped confidence', () => {
@@ -10032,6 +11371,34 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.events[0]?.payload.teamIds).toEqual(['team-a', 'team-b'])
+    })
+
+    it('530b preserves stale case event teamIds while trimming and deduping', () => {
+      const fallback = createStartingState()
+
+      const hydrated = hydrateGame({
+        ...stripGameTemplates(fallback),
+        week: 2,
+        events: [
+          {
+            id: 'evt-failed-530b',
+            type: 'case.failed',
+            timestamp: buildOperationEventTimestamp(2, 0),
+            payload: {
+              week: 2,
+              caseId: 'case-001',
+              caseTitle: 'Failed',
+              mode: 'threshold',
+              kind: 'case',
+              fromStage: 1,
+              toStage: 2,
+              teamIds: [' team-stale-1 ', 'team-stale-1', 'team-known-a'],
+            },
+          },
+        ],
+      })
+
+      expect(hydrated.events[0]?.payload.teamIds).toEqual(['team-stale-1', 'team-known-a'])
     })
 
     it('531 caps assignment.team_assigned assignedTeamCount to maxTeams', () => {
@@ -11232,7 +12599,10 @@ describe('runTransfer import sanitization (326-332)', () => {
       notes: [] as const,
     }
 
-    const minimalMissionResultPayload = (caseId: string, outcome: 'success' | 'partial' | 'fail' | 'unresolved') => ({
+    const minimalMissionResultPayload = (
+      caseId: string,
+      outcome: 'success' | 'partial' | 'fail' | 'unresolved'
+    ) => ({
       caseId,
       caseTitle: caseId,
       teamsUsed: [],
@@ -12218,7 +13588,7 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.events[0]?.payload).toMatchObject({ revealLevel: 2 })
-      expect(hydrated.events[1]?.payload).toMatchObject({ revealLevel: 0 })
+      expect(hydrated.events[1]?.payload).toMatchObject({ revealLevel: 1 })
     })
 
     it('598 bounds system count events as audit-only counts', () => {
@@ -12274,10 +13644,7 @@ describe('runTransfer import sanitization (326-332)', () => {
       }
     }
 
-    function makeHydrationCase(
-      id: string,
-      overrides: Partial<CaseInstance> = {}
-    ): CaseInstance {
+    function makeHydrationCase(id: string, overrides: Partial<CaseInstance> = {}): CaseInstance {
       const fallback = createStartingState()
       const seed = fallback.cases['case-001']!
 
@@ -12760,7 +14127,10 @@ describe('runTransfer import sanitization (326-332)', () => {
               progressData: 9,
               progressMaterials: 5,
               requiredResearchIds: ['proj-a', 'phantom', 'proj-b'],
-              unlocks: [{ id: '', label: 'Bad' }, { id: 'unlock-1', label: 'Valid', category: 'intel_tool' }],
+              unlocks: [
+                { id: '', label: 'Bad' },
+                { id: 'unlock-1', label: 'Valid', category: 'intel_tool' },
+              ],
             },
             'proj-b': {
               projectId: 'proj-b',
@@ -13537,9 +14907,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       ).toBe(false)
       expect(mission?.routingState).not.toBe('bogus')
       expect(mission?.routingBlockers).not.toContain('not-a-blocker')
-      expect(
-        hydrated.missionRouting?.nextGeneratedSequence
-      ).toBeGreaterThanOrEqual((hydrated.missionRouting?.orderedMissionIds.length ?? 0) + 1)
+      expect(hydrated.missionRouting?.nextGeneratedSequence).toBeGreaterThanOrEqual(
+        (hydrated.missionRouting?.orderedMissionIds.length ?? 0) + 1
+      )
     })
 
     it('629 keeps explicit replacementPressureState on hydrateGame; recomputeAttrition rebuilds derived scalars', () => {
@@ -13871,7 +15241,9 @@ describe('runTransfer import sanitization (326-332)', () => {
       })
 
       expect(hydrated.runtimeState?.progressClocks['story.clock-complete']?.completedAtWeek).toBe(5)
-      expect(hydrated.runtimeState?.progressClocks['story.clock-open']?.completedAtWeek).toBeUndefined()
+      expect(
+        hydrated.runtimeState?.progressClocks['story.clock-open']?.completedAtWeek
+      ).toBeUndefined()
     })
   })
 
@@ -14395,4 +15767,3 @@ describe('runTransfer import sanitization (326-332)', () => {
     })
   })
 })
-

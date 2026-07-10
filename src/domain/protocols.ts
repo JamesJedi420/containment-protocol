@@ -235,7 +235,8 @@ export function sanitizePersistedAgencyProtocols(
   const catalog = new Set(PROTOCOL_CATALOG_IDS)
   const selectionLimit = resolvePersistedProtocolSelectionLimit(record, clearanceLevel)
   const hasLimitField =
-    typeof record.protocolSelectionLimit === 'number' && Number.isFinite(record.protocolSelectionLimit)
+    typeof record.protocolSelectionLimit === 'number' &&
+    Number.isFinite(record.protocolSelectionLimit)
   const hasActiveField = Array.isArray(record.activeProtocolIds)
 
   if (!hasLimitField && !hasActiveField) {
@@ -245,8 +246,11 @@ export function sanitizePersistedAgencyProtocols(
   const activeProtocolIds = hasActiveField
     ? [
         ...new Set(
-          record.activeProtocolIds!
-            .filter((id): id is string => typeof id === 'string' && id.length > 0)
+          record
+            .activeProtocolIds!.filter(
+              (id): id is string => typeof id === 'string' && id.trim().length > 0
+            )
+            .map((id) => id.trim())
             .filter((id) => catalog.has(id))
         ),
       ].slice(0, selectionLimit)

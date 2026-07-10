@@ -792,7 +792,7 @@ describe('game app routes', () => {
     expect(useGameStore.getState().game.config.durationModel).toBe('attrition')
   })
 
-  it('updates dashboard config controls and rounds persisted numeric values', async () => {
+  it('updates dashboard config controls and preserves persisted simulation precision', async () => {
     const user = userEvent.setup()
     renderApp()
 
@@ -829,13 +829,13 @@ describe('game app routes', () => {
 
     expect(screen.getByText(/week 1 \/ active cap 11/i)).toBeInTheDocument()
     expect(useGameStore.getState().game.config).toMatchObject({
-      stageScalar: 1.23,
+      stageScalar: 1.234,
       partialMargin: 19,
       maxActiveCases: 11,
       challengeModeEnabled: true,
       attritionPerWeek: 6,
       probabilityK: 2.66,
-      raidCoordinationPenaltyPerExtraTeam: 0.57,
+      raidCoordinationPenaltyPerExtraTeam: 0.575,
       durationModel: 'attrition',
     })
   })

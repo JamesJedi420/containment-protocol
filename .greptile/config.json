@@ -1,0 +1,70 @@
+{
+  "strictness": 2,
+  "commentTypes": ["logic", "syntax"],
+  "triggerOnUpdates": true,
+  "statusCheck": true,
+  "statusCommentsEnabled": false,
+  "ignorePatterns": "node_modules/**\ndist/**\ndist-ssr/**\ncoverage/**\n**/*.log\ncoverage_out*.txt\ncoverage_out_*.txt\n*test-results*.json\n.tmp/**\ndocs/archived/**\ntools/**\nlinear-export/**\nplanning/*-harvest.md\nplanning/harvest-reconciliation-index.md",
+  "summarySection": {
+    "included": true,
+    "collapsible": true,
+    "defaultOpen": false
+  },
+  "instructions": "Containment Protocol — client-side React/TypeScript SPA. Pure simulation in src/domain/; Zustand store in src/app/store/; projections in src/features/*View.ts; UI in src/features/**/*.tsx. Linear is system of record; PRs implement one slice with acceptance from planning/spe-*-slice.md.\n\nREAD FIRST: PR body Linear section (SPE-#### slice issue), stated scope boundary, and AGENTS.md Review guidelines.\n\nSEVERITY — P0/P1: correctness, determinism, hydration, layer boundaries, week-close ordering, hidden UI truth, event migrations, missing required tests, security. Do NOT flag style nits, drive-by refactors, scope expansion, or pre-existing npm run build TS drift unless this PR worsens it.\n\nARCHITECTURE — domain pure (no React/store/features); store orchestration only; *View.ts projections pure; UI presentational. Vite 8: import type for type-only imports in dev-server-loaded files.\n\nSCOPE — match Linear/slice acceptance; smallest in-boundary fix suggestions only.",
+  "rules": [
+    {
+      "id": "domain-pure",
+      "rule": "src/domain must stay pure: no React, store, or features imports; flag non-determinism and silent state mutation.",
+      "scope": ["src/domain/**"],
+      "severity": "high"
+    },
+    {
+      "id": "week-close-order",
+      "rule": "Week-close ordering in src/domain/sim is P0: operating cost, procurement, registry hooks, funding must run at correct phase; no double-run on replay.",
+      "scope": ["src/domain/sim/**"],
+      "severity": "high"
+    },
+    {
+      "id": "event-migration",
+      "rule": "Event schema changes require migration per SCHEMA_REGISTRY.md and validation in eventValidation.ts.",
+      "scope": ["src/domain/events/**"],
+      "severity": "medium"
+    },
+    {
+      "id": "projections-pure",
+      "rule": "*View.ts files are pure projections: no side effects, no cross-feature imports, do not re-derive canonical domain summaries.",
+      "scope": ["src/features/**/*View.ts"],
+      "severity": "medium"
+    },
+    {
+      "id": "ui-presentational",
+      "rule": "React components use projections; flag deep domain imports and simulation logic in .tsx files.",
+      "scope": ["src/features/**/*.tsx"],
+      "severity": "medium"
+    },
+    {
+      "id": "deterministic-tests",
+      "rule": "Vitest tests must be deterministic; flag missing coverage for persistence/user-visible behavior and weakened assertions.",
+      "scope": ["src/test/**", "src/features/**/*.test.ts", "src/features/**/*.test.tsx"],
+      "severity": "medium"
+    },
+    {
+      "id": "slice-boundary",
+      "rule": "PR must not exceed planning/spe-*-slice.md Goal/Acceptance or contradict ## Deferred.",
+      "scope": ["planning/spe-*-slice.md"],
+      "severity": "medium"
+    },
+    {
+      "id": "audit-index",
+      "rule": "New docs/*audit*.md requires docs/design-audits-index.md update in strict alphabetical order.",
+      "scope": ["docs/**"],
+      "severity": "medium"
+    },
+    {
+      "id": "ci-node22",
+      "rule": "Do not weaken CI: Node 22, STRICT_TEST_CONSOLE=1, or skip tests.",
+      "scope": [".github/workflows/**"],
+      "severity": "high"
+    }
+  ]
+}

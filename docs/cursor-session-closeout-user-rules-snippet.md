@@ -14,7 +14,7 @@ End using the **phase A** structure in `docs/agent-session-closeout.md`.
 
 ## Phase B — After merge (normal session end)
 
-After babysit → merge, slice **Done**, merge comment on Linear, and **`git checkout main` && `git pull origin main`**:
+After babysit (independent review + comment triage + CI) → merge, slice **Done**, merge comment on Linear, and **`git checkout main` && `git pull origin main`**:
 
 Do not implement the next issue unless the user explicitly asks. Prepare a **next-issue implementation plan** only.
 

@@ -63,7 +63,7 @@ Run only **after** pre-ship audit passes:
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
 4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment).
-5. **Babysit → merge (same session):** watch CI (`gh pr checks`), triage comments, fix in-boundary failures, push until green; merge when mergeable. Do **not** end the session or write a next-issue plan while the PR is still open.
+5. **Babysit → merge (same session):** after the PR opens — **independent review** of full diff vs `main` from scratch (slice doc + Linear acceptance; use `code-reviewer` / `bugbot` on non-trivial diffs); fix in-boundary findings and push; **triage external comments**; **CI loop** (`gh pr checks`) until green; merge when mergeable. Do **not** rely only on existing PR comments. Do **not** end the session or write a next-issue plan while the PR is still open.
 6. **Sync `main`:** `git checkout main` && `git pull origin main`.
 
 Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."
@@ -74,17 +74,9 @@ Repo ship loop overrides a generic "commit only when asked" preference for Conta
 
 ### PR mapping
 
-When opening or updating a PR, the PR body must name:
+When opening or updating a PR, use `.github/pull_request_template.md`. Put `@coderabbitai summary` under **Summary** (CodeRabbit replaces it on review); fill Linear, what shipped, docs, parent status, validation, and scope boundary.
 
-- the canonical Linear issue
-- any parent issue
-- each child issue covered by the branch
-- what shipped
-- validation run
-- docs updated
-- whether the parent remains open
-
-If the PR satisfies a child issue, do not reference only the parent.
+The PR body must name: canonical Linear slice issue; parent (if any); each child covered; what shipped; validation run; docs updated; whether the parent remains open. If the PR satisfies a child issue, do not reference only the parent.
 
 ### Linear updates
 
@@ -100,4 +92,4 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ### Session closeout (mandatory)
 
-**Order:** ship loop → babysit CI → merge → `checkout main` && pull → closeout. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. **Phase A (interim):** only when babysit/merge is blocked in-session. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
+**Order:** ship loop → babysit (independent review + comment triage + CI) → merge → `checkout main` && pull → closeout. **Phase B (after merge):** slice Done + merge comment — next-issue plan only. **Phase A (interim):** only when babysit/merge is blocked in-session. Formats: `docs/agent-session-closeout.md`. Paste: `docs/cursor-session-closeout-user-rules-snippet.md`.

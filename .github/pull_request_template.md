@@ -1,24 +1,35 @@
 ## Linear
 
-- **Slice issue:** <!-- SPE-___ URL — canonical scope and acceptance -->
+- **Slice issue:** <!-- SPE-___ + URL — canonical scope and acceptance -->
 - **Parent issue (if any):** <!-- leave blank when none -->
+- **Child issues covered:** <!-- list each child this branch satisfies, or "slice only" -->
+
+## Summary
+
+@coderabbitai summary
+
+<!-- CodeRabbit replaces the line above on review. Add slice-specific bullets below only when needed. -->
+
+## What shipped
+
+<!-- 1–3 bullets: behavior, files, acceptance satisfied -->
+
+## Docs updated
+
+<!-- paths, or "none" -->
+
+## Parent status
+
+<!-- e.g. Parent remains open — child slice only / Parent can close — full umbrella shipped -->
 
 ## Scope boundary
 
 <!-- What this PR deliberately does *not* change -->
 
-## Summary
-
-<!-- What shipped in 1–3 bullets -->
-
-## Files changed
-
-<!-- High-signal paths only -->
-
 ## Validation
 
 - [ ] Targeted tests: <!-- command(s) run -->
-- [ ] Lint / verify scripts (if touched): <!-- e.g. npm run verify:audits-index -->
+- [ ] Lint / verify scripts (if touched): <!-- e.g. npm run lint, npm run verify:audits-index -->
 
 ## Screenshots (UI only)
 
@@ -26,9 +37,10 @@
 
 ## Follow-ups
 
-<!-- Remaining slices or known gaps -->
+<!-- Remaining slices or known gaps; match slice doc ## Deferred when applicable -->
 
 ## Linear updated
 
-- [ ] Issue moved to accurate status
-- [ ] Merge comment added with PR URL and validation
+- [ ] Slice issue linked in this PR body (not parent only)
+- [ ] PR URL commented on slice issue
+- [ ] Accurate status through merge (Done only when full child boundary ships)

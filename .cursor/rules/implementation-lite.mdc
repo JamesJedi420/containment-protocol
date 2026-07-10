@@ -100,7 +100,12 @@ Run the ship loop only **after** pre-ship audit completion criteria are met:
 2. **Push** the branch to `origin` (`git push -u origin HEAD` when the remote branch is new).
 3. **Open a PR** against `main` with the PR mapping body below.
 4. **Linear:** comment the PR URL on the **slice** issue; keep the slice **In Progress** until merge (then **Done** + merge comment per `linear-always-update.mdc`).
-5. **Babysit → merge (same session, mandatory):** after the PR opens, babysit until CI is clean and the PR is mergeable — triage review comments, fix in-boundary failures, push, re-watch `gh pr checks` until green. Then **merge** the PR (`gh pr merge`). Do **not** end the session or write a next-issue plan while the PR is still open.
+5. **Babysit → merge (same session, mandatory):** after the PR opens, babysit until CI is clean and the PR is mergeable. **Do not** rely only on existing PR comments — run a full independent review first, then triage external feedback and CI. Sub-steps (in order):
+   - **Independent review (mandatory):** review the full branch diff against `main` from scratch — slice doc, Linear acceptance, edge cases, regressions, tests, docs. Use `code-reviewer` and/or `bugbot` subagents on non-trivial diffs. Record findings (critical / warning / note).
+   - **Fix in-boundary findings** from the independent review; push.
+   - **Triage external review comments** (humans, Bugbot, Copilot); fix valid in-scope requests; explain or defer out-of-scope items on the PR.
+   - **CI loop:** fix in-boundary failures; merge `main` when the branch is behind; push; re-watch `gh pr checks` until green and mergeable.
+   - **Merge** the PR (`gh pr merge`). Do **not** end the session or write a next-issue plan while the PR is still open.
 6. **Sync `main`:** `git checkout main` && `git pull origin main`. Confirm the merge commit is on local `main`.
 
 Do **not** end an implementation session with only local files, uncommitted work, an open unmerged PR, or "say if you want a PR."
@@ -111,7 +116,9 @@ Repo ship loop overrides a generic "commit only when asked" preference for Conta
 
 ## PR mapping
 
-When opening or updating a PR, the PR body must name:
+When opening or updating a PR, use `.github/pull_request_template.md` as the body scaffold. The **Summary** section includes `@coderabbitai summary` — CodeRabbit replaces that placeholder on review; fill the remaining sections before merge.
+
+The PR body must name:
 
 - the canonical Linear issue
 - any parent issue
@@ -122,6 +129,46 @@ When opening or updating a PR, the PR body must name:
 - whether the parent remains open
 
 If the PR satisfies a child issue, do not reference only the parent.
+
+**Agent `gh pr create` body** (fill placeholders; keep template section order):
+
+```markdown
+## Linear
+
+- **Slice issue:** SPE-___ — <url>
+- **Parent issue (if any):** <!-- or none -->
+- **Child issues covered:** <!-- or slice only -->
+
+## Summary
+
+@coderabbitai summary
+
+## What shipped
+
+- 
+
+## Docs updated
+
+- 
+
+## Parent status
+
+- 
+
+## Scope boundary
+
+- 
+
+## Validation
+
+- [ ] Targeted tests: 
+- [ ] Lint / verify: 
+
+## Linear updated
+
+- [ ] Slice issue linked in PR body
+- [ ] PR URL on slice issue
+```
 
 ## Linear updates
 
@@ -137,7 +184,7 @@ If Linear tooling is unavailable, report the exact status/comment update that sh
 
 ## Session closeout (mandatory)
 
-**Order:** ship loop → babysit CI → merge → `checkout main` && pull → **then** closeout. **Do not** produce a next-issue plan until merge and local `main` sync are complete.
+**Order:** ship loop → babysit (independent review + comment triage + CI) → merge → `checkout main` && pull → **then** closeout. **Do not** produce a next-issue plan until merge and local `main` sync are complete.
 
 ### Phase A — PR open, babysit blocked (interim only)
 

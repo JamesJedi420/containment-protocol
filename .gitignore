@@ -26,6 +26,7 @@ remaining-subset.json
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+*.code-workspace
 .idea
 
 # Cursor-local agent config (solo dev; environment.json stays tracked)

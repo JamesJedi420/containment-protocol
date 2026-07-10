@@ -116,7 +116,9 @@ Repo ship loop overrides a generic "commit only when asked" preference for Conta
 
 ## PR mapping
 
-When opening or updating a PR, the PR body must name:
+When opening or updating a PR, use `.github/pull_request_template.md` as the body scaffold. The **Summary** section includes `@coderabbitai summary` — CodeRabbit replaces that placeholder on review; fill the remaining sections before merge.
+
+The PR body must name:
 
 - the canonical Linear issue
 - any parent issue
@@ -127,6 +129,46 @@ When opening or updating a PR, the PR body must name:
 - whether the parent remains open
 
 If the PR satisfies a child issue, do not reference only the parent.
+
+**Agent `gh pr create` body** (fill placeholders; keep template section order):
+
+```markdown
+## Linear
+
+- **Slice issue:** SPE-___ — <url>
+- **Parent issue (if any):** <!-- or none -->
+- **Child issues covered:** <!-- or slice only -->
+
+## Summary
+
+@coderabbitai summary
+
+## What shipped
+
+- 
+
+## Docs updated
+
+- 
+
+## Parent status
+
+- 
+
+## Scope boundary
+
+- 
+
+## Validation
+
+- [ ] Targeted tests: 
+- [ ] Lint / verify: 
+
+## Linear updated
+
+- [ ] Slice issue linked in PR body
+- [ ] PR URL on slice issue
+```
 
 ## Linear updates
 

@@ -41,7 +41,7 @@ Client-only React/TypeScript SPA. Pure sim in `src/domain/`; Zustand in `src/app
 
 Same as `AGENTS.md` Review guidelines. Flag P0/P1: correctness, determinism, hydration, layer boundaries, week-close order, hidden UI truth, migrations, missing required tests, security. Do not flag style nits, drive-by refactors, scope expansion, or pre-existing `build` TS drift unless this change worsens it.
 
-AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.yaml`.
+AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.yaml`, and this file (`CLAUDE.md`).
 
 ## Do not
 

@@ -88,3 +88,49 @@ All scripts are documented in `README.md` under the **Scripts** section and in `
 - **Session closeout:** phase A after PR open (audit closeout only — **no** next-issue plan); phase B after merge (next-issue plan only). Formats in `docs/agent-session-closeout.md`; User Rules paste: `docs/cursor-session-closeout-user-rules-snippet.md`.
 - **Deferred work:** same session — slice doc `## Deferred` + Linear parent/child comment; see `docs/agent-session-closeout.md` § Deferred work recording and `.cursor/rules/implementation-lite.mdc`.
 - **Backlog hygiene passes:** paste from `docs/cursor-backlog-hygiene-user-rules-snippet.md` (optional local `.cursor/rules/backlog-hygiene.mdc`; grooming only, not implementation).
+
+---
+
+## Review guidelines
+
+Codex (`@codex review`), Copilot code review, Gemini Code Assist, CharlieHelps, and other PR reviewers should enforce the same bar. Read the PR description for the Linear slice issue, `planning/*-slice.md`, and stated boundary before commenting.
+
+### Severity
+
+- **P0 / P1 (flag):** correctness bugs, determinism breaks, persistence/hydration gaps, layer-boundary violations, week-close ordering errors, hidden-state leaks through UI, event schema/migration regressions, missing tests when acceptance requires coverage, security issues.
+- **Do not flag:** style-only nits, drive-by refactors, scope expansion suggestions, or pre-existing `npm run build` baseline TS drift unless this PR makes it worse (see caveats above).
+
+### Architecture
+
+Per `docs/dependency-boundaries.md` and `src/test/boundary-enforcement.test.ts`:
+
+- **Domain** (`src/domain/**`): pure simulation; no store/projection/UI imports.
+- **Store** (`src/app/store/**`): orchestration; may import domain only.
+- **Projections** (`src/features/*View.ts`): pure selectors; no UI or cross-feature imports.
+- **UI** (`src/features/**`): presentational; use projections. Do not re-derive canonical domain summaries when a domain helper or projection already owns them.
+- **Vite 8:** type-only imports must use `import type { ... }` in dev-server-loaded files.
+
+### Simulation and state
+
+- Outcomes must be reproducible (seeded RNG; no hidden randomness or silent mutation).
+- Week-close hooks belong on week-close — flag mid-week mutations that should run at close as P0.
+- New persisted fields need normalization defaults and event schema/migration updates per `SCHEMA_REGISTRY.md`.
+
+### Scope discipline
+
+- PR must match linked Linear/slice acceptance; flag scope creep as P1.
+- Do not request unrelated refactors, renames, or parallel subsystems.
+- Do not duplicate feedback already fixed in the same PR unless the fix is wrong.
+
+### Tests and docs
+
+- New domain or user-visible behavior needs targeted Vitest coverage; flag missing tests P1 when acceptance implies it.
+- In-boundary docs, fixtures, and schemas must stay current; typos in touched docs are P1.
+- Validation expectation: most specific tests first, then lint; full suite `npm run test:run` on non-trivial sim changes.
+
+### Review process
+
+1. Review the **full diff against `main`**, not isolated hunks.
+2. Cite file paths; explain **why** something fails acceptance.
+3. Prefer the smallest in-boundary fix when suggesting changes.
+4. Do not weaken tests, CI, or lint rules to pass.

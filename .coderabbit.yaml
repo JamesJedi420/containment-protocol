@@ -123,9 +123,19 @@ reviews:
 
     - path: "package.json"
       instructions: |
-        Dependency changes. Flag P1 if a new package lands without slice justification, or if the PR
-        wires search/scan SaaS SDKs into src/ or CI without an explicit Linear slice. Prefer agents
-        using Sonatype/Snyk keep-list checks per docs/agent-cursor-plugins.md.
+        Dependency changes (with package-lock.json). Flag P1 if a new or upgraded package lands without
+        slice justification. Prefer required Sonatype /check-dependency per docs/agent-cursor-plugins.md;
+        Snyk package health is optional and must not replace Sonatype.
+
+    - path: "package-lock.json"
+      instructions: |
+        Same dependency policy as package.json. Flag unexplained lockfile churn without package.json
+        or slice justification.
+
+    - path: "src/**"
+      instructions: |
+        Flag P1 if the PR wires vendor search/scan/SaaS SDKs into src/ without an explicit Linear slice
+        (docs/agent-cursor-plugins.md). Still apply existing domain/store/UI path instructions above.
 
     - path: ".github/workflows/**"
       instructions: |

@@ -11,13 +11,13 @@ Canonical detail: **`docs/agent-cursor-plugins.md`**.
 
 - **Linear** — mandatory issue lifecycle (see `linear-always-update.mdc`).
 - **Tavily** — live web research only after repo sources; never into game runtime/CI.
-- **Sonatype** — before adding/upgrading npm deps (`/check-dependency` or MCP).
-- **Snyk** — optional on-demand SCA/SAST/package health; no new CI vendor gates without a Linear slice.
+- **Sonatype** — **required** before adding/upgrading npm deps (`/check-dependency` or MCP).
+- **Snyk** — optional on-demand SCA/SAST/package health; does not replace Sonatype; no new CI vendor gates without a Linear slice.
 - **Modern Web Guidance** — when installed, search before inventing HTML/CSS/client-JS UI patterns; still obey layer boundaries and existing design system.
 - **PR reviewers** — enforce via `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `AGENTS.md` Review guidelines.
 
 ## Do not
 
-- Wire search, scan, or SaaS SDKs into `src/domain`, store, UI runtime, or CI unless the active Linear slice requires it.
+- Wire search, scan, or SaaS SDKs into `src/` or CI unless the active Linear slice requires it.
 - Treat marketplace plugins as installable from the agent — human installs; agent documents and uses.
 - Expand scope to enterprise DB/ops/auth/sales plugins for this client-only SPA.

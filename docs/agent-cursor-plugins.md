@@ -2,7 +2,7 @@
 
 Canonical plugin policy for Containment Protocol agents. **Install/uninstall happens in Cursor UI** — agents document and use plugins; they do not manage the marketplace.
 
-Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/domain`, store, UI runtime, or CI unless a Linear slice explicitly requires it.
+Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/` (domain, store, features/UI) or CI unless a Linear slice explicitly requires it.
 
 ## Keep (use when relevant)
 
@@ -12,7 +12,7 @@ Client-only SPA: do **not** wire vendor search, scan, or SaaS SDKs into `src/dom
 | **Tavily** | Live web research after repo sources | `AGENTS.md` § Live web research |
 | **Sonatype** | Evaluate a package before add/upgrade | Cursor skill `/check-dependency`; MCP `getComponentVersion` |
 | **Snyk** | Optional SCA/SAST / package health (on demand) | MCP `snyk_*` tools; do not add CI gates without a slice |
-| **Modern Web Guidance** | HTML/CSS/client JS patterns before inventing UI | Cursor skill `modern-web-guidance` (`npx modern-web-guidance search …`) |
+| **Modern Web Guidance** | HTML/CSS/client JS patterns before inventing UI | Cursor skill `modern-web-guidance` (`npx modern-web-guidance search "..."`) |
 | **Cursor Team Kit** + **CLI for Agents** | CI/PR/review/shell agent skills | Plugin-local skills (not duplicated here) |
 | **browse** | Agent browser sandbox / Browserbase demos | Tooling only — not the game SPA |
 
@@ -42,9 +42,10 @@ Enterprise DB/ops/auth/sales/comms plugins (Databricks, MongoDB, Auth0 product w
 ### New or upgraded npm dependency
 
 1. Prefer existing stack; justify the add inside the slice boundary.
-2. Run Sonatype `/check-dependency` (or MCP) and/or Snyk `snyk_package_health_check`.
-3. Prefer maintained permissive licenses; avoid known critical/high CVEs.
-4. Do not weaken CI or lockfile discipline to land a bad package.
+2. **Required:** Sonatype `/check-dependency` (or MCP `getComponentVersion`) before adding or upgrading.
+3. **Optional:** Snyk `snyk_package_health_check` for extra package health — does not replace Sonatype.
+4. Prefer maintained permissive licenses; avoid known critical/high CVEs.
+5. Do not weaken CI or lockfile discipline to land a bad package.
 
 ### Live web research
 

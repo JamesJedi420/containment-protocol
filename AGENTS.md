@@ -103,7 +103,7 @@ When an agent needs **live web research** (current docs, vendor APIs, product ch
 Use only the keep-list in **`docs/agent-cursor-plugins.md`** (tracked rule: `.cursor/rules/agent-cursor-plugins.mdc`). Summary:
 
 - **Linear**, **Tavily**, **Sonatype**, optional **Snyk**, **Modern Web Guidance** (UI), **Cursor Team Kit** / **CLI for Agents**, **browse** (tooling sandbox).
-- Before adding npm deps: Sonatype `/check-dependency` and/or Snyk package health.
+- Before adding or upgrading npm deps: **required** Sonatype `/check-dependency`; optional Snyk package health (does not replace Sonatype).
 - PR review configs already in repo: `.coderabbit.yaml`, `.greptile/`, `.amazonq/rules/`, `CLAUDE.md`.
 - Do **not** wire vendor search/scan/SaaS SDKs into the game runtime or CI unless a Linear slice requires it. Marketplace install/uninstall is human-only.
 

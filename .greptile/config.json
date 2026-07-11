@@ -68,9 +68,15 @@
     },
     {
       "id": "deps-keep-list",
-      "rule": "New package.json dependencies need slice justification; do not wire search/scan SaaS SDKs into src/ or CI. Prefer Sonatype/Snyk checks per docs/agent-cursor-plugins.md.",
+      "rule": "New or upgraded package.json / package-lock.json dependencies need slice justification. Prefer required Sonatype /check-dependency; Snyk package health is optional and must not replace Sonatype (docs/agent-cursor-plugins.md).",
       "scope": ["package.json", "package-lock.json"],
       "severity": "medium"
+    },
+    {
+      "id": "no-vendor-sdk-src",
+      "rule": "Do not wire vendor search/scan SaaS SDKs into src/ without an explicit Linear slice (docs/agent-cursor-plugins.md).",
+      "scope": ["src/**"],
+      "severity": "high"
     }
   ]
 }

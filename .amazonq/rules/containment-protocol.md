@@ -19,7 +19,7 @@ Client-side React/TypeScript SPA. Pure simulation in `src/domain/`; Zustand stor
 - One Linear slice per PR; match slice **Goal** and **Acceptance**.
 - Prefer the smallest in-boundary fix in suggestions.
 - Do not request unrelated refactors or parallel subsystems.
-- Do not wire vendor search/scan SaaS into `src/` or CI without an explicit Linear slice (`docs/agent-cursor-plugins.md`).
+- Do not wire vendor search/scan SaaS into `src/` or CI without an explicit Linear slice (`docs/agent-cursor-plugins.md`). Prefer required Sonatype before npm add/upgrade; Snyk is optional.
 
 ## Re-review
 

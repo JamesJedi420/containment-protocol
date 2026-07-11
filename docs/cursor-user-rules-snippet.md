@@ -20,6 +20,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - Standing repo rules: read **`AGENTS.md`** at repo root first.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
 - **Live web research:** prefer repo sources first; use **Tavily** (MCP/CLI) only when current external docs or facts are needed and repo sources are insufficient; do not add search APIs to the game runtime.
+- **Cursor plugins:** keep-list in `docs/agent-cursor-plugins.md` (tracked rule `.cursor/rules/agent-cursor-plugins.mdc`); **required** Sonatype before add/upgrade deps; optional Snyk; do not wire vendor scan/search into `src/` or CI without a Linear slice.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
 - **Implementation lite:** `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **pre-ship audit**, **ship loop**, PR mapping, Linear).
 - **Pre-ship audit:** before commit/merge — six passes until clean; `docs/agent-pre-ship-audit.md`.

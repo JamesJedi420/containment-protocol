@@ -68,7 +68,7 @@
     },
     {
       "id": "deps-keep-list",
-      "rule": "New or upgraded package.json / package-lock.json dependencies need slice justification. Prefer required Sonatype /check-dependency; Snyk package health is optional and must not replace Sonatype (docs/agent-cursor-plugins.md).",
+      "rule": "New or upgraded package.json / package-lock.json dependencies need slice justification and required Sonatype /check-dependency or MCP getComponentVersion; Snyk package health is optional and must not replace Sonatype (docs/agent-cursor-plugins.md).",
       "scope": ["package.json", "package-lock.json"],
       "severity": "medium"
     },

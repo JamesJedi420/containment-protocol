@@ -124,8 +124,9 @@ reviews:
     - path: "package.json"
       instructions: |
         Dependency changes (with package-lock.json). Flag P1 if a new or upgraded package lands without
-        slice justification. Prefer required Sonatype /check-dependency per docs/agent-cursor-plugins.md;
-        Snyk package health is optional and must not replace Sonatype.
+        slice justification, or without evidence of required Sonatype /check-dependency (or MCP
+        getComponentVersion) per docs/agent-cursor-plugins.md. Snyk package health is optional and
+        must not replace Sonatype.
 
     - path: "package-lock.json"
       instructions: |

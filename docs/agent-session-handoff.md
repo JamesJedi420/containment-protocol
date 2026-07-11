@@ -11,7 +11,7 @@ Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.
 | Layer                                              | What belongs there                                            |
 | -------------------------------------------------- | ------------------------------------------------------------- |
 | **Cursor User Rules**                              | Merge → `checkout main` → pull → **new agent** for next slice |
-| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, this handoff summary       |
+| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, live web research (Tavily), this handoff summary |
 | **Linear + `planning/*-slice.md` + first message** | One task only                                                 |
 
 ## After you merge a PR (human)

@@ -19,6 +19,7 @@ Copy the standing-workflow block below into **Cursor → Settings → Rules → 
 - Each new task: give the agent the **Linear issue**, **`planning/*-slice.md`**, **branch name**, and confirm **current `main` commit** in the first message.
 - Standing repo rules: read **`AGENTS.md`** at repo root first.
 - Prefer slice docs and backlog over re-explaining finished work in chat.
+- **Live web research:** prefer **Tavily** (MCP/CLI) when current external docs or facts are needed; prefer repo sources first; do not add search APIs to the game runtime.
 - When I merge, remind me to sync `main` and **switch to a new agent** before the next issue.
 - **Implementation lite:** `docs/cursor-implementation-lite-user-rules-snippet.md` (scope, **pre-ship audit**, **ship loop**, PR mapping, Linear).
 - **Pre-ship audit:** before commit/merge — six passes until clean; `docs/agent-pre-ship-audit.md`.

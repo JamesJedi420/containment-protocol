@@ -43,6 +43,10 @@ Same as `AGENTS.md` Review guidelines. Flag P0/P1: correctness, determinism, hyd
 
 AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.yaml`, and this file (`CLAUDE.md`).
 
+## Live web research
+
+Prefer repo sources first. Use **Tavily** (MCP / CLI) only when live web research is required and repo sources are insufficient. MCP must be authenticated; if unavailable, report that and fall back — do not wire Tavily into the game runtime.
+
 ## Do not
 
 - Parallel subsystems or unrelated refactors

@@ -44,6 +44,9 @@ remaining-subset.json
 *.sw?
 
 # Secrets
+.env
+.env.*
+!.env.example
 linear-export/.env
 
 # Linear / GitHub backlog tooling — local-only working scripts, data dumps,

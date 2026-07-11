@@ -114,7 +114,8 @@ function roundReachMetric(value: number): number {
  *   multiplier = reachFactor * (1 + viewScale)
  *   reachValue = anomalyReach * multiplier
  *
- * Missing or invalid platform config falls back to multiplier 1 (no throw).
+ * Missing platform falls back to multiplier 1 (no throw). Incomplete config
+ * keeps any valid factor/scale terms and adds reason codes instead of throwing.
  */
 export function evaluatePlatformReachMultiplier(
   input: PlatformReachEvaluationInput | null | undefined

@@ -101,9 +101,7 @@ function makeCooperativeContractorCandidate(): Candidate {
 
 function getPersistedState() {
   return useGameStore.persist.getOptions().storage?.getItem(STORE_KEY) as
-    | { state: { game: Record<string, unknown> }; version: number }
-    | null
-    | undefined
+    { state: { game: Record<string, unknown> }; version: number } | null | undefined
 }
 
 function makeLiveSupportOperationState() {
@@ -3060,6 +3058,90 @@ describe('affiliation file work queue repair action store action', () => {
       'missing_entity_welfare_reclassification_ref'
     )
     expect(view.summary.fileAccessMissingReviewCount).toBe(1)
+  })
+
+  it('uses canonical candidates for the mirror when the legacy recruitment pool is empty', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.candidates = [
+      {
+        id: 'candidate:onboarding-canonical',
+        name: 'Canonical Onboarding Subject',
+        age: 30,
+        category: 'agent',
+        hireStatus: 'available',
+        weeklyCost: 0,
+        weeklyWage: 0,
+        revealLevel: 1,
+        funnelStage: 'screening',
+      },
+    ]
+    game.recruitmentPool = []
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-canonical': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-canonical',
+        subjectId: 'subject:onboarding-canonical',
+        subjectLabel: 'Canonical Onboarding Subject',
+        candidateRef: 'candidate:onboarding-canonical',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-canonical',
+      subjectId: 'subject:onboarding-canonical',
+      subjectLabel: 'Canonical Onboarding Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_onboarding_clearance'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    const view = getAffiliationPersonStatusMirrorView(game)
+
+    expect(view.records[0]?.reasonCodeLabels).not.toContain('missing_candidate_ref')
+  })
+
+  it('does not record repair actions when onboarding evidence repair cannot apply', () => {
+    const game = createStartingState()
+    game.week = 12
+    game.affiliationPersonStatusRecords = {
+      'person-status:onboarding-absent-candidate': {
+        ...COOPERATIVE_CONTRACTOR_PERSON_STATUS_FIXTURE,
+        id: 'person-status:onboarding-absent-candidate',
+        subjectId: 'subject:onboarding-absent-candidate',
+        subjectLabel: 'Absent Candidate Onboarding Subject',
+        candidateRef: 'candidate:onboarding-absent',
+        backgroundCleared: undefined,
+        trainingCompleted: undefined,
+        oathContractSigned: undefined,
+      },
+    }
+    const resolutionRecord = buildAffiliationFileWorkQueueEvidenceResolutionRecord({
+      workQueueEntryId: 'person-status:onboarding-absent-candidate',
+      subjectId: 'subject:onboarding-absent-candidate',
+      subjectLabel: 'Absent Candidate Onboarding Subject',
+      sourceBucket: 'missing_review',
+      missingReasonCodes: ['missing_candidate_ref', 'missing_onboarding_clearance'],
+      recordedWeek: 11,
+    })
+    game.affiliationFileWorkQueueEvidenceResolutionRecords = {
+      [resolutionRecord.id]: resolutionRecord,
+    }
+    useGameStore.setState({ game })
+
+    const before = useGameStore.getState().game
+    useGameStore
+      .getState()
+      .recordAffiliationFileWorkQueueRepairAction(
+        'person-status:onboarding-absent-candidate',
+        'missing_onboarding_clearance'
+      )
+
+    expect(useGameStore.getState().game).toBe(before)
   })
 
   it('no-ops for absent, unresolved, non-matching, and already-recorded rows', () => {

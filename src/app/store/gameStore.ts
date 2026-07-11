@@ -1830,6 +1830,10 @@ export const useGameStore = create<GameStore>()(
             recordedWeek: s.game.week,
           })
 
+          if (!repaired.applied) {
+            return { game: s.game }
+          }
+
           return {
             game: {
               ...repaired.state,

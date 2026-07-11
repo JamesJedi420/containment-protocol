@@ -69,10 +69,7 @@ export interface AffiliationPersonStatusMirrorSummaryView {
 }
 
 export type AffiliationFileAccessWorkQueueBucket =
-  | 'blocked'
-  | 'restricted'
-  | 'missing_review'
-  | 'allowed'
+  'blocked' | 'restricted' | 'missing_review' | 'allowed'
 
 export type AffiliationFileAccessRecommendedActionKind =
   | 'resolve_missing_review'
@@ -697,9 +694,10 @@ function toRecordView(
 export function getAffiliationPersonStatusMirrorView(
   game: GameState
 ): AffiliationPersonStatusMirrorView {
+  const candidates = game.candidates.length > 0 ? game.candidates : game.recruitmentPool
   const snapshots = projectAffiliationPersonStatusSnapshots({
     records: game.affiliationPersonStatusRecords,
-    candidates: game.recruitmentPool ?? game.candidates,
+    candidates,
     entityWelfareReclassificationRecords: game.entityWelfareReclassificationRecords,
   })
   let restrictedOrBlockedCount = 0

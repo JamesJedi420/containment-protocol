@@ -121,9 +121,17 @@ reviews:
         New docs/*audit*.md must update docs/design-audits-index.md in strict alphabetical order.
         Flag stale docs contradicting src/ in the same PR.
 
+    - path: "package.json"
+      instructions: |
+        Dependency changes. Flag P1 if a new package lands without slice justification, or if the PR
+        wires search/scan SaaS SDKs into src/ or CI without an explicit Linear slice. Prefer agents
+        using Sonatype/Snyk keep-list checks per docs/agent-cursor-plugins.md.
+
     - path: ".github/workflows/**"
       instructions: |
         Flag P1 if CI weakened, STRICT_TEST_CONSOLE removed, or Node version is not 22.
+        Flag P1 if a vendor scan/search API is added to CI without an explicit Linear slice
+        (see docs/agent-cursor-plugins.md).
 
   labeling_instructions:
     - label: bug

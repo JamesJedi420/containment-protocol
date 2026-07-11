@@ -36,6 +36,7 @@ remaining-subset.json
 !.cursor/rules/
 !.cursor/rules/linear-always-update.mdc
 !.cursor/rules/implementation-lite.mdc
+!.cursor/rules/agent-cursor-plugins.mdc
 .DS_Store
 *.suo
 *.ntvs*

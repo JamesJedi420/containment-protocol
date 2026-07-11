@@ -47,6 +47,10 @@ AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.ya
 
 Prefer repo sources first. Use **Tavily** (MCP / CLI) only when live web research is required and repo sources are insufficient. MCP must be authenticated; if unavailable, report that and fall back — do not wire Tavily into the game runtime.
 
+## Cursor plugins
+
+Keep-list and workflows: **`docs/agent-cursor-plugins.md`**. Before adding npm deps, use Sonatype and/or Snyk. Do not wire vendor scan/search SDKs into runtime or CI without an explicit Linear slice.
+
 ## Do not
 
 - Parallel subsystems or unrelated refactors

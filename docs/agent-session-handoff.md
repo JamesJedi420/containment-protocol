@@ -4,14 +4,14 @@ Canonical standing policy for humans and agents. **User Rules:** paste the short
 
 Optional: copy sections below into a local `.cursor/rules/agent-session-handoff.mdc` with `alwaysApply: true` (that folder is gitignored; per-developer only). **Committed User Rules paste sources:** `docs/cursor-implementation-lite-user-rules-snippet.md` (normal coding), `docs/cursor-backlog-hygiene-user-rules-snippet.md` (hygiene only).
 
-**Cursor rules in this repo:** `.cursor/rules/linear-always-update.mdc` and `.cursor/rules/implementation-lite.mdc` are tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores other files under `.cursor/rules/`. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. If you need a per-developer local rule file, keep it untracked under `.cursor/rules/`; to add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
+**Cursor rules in this repo:** `.cursor/rules/linear-always-update.mdc`, `.cursor/rules/implementation-lite.mdc`, and `.cursor/rules/agent-cursor-plugins.mdc` are tracked (`alwaysApply: true` on every agent session). `.gitignore` ignores other files under `.cursor/rules/`. For per-developer prefs, use **Cursor Settings → User Rules** (`docs/cursor-user-rules-snippet.md`), not extra `.mdc` files in that folder. If you need a per-developer local rule file, keep it untracked under `.cursor/rules/`; to add another shared repo rule, whitelist it explicitly: `!.cursor/rules/<name>.mdc` in `.gitignore`.
 
 ## Standing policy (repo + user)
 
 | Layer                                              | What belongs there                                            |
 | -------------------------------------------------- | ------------------------------------------------------------- |
 | **Cursor User Rules**                              | Merge → `checkout main` → pull → **new agent** for next slice |
-| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, live web research (Tavily), this handoff summary |
+| **`AGENTS.md`**                                    | Repo scripts, Linear, doc hygiene, live web research (Tavily), Cursor plugin keep-list (`docs/agent-cursor-plugins.md`), this handoff summary |
 | **Linear + `planning/*-slice.md` + first message** | One task only                                                 |
 
 ## After you merge a PR (human)

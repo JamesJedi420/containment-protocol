@@ -62,9 +62,15 @@
     },
     {
       "id": "ci-node22",
-      "rule": "Do not weaken CI: Node 22, STRICT_TEST_CONSOLE=1, or skip tests.",
+      "rule": "Do not weaken CI: Node 22, STRICT_TEST_CONSOLE=1, or skip tests. Do not add vendor search/scan SaaS to CI without an explicit Linear slice (docs/agent-cursor-plugins.md).",
       "scope": [".github/workflows/**"],
       "severity": "high"
+    },
+    {
+      "id": "deps-keep-list",
+      "rule": "New package.json dependencies need slice justification; do not wire search/scan SaaS SDKs into src/ or CI. Prefer Sonatype/Snyk checks per docs/agent-cursor-plugins.md.",
+      "scope": ["package.json", "package-lock.json"],
+      "severity": "medium"
     }
   ]
 }

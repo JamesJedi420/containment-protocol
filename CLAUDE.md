@@ -45,7 +45,7 @@ AI review config also lives in: `.greptile/`, `.amazonq/rules/`, `.coderabbit.ya
 
 ## Live web research
 
-Prefer **Tavily** (MCP / CLI) when live web research is required. Prefer repo sources first. Do not wire Tavily into the game runtime.
+Prefer repo sources first. Use **Tavily** (MCP / CLI) only when live web research is required and repo sources are insufficient. MCP must be authenticated; if unavailable, report that and fall back — do not wire Tavily into the game runtime.
 
 ## Do not
 

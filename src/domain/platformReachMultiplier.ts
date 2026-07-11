@@ -62,6 +62,10 @@ function isPositiveFinite(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
+function isNonNegativeFinite(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+}
+
 function normalizeId(value: unknown, fallback: string): string {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : fallback
 }
@@ -91,7 +95,7 @@ function normalizeAnomalyReach(value: unknown): { anomalyReach: number; reasonCo
     return { anomalyReach: DEFAULT_ANOMALY_REACH, reasonCodes: [] }
   }
 
-  if (!isPositiveFinite(value)) {
+  if (!isNonNegativeFinite(value)) {
     return {
       anomalyReach: DEFAULT_ANOMALY_REACH,
       reasonCodes: ['invalid_anomaly_reach_fallback'],
@@ -102,8 +106,25 @@ function normalizeAnomalyReach(value: unknown): { anomalyReach: number; reasonCo
 }
 
 function roundReachMetric(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+
   // Stable decimal for test assertions without floating-point thrash.
-  return Math.round(value * 1_000_000) / 1_000_000
+  const scaled = value * 1_000_000
+  if (!Number.isFinite(scaled)) {
+    return value
+  }
+
+  return Math.round(scaled) / 1_000_000
+}
+
+function finiteOrZero(value: number): { value: number; clamped: boolean } {
+  if (Number.isFinite(value)) {
+    return { value, clamped: false }
+  }
+
+  return { value: 0, clamped: true }
 }
 
 /**
@@ -115,7 +136,8 @@ function roundReachMetric(value: number): number {
  *   reachValue = anomalyReach * multiplier
  *
  * Missing platform falls back to multiplier 1 (no throw). Incomplete config
- * keeps any valid factor/scale terms and adds reason codes instead of throwing.
+ * never amplifies via view scale: invalid factor disables scaling entirely;
+ * invalid scale keeps a valid base factor only. Exported metrics stay finite.
  */
 export function evaluatePlatformReachMultiplier(
   input: PlatformReachEvaluationInput | null | undefined
@@ -177,22 +199,32 @@ export function evaluatePlatformReachMultiplier(
   const hasViewsPerScaleUnit = isPositiveFinite(platform.viewsPerScaleUnit)
   if (!hasViewsPerScaleUnit) {
     reasonCodes.push('missing_or_invalid_views_per_scale_unit')
-  } else {
+  } else if (hasReachFactor) {
+    // Only scale with views when the configured factor is also valid.
     viewsPerScaleUnit = platform.viewsPerScaleUnit
     viewScale = viewNorm.viewCount / viewsPerScaleUnit
+  } else {
+    viewsPerScaleUnit = platform.viewsPerScaleUnit
   }
 
-  const multiplier = roundReachMetric(reachFactor * (1 + viewScale))
-  const reachValue = roundReachMetric(anomalyNorm.anomalyReach * multiplier)
-
   if (!hasReachFactor || !hasViewsPerScaleUnit) {
-    // Invalid scale config still applies a valid reachFactor when present;
-    // invalid factor already fell back to 1.
     reasonCodes.push('platform_config_incomplete')
-  } else if (viewNorm.viewCount === 0) {
+  }
+
+  if (viewNorm.viewCount === 0) {
     reasonCodes.push('zero_views_base_factor_only')
-  } else {
+  } else if (hasReachFactor && hasViewsPerScaleUnit) {
     reasonCodes.push('platform_reach_scaled')
+  }
+
+  const viewScaleFinite = finiteOrZero(viewScale)
+  const rawMultiplier = reachFactor * (1 + viewScaleFinite.value)
+  const multiplierFinite = finiteOrZero(rawMultiplier)
+  const rawReachValue = anomalyNorm.anomalyReach * multiplierFinite.value
+  const reachFinite = finiteOrZero(rawReachValue)
+
+  if (viewScaleFinite.clamped || multiplierFinite.clamped || reachFinite.clamped) {
+    reasonCodes.push('non_finite_reach_clamped')
   }
 
   return Object.freeze({
@@ -202,9 +234,9 @@ export function evaluatePlatformReachMultiplier(
     anomalyReach: anomalyNorm.anomalyReach,
     reachFactor,
     viewsPerScaleUnit,
-    viewScale: roundReachMetric(viewScale),
-    multiplier,
-    reachValue,
+    viewScale: roundReachMetric(viewScaleFinite.value),
+    multiplier: roundReachMetric(multiplierFinite.value),
+    reachValue: roundReachMetric(reachFinite.value),
     reasonCodes: uniqueSorted(reasonCodes),
   })
 }

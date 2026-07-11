@@ -72,11 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff:** [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568/platform-reach-multiplier-from-view-count-slice-1) SPE-947 platform reach multiplier (slice 1) — pure `evaluatePlatformReachMultiplier`; branch `spe-947-platform-reach-multiplier-slice-1`; see `planning/spe-947-platform-reach-multiplier-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568/platform-reach-multiplier-from-view-count-slice-1) SPE-947 platform reach multiplier (slice 1) — pure `evaluatePlatformReachMultiplier`; branch `spe-947-platform-reach-multiplier-slice-1`; see `planning/spe-947-platform-reach-multiplier-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
-**Current handoff:** Backlog/handoff reconciliation complete for SPE-1046 file work queue file-content release delivery (slice 1) shipped on `main` @ `97da46e3`; see `planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`.
-
-**Current handoff:** Prepare and execute actual file-content release delivery (slice 2) using `planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md` once a new active Linear successor issue is created.
+**Secondary queue notes:** SPE-1046 file work queue file-content release delivery (slice 1) shipped on `main` @ `97da46e3` (`planning/spe-1046-file-work-queue-file-release-delivery-slice-1.md`); prepare actual file-content release delivery (slice 2) via `planning/spe-1046-file-work-queue-actual-file-content-release-delivery-slice-2.md` once a new Linear successor exists.
 
 **Recently shipped:** [SPE-2497](https://linear.app/spectranoir/issue/SPE-2497) pattern source series registry weekly transition surfacing (slice 5) — `pattern_source_series.weekly_transition` notes; PR #2914 @ `f5b91540`.
 

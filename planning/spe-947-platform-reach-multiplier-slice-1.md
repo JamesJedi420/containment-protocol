@@ -38,9 +38,10 @@ Satisfy SPE-947 parent AC row 1 with a pure deterministic evaluator: an in-world
 - `viewScale = viewCount / viewsPerScaleUnit` when config is valid.
 - `multiplier = reachFactor * (1 + viewScale)`.
 - `reachValue = anomalyReach * multiplier` (default `anomalyReach = 1`).
-- Zero views → base factor only (`zero_views_base_factor_only`).
-- Missing platform / invalid factor / invalid views-per-scale-unit → no throw; reason codes + fallback multiplier path.
-- Negative view counts clamp to 0; invalid anomaly reach falls back to 1.
+- Zero views → base factor only (`zero_views_base_factor_only`), including incomplete-config paths.
+- Missing platform / invalid factor / invalid views-per-scale-unit → no throw; reason codes; invalid factor disables view amplification; invalid scale keeps a valid base factor only.
+- Negative view counts clamp to 0; invalid (non-finite / negative) anomaly reach falls back to 1; `anomalyReach: 0` is valid.
+- Non-finite intermediates clamp to 0 with `non_finite_reach_clamped`.
 
 ## Acceptance
 

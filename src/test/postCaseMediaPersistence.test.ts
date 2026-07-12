@@ -242,4 +242,23 @@ describe('postCaseMediaPersistence (SPE-2573 / SPE-947 AC row 6)', () => {
       'media_persistence_blocked',
     ])
   })
+
+  it('blocks when mediaArtifacts is a sparse array', () => {
+    const sparse = [artifact()] as PostCaseMediaArtifact[]
+    sparse.length = 3
+
+    const decision = evaluatePostCaseMediaPersistence(
+      input({
+        mediaArtifacts: sparse,
+      })
+    )
+
+    expect(decision.outcome).toBe('blocked')
+    expect(decision.remainsRisky).toBe(false)
+    expect(decision.reasonCodes).toEqual([
+      'media_config_incomplete',
+      'media_persistence_blocked',
+      'sparse_media_artifacts',
+    ])
+  })
 })

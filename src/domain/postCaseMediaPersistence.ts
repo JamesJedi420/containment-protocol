@@ -339,6 +339,21 @@ export function evaluatePostCaseMediaPersistence(
     })
   }
 
+  // Reject sparse holes — Array.map/some skip empty slots and would miss invalid config.
+  for (let index = 0; index < mediaArtifacts.length; index += 1) {
+    if (!Object.prototype.hasOwnProperty.call(mediaArtifacts, index)) {
+      reasonCodes.push('sparse_media_artifacts')
+      reasonCodes.push('media_config_incomplete')
+      reasonCodes.push('media_persistence_blocked')
+      return blockedDecision(reasonCodes, {
+        caseId,
+        caseLabel,
+        localContainmentSucceeded: true,
+        riskThreshold,
+      })
+    }
+  }
+
   const parsed = mediaArtifacts.map((artifact, index) => parseArtifact(artifact, index))
   const hasPresentInvalid = parsed.some((entry) => entry.presentInvalid)
 

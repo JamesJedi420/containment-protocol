@@ -137,17 +137,22 @@ function readIncentive(
   incentives: IncentivesLike,
   kind: ContentOwnerIncentiveKind,
   invalidCode: string
-): { value: number; valid: boolean; reasonCodes: string[] } {
+): { value: number; valid: boolean; presentInvalid: boolean; reasonCodes: string[] } {
   const raw = incentives[kind]
   if (raw === undefined || raw === null) {
-    return { value: FALLBACK_INCENTIVE, valid: false, reasonCodes: [] }
+    return { value: FALLBACK_INCENTIVE, valid: false, presentInvalid: false, reasonCodes: [] }
   }
 
   if (!isNonNegativeFinite(raw)) {
-    return { value: FALLBACK_INCENTIVE, valid: false, reasonCodes: [invalidCode] }
+    return {
+      value: FALLBACK_INCENTIVE,
+      valid: false,
+      presentInvalid: true,
+      reasonCodes: [invalidCode],
+    }
   }
 
-  return { value: raw, valid: true, reasonCodes: [] }
+  return { value: raw, valid: true, presentInvalid: false, reasonCodes: [] }
 }
 
 /**
@@ -156,7 +161,8 @@ function readIncentive(
  *
  * Priority:
  *   missing/invalid evaluation input, owner, or resistThreshold → yields
- *   no valid incentive fields → yields (incomplete config never resists)
+ *   no valid incentives, or any present-but-invalid incentive → yields
+ *     (incomplete / invalid config never resists)
  *   score >= resistThreshold → resists
  *   score >= contestedThreshold → contested
  *   else → yields
@@ -274,13 +280,22 @@ export function evaluateContentOwnerTakedownResistance(
   )
 
   const hasAnyValidIncentive = audience.valid || status.valid || profit.valid || identity.valid
+  const hasPresentInvalidIncentive =
+    audience.presentInvalid ||
+    status.presentInvalid ||
+    profit.presentInvalid ||
+    identity.presentInvalid
 
   if (!hasAnyValidIncentive) {
     reasonCodes.push('missing_incentives')
     reasonCodes.push('owner_config_incomplete')
+  } else if (hasPresentInvalidIncentive) {
+    reasonCodes.push('owner_config_incomplete')
   }
 
-  if (!hasValidResistThreshold || !hasValidContestedThreshold || !hasAnyValidIncentive) {
+  const incentivesComplete = hasAnyValidIncentive && !hasPresentInvalidIncentive
+
+  if (!hasValidResistThreshold || !hasValidContestedThreshold || !incentivesComplete) {
     reasonCodes.push('takedown_yields')
     return freezeDecision({
       ownerId,

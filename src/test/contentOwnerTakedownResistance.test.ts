@@ -168,6 +168,29 @@ describe('contentOwnerTakedownResistance (SPE-2572 / SPE-947 AC row 5)', () => {
     ])
   })
 
+  it('yields when mixed valid and invalid incentives are present (never resists)', () => {
+    const decision = evaluateContentOwnerTakedownResistance({
+      owner: {
+        id: 'owner:mixed-incentive',
+        label: 'Mixed incentive owner',
+        incentives: {
+          audience: 10,
+          status: Number.NaN,
+        },
+      },
+      resistThreshold: 8,
+      contestedThreshold: 4,
+    })
+
+    expect(decision.outcome).toBe('yields')
+    expect(decision.reasonCodes).toEqual([
+      'invalid_status_incentive',
+      'owner_config_incomplete',
+      'takedown_yields',
+    ])
+    expect(decision.resistanceScore).toBe(0)
+  })
+
   it('yields when contestedThreshold is not below resistThreshold', () => {
     const decision = evaluateContentOwnerTakedownResistance({
       owner: EXAMPLE_RESISTING_CONTENT_OWNER,

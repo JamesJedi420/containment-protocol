@@ -65,13 +65,13 @@ Satisfy SPE-947 parent AC row 5 with a pure deterministic evaluator: a content o
 
 ## Deferred
 
-| Item                                    | Owner                        | Why                                  |
-| --------------------------------------- | ---------------------------- | ------------------------------------ |
-| Post-case media persistence             | SPE-947 follow-up / SPE-1085 | Parent AC row 6                      |
-| Persistence / weekly / UI wire-up       | SPE-947 follow-up child      | This slice is domain-only foundation |
-| Propagation graph wire-up               | SPE-956 / harvest family     | Deferred since SPE-2111              |
-| Compose with platform outage / exposure | SPE-947 follow-up child      | Keep evaluators independently pure   |
-| Takedown pressure / coercion offsets    | SPE-947 follow-up child      | Out of slice-1 incentive floor       |
+| Item                                    | Owner                                                     | Why                                  |
+| --------------------------------------- | --------------------------------------------------------- | ------------------------------------ |
+| Post-case media persistence             | [SPE-2573](https://linear.app/spectranoir/issue/SPE-2573) | Parent AC row 6                      |
+| Persistence / weekly / UI wire-up       | SPE-947 follow-up child                                   | This slice is domain-only foundation |
+| Propagation graph wire-up               | SPE-956 / harvest family                                  | Deferred since SPE-2111              |
+| Compose with platform outage / exposure | SPE-947 follow-up child                                   | Keep evaluators independently pure   |
+| Takedown pressure / coercion offsets    | SPE-947 follow-up child                                   | Out of slice-1 incentive floor       |
 
 ## See also
 

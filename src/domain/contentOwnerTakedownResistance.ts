@@ -127,7 +127,7 @@ function emptyYieldDecision(
     identityIncentive: FALLBACK_INCENTIVE,
     resistanceScore: 0,
     resistThreshold: thresholds.resist,
-    contestedThreshold: thresholds.contested,
+    contestedThreshold: roundMetric(thresholds.contested),
     outcome: 'yields',
     reasonCodes,
   })
@@ -139,11 +139,12 @@ function readIncentive(
   invalidCode: string
 ): { value: number; valid: boolean; presentInvalid: boolean; reasonCodes: string[] } {
   const raw = incentives[kind]
-  if (raw === undefined || raw === null) {
+  if (raw === undefined) {
     return { value: FALLBACK_INCENTIVE, valid: false, presentInvalid: false, reasonCodes: [] }
   }
 
-  if (!isNonNegativeFinite(raw)) {
+  // Explicit null counts as present-but-invalid (distinct from omitted undefined).
+  if (raw === null || !isNonNegativeFinite(raw)) {
     return {
       value: FALLBACK_INCENTIVE,
       valid: false,
@@ -192,7 +193,8 @@ export function evaluateContentOwnerTakedownResistance(
   let hasValidContestedThreshold = false
   if (input.contestedThreshold === undefined) {
     if (hasValidResistThreshold) {
-      contestedThreshold = roundMetric(resistThreshold / 2)
+      // Keep raw default for band comparisons; round only the reported field.
+      contestedThreshold = resistThreshold / 2
       hasValidContestedThreshold = true
     }
   } else if (!isNonNegativeFinite(input.contestedThreshold)) {
@@ -310,7 +312,7 @@ export function evaluateContentOwnerTakedownResistance(
       identityIncentive: identity.value,
       resistanceScore: incentivesComplete ? resistanceScore : 0,
       resistThreshold,
-      contestedThreshold,
+      contestedThreshold: roundMetric(contestedThreshold),
       outcome: 'yields',
       reasonCodes,
     })
@@ -338,7 +340,7 @@ export function evaluateContentOwnerTakedownResistance(
     identityIncentive: identity.value,
     resistanceScore,
     resistThreshold,
-    contestedThreshold,
+    contestedThreshold: roundMetric(contestedThreshold),
     outcome,
     reasonCodes,
   })

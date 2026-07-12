@@ -225,6 +225,49 @@ describe('contentOwnerTakedownResistance (SPE-2572 / SPE-947 AC row 5)', () => {
     expect(decision.reasonCodes).toContain('takedown_yields')
   })
 
+  it('yields when an explicit null incentive is present alongside a valid one', () => {
+    const decision = evaluateContentOwnerTakedownResistance({
+      owner: {
+        id: 'owner:null-incentive',
+        label: 'Null incentive owner',
+        incentives: {
+          audience: 9,
+          status: null as unknown as number,
+        },
+      },
+      resistThreshold: 8,
+      contestedThreshold: 4,
+    })
+
+    expect(decision.outcome).toBe('yields')
+    expect(decision.reasonCodes).toEqual([
+      'invalid_status_incentive',
+      'owner_config_incomplete',
+      'takedown_yields',
+    ])
+  })
+
+  it('uses the raw default contested floor for band comparison', () => {
+    const resistThreshold = 1.000001
+    const decision = evaluateContentOwnerTakedownResistance({
+      owner: {
+        id: 'owner:half-micro',
+        label: 'Half-micro owner',
+        incentives: {
+          audience: 0.5000007,
+        },
+      },
+      resistThreshold,
+    })
+
+    // Raw default floor is resistThreshold/2 (≈0.5000005). Score 0.5000007 is above it.
+    // Displayed contestedThreshold is micro-rounded (float-scaled to 0.5 here).
+    expect(decision.outcome).toBe('contested')
+    expect(decision.reasonCodes).toEqual(['incentive_contested'])
+    expect(decision.contestedThreshold).toBe(0.5)
+    expect(0.5000007 >= resistThreshold / 2).toBe(true)
+  })
+
   it('yields when contestedThreshold is not below resistThreshold', () => {
     const decision = evaluateContentOwnerTakedownResistance({
       owner: EXAMPLE_RESISTING_CONTENT_OWNER,

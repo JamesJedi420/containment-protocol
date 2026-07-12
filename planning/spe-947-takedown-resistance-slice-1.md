@@ -42,8 +42,8 @@ Satisfy SPE-947 parent AC row 5 with a pure deterministic evaluator: a content o
 - `rawScore >= resistThreshold` → `resists` (`incentive_resistance`).
 - `contestedThreshold <= rawScore < resistThreshold` → `contested` (`incentive_contested`).
 - `rawScore < contestedThreshold` → `yields` (`incentive_yield`).
-- Default `contestedThreshold = resistThreshold / 2` when omitted and resist threshold is valid.
-- Missing/invalid owner, incentives, or thresholds → no throw; reason codes; **`yields`** (incomplete config never resists). Any present-but-invalid incentive field also forces incomplete yield (even if other incentives are valid). When incentives are complete but thresholds are invalid, `resistanceScore` still reports the incentive sum.
+- Default `contestedThreshold = resistThreshold / 2` (raw) when omitted and resist threshold is valid; reported field is micro-rounded.
+- Missing/invalid owner, incentives, or thresholds → no throw; reason codes; **`yields`** (incomplete config never resists). Any present-but-invalid incentive field (including explicit `null`) also forces incomplete yield (even if other incentives are valid). When incentives are complete but thresholds are invalid, `resistanceScore` still reports the incentive sum.
 - Distinct from SPE-2569: no uptime / reach / platform operation fields.
 
 ## Acceptance

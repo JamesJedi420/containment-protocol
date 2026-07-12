@@ -36,7 +36,7 @@ Satisfy SPE-947 parent AC row 3 with a pure deterministic evaluator: a counter-m
 
 ## Evaluation contract
 
-- Priority (first match): missing/invalid plan or enums → `blocked`; lore not `crafted` → `blocked`; missing distributor → `blocked`; invalid required weeks → `blocked`; `elapsed < required` → `propagating`; uptake not `sufficient` → `blocked`; else → `ready`.
+- Priority (first match): missing/invalid plan or enums → `blocked`; lore not `crafted` → `blocked`; missing distributor → `blocked`; invalid required weeks → `blocked`; missing/invalid elapsed weeks → `blocked`; invalid uptake enum → `blocked`; `elapsed < required` → `propagating`; uptake not `sufficient` → `blocked`; else → `ready`.
 - `partial` uptake is never enough for `ready`.
 - Missing plan / invalid enums / invalid week values → no throw; reason codes; conservative `blocked` fallbacks as coded.
 

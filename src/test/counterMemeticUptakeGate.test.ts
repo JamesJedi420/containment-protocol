@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import {
   EXAMPLE_COUNTER_MEMETIC_PLAN,
   evaluateCounterMemeticUptakeGate,
-  type CounterMemeticPlan,
 } from '../domain/counterMemeticUptakeGate'
+import type { CounterMemeticPlan } from '../domain/counterMemeticUptakeGate'
 
 function plan(overrides: Partial<CounterMemeticPlan> = {}): CounterMemeticPlan {
   return {
@@ -176,7 +176,25 @@ describe('counterMemeticUptakeGate (SPE-2570 / SPE-947 AC row 3)', () => {
     ])
   })
 
-  it('treats invalid elapsed weeks as zero and returns propagating when required weeks are valid', () => {
+  it('blocks when uptake is invalid even if propagation is still incomplete', () => {
+    const decision = evaluateCounterMemeticUptakeGate({
+      plan: {
+        ...plan({
+          requiredPropagationWeeks: 3,
+          elapsedPropagationWeeks: 1,
+        }),
+        uptakeState: 'viral' as CounterMemeticPlan['uptakeState'],
+      },
+    })
+
+    expect(decision.readiness).toBe('blocked')
+    expect(decision.reasonCodes).toEqual([
+      'countermeasure_blocked',
+      'missing_or_invalid_uptake_state',
+    ])
+  })
+
+  it('blocks when elapsed weeks are invalid instead of treating them as propagating', () => {
     const decision = evaluateCounterMemeticUptakeGate({
       plan: plan({
         requiredPropagationWeeks: 2,
@@ -186,10 +204,26 @@ describe('counterMemeticUptakeGate (SPE-2570 / SPE-947 AC row 3)', () => {
     })
 
     expect(decision.elapsedPropagationWeeks).toBe(0)
-    expect(decision.readiness).toBe('propagating')
+    expect(decision.readiness).toBe('blocked')
     expect(decision.reasonCodes).toEqual([
+      'countermeasure_blocked',
       'invalid_elapsed_propagation_weeks',
-      'propagation_incomplete',
+    ])
+  })
+
+  it('blocks when elapsed weeks are missing', () => {
+    const decision = evaluateCounterMemeticUptakeGate({
+      plan: plan({
+        requiredPropagationWeeks: 2,
+        elapsedPropagationWeeks: undefined as unknown as number,
+        uptakeState: 'sufficient',
+      }),
+    })
+
+    expect(decision.readiness).toBe('blocked')
+    expect(decision.reasonCodes).toEqual([
+      'countermeasure_blocked',
+      'missing_elapsed_propagation_weeks',
     ])
   })
 })

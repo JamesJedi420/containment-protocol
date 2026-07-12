@@ -168,8 +168,6 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 **Recently shipped:** [SPE-2540](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) SPE-1046 file work queue release outcomes (slice 1) — persisted release-outcome ledger recording bounded post-release workflow outcomes after release action exists; PR #3016 @ `38960983`; see `planning/spe-1046-file-work-queue-release-outcomes-slice-1.md`.
 
-**In progress:** [SPE-2540](https://linear.app/spectranoir/issue/SPE-2540/spe-1046-file-work-queue-release-outcomes) SPE-1046 file work queue release outcomes (slice 1) — persisted release-outcome ledger for rows with recorded release actions; branch `spe-1046-file-work-queue-release-outcomes-slice-1`; see `planning/spe-1046-file-work-queue-release-outcomes-slice-1.md`.
-
 **Next step after release-outcome ledger:** Owner reprioritizes actual file content release, remaining non-mission enforcement follow-ons, or SPE-947 propagation follow-ons. Mission triage full refresh remains **blocked**.
 
 **Base `main` SHA:** `f1d96633` — includes PR #3011 / SPE-2539 file work queue release actions.

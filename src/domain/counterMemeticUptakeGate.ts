@@ -104,6 +104,8 @@ function freezeDecision(decision: CounterMemeticUptakeDecision): CounterMemeticU
  *   lore not crafted → blocked
  *   missing distributor → blocked
  *   invalid required weeks → blocked
+ *   missing/invalid elapsed weeks → blocked
+ *   invalid uptake enum → blocked
  *   elapsed < required → propagating
  *   uptake not sufficient → blocked
  *   else → ready
@@ -193,6 +195,7 @@ export function evaluateCounterMemeticUptakeGate(
   }
 
   let elapsedPropagationWeeks = 0
+  let hasValidElapsedWeeks = false
   if (
     planRecord.elapsedPropagationWeeks === undefined ||
     planRecord.elapsedPropagationWeeks === null
@@ -202,6 +205,7 @@ export function evaluateCounterMemeticUptakeGate(
     reasonCodes.push('invalid_elapsed_propagation_weeks')
   } else {
     elapsedPropagationWeeks = planRecord.elapsedPropagationWeeks
+    hasValidElapsedWeeks = true
   }
 
   let uptakeState: CounterMemeticUptakeState | 'unknown' = 'unknown'
@@ -220,20 +224,19 @@ export function evaluateCounterMemeticUptakeGate(
     reasonCodes.push('lore_not_crafted')
     readiness = 'blocked'
   } else if (distributorId.length === 0) {
-    // distributor_missing already recorded above when absent/blank
-    if (!reasonCodes.includes('distributor_missing')) {
-      reasonCodes.push('distributor_missing')
-    }
     readiness = 'blocked'
   } else if (!hasValidRequiredWeeks) {
+    reasonCodes.push('countermeasure_blocked')
+    readiness = 'blocked'
+  } else if (!hasValidElapsedWeeks) {
+    reasonCodes.push('countermeasure_blocked')
+    readiness = 'blocked'
+  } else if (uptakeState === 'unknown') {
     reasonCodes.push('countermeasure_blocked')
     readiness = 'blocked'
   } else if (elapsedPropagationWeeks < requiredPropagationWeeks) {
     reasonCodes.push('propagation_incomplete')
     readiness = 'propagating'
-  } else if (uptakeState === 'unknown') {
-    reasonCodes.push('countermeasure_blocked')
-    readiness = 'blocked'
   } else if (uptakeState !== 'sufficient') {
     reasonCodes.push('uptake_insufficient')
     readiness = 'blocked'

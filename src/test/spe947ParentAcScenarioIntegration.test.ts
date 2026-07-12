@@ -150,10 +150,18 @@ describe('SPE-947 parent AC scenario integration (SPE-2574 / AC row 7)', () => {
     expect(incompleteTakedown.outcome).not.toBe('resists')
     expect(incompleteTakedown.reasonCodes).toContain('missing_owner')
 
-    const incompletePersistence = evaluatePostCaseMediaPersistence(null)
-    expect(incompletePersistence.remainsRisky).toBe(false)
-    expect(incompletePersistence.outcome).toBe('blocked')
-    expect(incompletePersistence.reasonCodes).toContain('missing_evaluation_input')
+    const incompletePersistenceMissingInput = evaluatePostCaseMediaPersistence(null)
+    expect(incompletePersistenceMissingInput.remainsRisky).toBe(false)
+    expect(incompletePersistenceMissingInput.outcome).toBe('blocked')
+    expect(incompletePersistenceMissingInput.reasonCodes).toContain('missing_evaluation_input')
+
+    const incompletePersistenceMissingMedia = evaluatePostCaseMediaPersistence({
+      ...EXAMPLE_PERSISTING_POST_CASE_MEDIA,
+      mediaArtifacts: null,
+    })
+    expect(incompletePersistenceMissingMedia.remainsRisky).toBe(false)
+    expect(incompletePersistenceMissingMedia.outcome).toBe('blocked')
+    expect(incompletePersistenceMissingMedia.reasonCodes).toContain('media_config_incomplete')
   })
 
   it('returns byte-stable decisions across all six parent scenario evaluators', () => {
@@ -187,23 +195,34 @@ describe('SPE-947 parent AC scenario integration (SPE-2574 / AC row 7)', () => {
       contestedThreshold: 4,
     }
 
-    expect(evaluatePlatformReachMultiplier(reachInput)).toEqual(
-      evaluatePlatformReachMultiplier(reachInput)
-    )
-    expect(evaluateFootageExposureTraffic(spreadInput)).toEqual(
-      evaluateFootageExposureTraffic(spreadInput)
-    )
-    expect(evaluateCounterMemeticUptakeGate(gateInput)).toEqual(
-      evaluateCounterMemeticUptakeGate(gateInput)
-    )
-    expect(evaluatePlatformOperationDegrade(operationInput)).toEqual(
-      evaluatePlatformOperationDegrade(operationInput)
-    )
-    expect(evaluateContentOwnerTakedownResistance(takedownInput)).toEqual(
-      evaluateContentOwnerTakedownResistance(takedownInput)
-    )
-    expect(evaluatePostCaseMediaPersistence(EXAMPLE_PERSISTING_POST_CASE_MEDIA)).toEqual(
-      evaluatePostCaseMediaPersistence(EXAMPLE_PERSISTING_POST_CASE_MEDIA)
-    )
+    const reachFirst = evaluatePlatformReachMultiplier(reachInput)
+    const reachSecond = evaluatePlatformReachMultiplier(reachInput)
+    expect(reachSecond).toEqual(reachFirst)
+    expect(reachFirst.reachValue).toBe(7.5)
+
+    const spreadFirst = evaluateFootageExposureTraffic(spreadInput)
+    const spreadSecond = evaluateFootageExposureTraffic(spreadInput)
+    expect(spreadSecond).toEqual(spreadFirst)
+    expect(spreadFirst.amplified).toBe(true)
+
+    const gateFirst = evaluateCounterMemeticUptakeGate(gateInput)
+    const gateSecond = evaluateCounterMemeticUptakeGate(gateInput)
+    expect(gateSecond).toEqual(gateFirst)
+    expect(gateFirst.readiness).toBe('propagating')
+
+    const operationFirst = evaluatePlatformOperationDegrade(operationInput)
+    const operationSecond = evaluatePlatformOperationDegrade(operationInput)
+    expect(operationSecond).toEqual(operationFirst)
+    expect(operationFirst.outcome).toBe('failed')
+
+    const takedownFirst = evaluateContentOwnerTakedownResistance(takedownInput)
+    const takedownSecond = evaluateContentOwnerTakedownResistance(takedownInput)
+    expect(takedownSecond).toEqual(takedownFirst)
+    expect(takedownFirst.outcome).toBe('resists')
+
+    const persistenceFirst = evaluatePostCaseMediaPersistence(EXAMPLE_PERSISTING_POST_CASE_MEDIA)
+    const persistenceSecond = evaluatePostCaseMediaPersistence(EXAMPLE_PERSISTING_POST_CASE_MEDIA)
+    expect(persistenceSecond).toEqual(persistenceFirst)
+    expect(persistenceFirst.outcome).toBe('remains_risky')
   })
 })

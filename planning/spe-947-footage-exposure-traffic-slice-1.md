@@ -39,11 +39,12 @@ Satisfy SPE-947 parent AC row 2 with a pure deterministic evaluator: a footage o
 ## Evaluation contract
 
 - Active spread: `civilianExposureDelta = exposureWeight * intensity`; `attractionTrafficDelta = attractionWeight * intensity` (default `intensity = 1` when omitted).
-- `amplified` when either delta is > 0; reason `active_spread_amplified`.
-- Zero weights on active path → `active_spread_zero_weights` (no amplification).
+- `amplified` when either **raw** delta is > 0 (before micro-rounding); reason `active_spread_amplified`.
+- Zero weights or zero intensity on a complete active path → `active_spread_zero_weights` (no amplification).
 - `passive_documentation` / `archival` → zero deltas; reasons `passive_documentation_no_amplification` / `archival_no_amplification`.
-- Missing/invalid kind, role, weights, or intensity → no throw; reason codes; zero deltas; incomplete-config fallbacks as coded.
+- Missing/invalid kind, role, either weight, or intensity (including `null`) → no throw; reason codes; **zero deltas** (incomplete config never amplifies).
 - Negative baselines clamp to 0; non-finite baselines fall back to 0 with reason codes.
+- Finite metrics whose ×1e6 scale overflows preserve the original finite value (match platform reach helper).
 
 ## Acceptance
 

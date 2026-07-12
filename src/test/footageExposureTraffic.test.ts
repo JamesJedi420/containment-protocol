@@ -115,14 +115,14 @@ describe('footageExposureTraffic (SPE-2571 / SPE-947 AC row 2)', () => {
   })
 
   it('returns byte-stable decisions for the same inputs', () => {
-    const input = {
+    const buildInput = () => ({
       artifact: artifact(),
       baselineCivilianExposure: 1,
       baselineAttractionTraffic: 2,
-    }
+    })
 
-    const first = evaluateFootageExposureTraffic(input)
-    const second = evaluateFootageExposureTraffic(input)
+    const first = evaluateFootageExposureTraffic(buildInput())
+    const second = evaluateFootageExposureTraffic(buildInput())
 
     expect(second).toEqual(first)
     expect(first.amplified).toBe(true)
@@ -168,7 +168,25 @@ describe('footageExposureTraffic (SPE-2571 / SPE-947 AC row 2)', () => {
     ])
   })
 
-  it('does not amplify when exposure or attraction weights are invalid', () => {
+  it('does not amplify when either exposure or attraction weight is invalid', () => {
+    const decision = evaluateFootageExposureTraffic({
+      artifact: artifact({
+        exposureWeight: Number.NaN,
+        attractionWeight: 5,
+        intensity: 3,
+      }),
+    })
+
+    expect(decision.amplified).toBe(false)
+    expect(decision.civilianExposureDelta).toBe(0)
+    expect(decision.attractionTrafficDelta).toBe(0)
+    expect(decision.reasonCodes).toEqual([
+      'artifact_config_incomplete',
+      'missing_or_invalid_exposure_weight',
+    ])
+  })
+
+  it('does not amplify when both weights are invalid', () => {
     const decision = evaluateFootageExposureTraffic({
       artifact: artifact({
         exposureWeight: Number.NaN,
@@ -197,6 +215,48 @@ describe('footageExposureTraffic (SPE-2571 / SPE-947 AC row 2)', () => {
     expect(decision.civilianExposureDelta).toBe(0)
     expect(decision.attractionTrafficDelta).toBe(0)
     expect(decision.reasonCodes).toEqual(['artifact_config_incomplete', 'invalid_intensity'])
+  })
+
+  it('treats null intensity as invalid rather than defaulting', () => {
+    const decision = evaluateFootageExposureTraffic({
+      artifact: {
+        ...artifact(),
+        intensity: null as unknown as number,
+      },
+    })
+
+    expect(decision.amplified).toBe(false)
+    expect(decision.civilianExposureDelta).toBe(0)
+    expect(decision.attractionTrafficDelta).toBe(0)
+    expect(decision.reasonCodes).toEqual(['artifact_config_incomplete', 'invalid_intensity'])
+  })
+
+  it('preserves finite metrics when micro-scale rounding would overflow', () => {
+    const huge = 1e308
+    const decision = evaluateFootageExposureTraffic({
+      artifact: artifact({ exposureWeight: huge, attractionWeight: 0, intensity: 1 }),
+      baselineCivilianExposure: 0,
+      baselineAttractionTraffic: 0,
+    })
+
+    expect(decision.amplified).toBe(true)
+    expect(decision.civilianExposureDelta).toBe(huge)
+    expect(decision.resultingCivilianExposure).toBe(huge)
+    expect(decision.reasonCodes).toEqual(['active_spread_amplified'])
+  })
+
+  it('still amplifies when a positive raw delta rounds to zero at micro precision', () => {
+    const decision = evaluateFootageExposureTraffic({
+      artifact: artifact({
+        exposureWeight: 1e-10,
+        attractionWeight: 0,
+        intensity: 1,
+      }),
+    })
+
+    expect(decision.amplified).toBe(true)
+    expect(decision.civilianExposureDelta).toBe(0)
+    expect(decision.reasonCodes).toEqual(['active_spread_amplified'])
   })
 
   it('clamps negative baselines and rejects non-finite baselines', () => {

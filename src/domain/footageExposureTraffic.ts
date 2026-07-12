@@ -111,7 +111,8 @@ function roundMetric(value: number): number {
 
   const scaled = value * 1_000_000
   if (!Number.isFinite(scaled)) {
-    return 0
+    // Preserve finite overflow-scale values (match platformReachMultiplier).
+    return value
   }
 
   return Math.round(scaled) / 1_000_000
@@ -255,9 +256,10 @@ export function evaluateFootageExposureTraffic(
 
   let intensity = DEFAULT_INTENSITY
   let hasValidIntensity = true
-  if (artifact.intensity === undefined || artifact.intensity === null) {
+  if (artifact.intensity === undefined) {
     // Default intensity applies only on the active path; passive paths ignore it.
   } else if (!isNonNegativeFinite(artifact.intensity)) {
+    // Includes null / non-finite / negative from untyped payloads.
     reasonCodes.push('invalid_intensity')
     intensity = 0
     hasValidIntensity = false
@@ -322,20 +324,22 @@ export function evaluateFootageExposureTraffic(
     })
   }
 
-  // active_spread
-  if (!hasValidExposureWeight || !hasValidAttractionWeight || !hasValidIntensity) {
+  // active_spread — incomplete config never amplifies (both weights + intensity required).
+  const configComplete = hasValidExposureWeight && hasValidAttractionWeight && hasValidIntensity
+  if (!configComplete) {
     reasonCodes.push('artifact_config_incomplete')
   }
 
-  const civilianExposureDelta =
-    hasValidExposureWeight && hasValidIntensity ? roundMetric(exposureWeight * intensity) : 0
-  const attractionTrafficDelta =
-    hasValidAttractionWeight && hasValidIntensity ? roundMetric(attractionWeight * intensity) : 0
+  const rawCivilianDelta = configComplete ? exposureWeight * intensity : 0
+  const rawAttractionDelta = configComplete ? attractionWeight * intensity : 0
+  const civilianExposureDelta = roundMetric(rawCivilianDelta)
+  const attractionTrafficDelta = roundMetric(rawAttractionDelta)
 
-  const amplified = civilianExposureDelta > 0 || attractionTrafficDelta > 0
+  // Amplify from raw positives so sub-micro values are not erased by rounding.
+  const amplified = rawCivilianDelta > 0 || rawAttractionDelta > 0
   if (amplified) {
     reasonCodes.push('active_spread_amplified')
-  } else if (hasValidExposureWeight && hasValidAttractionWeight && hasValidIntensity) {
+  } else if (configComplete) {
     reasonCodes.push('active_spread_zero_weights')
   }
 
@@ -349,8 +353,8 @@ export function evaluateFootageExposureTraffic(
     attractionWeight,
     civilianExposureDelta,
     attractionTrafficDelta,
-    resultingCivilianExposure: roundMetric(baselines.civilian + civilianExposureDelta),
-    resultingAttractionTraffic: roundMetric(baselines.attraction + attractionTrafficDelta),
+    resultingCivilianExposure: roundMetric(baselines.civilian + rawCivilianDelta),
+    resultingAttractionTraffic: roundMetric(baselines.attraction + rawAttractionDelta),
     amplified,
     reasonCodes,
   })

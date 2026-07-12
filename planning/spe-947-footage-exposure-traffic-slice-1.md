@@ -66,7 +66,7 @@ Satisfy SPE-947 parent AC row 2 with a pure deterministic evaluator: a footage o
 
 | Item                                       | Owner                        | Why                                  |
 | ------------------------------------------ | ---------------------------- | ------------------------------------ |
-| Content-owner takedown resistance          | SPE-947 follow-up child      | Parent AC row 5                      |
+| Content-owner takedown resistance          | SPE-2572                     | Parent AC row 5                      |
 | Post-case media persistence                | SPE-947 follow-up / SPE-1085 | Parent AC row 6                      |
 | Persistence / weekly / UI wire-up          | SPE-947 follow-up child      | This slice is domain-only foundation |
 | Propagation graph wire-up                  | SPE-956 / harvest family     | Deferred since SPE-2111              |

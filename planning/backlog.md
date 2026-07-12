@@ -72,7 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2572](https://linear.app/spectranoir/issue/SPE-2572/content-owner-takedown-resistance-slice-1) SPE-947 content-owner takedown resistance (slice 1) — pure `evaluateContentOwnerTakedownResistance`; branch `spe-947-takedown-resistance-slice-1`; see `planning/spe-947-takedown-resistance-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2573](https://linear.app/spectranoir/issue/SPE-2573/post-case-media-persistence-slice-1) SPE-947 post-case media persistence (slice 1) — pure `evaluatePostCaseMediaPersistence`; branch `spe-947-post-case-media-persistence-slice-1`; see `planning/spe-947-post-case-media-persistence-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+
+**Recently shipped:** [SPE-2572](https://linear.app/spectranoir/issue/SPE-2572/content-owner-takedown-resistance-slice-1) SPE-947 content-owner takedown resistance (slice 1) — pure `evaluateContentOwnerTakedownResistance`; PR #3067 @ `7301db05`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2571](https://linear.app/spectranoir/issue/SPE-2571/footagepost-civilian-exposure-or-attraction-traffic-slice-1) SPE-947 footage/post → civilian exposure or attraction traffic (slice 1) — pure `evaluateFootageExposureTraffic`; PR #3065 @ `d3582267`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 

@@ -28,7 +28,7 @@ Reconcile the SPE-947 parent Linear AC matrix + grooming mirror after SPE-2568�
 
 Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/SPE-2481) — `planning/spe-947-spe-1046-parent-acceptance-review-slice-1.md` (0/7 Yes after SPE-2111 registry substrate only).
 
-**Delta:** SPE-2568–2574 shipped pure evaluators + focused parent-scenario Vitest. Parent Linear body still shows SPE-2481 matrix (No / Partial). Domain-evaluator Yes ≠ umbrella Done — GameState / weekly / UI / propagation-graph wire-up remain open.
+**Delta:** Before SPE-2575, the parent Linear body still showed the SPE-2481 matrix (No / Partial) while SPE-2568–2574 had already shipped pure evaluators + focused parent-scenario Vitest. This slice updates the parent body to 7/7 **Yes** at domain-evaluator / focused-test level. Domain-evaluator Yes ≠ umbrella Done — GameState / weekly / UI / propagation-graph wire-up remain open.
 
 ## Parent AC vs shipped evidence (post SPE-2568–2574)
 

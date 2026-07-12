@@ -38,12 +38,12 @@ Satisfy SPE-947 parent AC row 5 with a pure deterministic evaluator: a content o
 
 ## Evaluation contract
 
-- `resistanceScore = audience + status + profit + identity` (omitted incentives contribute 0; at least one valid incentive required).
-- `score >= resistThreshold` → `resists` (`incentive_resistance`).
-- `contestedThreshold <= score < resistThreshold` → `contested` (`incentive_contested`).
-- `score < contestedThreshold` → `yields` (`incentive_yield`).
+- `resistanceScore = audience + status + profit + identity` (omitted incentives contribute 0; at least one valid incentive required). Displayed score is micro-rounded; band decisions use the raw sum.
+- `rawScore >= resistThreshold` → `resists` (`incentive_resistance`).
+- `contestedThreshold <= rawScore < resistThreshold` → `contested` (`incentive_contested`).
+- `rawScore < contestedThreshold` → `yields` (`incentive_yield`).
 - Default `contestedThreshold = resistThreshold / 2` when omitted and resist threshold is valid.
-- Missing/invalid owner, incentives, or thresholds → no throw; reason codes; **`yields`** (incomplete config never resists). Any present-but-invalid incentive field also forces incomplete yield (even if other incentives are valid).
+- Missing/invalid owner, incentives, or thresholds → no throw; reason codes; **`yields`** (incomplete config never resists). Any present-but-invalid incentive field also forces incomplete yield (even if other incentives are valid). When incentives are complete but thresholds are invalid, `resistanceScore` still reports the incentive sum.
 - Distinct from SPE-2569: no uptime / reach / platform operation fields.
 
 ## Acceptance

@@ -294,6 +294,10 @@ export function evaluateContentOwnerTakedownResistance(
   }
 
   const incentivesComplete = hasAnyValidIncentive && !hasPresentInvalidIncentive
+  const rawResistanceScore = incentivesComplete
+    ? audience.value + status.value + profit.value + identity.value
+    : 0
+  const resistanceScore = roundMetric(rawResistanceScore)
 
   if (!hasValidResistThreshold || !hasValidContestedThreshold || !incentivesComplete) {
     reasonCodes.push('takedown_yields')
@@ -304,7 +308,7 @@ export function evaluateContentOwnerTakedownResistance(
       statusIncentive: status.value,
       profitIncentive: profit.value,
       identityIncentive: identity.value,
-      resistanceScore: 0,
+      resistanceScore: incentivesComplete ? resistanceScore : 0,
       resistThreshold,
       contestedThreshold,
       outcome: 'yields',
@@ -312,13 +316,12 @@ export function evaluateContentOwnerTakedownResistance(
     })
   }
 
-  const resistanceScore = roundMetric(audience.value + status.value + profit.value + identity.value)
-
+  // Compare raw sum to thresholds so micro-rounding cannot flip the band (match footageExposureTraffic).
   let outcome: TakedownResistanceOutcome
-  if (resistanceScore >= resistThreshold) {
+  if (rawResistanceScore >= resistThreshold) {
     reasonCodes.push('incentive_resistance')
     outcome = 'resists'
-  } else if (resistanceScore >= contestedThreshold) {
+  } else if (rawResistanceScore >= contestedThreshold) {
     reasonCodes.push('incentive_contested')
     outcome = 'contested'
   } else {

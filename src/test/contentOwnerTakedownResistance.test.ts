@@ -191,6 +191,40 @@ describe('contentOwnerTakedownResistance (SPE-2572 / SPE-947 AC row 5)', () => {
     expect(decision.resistanceScore).toBe(0)
   })
 
+  it('compares raw incentive sum to thresholds so micro-rounding cannot flip resist', () => {
+    const decision = evaluateContentOwnerTakedownResistance({
+      owner: {
+        id: 'owner:near-threshold',
+        label: 'Near-threshold owner',
+        incentives: {
+          audience: 4,
+          status: 3.9999996,
+          profit: 0,
+          identity: 0,
+        },
+      },
+      resistThreshold: 8,
+      contestedThreshold: 4,
+    })
+
+    expect(decision.resistanceScore).toBe(8)
+    expect(decision.outcome).toBe('contested')
+    expect(decision.reasonCodes).toEqual(['incentive_contested'])
+  })
+
+  it('preserves resistanceScore when thresholds are invalid but incentives are complete', () => {
+    const decision = evaluateContentOwnerTakedownResistance({
+      owner: EXAMPLE_RESISTING_CONTENT_OWNER,
+      resistThreshold: 0,
+      contestedThreshold: 4,
+    })
+
+    expect(decision.outcome).toBe('yields')
+    expect(decision.resistanceScore).toBe(9)
+    expect(decision.reasonCodes).toContain('missing_or_invalid_resist_threshold')
+    expect(decision.reasonCodes).toContain('takedown_yields')
+  })
+
   it('yields when contestedThreshold is not below resistThreshold', () => {
     const decision = evaluateContentOwnerTakedownResistance({
       owner: EXAMPLE_RESISTING_CONTENT_OWNER,

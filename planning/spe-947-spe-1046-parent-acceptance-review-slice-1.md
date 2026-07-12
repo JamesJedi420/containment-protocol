@@ -41,9 +41,9 @@ Re-evaluate parent acceptance criteria for [SPE-947](https://linear.app/spectran
 
 ## SPE-947 parent AC vs shipped evidence
 
-Parent scope: platform propagation, counter-memetic operations, takedown resistance, post-case media persistence. Shipped child scope: visual-trigger hazard registry (pursuit state, hazardous media custody, exposure-chain projections) — **not** a full content-propagation simulator.
+Parent scope: platform propagation, counter-memetic operations, takedown resistance, post-case media persistence. Shipped child scope at grooming time: visual-trigger hazard registry (pursuit state, hazardous media custody, exposure-chain projections) — **not** a full content-propagation simulator.
 
-| Parent AC | Shipped evidence | Met? |
+| Parent AC | Shipped evidence (SPE-2481 grooming — registry substrate only) | Met? (at SPE-2481) |
 | --- | --- | --- |
 | In-world platform multiplies anomaly reach by configured factor scaling with view count | `projectExposureChainRisk` forecasts broadcast-scale escalation from hazard records; no platform node model, view-count multiplier, or reach-value field on a platform entity | **No** |
 | Footage or post artifact increases civilian exposure or attraction traffic | `HazardousMediaInstance` sub-records + derivative hazard profiles; pursuit/awareness escalation bands — no civilian exposure or attraction-traffic counters wired to weekly loop | **Partial** — hazard metadata only |
@@ -55,7 +55,9 @@ Parent scope: platform propagation, counter-memetic operations, takedown resista
 
 **Child [SPE-2111](https://linear.app/spectranoir/issue/SPE-2111) disposition:** **Done** — slices 1–4 satisfy registry child AC (schema, persistence, weekly hook, mirror UI). Child boundary explicitly excluded full SPE-947 parent closure (`planning/visual-trigger-hazard-registry-slice-1.md` § Out of scope).
 
-**Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) disposition:** **Backlog** — zero parent AC rows **Yes** at umbrella scope; partial rows document registry substrate only. Do **not** mark parent **Done**; do **not** open slice 5+ without fresh roadmap §14 pass.
+**Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) disposition at SPE-2481:** **Backlog** — zero parent AC rows **Yes** at umbrella scope; partial rows document registry substrate only.
+
+**Superseding reconciliation ([SPE-2575](https://linear.app/spectranoir/issue/SPE-2575) — July 2026):** After [SPE-2568](https://linear.app/spectranoir/issue/SPE-2568)–[SPE-2574](https://linear.app/spectranoir/issue/SPE-2574), parent AC rows 1–7 are **Yes** at domain-evaluator / focused-test level. Canonical matrix + deferred wire-up table: `planning/spe-947-parent-ac-matrix-reconciliation-slice-1.md`. Parent stays **Backlog** — domain-evaluator Yes ≠ umbrella Done (GameState / weekly / UI / propagation-graph wire-up remain deferred). Do **not** treat this SPE-2481 matrix as current.
 
 ## SPE-1046 parent AC vs shipped evidence
 
@@ -102,13 +104,14 @@ Parent scope: affiliation classes, clearance, onboarding pipelines, site-specifi
 
 | Item | Suggested owner | Why deferred |
 | --- | --- | --- |
-| Platform nodes with reach, uptime, audience, propagation reliability | New SPE-947 child (slice 5+ gate) | Parent AC row 1; no §14 pass for slice 5+ yet |
-| Counter-memetic lore craft + distributor + uptake pipeline | New SPE-947 child | Parent AC row 3 |
-| Content-owner takedown resistance (audience/status incentives) | New SPE-947 child | Parent AC row 5 |
-| Post-case media persistence (mirrors, adaptations, commercialization) | New SPE-947 child or SPE-1085 fold-in | Parent AC row 6 |
-| Propagation graph wire-up | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1 |
+| Platform nodes with reach, uptime, audience, propagation reliability | New SPE-947 child (slice 5+ gate) | Parent AC row 1 at SPE-2481; **superseded** — domain evaluator shipped SPE-2568; GameState/weekly/UI wire-up still open (see SPE-2575) |
+| Counter-memetic lore craft + distributor + uptake pipeline | New SPE-947 child | Parent AC row 3 at SPE-2481; **superseded** — domain evaluator shipped SPE-2570; wire-up still open |
+| Content-owner takedown resistance (audience/status incentives) | New SPE-947 child | Parent AC row 5 at SPE-2481; **superseded** — domain evaluator shipped SPE-2572; wire-up still open |
+| Post-case media persistence (mirrors, adaptations, commercialization) | New SPE-947 child or SPE-1085 fold-in | Parent AC row 6 at SPE-2481; **superseded** — domain evaluator shipped SPE-2573; adaptation/commercialization kinds + wire-up still open |
+| Propagation graph wire-up | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1; still open after SPE-2568–2574 |
 | Pursuit vector simulator integration | SPE-947 sibling | Out of registry-wave boundary |
 | Countermeasure ledger link | SPE-947 sibling | Out of registry-wave boundary |
+| GameState / weekly / UI wire-up for SPE-947 evaluators | New SPE-947 child (post SPE-2575) | Canonical deferred after domain-evaluator Yes — see `planning/spe-947-parent-ac-matrix-reconciliation-slice-1.md` |
 
 ### SPE-1046 umbrella
 
@@ -130,6 +133,7 @@ Docs-only — no `npm run test:run` required for hygiene boundary.
 
 ## See also
 
+- `planning/spe-947-parent-ac-matrix-reconciliation-slice-1.md` (canonical SPE-947 matrix after SPE-2568–2574)
 - `planning/visual-trigger-hazard-registry-slice-{1..4}.md`
 - `planning/entity-welfare-reclassification-registry-slice-{1..4}.md`
 - `planning/spe-1888-parent-acceptance-review-slice-7.md`

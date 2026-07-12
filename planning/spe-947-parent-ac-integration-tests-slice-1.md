@@ -5,7 +5,7 @@ One-page implementation plan. Linear: [SPE-2574](https://linear.app/spectranoir/
 | Field               | Value                                                                                                                                                   |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Linear**          | [SPE-2574 — Parent AC scenario integration tests (slice 1)](https://linear.app/spectranoir/issue/SPE-2574/parent-ac-scenario-integration-tests-slice-1) |
-| **Status**          | **In Progress**                                                                                                                                         |
+| **Status**          | **Shipped** — PR #3071 @ `73e4971d`                                                                                                                     |
 | **Parent**          | [SPE-947](https://linear.app/spectranoir/issue/SPE-947) — hazardous content propagation and counter-memetic operations; stays **Backlog**               |
 | **Branch**          | `spe-947-parent-ac-integration-tests-slice-1`                                                                                                           |
 | **Base `main` SHA** | `f65cb6b1`                                                                                                                                              |
@@ -57,7 +57,7 @@ Incomplete-config paths assert non-satisfying outcomes (no false AC pass): missi
 - [x] No GameState, persistence, schema, weekly hook, store, or UI changes.
 - [x] No rewrite of prior SPE-947 evaluator contracts; no new composed domain subsystem.
 - [x] Slice doc + backlog handoff present.
-- [ ] Parent SPE-947 stays **Backlog**; child Done only after merge.
+- [x] Parent SPE-947 stays **Backlog**; child Done only after merge.
 - [x] Targeted tests + lint green.
 
 ## Validation

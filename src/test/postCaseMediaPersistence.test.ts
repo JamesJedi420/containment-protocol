@@ -207,4 +207,39 @@ describe('postCaseMediaPersistence (SPE-2573 / SPE-947 AC row 6)', () => {
     expect(decision.outcome).toBe('cleared')
     expect(decision.remainsRisky).toBe(false)
   })
+
+  it('marks remains_risky when raw score equals the risk threshold', () => {
+    const decision = evaluatePostCaseMediaPersistence(
+      input({
+        riskThreshold: 3,
+        mediaArtifacts: [artifact({ riskWeight: 3 })],
+      })
+    )
+
+    expect(decision.outcome).toBe('remains_risky')
+    expect(decision.remainsRisky).toBe(true)
+    expect(decision.persistenceRiskScore).toBe(3)
+    expect(decision.reasonCodes).toEqual(['hazardous_content_persists', 'media_persistence_risk'])
+  })
+
+  it('blocks when media kind is invalid', () => {
+    const decision = evaluatePostCaseMediaPersistence(
+      input({
+        mediaArtifacts: [
+          {
+            ...artifact(),
+            kind: 'commercialization' as PostCaseMediaArtifact['kind'],
+          },
+        ],
+      })
+    )
+
+    expect(decision.outcome).toBe('blocked')
+    expect(decision.remainsRisky).toBe(false)
+    expect(decision.reasonCodes).toEqual([
+      'invalid_media_kind',
+      'media_config_incomplete',
+      'media_persistence_blocked',
+    ])
+  })
 })

@@ -158,3 +158,38 @@ Route concrete schema work to bounded children:
 - **SPE-743** — structured support-asset and reward hook schema.
 
 New schema efforts should prefer **adding or tightening a child spec** over rebroadening the parent umbrella.
+
+---
+
+## SPE-947 evaluator persistence (spe-947-evaluator.v1)
+
+Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inputs (SPE-2576).
+
+**Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
+
+**Location**: `src/domain/spe947EvaluatorPersistence.ts`
+
+### GameState fields
+
+| Field | Evaluator | Notes |
+| --- | --- | --- |
+| `spe947PlatformRecords` | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics |
+| `spe947OperationRecords` | SPE-2569 | Operation requests keyed by operation id |
+| `spe947ContentArtifacts` | SPE-2571 | Footage/post artifacts keyed by artifact id |
+| `spe947CounterMemeticPlans` | SPE-2570 | Counter-memetic plans keyed by plan id |
+| `spe947ContentOwners` | SPE-2572 | Content owners keyed by owner id |
+| `spe947PostCaseMediaCases` | SPE-2573 | Post-case media inputs keyed by case id |
+| `spe947FootageExposureBindings` | SPE-2571 | Optional baseline bindings keyed by artifact id |
+| `spe947TakedownResistanceBindings` | SPE-2572 | Threshold bindings keyed by owner id |
+
+### Hydration
+
+- Sanitize via `sanitizeSpe947*` helpers in `spe947EvaluatorPersistence.ts`
+- Wired in `hydrateGame` (`src/app/store/runTransfer.ts`)
+- Invalid, duplicate-id, and mismatched-key entries are dropped without throw
+- Default starting state: empty `{}` maps in `createStartingState`
+
+### Versioning
+
+- No migration path defined yet (single version)
+- If a breaking field change is needed, bump the discriminant string (e.g. `spe-947-evaluator.v2`) and add hydration defaults alongside `runTransfer.ts`

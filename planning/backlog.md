@@ -72,9 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575/spe-947-parent-ac-matrix-reconciliation-after-spe-2568-2574-slice-1) SPE-947 parent AC matrix reconciliation after SPE-2568–2574 (slice 1) — mark rows 1–7 Yes at domain-evaluator / focused-test level; record GameState/weekly/UI/propagation-graph wire-up as deferred; branch `spe-947-parent-ac-matrix-reconciliation-slice-1`; see `planning/spe-947-parent-ac-matrix-reconciliation-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2576](https://linear.app/spectranoir/issue/SPE-2576/gamestate-persistence-schema-hydration-for-spe-947-evaluators-slice-1) SPE-947 GameState persistence / schema / hydration for evaluators (slice 1) — compact `spe947*` maps + sanitize/hydrate for SPE-2568–2573 inputs; branch `spe-947-gamestate-persistence-slice-1`; see `planning/spe-947-gamestate-persistence-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
-**Recently shipped:** [SPE-2574](https://linear.app/spectranoir/issue/SPE-2574/parent-ac-scenario-integration-tests-slice-1) SPE-947 parent AC scenario integration tests (slice 1) — compose SPE-2568–2573 evaluators into parent AC row 7 scenarios; PR #3071 @ `73e4971d`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Recently shipped:** [SPE-2575](https://linear.app/spectranoir/issue/SPE-2575/spe-947-parent-ac-matrix-reconciliation-after-spe-2568-2574-slice-1) SPE-947 parent AC matrix reconciliation after SPE-2568–2574 (slice 1) — 7/7 rows Yes at domain-evaluator level; deferred wire-up recorded; PR #3073 @ `6eca5e46`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2573](https://linear.app/spectranoir/issue/SPE-2573/post-case-media-persistence-slice-1) SPE-947 post-case media persistence (slice 1) — pure `evaluatePostCaseMediaPersistence`; PR #3069 @ `f65cb6b1`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 

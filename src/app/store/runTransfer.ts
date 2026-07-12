@@ -241,6 +241,16 @@ import { sanitizePsychologicalResilienceRecords } from '../../domain/psychologic
 import { sanitizeCognitiveHazardExposureRecords } from '../../domain/cognitiveHazardEngine'
 import { sanitizeVisualTriggerHazardRecords } from '../../domain/visualTriggerHazardRegistry'
 import {
+  sanitizeSpe947ContentArtifacts,
+  sanitizeSpe947ContentOwners,
+  sanitizeSpe947CounterMemeticPlans,
+  sanitizeSpe947FootageExposureBindings,
+  sanitizeSpe947OperationRecords,
+  sanitizeSpe947PlatformRecords,
+  sanitizeSpe947PostCaseMediaCases,
+  sanitizeSpe947TakedownResistanceBindings,
+} from '../../domain/spe947EvaluatorPersistence'
+import {
   buildCandidateEvaluation,
   deriveCandidateCostEstimate,
   normalizeCandidateHireStatus,
@@ -8997,6 +9007,38 @@ export function hydrateGame(
     game.visualTriggerHazardRecords,
     fallback.visualTriggerHazardRecords ?? {}
   )
+  const spe947PlatformRecords = sanitizeSpe947PlatformRecords(
+    game.spe947PlatformRecords,
+    fallback.spe947PlatformRecords ?? {}
+  )
+  const spe947OperationRecords = sanitizeSpe947OperationRecords(
+    game.spe947OperationRecords,
+    fallback.spe947OperationRecords ?? {}
+  )
+  const spe947ContentArtifacts = sanitizeSpe947ContentArtifacts(
+    game.spe947ContentArtifacts,
+    fallback.spe947ContentArtifacts ?? {}
+  )
+  const spe947CounterMemeticPlans = sanitizeSpe947CounterMemeticPlans(
+    game.spe947CounterMemeticPlans,
+    fallback.spe947CounterMemeticPlans ?? {}
+  )
+  const spe947ContentOwners = sanitizeSpe947ContentOwners(
+    game.spe947ContentOwners,
+    fallback.spe947ContentOwners ?? {}
+  )
+  const spe947PostCaseMediaCases = sanitizeSpe947PostCaseMediaCases(
+    game.spe947PostCaseMediaCases,
+    fallback.spe947PostCaseMediaCases ?? {}
+  )
+  const spe947FootageExposureBindings = sanitizeSpe947FootageExposureBindings(
+    game.spe947FootageExposureBindings,
+    fallback.spe947FootageExposureBindings ?? {}
+  )
+  const spe947TakedownResistanceBindings = sanitizeSpe947TakedownResistanceBindings(
+    game.spe947TakedownResistanceBindings,
+    fallback.spe947TakedownResistanceBindings ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9249,6 +9291,14 @@ export function hydrateGame(
     modifiableDataPackRecords,
     massAnomalousPopulationEmergenceRecords,
     visualTriggerHazardRecords,
+    spe947PlatformRecords,
+    spe947OperationRecords,
+    spe947ContentArtifacts,
+    spe947CounterMemeticPlans,
+    spe947ContentOwners,
+    spe947PostCaseMediaCases,
+    spe947FootageExposureBindings,
+    spe947TakedownResistanceBindings,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

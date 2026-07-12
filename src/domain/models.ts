@@ -304,6 +304,16 @@ import type { SurveillanceInterventionTuningRecord } from './surveillanceCapacit
 import type { PsychologicalResilienceRecord } from './psychologicalResilienceRegistry'
 import type { CognitiveHazardExposureRecord } from './cognitiveHazardEngine'
 import type { VisualTriggerHazardRecord } from './visualTriggerHazardRegistry'
+import type {
+  Spe947ContentArtifactRecordsMap,
+  Spe947ContentOwnerRecordsMap,
+  Spe947CounterMemeticPlanRecordsMap,
+  Spe947FootageExposureBindingRecordsMap,
+  Spe947OperationRecordsMap,
+  Spe947PlatformRecordsMap,
+  Spe947PostCaseMediaCaseRecordsMap,
+  Spe947TakedownResistanceBindingRecordsMap,
+} from './spe947EvaluatorPersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
 import type { SquadKitAssignment } from './squadKitAssignment'
@@ -2773,6 +2783,47 @@ export interface GameState {
    * Hydration drops invalid or duplicate-id entries without throwing.
    */
   visualTriggerHazardRecords?: Record<string, VisualTriggerHazardRecord>
+
+  /**
+   * SPE-2576 slice 1: compact platform inputs for SPE-2568 reach and SPE-2569 operation evaluators.
+   * Hydration drops invalid or duplicate-id entries without throwing.
+   */
+  spe947PlatformRecords?: Spe947PlatformRecordsMap
+
+  /**
+   * SPE-2576 slice 1: compact operation requests for SPE-2569 platform-operation degrade evaluator.
+   */
+  spe947OperationRecords?: Spe947OperationRecordsMap
+
+  /**
+   * SPE-2576 slice 1: footage/post artifacts for SPE-2571 exposure-traffic evaluator.
+   */
+  spe947ContentArtifacts?: Spe947ContentArtifactRecordsMap
+
+  /**
+   * SPE-2576 slice 1: counter-memetic plans for SPE-2570 uptake-gate evaluator.
+   */
+  spe947CounterMemeticPlans?: Spe947CounterMemeticPlanRecordsMap
+
+  /**
+   * SPE-2576 slice 1: content owners for SPE-2572 takedown-resistance evaluator.
+   */
+  spe947ContentOwners?: Spe947ContentOwnerRecordsMap
+
+  /**
+   * SPE-2576 slice 1: post-case media persistence inputs for SPE-2573 evaluator (keyed by case id).
+   */
+  spe947PostCaseMediaCases?: Spe947PostCaseMediaCaseRecordsMap
+
+  /**
+   * SPE-2576 slice 1: optional footage-exposure baseline bindings keyed by artifact id.
+   */
+  spe947FootageExposureBindings?: Spe947FootageExposureBindingRecordsMap
+
+  /**
+   * SPE-2576 slice 1: takedown-resistance threshold bindings keyed by owner id.
+   */
+  spe947TakedownResistanceBindings?: Spe947TakedownResistanceBindingRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

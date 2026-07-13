@@ -80,6 +80,61 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     expect(sanitizedPlatforms.badReachFactor).toBeUndefined()
   })
 
+  it('preserves valid SPE-2577 weekly tick fields and drops invalid ones', () => {
+    const sanitizedPlatforms = sanitizeSpe947PlatformRecords({
+      withDeltas: {
+        id: 'platform:with-deltas',
+        label: 'With deltas',
+        viewCount: 10,
+        weeklyViewDelta: 5,
+        weeklyUptimeState: 'degraded',
+        lastWeeklyTickWeek: 3,
+      },
+      badViewDelta: {
+        id: 'platform:bad-view-delta',
+        label: 'Bad view delta',
+        weeklyViewDelta: -1,
+      },
+      badUptimeDelta: {
+        id: 'platform:bad-uptime-delta',
+        label: 'Bad uptime delta',
+        weeklyUptimeState: 'not_a_state',
+      },
+      badTickWeek: {
+        id: 'platform:bad-tick-week',
+        label: 'Bad tick week',
+        lastWeeklyTickWeek: 0,
+      },
+    })
+
+    expect(sanitizedPlatforms['platform:with-deltas']).toEqual({
+      id: 'platform:with-deltas',
+      label: 'With deltas',
+      viewCount: 10,
+      weeklyViewDelta: 5,
+      weeklyUptimeState: 'degraded',
+      lastWeeklyTickWeek: 3,
+    })
+    expect(sanitizedPlatforms['platform:bad-view-delta']).toBeUndefined()
+    expect(sanitizedPlatforms['platform:bad-uptime-delta']).toBeUndefined()
+    expect(sanitizedPlatforms['platform:bad-tick-week']).toBeUndefined()
+
+    const sanitizedPlans = sanitizeSpe947CounterMemeticPlans({
+      withTick: {
+        ...EXAMPLE_COUNTER_MEMETIC_PLAN,
+        lastWeeklyTickWeek: 4,
+      },
+      badTick: {
+        ...EXAMPLE_COUNTER_MEMETIC_PLAN,
+        id: 'plan:bad-tick',
+        lastWeeklyTickWeek: 1.5,
+      },
+    })
+
+    expect(sanitizedPlans[EXAMPLE_COUNTER_MEMETIC_PLAN.id]?.lastWeeklyTickWeek).toBe(4)
+    expect(sanitizedPlans['plan:bad-tick']).toBeUndefined()
+  })
+
   it('round-trips EXAMPLE persistence fixture through save/load', () => {
     const state = createStartingState()
     Object.assign(state, SPE_947_EXAMPLE_PERSISTENCE_FIXTURE)

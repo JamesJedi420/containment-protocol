@@ -70,41 +70,49 @@ function composePlatformWeeklyTransitionSummary(input: {
   priorPlatform: Spe947PersistedPlatform
   nextPlatform: Spe947PersistedPlatform
 }): Spe947EvaluatorWeeklyTransitionSummary | undefined {
-  const transitionKinds: Spe947EvaluatorWeeklyTransitionKind[] = []
-  const structuredReasons: string[] = []
-
-  const priorViewCount = input.priorPlatform.viewCount ?? null
-  const nextViewCount = input.nextPlatform.viewCount ?? null
-  if (priorViewCount !== nextViewCount) {
-    transitionKinds.push('platform_view_count_changed')
-    structuredReasons.push(`viewCount:${String(priorViewCount)}->${String(nextViewCount)}`)
-  }
-
+  // Match SPE-2577 tick semantics: missing viewCount is treated as 0 when applying deltas.
+  const priorViewCount = input.priorPlatform.viewCount ?? 0
+  const nextViewCount = input.nextPlatform.viewCount ?? 0
   const priorUptimeState = input.priorPlatform.uptimeState ?? null
   const nextUptimeState = input.nextPlatform.uptimeState ?? null
-  if (priorUptimeState !== nextUptimeState) {
-    transitionKinds.push('platform_uptime_state_changed')
-    structuredReasons.push(`uptime:${String(priorUptimeState)}->${String(nextUptimeState)}`)
+
+  const changes: Array<{
+    kind: Spe947EvaluatorWeeklyTransitionKind
+    reason: string
+  }> = []
+
+  if (priorViewCount !== nextViewCount) {
+    changes.push({
+      kind: 'platform_view_count_changed',
+      reason: `viewCount:${String(priorViewCount)}->${String(nextViewCount)}`,
+    })
   }
 
-  if (transitionKinds.length === 0) {
+  if (priorUptimeState !== nextUptimeState) {
+    changes.push({
+      kind: 'platform_uptime_state_changed',
+      reason: `uptime:${String(priorUptimeState)}->${String(nextUptimeState)}`,
+    })
+  }
+
+  if (changes.length === 0) {
     return undefined
   }
+
+  changes.sort((left, right) => left.kind.localeCompare(right.kind))
 
   return Object.freeze({
     entityKind: 'platform' as const,
     recordId: input.nextPlatform.id,
     label: input.nextPlatform.label,
-    transitionKinds: Object.freeze(
-      [...transitionKinds].sort((left, right) => left.localeCompare(right))
-    ),
+    transitionKinds: Object.freeze(changes.map((change) => change.kind)),
     priorElapsedPropagationWeeks: null,
     nextElapsedPropagationWeeks: null,
     priorViewCount,
     nextViewCount,
     priorUptimeState,
     nextUptimeState,
-    structuredReasons: Object.freeze(structuredReasons),
+    structuredReasons: Object.freeze(changes.map((change) => change.reason)),
   })
 }
 

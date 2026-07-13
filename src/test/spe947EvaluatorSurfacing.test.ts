@@ -133,6 +133,71 @@ describe('spe947EvaluatorSurfacing (SPE-2596 slice 1)', () => {
       })
     ).toEqual([])
   })
+
+  it('treats missing prior viewCount as 0 so zero-delta materialization stays quiet', () => {
+    const priorPlatform = platformWithDeltas({
+      viewCount: undefined,
+      weeklyViewDelta: 0,
+      weeklyUptimeState: undefined,
+      uptimeState: 'online',
+    })
+    const nextPlatform = advanceSpe947PlatformForWeek(priorPlatform, 8)
+
+    expect(nextPlatform.viewCount).toBe(0)
+    expect(
+      composeSpe947EvaluatorWeeklyTransitionSummaries({
+        priorPlatforms: { [priorPlatform.id]: priorPlatform },
+        nextPlatforms: { [priorPlatform.id]: nextPlatform },
+        priorPlans: {},
+        nextPlans: {},
+      })
+    ).toEqual([])
+  })
+
+  it('surfaces missing prior viewCount as 0 when a non-zero delta applies', () => {
+    const priorPlatform = platformWithDeltas({
+      viewCount: undefined,
+      weeklyViewDelta: 40,
+      weeklyUptimeState: undefined,
+      uptimeState: 'online',
+    })
+    const nextPlatform = advanceSpe947PlatformForWeek(priorPlatform, 8)
+
+    const summaries = composeSpe947EvaluatorWeeklyTransitionSummaries({
+      priorPlatforms: { [priorPlatform.id]: priorPlatform },
+      nextPlatforms: { [priorPlatform.id]: nextPlatform },
+      priorPlans: {},
+      nextPlans: {},
+    })
+
+    expect(summaries).toHaveLength(1)
+    expect(summaries[0]?.priorViewCount).toBe(0)
+    expect(summaries[0]?.nextViewCount).toBe(40)
+    expect(formatSpe947EvaluatorWeeklyTransitionNoteContent(summaries[0]!)).toContain(
+      'Views 0 → 40'
+    )
+  })
+
+  it('keeps structuredReasons aligned with sorted transitionKinds', () => {
+    const priorPlatform = platformWithDeltas()
+    const nextPlatform = advanceSpe947PlatformForWeek(priorPlatform, 8)
+
+    const summaries = composeSpe947EvaluatorWeeklyTransitionSummaries({
+      priorPlatforms: { [priorPlatform.id]: priorPlatform },
+      nextPlatforms: { [priorPlatform.id]: nextPlatform },
+      priorPlans: {},
+      nextPlans: {},
+    })
+
+    expect(summaries[0]?.transitionKinds).toEqual([
+      'platform_uptime_state_changed',
+      'platform_view_count_changed',
+    ])
+    expect(summaries[0]?.structuredReasons).toEqual([
+      'uptime:online->degraded',
+      'viewCount:100->150',
+    ])
+  })
 })
 
 describe('spe947EvaluatorWeeklyReportNotes (SPE-2596 slice 1)', () => {

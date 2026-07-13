@@ -484,13 +484,17 @@ function sanitizeSpe947PostCaseMediaCaseEntry(
   const caseLabel = normalizeLabel(value.caseLabel, caseId)
   const mediaArtifacts: PostCaseMediaArtifact[] = []
 
-  if (Array.isArray(value.mediaArtifacts)) {
-    for (const entry of value.mediaArtifacts) {
-      const artifact = sanitizePostCaseMediaArtifactEntry(entry)
-      if (artifact) {
-        mediaArtifacts.push(artifact)
-      }
+  if (!Array.isArray(value.mediaArtifacts)) {
+    return null
+  }
+
+  for (const entry of value.mediaArtifacts) {
+    const artifact = sanitizePostCaseMediaArtifactEntry(entry)
+    if (!artifact) {
+      return null
     }
+
+    mediaArtifacts.push(artifact)
   }
 
   return Object.freeze({

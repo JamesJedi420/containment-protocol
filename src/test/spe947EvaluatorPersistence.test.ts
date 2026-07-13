@@ -326,7 +326,7 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     ).toBeNull()
   })
 
-  it('drops invalid post-case media cases and nested artifacts without throwing', () => {
+  it('drops post-case media cases with invalid nested artifacts before evaluation', () => {
     const sanitized = sanitizeSpe947PostCaseMediaCases({
       valid: EXAMPLE_PERSISTING_POST_CASE_MEDIA,
       invalidThreshold: {
@@ -355,8 +355,16 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
 
     expect(sanitized['case:site-echo-7']).toEqual(EXAMPLE_PERSISTING_POST_CASE_MEDIA)
     expect(sanitized['case:bad-threshold']).toBeUndefined()
-    expect(sanitized['case:bad-artifact']).toBeDefined()
-    expect(sanitized['case:bad-artifact']?.mediaArtifacts).toEqual([])
+    expect(sanitized['case:bad-artifact']).toBeUndefined()
+
+    const decision = evaluatePostCaseMediaPersistence(
+      resolvePostCaseMediaPersistenceInput(
+        { spe947PostCaseMediaCases: sanitized },
+        'case:bad-artifact'
+      )
+    )
+    expect(decision.outcome).toBe('blocked')
+    expect(decision.reasonCodes).toContain('missing_evaluation_input')
   })
 
   it('round-trips adaptation and commercialization post-case media kinds through sanitize (SPE-2606)', () => {

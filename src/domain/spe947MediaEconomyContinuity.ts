@@ -61,6 +61,7 @@ export type Spe947MediaEconomyContinuityBindingRecordsMap = Record<
 export type Spe947MediaEconomyContinuityStatus =
   | 'modulated'
   | 'no_commercialization'
+  | 'media_blocked'
   | 'missing_case'
   | 'missing_economy_weight'
   | 'invalid_economy_weight'
@@ -213,9 +214,11 @@ export function composeCommercializationContinuityMediaInput(input: {
       return artifact
     }
 
+    // Keep the raw product so factor 1 is a true no-op and threshold math
+    // matches SPE-2573 (do not pre-round individual weights to 0 / cleared).
     return Object.freeze({
       ...artifact,
-      riskWeight: roundMetric(artifact.riskWeight * resolved.factor),
+      riskWeight: artifact.riskWeight * resolved.factor,
     })
   })
 
@@ -250,7 +253,10 @@ export function resolveSpe947MediaEconomyContinuity(input: {
       caseLabel: null,
       economyWeightId: binding.economyWeightId,
       economyWeightLabel: weight?.label ?? null,
-      continuityFactor: weight !== undefined ? weight.continuityFactor : null,
+      continuityFactor:
+        weight !== undefined && isNonNegativeFinite(weight.continuityFactor)
+          ? weight.continuityFactor
+          : null,
       effectiveContinuityFactor: null,
       status: 'missing_case',
       baseDecision: null,
@@ -302,7 +308,28 @@ export function resolveSpe947MediaEconomyContinuity(input: {
   }
 
   const baseDecision = evaluatePostCaseMediaPersistence(caseRecord)
-  const artifacts = caseRecord.mediaArtifacts ?? []
+
+  // Malformed / incomplete media config never gets continuity modulation.
+  if (baseDecision.outcome === 'blocked') {
+    reasonCodes.push(reasonCodeForDecision(baseDecision))
+    return Object.freeze({
+      bindingId: binding.id,
+      caseId: binding.caseId,
+      caseLabel: caseRecord.caseLabel ?? null,
+      economyWeightId: binding.economyWeightId,
+      economyWeightLabel: weight.label,
+      continuityFactor: weight.continuityFactor,
+      effectiveContinuityFactor: resolved.factor,
+      status: 'media_blocked',
+      baseDecision,
+      modulatedDecision: baseDecision,
+      remainsRisky: false,
+      reasonCodes: Object.freeze(reasonCodes),
+    })
+  }
+
+  const rawArtifacts = caseRecord.mediaArtifacts
+  const artifacts = Array.isArray(rawArtifacts) ? rawArtifacts : []
   const hasAdaptation = artifacts.some((artifact) => artifact.kind === 'adaptation')
   const hasCommercialTarget = artifacts.some((artifact) =>
     shouldModulateArtifact(artifact, binding)

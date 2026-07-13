@@ -127,6 +127,79 @@ describe('spe947MediaEconomyContinuity (SPE-2609 / SPE-947)', () => {
     expect(reading.reasonCodes).toContain('media_persistence_remains_risky')
   })
 
+  it('valid case + weight with no commercialization target yields no_commercialization', () => {
+    const adaptationOnlyCase = Object.freeze({
+      caseId: 'case:adaptation-only',
+      caseLabel: 'Adaptation-only residue',
+      localContainmentSucceeded: true,
+      riskThreshold: 3,
+      mediaArtifacts: Object.freeze([
+        Object.freeze({
+          id: 'media:adaptation-only',
+          label: 'Adaptation cut only',
+          kind: 'adaptation' as const,
+          persistsAfterContainment: true,
+          riskWeight: 2,
+        }),
+      ]),
+    })
+
+    const reading = resolveSpe947MediaEconomyContinuity({
+      binding: {
+        id: 'spe947-media-economy:adaptation-only',
+        caseId: adaptationOnlyCase.caseId,
+        economyWeightId: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id,
+      },
+      maps: {
+        spe947PostCaseMediaCases: {
+          [adaptationOnlyCase.caseId]: adaptationOnlyCase,
+        },
+        spe947MediaEconomyWeights: {
+          [SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id]: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT,
+        },
+      },
+    })
+
+    expect(reading.status).toBe('no_commercialization')
+    expect(reading.reasonCodes).toContain('no_commercialization_target')
+    expect(reading.reasonCodes).toContain('adaptation_untouched')
+    expect(reading.modulatedDecision?.persistenceRiskScore).toBe(
+      reading.baseDecision?.persistenceRiskScore
+    )
+  })
+
+  it('blocked base media persistence short-circuits without compose', () => {
+    const malformedCase = Object.freeze({
+      caseId: 'case:malformed-media',
+      caseLabel: 'Malformed media list',
+      localContainmentSucceeded: true,
+      riskThreshold: 3,
+      mediaArtifacts: null,
+    })
+
+    const reading = resolveSpe947MediaEconomyContinuity({
+      binding: {
+        id: 'spe947-media-economy:malformed',
+        caseId: malformedCase.caseId,
+        economyWeightId: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id,
+      },
+      maps: {
+        spe947PostCaseMediaCases: {
+          [malformedCase.caseId]: malformedCase,
+        },
+        spe947MediaEconomyWeights: {
+          [SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT.id]: SPE_947_EXAMPLE_MEDIA_ECONOMY_WEIGHT,
+        },
+      },
+    })
+
+    expect(reading.status).toBe('media_blocked')
+    expect(reading.remainsRisky).toBe(false)
+    expect(reading.baseDecision?.outcome).toBe('blocked')
+    expect(reading.modulatedDecision?.outcome).toBe('blocked')
+    expect(reading.reasonCodes).toContain('media_persistence_blocked')
+  })
+
   it('adaptation riskWeight stays untouched when commercialization is modulated', () => {
     const composed = composeCommercializationContinuityMediaInput({
       caseRecord: EXAMPLE_WEAK_COMMERCIALIZATION_CONTINUITY_CASE,

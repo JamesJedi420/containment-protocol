@@ -10,6 +10,8 @@ import {
 import {
   resolveCounterMemeticUptakeEvaluationInput,
   resolvePlatformReachEvaluationInput,
+  sanitizeSpe947CounterMemeticPlans,
+  sanitizeSpe947PlatformRecords,
   SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
   type Spe947PersistedCounterMemeticPlan,
   type Spe947PersistedPlatform,
@@ -62,9 +64,63 @@ describe('spe947EvaluatorWeeklyOrchestration (SPE-2577 slice 1)', () => {
       spe947TakedownResistanceBindings: {},
     }
 
-    expect(applyWeeklySpe947EvaluatorTick(empty, 12)).toEqual(empty)
+    expect(applyWeeklySpe947EvaluatorTick(empty, 12)).toBe(empty)
     expect(applyWeeklySpe947EvaluatorTick(undefined, 12).spe947PlatformRecords).toEqual({})
     expect(applyWeeklySpe947EvaluatorTick(null, 12).spe947CounterMemeticPlans).toEqual({})
+  })
+
+  it('hydrates authored weekly fields then applies platform tick', () => {
+    const platforms = sanitizeSpe947PlatformRecords({
+      authored: {
+        id: EXAMPLE_RUMOR_FORUM_PLATFORM.id,
+        label: EXAMPLE_RUMOR_FORUM_PLATFORM.label,
+        viewCount: 100,
+        weeklyViewDelta: 40,
+        uptimeState: 'online',
+        weeklyUptimeState: 'degraded',
+      },
+      invalidDelta: {
+        id: 'platform:invalid-delta',
+        label: 'Invalid',
+        weeklyViewDelta: -2,
+      },
+    })
+    const plans = sanitizeSpe947CounterMemeticPlans({
+      eligible: {
+        ...EXAMPLE_COUNTER_MEMETIC_PLAN,
+        elapsedPropagationWeeks: 0,
+        uptakeState: 'partial',
+        lastWeeklyTickWeek: 1,
+      },
+      badTick: {
+        ...EXAMPLE_COUNTER_MEMETIC_PLAN,
+        id: 'plan:bad-tick-week',
+        lastWeeklyTickWeek: 0,
+      },
+    })
+
+    expect(platforms[EXAMPLE_RUMOR_FORUM_PLATFORM.id]?.weeklyViewDelta).toBe(40)
+    expect(platforms['platform:invalid-delta']).toBeUndefined()
+    expect(plans[EXAMPLE_COUNTER_MEMETIC_PLAN.id]?.lastWeeklyTickWeek).toBe(1)
+    expect(plans['plan:bad-tick-week']).toBeUndefined()
+
+    const maps = {
+      ...SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,
+      spe947PlatformRecords: platforms,
+      spe947CounterMemeticPlans: plans,
+    }
+    const next = applyWeeklySpe947EvaluatorTick(maps, 9)
+
+    expect(next.spe947PlatformRecords[EXAMPLE_RUMOR_FORUM_PLATFORM.id]?.viewCount).toBe(140)
+    expect(next.spe947PlatformRecords[EXAMPLE_RUMOR_FORUM_PLATFORM.id]?.uptimeState).toBe(
+      'degraded'
+    )
+    expect(next.spe947CounterMemeticPlans[EXAMPLE_COUNTER_MEMETIC_PLAN.id]?.elapsedPropagationWeeks).toBe(
+      1
+    )
+    expect(next.spe947CounterMemeticPlans[EXAMPLE_COUNTER_MEMETIC_PLAN.id]?.lastWeeklyTickWeek).toBe(
+      9
+    )
   })
 
   it('resolves plan eligibility from crafted lore + distributor', () => {

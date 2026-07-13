@@ -182,26 +182,28 @@ function applyPlatformMapTick(
  * Applies one weekly orchestration pass over persisted SPE-947 evaluator maps.
  * Empty maps are a no-op. Re-applying after advance is idempotent for the same week.
  * Only platforms and counter-memetic plans mutate; other maps keep identity.
+ * Returns the same maps reference when no nested field changes.
  */
 export function applyWeeklySpe947EvaluatorTick(
   maps: Spe947EvaluatorPersistenceMaps | null | undefined,
   week: number
 ): Spe947EvaluatorPersistenceMaps {
-  const safeMaps = extractSpe947EvaluatorPersistenceMaps(maps ?? {})
+  if (maps == null) {
+    return extractSpe947EvaluatorPersistenceMaps({})
+  }
+
   const normalizedWeek = normalizeWeek(week)
+  const platforms = maps.spe947PlatformRecords ?? {}
+  const plans = maps.spe947CounterMemeticPlans ?? {}
+  const nextPlatforms = applyPlatformMapTick(platforms, normalizedWeek)
+  const nextPlans = applyPlanMapTick(plans, normalizedWeek)
 
-  const nextPlatforms = applyPlatformMapTick(safeMaps.spe947PlatformRecords, normalizedWeek)
-  const nextPlans = applyPlanMapTick(safeMaps.spe947CounterMemeticPlans, normalizedWeek)
-
-  if (
-    nextPlatforms === safeMaps.spe947PlatformRecords &&
-    nextPlans === safeMaps.spe947CounterMemeticPlans
-  ) {
-    return safeMaps
+  if (nextPlatforms === platforms && nextPlans === plans) {
+    return maps
   }
 
   return {
-    ...safeMaps,
+    ...maps,
     spe947PlatformRecords: nextPlatforms,
     spe947CounterMemeticPlans: nextPlans,
   }

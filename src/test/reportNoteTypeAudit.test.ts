@@ -212,6 +212,11 @@ export const REPORT_NOTE_TYPE_AUDIT = {
     producer: 'visualTriggerHazardWeeklyReportNotes',
     category: 'system',
   },
+  'spe947_evaluator.weekly_transition': {
+    status: 'active',
+    producer: 'spe947EvaluatorWeeklyReportNotes',
+    category: 'system',
+  },
   'entity_welfare_reclassification.weekly_transition': {
     status: 'active',
     producer: 'entityWelfareReclassificationWeeklyReportNotes',
@@ -238,7 +243,7 @@ describe('ReportNoteType audit (SPE-216)', () => {
       [ReportNoteType, (typeof REPORT_NOTE_TYPE_AUDIT)[ReportNoteType]]
     >
 
-    expect(entries).toHaveLength(57)
+    expect(entries).toHaveLength(58)
     expect(entries.every(([, audit]) => audit.status === 'active')).toBe(true)
   })
 })

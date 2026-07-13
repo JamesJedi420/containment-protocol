@@ -61,7 +61,7 @@ Ship a read-only planning mirror over persisted `spe947*` maps (platforms, count
 | Item                         | Suggested owner               | Why deferred                  |
 | ---------------------------- | ----------------------------- | ----------------------------- |
 | Propagation graph wire-up    | SPE-956 / harvest #965 family | Deferred since SPE-2111       |
-| Weekly report-note surfacing | Later SPE-947 child           | Mirror first                  |
+| Weekly report-note surfacing | [SPE-2596](https://linear.app/spectranoir/issue/SPE-2596) | Pure week-close notes from SPE-2577 prior/next deltas |
 | Full SPE-2111 registry linkage | SPE-947 follow-up child     | Compact evaluator inputs only |
 | Parent umbrella Done         | Later SPE-947 reconciliation  | Wire-up still open            |
 

@@ -72,7 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578/store-ui-planning-mirror-surfacing-for-spe-947-evaluators-slice-1) SPE-947 store / UI / planning-mirror surfacing for evaluators (slice 1) — read-only mirror over persisted `spe947*` maps + Front Desk link; branch `spe-947-planning-mirror-surfacing-slice-1`; see `planning/spe-947-planning-mirror-surfacing-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2596](https://linear.app/spectranoir/issue/SPE-2596/weekly-report-note-surfacing-for-spe-947-evaluators-slice-1) SPE-947 weekly report-note surfacing for evaluators (slice 1) — pure week-close notes from SPE-2577 prior/next map deltas + `advanceWeek` append; branch `spe-947-weekly-report-notes-slice-1`; see `planning/spe-947-weekly-report-notes-slice-1.md`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+
+**Recently shipped:** [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578/store-ui-planning-mirror-surfacing-for-spe-947-evaluators-slice-1) SPE-947 store / UI / planning-mirror surfacing for evaluators (slice 1) — read-only mirror over persisted `spe947*` maps + Front Desk link; PR #3079 @ `d9c9129f`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2577](https://linear.app/spectranoir/issue/SPE-2577/weekly-advanceweek-orchestration-hooks-for-spe-947-evaluators-slice-1) SPE-947 weekly / `advanceWeek` orchestration hooks for evaluators (slice 1) — pure week-close tick over persisted `spe947*` maps; PR #3077 @ `a73a81a9`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 

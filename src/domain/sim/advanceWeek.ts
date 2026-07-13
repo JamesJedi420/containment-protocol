@@ -268,6 +268,7 @@ import { applyWeeklyAffiliationPersonStatusProgressionTick } from '../affiliatio
 import { applyWeeklyVisualTriggerHazardTick } from '../visualTriggerHazardWeeklyOrchestration'
 import { applyWeeklySpe947EvaluatorTick } from '../spe947EvaluatorWeeklyOrchestration'
 import { extractSpe947EvaluatorPersistenceMaps } from '../spe947EvaluatorPersistence'
+import { buildWeeklySpe947EvaluatorTransitionReportNotes } from '../spe947EvaluatorWeeklyReportNotes'
 import { applyWeeklyNamingHazardDescriptorTick } from '../namingHazardDescriptorWeeklyOrchestration'
 import { applyWeeklyTherapeuticCareTick } from '../containedPersonTherapeuticCareWeeklyOrchestration'
 import { applyWeeklyCoerciveProtocolTick } from '../coerciveContainedPersonProtocolWeeklyOrchestration'
@@ -4974,6 +4975,36 @@ export function advanceWeek(
     const nextSpe947Maps = applyWeeklySpe947EvaluatorTick(priorSpe947Maps, result.week)
     outputWeeklyState.spe947PlatformRecords = nextSpe947Maps.spe947PlatformRecords
     outputWeeklyState.spe947CounterMemeticPlans = nextSpe947Maps.spe947CounterMemeticPlans
+  }
+
+  // SPE-2596 slice 1: surface post-tick spe947* plan/platform transitions in weekly report notes.
+  const nextSpe947MapsForNotes = extractSpe947EvaluatorPersistenceMaps(outputWeeklyState)
+  if (
+    (Object.keys(nextSpe947MapsForNotes.spe947PlatformRecords).length > 0 ||
+      Object.keys(nextSpe947MapsForNotes.spe947CounterMemeticPlans).length > 0) &&
+    result.reports.length > 0
+  ) {
+    const lastWeeklyReport = result.reports[result.reports.length - 1]
+    const spe947TransitionNotes = buildWeeklySpe947EvaluatorTransitionReportNotes({
+      priorPlatforms: priorSpe947Maps.spe947PlatformRecords,
+      nextPlatforms: nextSpe947MapsForNotes.spe947PlatformRecords,
+      priorPlans: priorSpe947Maps.spe947CounterMemeticPlans,
+      nextPlans: nextSpe947MapsForNotes.spe947CounterMemeticPlans,
+      week: result.week,
+      sequenceStart: (lastWeeklyReport?.notes?.length ?? 0) + 1,
+      baseTimestamp: noteBaseTimestamp,
+    })
+
+    if (spe947TransitionNotes.length > 0) {
+      const reports = [...result.reports]
+      const lastReportIndex = reports.length - 1
+      const lastReport = reports[lastReportIndex]
+      reports[lastReportIndex] = {
+        ...lastReport,
+        notes: [...(lastReport.notes ?? []), ...spe947TransitionNotes],
+      }
+      result.reports = reports
+    }
   }
 
   // SPE-2116 slice 4: substitution-policy hardening and confidence erosion on naming-hazard descriptors.

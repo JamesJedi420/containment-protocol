@@ -61,7 +61,7 @@ Wire persisted `spe947*` evaluator maps into `advanceWeek` with a pure determini
 
 | Item                                   | Suggested owner               | Why deferred                    |
 | -------------------------------------- | ----------------------------- | ------------------------------- |
-| Store / UI / planning-mirror surfacing | New SPE-947 child             | No operator surface             |
+| Store / UI / planning-mirror surfacing | [SPE-2578](https://linear.app/spectranoir/issue/SPE-2578) | Read-only planning mirror over persisted maps |
 | Propagation graph wire-up              | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1 |
 | Weekly report-note surfacing           | Later SPE-947 child           | Tick first                      |
 | Full SPE-2111 registry linkage         | SPE-947 follow-up child       | Compact evaluator inputs only   |

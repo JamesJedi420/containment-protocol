@@ -35,6 +35,7 @@ export const APP_ROUTES = {
   coverStoryRecords: '/cover-story-records',
   massAnomalousPopulationEmergence: '/mass-anomalous-population-emergence',
   visualTriggerHazard: '/visual-trigger-hazard',
+  hazardousContentPropagation: '/hazardous-content-propagation',
   entityWelfareReclassification: '/entity-welfare-reclassification',
   affiliationPersonStatus: '/affiliation-person-status',
   containedPersonTherapeuticCare: '/contained-person-therapeutic-care',

@@ -108,6 +108,9 @@ const MassAnomalousPopulationEmergenceMirrorRoute = createRouteComponent(
 const VisualTriggerHazardMirrorRoute = createRouteComponent(
   () => import('../features/operations/VisualTriggerHazardMirrorPage')
 )
+const Spe947EvaluatorMirrorRoute = createRouteComponent(
+  () => import('../features/operations/Spe947EvaluatorMirrorPage')
+)
 const EntityWelfareReclassificationMirrorRoute = createRouteComponent(
   () => import('../features/operations/EntityWelfareReclassificationMirrorPage')
 )
@@ -230,6 +233,10 @@ export default function App() {
         <Route
           path="visual-trigger-hazard"
           element={renderLazyRoute(VisualTriggerHazardMirrorRoute)}
+        />
+        <Route
+          path="hazardous-content-propagation"
+          element={renderLazyRoute(Spe947EvaluatorMirrorRoute)}
         />
         <Route
           path="entity-welfare-reclassification"

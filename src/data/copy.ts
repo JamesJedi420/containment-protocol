@@ -1695,6 +1695,48 @@ export const VISUAL_TRIGGER_HAZARD_MIRROR_UI_TEXT: Record<string, string> = {
   validationWarningPrefix: 'Validation warnings:',
 }
 
+export const SPE_947_EVALUATOR_MIRROR_UI_TEXT: Record<string, string> = {
+  pageEyebrow: 'Planning mirror',
+  pageHeading: 'Hazardous content propagation',
+  pageSubtitle:
+    'Read-only operations view over persisted SPE-947 platforms, counter-memetic plans, content owners, and post-case media cases.',
+  backToDeskLabel: 'Back to Operations Desk',
+  platformsLabel: 'Platforms',
+  plansLabel: 'Counter-memetic plans',
+  ownersLabel: 'Content owners',
+  mediaCasesLabel: 'Post-case media cases',
+  weekLabel: 'Campaign week',
+  readOnlyNote:
+    'Labels mirror hydrated GameState fields only. This surface does not re-run SPE-947 evaluators or invent parent acceptance evidence.',
+  emptyTitle: 'No hazardous content evaluator records',
+  emptyBody:
+    'Persisted SPE-947 platform, plan, owner, and media-case maps will appear here after hydration. Empty maps do not satisfy parent acceptance criteria.',
+  platformsHeading: 'Persisted platforms',
+  platformsSubtitle: 'Reach, uptime, and weekly tick fields as stored — not evaluated outcomes.',
+  plansHeading: 'Persisted counter-memetic plans',
+  plansSubtitle: 'Lore, distributor, uptake, and elapsed propagation weeks as stored.',
+  ownersHeading: 'Persisted content owners',
+  ownersSubtitle: 'Incentive fields as stored — resistance outcomes are not computed here.',
+  mediaCasesHeading: 'Persisted post-case media cases',
+  mediaCasesSubtitle: 'Containment and artifact inventory as stored — residual risk is not computed here.',
+  labelColumn: 'Label',
+  viewCountColumn: 'View count',
+  uptimeColumn: 'Uptime',
+  reachColumn: 'Reach factor',
+  tickColumn: 'Last tick week',
+  loreColumn: 'Lore state',
+  distributorColumn: 'Distributor',
+  uptakeColumn: 'Uptake',
+  propagationColumn: 'Elapsed weeks',
+  incentivesColumn: 'Incentives',
+  containmentColumn: 'Local containment',
+  riskThresholdColumn: 'Risk threshold',
+  mediaArtifactsColumn: 'Media artifacts',
+  weeklyDeltaPrefix: 'Weekly delta:',
+  availableReachPrefix: 'Available reach:',
+  requiredWeeksPrefix: 'Required:',
+}
+
 export const PUBLISH_QUEUE_MIRROR_UI_TEXT: Record<string, string> = {
   pageEyebrow: 'Planning mirror',
   pageHeading: 'Publish queue',

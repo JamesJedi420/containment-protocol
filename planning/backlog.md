@@ -72,7 +72,9 @@ Mission triage full refresh remains **blocked**. SPE-2250 batch-4+ remains **def
 
 ## Recommended next step (agent handoff)
 
-**Current handoff (primary):** [SPE-2606](https://linear.app/spectranoir/issue/SPE-2606/adaptation-commercialization-persistence-kinds-slice-1) SPE-947 adaptation / commercialization persistence kinds (slice 1) — expand SPE-2573 `POST_CASE_MEDIA_KINDS` with distinct `adaptation` + `commercialization`; branch `spe-947-adaptation-commercialization-slice-1`; see `planning/spe-947-adaptation-commercialization-slice-1.md`. Coordinate with [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (co-own flavor only). Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+**Current handoff (primary):** [SPE-2609](https://linear.app/spectranoir/issue/SPE-2609/compact-media-economy-commercialization-continuity-slice-1) SPE-947 compact media-economy / commercialization continuity (slice 1) — authored economy weights / compose over SPE-2606 `commercialization` residual risk; branch `spe-947-media-economy-continuity-slice-1`; see `planning/spe-947-media-economy-continuity-slice-1.md`. Coordinate with [SPE-1085](https://linear.app/spectranoir/issue/SPE-1085) (co-own continuity flavor only). Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
+
+**Recently shipped:** [SPE-2606](https://linear.app/spectranoir/issue/SPE-2606/adaptation-commercialization-persistence-kinds-slice-1) SPE-947 adaptation / commercialization persistence kinds (slice 1) — expand SPE-2573 `POST_CASE_MEDIA_KINDS` with distinct `adaptation` + `commercialization`; PR #3116 @ `635aa445`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 
 **Recently shipped:** [SPE-2605](https://linear.app/spectranoir/issue/SPE-2605/countermeasure-ledger-link-slice-1) SPE-947 countermeasure ledger link (slice 1) — pure attempt → SPE-645-style reliability-class ledger resolve/compose; PR #3114 @ `25328220`. Parent [SPE-947](https://linear.app/spectranoir/issue/SPE-947) stays **Backlog**.
 

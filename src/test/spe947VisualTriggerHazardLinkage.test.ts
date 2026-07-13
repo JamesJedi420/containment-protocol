@@ -57,6 +57,26 @@ describe('spe947VisualTriggerHazardLinkage (SPE-2602 / SPE-947)', () => {
     expect(link.entityLabel).toBe(EXAMPLE_ACTIVE_FOOTAGE_ARTIFACT.label)
   })
 
+  it('missing spe947 entity with present registry yields missing_entity', () => {
+    const link = resolveSpe947VisualTriggerHazardLink({
+      binding: {
+        ...SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING,
+        entityId: 'artifact:does-not-exist',
+      },
+      maps: {
+        spe947ContentArtifacts: {},
+      },
+      visualTriggerHazardRecords: {
+        [BACKGROUND_FRAGMENT_LATENT_FIXTURE.id]: BACKGROUND_FRAGMENT_LATENT_FIXTURE,
+      },
+    })
+
+    expect(link.status).toBe('missing_entity')
+    expect(link.entityLabel).toBeNull()
+    expect(link.registryRecord).toEqual(BACKGROUND_FRAGMENT_LATENT_FIXTURE)
+    expect(link.registryLabel).toBe(BACKGROUND_FRAGMENT_LATENT_FIXTURE.label)
+  })
+
   it('authored EXAMPLE linkage resolves the SPE-2111 registry record', () => {
     const links = composeSpe947VisualTriggerHazardLinks({
       maps: SPE_947_EXAMPLE_PERSISTENCE_FIXTURE,

@@ -1,7 +1,8 @@
 /**
  * SPE-2576 / SPE-947: GameState persistence for shipped SPE-2568–2573 evaluator inputs.
- * Compact platform / plan / media / owner maps with sanitize/hydrate only.
- * No weekly hooks, store, UI, or propagation graph.
+ * Compact platform / plan / media / owner maps with sanitize/hydrate.
+ * Optional weekly orchestration fields (SPE-2577): weeklyViewDelta / weeklyUptimeState /
+ * lastWeeklyTickWeek. No store, UI, or propagation graph.
  */
 
 import type { ContentOwner, ContentOwnerIncentives } from './contentOwnerTakedownResistance'
@@ -63,6 +64,7 @@ export type Spe947EvaluatorPersistenceSchemaVersion =
 /**
  * Unified compact platform record for SPE-2568 reach and SPE-2569 operation evaluators.
  * Optional runtime metrics (viewCount, anomalyReach) persist evaluation context only.
+ * Optional SPE-2577 weekly fields apply only when authored — no invented growth.
  */
 export interface Spe947PersistedPlatform {
   readonly id: string
@@ -73,6 +75,20 @@ export interface Spe947PersistedPlatform {
   readonly anomalyReach?: number
   readonly uptimeState?: PlatformUptimeState
   readonly availableReach?: number
+  /** When authored, added to viewCount once per simulation week. */
+  readonly weeklyViewDelta?: number
+  /** When authored, applied as uptimeState once per simulation week. */
+  readonly weeklyUptimeState?: PlatformUptimeState
+  /** Last week the SPE-2577 platform tick mutated this record; idempotency marker. */
+  readonly lastWeeklyTickWeek?: number
+}
+
+/**
+ * Persisted counter-memetic plan with optional SPE-2577 week-close idempotency marker.
+ * Evaluator contract remains CounterMemeticPlan; tick metadata is persistence-only.
+ */
+export type Spe947PersistedCounterMemeticPlan = CounterMemeticPlan & {
+  readonly lastWeeklyTickWeek?: number
 }
 
 export interface Spe947FootageExposureBinding {
@@ -90,7 +106,7 @@ export interface Spe947TakedownResistanceBinding {
 export type Spe947PlatformRecordsMap = Record<string, Spe947PersistedPlatform>
 export type Spe947OperationRecordsMap = Record<string, PlatformOperationRequest>
 export type Spe947ContentArtifactRecordsMap = Record<string, ContentPropagationArtifact>
-export type Spe947CounterMemeticPlanRecordsMap = Record<string, CounterMemeticPlan>
+export type Spe947CounterMemeticPlanRecordsMap = Record<string, Spe947PersistedCounterMemeticPlan>
 export type Spe947ContentOwnerRecordsMap = Record<string, ContentOwner>
 export type Spe947PostCaseMediaCaseRecordsMap = Record<string, PostCaseMediaPersistenceInput>
 export type Spe947FootageExposureBindingRecordsMap = Record<string, Spe947FootageExposureBinding>
@@ -225,6 +241,26 @@ function sanitizeSpe947PlatformEntry(value: unknown): Spe947PersistedPlatform | 
     return null
   }
 
+  if (value.weeklyViewDelta !== undefined && !isNonNegativeFinite(value.weeklyViewDelta)) {
+    return null
+  }
+
+  if (value.weeklyUptimeState !== undefined && !isPlatformUptimeState(value.weeklyUptimeState)) {
+    return null
+  }
+
+  if (
+    value.lastWeeklyTickWeek !== undefined &&
+    !(
+      typeof value.lastWeeklyTickWeek === 'number' &&
+      Number.isFinite(value.lastWeeklyTickWeek) &&
+      value.lastWeeklyTickWeek >= 1 &&
+      value.lastWeeklyTickWeek === Math.trunc(value.lastWeeklyTickWeek)
+    )
+  ) {
+    return null
+  }
+
   return Object.freeze({
     id,
     label,
@@ -236,6 +272,13 @@ function sanitizeSpe947PlatformEntry(value: unknown): Spe947PersistedPlatform | 
     ...(value.anomalyReach !== undefined ? { anomalyReach: value.anomalyReach } : {}),
     ...(value.uptimeState !== undefined ? { uptimeState: value.uptimeState } : {}),
     ...(value.availableReach !== undefined ? { availableReach: value.availableReach } : {}),
+    ...(value.weeklyViewDelta !== undefined ? { weeklyViewDelta: value.weeklyViewDelta } : {}),
+    ...(value.weeklyUptimeState !== undefined
+      ? { weeklyUptimeState: value.weeklyUptimeState }
+      : {}),
+    ...(value.lastWeeklyTickWeek !== undefined
+      ? { lastWeeklyTickWeek: value.lastWeeklyTickWeek }
+      : {}),
   })
 }
 
@@ -290,7 +333,9 @@ function sanitizeSpe947ContentArtifactEntry(value: unknown): ContentPropagationA
   })
 }
 
-function sanitizeSpe947CounterMemeticPlanEntry(value: unknown): CounterMemeticPlan | null {
+function sanitizeSpe947CounterMemeticPlanEntry(
+  value: unknown
+): Spe947PersistedCounterMemeticPlan | null {
   if (!isPlainRecord(value)) {
     return null
   }
@@ -313,6 +358,18 @@ function sanitizeSpe947CounterMemeticPlanEntry(value: unknown): CounterMemeticPl
       ? value.distributorId.trim()
       : undefined
 
+  if (
+    value.lastWeeklyTickWeek !== undefined &&
+    !(
+      typeof value.lastWeeklyTickWeek === 'number' &&
+      Number.isFinite(value.lastWeeklyTickWeek) &&
+      value.lastWeeklyTickWeek >= 1 &&
+      value.lastWeeklyTickWeek === Math.trunc(value.lastWeeklyTickWeek)
+    )
+  ) {
+    return null
+  }
+
   return Object.freeze({
     id,
     label,
@@ -321,6 +378,9 @@ function sanitizeSpe947CounterMemeticPlanEntry(value: unknown): CounterMemeticPl
     elapsedPropagationWeeks: value.elapsedPropagationWeeks,
     uptakeState: value.uptakeState,
     ...(distributorId !== undefined ? { distributorId } : {}),
+    ...(value.lastWeeklyTickWeek !== undefined
+      ? { lastWeeklyTickWeek: value.lastWeeklyTickWeek }
+      : {}),
   })
 }
 
@@ -369,7 +429,9 @@ function sanitizePostCaseMediaArtifactEntry(value: unknown): PostCaseMediaArtifa
   })
 }
 
-function sanitizeSpe947PostCaseMediaCaseEntry(value: unknown): PostCaseMediaPersistenceInput | null {
+function sanitizeSpe947PostCaseMediaCaseEntry(
+  value: unknown
+): PostCaseMediaPersistenceInput | null {
   if (!isPlainRecord(value)) {
     return null
   }
@@ -597,7 +659,12 @@ export function sanitizeSpe947FootageExposureBindings(
   value: unknown,
   fallback: Spe947FootageExposureBindingRecordsMap = {}
 ): Spe947FootageExposureBindingRecordsMap {
-  return sanitizeBindingMap(value, fallback, sanitizeSpe947FootageExposureBindingEntry, 'artifactId')
+  return sanitizeBindingMap(
+    value,
+    fallback,
+    sanitizeSpe947FootageExposureBindingEntry,
+    'artifactId'
+  )
 }
 
 /** Hydration: takedown-resistance threshold bindings keyed by owner id. */
@@ -665,8 +732,21 @@ export function resolveCounterMemeticUptakeEvaluationInput(
   maps: Pick<Spe947EvaluatorPersistenceMaps, 'spe947CounterMemeticPlans'>,
   planId: string
 ): CounterMemeticUptakeEvaluationInput {
+  const plan = maps.spe947CounterMemeticPlans[planId]
+  if (!plan) {
+    return { plan: null }
+  }
+
   return {
-    plan: maps.spe947CounterMemeticPlans[planId] ?? null,
+    plan: Object.freeze({
+      id: plan.id,
+      label: plan.label,
+      loreState: plan.loreState,
+      requiredPropagationWeeks: plan.requiredPropagationWeeks,
+      elapsedPropagationWeeks: plan.elapsedPropagationWeeks,
+      uptakeState: plan.uptakeState,
+      ...(plan.distributorId !== undefined ? { distributorId: plan.distributorId } : {}),
+    }),
   }
 }
 

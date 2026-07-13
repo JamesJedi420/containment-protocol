@@ -164,6 +164,8 @@ New schema efforts should prefer **adding or tightening a child spec** over rebr
 ## SPE-947 evaluator persistence (spe-947-evaluator.v1)
 
 Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inputs (SPE-2576).
+Optional SPE-2577 week-close fields: `weeklyViewDelta`, `weeklyUptimeState`, `lastWeeklyTickWeek`.
+Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `advanceWeek`).
 
 **Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
 
@@ -173,10 +175,10 @@ Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inpu
 
 | Field | Evaluator | Notes |
 | --- | --- | --- |
-| `spe947PlatformRecords` | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics |
+| `spe947PlatformRecords` | SPE-2568 / SPE-2569 | Unified platform reach + operation fields; optional `viewCount` / `anomalyReach` runtime metrics; optional SPE-2577 `weeklyViewDelta` / `weeklyUptimeState` / `lastWeeklyTickWeek` |
 | `spe947OperationRecords` | SPE-2569 | Operation requests keyed by operation id |
 | `spe947ContentArtifacts` | SPE-2571 | Footage/post artifacts keyed by artifact id |
-| `spe947CounterMemeticPlans` | SPE-2570 | Counter-memetic plans keyed by plan id |
+| `spe947CounterMemeticPlans` | SPE-2570 | Counter-memetic plans keyed by plan id; optional SPE-2577 `lastWeeklyTickWeek` |
 | `spe947ContentOwners` | SPE-2572 | Content owners keyed by owner id |
 | `spe947PostCaseMediaCases` | SPE-2573 | Post-case media inputs keyed by case id |
 | `spe947FootageExposureBindings` | SPE-2571 | Optional baseline bindings keyed by artifact id |

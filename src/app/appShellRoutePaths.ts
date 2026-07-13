@@ -32,6 +32,7 @@ export const APP_SHELL_STATIC_ROUTE_PATHS = [
   'mass-anomalous-population-emergence',
   'modifiable-data-packs',
   'visual-trigger-hazard',
+  'hazardous-content-propagation',
   'entity-welfare-reclassification',
   'affiliation-person-status',
   'contained-person-therapeutic-care',

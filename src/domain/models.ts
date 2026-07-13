@@ -313,6 +313,7 @@ import type {
   Spe947PlatformRecordsMap,
   Spe947PostCaseMediaCaseRecordsMap,
   Spe947TakedownResistanceBindingRecordsMap,
+  Spe947VisualTriggerHazardBindingRecordsMap,
 } from './spe947EvaluatorPersistence'
 import type { SquadMetadata } from './squadMetadata'
 import type { SquadKitTemplate } from './squadKitTemplate'
@@ -2825,6 +2826,12 @@ export interface GameState {
    * SPE-2576 slice 1: takedown-resistance threshold bindings keyed by owner id.
    */
   spe947TakedownResistanceBindings?: Spe947TakedownResistanceBindingRecordsMap
+
+  /**
+   * SPE-2602 slice 1: authored spe947* entity → visualTriggerHazardId bindings (keyed by binding id).
+   * Hydration drops invalid or duplicate-id entries without throwing. Read/compose only.
+   */
+  spe947VisualTriggerHazardBindings?: Spe947VisualTriggerHazardBindingRecordsMap
 
   /**
    * SPE-2518 slice 1: persisted affiliation/person-status evidence records (keyed by record id).

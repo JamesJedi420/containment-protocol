@@ -75,7 +75,7 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 | Pursuit vector simulator integration | SPE-947 sibling | Out of domain-evaluator wave |
 | Countermeasure ledger link | SPE-947 sibling | Out of domain-evaluator wave |
 | Adaptation / commercialization persistence kinds | SPE-947 / SPE-1085 | Out of SPE-2573 slice-1 kinds |
-| Full SPE-2111 registry linkage | SPE-947 follow-up child | Compact evaluator inputs only; registry remains substrate |
+| Full SPE-2111 registry linkage | **In Progress** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) | Authored bind map + read/compose over `visualTriggerHazardRecords` |
 | Parent umbrella Done | Later SPE-947 reconciliation | Domain-evaluator Yes ≠ umbrella Done while wire-up remains |
 
 ## Validation

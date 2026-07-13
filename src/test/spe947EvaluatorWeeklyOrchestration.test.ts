@@ -62,6 +62,7 @@ describe('spe947EvaluatorWeeklyOrchestration (SPE-2577 slice 1)', () => {
       spe947PostCaseMediaCases: {},
       spe947FootageExposureBindings: {},
       spe947TakedownResistanceBindings: {},
+      spe947VisualTriggerHazardBindings: {},
     }
 
     expect(applyWeeklySpe947EvaluatorTick(empty, 12)).toBe(empty)
@@ -227,6 +228,7 @@ describe('spe947EvaluatorWeeklyOrchestration (SPE-2577 slice 1)', () => {
         spe947PostCaseMediaCases: {},
         spe947FootageExposureBindings: {},
         spe947TakedownResistanceBindings: {},
+        spe947VisualTriggerHazardBindings: {},
       },
       10
     )

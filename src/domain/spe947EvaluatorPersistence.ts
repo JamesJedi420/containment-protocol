@@ -2,7 +2,9 @@
  * SPE-2576 / SPE-947: GameState persistence for shipped SPE-2568–2573 evaluator inputs.
  * Compact platform / plan / media / owner maps with sanitize/hydrate.
  * Optional weekly orchestration fields (SPE-2577): weeklyViewDelta / weeklyUptimeState /
- * lastWeeklyTickWeek. No store, UI, or propagation graph.
+ * lastWeeklyTickWeek.
+ * Optional SPE-2602 SPE-2111 registry bindings: spe947VisualTriggerHazardBindings.
+ * No store, UI, or propagation graph.
  */
 
 import type { ContentOwner, ContentOwnerIncentives } from './contentOwnerTakedownResistance'
@@ -55,8 +57,36 @@ import {
   type PlatformReachEvaluationInput,
 } from './platformReachMultiplier'
 import { EXAMPLE_PERSISTING_POST_CASE_MEDIA } from './postCaseMediaPersistence'
+import { BACKGROUND_FRAGMENT_LATENT_FIXTURE } from './visualTriggerHazardRegistry'
 
 export const SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION = 'spe-947-evaluator.v1' as const
+
+export const SPE_947_VISUAL_TRIGGER_HAZARD_LINK_ENTITY_KINDS = [
+  'platform',
+  'content_artifact',
+  'post_case_media_artifact',
+  'counter_memetic_plan',
+  'content_owner',
+] as const
+
+export type Spe947VisualTriggerHazardLinkEntityKind =
+  (typeof SPE_947_VISUAL_TRIGGER_HAZARD_LINK_ENTITY_KINDS)[number]
+
+/**
+ * Authored id-only link from a spe947* entity to a visualTriggerHazardRecords entry.
+ * Registry fields stay on SPE-2111 records — bindings never duplicate registry truth.
+ */
+export interface Spe947VisualTriggerHazardBinding {
+  readonly id: string
+  readonly entityKind: Spe947VisualTriggerHazardLinkEntityKind
+  readonly entityId: string
+  readonly visualTriggerHazardId: string
+}
+
+export type Spe947VisualTriggerHazardBindingRecordsMap = Record<
+  string,
+  Spe947VisualTriggerHazardBinding
+>
 
 export type Spe947EvaluatorPersistenceSchemaVersion =
   typeof SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION
@@ -124,6 +154,7 @@ export interface Spe947EvaluatorPersistenceMaps {
   readonly spe947PostCaseMediaCases: Spe947PostCaseMediaCaseRecordsMap
   readonly spe947FootageExposureBindings: Spe947FootageExposureBindingRecordsMap
   readonly spe947TakedownResistanceBindings: Spe947TakedownResistanceBindingRecordsMap
+  readonly spe947VisualTriggerHazardBindings: Spe947VisualTriggerHazardBindingRecordsMap
 }
 
 type PlainRecord = Record<string, unknown>
@@ -179,6 +210,15 @@ function isUptakeState(value: unknown): value is CounterMemeticUptakeState {
 
 function isMediaKind(value: unknown): value is PostCaseMediaKind {
   return typeof value === 'string' && (POST_CASE_MEDIA_KINDS as readonly string[]).includes(value)
+}
+
+function isVisualTriggerHazardLinkEntityKind(
+  value: unknown
+): value is Spe947VisualTriggerHazardLinkEntityKind {
+  return (
+    typeof value === 'string' &&
+    (SPE_947_VISUAL_TRIGGER_HAZARD_LINK_ENTITY_KINDS as readonly string[]).includes(value)
+  )
 }
 
 function sanitizeOwnerIncentives(value: unknown): ContentOwnerIncentives | null {
@@ -528,6 +568,33 @@ function sanitizeSpe947TakedownResistanceBindingEntry(
   })
 }
 
+function sanitizeSpe947VisualTriggerHazardBindingEntry(
+  value: unknown
+): Spe947VisualTriggerHazardBinding | null {
+  if (!isPlainRecord(value)) {
+    return null
+  }
+
+  const id = normalizeId(value.id, '')
+  const entityId = normalizeId(value.entityId, '')
+  const visualTriggerHazardId = normalizeId(value.visualTriggerHazardId, '')
+  if (
+    id.length === 0 ||
+    entityId.length === 0 ||
+    visualTriggerHazardId.length === 0 ||
+    !isVisualTriggerHazardLinkEntityKind(value.entityKind)
+  ) {
+    return null
+  }
+
+  return Object.freeze({
+    id,
+    entityKind: value.entityKind,
+    entityId,
+    visualTriggerHazardId,
+  })
+}
+
 function sanitizeKeyedRecordMap<T extends { readonly id: string }>(
   value: unknown,
   fallback: Record<string, T>,
@@ -680,6 +747,14 @@ export function sanitizeSpe947TakedownResistanceBindings(
   )
 }
 
+/** Hydration: SPE-2111 registry bindings keyed by binding id. */
+export function sanitizeSpe947VisualTriggerHazardBindings(
+  value: unknown,
+  fallback: Spe947VisualTriggerHazardBindingRecordsMap = {}
+): Spe947VisualTriggerHazardBindingRecordsMap {
+  return sanitizeKeyedRecordMap(value, fallback, sanitizeSpe947VisualTriggerHazardBindingEntry)
+}
+
 export function toPlatformReachNode(platform: Spe947PersistedPlatform): PlatformReachNode {
   return Object.freeze({
     id: platform.id,
@@ -812,8 +887,18 @@ export function extractSpe947EvaluatorPersistenceMaps(
     spe947PostCaseMediaCases: game.spe947PostCaseMediaCases ?? {},
     spe947FootageExposureBindings: game.spe947FootageExposureBindings ?? {},
     spe947TakedownResistanceBindings: game.spe947TakedownResistanceBindings ?? {},
+    spe947VisualTriggerHazardBindings: game.spe947VisualTriggerHazardBindings ?? {},
   }
 }
+
+/** Authored EXAMPLE binding: active footage artifact → background-fragment latent hazard. */
+export const SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING: Spe947VisualTriggerHazardBinding =
+  Object.freeze({
+    id: 'spe947-vth-link:artifact:leak-footage-clip',
+    entityKind: 'content_artifact' as const,
+    entityId: EXAMPLE_ACTIVE_FOOTAGE_ARTIFACT.id,
+    visualTriggerHazardId: BACKGROUND_FRAGMENT_LATENT_FIXTURE.id,
+  })
 
 /** Compact persisted fixture bundle mirroring SPE-2568–2573 EXAMPLE evaluator inputs. */
 export const SPE_947_EXAMPLE_PERSISTENCE_FIXTURE: Spe947EvaluatorPersistenceMaps = Object.freeze({
@@ -858,5 +943,8 @@ export const SPE_947_EXAMPLE_PERSISTENCE_FIXTURE: Spe947EvaluatorPersistenceMaps
       resistThreshold: 8,
       contestedThreshold: 4,
     }),
+  }),
+  spe947VisualTriggerHazardBindings: Object.freeze({
+    [SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING.id]: SPE_947_EXAMPLE_VISUAL_TRIGGER_HAZARD_BINDING,
   }),
 })

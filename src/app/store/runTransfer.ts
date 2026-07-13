@@ -249,6 +249,7 @@ import {
   sanitizeSpe947PlatformRecords,
   sanitizeSpe947PostCaseMediaCases,
   sanitizeSpe947TakedownResistanceBindings,
+  sanitizeSpe947VisualTriggerHazardBindings,
 } from '../../domain/spe947EvaluatorPersistence'
 import {
   buildCandidateEvaluation,
@@ -9053,6 +9054,10 @@ export function hydrateGame(
     game.spe947TakedownResistanceBindings,
     fallback.spe947TakedownResistanceBindings ?? {}
   )
+  const spe947VisualTriggerHazardBindings = sanitizeSpe947VisualTriggerHazardBindings(
+    game.spe947VisualTriggerHazardBindings,
+    fallback.spe947VisualTriggerHazardBindings ?? {}
+  )
   const affiliationPersonStatusRecords = sanitizeAffiliationPersonStatusRecords(
     game.affiliationPersonStatusRecords,
     fallback.affiliationPersonStatusRecords ?? {}
@@ -9313,6 +9318,7 @@ export function hydrateGame(
     spe947PostCaseMediaCases,
     spe947FootageExposureBindings,
     spe947TakedownResistanceBindings,
+    spe947VisualTriggerHazardBindings,
     affiliationPersonStatusRecords,
     affiliationFileWorkQueueActionRecords,
     affiliationFileWorkQueueEvidenceResolutionRecords,

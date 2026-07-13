@@ -42,6 +42,7 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     expect(state.spe947PostCaseMediaCases).toEqual({})
     expect(state.spe947FootageExposureBindings).toEqual({})
     expect(state.spe947TakedownResistanceBindings).toEqual({})
+    expect(state.spe947VisualTriggerHazardBindings).toEqual({})
   })
 
   it('drops invalid and duplicate-id entries during sanitize without throwing', () => {
@@ -150,6 +151,9 @@ describe('spe947EvaluatorPersistence (SPE-2576 / SPE-947)', () => {
     expect(loaded.spe947FootageExposureBindings).toEqual(state.spe947FootageExposureBindings)
     expect(loaded.spe947TakedownResistanceBindings).toEqual(
       state.spe947TakedownResistanceBindings
+    )
+    expect(loaded.spe947VisualTriggerHazardBindings).toEqual(
+      state.spe947VisualTriggerHazardBindings
     )
   })
 

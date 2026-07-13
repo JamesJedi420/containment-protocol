@@ -166,6 +166,7 @@ New schema efforts should prefer **adding or tightening a child spec** over rebr
 Documents compact GameState maps for shipped SPE-2568–2573 pure evaluator inputs (SPE-2576).
 Optional SPE-2577 week-close fields: `weeklyViewDelta`, `weeklyUptimeState`, `lastWeeklyTickWeek`.
 Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `advanceWeek`).
+Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings` (id-only links; compose in `spe947VisualTriggerHazardLinkage.ts`).
 
 **Current version**: `spe-947-evaluator.v1` — exported as `SPE_947_EVALUATOR_PERSISTENCE_SCHEMA_VERSION`
 
@@ -183,6 +184,7 @@ Weekly tick: `src/domain/spe947EvaluatorWeeklyOrchestration.ts` (wired from `adv
 | `spe947PostCaseMediaCases` | SPE-2573 | Post-case media inputs keyed by case id |
 | `spe947FootageExposureBindings` | SPE-2571 | Optional baseline bindings keyed by artifact id |
 | `spe947TakedownResistanceBindings` | SPE-2572 | Threshold bindings keyed by owner id |
+| `spe947VisualTriggerHazardBindings` | SPE-2602 | Authored `entityKind` + `entityId` → `visualTriggerHazardId`; read/compose only against `visualTriggerHazardRecords` |
 
 ### Hydration
 

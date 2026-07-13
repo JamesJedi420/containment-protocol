@@ -193,6 +193,28 @@ Optional SPE-2602 SPE-2111 registry bindings: `spe947VisualTriggerHazardBindings
 - Invalid, duplicate-id, and mismatched-key entries are dropped without throw
 - Default starting state: empty `{}` maps in `createStartingState`
 
+### Workflow and public contract
+
+Use `extractSpe947EvaluatorPersistenceMaps(game)` when a caller needs a complete, defaulted bundle of SPE-947 maps. The helper keeps empty maps empty; an empty bundle is a no-op and does not satisfy the SPE-947 parent acceptance bar.
+
+Week-close handling lives in `src/domain/spe947EvaluatorWeeklyOrchestration.ts` and runs from `advanceWeek` after the output week is known. Only two authored inputs can mutate during the weekly tick:
+
+- `spe947CounterMemeticPlans`: crafted plans with a non-empty `distributorId` increment `elapsedPropagationWeeks` once per week and stamp `lastWeeklyTickWeek`.
+- `spe947PlatformRecords`: authored `weeklyViewDelta` and `weeklyUptimeState` apply once per week and stamp `lastWeeklyTickWeek`. Missing `viewCount` behaves as `0` when a view delta is authored.
+
+Weekly report notes are read-only projections of the pre-tick and post-tick maps. `buildWeeklySpe947EvaluatorTransitionReportNotes` emits `spe947_evaluator.weekly_transition` notes only when a plan elapsed-week, platform view-count, or platform uptime value changed.
+
+The planning mirror is read-only. `getSpe947EvaluatorMirrorView` displays hydrated platform, plan, owner, and media-case rows without calling the SPE-2568 through SPE-2573 evaluators or writing to store state.
+
+SPE-2111 linkage is id-only. `spe947VisualTriggerHazardBindings` points a SPE-947 entity to a `visualTriggerHazardRecords` id, and `composeSpe947VisualTriggerHazardLinks` resolves labels and statuses without copying registry fields or mutating either map. Unknown registry ids return `missing_registry`; known registry ids with missing SPE-947 entities return `missing_entity`.
+
+### Agent checks
+
+- Do not add mid-week mutations for these maps. Week-close changes belong in `applyWeeklySpe947EvaluatorTick`.
+- Do not duplicate SPE-2111 registry fields onto `spe947VisualTriggerHazardBindings`; bindings hold ids only.
+- Do not treat empty maps, missing bindings, or missing registry links as parent acceptance evidence.
+- Focused validation for this contract: `npm run test:run -- src/test/spe947EvaluatorPersistence.test.ts src/test/spe947EvaluatorWeeklyOrchestration.test.ts src/test/spe947EvaluatorSurfacing.test.ts src/test/spe947VisualTriggerHazardLinkage.test.ts src/test/advanceWeek.spe947Evaluator.integration.test.ts src/test/reportNoteTypeAudit.test.ts`
+
 ### Versioning
 
 - No migration path defined yet (single version)

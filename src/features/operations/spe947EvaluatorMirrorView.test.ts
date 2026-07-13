@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { APP_ROUTES } from '../../app/routes'
 import { createStartingState } from '../../data/startingState'
 import { SPE_947_EXAMPLE_PERSISTENCE_FIXTURE } from '../../domain/spe947EvaluatorPersistence'
+import { getFrontDeskHubView } from './frontDeskView'
 import {
   formatSpe947EnumLabel,
   getSpe947EvaluatorMirrorView,
@@ -90,5 +92,13 @@ describe('spe947EvaluatorMirrorView (SPE-2578 slice 1)', () => {
   it('formats enum labels for CP-neutral UI copy', () => {
     expect(formatSpe947EnumLabel('degraded')).toBe('Degraded')
     expect(formatSpe947EnumLabel('crafted')).toBe('Crafted')
+  })
+
+  it('exposes Front Desk quick link to the hazardous content propagation mirror', () => {
+    const hub = getFrontDeskHubView(createStartingState())
+
+    expect(
+      hub.quickLinks.some((link) => link.href === APP_ROUTES.hazardousContentPropagation)
+    ).toBe(true)
   })
 })

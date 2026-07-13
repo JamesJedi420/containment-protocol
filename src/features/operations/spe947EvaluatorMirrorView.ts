@@ -168,7 +168,10 @@ function toMediaCaseRow(mediaCase: PostCaseMediaPersistenceInput): Spe947MediaCa
   return Object.freeze({
     id: caseId,
     label: mediaCase.caseLabel?.trim() ? mediaCase.caseLabel : caseId,
-    localContainmentSucceededLabel: formatYesNo(mediaCase.localContainmentSucceeded === true),
+    localContainmentSucceededLabel:
+      typeof mediaCase.localContainmentSucceeded === 'boolean'
+        ? formatYesNo(mediaCase.localContainmentSucceeded)
+        : '—',
     riskThresholdLabel: formatOptionalNumber(mediaCase.riskThreshold),
     mediaArtifactCountLabel: String(artifacts.length),
     mediaArtifactLabels: Object.freeze(

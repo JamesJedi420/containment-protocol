@@ -72,10 +72,10 @@ Prior grooming (stale matrix): [SPE-2481](https://linear.app/spectranoir/issue/S
 | Weekly / `advanceWeek` orchestration hooks | New SPE-947 child | Evaluators not wired into week-close |
 | Store / UI / planning-mirror surfacing | New SPE-947 child | No operator surface for reach, uptake, takedown, or persistence decisions |
 | Propagation graph wire-up | SPE-956 / harvest #965 family | Deferred since SPE-2111 slice 1; not closed by SPE-2568–2574 |
-| Pursuit vector simulator integration | SPE-947 sibling | Out of domain-evaluator wave |
+| Pursuit vector simulator integration | **In Progress** — [SPE-2604](https://linear.app/spectranoir/issue/SPE-2604) | Pure pursuit-vector readings over SPE-2602 linkage + SPE-2111 pursuit fields |
 | Countermeasure ledger link | SPE-947 sibling | Out of domain-evaluator wave |
 | Adaptation / commercialization persistence kinds | SPE-947 / SPE-1085 | Out of SPE-2573 slice-1 kinds |
-| Full SPE-2111 registry linkage | **In Progress** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) | Authored bind map + read/compose over `visualTriggerHazardRecords` |
+| Full SPE-2111 registry linkage | **Done** — [SPE-2602](https://linear.app/spectranoir/issue/SPE-2602) / PR #3108 | Authored bind map + read/compose over `visualTriggerHazardRecords` |
 | Parent umbrella Done | Later SPE-947 reconciliation | Domain-evaluator Yes ≠ umbrella Done while wire-up remains |
 
 ## Validation

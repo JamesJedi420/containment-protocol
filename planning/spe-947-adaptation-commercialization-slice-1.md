@@ -65,7 +65,7 @@ Ship the smallest deterministic expansion of SPE-2573 post-case media kinds so *
 | -------------------------------------- | ---------------------------- | ------------------------ |
 | Propagation graph wire-up              | SPE-956 / harvest #965       | Deferred since SPE-2111  |
 | Full SPE-1085 canon continuity         | SPE-1085                     | Co-own coordination only |
-| Full commercialization / media-economy | Later SPE-947 sibling        | Compact kinds only       |
+| Full commercialization / media-economy | **SPE-2609** (continuity slice 1) | Compact kinds only here; weights/compose owned by SPE-2609 |
 | Parent umbrella Done                   | Later SPE-947 reconciliation | Wire-up still open       |
 
 ## See also

@@ -22,7 +22,6 @@ import {
 export type Spe947PursuitVectorBand = 'none' | 'latent' | 'active' | 'unresolved_link'
 
 export type Spe947PursuitVectorReasonCode =
-  | 'empty_bindings'
   | 'unresolved_link'
   | 'missing_pursuit_targets'
   | 'pursuit_dormant'

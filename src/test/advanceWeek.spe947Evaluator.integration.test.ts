@@ -100,4 +100,83 @@ describe('advanceWeek SPE-947 evaluator weekly orchestration (SPE-2577)', () => 
 
     expect(nextState.spe947PlatformRecords?.[EXAMPLE_RUMOR_FORUM_PLATFORM.id]).toEqual(platform)
   })
+
+  it('surfaces weekly transition notes when plan elapsed weeks advance', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.spe947CounterMemeticPlans = {
+      [EXAMPLE_COUNTER_MEMETIC_PLAN.id]: propagatingPlan(),
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe947_evaluator.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toHaveLength(1)
+    expect(transitionNotes[0]?.content).toContain(EXAMPLE_COUNTER_MEMETIC_PLAN.label)
+    expect(transitionNotes[0]?.content).toContain('Elapsed 0 → 1')
+  })
+
+  it('surfaces weekly transition notes when platform view delta applies', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 9
+    state.spe947PlatformRecords = {
+      [EXAMPLE_RUMOR_FORUM_PLATFORM.id]: platformWithViewDelta(),
+    }
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe947_evaluator.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toHaveLength(1)
+    expect(transitionNotes[0]?.content).toContain(EXAMPLE_RUMOR_FORUM_PLATFORM.label)
+    expect(transitionNotes[0]?.content).toContain('Views 100 → 125')
+  })
+
+  it('does not surface weekly transition notes when spe947 maps are empty', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.spe947PlatformRecords = {}
+    state.spe947CounterMemeticPlans = {}
+
+    const nextState = advanceWeek(state)
+    const transitionNotes =
+      nextState.reports[nextState.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe947_evaluator.weekly_transition'
+      ) ?? []
+
+    expect(transitionNotes).toEqual([])
+  })
+
+  it('does not re-emit transition notes when maps are unchanged on same-week re-tick', () => {
+    const state = createStartingState()
+    freezeCasesForQuietWeek(state)
+    state.week = 4
+    state.spe947CounterMemeticPlans = {
+      [EXAMPLE_COUNTER_MEMETIC_PLAN.id]: propagatingPlan(),
+    }
+
+    const once = advanceWeek(state)
+    const retickInput = {
+      ...once,
+      spe947CounterMemeticPlans: once.spe947CounterMemeticPlans,
+    }
+    retickInput.week = 4
+    const reticked = advanceWeek(retickInput)
+    const transitionNotes =
+      reticked.reports[reticked.reports.length - 1]?.notes?.filter(
+        (note) => note.type === 'spe947_evaluator.weekly_transition'
+      ) ?? []
+
+    expect(reticked.spe947CounterMemeticPlans?.[EXAMPLE_COUNTER_MEMETIC_PLAN.id]).toEqual(
+      once.spe947CounterMemeticPlans?.[EXAMPLE_COUNTER_MEMETIC_PLAN.id]
+    )
+    expect(transitionNotes).toEqual([])
+  })
 })
